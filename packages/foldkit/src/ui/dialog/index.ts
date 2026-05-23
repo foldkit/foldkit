@@ -79,6 +79,28 @@ export type CompletedCloseDialog = typeof CompletedCloseDialog.Type
 
 export type Message = typeof Message.Type
 
+// OUT MESSAGE
+
+/** Sent once the dialog has transitioned to open. Distinct from the
+ *  internal `Opened` Message (which is the request to open); this
+ *  OutMessage fires after `update` has processed the request and
+ *  `isOpen` reflects the new state. Programmatic `Dialog.open` on an
+ *  already-open model is a no-op that does not re-emit. */
+export const OpenedPanel = m('OpenedPanel')
+
+/** Sent once the dialog has transitioned to closed. Programmatic
+ *  `Dialog.close` on an already-closed model is a no-op that does not
+ *  re-emit; calling close while a leave animation is in progress is
+ *  also a no-op. */
+export const ClosedPanel = m('ClosedPanel')
+
+/** Union of out-messages the dialog component can produce. */
+export const OutMessage = S.Union([OpenedPanel, ClosedPanel])
+
+export type OpenedPanel = typeof OpenedPanel.Type
+export type ClosedPanel = typeof ClosedPanel.Type
+export type OutMessage = typeof OutMessage.Type
+
 // INIT
 
 /** Configuration for creating a dialog model with `init`. */
@@ -105,7 +127,11 @@ export const init = (config: InitConfig): Model => ({
 
 const dialogSelector = (id: string): string => `#${id}`
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message>>,
+  Option.Option<OutMessage>,
+]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 /** Locks page scroll and calls `showModal()` on the native dialog element. */
@@ -177,6 +203,7 @@ const delegateToAnimation = (
   return [
     evo(model, { animation: () => nextAnimation }),
     [...mappedCommands, ...additionalCommands],
+    Option.none(),
   ]
 }
 
@@ -186,13 +213,15 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     withUpdateReturn,
     M.tagsExhaustive({
       Opened: () => {
+        const wasClosed = !model.isOpen
         const maybeShow = Option.liftPredicate(
           ShowDialog({
             id: model.id,
             maybeFocusSelector: model.maybeFocusSelector,
           }),
-          () => !model.isOpen,
+          () => wasClosed,
         )
+        const maybeOut = wasClosed ? Option.some(OpenedPanel()) : Option.none()
 
         if (model.isAnimated) {
           const [nextModel, animationCommands] = delegateToAnimation(
@@ -203,10 +232,15 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           return [
             evo(nextModel, { isOpen: () => true }),
             [...Option.toArray(maybeShow), ...animationCommands],
+            maybeOut,
           ]
         }
 
-        return [evo(model, { isOpen: () => true }), Option.toArray(maybeShow)]
+        return [
+          evo(model, { isOpen: () => true }),
+          Option.toArray(maybeShow),
+          maybeOut,
+        ]
       },
 
       Closed: () => {
@@ -216,8 +250,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           transitionState === 'LeaveAnimating'
 
         if (isLeaving) {
-          return [model, []]
+          return [model, [], Option.none()]
         }
+
+        const wasOpen = model.isOpen
+        const maybeOut = wasOpen ? Option.some(ClosedPanel()) : Option.none()
 
         if (model.isAnimated) {
           const [nextModel, animationCommands] = delegateToAnimation(
@@ -225,36 +262,34 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             AnimationHid(),
           )
 
-          return [nextModel, animationCommands]
+          return [nextModel, animationCommands, maybeOut]
         }
 
         const maybeClose = Option.liftPredicate(
           CloseDialog({ id: model.id }),
-          () => model.isOpen,
+          () => wasOpen,
         )
 
-        return [evo(model, { isOpen: () => false }), Option.toArray(maybeClose)]
+        return [
+          evo(model, { isOpen: () => false }),
+          Option.toArray(maybeClose),
+          maybeOut,
+        ]
       },
 
       GotAnimationMessage: ({ message: animationMessage }) =>
         delegateToAnimation(model, animationMessage),
 
-      CompletedShowDialog: () => [model, []],
-      CompletedCloseDialog: () => [model, []],
+      CompletedShowDialog: () => [model, [], Option.none()],
+      CompletedCloseDialog: () => [model, [], Option.none()],
     }),
   )
 
 /** Programmatically opens the dialog. */
-export const open = (
-  model: Model,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  update(model, Opened())
+export const open = (model: Model): UpdateReturn => update(model, Opened())
 
 /** Programmatically closes the dialog. */
-export const close = (
-  model: Model,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  update(model, Closed())
+export const close = (model: Model): UpdateReturn => update(model, Closed())
 
 // VIEW
 

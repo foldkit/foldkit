@@ -77,6 +77,12 @@ const viewConfigHeader: TableOfContentsEntry = {
   text: 'ViewConfig',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -88,6 +94,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiReferenceHeader,
   initConfigHeader,
   viewConfigHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -164,6 +171,21 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'attributes',
     type: 'ReadonlyArray<Attribute<Message>>',
     description: 'Additional attributes for the native <dialog> element.',
+  },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'OpenedPanel',
+    type: '{}',
+    description:
+      'Emitted once the dialog has transitioned to open. Distinct from the internal Opened message (which is the request to open); this OutMessage fires after `update` has processed the request and `isOpen` reflects the new state.',
+  },
+  {
+    name: 'ClosedPanel',
+    type: '{}',
+    description:
+      'Emitted once the dialog has transitioned to closed. Programmatic `Dialog.close` on an already-closed model is a no-op that does not re-emit, as is calling close while a leave animation is already in progress.',
   },
 ]
 
@@ -352,6 +374,17 @@ export const view = <ParentMessage>(
       ),
       para('Configuration object passed to ', inlineCode('Dialog.view()'), '.'),
       propTable(viewConfigProps),
+      heading(
+        outMessageHeader.level,
+        outMessageHeader.id,
+        outMessageHeader.text,
+      ),
+      para(
+        'Messages emitted to the parent through the third element of ',
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
+        '. Pattern-match on the OutMessage in your update handler.',
+      ),
+      propTable(outMessageProps),
     ],
   )
 }
