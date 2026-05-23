@@ -324,9 +324,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         'The Submodel exports a view defined with ',
         inlineCode('Submodel.defineView<Model, Message>'),
-        ', which produces a function from the child’s Model + Message to ',
+        '. The function takes the child’s ',
+        inlineCode('model'),
+        ' and returns ',
         inlineCode('Html'),
-        ':',
+        '. The ',
+        inlineCode('<Model, Message>'),
+        ' type arguments brand the view so ',
+        inlineCode('h.submodel'),
+        ' can infer the child’s Message type at the embed site:',
       ),
       highlightedCodeBlock(
         h.div(

@@ -189,7 +189,7 @@ const outMessageProps: ReadonlyArray<PropEntry> = [
     name: 'Selected',
     type: '{ index: number }',
     description:
-      'Emitted when a menu item is selected. Carries the index into the items array supplied at view time. The menu has already closed when this fires; consumers no longer need to call `Menu.close` manually. Pattern-match the third tuple element of Menu.update in your GotMenuMessage handler to look up the item and dispatch the corresponding domain action.',
+      'Emitted when a menu item is selected. Carries the index into the items array supplied at view time. Menu closes itself on selection; the parent does not need to dispatch Menu.close. Pattern-match the third tuple element of Menu.update in your GotMenuMessage handler to look up the item and dispatch the corresponding domain action.',
   },
 ]
 
@@ -274,14 +274,14 @@ export const view = <ParentMessage>(
       ),
       para(
         'Menu emits ',
-        inlineCode('Selected({ value })'),
+        inlineCode('Selected({ index })'),
         ' through its ',
         inlineCode('OutMessage'),
         ' when an item is selected. Pattern-match the third tuple element of ',
         inlineCode('Menu.update'),
         '`s return in your ',
         inlineCode('GotMenuMessage'),
-        ' handler to react. Menu closes automatically after selection.',
+        ' handler to look up the item and dispatch the domain action. Menu closes automatically after selection.',
       ),
       demoContainer(...Menu.basicDemo(model.menuBasicDemo, toParentMessage)),
       highlightedCodeBlock(
