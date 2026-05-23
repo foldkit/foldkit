@@ -24,6 +24,8 @@ import { coreArchitectureRouter, homeRouter } from '../route'
 import { betaTag, emailSignupContentView, skipNavLink } from './shared'
 import { themeSelector } from './themeSelector'
 
+const PlaygroundMenu = Ui.Menu.create<ExampleSlug>()
+
 const PagefindBody = html<Message>().DataAttribute('pagefind-body', '')
 
 // LANDING HEADER
@@ -205,7 +207,7 @@ const playgroundMenuView = (
 
   return h.submodel({
     id: menuModel.id,
-    view: Ui.Menu.view<ExampleSlug>(),
+    view: PlaygroundMenu.view,
     model: menuModel,
     inputs: {
       anchor: PLAYGROUND_MENU_ANCHOR,

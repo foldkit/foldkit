@@ -56,6 +56,8 @@ const ICON_SIZE = 'w-4 h-4'
 
 type MenuItem = 'Edit' | 'Duplicate' | 'Archive' | 'Move' | 'Delete'
 
+export const DemoMenu = Ui.Menu.create<MenuItem>()
+
 const MENU_ITEMS: ReadonlyArray<MenuItem> = [
   'Edit',
   'Duplicate',
@@ -138,7 +140,7 @@ export const basicDemo = <ParentMessage>(
       [
         h.submodel({
           id: menuModel.id,
-          view: Ui.Menu.view<MenuItem>(),
+          view: DemoMenu.view,
           model: menuModel,
           inputs: menuViewConfig<ParentMessage>(basicItemsClassName),
           toParentMessage: message =>
@@ -161,7 +163,7 @@ export const animatedDemo = <ParentMessage>(
       [
         h.submodel({
           id: menuModel.id,
-          view: Ui.Menu.view<MenuItem>(),
+          view: DemoMenu.view,
           model: menuModel,
           inputs: menuViewConfig<ParentMessage>(animatedItemsClassName),
           toParentMessage: message =>

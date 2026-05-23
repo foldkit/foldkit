@@ -77,7 +77,7 @@ import {
   ThemePreference,
 } from './message'
 import * as Page from './page'
-import { examples } from './page/example/meta'
+import { type ExampleSlug } from './page/example/meta'
 import {
   AppRoute,
   isLandingHeaderAlwaysVisible,
@@ -265,6 +265,8 @@ export const Model = S.Struct({
 })
 
 export type Model = typeof Model.Type
+
+const PlaygroundMenu = Ui.Menu.create<ExampleSlug>()
 
 // INIT
 
@@ -730,7 +732,7 @@ export const update = (
       },
 
       GotPlaygroundMenuMessage: ({ message }) => {
-        const [nextMenu, menuCommands, maybeOut] = Ui.Menu.update(
+        const [nextMenu, menuCommands, maybeOut] = PlaygroundMenu.update(
           model.playgroundMenu,
           message,
         )
@@ -741,24 +743,21 @@ export const update = (
           Model,
           ReadonlyArray<Command.Command<Message>>,
         ]
-        const slugs = examples.map(example => example.slug)
 
         return Option.match(maybeOut, {
           onNone: (): UpdateReturn => [
             evo(model, { playgroundMenu: () => nextMenu }),
             mappedCommands,
           ],
-          onSome: M.type<Ui.Menu.OutMessage>().pipe(
+          onSome: M.type<Ui.Menu.OutMessage<ExampleSlug>>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
-              Selected: ({ index }) => [
+              Selected: ({ item }) => [
                 evo(model, { playgroundMenu: () => nextMenu }),
                 [
                   ...mappedCommands,
                   NavigateInternal({
-                    url: playgroundRouter({
-                      exampleSlug: Array.getUnsafe(slugs, index),
-                    }),
+                    url: playgroundRouter({ exampleSlug: item }),
                   }),
                 ],
               ],

@@ -187,9 +187,9 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
 const outMessageProps: ReadonlyArray<PropEntry> = [
   {
     name: 'Selected',
-    type: '{ index: number }',
+    type: '{ item: Item; index: number }',
     description:
-      'Emitted when a menu item is selected. Carries the index into the items array supplied at view time. Menu closes itself on selection; the parent does not need to dispatch Menu.close. Pattern-match the third tuple element of Menu.update in your GotMenuMessage handler to look up the item and dispatch the corresponding domain action.',
+      'Emitted when a menu item is selected. Carries both the item (typed as your `Item` union via `Menu.create<Item>()`) and its index into the items array supplied at view time. Menu closes itself on selection; the parent does not need to dispatch Menu.close. Pattern-match the third tuple element of Menu.update in your GotMenuMessage handler to dispatch the corresponding domain action.',
   },
 ]
 
@@ -250,15 +250,17 @@ export const view = <ParentMessage>(
         'A dropdown menu for actions, like a macOS context menu. Menu is fire-and-forget: it doesn’t track a selected value (use Listbox for persistent selection). It supports typeahead search, drag-to-select, keyboard navigation, grouped items, and anchor positioning.',
       ),
       para(
-        'For programmatic control in update functions, use ',
-        inlineCode('Menu.open(model)'),
+        'For programmatic control in update functions, use the factory’s ',
+        inlineCode('open(model)'),
         ', ',
-        inlineCode('Menu.close(model)'),
+        inlineCode('close(model)'),
         ', and ',
-        inlineCode('Menu.selectItem(model, index)'),
-        '. Each returns ',
-        inlineCode('[Model, Commands]'),
-        ' directly.',
+        inlineCode('selectItem(model, item, index)'),
+        ' methods. Each returns the same ',
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
+        ' tuple as ',
+        inlineCode('update'),
+        '.',
       ),
       infoCallout(
         'See it in an app',
@@ -273,15 +275,15 @@ export const view = <ParentMessage>(
         Menu.basicHeader.text,
       ),
       para(
-        'Menu emits ',
-        inlineCode('Selected({ index })'),
-        ' through its ',
-        inlineCode('OutMessage'),
-        ' when an item is selected. Pattern-match the third tuple element of ',
-        inlineCode('Menu.update'),
-        '`s return in your ',
-        inlineCode('GotMenuMessage'),
-        ' handler to look up the item and dispatch the domain action. Menu closes automatically after selection.',
+        'Pair ',
+        inlineCode('view'),
+        ' and ',
+        inlineCode('update'),
+        ' behind ',
+        inlineCode('Ui.Menu.create<Item>()'),
+        ' at module scope. The factory threads your item union through both, so ',
+        inlineCode('Selected({ item, index })'),
+        ' carries the picked item directly. Menu closes automatically after selection.',
       ),
       demoContainer(...Menu.basicDemo(model.menuBasicDemo, toParentMessage)),
       highlightedCodeBlock(

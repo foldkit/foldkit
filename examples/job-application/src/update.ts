@@ -24,6 +24,8 @@ import {
   WorkHistory,
 } from './step'
 
+const StepMenu = Ui.Menu.create<Step.Step>()
+
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
@@ -121,7 +123,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotStepMenuMessage: ({ message: menuMessage }) => {
-        const [nextStepMenu, commands, maybeOut] = Ui.Menu.update(
+        const [nextStepMenu, commands, maybeOut] = StepMenu.update(
           model.stepMenu,
           menuMessage,
         )
@@ -133,20 +135,15 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             Model,
             ReadonlyArray<Command.Command<Message>>,
           ] => [evo(model, { stepMenu: () => nextStepMenu }), mappedCommands],
-          onSome: M.type<Ui.Menu.OutMessage>().pipe(
+          onSome: M.type<Ui.Menu.OutMessage<Step.Step>>().pipe(
             M.withReturnType<
               readonly [Model, ReadonlyArray<Command.Command<Message>>]
             >(),
             M.tagsExhaustive({
-              Selected: ({ index }) => [
+              Selected: ({ item }) => [
                 evo(model, {
                   stepMenu: () => nextStepMenu,
-                  currentStep: () =>
-                    pipe(
-                      Step.all,
-                      Array.get(index),
-                      Option.getOrElse(() => model.currentStep),
-                    ),
+                  currentStep: () => item,
                 }),
                 mappedCommands,
               ],

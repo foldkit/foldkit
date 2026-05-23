@@ -54,12 +54,11 @@ Declare the factory once at module scope. The returned object pairs everything I
 - **`Ui.Combobox.Multi.create<Item>()`** — same.
 - **`Ui.RadioGroup.create<Value>()`** — single type param, `Value extends string`. The view's ViewInputs stays string-typed (consumers pass a `ReadonlyArray<MyUnion>` which is assignable to `ReadonlyArray<string>`); the fenced cast inside `update` types the OutMessage's `value` as `Value`. The same propagation flows into `toView`: `option.value` is now typed as the consumer's `Value`, removing casts in the slot callback.
 - **`Ui.Tabs.create<Value>()`** — single type param, `Value extends string`. `TabInfo.value` in `toView` is typed as the consumer's tab union; removes the `tab.value as MyTab` cast at every Tabs consumer.
-
-`Ui.Menu` is intentionally out of scope. Its OutMessage carries `index: number`, not `item: Item`, so the Item-generic drift problem does not apply.
+- **`Ui.Menu.create<Item>()`** — single type param, `Item extends string`. `Selected` now carries `{ item: Item, index: number }` (was `{ index: number }`); consumers receive the picked item directly and no longer have to look it up via `items[index]`. `selectItem` becomes `(model, item, index)` to match.
 
 ### Bare runtime exports removed
 
-The factory is the only public path to `view`, `update`, and the imperative helpers (`selectItem`, `open`, `close`, `select`, `selectTab`) for the five components above. `Ui.Listbox.view`, `Ui.Listbox.update`, `Ui.Listbox.open`, `Ui.Listbox.close`, `Ui.Listbox.selectItem`, and the `Multi` counterparts are no longer exported, and the same applies to `Ui.Combobox.*`, `Ui.RadioGroup.update` / `select`, and `Ui.Tabs.view` / `update` / `selectTab`. Forcing every call through `create<Item>()` makes Item-drift impossible: there's only one binding site for the type parameter.
+The factory is the only public path to `view`, `update`, and the imperative helpers (`selectItem`, `open`, `close`, `select`, `selectTab`) for the six components above. `Ui.Listbox.view`, `Ui.Listbox.update`, `Ui.Listbox.open`, `Ui.Listbox.close`, `Ui.Listbox.selectItem`, and the `Multi` counterparts are no longer exported, and the same applies to `Ui.Combobox.*`, `Ui.RadioGroup.update` / `select`, `Ui.Tabs.view` / `update` / `selectTab`, and `Ui.Menu.view` / `update` / `open` / `close` / `selectItem`. Forcing every call through `create<Item>()` makes Item-drift impossible: there's only one binding site for the type parameter.
 
 Migration: declare the factory at module scope and use the returned methods.
 

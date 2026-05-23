@@ -4,6 +4,7 @@ import { evo } from 'foldkit/struct'
 
 import { CityCombobox, CityMultiCombobox } from './combobox'
 import { CharacterListbox, ItemListbox, ItemMultiListbox } from './listbox'
+import { DemoMenu } from './menu'
 import {
   GotAnimationDemoMessage,
   GotCalendarBasicDemoMessage,
@@ -423,7 +424,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotMenuBasicDemoMessage: ({ message }) => {
-        const [nextMenuBasicDemo, menuBasicCommands] = Ui.Menu.update(
+        const [nextMenuBasicDemo, menuBasicCommands] = DemoMenu.update(
           model.menuBasicDemo,
           message,
         )
@@ -439,7 +440,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotMenuAnimatedDemoMessage: ({ message }) => {
-        const [nextMenuAnimatedDemo, menuAnimatedCommands] = Ui.Menu.update(
+        const [nextMenuAnimatedDemo, menuAnimatedCommands] = DemoMenu.update(
           model.menuAnimatedDemo,
           message,
         )

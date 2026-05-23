@@ -98,6 +98,8 @@ export type UiUpdateReturn = [
 ]
 const withUpdateReturn = M.withReturnType<UiUpdateReturn>()
 
+const DemoMenu = Ui.Menu.create<string>()
+
 const delegateToAnimationDemo = (
   animationModel: Ui.Animation.Model,
   message: Ui.Animation.Message,
@@ -510,7 +512,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotMenuBasicDemoMessage: ({ message }) => {
-        const [nextMenuBasicDemo, menuBasicCommands] = Ui.Menu.update(
+        const [nextMenuBasicDemo, menuBasicCommands] = DemoMenu.update(
           model.menuBasicDemo,
           message,
         )
@@ -526,7 +528,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotMenuAnimatedDemoMessage: ({ message }) => {
-        const [nextMenuAnimatedDemo, menuAnimatedCommands] = Ui.Menu.update(
+        const [nextMenuAnimatedDemo, menuAnimatedCommands] = DemoMenu.update(
           model.menuAnimatedDemo,
           message,
         )

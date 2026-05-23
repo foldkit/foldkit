@@ -33,6 +33,8 @@ const ICON_SIZE = 'w-4 h-4'
 
 type MenuItem = 'Edit' | 'Duplicate' | 'Archive' | 'Move' | 'Delete'
 
+const ActionMenu = Ui.Menu.create<MenuItem>()
+
 const MENU_ITEMS: ReadonlyArray<MenuItem> = [
   'Edit',
   'Duplicate',
@@ -121,7 +123,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [
           h.submodel({
             id: model.menuBasicDemo.id,
-            view: Ui.Menu.view<MenuItem>(),
+            view: ActionMenu.view,
             model: model.menuBasicDemo,
             inputs: menuViewConfig(basicItemsClassName),
             toParentMessage: message => GotMenuBasicDemoMessage({ message }),
@@ -138,7 +140,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [
           h.submodel({
             id: model.menuAnimatedDemo.id,
-            view: Ui.Menu.view<MenuItem>(),
+            view: ActionMenu.view,
             model: model.menuAnimatedDemo,
             inputs: menuViewConfig(animatedItemsClassName),
             toParentMessage: message => GotMenuAnimatedDemoMessage({ message }),

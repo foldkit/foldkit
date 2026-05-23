@@ -713,7 +713,7 @@ describe('Menu', () => {
         Story.story(
           update,
           withOpen,
-          Story.message(SelectedItem({ index: 2 })),
+          Story.message(SelectedItem({ index: 2, item: 'item-2' })),
           Story.Command.resolve(FocusButton, CompletedFocusButton()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
@@ -1043,7 +1043,7 @@ describe('Menu', () => {
           Story.story(
             update,
             withOpenAnimated,
-            Story.message(SelectedItem({ index: 0 })),
+            Story.message(SelectedItem({ index: 0, item: 'item-0' })),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
@@ -1322,7 +1322,7 @@ describe('Menu', () => {
       Story.story(
         update,
         withOpenModal,
-        Story.message(SelectedItem({ index: 0 })),
+        Story.message(SelectedItem({ index: 0, item: 'item-0' })),
         Story.Command.resolveAll(
           [FocusButton, CompletedFocusButton()],
           [UnlockScroll, CompletedUnlockScroll()],

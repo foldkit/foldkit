@@ -8,6 +8,8 @@ import type { Message } from '../message'
 import { type Model } from '../model'
 import { chevronDown } from './icon'
 
+const StepMenu = Ui.Menu.create<Step.Step>()
+
 type StepStatus = 'Current' | 'Completed' | 'Upcoming'
 
 const stepToStatus = (step: Step.Step, currentStep: Step.Step): StepStatus =>
@@ -161,7 +163,7 @@ export const stepMenu = (
 
   return h.submodel({
     id: model.stepMenu.id,
-    view: Ui.Menu.view<Step.Step>(),
+    view: StepMenu.view,
     model: model.stepMenu,
     inputs: {
       items: Step.all,

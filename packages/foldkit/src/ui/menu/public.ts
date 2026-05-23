@@ -1,10 +1,6 @@
 export {
   init,
-  update,
-  open,
-  close,
-  selectItem,
-  view,
+  create,
   Model,
   Message,
   OutMessage,

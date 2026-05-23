@@ -21,13 +21,16 @@ const GotMenuMessage = m('GotMenuMessage', {
   message: Ui.Menu.Message,
 })
 
+// Pair view and update behind a single Item-typed factory at module scope:
+const ActionMenu = Ui.Menu.create<Action>()
+
 // Inside your view function, use data-[closed] for enter/leave transitions:
 const view = () => {
   const h = html<Message>()
 
   return h.submodel({
     id: 'menu',
-    view: Ui.Menu.view<Action>(),
+    view: ActionMenu.view,
     model: model.menu,
     inputs: {
       items: actions,

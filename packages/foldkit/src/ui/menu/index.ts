@@ -95,7 +95,10 @@ export const ActivatedItem = m('ActivatedItem', {
 /** Sent when the mouse leaves an enabled item. */
 export const DeactivatedItem = m('DeactivatedItem')
 /** Sent when an item is selected via Enter, Space, or click. */
-export const SelectedItem = m('SelectedItem', { index: S.Number })
+export const SelectedItem = m('SelectedItem', {
+  index: S.Number,
+  item: S.String,
+})
 /** Sent when Enter or Space is pressed on the active item, triggering a programmatic click on the DOM element. */
 export const RequestedItemClick = m('RequestedItemClick', {
   index: S.Number,
@@ -221,14 +224,27 @@ export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-/** Sent to the parent when a menu item is selected. Includes the item's index into the `inputs.items` array supplied at view time. The parent looks up the item from its own state or from the same source it passed to the view. The menu's own state (closed, focused button) is already updated when this OutMessage fires; the parent should not also dispatch `Ui.Menu.close` to sync. */
-export const Selected = m('Selected', { index: S.Number })
+/** Sent to the parent when a menu item is selected. Carries both the item itself (from the `inputs.items` array supplied at view time) and its index. Generic over `Item extends string`: the schema stores `item: string` but the factory's `create<Item>()` brands the return type so consumers receive `item: Item` directly. The menu has already closed when this fires; the parent does not need to dispatch `Ui.Menu.close`. */
+export const Selected = m('Selected', {
+  index: S.Number,
+  item: S.String,
+})
+
+/** Type-level Selected with a generic `Item` for fenced cast at the
+ *  consumer boundary. The schema still encodes `item: string`. */
+export type Selected<Item extends string = string> = Readonly<{
+  readonly _tag: 'Selected'
+  readonly index: number
+  readonly item: Item
+}>
 
 /** Union of out-messages the menu component can produce. Surfaced as the third element of `update`'s return tuple and pattern-matched by the parent. */
 export const OutMessage = S.Union([Selected])
-export type OutMessage = typeof OutMessage.Type
 
-export type Selected = typeof Selected.Type
+/** Generic over `Item extends string` so consumers using the typed
+ *  `Ui.Menu.create<MyUnion>()` factory receive `item: MyUnion` in the
+ *  `Selected` OutMessage. Defaults to `string`. */
+export type OutMessage<Item extends string = string> = Selected<Item>
 
 export type Opened = typeof Opened.Type
 export type Closed = typeof Closed.Type
@@ -580,11 +596,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             ]
           : [model, [], Option.none()],
 
-      SelectedItem: ({ index }) =>
+      SelectedItem: ({ index, item }) =>
         closeMenu(
           model,
           closeWithFocusCommands,
-          Option.some(Selected({ index })),
+          Option.some(Selected({ index, item })),
         ),
 
       RequestedItemClick: ({ index }) => [
@@ -756,10 +772,13 @@ export const open = (model: Model): UpdateReturn =>
  *  focus and modal commands. Use this in domain-event handlers to close the menu. */
 export const close = (model: Model): UpdateReturn => update(model, Closed())
 
-/** Programmatically selects a menu item at the given index, closing the menu and returning
+/** Programmatically selects a menu item, closing the menu and returning
  *  focus commands plus a `Selected` OutMessage. Use this in domain-event handlers. */
-export const selectItem = (model: Model, index: number): UpdateReturn =>
-  update(model, SelectedItem({ index }))
+export const selectItem = (
+  model: Model,
+  item: string,
+  index: number,
+): UpdateReturn => update(model, SelectedItem({ index, item }))
 
 // VIEW
 
@@ -777,9 +796,9 @@ export type GroupHeading = Readonly<{
 
 /** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
  *
- *  The Menu emits a `Selected({ index })` OutMessage on commit. The menu
- *  has already closed by the time this fires; consumers pattern-match it
- *  in their `GotMenuMessage` handler to react. */
+ *  The Menu emits a `Selected({ item, index })` OutMessage on commit.
+ *  The menu has already closed by the time this fires; consumers
+ *  pattern-match it in their `GotMenuMessage` handler to react. */
 export type ViewInputs<Item extends string> = Readonly<{
   items: ReadonlyArray<Item>
   itemToConfig: (
@@ -813,19 +832,16 @@ export { groupContiguous, resolveTypeaheadMatch }
 
 const itemId = (id: string, index: number): string => `${id}-item-${index}`
 
-/** Renders a headless menu with typeahead search, keyboard navigation,
- *  and aria-activedescendant focus management.
- *
- *  Generic over `Item extends string`: call as
- *  `Ui.Menu.view<MyItem>()` at the embed site to get a `SubmodelView`
- *  typed for your item type. */
+/** Headless menu view with typeahead search, keyboard navigation,
+ *  and aria-activedescendant focus management. Obtained from
+ *  `Ui.Menu.create<MyItem>().view`; not exported directly. */
 type MenuViewForItem<Item extends string> = SubmodelView<
   Model,
   Message,
   ViewInputs<Item>
 >
 
-export const view = <Item extends string>() =>
+const internalView = <Item extends string>() =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   menuViewImpl as unknown as MenuViewForItem<Item>
 
@@ -868,7 +884,8 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       anchor,
     } = inputs
 
-    const dispatchSelectedItem = (index: number) => SelectedItem({ index })
+    const dispatchSelectedItem = (item: string, index: number) =>
+      SelectedItem({ index, item })
 
     const isLeaving =
       transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
@@ -1119,7 +1136,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
             : []),
           ...(isInteractive
             ? [
-                h.OnClick(dispatchSelectedItem(index)),
+                h.OnClick(dispatchSelectedItem(item, index)),
                 ...(isActiveItem
                   ? []
                   : [
@@ -1267,3 +1284,84 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
     ])
   },
 )
+
+/** Pairs the menu's `view` and `update` (and programmatic helpers)
+ *  behind a single Item-typed entry point. Declaring the menu once at
+ *  module scope ensures the view's `Item` type and the OutMessage's
+ *  `item` type can't drift:
+ *
+ *  ```ts
+ *  const ActionMenu = Ui.Menu.create<Action>()
+ *
+ *  // In view:
+ *  h.submodel({ view: ActionMenu.view, ... })
+ *
+ *  // In update:
+ *  const [next, commands, maybeOut] = ActionMenu.update(model.menu, message)
+ *  // maybeOut: Option<Ui.Menu.OutMessage<Action>>
+ *  ```
+ */
+export const create = <Item extends string = string>(): Readonly<{
+  view: MenuViewForItem<Item>
+  update: (
+    model: Model,
+    message: Message,
+  ) => readonly [
+    Model,
+    ReadonlyArray<Command.Command<Message>>,
+    Option.Option<OutMessage<Item>>,
+  ]
+  selectItem: (
+    model: Model,
+    item: Item,
+    index: number,
+  ) => readonly [
+    Model,
+    ReadonlyArray<Command.Command<Message>>,
+    Option.Option<OutMessage<Item>>,
+  ]
+  open: (
+    model: Model,
+  ) => readonly [
+    Model,
+    ReadonlyArray<Command.Command<Message>>,
+    Option.Option<OutMessage<Item>>,
+  ]
+  close: (
+    model: Model,
+  ) => readonly [
+    Model,
+    ReadonlyArray<Command.Command<Message>>,
+    Option.Option<OutMessage<Item>>,
+  ]
+}> => ({
+  view: internalView<Item>(),
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  update: (model, message) =>
+    update(model, message) as readonly [
+      Model,
+      ReadonlyArray<Command.Command<Message>>,
+      Option.Option<OutMessage<Item>>,
+    ],
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  selectItem: (model, item, index) =>
+    selectItem(model, item, index) as readonly [
+      Model,
+      ReadonlyArray<Command.Command<Message>>,
+      Option.Option<OutMessage<Item>>,
+    ],
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  open: model =>
+    open(model) as readonly [
+      Model,
+      ReadonlyArray<Command.Command<Message>>,
+      Option.Option<OutMessage<Item>>,
+    ],
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  close: model =>
+    close(model) as readonly [
+      Model,
+      ReadonlyArray<Command.Command<Message>>,
+      Option.Option<OutMessage<Item>>,
+    ],
+})

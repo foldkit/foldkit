@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt — fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Array, Effect, Match as M, Option } from 'effect'
+import { Effect, Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -35,21 +35,23 @@ const actions: ReadonlyArray<Action> = [
   'Delete',
 ]
 
+// Pair view and update behind a single Item-typed factory at module scope:
+const ActionMenu = Ui.Menu.create<Action>()
+
 // Inside your update function's M.tagsExhaustive({...}), delegate to
-// Menu.update. The OutMessage's `Selected` carries the picked item's
-// index; look up the chosen action from your items array:
+// ActionMenu.update. The OutMessage's `Selected` carries the picked item
+// directly (typed as `Action`):
 GotMenuMessage: ({ message }) => {
-  const [nextMenu, commands, maybeOut] = Ui.Menu.update(model.menu, message)
+  const [nextMenu, commands, maybeOut] = ActionMenu.update(model.menu, message)
   const mappedCommands = Command.mapMessages(commands, message =>
     GotMenuMessage({ message }),
   )
 
   return Option.match(maybeOut, {
     onNone: () => [evo(model, { menu: () => nextMenu }), mappedCommands],
-    onSome: M.type<Ui.Menu.OutMessage>().pipe(
+    onSome: M.type<Ui.Menu.OutMessage<Action>>().pipe(
       M.tagsExhaustive({
-        Selected: ({ index }) => {
-          const action = Array.getUnsafe(actions, index)
+        Selected: ({ item }) => {
           // React to the action here — e.g. dispatch a Command, transition
           // a page, mutate domain state. Returning the next model + the
           // mapped commands keeps the menu in sync; add your own commands
@@ -61,13 +63,13 @@ GotMenuMessage: ({ message }) => {
   })
 }
 
-// Inside your view function, render the menu:
+// Inside your view function, render the menu via the factory's view:
 const view = () => {
   const h = html<Message>()
 
   return h.submodel({
     id: 'menu',
-    view: Ui.Menu.view<Action>(),
+    view: ActionMenu.view,
     model: model.menu,
     inputs: {
       items: actions,
