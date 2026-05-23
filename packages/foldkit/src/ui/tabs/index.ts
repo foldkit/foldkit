@@ -389,25 +389,24 @@ export const create = <Value extends string = string>(): Readonly<{
     ReadonlyArray<Command.Command<Message>>,
     Option.Option<OutMessage<Value>>,
   ]
-}> => ({
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  view: internalView as unknown as SubmodelView<
+}> => {
+  type GenericReturn = readonly [
     Model,
-    Message,
-    ViewInputs<Value>
-  >,
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  update: (model, message) =>
-    update(model, message) as readonly [
+    ReadonlyArray<Command.Command<Message>>,
+    Option.Option<OutMessage<Value>>,
+  ]
+  const cast = (result: UpdateReturn): GenericReturn =>
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    result as unknown as GenericReturn
+
+  return {
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    view: internalView as unknown as SubmodelView<
       Model,
-      ReadonlyArray<Command.Command<Message>>,
-      Option.Option<OutMessage<Value>>,
-    ],
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  selectTab: (model, value, index) =>
-    selectTab(model, value, index) as readonly [
-      Model,
-      ReadonlyArray<Command.Command<Message>>,
-      Option.Option<OutMessage<Value>>,
-    ],
-})
+      Message,
+      ViewInputs<Value>
+    >,
+    update: (model, message) => cast(update(model, message)),
+    selectTab: (model, value, index) => cast(selectTab(model, value, index)),
+  }
+}

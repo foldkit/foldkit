@@ -1334,34 +1334,21 @@ export const create = <Item extends string = string>(): Readonly<{
     ReadonlyArray<Command.Command<Message>>,
     Option.Option<OutMessage<Item>>,
   ]
-}> => ({
-  view: internalView<Item>(),
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  update: (model, message) =>
-    update(model, message) as readonly [
-      Model,
-      ReadonlyArray<Command.Command<Message>>,
-      Option.Option<OutMessage<Item>>,
-    ],
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  selectItem: (model, item, index) =>
-    selectItem(model, item, index) as readonly [
-      Model,
-      ReadonlyArray<Command.Command<Message>>,
-      Option.Option<OutMessage<Item>>,
-    ],
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  open: model =>
-    open(model) as readonly [
-      Model,
-      ReadonlyArray<Command.Command<Message>>,
-      Option.Option<OutMessage<Item>>,
-    ],
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  close: model =>
-    close(model) as readonly [
-      Model,
-      ReadonlyArray<Command.Command<Message>>,
-      Option.Option<OutMessage<Item>>,
-    ],
-})
+}> => {
+  type GenericReturn = readonly [
+    Model,
+    ReadonlyArray<Command.Command<Message>>,
+    Option.Option<OutMessage<Item>>,
+  ]
+  const cast = (result: UpdateReturn): GenericReturn =>
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    result as unknown as GenericReturn
+
+  return {
+    view: internalView<Item>(),
+    update: (model, message) => cast(update(model, message)),
+    selectItem: (model, item, index) => cast(selectItem(model, item, index)),
+    open: model => cast(open(model)),
+    close: model => cast(close(model)),
+  }
+}
