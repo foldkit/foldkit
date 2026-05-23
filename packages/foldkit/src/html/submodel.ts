@@ -8,6 +8,7 @@ import {
   deregisterBoundaryWrap,
   registerBoundaryWrap,
 } from './boundary.js'
+import { isBoundaryAttribute } from './boundaryAttribute.js'
 import {
   type Frame,
   clearRuntime,
@@ -185,11 +186,20 @@ const assertNoNestedFunctions = (
 ): void => {
   for (const key of Object.keys(inputs)) {
     const value = inputs[key]
+    if (isFrameworkBranded(value)) {
+      continue
+    }
     if (isPlainObject(value) || Array.isArray(value)) {
       walkForFunctions(value, [key])
     }
   }
 }
+
+// Framework-branded values that legitimately carry function members
+// internally (e.g. `BoundaryAttribute.dispatch`). The walker treats these
+// as opaque leaves, the same way it treats primitives.
+const isFrameworkBranded = (value: unknown): boolean =>
+  isBoundaryAttribute(value)
 
 const walkForFunctions = (
   source: Readonly<Record<string, unknown>> | ReadonlyArray<unknown>,
@@ -204,6 +214,9 @@ const walkForFunctions = (
           `Lift it to the top level of \`inputs\` so it can be auto-scoped to ` +
           `the parent boundary, or pass the value as primitive data.`,
       )
+    }
+    if (isFrameworkBranded(value)) {
+      return
     }
     if (isPlainObject(value) || Array.isArray(value)) {
       walkForFunctions(value, nextPath)
