@@ -206,7 +206,9 @@ export const view = <ParentMessage>(
       para(
         'A wrapper around the native ',
         inlineCode('<select>'),
-        ' element with ARIA label/description linking and data-attribute hooks. Select is a view-only component. For a custom dropdown with keyboard navigation and custom rendering, use Listbox or Combobox instead.',
+        ' element with ARIA label/description linking and data-attribute hooks. Select is a stateless render helper: call it directly with a ViewConfig in your own view; no Model, update, or ',
+        inlineCode('h.submodel'),
+        ' wrapping. For a custom dropdown with keyboard navigation and custom rendering, use Listbox or Combobox instead.',
       ),
       infoCallout(
         'See it in an app',

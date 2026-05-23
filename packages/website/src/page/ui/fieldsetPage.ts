@@ -147,9 +147,11 @@ export const view = <ParentMessage>(
       pageTitle('ui/fieldset', 'Fieldset'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A semantic form section that groups related controls with a legend and description. Fieldset is a view-only component that wraps the native ',
+        'A semantic form section that groups related controls with a legend and description. Fieldset is a stateless render helper that wraps the native ',
         inlineCode('<fieldset>'),
-        ' element. When disabled, the browser propagates the disabled state to all child form controls automatically.',
+        ' element: call it directly with a ViewConfig in your own view; no Model, update, or ',
+        inlineCode('h.submodel'),
+        ' wrapping. When disabled, the browser propagates the disabled state to all child form controls automatically.',
       ),
       infoCallout(
         'See it in an app',

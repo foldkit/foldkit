@@ -130,8 +130,6 @@ export { default as outMessageChildUpdateRaw } from './outMessageChildUpdate.ts?
 export { default as outMessageChildUpdateHighlighted } from './outMessageChildUpdate.ts?highlighted'
 export { default as outMessageParentHandleRaw } from './outMessageParentHandle.ts?raw'
 export { default as outMessageParentHandleHighlighted } from './outMessageParentHandle.ts?highlighted'
-export { default as outMessageMappedCommandsRaw } from './outMessageMappedCommands.ts?raw'
-export { default as outMessageMappedCommandsHighlighted } from './outMessageMappedCommands.ts?highlighted'
 export { default as submodelChildModuleRaw } from './submodelChildModule.ts?raw'
 export { default as submodelChildModuleHighlighted } from './submodelChildModule.ts?highlighted'
 export { default as submodelParentModelRaw } from './submodelParentModel.ts?raw'

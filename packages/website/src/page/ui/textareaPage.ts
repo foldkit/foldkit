@@ -206,7 +206,9 @@ export const view = <ParentMessage>(
       pageTitle('ui/textarea', 'Textarea'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'An accessible multi-line text input that links a label and description via ARIA attributes. Textarea is a view-only component with the same three attribute groups as Input (',
+        'An accessible multi-line text input that links a label and description via ARIA attributes. Textarea is a stateless render helper: call it directly with a ViewConfig in your own view; no Model, update, or ',
+        inlineCode('h.submodel'),
+        ' wrapping. It exposes the same three attribute groups as Input (',
         inlineCode('textarea'),
         ', ',
         inlineCode('label'),

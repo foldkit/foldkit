@@ -166,7 +166,9 @@ export const view = <ParentMessage>(
       pageTitle('ui/button', 'Button'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A thin wrapper around the native button element that provides consistent accessibility attributes and data-attribute hooks for styling. Button is a view-only component with no Model, Messages, or update function.',
+        'A thin wrapper around the native button element that provides consistent accessibility attributes and data-attribute hooks for styling. Button is a stateless render helper: call it directly with a ViewConfig in your own view. No Model, Messages, update, or ',
+        inlineCode('h.submodel'),
+        ' wrapping.',
       ),
       infoCallout(
         'See it in an app',

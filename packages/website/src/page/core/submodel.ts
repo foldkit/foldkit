@@ -14,6 +14,8 @@ import {
 import {
   coreRuntimeRouter,
   exampleDetailRouter,
+  patternsBoundaryAttributesRouter,
+  patternsOutMessageRouter,
   uiTypedPrimitivesRouter,
 } from '../../route'
 import * as Snippets from '../../snippet'
@@ -67,6 +69,12 @@ const wiringTheViewHeader: TableOfContentsEntry = {
   text: 'Wiring the View with h.submodel',
 }
 
+const surfacingFactsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'surfacing-facts',
+  text: 'Surfacing Facts to the Parent',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   childSubmodelHeader,
@@ -76,6 +84,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   wrappingMessagesHeader,
   delegatingInUpdateHeader,
   wiringTheViewHeader,
+  surfacingFactsHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
@@ -399,6 +408,23 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' factory that fixes the Item type at one site and pairs view and update behind it. See ',
         link(uiTypedPrimitivesRouter(), 'Foldkit UI Primitives'),
         ' for how the factory works and why each primitive shapes its type parameter the way it does.',
+      ),
+      tableOfContentsEntryToHeader(surfacingFactsHeader),
+      para(
+        'So far the child only sends its own Messages back through the parent’s wrapper. That covers internal state changes, but it doesn’t tell the parent that something the parent cares about happened: a date was committed, a tab was selected, a menu item was picked. For that, the child’s ',
+        inlineCode('update'),
+        ' returns a third element: ',
+        inlineCode('Option<OutMessage>'),
+        '. The parent pattern-matches it inside ',
+        inlineCode('GotChildMessage'),
+        ' and lifts the fact into a domain Message of its own.',
+      ),
+      para(
+        'See ',
+        link(patternsOutMessageRouter(), 'OutMessage'),
+        ' for the full pattern and the two-tuple-vs-three-tuple decision. The companion page ',
+        link(patternsBoundaryAttributesRouter(), 'boundaryAttributes'),
+        ' covers the other direction: how a parent reaches across the Submodel boundary to attach class names, refs, or event handlers to elements the child renders.',
       ),
       para(
         'With Model, Messages, update, view, Commands, Subscriptions, init, and Submodels in place, you have the full vocabulary for describing an app. The next page covers the ',

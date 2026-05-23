@@ -207,7 +207,9 @@ export const view = <ParentMessage>(
       pageTitle('ui/input', 'Input'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'An accessible text input that links a label and description to the input element via ARIA attributes. Input is a view-only component with no Model or update function. It provides three attribute groups (',
+        'An accessible text input that links a label and description to the input element via ARIA attributes. Input is a stateless render helper: call it directly with a ViewConfig in your own view; no Model, update, or ',
+        inlineCode('h.submodel'),
+        ' wrapping. It provides three attribute groups (',
         inlineCode('input'),
         ', ',
         inlineCode('label'),
