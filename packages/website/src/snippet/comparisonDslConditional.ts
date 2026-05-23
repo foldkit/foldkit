@@ -12,7 +12,8 @@ type Status = typeof Status.Type
 const greetingView = (status: Status) => {
   const h = html()
 
-  return h.div(
+  return h.keyed('div')(
+    status._tag,
     [],
     [
       M.value(status).pipe(
