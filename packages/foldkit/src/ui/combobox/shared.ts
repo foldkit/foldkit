@@ -810,7 +810,7 @@ export type BaseViewInputs<Item extends string> = Readonly<{
       isSelected: boolean
     }>,
   ) => ItemConfig
-  itemToValue: (item: Item, index: number) => string
+  itemToValue: (item: Item, index: number) => Item
   itemToDisplayText: (item: Item, index: number) => string
   isItemDisabled?: (item: Item, index: number) => boolean
   inputClassName?: string

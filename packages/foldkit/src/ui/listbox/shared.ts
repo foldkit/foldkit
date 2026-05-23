@@ -786,7 +786,7 @@ export type GroupHeading = Readonly<{
  *  The Listbox emits a `Selected({ item, wasAdded })` OutMessage on
  *  commit (single-select always `wasAdded: true`, multi-select toggles).
  *  Consumers pattern-match this in their `GotListboxMessage` handler. */
-export type BaseViewInputs<Item> = Readonly<{
+type BaseViewInputsCommon<Item> = Readonly<{
   items: ReadonlyArray<Item>
   itemToConfig: (
     item: Item,
@@ -798,7 +798,6 @@ export type BaseViewInputs<Item> = Readonly<{
   ) => ItemConfig
   isItemDisabled?: (item: Item, index: number) => boolean
   itemToSearchText?: (item: Item, index: number) => string
-  itemToValue?: (item: Item) => string
   isButtonDisabled?: boolean
   buttonContent: Html
   buttonClassName?: string
@@ -824,6 +823,18 @@ export type BaseViewInputs<Item> = Readonly<{
   isInvalid?: boolean
 }>
 
+/** Per-render inputs for a Listbox view. The `itemToValue` extractor
+ *  is optional when `Item` is itself a string (the default returns the
+ *  item unchanged) and required when items are objects, so the OutMessage
+ *  payload type can't drift from what the consumer actually emits. */
+export type BaseViewInputs<
+  Item,
+  Value extends string = string,
+> = BaseViewInputsCommon<Item> &
+  ([Item] extends [string]
+    ? Readonly<{ itemToValue?: (item: Item) => Value }>
+    : Readonly<{ itemToValue: (item: Item) => Value }>)
+
 // VIEW FACTORY
 
 type ViewBehavior<Model extends BaseModel> = Readonly<{
@@ -839,7 +850,7 @@ type ViewBehavior<Model extends BaseModel> = Readonly<{
 export const makeView = <Model extends BaseModel>(
   behavior: ViewBehavior<Model>,
 ) => {
-  const impl = defineView<Model, Message, BaseViewInputs<unknown>>(
+  const impl = defineView<Model, Message, BaseViewInputs<unknown, string>>(
     (model, inputs) => {
       const h = html<Message>()
 
@@ -1336,7 +1347,7 @@ export const makeView = <Model extends BaseModel>(
     },
   )
 
-  return <Item>() =>
+  return <Item, Value extends string = string>() =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    impl as unknown as SubmodelView<Model, Message, BaseViewInputs<Item>>
+    impl as unknown as SubmodelView<Model, Message, BaseViewInputs<Item, Value>>
 }

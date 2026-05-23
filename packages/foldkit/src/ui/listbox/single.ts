@@ -70,7 +70,10 @@ export const selectItem = (model: Model, item: string): UpdateReturn =>
 // VIEW
 
 /** Per-render inputs passed to the view via `h.submodel`'s `inputs` field. */
-export type ViewInputs<Item> = BaseViewInputs<Item>
+export type ViewInputs<Item, Value extends string = string> = BaseViewInputs<
+  Item,
+  Value
+>
 
 const internalView = makeView<Model>({
   isItemSelected: (model, itemValue) =>
@@ -109,7 +112,7 @@ export const create = <
   Item = string,
   Value extends string = Item extends string ? Item : string,
 >(): Readonly<{
-  view: SubmodelView<Model, Message, BaseViewInputs<Item>>
+  view: SubmodelView<Model, Message, BaseViewInputs<Item, Value>>
   update: (
     model: Model,
     message: Message,
@@ -141,7 +144,7 @@ export const create = <
     Option.Option<OutMessage<Value>>,
   ]
 }> => ({
-  view: internalView<Item>(),
+  view: internalView<Item, Value>(),
   update: (model, message) => update<Value>(model, message),
   selectItem: (model, item) => update<Value>(model, SelectedItem({ item })),
   open: model =>

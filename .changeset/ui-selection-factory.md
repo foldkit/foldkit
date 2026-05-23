@@ -48,9 +48,9 @@ Declare the factory once at module scope. The returned object pairs everything I
 
 ### Components in scope
 
-- **`Ui.Listbox.create<Item, Value?>()`** — two type params support object-typed items via `itemToValue`. `Value` defaults to `Item` when `Item extends string`, else `string`.
+- **`Ui.Listbox.create<Item, Value?>()`** — two type params support object-typed items via `itemToValue`. `Value` defaults to `Item` when `Item extends string`, else `string`. The `itemToValue` extractor on `ViewInputs` is now typed `(item: Item) => Value` (was `=> string`), and is required when items are objects (optional when `Item extends string`, where the default is identity). Closes a soundness gap where `create<Person, 'red' | 'blue'>()` would accept an extractor returning any `string`.
 - **`Ui.Listbox.Multi.create<Item, Value?>()`** — same shape.
-- **`Ui.Combobox.create<Item>()`** — `Item extends string`.
+- **`Ui.Combobox.create<Item>()`** — `Item extends string`. `itemToValue` codomain is now `Item` (was `string`).
 - **`Ui.Combobox.Multi.create<Item>()`** — same.
 - **`Ui.RadioGroup.create<Value>()`** — single type param, `Value extends string`. The view's ViewInputs stays string-typed (consumers pass a `ReadonlyArray<MyUnion>` which is assignable to `ReadonlyArray<string>`); the fenced cast inside `update` types the OutMessage's `value` as `Value`. The same propagation flows into `toView`: `option.value` is now typed as the consumer's `Value`, removing casts in the slot callback.
 - **`Ui.Tabs.create<Value>()`** — single type param, `Value extends string`. `TabInfo.value` in `toView` is typed as the consumer's tab union; removes the `tab.value as MyTab` cast at every Tabs consumer.
