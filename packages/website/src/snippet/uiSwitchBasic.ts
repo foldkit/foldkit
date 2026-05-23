@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt — fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Effect } from 'effect'
+import { Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -27,16 +27,35 @@ const GotSwitchMessage = m('GotSwitchMessage', {
   message: Ui.Switch.Message,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate to Switch.update:
+// Inside your update function's M.tagsExhaustive({...}), delegate to
+// Ui.Switch.update. The OutMessage's `ToggledChecked` carries the new
+// `isChecked` value — use it to save a preference, sync to a backend,
+// or trigger a side effect at the toggle moment.
 GotSwitchMessage: ({ message }) => {
-  const [nextSwitch, commands] = Ui.Switch.update(model.switchDemo, message)
+  const [nextSwitch, commands, maybeOut] = Ui.Switch.update(
+    model.switchDemo,
+    message,
+  )
+  const mappedCommands = Command.mapMessages(commands, message =>
+    GotSwitchMessage({ message }),
+  )
 
-  return [
-    // Merge the next state into your Model:
-    evo(model, { switchDemo: () => nextSwitch }),
-    // Forward the Submodel's Commands through your parent Message:
-    Command.mapMessages(commands, message => GotSwitchMessage({ message })),
-  ]
+  return Option.match(maybeOut, {
+    onNone: () => [evo(model, { switchDemo: () => nextSwitch }), mappedCommands],
+    onSome: M.type<typeof Ui.Switch.OutMessage.Type>().pipe(
+      M.tagsExhaustive({
+        ToggledChecked: ({ isChecked }) => {
+          // React to the toggle here — persist the preference, fire
+          // analytics, or dispatch your own Commands. Returning the next
+          // model + mapped commands keeps the switch in sync.
+          return [
+            evo(model, { switchDemo: () => nextSwitch }),
+            mappedCommands,
+          ]
+        },
+      }),
+    ),
+  })
 }
 
 // Inside your view function, embed the Switch via h.submodel:

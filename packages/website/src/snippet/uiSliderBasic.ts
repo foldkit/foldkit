@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit each into your own Model, init, Message,
 // update, view, and subscription definitions.
-import { Effect, Schema as S } from 'effect'
+import { Match as M, Option, Schema as S } from 'effect'
 import { Command, Subscription, Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -34,16 +34,34 @@ const GotSliderMessage = m('GotSliderMessage', {
   message: Ui.Slider.Message,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate to Slider.update:
+// Inside your update function's M.tagsExhaustive({...}), delegate to
+// Ui.Slider.update. The OutMessage's `ChangedValue` carries the new
+// number — lift it to domain state, validate, or persist on each commit.
 GotSliderMessage: ({ message }) => {
-  const [nextSlider, commands] = Ui.Slider.update(model.ratingDemo, message)
+  const [nextSlider, commands, maybeOut] = Ui.Slider.update(
+    model.ratingDemo,
+    message,
+  )
+  const mappedCommands = Command.mapMessages(commands, message =>
+    GotSliderMessage({ message }),
+  )
 
-  return [
-    // Merge the next state into your Model:
-    evo(model, { ratingDemo: () => nextSlider }),
-    // Forward the Submodel's Commands through your parent Message:
-    Command.mapMessages(commands, message => GotSliderMessage({ message })),
-  ]
+  return Option.match(maybeOut, {
+    onNone: () => [
+      evo(model, { ratingDemo: () => nextSlider }),
+      mappedCommands,
+    ],
+    onSome: M.type<typeof Ui.Slider.OutMessage.Type>().pipe(
+      M.tagsExhaustive({
+        ChangedValue: ({ value }) => [
+          // React to the committed value — persist, validate, dispatch
+          // dependent Commands.
+          evo(model, { ratingDemo: () => nextSlider }),
+          mappedCommands,
+        ],
+      }),
+    ),
+  })
 }
 
 // NOTE: wire BOTH dragPointer and dragEscape. Without dragEscape, pressing

@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt — fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Effect } from 'effect'
+import { Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -27,16 +27,31 @@ const GotTooltipMessage = m('GotTooltipMessage', {
   message: Ui.Tooltip.Message,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate to Tooltip.update:
+// Inside your update function's M.tagsExhaustive({...}), delegate to
+// Ui.Tooltip.update. The OutMessages `Shown` and `Hidden` mark the
+// visibility transitions — fire analytics or coordinate with the rest
+// of your UI from the parent.
 GotTooltipMessage: ({ message }) => {
-  const [nextTooltip, commands] = Ui.Tooltip.update(model.tooltip, message)
+  const [nextTooltip, commands, maybeOut] = Ui.Tooltip.update(
+    model.tooltip,
+    message,
+  )
+  const mappedCommands = Command.mapMessages(commands, message =>
+    GotTooltipMessage({ message }),
+  )
 
-  return [
-    // Merge the next state into your Model:
-    evo(model, { tooltip: () => nextTooltip }),
-    // Forward the Submodel's Commands through your parent Message:
-    Command.mapMessages(commands, message => GotTooltipMessage({ message })),
-  ]
+  return Option.match(maybeOut, {
+    onNone: () => [evo(model, { tooltip: () => nextTooltip }), mappedCommands],
+    onSome: M.type<typeof Ui.Tooltip.OutMessage.Type>().pipe(
+      M.tagsExhaustive({
+        Shown: () => [evo(model, { tooltip: () => nextTooltip }), mappedCommands],
+        Hidden: () => [
+          evo(model, { tooltip: () => nextTooltip }),
+          mappedCommands,
+        ],
+      }),
+    ),
+  })
 }
 
 // Inside your view function, embed the tooltip via h.submodel:

@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt — fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Effect } from 'effect'
+import { Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -27,16 +27,34 @@ const GotPopoverMessage = m('GotPopoverMessage', {
   message: Ui.Popover.Message,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate to Popover.update:
+// Inside your update function's M.tagsExhaustive({...}), delegate to
+// Ui.Popover.update. The OutMessages `OpenedPanel` and `ClosedPanel`
+// mark the visibility transitions — fire analytics, coordinate with
+// other UI, or clear ephemeral state on close.
 GotPopoverMessage: ({ message }) => {
-  const [nextPopover, commands] = Ui.Popover.update(model.popover, message)
+  const [nextPopover, commands, maybeOut] = Ui.Popover.update(
+    model.popover,
+    message,
+  )
+  const mappedCommands = Command.mapMessages(commands, message =>
+    GotPopoverMessage({ message }),
+  )
 
-  return [
-    // Merge the next state into your Model:
-    evo(model, { popover: () => nextPopover }),
-    // Forward the Submodel's Commands through your parent Message:
-    Command.mapMessages(commands, message => GotPopoverMessage({ message })),
-  ]
+  return Option.match(maybeOut, {
+    onNone: () => [evo(model, { popover: () => nextPopover }), mappedCommands],
+    onSome: M.type<typeof Ui.Popover.OutMessage.Type>().pipe(
+      M.tagsExhaustive({
+        OpenedPanel: () => [
+          evo(model, { popover: () => nextPopover }),
+          mappedCommands,
+        ],
+        ClosedPanel: () => [
+          evo(model, { popover: () => nextPopover }),
+          mappedCommands,
+        ],
+      }),
+    ),
+  })
 }
 
 // Inside your view function, embed the popover via h.submodel:

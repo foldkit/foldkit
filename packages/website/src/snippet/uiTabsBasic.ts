@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt — fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Effect } from 'effect'
+import { Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -41,16 +41,32 @@ const descriptions: Record<Framework, string> = {
   Elm: 'The original MVU architecture.',
 }
 
-// Inside your update function's M.tagsExhaustive({...}), delegate to FrameworkTabs.update:
+// Inside your update function's M.tagsExhaustive({...}), delegate to
+// FrameworkTabs.update. The OutMessage's `Selected` carries both the
+// chosen value (typed as `Framework`) and its index — lift either to
+// domain state, route, or trigger a side effect.
 GotTabsMessage: ({ message }) => {
-  const [nextTabs, commands] = FrameworkTabs.update(model.tabs, message)
+  const [nextTabs, commands, maybeOut] = FrameworkTabs.update(
+    model.tabs,
+    message,
+  )
+  const mappedCommands = Command.mapMessages(commands, message =>
+    GotTabsMessage({ message }),
+  )
 
-  return [
-    // Merge the next state into your Model:
-    evo(model, { tabs: () => nextTabs }),
-    // Forward the Submodel's Commands through your parent Message:
-    Command.mapMessages(commands, message => GotTabsMessage({ message })),
-  ]
+  return Option.match(maybeOut, {
+    onNone: () => [evo(model, { tabs: () => nextTabs }), mappedCommands],
+    onSome: M.type<Ui.Tabs.OutMessage<Framework>>().pipe(
+      M.tagsExhaustive({
+        Selected: ({ value, index }) => [
+          // React to the tab change — e.g. fetch panel content, update
+          // the URL, dispatch dependent Commands.
+          evo(model, { tabs: () => nextTabs }),
+          mappedCommands,
+        ],
+      }),
+    ),
+  })
 }
 
 // Inside your view function, embed the tabs via h.submodel:

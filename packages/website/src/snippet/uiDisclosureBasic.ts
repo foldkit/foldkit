@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt — fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Effect } from 'effect'
+import { Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -27,19 +27,33 @@ const GotDisclosureMessage = m('GotDisclosureMessage', {
   message: Ui.Disclosure.Message,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate to Disclosure.update:
+// Inside your update function's M.tagsExhaustive({...}), delegate to
+// Ui.Disclosure.update. The OutMessage's `ToggledOpenState` fires on each
+// open / close transition with the new `isOpen` — useful for analytics
+// or coordinated UI changes.
 GotDisclosureMessage: ({ message }) => {
-  const [nextDisclosure, commands] = Ui.Disclosure.update(
+  const [nextDisclosure, commands, maybeOut] = Ui.Disclosure.update(
     model.disclosure,
     message,
   )
+  const mappedCommands = Command.mapMessages(commands, message =>
+    GotDisclosureMessage({ message }),
+  )
 
-  return [
-    // Merge the next state into your Model:
-    evo(model, { disclosure: () => nextDisclosure }),
-    // Forward the Submodel's Commands through your parent Message:
-    Command.mapMessages(commands, message => GotDisclosureMessage({ message })),
-  ]
+  return Option.match(maybeOut, {
+    onNone: () => [
+      evo(model, { disclosure: () => nextDisclosure }),
+      mappedCommands,
+    ],
+    onSome: M.type<typeof Ui.Disclosure.OutMessage.Type>().pipe(
+      M.tagsExhaustive({
+        ToggledOpenState: ({ isOpen }) => [
+          evo(model, { disclosure: () => nextDisclosure }),
+          mappedCommands,
+        ],
+      }),
+    ),
+  })
 }
 
 // Inside your view function, embed the disclosure via h.submodel:

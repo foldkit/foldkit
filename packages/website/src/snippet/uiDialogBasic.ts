@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt — fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Effect } from 'effect'
+import { Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -27,16 +27,38 @@ const GotDialogMessage = m('GotDialogMessage', {
   message: Ui.Dialog.Message,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate to Dialog.update:
+// Inside your update function's M.tagsExhaustive({...}), delegate to
+// Ui.Dialog.update. The OutMessages `OpenedPanel` and `ClosedPanel` mark
+// the transition moments — fire analytics, reset embedded form state, or
+// kick off side effects from the parent.
 GotDialogMessage: ({ message }) => {
-  const [nextDialog, commands] = Ui.Dialog.update(model.dialog, message)
+  const [nextDialog, commands, maybeOut] = Ui.Dialog.update(
+    model.dialog,
+    message,
+  )
+  const mappedCommands = Command.mapMessages(commands, message =>
+    GotDialogMessage({ message }),
+  )
 
-  return [
-    // Merge the next state into your Model:
-    evo(model, { dialog: () => nextDialog }),
-    // Forward the Submodel's Commands through your parent Message:
-    Command.mapMessages(commands, message => GotDialogMessage({ message })),
-  ]
+  return Option.match(maybeOut, {
+    onNone: () => [evo(model, { dialog: () => nextDialog }), mappedCommands],
+    onSome: M.type<typeof Ui.Dialog.OutMessage.Type>().pipe(
+      M.tagsExhaustive({
+        OpenedPanel: () => [
+          // React to the open transition — analytics, focus management,
+          // initial data fetch.
+          evo(model, { dialog: () => nextDialog }),
+          mappedCommands,
+        ],
+        ClosedPanel: () => [
+          // React to the close transition — clear ephemeral state,
+          // resolve a pending domain action.
+          evo(model, { dialog: () => nextDialog }),
+          mappedCommands,
+        ],
+      }),
+    ),
+  })
 }
 
 // Helper to convert Dialog Messages to your parent Message:
