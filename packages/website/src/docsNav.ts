@@ -337,99 +337,6 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     ],
   },
   {
-    label: 'Testing',
-    pageGroups: [
-      [
-        {
-          _tag: 'Testing',
-          href: testingRouter(),
-          label: 'Overview',
-        },
-        {
-          _tag: 'TestingStory',
-          href: testingStoryRouter(),
-          label: 'Story',
-        },
-        {
-          _tag: 'TestingScene',
-          href: testingSceneRouter(),
-          label: 'Scene',
-        },
-      ],
-    ],
-  },
-  {
-    label: 'Best Practices',
-    pageGroups: [
-      [
-        {
-          _tag: 'BestPracticesSideEffects',
-          href: bestPracticesSideEffectsRouter(),
-          label: 'Side Effects & Purity',
-        },
-        {
-          _tag: 'BestPracticesMessages',
-          href: bestPracticesMessagesRouter(),
-          label: 'Messages',
-        },
-        {
-          _tag: 'BestPracticesKeying',
-          href: bestPracticesKeyingRouter(),
-          label: 'Keying',
-        },
-        {
-          _tag: 'BestPracticesImmutability',
-          href: bestPracticesImmutabilityRouter(),
-          label: 'Immutability',
-        },
-      ],
-    ],
-  },
-  {
-    label: 'Examples',
-    pageGroups: [
-      [
-        {
-          _tag: 'Examples',
-          href: examplesRouter(),
-          label: 'Overview',
-        },
-        ...Array.map(examples, example => ({
-          _tag: exampleDetailTag(example.slug),
-          href: exampleDetailRouter({ exampleSlug: example.slug }),
-          label: example.title,
-        })),
-        {
-          _tag: 'TypingTerminal',
-          href: typingTerminalRouter(),
-          label: 'Typing Terminal',
-        },
-      ],
-    ],
-  },
-  {
-    label: 'AI',
-    pageGroups: [
-      [
-        {
-          _tag: 'AiOverview',
-          href: aiOverviewRouter(),
-          label: 'Overview',
-        },
-        {
-          _tag: 'AiSkills',
-          href: aiSkillsRouter(),
-          label: 'Skills',
-        },
-        {
-          _tag: 'AiMcp',
-          href: aiMcpRouter(),
-          label: 'DevTools MCP',
-        },
-      ],
-    ],
-  },
-  {
     label: 'Foldkit UI',
     pageGroups: [
       [
@@ -570,6 +477,99 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'UiVirtualList',
           href: uiVirtualListRouter(),
           label: 'Virtual List',
+        },
+      ],
+    ],
+  },
+  {
+    label: 'AI',
+    pageGroups: [
+      [
+        {
+          _tag: 'AiOverview',
+          href: aiOverviewRouter(),
+          label: 'Overview',
+        },
+        {
+          _tag: 'AiSkills',
+          href: aiSkillsRouter(),
+          label: 'Skills',
+        },
+        {
+          _tag: 'AiMcp',
+          href: aiMcpRouter(),
+          label: 'DevTools MCP',
+        },
+      ],
+    ],
+  },
+  {
+    label: 'Testing',
+    pageGroups: [
+      [
+        {
+          _tag: 'Testing',
+          href: testingRouter(),
+          label: 'Overview',
+        },
+        {
+          _tag: 'TestingStory',
+          href: testingStoryRouter(),
+          label: 'Story',
+        },
+        {
+          _tag: 'TestingScene',
+          href: testingSceneRouter(),
+          label: 'Scene',
+        },
+      ],
+    ],
+  },
+  {
+    label: 'Best Practices',
+    pageGroups: [
+      [
+        {
+          _tag: 'BestPracticesSideEffects',
+          href: bestPracticesSideEffectsRouter(),
+          label: 'Side Effects & Purity',
+        },
+        {
+          _tag: 'BestPracticesMessages',
+          href: bestPracticesMessagesRouter(),
+          label: 'Messages',
+        },
+        {
+          _tag: 'BestPracticesKeying',
+          href: bestPracticesKeyingRouter(),
+          label: 'Keying',
+        },
+        {
+          _tag: 'BestPracticesImmutability',
+          href: bestPracticesImmutabilityRouter(),
+          label: 'Immutability',
+        },
+      ],
+    ],
+  },
+  {
+    label: 'Examples',
+    pageGroups: [
+      [
+        {
+          _tag: 'Examples',
+          href: examplesRouter(),
+          label: 'Overview',
+        },
+        ...Array.map(examples, example => ({
+          _tag: exampleDetailTag(example.slug),
+          href: exampleDetailRouter({ exampleSlug: example.slug }),
+          label: example.title,
+        })),
+        {
+          _tag: 'TypingTerminal',
+          href: typingTerminalRouter(),
+          label: 'Typing Terminal',
         },
       ],
     ],
