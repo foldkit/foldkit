@@ -100,6 +100,23 @@ export type PressedPointerOnTrigger = typeof PressedPointerOnTrigger.Type
 
 export type Message = typeof Message.Type
 
+// OUT MESSAGE
+
+/** Emitted once the tooltip transitions to visible (`isOpen` becomes true).
+ *  Consumers typically use this for analytics, instrumentation, or to
+ *  coordinate with other transient UI. */
+export const Shown = m('Shown')
+
+/** Emitted once the tooltip transitions to hidden (`isOpen` becomes false). */
+export const Hidden = m('Hidden')
+
+/** Union of out-messages the tooltip component can produce. */
+export const OutMessage = S.Union([Shown, Hidden])
+
+export type Shown = typeof Shown.Type
+export type Hidden = typeof Hidden.Type
+export type OutMessage = typeof OutMessage.Type
+
 // INIT
 
 const DEFAULT_SHOW_DELAY = Duration.millis(500)
@@ -129,8 +146,11 @@ export const init = (config: InitConfig): Model => ({
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
+type InnerUpdateReturn = readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message>>,
+]
+const withUpdateReturn = M.withReturnType<InnerUpdateReturn>()
 
 /** Waits for the tooltip's show delay before emitting `ElapsedShowDelay`. */
 export const ShowAfterDelay = Command.define(
@@ -164,8 +184,7 @@ export const AnchorTooltip = Mount.define(
       }),
 )
 
-/** Processes a tooltip message and returns the next model and commands. */
-export const update = (model: Model, message: Message): UpdateReturn =>
+const computeUpdate = (model: Model, message: Message): InnerUpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
@@ -294,11 +313,32 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     }),
   )
 
+type UpdateReturn = readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message>>,
+  Option.Option<OutMessage>,
+]
+
+/** Processes a tooltip message and returns the next model, commands, and
+ *  an optional OutMessage. `Shown`/`Hidden` fire only on `isOpen`
+ *  transitions, so consumers don't get spurious events for messages that
+ *  only update hover/focus/delay state without changing visibility. */
+export const update = (model: Model, message: Message): UpdateReturn => {
+  const [nextModel, commands] = computeUpdate(model, message)
+  const maybeOut: Option.Option<OutMessage> =
+    !model.isOpen && nextModel.isOpen
+      ? Option.some(Shown())
+      : model.isOpen && !nextModel.isOpen
+        ? Option.some(Hidden())
+        : Option.none()
+  return [nextModel, commands, maybeOut]
+}
+
 /** Programmatically updates the tooltip's hover show-delay. */
 export const setShowDelay = (
   model: Model,
   showDelay: Duration.Input,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+): UpdateReturn =>
   update(
     model,
     ChangedShowDelay({ showDelay: Duration.fromInputUnsafe(showDelay) }),

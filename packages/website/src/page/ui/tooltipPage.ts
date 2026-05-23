@@ -82,6 +82,12 @@ const programmaticHelpersHeader: TableOfContentsEntry = {
   text: 'Programmatic Helpers',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -92,6 +98,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   initConfigHeader,
   viewConfigHeader,
   programmaticHelpersHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -174,6 +181,21 @@ const programmaticHelpers: ReadonlyArray<PropEntry> = [
     type: '(model: Model, showDelay: Duration.Input) => [Model, Commands]',
     description:
       'Updates the hover show-delay. Accepts any Effect Duration input (a bare number is interpreted as milliseconds). Applies to subsequent hovers; any in-flight delay is invalidated.',
+  },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'Shown',
+    type: '{}',
+    description:
+      'Emitted once the tooltip transitions to visible (isOpen becomes true). Pattern-match the third tuple element of Tooltip.update to react — useful for analytics, instrumentation, or coordinating with other transient UI.',
+  },
+  {
+    name: 'Hidden',
+    type: '{}',
+    description:
+      'Emitted once the tooltip transitions to hidden (isOpen becomes false).',
   },
 ]
 
@@ -310,6 +332,17 @@ export const view = <ParentMessage>(
         '.',
       ),
       propTable(programmaticHelpers),
+      heading(
+        outMessageHeader.level,
+        outMessageHeader.id,
+        outMessageHeader.text,
+      ),
+      para(
+        'Messages emitted to the parent through the third element of ',
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
+        '. Fire only on visibility transitions, so consumers don’t see spurious events for messages that only update internal hover/focus/delay state.',
+      ),
+      propTable(outMessageProps),
     ],
   )
 }
