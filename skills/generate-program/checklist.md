@@ -300,7 +300,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 - [ ] `Array.match({ onEmpty, onNonEmpty })` when handling both empty and non-empty cases. Not `isEmptyArray ? ... : ...` ternaries. Grep for `.length > 0` and `.length === 0` on arrays and strings; should be zero. Use `Array.isNonEmptyArray` / `String.isNonEmpty` for pure checks, `Array.match` for branching renders.
 - [ ] `Equal.equals(target)` in predicates: `Array.findFirst(items, Equal.equals('Other'))` not `item => item === 'Other'`.
 - [ ] `Array.fromOption(maybeCommand)` for "zero or one command based on Option", not `Option.match` that returns `[]` vs `[cmd]`.
-- [ ] `OptionExt.when(condition, value)` instead of `condition ? Option.some(value) : Option.none()`.
+- [ ] `Option.liftPredicate(value, predicate)` instead of `condition ? Option.some(value) : Option.none()`. The predicate may be a constant `() => condition` when the check doesn't use the value.
 - [ ] `pipe(...)` is multi-step only. Never `pipe(x, singleOp(...))`; call `singleOp(x, ...)` directly. (Exception: `.pipe(Effect.catch(...))` as a tail suffix is fine.)
 - [ ] When piping, data leads on its own line: `pipe(\n  data,\n  Array.map(f),\n  ...\n)`, not `pipe(data, Array.map(f), ...)`.
 - [ ] Callback destructuring when accessing a single field: `({ id }) => id === cardId` not `card => card.id === cardId`.
