@@ -608,17 +608,34 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotToastDemoMessage: ({ message }) => {
-        const [nextToastDemo, toastCommands] = Toast.update(
+        const [nextToastDemo, toastCommands, maybeOut] = Toast.update(
           model.toastDemo,
           message,
         )
 
-        return [
-          evo(model, { toastDemo: () => nextToastDemo }),
-          Command.mapMessages(toastCommands, message =>
-            GotToastDemoMessage({ message }),
+        const mappedCommands = Command.mapMessages(toastCommands, message =>
+          GotToastDemoMessage({ message }),
+        )
+
+        return Option.match(maybeOut, {
+          onNone: (): UpdateReturn => [
+            evo(model, { toastDemo: () => nextToastDemo }),
+            mappedCommands,
+          ],
+          onSome: M.type<typeof Toast.OutMessage.Type>().pipe(
+            M.withReturnType<UpdateReturn>(),
+            M.tagsExhaustive({
+              DismissedToast: ({ payload }) => [
+                evo(model, {
+                  toastDemo: () => nextToastDemo,
+                  maybeLastDismissedToastTitle: () =>
+                    Option.some(payload.title),
+                }),
+                mappedCommands,
+              ],
+            }),
           ),
-        ]
+        })
       },
 
       ClickedShowInfoToast: () => {

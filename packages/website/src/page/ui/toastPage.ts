@@ -283,7 +283,13 @@ export const view = <ParentMessage>(
       para(
         'Click a variant to push a toast onto the stack. Hover a toast to pause its auto-dismiss; move away and the timer restarts.',
       ),
-      demoContainer(...Toast.demo(model.toastDemo, toParentMessage)),
+      demoContainer(
+        ...Toast.demo(
+          model.toastDemo,
+          model.maybeLastDismissedToastTitle,
+          toParentMessage,
+        ),
+      ),
       highlightedCodeBlock(
         h.div(
           [h.Class('text-sm'), h.InnerHTML(Snippet.uiToastBasicHighlighted)],

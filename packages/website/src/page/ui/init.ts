@@ -1,3 +1,4 @@
+import { Option } from 'effect'
 import { Calendar, Command, Ui } from 'foldkit'
 
 import type { Message } from './message'
@@ -103,6 +104,7 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
     fileDropBasicDemo: Ui.FileDrop.init({ id: 'file-drop-basic-demo' }),
     fileDropBasicDemoFiles: [],
     toastDemo: Toast.init({ id: 'toast-demo' }),
+    maybeLastDismissedToastTitle: Option.none(),
     tooltipDemo: Ui.Tooltip.init({ id: 'tooltip-demo' }),
     animationDemo: Ui.Animation.init({ id: 'animation-demo' }),
     virtualListDemo: Ui.VirtualList.init({

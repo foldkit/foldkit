@@ -53,6 +53,7 @@ const buttonClassName =
 
 export const demo = <ParentMessage>(
   toastModel: Model,
+  maybeLastDismissedTitle: Option.Option<string>,
   toParentMessage: (message: Message) => ParentMessage,
 ): ReadonlyArray<Html> => {
   const h = html<ParentMessage>()
@@ -125,6 +126,24 @@ export const demo = <ParentMessage>(
         ),
       ],
     ),
+    ...Option.match(maybeLastDismissedTitle, {
+      onNone: () => [],
+      onSome: title => [
+        h.p(
+          [h.Class('text-sm text-gray-600 dark:text-gray-400 mt-3')],
+          [
+            'Last dismissed: ',
+            h.span(
+              [h.Class('font-mono text-gray-900 dark:text-gray-100')],
+              [`"${title}"`],
+            ),
+            ' (lifted from ',
+            h.code([h.Class('text-xs')], ['DismissedToast']),
+            ' OutMessage)',
+          ],
+        ),
+      ],
+    }),
     h.submodel({
       id: toastModel.id,
       view: Toast.view,
