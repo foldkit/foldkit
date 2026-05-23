@@ -215,25 +215,13 @@ const delegateToPopover = (
       mapPopoverCommands(popoverCommands),
       Option.none(),
     ],
-    onSome: M.type<Popover.OutMessage>().pipe(
-      M.withReturnType<UpdateReturn>(),
-      M.tagsExhaustive({
-        OpenedPanel: () => [
-          evo(modelWithPopover, {
-            calendar: () => UiCalendar.dropToDays(modelWithPopover.calendar),
-          }),
-          mapPopoverCommands(popoverCommands),
-          Option.none(),
-        ],
-        ClosedPanel: () => [
-          evo(modelWithPopover, {
-            calendar: () => UiCalendar.dropToDays(modelWithPopover.calendar),
-          }),
-          mapPopoverCommands(popoverCommands),
-          Option.none(),
-        ],
+    onSome: (): UpdateReturn => [
+      evo(modelWithPopover, {
+        calendar: () => UiCalendar.dropToDays(modelWithPopover.calendar),
       }),
-    ),
+      mapPopoverCommands(popoverCommands),
+      Option.none(),
+    ],
   })
 }
 
