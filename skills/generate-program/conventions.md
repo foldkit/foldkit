@@ -105,7 +105,8 @@ Option.match(model.maybeError, {
 })
 
 // Conditional values
-OptionExt.when(condition, value) // not condition ? Option.some(value) : Option.none()
+Option.liftPredicate(value, predicate) // not condition ? Option.some(value) : Option.none()
+Option.liftPredicate(value, () => condition) // constant predicate when the check doesn't use the value
 
 // Conditional commands
 Array.fromOption(maybeCommand) // 0 or 1 command based on Option

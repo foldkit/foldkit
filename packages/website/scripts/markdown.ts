@@ -288,6 +288,7 @@ const SECTION_ORDER: ReadonlyArray<string> = [
   'Core Concepts',
   'Best Practices',
   'Patterns',
+  'FAQ',
   'Foldkit UI',
   'Testing',
   'Examples',
