@@ -1,5 +1,5 @@
 import { describe, it } from '@effect/vitest'
-import { Context } from 'effect'
+import { Context, Option } from 'effect'
 import { h } from 'snabbdom'
 import { afterEach, beforeEach, expect } from 'vitest'
 
@@ -623,42 +623,6 @@ describe('h.submodel', () => {
     ).toThrow(/inputs\.config\.onSubmit/)
   })
 
-  it('rejects nested-function inputs at the type level (compile-time check)', () => {
-    // NOTE: paired type-level companion to the runtime throw above. The
-    // runtime test uses an unbranded view (its `viewWithNested` doesn't go
-    // through defineView), which loosens the `SubmodelView` constraint
-    // enough that `ValidatedInputs` doesn't fire on it. This test uses a
-    // properly-branded view so the constraint flows through. If a future
-    // refactor to `ValidatedInputs` silently degrades it to a passthrough,
-    // the `@ts-expect-error` below stops firing and tsc fails ("unused
-    // @ts-expect-error directive"), surfacing the regression even though
-    // the runtime test still passes.
-    type NestedTypeTestInputs = Readonly<{
-      config: Readonly<{ onSubmit: () => unknown }>
-    }>
-    const brandedView = defineView<
-      { value: number },
-      Readonly<{ _tag: 'TypeCheckNoop' }>,
-      NestedTypeTestInputs
-    >((_model, _inputs) => h('div'))
-
-    expect(() =>
-      submodel({
-        id: 'type-check',
-        view: brandedView,
-        model: { value: 0 },
-        inputs: {
-          // @ts-expect-error — ValidatedInputs<NestedTypeTestInputs>
-          // forbids functions nested below the top level of `inputs`.
-          // If this directive stops being needed, ValidatedInputs has
-          // regressed.
-          config: { onSubmit: () => undefined },
-        },
-        toParentMessage: () => ({ _tag: 'TypeCheckNoop' }) as const,
-      }),
-    ).toThrow(/inputs\.config\.onSubmit/)
-  })
-
   it('throws when a function value is nested inside an array element of `inputs`', () => {
     // A natural list-shaped API (`inputs: { items: [{ onSelect: ... }] }`)
     // is the most common way to accidentally smuggle a function below the
@@ -682,28 +646,23 @@ describe('h.submodel', () => {
     ).toThrow(/inputs\.items\.\[0\]\.onSelect/)
   })
 
-  it('rejects functions in array-element fields at the type level (compile-time check)', () => {
-    type ItemsTypeTestInputs = Readonly<{
-      items: ReadonlyArray<Readonly<{ onSelect: () => unknown }>>
-    }>
-    const brandedView = defineView<
-      { value: number },
-      Readonly<{ _tag: 'TypeCheckNoop' }>,
-      ItemsTypeTestInputs
-    >((_model, _inputs) => h('div'))
+  it('accepts Effect data types like Option as top-level input fields', () => {
+    // The runtime walker uses `Object.keys` (own properties only), so
+    // values whose prototype carries function members like `pipe` are
+    // accepted. Models lean on `Option`, `Either`, and similar data
+    // types heavily; threading them through `inputs` is a common idiom.
+    type OptionInputs = Readonly<{ maybeValue: Option.Option<string> }>
+    const viewWithOption = (_model: object, _inputs: OptionInputs) => h('div')
 
     expect(() =>
       submodel({
-        id: 'array-type-check',
-        view: brandedView,
-        model: { value: 0 },
-        inputs: {
-          // @ts-expect-error — ValidatedInputs<ItemsTypeTestInputs>
-          // forbids functions inside elements of an array under `inputs`.
-          items: [{ onSelect: () => undefined }],
-        },
-        toParentMessage: () => ({ _tag: 'TypeCheckNoop' }) as const,
+        id: 'option-input',
+        view: viewWithOption,
+        model: {},
+        inputs: { maybeValue: Option.some('hello') },
+        toParentMessage: message =>
+          GotChild({ entryId: 'option-input', message }),
       }),
-    ).toThrow(/inputs\.items\.\[0\]\.onSelect/)
+    ).not.toThrow()
   })
 })

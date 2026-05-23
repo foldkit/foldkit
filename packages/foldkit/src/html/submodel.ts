@@ -91,35 +91,6 @@ type ViewMessageOf<View extends AnySubmodelView> = View extends {
   ? Message
   : never
 
-/** Type-level mirror of the runtime `assertNoNestedFunctions` rule.
- *  For each immediate field of an object or element of an array that
- *  lives inside `inputs`, flag function-typed entries as an error so
- *  submodel authors cannot declare an input shape that the runtime
- *  would reject.
- *
- *  Walks one level deep into both objects and arrays from each top-level
- *  field of `inputs`. Matches the runtime walker, which iterates array
- *  elements and descends into plain objects. */
-type NoFunctionFields<T> = T extends Function
-  ? '[Foldkit] nested function in inputs; lift slot callbacks to the top level'
-  : T
-
-type ValidatedInputs<T> = T extends void
-  ? T
-  : {
-      readonly [K in keyof T]: T[K] extends Function
-        ? T[K]
-        : T[K] extends ReadonlyArray<infer Element>
-          ? [Element] extends [object]
-            ? ReadonlyArray<{
-                readonly [K2 in keyof Element]: NoFunctionFields<Element[K2]>
-              }>
-            : ReadonlyArray<NoFunctionFields<Element>>
-          : T[K] extends object
-            ? { readonly [K2 in keyof T[K]]: NoFunctionFields<T[K][K2]> }
-            : T[K]
-    }
-
 /** Configuration for embedding a child Submodel into a parent's view.
  *
  *  - `id`: **DOM-position identity, not model identity.** Unique
@@ -165,7 +136,7 @@ export type SubmodelConfig<View extends AnySubmodelView> = Readonly<{
   id: string
   view: View
   model: ViewModelOf<View>
-  inputs?: ValidatedInputs<ViewInputsOf<View>>
+  inputs?: ViewInputsOf<View>
   toParentMessage: (message: ViewMessageOf<View>) => unknown
 }>
 
