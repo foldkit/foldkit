@@ -291,39 +291,17 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 /** Programmatically opens the date picker, updating the model and returning
  * focus and popover commands. Use this in domain-event handlers. */
-export const open = (
-  model: Model,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
-  const [nextModel, commands] = toModelAndCommands(update(model, Opened()))
-  return [nextModel, commands]
-}
+export const open = (model: Model): UpdateReturn => update(model, Opened())
 
 /** Programmatically closes the date picker. Use this in domain-event handlers. */
-export const close = (
-  model: Model,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
-  const [nextModel, commands] = toModelAndCommands(update(model, Closed()))
-  return [nextModel, commands]
-}
+export const close = (model: Model): UpdateReturn => update(model, Closed())
 
-/** Programmatically selects a date, committing it and closing the popover. */
-export const selectDate = (
-  model: Model,
-  date: CalendarDate,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
-  const [nextModel, commands] = toModelAndCommands(
-    update(model, SelectedDate({ date })),
-  )
-  return [nextModel, commands]
-}
+/** Programmatically selects a date, committing it and closing the popover. Emits a `SelectedDateOut` OutMessage just like a user-initiated selection. */
+export const selectDate = (model: Model, date: CalendarDate): UpdateReturn =>
+  update(model, SelectedDate({ date }))
 
 /** Programmatically clears the selected date. */
-export const clear = (
-  model: Model,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
-  const [nextModel, commands] = toModelAndCommands(update(model, Cleared()))
-  return [nextModel, commands]
-}
+export const clear = (model: Model): UpdateReturn => update(model, Cleared())
 
 /** Sets the minimum selectable date on the embedded calendar. Pass
  * `Option.none()` to remove the minimum. Use this when the minimum derives
@@ -373,13 +351,6 @@ export const setDisabledDaysOfWeek = (
     calendar: () =>
       UiCalendar.setDisabledDaysOfWeek(model.calendar, disabledDaysOfWeek),
   })
-
-const toModelAndCommands = (
-  result: UpdateReturn,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
-  const [nextModel, commands] = result
-  return [nextModel, commands]
-}
 
 // VIEW
 
