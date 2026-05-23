@@ -874,7 +874,7 @@ const makeView = (
       [
         h.AriaHidden(true),
         h.Class('json-arrow shrink-0'),
-        h.Xmlns('http://www.w3.org/2000/h.svg'),
+        h.Xmlns('http://www.w3.org/2000/svg'),
         h.Fill('none'),
         h.ViewBox('0 0 24 24'),
         h.StrokeWidth('2'),
@@ -1584,7 +1584,7 @@ const makeView = (
           ? h.svg(
               [
                 h.AriaHidden(true),
-                h.Xmlns('http://www.w3.org/2000/h.svg'),
+                h.Xmlns('http://www.w3.org/2000/svg'),
                 h.Fill('none'),
                 h.ViewBox('0 0 24 24'),
                 h.StrokeWidth('1.5'),
@@ -1638,7 +1638,7 @@ const makeView = (
     [
       h.AriaHidden(true),
       h.Class('dt-filter-check shrink-0'),
-      h.Xmlns('http://www.w3.org/2000/h.svg'),
+      h.Xmlns('http://www.w3.org/2000/svg'),
       h.Fill('none'),
       h.ViewBox('0 0 24 24'),
       h.StrokeWidth('2'),
@@ -1661,7 +1661,7 @@ const makeView = (
     [
       h.AriaHidden(true),
       h.Class('dt-scroll-pill-icon shrink-0'),
-      h.Xmlns('http://www.w3.org/2000/h.svg'),
+      h.Xmlns('http://www.w3.org/2000/svg'),
       h.Fill('none'),
       h.ViewBox('0 0 24 24'),
       h.StrokeWidth('2'),
@@ -1714,7 +1714,7 @@ const makeView = (
               [
                 h.AriaHidden(true),
                 h.Class('json-arrow shrink-0'),
-                h.Xmlns('http://www.w3.org/2000/h.svg'),
+                h.Xmlns('http://www.w3.org/2000/svg'),
                 h.Fill('none'),
                 h.ViewBox('0 0 24 24'),
                 h.StrokeWidth('2'),
@@ -1834,7 +1834,7 @@ const makeView = (
     [
       h.AriaHidden(true),
       h.Class('dt-pause-icon'),
-      h.Xmlns('http://www.w3.org/2000/h.svg'),
+      h.Xmlns('http://www.w3.org/2000/svg'),
       h.Fill('none'),
       h.ViewBox('0 0 24 24'),
       h.StrokeWidth('2.5'),
