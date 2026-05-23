@@ -69,6 +69,12 @@ const wiringTheViewHeader: TableOfContentsEntry = {
   text: 'Wiring the View with h.submodel',
 }
 
+const perRenderInputsHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'per-render-inputs',
+  text: 'Per-render Inputs',
+}
+
 const surfacingFactsHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'surfacing-facts',
@@ -84,6 +90,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   wrappingMessagesHeader,
   delegatingInUpdateHeader,
   wiringTheViewHeader,
+  perRenderInputsHeader,
   surfacingFactsHeader,
 ]
 
@@ -341,7 +348,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('<Model, Message>'),
         ' type arguments brand the view so ',
         inlineCode('h.submodel'),
-        ' can infer the child’s Message type at the embed site:',
+        ' can infer the child’s Message type at the embed site. A third optional type parameter ',
+        inlineCode('Inputs'),
+        ' threads per-render data from the parent — covered in the next section:',
       ),
       highlightedCodeBlock(
         h.div(
@@ -388,6 +397,90 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' embeds under any parent that supplies a compatible ',
         inlineCode('toParentMessage'),
         '. The child has no static dependency on a particular parent.',
+      ),
+      tableOfContentsEntryToHeader(perRenderInputsHeader),
+      para(
+        'Some Submodels need data from the parent on every render that doesn’t belong in the child’s ',
+        inlineCode('model'),
+        '. A Listbox needs the array of items and a callback that renders each one. A Menu needs the items and the trigger button’s content. A collapsible panel needs the summary and the content the parent wants to show. None of this is the child’s state — it’s configuration the parent supplies fresh on every render.',
+      ),
+      para(
+        'For these Submodels, ',
+        inlineCode('defineView'),
+        ' takes a third type parameter ',
+        inlineCode('Inputs'),
+        '. The view receives ',
+        inlineCode('inputs'),
+        ' as its second argument:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.submodelChildViewInputsHighlighted),
+          ],
+          [],
+        ),
+        Snippets.submodelChildViewInputsRaw,
+        'Copy child view with inputs to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'At the embed site, the parent passes the ',
+        inlineCode('inputs'),
+        ' alongside ',
+        inlineCode('model'),
+        ' and the other fields:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.submodelParentViewInputsHighlighted),
+          ],
+          [],
+        ),
+        Snippets.submodelParentViewInputsRaw,
+        'Copy parent view with inputs to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'The split between ',
+        inlineCode('model'),
+        ' and ',
+        inlineCode('inputs'),
+        ' is load-bearing. ',
+        inlineCode('model'),
+        ' is the child’s internal state, owned by the child and mutated only through the child’s ',
+        inlineCode('update'),
+        '. ',
+        inlineCode('inputs'),
+        ' is per-render configuration, owned by the parent and rebuilt fresh each render. Putting per-render config in the model would force the parent to write update handlers that store its own configuration; putting state in the inputs would lose it across renders.',
+      ),
+      para(
+        'A common pattern is to put a slot callback (often called ',
+        inlineCode('toView'),
+        ') in ',
+        inlineCode('inputs'),
+        ' so the child hands the parent attribute bundles and lets the parent shape the markup. Functions at the top level of ',
+        inlineCode('inputs'),
+        ' get auto-wrapped to execute in the parent’s boundary, so any handlers the parent builds inside them — e.g. ',
+        inlineCode('h.OnClick(ParentMessage())'),
+        ' — dispatch through the parent’s wrapping chain, not the child’s. See ',
+        link(patternsBoundaryAttributesRouter(), 'boundaryAttributes'),
+        ' for the complementary mechanism: how the child publishes attribute bundles that route back through its own boundary.',
+      ),
+      warningCallout(
+        'Keep slot callbacks at the top level',
+        'Functions nested inside an object or array inside ',
+        inlineCode('inputs'),
+        ' (e.g. ',
+        inlineCode('inputs: { config: { onSubmit } }'),
+        ') are rejected at compile time and at view-build time. The auto-wrap only descends one level, so a nested function would silently dispatch through the child’s boundary instead of the parent’s. Lift slot callbacks to the top level of ',
+        inlineCode('inputs'),
+        '.',
       ),
       infoCallout(
         'Multiple instances',
