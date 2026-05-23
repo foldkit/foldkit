@@ -47,7 +47,10 @@ export type Model = typeof Model.Type
 // MESSAGE
 
 /** Sent when a tab is selected via click or keyboard. Updates both the active and focused indices. */
-export const TabSelected = m('TabSelected', { index: S.Number })
+export const TabSelected = m('TabSelected', {
+  index: S.Number,
+  value: S.String,
+})
 /** Sent when a tab receives keyboard focus in `Manual` mode without being activated. */
 export const TabFocused = m('TabFocused', { index: S.Number })
 /** Sent when the focus-tab command completes. */
@@ -62,6 +65,30 @@ export type TabSelected = typeof TabSelected.Type
 export type TabFocused = typeof TabFocused.Type
 
 export type Message = typeof Message.Type
+
+// OUT MESSAGE
+
+/** Sent to the parent when a tab is committed via click or keyboard. Carries both the tab's value (typed as `Value` via `Ui.Tabs.create<Value>()`) and its index. Generic at the type level; the schema stores `value: string` and the factory's fenced cast types it as `Value`. */
+export const Selected = m('Selected', {
+  value: S.String,
+  index: S.Number,
+})
+
+/** Type-level Selected with a generic `Value` for fenced cast at the
+ *  consumer boundary. The schema still encodes `value: string`. */
+export type Selected<Value extends string = string> = Readonly<{
+  readonly _tag: 'Selected'
+  readonly value: Value
+  readonly index: number
+}>
+
+/** Union of out-messages the tabs component can produce. Surfaced as the third element of `update`'s return tuple and pattern-matched by the parent. */
+export const OutMessage = S.Union([Selected])
+
+/** Generic over `Value extends string` so consumers using
+ *  `Ui.Tabs.create<MyUnion>()` receive `value: MyUnion` in the
+ *  `Selected` OutMessage. Defaults to `string`. */
+export type OutMessage<Value extends string = string> = Selected<Value>
 
 // INIT
 
@@ -102,37 +129,40 @@ export const FocusTab = Command.define(
   ),
 )
 
-/** Processes a tabs message and returns the next model and commands. */
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+type UpdateReturn = readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message>>,
+  Option.Option<OutMessage>,
+]
+
+/** Processes a tabs message and returns the next model, commands, and an optional OutMessage. `Selected` fires when a tab is committed via click or keyboard. */
+export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
+    M.withReturnType<UpdateReturn>(),
     M.tagsExhaustive({
-      TabSelected: ({ index }) => [
+      TabSelected: ({ index, value }) => [
         evo(model, {
           activeIndex: () => index,
           focusedIndex: () => index,
         }),
         [FocusTab({ id: model.id, index })],
+        Option.some(Selected({ value, index })),
       ],
       TabFocused: ({ index }) => [
         evo(model, { focusedIndex: () => index }),
         [FocusTab({ id: model.id, index })],
+        Option.none(),
       ],
-      CompletedFocusTab: () => [model, []],
+      CompletedFocusTab: () => [model, [], Option.none()],
     }),
   )
 
-/** Programmatically selects a tab at the given index. */
+/** Programmatically selects a tab. Emits a `Selected` OutMessage. */
 export const selectTab = (
   model: Model,
+  value: string,
   index: number,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  update(model, TabSelected({ index }))
+): UpdateReturn => update(model, TabSelected({ index, value }))
 
 // VIEW
 
@@ -219,6 +249,13 @@ const internalView = defineView<Model, Message, ViewInputs>(
       isDisabled,
     )
 
+    const tabSelectedAt = (index: number): Option.Option<TabSelected> =>
+      pipe(
+        tabs,
+        Array.get(index),
+        Option.map(value => TabSelected({ index, value })),
+      )
+
     const handleAutomaticKeyDown = (key: string): Option.Option<TabSelected> =>
       M.value(key).pipe(
         M.whenOr(
@@ -228,11 +265,9 @@ const internalView = defineView<Model, Message, ViewInputs>(
           'End',
           'PageUp',
           'PageDown',
-          () => Option.some(TabSelected({ index: resolveKeyIndex(key) })),
+          () => tabSelectedAt(resolveKeyIndex(key)),
         ),
-        M.whenOr('Enter', ' ', () =>
-          Option.some(TabSelected({ index: focusedIndex })),
-        ),
+        M.whenOr('Enter', ' ', () => tabSelectedAt(focusedIndex)),
         M.orElse(() => Option.none()),
       )
 
@@ -249,9 +284,7 @@ const internalView = defineView<Model, Message, ViewInputs>(
           'PageDown',
           () => Option.some(TabFocused({ index: resolveKeyIndex(key) })),
         ),
-        M.whenOr('Enter', ' ', () =>
-          Option.some(TabSelected({ index: focusedIndex })),
-        ),
+        M.whenOr('Enter', ' ', () => tabSelectedAt(focusedIndex)),
         M.orElse(() => Option.none()),
       )
 
@@ -283,7 +316,7 @@ const internalView = defineView<Model, Message, ViewInputs>(
               h.AriaDisabled(true),
               h.DataAttribute('disabled', ''),
             ]
-          : [h.OnClick(TabSelected({ index }))]),
+          : [h.OnClick(TabSelected({ index, value }))]),
         h.OnKeyDownPreventDefault(handleKeyDown),
       ]
 
@@ -342,11 +375,20 @@ export const create = <Value extends string = string>(): Readonly<{
   update: (
     model: Model,
     message: Message,
-  ) => readonly [Model, ReadonlyArray<Command.Command<Message>>]
+  ) => readonly [
+    Model,
+    ReadonlyArray<Command.Command<Message>>,
+    Option.Option<OutMessage<Value>>,
+  ]
   selectTab: (
     model: Model,
+    value: Value,
     index: number,
-  ) => readonly [Model, ReadonlyArray<Command.Command<Message>>]
+  ) => readonly [
+    Model,
+    ReadonlyArray<Command.Command<Message>>,
+    Option.Option<OutMessage<Value>>,
+  ]
 }> => ({
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   view: internalView as unknown as SubmodelView<
@@ -354,6 +396,18 @@ export const create = <Value extends string = string>(): Readonly<{
     Message,
     ViewInputs<Value>
   >,
-  update,
-  selectTab,
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  update: (model, message) =>
+    update(model, message) as readonly [
+      Model,
+      ReadonlyArray<Command.Command<Message>>,
+      Option.Option<OutMessage<Value>>,
+    ],
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  selectTab: (model, value, index) =>
+    selectTab(model, value, index) as readonly [
+      Model,
+      ReadonlyArray<Command.Command<Message>>,
+      Option.Option<OutMessage<Value>>,
+    ],
 })

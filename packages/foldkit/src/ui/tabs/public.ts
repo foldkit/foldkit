@@ -3,6 +3,8 @@ export {
   create,
   Model,
   Message,
+  OutMessage,
+  Selected,
   TabSelected,
   TabFocused,
   CompletedFocusTab,
