@@ -88,6 +88,12 @@ const modelHeader: TableOfContentsEntry = {
   text: 'Model',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -101,6 +107,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   modelHeader,
   viewConfigHeader,
   checkboxAttributesHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -201,6 +208,15 @@ const checkboxAttributesProps: ReadonlyArray<PropEntry> = [
     type: 'ReadonlyArray<Attribute<Message>>',
     description:
       'Spread onto a hidden <input> for form submission. Only needed when the name prop is set.',
+  },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'ToggledChecked',
+    type: '{ isChecked: boolean }',
+    description:
+      'Emitted each time the checkbox toggles. Carries the new checked state. Pattern-match the third tuple element of Checkbox.update in your GotCheckboxMessage handler to lift the toggle into a domain Message — e.g., persisting the flag or dispatching a save command.',
   },
 ]
 
@@ -381,6 +397,17 @@ export const view = <ParentMessage>(
         ' callback.',
       ),
       propTable(checkboxAttributesProps),
+      heading(
+        outMessageHeader.level,
+        outMessageHeader.id,
+        outMessageHeader.text,
+      ),
+      para(
+        'Messages emitted to the parent through the third element of ',
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
+        '. Pattern-match on the OutMessage in your update handler.',
+      ),
+      propTable(outMessageProps),
     ],
   )
 }
