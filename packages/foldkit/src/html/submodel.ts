@@ -118,8 +118,12 @@ type ViewMessageOf<View extends AnySubmodelView> = View extends {
  *    in the parent's boundary so handlers the consumer builds inside
  *    them dispatch through the parent's wrapping chain. Function values
  *    nested below the top level (e.g. `inputs: { config: { onSubmit } }`)
- *    are rejected at view-build time. Keep slot callbacks at the top
- *    level of `inputs`.
+ *    throw at view-build time with a path-based error like
+ *    `inputs.config.onSubmit`. The check is runtime-only (TypeScript
+ *    cannot distinguish a user-declared nested callback from a data
+ *    value whose prototype carries methods), so a misuse compiles
+ *    cleanly and surfaces the first time the boundary renders. Keep
+ *    slot callbacks at the top level of `inputs`.
  *  - `toParentMessage`: function that lifts a child message into the
  *    current boundary's Message type. The argument is typed as the
  *    child's Message via the view's brand, so destructuring is correctly

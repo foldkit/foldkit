@@ -646,13 +646,6 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           lazyDocsContent(Page.Core.Submodel.view, [model.copiedSnippets]),
           Page.Core.Submodel.tableOfContents,
         ),
-      PatternsBoundaryAttributes: () =>
-        withTableOfContents(
-          lazyDocsContent(Page.Patterns.BoundaryAttributes.view, [
-            model.copiedSnippets,
-          ]),
-          Page.Patterns.BoundaryAttributes.tableOfContents,
-        ),
       PatternsOutMessage: () =>
         withTableOfContents(
           lazyDocsContent(Page.Patterns.OutMessage.view, [

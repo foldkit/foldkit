@@ -64,7 +64,6 @@ export const CoreFreezeModelRoute = r('CoreFreezeModel')
 export const CoreViewMemoizationRoute = r('CoreViewMemoization')
 export const CoreSubmodelRoute = r('CoreSubmodel')
 
-export const PatternsBoundaryAttributesRoute = r('PatternsBoundaryAttributes')
 export const PatternsOutMessageRoute = r('PatternsOutMessage')
 export const PatternsSubscriptionOrganizationRoute = r(
   'PatternsSubscriptionOrganization',
@@ -150,7 +149,6 @@ export const DocsRoute = S.Union([
   CoreFreezeModelRoute,
   CoreViewMemoizationRoute,
   CoreSubmodelRoute,
-  PatternsBoundaryAttributesRoute,
   PatternsOutMessageRoute,
   PatternsSubscriptionOrganizationRoute,
   UiOverviewRoute,
@@ -401,11 +399,6 @@ export const coreSubmodelRouter = pipe(
   mapTo(CoreSubmodelRoute),
 )
 
-export const patternsBoundaryAttributesRouter = pipe(
-  literal('patterns'),
-  slash(literal('boundary-attributes')),
-  mapTo(PatternsBoundaryAttributesRoute),
-)
 export const patternsOutMessageRouter = pipe(
   literal('patterns'),
   slash(literal('out-message')),
@@ -619,7 +612,6 @@ const coreParser = oneOf(
 )
 
 const patternsParser = oneOf(
-  patternsBoundaryAttributesRouter,
   patternsOutMessageRouter,
   patternsSubscriptionOrganizationRouter,
 )

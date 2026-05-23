@@ -40,7 +40,6 @@ import {
   gettingStartedRouter,
   manifestoRouter,
   onSsrRouter,
-  patternsBoundaryAttributesRouter,
   patternsOutMessageRouter,
   patternsSubscriptionOrganizationRouter,
   projectOrganizationRouter,
@@ -307,11 +306,6 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'ProjectOrganization',
           href: projectOrganizationRouter(),
           label: 'Project Organization',
-        },
-        {
-          _tag: 'PatternsBoundaryAttributes',
-          href: patternsBoundaryAttributesRouter(),
-          label: 'boundaryAttributes',
         },
         {
           _tag: 'PatternsOutMessage',

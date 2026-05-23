@@ -231,10 +231,6 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Submodel',
     'Compose applications from independent, encapsulated modules.',
   ),
-  PatternsBoundaryAttributes: pattern(
-    'boundaryAttributes',
-    'How Submodels publish attribute bundles that route handlers back through their own update function, even when the consumer spreads them onto elements in the parent boundary.',
-  ),
   PatternsOutMessage: pattern(
     'OutMessage',
     'Communication between parent and child modules.',
