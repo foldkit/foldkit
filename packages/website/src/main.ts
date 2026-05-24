@@ -1312,7 +1312,6 @@ export const subscriptions = Subscription.aggregate<Model, Message>()(
   Subscriptions.AiHeading.subscriptions,
   Subscriptions.ActiveSection.subscriptions,
   uiPagesSubscriptions,
-  Subscriptions.ExampleUrl.subscriptions,
   Subscriptions.SearchShortcut.subscriptions,
   Subscriptions.SystemTheme.subscriptions,
   Subscriptions.ViewportWidth.subscriptions,
