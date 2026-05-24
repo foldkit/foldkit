@@ -377,7 +377,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('h.submodel'),
         ' can infer the child’s Message type at the embed site. A third optional type parameter ',
         inlineCode('Inputs'),
-        ' threads per-render data from the parent — covered in the next section:',
+        ' threads per-render data from the parent, covered in the next section:',
       ),
       highlightedCodeBlock(
         h.div(
@@ -429,7 +429,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         'Some Submodels need data from the parent on every render that doesn’t belong in the child’s ',
         inlineCode('model'),
-        '. A Listbox needs the array of items and a callback that renders each one. A Menu needs the items and the trigger button’s content. A collapsible panel needs the summary and the content the parent wants to show. None of this is the child’s state — it’s configuration the parent supplies fresh on every render.',
+        '. A Listbox needs the array of items and a callback that renders each one. A Menu needs the items and the trigger button’s content. A collapsible panel needs the summary and the content the parent wants to show. None of this is the child’s state. It’s configuration the parent supplies fresh on every render.',
       ),
       para(
         'For these Submodels, ',
@@ -493,9 +493,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('inputs'),
         ' so the child hands the parent attribute bundles and lets the parent shape the markup. Functions at the top level of ',
         inlineCode('inputs'),
-        ' get auto-wrapped to execute in the parent’s boundary, so any handlers the parent builds inside them — e.g. ',
+        ' get auto-wrapped to execute in the parent’s boundary, so any handlers the parent builds inside them (e.g. ',
         inlineCode('h.OnClick(ParentMessage())'),
-        ' — dispatch through the parent’s wrapping chain, not the child’s. See the ',
+        ') dispatch through the parent’s wrapping chain, not the child’s. See the ',
         link('#boundary-attributes', 'boundaryAttributes'),
         ' section below for the complementary mechanism: how the child publishes attribute bundles that route back through its own boundary.',
       ),

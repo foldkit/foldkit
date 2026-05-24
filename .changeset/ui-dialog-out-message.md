@@ -4,8 +4,8 @@
 
 `Ui.Dialog.update` now returns `[Model, Commands, Option<OutMessage>]` (was `[Model, Commands]`). Adds two OutMessage variants mirroring `Ui.Popover`:
 
-- `OpenedPanel()` — emitted once the dialog has transitioned to open (after `update` has processed the `Opened` request and `isOpen` reflects the new state).
-- `ClosedPanel()` — emitted once the dialog has transitioned to closed. Programmatic `Dialog.close` on an already-closed model is a no-op that does not re-emit; calling close while a leave animation is already in progress is also a no-op.
+- `OpenedPanel()`: emitted once the dialog has transitioned to open (after `update` has processed the `Opened` request and `isOpen` reflects the new state).
+- `ClosedPanel()`: emitted once the dialog has transitioned to closed. Programmatic `Dialog.close` on an already-closed model is a no-op that does not re-emit; calling close while a leave animation is already in progress is also a no-op.
 
 `Ui.Dialog.open` and `Ui.Dialog.close` return the full 3-tuple as well. Existing 2-tuple destructures keep compiling.
 

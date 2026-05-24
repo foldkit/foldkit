@@ -3,7 +3,7 @@
 // the consumer's own `h.Class`. Click handlers from the child still
 // route through the child's dispatcher because the branding rides
 // along on each attribute.
-import { type BoundaryAttribute, html } from 'foldkit/html'
+import { type BoundaryAttribute, html, keyed } from 'foldkit/html'
 
 import { GotDisclosureMessage, type Message } from './message'
 import type { Model } from './model'
@@ -36,12 +36,15 @@ export const view = (model: Model) => {
               [...button, h.Class('px-3 py-2 rounded')],
               ['Toggle'],
             ),
-            model.disclosure.isOpen
-              ? h.div(
-                  [...panel, h.Class('mt-2 p-4 bg-gray-50')],
-                  ['Panel content'],
-                )
-              : h.empty,
+            keyed('div')(
+              model.disclosure.isOpen ? 'open' : 'closed',
+              model.disclosure.isOpen
+                ? h.div(
+                    [...panel, h.Class('mt-2 p-4 bg-gray-50')],
+                    ['Panel content'],
+                  )
+                : h.empty,
+            ),
           ],
         ),
     },

@@ -101,7 +101,7 @@ export type PressedKeyboardNavigation = typeof PressedKeyboardNavigation.Type
 
 /** Emitted when the slider value changes. The parent uses this to react to
  *  value updates — e.g. to run validation or trigger a side effect. */
-export const ChangedValue = ts('ChangedValue', { value: S.Number })
+export const ChangedValue = m('ChangedValue', { value: S.Number })
 
 /** Union of all out-messages the slider component can emit to its parent. */
 export const OutMessage = ChangedValue
