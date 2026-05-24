@@ -193,7 +193,7 @@ export const view = <ParentMessage>(
       pageTitle('ui/animation', 'Animation'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        "Animation is a CSS animation lifecycle coordinator that manages enter/leave phases via a state machine and data attributes. If you're coming from imperative animation libraries (GSAP, Framer Motion, ",
+        "Animation is a CSS animation lifecycle coordinator that manages enter/leave phases via a state machine and data attributes. If you're coming from imperative animation libraries (for example GSAP, Framer Motion, or ",
         inlineCode('element.animate()'),
         '), it will feel inverted: those libraries let you say "do this now" and give you a callback when it\'s done, while Foldkit is declarative. You dispatch Messages describing what happened, Animation turns the lifecycle into a sequence of more Messages, and your update function reacts at each step. The payoff is that every animation state transition is in your Model, observable in DevTools, testable without a DOM, and can\'t run outside your update loop.',
       ),
@@ -246,7 +246,7 @@ export const view = <ParentMessage>(
         '. The structure works but requires specific DOM nesting that Animation provides for you.',
       ),
       para(
-        'Every component in the library that needs enter/leave animations (Dialog, Menu, Popover, Listbox, Combobox) uses Animation internally rather than reinventing this coordination. If you need the same for your own content, Animation gives you the same machinery.',
+        'Every component in the library that needs enter/leave animations (for example Dialog, Menu, Popover, Listbox, or Combobox) uses Animation internally rather than reinventing this coordination. If you need the same for your own content, Animation gives you the same machinery.',
       ),
       infoCallout(
         'See it in an app',

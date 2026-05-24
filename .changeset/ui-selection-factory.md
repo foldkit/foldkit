@@ -36,11 +36,11 @@ h.submodel({
 })
 
 // In update:
-const [next, commands, maybeOut] = ColorListbox.update(
+const [next, commands, maybeOutMessage] = ColorListbox.update(
   model.colorListbox,
   message,
 )
-// maybeOut: Option<Ui.Listbox.OutMessage<Color>>
+// maybeOutMessage: Option<Ui.Listbox.OutMessage<Color>>
 // Selected branch carries `item: Color` directly; no cast needed.
 ```
 

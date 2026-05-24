@@ -228,7 +228,7 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'toCalendarView',
     type: '(attributes: CalendarAttributes<ParentMessage>) => Html',
     description:
-      'Renders the calendar grid layout inside the popover panel. Same callback shape as Calendar.view toView. Lay out the attribute groups (grid, header, weeks, cells) however you like.',
+      'Renders the calendar grid layout inside the popover panel. Same callback shape as Calendar.view toView. Lay out the attribute groups (for example grid, header, weeks, or cells) however you like.',
   },
   {
     name: 'isDisabled',

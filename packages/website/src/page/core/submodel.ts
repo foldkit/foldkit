@@ -200,18 +200,18 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.span(
           [],
           [
-            'Feature pages (Settings, Dashboard, Login) and reusable interactive components (DatePicker, Calendar) you build yourself.',
+            'Feature pages (for example Settings, Dashboard, or Login) and reusable interactive components you build yourself (for example DatePicker or Calendar).',
           ],
         ),
         h.span(
           [],
           [
-            'Anywhere you need multiple stateful instances of the same module: several accordions on a page, each entry in a form that has its own internal state, repeated forms in a wizard. The Submodel is the unit you instantiate.',
+            'Anywhere you need multiple stateful instances of the same module, for example several accordions on a page, each entry in a form with its own internal state, or repeated forms in a wizard. The Submodel is the unit you instantiate.',
           ],
         ),
       ),
       para(
-        'In the restaurant analogy, think of a large restaurant with multiple stations: a sushi bar, a grill, a pastry counter. Each station has its own chef, its own order flow, its own plating. But the head waiter still coordinates: taking the order, routing it to the right station, and combining everything onto the table.',
+        'In the restaurant analogy, think of a large restaurant with multiple stations, for example a sushi bar, a grill, or a pastry counter. Each station has its own chef, its own order flow, its own plating. But the head waiter still coordinates: taking the order, routing it to the right station, and combining everything onto the table.',
       ),
       infoCallout(
         'Compare to React',
@@ -294,7 +294,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'First, DevTools never sees the change as a Submodel Message, so it disappears from the Submodel filter and the timeline reads wrong.',
       ),
       para(
-        'Second, any invariant the child’s update was enforcing (validation, derived fields, state-machine transitions) is silently violated. The parent has no way to type-check against the child’s contract.',
+        'Second, any invariant the child’s update was enforcing (for example validation, derived fields, or state-machine transitions) is silently violated. The parent has no way to type-check against the child’s contract.',
       ),
       para(
         'Third, the bypass becomes a refactor landmine: the moment the child adds a new invariant or restructures its internal state, the parent’s direct write breaks in ways the type system can’t catch.',
@@ -610,7 +610,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         'Submodels exist for two related but distinct reasons. The first is encapsulation: ',
         link(uiOverviewRouter(), 'Foldkit UI’s Submodels'),
-        ' are self-contained units that own their state, keyboard handling, and accessibility wiring. You embed them and they work; the boundary is hard by design. The second is decomposition: when your Model would otherwise grow into a monolith, you split it into feature Submodels (for example Settings, Dashboard, Profile) for organization. Those children may still legitimately need to read parent state: for example, the current user, the active locale, the session token. Forcing every such child to be fully encapsulated pushes you to duplicate parent state into the child Model and keep both copies in sync, which is worse on every axis.',
+        ' are self-contained units that own things like their state, keyboard handling, and accessibility wiring. You embed them and they work; the boundary is hard by design. The second is decomposition: when your Model would otherwise grow into a monolith, you split it into feature Submodels (for example Settings, Dashboard, Profile) for organization. Those children may still legitimately need to read parent state: for example, the current user, the active locale, the session token. Forcing every such child to be fully encapsulated pushes you to duplicate parent state into the child Model and keep both copies in sync, which is worse on every axis.',
       ),
       para(
         'Foldkit gives you two precise seams for parent state to reach the child:',

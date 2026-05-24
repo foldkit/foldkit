@@ -8,11 +8,14 @@ Existing 2-tuple destructures (`const [next, commands] = Ui.Checkbox.update(...)
 
 ```ts
 GotAdminCheckboxMessage: ({ message }) => {
-  const [next, commands, maybeOut] = Ui.Checkbox.update(model.admin, message)
+  const [next, commands, maybeOutMessage] = Ui.Checkbox.update(
+    model.admin,
+    message,
+  )
   const mappedCommands = Command.mapMessages(commands, message =>
     GotAdminCheckboxMessage({ message }),
   )
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [evo(model, { admin: () => next }), mappedCommands],
     onSome: M.type<Ui.Checkbox.OutMessage>().pipe(
       M.tagsExhaustive({

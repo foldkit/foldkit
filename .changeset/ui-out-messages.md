@@ -47,11 +47,14 @@ h.submodel({
 
 // In update:
 GotMenuMessage: ({ message }) => {
-  const [nextMenu, commands, maybeOut] = ExampleMenu.update(model.menu, message)
+  const [nextMenu, commands, maybeOutMessage] = ExampleMenu.update(
+    model.menu,
+    message,
+  )
   const mappedCommands = Command.mapMessages(commands, message =>
     GotMenuMessage({ message }),
   )
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [
       evo(model, { menu: () => nextMenu }),
       mappedCommands,
@@ -99,7 +102,7 @@ GotProficiencyMessage: ({ message }) => {
 }
 ```
 
-The `Option.match` only earns its weight when `onSome` does work `onNone` doesn't (lifting to a richer parent type, dispatching additional commands, mutating sibling state).
+The `Option.match` only earns its weight when `onSome` does work `onNone` doesn't, for example lifting to a richer parent type, dispatching additional commands, or mutating sibling state.
 
 ### Public exports
 

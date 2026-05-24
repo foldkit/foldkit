@@ -167,7 +167,7 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'entryToView',
     type: '(entry: typeof Toast.Entry.Type, handlers: { dismiss: ParentMessage }) => Html',
     description:
-      "Renders each entry from its lifecycle fields (id, variant, transition) and its payload (your shape). The component wraps the return in an <li> with role, lifecycle handlers, and transition data attributes. Wire handlers.dismiss to a close button's OnClick.",
+      "Renders each entry from its lifecycle fields (for example id, variant, and animation) and its payload (your shape). The component wraps the return in an <li> with role, lifecycle handlers, and transition data attributes. Wire handlers.dismiss to a close button's OnClick.",
   },
   {
     name: 'ariaLabel',

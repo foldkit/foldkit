@@ -47,12 +47,14 @@ lazyCheckbox(
 
 ### `Ui.Tooltip` exposes `RenderInfo` for slot content
 
-Tooltip's `view` now takes a `toView` slot via `inputs`, consistent with the slot-based pattern used across Ui.\*. The slot receives a new `RenderInfo`:
+Tooltip's `view` now takes a `toView` slot via `viewInputs`, consistent with the slot-based pattern used across Ui.\*. The slot receives a `RenderInfo`:
 
 ```ts
 export type RenderInfo = Readonly<{
+  trigger: ReadonlyArray<ChildAttribute>
+  panel: ReadonlyArray<ChildAttribute>
   isVisible: boolean
 }>
 ```
 
-The consumer decides whether and how to render the tooltip content based on `isVisible`. Replaces main's `ViewConfig.toView(model)` shape with the consistent `inputs.toView(renderInfo)` shape.
+The consumer spreads `trigger` onto the trigger element and `panel` onto the panel element, and decides whether and how to render the panel content based on `isVisible`. Replaces main's `ViewConfig.toView(model)` shape with the consistent `viewInputs.toView(renderInfo)` shape.
