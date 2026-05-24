@@ -1519,7 +1519,7 @@ const makeView = (
           id: model.inspectorTabs.id,
           view: InspectorTabs.view,
           model: model.inspectorTabs,
-          inputs: {
+          viewInputs: {
             tabs: INSPECTOR_TABS,
             ariaLabel: 'Inspector tabs',
             toView: ({ tablist, tabs, activeIndex }) =>
@@ -1709,7 +1709,7 @@ const makeView = (
       id: 'submodel-filter',
       view: SubmodelFilterListbox.view,
       model: model.submodelFilterListbox,
-      inputs: {
+      viewInputs: {
         items: [ALL_MESSAGES_VALUE, ...model.submodelTags],
         itemToConfig: item => ({
           className: 'dt-filter-item',
@@ -2014,7 +2014,7 @@ const makeView = (
       id: model.scrubberSlider.id,
       view: Slider.view,
       model: model.scrubberSlider,
-      inputs: {
+      viewInputs: {
         ariaLabel: 'Session scrubber',
         getTrackRoot: () => shadow,
         formatValue: value =>

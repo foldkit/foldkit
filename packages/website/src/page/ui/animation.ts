@@ -51,7 +51,7 @@ export const animationDemo = <ParentMessage>(
           id: animationModel.id,
           view: Ui.Animation.view,
           model: animationModel,
-          inputs: {
+          viewInputs: {
             className: contentClassName,
             animateSize: true,
             content: h.p(

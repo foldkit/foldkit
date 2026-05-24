@@ -302,7 +302,7 @@ const slider = (
     id: sliderModel.id,
     view: Ui.Slider.view,
     model: sliderModel,
-    inputs: {
+    viewInputs: {
       formatValue: value => value.toFixed(2),
       toView: attributes =>
         h.div(

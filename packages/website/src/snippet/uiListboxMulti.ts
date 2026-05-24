@@ -82,7 +82,7 @@ const view = (model: Model) => {
     id: 'people',
     view: PeopleListbox.view,
     model: model.listboxMulti,
-    inputs: {
+    viewInputs: {
       items: people,
       buttonContent: h.span(
         [],

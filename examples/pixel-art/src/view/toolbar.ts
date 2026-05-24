@@ -153,7 +153,7 @@ const toolSectionView = (
         id: toolRadioGroup.id,
         view: ToolRadioGroup.view,
         model: toolRadioGroup,
-        inputs: {
+        viewInputs: {
           options: TOOLS,
           ariaLabel: 'Drawing tool',
           toView: ({ group, options }) =>
@@ -214,7 +214,7 @@ const mirrorSectionView = (
             id: mirrorHorizontalSwitch.id,
             view: Ui.Switch.view,
             model: mirrorHorizontalSwitch,
-            inputs: {
+            viewInputs: {
               toView: attributes =>
                 h.div(
                   [h.Class('flex-1')],
@@ -249,7 +249,7 @@ const mirrorSectionView = (
             id: mirrorVerticalSwitch.id,
             view: Ui.Switch.view,
             model: mirrorVerticalSwitch,
-            inputs: {
+            viewInputs: {
               toView: attributes =>
                 h.div(
                   [h.Class('flex-1')],
@@ -299,7 +299,7 @@ const sizeSectionView = (
         id: gridSizeRadioGroup.id,
         view: GridSizeRadioGroup.view,
         model: gridSizeRadioGroup,
-        inputs: {
+        viewInputs: {
           options: GRID_SIZE_STRINGS,
           ariaLabel: 'Grid size',
           orientation: 'Horizontal',
@@ -355,7 +355,7 @@ const paletteSectionView = (
         id: paletteRadioGroup.id,
         view: PaletteRadioGroup.view,
         model: paletteRadioGroup,
-        inputs: {
+        viewInputs: {
           options: paletteIndexStrings,
           ariaLabel: 'Color palette',
           orientation: 'Horizontal',
@@ -403,7 +403,7 @@ const themeListboxView = (
     id: themeListbox.id,
     view: ThemeListbox.view,
     model: themeListbox,
-    inputs: {
+    viewInputs: {
       anchor: THEME_LISTBOX_ANCHOR,
       items: THEME_INDEX_STRINGS,
       itemToConfig: (indexString, { isSelected }) => {

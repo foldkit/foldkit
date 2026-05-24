@@ -23,8 +23,8 @@ import { waiting } from './waiting'
 export type ViewInputs = Readonly<{ roomId: string }>
 
 export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, inputs): Html => {
-    const { roomId } = inputs
+  (model, viewInputs): Html => {
+    const { roomId } = viewInputs
     const h = html<Message>()
 
     const maybeError = M.value(model.roomRemoteData).pipe(

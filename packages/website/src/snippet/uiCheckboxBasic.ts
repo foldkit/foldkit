@@ -70,7 +70,7 @@ const view = () => {
     id: 'terms-checkbox',
     view: Ui.Checkbox.view,
     model: model.checkboxDemo,
-    inputs: {
+    viewInputs: {
       toView: attributes =>
         h.div(
           [h.Class('flex flex-col gap-1')],

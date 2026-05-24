@@ -324,7 +324,7 @@ const livePreviewDisclosureView = <ParentMessage>(
     id: disclosureModel.id,
     view: Ui.Disclosure.view,
     model: disclosureModel,
-    inputs: {
+    viewInputs: {
       toView: attributes =>
         h.div(
           [],
@@ -422,7 +422,7 @@ const sourceCodeView = <ParentMessage>(
     id: tabsModel.id,
     view: SourceFileTabs.view,
     model: tabsModel,
-    inputs: {
+    viewInputs: {
       tabs: filePaths,
       ariaLabel: 'Source files',
       orientation: isNarrowViewport ? 'Horizontal' : 'Vertical',

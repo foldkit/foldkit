@@ -209,7 +209,7 @@ const playgroundMenuView = (
     id: menuModel.id,
     view: PlaygroundMenu.view,
     model: menuModel,
-    inputs: {
+    viewInputs: {
       anchor: PLAYGROUND_MENU_ANCHOR,
       items: slugs,
       itemToConfig: slug => ({
@@ -297,7 +297,7 @@ export const landingView = (model: Model) => {
     id: model.demoTabs.id,
     view: DemoTabs.view,
     model: model.demoTabs,
-    inputs: {
+    viewInputs: {
       tabs: demoTabs,
       ariaLabel: 'Demo tabs',
       orientation: model.isNarrowViewport ? 'Horizontal' : 'Vertical',

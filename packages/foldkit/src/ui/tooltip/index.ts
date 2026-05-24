@@ -362,7 +362,7 @@ export type RenderInfo = Readonly<{
   isVisible: boolean
 }>
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field. */
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field. */
 export type ViewInputs = Readonly<{
   anchor: AnchorConfig
   toView: (render: RenderInfo) => Html
@@ -374,11 +374,11 @@ export type ViewInputs = Readonly<{
  *  mouse-click focus is excluded); hides on leave, blur, Escape, or
  *  left-click of the trigger. */
 export const view = defineView<Model, Message, ViewInputs>(
-  (model, inputs): Html => {
+  (model, viewInputs): Html => {
     const h = html<Message>()
 
     const { id, isOpen } = model
-    const { anchor, toView, isDisabled } = inputs
+    const { anchor, toView, isDisabled } = viewInputs
 
     const handleTriggerKeyDown = (key: string): Option.Option<PressedEscape> =>
       M.value(key).pipe(

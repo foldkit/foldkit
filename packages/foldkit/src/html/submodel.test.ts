@@ -163,18 +163,19 @@ describe('h.submodel', () => {
     ])
   })
 
-  it('passes inputs as the second view argument when provided', () => {
+  it('passes viewInputs as the second view argument when provided', () => {
     const viewWithInputs = (
       model: { value: number },
-      inputs: { label: string },
-    ) => h('div', `${inputs.label}: ${model.value}`)
+      viewInputs: { label: string },
+    ) => h('div', `${viewInputs.label}: ${model.value}`)
 
     const result = submodel({
-      id: 'with-inputs',
+      id: 'with-viewInputs',
       view: viewWithInputs,
       model: { value: 3 },
-      inputs: { label: 'count' },
-      toParentMessage: message => GotChild({ entryId: 'with-inputs', message }),
+      viewInputs: { label: 'count' },
+      toParentMessage: message =>
+        GotChild({ entryId: 'with-viewInputs', message }),
     })
 
     expect(result?.text).toBe('count: 3')
@@ -338,7 +339,10 @@ describe('h.submodel', () => {
       ) => unknown
     }>
 
-    const fakeCheckboxView = (_model: object, inputs: CheckboxLikeInputs) => {
+    const fakeCheckboxView = (
+      _model: object,
+      viewInputs: CheckboxLikeInputs,
+    ) => {
       // Inside the Submodel boundary: dispatch captured here goes through
       // the Submodel's toParentMessage.
       const childDispatch = requireDispatch()
@@ -354,7 +358,7 @@ describe('h.submodel', () => {
       // Hand the inner button to the consumer's slot callback. The slot
       // callback runs in the PARENT boundary; any dispatch it constructs
       // should reach outerDispatch unwrapped.
-      inputs.toView([])
+      viewInputs.toView([])
       return internalButton
     }
 
@@ -363,7 +367,7 @@ describe('h.submodel', () => {
       id: 'fake-checkbox',
       view: fakeCheckboxView,
       model: {},
-      inputs: {
+      viewInputs: {
         toView: () => {
           // This callback runs inside `view` but the runtime should have
           // swapped back to the parent boundary. Snapshot the dispatch the
@@ -556,8 +560,8 @@ describe('h.submodel', () => {
   it('nests h.submodel calls made inside a slot callback under the parent boundary', () => {
     // A consumer's slot callback can itself embed a Submodel via
     // h.submodel. The slot runs in the PARENT boundary (per
-    // wrapInputsForOuterBoundary), so the inner submodel's composed boundary
-    // should hang off the parent, not the outer Submodel; and its
+    // wrapViewInputsForOuterBoundary), so the inner submodel's composed
+    // boundary should hang off the parent, not the outer Submodel; and its
     // dispatches should NOT be wrapped by the outer Submodel's toParentMessage.
     type ParentSlotMessage = Readonly<{
       _tag: 'GotSlotChild'
@@ -568,8 +572,8 @@ describe('h.submodel', () => {
     }): ParentSlotMessage => ({ _tag: 'GotSlotChild', ...args })
 
     type ShellInputs = Readonly<{ slot: () => VNode | null }>
-    const shellView = (_: object, inputs: ShellInputs): VNode | null => {
-      const slotVNode = inputs.slot()
+    const shellView = (_: object, viewInputs: ShellInputs): VNode | null => {
+      const slotVNode = viewInputs.slot()
       return h('div', {}, [slotVNode ?? h('span')])
     }
 
@@ -577,7 +581,7 @@ describe('h.submodel', () => {
       id: 'shell',
       view: shellView,
       model: {},
-      inputs: {
+      viewInputs: {
         slot: () =>
           submodel({
             id: 'slot-child',
@@ -596,8 +600,8 @@ describe('h.submodel', () => {
     expect(registry.wraps.has('shell|slot-child')).toBe(false)
   })
 
-  it('throws when a function value is nested inside `inputs` below the top level', () => {
-    // Top-level functions in `inputs` get auto-scoped to the parent
+  it('throws when a function value is nested inside `viewInputs` below the top level', () => {
+    // Top-level functions in `viewInputs` get auto-scoped to the parent
     // boundary so handlers built inside them dispatch through the
     // parent's wrapping chain. A function nested inside an object value
     // would silently capture the child's boundary instead, almost
@@ -605,60 +609,62 @@ describe('h.submodel', () => {
     type NestedInputs = Readonly<{
       config: Readonly<{ onSubmit: () => unknown }>
     }>
-    const viewWithNested = (_model: object, _inputs: NestedInputs) => h('div')
+    const viewWithNested = (_model: object, _viewInputs: NestedInputs) =>
+      h('div')
 
     expect(() =>
       submodel({
         id: 'nested-fn',
         view: viewWithNested,
         model: {},
-        inputs: {
+        viewInputs: {
           config: {
             onSubmit: () => undefined,
           },
         },
         toParentMessage: message => GotChild({ entryId: 'nested-fn', message }),
       }),
-    ).toThrow(/inputs\.config\.onSubmit/)
+    ).toThrow(/viewInputs\.config\.onSubmit/)
   })
 
-  it('throws when a function value is nested inside an array element of `inputs`', () => {
-    // A natural list-shaped API (`inputs: { items: [{ onSelect: ... }] }`)
+  it('throws when a function value is nested inside an array element of `viewInputs`', () => {
+    // A natural list-shaped API (`viewInputs: { items: [{ onSelect: ... }] }`)
     // is the most common way to accidentally smuggle a function below the
     // top level. The walker iterates arrays and descends into element
     // objects, so the error surfaces at view-build time.
     type ItemsInputs = Readonly<{
       items: ReadonlyArray<Readonly<{ onSelect: () => unknown }>>
     }>
-    const viewWithItems = (_model: object, _inputs: ItemsInputs) => h('div')
+    const viewWithItems = (_model: object, _viewInputs: ItemsInputs) => h('div')
 
     expect(() =>
       submodel({
         id: 'items-fn',
         view: viewWithItems,
         model: {},
-        inputs: {
+        viewInputs: {
           items: [{ onSelect: () => undefined }],
         },
         toParentMessage: message => GotChild({ entryId: 'items-fn', message }),
       }),
-    ).toThrow(/inputs\.items\.\[0\]\.onSelect/)
+    ).toThrow(/viewInputs\.items\.\[0\]\.onSelect/)
   })
 
   it('accepts Effect data types like Option as top-level input fields', () => {
     // The runtime walker uses `Object.keys` (own properties only), so
     // values whose prototype carries function members like `pipe` are
     // accepted. Models lean on `Option`, `Either`, and similar data
-    // types heavily; threading them through `inputs` is a common idiom.
+    // types heavily; threading them through `viewInputs` is a common idiom.
     type OptionInputs = Readonly<{ maybeValue: Option.Option<string> }>
-    const viewWithOption = (_model: object, _inputs: OptionInputs) => h('div')
+    const viewWithOption = (_model: object, _viewInputs: OptionInputs) =>
+      h('div')
 
     expect(() =>
       submodel({
         id: 'option-input',
         view: viewWithOption,
         model: {},
-        inputs: { maybeValue: Option.some('hello') },
+        viewInputs: { maybeValue: Option.some('hello') },
         toParentMessage: message =>
           GotChild({ entryId: 'option-input', message }),
       }),

@@ -26,7 +26,7 @@ export const skillEntryView = Submodel.defineView<
     id: model.proficiency.id,
     view: ProficiencyRadioGroup.view,
     model: model.proficiency,
-    inputs: {
+    viewInputs: {
       options: ProficiencyLevel.all,
       orientation: 'Horizontal',
       ariaLabel: 'Proficiency level',

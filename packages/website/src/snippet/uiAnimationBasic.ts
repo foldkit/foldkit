@@ -108,7 +108,7 @@ const view = () => {
         id: 'content',
         view: Ui.Animation.view,
         model: model.animation,
-        inputs: {
+        viewInputs: {
           animateSize: true,
           className:
             'transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',

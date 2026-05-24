@@ -98,7 +98,7 @@ const view = () => {
     id: 'app-toast',
     view: Toast.view,
     model: model.toast,
-    inputs: {
+    viewInputs: {
       position: 'BottomRight',
       entryClassName: 'w-80',
       entryToView: (entry, handlers) =>

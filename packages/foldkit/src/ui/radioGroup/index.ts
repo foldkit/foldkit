@@ -186,13 +186,13 @@ export type OptionInfo<Value extends string = string> = Readonly<{
 /** Render-time payload published to the consumer's `toView`.
  *
  *  - `group`: ARIA + role attributes for the wrapping radiogroup element.
- *  - `options`: one entry per option in `inputs.options`, in the same
+ *  - `options`: one entry per option in `viewInputs.options`, in the same
  *    order. Includes the value, derived state, and the attribute bundles
  *    for the option element, its label, and its description.
  *  - `selectedValue`: the currently-selected value, if any. Convenient
  *    for the consumer when rendering selected-state visuals next to the
  *    option attributes.
- *  - `hiddenInput`: when `inputs.name` was supplied, attributes for a
+ *  - `hiddenInput`: when `viewInputs.name` was supplied, attributes for a
  *    hidden form input carrying the selected value. The consumer
  *    renders the `<input>` themselves. Empty array when `name` is
  *    undefined. */
@@ -203,7 +203,7 @@ export type RenderInfo<Value extends string = string> = Readonly<{
   hiddenInput: ReadonlyArray<ChildAttribute>
 }>
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *  Generic over `Value extends string` so consumers using
  *  `Ui.RadioGroup.create<MyUnion>()` receive `option.value: MyUnion` in
  *  `toView` and `(value: MyUnion, index) => boolean` in
@@ -225,7 +225,7 @@ const descriptionId = (id: string, index: number): string =>
   `${id}-option-${index}-description`
 
 const internalView = defineView<Model, Message, ViewInputs>(
-  (model, inputs): Html => {
+  (model, viewInputs): Html => {
     const h = html<Message>()
 
     const { id, selectedValue } = model
@@ -237,7 +237,7 @@ const internalView = defineView<Model, Message, ViewInputs>(
       isDisabled: isGroupDisabled = false,
       name,
       orientation = model.orientation,
-    } = inputs
+    } = viewInputs
 
     const isDisabled = (index: number): boolean => {
       if (isGroupDisabled) {

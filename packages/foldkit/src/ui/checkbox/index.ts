@@ -112,7 +112,7 @@ export type CheckboxAttributes = Readonly<{
   hiddenInput: ReadonlyArray<ChildAttribute>
 }>
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *  Slot content (`toView`) and behavioral flags live here; the parent
  *  declares them at the embed site rather than threading them through the
  *  Submodel as a generic-parameterized callback. */
@@ -131,7 +131,7 @@ const descriptionId = (id: string): string => `${id}-description`
  *  delegating layout to the consumer's `toView` callback. Embedded via
  *  `h.submodel`. */
 export const view = defineView<Model, Message, ViewInputs>(
-  (model, inputs): Html => {
+  (model, viewInputs): Html => {
     const h = html<Message>()
 
     const { id, isChecked } = model
@@ -140,7 +140,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       isIndeterminate = false,
       name,
       value: formValue = 'on',
-    } = inputs
+    } = viewInputs
 
     const handleKeyUp = (key: string): Option.Option<Toggled> =>
       M.value(key).pipe(
@@ -182,7 +182,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       ? [h.Type('hidden'), h.Name(name), h.Value(isChecked ? formValue : '')]
       : []
 
-    return inputs.toView({
+    return viewInputs.toView({
       checkbox: childAttributes(checkboxAttributes),
       label: childAttributes(labelAttributes),
       description: childAttributes(descriptionAttributes),

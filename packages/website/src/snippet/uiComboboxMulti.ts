@@ -94,7 +94,7 @@ const view = () => {
     id: 'cities-multi',
     view: CitiesCombobox.view,
     model: model.comboboxMulti,
-    inputs: {
+    viewInputs: {
       items: filteredCities,
       itemToValue: city => city,
       itemToDisplayText: city => city,

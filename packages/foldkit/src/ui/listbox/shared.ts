@@ -769,7 +769,7 @@ export type GroupHeading = Readonly<{
   className?: string
 }>
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *
  *  The Listbox emits a `Selected({ value, wasAdded })` OutMessage on
  *  commit (single-select always `wasAdded: true`, multi-select toggles).
@@ -811,7 +811,7 @@ type BaseViewInputsCommon<Item> = Readonly<{
   isInvalid?: boolean
 }>
 
-/** Per-render inputs for a Listbox view. The `itemToValue` extractor
+/** Per-render view inputs for a Listbox view. The `itemToValue` extractor
  *  is optional when `Item` is itself a string (the default returns the
  *  item unchanged) and required when items are objects, so the OutMessage
  *  payload type can't drift from what the consumer actually emits. */
@@ -839,7 +839,7 @@ export const makeView = <Model extends BaseModel>(
   behavior: ViewBehavior<Model>,
 ) => {
   const impl = defineView<Model, Message, BaseViewInputs<unknown, string>>(
-    (model, inputs) => {
+    (model, viewInputs) => {
       const h = html<Message>()
 
       const {
@@ -879,12 +879,12 @@ export const makeView = <Model extends BaseModel>(
         form,
         isDisabled,
         isInvalid,
-      } = inputs
+      } = viewInputs
 
       const itemToValue =
-        inputs.itemToValue ?? ((item: unknown) => String(item))
+        viewInputs.itemToValue ?? ((item: unknown) => String(item))
       const itemToSearchText =
-        inputs.itemToSearchText ?? ((item: unknown) => itemToValue(item))
+        viewInputs.itemToSearchText ?? ((item: unknown) => itemToValue(item))
 
       const isLeaving =
         transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'

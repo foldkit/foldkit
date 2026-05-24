@@ -93,7 +93,7 @@ export const personalInfoView = Submodel.defineView<
             id: pronouns.id,
             view: PronounsListbox.view,
             model: pronouns,
-            inputs: {
+            viewInputs: {
               anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
               items: PronounOption.all,
               itemToConfig: (pronoun, { isSelected }) => ({
@@ -184,7 +184,7 @@ const availableDatePickerView = (model: Ui.DatePicker.Model): Html => {
         id: model.id,
         view: Ui.DatePicker.view,
         model,
-        inputs: {
+        viewInputs: {
           anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
           triggerContent: maybeDate => triggerContent(maybeDate, 'Pick a date'),
           triggerClassName,

@@ -215,7 +215,7 @@ const signaturesView = <ParentMessage>(
         id: maybeDisclosure.id,
         view: Ui.Disclosure.view,
         model: maybeDisclosure,
-        inputs: {
+        viewInputs: {
           toView: attributes =>
             h.div(
               [],

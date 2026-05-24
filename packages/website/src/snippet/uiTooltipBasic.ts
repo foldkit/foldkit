@@ -65,7 +65,7 @@ const view = () => {
     id: 'save-button',
     view: Ui.Tooltip.view,
     model: model.tooltip,
-    inputs: {
+    viewInputs: {
       anchor: { placement: 'top', gap: 6, padding: 8 },
       toView: ({ trigger, panel, isVisible }) =>
         h.div(

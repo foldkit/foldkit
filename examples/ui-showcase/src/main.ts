@@ -530,7 +530,7 @@ const mobileMenuView = (model: Model): Html => {
     id: model.uiModel.mobileMenuDialog.id,
     view: Ui.Dialog.view,
     model: model.uiModel.mobileMenuDialog,
-    inputs: {
+    viewInputs: {
       toView: ({ dialog, backdrop, panel, isVisible }) =>
         h.dialog(
           [...dialog, h.Class('md:hidden')],

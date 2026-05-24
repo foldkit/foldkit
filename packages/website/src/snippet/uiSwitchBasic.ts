@@ -66,7 +66,7 @@ const view = () => {
     id: 'switch-demo',
     view: Ui.Switch.view,
     model: model.switchDemo,
-    inputs: {
+    viewInputs: {
       toView: attributes =>
         h.div(
           [h.Class('flex items-center gap-3')],

@@ -94,7 +94,7 @@ export const verticalDemo = <ParentMessage>(
       id: radioGroupModel.id,
       view: PlanRadioGroup.view,
       model: radioGroupModel,
-      inputs: {
+      viewInputs: {
         options: plans,
         ariaLabel: 'Server plan',
         toView: ({ group, options }) =>
@@ -177,7 +177,7 @@ export const horizontalDemo = <ParentMessage>(
       id: radioGroupModel.id,
       view: PlanRadioGroup.view,
       model: radioGroupModel,
-      inputs: {
+      viewInputs: {
         options: plans,
         ariaLabel: 'Server plan',
         orientation: 'Horizontal',

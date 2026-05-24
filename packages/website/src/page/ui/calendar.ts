@@ -57,7 +57,7 @@ export const basicDemo = <ParentMessage>(
       id: model.calendarBasicDemo.id,
       view: Ui.Calendar.view,
       model: model.calendarBasicDemo,
-      inputs: {
+      viewInputs: {
         toView: attributes =>
           M.value(attributes).pipe(
             M.tagsExhaustive({

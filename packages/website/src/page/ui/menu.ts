@@ -142,7 +142,7 @@ export const basicDemo = <ParentMessage>(
           id: menuModel.id,
           view: DemoMenu.view,
           model: menuModel,
-          inputs: menuViewConfig<ParentMessage>(basicItemsClassName),
+          viewInputs: menuViewConfig<ParentMessage>(basicItemsClassName),
           toParentMessage: message =>
             toParentMessage(GotMenuBasicDemoMessage({ message })),
         }),
@@ -165,7 +165,7 @@ export const animatedDemo = <ParentMessage>(
           id: menuModel.id,
           view: DemoMenu.view,
           model: menuModel,
-          inputs: menuViewConfig<ParentMessage>(animatedItemsClassName),
+          viewInputs: menuViewConfig<ParentMessage>(animatedItemsClassName),
           toParentMessage: message =>
             toParentMessage(GotMenuAnimatedDemoMessage({ message })),
         }),

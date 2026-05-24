@@ -61,7 +61,7 @@ export const sliderDemo = <ParentMessage>(
           id: ratingModel.id,
           view: Ui.Slider.view,
           model: ratingModel,
-          inputs: {
+          viewInputs: {
             formatValue: value => `${String(value)} of 10`,
             toView: attributes =>
               h.div(
@@ -108,7 +108,7 @@ export const sliderDemo = <ParentMessage>(
           id: volumeModel.id,
           view: Ui.Slider.view,
           model: volumeModel,
-          inputs: {
+          viewInputs: {
             formatValue: value => `${String(Math.round(value * 100))} percent`,
             toView: attributes =>
               h.div(

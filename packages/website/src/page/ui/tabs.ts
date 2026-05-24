@@ -136,7 +136,7 @@ export const horizontalDemo = <ParentMessage>(
       id: tabsModel.id,
       view: DemoTabs.view,
       model: tabsModel,
-      inputs: {
+      viewInputs: {
         tabs: demoTabs,
         ariaLabel: 'Framework comparison tabs',
         toView: ({ tablist, tabs, activeIndex }) =>
@@ -254,7 +254,7 @@ export const verticalDemo = <ParentMessage>(
       id: tabsModel.id,
       view: DemoTabs.view,
       model: tabsModel,
-      inputs: {
+      viewInputs: {
         tabs: demoTabs,
         ariaLabel: 'Framework comparison tabs',
         orientation: 'Vertical',

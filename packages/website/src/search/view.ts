@@ -283,7 +283,7 @@ export const view = (model: Model, toParentMessage: ToMessage): Html => {
     id: model.dialog.id,
     view: Ui.Dialog.view,
     model: model.dialog,
-    inputs: {
+    viewInputs: {
       toView: ({ dialog, backdrop, panel, isVisible }) =>
         h.dialog(
           [...dialog],

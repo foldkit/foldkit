@@ -26,9 +26,9 @@ export const educationEntryView = Submodel.defineView<
   Education.Entry.Model,
   Education.Entry.Message,
   ViewInputs
->((model, inputs): Html => {
+>((model, viewInputs): Html => {
   const h = html<Education.Entry.Message>()
-  const { today } = inputs
+  const { today } = viewInputs
 
   const showGraduationYear = !model.isCurrentlyEnrolled.isChecked
 
@@ -44,7 +44,7 @@ export const educationEntryView = Submodel.defineView<
         id: model.graduationYearListbox.id,
         view: GraduationYearListbox.view,
         model: model.graduationYearListbox,
-        inputs: {
+        viewInputs: {
           items: graduationYears(today),
           buttonContent: h.div(
             [h.Class('flex w-full items-center justify-between gap-2')],
@@ -116,7 +116,7 @@ export const educationEntryView = Submodel.defineView<
         id: `${model.id}-currently-enrolled`,
         view: Ui.Checkbox.view,
         model: model.isCurrentlyEnrolled,
-        inputs: {
+        viewInputs: {
           toView: attributes =>
             h.div(
               [h.Class('flex items-center gap-2')],

@@ -54,7 +54,7 @@ export const basicDemo = <ParentMessage>(
       id: 'checkbox-basic-demo',
       view: Ui.Checkbox.view,
       model: model.checkboxBasicDemo,
-      inputs: {
+      viewInputs: {
         toView: attributes =>
           h.div(
             [h.Class(wrapperClassName)],
@@ -117,7 +117,7 @@ export const indeterminateDemo = <ParentMessage>(
             id: 'checkbox-all-demo',
             isChecked: isAllChecked,
           },
-          inputs: {
+          viewInputs: {
             isIndeterminate,
             toView: attributes =>
               h.div(
@@ -144,7 +144,7 @@ export const indeterminateDemo = <ParentMessage>(
               id: 'checkbox-option-a-demo',
               view: Ui.Checkbox.view,
               model: model.checkboxOptionADemo,
-              inputs: {
+              viewInputs: {
                 toView: attributes =>
                   h.div(
                     [h.Class(topRowClassName)],
@@ -167,7 +167,7 @@ export const indeterminateDemo = <ParentMessage>(
               id: 'checkbox-option-b-demo',
               view: Ui.Checkbox.view,
               model: model.checkboxOptionBDemo,
-              inputs: {
+              viewInputs: {
                 toView: attributes =>
                   h.div(
                     [h.Class(topRowClassName)],

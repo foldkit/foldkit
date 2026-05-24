@@ -37,7 +37,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             id: model.animationDemo.id,
             view: Ui.Animation.view,
             model: model.animationDemo,
-            inputs: {
+            viewInputs: {
               className: contentClassName,
               animateSize: true,
               content: h.p(

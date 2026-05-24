@@ -675,7 +675,7 @@ const durationSelectorView = (
         id: model.durationRadioGroup.id,
         view: NoteDurationRadioGroup.view,
         model: model.durationRadioGroup,
-        inputs: {
+        viewInputs: {
           options: noteDurations,
           ariaLabel: 'Note length',
           isDisabled: isInputLocked,

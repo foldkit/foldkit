@@ -36,7 +36,7 @@ export const demo = <ParentMessage>(
           id: tooltipModel.id,
           view: Ui.Tooltip.view,
           model: tooltipModel,
-          inputs: {
+          viewInputs: {
             anchor: TOOLTIP_ANCHOR,
             toView: ({ trigger, panel, isVisible }) =>
               h.div(

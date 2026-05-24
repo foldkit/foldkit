@@ -14,6 +14,7 @@ import {
 import {
   coreRuntimeRouter,
   exampleDetailRouter,
+  uiOverviewRouter,
   uiTypedPrimitivesRouter,
 } from '../../route'
 import * as Snippets from '../../snippet'
@@ -69,8 +70,8 @@ const wiringTheViewHeader: TableOfContentsEntry = {
 
 const perRenderInputsHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'per-render-inputs',
-  text: 'Per-render Inputs',
+  id: 'per-render-view-inputs',
+  text: 'Per-render View Inputs',
 }
 
 const readingParentStateHeader: TableOfContentsEntry = {
@@ -82,13 +83,13 @@ const readingParentStateHeader: TableOfContentsEntry = {
 const parentStateInViewHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'parent-state-in-view',
-  text: 'How do I pass parent state to a child view?',
+  text: 'Passing parent state to a child Submodel’s view',
 }
 
 const parentStateInUpdateHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'parent-state-in-update',
-  text: 'How do I provide parent state to a child Submodel’s update?',
+  text: 'Providing parent state to a child Submodel’s update',
 }
 
 const surfacingFactsHeader: TableOfContentsEntry = {
@@ -417,7 +418,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' type arguments brand the view so ',
         inlineCode('h.submodel'),
         ' can infer the child’s Message type at the embed site. A third optional type parameter ',
-        inlineCode('Inputs'),
+        inlineCode('ViewInputs'),
         ' threads per-render data from the parent, covered in the next section:',
       ),
       highlightedCodeBlock(
@@ -476,9 +477,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'For these Submodels, ',
         inlineCode('defineView'),
         ' takes a third type parameter ',
-        inlineCode('Inputs'),
+        inlineCode('ViewInputs'),
         '. The view receives ',
-        inlineCode('inputs'),
+        inlineCode('viewInputs'),
         ' as its second argument:',
       ),
       highlightedCodeBlock(
@@ -490,13 +491,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
           [],
         ),
         Snippets.submodelChildViewInputsRaw,
-        'Copy child view with inputs to clipboard',
+        'Copy child view with view inputs to clipboard',
         copiedSnippets,
         'mb-8',
       ),
       para(
         'At the embed site, the parent passes the ',
-        inlineCode('inputs'),
+        inlineCode('viewInputs'),
         ' alongside ',
         inlineCode('model'),
         ' and the other fields:',
@@ -510,7 +511,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
           [],
         ),
         Snippets.submodelParentViewInputsRaw,
-        'Copy parent view with inputs to clipboard',
+        'Copy parent view with view inputs to clipboard',
         copiedSnippets,
         'mb-8',
       ),
@@ -518,22 +519,22 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'The split between ',
         inlineCode('model'),
         ' and ',
-        inlineCode('inputs'),
+        inlineCode('viewInputs'),
         ' is load-bearing. ',
         inlineCode('model'),
         ' is the child’s internal state, owned by the child and mutated only through the child’s ',
         inlineCode('update'),
         '. ',
-        inlineCode('inputs'),
-        ' is per-render configuration, owned by the parent and rebuilt fresh each render. Putting per-render config in the model would force the parent to write update handlers that store its own configuration; putting state in the inputs would lose it across renders.',
+        inlineCode('viewInputs'),
+        ' is per-render configuration, owned by the parent and rebuilt fresh each render. Putting per-render config in the model would force the parent to write update handlers that store its own configuration; putting state in the viewInputs would lose it across renders.',
       ),
       para(
         'A common pattern is to put a slot callback (often called ',
         inlineCode('toView'),
         ') in ',
-        inlineCode('inputs'),
+        inlineCode('viewInputs'),
         ' so the child hands the parent attribute bundles and lets the parent shape the markup. Functions at the top level of ',
-        inlineCode('inputs'),
+        inlineCode('viewInputs'),
         ' get auto-wrapped to execute in the parent’s boundary, so any handlers the parent builds inside them (e.g. ',
         inlineCode('h.OnClick(ParentMessage())'),
         ') dispatch through the parent’s wrapping chain, not the child’s. See the ',
@@ -543,13 +544,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       warningCallout(
         'Keep slot callbacks at the top level',
         'Functions nested inside an object or array inside ',
-        inlineCode('inputs'),
+        inlineCode('viewInputs'),
         ' (e.g. ',
-        inlineCode('inputs: { config: { onSubmit } }'),
+        inlineCode('viewInputs: { config: { onSubmit } }'),
         ') throw at view-build time with a path-based error like ',
-        inlineCode('inputs.config.onSubmit'),
+        inlineCode('viewInputs.config.onSubmit'),
         '. The auto-wrap only descends one level, so a nested function would otherwise dispatch through the child’s boundary instead of the parent’s. The check is runtime-only, so a misuse compiles cleanly and surfaces the first time the boundary renders. Lift slot callbacks to the top level of ',
-        inlineCode('inputs'),
+        inlineCode('viewInputs'),
         '.',
       ),
       infoCallout(
@@ -574,27 +575,44 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       tableOfContentsEntryToHeader(readingParentStateHeader),
       para(
-        'Submodels exist for two related but distinct reasons. The first is encapsulation: a Calendar or a Listbox is a self-contained unit that owns its state, its keyboard handling, and its accessibility wiring, and the parent has no reason to see inside it. The second is decomposition: when your Model would otherwise grow into a god object, you split it into feature Submodels (Settings, Dashboard, a list entry) for organization. Those children may still legitimately need to read parent state they share with their siblings: the current user, the active locale, the session token. Forcing every such child to be fully encapsulated pushes you to duplicate parent state into the child Model and keep both copies in sync, which is worse on every axis.',
+        'Submodels exist for two related but distinct reasons. The first is encapsulation: ',
+        link(uiOverviewRouter(), 'Foldkit UI’s Submodels'),
+        ' are self-contained units that own their state, keyboard handling, and accessibility wiring. You embed them and they work; the boundary is hard by design. The second is decomposition: when your Model would otherwise grow into a monolith, you split it into feature Submodels (Settings, Dashboard) for organization. Those children may still legitimately need to read parent state they share with their siblings: the current user, the active locale, the session token. Forcing every such child to be fully encapsulated pushes you to duplicate parent state into the child Model and keep both copies in sync, which is worse on every axis.',
       ),
       para(
-        'Foldkit gives you two precise seams for parent state to reach the child instead, depending on where the child needs the value. The view answer threads parent state through ',
-        inlineCode('inputs'),
-        ' on ',
-        inlineCode('h.submodel'),
-        '. The update answer adds a third ',
-        inlineCode('context'),
-        ' argument to the child’s update. Both are typed contracts the child declares and the parent honors.',
+        'Foldkit gives you two precise seams for parent state to reach the child:',
+      ),
+      bullets(
+        h.span(
+          [],
+          [
+            'When a child view needs to render state that lives in the parent Model, thread it through ',
+            inlineCode('viewInputs'),
+            ' on ',
+            inlineCode('h.submodel'),
+            '.',
+          ],
+        ),
+        h.span(
+          [],
+          [
+            'When a child update needs context from the parent, add a third ',
+            inlineCode('context'),
+            ' argument to the child’s update.',
+          ],
+        ),
+      ),
+      para(
+        'Both are typed contracts the child declares and the parent honors.',
       ),
       tableOfContentsEntryToHeader(parentStateInViewHeader),
       para(
-        'The child’s view declares the shape it expects via the third type parameter on ',
-        inlineCode('Submodel.defineView<Model, Message, Inputs>'),
-        '. The parent slices that state out of its own Model and passes it through ',
-        inlineCode('inputs'),
+        'Slice the parent state out of the parent Model and pass it through ',
+        inlineCode('viewInputs'),
         ' on ',
         inlineCode('h.submodel'),
         '. Because ',
-        inlineCode('inputs'),
+        inlineCode('viewInputs'),
         ' is rebuilt every render, the child always sees the current value without storing a copy:',
       ),
       highlightedCodeBlock(
@@ -611,10 +629,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'mb-4',
       ),
       para(
-        inlineCode('inputs'),
-        ' can carry parent state, not only slot callbacks and per-render configuration. See ',
-        link('#per-render-inputs', 'Per-render Inputs'),
-        ' for the full mechanism.',
+        'The mechanism is the same one ',
+        link('#per-render-view-inputs', 'Per-render View Inputs'),
+        ' describes; parent state is just one of the things ',
+        inlineCode('viewInputs'),
+        ' can carry.',
       ),
       tableOfContentsEntryToHeader(parentStateInUpdateHeader),
       para(
@@ -645,15 +664,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' at the moment the message is being processed, and because the parent assembles the context fresh on every dispatch, the next call automatically sees any parent changes. Single source of truth, no sync obligation.',
       ),
       para(
-        'A context argument gives the child the current value when update runs. It does not notify the child when that value changes. If the child needs to ',
-        h.em([], ['react']),
-        ' to ',
+        'A context argument gives the child the current value when update runs. It does not notify the child when that value changes. If the child needs to react to ',
         inlineCode('currentUser'),
-        ' changing (clear caches, reset a form), you still want a Message or Subscription. Context-arg is for reading current parent state inside an update tick, not for observing parent state over time.',
-      ),
-      infoCallout(
-        'This isn’t a coupling problem',
-        'A context argument is coupling, but it is the loose, explicit kind: the child declares the shape it depends on; the parent decides what to supply; the type system enforces both sides at one seam. The alternatives are worse coupling, not less. Baking parent state into the child Model duplicates a source of truth and obligates the parent to keep both copies in sync. Carrying state on every message variant spreads the same coupling across many call sites with no central declaration. Context-arg is principled, not merely convenient.',
+        ' changing (clear caches, reset a form), the canonical move is for the parent to dispatch a child Message through ',
+        inlineCode('GotChildMessage'),
+        ' carrying the new value. Context-arg is for reading current parent state inside an update tick, not for observing parent state over time.',
       ),
       tableOfContentsEntryToHeader(surfacingFactsHeader),
       para(

@@ -64,7 +64,7 @@ const view = (model: Model) => {
     id: 'faq-1',
     view: Ui.Disclosure.view,
     model: model.disclosure,
-    inputs: {
+    viewInputs: {
       toView: attributes =>
         h.div(
           [],

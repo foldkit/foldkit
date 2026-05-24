@@ -77,7 +77,7 @@ const view = (model: Model) => {
     id: 'activity-list',
     view: Ui.VirtualList.view<Activity>(),
     model: model.activityList,
-    inputs: {
+    viewInputs: {
       items: model.activities,
       itemToKey: activity => String(activity.id),
       itemToView: activity =>

@@ -30,8 +30,6 @@ export const update = (
     M.tagsExhaustive({
       ClickedSave: () => [
         evo(model, { isSaving: () => true }),
-        // `context.currentUser` is read at update time; no copy lives
-        // in `model`, so there is nothing to keep in sync:
         [
           PersistProfile({
             userId: context.currentUser.id,
@@ -48,9 +46,9 @@ export const update = (
 // parent Model and pass it through to the child's update:
 GotSettingsMessage: ({ message }) => {
   const [nextSettings, commands, maybeOut] = Settings.update(
-    parentModel.settings,
+    model.settings,
     message,
-    { currentUser: parentModel.currentUser },
+    { currentUser: model.currentUser },
   )
   // ...usual wrapping of `commands` and pattern-match on `maybeOut`
 }

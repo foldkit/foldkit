@@ -356,7 +356,7 @@ export const setDisabledDaysOfWeek = (
 
 const encodeIsoDate = S.encodeSync(Calendar.CalendarDateFromIsoString)
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *
  *  The DatePicker emits a `SelectedDateOut({ date })` OutMessage when the
  *  user commits a date. Consumers pattern-match this in their
@@ -392,7 +392,7 @@ export type ViewInputs = Readonly<{
  * provide the trigger face and the calendar grid layout, DatePicker handles
  * focus choreography, open/close state, and form submission. */
 export const view = defineView<Model, Message, ViewInputs>(
-  (model, inputs): Html => {
+  (model, viewInputs): Html => {
     const h = html<Message>()
 
     const {
@@ -409,13 +409,13 @@ export const view = defineView<Model, Message, ViewInputs>(
       panelAttributes = [],
       backdropClassName,
       backdropAttributes = [],
-    } = inputs
+    } = viewInputs
 
     const calendarVNode = h.submodel({
       id: model.calendar.id,
       view: UiCalendar.view,
       model: model.calendar,
-      inputs: { toView: toCalendarView },
+      viewInputs: { toView: toCalendarView },
       toParentMessage: message => GotCalendarMessage({ message }),
     })
 
@@ -423,7 +423,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       id: model.popover.id,
       view: Popover.view,
       model: model.popover,
-      inputs: {
+      viewInputs: {
         anchor,
         ...(isDisabled !== undefined && { isDisabled }),
         focusSelector: `#${model.calendar.id}-grid`,

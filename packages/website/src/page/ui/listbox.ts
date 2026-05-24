@@ -132,7 +132,7 @@ export const basicDemo = <ParentMessage>(
           id: 'listbox-basic',
           view: ItemListbox.view,
           model: listboxModel,
-          inputs: {
+          viewInputs: {
             anchor: LISTBOX_ANCHOR,
             items: LISTBOX_ITEMS,
             itemToConfig: item => ({
@@ -185,7 +185,7 @@ export const multiSelectDemo = <ParentMessage>(
           id: 'listbox-multi',
           view: ItemMultiListbox.view,
           model: listboxModel,
-          inputs: {
+          viewInputs: {
             anchor: LISTBOX_ANCHOR,
             items: LISTBOX_ITEMS,
             itemToConfig: item => ({
@@ -236,7 +236,7 @@ export const groupedDemo = <ParentMessage>(
           id: 'listbox-grouped',
           view: CharacterListbox.view,
           model: listboxModel,
-          inputs: {
+          viewInputs: {
             anchor: LISTBOX_ANCHOR,
             items: GROUPED_CHARACTERS,
             itemToValue: characterName,

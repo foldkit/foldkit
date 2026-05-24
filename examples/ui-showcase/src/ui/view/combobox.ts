@@ -125,7 +125,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             id: model.comboboxDemo.id,
             view: CityCombobox.view,
             model: model.comboboxDemo,
-            inputs: comboboxInputs(model.comboboxDemo.inputValue),
+            viewInputs: comboboxInputs(model.comboboxDemo.inputValue),
             toParentMessage: message => GotComboboxDemoMessage({ message }),
           }),
         ],
@@ -142,7 +142,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             id: model.comboboxNullableDemo.id,
             view: CityCombobox.view,
             model: model.comboboxNullableDemo,
-            inputs: comboboxInputs(model.comboboxNullableDemo.inputValue),
+            viewInputs: comboboxInputs(model.comboboxNullableDemo.inputValue),
             toParentMessage: message =>
               GotComboboxNullableDemoMessage({ message }),
           }),
@@ -160,7 +160,9 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             id: model.comboboxSelectOnFocusDemo.id,
             view: CityCombobox.view,
             model: model.comboboxSelectOnFocusDemo,
-            inputs: comboboxInputs(model.comboboxSelectOnFocusDemo.inputValue),
+            viewInputs: comboboxInputs(
+              model.comboboxSelectOnFocusDemo.inputValue,
+            ),
             toParentMessage: message =>
               GotComboboxSelectOnFocusDemoMessage({ message }),
           }),
@@ -190,7 +192,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             id: model.comboboxMultiDemo.id,
             view: CityMultiCombobox.view,
             model: model.comboboxMultiDemo,
-            inputs: comboboxInputs(model.comboboxMultiDemo.inputValue),
+            viewInputs: comboboxInputs(model.comboboxMultiDemo.inputValue),
             toParentMessage: message =>
               GotComboboxMultiDemoMessage({ message }),
           }),

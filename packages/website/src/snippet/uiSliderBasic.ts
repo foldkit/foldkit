@@ -90,7 +90,7 @@ const view = (model: Model) => {
     id: 'rating',
     view: Ui.Slider.view,
     model: model.ratingDemo,
-    inputs: {
+    viewInputs: {
       formatValue: value => `${String(value)} of 10`,
       toView: attributes =>
         h.div(

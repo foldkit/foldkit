@@ -77,7 +77,7 @@ const view = (model: Model) => {
     id: 'plan',
     view: PlanListbox.view,
     model: model.listbox,
-    inputs: {
+    viewInputs: {
       items: plans,
       buttonContent: h.span(
         [],

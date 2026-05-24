@@ -97,7 +97,7 @@ export type SwitchAttributes = Readonly<{
   hiddenInput: ReadonlyArray<ChildAttribute>
 }>
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field. */
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field. */
 export type ViewInputs = Readonly<{
   toView: (attributes: SwitchAttributes) => Html
   isDisabled?: boolean
@@ -112,11 +112,11 @@ const descriptionId = (id: string): string => `${id}-description`
  *  and delegating layout to the consumer's `toView` callback. Designed
  *  to be embedded via `h.submodel`. */
 export const view = defineView<Model, Message, ViewInputs>(
-  (model, inputs): Html => {
+  (model, viewInputs): Html => {
     const h = html<Message>()
 
     const { id, isChecked } = model
-    const { isDisabled = false, name, value: formValue = 'on' } = inputs
+    const { isDisabled = false, name, value: formValue = 'on' } = viewInputs
 
     const handleKeyUp = (key: string): Option.Option<Toggled> =>
       M.value(key).pipe(
@@ -154,7 +154,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       ? [h.Type('hidden'), h.Name(name), h.Value(isChecked ? formValue : '')]
       : []
 
-    return inputs.toView({
+    return viewInputs.toView({
       button: childAttributes(buttonAttributes),
       label: childAttributes(labelAttributes),
       description: childAttributes(descriptionAttributes),

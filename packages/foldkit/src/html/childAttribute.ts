@@ -31,7 +31,7 @@ export const isChildAttribute = (value: unknown): value is ChildAttribute =>
  *
  *  ```ts
  *  // Inside a SubmodelView running in the child's boundary:
- *  return inputs.toView({
+ *  return viewInputs.toView({
  *    checkbox: childAttributes([
  *      h.OnClick(Toggled()),
  *      h.Role('checkbox'),

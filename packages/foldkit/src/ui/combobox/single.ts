@@ -123,7 +123,7 @@ export const selectItem = (
 
 // VIEW
 
-/** Per-render inputs passed to the view via `h.submodel`'s `inputs` field. */
+/** Per-render view inputs passed to the view via `h.submodel`'s `viewInputs` field. */
 export type ViewInputs<Item extends string> = BaseViewInputs<Item>
 
 const internalView = makeView<Model>({

@@ -77,7 +77,7 @@ const view = () => {
     id: 'framework-tabs',
     view: FrameworkTabs.view,
     model: model.tabs,
-    inputs: {
+    viewInputs: {
       tabs: frameworks,
       ariaLabel: 'Framework comparison',
       toView: ({ tablist, tabs, activeIndex }) =>

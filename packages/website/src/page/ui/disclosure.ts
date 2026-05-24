@@ -47,7 +47,7 @@ export const disclosureDemo = <ParentMessage>(
           id: 'disclosure-demo',
           view: Ui.Disclosure.view,
           model: disclosureModel,
-          inputs: {
+          viewInputs: {
             toView: attributes =>
               h.div(
                 [],

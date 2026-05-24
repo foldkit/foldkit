@@ -148,7 +148,7 @@ export type DisclosureAttributes = Readonly<{
   panel: ReadonlyArray<ChildAttribute>
 }>
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *
  *  - `toView`: receives the disclosure's `button` and `panel` attribute
  *    bundles and returns the composed layout. The consumer reads
@@ -170,11 +170,11 @@ export type ViewInputs = Readonly<{
  *  toggle events by pattern-matching the `ToggledOpenState` OutMessage
  *  from the third element of `update`'s return tuple. */
 export const view = defineView<Model, Message, ViewInputs>(
-  (model, inputs): Html => {
+  (model, viewInputs): Html => {
     const h = html<Message>()
 
     const { id, isOpen } = model
-    const { toView, isDisabled = false } = inputs
+    const { toView, isDisabled = false } = viewInputs
 
     const handleKeyDown = (key: string): Option.Option<Toggled> =>
       M.value(key).pipe(

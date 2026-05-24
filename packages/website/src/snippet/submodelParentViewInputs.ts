@@ -5,7 +5,7 @@ import { GotCollapsibleMessage, type Message } from './message'
 import type { Model } from './model'
 import { Collapsible } from './page'
 
-// The parent passes `inputs` alongside model/view/toParentMessage.
+// The parent passes `viewInputs` alongside model/view/toParentMessage.
 // `summary` and `content` are Html the parent builds; the child slots
 // them into its open/closed widget. The child has no idea what the
 // summary or content actually are — only that they exist.
@@ -21,7 +21,7 @@ export const view = (model: Model): Document => {
           id: 'about-section',
           view: Collapsible.view,
           model: model.about,
-          inputs: {
+          viewInputs: {
             summary: h.span([], ['About this app']),
             content: h.p(
               [],

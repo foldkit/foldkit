@@ -81,7 +81,7 @@ const popoverDemo = <ParentMessage>(
     id: popoverModel.id,
     view: Ui.Popover.view,
     model: popoverModel,
-    inputs: {
+    viewInputs: {
       anchor: POPOVER_ANCHOR,
       toView: ({ button, panel, backdrop, isVisible }) =>
         h.div(

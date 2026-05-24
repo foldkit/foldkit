@@ -539,7 +539,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
 
 const DEFAULT_OVERSCAN = 5
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *
  *  VirtualList does not surface event handlers in the view. All input
  *  (scroll events and resize observations) flows through the
@@ -572,7 +572,7 @@ export const view = <Item>() =>
   viewImpl as unknown as ViewForItem<Item>
 
 const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
-  (model, inputs) => {
+  (model, viewInputs) => {
     const h = html<Message>()
 
     const {
@@ -584,7 +584,7 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
       rowElement = 'li',
       containerClassName,
       containerAttributes = [],
-    } = inputs
+    } = viewInputs
 
     const baseContainerAttributes = [
       h.Id(model.id),

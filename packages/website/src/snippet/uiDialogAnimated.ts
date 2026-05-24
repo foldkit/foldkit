@@ -69,7 +69,7 @@ const view = (model: Model) => {
     id: model.dialog.id,
     view: Ui.Dialog.view,
     model: model.dialog,
-    inputs: {
+    viewInputs: {
       toView: ({ dialog, backdrop, panel, isVisible }) =>
         h.dialog(
           [

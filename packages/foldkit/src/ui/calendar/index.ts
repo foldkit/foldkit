@@ -849,7 +849,7 @@ export type CalendarAttributes =
   | MonthsModeAttributes
   | YearsModeAttributes
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *
  *  The Calendar dispatches its own `ClickedDay` message on date commit
  *  and emits a `SelectedDate` OutMessage. Consumers react to date
@@ -911,7 +911,7 @@ const isYearDisabled = (model: Model, year: number): boolean =>
 
 const buildDaysAttributes = (
   model: Model,
-  inputs: ViewInputs,
+  viewInputs: ViewInputs,
 ): DaysModeAttributes => {
   const h = html<Message>()
 
@@ -926,10 +926,10 @@ const buildDaysAttributes = (
     isGridFocused,
   } = model
 
-  const previousMonthLabel = inputs.previousMonthLabel ?? 'Previous month'
-  const nextMonthLabel = inputs.nextMonthLabel ?? 'Next month'
+  const previousMonthLabel = viewInputs.previousMonthLabel ?? 'Previous month'
+  const nextMonthLabel = viewInputs.nextMonthLabel ?? 'Next month'
   const headingButtonLabel =
-    inputs.daysHeadingButtonLabel ?? 'Switch to month picker'
+    viewInputs.daysHeadingButtonLabel ?? 'Switch to month picker'
 
   const headingText = `${locale.monthNames[viewMonth - 1]} ${viewYear}`
 
@@ -1097,7 +1097,7 @@ const buildDaysAttributes = (
 
 const buildMonthsAttributes = (
   model: Model,
-  inputs: ViewInputs,
+  viewInputs: ViewInputs,
 ): MonthsModeAttributes => {
   const h = html<Message>()
 
@@ -1112,7 +1112,7 @@ const buildMonthsAttributes = (
   } = model
 
   const headingButtonLabel =
-    inputs.monthsHeadingButtonLabel ?? 'Switch to year picker'
+    viewInputs.monthsHeadingButtonLabel ?? 'Switch to year picker'
 
   const headingText = `${viewYear}`
 
@@ -1222,15 +1222,15 @@ const buildMonthsAttributes = (
 
 const buildYearsAttributes = (
   model: Model,
-  inputs: ViewInputs,
+  viewInputs: ViewInputs,
 ): YearsModeAttributes => {
   const h = html<Message>()
 
   const { id, viewYear, maybeFocusedDate, today, isGridFocused } = model
 
   const previousYearsPageLabel =
-    inputs.previousYearsPageLabel ?? 'Previous 12 years'
-  const nextYearsPageLabel = inputs.nextYearsPageLabel ?? 'Next 12 years'
+    viewInputs.previousYearsPageLabel ?? 'Previous 12 years'
+  const nextYearsPageLabel = viewInputs.nextYearsPageLabel ?? 'Next 12 years'
 
   const cursorYear = Option.match(maybeFocusedDate, {
     onNone: () => viewYear,
@@ -1351,13 +1351,13 @@ const buildYearsAttributes = (
  *  `toView` callback. The variant of `CalendarAttributes` passed to
  *  `toView` matches `model.viewMode`. */
 export const view = defineView<Model, Message, ViewInputs>(
-  (model, inputs): Html =>
-    inputs.toView(
+  (model, viewInputs): Html =>
+    viewInputs.toView(
       M.value(model.viewMode).pipe(
         M.withReturnType<CalendarAttributes>(),
-        M.when('Days', () => buildDaysAttributes(model, inputs)),
-        M.when('Months', () => buildMonthsAttributes(model, inputs)),
-        M.when('Years', () => buildYearsAttributes(model, inputs)),
+        M.when('Days', () => buildDaysAttributes(model, viewInputs)),
+        M.when('Months', () => buildMonthsAttributes(model, viewInputs)),
+        M.when('Years', () => buildYearsAttributes(model, viewInputs)),
         M.exhaustive,
       ),
     ),

@@ -491,7 +491,7 @@ export type RenderInfo = Readonly<{
   isVisible: boolean
 }>
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field. */
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field. */
 export type ViewInputs = Readonly<{
   anchor: AnchorConfig
   toView: (render: RenderInfo) => Html
@@ -501,7 +501,7 @@ export type ViewInputs = Readonly<{
 
 /** Renders a headless popover with a trigger button and a floating panel. */
 export const view = defineView<Model, Message, ViewInputs>(
-  (model, inputs): Html => {
+  (model, viewInputs): Html => {
     const h = html<Message>()
 
     const {
@@ -511,7 +511,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       animation: { transitionState },
       maybeLastButtonPointerType,
     } = model
-    const { anchor, toView, isDisabled, focusSelector } = inputs
+    const { anchor, toView, isDisabled, focusSelector } = viewInputs
 
     const isLeaving =
       transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'

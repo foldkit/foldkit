@@ -783,7 +783,7 @@ export type GroupHeading = Readonly<{
   className?: string
 }>
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *
  *  The Combobox emits a `Selected({ value, wasAdded })` OutMessage on
  *  commit (single-select always `wasAdded: true`, multi-select toggles).
@@ -843,7 +843,7 @@ export const makeView = <Model extends BaseModel>(
   behavior: ViewBehavior<Model>,
 ) => {
   const impl = defineView<Model, Message, BaseViewInputs<string>>(
-    (model, inputs): Html => {
+    (model, viewInputs): Html => {
       const h = html<Message>()
 
       const {
@@ -887,7 +887,7 @@ export const makeView = <Model extends BaseModel>(
         separatorClassName,
         separatorAttributes = [],
         anchor,
-      } = inputs
+      } = viewInputs
 
       const isLeaving =
         transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'

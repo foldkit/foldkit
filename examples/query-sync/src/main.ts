@@ -727,7 +727,7 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
             id: model.dietListbox.id,
             view: DietListbox.view,
             model: model.dietListbox,
-            inputs: {
+            viewInputs: {
               anchor: LISTBOX_ANCHOR,
               items: dietFilterItems,
               itemToConfig: item => filterItemConfig(dietLabel(item)),
@@ -755,7 +755,7 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
             id: model.periodListbox.id,
             view: PeriodListbox.view,
             model: model.periodListbox,
-            inputs: {
+            viewInputs: {
               anchor: LISTBOX_ANCHOR,
               items: periodFilterItems,
               itemToConfig: item => filterItemConfig(periodLabel(item)),

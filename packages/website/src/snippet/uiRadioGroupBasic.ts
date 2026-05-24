@@ -83,7 +83,7 @@ const view = () => {
     id: 'plan',
     view: PlanRadioGroup.view,
     model: model.radioGroup,
-    inputs: {
+    viewInputs: {
       options: plans,
       ariaLabel: 'Server plan',
       toView: ({ group, options }) =>

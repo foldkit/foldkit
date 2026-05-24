@@ -141,7 +141,7 @@ export const demo = <ParentMessage>(
       id: toastModel.id,
       view: Toast.view,
       model: toastModel,
-      inputs: {
+      viewInputs: {
         position: 'BottomRight',
         entryToView: renderToastEntry,
         entryClassName,

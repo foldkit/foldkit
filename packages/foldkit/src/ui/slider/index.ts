@@ -527,7 +527,7 @@ export type SliderAttributes = Readonly<{
   hiddenInput: ReadonlyArray<ChildAttribute>
 }>
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field. */
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field. */
 export type ViewInputs = Readonly<{
   toView: (attributes: SliderAttributes) => Html
   ariaLabel?: string
@@ -548,7 +548,7 @@ export type ViewInputs = Readonly<{
  *  aria-valuemax / aria-valuenow, keyboard navigation by step / page / home /
  *  end. Pointer drag is handled by the component's drag subscriptions. */
 export const view = defineView<Model, Message, ViewInputs>(
-  (model, inputs): Html => {
+  (model, viewInputs): Html => {
     const h = html<Message>()
 
     const {
@@ -556,7 +556,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       isDisabled = false,
       name,
       getTrackRoot = () => document,
-    } = inputs
+    } = viewInputs
     const { id, value, min, max } = model
     const isDragging = model.dragState._tag === 'Dragging'
     const fraction = fractionOfValue(model)
@@ -632,10 +632,10 @@ export const view = defineView<Model, Message, ViewInputs>(
     ]
 
     const resolveThumbLabel = () => {
-      if (inputs.ariaLabel !== undefined) {
-        return [h.AriaLabel(inputs.ariaLabel)]
-      } else if (inputs.ariaLabelledBy !== undefined) {
-        return [h.AriaLabelledBy(inputs.ariaLabelledBy)]
+      if (viewInputs.ariaLabel !== undefined) {
+        return [h.AriaLabel(viewInputs.ariaLabel)]
+      } else if (viewInputs.ariaLabelledBy !== undefined) {
+        return [h.AriaLabelledBy(viewInputs.ariaLabelledBy)]
       } else {
         return [h.AriaLabelledBy(labelId(id))]
       }
@@ -680,7 +680,7 @@ export const view = defineView<Model, Message, ViewInputs>(
         ? [h.Type('hidden'), h.Name(name), h.Value(value.toString())]
         : []
 
-    return inputs.toView({
+    return viewInputs.toView({
       root: childAttributes(rootAttributes),
       track: childAttributes(trackAttributes),
       filledTrack: childAttributes(filledTrackAttributes),

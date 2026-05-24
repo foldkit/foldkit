@@ -83,7 +83,7 @@ export const dialogDemo = <ParentMessage>(
       id: dialogModel.id,
       view: Ui.Dialog.view,
       model: dialogModel,
-      inputs: {
+      viewInputs: {
         toView: ({ dialog, backdrop, panel, isVisible }) =>
           h.dialog(
             [...dialog, h.Class(dialogClassName)],
@@ -171,7 +171,7 @@ export const dialogAnimatedDemo = <ParentMessage>(
       id: dialogModel.id,
       view: Ui.Dialog.view,
       model: dialogModel,
-      inputs: {
+      viewInputs: {
         toView: ({ dialog, backdrop, panel, isVisible }) =>
           h.dialog(
             [...dialog, h.Class(dialogClassName)],

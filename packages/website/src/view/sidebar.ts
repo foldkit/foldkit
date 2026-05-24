@@ -100,7 +100,7 @@ const sidebarGroup = (config: {
         id: config.id,
         view: Ui.Disclosure.view,
         model: config.model,
-        inputs: {
+        viewInputs: {
           toView: attributes =>
             h.div(
               [],
@@ -426,7 +426,7 @@ export const sidebarView = (model: Model): Html => {
     id: model.mobileMenuDialog.id,
     view: Ui.Dialog.view,
     model: model.mobileMenuDialog,
-    inputs: {
+    viewInputs: {
       toView: ({ dialog, backdrop, panel, isVisible }) =>
         h.dialog(
           [...dialog, h.Class('md:hidden')],

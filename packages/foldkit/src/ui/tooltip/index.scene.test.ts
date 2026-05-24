@@ -26,7 +26,7 @@ const sceneView =
       id: 'test',
       view,
       model,
-      inputs: {
+      viewInputs: {
         anchor: { placement: 'top' },
         isDisabled: overrides.isDisabled,
         toView: ({ trigger, panel, isVisible }) =>

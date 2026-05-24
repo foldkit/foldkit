@@ -32,7 +32,7 @@ const view = () => {
     id: 'activity-list',
     view: Ui.VirtualList.view<Activity>(),
     model: model.activityList,
-    inputs: {
+    viewInputs: {
       items: model.activities,
       itemToKey: activity => String(activity.id),
       itemToRowHeightPx: (activity, index) => (activity.hasSummary ? 104 : 56),

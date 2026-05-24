@@ -24,21 +24,21 @@ export const view = Submodel.defineView<Model, Message>(model => {
 
 The parent-Message wrap is declared as data at the embed site via `toParentMessage` and resolved through a runtime scope registry at event-fire time. The cached child VNode carries stable values; the per-render-fresh wrap closure does not enter the VNode. This is what enables memoization across Submodel boundaries.
 
-`inputs` (optional second view argument) carries slot content built in the parent's boundary. Top-level function values in `inputs` are auto-wrapped to execute in the parent's boundary so user-provided handlers inside slots dispatch through the user's chain, not the embedded Submodel's. Functions nested below the top level (inside object fields or array elements) are rejected at compile time by a mapped type on `SubmodelConfig.inputs`, with the same shape also enforced at view-build time as a defensive net for type-escape cases (`as any` casts, dynamic input construction). The natural list-shaped API (`inputs: { items: [{ onSelect }] }`) trips both gates and surfaces the misuse before a misrouted Message leaks.
+`viewInputs` (optional second view argument) carries slot content built in the parent's boundary. Top-level function values in `viewInputs` are auto-wrapped to execute in the parent's boundary so user-provided handlers inside slots dispatch through the user's chain, not the embedded Submodel's. Functions nested below the top level (inside object fields or array elements) are rejected at compile time by a mapped type on `SubmodelConfig.viewInputs`, with the same shape also enforced at view-build time as a defensive net for type-escape cases (`as any` casts, dynamic input construction). The natural list-shaped API (`viewInputs: { items: [{ onSelect }] }`) trips both gates and surfaces the misuse before a misrouted Message leaks.
 
 Nested Submodels compose automatically: a deeper `h.submodel` extends the boundary chain, and wrapping at event-fire time walks the full chain from innermost to outermost.
 
 ### `Submodel.defineView`
 
-The brand is REQUIRED at `h.submodel` call sites. Unbranded plain functions fail to type-check rather than silently inferring `Message = never`. Build branded views with `Submodel.defineView<Model, Message, Inputs>(fn)`:
+The brand is REQUIRED at `h.submodel` call sites. Unbranded plain functions fail to type-check rather than silently inferring `Message = never`. Build branded views with `Submodel.defineView<Model, Message, ViewInputs>(fn)`:
 
 ```ts
 export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, inputs) => h.div([...], [...])
+  (model, viewInputs) => h.div([...], [...])
 )
 ```
 
-`Submodel.View` and `Submodel.Config` are accessible as types under the namespace for cases where consumers annotate them directly. Most consumers never do; the brand and `Parameters<View>` carry the inference, so `h.submodel`'s `model` and `inputs` config fields are also fully inferred.
+`Submodel.View` and `Submodel.Config` are accessible as types under the namespace for cases where consumers annotate them directly. Most consumers never do; the brand and `Parameters<View>` carry the inference, so `h.submodel`'s `model` and `viewInputs` config fields are also fully inferred.
 
 ### Boundary semantics
 
@@ -53,4 +53,4 @@ Ships as a new example demonstrating the pattern: a parent that hosts a dynamic 
 
 ### Ui.\* implications
 
-Every Ui.\* component's `view` is now a pure `(model, inputs?) => Html` typed via `Submodel.defineView` rather than `<ParentMessage>(config: ViewConfig)`. Embed via `h.submodel({ view: Ui.X.view, ... })` instead of calling `Ui.X.view({ ... })` directly. See `ui-out-messages.md` and `ui-selection-factory.md` for per-component migration details.
+Every Ui.\* component's `view` is now a pure `(model, viewInputs?) => Html` typed via `Submodel.defineView` rather than `<ParentMessage>(config: ViewConfig)`. Embed via `h.submodel({ view: Ui.X.view, ... })` instead of calling `Ui.X.view({ ... })` directly. See `ui-out-messages.md` and `ui-selection-factory.md` for per-component migration details.

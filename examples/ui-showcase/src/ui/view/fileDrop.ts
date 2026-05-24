@@ -56,7 +56,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             id: model.fileDropBasicDemo.id,
             view: Ui.FileDrop.view,
             model: model.fileDropBasicDemo,
-            inputs: {
+            viewInputs: {
               multiple: true,
               toView: attributes =>
                 h.label(

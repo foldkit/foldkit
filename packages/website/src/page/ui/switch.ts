@@ -47,7 +47,7 @@ export const switchDemo = <ParentMessage>(
       id: 'switch-demo',
       view: Ui.Switch.view,
       model: switchModel,
-      inputs: {
+      viewInputs: {
         toView: attributes =>
           h.div(
             [h.Class(wrapperClassName)],

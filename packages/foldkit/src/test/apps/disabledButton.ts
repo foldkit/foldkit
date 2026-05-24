@@ -98,7 +98,7 @@ export const viewWithDialog = (model: Model): Html => {
         id: model.dialog.id,
         view: Dialog.view,
         model: model.dialog,
-        inputs: {
+        viewInputs: {
           toView: ({ dialog, backdrop, panel, isVisible }) =>
             h.dialog(
               [...dialog],

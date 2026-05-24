@@ -158,7 +158,7 @@ const faqItem = <ParentMessage>(
         id: disclosure.id,
         view: Ui.Disclosure.view,
         model: disclosure,
-        inputs: {
+        viewInputs: {
           toView: attributes =>
             h.div(
               [h.Class('mb-2')],

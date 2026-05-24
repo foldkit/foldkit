@@ -175,7 +175,7 @@ const dispatchAcrossBoundary = (
           `"${ancestorBoundary}" of boundary "${boundaryId}". This means a ` +
           `Submodel's wrap was deregistered between event scheduling and ` +
           `dispatch. Most likely cause: a slot callback (h.submodel ` +
-          `\`inputs\` function value) was invoked from a deferred context ` +
+          `\`viewInputs\` function value) was invoked from a deferred context ` +
           `(setTimeout, Promise.then, stored callback) after the parent ` +
           `Submodel unmounted. Slot callbacks must be invoked synchronously ` +
           `inside the render in which they were created.`,

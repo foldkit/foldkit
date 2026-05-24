@@ -76,10 +76,10 @@ describe('childAttributes', () => {
     // wrap. With childAttributes, the published attribute carries
     // the child's dispatcher and the runtime routes the handler
     // through Checkbox's wrap.
-    const fakeCheckboxView = (_model: object, inputs: { toView: any }) => {
+    const fakeCheckboxView = (_model: object, viewInputs: { toView: any }) => {
       const h = html<ChildClicked>()
       const checkboxAttributes = [h.OnClick({ _tag: 'ChildClicked' })]
-      return inputs.toView({
+      return viewInputs.toView({
         checkbox: childAttributes(checkboxAttributes),
       })
     }
@@ -91,7 +91,7 @@ describe('childAttributes', () => {
       id: 'fake-checkbox',
       view: branded,
       model: {},
-      inputs: {
+      viewInputs: {
         toView: (attributes: { checkbox: ReadonlyArray<unknown> }) => {
           const hParent = html<ParentDirect>()
           return hParent.div(
@@ -121,10 +121,10 @@ describe('childAttributes', () => {
     // ones. Each routes through the correct dispatcher: the consumer's
     // OnClick goes unwrapped (parent boundary), the published one
     // routes through the Submodel's wrap.
-    const fakeCheckboxView = (_model: object, inputs: { toView: any }) => {
+    const fakeCheckboxView = (_model: object, viewInputs: { toView: any }) => {
       const h = html<ChildClicked>()
       const checkboxAttributes = [h.OnClick({ _tag: 'ChildClicked' })]
-      return inputs.toView({
+      return viewInputs.toView({
         checkbox: childAttributes(checkboxAttributes),
       })
     }
@@ -136,7 +136,7 @@ describe('childAttributes', () => {
       id: 'fake-checkbox',
       view: branded,
       model: {},
-      inputs: {
+      viewInputs: {
         toView: (attributes: { checkbox: ReadonlyArray<unknown> }) => {
           const hParent = html<ParentDirect>()
           // Consumer wraps Checkbox's checkbox attributes in a button,
@@ -209,14 +209,14 @@ describe('childAttributes', () => {
     submodel({
       id: 'first',
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      view: ((_: object, inputs: { capture: any }) => {
+      view: ((_: object, viewInputs: { capture: any }) => {
         const h = html<FirstChild>()
         firstAttributes = childAttributes([h.OnClick({ _tag: 'FirstChild' })])
-        inputs.capture(firstAttributes)
+        viewInputs.capture(firstAttributes)
         return snabbdomH('span')
       }) as any,
       model: {},
-      inputs: {
+      viewInputs: {
         capture: (attrs: ReadonlyArray<unknown>) => {
           firstAttributes = attrs
         },
@@ -227,14 +227,14 @@ describe('childAttributes', () => {
     submodel({
       id: 'second',
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      view: ((_: object, inputs: { capture: any }) => {
+      view: ((_: object, viewInputs: { capture: any }) => {
         const h = html<SecondChild>()
         secondAttributes = childAttributes([h.OnClick({ _tag: 'SecondChild' })])
-        inputs.capture(secondAttributes)
+        viewInputs.capture(secondAttributes)
         return snabbdomH('span')
       }) as any,
       model: {},
-      inputs: {
+      viewInputs: {
         capture: (attrs: ReadonlyArray<unknown>) => {
           secondAttributes = attrs
         },
@@ -267,9 +267,9 @@ describe('childAttributes', () => {
     // published ChildAttribute OnClick alongside their own OnClick
     // would silently drop one of the two. The chained behavior fires
     // both in spread order, each through the correct dispatch chain.
-    const fakeView = (_model: object, inputs: { toView: any }) => {
+    const fakeView = (_model: object, viewInputs: { toView: any }) => {
       const h = html<ChildClicked>()
-      return inputs.toView({
+      return viewInputs.toView({
         attrs: childAttributes([h.OnClick({ _tag: 'ChildClicked' })]),
       })
     }
@@ -281,7 +281,7 @@ describe('childAttributes', () => {
       id: 'fake',
       view: branded,
       model: {},
-      inputs: {
+      viewInputs: {
         toView: (a: { attrs: ReadonlyArray<unknown> }) => {
           const hParent = html<ParentDirect>()
           return hParent.button(

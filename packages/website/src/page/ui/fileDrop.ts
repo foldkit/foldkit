@@ -59,7 +59,7 @@ export const basicDemo = <ParentMessage>(
           id: model.fileDropBasicDemo.id,
           view: Ui.FileDrop.view,
           model: model.fileDropBasicDemo,
-          inputs: {
+          viewInputs: {
             multiple: true,
             toView: attributes =>
               h.label(

@@ -96,7 +96,7 @@ const view = () => {
     id: 'date-picker-demo',
     view: Ui.DatePicker.view,
     model: model.datePickerDemo,
-    inputs: {
+    viewInputs: {
       anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
       triggerContent: maybeDate =>
         Option.match(maybeDate, {

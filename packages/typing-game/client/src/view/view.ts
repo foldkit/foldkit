@@ -32,7 +32,7 @@ export const view = (model: Model): Document => {
           id: 'room',
           view: Room.view,
           model: model.room,
-          inputs: { roomId },
+          viewInputs: { roomId },
           toParentMessage: message => GotRoomMessage({ message }),
         }),
       NotFound: notFound,

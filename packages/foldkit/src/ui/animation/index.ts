@@ -46,7 +46,7 @@ export { RequestFrame, WaitForAnimationSettled, defaultLeaveCommand, update }
 
 // VIEW
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field. */
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field. */
 export type ViewInputs = Readonly<{
   content: Html
   className?: string
@@ -68,7 +68,7 @@ export type ViewInputs = Readonly<{
  *  - `data-transition` — any animation is active
  */
 export const view = defineView<Model, Message, ViewInputs>(
-  (model, inputs): Html => {
+  (model, viewInputs): Html => {
     const h = html<Message>()
 
     const { id, isShowing, transitionState } = model
@@ -78,7 +78,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       attributes = [],
       element = 'div',
       animateSize = false,
-    } = inputs
+    } = viewInputs
 
     const isLeaving =
       transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'

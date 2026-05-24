@@ -122,7 +122,7 @@ export const attachmentsView = Submodel.defineView<
             id: resumeDrop.id,
             view: Ui.FileDrop.view,
             model: resumeDrop,
-            inputs: {
+            viewInputs: {
               accept: ['application/pdf', '.doc', '.docx'],
               toView: attributes =>
                 h.keyed('label')(
@@ -163,7 +163,7 @@ export const attachmentsView = Submodel.defineView<
         id: additionalFilesDrop.id,
         view: Ui.FileDrop.view,
         model: additionalFilesDrop,
-        inputs: {
+        viewInputs: {
           multiple: true,
           toView: attributes =>
             h.label(

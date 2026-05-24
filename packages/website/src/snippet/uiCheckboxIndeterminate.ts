@@ -59,7 +59,7 @@ const isAllChecked = Array.every(checkboxes, ({ isChecked }) => isChecked)
 const isIndeterminate =
   !isAllChecked && Array.some(checkboxes, ({ isChecked }) => isChecked)
 
-// Inside your view function, pass isIndeterminate via h.submodel's inputs:
+// Inside your view function, pass isIndeterminate via h.submodel's viewInputs:
 const view = () => {
   const h = html<Message>()
 
@@ -67,7 +67,7 @@ const view = () => {
     id: 'select-all',
     view: Ui.Checkbox.view,
     model: { id: 'select-all', isChecked: isAllChecked },
-    inputs: {
+    viewInputs: {
       isIndeterminate,
       toView: attributes =>
         h.div(

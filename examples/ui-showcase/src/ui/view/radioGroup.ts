@@ -84,7 +84,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         id: 'vertical-radio-group-demo',
         view: PlanRadioGroup.view,
         model: model.verticalRadioGroupDemo,
-        inputs: {
+        viewInputs: {
           options: plans,
           ariaLabel: 'Server plan',
           toView: ({ group, options }) =>
@@ -145,7 +145,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         id: 'horizontal-radio-group-demo',
         view: PlanRadioGroup.view,
         model: model.horizontalRadioGroupDemo,
-        inputs: {
+        viewInputs: {
           options: plans,
           ariaLabel: 'Server plan',
           orientation: 'Horizontal',

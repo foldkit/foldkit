@@ -11,7 +11,7 @@ import type { Model } from './model'
 declare const Disclosure: {
   view: (
     model: Model['disclosure'],
-    inputs: {
+    viewInputs: {
       toView: (attributes: {
         readonly button: ReadonlyArray<ChildAttribute>
         readonly panel: ReadonlyArray<ChildAttribute>
@@ -27,7 +27,7 @@ export const view = (model: Model) => {
     id: 'disclosure',
     view: Disclosure.view,
     model: model.disclosure,
-    inputs: {
+    viewInputs: {
       toView: ({ button, panel }) =>
         h.div(
           [],

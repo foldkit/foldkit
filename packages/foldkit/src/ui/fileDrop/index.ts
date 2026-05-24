@@ -139,7 +139,7 @@ export type FileDropAttributes = Readonly<{
   input: ReadonlyArray<ChildAttribute>
 }>
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field. */
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field. */
 export type ViewInputs = Readonly<{
   toView: (attributes: FileDropAttributes) => Html
   accept?: ReadonlyArray<string>
@@ -156,11 +156,11 @@ const dispatchDroppedFiles = (files: ReadonlyArray<File.File>) =>
 /** Renders an accessible file-drop zone by publishing attribute groups
  *  for a `<label>`-wrapped hidden file input. */
 export const view = defineView<Model, Message, ViewInputs>(
-  (model, inputs): Html => {
+  (model, viewInputs): Html => {
     const h = html<Message>()
 
     const { id, isDragOver } = model
-    const { toView, accept, multiple = false, isDisabled = false } = inputs
+    const { toView, accept, multiple = false, isDisabled = false } = viewInputs
 
     const stateAttributes = [
       ...(isDragOver ? [h.DataAttribute('drag-over', '')] : []),

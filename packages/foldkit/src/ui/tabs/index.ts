@@ -181,7 +181,7 @@ export type TabInfo<Value extends string = string> = Readonly<{
 /** Render-time payload published to the consumer's `toView`.
  *
  *  - `tablist`: ARIA + role attributes for the wrapping tablist element.
- *  - `tabs`: one entry per tab in `inputs.tabs`, in the same order, with
+ *  - `tabs`: one entry per tab in `viewInputs.tabs`, in the same order, with
  *    the tab button's attribute bundle, the panel's attribute bundle,
  *    and derived state.
  *  - `activeIndex`: the currently-active tab index, convenient when the
@@ -193,7 +193,7 @@ export type RenderInfo<Value extends string = string> = Readonly<{
   activeIndex: number
 }>
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *  Generic over `Value extends string` so consumers using
  *  `Ui.Tabs.create<MyUnion>()` receive `tab.value: MyUnion` in `toView`
  *  and `(value: MyUnion, index) => boolean` in `isTabDisabled`, without
@@ -207,7 +207,7 @@ export type ViewInputs<Value extends string = string> = Readonly<{
 }>
 
 const internalView = defineView<Model, Message, ViewInputs>(
-  (model, inputs): Html => {
+  (model, viewInputs): Html => {
     const h = html<Message>()
 
     const { id, activationMode, focusedIndex, activeIndex } = model
@@ -217,7 +217,7 @@ const internalView = defineView<Model, Message, ViewInputs>(
       toView,
       isTabDisabled,
       orientation = 'Horizontal',
-    } = inputs
+    } = viewInputs
 
     const isDisabled = (index: number): boolean =>
       !!isTabDisabled &&

@@ -224,7 +224,7 @@ export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-/** Sent to the parent when a menu item is selected. Carries both the selected value (from the `inputs.items` array supplied at view time) and its index. The menu has already closed when this fires; the parent does not need to dispatch `Ui.Menu.close`. */
+/** Sent to the parent when a menu item is selected. Carries both the selected value (from the `viewInputs.items` array supplied at view time) and its index. The menu has already closed when this fires; the parent does not need to dispatch `Ui.Menu.close`. */
 export const Selected = m('Selected', {
   value: S.String,
   index: S.Number,
@@ -792,7 +792,7 @@ export type GroupHeading = Readonly<{
   className?: string
 }>
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *
  *  The Menu emits a `Selected({ value, index })` OutMessage on commit.
  *  The menu has already closed by the time this fires; consumers
@@ -844,7 +844,7 @@ const internalView = <Item extends string>() =>
   menuViewImpl as unknown as MenuViewForItem<Item>
 
 const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
-  (model, inputs) => {
+  (model, viewInputs) => {
     const h = html<Message>()
 
     const {
@@ -880,7 +880,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       separatorClassName,
       separatorAttributes = [],
       anchor,
-    } = inputs
+    } = viewInputs
 
     const dispatchSelectedItem = (item: string, index: number) =>
       SelectedItem({ index, item })

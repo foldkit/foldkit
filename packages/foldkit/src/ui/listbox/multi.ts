@@ -75,7 +75,7 @@ export const selectItem = (model: Model, item: string): UpdateReturn =>
 
 // VIEW
 
-/** Per-render inputs passed to the view via `h.submodel`'s `inputs` field. */
+/** Per-render view inputs passed to the view via `h.submodel`'s `viewInputs` field. */
 export type ViewInputs<Item, Value extends string = string> = BaseViewInputs<
   Item,
   Value

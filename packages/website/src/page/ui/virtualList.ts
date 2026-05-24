@@ -184,7 +184,7 @@ export const virtualListDemo = <ParentMessage>(
           id: model.id,
           view: Ui.VirtualList.view<Activity>(),
           model,
-          inputs: {
+          viewInputs: {
             items: sampleActivities,
             itemToKey: row => String(row.id),
             itemToView: row =>
@@ -367,7 +367,7 @@ export const virtualListVariableDemo = <ParentMessage>(
           id: model.id,
           view: Ui.VirtualList.view<Activity>(),
           model,
-          inputs: {
+          viewInputs: {
             items: variableActivities,
             itemToKey: row => String(row.id),
             itemToRowHeightPx: variableRowHeightPx,

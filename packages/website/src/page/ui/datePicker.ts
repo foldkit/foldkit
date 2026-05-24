@@ -100,7 +100,7 @@ export const basicDemo = <ParentMessage>(
       id: model.datePickerBasicDemo.id,
       view: Ui.DatePicker.view,
       model: model.datePickerBasicDemo,
-      inputs: {
+      viewInputs: {
         anchor: DATE_PICKER_ANCHOR,
         triggerContent,
         triggerClassName,

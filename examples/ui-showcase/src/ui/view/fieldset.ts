@@ -131,7 +131,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                     id: 'fieldset-checkbox-demo',
                     view: Ui.Checkbox.view,
                     model: model.fieldsetCheckboxDemo,
-                    inputs: {
+                    viewInputs: {
                       toView: checkboxAttributes =>
                         h.div(
                           [h.Class('flex flex-col gap-1')],
@@ -256,7 +256,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                       id: 'fieldset-disabled-checkbox',
                       isChecked: true,
                     },
-                    inputs: {
+                    viewInputs: {
                       isDisabled: true,
                       toView: checkboxAttributes =>
                         h.div(

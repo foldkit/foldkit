@@ -65,7 +65,7 @@ const view = () => {
     id: 'info',
     view: Ui.Popover.view,
     model: model.popover,
-    inputs: {
+    viewInputs: {
       anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
       toView: ({ button, panel, backdrop, isVisible }) =>
         h.div(

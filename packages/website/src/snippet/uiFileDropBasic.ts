@@ -70,7 +70,7 @@ const view = (model: Model) => {
     id: 'uploader',
     view: Ui.FileDrop.view,
     model: model.uploader,
-    inputs: {
+    viewInputs: {
       multiple: true,
       accept: ['application/pdf', '.doc', '.docx'],
       toView: attributes =>

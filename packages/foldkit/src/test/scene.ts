@@ -594,7 +594,7 @@ const assertFileHandler = (
   const correctAttribute = isFileChange ? 'OnFileChange' : 'OnDropFiles'
   const wrongAttribute = isFileChange ? 'OnChange' : 'OnDrop'
   const alternativeHelper = isFileChange
-    ? 'Use `Scene.change` for text inputs and selects.'
+    ? 'Use `Scene.change` for text viewInputs and selects.'
     : 'Remove `Scene.dropFiles` or add an `OnDropFiles` attribute to the drop zone.'
 
   throw new Error(

@@ -32,7 +32,7 @@ const view = () => {
     id: 'menu',
     view: ActionMenu.view,
     model: model.menu,
-    inputs: {
+    viewInputs: {
       items: actions,
       buttonContent: h.span([], ['Options']),
       buttonClassName: 'rounded-lg border px-3 py-2 cursor-pointer',

@@ -17,10 +17,10 @@ type ViewInputs = Readonly<{
 }>
 
 export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, inputs) => {
+  (model, viewInputs) => {
     const h = html<Message>()
 
-    return inputs.toView({
+    return viewInputs.toView({
       button: childAttributes([
         h.OnClick(Toggled()),
         h.AriaExpanded(model.isOpen),

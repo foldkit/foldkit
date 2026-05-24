@@ -8,12 +8,12 @@ Rename the Toast view-config `renderEntry` field to `entryToView` so it lines up
 
 ```ts
 // Before
-inputs: {
+viewInputs: {
   renderEntry: (entry, handlers) => h.div(...),
 }
 
 // After
-inputs: {
+viewInputs: {
   entryToView: (entry, handlers) => h.div(...),
 }
 ```

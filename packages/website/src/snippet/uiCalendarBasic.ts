@@ -93,7 +93,7 @@ const view = () => {
     id: model.calendarDemo.id,
     view: Ui.Calendar.view,
     model: model.calendarDemo,
-    inputs: {
+    viewInputs: {
       toView: attributes =>
         M.value(attributes).pipe(
           M.tagsExhaustive({

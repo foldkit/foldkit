@@ -25,7 +25,7 @@ h.submodel({
   view: Ui.Checkbox.view,
   model: model.agreeToTerms,
   toParentMessage: message => GotCheckboxMessage({ message }),
-  inputs: {
+  viewInputs: {
     /* ... slot content if needed */
   },
 })

@@ -153,7 +153,7 @@ export const make = <A, I>(payloadSchema: S.Codec<A, I>) => {
   type ToastModel = typeof runtime.Model.Type
   type ToastMessage = typeof runtime.Message.Type
 
-  /** Per-render inputs passed to `view` via `h.submodel`'s `inputs`
+  /** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs`
    *  field. */
   type ViewInputs = Readonly<{
     position: Position
@@ -170,7 +170,7 @@ export const make = <A, I>(payloadSchema: S.Codec<A, I>) => {
    *  `data-transition`, `data-closed`) and `data-variant` reflecting the
    *  entry's variant. */
   const view = defineView<ToastModel, ToastMessage, ViewInputs>(
-    (model, inputs): Html => {
+    (model, viewInputs): Html => {
       const h = html<ToastMessage>()
 
       const { id, entries } = model
@@ -180,7 +180,7 @@ export const make = <A, I>(payloadSchema: S.Codec<A, I>) => {
         ariaLabel = DEFAULT_ARIA_LABEL,
         containerClassName,
         entryClassName,
-      } = inputs
+      } = viewInputs
 
       const containerAttributes = [
         h.Id(id),

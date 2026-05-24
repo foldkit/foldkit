@@ -32,7 +32,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         id: 'disclosure-demo',
         view: Ui.Disclosure.view,
         model: model.disclosureDemo,
-        inputs: {
+        viewInputs: {
           toView: attributes =>
             h.div(
               [],

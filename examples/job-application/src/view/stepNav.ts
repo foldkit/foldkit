@@ -165,7 +165,7 @@ export const stepMenu = (
     id: model.stepMenu.id,
     view: StepMenu.view,
     model: model.stepMenu,
-    inputs: {
+    viewInputs: {
       items: Step.all,
       buttonContent: stepMenuTrigger(model.currentStep),
       buttonClassName:

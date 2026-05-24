@@ -92,7 +92,7 @@ const view = (model: Model) => {
     id: 'character',
     view: CharacterListbox.view,
     model: model.listbox,
-    inputs: {
+    viewInputs: {
       items: characters,
       itemToValue: characterName,
       // Group contiguous items by a shared key:

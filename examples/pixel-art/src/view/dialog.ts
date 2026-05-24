@@ -27,7 +27,7 @@ export const errorDialogView = (
     id: errorDialog.id,
     view: Ui.Dialog.view,
     model: errorDialog,
-    inputs: {
+    viewInputs: {
       toView: ({ dialog, backdrop, panel, isVisible }) =>
         h.dialog(
           [...dialog, h.Class(dialogClassName)],
@@ -87,7 +87,7 @@ export const gridSizeConfirmDialogView = (
     id: gridSizeConfirmDialog.id,
     view: Ui.Dialog.view,
     model: gridSizeConfirmDialog,
-    inputs: {
+    viewInputs: {
       toView: ({ dialog, backdrop, panel, isVisible }) =>
         h.dialog(
           [...dialog, h.Class(dialogClassName)],

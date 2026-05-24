@@ -114,7 +114,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             id: 'listbox-single',
             view: ItemListbox.view,
             model: model.listboxDemo,
-            inputs: {
+            viewInputs: {
               anchor: LISTBOX_ANCHOR,
               items: LISTBOX_ITEMS,
               itemToConfig: item => ({
@@ -154,7 +154,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             id: 'listbox-multi',
             view: ItemMultiListbox.view,
             model: model.listboxMultiDemo,
-            inputs: {
+            viewInputs: {
               anchor: LISTBOX_ANCHOR,
               items: LISTBOX_ITEMS,
               itemToConfig: item => ({
@@ -194,7 +194,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             id: 'listbox-grouped',
             view: CharacterListbox.view,
             model: model.listboxGroupedDemo,
-            inputs: {
+            viewInputs: {
               anchor: LISTBOX_ANCHOR,
               items: GROUPED_CHARACTERS,
               itemToValue: characterName,

@@ -100,7 +100,7 @@ const filterCities = (inputValue: string): ReadonlyArray<City> =>
         city.toLowerCase().includes(inputValue.toLowerCase()),
       )
 
-const comboboxInputs = <ParentMessage>(
+const comboboxViewInputs = <ParentMessage>(
   inputValue: string,
 ): Ui.Combobox.ViewInputs<City> => {
   const h = html<ParentMessage>()
@@ -155,7 +155,9 @@ export const comboboxDemo = <ParentMessage>(
           id: comboboxModel.id,
           view: CityCombobox.view,
           model: comboboxModel,
-          inputs: comboboxInputs<ParentMessage>(comboboxModel.inputValue),
+          viewInputs: comboboxViewInputs<ParentMessage>(
+            comboboxModel.inputValue,
+          ),
           toParentMessage: message =>
             toParentMessage(GotComboboxDemoMessage({ message })),
         }),
@@ -178,7 +180,7 @@ export const nullableDemo = <ParentMessage>(
           id: comboboxNullableModel.id,
           view: CityCombobox.view,
           model: comboboxNullableModel,
-          inputs: comboboxInputs<ParentMessage>(
+          viewInputs: comboboxViewInputs<ParentMessage>(
             comboboxNullableModel.inputValue,
           ),
           toParentMessage: message =>
@@ -208,7 +210,7 @@ export const selectOnFocusDemo = <ParentMessage>(
           id: comboboxSelectOnFocusModel.id,
           view: CityCombobox.view,
           model: comboboxSelectOnFocusModel,
-          inputs: comboboxInputs<ParentMessage>(
+          viewInputs: comboboxViewInputs<ParentMessage>(
             comboboxSelectOnFocusModel.inputValue,
           ),
           toParentMessage: message =>
@@ -250,7 +252,9 @@ export const multiDemo = <ParentMessage>(
           id: comboboxMultiModel.id,
           view: CityMultiCombobox.view,
           model: comboboxMultiModel,
-          inputs: comboboxInputs<ParentMessage>(comboboxMultiModel.inputValue),
+          viewInputs: comboboxViewInputs<ParentMessage>(
+            comboboxMultiModel.inputValue,
+          ),
           toParentMessage: message =>
             toParentMessage(GotComboboxMultiDemoMessage({ message })),
         }),

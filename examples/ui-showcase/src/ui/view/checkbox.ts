@@ -38,7 +38,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         id: 'checkbox-basic-demo',
         view: Ui.Checkbox.view,
         model: model.checkboxBasicDemo,
-        inputs: {
+        viewInputs: {
           toView: attributes =>
             h.div(
               [h.Class('flex flex-col gap-1')],
@@ -104,7 +104,7 @@ const indeterminateDemo = (model: UiModel): ReadonlyArray<Html> => {
             id: 'checkbox-all-demo',
             isChecked: isAllChecked,
           },
-          inputs: {
+          viewInputs: {
             isIndeterminate,
             toView: attributes =>
               h.div(
@@ -130,7 +130,7 @@ const indeterminateDemo = (model: UiModel): ReadonlyArray<Html> => {
               id: 'checkbox-option-a-demo',
               view: Ui.Checkbox.view,
               model: model.checkboxOptionADemo,
-              inputs: {
+              viewInputs: {
                 toView: attributes =>
                   h.div(
                     [h.Class(topRowClassName)],
@@ -153,7 +153,7 @@ const indeterminateDemo = (model: UiModel): ReadonlyArray<Html> => {
               id: 'checkbox-option-b-demo',
               view: Ui.Checkbox.view,
               model: model.checkboxOptionBDemo,
-              inputs: {
+              viewInputs: {
                 toView: attributes =>
                   h.div(
                     [h.Class(topRowClassName)],

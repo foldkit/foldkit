@@ -322,7 +322,7 @@ export type RenderInfo = Readonly<{
   isVisible: boolean
 }>
 
-/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field. */
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field. */
 export type ViewInputs = Readonly<{
   toView: (render: RenderInfo) => Html
 }>
@@ -330,7 +330,7 @@ export type ViewInputs = Readonly<{
 /** Renders a headless dialog component backed by the native `<dialog>`
  *  element with `showModal()`. */
 export const view = defineView<Model, Message, ViewInputs>(
-  (model, inputs): Html => {
+  (model, viewInputs): Html => {
     const h = html<Message>()
 
     const {
@@ -338,7 +338,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       isOpen,
       animation: { transitionState },
     } = model
-    const { toView } = inputs
+    const { toView } = viewInputs
 
     const isLeaving =
       transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'

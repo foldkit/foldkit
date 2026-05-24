@@ -89,7 +89,7 @@ const view = () => {
     id: 'city',
     view: CityCombobox.view,
     model: model.combobox,
-    inputs: {
+    viewInputs: {
       items: filteredCities,
       itemToValue: city => city,
       itemToDisplayText: city => city,

@@ -16,7 +16,7 @@ const renderEntry = (
     id: entry.id,
     view: educationEntryView,
     model: entry,
-    inputs: { today },
+    viewInputs: { today },
     toParentMessage: message =>
       Education.GotEntryMessage({ entryId: entry.id, message }),
   })

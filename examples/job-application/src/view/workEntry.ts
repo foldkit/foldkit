@@ -33,7 +33,7 @@ export const workEntryView = Submodel.defineView<
         id: model.startDate.id,
         view: Ui.DatePicker.view,
         model: model.startDate,
-        inputs: {
+        viewInputs: {
           anchor: ANCHOR,
           triggerContent: maybeDate =>
             triggerContent(maybeDate, 'Select start date'),
@@ -60,7 +60,7 @@ export const workEntryView = Submodel.defineView<
         id: model.endDate.id,
         view: Ui.DatePicker.view,
         model: model.endDate,
-        inputs: {
+        viewInputs: {
           anchor: ANCHOR,
           triggerContent: maybeDate =>
             triggerContent(maybeDate, 'Select end date'),
@@ -106,7 +106,7 @@ export const workEntryView = Submodel.defineView<
         id: `${model.id}-currently-employed`,
         view: Ui.Checkbox.view,
         model: model.isCurrentlyEmployed,
-        inputs: {
+        viewInputs: {
           toView: attributes =>
             h.div(
               [h.Class('flex items-center gap-2')],
