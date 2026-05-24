@@ -49,8 +49,8 @@ export const animationDemo = <ParentMessage>(
         ),
         h.submodel({
           id: animationModel.id,
-          view: Ui.Animation.view,
           model: animationModel,
+          view: Ui.Animation.view,
           viewInputs: {
             className: contentClassName,
             animateSize: true,

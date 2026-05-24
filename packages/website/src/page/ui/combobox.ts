@@ -153,8 +153,8 @@ export const comboboxDemo = <ParentMessage>(
       [
         h.submodel({
           id: comboboxModel.id,
-          view: CityCombobox.view,
           model: comboboxModel,
+          view: CityCombobox.view,
           viewInputs: comboboxViewInputs<ParentMessage>(
             comboboxModel.inputValue,
           ),
@@ -178,8 +178,8 @@ export const nullableDemo = <ParentMessage>(
       [
         h.submodel({
           id: comboboxNullableModel.id,
-          view: CityCombobox.view,
           model: comboboxNullableModel,
+          view: CityCombobox.view,
           viewInputs: comboboxViewInputs<ParentMessage>(
             comboboxNullableModel.inputValue,
           ),
@@ -208,8 +208,8 @@ export const selectOnFocusDemo = <ParentMessage>(
       [
         h.submodel({
           id: comboboxSelectOnFocusModel.id,
-          view: CityCombobox.view,
           model: comboboxSelectOnFocusModel,
+          view: CityCombobox.view,
           viewInputs: comboboxViewInputs<ParentMessage>(
             comboboxSelectOnFocusModel.inputValue,
           ),
@@ -250,8 +250,8 @@ export const multiDemo = <ParentMessage>(
         ),
         h.submodel({
           id: comboboxMultiModel.id,
-          view: CityMultiCombobox.view,
           model: comboboxMultiModel,
+          view: CityMultiCombobox.view,
           viewInputs: comboboxViewInputs<ParentMessage>(
             comboboxMultiModel.inputValue,
           ),

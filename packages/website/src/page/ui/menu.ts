@@ -140,8 +140,8 @@ export const basicDemo = <ParentMessage>(
       [
         h.submodel({
           id: menuModel.id,
-          view: DemoMenu.view,
           model: menuModel,
+          view: DemoMenu.view,
           viewInputs: menuViewConfig<ParentMessage>(basicItemsClassName),
           toParentMessage: message =>
             toParentMessage(GotMenuBasicDemoMessage({ message })),
@@ -163,8 +163,8 @@ export const animatedDemo = <ParentMessage>(
       [
         h.submodel({
           id: menuModel.id,
-          view: DemoMenu.view,
           model: menuModel,
+          view: DemoMenu.view,
           viewInputs: menuViewConfig<ParentMessage>(animatedItemsClassName),
           toParentMessage: message =>
             toParentMessage(GotMenuAnimatedDemoMessage({ message })),

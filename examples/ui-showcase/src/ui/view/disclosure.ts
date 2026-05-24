@@ -30,8 +30,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Disclosure']),
       h.submodel({
         id: 'disclosure-demo',
-        view: Ui.Disclosure.view,
         model: model.disclosureDemo,
+        view: Ui.Disclosure.view,
         viewInputs: {
           toView: attributes =>
             h.div(

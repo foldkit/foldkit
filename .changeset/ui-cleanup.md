@@ -22,12 +22,12 @@ Ui.Checkbox.lazy(
 // After (without memoization):
 h.submodel({
   id: 'agree-to-terms',
-  view: Ui.Checkbox.view,
   model: model.agreeToTerms,
-  toParentMessage: message => GotCheckboxMessage({ message }),
+  view: Ui.Checkbox.view,
   viewInputs: {
     /* ... slot content if needed */
   },
+  toParentMessage: message => GotCheckboxMessage({ message }),
 })
 
 // After (with memoization, parent-side):
@@ -37,8 +37,8 @@ lazyCheckbox(
   () =>
     h.submodel({
       id: 'agree-to-terms',
-      view: Ui.Checkbox.view,
       model: model.agreeToTerms,
+      view: Ui.Checkbox.view,
       toParentMessage: message => GotCheckboxMessage({ message }),
     }),
   [model.agreeToTerms],

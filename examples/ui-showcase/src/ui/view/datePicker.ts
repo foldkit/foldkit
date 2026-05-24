@@ -95,8 +95,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Date Picker']),
       h.submodel({
         id: model.datePickerBasicDemo.id,
-        view: Ui.DatePicker.view,
         model: model.datePickerBasicDemo,
+        view: Ui.DatePicker.view,
         viewInputs: {
           anchor: DATE_PICKER_ANCHOR,
           triggerContent: maybeDate => triggerContent(maybeDate),

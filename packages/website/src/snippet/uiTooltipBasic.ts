@@ -63,8 +63,8 @@ const view = () => {
 
   return h.submodel({
     id: 'save-button',
-    view: Ui.Tooltip.view,
     model: model.tooltip,
+    view: Ui.Tooltip.view,
     viewInputs: {
       anchor: { placement: 'top', gap: 6, padding: 8 },
       toView: ({ trigger, panel, isVisible }) =>

@@ -65,8 +65,8 @@ const view = () => {
 
   return h.submodel({
     id: 'select-all',
-    view: Ui.Checkbox.view,
     model: { id: 'select-all', isChecked: isAllChecked },
+    view: Ui.Checkbox.view,
     viewInputs: {
       isIndeterminate,
       toView: attributes =>

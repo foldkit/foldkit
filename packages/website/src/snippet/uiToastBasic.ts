@@ -96,8 +96,8 @@ const view = () => {
 
   return h.submodel({
     id: 'app-toast',
-    view: Toast.view,
     model: model.toast,
+    view: Toast.view,
     viewInputs: {
       position: 'BottomRight',
       entryClassName: 'w-80',

@@ -14,8 +14,8 @@ const renderEntry = (
   const h = html<Education.Message>()
   return h.submodel({
     id: entry.id,
-    view: educationEntryView,
     model: entry,
+    view: educationEntryView,
     viewInputs: { today },
     toParentMessage: message =>
       Education.GotEntryMessage({ entryId: entry.id, message }),

@@ -725,8 +725,8 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
           ]),
           h.submodel({
             id: model.dietListbox.id,
-            view: DietListbox.view,
             model: model.dietListbox,
+            view: DietListbox.view,
             viewInputs: {
               anchor: LISTBOX_ANCHOR,
               items: dietFilterItems,
@@ -753,8 +753,8 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
           }),
           h.submodel({
             id: model.periodListbox.id,
-            view: PeriodListbox.view,
             model: model.periodListbox,
+            view: PeriodListbox.view,
             viewInputs: {
               anchor: LISTBOX_ANCHOR,
               items: periodFilterItems,

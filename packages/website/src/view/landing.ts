@@ -207,8 +207,8 @@ const playgroundMenuView = (
 
   return h.submodel({
     id: menuModel.id,
-    view: PlaygroundMenu.view,
     model: menuModel,
+    view: PlaygroundMenu.view,
     viewInputs: {
       anchor: PLAYGROUND_MENU_ANCHOR,
       items: slugs,
@@ -295,8 +295,8 @@ export const landingView = (model: Model) => {
 
   const demoTabsView = h.submodel({
     id: model.demoTabs.id,
-    view: DemoTabs.view,
     model: model.demoTabs,
+    view: DemoTabs.view,
     viewInputs: {
       tabs: demoTabs,
       ariaLabel: 'Demo tabs',

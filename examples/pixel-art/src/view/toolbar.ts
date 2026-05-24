@@ -151,8 +151,8 @@ const toolSectionView = (
       sectionLabel('Tools'),
       h.submodel({
         id: toolRadioGroup.id,
-        view: ToolRadioGroup.view,
         model: toolRadioGroup,
+        view: ToolRadioGroup.view,
         viewInputs: {
           options: TOOLS,
           ariaLabel: 'Drawing tool',
@@ -212,8 +212,8 @@ const mirrorSectionView = (
         [
           h.submodel({
             id: mirrorHorizontalSwitch.id,
-            view: Ui.Switch.view,
             model: mirrorHorizontalSwitch,
+            view: Ui.Switch.view,
             viewInputs: {
               toView: attributes =>
                 h.div(
@@ -247,8 +247,8 @@ const mirrorSectionView = (
           }),
           h.submodel({
             id: mirrorVerticalSwitch.id,
-            view: Ui.Switch.view,
             model: mirrorVerticalSwitch,
+            view: Ui.Switch.view,
             viewInputs: {
               toView: attributes =>
                 h.div(
@@ -297,8 +297,8 @@ const sizeSectionView = (
       sectionLabel('Grid Size'),
       h.submodel({
         id: gridSizeRadioGroup.id,
-        view: GridSizeRadioGroup.view,
         model: gridSizeRadioGroup,
+        view: GridSizeRadioGroup.view,
         viewInputs: {
           options: GRID_SIZE_STRINGS,
           ariaLabel: 'Grid size',
@@ -353,8 +353,8 @@ const paletteSectionView = (
       ),
       h.submodel({
         id: paletteRadioGroup.id,
-        view: PaletteRadioGroup.view,
         model: paletteRadioGroup,
+        view: PaletteRadioGroup.view,
         viewInputs: {
           options: paletteIndexStrings,
           ariaLabel: 'Color palette',
@@ -401,8 +401,8 @@ const themeListboxView = (
 
   return h.submodel({
     id: themeListbox.id,
-    view: ThemeListbox.view,
     model: themeListbox,
+    view: ThemeListbox.view,
     viewInputs: {
       anchor: THEME_LISTBOX_ANCHOR,
       items: THEME_INDEX_STRINGS,

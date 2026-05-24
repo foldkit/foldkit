@@ -146,8 +146,8 @@ export const basicDemo = <ParentMessage>(
                 }),
                 h.submodel({
                   id: 'fieldset-checkbox-demo',
-                  view: Ui.Checkbox.view,
                   model: model.fieldsetCheckboxDemo,
+                  view: Ui.Checkbox.view,
                   viewInputs: {
                     toView: checkboxAttributes =>
                       h.div(
@@ -277,11 +277,11 @@ export const disabledDemo = <ParentMessage>(
                 }),
                 h.submodel({
                   id: 'fieldset-disabled-checkbox',
-                  view: Ui.Checkbox.view,
                   model: {
                     id: 'fieldset-disabled-checkbox',
                     isChecked: true,
                   },
+                  view: Ui.Checkbox.view,
                   viewInputs: {
                     isDisabled: true,
                     toView: checkboxAttributes =>

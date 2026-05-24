@@ -413,16 +413,16 @@ export const view = defineView<Model, Message, ViewInputs>(
 
     const calendarVNode = h.submodel({
       id: model.calendar.id,
-      view: UiCalendar.view,
       model: model.calendar,
+      view: UiCalendar.view,
       viewInputs: { toView: toCalendarView },
       toParentMessage: message => GotCalendarMessage({ message }),
     })
 
     const popoverVNode = h.submodel({
       id: model.popover.id,
-      view: Popover.view,
       model: model.popover,
+      view: Popover.view,
       viewInputs: {
         anchor,
         ...(isDisabled !== undefined && { isDisabled }),

@@ -42,8 +42,8 @@ export const educationEntryView = Submodel.defineView<
       ),
       h.submodel({
         id: model.graduationYearListbox.id,
-        view: GraduationYearListbox.view,
         model: model.graduationYearListbox,
+        view: GraduationYearListbox.view,
         viewInputs: {
           items: graduationYears(today),
           buttonContent: h.div(
@@ -114,8 +114,8 @@ export const educationEntryView = Submodel.defineView<
       }),
       h.submodel({
         id: `${model.id}-currently-enrolled`,
-        view: Ui.Checkbox.view,
         model: model.isCurrentlyEnrolled,
+        view: Ui.Checkbox.view,
         viewInputs: {
           toView: attributes =>
             h.div(

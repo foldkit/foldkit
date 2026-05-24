@@ -298,8 +298,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
               ),
               h.submodel({
                 id: model.virtualListDemo.id,
-                view: Ui.VirtualList.view<Activity>(),
                 model: model.virtualListDemo,
+                view: Ui.VirtualList.view<Activity>(),
                 viewInputs: {
                   items: sampleActivities,
                   itemToKey: row => String(row.id),
@@ -336,8 +336,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
               ),
               h.submodel({
                 id: model.virtualListVariableDemo.id,
-                view: Ui.VirtualList.view<Activity>(),
                 model: model.virtualListVariableDemo,
+                view: Ui.VirtualList.view<Activity>(),
                 viewInputs: {
                   items: variableActivities,
                   itemToKey: row => String(row.id),

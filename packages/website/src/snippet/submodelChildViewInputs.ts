@@ -22,7 +22,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
       [h.Class('flex flex-col gap-2')],
       [
         h.button([h.OnClick(ToggledOpen())], [viewInputs.summary]),
-        model.isOpen ? h.div([h.Class('pl-4')], [viewInputs.content]) : null,
+        model.isOpen ? h.div([h.Class('pl-4')], [viewInputs.content]) : h.empty,
       ],
     )
   },

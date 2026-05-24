@@ -158,6 +158,8 @@ export { default as submodelParentStateInViewRaw } from './submodelParentStateIn
 export { default as submodelParentStateInViewHighlighted } from './submodelParentStateInView.ts?highlighted'
 export { default as submodelParentStateInUpdateRaw } from './submodelParentStateInUpdate.ts?raw'
 export { default as submodelParentStateInUpdateHighlighted } from './submodelParentStateInUpdate.ts?highlighted'
+export { default as submodelMultipleInstancesRaw } from './submodelMultipleInstances.ts?raw'
+export { default as submodelMultipleInstancesHighlighted } from './submodelMultipleInstances.ts?highlighted'
 export { default as multipleInstancesRaw } from './multipleInstances.ts?raw'
 export { default as multipleInstancesHighlighted } from './multipleInstances.ts?highlighted'
 export { default as subscriptionOrganizationChildRaw } from './subscriptionOrganizationChild.ts?raw'

@@ -62,8 +62,8 @@ const view = (model: Model) => {
 
   return h.submodel({
     id: 'faq-1',
-    view: Ui.Disclosure.view,
     model: model.disclosure,
+    view: Ui.Disclosure.view,
     viewInputs: {
       toView: attributes =>
         h.div(

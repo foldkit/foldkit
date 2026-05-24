@@ -43,8 +43,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [
           h.submodel({
             id: 'switch-demo',
-            view: Ui.Switch.view,
             model: model.switchDemo,
+            view: Ui.Switch.view,
             viewInputs: {
               toView: attributes =>
                 h.div(

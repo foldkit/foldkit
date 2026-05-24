@@ -123,8 +123,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [
           h.submodel({
             id: model.menuBasicDemo.id,
-            view: ActionMenu.view,
             model: model.menuBasicDemo,
+            view: ActionMenu.view,
             viewInputs: menuViewConfig(basicItemsClassName),
             toParentMessage: message => GotMenuBasicDemoMessage({ message }),
           }),
@@ -140,8 +140,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [
           h.submodel({
             id: model.menuAnimatedDemo.id,
-            view: ActionMenu.view,
             model: model.menuAnimatedDemo,
+            view: ActionMenu.view,
             viewInputs: menuViewConfig(animatedItemsClassName),
             toParentMessage: message => GotMenuAnimatedDemoMessage({ message }),
           }),

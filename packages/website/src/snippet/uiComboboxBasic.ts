@@ -87,8 +87,8 @@ const view = () => {
 
   return h.submodel({
     id: 'city',
-    view: CityCombobox.view,
     model: model.combobox,
+    view: CityCombobox.view,
     viewInputs: {
       items: filteredCities,
       itemToValue: city => city,

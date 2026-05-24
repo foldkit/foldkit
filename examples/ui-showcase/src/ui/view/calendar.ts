@@ -50,8 +50,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Calendar']),
       h.submodel({
         id: model.calendarBasicDemo.id,
-        view: Ui.Calendar.view,
         model: model.calendarBasicDemo,
+        view: Ui.Calendar.view,
         viewInputs: {
           toView: attributes =>
             M.value(attributes).pipe(

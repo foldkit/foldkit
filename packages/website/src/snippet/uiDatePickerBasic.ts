@@ -94,8 +94,8 @@ const view = () => {
 
   return h.submodel({
     id: 'date-picker-demo',
-    view: Ui.DatePicker.view,
     model: model.datePickerDemo,
+    view: Ui.DatePicker.view,
     viewInputs: {
       anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
       triggerContent: maybeDate =>

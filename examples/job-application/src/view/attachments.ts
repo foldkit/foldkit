@@ -120,8 +120,8 @@ export const attachmentsView = Submodel.defineView<
         onNone: () =>
           h.submodel({
             id: resumeDrop.id,
-            view: Ui.FileDrop.view,
             model: resumeDrop,
+            view: Ui.FileDrop.view,
             viewInputs: {
               accept: ['application/pdf', '.doc', '.docx'],
               toView: attributes =>
@@ -161,8 +161,8 @@ export const attachmentsView = Submodel.defineView<
       ),
       h.submodel({
         id: additionalFilesDrop.id,
-        view: Ui.FileDrop.view,
         model: additionalFilesDrop,
+        view: Ui.FileDrop.view,
         viewInputs: {
           multiple: true,
           toView: attributes =>

@@ -10,8 +10,8 @@ Submodels become first-class. A new `h.submodel` primitive (also exposed as `sub
 // Parent view:
 h.submodel({
   id: row.id,
-  view: Counter.view,
   model: row.counter,
+  view: Counter.view,
   toParentMessage: message => GotCounterMessage({ id: row.id, message }),
 })
 

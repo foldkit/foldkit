@@ -139,8 +139,8 @@ export const demo = <ParentMessage>(
     }),
     h.submodel({
       id: toastModel.id,
-      view: Toast.view,
       model: toastModel,
+      view: Toast.view,
       viewInputs: {
         position: 'BottomRight',
         entryToView: renderToastEntry,

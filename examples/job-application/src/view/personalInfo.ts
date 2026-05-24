@@ -91,8 +91,8 @@ export const personalInfoView = Submodel.defineView<
           ),
           h.submodel({
             id: pronouns.id,
-            view: PronounsListbox.view,
             model: pronouns,
+            view: PronounsListbox.view,
             viewInputs: {
               anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
               items: PronounOption.all,
@@ -182,8 +182,8 @@ const availableDatePickerView = (model: Ui.DatePicker.Model): Html => {
       ),
       h.submodel({
         id: model.id,
-        view: Ui.DatePicker.view,
         model,
+        view: Ui.DatePicker.view,
         viewInputs: {
           anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
           triggerContent: maybeDate => triggerContent(maybeDate, 'Pick a date'),

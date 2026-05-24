@@ -81,8 +81,8 @@ const view = () => {
 
   return h.submodel({
     id: 'plan',
-    view: PlanRadioGroup.view,
     model: model.radioGroup,
+    view: PlanRadioGroup.view,
     viewInputs: {
       options: plans,
       ariaLabel: 'Server plan',

@@ -30,8 +30,8 @@ const view = () => {
 
   return h.submodel({
     id: 'activity-list',
-    view: Ui.VirtualList.view<Activity>(),
     model: model.activityList,
+    view: Ui.VirtualList.view<Activity>(),
     viewInputs: {
       items: model.activities,
       itemToKey: activity => String(activity.id),

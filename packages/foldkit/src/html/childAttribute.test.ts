@@ -89,8 +89,8 @@ describe('childAttributes', () => {
 
     const result = submodel({
       id: 'fake-checkbox',
-      view: branded,
       model: {},
+      view: branded,
       viewInputs: {
         toView: (attributes: { checkbox: ReadonlyArray<unknown> }) => {
           const hParent = html<ParentDirect>()
@@ -134,8 +134,8 @@ describe('childAttributes', () => {
 
     const result = submodel({
       id: 'fake-checkbox',
-      view: branded,
       model: {},
+      view: branded,
       viewInputs: {
         toView: (attributes: { checkbox: ReadonlyArray<unknown> }) => {
           const hParent = html<ParentDirect>()
@@ -208,6 +208,7 @@ describe('childAttributes', () => {
 
     submodel({
       id: 'first',
+      model: {},
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       view: ((_: object, viewInputs: { capture: any }) => {
         const h = html<FirstChild>()
@@ -215,7 +216,6 @@ describe('childAttributes', () => {
         viewInputs.capture(firstAttributes)
         return snabbdomH('span')
       }) as any,
-      model: {},
       viewInputs: {
         capture: (attrs: ReadonlyArray<unknown>) => {
           firstAttributes = attrs
@@ -226,6 +226,7 @@ describe('childAttributes', () => {
 
     submodel({
       id: 'second',
+      model: {},
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       view: ((_: object, viewInputs: { capture: any }) => {
         const h = html<SecondChild>()
@@ -233,7 +234,6 @@ describe('childAttributes', () => {
         viewInputs.capture(secondAttributes)
         return snabbdomH('span')
       }) as any,
-      model: {},
       viewInputs: {
         capture: (attrs: ReadonlyArray<unknown>) => {
           secondAttributes = attrs
@@ -279,8 +279,8 @@ describe('childAttributes', () => {
 
     const result = submodel({
       id: 'fake',
-      view: branded,
       model: {},
+      view: branded,
       viewInputs: {
         toView: (a: { attrs: ReadonlyArray<unknown> }) => {
           const hParent = html<ParentDirect>()

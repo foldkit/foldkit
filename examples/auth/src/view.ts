@@ -27,16 +27,16 @@ export const view = (model: Model): Document => {
                 LoggedOut: loggedOutModel =>
                   h.submodel({
                     id: 'logged-out',
-                    view: LoggedOut.view,
                     model: loggedOutModel,
+                    view: LoggedOut.view,
                     toParentMessage: message =>
                       GotLoggedOutMessage({ message }),
                   }),
                 LoggedIn: loggedInModel =>
                   h.submodel({
                     id: 'logged-in',
-                    view: LoggedIn.view,
                     model: loggedInModel,
+                    view: LoggedIn.view,
                     toParentMessage: message => GotLoggedInMessage({ message }),
                   }),
               }),

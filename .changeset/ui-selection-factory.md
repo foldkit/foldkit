@@ -30,8 +30,8 @@ const ColorListbox = Ui.Listbox.create<Color>()
 // In view:
 h.submodel({
   id: 'colors',
-  view: ColorListbox.view,
   model: model.colorListbox,
+  view: ColorListbox.view,
   toParentMessage: message => GotColorListboxMessage({ message }),
 })
 

@@ -98,8 +98,8 @@ const sidebarGroup = (config: {
     [
       h.submodel({
         id: config.id,
-        view: Ui.Disclosure.view,
         model: config.model,
+        view: Ui.Disclosure.view,
         viewInputs: {
           toView: attributes =>
             h.div(
@@ -424,8 +424,8 @@ export const sidebarView = (model: Model): Html => {
 
   const mobileMenu = h.submodel({
     id: model.mobileMenuDialog.id,
-    view: Ui.Dialog.view,
     model: model.mobileMenuDialog,
+    view: Ui.Dialog.view,
     viewInputs: {
       toView: ({ dialog, backdrop, panel, isVisible }) =>
         h.dialog(

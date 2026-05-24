@@ -96,8 +96,8 @@ export const viewWithDialog = (model: Model): Html => {
       h.button([h.OnClick(ClickedToggle())], ['Toggle']),
       h.submodel({
         id: model.dialog.id,
-        view: Dialog.view,
         model: model.dialog,
+        view: Dialog.view,
         viewInputs: {
           toView: ({ dialog, backdrop, panel, isVisible }) =>
             h.dialog(

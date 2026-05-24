@@ -63,8 +63,8 @@ const view = () => {
 
   return h.submodel({
     id: 'info',
-    view: Ui.Popover.view,
     model: model.popover,
+    view: Ui.Popover.view,
     viewInputs: {
       anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
       toView: ({ button, panel, backdrop, isVisible }) =>

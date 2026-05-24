@@ -31,8 +31,8 @@ export const workEntryView = Submodel.defineView<
       ),
       h.submodel({
         id: model.startDate.id,
-        view: Ui.DatePicker.view,
         model: model.startDate,
+        view: Ui.DatePicker.view,
         viewInputs: {
           anchor: ANCHOR,
           triggerContent: maybeDate =>
@@ -58,8 +58,8 @@ export const workEntryView = Submodel.defineView<
       ),
       h.submodel({
         id: model.endDate.id,
-        view: Ui.DatePicker.view,
         model: model.endDate,
+        view: Ui.DatePicker.view,
         viewInputs: {
           anchor: ANCHOR,
           triggerContent: maybeDate =>
@@ -104,8 +104,8 @@ export const workEntryView = Submodel.defineView<
       ),
       h.submodel({
         id: `${model.id}-currently-employed`,
-        view: Ui.Checkbox.view,
         model: model.isCurrentlyEmployed,
+        view: Ui.Checkbox.view,
         viewInputs: {
           toView: attributes =>
             h.div(

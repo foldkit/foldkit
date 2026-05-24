@@ -25,8 +25,8 @@ export const errorDialogView = (
 
   return h.submodel({
     id: errorDialog.id,
-    view: Ui.Dialog.view,
     model: errorDialog,
+    view: Ui.Dialog.view,
     viewInputs: {
       toView: ({ dialog, backdrop, panel, isVisible }) =>
         h.dialog(
@@ -85,8 +85,8 @@ export const gridSizeConfirmDialogView = (
 
   return h.submodel({
     id: gridSizeConfirmDialog.id,
-    view: Ui.Dialog.view,
     model: gridSizeConfirmDialog,
+    view: Ui.Dialog.view,
     viewInputs: {
       toView: ({ dialog, backdrop, panel, isVisible }) =>
         h.dialog(

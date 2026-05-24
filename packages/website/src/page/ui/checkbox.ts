@@ -52,8 +52,8 @@ export const basicDemo = <ParentMessage>(
   return [
     h.submodel({
       id: 'checkbox-basic-demo',
-      view: Ui.Checkbox.view,
       model: model.checkboxBasicDemo,
+      view: Ui.Checkbox.view,
       viewInputs: {
         toView: attributes =>
           h.div(
@@ -112,11 +112,11 @@ export const indeterminateDemo = <ParentMessage>(
       [
         h.submodel({
           id: 'checkbox-all-demo',
-          view: Ui.Checkbox.view,
           model: {
             id: 'checkbox-all-demo',
             isChecked: isAllChecked,
           },
+          view: Ui.Checkbox.view,
           viewInputs: {
             isIndeterminate,
             toView: attributes =>
@@ -142,8 +142,8 @@ export const indeterminateDemo = <ParentMessage>(
           [
             h.submodel({
               id: 'checkbox-option-a-demo',
-              view: Ui.Checkbox.view,
               model: model.checkboxOptionADemo,
+              view: Ui.Checkbox.view,
               viewInputs: {
                 toView: attributes =>
                   h.div(
@@ -165,8 +165,8 @@ export const indeterminateDemo = <ParentMessage>(
             }),
             h.submodel({
               id: 'checkbox-option-b-demo',
-              view: Ui.Checkbox.view,
               model: model.checkboxOptionBDemo,
+              view: Ui.Checkbox.view,
               viewInputs: {
                 toView: attributes =>
                   h.div(

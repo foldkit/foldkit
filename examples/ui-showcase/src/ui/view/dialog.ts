@@ -107,8 +107,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       ),
       h.submodel({
         id: model.dialogDemo.id,
-        view: Ui.Dialog.view,
         model: model.dialogDemo,
+        view: Ui.Dialog.view,
         viewInputs: {
           toView: ({ dialog, backdrop, panel, isVisible }) =>
             h.dialog(
@@ -145,8 +145,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       ),
       h.submodel({
         id: model.dialogAnimatedDemo.id,
-        view: Ui.Dialog.view,
         model: model.dialogAnimatedDemo,
+        view: Ui.Dialog.view,
         viewInputs: {
           toView: ({ dialog, backdrop, panel, isVisible }) =>
             h.dialog(

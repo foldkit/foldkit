@@ -21,8 +21,8 @@ export const view = (model: Model): Document => {
       [
         h.submodel({
           id: 'settings',
-          view: Settings.view,
           model: model.settings,
+          view: Settings.view,
           toParentMessage: message => GotSettingsMessage({ message }),
         }),
       ],

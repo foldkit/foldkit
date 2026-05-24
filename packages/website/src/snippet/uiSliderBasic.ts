@@ -88,8 +88,8 @@ const view = (model: Model) => {
 
   return h.submodel({
     id: 'rating',
-    view: Ui.Slider.view,
     model: model.ratingDemo,
+    view: Ui.Slider.view,
     viewInputs: {
       formatValue: value => `${String(value)} of 10`,
       toView: attributes =>

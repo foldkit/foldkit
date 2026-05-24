@@ -45,8 +45,8 @@ export const disclosureDemo = <ParentMessage>(
       [
         h.submodel({
           id: 'disclosure-demo',
-          view: Ui.Disclosure.view,
           model: disclosureModel,
+          view: Ui.Disclosure.view,
           viewInputs: {
             toView: attributes =>
               h.div(

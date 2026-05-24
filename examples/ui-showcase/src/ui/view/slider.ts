@@ -42,8 +42,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [
           h.submodel({
             id: model.sliderRatingDemo.id,
-            view: Ui.Slider.view,
             model: model.sliderRatingDemo,
+            view: Ui.Slider.view,
             viewInputs: {
               formatValue: value => `${value} of 10`,
               toView: attributes =>
@@ -91,8 +91,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
           }),
           h.submodel({
             id: model.sliderVolumeDemo.id,
-            view: Ui.Slider.view,
             model: model.sliderVolumeDemo,
+            view: Ui.Slider.view,
             viewInputs: {
               formatValue: value => `${Math.round(value * 100)} percent`,
               toView: attributes =>

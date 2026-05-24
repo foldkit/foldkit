@@ -90,8 +90,8 @@ const view = (model: Model) => {
 
   return h.submodel({
     id: 'character',
-    view: CharacterListbox.view,
     model: model.listbox,
+    view: CharacterListbox.view,
     viewInputs: {
       items: characters,
       itemToValue: characterName,

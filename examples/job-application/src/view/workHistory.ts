@@ -22,8 +22,8 @@ export const workHistoryView = Submodel.defineView<
         model.entries.map(entry =>
           h.submodel({
             id: entry.id,
-            view: workEntryView,
             model: entry,
+            view: workEntryView,
             toParentMessage: message =>
               WorkHistory.GotEntryMessage({ entryId: entry.id, message }),
           }),

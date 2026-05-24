@@ -118,8 +118,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       ),
       h.submodel({
         id: 'horizontal-tabs-demo',
-        view: DemoTabs.view,
         model: model.horizontalTabsDemo,
+        view: DemoTabs.view,
         viewInputs: {
           tabs: demoTabs,
           ariaLabel: 'Framework comparison tabs',
@@ -156,8 +156,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       ),
       h.submodel({
         id: 'vertical-tabs-demo',
-        view: DemoTabs.view,
         model: model.verticalTabsDemo,
+        view: DemoTabs.view,
         viewInputs: {
           tabs: demoTabs,
           ariaLabel: 'Framework comparison tabs',

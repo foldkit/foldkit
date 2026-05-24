@@ -528,8 +528,8 @@ const mobileMenuView = (model: Model): Html => {
 
   return h.submodel({
     id: model.uiModel.mobileMenuDialog.id,
-    view: Ui.Dialog.view,
     model: model.uiModel.mobileMenuDialog,
+    view: Ui.Dialog.view,
     viewInputs: {
       toView: ({ dialog, backdrop, panel, isVisible }) =>
         h.dialog(
@@ -606,8 +606,8 @@ const contentView = (model: Model): Html => {
   const embedUi = (id: string, view: Submodel.View<UiModel, UiMessage>): Html =>
     h.submodel({
       id,
-      view,
       model: model.uiModel,
+      view,
       toParentMessage: toUiMessage,
     })
 

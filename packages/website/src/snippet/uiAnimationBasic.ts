@@ -106,8 +106,8 @@ const view = () => {
       ),
       h.submodel({
         id: 'content',
-        view: Ui.Animation.view,
         model: model.animation,
+        view: Ui.Animation.view,
         viewInputs: {
           animateSize: true,
           className:

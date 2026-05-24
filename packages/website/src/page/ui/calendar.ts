@@ -55,8 +55,8 @@ export const basicDemo = <ParentMessage>(
   return [
     h.submodel({
       id: model.calendarBasicDemo.id,
-      view: Ui.Calendar.view,
       model: model.calendarBasicDemo,
+      view: Ui.Calendar.view,
       viewInputs: {
         toView: attributes =>
           M.value(attributes).pipe(

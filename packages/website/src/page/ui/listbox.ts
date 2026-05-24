@@ -130,8 +130,8 @@ export const basicDemo = <ParentMessage>(
       [
         h.submodel({
           id: 'listbox-basic',
-          view: ItemListbox.view,
           model: listboxModel,
+          view: ItemListbox.view,
           viewInputs: {
             anchor: LISTBOX_ANCHOR,
             items: LISTBOX_ITEMS,
@@ -183,8 +183,8 @@ export const multiSelectDemo = <ParentMessage>(
       [
         h.submodel({
           id: 'listbox-multi',
-          view: ItemMultiListbox.view,
           model: listboxModel,
+          view: ItemMultiListbox.view,
           viewInputs: {
             anchor: LISTBOX_ANCHOR,
             items: LISTBOX_ITEMS,
@@ -234,8 +234,8 @@ export const groupedDemo = <ParentMessage>(
       [
         h.submodel({
           id: 'listbox-grouped',
-          view: CharacterListbox.view,
           model: listboxModel,
+          view: CharacterListbox.view,
           viewInputs: {
             anchor: LISTBOX_ANCHOR,
             items: GROUPED_CHARACTERS,

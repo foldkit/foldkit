@@ -1517,8 +1517,8 @@ const makeView = (
       [
         h.submodel({
           id: model.inspectorTabs.id,
-          view: InspectorTabs.view,
           model: model.inspectorTabs,
+          view: InspectorTabs.view,
           viewInputs: {
             tabs: INSPECTOR_TABS,
             ariaLabel: 'Inspector tabs',
@@ -1707,8 +1707,8 @@ const makeView = (
 
     return h.submodel({
       id: 'submodel-filter',
-      view: SubmodelFilterListbox.view,
       model: model.submodelFilterListbox,
+      view: SubmodelFilterListbox.view,
       viewInputs: {
         items: [ALL_MESSAGES_VALUE, ...model.submodelTags],
         itemToConfig: item => ({
@@ -2012,8 +2012,8 @@ const makeView = (
   const scrubberView = (model: Model): Html =>
     h.submodel({
       id: model.scrubberSlider.id,
-      view: Slider.view,
       model: model.scrubberSlider,
+      view: Slider.view,
       viewInputs: {
         ariaLabel: 'Session scrubber',
         getTrackRoot: () => shadow,

@@ -52,8 +52,8 @@ const popoverDemo = (
 
   return h.submodel({
     id,
-    view: Ui.Popover.view,
     model: popoverModel,
+    view: Ui.Popover.view,
     viewInputs: {
       anchor: POPOVER_ANCHOR,
       toView: ({ button, panel, backdrop, isVisible }) =>

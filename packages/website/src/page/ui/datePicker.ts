@@ -98,8 +98,8 @@ export const basicDemo = <ParentMessage>(
   return [
     h.submodel({
       id: model.datePickerBasicDemo.id,
-      view: Ui.DatePicker.view,
       model: model.datePickerBasicDemo,
+      view: Ui.DatePicker.view,
       viewInputs: {
         anchor: DATE_PICKER_ANCHOR,
         triggerContent,

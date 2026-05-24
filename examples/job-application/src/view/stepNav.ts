@@ -163,8 +163,8 @@ export const stepMenu = (
 
   return h.submodel({
     id: model.stepMenu.id,
-    view: StepMenu.view,
     model: model.stepMenu,
+    view: StepMenu.view,
     viewInputs: {
       items: Step.all,
       buttonContent: stepMenuTrigger(model.currentStep),

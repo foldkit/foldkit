@@ -300,8 +300,8 @@ const slider = (
 
   return h.submodel({
     id: sliderModel.id,
-    view: Ui.Slider.view,
     model: sliderModel,
+    view: Ui.Slider.view,
     viewInputs: {
       formatValue: value => value.toFixed(2),
       toView: attributes =>

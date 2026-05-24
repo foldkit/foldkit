@@ -21,8 +21,8 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
           Login: () =>
             h.submodel({
               id: 'login',
-              view: Login.view,
               model: model.loginModel,
+              view: Login.view,
               toParentMessage: message => GotLoginMessage({ message }),
             }),
           NotFound: ({ path }) => notFoundView(path, homeRouter(), 'Go Home'),

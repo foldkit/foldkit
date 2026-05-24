@@ -75,8 +75,8 @@ const view = (model: Model) => {
 
   return h.submodel({
     id: 'plan',
-    view: PlanListbox.view,
     model: model.listbox,
+    view: PlanListbox.view,
     viewInputs: {
       items: plans,
       buttonContent: h.span(

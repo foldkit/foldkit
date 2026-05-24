@@ -26,8 +26,8 @@ const view = (model: Model) => {
 
   return h.submodel({
     id: 'framework-tabs',
-    view: FrameworkTabs.view,
     model: model.tabs,
+    view: FrameworkTabs.view,
     viewInputs: {
       tabs: frameworks,
       ariaLabel: 'Framework comparison',

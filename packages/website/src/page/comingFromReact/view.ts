@@ -156,8 +156,8 @@ const faqItem = <ParentMessage>(
     onSome: disclosure =>
       h.submodel({
         id: disclosure.id,
-        view: Ui.Disclosure.view,
         model: disclosure,
+        view: Ui.Disclosure.view,
         viewInputs: {
           toView: attributes =>
             h.div(

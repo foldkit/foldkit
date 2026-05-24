@@ -19,8 +19,8 @@ export const view = (model: Model): Document => {
       [
         h.submodel({
           id: 'about-section',
-          view: Collapsible.view,
           model: model.about,
+          view: Collapsible.view,
           viewInputs: {
             summary: h.span([], ['About this app']),
             content: h.p(

@@ -3,7 +3,7 @@
 // the consumer's own `h.Class`. Click handlers from the child still
 // route through the child's dispatcher because the branding rides
 // along on each attribute.
-import { type ChildAttribute, html, keyed } from 'foldkit/html'
+import { type ChildAttribute, type Html, html, keyed } from 'foldkit/html'
 
 import { GotDisclosureMessage, type Message } from './message'
 import type { Model } from './model'
@@ -15,9 +15,9 @@ declare const Disclosure: {
       toView: (attributes: {
         readonly button: ReadonlyArray<ChildAttribute>
         readonly panel: ReadonlyArray<ChildAttribute>
-      }) => unknown
+      }) => Html
     },
-  ) => unknown
+  ) => Html
 }
 
 export const view = (model: Model) => {
@@ -25,8 +25,8 @@ export const view = (model: Model) => {
 
   return h.submodel({
     id: 'disclosure',
-    view: Disclosure.view,
     model: model.disclosure,
+    view: Disclosure.view,
     viewInputs: {
       toView: ({ button, panel }) =>
         h.div(

@@ -20,8 +20,8 @@ export const skillsView = Submodel.defineView<Skills.Model, Skills.Message>(
           model.entries.map(entry =>
             h.submodel({
               id: entry.id,
-              view: skillEntryView,
               model: entry,
+              view: skillEntryView,
               toParentMessage: message =>
                 Skills.GotEntryMessage({ entryId: entry.id, message }),
             }),

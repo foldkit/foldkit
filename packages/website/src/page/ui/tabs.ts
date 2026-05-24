@@ -134,8 +134,8 @@ export const horizontalDemo = <ParentMessage>(
   return [
     h.submodel({
       id: tabsModel.id,
-      view: DemoTabs.view,
       model: tabsModel,
+      view: DemoTabs.view,
       viewInputs: {
         tabs: demoTabs,
         ariaLabel: 'Framework comparison tabs',
@@ -252,8 +252,8 @@ export const verticalDemo = <ParentMessage>(
   return [
     h.submodel({
       id: tabsModel.id,
-      view: DemoTabs.view,
       model: tabsModel,
+      view: DemoTabs.view,
       viewInputs: {
         tabs: demoTabs,
         ariaLabel: 'Framework comparison tabs',

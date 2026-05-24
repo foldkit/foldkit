@@ -68,8 +68,8 @@ const view = (model: Model) => {
 
   return h.submodel({
     id: 'uploader',
-    view: Ui.FileDrop.view,
     model: model.uploader,
+    view: Ui.FileDrop.view,
     viewInputs: {
       multiple: true,
       accept: ['application/pdf', '.doc', '.docx'],

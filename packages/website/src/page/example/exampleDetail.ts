@@ -322,8 +322,8 @@ const livePreviewDisclosureView = <ParentMessage>(
 
   return h.submodel({
     id: disclosureModel.id,
-    view: Ui.Disclosure.view,
     model: disclosureModel,
+    view: Ui.Disclosure.view,
     viewInputs: {
       toView: attributes =>
         h.div(
@@ -420,8 +420,8 @@ const sourceCodeView = <ParentMessage>(
 
   return h.submodel({
     id: tabsModel.id,
-    view: SourceFileTabs.view,
     model: tabsModel,
+    view: SourceFileTabs.view,
     viewInputs: {
       tabs: filePaths,
       ariaLabel: 'Source files',

@@ -24,8 +24,8 @@ export const skillEntryView = Submodel.defineView<
 
   const proficiencyView = h.submodel({
     id: model.proficiency.id,
-    view: ProficiencyRadioGroup.view,
     model: model.proficiency,
+    view: ProficiencyRadioGroup.view,
     viewInputs: {
       options: ProficiencyLevel.all,
       orientation: 'Horizontal',

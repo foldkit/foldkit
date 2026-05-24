@@ -1,7 +1,3 @@
-// The child's view declares the parent state it needs via the third
-// type parameter on `Submodel.defineView`. The parent slices that
-// state out of its own Model on every render and passes it through
-// `viewInputs` on `h.submodel`.
 import { Submodel } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
@@ -9,6 +5,9 @@ import type { User } from '../user'
 import type { Message } from './message'
 import type { Model } from './model'
 
+// The child declares the parent state it needs via the third type
+// parameter on `Submodel.defineView`. The view receives it as
+// `viewInputs` alongside `model`.
 type ViewInputs = Readonly<{
   currentUser: User
 }>
@@ -32,8 +31,8 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
 // sees the current value:
 h.submodel({
   id: 'settings',
-  view: Settings.view,
   model: model.settings,
+  view: Settings.view,
   viewInputs: {
     currentUser: model.currentUser,
   },

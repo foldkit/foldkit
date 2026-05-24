@@ -40,8 +40,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [
           h.submodel({
             id: model.tooltipBasicDemo.id,
-            view: Ui.Tooltip.view,
             model: model.tooltipBasicDemo,
+            view: Ui.Tooltip.view,
             viewInputs: {
               anchor: TOOLTIP_ANCHOR,
               toView: ({ trigger, panel, isVisible }) =>
@@ -77,8 +77,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [
           h.submodel({
             id: model.tooltipNoDelayDemo.id,
-            view: Ui.Tooltip.view,
             model: model.tooltipNoDelayDemo,
+            view: Ui.Tooltip.view,
             viewInputs: {
               anchor: TOOLTIP_ANCHOR,
               toView: ({ trigger, panel, isVisible }) =>

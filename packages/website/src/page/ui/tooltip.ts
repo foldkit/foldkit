@@ -34,8 +34,8 @@ export const demo = <ParentMessage>(
       [
         h.submodel({
           id: tooltipModel.id,
-          view: Ui.Tooltip.view,
           model: tooltipModel,
+          view: Ui.Tooltip.view,
           viewInputs: {
             anchor: TOOLTIP_ANCHOR,
             toView: ({ trigger, panel, isVisible }) =>

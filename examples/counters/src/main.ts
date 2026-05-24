@@ -132,8 +132,8 @@ const rowView = (row: Row): Html => {
           // it belongs to.
           h.submodel({
             id: row.id,
-            view: Counter.view,
             model: row.counter,
+            view: Counter.view,
             toParentMessage: message =>
               GotCounterMessage({ id: row.id, message }),
           }),

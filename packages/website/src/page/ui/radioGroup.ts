@@ -92,8 +92,8 @@ export const verticalDemo = <ParentMessage>(
   return [
     h.submodel({
       id: radioGroupModel.id,
-      view: PlanRadioGroup.view,
       model: radioGroupModel,
+      view: PlanRadioGroup.view,
       viewInputs: {
         options: plans,
         ariaLabel: 'Server plan',
@@ -175,8 +175,8 @@ export const horizontalDemo = <ParentMessage>(
   return [
     h.submodel({
       id: radioGroupModel.id,
-      view: PlanRadioGroup.view,
       model: radioGroupModel,
+      view: PlanRadioGroup.view,
       viewInputs: {
         options: plans,
         ariaLabel: 'Server plan',

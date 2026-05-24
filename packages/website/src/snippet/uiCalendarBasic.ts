@@ -91,8 +91,8 @@ const view = () => {
 
   return h.submodel({
     id: model.calendarDemo.id,
-    view: Ui.Calendar.view,
     model: model.calendarDemo,
+    view: Ui.Calendar.view,
     viewInputs: {
       toView: attributes =>
         M.value(attributes).pipe(

@@ -45,8 +45,8 @@ export const switchDemo = <ParentMessage>(
   return [
     h.submodel({
       id: 'switch-demo',
-      view: Ui.Switch.view,
       model: switchModel,
+      view: Ui.Switch.view,
       viewInputs: {
         toView: attributes =>
           h.div(

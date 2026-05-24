@@ -182,8 +182,8 @@ export const virtualListDemo = <ParentMessage>(
         ),
         h.submodel({
           id: model.id,
-          view: Ui.VirtualList.view<Activity>(),
           model,
+          view: Ui.VirtualList.view<Activity>(),
           viewInputs: {
             items: sampleActivities,
             itemToKey: row => String(row.id),
@@ -365,8 +365,8 @@ export const virtualListVariableDemo = <ParentMessage>(
         ),
         h.submodel({
           id: model.id,
-          view: Ui.VirtualList.view<Activity>(),
           model,
+          view: Ui.VirtualList.view<Activity>(),
           viewInputs: {
             items: variableActivities,
             itemToKey: row => String(row.id),

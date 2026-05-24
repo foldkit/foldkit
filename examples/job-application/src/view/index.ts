@@ -54,48 +54,48 @@ const stepContent = (model: Model): Html => {
     M.when('PersonalInfo', () =>
       h.submodel({
         id: 'personal-info',
-        view: personalInfoView,
         model: model.personalInfo,
+        view: personalInfoView,
         toParentMessage: message => GotPersonalInfoMessage({ message }),
       }),
     ),
     M.when('WorkHistory', () =>
       h.submodel({
         id: 'work-history',
-        view: workHistoryView,
         model: model.workHistory,
+        view: workHistoryView,
         toParentMessage: message => GotWorkHistoryMessage({ message }),
       }),
     ),
     M.when('Education', () =>
       h.submodel({
         id: 'education',
-        view: educationView,
         model: model.education,
+        view: educationView,
         toParentMessage: message => GotEducationMessage({ message }),
       }),
     ),
     M.when('Skills', () =>
       h.submodel({
         id: 'skills',
-        view: skillsView,
         model: model.skills,
+        view: skillsView,
         toParentMessage: message => GotSkillsMessage({ message }),
       }),
     ),
     M.when('CoverLetter', () =>
       h.submodel({
         id: 'cover-letter',
-        view: coverLetterView,
         model: model.coverLetter,
+        view: coverLetterView,
         toParentMessage: message => GotCoverLetterMessage({ message }),
       }),
     ),
     M.when('Attachments', () =>
       h.submodel({
         id: 'attachments',
-        view: attachmentsView,
         model: model.attachments,
+        view: attachmentsView,
         toParentMessage: message => GotAttachmentsMessage({ message }),
       }),
     ),

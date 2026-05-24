@@ -213,8 +213,8 @@ const signaturesView = <ParentMessage>(
   return maybeDisclosure !== undefined
     ? h.submodel({
         id: maybeDisclosure.id,
-        view: Ui.Disclosure.view,
         model: maybeDisclosure,
+        view: Ui.Disclosure.view,
         viewInputs: {
           toView: attributes =>
             h.div(

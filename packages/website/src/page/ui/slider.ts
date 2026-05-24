@@ -59,8 +59,8 @@ export const sliderDemo = <ParentMessage>(
       [
         h.submodel({
           id: ratingModel.id,
-          view: Ui.Slider.view,
           model: ratingModel,
+          view: Ui.Slider.view,
           viewInputs: {
             formatValue: value => `${String(value)} of 10`,
             toView: attributes =>
@@ -106,8 +106,8 @@ export const sliderDemo = <ParentMessage>(
         }),
         h.submodel({
           id: volumeModel.id,
-          view: Ui.Slider.view,
           model: volumeModel,
+          view: Ui.Slider.view,
           viewInputs: {
             formatValue: value => `${String(Math.round(value * 100))} percent`,
             toView: attributes =>

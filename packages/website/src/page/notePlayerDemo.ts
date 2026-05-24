@@ -673,8 +673,8 @@ const durationSelectorView = (
       ),
       h.submodel({
         id: model.durationRadioGroup.id,
-        view: NoteDurationRadioGroup.view,
         model: model.durationRadioGroup,
+        view: NoteDurationRadioGroup.view,
         viewInputs: {
           options: noteDurations,
           ariaLabel: 'Note length',

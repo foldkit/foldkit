@@ -68,8 +68,8 @@ const view = () => {
 
   return h.submodel({
     id: 'terms-checkbox',
-    view: Ui.Checkbox.view,
     model: model.checkboxDemo,
+    view: Ui.Checkbox.view,
     viewInputs: {
       toView: attributes =>
         h.div(

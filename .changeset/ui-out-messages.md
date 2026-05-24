@@ -40,8 +40,8 @@ const ExampleMenu = Ui.Menu.create<ExampleSlug>()
 // In view:
 h.submodel({
   id: 'menu',
-  view: ExampleMenu.view,
   model: model.menu,
+  view: ExampleMenu.view,
   toParentMessage: message => GotMenuMessage({ message }),
 })
 

@@ -1,7 +1,3 @@
-// The child's update grows a third `context` argument carrying the
-// parent state it needs. The Context shape is declared by the child;
-// the parent assembles it inline when delegating in its own update
-// handler.
 import { Match as M, Option } from 'effect'
 import type { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
@@ -10,6 +6,8 @@ import type { User } from '../user'
 import { type Message, PersistProfile } from './message'
 import type { Model, OutMessage } from './model'
 
+// The Context shape is declared by the child. The parent assembles it
+// inline when delegating in its own update handler.
 type Context = Readonly<{
   currentUser: User
 }>
@@ -20,6 +18,8 @@ type UpdateReturn = readonly [
   Option.Option<OutMessage>,
 ]
 
+// The child's update grows a third `context` argument carrying the
+// parent state it needs.
 export const update = (
   model: Model,
   message: Message,

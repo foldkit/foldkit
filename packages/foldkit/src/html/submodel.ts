@@ -135,8 +135,8 @@ type ViewMessageOf<View extends AnySubmodelView> = View extends {
  *  `Ui.Listbox`, etc., for examples. */
 export type SubmodelConfig<View extends AnySubmodelView> = Readonly<{
   id: string
-  view: View
   model: ViewModelOf<View>
+  view: View
   viewInputs?: ViewInputsOf<View>
   toParentMessage: (message: ViewMessageOf<View>) => unknown
 }>

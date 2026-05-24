@@ -23,15 +23,15 @@ export const view = (model: Model): Document => {
       Home: () =>
         h.submodel({
           id: 'home',
-          view: Home.view,
           model: model.home,
+          view: Home.view,
           toParentMessage: message => GotHomeMessage({ message }),
         }),
       Room: ({ roomId }) =>
         h.submodel({
           id: 'room',
-          view: Room.view,
           model: model.room,
+          view: Room.view,
           viewInputs: { roomId },
           toParentMessage: message => GotRoomMessage({ message }),
         }),

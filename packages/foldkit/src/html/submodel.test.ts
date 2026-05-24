@@ -95,8 +95,8 @@ describe('h.submodel', () => {
   it('renders the child view and returns the VNode', () => {
     const result = submodel({
       id: 'child-1',
-      view: childView,
       model: { value: 42 },
+      view: childView,
       toParentMessage: message => GotChild({ entryId: 'child-1', message }),
     })
 
@@ -107,8 +107,8 @@ describe('h.submodel', () => {
   it('wraps child messages dispatched inside the Submodel', () => {
     const result = submodel({
       id: 'child-1',
-      view: childView,
       model: { value: 7 },
+      view: childView,
       toParentMessage: message => GotChild({ entryId: 'child-1', message }),
     })
 
@@ -136,14 +136,14 @@ describe('h.submodel', () => {
 
     const innerResult = submodel({
       id: 'parent',
+      model: {},
       view: () =>
         submodel({
           id: 'child-1',
-          view: childView,
           model: { value: 99 },
+          view: childView,
           toParentMessage: message => GotChild({ entryId: 'child-1', message }),
         }),
-      model: {},
       toParentMessage: message => GotParent({ message }),
     })
 
@@ -171,8 +171,8 @@ describe('h.submodel', () => {
 
     const result = submodel({
       id: 'with-viewInputs',
-      view: viewWithInputs,
       model: { value: 3 },
+      view: viewWithInputs,
       viewInputs: { label: 'count' },
       toParentMessage: message =>
         GotChild({ entryId: 'with-viewInputs', message }),
@@ -195,8 +195,8 @@ describe('h.submodel', () => {
     try {
       submodel({
         id: 'inner',
-        view: () => h('span'),
         model: {},
+        view: () => h('span'),
         toParentMessage: message => GotChild({ entryId: 'inner', message }),
       })
 
@@ -223,8 +223,8 @@ describe('h.submodel', () => {
     // to route correctly.
     submodel({
       id: 'cached-row',
-      view: childView,
       model: { value: 1 },
+      view: childView,
       toParentMessage: message => GotChild({ entryId: 'cached-row', message }),
     })
 
@@ -240,8 +240,8 @@ describe('h.submodel', () => {
   it('deregisters the wrap when the returned vnode is destroyed by snabbdom', () => {
     const result = submodel({
       id: 'destroyable',
-      view: childView,
       model: { value: 1 },
+      view: childView,
       toParentMessage: message => GotChild({ entryId: 'destroyable', message }),
     })
 
@@ -277,8 +277,8 @@ describe('h.submodel', () => {
 
     const result = submodel({
       id: 'with-user-destroy',
-      view: viewWithDestroy,
       model: { value: 0 },
+      view: viewWithDestroy,
       toParentMessage: message =>
         GotChild({ entryId: 'with-user-destroy', message }),
     })
@@ -293,13 +293,13 @@ describe('h.submodel', () => {
   it('returns a stable dispatch reference for the same boundary', () => {
     submodel({
       id: 'child-1',
+      model: {},
       view: () => {
         const first = requireDispatch()
         const second = requireDispatch()
         expect(first).toBe(second)
         return h('div')
       },
-      model: {},
       toParentMessage: message => GotChild({ entryId: 'child-1', message }),
     })
   })
@@ -307,16 +307,16 @@ describe('h.submodel', () => {
   it('throws when two h.submodel calls share the same id in the same parent boundary', () => {
     submodel({
       id: 'shared',
-      view: childView,
       model: { value: 1 },
+      view: childView,
       toParentMessage: message => GotChild({ entryId: 'shared', message }),
     })
 
     expect(() =>
       submodel({
         id: 'shared',
-        view: childView,
         model: { value: 2 },
+        view: childView,
         toParentMessage: message => GotChild({ entryId: 'shared', message }),
       }),
     ).toThrow(/duplicate h\.submodel id "shared"/)
@@ -365,8 +365,8 @@ describe('h.submodel', () => {
     let parentHandlerCalledDispatch: DispatchSync | null = null
     submodel({
       id: 'fake-checkbox',
-      view: fakeCheckboxView,
       model: {},
+      view: fakeCheckboxView,
       viewInputs: {
         toView: () => {
           // This callback runs inside `view` but the runtime should have
@@ -415,8 +415,8 @@ describe('h.submodel', () => {
 
     const result = submodel({
       id: 'inference-check',
-      view: selectingView,
       model: { value: 11 },
+      view: selectingView,
       // No annotation on `{ message }`:
       toParentMessage: message => ({
         _tag: 'GotSelected' as const,
@@ -439,8 +439,8 @@ describe('h.submodel', () => {
 
     const result = submodel({
       id: 'null-view',
-      view: nullView,
       model: { value: 1 },
+      view: nullView,
       toParentMessage: message => GotChild({ entryId: 'null-view', message }),
     })
 
@@ -458,27 +458,27 @@ describe('h.submodel', () => {
     expect(() => {
       submodel({
         id: 'parent-a',
+        model: {},
         view: () =>
           submodel({
             id: 'child',
-            view: childView,
             model: { value: 1 },
+            view: childView,
             toParentMessage: message => GotChild({ entryId: 'a', message }),
           }),
-        model: {},
         toParentMessage: message => ({ _tag: 'GotA' as const, message }),
       })
 
       submodel({
         id: 'parent-b',
+        model: {},
         view: () =>
           submodel({
             id: 'child',
-            view: childView,
             model: { value: 2 },
+            view: childView,
             toParentMessage: message => GotChild({ entryId: 'b', message }),
           }),
-        model: {},
         toParentMessage: message => ({ _tag: 'GotB' as const, message }),
       })
     }).not.toThrow()
@@ -498,8 +498,8 @@ describe('h.submodel', () => {
     const rowView = (item: Item): VNode | null =>
       submodel({
         id: item.id,
-        view: childView,
         model: { value: item.value },
+        view: childView,
         toParentMessage: message => GotChild({ entryId: item.id, message }),
       })
 
@@ -579,14 +579,14 @@ describe('h.submodel', () => {
 
     submodel({
       id: 'shell',
-      view: shellView,
       model: {},
+      view: shellView,
       viewInputs: {
         slot: () =>
           submodel({
             id: 'slot-child',
-            view: childView,
             model: { value: 5 },
+            view: childView,
             toParentMessage: message => GotSlotChild({ message }),
           }),
       },
@@ -615,8 +615,8 @@ describe('h.submodel', () => {
     expect(() =>
       submodel({
         id: 'nested-fn',
-        view: viewWithNested,
         model: {},
+        view: viewWithNested,
         viewInputs: {
           config: {
             onSubmit: () => undefined,
@@ -640,8 +640,8 @@ describe('h.submodel', () => {
     expect(() =>
       submodel({
         id: 'items-fn',
-        view: viewWithItems,
         model: {},
+        view: viewWithItems,
         viewInputs: {
           items: [{ onSelect: () => undefined }],
         },
@@ -662,8 +662,8 @@ describe('h.submodel', () => {
     expect(() =>
       submodel({
         id: 'option-input',
-        view: viewWithOption,
         model: {},
+        view: viewWithOption,
         viewInputs: { maybeValue: Option.some('hello') },
         toParentMessage: message =>
           GotChild({ entryId: 'option-input', message }),

@@ -146,8 +146,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
 
       h.submodel({
         id: model.toastDemo.id,
-        view: Toast.view,
         model: model.toastDemo,
+        view: Toast.view,
         viewInputs: {
           position: 'BottomRight',
           entryToView: (entry, handlers) => renderToastEntry(entry, handlers),

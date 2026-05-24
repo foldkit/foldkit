@@ -30,8 +30,8 @@ const view = () => {
 
   return h.submodel({
     id: 'menu',
-    view: ActionMenu.view,
     model: model.menu,
+    view: ActionMenu.view,
     viewInputs: {
       items: actions,
       buttonContent: h.span([], ['Options']),

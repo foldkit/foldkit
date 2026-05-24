@@ -57,8 +57,8 @@ export const basicDemo = <ParentMessage>(
       [
         h.submodel({
           id: model.fileDropBasicDemo.id,
-          view: Ui.FileDrop.view,
           model: model.fileDropBasicDemo,
+          view: Ui.FileDrop.view,
           viewInputs: {
             multiple: true,
             toView: attributes =>

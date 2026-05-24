@@ -80,8 +80,8 @@ const view = (model: Model) => {
 
   return h.submodel({
     id: 'people',
-    view: PeopleListbox.view,
     model: model.listboxMulti,
+    view: PeopleListbox.view,
     viewInputs: {
       items: people,
       buttonContent: h.span(

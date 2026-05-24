@@ -15,7 +15,6 @@ import {
   coreRuntimeRouter,
   exampleDetailRouter,
   uiOverviewRouter,
-  uiTypedPrimitivesRouter,
 } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
@@ -72,6 +71,12 @@ const perRenderInputsHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'per-render-view-inputs',
   text: 'Per-render View Inputs',
+}
+
+const multipleInstancesHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'multiple-instances',
+  text: 'Multiple Instances',
 }
 
 const readingParentStateHeader: TableOfContentsEntry = {
@@ -150,6 +155,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   delegatingInUpdateHeader,
   wiringTheViewHeader,
   perRenderInputsHeader,
+  multipleInstancesHeader,
   readingParentStateHeader,
   parentStateInViewHeader,
   parentStateInUpdateHeader,
@@ -553,31 +559,58 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('viewInputs'),
         '.',
       ),
-      infoCallout(
-        'Multiple instances',
-        'If you need several instances of the same child (e.g. three accordions), embed each as a separate field with its own ',
+      tableOfContentsEntryToHeader(multipleInstancesHeader),
+      para(
+        'A parent often embeds several instances of the same Submodel: a list of form entries, an array of accordions, repeated cards on a dashboard. There are two shapes.',
+      ),
+      para(
+        'For a fixed number of instances, embed each as a separate field on the parent Model with its own ',
         inlineCode('id'),
-        '. For a dynamic number, use an array and include an identifier in the wrapper Message to route updates to the correct instance. See the ',
+        '. ',
+        inlineCode("h.submodel({ id: 'profile', ... })"),
+        ' and ',
+        inlineCode("h.submodel({ id: 'preferences', ... })"),
+        ' are two unrelated boundaries, each with its own wrap.',
+      ),
+      para(
+        'For a dynamic number, hold the instances in an array on the parent Model, iterate it in the view, and route updates back through a wrapper Message that carries a per-instance identifier:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.submodelMultipleInstancesHighlighted),
+          ],
+          [],
+        ),
+        Snippets.submodelMultipleInstancesRaw,
+        'Copy multiple instances snippet to clipboard',
+        copiedSnippets,
+        'mb-4',
+      ),
+      para(
+        'The ',
+        inlineCode('id'),
+        ' on each ',
+        inlineCode('h.submodel'),
+        ' is the per-instance identifier the runtime uses for boundary identity. The same identifier travels with the wrapper Message as ',
+        inlineCode('entryId'),
+        ' so the parent’s update can find the matching slice and delegate to ',
+        inlineCode('Applicant.update'),
+        '. See the ',
         link(
           exampleDetailRouter({ exampleSlug: 'job-application' }),
           'job-application example',
         ),
-        ' for a working list of per-instance Submodels (education and work-history entries, each embedded with its own ',
+        ' for a working version: per-entry education and work-history Submodels, each embedded with its own ',
         inlineCode('entryId'),
-        ').',
-      ),
-      para(
-        'Foldkit UI primitives like Listbox, Combobox, and RadioGroup expose a ',
-        inlineCode('create<Item>()'),
-        ' factory that fixes the Item type at one site and pairs view and update behind it. See ',
-        link(uiTypedPrimitivesRouter(), 'Foldkit UI Primitives'),
-        ' for how the factory works and why each primitive shapes its type parameter the way it does.',
+        '.',
       ),
       tableOfContentsEntryToHeader(readingParentStateHeader),
       para(
         'Submodels exist for two related but distinct reasons. The first is encapsulation: ',
         link(uiOverviewRouter(), 'Foldkit UI’s Submodels'),
-        ' are self-contained units that own their state, keyboard handling, and accessibility wiring. You embed them and they work; the boundary is hard by design. The second is decomposition: when your Model would otherwise grow into a monolith, you split it into feature Submodels (Settings, Dashboard) for organization. Those children may still legitimately need to read parent state they share with their siblings: the current user, the active locale, the session token. Forcing every such child to be fully encapsulated pushes you to duplicate parent state into the child Model and keep both copies in sync, which is worse on every axis.',
+        ' are self-contained units that own their state, keyboard handling, and accessibility wiring. You embed them and they work; the boundary is hard by design. The second is decomposition: when your Model would otherwise grow into a monolith, you split it into feature Submodels (for example Settings, Dashboard, Profile) for organization. Those children may still legitimately need to read parent state: for example, the current user, the active locale, the session token. Forcing every such child to be fully encapsulated pushes you to duplicate parent state into the child Model and keep both copies in sync, which is worse on every axis.',
       ),
       para(
         'Foldkit gives you two precise seams for parent state to reach the child:',

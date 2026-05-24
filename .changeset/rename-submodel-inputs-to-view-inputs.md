@@ -16,8 +16,8 @@ export const view = Submodel.defineView<Model, Message, Inputs>(
 
 h.submodel({
   id: 'panel',
-  view: Panel.view,
   model: model.panel,
+  view: Panel.view,
   inputs: { summary: h.span([], ['hi']) },
   toParentMessage: message => GotPanelMessage({ message }),
 })
@@ -29,8 +29,8 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
 
 h.submodel({
   id: 'panel',
-  view: Panel.view,
   model: model.panel,
+  view: Panel.view,
   viewInputs: { summary: h.span([], ['hi']) },
   toParentMessage: message => GotPanelMessage({ message }),
 })
