@@ -21,6 +21,7 @@ import {
 } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+import { type PropEntry, propTable } from '../../view/docTable'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -178,6 +179,81 @@ const commonPitfallsHeader: TableOfContentsEntry = {
   text: 'Common Pitfalls',
 }
 
+const apiReferenceHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'api-reference',
+  text: 'API Reference',
+}
+
+const apiHSubmodelHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'api-h-submodel',
+  text: 'h.submodel',
+}
+
+const apiSubmodelConfigHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'api-submodel-config',
+  text: 'SubmodelConfig',
+}
+
+const apiDefineViewHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'api-define-view',
+  text: 'Submodel.defineView',
+}
+
+const apiSubmodelViewHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'api-submodel-view',
+  text: 'Submodel.View',
+}
+
+const apiChildAttributesHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'api-child-attributes',
+  text: 'childAttributes',
+}
+
+const apiChildAttributeHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'api-child-attribute',
+  text: 'ChildAttribute',
+}
+
+const submodelConfigProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'id',
+    type: 'string',
+    description:
+      'DOM-position identity for this embed site under the current boundary. Must be distinct from every other h.submodel id under the same parent boundary. For lists, use a per-item id (row.id); for fixed sites, name by position.',
+  },
+  {
+    name: 'model',
+    type: 'View extends SubmodelView<infer Model, ...> ? Model : never',
+    description:
+      'The child Submodel’s slice of the parent Model. Type is inferred from the branded view.',
+  },
+  {
+    name: 'view',
+    type: 'SubmodelView<Model, Message, ViewInputs?>',
+    description:
+      'The child’s exported view, branded via Submodel.defineView so the embed site can infer the child’s Message type.',
+  },
+  {
+    name: 'viewInputs',
+    type: 'ViewInputs | undefined',
+    description:
+      'Optional per-render data threaded into the view’s second argument. Top-level functions are auto-wrapped to execute in the parent’s boundary; nested functions throw at view-build time.',
+  },
+  {
+    name: 'toParentMessage',
+    type: '(message: ChildMessage) => ParentMessage',
+    description:
+      'Lifts each child Message into the parent’s wrapper Message type, typically a closure over the Got*Message constructor.',
+  },
+]
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   childSubmodelHeader,
@@ -205,6 +281,13 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   testingHeader,
   devToolsHeader,
   commonPitfallsHeader,
+  apiReferenceHeader,
+  apiHSubmodelHeader,
+  apiSubmodelConfigHeader,
+  apiDefineViewHeader,
+  apiSubmodelViewHeader,
+  apiChildAttributesHeader,
+  apiChildAttributeHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
@@ -1224,6 +1307,100 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
             '.',
           ],
         ),
+      ),
+      tableOfContentsEntryToHeader(apiReferenceHeader),
+      tableOfContentsEntryToHeader(apiHSubmodelHeader),
+      para(
+        inlineCode('h.submodel(config: SubmodelConfig<View>): VNode | null'),
+      ),
+      para(
+        'Embeds a child Submodel under the current boundary. Creates a runtime boundary holding the embed site’s ',
+        inlineCode('id'),
+        ' and ',
+        inlineCode('toParentMessage'),
+        ', dispatches Messages from inside the child through the wrap chain to the parent, and deregisters the boundary when the DOM node is destroyed. See ',
+        link('#wiring-the-view', 'Wiring the View with h.submodel'),
+        ' for usage; see ',
+        link(
+          '#boundary-id-and-model-identity',
+          'Boundary Id and Model Identity',
+        ),
+        ' for ',
+        inlineCode('id'),
+        ' semantics.',
+      ),
+      tableOfContentsEntryToHeader(apiSubmodelConfigHeader),
+      para(
+        'The configuration record passed to ',
+        inlineCode('h.submodel'),
+        '.',
+      ),
+      propTable(submodelConfigProps),
+      tableOfContentsEntryToHeader(apiDefineViewHeader),
+      para(
+        inlineCode(
+          'Submodel.defineView<Model, Message, ViewInputs = void>(fn): SubmodelView<Model, Message, ViewInputs>',
+        ),
+      ),
+      para(
+        'Brands a view function with its Message type so ',
+        inlineCode('h.submodel'),
+        ' can type-check the embed site without a per-call type argument. The ',
+        inlineCode('<Model, Message>'),
+        ' parameters are required at the definition site; ',
+        inlineCode('ViewInputs'),
+        ' is optional and, when supplied, makes the view take a second ',
+        inlineCode('viewInputs'),
+        ' argument. Also exported as ',
+        inlineCode('defineView'),
+        ' from ',
+        inlineCode('foldkit/html'),
+        '.',
+      ),
+      tableOfContentsEntryToHeader(apiSubmodelViewHeader),
+      para(
+        inlineCode(
+          'Submodel.View<Model, Message, ViewInputs = void> = (model, viewInputs?) => VNode | null',
+        ),
+      ),
+      para(
+        'The branded view type produced by ',
+        inlineCode('Submodel.defineView'),
+        '. Carries the child’s Message type at the type level. Consumers don’t usually annotate values with this type directly; the brand and ',
+        inlineCode('Parameters<View>'),
+        ' carry the inference at the embed site. Also exported as ',
+        inlineCode('SubmodelView'),
+        ' from ',
+        inlineCode('foldkit/html'),
+        '.',
+      ),
+      tableOfContentsEntryToHeader(apiChildAttributesHeader),
+      para(
+        inlineCode(
+          'childAttributes<Attribute>(attributes: ReadonlyArray<Attribute>): ReadonlyArray<ChildAttribute>',
+        ),
+      ),
+      para(
+        'Snapshots the Submodel’s dispatcher at publish time and brands each attribute so handlers route through the Submodel’s boundary when later spread into the consumer’s elements. Called inside a Submodel that publishes attribute bundles to a consumer’s ',
+        inlineCode('toView'),
+        ' slot. See ',
+        link('#child-attributes', 'childAttributes'),
+        ' for the full mechanism.',
+      ),
+      tableOfContentsEntryToHeader(apiChildAttributeHeader),
+      para(
+        inlineCode('ChildAttribute'),
+        ' is the branded attribute type returned by ',
+        inlineCode('childAttributes'),
+        '. Element constructors (',
+        inlineCode('h.button'),
+        ', ',
+        inlineCode('h.input'),
+        ', etc.) accept ',
+        inlineCode('ChildAttribute'),
+        ' alongside ordinary ',
+        inlineCode('Attribute<Message>'),
+        ' values, using the carried dispatcher when present.',
       ),
       para(
         'With Model, Messages, update, view, Commands, and Submodels in place, you have the full vocabulary for describing a Foldkit app. The next page covers the ',
