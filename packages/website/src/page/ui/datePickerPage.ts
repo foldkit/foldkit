@@ -12,7 +12,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
-import { patternsOutMessageRouter, uiCalendarRouter } from '../../route'
+import { coreSubmodelRouter, uiCalendarRouter } from '../../route'
 import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import {
@@ -432,7 +432,7 @@ export const view = <ParentMessage>(
         '. The update function returns ',
         inlineCode('[Model, Commands, Option<OutMessage>]'),
         '. The ',
-        link(patternsOutMessageRouter(), 'OutMessage'),
+        link(`${coreSubmodelRouter()}#surfacing-facts`, 'OutMessage'),
         ' carries ',
         inlineCode('SelectedDateOut({ date })'),
         ' when the user commits a date and ',

@@ -84,7 +84,6 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             CoreFreezeModel: () => Page.Core.FreezeModel.tableOfContents,
             CoreDevTools: () => Page.Core.DevTools.tableOfContents,
             CoreSubmodel: () => Page.Core.Submodel.tableOfContents,
-            PatternsOutMessage: () => Page.Patterns.OutMessage.tableOfContents,
             PatternsSubscriptionOrganization: () =>
               Page.Patterns.SubscriptionOrganization.tableOfContents,
             CoreViewMemoization: () =>

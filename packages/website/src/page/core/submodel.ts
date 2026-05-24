@@ -14,7 +14,6 @@ import {
 import {
   coreRuntimeRouter,
   exampleDetailRouter,
-  patternsOutMessageRouter,
   uiTypedPrimitivesRouter,
 } from '../../route'
 import * as Snippets from '../../snippet'
@@ -80,6 +79,24 @@ const surfacingFactsHeader: TableOfContentsEntry = {
   text: 'Surfacing Facts to the Parent',
 }
 
+const definingOutMessagesHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'defining-out-messages',
+  text: 'Defining OutMessages',
+}
+
+const emittingFromTheChildHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'emitting-from-the-child',
+  text: 'Emitting from the Child',
+}
+
+const handlingInTheParentHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'handling-in-the-parent',
+  text: 'Handling in the Parent',
+}
+
 const boundaryAttributesHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'boundary-attributes',
@@ -115,6 +132,9 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   wiringTheViewHeader,
   perRenderInputsHeader,
   surfacingFactsHeader,
+  definingOutMessagesHeader,
+  emittingFromTheChildHeader,
+  handlingInTheParentHeader,
   boundaryAttributesHeader,
   boundaryAttributesProblemHeader,
   boundaryAttributesHowItWorksHeader,
@@ -542,9 +562,110 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' and lifts the fact into a domain Message of its own.',
       ),
       para(
-        'See ',
-        link(patternsOutMessageRouter(), 'OutMessage'),
-        ' for the full pattern and the two-tuple-vs-three-tuple decision. The next section covers the other direction: how the child publishes attribute bundles that a parent can decorate without losing the wiring back through the child’s boundary.',
+        'Your login Submodel has authenticated the user. Now what? The child can’t transition the root Model to a logged-in state because it only knows about its own Model. And it shouldn’t know about the root Model. That would break the encapsulation that makes Submodels useful in the first place.',
+      ),
+      para(
+        'The OutMessage shape solves this. The child emits a semantic event: "login succeeded, here’s the session." The parent decides what to do with it. The child describes what happened; the parent decides the consequences.',
+      ),
+      infoCallout(
+        'Compare to React',
+        'In React, you’d pass an ',
+        inlineCode('onLoginSuccess'),
+        ' callback as a prop. This works but couples the child to the parent’s interface. In Foldkit, OutMessage keeps the boundary clean: the child emits facts, the parent interprets them.',
+      ),
+      tableOfContentsEntryToHeader(definingOutMessagesHeader),
+      para(
+        'OutMessages live alongside the child’s Message and follow the same naming conventions: past-tense facts describing what happened. ',
+        inlineCode('SucceededLogin'),
+        ', not ',
+        inlineCode('TransitionToLoggedIn'),
+        '. ',
+        inlineCode('RequestedLogout'),
+        ', not ',
+        inlineCode('DoLogout'),
+        '. The child doesn’t know or care what the parent does with the information.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.outMessageDefinitionHighlighted),
+          ],
+          [],
+        ),
+        Snippets.outMessageDefinitionRaw,
+        'Copy OutMessage definition to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      tableOfContentsEntryToHeader(emittingFromTheChildHeader),
+      para(
+        'The child’s update function returns a 3-tuple instead of the usual 2-tuple: Model, Commands, and an ',
+        inlineCode('Option<OutMessage>'),
+        '. Most Messages return ',
+        inlineCode('Option.none()'),
+        '. Only the significant "I need to tell the parent something" moments return ',
+        inlineCode('Option.some(...)'),
+        ':',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.outMessageChildUpdateHighlighted),
+          ],
+          [],
+        ),
+        Snippets.outMessageChildUpdateRaw,
+        'Copy child update to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'The ',
+        inlineCode('Option'),
+        ' makes the boundary explicit. ',
+        inlineCode('SubmittedLoginForm'),
+        ' fires a Command and returns ',
+        inlineCode('Option.none()'),
+        ': nothing for the parent to act on yet. But when the login succeeds, the child emits ',
+        inlineCode('Option.some(SucceededLogin({ sessionId }))'),
+        ', the signal the parent needs.',
+      ),
+      tableOfContentsEntryToHeader(handlingInTheParentHeader),
+      para(
+        'The parent uses ',
+        inlineCode('Option.match'),
+        ' on the OutMessage. ',
+        inlineCode('onNone'),
+        ' means the child handled it internally: just update the child’s slice of the Model. ',
+        inlineCode('onSome'),
+        ' means the child is surfacing something the parent needs to act on:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.outMessageParentHandleHighlighted),
+          ],
+          [],
+        ),
+        Snippets.outMessageParentHandleRaw,
+        'Copy parent handling to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'This is where the power of the boundary shows. When ',
+        inlineCode('SucceededLogin'),
+        ' arrives, the parent can do things the child has no knowledge of: transition to a completely different Model state, save the session, redirect the URL. The child stays focused on its domain; the parent handles cross-cutting concerns.',
+      ),
+      para(
+        'See the ',
+        link(exampleDetailRouter({ exampleSlug: 'auth' }), 'Auth example'),
+        ' for a complete implementation: a login module emits ',
+        inlineCode('SucceededLogin'),
+        ' when authentication completes, and the parent transitions to the logged-in state, saves the session, and updates the URL, all triggered by a single OutMessage.',
       ),
       tableOfContentsEntryToHeader(boundaryAttributesHeader),
       para(

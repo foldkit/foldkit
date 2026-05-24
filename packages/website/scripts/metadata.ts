@@ -231,10 +231,6 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Submodel',
     'Compose applications from independent, encapsulated modules.',
   ),
-  PatternsOutMessage: pattern(
-    'OutMessage',
-    'Communication between parent and child modules.',
-  ),
   PatternsSubscriptionOrganization: pattern(
     'Subscription Organization',
     'Canonical layout for subscription wiring across nested submodels.',

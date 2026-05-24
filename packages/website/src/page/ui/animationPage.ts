@@ -13,7 +13,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import {
-  patternsOutMessageRouter,
+  coreSubmodelRouter,
   uiDialogRouter,
   uiPopoverRouter,
 } from '../../route'
@@ -199,7 +199,7 @@ export const view = <ParentMessage>(
       ),
       para(
         'Concretely, Animation uses the ',
-        link(patternsOutMessageRouter(), 'OutMessage'),
+        link(`${coreSubmodelRouter()}#surfacing-facts`, 'OutMessage'),
         ' pattern: your update function handles ',
         inlineCode('StartedLeaveAnimating'),
         ' (to provide settlement detection) and ',

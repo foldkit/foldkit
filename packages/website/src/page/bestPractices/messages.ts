@@ -8,7 +8,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
-import { patternsOutMessageRouter } from '../../route'
+import { coreSubmodelRouter } from '../../route'
 
 const messagesAsEventsHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -67,7 +67,7 @@ export const view = (): Html => {
         ' for fire-and-forget Command acknowledgments, ',
         inlineCode('Got*'),
         ' for child module results via the ',
-        link(patternsOutMessageRouter(), 'OutMessage'),
+        link(`${coreSubmodelRouter()}#surfacing-facts`, 'OutMessage'),
         ' pattern. For example, ',
         inlineCode('ClickedFormSubmit'),
         ' and ',
