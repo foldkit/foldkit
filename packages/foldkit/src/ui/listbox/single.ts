@@ -44,11 +44,11 @@ export const init = (config: InitConfig): Model => ({
 
 // UPDATE
 
-/** Processes a listbox message and returns the next model, commands, and optional OutMessage. Closes the listbox on selection (single-select behavior); emits a `Selected({ item, wasAdded: true })` OutMessage. */
+/** Processes a listbox message and returns the next model, commands, and optional OutMessage. Closes the listbox on selection (single-select behavior); emits a `Selected({ value, wasAdded: true })` OutMessage. */
 export const update = makeUpdate<Model>((model, item, context) =>
   context.closeWithFocus(
     evo(model, { maybeSelectedItem: () => Option.some(item) }),
-    Option.some(SharedSelected({ item, wasAdded: true })),
+    Option.some(SharedSelected({ value: item, wasAdded: true })),
   ),
 )
 
@@ -63,7 +63,7 @@ export const open = (model: Model): UpdateReturn =>
  *  focus and modal commands. Use this in domain-event handlers to close the listbox. */
 export const close = (model: Model): UpdateReturn => update(model, Closed())
 
-/** Programmatically selects an item in the single-select listbox, closing the listbox and emitting a `Selected({ item, wasAdded: true })` OutMessage. */
+/** Programmatically selects an item in the single-select listbox, closing the listbox and emitting a `Selected({ value, wasAdded: true })` OutMessage. */
 export const selectItem = (model: Model, item: string): UpdateReturn =>
   update(model, SelectedItem({ item }))
 

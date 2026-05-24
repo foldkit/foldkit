@@ -689,10 +689,10 @@ const makeUpdate = (
                 readonly [Model, ReadonlyArray<Command.Command<Message>>]
               >(),
               M.tagsExhaustive({
-                Selected: ({ item }) => [
+                Selected: ({ value }) => [
                   evo(model, {
                     maybeSubmodelFilter: () =>
-                      Option.liftPredicate(item, String_.isNonEmpty),
+                      Option.liftPredicate(value, String_.isNonEmpty),
                     submodelFilterListbox: () => nextListboxModel,
                   }),
                   mappedCommands,

@@ -224,27 +224,27 @@ export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-/** Sent to the parent when a menu item is selected. Carries both the item itself (from the `inputs.items` array supplied at view time) and its index. Generic over `Item extends string`: the schema stores `item: string` but the factory's `create<Item>()` brands the return type so consumers receive `item: Item` directly. The menu has already closed when this fires; the parent does not need to dispatch `Ui.Menu.close`. */
+/** Sent to the parent when a menu item is selected. Carries both the selected value (from the `inputs.items` array supplied at view time) and its index. Generic over `Value extends string`: the schema stores `value: string` but the factory's `create<Value>()` brands the return type so consumers receive `value: Value` directly. The menu has already closed when this fires; the parent does not need to dispatch `Ui.Menu.close`. */
 export const Selected = m('Selected', {
+  value: S.String,
   index: S.Number,
-  item: S.String,
 })
 
-/** Type-level Selected with a generic `Item` for fenced cast at the
- *  consumer boundary. The schema still encodes `item: string`. */
-export type Selected<Item extends string = string> = Readonly<{
+/** Type-level Selected with a generic `Value` for fenced cast at the
+ *  consumer boundary. The schema still encodes `value: string`. */
+export type Selected<Value extends string = string> = Readonly<{
   readonly _tag: 'Selected'
+  readonly value: Value
   readonly index: number
-  readonly item: Item
 }>
 
 /** Union of out-messages the menu component can produce. Surfaced as the third element of `update`'s return tuple and pattern-matched by the parent. */
 export const OutMessage = S.Union([Selected])
 
-/** Generic over `Item extends string` so consumers using the typed
- *  `Ui.Menu.create<MyUnion>()` factory receive `item: MyUnion` in the
+/** Generic over `Value extends string` so consumers using the typed
+ *  `Ui.Menu.create<MyUnion>()` factory receive `value: MyUnion` in the
  *  `Selected` OutMessage. Defaults to `string`. */
-export type OutMessage<Item extends string = string> = Selected<Item>
+export type OutMessage<Value extends string = string> = Selected<Value>
 
 export type Opened = typeof Opened.Type
 export type Closed = typeof Closed.Type
@@ -600,7 +600,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         closeMenu(
           model,
           closeWithFocusCommands,
-          Option.some(Selected({ index, item })),
+          Option.some(Selected({ value: item, index })),
         ),
 
       RequestedItemClick: ({ index }) => [
@@ -796,7 +796,7 @@ export type GroupHeading = Readonly<{
 
 /** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
  *
- *  The Menu emits a `Selected({ item, index })` OutMessage on commit.
+ *  The Menu emits a `Selected({ value, index })` OutMessage on commit.
  *  The menu has already closed by the time this fires; consumers
  *  pattern-match it in their `GotMenuMessage` handler to react. */
 export type ViewInputs<Item extends string> = Readonly<{

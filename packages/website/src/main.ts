@@ -752,12 +752,12 @@ export const update = (
           onSome: M.type<Ui.Menu.OutMessage<ExampleSlug>>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
-              Selected: ({ item }) => [
+              Selected: ({ value }) => [
                 evo(model, { playgroundMenu: () => nextMenu }),
                 [
                   ...mappedCommands,
                   NavigateInternal({
-                    url: playgroundRouter({ exampleSlug: item }),
+                    url: playgroundRouter({ exampleSlug: value }),
                   }),
                 ],
               ],

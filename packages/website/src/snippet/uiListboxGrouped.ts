@@ -61,10 +61,10 @@ GotListboxMessage: ({ message }) => {
     onNone: () => [evo(model, { listbox: () => nextListbox }), mappedCommands],
     onSome: M.type<Ui.Listbox.OutMessage>().pipe(
       M.tagsExhaustive({
-        Selected: ({ item }) => [
+        Selected: ({ value }) => [
           evo(model, {
             listbox: () => nextListbox,
-            maybeCharacter: () => Option.some(item),
+            maybeCharacter: () => Option.some(value),
           }),
           mappedCommands,
         ],

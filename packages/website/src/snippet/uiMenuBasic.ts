@@ -51,11 +51,11 @@ GotMenuMessage: ({ message }) => {
     onNone: () => [evo(model, { menu: () => nextMenu }), mappedCommands],
     onSome: M.type<Ui.Menu.OutMessage<Action>>().pipe(
       M.tagsExhaustive({
-        Selected: ({ item }) => {
-          // React to the action here — e.g. dispatch a Command, transition
-          // a page, mutate domain state. Returning the next model + the
-          // mapped commands keeps the menu in sync; add your own commands
-          // as needed.
+        Selected: ({ value }) => {
+          // React to the action here (e.g. dispatch a Command, transition
+          // a page, mutate domain state). Returning the next model plus
+          // the mapped commands keeps the menu in sync; add your own
+          // commands as needed.
           return [evo(model, { menu: () => nextMenu }), mappedCommands]
         },
       }),

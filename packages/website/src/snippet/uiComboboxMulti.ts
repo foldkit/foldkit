@@ -54,13 +54,13 @@ GotComboboxMultiMessage: ({ message }) => {
     ],
     onSome: M.type<Ui.Combobox.OutMessage>().pipe(
       M.tagsExhaustive({
-        Selected: ({ item, wasAdded }) => [
+        Selected: ({ value, wasAdded }) => [
           evo(model, {
             comboboxMulti: () => nextCombobox,
             selectedCities: () =>
               wasAdded
-                ? Array.append(model.selectedCities, item)
-                : Array.filter(model.selectedCities, city => city !== item),
+                ? Array.append(model.selectedCities, value)
+                : Array.filter(model.selectedCities, city => city !== value),
           }),
           mappedCommands,
         ],

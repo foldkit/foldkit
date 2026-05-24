@@ -54,10 +54,10 @@ GotComboboxMessage: ({ message }) => {
     ],
     onSome: M.type<Ui.Combobox.OutMessage>().pipe(
       M.tagsExhaustive({
-        Selected: ({ item }) => [
+        Selected: ({ value }) => [
           evo(model, {
             combobox: () => nextCombobox,
-            maybeCity: () => Option.some(item),
+            maybeCity: () => Option.some(value),
           }),
           mappedCommands,
         ],

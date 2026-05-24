@@ -245,27 +245,27 @@ export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-/** Sent when a single-select listbox commits a selection, or when a multi-select listbox toggles an item. Generic over `Item extends string`: the runtime schema stores `item: string`, but the type-level OutMessage exposes `item: Item` so consumers who supply `items: ReadonlyArray<MyUnion>` receive `item: MyUnion` from `update<MyUnion>` without casting. The cast is fenced inside this module's `update` return, sound because the item was selected from the items array the consumer supplied. */
+/** Sent when a single-select listbox commits a selection, or when a multi-select listbox toggles an item. Generic over `Value extends string`: the runtime schema stores `value: string`, but the type-level OutMessage exposes `value: Value` so consumers who supply `items: ReadonlyArray<MyUnion>` receive `value: MyUnion` from `update<MyUnion>` without casting. The cast is fenced inside this module's `update` return, sound because the value was extracted from the items array the consumer supplied. */
 export const Selected = m('Selected', {
-  item: S.String,
+  value: S.String,
   wasAdded: S.Boolean,
 })
 
-/** Type-level Selected with a generic `Item` for fenced cast at the
- *  consumer boundary. The schema still encodes `item: string`. */
-export type Selected<Item extends string = string> = Readonly<{
+/** Type-level Selected with a generic `Value` for fenced cast at the
+ *  consumer boundary. The schema still encodes `value: string`. */
+export type Selected<Value extends string = string> = Readonly<{
   readonly _tag: 'Selected'
-  readonly item: Item
+  readonly value: Value
   readonly wasAdded: boolean
 }>
 
 /** Union of out-messages the listbox component can produce. Single-select listboxes always emit `wasAdded: true`. Multi-select listboxes emit `wasAdded: true` when adding to the selection and `wasAdded: false` when toggling off. */
 export const OutMessage = S.Union([Selected])
 
-/** Generic over `Item extends string` so consumers who pass
- *  `Ui.Listbox.update<MyUnion>(...)` receive `item: MyUnion` in the
- *  `Selected` OutMessage instead of `item: string`. Defaults to `string`. */
-export type OutMessage<Item extends string = string> = Selected<Item>
+/** Generic over `Value extends string` so consumers who pass
+ *  `Ui.Listbox.update<MyUnion>(...)` receive `value: MyUnion` in the
+ *  `Selected` OutMessage instead of `value: string`. Defaults to `string`. */
+export type OutMessage<Value extends string = string> = Selected<Value>
 
 // CONSTANTS
 
@@ -783,7 +783,7 @@ export type GroupHeading = Readonly<{
 
 /** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
  *
- *  The Listbox emits a `Selected({ item, wasAdded })` OutMessage on
+ *  The Listbox emits a `Selected({ value, wasAdded })` OutMessage on
  *  commit (single-select always `wasAdded: true`, multi-select toggles).
  *  Consumers pattern-match this in their `GotListboxMessage` handler. */
 type BaseViewInputsCommon<Item> = Readonly<{

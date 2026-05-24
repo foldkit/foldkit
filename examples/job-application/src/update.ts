@@ -140,10 +140,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               readonly [Model, ReadonlyArray<Command.Command<Message>>]
             >(),
             M.tagsExhaustive({
-              Selected: ({ item }) => [
+              Selected: ({ value }) => [
                 evo(model, {
                   stepMenu: () => nextStepMenu,
-                  currentStep: () => item,
+                  currentStep: () => value,
                 }),
                 mappedCommands,
               ],

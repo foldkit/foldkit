@@ -53,13 +53,13 @@ GotListboxMultiMessage: ({ message }) => {
     ],
     onSome: M.type<Ui.Listbox.OutMessage>().pipe(
       M.tagsExhaustive({
-        Selected: ({ item, wasAdded }) => [
+        Selected: ({ value, wasAdded }) => [
           evo(model, {
             listboxMulti: () => nextListbox,
             selectedPeople: () =>
               wasAdded
-                ? Array.append(model.selectedPeople, item)
-                : Array.filter(model.selectedPeople, person => person !== item),
+                ? Array.append(model.selectedPeople, value)
+                : Array.filter(model.selectedPeople, person => person !== value),
           }),
           mappedCommands,
         ],

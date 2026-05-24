@@ -529,8 +529,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           onSome: M.type<Ui.Listbox.OutMessage>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
-              Selected: ({ item }) => {
-                const themeIndex = Number(item)
+              Selected: ({ value }) => {
+                const themeIndex = Number(value)
                 const nextTheme = PALETTE_THEMES[themeIndex]
                 if (nextTheme === undefined) {
                   return [

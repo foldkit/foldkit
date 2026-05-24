@@ -239,27 +239,27 @@ export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-/** Sent when a single-select combobox commits a selection, or when a multi-select combobox toggles an item on. The `item` is the string key; consumers that need a richer domain type should look it up from their own state or, in the multi case, branch on `wasAdded` to distinguish add vs remove. */
+/** Sent when a single-select combobox commits a selection, or when a multi-select combobox toggles an item on. The `value` is the string key; consumers that need a richer domain type should look it up from their own state or, in the multi case, branch on `wasAdded` to distinguish add vs remove. */
 export const Selected = m('Selected', {
-  item: S.String,
+  value: S.String,
   wasAdded: S.Boolean,
 })
 
-/** Type-level Selected with a generic `Item` for fenced cast at the
- *  consumer boundary. The schema still encodes `item: string`. */
-export type Selected<Item extends string = string> = Readonly<{
+/** Type-level Selected with a generic `Value` for fenced cast at the
+ *  consumer boundary. The schema still encodes `value: string`. */
+export type Selected<Value extends string = string> = Readonly<{
   readonly _tag: 'Selected'
-  readonly item: Item
+  readonly value: Value
   readonly wasAdded: boolean
 }>
 
 /** Union of out-messages the combobox component can produce. Single-select comboboxes always emit `wasAdded: true`. Multi-select comboboxes emit `wasAdded: true` when adding to the selection and `wasAdded: false` when toggling off. */
 export const OutMessage = S.Union([Selected])
 
-/** Generic over `Item extends string` so consumers who pass
- *  `Ui.Combobox.update<MyUnion>(...)` receive `item: MyUnion` in the
- *  `Selected` OutMessage instead of `item: string`. Defaults to `string`. */
-export type OutMessage<Item extends string = string> = Selected<Item>
+/** Generic over `Value extends string` so consumers who pass
+ *  `Ui.Combobox.update<MyUnion>(...)` receive `value: MyUnion` in the
+ *  `Selected` OutMessage instead of `value: string`. Defaults to `string`. */
+export type OutMessage<Value extends string = string> = Selected<Value>
 
 // SELECTORS
 
@@ -797,7 +797,7 @@ export type GroupHeading = Readonly<{
 
 /** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
  *
- *  The Combobox emits a `Selected({ item, wasAdded })` OutMessage on
+ *  The Combobox emits a `Selected({ value, wasAdded })` OutMessage on
  *  commit (single-select always `wasAdded: true`, multi-select toggles).
  *  Consumers pattern-match this in their `GotComboboxMessage` handler. */
 export type BaseViewInputs<Item extends string> = Readonly<{

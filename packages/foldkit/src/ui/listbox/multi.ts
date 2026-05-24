@@ -44,7 +44,7 @@ export const init = (config: InitConfig): Model => ({
 
 // UPDATE
 
-/** Processes a listbox message and returns the next model, commands, and optional OutMessage. Stays open on selection and toggles item membership (multi-select behavior); emits a `Selected({ item, wasAdded })` OutMessage indicating whether the item was added or removed. */
+/** Processes a listbox message and returns the next model, commands, and optional OutMessage. Stays open on selection and toggles item membership (multi-select behavior); emits a `Selected({ value, wasAdded })` OutMessage indicating whether the value was added or removed. */
 export const update = makeUpdate<Model>((model, item) => {
   const wasAdded = !Array.contains(model.selectedItems, item)
   const nextSelectedItems = wasAdded
@@ -54,7 +54,7 @@ export const update = makeUpdate<Model>((model, item) => {
   return [
     evo(model, { selectedItems: () => nextSelectedItems }),
     [],
-    Option.some(SharedSelected({ item, wasAdded })),
+    Option.some(SharedSelected({ value: item, wasAdded })),
   ]
 })
 
@@ -69,7 +69,7 @@ export const open = (model: Model): UpdateReturn =>
  *  focus and modal commands. Use this in domain-event handlers to close the listbox. */
 export const close = (model: Model): UpdateReturn => update(model, Closed())
 
-/** Programmatically toggles an item in the multi-select listbox. Emits `Selected({ item, wasAdded })`. */
+/** Programmatically toggles an item in the multi-select listbox. Emits `Selected({ value, wasAdded })`. */
 export const selectItem = (model: Model, item: string): UpdateReturn =>
   update(model, SelectedItem({ item }))
 

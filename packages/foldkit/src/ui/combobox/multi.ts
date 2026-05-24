@@ -79,7 +79,7 @@ export const update = makeUpdate<Model>({
     return [
       evo(model, { selectedItems: () => nextSelectedItems }),
       [],
-      Option.some(SharedSelected({ item, wasAdded })),
+      Option.some(SharedSelected({ value: item, wasAdded })),
     ]
   },
 
@@ -100,7 +100,7 @@ export const open = (model: Model): UpdateReturn =>
  *  focus and modal commands. Use this in domain-event handlers to close the combobox. */
 export const close = (model: Model): UpdateReturn => update(model, Closed())
 
-/** Programmatically toggles an item in the multi-select combobox. Emits `Selected({ item, wasAdded })`. */
+/** Programmatically toggles an item in the multi-select combobox. Emits `Selected({ value, wasAdded })`. */
 export const selectItem = (model: Model, item: string): UpdateReturn =>
   update(model, SelectedItem({ item, displayText: item }))
 

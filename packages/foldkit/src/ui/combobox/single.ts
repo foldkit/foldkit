@@ -92,7 +92,7 @@ export const update = makeUpdate<Model>({
         Array.getSomes([context.maybeUnlockScroll, context.maybeRestoreInert]),
         Array.prepend(context.focusInput),
       ),
-      Option.some(SharedSelected({ item, wasAdded: !nullableDeselect })),
+      Option.some(SharedSelected({ value: item, wasAdded: !nullableDeselect })),
     ]
   },
 
@@ -114,7 +114,7 @@ export const open = (model: Model): UpdateReturn =>
  *  focus and modal commands. Use this in domain-event handlers to close the combobox. */
 export const close = (model: Model): UpdateReturn => update(model, Closed())
 
-/** Programmatically selects an item in the single-select combobox. Emits `Selected({ item, wasAdded })`. */
+/** Programmatically selects an item in the single-select combobox. Emits `Selected({ value, wasAdded })`. */
 export const selectItem = (
   model: Model,
   item: string,
