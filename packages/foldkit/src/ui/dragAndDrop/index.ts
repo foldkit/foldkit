@@ -159,7 +159,7 @@ export type Message = typeof Message.Type
 // OUT MESSAGE
 
 /** Emitted when a drag completes with a valid drop target. The parent uses this to commit the reorder. */
-export const Reordered = ts('Reordered', {
+export const Reordered = m('Reordered', {
   itemId: S.String,
   fromContainerId: S.String,
   fromIndex: S.Number,
@@ -167,7 +167,7 @@ export const Reordered = ts('Reordered', {
   toIndex: S.Number,
 })
 /** Emitted when a drag is cancelled via Escape or pointer release without a drop target. */
-export const Cancelled = ts('Cancelled')
+export const Cancelled = m('Cancelled')
 
 /** Union of all out-messages the drag-and-drop component can emit to its parent. */
 export const OutMessage = S.Union([Reordered, Cancelled])

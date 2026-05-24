@@ -105,7 +105,7 @@ export type PressedKeyboardNavigation = typeof PressedKeyboardNavigation.Type
 export const ChangedValue = m('ChangedValue', { value: S.Number })
 
 /** Union of all out-messages the slider component can emit to its parent. */
-export const OutMessage = ChangedValue
+export const OutMessage = S.Union([ChangedValue])
 export type OutMessage = typeof OutMessage.Type
 
 // INIT
