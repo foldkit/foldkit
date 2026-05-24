@@ -211,9 +211,7 @@ describe('childAttributes', () => {
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       view: ((_: object, inputs: { capture: any }) => {
         const h = html<FirstChild>()
-        firstAttributes = childAttributes([
-          h.OnClick({ _tag: 'FirstChild' }),
-        ])
+        firstAttributes = childAttributes([h.OnClick({ _tag: 'FirstChild' })])
         inputs.capture(firstAttributes)
         return snabbdomH('span')
       }) as any,
@@ -231,9 +229,7 @@ describe('childAttributes', () => {
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       view: ((_: object, inputs: { capture: any }) => {
         const h = html<SecondChild>()
-        secondAttributes = childAttributes([
-          h.OnClick({ _tag: 'SecondChild' }),
-        ])
+        secondAttributes = childAttributes([h.OnClick({ _tag: 'SecondChild' })])
         inputs.capture(secondAttributes)
         return snabbdomH('span')
       }) as any,

@@ -6,9 +6,9 @@ import { Match as M, Option } from 'effect'
 import type { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import { PersistProfile, type Message } from './message'
-import type { Model, OutMessage } from './model'
 import type { User } from '../user'
+import { type Message, PersistProfile } from './message'
+import type { Model, OutMessage } from './model'
 
 type Context = Readonly<{
   currentUser: User

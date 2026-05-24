@@ -240,9 +240,7 @@ const playgroundMenuView = (
         [h.Class('inline-flex items-center gap-2')],
         [Icon.bolt('w-5 h-5'), 'Launch Playground'],
       ),
-      buttonAttributes: childAttributes([
-        h.Class(playgroundButtonClassName),
-      ]),
+      buttonAttributes: childAttributes([h.Class(playgroundButtonClassName)]),
       itemsAttributes: childAttributes([h.Class(playgroundItemsClassName)]),
       backdropAttributes: childAttributes([
         h.Class(playgroundBackdropClassName),

@@ -44,7 +44,10 @@ GotTooltipMessage: ({ message }) => {
     onNone: () => [evo(model, { tooltip: () => nextTooltip }), mappedCommands],
     onSome: M.type<Ui.Tooltip.OutMessage>().pipe(
       M.tagsExhaustive({
-        Shown: () => [evo(model, { tooltip: () => nextTooltip }), mappedCommands],
+        Shown: () => [
+          evo(model, { tooltip: () => nextTooltip }),
+          mappedCommands,
+        ],
         Hidden: () => [
           evo(model, { tooltip: () => nextTooltip }),
           mappedCommands,

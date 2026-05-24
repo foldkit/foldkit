@@ -41,17 +41,17 @@ GotSwitchMessage: ({ message }) => {
   )
 
   return Option.match(maybeOut, {
-    onNone: () => [evo(model, { switchDemo: () => nextSwitch }), mappedCommands],
+    onNone: () => [
+      evo(model, { switchDemo: () => nextSwitch }),
+      mappedCommands,
+    ],
     onSome: M.type<Ui.Switch.OutMessage>().pipe(
       M.tagsExhaustive({
         ToggledChecked: ({ isChecked }) => {
           // React to the toggle here — persist the preference, fire
           // analytics, or dispatch your own Commands. Returning the next
           // model + mapped commands keeps the switch in sync.
-          return [
-            evo(model, { switchDemo: () => nextSwitch }),
-            mappedCommands,
-          ]
+          return [evo(model, { switchDemo: () => nextSwitch }), mappedCommands]
         },
       }),
     ),

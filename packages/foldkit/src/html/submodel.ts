@@ -173,8 +173,7 @@ const assertNoNestedFunctions = (
 // Framework-branded values that legitimately carry function members
 // internally (e.g. `ChildAttribute.dispatch`). The walker treats these
 // as opaque leaves, the same way it treats primitives.
-const isFrameworkBranded = (value: unknown): boolean =>
-  isChildAttribute(value)
+const isFrameworkBranded = (value: unknown): boolean => isChildAttribute(value)
 
 const walkForFunctions = (
   source: Readonly<Record<string, unknown>> | ReadonlyArray<unknown>,

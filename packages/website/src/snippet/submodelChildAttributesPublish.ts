@@ -4,14 +4,10 @@
 // these onto whatever elements they want without losing the wiring
 // back through the Submodel's `toParentMessage`.
 import { Submodel } from 'foldkit'
-import {
-  type ChildAttribute,
-  childAttributes,
-  html,
-} from 'foldkit/html'
+import { type ChildAttribute, childAttributes, html } from 'foldkit/html'
 
-import { Toggled, type Message } from './message'
-import { buttonId, panelId, type Model } from './model'
+import { type Message, Toggled } from './message'
+import { type Model, buttonId, panelId } from './model'
 
 type ViewInputs = Readonly<{
   toView: (attributes: {

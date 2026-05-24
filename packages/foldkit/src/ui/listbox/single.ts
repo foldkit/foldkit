@@ -150,10 +150,7 @@ export const create = <
     Option.Option<OutMessage<Value>>,
   ]
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const typedUpdate = update as (
-    model: Model,
-    message: Message,
-  ) => UpdateReturn
+  const typedUpdate = update as (model: Model, message: Message) => UpdateReturn
   return {
     view: internalView<Item, Value>(),
     update: typedUpdate,

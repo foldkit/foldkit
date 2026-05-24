@@ -747,9 +747,7 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
               backdropAttributes: childAttributes([
                 h.Class(listboxBackdropClassName),
               ]),
-              attributes: childAttributes([
-                h.Class(listboxWrapperClassName),
-              ]),
+              attributes: childAttributes([h.Class(listboxWrapperClassName)]),
             },
             toParentMessage: message => GotDietListboxMessage({ message }),
           }),
@@ -777,9 +775,7 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
               backdropAttributes: childAttributes([
                 h.Class(listboxBackdropClassName),
               ]),
-              attributes: childAttributes([
-                h.Class(listboxWrapperClassName),
-              ]),
+              attributes: childAttributes([h.Class(listboxWrapperClassName)]),
             },
             toParentMessage: message => GotPeriodListboxMessage({ message }),
           }),

@@ -156,10 +156,7 @@ export const create = <Item extends string = string>(): Readonly<{
     Option.Option<OutMessage<Item>>,
   ]
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const typedUpdate = update as (
-    model: Model,
-    message: Message,
-  ) => UpdateReturn
+  const typedUpdate = update as (model: Model, message: Message) => UpdateReturn
   return {
     view: internalView<Item>(),
     update: typedUpdate,

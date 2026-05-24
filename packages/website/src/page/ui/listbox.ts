@@ -153,9 +153,7 @@ export const basicDemo = <ParentMessage>(
             ),
             buttonAttributes: childAttributes([h.Class(triggerClassName)]),
             itemsAttributes: childAttributes([h.Class(itemsClassName)]),
-            backdropAttributes: childAttributes([
-              h.Class(backdropClassName),
-            ]),
+            backdropAttributes: childAttributes([h.Class(backdropClassName)]),
             attributes: childAttributes([h.Class(wrapperClassName)]),
           },
           toParentMessage: message =>
@@ -208,9 +206,7 @@ export const multiSelectDemo = <ParentMessage>(
             ),
             buttonAttributes: childAttributes([h.Class(triggerClassName)]),
             itemsAttributes: childAttributes([h.Class(itemsClassName)]),
-            backdropAttributes: childAttributes([
-              h.Class(backdropClassName),
-            ]),
+            backdropAttributes: childAttributes([h.Class(backdropClassName)]),
             attributes: childAttributes([h.Class(wrapperClassName)]),
           },
           toParentMessage: message =>
@@ -249,9 +245,7 @@ export const groupedDemo = <ParentMessage>(
               content: h.span([], [`${lastName}s`]),
               className: groupHeadingClassName,
             }),
-            separatorAttributes: childAttributes([
-              h.Class(separatorClassName),
-            ]),
+            separatorAttributes: childAttributes([h.Class(separatorClassName)]),
             itemToConfig: character => ({
               className: groupedItemClassName,
               content: h.div(
@@ -270,9 +264,7 @@ export const groupedDemo = <ParentMessage>(
             ),
             buttonAttributes: childAttributes([h.Class(triggerClassName)]),
             itemsAttributes: childAttributes([h.Class(itemsClassName)]),
-            backdropAttributes: childAttributes([
-              h.Class(backdropClassName),
-            ]),
+            backdropAttributes: childAttributes([h.Class(backdropClassName)]),
             attributes: childAttributes([h.Class(wrapperClassName)]),
           },
           toParentMessage: message =>

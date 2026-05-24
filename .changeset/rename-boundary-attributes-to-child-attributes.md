@@ -10,15 +10,14 @@ The "boundary" name was framework-internal jargon: consumers don't reason about 
 
 ```ts
 // Before
-import { boundaryAttributes, type BoundaryAttribute } from 'foldkit/html'
+import { type BoundaryAttribute, boundaryAttributes } from 'foldkit/html'
+// After
+import { type ChildAttribute, childAttributes } from 'foldkit/html'
 
 return inputs.toView({
   button: boundaryAttributes([h.OnClick(Toggled())]),
   panel: boundaryAttributes([h.Id(panelId(model.id))]),
 })
-
-// After
-import { childAttributes, type ChildAttribute } from 'foldkit/html'
 
 return inputs.toView({
   button: childAttributes([h.OnClick(Toggled())]),

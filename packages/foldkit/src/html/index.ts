@@ -20,10 +20,7 @@ import type { File } from '../file/index.js'
 import type { MountAction } from '../mount/index.js'
 import { MountTracker } from '../mount/index.js'
 import { VNode } from '../vdom.js'
-import {
-  type ChildAttribute,
-  isChildAttribute,
-} from './childAttribute.js'
+import { type ChildAttribute, isChildAttribute } from './childAttribute.js'
 import {
   checkScheduledLeave,
   clearDragZoneAfterDrop,
@@ -2356,9 +2353,7 @@ export const customElement =
 const voidElement =
   <Message>() =>
   (tagName: TagName) =>
-  (
-    attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
-  ): Html =>
+  (attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = []): Html =>
     createElement(tagName, attributes, [])
 
 const keyed =

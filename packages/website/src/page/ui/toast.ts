@@ -131,7 +131,9 @@ export const demo = <ParentMessage>(
       onSome: title => [
         h.p(
           [h.Class('text-sm text-gray-600 dark:text-gray-400 mt-3')],
-          [`Last dismissed: "${title}" (lifted from DismissedToast OutMessage)`],
+          [
+            `Last dismissed: "${title}" (lifted from DismissedToast OutMessage)`,
+          ],
         ),
       ],
     }),

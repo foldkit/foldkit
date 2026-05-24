@@ -9,11 +9,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../prose'
-import {
-  aiMcpRouter,
-  aiSkillsRouter,
-  coreSubmodelRouter,
-} from '../route'
+import { aiMcpRouter, aiSkillsRouter, coreSubmodelRouter } from '../route'
 import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {

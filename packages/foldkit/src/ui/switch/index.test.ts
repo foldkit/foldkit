@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import * as Story from '../../test/story.js'
-import { ToggledChecked, Toggled, init, update } from './index.js'
+import { Toggled, ToggledChecked, init, update } from './index.js'
 
 describe('Switch', () => {
   describe('init', () => {

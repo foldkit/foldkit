@@ -59,7 +59,10 @@ GotListboxMultiMessage: ({ message }) => {
             selectedPeople: () =>
               wasAdded
                 ? Array.append(model.selectedPeople, value)
-                : Array.filter(model.selectedPeople, person => person !== value),
+                : Array.filter(
+                    model.selectedPeople,
+                    person => person !== value,
+                  ),
           }),
           mappedCommands,
         ],

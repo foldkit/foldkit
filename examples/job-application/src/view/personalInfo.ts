@@ -140,9 +140,7 @@ export const personalInfoView = Submodel.defineView<
                   'w-(--button-width) rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden',
                 ),
               ]),
-              backdropAttributes: childAttributes([
-                h.Class('fixed inset-0'),
-              ]),
+              backdropAttributes: childAttributes([h.Class('fixed inset-0')]),
             },
             toParentMessage: message =>
               PersonalInfo.GotPronounsMessage({ message }),

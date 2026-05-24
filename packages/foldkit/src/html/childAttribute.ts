@@ -18,9 +18,7 @@ export type ChildAttribute = Readonly<{
   readonly dispatch: DispatchSync
 }>
 
-export const isChildAttribute = (
-  value: unknown,
-): value is ChildAttribute =>
+export const isChildAttribute = (value: unknown): value is ChildAttribute =>
   typeof value === 'object' && value !== null && BRAND in value
 
 /** Captures the current boundary's dispatcher and wraps each attribute

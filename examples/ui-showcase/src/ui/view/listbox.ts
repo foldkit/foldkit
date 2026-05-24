@@ -135,9 +135,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
               ),
               buttonAttributes: childAttributes([h.Class(triggerClassName)]),
               itemsAttributes: childAttributes([h.Class(itemsClassName)]),
-              backdropAttributes: childAttributes([
-                h.Class(backdropClassName),
-              ]),
+              backdropAttributes: childAttributes([h.Class(backdropClassName)]),
               attributes: childAttributes([h.Class(wrapperClassName)]),
             },
             toParentMessage: message => GotListboxDemoMessage({ message }),
@@ -177,9 +175,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
               ),
               buttonAttributes: childAttributes([h.Class(triggerClassName)]),
               itemsAttributes: childAttributes([h.Class(itemsClassName)]),
-              backdropAttributes: childAttributes([
-                h.Class(backdropClassName),
-              ]),
+              backdropAttributes: childAttributes([h.Class(backdropClassName)]),
               attributes: childAttributes([h.Class(wrapperClassName)]),
             },
             toParentMessage: message => GotListboxMultiDemoMessage({ message }),
@@ -228,9 +224,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
               ),
               buttonAttributes: childAttributes([h.Class(triggerClassName)]),
               itemsAttributes: childAttributes([h.Class(itemsClassName)]),
-              backdropAttributes: childAttributes([
-                h.Class(backdropClassName),
-              ]),
+              backdropAttributes: childAttributes([h.Class(backdropClassName)]),
               attributes: childAttributes([h.Class(wrapperClassName)]),
             },
             toParentMessage: message =>

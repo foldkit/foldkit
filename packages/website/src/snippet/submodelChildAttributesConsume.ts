@@ -32,10 +32,7 @@ export const view = (model: Model) => {
         h.div(
           [],
           [
-            h.button(
-              [...button, h.Class('px-3 py-2 rounded')],
-              ['Toggle'],
-            ),
+            h.button([...button, h.Class('px-3 py-2 rounded')], ['Toggle']),
             keyed('div')(
               model.disclosure.isOpen ? 'open' : 'closed',
               model.disclosure.isOpen

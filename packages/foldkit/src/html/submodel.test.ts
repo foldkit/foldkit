@@ -22,7 +22,6 @@ import {
 } from './runtimeSingleton.js'
 import {
   type SubmodelView as SubmodelViewBranded,
-  defineView,
   submodel,
 } from './submodel.js'
 

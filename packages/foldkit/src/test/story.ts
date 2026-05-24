@@ -47,8 +47,17 @@ export type WithStep<Model> = Readonly<{ _phantomModel: Model }> &
     simulation: StorySimulation<M, Message, OutMessage>,
   ) => StorySimulation<M, Message, OutMessage>)
 
-/** A single step in a story — either a {@link WithStep} or a simulation
- *  transform. The function variant accepts/returns
+/** A model-assertion step. The shape's `assert` callback carries the
+ *  story's `Model` so untyped lambdas like `Story.model(model => ...)`
+ *  infer `model` from the story's update function without per-call
+ *  annotation. */
+export type ModelStep<Model> = Readonly<{
+  readonly _tag: 'ModelStep'
+  readonly assert: (model: Model) => void
+}>
+
+/** A single step in a story — a {@link WithStep}, a {@link ModelStep},
+ *  or a simulation transform. The function variant accepts/returns
  *  `StorySimulation<any, any, any>` rather than the story's specific
  *  `<Model, Message, OutMessage>` so steps composed via `flow(...)` (which
  *  collapses each leg's polymorphic types) still typecheck against the
@@ -56,7 +65,7 @@ export type WithStep<Model> = Readonly<{ _phantomModel: Model }> &
  *  depends on the steps coming from this module. */
 export type StoryStep<Model> =
   | WithStep<NoInfer<Model>>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  | ModelStep<NoInfer<Model>>
   | ((sim: StorySimulation<any, any, any>) => StorySimulation<any, any, any>)
 
 // INTERNAL
@@ -233,15 +242,17 @@ const resolveAllCommands =
       OutMessage
     >
 
-/** Runs an assertion function against the current Model. */
-export const model =
-  <Model>(f: (model: Model) => void) =>
-  <Message, OutMessage>(
-    simulation: StorySimulation<Model, Message, OutMessage>,
-  ): StorySimulation<Model, Message, OutMessage> => {
-    f(toInternal(simulation).model)
-    return simulation
-  }
+/** Runs an assertion function against the current Model. Returns a
+ *  branded `ModelStep` so the story's `Model` flows into the callback's
+ *  parameter via the step's expected type at the call site: writing
+ *  `Story.model(model => ...)` without an annotation infers `model`
+ *  from the update function's signature. */
+export const model = <Model>(
+  f: (model: Model) => void,
+): ModelStep<Model> => ({
+  _tag: 'ModelStep',
+  assert: f,
+})
 
 /** Asserts that every given matcher matches a pending Command. Definition
  *  matchers match by name only; Instance matchers match by name + args. */
@@ -376,13 +387,21 @@ export const story: {
     resolvers: [],
   } as unknown as StorySimulation<Model, Message, OutMessage>
 
-  const result = steps.reduce(
-    (current, step) =>
-      (
-        step as (
-          simulation: StorySimulation<Model, Message, OutMessage>,
-        ) => StorySimulation<Model, Message, OutMessage>
-      )(current),
+  const result = steps.reduce<StorySimulation<Model, Message, OutMessage>>(
+    (current, step) => {
+      if (typeof step === 'function') {
+        return (
+          step as (
+            simulation: StorySimulation<Model, Message, OutMessage>,
+          ) => StorySimulation<Model, Message, OutMessage>
+        )(current)
+      }
+      if ('_tag' in step && step._tag === 'ModelStep') {
+        step.assert(toInternal(current).model)
+        return current
+      }
+      return current
+    },
     seed,
   )
   /* eslint-enable @typescript-eslint/consistent-type-assertions */

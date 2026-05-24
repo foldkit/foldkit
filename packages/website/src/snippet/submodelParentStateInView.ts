@@ -5,9 +5,9 @@
 import { Submodel } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
+import type { User } from '../user'
 import type { Message } from './message'
 import type { Model } from './model'
-import type { User } from '../user'
 
 type Inputs = Readonly<{
   currentUser: User
