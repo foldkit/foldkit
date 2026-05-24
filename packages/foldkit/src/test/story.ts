@@ -47,12 +47,17 @@ export type WithStep<Model> = Readonly<{ _phantomModel: Model }> &
     simulation: StorySimulation<M, Message, OutMessage>,
   ) => StorySimulation<M, Message, OutMessage>)
 
-/** A single step in a story — either a {@link WithStep} or a simulation transform. */
-export type StoryStep<Model, Message, OutMessage> =
+/** A single step in a story — either a {@link WithStep} or a simulation
+ *  transform. The function variant accepts/returns
+ *  `StorySimulation<any, any, any>` rather than the story's specific
+ *  `<Model, Message, OutMessage>` so steps composed via `flow(...)` (which
+ *  collapses each leg's polymorphic types) still typecheck against the
+ *  story's expected step type. Steps cast internally; runtime correctness
+ *  depends on the steps coming from this module. */
+export type StoryStep<Model> =
   | WithStep<NoInfer<Model>>
-  | ((
-      simulation: StorySimulation<Model, Message, OutMessage>,
-    ) => StorySimulation<Model, Message, OutMessage>)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  | ((sim: StorySimulation<any, any, any>) => StorySimulation<any, any, any>)
 
 // INTERNAL
 
@@ -103,29 +108,34 @@ const with_ = <Model>(model: Model): WithStep<Model> => {
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
 }
 
-/** Sends a Message through update. Commands stay pending until resolve or resolveAll. */
+/** Sends a Message through update. Commands stay pending until resolve or
+ *  resolveAll. The argument's type is independent of the simulation's `Message`
+ *  union, so composing this step inside `flow(...)` helpers does not pin the
+ *  story's Message to the narrow variant supplied here. */
 export const message =
-  <Message>(message_: NoInfer<Message>) =>
-  <Model, OutMessage = undefined>(
+  <MessageInput>(message_: MessageInput) =>
+  <Model, Message, OutMessage>(
     simulation: StorySimulation<Model, Message, OutMessage>,
   ): StorySimulation<Model, Message, OutMessage> => {
     const internal = toInternal(simulation)
 
     assertNoUnresolvedCommands(internal.commands, 'when you sent a new Message')
 
-    const result = internal.updateFn(internal.model, message_)
+    /* eslint-disable @typescript-eslint/consistent-type-assertions */
+    const messageAsParent = message_ as unknown as Message
+    const result = internal.updateFn(internal.model, messageAsParent)
     const nextModel = result[0]
     const commands = result[1]
     const outMessage = result.length === 3 ? result[2] : internal.outMessage
 
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return {
       ...internal,
       model: nextModel,
-      message: message_,
+      message: messageAsParent,
       commands: Array.appendAll(internal.commands, commands),
       outMessage,
     } as StorySimulation<Model, Message, OutMessage>
+    /* eslint-enable @typescript-eslint/consistent-type-assertions */
   }
 
 /** Resolves a pending Command with the given result Message. Accepts either
@@ -225,8 +235,8 @@ const resolveAllCommands =
 
 /** Runs an assertion function against the current Model. */
 export const model =
-  <Model, Message, OutMessage = undefined>(f: (model: Model) => void) =>
-  (
+  <Model>(f: (model: Model) => void) =>
+  <Message, OutMessage>(
     simulation: StorySimulation<Model, Message, OutMessage>,
   ): StorySimulation<Model, Message, OutMessage> => {
     f(toInternal(simulation).model)
@@ -287,10 +297,14 @@ export const Command = {
   expectNone: expectNoCommandsStep,
 } as const
 
-/** Asserts that the OutMessage is Some with the expected value. */
+/** Asserts that the OutMessage is Some with the expected value. The
+ *  expected value's type is decoupled from the simulation's OutMessage
+ *  union, so calling `expectOutMessage(SpecificVariant({...}))` against a
+ *  simulation whose `OutMessage` is a wider union typechecks; the runtime
+ *  `Equal.equals` check still surfaces mismatches. */
 export const expectOutMessage =
-  <OutMessage>(expected: OutMessage) =>
-  <Model, Message>(
+  <Expected>(expected: Expected) =>
+  <Model, Message, OutMessage>(
     simulation: StorySimulation<Model, Message, Option.Option<OutMessage>>,
   ): StorySimulation<Model, Message, Option.Option<OutMessage>> => {
     const internal = toInternal(simulation)
@@ -339,18 +353,18 @@ export const story: {
       model: Model,
       message: Message,
     ) => readonly [Model, ReadonlyArray<AnyCommand>, OutMessage],
-    ...steps: ReadonlyArray<StoryStep<Model, Message, OutMessage>>
+    ...steps: ReadonlyArray<StoryStep<NoInfer<Model>>>
   ): void
   <Model, Message>(
     updateFn: (
       model: Model,
       message: Message,
     ) => readonly [Model, ReadonlyArray<AnyCommand>],
-    ...steps: ReadonlyArray<StoryStep<Model, Message, undefined>>
+    ...steps: ReadonlyArray<StoryStep<NoInfer<Model>>>
   ): void
 } = <Model, Message, OutMessage = undefined>(
   updateFn: (model: Model, message: Message) => UpdateResult<Model, OutMessage>,
-  ...steps: ReadonlyArray<StoryStep<Model, Message, OutMessage>>
+  ...steps: ReadonlyArray<StoryStep<Model>>
 ): void => {
   /* eslint-disable @typescript-eslint/consistent-type-assertions */
   const seed = {

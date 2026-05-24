@@ -428,11 +428,6 @@ export const makeUpdate = <Model extends BaseModel>(
     ReadonlyArray<Command.Command<Message>>,
     Option.Option<OutMessage>,
   ]
-  type GenericUpdateReturn<Item extends string> = readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
   const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
   const delegateToAnimation = (
@@ -724,12 +719,7 @@ export const makeUpdate = <Model extends BaseModel>(
     )
   }
 
-  return <Item extends string = string>(
-    model: Model,
-    message: Message,
-  ): GenericUpdateReturn<Item> =>
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    internalUpdate(model, message) as unknown as GenericUpdateReturn<Item>
+  return internalUpdate
 }
 
 /** The anchor-positioning Mount this Listbox renders when an anchor is

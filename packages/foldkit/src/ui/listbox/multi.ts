@@ -135,11 +135,23 @@ export const create = <
     ReadonlyArray<Command.Command<Message>>,
     Option.Option<OutMessage<Value>>,
   ]
-}> => ({
-  view: internalView<Item, Value>(),
-  update: (model, message) => update<Value>(model, message),
-  selectItem: (model, item) => update<Value>(model, SelectedItem({ item })),
-  open: model =>
-    update<Value>(model, Opened({ maybeActiveItemIndex: Option.none() })),
-  close: model => update<Value>(model, Closed()),
-})
+}> => {
+  type UpdateReturn = readonly [
+    Model,
+    ReadonlyArray<Command.Command<Message>>,
+    Option.Option<OutMessage<Value>>,
+  ]
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const typedUpdate = update as (
+    model: Model,
+    message: Message,
+  ) => UpdateReturn
+  return {
+    view: internalView<Item, Value>(),
+    update: typedUpdate,
+    selectItem: (model, item) => typedUpdate(model, SelectedItem({ item })),
+    open: model =>
+      typedUpdate(model, Opened({ maybeActiveItemIndex: Option.none() })),
+    close: model => typedUpdate(model, Closed()),
+  }
+}
