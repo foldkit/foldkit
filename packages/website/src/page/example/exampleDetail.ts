@@ -1,5 +1,13 @@
-import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
-import { Command, Ui } from 'foldkit'
+import {
+  Array,
+  Effect,
+  Match as M,
+  Option,
+  Queue,
+  Schema as S,
+  Stream,
+} from 'effect'
+import { Command, Mount, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -76,6 +84,51 @@ export const LoadExampleSources = Command.define(
     Effect.catch(error => Effect.succeed(FailedLoadExampleSources({ error }))),
   ),
 )
+
+// MOUNT
+
+const BRIDGE_MESSAGE_TYPE = 'foldkit-example-url'
+
+type ExampleUrlBridgeMessage = Readonly<{
+  type: typeof BRIDGE_MESSAGE_TYPE
+  url: string
+}>
+
+const isExampleUrlMessageFromIframe = (
+  event: MessageEvent,
+  iframe: HTMLIFrameElement,
+): event is MessageEvent<ExampleUrlBridgeMessage> =>
+  event.source === iframe.contentWindow &&
+  event.origin === window.location.origin &&
+  event.data &&
+  typeof event.data === 'object' &&
+  event.data.type === BRIDGE_MESSAGE_TYPE &&
+  typeof event.data.url === 'string'
+
+const ObserveExampleUrlMessages = Mount.defineStream(
+  'ObserveExampleUrlMessages',
+  ChangedExampleUrl,
+)(element => {
+  if (!(element instanceof HTMLIFrameElement)) {
+    return Stream.empty
+  }
+  return Stream.callback<typeof ChangedExampleUrl.Type>(queue =>
+    Effect.acquireRelease(
+      Effect.sync(() => {
+        const handler = (event: MessageEvent) => {
+          if (!isExampleUrlMessageFromIframe(event, element)) {
+            return
+          }
+          Queue.offerUnsafe(queue, ChangedExampleUrl({ url: event.data.url }))
+        }
+        window.addEventListener('message', handler)
+        return handler
+      }),
+      handler =>
+        Effect.sync(() => window.removeEventListener('message', handler)),
+    ).pipe(Effect.flatMap(() => Effect.never)),
+  )
+})
 
 // INIT
 
@@ -365,6 +418,9 @@ const livePreviewDisclosureView = <ParentMessage>(
             h.Src(`/example-apps-embed/${slug}/index.html?embedded`),
             h.Class('w-full bg-white h-[40rem]'),
             h.AriaLabel(`${meta.title} example running live`),
+            h.OnMount(
+              Mount.mapMessage(ObserveExampleUrlMessages(), toParentMessage),
+            ),
           ],
           [],
         ),
