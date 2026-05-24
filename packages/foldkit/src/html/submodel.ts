@@ -69,6 +69,12 @@ export const defineView = <Model, Message, ViewInputs = void>(
     ? (model: Model) => VNode | null
     : (model: Model, viewInputs: ViewInputs) => VNode | null,
 ): SubmodelView<Model, Message, ViewInputs> =>
+  // NOTE: The cast attaches the SUBMODEL_MESSAGE_BRAND to the runtime
+  // function value at the type level only — Message has no inferable
+  // source on the function signature itself, so the brand carries it.
+  // `h.submodel` reads the brand at the embed site to type-check
+  // `toParentMessage`. There is no runtime brand to add; the cast is
+  // the entire mechanism.
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   fn as SubmodelView<Model, Message, ViewInputs>
 

@@ -833,7 +833,7 @@ const itemId = (id: string, index: number): string => `${id}-item-${index}`
 /** Headless menu view with typeahead search, keyboard navigation,
  *  and aria-activedescendant focus management. Obtained from
  *  `Ui.Menu.create<MyItem>().view`; not exported directly. */
-type MenuViewForItem<Item extends string> = SubmodelView<
+type ViewForItem<Item extends string> = SubmodelView<
   Model,
   Message,
   ViewInputs<Item>
@@ -841,7 +841,7 @@ type MenuViewForItem<Item extends string> = SubmodelView<
 
 const internalView = <Item extends string>() =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  menuViewImpl as unknown as MenuViewForItem<Item>
+  menuViewImpl as unknown as ViewForItem<Item>
 
 const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
   (model, viewInputs) => {
@@ -1300,7 +1300,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
  *  ```
  */
 export const create = <Item extends string = string>(): Readonly<{
-  view: MenuViewForItem<Item>
+  view: ViewForItem<Item>
   update: (
     model: Model,
     message: Message,
