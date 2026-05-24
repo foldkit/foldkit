@@ -49,11 +49,11 @@ export { resolveTypeaheadMatch }
 
 // MODEL
 
-/** Schema for the activation trigger — whether the user interacted via mouse or keyboard. */
+/** Schema for the activation trigger: whether the user interacted via mouse or keyboard. */
 export const ActivationTrigger = S.Literals(['Pointer', 'Keyboard'])
 export type ActivationTrigger = typeof ActivationTrigger.Type
 
-/** Schema for the listbox orientation — whether items flow vertically or horizontally. */
+/** Schema for the listbox orientation: whether items flow vertically or horizontally. */
 export const Orientation = S.Literals(['Vertical', 'Horizontal'])
 export type Orientation = typeof Orientation.Type
 
@@ -102,7 +102,7 @@ export const baseInit = (config: BaseInitConfig): BaseModel => ({
 
 // MESSAGE
 
-/** Sent when the listbox opens via button click or keyboard. Contains an optional initial active item index — None for pointer, Some for keyboard. */
+/** Sent when the listbox opens via button click or keyboard. Contains an optional initial active item index: None for pointer, Some for keyboard. */
 export const Opened = m('Opened', {
   maybeActiveItemIndex: S.Option(S.Number),
 })

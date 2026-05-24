@@ -134,7 +134,7 @@ describe('Calendar scene', () => {
       // NOTE: The aria-label must lead with "Calendar," so VoiceOver's TTS
       // engine can't pattern-match "row 4 April 2026" into a date literal
       // and speak it as "row April 4, 2026". Do not switch this to
-      // aria-labelledby={heading} — the heading text ("April 2026") starts
+      // aria-labelledby={heading}. The heading text ("April 2026") starts
       // with a month name and triggers the TTS date-parsing path.
       Scene.scene(
         { update, view: sceneView() },
@@ -275,8 +275,8 @@ describe('Calendar scene', () => {
 
     it('labels each week row so VoiceOver does not auto-compute the row name from its 7 descendant day labels', () => {
       // NOTE: Without this explicit aria-label, VoiceOver computes the row's
-      // accessible name from its descendants — a concatenation of all 7
-      // day-button labels — and reads the whole row on cross-row navigation.
+      // accessible name from its descendants, a concatenation of all 7
+      // day-button labels, and reads the whole row on cross-row navigation.
       // Do not remove the aria-label from week row attributes.
       Scene.scene(
         { update, view: sceneView() },
@@ -677,7 +677,7 @@ describe('Calendar scene', () => {
 
     it('pressing Enter on a disabled focused month does not commit (view-layer filter)', () => {
       // maxDate clamps the calendar to April 2026; September 2026 is fully
-      // disabled. Focus stays on April after Enter — no transition to Days.
+      // disabled. Focus stays on April after Enter, with no transition to Days.
       const maxDate = Calendar.make(2026, 4, 30)
       Scene.scene(
         { update, view: sceneView() },
@@ -693,7 +693,7 @@ describe('Calendar scene', () => {
 
     it('pressing Enter on a disabled focused year does not commit (view-layer filter)', () => {
       // minDate clamps to 2020; arrowing back past 2020 lands the cursor on a
-      // disabled year. Enter should be a no-op — cursor stays in Years mode.
+      // disabled year. Enter should be a no-op. Cursor stays in Years mode.
       const minDate = Calendar.make(2020, 1, 1)
       Scene.scene(
         { update, view: sceneView() },

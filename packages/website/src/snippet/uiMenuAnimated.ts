@@ -1,5 +1,6 @@
-// Pseudocode walkthrough — same Model, Messages, and update as the basic
-// menu; only init and view change. Each labeled block below is an excerpt.
+// Pseudocode walkthrough using the same Model, Messages, and update as
+// the basic menu; only init and view change. Each labeled block below is
+// an excerpt.
 import { Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'

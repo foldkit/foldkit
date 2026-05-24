@@ -222,7 +222,7 @@ export type CrashContext<Model, Message> = Readonly<{
   message: Message
 }>
 
-/** Configuration for crash handling — custom crash UI and/or crash reporting. */
+/** Configuration for crash handling, with custom crash UI and/or crash reporting. */
 export type CrashConfig<Model, Message> = Readonly<{
   view?: (context: CrashContext<Model, Message>) => Document
   report?: (context: CrashContext<Model, Message>) => void
@@ -1003,7 +1003,7 @@ const makeRuntime = <
           const { position, mode, maybeBanner } = resolvedDevTools.value
           // NOTE: when excludeFromHistory is active, the runtime drops
           // excluded Messages from the recorded history. Replay walks the
-          // recorded entries forward from the nearest keyframe — but with
+          // recorded entries forward from the nearest keyframe. With
           // exclusion, the dropped Messages aren't in that walk, so any
           // cumulative state they would have produced is missing from the
           // replayed model. Setting keyframeInterval to 1 stores a full

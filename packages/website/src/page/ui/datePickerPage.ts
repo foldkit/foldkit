@@ -597,7 +597,7 @@ export const view = <ParentMessage>(
           uiCalendarRouter(),
           "the Calendar page's CalendarAttributes section",
         ),
-        ' for the full prop table — the type is the same.',
+        ' for the full prop table. The type is the same.',
       ),
       heading(
         outMessagesHeader.level,

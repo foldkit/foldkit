@@ -545,7 +545,7 @@ export type ViewInputs = Readonly<{
 
 /** Renders an accessible slider by building ARIA attribute groups and
  *  delegating layout to the consumer's `toView` callback. Follows the
- *  WAI-ARIA slider pattern — role="slider" on the thumb, aria-valuemin /
+ *  WAI-ARIA slider pattern: role="slider" on the thumb, aria-valuemin /
  *  aria-valuemax / aria-valuenow, keyboard navigation by step / page / home /
  *  end. Pointer drag is handled by the component's drag subscriptions. */
 export const view = defineView<Model, Message, ViewInputs>(

@@ -123,11 +123,11 @@ const DEFAULT_ARIA_LABEL = 'Notifications'
  *  `dismiss` / `dismissAll` helpers, and the headless `view`.
  *
  *  The payload is whatever content shape the consumer supplies via Schema.
- *  The component never reads it — it flows through to `entryToView`. The
+ *  The component never reads it. It flows through to `entryToView`. The
  *  component itself owns only lifecycle and a11y fields (id, variant,
  *  animation, dismiss timer, hover state).
  *
- *  Consume the bound module's exports everywhere — `Toast.Model` in your app
+ *  Consume the bound module's exports everywhere. `Toast.Model` in your app
  *  Model, `Toast.Message` in your parent Message union, `Toast.show` /
  *  `Toast.dismiss` in your update, `Toast.view` in your view. The top-level
  *  exports (`Variant`, `Position`, static message tags, `DismissAfter`) are

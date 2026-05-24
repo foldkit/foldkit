@@ -62,10 +62,10 @@ export type ViewInputs = Readonly<{
  *  CSS keyframe animations via data attributes.
  *
  *  Data attributes reflect the current lifecycle phase:
- *  - `data-closed` — element is in its hidden/initial state
- *  - `data-enter` — enter animation is active
- *  - `data-leave` — leave animation is active
- *  - `data-transition` — any animation is active
+ *  - `data-closed`: element is in its hidden/initial state
+ *  - `data-enter`: enter animation is active
+ *  - `data-leave`: leave animation is active
+ *  - `data-transition`: any animation is active
  */
 export const view = defineView<Model, Message, ViewInputs>(
   (model, viewInputs): Html => {

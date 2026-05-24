@@ -73,7 +73,7 @@ const submitButton = (isEnabled: boolean): Html => {
   )
 }
 
-/** Plain view — no dialog wrapper. */
+/** Plain view, no dialog wrapper. */
 export const view = (model: Model): Html => {
   const h = html<Message>()
 

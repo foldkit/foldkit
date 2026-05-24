@@ -35,7 +35,7 @@ const animationToToastMessage =
     GotAnimationMessage({ entryId, message })
 
 // A post-enter entry: isShowing true, transition Idle. Use this for tests
-// that exercise behavior after the enter animation has settled — Dismissed,
+// that exercise behavior after the enter animation has settled. Dismissed,
 // ElapsedDuration, HoveredEntry / LeftEntry, etc.
 const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
   id: 'test-entry-0',
@@ -484,7 +484,7 @@ describe('Toast', () => {
   })
 
   describe('Added', () => {
-    it('runs the full add flow — entry advances to Idle, then the auto-dismiss timer starts the leave transition', () => {
+    it('runs the full add flow: entry advances to Idle, then the auto-dismiss timer starts the leave transition', () => {
       const entry = makeFreshEntry({
         maybeDuration: Option.some(Duration.millis(100)),
       })

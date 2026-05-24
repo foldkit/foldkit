@@ -512,7 +512,7 @@ For file uploads (resumes, images, attachments):
 
 ### View
 
-- Bind the html factory inside each view function (never at module level): `const h = html<Message>()` as the first line of the function body. Reach for elements, attributes, and event handlers off `h`: `h.div`, `h.Class`, `h.OnClick`. For Submodel views (children embedded via `h.submodel`), brand with `Submodel.defineView<Model, Message>` and bind `const h = html<Message>()` inside the body — the child dispatches in its own Message type and the parent declares the wrap at the embed site via `toParentMessage`.
+- Bind the html factory inside each view function (never at module level): `const h = html<Message>()` as the first line of the function body. Reach for elements, attributes, and event handlers off `h`: `h.div`, `h.Class`, `h.OnClick`. For Submodel views (children embedded via `h.submodel`), brand with `Submodel.defineView<Model, Message>` and bind `const h = html<Message>()` inside the body. The child dispatches in its own Message type and the parent declares the wrap at the embed site via `toParentMessage`.
 - Use `h.Class(...)` for Tailwind classes
 - Use `clsx` from the `clsx` package for conditional class composition: `h.Class(clsx('base-classes', { 'active-class': isActive, 'bg-blue-500': variant === 'Primary' }))`. Use `clsx` whenever classes depend on model state, boolean flags, or discriminated union tags. Never string concatenation, template literals, or `&&` expressions.
 - Pattern match on model state: `M.value(model.state).pipe(M.tagsExhaustive({...}))`

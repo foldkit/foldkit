@@ -1,5 +1,5 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
@@ -29,7 +29,7 @@ const GotDisclosureMessage = m('GotDisclosureMessage', {
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
 // Ui.Disclosure.update. The OutMessage's `ToggledOpenState` fires on each
-// open / close transition with the new `isOpen` — useful for analytics
+// open / close transition with the new `isOpen`. Useful for analytics
 // or coordinated UI changes.
 GotDisclosureMessage: ({ message }) => {
   const [nextDisclosure, commands, maybeOutMessage] = Ui.Disclosure.update(

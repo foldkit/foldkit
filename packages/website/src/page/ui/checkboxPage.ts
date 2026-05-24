@@ -216,7 +216,7 @@ const outMessageProps: ReadonlyArray<PropEntry> = [
     name: 'ToggledChecked',
     type: '{ isChecked: boolean }',
     description:
-      'Emitted each time the checkbox toggles. Carries the new checked state. Pattern-match the third tuple element of Checkbox.update in your GotCheckboxMessage handler to lift the toggle into a domain Message — e.g., persisting the flag or dispatching a save command.',
+      'Emitted each time the checkbox toggles. Carries the new checked state. Pattern-match the third tuple element of Checkbox.update in your GotCheckboxMessage handler to lift the toggle into a domain Message (e.g., persisting the flag or dispatching a save command).',
   },
 ]
 

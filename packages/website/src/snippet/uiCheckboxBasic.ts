@@ -1,5 +1,5 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
@@ -29,7 +29,7 @@ const GotCheckboxMessage = m('GotCheckboxMessage', {
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
 // Ui.Checkbox.update. The OutMessage's `ToggledChecked` carries the new
-// `isChecked` value — use it to fire analytics, validate a form, or push
+// `isChecked` value. Use it to fire analytics, validate a form, or push
 // the value to a backend at the toggle moment.
 GotCheckboxMessage: ({ message }) => {
   const [nextCheckbox, commands, maybeOutMessage] = Ui.Checkbox.update(

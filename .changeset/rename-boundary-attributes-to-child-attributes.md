@@ -4,7 +4,7 @@
 
 Rename `boundaryAttributes` to `childAttributes` and `BoundaryAttribute` to `ChildAttribute`.
 
-The "boundary" name was framework-internal jargon: consumers don't reason about boundaries, they reason about which side of the parent-child relationship owns what. The rename slots the API into the role-named column alongside the existing `viewInputs` (parent → child view), `context` (parent → child update), and `OutMessage` (child → parent update) — `childAttributes` is now "what the child publishes to the parent" in the same vocabulary.
+The "boundary" name was framework-internal jargon: consumers don't reason about boundaries, they reason about which side of the parent-child relationship owns what. The rename slots the API into the role-named column alongside the existing `viewInputs` (parent → child view), `context` (parent → child update), and `OutMessage` (child → parent update). `childAttributes` is now "what the child publishes to the parent" in the same vocabulary.
 
 ### Migration
 

@@ -299,7 +299,7 @@ const calendarAttributesProps: ReadonlyArray<PropEntry> = [
     name: '_tag',
     type: "'Days' | 'Months' | 'Years'",
     description:
-      'Discriminator matching model.viewMode. Use M.tagsExhaustive to render each variant. The fields below describe the union of variants — only the fields documented for the current _tag are present.',
+      'Discriminator matching model.viewMode. Use M.tagsExhaustive to render each variant. The fields below describe the union of variants. Only the fields documented for the current _tag are present.',
   },
   {
     name: 'root',
@@ -353,7 +353,7 @@ const calendarAttributesProps: ReadonlyArray<PropEntry> = [
     name: 'cells',
     type: 'ReadonlyArray<MonthCell<Message>> | ReadonlyArray<YearCell<Message>>',
     description:
-      '(Months, Years.) Twelve cells. In Months mode each cell carries the month number (1-12), the full localized name (label, e.g. "September"), and the localized abbreviation (shortLabel, e.g. "Sep") — render whichever fits, never substring label to abbreviate. In Years mode each cell carries a year from the current 12-year window. Both expose cellAttributes (role="gridcell", aria-selected), buttonAttributes (click dispatches SelectedMonth/SelectedYear), and state flags (isSelected, isFocused, isCurrentMonth/isCurrentYear, isDisabled).',
+      '(Months, Years.) Twelve cells. In Months mode each cell carries the month number (1-12), the full localized name (label, e.g. "September"), and the localized abbreviation (shortLabel, e.g. "Sep"). Render whichever fits, never substring label to abbreviate. In Years mode each cell carries a year from the current 12-year window. Both expose cellAttributes (role="gridcell", aria-selected), buttonAttributes (click dispatches SelectedMonth/SelectedYear), and state flags (isSelected, isFocused, isCurrentMonth/isCurrentYear, isDisabled).',
   },
 ]
 
@@ -421,12 +421,12 @@ const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
   {
     attribute: 'data-today',
     condition:
-      'Present on the cell representing "today" — the day cell in Days mode, the current month cell in Months mode, the current year cell in Years mode.',
+      'Present on the cell representing "today": the day cell in Days mode, the current month cell in Months mode, the current year cell in Years mode.',
   },
   {
     attribute: 'data-selected',
     condition:
-      "Present on the calendar's currently-centered cell — the selected date in Days mode, the centered month (viewMonth) in Months mode, the centered year (viewYear) in Years mode.",
+      "Present on the calendar's currently-centered cell: the selected date in Days mode, the centered month (viewMonth) in Months mode, the centered year (viewYear) in Years mode.",
   },
   {
     attribute: 'data-focused',

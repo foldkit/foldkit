@@ -1,5 +1,5 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Effect, Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
@@ -83,7 +83,7 @@ const characters: ReadonlyArray<Character> = [
 ]
 
 // Inside your view function, group items by a key and render a heading for
-// each group. Items are grouped in the order they appear — make sure items
+// each group. Items are grouped in the order they appear. Make sure items
 // with the same key are contiguous in the items array:
 const view = (model: Model) => {
   const h = html<Message>()

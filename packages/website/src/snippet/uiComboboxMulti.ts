@@ -1,5 +1,5 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Array, Effect, Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'

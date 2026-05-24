@@ -57,7 +57,7 @@ const splitBoundary = (boundaryId: BoundaryId): ReadonlyArray<string> =>
  *  site captured at register time, surfaced when a second register
  *  collides so both locations land in the throw message. The set is
  *  cleared at the start of each render via `beginRender`. It is NOT
- *  used for pruning — pruning is driven by VNode destroy hooks instead,
+ *  used for pruning. Pruning is driven by VNode destroy hooks instead,
  *  so wraps for boundaries whose vnodes survive (e.g. a
  *  `createKeyedLazy` cache hit) stay registered even though `h.submodel`
  *  wasn't called for them this render. */
@@ -111,7 +111,7 @@ export const registerBoundaryWrap = (
         `  First registration: ${existingCallSite}\n` +
         `  Second registration: ${newCallSite}\n` +
         `Each h.submodel call inside the same parent boundary must use a unique \`id\`. ` +
-        `The id is DOM-position identity, not model identity — if the same model is ` +
+        `The id is DOM-position identity, not model identity. If the same model is ` +
         `rendered in two locations (desktop + mobile, master + detail), each position ` +
         `needs its own id (e.g. "desktop-foo", "mobile-foo"). For lists, use a stable ` +
         `per-item identifier.`,
@@ -133,7 +133,7 @@ export const registerBoundaryWrap = (
  *  Does not touch `boundaryDispatches`: it is a WeakMap keyed by
  *  outerDispatch, so per-outerDispatch inner Maps become unreachable and
  *  are GC'd when their outerDispatch is. Cached dispatcher closures that
- *  outlive a deregister become inert — `dispatchAcrossBoundary` throws
+ *  outlive a deregister become inert. `dispatchAcrossBoundary` throws
  *  when it cannot find an ancestor wrap, which surfaces a clear error
  *  rather than letting events from a destroyed boundary silently
  *  misroute. */
@@ -213,7 +213,7 @@ export const getOrCreateBoundaryDispatch = (
 /** Called at the start of each top-level render. Clears the
  *  per-render duplicate-id tracking map so siblings inside the same
  *  parent boundary can be re-validated. Does NOT touch `wraps` or
- *  `boundaryDispatches` — those persist across renders and are evicted
+ *  `boundaryDispatches`. Those persist across renders and are evicted
  *  by vnode destroy hooks instead. */
 export const beginRender = (registry: BoundaryRegistry): void => {
   registry.seenThisRender.clear()

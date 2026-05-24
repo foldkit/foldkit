@@ -212,7 +212,7 @@ const outMessageProps: ReadonlyArray<PropEntry> = [
     name: 'DismissedToast',
     type: '{ payload: Payload }',
     description:
-      'Emitted once an entry has finished its leave animation and is being removed from the model. Carries the toast’s payload typed as your `Payload` schema. Pattern-match the third tuple element of Toast.update in your GotToastMessage handler to lift the dismissal into a domain Message — e.g., resolving a pending action or firing analytics. Only fires after `TransitionedOut`, so it represents the actual removal, not the initial dismiss request.',
+      'Emitted once an entry has finished its leave animation and is being removed from the model. Carries the toast’s payload typed as your `Payload` schema. Pattern-match the third tuple element of Toast.update in your GotToastMessage handler to lift the dismissal into a domain Message (e.g., resolving a pending action or firing analytics). Only fires after `TransitionedOut`, so it represents the actual removal, not the initial dismiss request.',
   },
 ]
 

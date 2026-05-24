@@ -773,7 +773,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           payload: {
             title: 'Review pending',
             maybeDescription: Option.some(
-              'Action required — this stays until dismissed.',
+              'Action required. This stays until dismissed.',
             ),
           },
           sticky: true,

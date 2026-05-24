@@ -54,12 +54,12 @@ export type SubmodelView<
   readonly [SUBMODEL_MESSAGE_BRAND]: Message
 }
 
-/** Defines the view function of a Submodel — a child component embedded
+/** Defines the view function of a Submodel, a child component embedded
  *  via `h.submodel`.
  *
  *  Use this ONLY for views that will be embedded via `h.submodel`. Plain
  *  view functions (page-level render functions, helper render functions
- *  that compose Html, etc.) don't need to be defined this way — write
+ *  that compose Html, etc.) don't need to be defined this way. Write
  *  them as ordinary `(model) => Html` functions.
  *
  *  Explicit type arguments are required because Message has no

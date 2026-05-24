@@ -31,9 +31,9 @@ const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 export const PlanRadioGroup = Ui.RadioGroup.create<Plan>()
 
 const planDescriptions: Record<Plan, string> = {
-  Startup: '12GB / 6 CPUs — Perfect for small projects',
-  Business: '16GB / 8 CPUs — For growing teams',
-  Enterprise: '32GB / 12 CPUs — Dedicated infrastructure',
+  Startup: '12GB / 6 CPUs. Perfect for small projects',
+  Business: '16GB / 8 CPUs. For growing teams',
+  Enterprise: '32GB / 12 CPUs. Dedicated infrastructure',
 }
 
 const planPrices: Record<Plan, string> = {

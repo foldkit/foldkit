@@ -187,7 +187,7 @@ const outMessageProps: ReadonlyArray<PropEntry> = [
     name: 'ToggledChecked',
     type: '{ isChecked: boolean }',
     description:
-      'Emitted each time the switch toggles. Carries the new checked state. Pattern-match the third tuple element of Switch.update in your GotSwitchMessage handler to lift the toggle into a domain Message — e.g., persisting the setting or dispatching a sync command.',
+      'Emitted each time the switch toggles. Carries the new checked state. Pattern-match the third tuple element of Switch.update in your GotSwitchMessage handler to lift the toggle into a domain Message (e.g., persisting the setting or dispatching a sync command).',
   },
 ]
 

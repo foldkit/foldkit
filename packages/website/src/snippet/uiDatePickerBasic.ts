@@ -1,5 +1,5 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Effect, Match as M, Option } from 'effect'
 import { Calendar, Command, Ui } from 'foldkit'
@@ -40,14 +40,14 @@ const init = (flags: Flags) => [
 ]
 
 // Embed the DatePicker Message in your parent Message. DatePicker handles
-// Calendar + Popover routing internally — you only need one wrapper:
+// Calendar + Popover routing internally. You only need one wrapper:
 const GotDatePickerMessage = m('GotDatePickerMessage', {
   message: Ui.DatePicker.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate
 // navigation, focus, and popover messages to DatePicker.update. The
-// OutMessage's `SelectedDateOut` carries the committed date — the popover
+// OutMessage's `SelectedDateOut` carries the committed date. The popover
 // has already closed by the time it fires; lift the date into your
 // domain state. `ChangedViewMonth` fires when calendar navigation shifts
 // the visible month without selecting a date.
@@ -95,7 +95,7 @@ GotDatePickerMessage: ({ message }) => {
 
 // Inside your view function, embed the DatePicker via h.submodel. The
 // `toCalendarView` callback receives a discriminated `CalendarAttributes`
-// whose variant matches the calendar's current `viewMode` — pattern-match
+// whose variant matches the calendar's current `viewMode`. Pattern-match
 // on `_tag` to render the day grid, the months grid, or the years grid:
 const view = () => {
   const h = html<Message>()

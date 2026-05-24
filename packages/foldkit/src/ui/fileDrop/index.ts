@@ -41,7 +41,7 @@ export const LeftDragZone = m('LeftDragZone')
 export const DroppedFiles = m('DroppedFiles', {
   files: S.NonEmptyArray(File.File),
 })
-/** Sent when a drop or input-change event fires without any files —
+/** Sent when a drop or input-change event fires without any files,
  * typically a drag of non-file data (text, URLs, images from another
  * page). Resets `isDragOver` and emits `DroppedWithoutFiles` as an
  * OutMessage so the consumer can surface a message (e.g. "Only files are
@@ -68,7 +68,7 @@ export const ReceivedFiles = m('ReceivedFiles', {
 
 /** The file-drop component's OutMessages: `ReceivedFiles` on the happy
  * path and `DroppedWithoutFiles` when a drop event fires without files.
- * `DroppedWithoutFiles` is reused from the Message definitions — the
+ * `DroppedWithoutFiles` is reused from the Message definitions. The
  * fact is the same whether the component is handling it or reporting it
  * up. */
 export const OutMessage = S.Union([ReceivedFiles, DroppedWithoutFiles])

@@ -36,7 +36,7 @@ const GotSliderMessage = m('GotSliderMessage', {
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
 // Ui.Slider.update. The OutMessage's `ChangedValue` carries the new
-// number — lift it to domain state, validate, or persist on each commit.
+// number. Lift it to domain state, validate, or persist on each commit.
 GotSliderMessage: ({ message }) => {
   const [nextSlider, commands, maybeOutMessage] = Ui.Slider.update(
     model.ratingDemo,

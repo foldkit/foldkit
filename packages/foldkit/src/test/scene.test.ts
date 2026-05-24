@@ -695,7 +695,7 @@ describe('accessible locators', () => {
     test('finds select by current value', () => {
       const result = getByDisplayValue('apple')(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      // The first match will be the select (form control) — option elements
+      // The first match will be the select (form control). Option elements
       // aren't form controls in our allow-list, so they don't match.
       expect(Option.getOrThrow(result).sel).toBe('select')
     })
@@ -1566,7 +1566,7 @@ describe('scene with locators', () => {
     )
   })
 
-  test('type is dual — data-last pipes the target', () => {
+  test('type is dual: data-last pipes the target', () => {
     Scene.scene(
       { update, view },
       Scene.with(initialModel),
@@ -1575,7 +1575,7 @@ describe('scene with locators', () => {
     )
   })
 
-  test('keydown is dual — data-last pipes the target', () => {
+  test('keydown is dual: data-last pipes the target', () => {
     Scene.scene(
       { update: keyUpdate, view: keyView },
       Scene.with({ lastKey: '', isShifted: false }),
@@ -1849,7 +1849,7 @@ describe('scene with extra interactions', () => {
     )
   })
 
-  test('change is dual — data-last form works in pipe', () => {
+  test('change is dual: data-last form works in pipe', () => {
     Scene.scene(
       { update: interactionsUpdate, view: interactionsView },
       Scene.with(interactionsInitialModel),
@@ -1924,7 +1924,7 @@ describe('scene with file uploads', () => {
     )
   })
 
-  test('changeFiles is dual — data-last form works in pipe', () => {
+  test('changeFiles is dual: data-last form works in pipe', () => {
     Scene.scene(
       { update: fileUploadUpdate, view: fileUploadView },
       Scene.with(fileUploadInitialModel),
@@ -1963,7 +1963,7 @@ describe('scene with file uploads', () => {
     )
   })
 
-  test('dropFiles is dual — data-last form works in pipe', () => {
+  test('dropFiles is dual: data-last form works in pipe', () => {
     Scene.scene(
       { update: fileUploadUpdate, view: fileUploadView },
       Scene.with(fileUploadInitialModel),

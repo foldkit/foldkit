@@ -79,9 +79,8 @@ describe('counters scene', () => {
       // Counter-0 (count 5) is gone, counter-1 (count 10) remains.
       Scene.expect(Scene.text('5')).not.toExist(),
       Scene.expect(Scene.text('10')).toExist(),
-      // The surviving counter still increments correctly through h.submodel
-      // — its dispatch routes back to the right row even after the list
-      // shrank.
+      // The surviving counter still increments correctly through h.submodel.
+      // Its dispatch routes back to the right row even after the list shrank.
       Scene.click(Scene.role('button', { name: '+' })),
       Scene.expect(Scene.text('11')).toExist(),
     )

@@ -1159,7 +1159,7 @@ const makeView = (
         'flex-1 flex items-center justify-center text-dt-muted text-2xs font-mono min-w-0',
       ),
     ],
-    ['init — no Message'],
+    ['init: no Message'],
   )
 
   const modelTabContent = (

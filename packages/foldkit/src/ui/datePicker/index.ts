@@ -308,7 +308,7 @@ export const clear = (model: Model): UpdateReturn => update(model, Cleared())
  * from other Model state (e.g. a start date field whose current selection
  * constrains an end date picker).
  *
- * Does NOT reconcile the current selection — if a previously-selected date
+ * Does NOT reconcile the current selection. If a previously-selected date
  * is now below the new minimum, it remains selected. Callers should `clear`
  * or reassign the selection explicitly if their domain requires it. */
 export const setMinDate = (
@@ -388,7 +388,7 @@ export type ViewInputs = Readonly<{
 
 /** Renders an accessible date picker: a trigger button that opens a popover
  * containing an accessible calendar grid. The date picker assembles the
- * embedded Calendar and Popover components into one flat API — consumers
+ * embedded Calendar and Popover components into one flat API. Consumers
  * provide the trigger face and the calendar grid layout, DatePicker handles
  * focus choreography, open/close state, and form submission. */
 export const view = defineView<Model, Message, ViewInputs>(

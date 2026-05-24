@@ -1,5 +1,5 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
@@ -29,7 +29,7 @@ const GotSwitchMessage = m('GotSwitchMessage', {
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
 // Ui.Switch.update. The OutMessage's `ToggledChecked` carries the new
-// `isChecked` value — use it to save a preference, sync to a backend,
+// `isChecked` value. Use it to save a preference, sync to a backend,
 // or trigger a side effect at the toggle moment.
 GotSwitchMessage: ({ message }) => {
   const [nextSwitch, commands, maybeOutMessage] = Ui.Switch.update(

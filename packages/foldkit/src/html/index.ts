@@ -80,7 +80,7 @@ export const DEVTOOLS_HOST_ID = 'foldkit-devtools'
  * Tag symbol attached to file-aware event handler functions so Scene test
  * helpers can distinguish `OnFileChange` from `OnChange` (both register on
  * the DOM `change` event) and `OnDropFiles` from `OnDrop` (both register on
- * the DOM `drop` event). Internal implementation detail — consumer code
+ * the DOM `drop` event). Internal implementation detail. Consumer code
  * should never need to reference this directly.
  */
 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -916,7 +916,7 @@ const {
 
 export { Prop, OnCustomEvent }
 
-// BUILD CONTEXT — per-VNode bag of mutable VNode data plus the dispatcher this
+// BUILD CONTEXT: per-VNode bag of mutable VNode data plus the dispatcher this
 // VNode's events route through. Allocated once per unique dispatcher in
 // `buildVNodeData`, typically once total (a second time when ChildAttribute
 // items route through a child Submodel's own dispatch).
@@ -1007,7 +1007,7 @@ const updatePropsWithPostpatch = (
 // returns a thunk that applies the resulting mutation to a per-VNode
 // BuildContext. Per-attribute cost drops from O(matcher arms) closure
 // allocations to one thunk. `Attribute<unknown>` is the runtime-erased
-// shape — Message is purely a TypeScript parameter at this level and
+// shape. Message is purely a TypeScript parameter at this level and
 // DispatchSync already accepts unknown.
 const attributeMatcher: (
   attribute: Attribute<unknown>,
@@ -2263,7 +2263,7 @@ const buildVNodeData = <Message>(
   // items carry a different dispatcher (captured by `childAttributes`
   // in a Submodel's own boundary), so they need their own BuildContext closed
   // over that dispatch. The matcher itself is module-level and shared.
-  // The main ctx is built lazily — static-only attribute arrays (Class, Id,
+  // The main ctx is built lazily. Static-only attribute arrays (Class, Id,
   // etc. with no event handlers) skip `requireDispatch` entirely so Html can
   // be constructed at module top level.
   let mainCtx: BuildContext | undefined

@@ -43,7 +43,7 @@ export { groupContiguous }
 
 // MODEL
 
-/** Schema for the activation trigger — whether the user interacted via mouse or keyboard. */
+/** Schema for the activation trigger: whether the user interacted via mouse or keyboard. */
 export const ActivationTrigger = S.Literals(['Pointer', 'Keyboard'])
 export type ActivationTrigger = typeof ActivationTrigger.Type
 
@@ -274,7 +274,7 @@ export const itemId = (id: string, index: number): string =>
 
 const constrainedEvo = makeConstrainedEvo<BaseModel>()
 
-/** Resets only shared base fields to their closed state. Does not touch inputValue or selection — those are variant-specific. */
+/** Resets only shared base fields to their closed state. Does not touch inputValue or selection. Those are variant-specific. */
 export const closedBaseModel = <Model extends BaseModel>(model: Model): Model =>
   constrainedEvo(model, {
     isOpen: () => false,

@@ -189,7 +189,7 @@ const outMessageProps: ReadonlyArray<PropEntry> = [
     name: 'Shown',
     type: '{}',
     description:
-      'Emitted once the tooltip transitions to visible (isOpen becomes true). Pattern-match the third tuple element of Tooltip.update to react — useful for analytics, instrumentation, or coordinating with other transient UI.',
+      'Emitted once the tooltip transitions to visible (isOpen becomes true). Pattern-match the third tuple element of Tooltip.update to react. Useful for analytics, instrumentation, or coordinating with other transient UI.',
   },
   {
     name: 'Hidden',

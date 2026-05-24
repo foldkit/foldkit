@@ -1,5 +1,5 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
@@ -29,7 +29,7 @@ const GotPopoverMessage = m('GotPopoverMessage', {
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
 // Ui.Popover.update. The OutMessages `OpenedPanel` and `ClosedPanel`
-// mark the visibility transitions — fire analytics, coordinate with
+// mark the visibility transitions. Fire analytics, coordinate with
 // other UI, or clear ephemeral state on close.
 GotPopoverMessage: ({ message }) => {
   const [nextPopover, commands, maybeOutMessage] = Ui.Popover.update(

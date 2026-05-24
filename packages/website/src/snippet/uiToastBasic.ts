@@ -1,5 +1,5 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Match as M, Option, Schema as S } from 'effect'
 import { Command, Ui } from 'foldkit'
@@ -9,7 +9,7 @@ import { evo } from 'foldkit/struct'
 
 // Define the payload shape for your toast. The Toast component owns only
 // lifecycle + a11y fields (id, variant, transition, dismiss timer, hover
-// state). The payload is yours — whatever you can encode in a Schema:
+// state). The payload is yours, whatever you can encode in a Schema:
 const ToastPayload = S.Struct({
   bodyText: S.String,
   maybeLink: S.Option(S.Struct({ href: S.String, text: S.String })),
@@ -21,7 +21,7 @@ const ToastPayload = S.Struct({
 export const Toast = Ui.Toast.make(ToastPayload)
 
 // Add Toast.Model to your app Model. Track anything you want to lift from
-// a toast's lifecycle alongside it — here, the last dismissed bodyText so
+// a toast's lifecycle alongside it. Here, the last dismissed bodyText so
 // the UI can show "just dismissed: ..." after a toast goes away:
 const Model = S.Struct({
   toast: Toast.Model,
@@ -45,7 +45,7 @@ const GotToastMessage = m('GotToastMessage', { message: Toast.Message })
 const ClickedSave = m('ClickedSave')
 
 // Inside your update's M.tagsExhaustive({...}), delegate Toast's own
-// Messages. The third tuple element is `Option<OutMessage>` — pattern-match
+// Messages. The third tuple element is `Option<OutMessage>`. Pattern-match
 // it to lift the DismissedToast event into domain state:
 GotToastMessage: ({ message }) => {
   const [nextToast, commands, maybeOutMessage] = Toast.update(
@@ -78,7 +78,7 @@ ClickedSave: () => {
     payload: {
       bodyText: 'Changes saved',
       // Generate the href via your app's router (Foldkit's biparser-based
-      // routing builds URLs from typed values — e.g. `changesRouter()`),
+      // routing builds URLs from typed values, e.g. `changesRouter()`),
       // not a string literal, so renames flow through.
       maybeLink: Option.some({ href: changesRouter(), text: 'View' }),
     },
@@ -91,7 +91,7 @@ ClickedSave: () => {
 }
 
 // In your view, embed Toast via h.submodel once at the app root. The
-// entryToView callback lays out each entry from its payload — the
+// entryToView callback lays out each entry from its payload. The
 // component handles the <li> wrapper, hover-to-pause, and enter/leave
 // animations.
 const view = () => {

@@ -1,5 +1,5 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Effect, Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
@@ -70,9 +70,9 @@ GotRadioGroupMessage: ({ message }) => {
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 
 const descriptions: Record<Plan, string> = {
-  Startup: '12GB / 6 CPUs — Perfect for small projects',
-  Business: '16GB / 8 CPUs — For growing teams',
-  Enterprise: '32GB / 12 CPUs — Dedicated infrastructure',
+  Startup: '12GB / 6 CPUs. Perfect for small projects',
+  Business: '16GB / 8 CPUs. For growing teams',
+  Enterprise: '32GB / 12 CPUs. Dedicated infrastructure',
 }
 
 // Inside your view function, embed the radio group via h.submodel:

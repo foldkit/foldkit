@@ -1,6 +1,6 @@
-// Pseudocode walkthrough — same Model, init, Message, and update as the
-// basic tabs; only the view config changes to set orientation and use flex
-// + flex-col for layout.
+// Pseudocode walkthrough using the same Model, init, Message, and update
+// as the basic tabs; only the view config changes to set orientation and
+// use flex + flex-col for layout.
 import { Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'

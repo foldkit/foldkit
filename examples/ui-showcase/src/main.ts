@@ -571,7 +571,7 @@ const homeView = (): Html => {
       h.p(
         [h.Class('text-gray-600')],
         [
-          'Each component is headless — you provide the markup and styling via a callback, and Foldkit handles accessibility, keyboard navigation, and state management.',
+          'Each component is headless. You provide the markup and styling via a callback, and Foldkit handles accessibility, keyboard navigation, and state management.',
         ],
       ),
     ],

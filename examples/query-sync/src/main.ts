@@ -706,7 +706,7 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
       h.p(
         [h.Class('text-gray-500 mb-6')],
         [
-          'Filter, sort, and search — every control syncs to the URL. Try changing the filters, then copy the URL or hit the back button.',
+          'Filter, sort, and search. Every control syncs to the URL. Try changing the filters, then copy the URL or hit the back button.',
         ],
       ),
 

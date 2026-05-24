@@ -53,7 +53,7 @@ export type ModelStep<Model> = Readonly<{
   readonly assert: (model: Model) => void
 }>
 
-/** A single step in a story — a {@link WithStep}, a {@link ModelStep},
+/** A single step in a story: a {@link WithStep}, a {@link ModelStep},
  *  or a simulation transform. */
 export type StoryStep<Model> =
   | WithStep<NoInfer<Model>>

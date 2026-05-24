@@ -1,5 +1,5 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
@@ -29,7 +29,7 @@ const GotTooltipMessage = m('GotTooltipMessage', {
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
 // Ui.Tooltip.update. The OutMessages `Shown` and `Hidden` mark the
-// visibility transitions — fire analytics or coordinate with the rest
+// visibility transitions. Fire analytics or coordinate with the rest
 // of your UI from the parent.
 GotTooltipMessage: ({ message }) => {
   const [nextTooltip, commands, maybeOutMessage] = Ui.Tooltip.update(

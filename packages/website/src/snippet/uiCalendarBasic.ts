@@ -1,5 +1,5 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Effect, Match as M, Option } from 'effect'
 import { Calendar, Command, Ui } from 'foldkit'
@@ -44,7 +44,7 @@ const GotCalendarMessage = m('GotCalendarMessage', {
 
 // Inside your update function's M.tagsExhaustive({...}), delegate
 // navigation, focus, and picker-mode transitions to Calendar.update.
-// Its third tuple element is `Option<OutMessage>` — when the user
+// Its third tuple element is `Option<OutMessage>`. When the user
 // commits a date (click, Enter, or Space) it carries `SelectedDate({ date })`.
 // `ChangedViewMonth` fires when navigation shifts the visible month
 // without selecting a date.
@@ -92,7 +92,7 @@ GotCalendarMessage: ({ message }) => {
 
 // Inside your view function, render the calendar. The `toView` callback
 // receives a discriminated `CalendarAttributes` whose variant matches the
-// calendar's current `viewMode` — pattern-match on `_tag` to render the
+// calendar's current `viewMode`. Pattern-match on `_tag` to render the
 // day grid, the months grid, or the years grid:
 const view = () => {
   const h = html<Message>()

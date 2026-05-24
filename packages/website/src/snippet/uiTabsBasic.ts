@@ -1,5 +1,5 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
@@ -43,7 +43,7 @@ const descriptions: Record<Framework, string> = {
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
 // FrameworkTabs.update. The OutMessage's `Selected` carries both the
-// chosen value (typed as `Framework`) and its index — lift either to
+// chosen value (typed as `Framework`) and its index. Lift either to
 // domain state, route, or trigger a side effect.
 GotTabsMessage: ({ message }) => {
   const [nextTabs, commands, maybeOutMessage] = FrameworkTabs.update(

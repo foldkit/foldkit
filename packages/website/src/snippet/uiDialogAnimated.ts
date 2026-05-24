@@ -1,5 +1,5 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
@@ -29,7 +29,7 @@ const GotDialogMessage = m('GotDialogMessage', {
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
 // Ui.Dialog.update. The OutMessages `OpenedPanel` and `ClosedPanel` mark
-// the transition moments — fire analytics, reset embedded form state, or
+// the transition moments. Fire analytics, reset embedded form state, or
 // kick off side effects from the parent.
 GotDialogMessage: ({ message }) => {
   const [nextDialog, commands, maybeOutMessage] = Ui.Dialog.update(

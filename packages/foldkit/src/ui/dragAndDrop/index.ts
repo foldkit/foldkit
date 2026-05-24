@@ -726,7 +726,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
               (event): Effect.Effect<Option.Option<Message>> =>
                 Effect.sync(() => {
                   // NOTE: the draggable's OnKeyDownPreventDefault calls preventDefault on
-                  // the Space that activates keyboard drag — skip it here so the same
+                  // the Space that activates keyboard drag. Skip it here so the same
                   // keypress doesn't also confirm the drop in the same tick.
                   if (event.defaultPrevented) {
                     return Option.none()

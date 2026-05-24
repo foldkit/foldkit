@@ -121,7 +121,7 @@ export type SelectedYear = typeof SelectedYear.Type
 /** Emitted when the visible month changes due to navigation. Consumers of an
  * inline calendar may use this to load month-scoped data (holidays, events).
  * A click that commits a date in a different month emits `SelectedDate`, not
- * `ChangedViewMonth` — the parent infers the month change from the date. */
+ * `ChangedViewMonth`. The parent infers the month change from the date. */
 export const ChangedViewMonth = m('ChangedViewMonth', {
   year: S.Int,
   month: S.Int,
@@ -221,7 +221,7 @@ export const selectDate = (model: Model, date: CalendarDate): UpdateReturn =>
  * minimum. Use this when the minimum derives from other Model state (e.g. a
  * start date field whose current selection constrains an end date picker).
  *
- * Does NOT reconcile the current selection — if a previously-selected date
+ * Does NOT reconcile the current selection. If a previously-selected date
  * is now below the new minimum, it remains selected. Callers should clear or
  * reassign the selection explicitly if their domain requires it. */
 export const setMinDate = (
@@ -252,11 +252,11 @@ export const setDisabledDaysOfWeek = (
 
 /** Returns the calendar to Days mode regardless of current depth. Useful for
  * standalone (non-popovered) consumers that want to wire their own back-out
- * gesture. Popovered consumers like `Ui.DatePicker` don't need this — Escape
+ * gesture. Popovered consumers like `Ui.DatePicker` don't need this. Escape
  * closes the popover, and the calendar resets to Days on next open.
  *
  * Reconciles `maybeFocusedDate` to a date inside the visible (`viewYear`,
- * `viewMonth`) — Months/Years navigation can leave the cursor on a date
+ * `viewMonth`). Months/Years navigation can leave the cursor on a date
  * outside the days grid (paged-away year, etc.), which would otherwise
  * cause `aria-activedescendant` to point at a non-rendered cell and the
  * next ArrowLeft to jump to the cursor's stale year. */
@@ -482,7 +482,7 @@ const resolveYearsKey = (key: string): Option.Option<number> =>
   )
 
 /** Applies a months-grid focus shift, updating `maybeFocusedDate` and
- * `viewYear` to reflect the new focused date. `viewMonth` is preserved —
+ * `viewYear` to reflect the new focused date. `viewMonth` is preserved.
  * Months mode keyboard navigation moves the cursor without committing. */
 const applyMonthsFocusShift = (
   model: Model,
@@ -776,7 +776,7 @@ export type Week = Readonly<{
 /** Information about a single month cell in the rendered months grid.
  * `label` is the locale-aware full month name (e.g. "September"); `shortLabel`
  * is the locale-aware abbreviation (e.g. "Sep"). Render whichever fits the
- * cell — never substring `label` to abbreviate, since that's not safe across
+ * cell. Never substring `label` to abbreviate, since that's not safe across
  * locales. */
 export type MonthCell = Readonly<{
   month: number
@@ -817,7 +817,7 @@ export type DaysModeAttributes = Readonly<{
 }>
 
 /** Attributes provided to the consumer when rendering the months grid. The
- * 12 cells are pre-built in calendar (locale-ordered) — the consumer arranges
+ * 12 cells are pre-built in calendar (locale-ordered). The consumer arranges
  * them in whatever grid layout they prefer (3×4 is the typical choice). */
 export type MonthsModeAttributes = Readonly<{
   _tag: 'Months'
@@ -842,7 +842,7 @@ export type YearsModeAttributes = Readonly<{
 
 /** Discriminated union of attribute groups and derived data the calendar
  * component provides to the consumer's `toView` callback. The variant
- * matches `model.viewMode` — pattern-match on `_tag` with `M.tagsExhaustive`
+ * matches `model.viewMode`. Pattern-match on `_tag` with `M.tagsExhaustive`
  * to render each mode. */
 export type CalendarAttributes =
   | DaysModeAttributes

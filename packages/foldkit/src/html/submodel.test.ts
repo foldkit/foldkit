@@ -233,7 +233,7 @@ describe('h.submodel', () => {
     // Begin a new render but never re-call submodel for this boundary.
     beginRender(registry)
 
-    // The wrap must persist — the cached vnode in the DOM still needs it.
+    // The wrap must persist. The cached vnode in the DOM still needs it.
     expect(registry.wraps.has('cached-row')).toBe(true)
   })
 
@@ -326,7 +326,7 @@ describe('h.submodel', () => {
     // The slot callback constructs a VNode with a handler that dispatches
     // a parent-level Message directly. With slot-boundary wrapping, that
     // handler captures the OUTER (root) boundary's dispatch, so the Message
-    // reaches outerDispatch unwrapped — NOT wrapped by the submodel's
+    // reaches outerDispatch unwrapped, NOT wrapped by the submodel's
     // GotChild constructor.
     type ParentDirect = Readonly<{ _tag: 'ParentDirect' }>
 
