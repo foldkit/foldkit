@@ -73,6 +73,24 @@ const perRenderInputsHeader: TableOfContentsEntry = {
   text: 'Per-render Inputs',
 }
 
+const readingParentStateHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'reading-parent-state',
+  text: 'Reading Parent State',
+}
+
+const parentStateInViewHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'parent-state-in-view',
+  text: 'How do I pass parent state to a child view?',
+}
+
+const parentStateInUpdateHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'parent-state-in-update',
+  text: 'How do I provide parent state to a child Submodel’s update?',
+}
+
 const surfacingFactsHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'surfacing-facts',
@@ -131,6 +149,9 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   delegatingInUpdateHeader,
   wiringTheViewHeader,
   perRenderInputsHeader,
+  readingParentStateHeader,
+  parentStateInViewHeader,
+  parentStateInUpdateHeader,
   surfacingFactsHeader,
   definingOutMessagesHeader,
   emittingFromTheChildHeader,
@@ -550,6 +571,92 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' factory that fixes the Item type at one site and pairs view and update behind it. See ',
         link(uiTypedPrimitivesRouter(), 'Foldkit UI Primitives'),
         ' for how the factory works and why each primitive shapes its type parameter the way it does.',
+      ),
+      tableOfContentsEntryToHeader(readingParentStateHeader),
+      para(
+        'Submodels exist for two related but distinct reasons. The first is encapsulation: a Calendar or a Listbox is a self-contained unit that owns its state, its keyboard handling, and its accessibility wiring, and the parent has no reason to see inside it. The second is decomposition: when your Model would otherwise grow into a god object, you split it into feature Submodels (Settings, Dashboard, a list entry) for organization. Those children may still legitimately need to read parent state they share with their siblings: the current user, the active locale, the session token. Forcing every such child to be fully encapsulated pushes you to duplicate parent state into the child Model and keep both copies in sync, which is worse on every axis.',
+      ),
+      para(
+        'Foldkit gives you two precise seams for parent state to reach the child instead, depending on where the child needs the value. The view answer threads parent state through ',
+        inlineCode('inputs'),
+        ' on ',
+        inlineCode('h.submodel'),
+        '. The update answer adds a third ',
+        inlineCode('context'),
+        ' argument to the child’s update. Both are typed contracts the child declares and the parent honors.',
+      ),
+      tableOfContentsEntryToHeader(parentStateInViewHeader),
+      para(
+        'The child’s view declares the shape it expects via the third type parameter on ',
+        inlineCode('Submodel.defineView<Model, Message, Inputs>'),
+        '. The parent slices that state out of its own Model and passes it through ',
+        inlineCode('inputs'),
+        ' on ',
+        inlineCode('h.submodel'),
+        '. Because ',
+        inlineCode('inputs'),
+        ' is rebuilt every render, the child always sees the current value without storing a copy:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.submodelParentStateInViewHighlighted),
+          ],
+          [],
+        ),
+        Snippets.submodelParentStateInViewRaw,
+        'Copy snippet to clipboard',
+        copiedSnippets,
+        'mb-4',
+      ),
+      para(
+        'This is the same ',
+        inlineCode('inputs'),
+        ' mechanism the ',
+        link('#per-render-inputs', 'Per-render Inputs'),
+        ' section covers; the framing here is just that ',
+        inlineCode('inputs'),
+        ' can carry parent state, not only slot callbacks and per-render configuration. Views are rebuilt every tick anyway, so passing live parent state has no extra cost.',
+      ),
+      tableOfContentsEntryToHeader(parentStateInUpdateHeader),
+      para(
+        'The child’s update signature grows a third argument: ',
+        inlineCode('(model, message, context) => result'),
+        '. The child declares a ',
+        inlineCode('Context'),
+        ' type alongside its other types; the parent assembles the context inline when delegating in its own update handler:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.submodelParentStateInUpdateHighlighted),
+          ],
+          [],
+        ),
+        Snippets.submodelParentStateInUpdateRaw,
+        'Copy snippet to clipboard',
+        copiedSnippets,
+        'mb-4',
+      ),
+      para(
+        'The update stays pure. Same ',
+        inlineCode('(model, message, context)'),
+        ' always produces the same result; no hidden state, no time-dependent behavior. The child reads ',
+        inlineCode('context.currentUser'),
+        ' at the moment the message is being processed, and because the parent assembles the context fresh on every dispatch, the next call automatically sees any parent changes. Single source of truth, no sync obligation.',
+      ),
+      para(
+        'A context argument gives the child the current value when update runs. It does not notify the child when that value changes. If the child needs to ',
+        h.em([], ['react']),
+        ' to ',
+        inlineCode('currentUser'),
+        ' changing (clear caches, reset a form), you still want a Message or Subscription. Context-arg is for reading current parent state inside an update tick, not for observing parent state over time.',
+      ),
+      infoCallout(
+        'This isn’t a coupling problem',
+        'A context argument is coupling, but it is the loose, explicit kind: the child declares the shape it depends on; the parent decides what to supply; the type system enforces both sides at one seam. The alternatives are worse coupling, not less. Baking parent state into the child Model duplicates a source of truth and obligates the parent to keep both copies in sync. Carrying state on every message variant spreads the same coupling across many call sites with no central declaration. Context-arg is principled, not merely convenient.',
       ),
       tableOfContentsEntryToHeader(surfacingFactsHeader),
       para(
