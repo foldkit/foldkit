@@ -13,8 +13,10 @@ import {
 } from '../../prose'
 import {
   bestPracticesImmutabilityRouter,
+  coreDevToolsRouter,
   coreRuntimeRouter,
   exampleDetailRouter,
+  testingRouter,
   uiOverviewRouter,
 } from '../../route'
 import * as Snippets from '../../snippet'
@@ -158,6 +160,24 @@ const childAttributesWhenToReachHeader: TableOfContentsEntry = {
   text: 'When to Reach For It',
 }
 
+const testingHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'testing-submodels',
+  text: 'Testing Submodels',
+}
+
+const devToolsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'debugging-in-devtools',
+  text: 'Debugging Submodels in DevTools',
+}
+
+const commonPitfallsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'common-pitfalls',
+  text: 'Common Pitfalls',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   childSubmodelHeader,
@@ -182,6 +202,9 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   childAttributesProblemHeader,
   childAttributesHowItWorksHeader,
   childAttributesWhenToReachHeader,
+  testingHeader,
+  devToolsHeader,
+  commonPitfallsHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
@@ -1059,8 +1082,151 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('onInput'),
         ' values flow into element constructors in the consumer’s own frame, which is correct. The boundary wiring only matters when there’s a Submodel boundary to wire through.',
       ),
+      tableOfContentsEntryToHeader(testingHeader),
       para(
-        'With Model, Messages, update, view, Commands, Subscriptions, init, and Submodels in place, you have the full vocabulary for describing an app. The next page covers the ',
+        'A Submodel tests the same way as a top-level program. The child’s ',
+        inlineCode('update'),
+        ' is a pure function from ',
+        inlineCode('(model, message)'),
+        ' (or ',
+        inlineCode('(model, message, context)'),
+        ' when context-arg is used) to ',
+        inlineCode('[Model, Commands]'),
+        ' or ',
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
+        ', so it slots straight into ',
+        inlineCode('Story.story'),
+        '. The child’s view is a pure function too; assert against the rendered VNode through ',
+        inlineCode('Scene.scene'),
+        '.',
+      ),
+      para(
+        'For Submodels that emit OutMessages, assert the third tuple element via ',
+        inlineCode('Story.expectOutMessage'),
+        '. For Submodels with a context-arg ',
+        inlineCode('update'),
+        ', supply the context in the story’s message step.',
+      ),
+      para(
+        'The ',
+        link(
+          exampleDetailRouter({ exampleSlug: 'counters' }),
+          'counters example',
+        ),
+        ' has a Story test for the parent’s wrapper-Message routing (',
+        inlineCode('GotCounterMessage'),
+        ' delivers to the right row by ',
+        inlineCode('id'),
+        ', unknown ids are a no-op) and a Scene test for the rendered list. See the ',
+        link(testingRouter(), 'Testing page'),
+        ' for the full Story and Scene reference.',
+      ),
+      tableOfContentsEntryToHeader(devToolsHeader),
+      para(
+        'The ',
+        inlineCode('Got*Message'),
+        ' wrapper convention powers the Submodel filter in ',
+        link(coreDevToolsRouter(), 'Foldkit DevTools'),
+        '. Pick a Submodel from the filter dropdown and the Message timeline scopes to dispatches that crossed that Submodel’s boundary. Model diffs show only the child’s slice.',
+      ),
+      para(
+        'If your wrapper Messages don’t follow the ',
+        inlineCode('Got*'),
+        ' naming, the filter can’t discover them; the Messages still flow correctly but they won’t appear in the Submodel dropdown. The warning callout under ',
+        link('#wrapping-messages', 'Wrapping Messages'),
+        ' is the same rule from the DevTools side.',
+      ),
+      para(
+        'When a Submodel emits an OutMessage, the parent’s ',
+        inlineCode('GotChildMessage'),
+        ' handler shows both the wrapper and any domain Message the parent dispatched in response. The full causal chain is visible in the timeline.',
+      ),
+      tableOfContentsEntryToHeader(commonPitfallsHeader),
+      para('Issues new Submodel users hit, and where to read about the fix:'),
+      bullets(
+        h.span(
+          [],
+          [
+            h.strong([], ['Duplicate id thrown at view-build time.']),
+            ' Two ',
+            inlineCode('h.submodel'),
+            ' calls under the same parent share an ',
+            inlineCode('id'),
+            '. See ',
+            link(
+              '#boundary-id-and-model-identity',
+              'Boundary Id and Model Identity',
+            ),
+            '.',
+          ],
+        ),
+        h.span(
+          [],
+          [
+            h.strong([], ['Child events not reaching the parent’s update.']),
+            ' The wrapper Message isn’t named ',
+            inlineCode('Got*Message'),
+            ', or the wrapper variant hasn’t been added to the parent’s update. See ',
+            link('#wrapping-messages', 'Wrapping Messages'),
+            ' and ',
+            link('#delegating-in-update', 'Delegating in update'),
+            '.',
+          ],
+        ),
+        h.span(
+          [],
+          [
+            h.strong([], ['Child’s view sees stale parent state.']),
+            ' Parent state was copied into the child Model and forgotten on update. Thread it through ',
+            inlineCode('viewInputs'),
+            ' (rebuilt every render) instead. See ',
+            link(
+              '#parent-state-in-view',
+              'Passing Parent State to a Child Submodel’s view',
+            ),
+            '.',
+          ],
+        ),
+        h.span(
+          [],
+          [
+            h.strong(
+              [],
+              [
+                'Handlers dispatched from a slot callback fire in the wrong boundary.',
+              ],
+            ),
+            ' The Submodel published an attribute group without wrapping it in ',
+            inlineCode('childAttributes'),
+            '. See ',
+            link('#child-attributes', 'childAttributes'),
+            '.',
+          ],
+        ),
+        h.span(
+          [],
+          [
+            h.strong([], ['View-build error like ']),
+            inlineCode('viewInputs.config.onSubmit'),
+            '. A slot callback was nested inside an object or array in ',
+            inlineCode('viewInputs'),
+            '. Lift it to the top level. See the warning callout under ',
+            link('#per-render-view-inputs', 'Per-render View Inputs'),
+            '.',
+          ],
+        ),
+        h.span(
+          [],
+          [
+            h.strong([], ['Long list of Submodels feels slow.']),
+            ' Default is to re-render each row every parent render. See ',
+            link('#memoization', 'Memoization Across Submodel Boundaries'),
+            '.',
+          ],
+        ),
+      ),
+      para(
+        'With Model, Messages, update, view, Commands, and Submodels in place, you have the full vocabulary for describing a Foldkit app. The next page covers the ',
         link(coreRuntimeRouter(), 'Runtime'),
         ': the engine that executes Commands, runs Subscriptions, manages Mount and ManagedResource lifecycles, and routes Messages back into update.',
       ),
