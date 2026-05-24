@@ -55,7 +55,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           'p-2 rounded hover:bg-terminal-green-dim hover:text-terminal-bg transition text-terminal-green',
         ),
         h.AriaLabel('Copy room ID'),
-        h.OnClick(ClickedCopyRoomId({ roomId })),
+        h.OnClick(ClickedCopyRoomId()),
       ],
       [Icon.copy()],
     )
@@ -92,7 +92,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
               [h.Class('mb-12 flex items-center gap-2')],
               [h.span([], [roomId]), copyButton, copiedIndicator],
             ),
-            content(model, roomId),
+            content(model),
             maybeErrorMessage(maybeError),
           ],
         ),
@@ -111,10 +111,12 @@ const contentKey = (
     M.orElse(({ _tag }) => _tag.toLowerCase()),
   )
 
-const content = (
-  { roomRemoteData, maybeSession, userGameText, username }: Model,
-  roomId: string,
-): Html => {
+const content = ({
+  roomRemoteData,
+  maybeSession,
+  userGameText,
+  username,
+}: Model): Html => {
   const h = html<Message>()
 
   return h.keyed('div')(
@@ -128,7 +130,7 @@ const content = (
           Error: () => h.empty,
           Ok: ({ data: room }) =>
             Option.match(maybeSession, {
-              onNone: () => joinForm(username, roomId),
+              onNone: () => joinForm(username),
               onSome: () => gameContent(room, maybeSession, userGameText),
             }),
         }),
@@ -173,11 +175,11 @@ const gameContent = (
   )
 }
 
-const joinForm = (username: string, roomId: string): Html => {
+const joinForm = (username: string): Html => {
   const h = html<Message>()
 
   return h.form(
-    [h.OnSubmit(SubmittedJoinRoomFromPage({ roomId }))],
+    [h.OnSubmit(SubmittedJoinRoomFromPage())],
     [
       h.div(
         [h.Class('flex items-center gap-2')],

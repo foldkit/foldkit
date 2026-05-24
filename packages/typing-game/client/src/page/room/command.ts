@@ -40,7 +40,7 @@ export const FetchRoom = Command.define(
     const room = yield* client.getRoomById({ roomId })
     return SucceededFetchRoom({ room })
   }).pipe(
-    Effect.catch(() => Effect.succeed(FailedFetchRoom({ roomId }))),
+    Effect.catch(() => Effect.succeed(FailedFetchRoom())),
     Effect.provide(RoomsClientLive),
   ),
 )
@@ -85,8 +85,8 @@ export const JoinRoom = Command.define(
 )(({ username, roomId }) =>
   Effect.gen(function* () {
     const client = yield* RoomsClient
-    const { player, room } = yield* client.joinRoom({ username, roomId })
-    return SucceededJoinRoom({ roomId: room.id, player })
+    const { player } = yield* client.joinRoom({ username, roomId })
+    return SucceededJoinRoom({ player })
   }).pipe(
     Effect.catch(() => Effect.succeed(FailedJoinRoom())),
     Effect.provide(RoomsClientLive),

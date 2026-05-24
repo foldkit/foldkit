@@ -100,18 +100,27 @@ export const update = (
         })
       },
 
-      GotRoomMessage: ({ message }) => {
-        const [nextRoomModel, roomCommands] = Room.update(model.room, message)
+      GotRoomMessage: ({ message }) =>
+        M.value(model.route).pipe(
+          withUpdateReturn,
+          M.tag('Room', ({ roomId }) => {
+            const [nextRoomModel, roomCommands] = Room.update(
+              model.room,
+              message,
+              { roomId },
+            )
 
-        return [
-          evo(model, {
-            room: () => nextRoomModel,
+            return [
+              evo(model, {
+                room: () => nextRoomModel,
+              }),
+              Command.mapMessages(roomCommands, message =>
+                GotRoomMessage({ message }),
+              ),
+            ]
           }),
-          Command.mapMessages(roomCommands, message =>
-            GotRoomMessage({ message }),
-          ),
-        ]
-      },
+          M.orElse(() => [model, []]),
+        ),
     }),
     M.tag(
       'CompletedNavigateInternal',
@@ -132,7 +141,8 @@ const handleRoomJoined = (
 ): UpdateReturn<Model, Message> => {
   const [nextRoomModel, roomCommands] = Room.update(
     model.room,
-    Room.Message.SucceededJoinRoom({ roomId, player }),
+    Room.Message.SucceededJoinRoom({ player }),
+    { roomId },
   )
 
   return [
