@@ -128,18 +128,8 @@ const labelId = (id: string): string => `${id}-label`
 const descriptionId = (id: string): string => `${id}-description`
 
 /** Renders an accessible checkbox by building ARIA attribute groups and
- *  delegating layout to the consumer's `toView` callback. Designed to be
- *  embedded via `h.submodel`: the parent declares the wrapping
- *  (`toParentMessage: (message) => GotCheckboxMessage({ message })`) at
- *  the embed site, and this view dispatches its own `Toggled` Messages
- *  directly through the html factory. No `ParentMessage` callback: the
- *  wrapping is data, applied at event-fire time by the runtime's
- *  boundary registry.
- *
- *  Branded via `defineView<Model, Message, ViewInputs>` so `h.submodel`
- *  infers `Toggled` as the child's Message type at the embed site, which
- *  makes the `toParentMessage` argument correctly typed without manual
- *  annotation. */
+ *  delegating layout to the consumer's `toView` callback. Embedded via
+ *  `h.submodel`. */
 export const view = defineView<Model, Message, ViewInputs>(
   (model, inputs): Html => {
     const h = html<Message>()

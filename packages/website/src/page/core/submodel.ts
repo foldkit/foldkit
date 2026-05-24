@@ -611,13 +611,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'mb-4',
       ),
       para(
-        'This is the same ',
         inlineCode('inputs'),
-        ' mechanism the ',
+        ' can carry parent state, not only slot callbacks and per-render configuration. See ',
         link('#per-render-inputs', 'Per-render Inputs'),
-        ' section covers; the framing here is just that ',
-        inlineCode('inputs'),
-        ' can carry parent state, not only slot callbacks and per-render configuration. Views are rebuilt every tick anyway, so passing live parent state has no extra cost.',
+        ' for the full mechanism.',
       ),
       tableOfContentsEntryToHeader(parentStateInUpdateHeader),
       para(

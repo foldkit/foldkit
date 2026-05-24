@@ -224,14 +224,12 @@ export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-/** Sent to the parent when a menu item is selected. Carries both the selected value (from the `inputs.items` array supplied at view time) and its index. Generic over `Value extends string`: the schema stores `value: string` but the factory's `create<Value>()` brands the return type so consumers receive `value: Value` directly. The menu has already closed when this fires; the parent does not need to dispatch `Ui.Menu.close`. */
+/** Sent to the parent when a menu item is selected. Carries both the selected value (from the `inputs.items` array supplied at view time) and its index. The menu has already closed when this fires; the parent does not need to dispatch `Ui.Menu.close`. */
 export const Selected = m('Selected', {
   value: S.String,
   index: S.Number,
 })
 
-/** Type-level Selected with a generic `Value` for fenced cast at the
- *  consumer boundary. The schema still encodes `value: string`. */
 export type Selected<Value extends string = string> = Readonly<{
   readonly _tag: 'Selected'
   readonly value: Value

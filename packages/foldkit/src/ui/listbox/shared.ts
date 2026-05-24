@@ -251,8 +251,6 @@ export const Selected = m('Selected', {
   wasAdded: S.Boolean,
 })
 
-/** Type-level Selected with a generic `Value` for fenced cast at the
- *  consumer boundary. The schema still encodes `value: string`. */
 export type Selected<Value extends string = string> = Readonly<{
   readonly _tag: 'Selected'
   readonly value: Value

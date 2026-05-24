@@ -54,12 +54,7 @@ export type ModelStep<Model> = Readonly<{
 }>
 
 /** A single step in a story — a {@link WithStep}, a {@link ModelStep},
- *  or a simulation transform. The function variant accepts/returns
- *  `StorySimulation<any, any, any>` rather than the story's specific
- *  `<Model, Message, OutMessage>` so steps composed via `flow(...)` (which
- *  collapses each leg's polymorphic types) still typecheck against the
- *  story's expected step type. Steps cast internally; runtime correctness
- *  depends on the steps coming from this module. */
+ *  or a simulation transform. */
 export type StoryStep<Model> =
   | WithStep<NoInfer<Model>>
   | ModelStep<NoInfer<Model>>
@@ -115,9 +110,7 @@ const with_ = <Model>(model: Model): WithStep<Model> => {
 }
 
 /** Sends a Message through update. Commands stay pending until resolve or
- *  resolveAll. The argument's type is independent of the simulation's `Message`
- *  union, so composing this step inside `flow(...)` helpers does not pin the
- *  story's Message to the narrow variant supplied here. */
+ *  resolveAll. */
 export const message =
   <MessageInput>(message_: MessageInput) =>
   <Model, Message, OutMessage>(
@@ -299,11 +292,7 @@ export const Command = {
   expectNone: expectNoCommandsStep,
 } as const
 
-/** Asserts that the OutMessage is Some with the expected value. The
- *  expected value's type is decoupled from the simulation's OutMessage
- *  union, so calling `expectOutMessage(SpecificVariant({...}))` against a
- *  simulation whose `OutMessage` is a wider union typechecks; the runtime
- *  `Equal.equals` check still surfaces mismatches. */
+/** Asserts that the OutMessage is Some with the expected value. */
 export const expectOutMessage =
   <Expected>(expected: Expected) =>
   <Model, Message, OutMessage>(

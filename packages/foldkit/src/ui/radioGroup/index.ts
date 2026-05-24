@@ -70,8 +70,6 @@ export type Message = typeof Message.Type
  *  consumer supplied. */
 export const Selected = m('Selected', { value: S.String, index: S.Number })
 
-/** Type-level Selected with a generic `Value` for fenced cast at the
- *  consumer boundary. The schema still encodes `value: string`. */
 export type Selected<Value extends string = string> = Readonly<{
   readonly _tag: 'Selected'
   readonly value: Value

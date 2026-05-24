@@ -22,12 +22,8 @@ import {
 // compatible.
 const SUBMODEL_MESSAGE_BRAND = '__submodelMessage'
 
-/** A view function branded with the Message type it dispatches. The brand
- *  (`__submodelMessage`) is a phantom field with no runtime value; it
- *  exists purely so `h.submodel` can infer the child's Message type from
- *  the view and propagate it into `toParentMessage`.
- *
- *  Submodel authors brand their view with the {@link defineView} helper:
+/** A view function branded with the Message type it dispatches. Build
+ *  one with {@link defineView}:
  *
  *  ```ts
  *  export const view = defineView<Counter.Model, Counter.Message>(
@@ -45,9 +41,8 @@ const SUBMODEL_MESSAGE_BRAND = '__submodelMessage'
  *  >((model, inputs) => inputs.toView({ checkbox: [...] }))
  *  ```
  *
- *  The brand is required at the `h.submodel` call site (not optional) so
- *  unbranded plain functions fail to type-check there with an explicit
- *  error rather than silently inferring `Message = never`. */
+ *  Required (not optional) at the `h.submodel` call site so unbranded
+ *  plain functions fail to type-check there. */
 export type SubmodelView<Model, Message, Inputs = void> = (Inputs extends void
   ? (model: Model) => VNode | null
   : (model: Model, inputs: Inputs) => VNode | null) & {
@@ -55,16 +50,12 @@ export type SubmodelView<Model, Message, Inputs = void> = (Inputs extends void
 }
 
 /** Defines the view function of a Submodel — a child component embedded
- *  via `h.submodel`. The runtime value is just the function you pass in;
- *  the helper exists to attach a phantom Message brand at the type level
- *  so `h.submodel` can infer the child's Message type from the view and
- *  propagate it into `toParentMessage`.
+ *  via `h.submodel`.
  *
  *  Use this ONLY for views that will be embedded via `h.submodel`. Plain
- *  view functions (page-level render functions that don't need a Submodel
- *  boundary, helper render functions that compose Html, etc.) don't need
- *  to be defined this way — write them as ordinary
- *  `(model) => Html` functions.
+ *  view functions (page-level render functions, helper render functions
+ *  that compose Html, etc.) don't need to be defined this way — write
+ *  them as ordinary `(model) => Html` functions.
  *
  *  Explicit type arguments are required because Message has no
  *  inferable source on the function signature itself. */
