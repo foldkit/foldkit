@@ -3,7 +3,7 @@
 // update, and view definitions.
 import { Effect, Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
-import { boundaryAttributes, html } from 'foldkit/html'
+import { childAttributes, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
@@ -103,7 +103,7 @@ const view = (model: Model) => {
         className: 'px-3 py-1 text-xs font-semibold uppercase text-gray-500',
       }),
       // Optional separator between groups:
-      separatorAttributes: boundaryAttributes([h.Class('my-1 border-t')]),
+      separatorAttributes: childAttributes([h.Class('my-1 border-t')]),
       itemToConfig: character => ({
         className:
           'px-3 py-2 cursor-pointer data-[active]:bg-blue-100 data-[selected]:font-semibold',

@@ -3,7 +3,7 @@
 // update, and view definitions.
 import { Array, Effect, Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
-import { boundaryAttributes, html } from 'foldkit/html'
+import { childAttributes, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
@@ -108,14 +108,14 @@ const view = () => {
           ],
         ),
       }),
-      inputAttributes: boundaryAttributes([
+      inputAttributes: childAttributes([
         h.Class('w-full rounded-lg border px-3 py-2'),
         h.Placeholder('Search cities...'),
       ]),
-      itemsAttributes: boundaryAttributes([
+      itemsAttributes: childAttributes([
         h.Class('rounded-lg border shadow-lg'),
       ]),
-      backdropAttributes: boundaryAttributes([h.Class('fixed inset-0')]),
+      backdropAttributes: childAttributes([h.Class('fixed inset-0')]),
       anchor: { placement: 'bottom-start', gap: 8, padding: 8 },
     },
     toParentMessage: message => GotComboboxMultiMessage({ message }),

@@ -4,9 +4,9 @@ import * as Command from '../../command/index.js'
 import * as Dom from '../../dom/index.js'
 import { OptionExt } from '../../effectExtensions/index.js'
 import {
-  type BoundaryAttribute,
+  type ChildAttribute,
   type Html,
-  boundaryAttributes,
+  childAttributes,
   defineView,
   html,
 } from '../../html/index.js'
@@ -485,9 +485,9 @@ export const close = (model: Model): UpdateReturn => update(model, Closed())
  *    `transitionState`. The consumer renders the panel + backdrop only
  *    while this is true. */
 export type RenderInfo = Readonly<{
-  button: ReadonlyArray<BoundaryAttribute>
-  panel: ReadonlyArray<BoundaryAttribute>
-  backdrop: ReadonlyArray<BoundaryAttribute>
+  button: ReadonlyArray<ChildAttribute>
+  panel: ReadonlyArray<ChildAttribute>
+  backdrop: ReadonlyArray<ChildAttribute>
   isVisible: boolean
 }>
 
@@ -627,9 +627,9 @@ export const view = defineView<Model, Message, ViewInputs>(
     ]
 
     return toView({
-      button: boundaryAttributes(buttonAttributes),
-      panel: boundaryAttributes(panelAttributes),
-      backdrop: boundaryAttributes(backdropAttributes),
+      button: childAttributes(buttonAttributes),
+      panel: childAttributes(panelAttributes),
+      backdrop: childAttributes(backdropAttributes),
       isVisible,
     })
   },

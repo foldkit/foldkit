@@ -11,9 +11,9 @@ import {
 
 import type { Command } from '../../command/index.js'
 import {
-  type BoundaryAttribute,
+  type ChildAttribute,
   type Html,
-  boundaryAttributes,
+  childAttributes,
   defineView,
   html,
 } from '../../html/index.js'
@@ -519,12 +519,12 @@ const percentString = (fraction: number): string =>
  *  consumer can spread it directly into element attributes without manual
  *  Message wrapping. */
 export type SliderAttributes = Readonly<{
-  root: ReadonlyArray<BoundaryAttribute>
-  track: ReadonlyArray<BoundaryAttribute>
-  filledTrack: ReadonlyArray<BoundaryAttribute>
-  thumb: ReadonlyArray<BoundaryAttribute>
-  label: ReadonlyArray<BoundaryAttribute>
-  hiddenInput: ReadonlyArray<BoundaryAttribute>
+  root: ReadonlyArray<ChildAttribute>
+  track: ReadonlyArray<ChildAttribute>
+  filledTrack: ReadonlyArray<ChildAttribute>
+  thumb: ReadonlyArray<ChildAttribute>
+  label: ReadonlyArray<ChildAttribute>
+  hiddenInput: ReadonlyArray<ChildAttribute>
 }>
 
 /** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field. */
@@ -681,12 +681,12 @@ export const view = defineView<Model, Message, ViewInputs>(
         : []
 
     return inputs.toView({
-      root: boundaryAttributes(rootAttributes),
-      track: boundaryAttributes(trackAttributes),
-      filledTrack: boundaryAttributes(filledTrackAttributes),
-      thumb: boundaryAttributes(thumbAttributes),
-      label: boundaryAttributes(labelAttributes),
-      hiddenInput: boundaryAttributes(hiddenInputAttributes),
+      root: childAttributes(rootAttributes),
+      track: childAttributes(trackAttributes),
+      filledTrack: childAttributes(filledTrackAttributes),
+      thumb: childAttributes(thumbAttributes),
+      label: childAttributes(labelAttributes),
+      hiddenInput: childAttributes(hiddenInputAttributes),
     })
   },
 )

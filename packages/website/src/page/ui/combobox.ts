@@ -1,7 +1,7 @@
 import { clsx } from 'clsx'
 import { Array } from 'effect'
 import { Ui } from 'foldkit'
-import { boundaryAttributes, html } from 'foldkit/html'
+import { childAttributes, html } from 'foldkit/html'
 import type { AnchorConfig } from 'foldkit/ui/combobox'
 
 import { Icon } from '../../icon'
@@ -125,16 +125,16 @@ const comboboxInputs = <ParentMessage>(
     }),
     itemToValue: city => city,
     itemToDisplayText: city => city,
-    inputAttributes: boundaryAttributes([
+    inputAttributes: childAttributes([
       h.Class(inputClassName),
       h.Placeholder('Search cities...'),
     ]),
-    itemsAttributes: boundaryAttributes([h.Class(itemsClassName)]),
-    backdropAttributes: boundaryAttributes([h.Class(backdropClassName)]),
-    attributes: boundaryAttributes([h.Class(wrapperClassName)]),
-    inputWrapperAttributes: boundaryAttributes([h.Class('relative')]),
+    itemsAttributes: childAttributes([h.Class(itemsClassName)]),
+    backdropAttributes: childAttributes([h.Class(backdropClassName)]),
+    attributes: childAttributes([h.Class(wrapperClassName)]),
+    inputWrapperAttributes: childAttributes([h.Class('relative')]),
     buttonContent: Icon.chevronDown('w-4 h-4'),
-    buttonAttributes: boundaryAttributes([h.Class(buttonClassName)]),
+    buttonAttributes: childAttributes([h.Class(buttonClassName)]),
     anchor: COMBOBOX_ANCHOR,
   }
 }

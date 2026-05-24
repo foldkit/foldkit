@@ -1,7 +1,7 @@
 import { Match as M } from 'effect'
 
 import {
-  type BoundaryAttribute,
+  type ChildAttribute,
   type Html,
   type TagName,
   defineView,
@@ -50,7 +50,7 @@ export { RequestFrame, WaitForAnimationSettled, defaultLeaveCommand, update }
 export type ViewInputs = Readonly<{
   content: Html
   className?: string
-  attributes?: ReadonlyArray<BoundaryAttribute>
+  attributes?: ReadonlyArray<ChildAttribute>
   element?: TagName
   /** When true, wraps content in a CSS grid container that smoothly animates
    *  height via `grid-template-rows: 0fr → 1fr`. The element stays in the DOM

@@ -12,10 +12,10 @@ import {
 import * as Command from '../../command/index.js'
 import * as Dom from '../../dom/index.js'
 import {
-  type BoundaryAttribute,
+  type ChildAttribute,
   type Html,
   type SubmodelView,
-  boundaryAttributes,
+  childAttributes,
   defineView,
   html,
 } from '../../html/index.js'
@@ -180,9 +180,9 @@ export type OptionInfo<Value extends string = string> = Readonly<{
   isSelected: boolean
   isActive: boolean
   isDisabled: boolean
-  option: ReadonlyArray<BoundaryAttribute>
-  label: ReadonlyArray<BoundaryAttribute>
-  description: ReadonlyArray<BoundaryAttribute>
+  option: ReadonlyArray<ChildAttribute>
+  label: ReadonlyArray<ChildAttribute>
+  description: ReadonlyArray<ChildAttribute>
 }>
 
 /** Render-time payload published to the consumer's `toView`.
@@ -199,10 +199,10 @@ export type OptionInfo<Value extends string = string> = Readonly<{
  *    renders the `<input>` themselves. Empty array when `name` is
  *    undefined. */
 export type RenderInfo<Value extends string = string> = Readonly<{
-  group: ReadonlyArray<BoundaryAttribute>
+  group: ReadonlyArray<ChildAttribute>
   options: ReadonlyArray<OptionInfo<Value>>
   selectedValue: Option.Option<Value>
-  hiddenInput: ReadonlyArray<BoundaryAttribute>
+  hiddenInput: ReadonlyArray<ChildAttribute>
 }>
 
 /** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
@@ -372,9 +372,9 @@ const internalView = defineView<Model, Message, ViewInputs>(
           isSelected,
           isActive: isFocusable,
           isDisabled: isOptionDisabledNow,
-          option: boundaryAttributes(optionAttributes),
-          label: boundaryAttributes(labelAttributes),
-          description: boundaryAttributes(descriptionAttributes),
+          option: childAttributes(optionAttributes),
+          label: childAttributes(labelAttributes),
+          description: childAttributes(descriptionAttributes),
         }
       },
     )
@@ -398,10 +398,10 @@ const internalView = defineView<Model, Message, ViewInputs>(
     )
 
     return toView({
-      group: boundaryAttributes(groupAttributes),
+      group: childAttributes(groupAttributes),
       options: optionInfos,
       selectedValue,
-      hiddenInput: boundaryAttributes(hiddenInputAttributes),
+      hiddenInput: childAttributes(hiddenInputAttributes),
     })
   },
 )

@@ -3,9 +3,9 @@ import { Effect, Match as M, Option, Schema as S } from 'effect'
 import * as Command from '../../command/index.js'
 import * as Dom from '../../dom/index.js'
 import {
-  type BoundaryAttribute,
+  type ChildAttribute,
   type Html,
-  boundaryAttributes,
+  childAttributes,
   defineView,
   html,
 } from '../../html/index.js'
@@ -316,9 +316,9 @@ export const descriptionId = (model: Model): string => `${model.id}-description`
  *    `transitionState`. The consumer renders backdrop + panel only
  *    while this is true. */
 export type RenderInfo = Readonly<{
-  dialog: ReadonlyArray<BoundaryAttribute>
-  backdrop: ReadonlyArray<BoundaryAttribute>
-  panel: ReadonlyArray<BoundaryAttribute>
+  dialog: ReadonlyArray<ChildAttribute>
+  backdrop: ReadonlyArray<ChildAttribute>
+  panel: ReadonlyArray<ChildAttribute>
   isVisible: boolean
 }>
 
@@ -396,9 +396,9 @@ export const view = defineView<Model, Message, ViewInputs>(
     const panelAttributes = [h.Id(`${id}-panel`), ...animationAttributes]
 
     return toView({
-      dialog: boundaryAttributes(dialogAttributes),
-      backdrop: boundaryAttributes(backdropAttributes),
-      panel: boundaryAttributes(panelAttributes),
+      dialog: childAttributes(dialogAttributes),
+      backdrop: childAttributes(backdropAttributes),
+      panel: childAttributes(panelAttributes),
       isVisible,
     })
   },

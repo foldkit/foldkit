@@ -2,9 +2,9 @@ import { Match as M, Option, Schema as S } from 'effect'
 
 import type { Command } from '../../command/index.js'
 import {
-  type BoundaryAttribute,
+  type ChildAttribute,
   type Html,
-  boundaryAttributes,
+  childAttributes,
   defineView,
   html,
 } from '../../html/index.js'
@@ -86,15 +86,15 @@ export const update = (
 // VIEW
 
 /** Attribute groups the switch component provides to the consumer's
- *  `toView` callback. Each group is a `ReadonlyArray<BoundaryAttribute>`
+ *  `toView` callback. Each group is a `ReadonlyArray<ChildAttribute>`
  *  whose event handlers dispatch through the Switch's boundary at
  *  event-fire time. See {@link Checkbox.CheckboxAttributes} for the full
  *  routing model. */
 export type SwitchAttributes = Readonly<{
-  button: ReadonlyArray<BoundaryAttribute>
-  label: ReadonlyArray<BoundaryAttribute>
-  description: ReadonlyArray<BoundaryAttribute>
-  hiddenInput: ReadonlyArray<BoundaryAttribute>
+  button: ReadonlyArray<ChildAttribute>
+  label: ReadonlyArray<ChildAttribute>
+  description: ReadonlyArray<ChildAttribute>
+  hiddenInput: ReadonlyArray<ChildAttribute>
 }>
 
 /** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field. */
@@ -155,10 +155,10 @@ export const view = defineView<Model, Message, ViewInputs>(
       : []
 
     return inputs.toView({
-      button: boundaryAttributes(buttonAttributes),
-      label: boundaryAttributes(labelAttributes),
-      description: boundaryAttributes(descriptionAttributes),
-      hiddenInput: boundaryAttributes(hiddenInputAttributes),
+      button: childAttributes(buttonAttributes),
+      label: childAttributes(labelAttributes),
+      description: childAttributes(descriptionAttributes),
+      hiddenInput: childAttributes(hiddenInputAttributes),
     })
   },
 )

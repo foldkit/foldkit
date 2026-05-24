@@ -8,7 +8,7 @@ import {
   deregisterBoundaryWrap,
   registerBoundaryWrap,
 } from './boundary.js'
-import { isBoundaryAttribute } from './boundaryAttribute.js'
+import { isChildAttribute } from './childAttribute.js'
 import {
   type Frame,
   clearRuntime,
@@ -171,10 +171,10 @@ const assertNoNestedFunctions = (
 }
 
 // Framework-branded values that legitimately carry function members
-// internally (e.g. `BoundaryAttribute.dispatch`). The walker treats these
+// internally (e.g. `ChildAttribute.dispatch`). The walker treats these
 // as opaque leaves, the same way it treats primitives.
 const isFrameworkBranded = (value: unknown): boolean =>
-  isBoundaryAttribute(value)
+  isChildAttribute(value)
 
 const walkForFunctions = (
   source: Readonly<Record<string, unknown>> | ReadonlyArray<unknown>,

@@ -4,7 +4,7 @@ import * as Calendar from '../../calendar/index.js'
 import type { CalendarDate } from '../../calendar/index.js'
 import * as Command from '../../command/index.js'
 import {
-  type BoundaryAttribute,
+  type ChildAttribute,
   type Html,
   defineView,
   html,
@@ -377,13 +377,13 @@ export type ViewInputs = Readonly<{
    * selected date as an ISO string (`YYYY-MM-DD`). */
   name?: string
   className?: string
-  attributes?: ReadonlyArray<BoundaryAttribute>
+  attributes?: ReadonlyArray<ChildAttribute>
   triggerClassName?: string
-  triggerAttributes?: ReadonlyArray<BoundaryAttribute>
+  triggerAttributes?: ReadonlyArray<ChildAttribute>
   panelClassName?: string
-  panelAttributes?: ReadonlyArray<BoundaryAttribute>
+  panelAttributes?: ReadonlyArray<ChildAttribute>
   backdropClassName?: string
-  backdropAttributes?: ReadonlyArray<BoundaryAttribute>
+  backdropAttributes?: ReadonlyArray<ChildAttribute>
 }>
 
 /** Renders an accessible date picker: a trigger button that opens a popover

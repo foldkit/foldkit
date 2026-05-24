@@ -14,9 +14,9 @@ import * as Command from '../../command/index.js'
 import * as Dom from '../../dom/index.js'
 import { OptionExt } from '../../effectExtensions/index.js'
 import {
-  type BoundaryAttribute,
+  type ChildAttribute,
   type Html,
-  boundaryAttributes,
+  childAttributes,
   defineView,
   html,
 } from '../../html/index.js'
@@ -751,8 +751,8 @@ const buildGrid = (
 export type DayCell = Readonly<{
   date: CalendarDate
   label: string
-  cellAttributes: ReadonlyArray<BoundaryAttribute>
-  buttonAttributes: ReadonlyArray<BoundaryAttribute>
+  cellAttributes: ReadonlyArray<ChildAttribute>
+  buttonAttributes: ReadonlyArray<ChildAttribute>
   isSelected: boolean
   isFocused: boolean
   isToday: boolean
@@ -763,13 +763,13 @@ export type DayCell = Readonly<{
 /** A column header for the day grid's first row (day-of-week labels). */
 export type ColumnHeader = Readonly<{
   name: string
-  attributes: ReadonlyArray<BoundaryAttribute>
+  attributes: ReadonlyArray<ChildAttribute>
 }>
 
 /** A single week row in the day grid, carrying its own row attributes (role,
  * aria-rowindex) alongside its 7 day cells. */
 export type Week = Readonly<{
-  attributes: ReadonlyArray<BoundaryAttribute>
+  attributes: ReadonlyArray<ChildAttribute>
   cells: ReadonlyArray<DayCell>
 }>
 
@@ -782,8 +782,8 @@ export type MonthCell = Readonly<{
   month: number
   label: string
   shortLabel: string
-  cellAttributes: ReadonlyArray<BoundaryAttribute>
-  buttonAttributes: ReadonlyArray<BoundaryAttribute>
+  cellAttributes: ReadonlyArray<ChildAttribute>
+  buttonAttributes: ReadonlyArray<ChildAttribute>
   isSelected: boolean
   isFocused: boolean
   isCurrentMonth: boolean
@@ -794,8 +794,8 @@ export type MonthCell = Readonly<{
 export type YearCell = Readonly<{
   year: number
   label: string
-  cellAttributes: ReadonlyArray<BoundaryAttribute>
-  buttonAttributes: ReadonlyArray<BoundaryAttribute>
+  cellAttributes: ReadonlyArray<ChildAttribute>
+  buttonAttributes: ReadonlyArray<ChildAttribute>
   isSelected: boolean
   isFocused: boolean
   isCurrentYear: boolean
@@ -805,13 +805,13 @@ export type YearCell = Readonly<{
 /** Attributes provided to the consumer when rendering the day grid. */
 export type DaysModeAttributes = Readonly<{
   _tag: 'Days'
-  root: ReadonlyArray<BoundaryAttribute>
-  previousMonthButton: ReadonlyArray<BoundaryAttribute>
-  nextMonthButton: ReadonlyArray<BoundaryAttribute>
-  headingButton: ReadonlyArray<BoundaryAttribute>
+  root: ReadonlyArray<ChildAttribute>
+  previousMonthButton: ReadonlyArray<ChildAttribute>
+  nextMonthButton: ReadonlyArray<ChildAttribute>
+  headingButton: ReadonlyArray<ChildAttribute>
   heading: Readonly<{ id: string; text: string }>
-  grid: ReadonlyArray<BoundaryAttribute>
-  headerRow: ReadonlyArray<BoundaryAttribute>
+  grid: ReadonlyArray<ChildAttribute>
+  headerRow: ReadonlyArray<ChildAttribute>
   columnHeaders: ReadonlyArray<ColumnHeader>
   weeks: ReadonlyArray<Week>
 }>
@@ -821,10 +821,10 @@ export type DaysModeAttributes = Readonly<{
  * them in whatever grid layout they prefer (3×4 is the typical choice). */
 export type MonthsModeAttributes = Readonly<{
   _tag: 'Months'
-  root: ReadonlyArray<BoundaryAttribute>
-  headingButton: ReadonlyArray<BoundaryAttribute>
+  root: ReadonlyArray<ChildAttribute>
+  headingButton: ReadonlyArray<ChildAttribute>
   heading: Readonly<{ id: string; text: string }>
-  grid: ReadonlyArray<BoundaryAttribute>
+  grid: ReadonlyArray<ChildAttribute>
   cells: ReadonlyArray<MonthCell>
 }>
 
@@ -832,11 +832,11 @@ export type MonthsModeAttributes = Readonly<{
  * 12 cells span one paged window; prev/next buttons page by 12 years. */
 export type YearsModeAttributes = Readonly<{
   _tag: 'Years'
-  root: ReadonlyArray<BoundaryAttribute>
-  previousPageButton: ReadonlyArray<BoundaryAttribute>
-  nextPageButton: ReadonlyArray<BoundaryAttribute>
+  root: ReadonlyArray<ChildAttribute>
+  previousPageButton: ReadonlyArray<ChildAttribute>
+  nextPageButton: ReadonlyArray<ChildAttribute>
   heading: Readonly<{ id: string; text: string }>
-  grid: ReadonlyArray<BoundaryAttribute>
+  grid: ReadonlyArray<ChildAttribute>
   cells: ReadonlyArray<YearCell>
 }>
 
@@ -1046,8 +1046,8 @@ const buildDaysAttributes = (
     return {
       date,
       label: String(date.day),
-      cellAttributes: boundaryAttributes(cellAttributes),
-      buttonAttributes: boundaryAttributes(buttonAttributes),
+      cellAttributes: childAttributes(cellAttributes),
+      buttonAttributes: childAttributes(buttonAttributes),
       isSelected,
       isFocused: isFocused && isGridFocused,
       isToday,
@@ -1059,7 +1059,7 @@ const buildDaysAttributes = (
   const weeks: ReadonlyArray<Week> = weeksDates.map((weekDates, weekIndex) => {
     const weekStart = Calendar.addDays(gridStart, weekIndex * DAYS_IN_WEEK)
     return {
-      attributes: boundaryAttributes([
+      attributes: childAttributes([
         h.Role('row'),
         h.AriaRowindex(weekIndex + 2),
         h.AriaLabel(`Week of ${Calendar.formatLong(weekStart, locale)}`),
@@ -1074,7 +1074,7 @@ const buildDaysAttributes = (
     (name, fullName) => ({ name, fullName }),
   ).map(({ name, fullName }, columnIndex) => ({
     name,
-    attributes: boundaryAttributes([
+    attributes: childAttributes([
       h.Role('columnheader'),
       h.AriaLabel(fullName),
       h.AriaColindex(Number.increment(columnIndex)),
@@ -1083,13 +1083,13 @@ const buildDaysAttributes = (
 
   return {
     _tag: 'Days',
-    root: boundaryAttributes(rootAttributes),
-    previousMonthButton: boundaryAttributes(previousMonthButton),
-    nextMonthButton: boundaryAttributes(nextMonthButton),
-    headingButton: boundaryAttributes(headingButton),
+    root: childAttributes(rootAttributes),
+    previousMonthButton: childAttributes(previousMonthButton),
+    nextMonthButton: childAttributes(nextMonthButton),
+    headingButton: childAttributes(headingButton),
     heading: { id: headingId(id), text: headingText },
-    grid: boundaryAttributes(gridAttributes),
-    headerRow: boundaryAttributes(headerRowAttributes),
+    grid: childAttributes(gridAttributes),
+    headerRow: childAttributes(headerRowAttributes),
     columnHeaders: wrappedColumnHeaders,
     weeks,
   }
@@ -1197,8 +1197,8 @@ const buildMonthsAttributes = (
       month,
       label,
       shortLabel,
-      cellAttributes: boundaryAttributes(cellAttributes),
-      buttonAttributes: boundaryAttributes(buttonAttributes),
+      cellAttributes: childAttributes(cellAttributes),
+      buttonAttributes: childAttributes(buttonAttributes),
       isSelected,
       isFocused: isFocused && isGridFocused,
       isCurrentMonth,
@@ -1212,10 +1212,10 @@ const buildMonthsAttributes = (
 
   return {
     _tag: 'Months',
-    root: boundaryAttributes(rootAttributes),
-    headingButton: boundaryAttributes(headingButton),
+    root: childAttributes(rootAttributes),
+    headingButton: childAttributes(headingButton),
     heading: { id: headingId(id), text: headingText },
-    grid: boundaryAttributes(gridAttributes),
+    grid: childAttributes(gridAttributes),
     cells,
   }
 }
@@ -1322,8 +1322,8 @@ const buildYearsAttributes = (
     return {
       year,
       label,
-      cellAttributes: boundaryAttributes(cellAttributes),
-      buttonAttributes: boundaryAttributes(buttonAttributes),
+      cellAttributes: childAttributes(cellAttributes),
+      buttonAttributes: childAttributes(buttonAttributes),
       isSelected,
       isFocused: isFocused && isGridFocused,
       isCurrentYear,
@@ -1337,11 +1337,11 @@ const buildYearsAttributes = (
 
   return {
     _tag: 'Years',
-    root: boundaryAttributes(rootAttributes),
-    previousPageButton: boundaryAttributes(previousPageButton),
-    nextPageButton: boundaryAttributes(nextPageButton),
+    root: childAttributes(rootAttributes),
+    previousPageButton: childAttributes(previousPageButton),
+    nextPageButton: childAttributes(nextPageButton),
     heading: { id: headingId(id), text: headingText },
-    grid: boundaryAttributes(gridAttributes),
+    grid: childAttributes(gridAttributes),
     cells,
   }
 }

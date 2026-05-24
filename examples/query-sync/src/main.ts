@@ -12,7 +12,7 @@ import {
   pipe,
 } from 'effect'
 import { Command, Route, Runtime, Ui } from 'foldkit'
-import { Document, Html, boundaryAttributes, html } from 'foldkit/html'
+import { Document, Html, childAttributes, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { UrlRequest, load, pushUrl, replaceUrl } from 'foldkit/navigation'
 import { r } from 'foldkit/route'
@@ -738,16 +738,16 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
                   'All Diets',
                 ),
               ),
-              buttonAttributes: boundaryAttributes([
+              buttonAttributes: childAttributes([
                 h.Class(listboxButtonClassName),
               ]),
-              itemsAttributes: boundaryAttributes([
+              itemsAttributes: childAttributes([
                 h.Class(listboxItemsClassName),
               ]),
-              backdropAttributes: boundaryAttributes([
+              backdropAttributes: childAttributes([
                 h.Class(listboxBackdropClassName),
               ]),
-              attributes: boundaryAttributes([
+              attributes: childAttributes([
                 h.Class(listboxWrapperClassName),
               ]),
             },
@@ -768,16 +768,16 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
                   'All Periods',
                 ),
               ),
-              buttonAttributes: boundaryAttributes([
+              buttonAttributes: childAttributes([
                 h.Class(listboxButtonClassName),
               ]),
-              itemsAttributes: boundaryAttributes([
+              itemsAttributes: childAttributes([
                 h.Class(listboxItemsClassName),
               ]),
-              backdropAttributes: boundaryAttributes([
+              backdropAttributes: childAttributes([
                 h.Class(listboxBackdropClassName),
               ]),
-              attributes: boundaryAttributes([
+              attributes: childAttributes([
                 h.Class(listboxWrapperClassName),
               ]),
             },

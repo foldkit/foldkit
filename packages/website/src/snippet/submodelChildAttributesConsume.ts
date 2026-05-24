@@ -3,7 +3,7 @@
 // the consumer's own `h.Class`. Click handlers from the child still
 // route through the child's dispatcher because the branding rides
 // along on each attribute.
-import { type BoundaryAttribute, html, keyed } from 'foldkit/html'
+import { type ChildAttribute, html, keyed } from 'foldkit/html'
 
 import { GotDisclosureMessage, type Message } from './message'
 import type { Model } from './model'
@@ -13,8 +13,8 @@ declare const Disclosure: {
     model: Model['disclosure'],
     inputs: {
       toView: (attributes: {
-        readonly button: ReadonlyArray<BoundaryAttribute>
-        readonly panel: ReadonlyArray<BoundaryAttribute>
+        readonly button: ReadonlyArray<ChildAttribute>
+        readonly panel: ReadonlyArray<ChildAttribute>
       }) => unknown
     },
   ) => unknown

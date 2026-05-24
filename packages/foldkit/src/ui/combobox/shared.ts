@@ -13,7 +13,7 @@ import * as Command from '../../command/index.js'
 import * as Dom from '../../dom/index.js'
 import { OptionExt } from '../../effectExtensions/index.js'
 import {
-  type BoundaryAttribute,
+  type ChildAttribute,
   type Html,
   type SubmodelView,
   defineView,
@@ -804,21 +804,21 @@ export type BaseViewInputs<Item extends string> = Readonly<{
   itemToDisplayText: (item: Item, index: number) => string
   isItemDisabled?: (item: Item, index: number) => boolean
   inputClassName?: string
-  inputAttributes?: ReadonlyArray<BoundaryAttribute>
+  inputAttributes?: ReadonlyArray<ChildAttribute>
   inputPlaceholder?: string
   inputWrapperClassName?: string
-  inputWrapperAttributes?: ReadonlyArray<BoundaryAttribute>
+  inputWrapperAttributes?: ReadonlyArray<ChildAttribute>
   itemsClassName?: string
-  itemsAttributes?: ReadonlyArray<BoundaryAttribute>
+  itemsAttributes?: ReadonlyArray<ChildAttribute>
   itemsScrollClassName?: string
-  itemsScrollAttributes?: ReadonlyArray<BoundaryAttribute>
+  itemsScrollAttributes?: ReadonlyArray<ChildAttribute>
   backdropClassName?: string
-  backdropAttributes?: ReadonlyArray<BoundaryAttribute>
+  backdropAttributes?: ReadonlyArray<ChildAttribute>
   className?: string
-  attributes?: ReadonlyArray<BoundaryAttribute>
+  attributes?: ReadonlyArray<ChildAttribute>
   buttonContent?: Html
   buttonClassName?: string
-  buttonAttributes?: ReadonlyArray<BoundaryAttribute>
+  buttonAttributes?: ReadonlyArray<ChildAttribute>
   formName?: string
   isDisabled?: boolean
   isInvalid?: boolean
@@ -826,9 +826,9 @@ export type BaseViewInputs<Item extends string> = Readonly<{
   itemGroupKey?: (item: Item, index: number) => string
   groupToHeading?: (groupKey: string) => GroupHeading | undefined
   groupClassName?: string
-  groupAttributes?: ReadonlyArray<BoundaryAttribute>
+  groupAttributes?: ReadonlyArray<ChildAttribute>
   separatorClassName?: string
-  separatorAttributes?: ReadonlyArray<BoundaryAttribute>
+  separatorAttributes?: ReadonlyArray<ChildAttribute>
   anchor?: AnchorConfig
 }>
 

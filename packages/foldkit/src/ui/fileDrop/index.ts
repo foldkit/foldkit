@@ -3,9 +3,9 @@ import { Array, Match as M, Option, Schema as S } from 'effect'
 import * as Command from '../../command/index.js'
 import * as File from '../../file/index.js'
 import {
-  type BoundaryAttribute,
+  type ChildAttribute,
   type Html,
-  boundaryAttributes,
+  childAttributes,
   defineView,
   html,
 } from '../../html/index.js'
@@ -132,11 +132,11 @@ export type FileDropAttributes = Readonly<{
   /** Attributes for the outer drop zone element (typically a `<label>`):
    *  drag-and-drop handlers, `data-drag-over` while a drag hovers, and
    *  `data-disabled` when disabled. */
-  root: ReadonlyArray<BoundaryAttribute>
+  root: ReadonlyArray<ChildAttribute>
   /** Attributes for a hidden `<input type="file">` nested inside the
    *  root: file-change handler, `type`, `id`, `multiple`, `accept`, and
    *  `sr-only` class. */
-  input: ReadonlyArray<BoundaryAttribute>
+  input: ReadonlyArray<ChildAttribute>
 }>
 
 /** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field. */
@@ -191,8 +191,8 @@ export const view = defineView<Model, Message, ViewInputs>(
     ]
 
     return toView({
-      root: boundaryAttributes(rootAttributes),
-      input: boundaryAttributes(inputAttributes),
+      root: childAttributes(rootAttributes),
+      input: childAttributes(inputAttributes),
     })
   },
 )

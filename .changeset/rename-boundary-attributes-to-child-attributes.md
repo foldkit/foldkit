@@ -1,0 +1,29 @@
+---
+'foldkit': minor
+---
+
+Rename `boundaryAttributes` to `childAttributes` and `BoundaryAttribute` to `ChildAttribute`.
+
+The "boundary" name was framework-internal jargon: consumers don't reason about boundaries, they reason about which side of the parent-child relationship owns what. The rename slots the API into the role-named column alongside the existing `inputs` (parent → child view), `context` (parent → child update), and `OutMessage` (child → parent update) — `childAttributes` is now "what the child publishes to the parent" in the same vocabulary.
+
+### Migration
+
+```ts
+// Before
+import { boundaryAttributes, type BoundaryAttribute } from 'foldkit/html'
+
+return inputs.toView({
+  button: boundaryAttributes([h.OnClick(Toggled())]),
+  panel: boundaryAttributes([h.Id(panelId(model.id))]),
+})
+
+// After
+import { childAttributes, type ChildAttribute } from 'foldkit/html'
+
+return inputs.toView({
+  button: childAttributes([h.OnClick(Toggled())]),
+  panel: childAttributes([h.Id(panelId(model.id))]),
+})
+```
+
+The runtime behavior is unchanged. Every interactive Foldkit UI primitive uses the new name internally; consumer migration is a mechanical find-replace on the two identifiers.

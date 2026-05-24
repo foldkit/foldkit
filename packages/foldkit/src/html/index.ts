@@ -21,9 +21,9 @@ import type { MountAction } from '../mount/index.js'
 import { MountTracker } from '../mount/index.js'
 import { VNode } from '../vdom.js'
 import {
-  type BoundaryAttribute,
-  isBoundaryAttribute,
-} from './boundaryAttribute.js'
+  type ChildAttribute,
+  isChildAttribute,
+} from './childAttribute.js'
 import {
   checkScheduledLeave,
   clearDragZoneAfterDrop,
@@ -46,8 +46,8 @@ export {
   createBoundaryRegistry as __createBoundaryRegistry,
 } from './boundary.js'
 export type { BoundaryRegistry } from './boundary.js'
-export { boundaryAttributes } from './boundaryAttribute.js'
-export type { BoundaryAttribute } from './boundaryAttribute.js'
+export { childAttributes } from './childAttribute.js'
+export type { ChildAttribute } from './childAttribute.js'
 export { defineView, submodel } from './submodel.js'
 export type { SubmodelConfig, SubmodelView } from './submodel.js'
 
@@ -377,10 +377,10 @@ export type FoldkitMountMarker = Readonly<{
 /** Union of all HTML, SVG, and MathML attributes a virtual DOM element can carry.
  *
  *  When a Submodel publishes attribute groups to a consumer's `toView`
- *  slot, those attributes are wrapped via {@link boundaryAttributes} into
- *  {@link BoundaryAttribute}, a distinct type that carries the Submodel's
+ *  slot, those attributes are wrapped via {@link childAttributes} into
+ *  {@link ChildAttribute}, a distinct type that carries the Submodel's
  *  own dispatcher. Element constructors accept the union
- *  `ReadonlyArray<Attribute<Message> | BoundaryAttribute>`, so consumers
+ *  `ReadonlyArray<Attribute<Message> | ChildAttribute>`, so consumers
  *  can spread published bundles directly into their own attribute
  *  arrays. */
 export type Attribute<Message> = Data.TaggedEnum<{
@@ -921,7 +921,7 @@ export { Prop, OnCustomEvent }
 
 // BUILD CONTEXT — per-VNode bag of mutable VNode data plus the dispatcher this
 // VNode's events route through. Allocated once per unique dispatcher in
-// `buildVNodeData`, typically once total (a second time when BoundaryAttribute
+// `buildVNodeData`, typically once total (a second time when ChildAttribute
 // items route through a child Submodel's own dispatch).
 type BuildContext = Readonly<{
   data: VNodeData
@@ -960,7 +960,7 @@ const updateDataAttrs = (ctx: BuildContext, attrs: Attrs): void =>
 
 // Event handlers chain per DOM event in spread order. Without this,
 // `Object.assign` would silently drop earlier handlers for the same
-// event when a consumer spreads published BoundaryAttributes alongside
+// event when a consumer spreads published ChildAttributes alongside
 // their own (e.g. `[...attributes.checkbox, h.OnClick(MyMsg())]` would
 // drop one of the two click handlers depending on order). Each chained
 // handler is invoked synchronously in registration order; if an
@@ -2218,7 +2218,7 @@ const attributeMatcher: (
 )
 
 const buildVNodeData = <Message>(
-  attributes: ReadonlyArray<Attribute<Message> | BoundaryAttribute>,
+  attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
 ): VNodeData => {
   // Capture lazily, and tolerate the absence of a runtime frame. Static
   // elements (`h.code([h.Class('x')], ['text'])`) and prose fragments built
@@ -2262,8 +2262,8 @@ const buildVNodeData = <Message>(
   const postpatchProps: Array<Readonly<{ propName: string; value: unknown }>> =
     []
 
-  // Most attributes route through the current frame's dispatch. BoundaryAttribute
-  // items carry a different dispatcher (captured by `boundaryAttributes`
+  // Most attributes route through the current frame's dispatch. ChildAttribute
+  // items carry a different dispatcher (captured by `childAttributes`
   // in a Submodel's own boundary), so they need their own BuildContext closed
   // over that dispatch. The matcher itself is module-level and shared.
   // The main ctx is built lazily — static-only attribute arrays (Class, Id,
@@ -2273,7 +2273,7 @@ const buildVNodeData = <Message>(
   const boundaryCtxByDispatch = new Map<DispatchSync, BuildContext>()
 
   for (const item of attributes) {
-    if (isBoundaryAttribute(item)) {
+    if (isChildAttribute(item)) {
       let ctx = boundaryCtxByDispatch.get(item.dispatch)
       if (ctx === undefined) {
         ctx = {
@@ -2326,7 +2326,7 @@ const processVNodeChildren = (
 
 const createElement = <Message>(
   tagName: string,
-  attributes: ReadonlyArray<Attribute<Message> | BoundaryAttribute> = [],
+  attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
   children: ReadonlyArray<Child> = [],
 ): Html =>
   h(
@@ -2339,7 +2339,7 @@ const element =
   <Message>() =>
   (tagName: TagName) =>
   (
-    attributes: ReadonlyArray<Attribute<Message> | BoundaryAttribute> = [],
+    attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
     children: ReadonlyArray<Child> = [],
   ): Html =>
     createElement(tagName, attributes, children)
@@ -2348,7 +2348,7 @@ export const customElement =
   <Message>() =>
   (tagName: string) =>
   (
-    attributes: ReadonlyArray<Attribute<Message> | BoundaryAttribute> = [],
+    attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
     children: ReadonlyArray<Child> = [],
   ): Html =>
     createElement(tagName, attributes, children)
@@ -2357,7 +2357,7 @@ const voidElement =
   <Message>() =>
   (tagName: TagName) =>
   (
-    attributes: ReadonlyArray<Attribute<Message> | BoundaryAttribute> = [],
+    attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
   ): Html =>
     createElement(tagName, attributes, [])
 
@@ -2366,18 +2366,18 @@ const keyed =
   (tagName: TagName) =>
   (
     key: string,
-    attributes: ReadonlyArray<Attribute<Message> | BoundaryAttribute> = [],
+    attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
     children: ReadonlyArray<Child> = [],
   ): Html =>
     element<Message>()(tagName)([...attributes, Key({ value: key })], children)
 
 type ElementFunction<Message> = (
-  attributes: ReadonlyArray<Attribute<Message> | BoundaryAttribute>,
+  attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
   children: ReadonlyArray<Child>,
 ) => Html
 
 type VoidElementFunction<Message> = (
-  attributes: ReadonlyArray<Attribute<Message> | BoundaryAttribute>,
+  attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
 ) => Html
 
 type HtmlElements<Message> = {

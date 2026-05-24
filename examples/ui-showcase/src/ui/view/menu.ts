@@ -1,6 +1,6 @@
 import { Match as M } from 'effect'
 import { Submodel, Ui } from 'foldkit'
-import { Html, boundaryAttributes, html } from 'foldkit/html'
+import { Html, childAttributes, html } from 'foldkit/html'
 
 import * as Icon from '../../icon'
 import {
@@ -97,10 +97,10 @@ const menuViewConfig = (itemsClassNameValue: string) => {
       [h.Class('flex items-center gap-4')],
       [h.span([], ['Actions']), Icon.chevronDown('w-4 h-4')],
     ),
-    buttonAttributes: boundaryAttributes([h.Class(triggerClassName)]),
-    itemsAttributes: boundaryAttributes([h.Class(itemsClassNameValue)]),
-    backdropAttributes: boundaryAttributes([h.Class(backdropClassName)]),
-    attributes: boundaryAttributes([h.Class(wrapperClassName)]),
+    buttonAttributes: childAttributes([h.Class(triggerClassName)]),
+    itemsAttributes: childAttributes([h.Class(itemsClassNameValue)]),
+    backdropAttributes: childAttributes([h.Class(backdropClassName)]),
+    attributes: childAttributes([h.Class(wrapperClassName)]),
     itemGroupKey,
     groupToHeading,
   }

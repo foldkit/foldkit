@@ -1,7 +1,7 @@
 import { Equal, Option } from 'effect'
 import { Submodel, Ui } from 'foldkit'
 import { Valid } from 'foldkit/fieldValidation'
-import { type Html, boundaryAttributes, html } from 'foldkit/html'
+import { type Html, childAttributes, html } from 'foldkit/html'
 
 import { PronounOption } from '../domain'
 import { PersonalInfo } from '../step'
@@ -130,17 +130,17 @@ export const personalInfoView = Submodel.defineView<
                   h.span([h.Class('text-gray-400')], [chevronDown('w-4 h-4')]),
                 ],
               ),
-              buttonAttributes: boundaryAttributes([
+              buttonAttributes: childAttributes([
                 h.Class(
                   'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-indigo-500',
                 ),
               ]),
-              itemsAttributes: boundaryAttributes([
+              itemsAttributes: childAttributes([
                 h.Class(
                   'w-(--button-width) rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden',
                 ),
               ]),
-              backdropAttributes: boundaryAttributes([
+              backdropAttributes: childAttributes([
                 h.Class('fixed inset-0'),
               ]),
             },

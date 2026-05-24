@@ -1,6 +1,6 @@
 import { type DispatchSync, requireDispatch } from './runtimeSingleton.js'
 
-const BRAND = '__boundaryAttribute'
+const BRAND = '__childAttribute'
 
 /** An attribute carrying a handler that dispatches through a Submodel
  *  boundary's wrapping chain. Published by Submodels (typically Foldkit's
@@ -9,18 +9,18 @@ const BRAND = '__boundaryAttribute'
  *  produced these; the runtime routes each handler through the
  *  originating Submodel's wrap chain at event-fire time.
  *
- *  Created via {@link boundaryAttributes}. Element constructors accept
- *  `BoundaryAttribute` alongside `Attribute<Message>` in their attribute
+ *  Created via {@link childAttributes}. Element constructors accept
+ *  `ChildAttribute` alongside `Attribute<Message>` in their attribute
  *  arrays. */
-export type BoundaryAttribute = Readonly<{
+export type ChildAttribute = Readonly<{
   readonly [BRAND]: true
   readonly attribute: unknown
   readonly dispatch: DispatchSync
 }>
 
-export const isBoundaryAttribute = (
+export const isChildAttribute = (
   value: unknown,
-): value is BoundaryAttribute =>
+): value is ChildAttribute =>
   typeof value === 'object' && value !== null && BRAND in value
 
 /** Captures the current boundary's dispatcher and wraps each attribute
@@ -34,7 +34,7 @@ export const isBoundaryAttribute = (
  *  ```ts
  *  // Inside a SubmodelView running in the child's boundary:
  *  return inputs.toView({
- *    checkbox: boundaryAttributes([
+ *    checkbox: childAttributes([
  *      h.OnClick(Toggled()),
  *      h.Role('checkbox'),
  *    ]),
@@ -46,9 +46,9 @@ export const isBoundaryAttribute = (
  *  process `h.OnClick(Toggled())` using the parent's dispatcher (because
  *  the consumer's `toView` runs in the parent's boundary), bypassing the
  *  Submodel's `toParentMessage`. */
-export const boundaryAttributes = <Attribute>(
+export const childAttributes = <Attribute>(
   attributes: ReadonlyArray<Attribute>,
-): ReadonlyArray<BoundaryAttribute> => {
+): ReadonlyArray<ChildAttribute> => {
   const dispatch = requireDispatch()
   return attributes.map(attribute => ({
     [BRAND]: true,

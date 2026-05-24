@@ -1,9 +1,9 @@
 import { Match as M, Schema as S } from 'effect'
 
 import {
-  type BoundaryAttribute,
+  type ChildAttribute,
   type Html,
-  boundaryAttributes,
+  childAttributes,
   defineView,
   html,
 } from '../../html/index.js'
@@ -112,7 +112,7 @@ const positionToContainerStyle = (
  *  Toast's dismiss handler bound to this entry's id; it routes through
  *  the Toast boundary's wrap chain at click time. */
 export type EntryHandlers = Readonly<{
-  dismiss: ReadonlyArray<BoundaryAttribute>
+  dismiss: ReadonlyArray<ChildAttribute>
 }>
 
 const DEFAULT_ARIA_LABEL = 'Notifications'
@@ -229,7 +229,7 @@ export const make = <A, I>(payloadSchema: S.Codec<A, I>) => {
         ]
 
         const handlers: EntryHandlers = {
-          dismiss: boundaryAttributes([
+          dismiss: childAttributes([
             h.OnClick(Dismissed({ entryId: entry.id })),
           ]),
         }

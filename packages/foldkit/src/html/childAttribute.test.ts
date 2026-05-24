@@ -10,7 +10,7 @@ import {
   beginRender,
   createBoundaryRegistry,
 } from './boundary.js'
-import { boundaryAttributes } from './boundaryAttribute.js'
+import { childAttributes } from './childAttribute.js'
 import { html } from './index.js'
 import {
   type DispatchSync,
@@ -52,7 +52,7 @@ const GotChild = (args: { message: ChildClicked }): GotChild => ({
   ...args,
 })
 
-describe('boundaryAttributes', () => {
+describe('childAttributes', () => {
   let registry: BoundaryRegistry
   let dispatched: Array<unknown>
 
@@ -68,19 +68,19 @@ describe('boundaryAttributes', () => {
   })
 
   it('routes a published OnClick through the Submodel boundary even when the consumer builds the element in the parent boundary', () => {
-    // This is the scenario the BoundaryAttribute design solves. The
+    // This is the scenario the ChildAttribute design solves. The
     // Submodel publishes attribute records that the consumer spreads
     // into its own `h.div(...)` in the parent's boundary. Without
-    // boundaryAttributes, the handler would close over the parent's
+    // childAttributes, the handler would close over the parent's
     // dispatcher at vnode-construction time and bypass the Submodel's
-    // wrap. With boundaryAttributes, the published attribute carries
+    // wrap. With childAttributes, the published attribute carries
     // the child's dispatcher and the runtime routes the handler
     // through Checkbox's wrap.
     const fakeCheckboxView = (_model: object, inputs: { toView: any }) => {
       const h = html<ChildClicked>()
       const checkboxAttributes = [h.OnClick({ _tag: 'ChildClicked' })]
       return inputs.toView({
-        checkbox: boundaryAttributes(checkboxAttributes),
+        checkbox: childAttributes(checkboxAttributes),
       })
     }
 
@@ -116,7 +116,7 @@ describe('boundaryAttributes', () => {
     ])
   })
 
-  it("preserves the consumer's own OnClick alongside published BoundaryAttributes", () => {
+  it("preserves the consumer's own OnClick alongside published ChildAttributes", () => {
     // The consumer can mix its own attributes with the published
     // ones. Each routes through the correct dispatcher: the consumer's
     // OnClick goes unwrapped (parent boundary), the published one
@@ -125,7 +125,7 @@ describe('boundaryAttributes', () => {
       const h = html<ChildClicked>()
       const checkboxAttributes = [h.OnClick({ _tag: 'ChildClicked' })]
       return inputs.toView({
-        checkbox: boundaryAttributes(checkboxAttributes),
+        checkbox: childAttributes(checkboxAttributes),
       })
     }
 
@@ -184,7 +184,7 @@ describe('boundaryAttributes', () => {
     ])
   })
 
-  it('binds each attribute group to the boundary that called boundaryAttributes', () => {
+  it('binds each attribute group to the boundary that called childAttributes', () => {
     // Two Submodels publish separate attribute groups. Each group's
     // handlers route through its own Submodel's wrap, not the other's.
     // When both publish a handler for the same DOM event (here, click),
@@ -211,7 +211,7 @@ describe('boundaryAttributes', () => {
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       view: ((_: object, inputs: { capture: any }) => {
         const h = html<FirstChild>()
-        firstAttributes = boundaryAttributes([
+        firstAttributes = childAttributes([
           h.OnClick({ _tag: 'FirstChild' }),
         ])
         inputs.capture(firstAttributes)
@@ -231,7 +231,7 @@ describe('boundaryAttributes', () => {
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       view: ((_: object, inputs: { capture: any }) => {
         const h = html<SecondChild>()
-        secondAttributes = boundaryAttributes([
+        secondAttributes = childAttributes([
           h.OnClick({ _tag: 'SecondChild' }),
         ])
         inputs.capture(secondAttributes)
@@ -265,16 +265,16 @@ describe('boundaryAttributes', () => {
     ])
   })
 
-  it("fires both the published BoundaryAttribute OnClick and the consumer's own OnClick on the same element", () => {
+  it("fires both the published ChildAttribute OnClick and the consumer's own OnClick on the same element", () => {
     // Regression for the same-event overwrite bug. Previously
     // `updateDataOn` used `Object.assign`, so a consumer spreading a
-    // published BoundaryAttribute OnClick alongside their own OnClick
+    // published ChildAttribute OnClick alongside their own OnClick
     // would silently drop one of the two. The chained behavior fires
     // both in spread order, each through the correct dispatch chain.
     const fakeView = (_model: object, inputs: { toView: any }) => {
       const h = html<ChildClicked>()
       return inputs.toView({
-        attrs: boundaryAttributes([h.OnClick({ _tag: 'ChildClicked' })]),
+        attrs: childAttributes([h.OnClick({ _tag: 'ChildClicked' })]),
       })
     }
 

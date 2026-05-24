@@ -3,9 +3,9 @@ import { Effect, Match as M, Option, Schema as S } from 'effect'
 import * as Command from '../../command/index.js'
 import * as Dom from '../../dom/index.js'
 import {
-  type BoundaryAttribute,
+  type ChildAttribute,
   type Html,
-  boundaryAttributes,
+  childAttributes,
   defineView,
   html,
 } from '../../html/index.js'
@@ -144,8 +144,8 @@ export const close = (model: Model): UpdateReturn => update(model, Closed())
  *  `toView` callback. The consumer composes the button + panel layout
  *  themselves using these bundles. */
 export type DisclosureAttributes = Readonly<{
-  button: ReadonlyArray<BoundaryAttribute>
-  panel: ReadonlyArray<BoundaryAttribute>
+  button: ReadonlyArray<ChildAttribute>
+  panel: ReadonlyArray<ChildAttribute>
 }>
 
 /** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
@@ -204,8 +204,8 @@ export const view = defineView<Model, Message, ViewInputs>(
     ]
 
     return toView({
-      button: boundaryAttributes(buttonAttributes),
-      panel: boundaryAttributes(panelAttributes),
+      button: childAttributes(buttonAttributes),
+      panel: childAttributes(panelAttributes),
     })
   },
 )

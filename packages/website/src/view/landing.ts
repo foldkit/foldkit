@@ -1,7 +1,7 @@
 import { clsx } from 'clsx'
 import { Match as M, Option } from 'effect'
 import { Ui } from 'foldkit'
-import { Html, boundaryAttributes, createLazy, html } from 'foldkit/html'
+import { Html, childAttributes, createLazy, html } from 'foldkit/html'
 
 import { Icon } from '../icon'
 import { Link } from '../link'
@@ -240,14 +240,14 @@ const playgroundMenuView = (
         [h.Class('inline-flex items-center gap-2')],
         [Icon.bolt('w-5 h-5'), 'Launch Playground'],
       ),
-      buttonAttributes: boundaryAttributes([
+      buttonAttributes: childAttributes([
         h.Class(playgroundButtonClassName),
       ]),
-      itemsAttributes: boundaryAttributes([h.Class(playgroundItemsClassName)]),
-      backdropAttributes: boundaryAttributes([
+      itemsAttributes: childAttributes([h.Class(playgroundItemsClassName)]),
+      backdropAttributes: childAttributes([
         h.Class(playgroundBackdropClassName),
       ]),
-      attributes: boundaryAttributes([h.Class('relative inline-block')]),
+      attributes: childAttributes([h.Class('relative inline-block')]),
     },
     toParentMessage: message => GotPlaygroundMenuMessage({ message }),
   })

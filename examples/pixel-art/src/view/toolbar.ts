@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { Array } from 'effect'
 import { Ui } from 'foldkit'
-import { type Html, boundaryAttributes, html } from 'foldkit/html'
+import { type Html, childAttributes, html } from 'foldkit/html'
 
 import { EMPTY_COLOR, GRID_SIZE_STRINGS } from '../constant'
 import {
@@ -429,18 +429,18 @@ const themeListboxView = (
         [h.Class('flex items-center justify-between w-full')],
         [h.span([], [theme.name]), chevronDownIcon('w-4 h-4 text-gray-400')],
       ),
-      buttonAttributes: boundaryAttributes([
+      buttonAttributes: childAttributes([
         h.Class(
           'w-full px-3 py-1.5 rounded text-sm bg-gray-800 text-gray-200 hover:bg-gray-700 cursor-pointer transition motion-reduce:transition-none',
         ),
       ]),
-      itemsAttributes: boundaryAttributes([
+      itemsAttributes: childAttributes([
         h.Class(
           'w-[var(--button-width)] rounded-lg border border-gray-700 bg-gray-800 shadow-lg overflow-hidden z-10 outline-none',
         ),
       ]),
-      backdropAttributes: boundaryAttributes([h.Class('fixed inset-0 z-0')]),
-      attributes: boundaryAttributes([h.Class('relative w-full mt-3')]),
+      backdropAttributes: childAttributes([h.Class('fixed inset-0 z-0')]),
+      attributes: childAttributes([h.Class('relative w-full mt-3')]),
     },
     toParentMessage: message => GotThemeListboxMessage({ message }),
   })

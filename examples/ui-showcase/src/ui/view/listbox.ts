@@ -1,6 +1,6 @@
 import { Array, Option } from 'effect'
 import { Submodel, Ui } from 'foldkit'
-import { Html, boundaryAttributes, html } from 'foldkit/html'
+import { Html, childAttributes, html } from 'foldkit/html'
 
 import * as Icon from '../../icon'
 import {
@@ -133,12 +133,12 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                 [h.Class('flex w-full items-center justify-between gap-4')],
                 [h.span([], [singleButtonLabel]), Icon.chevronDown('w-4 h-4')],
               ),
-              buttonAttributes: boundaryAttributes([h.Class(triggerClassName)]),
-              itemsAttributes: boundaryAttributes([h.Class(itemsClassName)]),
-              backdropAttributes: boundaryAttributes([
+              buttonAttributes: childAttributes([h.Class(triggerClassName)]),
+              itemsAttributes: childAttributes([h.Class(itemsClassName)]),
+              backdropAttributes: childAttributes([
                 h.Class(backdropClassName),
               ]),
-              attributes: boundaryAttributes([h.Class(wrapperClassName)]),
+              attributes: childAttributes([h.Class(wrapperClassName)]),
             },
             toParentMessage: message => GotListboxDemoMessage({ message }),
           }),
@@ -175,12 +175,12 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                 [h.Class('flex w-full items-center justify-between gap-4')],
                 [h.span([], [multiButtonLabel]), Icon.chevronDown('w-4 h-4')],
               ),
-              buttonAttributes: boundaryAttributes([h.Class(triggerClassName)]),
-              itemsAttributes: boundaryAttributes([h.Class(itemsClassName)]),
-              backdropAttributes: boundaryAttributes([
+              buttonAttributes: childAttributes([h.Class(triggerClassName)]),
+              itemsAttributes: childAttributes([h.Class(itemsClassName)]),
+              backdropAttributes: childAttributes([
                 h.Class(backdropClassName),
               ]),
-              attributes: boundaryAttributes([h.Class(wrapperClassName)]),
+              attributes: childAttributes([h.Class(wrapperClassName)]),
             },
             toParentMessage: message => GotListboxMultiDemoMessage({ message }),
           }),
@@ -207,7 +207,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                 content: h.span([], [`${lastName}s`]),
                 className: groupHeadingClassName,
               }),
-              separatorAttributes: boundaryAttributes([
+              separatorAttributes: childAttributes([
                 h.Class(separatorClassName),
               ]),
               itemToConfig: character => ({
@@ -226,12 +226,12 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                 [h.Class('flex w-full items-center justify-between gap-4')],
                 [h.span([], [groupedButtonLabel]), Icon.chevronDown('w-4 h-4')],
               ),
-              buttonAttributes: boundaryAttributes([h.Class(triggerClassName)]),
-              itemsAttributes: boundaryAttributes([h.Class(itemsClassName)]),
-              backdropAttributes: boundaryAttributes([
+              buttonAttributes: childAttributes([h.Class(triggerClassName)]),
+              itemsAttributes: childAttributes([h.Class(itemsClassName)]),
+              backdropAttributes: childAttributes([
                 h.Class(backdropClassName),
               ]),
-              attributes: boundaryAttributes([h.Class(wrapperClassName)]),
+              attributes: childAttributes([h.Class(wrapperClassName)]),
             },
             toParentMessage: message =>
               GotListboxGroupedDemoMessage({ message }),

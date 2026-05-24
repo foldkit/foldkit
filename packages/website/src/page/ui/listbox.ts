@@ -1,6 +1,6 @@
 import { Array, Option } from 'effect'
 import { Ui } from 'foldkit'
-import { boundaryAttributes, html } from 'foldkit/html'
+import { childAttributes, html } from 'foldkit/html'
 import type { AnchorConfig } from 'foldkit/ui/listbox'
 
 import { Icon } from '../../icon'
@@ -151,12 +151,12 @@ export const basicDemo = <ParentMessage>(
               [h.Class('flex w-full items-center justify-between gap-4')],
               [h.span([], [buttonLabel]), Icon.chevronDown('w-4 h-4')],
             ),
-            buttonAttributes: boundaryAttributes([h.Class(triggerClassName)]),
-            itemsAttributes: boundaryAttributes([h.Class(itemsClassName)]),
-            backdropAttributes: boundaryAttributes([
+            buttonAttributes: childAttributes([h.Class(triggerClassName)]),
+            itemsAttributes: childAttributes([h.Class(itemsClassName)]),
+            backdropAttributes: childAttributes([
               h.Class(backdropClassName),
             ]),
-            attributes: boundaryAttributes([h.Class(wrapperClassName)]),
+            attributes: childAttributes([h.Class(wrapperClassName)]),
           },
           toParentMessage: message =>
             toParentMessage(GotListboxDemoMessage({ message })),
@@ -206,12 +206,12 @@ export const multiSelectDemo = <ParentMessage>(
               [h.Class('flex w-full items-center justify-between gap-4')],
               [h.span([], [buttonLabel]), Icon.chevronDown('w-4 h-4')],
             ),
-            buttonAttributes: boundaryAttributes([h.Class(triggerClassName)]),
-            itemsAttributes: boundaryAttributes([h.Class(itemsClassName)]),
-            backdropAttributes: boundaryAttributes([
+            buttonAttributes: childAttributes([h.Class(triggerClassName)]),
+            itemsAttributes: childAttributes([h.Class(itemsClassName)]),
+            backdropAttributes: childAttributes([
               h.Class(backdropClassName),
             ]),
-            attributes: boundaryAttributes([h.Class(wrapperClassName)]),
+            attributes: childAttributes([h.Class(wrapperClassName)]),
           },
           toParentMessage: message =>
             toParentMessage(GotListboxMultiDemoMessage({ message })),
@@ -249,7 +249,7 @@ export const groupedDemo = <ParentMessage>(
               content: h.span([], [`${lastName}s`]),
               className: groupHeadingClassName,
             }),
-            separatorAttributes: boundaryAttributes([
+            separatorAttributes: childAttributes([
               h.Class(separatorClassName),
             ]),
             itemToConfig: character => ({
@@ -268,12 +268,12 @@ export const groupedDemo = <ParentMessage>(
               [h.Class('flex w-full items-center justify-between gap-4')],
               [h.span([], [buttonLabel]), Icon.chevronDown('w-4 h-4')],
             ),
-            buttonAttributes: boundaryAttributes([h.Class(triggerClassName)]),
-            itemsAttributes: boundaryAttributes([h.Class(itemsClassName)]),
-            backdropAttributes: boundaryAttributes([
+            buttonAttributes: childAttributes([h.Class(triggerClassName)]),
+            itemsAttributes: childAttributes([h.Class(itemsClassName)]),
+            backdropAttributes: childAttributes([
               h.Class(backdropClassName),
             ]),
-            attributes: boundaryAttributes([h.Class(wrapperClassName)]),
+            attributes: childAttributes([h.Class(wrapperClassName)]),
           },
           toParentMessage: message =>
             toParentMessage(GotListboxGroupedDemoMessage({ message })),

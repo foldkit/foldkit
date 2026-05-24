@@ -11,10 +11,10 @@ import {
 import * as Command from '../../command/index.js'
 import * as Dom from '../../dom/index.js'
 import {
-  type BoundaryAttribute,
+  type ChildAttribute,
   type Html,
   type SubmodelView,
-  boundaryAttributes,
+  childAttributes,
   defineView,
   html,
 } from '../../html/index.js'
@@ -176,8 +176,8 @@ export type TabInfo<Value extends string = string> = Readonly<{
   isActive: boolean
   isFocused: boolean
   isDisabled: boolean
-  tab: ReadonlyArray<BoundaryAttribute>
-  panel: ReadonlyArray<BoundaryAttribute>
+  tab: ReadonlyArray<ChildAttribute>
+  panel: ReadonlyArray<ChildAttribute>
 }>
 
 /** Render-time payload published to the consumer's `toView`.
@@ -190,7 +190,7 @@ export type TabInfo<Value extends string = string> = Readonly<{
  *    consumer wants to render only the active panel (vs all panels with
  *    `Hidden` for transitions). */
 export type RenderInfo<Value extends string = string> = Readonly<{
-  tablist: ReadonlyArray<BoundaryAttribute>
+  tablist: ReadonlyArray<ChildAttribute>
   tabs: ReadonlyArray<TabInfo<Value>>
   activeIndex: number
 }>
@@ -334,8 +334,8 @@ const internalView = defineView<Model, Message, ViewInputs>(
         isActive,
         isFocused,
         isDisabled: isTabDisabledNow,
-        tab: boundaryAttributes(tabAttributes),
-        panel: boundaryAttributes(panelAttributes),
+        tab: childAttributes(tabAttributes),
+        panel: childAttributes(panelAttributes),
       }
     })
 
@@ -346,7 +346,7 @@ const internalView = defineView<Model, Message, ViewInputs>(
     ]
 
     return toView({
-      tablist: boundaryAttributes(tablistAttributes),
+      tablist: childAttributes(tablistAttributes),
       tabs: tabInfos,
       activeIndex,
     })

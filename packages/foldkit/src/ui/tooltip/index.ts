@@ -11,9 +11,9 @@ import {
 import * as Command from '../../command/index.js'
 import { OptionExt } from '../../effectExtensions/index.js'
 import {
-  type BoundaryAttribute,
+  type ChildAttribute,
   type Html,
-  boundaryAttributes,
+  childAttributes,
   defineView,
   html,
 } from '../../html/index.js'
@@ -357,8 +357,8 @@ export const setShowDelay = (
  *  - `isVisible`: derived state. The consumer decides whether to render
  *    the panel conditionally on this. */
 export type RenderInfo = Readonly<{
-  trigger: ReadonlyArray<BoundaryAttribute>
-  panel: ReadonlyArray<BoundaryAttribute>
+  trigger: ReadonlyArray<ChildAttribute>
+  panel: ReadonlyArray<ChildAttribute>
   isVisible: boolean
 }>
 
@@ -423,8 +423,8 @@ export const view = defineView<Model, Message, ViewInputs>(
     ]
 
     return toView({
-      trigger: boundaryAttributes(triggerAttributes),
-      panel: boundaryAttributes(panelAttributes),
+      trigger: childAttributes(triggerAttributes),
+      panel: childAttributes(panelAttributes),
       isVisible: isOpen,
     })
   },

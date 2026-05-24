@@ -2,9 +2,9 @@ import { Match as M, Option, Schema as S } from 'effect'
 
 import type { Command } from '../../command/index.js'
 import {
-  type BoundaryAttribute,
+  type ChildAttribute,
   type Html,
-  boundaryAttributes,
+  childAttributes,
   defineView,
   html,
 } from '../../html/index.js'
@@ -86,7 +86,7 @@ export const update = (
 // VIEW
 
 /** Attribute groups the checkbox component provides to the consumer's
- *  `toView` callback. Each group is a `ReadonlyArray<BoundaryAttribute>`:
+ *  `toView` callback. Each group is a `ReadonlyArray<ChildAttribute>`:
  *  attributes published from inside Checkbox's own boundary that the
  *  consumer can spread directly into its own element attribute arrays:
  *
@@ -106,10 +106,10 @@ export const update = (
  *  consumer never has to think about which boundary an attribute belongs
  *  to. */
 export type CheckboxAttributes = Readonly<{
-  checkbox: ReadonlyArray<BoundaryAttribute>
-  label: ReadonlyArray<BoundaryAttribute>
-  description: ReadonlyArray<BoundaryAttribute>
-  hiddenInput: ReadonlyArray<BoundaryAttribute>
+  checkbox: ReadonlyArray<ChildAttribute>
+  label: ReadonlyArray<ChildAttribute>
+  description: ReadonlyArray<ChildAttribute>
+  hiddenInput: ReadonlyArray<ChildAttribute>
 }>
 
 /** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
@@ -193,10 +193,10 @@ export const view = defineView<Model, Message, ViewInputs>(
       : []
 
     return inputs.toView({
-      checkbox: boundaryAttributes(checkboxAttributes),
-      label: boundaryAttributes(labelAttributes),
-      description: boundaryAttributes(descriptionAttributes),
-      hiddenInput: boundaryAttributes(hiddenInputAttributes),
+      checkbox: childAttributes(checkboxAttributes),
+      label: childAttributes(labelAttributes),
+      description: childAttributes(descriptionAttributes),
+      hiddenInput: childAttributes(hiddenInputAttributes),
     })
   },
 )

@@ -1,5 +1,5 @@
 export {
-  boundaryAttributes,
+  childAttributes,
   createKeyedLazy,
   createLazy,
   html,
@@ -8,7 +8,7 @@ export {
 
 export type {
   Attribute,
-  BoundaryAttribute,
+  ChildAttribute,
   Document,
   Html,
   KeyboardModifiers,

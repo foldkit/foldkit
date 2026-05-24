@@ -115,27 +115,27 @@ const handlingInTheParentHeader: TableOfContentsEntry = {
   text: 'Handling in the Parent',
 }
 
-const boundaryAttributesHeader: TableOfContentsEntry = {
+const childAttributesHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'boundary-attributes',
-  text: 'boundaryAttributes',
+  id: 'child-attributes',
+  text: 'childAttributes',
 }
 
-const boundaryAttributesProblemHeader: TableOfContentsEntry = {
+const childAttributesProblemHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'boundary-attributes-the-problem',
+  id: 'child-attributes-the-problem',
   text: 'The Problem',
 }
 
-const boundaryAttributesHowItWorksHeader: TableOfContentsEntry = {
+const childAttributesHowItWorksHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'boundary-attributes-how-it-works',
+  id: 'child-attributes-how-it-works',
   text: 'How It Works',
 }
 
-const boundaryAttributesWhenToReachHeader: TableOfContentsEntry = {
+const childAttributesWhenToReachHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'boundary-attributes-when-to-reach',
+  id: 'child-attributes-when-to-reach',
   text: 'When to Reach For It',
 }
 
@@ -156,10 +156,10 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   definingOutMessagesHeader,
   emittingFromTheChildHeader,
   handlingInTheParentHeader,
-  boundaryAttributesHeader,
-  boundaryAttributesProblemHeader,
-  boundaryAttributesHowItWorksHeader,
-  boundaryAttributesWhenToReachHeader,
+  childAttributesHeader,
+  childAttributesProblemHeader,
+  childAttributesHowItWorksHeader,
+  childAttributesWhenToReachHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
@@ -537,7 +537,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' get auto-wrapped to execute in the parent’s boundary, so any handlers the parent builds inside them (e.g. ',
         inlineCode('h.OnClick(ParentMessage())'),
         ') dispatch through the parent’s wrapping chain, not the child’s. See the ',
-        link('#boundary-attributes', 'boundaryAttributes'),
+        link('#child-attributes', 'childAttributes'),
         ' section below for the complementary mechanism: how the child publishes attribute bundles that route back through its own boundary.',
       ),
       warningCallout(
@@ -774,16 +774,16 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('SucceededLogin'),
         ' when authentication completes, and the parent transitions to the logged-in state, saves the session, and updates the URL, all triggered by a single OutMessage.',
       ),
-      tableOfContentsEntryToHeader(boundaryAttributesHeader),
+      tableOfContentsEntryToHeader(childAttributesHeader),
       para(
-        inlineCode('boundaryAttributes'),
+        inlineCode('childAttributes'),
         ' is how a Submodel publishes attribute bundles to its parent without losing the wiring that routes its own events back through its own update function. The Submodel calls ',
-        inlineCode('boundaryAttributes([...])'),
+        inlineCode('childAttributes([...])'),
         ' to brand each attribute, and the consumer spreads the result onto whatever element they want with ',
         inlineCode("[...attrs.button, h.Class('...')]"),
         '. The branded handlers route correctly even though the consumer attached them inside their own view, under their own boundary.',
       ),
-      tableOfContentsEntryToHeader(boundaryAttributesProblemHeader),
+      tableOfContentsEntryToHeader(childAttributesProblemHeader),
       para(
         'A Submodel’s view builds attributes like ',
         inlineCode('h.OnClick(Toggled())'),
@@ -802,15 +802,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('Toggled()'),
         ' it doesn’t know how to handle.',
       ),
-      tableOfContentsEntryToHeader(boundaryAttributesHowItWorksHeader),
+      tableOfContentsEntryToHeader(childAttributesHowItWorksHeader),
       para(
-        inlineCode('boundaryAttributes'),
+        inlineCode('childAttributes'),
         ' snapshots the Submodel’s dispatcher at the moment of publishing. Each attribute in the returned array carries that captured dispatcher with it. When the consumer’s element constructor (',
         inlineCode('h.button'),
         ', ',
         inlineCode('h.input'),
         ', etc.) sees a branded ',
-        inlineCode('BoundaryAttribute'),
+        inlineCode('ChildAttribute'),
         ', it uses the carried dispatcher instead of the current one. The handler ends up wired to the Submodel’s frame even though the element lives in the parent’s view.',
       ),
       para('In code, the Submodel’s view publishes branded attribute groups:'),
@@ -818,11 +818,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelBoundaryAttributesPublishHighlighted),
+            h.InnerHTML(Snippets.submodelChildAttributesPublishHighlighted),
           ],
           [],
         ),
-        Snippets.submodelBoundaryAttributesPublishRaw,
+        Snippets.submodelChildAttributesPublishRaw,
         'Copy snippet to clipboard',
         copiedSnippets,
         'mb-4',
@@ -836,11 +836,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelBoundaryAttributesConsumeHighlighted),
+            h.InnerHTML(Snippets.submodelChildAttributesConsumeHighlighted),
           ],
           [],
         ),
-        Snippets.submodelBoundaryAttributesConsumeRaw,
+        Snippets.submodelChildAttributesConsumeRaw,
         'Copy snippet to clipboard',
         copiedSnippets,
         'mb-4',
@@ -858,15 +858,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('h.Class'),
         ' attribute is untouched: it’s a styling attribute with no message wiring.',
       ),
-      tableOfContentsEntryToHeader(boundaryAttributesWhenToReachHeader),
+      tableOfContentsEntryToHeader(childAttributesWhenToReachHeader),
       para(
         'If you’re consuming a Foldkit UI primitive, you don’t call ',
-        inlineCode('boundaryAttributes'),
+        inlineCode('childAttributes'),
         ' yourself. The primitive’s view publishes branded attributes; you just spread them.',
       ),
       para(
         'If you’re authoring your own Submodel and publishing attribute bundles to a consumer’s slot callback, every published attribute group must be wrapped in ',
-        inlineCode('boundaryAttributes'),
+        inlineCode('childAttributes'),
         '. Forgetting this is a quiet bug: handlers can route through the parent’s frame and the Submodel’s update will never see its own events. Read the published Submodels in ',
         inlineCode('packages/foldkit/src/ui/'),
         ' for the canonical pattern.',
@@ -878,7 +878,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' and ',
         inlineCode('Ui.Input'),
         ' don’t publish via ',
-        inlineCode('boundaryAttributes'),
+        inlineCode('childAttributes'),
         '. They’re not Submodels; their ',
         inlineCode('onClick'),
         ' or ',

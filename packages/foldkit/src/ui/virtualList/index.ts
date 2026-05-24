@@ -12,11 +12,11 @@ import {
 
 import * as Command from '../../command/index.js'
 import {
-  type BoundaryAttribute,
+  type ChildAttribute,
   type Html,
   type SubmodelView,
   type TagName,
-  boundaryAttributes,
+  childAttributes,
   defineView,
   html,
 } from '../../html/index.js'
@@ -554,7 +554,7 @@ export type ViewInputs<Item> = Readonly<{
   overscan?: number
   rowElement?: TagName
   containerClassName?: string
-  containerAttributes?: ReadonlyArray<BoundaryAttribute>
+  containerAttributes?: ReadonlyArray<ChildAttribute>
 }>
 
 /** Renders a virtualized list. Only items inside the viewport (plus an
@@ -602,7 +602,7 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
     ]
 
     const allContainerAttributes = [
-      ...boundaryAttributes(baseContainerAttributes),
+      ...childAttributes(baseContainerAttributes),
       ...containerAttributes,
     ]
 
