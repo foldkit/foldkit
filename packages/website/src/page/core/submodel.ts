@@ -88,13 +88,13 @@ const readingParentStateHeader: TableOfContentsEntry = {
 const parentStateInViewHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'parent-state-in-view',
-  text: 'Passing parent state to a child Submodel’s view',
+  text: 'Passing Parent State to a Child Submodel’s view',
 }
 
 const parentStateInUpdateHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'parent-state-in-update',
-  text: 'Providing parent state to a child Submodel’s update',
+  text: 'Providing Parent State to a Child Submodel’s update',
 }
 
 const surfacingFactsHeader: TableOfContentsEntry = {
@@ -561,7 +561,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       tableOfContentsEntryToHeader(multipleInstancesHeader),
       para(
-        'A parent often embeds several instances of the same Submodel: a list of form entries, an array of accordions, repeated cards on a dashboard. There are two shapes.',
+        'A parent often embeds several instances of the same Submodel, for example a list of form entries, an array of accordions, or repeated cards on a dashboard. There are two shapes.',
       ),
       para(
         'For a fixed number of instances, embed each as a separate field on the parent Model with its own ',
@@ -697,9 +697,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' at the moment the message is being processed, and because the parent assembles the context fresh on every dispatch, the next call automatically sees any parent changes. Single source of truth, no sync obligation.',
       ),
       para(
-        'A context argument gives the child the current value when update runs. It does not notify the child when that value changes. If the child needs to react to ',
+        'A context argument gives the child the current value when update runs. It does not notify the child when that value changes. If the child needs to respond to ',
         inlineCode('currentUser'),
-        ' changing (clear caches, reset a form), the canonical move is for the parent to dispatch a child Message through ',
+        ' changing (for example to clear caches or reset a form), the canonical move is for the parent to dispatch a child Message through ',
         inlineCode('GotChildMessage'),
         ' carrying the new value. Context-arg is for reading current parent state inside an update tick, not for observing parent state over time.',
       ),

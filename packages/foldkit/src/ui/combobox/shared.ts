@@ -471,7 +471,7 @@ export const makeUpdate = <Model extends BaseModel>(
     const closeCombobox = (
       baseModel: Model,
       commands: ReadonlyArray<Command.Command<Message>>,
-      maybeOut: Option.Option<OutMessage> = Option.none(),
+      maybeOutMessage: Option.Option<OutMessage> = Option.none(),
     ): UpdateReturn => {
       const closed = handlers.handleClose(baseModel)
 
@@ -480,10 +480,10 @@ export const makeUpdate = <Model extends BaseModel>(
           closed,
           AnimationHid(),
         )
-        return [nextModel, [...commands, ...animationCommands], maybeOut]
+        return [nextModel, [...commands, ...animationCommands], maybeOutMessage]
       }
 
-      return [closed, commands, maybeOut]
+      return [closed, commands, maybeOutMessage]
     }
 
     return M.value(message).pipe(
@@ -583,16 +583,12 @@ export const makeUpdate = <Model extends BaseModel>(
             : [model, [], Option.none()],
 
         SelectedItem: ({ item, displayText }) => {
-          const [nextModel, commands, maybeOut] = handlers.handleSelectedItem(
-            model,
-            item,
-            displayText,
-            {
+          const [nextModel, commands, maybeOutMessage] =
+            handlers.handleSelectedItem(model, item, displayText, {
               focusInput,
               maybeUnlockScroll,
               maybeRestoreInert,
-            },
-          )
+            })
 
           if (model.isOpen && !nextModel.isOpen && model.isAnimated) {
             const [transitionedModel, animationCommands] = delegateToAnimation(
@@ -602,11 +598,11 @@ export const makeUpdate = <Model extends BaseModel>(
             return [
               transitionedModel,
               [...commands, ...animationCommands],
-              maybeOut,
+              maybeOutMessage,
             ]
           }
 
-          return [nextModel, commands, maybeOut]
+          return [nextModel, commands, maybeOutMessage]
         },
 
         RequestedItemClick: ({ index }) => [

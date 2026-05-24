@@ -45,10 +45,10 @@ export const update = (
 // Inside the parent's update handler, assemble the context from the
 // parent Model and pass it through to the child's update:
 GotSettingsMessage: ({ message }) => {
-  const [nextSettings, commands, maybeOut] = Settings.update(
+  const [nextSettings, commands, maybeOutMessage] = Settings.update(
     model.settings,
     message,
     { currentUser: model.currentUser },
   )
-  // ...usual wrapping of `commands` and pattern-match on `maybeOut`
+  // ...usual wrapping of `commands` and pattern-match on `maybeOutMessage`
 }

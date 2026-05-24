@@ -48,12 +48,15 @@ const ClickedSave = m('ClickedSave')
 // Messages. The third tuple element is `Option<OutMessage>` — pattern-match
 // it to lift the DismissedToast event into domain state:
 GotToastMessage: ({ message }) => {
-  const [nextToast, commands, maybeOut] = Toast.update(model.toast, message)
+  const [nextToast, commands, maybeOutMessage] = Toast.update(
+    model.toast,
+    message,
+  )
   const mappedCommands = Command.mapMessages(commands, message =>
     GotToastMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [evo(model, { toast: () => nextToast }), mappedCommands],
     onSome: M.type<typeof Toast.OutMessage.Type>().pipe(
       M.tagsExhaustive({

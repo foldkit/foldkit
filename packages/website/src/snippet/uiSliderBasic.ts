@@ -38,7 +38,7 @@ const GotSliderMessage = m('GotSliderMessage', {
 // Ui.Slider.update. The OutMessage's `ChangedValue` carries the new
 // number — lift it to domain state, validate, or persist on each commit.
 GotSliderMessage: ({ message }) => {
-  const [nextSlider, commands, maybeOut] = Ui.Slider.update(
+  const [nextSlider, commands, maybeOutMessage] = Ui.Slider.update(
     model.ratingDemo,
     message,
   )
@@ -46,7 +46,7 @@ GotSliderMessage: ({ message }) => {
     GotSliderMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [
       evo(model, { ratingDemo: () => nextSlider }),
       mappedCommands,
@@ -54,8 +54,11 @@ GotSliderMessage: ({ message }) => {
     onSome: M.type<Ui.Slider.OutMessage>().pipe(
       M.tagsExhaustive({
         ChangedValue: ({ value }) => [
-          // React to the committed value — persist, validate, dispatch
-          // dependent Commands.
+          // The child has emitted `ChangedValue`. The body commits
+          // the child's next state as usual. In this arm the parent
+          // can also update its own state or dispatch its own
+          // Commands, for example persist the value, validate, or
+          // trigger a downstream Command.
           evo(model, { ratingDemo: () => nextSlider }),
           mappedCommands,
         ],

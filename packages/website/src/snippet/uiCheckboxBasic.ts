@@ -32,7 +32,7 @@ const GotCheckboxMessage = m('GotCheckboxMessage', {
 // `isChecked` value — use it to fire analytics, validate a form, or push
 // the value to a backend at the toggle moment.
 GotCheckboxMessage: ({ message }) => {
-  const [nextCheckbox, commands, maybeOut] = Ui.Checkbox.update(
+  const [nextCheckbox, commands, maybeOutMessage] = Ui.Checkbox.update(
     model.checkboxDemo,
     message,
   )
@@ -40,7 +40,7 @@ GotCheckboxMessage: ({ message }) => {
     GotCheckboxMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [
       evo(model, { checkboxDemo: () => nextCheckbox }),
       mappedCommands,
@@ -48,10 +48,11 @@ GotCheckboxMessage: ({ message }) => {
     onSome: M.type<Ui.Checkbox.OutMessage>().pipe(
       M.tagsExhaustive({
         ToggledChecked: ({ isChecked }) => {
-          // React to the toggle — e.g. dispatch a Command, validate a
-          // form, save a preference. Returning the next model + mapped
-          // commands keeps the checkbox in sync; add your own commands
-          // as needed.
+          // The child has emitted `ToggledChecked`. The body commits
+          // the child's next state as usual. In this arm the parent
+          // can also update its own state or dispatch its own
+          // Commands, for example save the preference, validate a
+          // form, or dispatch a downstream Command.
           return [
             evo(model, { checkboxDemo: () => nextCheckbox }),
             mappedCommands,

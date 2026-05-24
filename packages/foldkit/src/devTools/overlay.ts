@@ -666,7 +666,7 @@ const makeUpdate = (
           ]
         },
         GotSubmodelFilterMessage: ({ message: listboxMessage }) => {
-          const [nextListboxModel, listboxCommands, maybeOut] =
+          const [nextListboxModel, listboxCommands, maybeOutMessage] =
             SubmodelFilterListbox.update(
               model.submodelFilterListbox,
               listboxMessage,
@@ -676,7 +676,7 @@ const makeUpdate = (
             innerMessage => GotSubmodelFilterMessage({ message: innerMessage }),
           )
 
-          return Option.match(maybeOut, {
+          return Option.match(maybeOutMessage, {
             onNone: (): readonly [
               Model,
               ReadonlyArray<Command.Command<Message>>,

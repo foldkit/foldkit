@@ -375,12 +375,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotToolRadioGroupMessage: ({ message }) => {
-        const [nextToolRadioGroup, toolCommands, maybeOut] =
+        const [nextToolRadioGroup, toolCommands, maybeOutMessage] =
           ToolRadioGroup.update(model.toolRadioGroup, message)
         const mappedCommands = Command.mapMessages(toolCommands, radioMessage =>
           GotToolRadioGroupMessage({ message: radioMessage }),
         )
-        return Option.match(maybeOut, {
+        return Option.match(maybeOutMessage, {
           onNone: (): UpdateReturn => [
             evo(model, { toolRadioGroup: () => nextToolRadioGroup }),
             mappedCommands,
@@ -401,14 +401,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotGridSizeRadioGroupMessage: ({ message }) => {
-        const [nextGridSizeRadioGroup, gridSizeCommands, maybeOut] =
+        const [nextGridSizeRadioGroup, gridSizeCommands, maybeOutMessage] =
           GridSizeRadioGroup.update(model.gridSizeRadioGroup, message)
         const mappedCommands = Command.mapMessages(
           gridSizeCommands,
           radioMessage =>
             GotGridSizeRadioGroupMessage({ message: radioMessage }),
         )
-        return Option.match(maybeOut, {
+        return Option.match(maybeOutMessage, {
           onNone: (): UpdateReturn => [
             evo(model, { gridSizeRadioGroup: () => nextGridSizeRadioGroup }),
             mappedCommands,
@@ -435,14 +435,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotPaletteRadioGroupMessage: ({ message }) => {
-        const [nextPaletteRadioGroup, paletteCommands, maybeOut] =
+        const [nextPaletteRadioGroup, paletteCommands, maybeOutMessage] =
           PaletteRadioGroup.update(model.paletteRadioGroup, message)
         const mappedCommands = Command.mapMessages(
           paletteCommands,
           radioMessage =>
             GotPaletteRadioGroupMessage({ message: radioMessage }),
         )
-        return Option.match(maybeOut, {
+        return Option.match(maybeOutMessage, {
           onNone: (): UpdateReturn => [
             evo(model, { paletteRadioGroup: () => nextPaletteRadioGroup }),
             mappedCommands,
@@ -515,13 +515,13 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotThemeListboxMessage: ({ message }) => {
-        const [nextThemeListbox, themeListboxCommands, maybeOut] =
+        const [nextThemeListbox, themeListboxCommands, maybeOutMessage] =
           ThemeListbox.update(model.themeListbox, message)
         const mappedCommands = Command.mapMessages(
           themeListboxCommands,
           listboxMessage => GotThemeListboxMessage({ message: listboxMessage }),
         )
-        return Option.match(maybeOut, {
+        return Option.match(maybeOutMessage, {
           onNone: (): UpdateReturn => [
             evo(model, { themeListbox: () => nextThemeListbox }),
             mappedCommands,

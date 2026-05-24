@@ -234,7 +234,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotDurationRadioGroupMessage: ({ message: radioGroupMessage }) => {
-        const [nextRadioGroup, radioGroupCommands, maybeOut] =
+        const [nextRadioGroup, radioGroupCommands, maybeOutMessage] =
           NoteDurationRadioGroup.update(
             model.durationRadioGroup,
             radioGroupMessage,
@@ -244,7 +244,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           message => GotDurationRadioGroupMessage({ message }),
         )
 
-        return Option.match(maybeOut, {
+        return Option.match(maybeOutMessage, {
           onNone: (): readonly [
             Model,
             ReadonlyArray<Command.Command<Message>>,

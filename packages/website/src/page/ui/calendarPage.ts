@@ -506,7 +506,7 @@ export const view = <ParentMessage>(
         inlineCode('Calendar.view()'),
         '. The update function returns ',
         inlineCode('[Model, Commands, Option<OutMessage>]'),
-        '. The OutMessage lets parents react to meaningful events like date selection and month changes.',
+        '. The OutMessage lets the parent handle meaningful events, for example date selection or month changes.',
       ),
       infoCallout(
         'See it in an app',

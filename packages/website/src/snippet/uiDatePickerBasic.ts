@@ -52,7 +52,7 @@ const GotDatePickerMessage = m('GotDatePickerMessage', {
 // domain state. `ChangedViewMonth` fires when calendar navigation shifts
 // the visible month without selecting a date.
 GotDatePickerMessage: ({ message }) => {
-  const [nextDatePicker, commands, maybeOut] = Ui.DatePicker.update(
+  const [nextDatePicker, commands, maybeOutMessage] = Ui.DatePicker.update(
     model.datePickerDemo,
     message,
   )
@@ -60,7 +60,7 @@ GotDatePickerMessage: ({ message }) => {
     GotDatePickerMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [
       evo(model, { datePickerDemo: () => nextDatePicker }),
       mappedCommands,
@@ -68,8 +68,11 @@ GotDatePickerMessage: ({ message }) => {
     onSome: M.type<Ui.DatePicker.OutMessage>().pipe(
       M.tagsExhaustive({
         SelectedDateOut: ({ date }) => [
-          // Lift the date into your own state — e.g. for form submission,
-          // validation, or a downstream API call:
+          // The child has emitted `SelectedDateOut`. The body commits
+          // the child's next state as usual. In this arm the parent
+          // can also update its own state or dispatch its own
+          // Commands, for example lift the date into its own field,
+          // validate, or trigger a downstream API call.
           evo(model, {
             datePickerDemo: () =>
               nextDatePicker /*, pickedDate: () => Option.some(date) */,
@@ -77,6 +80,11 @@ GotDatePickerMessage: ({ message }) => {
           mappedCommands,
         ],
         ChangedViewMonth: () => [
+          // The child has emitted `ChangedViewMonth`. The body commits
+          // the child's next state as usual. In this arm the parent
+          // can also update its own state or dispatch its own
+          // Commands, for example prefetch month data, fire analytics,
+          // or trigger a downstream Command.
           evo(model, { datePickerDemo: () => nextDatePicker }),
           mappedCommands,
         ],

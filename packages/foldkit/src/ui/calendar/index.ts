@@ -852,7 +852,7 @@ export type CalendarAttributes =
 /** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *
  *  The Calendar dispatches its own `ClickedDay` message on date commit
- *  and emits a `SelectedDate` OutMessage. Consumers react to date
+ *  and emits a `SelectedDate` OutMessage. Consumers handle date
  *  selection by pattern-matching the OutMessage in their
  *  `GotCalendarMessage` handler. */
 export type ViewInputs = Readonly<{

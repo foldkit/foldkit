@@ -42,7 +42,7 @@ const GotListboxMessage = m('GotListboxMessage', {
 // third tuple element is `Option<OutMessage>`; when the user commits a
 // selection it carries `Selected({ item })` where `item: Plan`:
 GotListboxMessage: ({ message }) => {
-  const [nextListbox, commands, maybeOut] = PlanListbox.update(
+  const [nextListbox, commands, maybeOutMessage] = PlanListbox.update(
     model.listbox,
     message,
   )
@@ -50,7 +50,7 @@ GotListboxMessage: ({ message }) => {
     GotListboxMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [evo(model, { listbox: () => nextListbox }), mappedCommands],
     onSome: M.type<Ui.Listbox.OutMessage<Plan>>().pipe(
       M.tagsExhaustive({

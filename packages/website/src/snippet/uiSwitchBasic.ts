@@ -32,7 +32,7 @@ const GotSwitchMessage = m('GotSwitchMessage', {
 // `isChecked` value — use it to save a preference, sync to a backend,
 // or trigger a side effect at the toggle moment.
 GotSwitchMessage: ({ message }) => {
-  const [nextSwitch, commands, maybeOut] = Ui.Switch.update(
+  const [nextSwitch, commands, maybeOutMessage] = Ui.Switch.update(
     model.switchDemo,
     message,
   )
@@ -40,7 +40,7 @@ GotSwitchMessage: ({ message }) => {
     GotSwitchMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [
       evo(model, { switchDemo: () => nextSwitch }),
       mappedCommands,
@@ -48,9 +48,11 @@ GotSwitchMessage: ({ message }) => {
     onSome: M.type<Ui.Switch.OutMessage>().pipe(
       M.tagsExhaustive({
         ToggledChecked: ({ isChecked }) => {
-          // React to the toggle here — persist the preference, fire
-          // analytics, or dispatch your own Commands. Returning the next
-          // model + mapped commands keeps the switch in sync.
+          // The child has emitted `ToggledChecked`. The body commits
+          // the child's next state as usual. In this arm the parent
+          // can also update its own state or dispatch its own
+          // Commands, for example persist the preference, fire
+          // analytics, or dispatch a downstream Command.
           return [evo(model, { switchDemo: () => nextSwitch }), mappedCommands]
         },
       }),

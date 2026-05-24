@@ -38,7 +38,7 @@ const GotListboxMultiMessage = m('GotListboxMultiMessage', {
 // item and `wasAdded: boolean` indicating whether it was added or
 // removed:
 GotListboxMultiMessage: ({ message }) => {
-  const [nextListbox, commands, maybeOut] = PeopleListbox.update(
+  const [nextListbox, commands, maybeOutMessage] = PeopleListbox.update(
     model.listboxMulti,
     message,
   )
@@ -46,7 +46,7 @@ GotListboxMultiMessage: ({ message }) => {
     GotListboxMultiMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [
       evo(model, { listboxMulti: () => nextListbox }),
       mappedCommands,

@@ -492,7 +492,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   const closeMenu = (
     baseModel: Model,
     commands: ReadonlyArray<Command.Command<Message>>,
-    maybeOut: Option.Option<OutMessage> = Option.none(),
+    maybeOutMessage: Option.Option<OutMessage> = Option.none(),
   ): UpdateReturn => {
     const closed = closedModel(baseModel)
 
@@ -501,10 +501,10 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         closed,
         AnimationHid(),
       )
-      return [nextModel, [...commands, ...animationCommands], maybeOut]
+      return [nextModel, [...commands, ...animationCommands], maybeOutMessage]
     }
 
-    return [closed, commands, maybeOut]
+    return [closed, commands, maybeOutMessage]
   }
 
   return M.value(message).pipe(
@@ -1295,8 +1295,8 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
  *  h.submodel({ view: ActionMenu.view, ... })
  *
  *  // In update:
- *  const [next, commands, maybeOut] = ActionMenu.update(model.menu, message)
- *  // maybeOut: Option<Ui.Menu.OutMessage<Action>>
+ *  const [next, commands, maybeOutMessage] = ActionMenu.update(model.menu, message)
+ *  // maybeOutMessage: Option<Ui.Menu.OutMessage<Action>>
  *  ```
  */
 export const create = <Item extends string = string>(): Readonly<{

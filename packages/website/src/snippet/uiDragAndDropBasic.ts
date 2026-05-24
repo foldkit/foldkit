@@ -65,9 +65,13 @@ GotDragAndDropMessage: ({ message: dragMessage }) => {
             mappedCommands,
           ],
           Cancelled: () => [
-            // Merge the next state into your Model:
+            // The child has emitted `Cancelled`. The body commits
+            // the child's next state as usual. In this arm the
+            // parent can also update its own state or dispatch its
+            // own Commands, for example revert an optimistic UI
+            // change, log analytics, or trigger a downstream
+            // Command.
             evo(model, { dragAndDrop: () => nextDragAndDrop }),
-            // Forward the Submodel's Commands through your parent Message:
             mappedCommands,
           ],
         }),

@@ -39,7 +39,7 @@ const GotComboboxMessage = m('GotComboboxMessage', {
 // CityCombobox.update. The OutMessage's `Selected` carries the chosen
 // item; lift it into your domain state:
 GotComboboxMessage: ({ message }) => {
-  const [nextCombobox, commands, maybeOut] = CityCombobox.update(
+  const [nextCombobox, commands, maybeOutMessage] = CityCombobox.update(
     model.combobox,
     message,
   )
@@ -47,7 +47,7 @@ GotComboboxMessage: ({ message }) => {
     GotComboboxMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [
       evo(model, { combobox: () => nextCombobox }),
       mappedCommands,

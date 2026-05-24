@@ -93,7 +93,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           Option.match({
             onNone: () => [model, []],
             onSome: matchedEntry => {
-              const [nextEntry, entryCommands, maybeOut] = Entry.update(
+              const [nextEntry, entryCommands, maybeOutMessage] = Entry.update(
                 matchedEntry,
                 entryMessage,
               )
@@ -103,7 +103,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                   entry.id === entryId ? nextEntry : entry,
                 ),
               })
-              return Option.match(maybeOut, {
+              return Option.match(maybeOutMessage, {
                 onNone: () => [modelWithEntry, mappedCommands],
                 onSome: M.type<Entry.OutMessage>().pipe(
                   M.withReturnType<UpdateReturn>(),

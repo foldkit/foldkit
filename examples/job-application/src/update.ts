@@ -123,14 +123,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotStepMenuMessage: ({ message: menuMessage }) => {
-        const [nextStepMenu, commands, maybeOut] = StepMenu.update(
+        const [nextStepMenu, commands, maybeOutMessage] = StepMenu.update(
           model.stepMenu,
           menuMessage,
         )
         const mappedCommands = Command.mapMessages(commands, message =>
           GotStepMenuMessage({ message }),
         )
-        return Option.match(maybeOut, {
+        return Option.match(maybeOutMessage, {
           onNone: (): readonly [
             Model,
             ReadonlyArray<Command.Command<Message>>,

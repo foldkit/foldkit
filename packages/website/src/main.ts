@@ -732,7 +732,7 @@ export const update = (
       },
 
       GotPlaygroundMenuMessage: ({ message }) => {
-        const [nextMenu, menuCommands, maybeOut] = PlaygroundMenu.update(
+        const [nextMenu, menuCommands, maybeOutMessage] = PlaygroundMenu.update(
           model.playgroundMenu,
           message,
         )
@@ -744,7 +744,7 @@ export const update = (
           ReadonlyArray<Command.Command<Message>>,
         ]
 
-        return Option.match(maybeOut, {
+        return Option.match(maybeOutMessage, {
           onNone: (): UpdateReturn => [
             evo(model, { playgroundMenu: () => nextMenu }),
             mappedCommands,

@@ -32,7 +32,7 @@ const GotDisclosureMessage = m('GotDisclosureMessage', {
 // open / close transition with the new `isOpen` — useful for analytics
 // or coordinated UI changes.
 GotDisclosureMessage: ({ message }) => {
-  const [nextDisclosure, commands, maybeOut] = Ui.Disclosure.update(
+  const [nextDisclosure, commands, maybeOutMessage] = Ui.Disclosure.update(
     model.disclosure,
     message,
   )
@@ -40,7 +40,7 @@ GotDisclosureMessage: ({ message }) => {
     GotDisclosureMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [
       evo(model, { disclosure: () => nextDisclosure }),
       mappedCommands,
@@ -48,6 +48,11 @@ GotDisclosureMessage: ({ message }) => {
     onSome: M.type<Ui.Disclosure.OutMessage>().pipe(
       M.tagsExhaustive({
         ToggledOpenState: ({ isOpen }) => [
+          // The child has emitted `ToggledOpenState`. The body commits
+          // the child's next state as usual. In this arm the parent
+          // can also update its own state or dispatch its own
+          // Commands, for example persist the open state, lazy-load
+          // panel content, or log analytics.
           evo(model, { disclosure: () => nextDisclosure }),
           mappedCommands,
         ],

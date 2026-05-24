@@ -46,7 +46,7 @@ const descriptions: Record<Framework, string> = {
 // chosen value (typed as `Framework`) and its index — lift either to
 // domain state, route, or trigger a side effect.
 GotTabsMessage: ({ message }) => {
-  const [nextTabs, commands, maybeOut] = FrameworkTabs.update(
+  const [nextTabs, commands, maybeOutMessage] = FrameworkTabs.update(
     model.tabs,
     message,
   )
@@ -54,13 +54,16 @@ GotTabsMessage: ({ message }) => {
     GotTabsMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [evo(model, { tabs: () => nextTabs }), mappedCommands],
     onSome: M.type<Ui.Tabs.OutMessage<Framework>>().pipe(
       M.tagsExhaustive({
         Selected: ({ value, index }) => [
-          // React to the tab change — e.g. fetch panel content, update
-          // the URL, dispatch dependent Commands.
+          // The child has emitted `Selected`. The body commits the
+          // child's next state as usual. In this arm the parent can
+          // also update its own state or dispatch its own Commands,
+          // for example route to a new URL, persist the selection,
+          // or trigger a panel content fetch.
           evo(model, { tabs: () => nextTabs }),
           mappedCommands,
         ],

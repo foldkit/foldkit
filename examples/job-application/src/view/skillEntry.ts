@@ -30,10 +30,10 @@ export const skillEntryView = Submodel.defineView<
       options: ProficiencyLevel.all,
       orientation: 'Horizontal',
       ariaLabel: 'Proficiency level',
-      toView: ({ group, options }) =>
+      toView: attributes =>
         h.div(
-          [...group, h.Class('inline-flex flex-wrap gap-2')],
-          options.map(option =>
+          [...attributes.group, h.Class('inline-flex flex-wrap gap-2')],
+          attributes.options.map(option =>
             h.div(
               [
                 ...option.option,

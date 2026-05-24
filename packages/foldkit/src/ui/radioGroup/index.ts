@@ -416,8 +416,8 @@ const internalView = defineView<Model, Message, ViewInputs>(
  *  h.submodel({ view: ToolRadioGroup.view, ... })
  *
  *  // In update:
- *  const [next, commands, maybeOut] = ToolRadioGroup.update(model, message)
- *  // maybeOut: Option<RadioGroup.OutMessage<Tool>>
+ *  const [next, commands, maybeOutMessage] = ToolRadioGroup.update(model, message)
+ *  // maybeOutMessage: Option<RadioGroup.OutMessage<Tool>>
  *  ```
  *
  *  The view's `ViewInputs.options` stays typed `ReadonlyArray<string>`;

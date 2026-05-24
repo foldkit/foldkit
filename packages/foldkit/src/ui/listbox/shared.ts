@@ -298,7 +298,7 @@ export const closedModel = <Model extends BaseModel>(model: Model): Model =>
 type SelectedItemContext<Model extends BaseModel> = Readonly<{
   closeWithFocus: (
     model: Model,
-    maybeOut?: Option.Option<OutMessage>,
+    maybeOutMessage?: Option.Option<OutMessage>,
   ) => readonly [
     Model,
     ReadonlyArray<Command.Command<Message>>,
@@ -306,7 +306,7 @@ type SelectedItemContext<Model extends BaseModel> = Readonly<{
   ]
   closeWithoutFocus: (
     model: Model,
-    maybeOut?: Option.Option<OutMessage>,
+    maybeOutMessage?: Option.Option<OutMessage>,
   ) => readonly [
     Model,
     ReadonlyArray<Command.Command<Message>>,
@@ -486,7 +486,7 @@ export const makeUpdate = <Model extends BaseModel>(
   const closeListbox = (
     baseModel: Model,
     commands: ReadonlyArray<Command.Command<Message>>,
-    maybeOut: Option.Option<OutMessage> = Option.none(),
+    maybeOutMessage: Option.Option<OutMessage> = Option.none(),
   ): UpdateReturn => {
     const closed = closedModel(baseModel)
 
@@ -495,10 +495,10 @@ export const makeUpdate = <Model extends BaseModel>(
         closed,
         AnimationHid(),
       )
-      return [nextModel, [...commands, ...animationCommands], maybeOut]
+      return [nextModel, [...commands, ...animationCommands], maybeOutMessage]
     }
 
-    return [closed, commands, maybeOut]
+    return [closed, commands, maybeOutMessage]
   }
 
   const internalUpdate = (model: Model, message: Message): UpdateReturn => {
@@ -625,10 +625,14 @@ export const makeUpdate = <Model extends BaseModel>(
 
         SelectedItem: ({ item }) =>
           handleSelectedItem(model, item, {
-            closeWithFocus: (closeModel, maybeOut = Option.none()) =>
-              closeListbox(closeModel, closeWithFocusCommands, maybeOut),
-            closeWithoutFocus: (closeModel, maybeOut = Option.none()) =>
-              closeListbox(closeModel, closeWithoutFocusCommands, maybeOut),
+            closeWithFocus: (closeModel, maybeOutMessage = Option.none()) =>
+              closeListbox(closeModel, closeWithFocusCommands, maybeOutMessage),
+            closeWithoutFocus: (closeModel, maybeOutMessage = Option.none()) =>
+              closeListbox(
+                closeModel,
+                closeWithoutFocusCommands,
+                maybeOutMessage,
+              ),
           }),
 
         RequestedItemClick: ({ index }) => [

@@ -32,7 +32,7 @@ const GotPopoverMessage = m('GotPopoverMessage', {
 // mark the visibility transitions — fire analytics, coordinate with
 // other UI, or clear ephemeral state on close.
 GotPopoverMessage: ({ message }) => {
-  const [nextPopover, commands, maybeOut] = Ui.Popover.update(
+  const [nextPopover, commands, maybeOutMessage] = Ui.Popover.update(
     model.popover,
     message,
   )
@@ -40,15 +40,25 @@ GotPopoverMessage: ({ message }) => {
     GotPopoverMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [evo(model, { popover: () => nextPopover }), mappedCommands],
     onSome: M.type<Ui.Popover.OutMessage>().pipe(
       M.tagsExhaustive({
         OpenedPanel: () => [
+          // The child has emitted `OpenedPanel`. The body commits
+          // the child's next state as usual. In this arm the parent
+          // can also update its own state or dispatch its own
+          // Commands, for example lazy-load panel content, log
+          // analytics, or trigger a downstream Command.
           evo(model, { popover: () => nextPopover }),
           mappedCommands,
         ],
         ClosedPanel: () => [
+          // The child has emitted `ClosedPanel`. The body commits
+          // the child's next state as usual. In this arm the parent
+          // can also update its own state or dispatch its own
+          // Commands, for example persist a draft, clear ephemeral
+          // state, or trigger a downstream Command.
           evo(model, { popover: () => nextPopover }),
           mappedCommands,
         ],

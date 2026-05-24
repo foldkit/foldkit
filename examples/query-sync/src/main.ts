@@ -356,15 +356,13 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotDietListboxMessage: ({ message }) => {
-        const [nextDietListbox, listboxCommands, maybeOut] = DietListbox.update(
-          model.dietListbox,
-          message,
-        )
+        const [nextDietListbox, listboxCommands, maybeOutMessage] =
+          DietListbox.update(model.dietListbox, message)
         const mappedCommands = Command.mapMessages(listboxCommands, message =>
           GotDietListboxMessage({ message }),
         )
 
-        return Option.match(maybeOut, {
+        return Option.match(maybeOutMessage, {
           onNone: (): UpdateReturn => [
             evo(model, { dietListbox: () => nextDietListbox }),
             mappedCommands,
@@ -394,13 +392,13 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotPeriodListboxMessage: ({ message }) => {
-        const [nextPeriodListbox, listboxCommands, maybeOut] =
+        const [nextPeriodListbox, listboxCommands, maybeOutMessage] =
           PeriodListbox.update(model.periodListbox, message)
         const mappedCommands = Command.mapMessages(listboxCommands, message =>
           GotPeriodListboxMessage({ message }),
         )
 
-        return Option.match(maybeOut, {
+        return Option.match(maybeOutMessage, {
           onNone: (): UpdateReturn => [
             evo(model, { periodListbox: () => nextPeriodListbox }),
             mappedCommands,

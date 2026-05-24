@@ -128,8 +128,8 @@ type ViewMessageOf<View extends AnySubmodelView> = View extends {
  *    them in a closure
  *    (`(message) => GotEntryMessage({ entryId: entry.id, message })`).
  *
- *  High-level events the parent wants to react to declaratively flow
- *  through each Submodel's `OutMessage`. The parent's `GotChildMessage`
+ *  High-level events the parent handles declaratively flow through
+ *  each Submodel's `OutMessage`. The parent's `GotChildMessage`
  *  handler unpacks the third tuple element of the child's `update`
  *  return and pattern-matches on `Option<OutMessage>`. See `Ui.Menu`,
  *  `Ui.Listbox`, etc., for examples. */

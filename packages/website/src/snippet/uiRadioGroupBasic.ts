@@ -40,7 +40,7 @@ const GotRadioGroupMessage = m('GotRadioGroupMessage', {
 // PlanRadioGroup.update. The OutMessage's `Selected` carries the chosen
 // value typed as `Plan` (the type param at the factory):
 GotRadioGroupMessage: ({ message }) => {
-  const [nextRadioGroup, commands, maybeOut] = PlanRadioGroup.update(
+  const [nextRadioGroup, commands, maybeOutMessage] = PlanRadioGroup.update(
     model.radioGroup,
     message,
   )
@@ -48,7 +48,7 @@ GotRadioGroupMessage: ({ message }) => {
     GotRadioGroupMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [
       evo(model, { radioGroup: () => nextRadioGroup }),
       mappedCommands,

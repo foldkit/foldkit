@@ -99,8 +99,9 @@ export type PressedKeyboardNavigation = typeof PressedKeyboardNavigation.Type
 
 // OUT MESSAGE
 
-/** Emitted when the slider value changes. The parent uses this to react to
- *  value updates — e.g. to run validation or trigger a side effect. */
+/** Emitted when the slider value changes. The parent can handle this to
+ *  update its own state or dispatch its own Commands, for example to run
+ *  validation or trigger a downstream Command. */
 export const ChangedValue = m('ChangedValue', { value: S.Number })
 
 /** Union of all out-messages the slider component can emit to its parent. */
@@ -268,7 +269,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               model.max,
               model.step,
             )
-            const [modelWithValue, commands, maybeOut] = withValue(
+            const [modelWithValue, commands, maybeOutMessage] = withValue(
               model,
               snapped,
               [],
@@ -278,7 +279,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 dragState: () => Dragging({ originValue: model.value }),
               }),
               commands,
-              maybeOut,
+              maybeOutMessage,
             ]
           }),
         ),

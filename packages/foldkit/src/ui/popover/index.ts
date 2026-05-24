@@ -378,7 +378,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         }
 
         if (model.isOpen) {
-          const [closed, commands, maybeOut] = closePopover(
+          const [closed, commands, maybeOutMessage] = closePopover(
             withPointerType,
             closeWithFocusCommands,
           )
@@ -387,7 +387,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
               maybeLastButtonPointerType: () => Option.some(pointerType),
             }),
             commands,
-            maybeOut,
+            maybeOutMessage,
           ]
         }
 

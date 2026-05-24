@@ -608,7 +608,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotToastDemoMessage: ({ message }) => {
-        const [nextToastDemo, toastCommands, maybeOut] = Toast.update(
+        const [nextToastDemo, toastCommands, maybeOutMessage] = Toast.update(
           model.toastDemo,
           message,
         )
@@ -617,7 +617,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           GotToastDemoMessage({ message }),
         )
 
-        return Option.match(maybeOut, {
+        return Option.match(maybeOutMessage, {
           onNone: (): UpdateReturn => [
             evo(model, { toastDemo: () => nextToastDemo }),
             mappedCommands,

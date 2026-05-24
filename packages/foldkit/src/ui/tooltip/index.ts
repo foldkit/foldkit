@@ -325,13 +325,13 @@ type UpdateReturn = readonly [
  *  only update hover/focus/delay state without changing visibility. */
 export const update = (model: Model, message: Message): UpdateReturn => {
   const [nextModel, commands] = computeUpdate(model, message)
-  const maybeOut: Option.Option<OutMessage> =
+  const maybeOutMessage: Option.Option<OutMessage> =
     !model.isOpen && nextModel.isOpen
       ? Option.some(Shown())
       : model.isOpen && !nextModel.isOpen
         ? Option.some(Hidden())
         : Option.none()
-  return [nextModel, commands, maybeOut]
+  return [nextModel, commands, maybeOutMessage]
 }
 
 /** Programmatically updates the tooltip's hover show-delay. */

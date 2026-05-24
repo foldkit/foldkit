@@ -32,7 +32,7 @@ const GotTooltipMessage = m('GotTooltipMessage', {
 // visibility transitions — fire analytics or coordinate with the rest
 // of your UI from the parent.
 GotTooltipMessage: ({ message }) => {
-  const [nextTooltip, commands, maybeOut] = Ui.Tooltip.update(
+  const [nextTooltip, commands, maybeOutMessage] = Ui.Tooltip.update(
     model.tooltip,
     message,
   )
@@ -40,15 +40,25 @@ GotTooltipMessage: ({ message }) => {
     GotTooltipMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [evo(model, { tooltip: () => nextTooltip }), mappedCommands],
     onSome: M.type<Ui.Tooltip.OutMessage>().pipe(
       M.tagsExhaustive({
         Shown: () => [
+          // The child has emitted `Shown`. The body commits the
+          // child's next state as usual. In this arm the parent can
+          // also update its own state or dispatch its own Commands,
+          // for example log analytics, prefetch content, or trigger
+          // a downstream Command.
           evo(model, { tooltip: () => nextTooltip }),
           mappedCommands,
         ],
         Hidden: () => [
+          // The child has emitted `Hidden`. The body commits the
+          // child's next state as usual. In this arm the parent can
+          // also update its own state or dispatch its own Commands,
+          // for example clear ephemeral state, fire analytics, or
+          // trigger a downstream Command.
           evo(model, { tooltip: () => nextTooltip }),
           mappedCommands,
         ],

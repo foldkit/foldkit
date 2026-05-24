@@ -42,20 +42,24 @@ const ActionMenu = Ui.Menu.create<Action>()
 // ActionMenu.update. The OutMessage's `Selected` carries the picked item
 // directly (typed as `Action`):
 GotMenuMessage: ({ message }) => {
-  const [nextMenu, commands, maybeOut] = ActionMenu.update(model.menu, message)
+  const [nextMenu, commands, maybeOutMessage] = ActionMenu.update(
+    model.menu,
+    message,
+  )
   const mappedCommands = Command.mapMessages(commands, message =>
     GotMenuMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [evo(model, { menu: () => nextMenu }), mappedCommands],
     onSome: M.type<Ui.Menu.OutMessage<Action>>().pipe(
       M.tagsExhaustive({
         Selected: ({ value }) => {
-          // React to the action here (e.g. dispatch a Command, transition
-          // a page, mutate domain state). Returning the next model plus
-          // the mapped commands keeps the menu in sync; add your own
-          // commands as needed.
+          // The child has emitted `Selected`. The body commits the
+          // child's next state as usual. In this arm the parent can
+          // also update its own state or dispatch its own Commands,
+          // for example transition a page, mutate domain state, or
+          // trigger a downstream Command.
           return [evo(model, { menu: () => nextMenu }), mappedCommands]
         },
       }),

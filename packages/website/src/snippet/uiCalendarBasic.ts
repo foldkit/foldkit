@@ -49,7 +49,7 @@ const GotCalendarMessage = m('GotCalendarMessage', {
 // `ChangedViewMonth` fires when navigation shifts the visible month
 // without selecting a date.
 GotCalendarMessage: ({ message }) => {
-  const [nextCalendar, commands, maybeOut] = Ui.Calendar.update(
+  const [nextCalendar, commands, maybeOutMessage] = Ui.Calendar.update(
     model.calendarDemo,
     message,
   )
@@ -57,7 +57,7 @@ GotCalendarMessage: ({ message }) => {
     GotCalendarMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [
       evo(model, { calendarDemo: () => nextCalendar }),
       mappedCommands,
@@ -65,8 +65,11 @@ GotCalendarMessage: ({ message }) => {
     onSome: M.type<Ui.Calendar.OutMessage>().pipe(
       M.tagsExhaustive({
         SelectedDate: ({ date }) => [
-          // Lift the date into your own state too — e.g. for form
-          // submission, validation, or a downstream API call:
+          // The child has emitted `SelectedDate`. The body commits
+          // the child's next state as usual. In this arm the parent
+          // can also update its own state or dispatch its own
+          // Commands, for example lift the date into its own field,
+          // validate, or trigger a downstream API call.
           evo(model, {
             calendarDemo: () =>
               nextCalendar /*, pickedDate: () => Option.some(date) */,
@@ -74,6 +77,11 @@ GotCalendarMessage: ({ message }) => {
           mappedCommands,
         ],
         ChangedViewMonth: () => [
+          // The child has emitted `ChangedViewMonth`. The body commits
+          // the child's next state as usual. In this arm the parent
+          // can also update its own state or dispatch its own
+          // Commands, for example prefetch month data, fire analytics,
+          // or trigger a downstream Command.
           evo(model, { calendarDemo: () => nextCalendar }),
           mappedCommands,
         ],
@@ -153,9 +161,9 @@ const view = () => {
                           ],
                           week.cells.map(cell =>
                             h.div(
-                              // `group` lets day buttons react to parent state
-                              // via group-data-[today], group-data-[selected],
-                              // etc.
+                              // `group` lets day buttons style themselves from
+                              // parent state via group-data-[today],
+                              // group-data-[selected], etc.
                               [
                                 ...cell.cellAttributes,
                                 h.Class(

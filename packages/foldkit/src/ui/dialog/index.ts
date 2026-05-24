@@ -221,7 +221,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           }),
           () => wasClosed,
         )
-        const maybeOut = wasClosed ? Option.some(OpenedPanel()) : Option.none()
+        const maybeOutMessage = wasClosed
+          ? Option.some(OpenedPanel())
+          : Option.none()
 
         if (model.isAnimated) {
           const [nextModel, animationCommands] = delegateToAnimation(
@@ -232,14 +234,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           return [
             evo(nextModel, { isOpen: () => true }),
             [...Option.toArray(maybeShow), ...animationCommands],
-            maybeOut,
+            maybeOutMessage,
           ]
         }
 
         return [
           evo(model, { isOpen: () => true }),
           Option.toArray(maybeShow),
-          maybeOut,
+          maybeOutMessage,
         ]
       },
 
@@ -254,7 +256,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         }
 
         const wasOpen = model.isOpen
-        const maybeOut = wasOpen ? Option.some(ClosedPanel()) : Option.none()
+        const maybeOutMessage = wasOpen
+          ? Option.some(ClosedPanel())
+          : Option.none()
 
         if (model.isAnimated) {
           const [nextModel, animationCommands] = delegateToAnimation(
@@ -262,7 +266,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             AnimationHid(),
           )
 
-          return [nextModel, animationCommands, maybeOut]
+          return [nextModel, animationCommands, maybeOutMessage]
         }
 
         const maybeClose = Option.liftPredicate(
@@ -273,7 +277,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         return [
           evo(model, { isOpen: () => false }),
           Option.toArray(maybeClose),
-          maybeOut,
+          maybeOutMessage,
         ]
       },
 

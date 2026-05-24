@@ -49,7 +49,7 @@ const GotListboxMessage = m('GotListboxMessage', {
 // variant carries the chosen item's string value (the result of
 // `itemToValue`):
 GotListboxMessage: ({ message }) => {
-  const [nextListbox, commands, maybeOut] = CharacterListbox.update(
+  const [nextListbox, commands, maybeOutMessage] = CharacterListbox.update(
     model.listbox,
     message,
   )
@@ -57,7 +57,7 @@ GotListboxMessage: ({ message }) => {
     GotListboxMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [evo(model, { listbox: () => nextListbox }), mappedCommands],
     onSome: M.type<Ui.Listbox.OutMessage>().pipe(
       M.tagsExhaustive({

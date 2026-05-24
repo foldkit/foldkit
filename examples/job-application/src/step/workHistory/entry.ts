@@ -119,14 +119,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotStartDateMessage: ({ message: dateMessage }) => {
-        const [nextStartDate, commands, maybeOut] = Ui.DatePicker.update(
+        const [nextStartDate, commands, maybeOutMessage] = Ui.DatePicker.update(
           model.startDate,
           dateMessage,
         )
         const mappedCommands = Command.mapMessages(commands, message =>
           GotStartDateMessage({ message }),
         )
-        return Option.match(maybeOut, {
+        return Option.match(maybeOutMessage, {
           onNone: (): UpdateReturn => [
             evo(model, { startDate: () => nextStartDate }),
             mappedCommands,
@@ -160,14 +160,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotEndDateMessage: ({ message: dateMessage }) => {
-        const [nextEndDate, commands, maybeOut] = Ui.DatePicker.update(
+        const [nextEndDate, commands, maybeOutMessage] = Ui.DatePicker.update(
           model.endDate,
           dateMessage,
         )
         const mappedCommands = Command.mapMessages(commands, message =>
           GotEndDateMessage({ message }),
         )
-        return Option.match(maybeOut, {
+        return Option.match(maybeOutMessage, {
           onNone: (): UpdateReturn => [
             evo(model, { endDate: () => nextEndDate }),
             mappedCommands,

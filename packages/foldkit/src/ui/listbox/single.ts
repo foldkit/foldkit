@@ -100,8 +100,8 @@ const internalView = makeView<Model>({
  *  h.submodel({ view: ColorListbox.view, ... })
  *
  *  // In update:
- *  const [next, commands, maybeOut] = ColorListbox.update(model, message)
- *  // maybeOut: Option<Listbox.OutMessage<Color>>
+ *  const [next, commands, maybeOutMessage] = ColorListbox.update(model, message)
+ *  // maybeOutMessage: Option<Listbox.OutMessage<Color>>
  *  ```
  *
  *  Two type params support object-typed items with an `itemToValue`

@@ -161,13 +161,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotGraduationYearListboxMessage: ({ message: listboxMessage }) => {
-        const [nextListbox, commands, maybeOut] = GraduationYearListbox.update(
-          model.graduationYearListbox,
-          listboxMessage,
-        )
+        const [nextListbox, commands, maybeOutMessage] =
+          GraduationYearListbox.update(
+            model.graduationYearListbox,
+            listboxMessage,
+          )
         const mappedCommands = mapGraduationYearListboxCommands(commands)
 
-        return Option.match(maybeOut, {
+        return Option.match(maybeOutMessage, {
           onNone: (): UpdateReturn => [
             evo(model, { graduationYearListbox: () => nextListbox }),
             mappedCommands,

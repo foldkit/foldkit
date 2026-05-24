@@ -39,7 +39,7 @@ const GotComboboxMultiMessage = m('GotComboboxMultiMessage', {
 // CitiesCombobox.update. On toggle, the OutMessage's `Selected` carries
 // the item and `wasAdded`:
 GotComboboxMultiMessage: ({ message }) => {
-  const [nextCombobox, commands, maybeOut] = CitiesCombobox.update(
+  const [nextCombobox, commands, maybeOutMessage] = CitiesCombobox.update(
     model.comboboxMulti,
     message,
   )
@@ -47,7 +47,7 @@ GotComboboxMultiMessage: ({ message }) => {
     GotComboboxMultiMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [
       evo(model, { comboboxMulti: () => nextCombobox }),
       mappedCommands,

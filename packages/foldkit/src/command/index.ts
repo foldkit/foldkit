@@ -261,7 +261,7 @@ export const mapMessage: {
  *
  *  ```ts
  *  GotChildMessage: ({ message }) => {
- *    const [nextChild, commands, maybeOut] = Child.update(model.child, message)
+ *    const [nextChild, commands, maybeOutMessage] = Child.update(model.child, message)
  *    const mappedCommands = Command.mapMessages(
  *      commands,
  *      message => GotChildMessage({ message }),

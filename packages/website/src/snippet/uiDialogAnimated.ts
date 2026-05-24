@@ -32,7 +32,7 @@ const GotDialogMessage = m('GotDialogMessage', {
 // the transition moments — fire analytics, reset embedded form state, or
 // kick off side effects from the parent.
 GotDialogMessage: ({ message }) => {
-  const [nextDialog, commands, maybeOut] = Ui.Dialog.update(
+  const [nextDialog, commands, maybeOutMessage] = Ui.Dialog.update(
     model.dialog,
     message,
   )
@@ -40,15 +40,25 @@ GotDialogMessage: ({ message }) => {
     GotDialogMessage({ message }),
   )
 
-  return Option.match(maybeOut, {
+  return Option.match(maybeOutMessage, {
     onNone: () => [evo(model, { dialog: () => nextDialog }), mappedCommands],
     onSome: M.type<Ui.Dialog.OutMessage>().pipe(
       M.tagsExhaustive({
         OpenedPanel: () => [
+          // The child has emitted `OpenedPanel`. The body commits
+          // the child's next state as usual. In this arm the parent
+          // can also update its own state or dispatch its own
+          // Commands, for example log analytics, manage focus, or
+          // fetch initial data.
           evo(model, { dialog: () => nextDialog }),
           mappedCommands,
         ],
         ClosedPanel: () => [
+          // The child has emitted `ClosedPanel`. The body commits
+          // the child's next state as usual. In this arm the parent
+          // can also update its own state or dispatch its own
+          // Commands, for example clear ephemeral state or resolve
+          // a pending domain action.
           evo(model, { dialog: () => nextDialog }),
           mappedCommands,
         ],
