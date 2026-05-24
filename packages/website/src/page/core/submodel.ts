@@ -74,10 +74,22 @@ const perRenderInputsHeader: TableOfContentsEntry = {
   text: 'Per-render View Inputs',
 }
 
+const boundaryIdHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'boundary-id-and-model-identity',
+  text: 'Boundary Id and Model Identity',
+}
+
 const multipleInstancesHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'multiple-instances',
   text: 'Multiple Instances',
+}
+
+const memoizationHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'memoization',
+  text: 'Memoization Across Submodel Boundaries',
 }
 
 const readingParentStateHeader: TableOfContentsEntry = {
@@ -156,7 +168,9 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   delegatingInUpdateHeader,
   wiringTheViewHeader,
   perRenderInputsHeader,
+  boundaryIdHeader,
   multipleInstancesHeader,
+  memoizationHeader,
   readingParentStateHeader,
   parentStateInViewHeader,
   parentStateInUpdateHeader,
@@ -236,6 +250,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       infoCallout(
         'Compare to React',
         'In React, components nest and communicate through props and callbacks. In Foldkit, composition is explicit: the parent embeds the child’s Model, wraps its Messages, and delegates in update. Every interaction between parent and child is visible in the update function.',
+      ),
+      infoCallout(
+        'When NOT to use a Submodel',
+        'If a piece of UI is just a function of parent state with no internal Messages or update logic, write it as an ordinary render function, not a Submodel. The Submodel machinery (wrapper Messages, ',
+        inlineCode('defineView'),
+        ' brand, ',
+        inlineCode('h.submodel'),
+        ' embedding) is overhead unless the child genuinely owns its own state machine. Foldkit UI primitives are Submodels because they have keyboard handling, focus state, dismissal logic, animation lifecycles. A reusable card that takes a title and content as props isn’t a Submodel; it’s a render function.',
       ),
       tableOfContentsEntryToHeader(childSubmodelHeader),
       para(
@@ -609,6 +631,36 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('viewInputs'),
         '.',
       ),
+      tableOfContentsEntryToHeader(boundaryIdHeader),
+      para(
+        'The ',
+        inlineCode('id'),
+        ' you pass to ',
+        inlineCode('h.submodel'),
+        ' is ',
+        h.strong([], ['DOM-position identity, not model identity.']),
+        ' Each ',
+        inlineCode('h.submodel'),
+        ' call under the same parent boundary must use a distinct ',
+        inlineCode('id'),
+        ', even when two call sites embed the same model.',
+      ),
+      para(
+        'If you render the same Submodel in two positions (desktop + mobile, master + detail, mirror layouts), give each position its own id like ',
+        inlineCode("'desktop-sidebar'"),
+        ' and ',
+        inlineCode("'mobile-sidebar'"),
+        ', not just ',
+        inlineCode('model.id'),
+        '. For lists, the per-item id (',
+        inlineCode('row.id'),
+        ') is the right choice because each row IS a different position.',
+      ),
+      para(
+        'Defaulting to ',
+        inlineCode('model.id'),
+        ' works for the common case of one model rendered in one position, but silently collides as soon as the model appears twice. The runtime catches the collision with a duplicate-id throw at view-build time. The throw is the convention’s safety net; the prevention is naming ids by position from the start.',
+      ),
       tableOfContentsEntryToHeader(multipleInstancesHeader),
       para(
         'A parent often embeds several instances of the same Submodel, for example a list of form entries, an array of accordions, or repeated cards on a dashboard. There are two shapes.',
@@ -655,6 +707,30 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' for a working version: per-entry education and work-history Submodels, each embedded with its own ',
         inlineCode('entryId'),
         '.',
+      ),
+      tableOfContentsEntryToHeader(memoizationHeader),
+      para(
+        'An ',
+        inlineCode('h.submodel'),
+        ' call re-runs the child’s view on every parent render. For a short list of Submodels this is cheap; for a long list (hundreds of rows) or expensive child views, memoize the embed site with ',
+        inlineCode('createKeyedLazy'),
+        ' from ',
+        inlineCode('foldkit/html'),
+        '. The keyed lazy compares its deps tuple by ',
+        inlineCode('==='),
+        ' and reuses the cached VNode when nothing changed.',
+      ),
+      para(
+        'Why this works across the Submodel boundary: ',
+        inlineCode('h.submodel'),
+        ' is designed so the per-render-fresh ',
+        inlineCode('toParentMessage'),
+        ' closure stays out of the cached VNode. The boundary’s wrap is stored in a runtime registry keyed by id, not captured by the VNode itself, so a cache hit preserves the wrap from the previous render. Snabbdom’s destroy hook deregisters the wrap when the DOM node is actually removed, so memoization across boundaries doesn’t leak.',
+      ),
+      para(
+        'Default: don’t memoize. Reach for ',
+        inlineCode('createKeyedLazy'),
+        ' when a profile shows the parent re-renders are doing measurable work.',
       ),
       tableOfContentsEntryToHeader(readingParentStateHeader),
       para(
