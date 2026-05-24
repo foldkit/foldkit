@@ -5,6 +5,7 @@ import * as Story from '../../test/story.js'
 import {
   CompletedFocusTab,
   FocusTab,
+  Selected,
   TabFocused,
   TabSelected,
   findFirstEnabledIndex,
@@ -57,11 +58,12 @@ describe('Tabs', () => {
   })
 
   describe('update', () => {
-    it('sets activeIndex and focusedIndex on TabSelected', () => {
+    it('sets activeIndex and focusedIndex on TabSelected and emits Selected', () => {
       Story.story(
         update,
         Story.with(init({ id: 'test' })),
         Story.message(TabSelected({ index: 3, value: 'tab-3' })),
+        Story.expectOutMessage(Selected({ value: 'tab-3', index: 3 })),
         Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
           expect(model.activeIndex).toBe(3)
@@ -70,11 +72,12 @@ describe('Tabs', () => {
       )
     })
 
-    it('replaces activeIndex on subsequent TabSelected', () => {
+    it('replaces activeIndex on subsequent TabSelected and emits Selected', () => {
       Story.story(
         update,
         Story.with(init({ id: 'test', activeIndex: 1 })),
         Story.message(TabSelected({ index: 0, value: 'tab-0' })),
+        Story.expectOutMessage(Selected({ value: 'tab-0', index: 0 })),
         Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
           expect(model.activeIndex).toBe(0)
@@ -115,7 +118,7 @@ describe('Tabs', () => {
       )
     })
 
-    it('TabSelected updates both indices in manual mode', () => {
+    it('TabSelected updates both indices in manual mode and emits Selected', () => {
       Story.story(
         update,
         Story.with({
@@ -123,6 +126,7 @@ describe('Tabs', () => {
           focusedIndex: 2,
         }),
         Story.message(TabSelected({ index: 2, value: 'tab-2' })),
+        Story.expectOutMessage(Selected({ value: 'tab-2', index: 2 })),
         Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
           expect(model.activeIndex).toBe(2)

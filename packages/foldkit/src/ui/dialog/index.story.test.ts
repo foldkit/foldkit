@@ -7,10 +7,12 @@ import * as Animation from '../animation/index.js'
 import {
   CloseDialog,
   Closed,
+  ClosedPanel,
   CompletedCloseDialog,
   CompletedShowDialog,
   GotAnimationMessage,
   Opened,
+  OpenedPanel,
   ShowDialog,
   descriptionId,
   init,
@@ -58,11 +60,12 @@ describe('Dialog', () => {
 
   describe('update', () => {
     describe('non-animated', () => {
-      it('opens when closed on Opened', () => {
+      it('opens when closed on Opened and emits OpenedPanel', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test' })),
           Story.message(Opened()),
+          Story.expectOutMessage(OpenedPanel()),
           Story.Command.resolve(ShowDialog, CompletedShowDialog()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
@@ -70,22 +73,24 @@ describe('Dialog', () => {
         )
       })
 
-      it('opens without command when already open on Opened', () => {
+      it('opens without command or OutMessage when already open on Opened', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', isOpen: true })),
           Story.message(Opened()),
+          Story.expectNoOutMessage(),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
         )
       })
 
-      it('closes when open on Closed', () => {
+      it('closes when open on Closed and emits ClosedPanel', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', isOpen: true })),
           Story.message(Closed()),
+          Story.expectOutMessage(ClosedPanel()),
           Story.Command.resolve(CloseDialog, CompletedCloseDialog()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
@@ -93,11 +98,12 @@ describe('Dialog', () => {
         )
       })
 
-      it('closes without command when already closed on Closed', () => {
+      it('closes without command or OutMessage when already closed on Closed', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test' })),
           Story.message(Closed()),
+          Story.expectNoOutMessage(),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
           }),

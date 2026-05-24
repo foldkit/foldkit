@@ -42,7 +42,7 @@ GotPopoverMessage: ({ message }) => {
 
   return Option.match(maybeOut, {
     onNone: () => [evo(model, { popover: () => nextPopover }), mappedCommands],
-    onSome: M.type<typeof Ui.Popover.OutMessage.Type>().pipe(
+    onSome: M.type<Ui.Popover.OutMessage>().pipe(
       M.tagsExhaustive({
         OpenedPanel: () => [
           evo(model, { popover: () => nextPopover }),

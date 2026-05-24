@@ -51,7 +51,7 @@ GotSliderMessage: ({ message }) => {
       evo(model, { ratingDemo: () => nextSlider }),
       mappedCommands,
     ],
-    onSome: M.type<typeof Ui.Slider.OutMessage.Type>().pipe(
+    onSome: M.type<Ui.Slider.OutMessage>().pipe(
       M.tagsExhaustive({
         ChangedValue: ({ value }) => [
           // React to the committed value — persist, validate, dispatch

@@ -9,10 +9,12 @@ import {
   ElapsedShowDelay,
   EnteredTrigger,
   FocusedTrigger,
+  Hidden,
   LeftTrigger,
   PressedEscape,
   PressedPointerOnTrigger,
   ShowAfterDelay,
+  Shown,
   init,
   update,
 } from './index.js'
@@ -80,7 +82,7 @@ describe('Tooltip', () => {
         )
       })
 
-      it('opens the tooltip when the delay completes while hovering', () => {
+      it('opens the tooltip and emits Shown when the delay completes while hovering', () => {
         Story.story(
           update,
           withHidden,
@@ -89,6 +91,7 @@ describe('Tooltip', () => {
             ShowAfterDelay,
             ElapsedShowDelay({ version: 1 }),
           ),
+          Story.expectOutMessage(Shown()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.isHovered).toBe(true)
@@ -156,11 +159,12 @@ describe('Tooltip', () => {
         )
       })
 
-      it('hides the tooltip when hover was the only source', () => {
+      it('hides the tooltip and emits Hidden when hover was the only source', () => {
         Story.story(
           update,
           withHoveredOpen,
           Story.message(LeftTrigger()),
+          Story.expectOutMessage(Hidden()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.isHovered).toBe(false)

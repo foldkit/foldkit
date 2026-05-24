@@ -42,7 +42,7 @@ GotSwitchMessage: ({ message }) => {
 
   return Option.match(maybeOut, {
     onNone: () => [evo(model, { switchDemo: () => nextSwitch }), mappedCommands],
-    onSome: M.type<typeof Ui.Switch.OutMessage.Type>().pipe(
+    onSome: M.type<Ui.Switch.OutMessage>().pipe(
       M.tagsExhaustive({
         ToggledChecked: ({ isChecked }) => {
           // React to the toggle here — persist the preference, fire

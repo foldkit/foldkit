@@ -45,7 +45,7 @@ GotDisclosureMessage: ({ message }) => {
       evo(model, { disclosure: () => nextDisclosure }),
       mappedCommands,
     ],
-    onSome: M.type<typeof Ui.Disclosure.OutMessage.Type>().pipe(
+    onSome: M.type<Ui.Disclosure.OutMessage>().pipe(
       M.tagsExhaustive({
         ToggledOpenState: ({ isOpen }) => [
           evo(model, { disclosure: () => nextDisclosure }),

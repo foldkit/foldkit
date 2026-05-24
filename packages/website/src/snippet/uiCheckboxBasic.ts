@@ -45,7 +45,7 @@ GotCheckboxMessage: ({ message }) => {
       evo(model, { checkboxDemo: () => nextCheckbox }),
       mappedCommands,
     ],
-    onSome: M.type<typeof Ui.Checkbox.OutMessage.Type>().pipe(
+    onSome: M.type<Ui.Checkbox.OutMessage>().pipe(
       M.tagsExhaustive({
         ToggledChecked: ({ isChecked }) => {
           // React to the toggle — e.g. dispatch a Command, validate a

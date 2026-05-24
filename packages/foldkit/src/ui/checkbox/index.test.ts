@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import * as Story from '../../test/story.js'
-import { Toggled, init, update } from './index.js'
+import { ToggledChecked, Toggled, init, update } from './index.js'
 
 describe('Checkbox', () => {
   describe('init', () => {
@@ -29,6 +29,7 @@ describe('Checkbox', () => {
         Story.model(model => {
           expect(model.isChecked).toBe(true)
         }),
+        Story.expectOutMessage(ToggledChecked({ isChecked: true })),
       )
     })
 
@@ -40,6 +41,7 @@ describe('Checkbox', () => {
         Story.model(model => {
           expect(model.isChecked).toBe(false)
         }),
+        Story.expectOutMessage(ToggledChecked({ isChecked: false })),
       )
     })
   })

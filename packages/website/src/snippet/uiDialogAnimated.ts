@@ -42,7 +42,7 @@ GotDialogMessage: ({ message }) => {
 
   return Option.match(maybeOut, {
     onNone: () => [evo(model, { dialog: () => nextDialog }), mappedCommands],
-    onSome: M.type<typeof Ui.Dialog.OutMessage.Type>().pipe(
+    onSome: M.type<Ui.Dialog.OutMessage>().pipe(
       M.tagsExhaustive({
         OpenedPanel: () => [
           evo(model, { dialog: () => nextDialog }),
