@@ -181,34 +181,53 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'At some point, your app has 30 Messages, a sprawling Model, and an update function that scrolls for days. You’ve outgrown a single Model, Message, and update. It’s time to decompose into Submodels.',
       ),
       para(
-        'A Submodel is a self-contained Model, Message, update, and Commands: the same pieces you already know, just encapsulated and reusable. A parent embeds the child Submodel by reserving a field for its Model, declaring a wrapper Message that carries the child’s Message, and delegating to it in update.',
+        'A Submodel is a self-contained Model, Message, update, and Commands: the same pieces you already know, just embedded inside a larger program. A parent embeds the child by reserving a field for its Model, declaring a wrapper Message that carries the child’s Message, and delegating to it in update.',
       ),
-      para('You’ll reach for Submodels in three places:'),
+      para('You’ll reach for a Submodel for one of two reasons:'),
       bullets(
         h.span(
           [],
           [
-            'Every interactive Foldkit UI primitive (',
+            h.strong([], ['Encapsulation.']),
+            ' The Submodel is a self-contained unit with its own state, keyboard handling, and accessibility wiring; the parent doesn’t need to see inside. Every interactive ',
+            link(uiOverviewRouter(), 'Foldkit UI primitive'),
+            ' (',
             inlineCode('Ui.Dialog'),
             ', ',
             inlineCode('Ui.Menu'),
             ', ',
             inlineCode('Ui.Listbox'),
-            ', etc.) is shipped as a Submodel. That’s how they hand you their own keyboard handling and accessibility wiring without you having to know how they work inside.',
+            ', etc.) is shipped this way, which is how they hand you their behavior without you having to know how they work inside.',
           ],
         ),
         h.span(
           [],
           [
-            'Feature pages (for example Settings, Dashboard, or Login) and reusable interactive components you build yourself (for example DatePicker or Calendar).',
+            h.strong([], ['Decomposition.']),
+            ' Your own app has grown past what one Model and update can handle, so you split feature areas (for example Settings, Dashboard, or Profile) into Submodels for organization. These children aren’t strictly black boxes; they may need to ',
+            link('#reading-parent-state', 'read parent state'),
+            ' or ',
+            link('#surfacing-facts', 'surface domain facts back to the parent'),
+            '. The same mechanics apply.',
           ],
         ),
-        h.span(
-          [],
-          [
-            'Anywhere you need multiple stateful instances of the same module, for example several accordions on a page, each entry in a form with its own internal state, or repeated forms in a wizard. The Submodel is the unit you instantiate.',
-          ],
-        ),
+      ),
+      para(
+        'Either way, you’ll often want ',
+        link('#multiple-instances', 'multiple instances'),
+        ' of the same Submodel, for example several accordions on a page, each entry in a form with its own internal state, or repeated cards in a wizard. The Submodel is the unit you instantiate.',
+      ),
+      infoCallout(
+        'The word "boundary"',
+        'Each ',
+        inlineCode('h.submodel'),
+        ' call creates a boundary: a runtime scope holding that embed site’s ',
+        inlineCode('id'),
+        ' and ',
+        inlineCode('toParentMessage'),
+        '. When the child dispatches a Message, the runtime crosses the boundary, applying ',
+        inlineCode('toParentMessage'),
+        ' to lift the Message into the parent’s Message type. Nested Submodels chain boundaries; dispatch walks up through all of them to reach the top-level Message. The term appears throughout this page.',
       ),
       para(
         'In the restaurant analogy, think of a large restaurant with multiple stations, for example a sushi bar, a grill, or a pastry counter. Each station has its own chef, its own order flow, its own plating. But the head waiter still coordinates: taking the order, routing it to the right station, and combining everything onto the table.',
@@ -419,13 +438,16 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('model'),
         ' and returns ',
         inlineCode('Html'),
-        '. The ',
+        ', the same shape a top-level program’s view has.',
+      ),
+      para(
+        'The ',
         inlineCode('<Model, Message>'),
-        ' type arguments brand the view so ',
+        ' type arguments aren’t just annotations: they brand the view, attaching the child’s Message type to the value at the type level. The ',
         inlineCode('h.submodel'),
-        ' can infer the child’s Message type at the embed site. A third optional type parameter ',
+        ' call site reads that brand to type-check the embed site without you having to spell it out. A third optional type parameter, ',
         inlineCode('ViewInputs'),
-        ' threads per-render data from the parent, covered in the next section:',
+        ', threads per-render data from the parent; the next section covers it.',
       ),
       highlightedCodeBlock(
         h.div(
@@ -443,15 +465,40 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         'The parent embeds the Submodel via ',
         inlineCode('h.submodel'),
-        ', passing four things: an ',
-        inlineCode('id'),
-        ' that uniquely identifies this instance under the current boundary, the child’s exported ',
-        inlineCode('view'),
-        ', the embedded ',
-        inlineCode('model'),
-        ' slice, and a ',
-        inlineCode('toParentMessage'),
-        ' callback that lifts each child Message into the parent’s wrapper:',
+        ', passing four things:',
+      ),
+      bullets(
+        h.span(
+          [],
+          [
+            inlineCode('id'),
+            ': a string that uniquely identifies this embed site under the current boundary. For a single instance, a stable name like ',
+            inlineCode("'settings'"),
+            ' works; for repeated instances, a per-instance value like ',
+            inlineCode('row.id'),
+            '.',
+          ],
+        ),
+        h.span(
+          [],
+          [inlineCode('model'), ': the child’s slice of the parent Model.'],
+        ),
+        h.span(
+          [],
+          [
+            inlineCode('view'),
+            ': the child’s exported view, branded by ',
+            inlineCode('Submodel.defineView'),
+            ' so the embed site can infer the child’s Message type.',
+          ],
+        ),
+        h.span(
+          [],
+          [
+            inlineCode('toParentMessage'),
+            ': a callback that lifts each child Message into the parent’s wrapper Message.',
+          ],
+        ),
       ),
       highlightedCodeBlock(
         h.div(
@@ -608,12 +655,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       tableOfContentsEntryToHeader(readingParentStateHeader),
       para(
-        'Submodels exist for two related but distinct reasons. The first is encapsulation: ',
-        link(uiOverviewRouter(), 'Foldkit UI’s Submodels'),
-        ' are self-contained units that own things like their state, keyboard handling, and accessibility wiring. You embed them and they work; the boundary is hard by design. The second is decomposition: when your Model would otherwise grow into a monolith, you split it into feature Submodels (for example Settings, Dashboard, Profile) for organization. Those children may still legitimately need to read parent state: for example, the current user, the active locale, the session token. Forcing every such child to be fully encapsulated pushes you to duplicate parent state into the child Model and keep both copies in sync, which is worse on every axis.',
-      ),
-      para(
-        'Foldkit gives you two precise seams for parent state to reach the child:',
+        'Decomposition Submodels (Settings, Dashboard, Profile) often share state with their siblings: the current user, the active locale, the session token. Forcing every such child to be fully encapsulated pushes you to duplicate that state into the child Model and keep both copies in sync, which is worse on every axis. Foldkit gives you two precise seams for parent state to reach the child instead:',
       ),
       bullets(
         h.span(
