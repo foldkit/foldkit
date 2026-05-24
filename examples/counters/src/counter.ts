@@ -35,14 +35,6 @@ export const update = (
   )
 
 // VIEW
-//
-// Notice what's NOT here: no `<ParentMessage>` generic, no
-// `toParentMessage` parameter, no awareness of who hosts this Counter.
-// The view dispatches its own `ClickedIncrement` / `ClickedDecrement`
-// Messages directly via the html factory. `h.submodel` at the parent
-// declares how those Messages get wrapped into the parent's Message
-// type. The wrapping happens at event-fire time, transparently to this
-// module.
 
 export const view = Submodel.defineView<Model, Message>((model): Html => {
   const h = html<Message>()

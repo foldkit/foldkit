@@ -21,6 +21,7 @@ The CLI prompts you for a project name, starter example, and package manager. Pa
 | Example          | Description                                                     |
 | ---------------- | --------------------------------------------------------------- |
 | `counter`        | Simple increment/decrement with reset                           |
+| `counters`       | A dynamic list of Counter Submodels with per-instance routing   |
 | `stopwatch`      | Timer with start/stop/reset                                     |
 | `weather`        | HTTP requests with async state handling                         |
 | `todo`           | CRUD operations with localStorage persistence                   |

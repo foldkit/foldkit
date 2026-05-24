@@ -196,6 +196,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 ## Examples
 
 - **[Counter](https://foldkit.dev/example-apps/counter)** — Increment/decrement with reset
+- **[Counters](https://foldkit.dev/example-apps/counters)** — A dynamic list of Counter Submodels with per-instance routing
 - **[Todo](https://foldkit.dev/example-apps/todo)** — CRUD operations with localStorage persistence
 - **[Stopwatch](https://foldkit.dev/example-apps/stopwatch)** — Timer with start/stop/reset
 - **[Crash View](https://foldkit.dev/example-apps/crash-view)** — Custom crash fallback UI with crash reporting

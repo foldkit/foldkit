@@ -7,10 +7,6 @@ import { evo } from 'foldkit/struct'
 import * as Counter from './counter'
 
 // MODEL
-//
-// NOTE: Each row in the list is an independent Counter Submodel with
-// its own id and Model. The parent only knows about ids and the slice
-// of Model belonging to each row.
 
 const Row = S.Struct({
   id: S.String,
@@ -29,10 +25,6 @@ export type Model = typeof Model.Type
 export const ClickedAddRow = m('ClickedAddRow')
 export const ClickedRemoveRow = m('ClickedRemoveRow', { id: S.String })
 
-// NOTE: `GotCounterMessage` wraps a Counter Message with the row id
-// that owns it. The h.submodel embed below captures `row.id` in a
-// closure that invokes this constructor: which row each Counter Message
-// belongs to is the parent's concern, not Counter's.
 export const GotCounterMessage = m('GotCounterMessage', {
   id: S.String,
   message: Counter.Message,
@@ -47,18 +39,16 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
-const updateCounterAtId = (
-  rows: ReadonlyArray<Row>,
-  id: string,
-  message: Counter.Message,
-): ReadonlyArray<Row> =>
-  Array.map(rows, row => {
-    if (row.id !== id) {
-      return row
-    }
-    const [nextCounter] = Counter.update(row.counter, message)
-    return evo(row, { counter: () => nextCounter })
-  })
+const updateCounterAtId =
+  (id: string, message: Counter.Message) =>
+  (rows: ReadonlyArray<Row>): ReadonlyArray<Row> =>
+    Array.map(rows, row => {
+      if (row.id !== id) {
+        return row
+      }
+      const [nextCounter] = Counter.update(row.counter, message)
+      return evo(row, { counter: () => nextCounter })
+    })
 
 export const update = (
   model: Model,
@@ -81,17 +71,13 @@ export const update = (
       ],
       ClickedRemoveRow: ({ id }) => [
         evo(model, {
-          rows: rows => Array.filter(rows, row => row.id !== id),
+          rows: Array.filter(row => row.id !== id),
         }),
         [],
       ],
-      // NOTE: All Counter Messages, no matter which row they came from,
-      // land here. The `id` field tells us which row to forward the
-      // inner Message to. Locality wins: every entry-mutating operation
-      // lives in one place.
       GotCounterMessage: ({ id, message }) => [
         evo(model, {
-          rows: rows => updateCounterAtId(rows, id, message),
+          rows: updateCounterAtId(id, message),
         }),
         [],
       ],
@@ -124,12 +110,6 @@ const rowView = (row: Row): Html => {
       h.div(
         [h.Class('flex-1')],
         [
-          // NOTE: The Counter Submodel is embedded here. `Counter.view`
-          // is a pure function of `Counter.Model`; it has no knowledge
-          // of this parent. The `toParentMessage` closure declares how
-          // Counter's Messages get wrapped into this parent's Message
-          // type. Here, each Counter Message is tagged with the row id
-          // it belongs to.
           h.submodel({
             id: row.id,
             model: row.counter,
@@ -151,11 +131,6 @@ const rowView = (row: Row): Html => {
     ],
   )
 }
-
-// NOTE: `rowView` is a stable top-level function. It contains an
-// `h.submodel` call: that's the composition point. The Counter
-// Submodels memoize at the boundary; the parent re-renders each row's
-// wrapper unconditionally (cheap for a short list).
 
 export const view = (model: Model): Document => {
   const h = html<Message>()

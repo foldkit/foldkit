@@ -30,6 +30,7 @@
     "dev:typing-game:server": "pnpm --filter @typing-game/server dev",
     "build:typing-game": "pnpm --filter '@typing-game/*' build",
     "dev:example:counter": "pnpm --filter counter-example dev",
+    "dev:example:counters": "pnpm --filter counters-example dev",
     "dev:example:stopwatch": "pnpm --filter stopwatch-example dev",
     "dev:example:weather": "pnpm --filter weather-example dev",
     "dev:example:todo": "pnpm --filter todo-example dev",

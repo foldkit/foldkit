@@ -28,11 +28,8 @@ describe('counters scene', () => {
     Scene.scene(
       { update, view },
       Scene.with(initialModel),
-      // First row reads "0", second row reads "0".
       Scene.expectAll(Scene.all.text('0')).toHaveCount(2),
-      // Click the second row's + button.
       Scene.click(Scene.nth(Scene.all.role('button', { name: '+' }), 1)),
-      // Now first row is still "0" and second row is "1".
       Scene.expect(Scene.text('0')).toExist(),
       Scene.expect(Scene.text('1')).toExist(),
     )
@@ -76,11 +73,8 @@ describe('counters scene', () => {
       Scene.expectAll(Scene.all.role('button', { name: 'Remove' })).toHaveCount(
         1,
       ),
-      // Counter-0 (count 5) is gone, counter-1 (count 10) remains.
       Scene.expect(Scene.text('5')).not.toExist(),
       Scene.expect(Scene.text('10')).toExist(),
-      // The surviving counter still increments correctly through h.submodel.
-      // Its dispatch routes back to the right row even after the list shrank.
       Scene.click(Scene.role('button', { name: '+' })),
       Scene.expect(Scene.text('11')).toExist(),
     )

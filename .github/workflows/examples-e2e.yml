@@ -21,6 +21,7 @@ jobs:
       matrix:
         example:
           - counter
+          - counters
           - todo
           - stopwatch
           - crash-view
