@@ -40,7 +40,7 @@ const handleSearchInputKeyDown = (
         ? Option.some(toParentMessage(ClearedSearchQuery()))
         : Option.some(
             toParentMessage(
-              GotSearchDialogMessage({ message: Ui.Dialog.Closed() }),
+              GotSearchDialogMessage({ message: Ui.Dialog.RequestedClose() }),
             ),
           ),
     ),

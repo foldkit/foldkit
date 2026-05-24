@@ -28,8 +28,8 @@ const GotDialogMessage = m('GotDialogMessage', {
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
-// Ui.Dialog.update. The OutMessages `OpenedPanel` and `ClosedPanel` mark
-// the transition moments. Fire analytics, reset embedded form state, or
+// Ui.Dialog.update. The OutMessages `Opened` and `Closed` mark the
+// transition moments. Fire analytics, reset embedded form state, or
 // kick off side effects from the parent.
 GotDialogMessage: ({ message }) => {
   const [nextDialog, commands, maybeOutMessage] = Ui.Dialog.update(
@@ -44,21 +44,21 @@ GotDialogMessage: ({ message }) => {
     onNone: () => [evo(model, { dialog: () => nextDialog }), mappedCommands],
     onSome: M.type<Ui.Dialog.OutMessage>().pipe(
       M.tagsExhaustive({
-        OpenedPanel: () => [
-          // The child has emitted `OpenedPanel`. The body commits
-          // the child's next state as usual. In this arm the parent
-          // can also update its own state or dispatch its own
-          // Commands, for example log analytics, manage focus, or
-          // fetch initial data.
+        Opened: () => [
+          // The child has emitted `Opened`. The body commits the
+          // child's next state as usual. In this arm the parent can
+          // also update its own state or dispatch its own Commands,
+          // for example log analytics, manage focus, or fetch
+          // initial data.
           evo(model, { dialog: () => nextDialog }),
           mappedCommands,
         ],
-        ClosedPanel: () => [
-          // The child has emitted `ClosedPanel`. The body commits
-          // the child's next state as usual. In this arm the parent
-          // can also update its own state or dispatch its own
-          // Commands, for example clear ephemeral state or resolve
-          // a pending domain action.
+        Closed: () => [
+          // The child has emitted `Closed`. The body commits the
+          // child's next state as usual. In this arm the parent can
+          // also update its own state or dispatch its own Commands,
+          // for example clear ephemeral state or resolve a pending
+          // domain action.
           evo(model, { dialog: () => nextDialog }),
           mappedCommands,
         ],
@@ -118,7 +118,7 @@ const view = (model: Model) => {
                         h.button(
                           [
                             h.OnClick(
-                              dialogToParentMessage(Ui.Dialog.Closed()),
+                              dialogToParentMessage(Ui.Dialog.RequestedClose()),
                             ),
                             h.Class('px-4 py-2 rounded-lg border'),
                           ],
@@ -127,7 +127,7 @@ const view = (model: Model) => {
                         h.button(
                           [
                             h.OnClick(
-                              dialogToParentMessage(Ui.Dialog.Closed()),
+                              dialogToParentMessage(Ui.Dialog.RequestedClose()),
                             ),
                             h.Class(
                               'px-4 py-2 rounded-lg bg-blue-600 text-white',

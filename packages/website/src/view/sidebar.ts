@@ -388,7 +388,7 @@ export const sidebarView = (model: Model): Html => {
               h.AriaLabel('Close menu'),
               h.OnClick(
                 GotMobileMenuDialogMessage({
-                  message: Ui.Dialog.Closed(),
+                  message: Ui.Dialog.RequestedClose(),
                 }),
               ),
             ],

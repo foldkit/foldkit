@@ -176,13 +176,13 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
 
 const outMessageProps: ReadonlyArray<PropEntry> = [
   {
-    name: 'OpenedPanel',
+    name: 'Opened',
     type: '{}',
     description:
-      'Emitted once the dialog has transitioned to open. Distinct from the internal Opened message (which is the request to open); this OutMessage fires after `update` has processed the request and `isOpen` reflects the new state.',
+      'Emitted once the dialog has transitioned to open. Fires after `update` has processed `RequestedOpen` and `isOpen` reflects the new state.',
   },
   {
-    name: 'ClosedPanel',
+    name: 'Closed',
     type: '{}',
     description:
       'Emitted once the dialog has transitioned to closed. Programmatic `Dialog.close` on an already-closed model is a no-op that does not re-emit, as is calling close while a leave animation is already in progress.',
@@ -259,9 +259,9 @@ export const view = <ParentMessage>(
       ),
       para(
         'Open the dialog by dispatching ',
-        inlineCode('Dialog.Opened()'),
+        inlineCode('Dialog.RequestedOpen()'),
         ' and close it with ',
-        inlineCode('Dialog.Closed()'),
+        inlineCode('Dialog.RequestedClose()'),
         '. For programmatic control in update functions, use ',
         inlineCode('Dialog.open(model)'),
         ' and ',

@@ -508,10 +508,10 @@ export const update = (
         const nextRoute = urlToAppRoute(url)
         const [closedMobileMenu, closeMobileMenuCommands] = Ui.Dialog.update(
           model.mobileMenuDialog,
-          Ui.Dialog.Closed(),
+          Ui.Dialog.RequestedClose(),
         )
         const [closedSearchDialog, closeSearchDialogCommands] =
-          Ui.Dialog.update(model.search.dialog, Ui.Dialog.Closed())
+          Ui.Dialog.update(model.search.dialog, Ui.Dialog.RequestedClose())
         const [nextApiReference, apiReferenceLoadCommands] = M.value(
           nextRoute,
         ).pipe(

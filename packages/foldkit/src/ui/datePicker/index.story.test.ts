@@ -344,7 +344,9 @@ describe('DatePicker', () => {
         Story.story(
           update,
           withOpen,
-          Story.message(GotPopoverMessage({ message: Popover.Closed() })),
+          Story.message(
+            GotPopoverMessage({ message: Popover.RequestedClose() }),
+          ),
           Story.Command.resolve(
             Popover.FocusButton,
             Popover.CompletedFocusButton(),

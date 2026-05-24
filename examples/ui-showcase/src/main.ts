@@ -268,7 +268,7 @@ export const update = (
       ChangedUrl: ({ url }) => {
         const [closedDialog, closeDialogCommands] = Ui.Dialog.update(
           model.uiModel.mobileMenuDialog,
-          Ui.Dialog.Closed(),
+          Ui.Dialog.RequestedClose(),
         )
 
         return [
@@ -440,7 +440,7 @@ const mobileMenuContent = (currentRoute: AppRoute): Html => {
                 'p-2 rounded-md hover:bg-gray-200 transition text-gray-700 cursor-pointer',
               ),
               h.AriaLabel('Close menu'),
-              h.OnClick(toMobileMenuDialogMessage(Ui.Dialog.Closed())),
+              h.OnClick(toMobileMenuDialogMessage(Ui.Dialog.RequestedClose())),
             ],
             [Icon.xMark('w-6 h-6')],
           ),
@@ -515,7 +515,7 @@ const mobileHeaderView = (model: Model): Html => {
           ),
           h.AriaExpanded(model.uiModel.mobileMenuDialog.isOpen),
           h.AriaLabel('Toggle menu'),
-          h.OnClick(toMobileMenuDialogMessage(Ui.Dialog.Opened())),
+          h.OnClick(toMobileMenuDialogMessage(Ui.Dialog.RequestedOpen())),
         ],
         [Icon.menu('w-6 h-6')],
       ),

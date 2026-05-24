@@ -25,7 +25,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
                       queue,
                       GotSearchMessage({
                         message: GotSearchDialogMessage({
-                          message: Ui.Dialog.Opened(),
+                          message: Ui.Dialog.RequestedOpen(),
                         }),
                       }),
                     )

@@ -58,14 +58,14 @@ const dialogPanel = (
           h.button(
             [
               h.Class(cancelButtonClassName),
-              h.OnClick(toDialogMessage(Ui.Dialog.Closed())),
+              h.OnClick(toDialogMessage(Ui.Dialog.RequestedClose())),
             ],
             ['Cancel'],
           ),
           h.button(
             [
               h.Class(confirmButtonClassName),
-              h.OnClick(toDialogMessage(Ui.Dialog.Closed())),
+              h.OnClick(toDialogMessage(Ui.Dialog.RequestedClose())),
             ],
             ['Confirm'],
           ),
@@ -99,7 +99,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
           h.button(
             [
               h.Class(triggerClassName),
-              h.OnClick(toDialogMessage(Ui.Dialog.Opened())),
+              h.OnClick(toDialogMessage(Ui.Dialog.RequestedOpen())),
             ],
             ['Open Dialog'],
           ),
@@ -137,7 +137,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
           h.button(
             [
               h.Class(triggerClassName),
-              h.OnClick(toAnimatedDialogMessage(Ui.Dialog.Opened())),
+              h.OnClick(toAnimatedDialogMessage(Ui.Dialog.RequestedOpen())),
             ],
             ['Open Animated Dialog'],
           ),

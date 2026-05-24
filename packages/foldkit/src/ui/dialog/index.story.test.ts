@@ -7,12 +7,12 @@ import * as Animation from '../animation/index.js'
 import {
   CloseDialog,
   Closed,
-  ClosedPanel,
   CompletedCloseDialog,
   CompletedShowDialog,
   GotAnimationMessage,
   Opened,
-  OpenedPanel,
+  RequestedClose,
+  RequestedOpen,
   ShowDialog,
   descriptionId,
   init,
@@ -60,12 +60,12 @@ describe('Dialog', () => {
 
   describe('update', () => {
     describe('non-animated', () => {
-      it('opens when closed on Opened and emits OpenedPanel', () => {
+      it('opens when closed on RequestedOpen and emits Opened', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test' })),
-          Story.message(Opened()),
-          Story.expectOutMessage(OpenedPanel()),
+          Story.message(RequestedOpen()),
+          Story.expectOutMessage(Opened()),
           Story.Command.resolve(ShowDialog, CompletedShowDialog()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
@@ -73,11 +73,11 @@ describe('Dialog', () => {
         )
       })
 
-      it('opens without command or OutMessage when already open on Opened', () => {
+      it('opens without command or OutMessage when already open on RequestedOpen', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', isOpen: true })),
-          Story.message(Opened()),
+          Story.message(RequestedOpen()),
           Story.expectNoOutMessage(),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
@@ -85,12 +85,12 @@ describe('Dialog', () => {
         )
       })
 
-      it('closes when open on Closed and emits ClosedPanel', () => {
+      it('closes when open on RequestedClose and emits Closed', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', isOpen: true })),
-          Story.message(Closed()),
-          Story.expectOutMessage(ClosedPanel()),
+          Story.message(RequestedClose()),
+          Story.expectOutMessage(Closed()),
           Story.Command.resolve(CloseDialog, CompletedCloseDialog()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
@@ -98,11 +98,11 @@ describe('Dialog', () => {
         )
       })
 
-      it('closes without command or OutMessage when already closed on Closed', () => {
+      it('closes without command or OutMessage when already closed on RequestedClose', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test' })),
-          Story.message(Closed()),
+          Story.message(RequestedClose()),
           Story.expectNoOutMessage(),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
@@ -124,11 +124,11 @@ describe('Dialog', () => {
     })
 
     describe('animated', () => {
-      it('opens with enter animation on Opened', () => {
+      it('opens with enter animation on RequestedOpen', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', isAnimated: true })),
-          Story.message(Opened()),
+          Story.message(RequestedOpen()),
           Story.Command.expectHas(ShowDialog, Animation.RequestFrame),
           Story.Command.resolveAll(
             [ShowDialog, CompletedShowDialog()],
@@ -150,11 +150,11 @@ describe('Dialog', () => {
         )
       })
 
-      it('closes with leave animation and CloseDialog on Closed', () => {
+      it('closes with leave animation and CloseDialog on RequestedClose', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', isOpen: true, isAnimated: true })),
-          Story.message(Closed()),
+          Story.message(RequestedClose()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.animation.transitionState).toBe('LeaveStart')
@@ -178,7 +178,7 @@ describe('Dialog', () => {
         )
       })
 
-      it('ignores Closed when already in LeaveStart', () => {
+      it('ignores RequestedClose when already in LeaveStart', () => {
         const leavingModel = {
           ...init({ id: 'test', isOpen: true, isAnimated: true }),
           isOpen: false,
@@ -191,7 +191,7 @@ describe('Dialog', () => {
         Story.story(
           update,
           Story.with(leavingModel),
-          Story.message(Closed()),
+          Story.message(RequestedClose()),
           Story.model(model => {
             expect(model).toBe(leavingModel)
           }),
@@ -199,7 +199,7 @@ describe('Dialog', () => {
         )
       })
 
-      it('ignores Closed when already in LeaveAnimating', () => {
+      it('ignores RequestedClose when already in LeaveAnimating', () => {
         const leavingModel = {
           ...init({ id: 'test', isOpen: true, isAnimated: true }),
           isOpen: false,
@@ -212,7 +212,7 @@ describe('Dialog', () => {
         Story.story(
           update,
           Story.with(leavingModel),
-          Story.message(Closed()),
+          Story.message(RequestedClose()),
           Story.model(model => {
             expect(model).toBe(leavingModel)
           }),

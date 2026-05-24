@@ -78,7 +78,7 @@ const docsHeaderView = (model: Model) => {
               h.OnClick(
                 GotSearchMessage({
                   message: Search.GotSearchDialogMessage({
-                    message: Ui.Dialog.Opened(),
+                    message: Ui.Dialog.RequestedOpen(),
                   }),
                 }),
               ),
@@ -128,7 +128,7 @@ const docsHeaderView = (model: Model) => {
               h.OnClick(
                 GotSearchMessage({
                   message: Search.GotSearchDialogMessage({
-                    message: Ui.Dialog.Opened(),
+                    message: Ui.Dialog.RequestedOpen(),
                   }),
                 }),
               ),
@@ -144,7 +144,7 @@ const docsHeaderView = (model: Model) => {
               h.AriaLabel('Toggle menu'),
               h.OnClick(
                 GotMobileMenuDialogMessage({
-                  message: Ui.Dialog.Opened(),
+                  message: Ui.Dialog.RequestedOpen(),
                 }),
               ),
             ],

@@ -182,13 +182,13 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
 
 const outMessageProps: ReadonlyArray<PropEntry> = [
   {
-    name: 'OpenedPanel',
+    name: 'Opened',
     type: '{}',
     description:
-      'Emitted once the popover has transitioned to open. Distinct from the internal Opened message (which is the request to open); this OutMessage fires after `update` has processed the request and `isOpen` reflects the new state.',
+      'Emitted once the popover has transitioned to open. Fires after `update` has processed `RequestedOpen` and `isOpen` reflects the new state.',
   },
   {
-    name: 'ClosedPanel',
+    name: 'Closed',
     type: '{}',
     description:
       'Emitted once the popover has transitioned to closed. Programmatic `Popover.close` on an already-closed model is a no-op that does not re-emit.',

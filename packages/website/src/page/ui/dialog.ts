@@ -73,7 +73,7 @@ export const dialogDemo = <ParentMessage>(
         h.button(
           [
             h.Class(triggerClassName),
-            h.OnClick(dialogToParentMessage(Ui.Dialog.Opened())),
+            h.OnClick(dialogToParentMessage(Ui.Dialog.RequestedOpen())),
           ],
           ['Open Dialog'],
         ),
@@ -116,7 +116,9 @@ export const dialogDemo = <ParentMessage>(
                                 [
                                   h.Class(cancelButtonClassName),
                                   h.OnClick(
-                                    dialogToParentMessage(Ui.Dialog.Closed()),
+                                    dialogToParentMessage(
+                                      Ui.Dialog.RequestedClose(),
+                                    ),
                                   ),
                                 ],
                                 ['Cancel'],
@@ -125,7 +127,9 @@ export const dialogDemo = <ParentMessage>(
                                 [
                                   h.Class(confirmButtonClassName),
                                   h.OnClick(
-                                    dialogToParentMessage(Ui.Dialog.Closed()),
+                                    dialogToParentMessage(
+                                      Ui.Dialog.RequestedClose(),
+                                    ),
                                   ),
                                 ],
                                 ['Confirm'],
@@ -161,7 +165,7 @@ export const dialogAnimatedDemo = <ParentMessage>(
         h.button(
           [
             h.Class(triggerClassName),
-            h.OnClick(dialogToParentMessage(Ui.Dialog.Opened())),
+            h.OnClick(dialogToParentMessage(Ui.Dialog.RequestedOpen())),
           ],
           ['Open Animated Dialog'],
         ),
@@ -204,7 +208,9 @@ export const dialogAnimatedDemo = <ParentMessage>(
                                 [
                                   h.Class(cancelButtonClassName),
                                   h.OnClick(
-                                    dialogToParentMessage(Ui.Dialog.Closed()),
+                                    dialogToParentMessage(
+                                      Ui.Dialog.RequestedClose(),
+                                    ),
                                   ),
                                 ],
                                 ['Cancel'],
@@ -213,7 +219,9 @@ export const dialogAnimatedDemo = <ParentMessage>(
                                 [
                                   h.Class(confirmButtonClassName),
                                   h.OnClick(
-                                    dialogToParentMessage(Ui.Dialog.Closed()),
+                                    dialogToParentMessage(
+                                      Ui.Dialog.RequestedClose(),
+                                    ),
                                   ),
                                 ],
                                 ['Confirm'],

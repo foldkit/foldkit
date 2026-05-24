@@ -90,7 +90,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             : {}
 
         const focusOnOpen =
-          message._tag === 'Opened' ? [FocusSearchInput()] : []
+          message._tag === 'RequestedOpen' ? [FocusSearchInput()] : []
 
         const mappedDialogCommands = Command.mapMessages(
           dialogCommands,

@@ -7,8 +7,8 @@ import {
   AnchorPopover,
   CompletedAnchorPopover,
   CompletedPortalPopoverBackdrop,
-  Opened,
   PortalPopoverBackdrop,
+  RequestedOpen,
   init,
   update,
   view,
@@ -52,10 +52,10 @@ const panel = Scene.selector('[key="test-panel-container"]')
 const backdrop = Scene.selector('[key="test-backdrop"]')
 
 const closedModel = init({ id: 'test' })
-const [openModel] = update(init({ id: 'test' }), Opened())
+const [openModel] = update(init({ id: 'test' }), RequestedOpen())
 const [openContentFocusModel] = update(
   init({ id: 'test', contentFocus: true }),
-  Opened(),
+  RequestedOpen(),
 )
 
 describe('Popover', () => {

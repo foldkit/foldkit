@@ -43,9 +43,9 @@ export type Model = typeof Model.Type
 // MESSAGE
 
 /** Sent when the dialog should open. Triggers the showModal command. */
-export const Opened = m('Opened')
+export const RequestedOpen = m('RequestedOpen')
 /** Sent when the dialog should close (Escape key, backdrop click, or programmatic). */
-export const Closed = m('Closed')
+export const RequestedClose = m('RequestedClose')
 /** Sent when the show-dialog command completes. */
 export const CompletedShowDialog = m('CompletedShowDialog')
 /** Sent when the close-dialog command completes. */
@@ -58,22 +58,22 @@ export const GotAnimationMessage = m('GotAnimationMessage', {
 /** Union of all messages the dialog component can produce. */
 export const Message: S.Union<
   [
-    typeof Opened,
-    typeof Closed,
+    typeof RequestedOpen,
+    typeof RequestedClose,
     typeof CompletedShowDialog,
     typeof CompletedCloseDialog,
     typeof GotAnimationMessage,
   ]
 > = S.Union([
-  Opened,
-  Closed,
+  RequestedOpen,
+  RequestedClose,
   CompletedShowDialog,
   CompletedCloseDialog,
   GotAnimationMessage,
 ])
 
-export type Opened = typeof Opened.Type
-export type Closed = typeof Closed.Type
+export type RequestedOpen = typeof RequestedOpen.Type
+export type RequestedClose = typeof RequestedClose.Type
 export type CompletedShowDialog = typeof CompletedShowDialog.Type
 export type CompletedCloseDialog = typeof CompletedCloseDialog.Type
 
@@ -81,24 +81,23 @@ export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-/** Sent once the dialog has transitioned to open. Distinct from the
- *  internal `Opened` Message (which is the request to open); this
- *  OutMessage fires after `update` has processed the request and
- *  `isOpen` reflects the new state. Programmatic `Dialog.open` on an
- *  already-open model is a no-op that does not re-emit. */
-export const OpenedPanel = m('OpenedPanel')
+/** Sent once the dialog has transitioned to open. Fires after `update`
+ *  has processed `RequestedOpen` and `isOpen` reflects the new state.
+ *  Programmatic `Dialog.open` on an already-open model is a no-op that
+ *  does not re-emit. */
+export const Opened = m('Opened')
 
 /** Sent once the dialog has transitioned to closed. Programmatic
  *  `Dialog.close` on an already-closed model is a no-op that does not
  *  re-emit; calling close while a leave animation is in progress is
  *  also a no-op. */
-export const ClosedPanel = m('ClosedPanel')
+export const Closed = m('Closed')
 
 /** Union of out-messages the dialog component can produce. */
-export const OutMessage = S.Union([OpenedPanel, ClosedPanel])
+export const OutMessage = S.Union([Opened, Closed])
 
-export type OpenedPanel = typeof OpenedPanel.Type
-export type ClosedPanel = typeof ClosedPanel.Type
+export type Opened = typeof Opened.Type
+export type Closed = typeof Closed.Type
 export type OutMessage = typeof OutMessage.Type
 
 // INIT
@@ -212,7 +211,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      Opened: () => {
+      RequestedOpen: () => {
         const wasClosed = !model.isOpen
         const maybeShow = Option.liftPredicate(
           ShowDialog({
@@ -222,7 +221,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           () => wasClosed,
         )
         const maybeOutMessage = wasClosed
-          ? Option.some(OpenedPanel())
+          ? Option.some(Opened())
           : Option.none()
 
         if (model.isAnimated) {
@@ -245,7 +244,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      Closed: () => {
+      RequestedClose: () => {
         const { transitionState } = model.animation
         const isLeaving =
           transitionState === 'LeaveStart' ||
@@ -256,9 +255,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         }
 
         const wasOpen = model.isOpen
-        const maybeOutMessage = wasOpen
-          ? Option.some(ClosedPanel())
-          : Option.none()
+        const maybeOutMessage = wasOpen ? Option.some(Closed()) : Option.none()
 
         if (model.isAnimated) {
           const [nextModel, animationCommands] = delegateToAnimation(
@@ -290,10 +287,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   )
 
 /** Programmatically opens the dialog. */
-export const open = (model: Model): UpdateReturn => update(model, Opened())
+export const open = (model: Model): UpdateReturn =>
+  update(model, RequestedOpen())
 
 /** Programmatically closes the dialog. */
-export const close = (model: Model): UpdateReturn => update(model, Closed())
+export const close = (model: Model): UpdateReturn =>
+  update(model, RequestedClose())
 
 // VIEW
 
@@ -307,8 +306,8 @@ export const descriptionId = (model: Model): string => `${model.id}-description`
  *
  *  - `dialog`: attributes for the native `<dialog>` element. Carries
  *    the id, ARIA labelling, `open` prop, positioning style, and the
- *    `OnCancel` handler that wires Escape to `Closed`. The consumer
- *    MUST render an `h.dialog(...)` element so the framework's
+ *    `OnCancel` handler that wires Escape to `RequestedClose`. The
+ *    consumer MUST render an `h.dialog(...)` element so the framework's
  *    `showModal`/`close()` commands can target it.
  *  - `backdrop`: attributes for the backdrop element. Includes the
  *    Animation data attributes and the `OnClick` handler that closes
@@ -374,7 +373,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       h.Id(id),
       h.AriaLabelledBy(`${id}-title`),
       h.AriaDescribedBy(`${id}-description`),
-      h.OnCancel(Closed()),
+      h.OnCancel(RequestedClose()),
       h.Open(isVisible),
       h.Style({
         width: '100%',
@@ -394,7 +393,7 @@ export const view = defineView<Model, Message, ViewInputs>(
     const backdropAttributes = [
       h.Style({ minHeight: '100vh' }),
       ...animationAttributes,
-      ...(isLeaving ? [] : [h.OnClick(Closed())]),
+      ...(isLeaving ? [] : [h.OnClick(RequestedClose())]),
     ]
 
     const panelAttributes = [h.Id(`${id}-panel`), ...animationAttributes]

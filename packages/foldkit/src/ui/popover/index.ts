@@ -45,10 +45,10 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** Sent when the popover opens via button click or keyboard activation. */
-export const Opened = m('Opened')
-/** Sent when the popover closes via Escape key or backdrop click. Returns focus to the button. */
-export const Closed = m('Closed')
+/** Sent when the popover should open via button click or keyboard activation. */
+export const RequestedOpen = m('RequestedOpen')
+/** Sent when the popover should close via Escape key or backdrop click. Returns focus to the button. */
+export const RequestedClose = m('RequestedClose')
 /** Sent when the popover panel loses focus. Does NOT return focus to the button. */
 export const BlurredPanel = m('BlurredPanel')
 /** Sent when the user presses a pointer device on the popover button. Records pointer type and toggles for mouse. */
@@ -86,8 +86,8 @@ export const GotAnimationMessage = m('GotAnimationMessage', {
 /** Union of all messages the popover component can produce. */
 export const Message: S.Union<
   [
-    typeof Opened,
-    typeof Closed,
+    typeof RequestedOpen,
+    typeof RequestedClose,
     typeof BlurredPanel,
     typeof PressedPointerOnButton,
     typeof CompletedFocusPanel,
@@ -103,8 +103,8 @@ export const Message: S.Union<
     typeof GotAnimationMessage,
   ]
 > = S.Union([
-  Opened,
-  Closed,
+  RequestedOpen,
+  RequestedClose,
   BlurredPanel,
   PressedPointerOnButton,
   CompletedFocusPanel,
@@ -120,8 +120,8 @@ export const Message: S.Union<
   GotAnimationMessage,
 ])
 
-export type Opened = typeof Opened.Type
-export type Closed = typeof Closed.Type
+export type RequestedOpen = typeof RequestedOpen.Type
+export type RequestedClose = typeof RequestedClose.Type
 export type BlurredPanel = typeof BlurredPanel.Type
 export type PressedPointerOnButton = typeof PressedPointerOnButton.Type
 export type IgnoredMouseClick = typeof IgnoredMouseClick.Type
@@ -131,17 +131,17 @@ export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-/** Sent to the parent after the popover transitions to its open state. Distinct from the internal `Opened` message (which is the *request* to open); this OutMessage fires once the request has been processed and the popover's `isOpen` reflects the new state. */
-export const OpenedPanel = m('OpenedPanel')
+/** Sent to the parent after the popover transitions to its open state. Fires once `update` has processed `RequestedOpen` and `isOpen` reflects the new state. */
+export const Opened = m('Opened')
 /** Sent to the parent after the popover transitions to its closed state. */
-export const ClosedPanel = m('ClosedPanel')
+export const Closed = m('Closed')
 
 /** Union of out-messages the popover component can produce. Parents reacting to open/close transitions (e.g. to reset related state, fire analytics) read this from the third element of `update`'s return tuple. */
-export const OutMessage = S.Union([OpenedPanel, ClosedPanel])
+export const OutMessage = S.Union([Opened, Closed])
 export type OutMessage = typeof OutMessage.Type
 
-export type OpenedPanel = typeof OpenedPanel.Type
-export type ClosedPanel = typeof ClosedPanel.Type
+export type Opened = typeof Opened.Type
+export type Closed = typeof Closed.Type
 
 // INIT
 
@@ -316,14 +316,14 @@ export const update = (model: Model, message: Message): UpdateReturn => {
       return [
         evo(nextModel, { isOpen: () => true }),
         [...openCommands, ...animationCommands],
-        Option.some(OpenedPanel()),
+        Option.some(Opened()),
       ]
     }
 
     return [
       evo(baseModel, { isOpen: () => true }),
       openCommands,
-      Option.some(OpenedPanel()),
+      Option.some(Opened()),
     ]
   }
 
@@ -344,19 +344,19 @@ export const update = (model: Model, message: Message): UpdateReturn => {
       return [
         nextModel,
         [...commands, ...animationCommands],
-        Option.some(ClosedPanel()),
+        Option.some(Closed()),
       ]
     }
 
-    return [closed, commands, Option.some(ClosedPanel())]
+    return [closed, commands, Option.some(Closed())]
   }
 
   return M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      Opened: () => openPopover(model),
+      RequestedOpen: () => openPopover(model),
 
-      Closed: () => closePopover(model, closeWithFocusCommands),
+      RequestedClose: () => closePopover(model, closeWithFocusCommands),
 
       BlurredPanel: () => {
         if (
@@ -463,12 +463,14 @@ export const PortalPopoverBackdrop = Mount.define(
 )
 
 /** Programmatically opens the popover, updating the model and returning
- *  focus and modal commands plus an `OpenedPanel` OutMessage. */
-export const open = (model: Model): UpdateReturn => update(model, Opened())
+ *  focus and modal commands plus an `Opened` OutMessage. */
+export const open = (model: Model): UpdateReturn =>
+  update(model, RequestedOpen())
 
 /** Programmatically closes the popover, updating the model and returning
- *  focus and modal commands plus a `ClosedPanel` OutMessage when it was open. */
-export const close = (model: Model): UpdateReturn => update(model, Closed())
+ *  focus and modal commands plus a `Closed` OutMessage when it was open. */
+export const close = (model: Model): UpdateReturn =>
+  update(model, RequestedClose())
 
 // VIEW
 
@@ -539,12 +541,14 @@ export const view = defineView<Model, Message, ViewInputs>(
       M.orElse(() => []),
     )
 
-    const handleButtonKeyDown = (key: string): Option.Option<Opened | Closed> =>
+    const handleButtonKeyDown = (
+      key: string,
+    ): Option.Option<RequestedOpen | RequestedClose> =>
       M.value(key).pipe(
         M.whenOr('Enter', ' ', 'ArrowDown', () =>
-          Option.some(isOpen ? Closed() : Opened()),
+          Option.some(isOpen ? RequestedClose() : RequestedOpen()),
         ),
-        M.when('Escape', () => OptionExt.when(isOpen, Closed())),
+        M.when('Escape', () => OptionExt.when(isOpen, RequestedClose())),
         M.orElse(() => Option.none()),
       )
 
@@ -554,7 +558,10 @@ export const view = defineView<Model, Message, ViewInputs>(
     ): Option.Option<PressedPointerOnButton> =>
       Option.some(PressedPointerOnButton({ pointerType, button }))
 
-    const handleButtonClick = (): Opened | Closed | IgnoredMouseClick => {
+    const handleButtonClick = ():
+      | RequestedOpen
+      | RequestedClose
+      | IgnoredMouseClick => {
       const isMouse = Option.exists(
         maybeLastButtonPointerType,
         type => type === 'mouse',
@@ -563,9 +570,9 @@ export const view = defineView<Model, Message, ViewInputs>(
       if (isMouse) {
         return IgnoredMouseClick()
       } else if (isOpen) {
-        return Closed()
+        return RequestedClose()
       } else {
-        return Opened()
+        return RequestedOpen()
       }
     }
 
@@ -574,9 +581,9 @@ export const view = defineView<Model, Message, ViewInputs>(
     ): Option.Option<SuppressedSpaceScroll> =>
       OptionExt.when(key === ' ', SuppressedSpaceScroll())
 
-    const handlePanelKeyDown = (key: string): Option.Option<Closed> =>
+    const handlePanelKeyDown = (key: string): Option.Option<RequestedClose> =>
       M.value(key).pipe(
-        M.when('Escape', () => Option.some(Closed())),
+        M.when('Escape', () => Option.some(RequestedClose())),
         M.orElse(() => Option.none()),
       )
 
@@ -623,7 +630,7 @@ export const view = defineView<Model, Message, ViewInputs>(
 
     const backdropAttributes = [
       h.OnMount(PortalPopoverBackdrop()),
-      ...(isLeaving ? [] : [h.OnClick(Closed())]),
+      ...(isLeaving ? [] : [h.OnClick(RequestedClose())]),
     ]
 
     return toView({
