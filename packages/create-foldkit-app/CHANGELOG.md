@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.12.2
+
+### Patch Changes
+
+- bb1eebd: Update Discord invite link.
+
 ## 0.12.1
 
 ### Patch Changes
