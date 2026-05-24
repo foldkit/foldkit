@@ -47,10 +47,7 @@ export type WithStep<Model> = Readonly<{ _phantomModel: Model }> &
     simulation: StorySimulation<M, Message, OutMessage>,
   ) => StorySimulation<M, Message, OutMessage>)
 
-/** A model-assertion step. The shape's `assert` callback carries the
- *  story's `Model` so untyped lambdas like `Story.model(model => ...)`
- *  infer `model` from the story's update function without per-call
- *  annotation. */
+/** A model-assertion step produced by {@link model}. */
 export type ModelStep<Model> = Readonly<{
   readonly _tag: 'ModelStep'
   readonly assert: (model: Model) => void
@@ -242,14 +239,8 @@ const resolveAllCommands =
       OutMessage
     >
 
-/** Runs an assertion function against the current Model. Returns a
- *  branded `ModelStep` so the story's `Model` flows into the callback's
- *  parameter via the step's expected type at the call site: writing
- *  `Story.model(model => ...)` without an annotation infers `model`
- *  from the update function's signature. */
-export const model = <Model>(
-  f: (model: Model) => void,
-): ModelStep<Model> => ({
+/** Runs an assertion function against the current Model. */
+export const model = <Model>(f: (model: Model) => void): ModelStep<Model> => ({
   _tag: 'ModelStep',
   assert: f,
 })
