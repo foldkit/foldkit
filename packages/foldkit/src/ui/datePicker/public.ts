@@ -16,6 +16,7 @@ export {
   GotCalendarMessage,
   GotPopoverMessage,
   SelectedDate,
+  SelectedDateOut,
   Cleared,
   Opened,
   Closed,

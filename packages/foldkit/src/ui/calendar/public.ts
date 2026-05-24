@@ -13,6 +13,7 @@ export {
   Message,
   OutMessage,
   ChangedViewMonth,
+  SelectedDate,
   ClickedDay,
   PressedKeyOnGrid,
   ClickedPreviousMonthButton,
