@@ -71,10 +71,10 @@ const initConfigHeader: TableOfContentsEntry = {
   text: 'InitConfig',
 }
 
-const viewInputsHeader: TableOfContentsEntry = {
+const viewConfigHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'view-inputs',
-  text: 'ViewInputs',
+  id: 'view-config',
+  text: 'ViewConfig',
 }
 
 const renderInfoHeader: TableOfContentsEntry = {
@@ -99,7 +99,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   accessibilityHeader,
   apiReferenceHeader,
   initConfigHeader,
-  viewInputsHeader,
+  viewConfigHeader,
   renderInfoHeader,
   outMessageHeader,
 ]
@@ -132,7 +132,18 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
   },
 ]
 
-const viewInputsProps: ReadonlyArray<PropEntry> = [
+const viewConfigProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'model',
+    type: 'Dialog.Model',
+    description: 'The dialog state from your parent Model.',
+  },
+  {
+    name: 'toParentMessage',
+    type: '(childMessage: Dialog.Message) => ParentMessage',
+    description:
+      'Wraps Dialog Messages in your parent Message type for Submodel delegation.',
+  },
   {
     name: 'toView',
     type: '(render: RenderInfo) => Html',
@@ -309,7 +320,9 @@ export const view = <ParentMessage>(
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'Dialog is headless. You control the panel and backdrop markup through className and attribute props. The native ',
+        'Dialog is headless. The ',
+        inlineCode('toView'),
+        ' callback receives attribute bundles for the dialog, backdrop, and panel, and the consumer composes the markup. The native ',
         inlineCode('<dialog>'),
         ' element handles the top layer, so style its ',
         inlineCode('::backdrop'),
@@ -368,6 +381,17 @@ export const view = <ParentMessage>(
       ),
       para('Configuration object passed to ', inlineCode('Dialog.view()'), '.'),
       propTable(viewConfigProps),
+      heading(
+        renderInfoHeader.level,
+        renderInfoHeader.id,
+        renderInfoHeader.text,
+      ),
+      para(
+        'Payload delivered to the ',
+        inlineCode('toView'),
+        ' callback each render.',
+      ),
+      propTable(renderInfoProps),
       heading(
         outMessageHeader.level,
         outMessageHeader.id,

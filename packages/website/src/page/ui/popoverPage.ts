@@ -77,6 +77,12 @@ const viewConfigHeader: TableOfContentsEntry = {
   text: 'ViewConfig',
 }
 
+const renderInfoHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'render-info',
+  text: 'RenderInfo',
+}
+
 const outMessageHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'out-message',
@@ -94,6 +100,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiReferenceHeader,
   initConfigHeader,
   viewConfigHeader,
+  renderInfoHeader,
   outMessageHeader,
 ]
 
@@ -117,6 +124,13 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     default: 'false',
     description: 'Locks page scroll and marks other elements inert when open.',
   },
+  {
+    name: 'contentFocus',
+    type: 'boolean',
+    default: 'false',
+    description:
+      'Hands focus ownership to the consumer. When true, the panel is not focusable and does not close on blur; the consumer must focus a descendant on open and decide on its own blur rules.',
+  },
 ]
 
 const viewConfigProps: ReadonlyArray<PropEntry> = [
@@ -132,51 +146,55 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'Wraps Popover Messages in your parent Message type for Submodel delegation.',
   },
   {
-    name: 'buttonContent',
-    type: 'Html',
-    description: 'Content rendered inside the trigger button.',
-  },
-  {
-    name: 'panelContent',
-    type: 'Html',
-    description: 'Content rendered inside the floating panel.',
-  },
-  {
     name: 'anchor',
     type: 'AnchorConfig',
     description:
       'Floating positioning config: placement, gap, and padding. Required.',
   },
   {
-    name: 'buttonClassName',
-    type: 'string',
-    description: 'CSS class for the trigger button.',
-  },
-  {
-    name: 'buttonAttributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Additional attributes for the trigger button.',
-  },
-  {
-    name: 'panelClassName',
-    type: 'string',
-    description: 'CSS class for the floating panel.',
-  },
-  {
-    name: 'panelAttributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Additional attributes for the panel.',
-  },
-  {
-    name: 'backdropClassName',
-    type: 'string',
-    description: 'CSS class for the backdrop.',
+    name: 'toView',
+    type: '(render: RenderInfo) => Html',
+    description:
+      'Callback that receives the button, panel, and backdrop attribute bundles plus a derived `isVisible` flag, and returns the composed layout.',
   },
   {
     name: 'isDisabled',
     type: 'boolean',
     default: 'false',
     description: 'Disables the trigger button.',
+  },
+  {
+    name: 'focusSelector',
+    type: 'string',
+    description:
+      'CSS selector for the element to focus after the panel is positioned. Defaults to the panel itself.',
+  },
+]
+
+const renderInfoProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'button',
+    type: 'ReadonlyArray<ChildAttribute>',
+    description:
+      'Spread onto the trigger button. Includes the button id, `aria-expanded`, `aria-controls`, and pointer/keyboard handlers.',
+  },
+  {
+    name: 'panel',
+    type: 'ReadonlyArray<ChildAttribute>',
+    description:
+      'Spread onto the floating panel. Includes the anchor Mount that positions the panel via Floating UI, ARIA linkage to the button, and panel keydown/blur handlers.',
+  },
+  {
+    name: 'backdrop',
+    type: 'ReadonlyArray<ChildAttribute>',
+    description:
+      "Spread onto the modal backdrop element. Includes the portal Mount that moves the backdrop to `document.body`. The backdrop's click handler dispatches `RequestedClose`.",
+  },
+  {
+    name: 'isVisible',
+    type: 'boolean',
+    description:
+      'Derived from `isOpen` and the Animation `transitionState`. Render the panel and backdrop only while this is true.',
   },
 ]
 
@@ -291,7 +309,9 @@ export const view = <ParentMessage>(
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'Popover is headless. Button and panel styling is controlled through className and attribute props.',
+        'Popover is headless. The ',
+        inlineCode('toView'),
+        ' callback receives attribute bundles for the button, panel, and backdrop, and the consumer composes the markup.',
       ),
       para(
         'When ',
@@ -351,6 +371,17 @@ export const view = <ParentMessage>(
         '.',
       ),
       propTable(viewConfigProps),
+      heading(
+        renderInfoHeader.level,
+        renderInfoHeader.id,
+        renderInfoHeader.text,
+      ),
+      para(
+        'Payload delivered to the ',
+        inlineCode('toView'),
+        ' callback each render.',
+      ),
+      propTable(renderInfoProps),
       heading(
         outMessageHeader.level,
         outMessageHeader.id,

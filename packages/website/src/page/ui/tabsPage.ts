@@ -76,10 +76,16 @@ const viewConfigHeader: TableOfContentsEntry = {
   text: 'ViewConfig',
 }
 
-const tabConfigHeader: TableOfContentsEntry = {
+const renderInfoHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'tab-config',
-  text: 'TabConfig',
+  id: 'render-info',
+  text: 'RenderInfo',
+}
+
+const tabInfoHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'tab-info',
+  text: 'TabInfo',
 }
 
 const outMessageHeader: TableOfContentsEntry = {
@@ -99,7 +105,8 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiReferenceHeader,
   initConfigHeader,
   viewConfigHeader,
-  tabConfigHeader,
+  renderInfoHeader,
+  tabInfoHeader,
   outMessageHeader,
 ]
 
@@ -149,98 +156,95 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
   },
   {
     name: 'tabs',
-    type: 'ReadonlyArray<Tab>',
+    type: 'ReadonlyArray<Value>',
     description:
-      'The list of tabs. The generic Tab type narrows the value passed to tabToConfig.',
+      'The list of tab values, in display order. When the tabs component is declared via `Ui.Tabs.create<MyUnion>()`, `Value` is your union type and each `TabInfo.value` is typed as `MyUnion`.',
   },
   {
-    name: 'tabToConfig',
-    type: '(tab, context) => TabConfig',
-    description:
-      'Maps each tab to its button content and panel content. The context provides isActive.',
-  },
-  {
-    name: 'tabListAriaLabel',
+    name: 'ariaLabel',
     type: 'string',
     description: 'Accessible label for the tab list.',
+  },
+  {
+    name: 'toView',
+    type: '(render: RenderInfo<Value>) => Html',
+    description:
+      'Callback that receives the `tablist` attribute bundle, one `TabInfo<Value>` per tab, and the current `activeIndex`. Returns the composed layout.',
+  },
+  {
+    name: 'isTabDisabled',
+    type: '(value: Value, index: number) => boolean',
+    description: 'Disables individual tabs.',
   },
   {
     name: 'orientation',
     type: "'Horizontal' | 'Vertical'",
     default: "'Horizontal'",
     description:
-      'Controls arrow key direction and aria-orientation. Horizontal uses left/right, vertical uses up/down.',
-  },
-  {
-    name: 'isTabDisabled',
-    type: '(tab, index) => boolean',
-    description: 'Disables individual tabs.',
-  },
-  {
-    name: 'persistPanels',
-    type: 'boolean',
-    default: 'false',
-    description:
-      'When true, renders all panels with the hidden attribute on inactive ones instead of removing them from the DOM.',
-  },
-  {
-    name: 'onTabSelected',
-    type: '(index: number) => Message',
-    description:
-      'Alternative to Submodel delegation: fires your own Message on tab selection. Use with Tabs.selectTab() to update the Model.',
-  },
-  {
-    name: 'tabListAttributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Additional attributes for the tab list container.',
-  },
-  {
-    name: 'tabListClassName',
-    type: 'string',
-    description: 'CSS class for the tab list container.',
-  },
-  {
-    name: 'attributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Additional attributes for the outer wrapper.',
-  },
-  {
-    name: 'className',
-    type: 'string',
-    description: 'CSS class for the outer wrapper.',
+      'Controls arrow key direction and `aria-orientation`. Horizontal uses left/right, vertical uses up/down.',
   },
 ]
 
-const tabConfigProps: ReadonlyArray<PropEntry> = [
+const renderInfoProps: ReadonlyArray<PropEntry> = [
   {
-    name: 'buttonContent',
-    type: 'Html',
-    description: 'Content rendered inside the tab button.',
+    name: 'tablist',
+    type: 'ReadonlyArray<ChildAttribute>',
+    description:
+      'Spread onto the tab list container. Includes `role="tablist"`, `aria-orientation`, and `aria-label`.',
   },
   {
-    name: 'panelContent',
-    type: 'Html',
-    description: 'Content rendered inside the tab panel.',
+    name: 'tabs',
+    type: 'ReadonlyArray<TabInfo<Value>>',
+    description:
+      'One entry per tab in `viewInputs.tabs`, in the same order. See TabInfo below.',
   },
   {
-    name: 'buttonClassName',
-    type: 'string',
-    description: 'CSS class for the tab button.',
+    name: 'activeIndex',
+    type: 'number',
+    description:
+      'The currently-active tab index. Convenient when the consumer wants to render only the active panel (vs all panels with `hidden` for transitions).',
+  },
+]
+
+const tabInfoProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'value',
+    type: 'Value',
+    description:
+      'The tab value. Typed as your `Value` union when the tabs component is declared via `Ui.Tabs.create<Value>()`.',
   },
   {
-    name: 'buttonAttributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Additional attributes for the tab button.',
+    name: 'index',
+    type: 'number',
+    description: 'Position in the `tabs` array.',
   },
   {
-    name: 'panelClassName',
-    type: 'string',
-    description: 'CSS class for the tab panel.',
+    name: 'isActive',
+    type: 'boolean',
+    description: 'Whether this tab is currently active.',
   },
   {
-    name: 'panelAttributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Additional attributes for the tab panel.',
+    name: 'isFocused',
+    type: 'boolean',
+    description:
+      'Whether this tab owns the roving tabindex (the one in the tab order).',
+  },
+  {
+    name: 'isDisabled',
+    type: 'boolean',
+    description: 'Whether this tab is disabled via `isTabDisabled`.',
+  },
+  {
+    name: 'tab',
+    type: 'ReadonlyArray<ChildAttribute>',
+    description:
+      'Spread onto the tab button element. Includes `role="tab"`, `type="button"`, `aria-selected`, `aria-controls`, `tabindex`, the click handler, and the keyboard handler.',
+  },
+  {
+    name: 'panel',
+    type: 'ReadonlyArray<ChildAttribute>',
+    description:
+      'Spread onto the tab panel element. Includes `role="tabpanel"`, `aria-labelledby` pointing back to the tab, and `tabindex`.',
   },
 ]
 
@@ -310,13 +314,21 @@ export const view = <ParentMessage>(
         Tabs.horizontalHeader.text,
       ),
       para(
-        'The ',
+        'Declare the tabs component once at module scope with ',
+        inlineCode('Ui.Tabs.create<Value>()'),
+        ' to lift the tab type through ',
         inlineCode('view'),
-        ' function is generic over your tab type. Pass a typed ',
+        ', ',
+        inlineCode('update'),
+        ', and ',
+        inlineCode('selectTab'),
+        ' without casting. Pass the typed ',
         inlineCode('tabs'),
         ' array and a ',
-        inlineCode('tabToConfig'),
-        ' callback that maps each tab to its button and panel content.',
+        inlineCode('toView'),
+        ' callback that receives one ',
+        inlineCode('TabInfo<Value>'),
+        ' per tab (with attribute bundles for the tab button and its panel).',
       ),
       demoContainer(
         ...Tabs.horizontalDemo(model.horizontalTabsDemo, toParentMessage),
@@ -357,8 +369,10 @@ export const view = <ParentMessage>(
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
         'Tabs is headless. The ',
-        inlineCode('tabToConfig'),
-        ' callback controls all tab and panel markup. A common styling trick is to use a negative margin (',
+        inlineCode('toView'),
+        ' callback owns all tab and panel markup, spreading the attribute bundles from each ',
+        inlineCode('TabInfo'),
+        " onto the consumer's elements. A common styling trick is to use a negative margin (",
         inlineCode('mb-[-1px]'),
         ' for horizontal, ',
         inlineCode('mr-[-1px]'),
@@ -417,13 +431,24 @@ export const view = <ParentMessage>(
       ),
       para('Configuration object passed to ', inlineCode('Tabs.view()'), '.'),
       propTable(viewConfigProps),
-      heading(tabConfigHeader.level, tabConfigHeader.id, tabConfigHeader.text),
-      para(
-        'Object returned by the ',
-        inlineCode('tabToConfig'),
-        ' callback for each tab.',
+      heading(
+        renderInfoHeader.level,
+        renderInfoHeader.id,
+        renderInfoHeader.text,
       ),
-      propTable(tabConfigProps),
+      para(
+        'Payload delivered to the ',
+        inlineCode('toView'),
+        ' callback each render.',
+      ),
+      propTable(renderInfoProps),
+      heading(tabInfoHeader.level, tabInfoHeader.id, tabInfoHeader.text),
+      para(
+        'Each entry in ',
+        inlineCode('RenderInfo.tabs'),
+        '. Carries the value, derived state flags, and attribute bundles for the tab button and its panel.',
+      ),
+      propTable(tabInfoProps),
       heading(
         outMessageHeader.level,
         outMessageHeader.id,

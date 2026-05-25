@@ -76,6 +76,12 @@ const viewConfigHeader: TableOfContentsEntry = {
   text: 'ViewConfig',
 }
 
+const renderInfoHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'render-info',
+  text: 'RenderInfo',
+}
+
 const programmaticHelpersHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'programmatic-helpers',
@@ -97,6 +103,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiReferenceHeader,
   initConfigHeader,
   viewConfigHeader,
+  renderInfoHeader,
   programmaticHelpersHeader,
   outMessageHeader,
 ]
@@ -137,34 +144,10 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'Floating positioning config: placement, gap, and padding. Required.',
   },
   {
-    name: 'triggerContent',
-    type: 'Html',
-    description: 'Content rendered inside the trigger button.',
-  },
-  {
-    name: 'content',
-    type: 'Html',
-    description: 'Content rendered inside the tooltip panel.',
-  },
-  {
-    name: 'triggerClassName',
-    type: 'string',
-    description: 'CSS class for the trigger button.',
-  },
-  {
-    name: 'triggerAttributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Additional attributes for the trigger button.',
-  },
-  {
-    name: 'panelClassName',
-    type: 'string',
-    description: 'CSS class for the panel.',
-  },
-  {
-    name: 'panelAttributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Additional attributes for the panel.',
+    name: 'toView',
+    type: '(render: RenderInfo) => Html',
+    description:
+      'Callback that receives the `trigger` and `panel` attribute bundles plus a derived `isVisible` flag, and returns the composed layout.',
   },
   {
     name: 'isDisabled',
@@ -172,6 +155,27 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     default: 'false',
     description:
       'Disables the trigger. Hover, focus, and keyboard events are ignored and the tooltip will not open.',
+  },
+]
+
+const renderInfoProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'trigger',
+    type: 'ReadonlyArray<ChildAttribute>',
+    description:
+      'Spread onto the trigger element. Carries `type="button"`, the hover/focus/keyboard handlers, and `aria-describedby` linking to the panel.',
+  },
+  {
+    name: 'panel',
+    type: 'ReadonlyArray<ChildAttribute>',
+    description:
+      'Spread onto the panel element. Carries `role="tooltip"`, the anchor Mount that positions the panel via Floating UI, and a `data-open` attribute when visible.',
+  },
+  {
+    name: 'isVisible',
+    type: 'boolean',
+    description:
+      'Whether the tooltip is currently visible. The consumer decides whether to render the panel conditionally on this.',
   },
 ]
 
@@ -271,7 +275,9 @@ export const view = <ParentMessage>(
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'Tooltip is headless. The trigger and panel are both styled through className and attribute props. The panel is rendered with ',
+        'Tooltip is headless. The ',
+        inlineCode('toView'),
+        ' callback receives attribute bundles for the trigger and panel, and the consumer composes the markup. The panel is rendered with ',
         inlineCode('pointer-events: none'),
         ' so it never captures hover or clicks, which keeps the open/close logic tied to the trigger.',
       ),
@@ -321,6 +327,17 @@ export const view = <ParentMessage>(
         '.',
       ),
       propTable(viewConfigProps),
+      heading(
+        renderInfoHeader.level,
+        renderInfoHeader.id,
+        renderInfoHeader.text,
+      ),
+      para(
+        'Payload delivered to the ',
+        inlineCode('toView'),
+        ' callback each render.',
+      ),
+      propTable(renderInfoProps),
       heading(
         programmaticHelpersHeader.level,
         programmaticHelpersHeader.id,

@@ -76,6 +76,12 @@ const viewConfigHeader: TableOfContentsEntry = {
   text: 'ViewConfig',
 }
 
+const disclosureAttributesHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'disclosure-attributes',
+  text: 'DisclosureAttributes',
+}
+
 const outMessageHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'out-message',
@@ -91,6 +97,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiReferenceHeader,
   initConfigHeader,
   viewConfigHeader,
+  disclosureAttributesHeader,
   outMessageHeader,
 ]
 
@@ -123,69 +130,32 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'Wraps Disclosure Messages in your parent Message type for Submodel delegation.',
   },
   {
-    name: 'buttonContent',
-    type: 'Html',
-    description: 'Content rendered inside the toggle button.',
-  },
-  {
-    name: 'panelContent',
-    type: 'Html',
-    description: 'Content rendered inside the disclosure panel.',
-  },
-  {
-    name: 'buttonClassName',
-    type: 'string',
-    description: 'CSS class for the toggle button.',
-  },
-  {
-    name: 'buttonAttributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Additional attributes for the toggle button.',
-  },
-  {
-    name: 'panelClassName',
-    type: 'string',
-    description: 'CSS class for the panel.',
-  },
-  {
-    name: 'panelAttributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Additional attributes for the panel.',
+    name: 'toView',
+    type: '(attributes: DisclosureAttributes) => Html',
+    description:
+      'Callback that receives the `button` and `panel` attribute bundles and returns the composed layout. The consumer reads `isOpen` from their parent model when they need to render conditionally on it.',
   },
   {
     name: 'isDisabled',
     type: 'boolean',
     default: 'false',
-    description: 'Whether the toggle button is disabled.',
-  },
-  {
-    name: 'persistPanel',
-    type: 'boolean',
-    default: 'false',
     description:
-      'When true, keeps the panel in the DOM when closed (with the hidden attribute) instead of removing it.',
+      'When true, the button is not clickable, gets `aria-disabled` and a `data-disabled` attribute.',
+  },
+]
+
+const disclosureAttributesProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'button',
+    type: 'ReadonlyArray<ChildAttribute>',
+    description:
+      'Spread onto the toggle button element. Includes `aria-expanded`, `aria-controls`, `tabindex`, and the click + Enter/Space keyboard handlers.',
   },
   {
-    name: 'buttonElement',
-    type: 'TagName',
-    default: "'button'",
-    description: 'The HTML element to use for the toggle.',
-  },
-  {
-    name: 'panelElement',
-    type: 'TagName',
-    default: "'div'",
-    description: 'The HTML element to use for the panel.',
-  },
-  {
-    name: 'className',
-    type: 'string',
-    description: 'CSS class for the wrapper element.',
-  },
-  {
-    name: 'attributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Additional attributes for the wrapper element.',
+    name: 'panel',
+    type: 'ReadonlyArray<ChildAttribute>',
+    description:
+      'Spread onto the panel element. Includes the panel id (`${id}-panel`) and a `data-open` attribute when open.',
   },
 ]
 
@@ -254,11 +224,13 @@ export const view = <ParentMessage>(
       ),
       heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
       para(
-        'Pass ',
-        inlineCode('buttonContent'),
+        'Provide a ',
+        inlineCode('toView'),
+        ' callback that receives the ',
+        inlineCode('button'),
         ' and ',
-        inlineCode('panelContent'),
-        ' directly. Disclosure handles the wrapper, ARIA linking, and toggle behavior. Style the button and panel with className or attributes props.',
+        inlineCode('panel'),
+        ' attribute bundles. Spread them onto your own elements; Disclosure manages the ARIA linking and toggle behavior.',
       ),
       demoContainer(
         ...Disclosure.disclosureDemo(model.disclosureDemo, toParentMessage),
@@ -332,6 +304,17 @@ export const view = <ParentMessage>(
         '.',
       ),
       propTable(viewConfigProps),
+      heading(
+        disclosureAttributesHeader.level,
+        disclosureAttributesHeader.id,
+        disclosureAttributesHeader.text,
+      ),
+      para(
+        'Attribute bundles delivered to the ',
+        inlineCode('toView'),
+        ' callback each render.',
+      ),
+      propTable(disclosureAttributesProps),
       heading(
         outMessageHeader.level,
         outMessageHeader.id,
