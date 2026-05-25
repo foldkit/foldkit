@@ -430,7 +430,7 @@ export const view = (
         'mb-8',
       ),
       para(
-        'Instead, go through the child’s update. When the parent has its own Message that needs to change child state (a Click handler, a route effect, a Command result), the canonical form is to call a helper the child exports. The parent writes ',
+        'Instead, go through the child’s update. When the parent has its own Message that needs to change child state (for example a Click handler, a Subscription tick, or a Command result), the canonical form is to call a helper the child exports. The parent writes ',
         inlineCode('Settings.setTheme(model.settings, "Light")'),
         ' and never imports ',
         inlineCode('ChangedTheme'),
