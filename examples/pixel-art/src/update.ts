@@ -563,9 +563,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         Option.match(model.maybePendingGridSize, {
           onNone: () => [model, []],
           onSome: pendingSize => {
-            const [nextDialog, dialogCommands] = Ui.Dialog.update(
+            const [nextDialog, dialogCommands] = Ui.Dialog.close(
               model.gridSizeConfirmDialog,
-              Ui.Dialog.RequestedClose(),
             )
             const mappedDialogCommands = Command.mapMessages(
               dialogCommands,

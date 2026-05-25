@@ -266,9 +266,8 @@ export const update = (
         ),
 
       ChangedUrl: ({ url }) => {
-        const [closedDialog, closeDialogCommands] = Ui.Dialog.update(
+        const [closedDialog, closeDialogCommands] = Ui.Dialog.close(
           model.uiModel.mobileMenuDialog,
-          Ui.Dialog.RequestedClose(),
         )
 
         return [
