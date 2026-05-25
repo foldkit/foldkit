@@ -13,6 +13,7 @@ import {
   uiListboxRouter,
   uiMenuRouter,
   uiRadioGroupRouter,
+  uiTabsRouter,
 } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
@@ -44,7 +45,7 @@ const soundnessHeader: TableOfContentsEntry = {
 const primitivesHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'primitives',
-  text: 'The Three Factories',
+  text: 'The Factories',
 }
 
 const listboxHeader: TableOfContentsEntry = {
@@ -65,10 +66,16 @@ const radioGroupHeader: TableOfContentsEntry = {
   text: 'RadioGroup',
 }
 
-const menuExclusionHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'menu-exclusion',
-  text: 'Why Menu Has No Factory',
+const tabsHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'tabs',
+  text: 'Tabs',
+}
+
+const menuHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'menu',
+  text: 'Menu',
 }
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
@@ -80,7 +87,8 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   listboxHeader,
   comboboxHeader,
   radioGroupHeader,
-  menuExclusionHeader,
+  tabsHeader,
+  menuHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
@@ -92,13 +100,17 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       pageTitle('ui/typed-primitives', 'Foldkit UI Primitives'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Foldkit UI ships primitives like ',
+        'Foldkit UI ships five primitives that carry a value type the consumer chooses: ',
         link(uiListboxRouter(), 'Listbox'),
         ', ',
         link(uiComboboxRouter(), 'Combobox'),
-        ', and ',
+        ', ',
         link(uiRadioGroupRouter(), 'RadioGroup'),
-        ' that carry a value type the consumer chooses. A Listbox of plans, a Combobox of cities, a RadioGroup of pricing tiers. Each exposes a ',
+        ', ',
+        link(uiTabsRouter(), 'Tabs'),
+        ', and ',
+        link(uiMenuRouter(), 'Menu'),
+        '. A Listbox of plans, a Combobox of cities, a RadioGroup of pricing tiers, a Tabs of view modes, a Menu of actions. Each exposes a ',
         inlineCode('create<Item>()'),
         ' factory that pairs the view and update behind a single type parameter, so the value type is fixed at the binding site and flows into the OutMessage.',
       ),
@@ -125,17 +137,21 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('items: ReadonlyArray<Plan>'),
         ', ',
         inlineCode('update'),
-        ' returns an OutMessage carrying ',
-        inlineCode('item: Plan'),
-        ', and the programmatic helpers (',
+        ' returns an OutMessage carrying the picked ',
+        inlineCode('Plan'),
+        ', and the imperative helpers the primitive exposes (',
         inlineCode('selectItem'),
         ', ',
         inlineCode('open'),
-        ', ',
+        ', and ',
         inlineCode('close'),
-        ') accept and emit ',
+        ' for Listbox; ',
+        inlineCode('select'),
+        ' for RadioGroup; ',
+        inlineCode('selectTab'),
+        ' for Tabs) accept and emit ',
         inlineCode('Plan'),
-        ' too. Declare the factory once at module scope and use the same bundle at both the view and update sites.',
+        ' too. Declare the factory once at module scope and use the same bundle at every site that needs it.',
       ),
       tableOfContentsEntryToHeader(submodelDoesntOwnSelectionHeader),
       para(
@@ -179,15 +195,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' because both come from the same factory call.',
       ),
       para(
-        'Internally, each Listbox stores items as opaque tokens and emits the selected one through a single ',
-        inlineCode('as unknown as Item'),
-        ' cast at the boundary. That cast is sound because the value being emitted came from the same ',
+        'Internally, each primitive’s view and update are written against an untyped string value and then cast back to the consumer’s ',
+        inlineCode('Item'),
+        ' at the factory boundary. The cast is sound because the value being emitted came from the same ',
         inlineCode('items'),
         ' array the consumer just supplied. The fence is items in → items out, same type.',
       ),
       tableOfContentsEntryToHeader(primitivesHeader),
       para(
-        'Three primitives expose a ',
+        'Each primitive exposes a ',
         inlineCode('create<...>()'),
         ' factory. The shape of the type parameter differs by what the primitive accepts as items.',
       ),
@@ -238,18 +254,35 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('value: Value'),
         '. The single parameter is enough because RadioGroup options are always inline strings; there is no object form.',
       ),
-      tableOfContentsEntryToHeader(menuExclusionHeader),
+      tableOfContentsEntryToHeader(tabsHeader),
       para(
-        link(uiMenuRouter(), 'Menu'),
-        ' deliberately does not expose ',
-        inlineCode('create<Item>()'),
-        '. Its OutMessage carries ',
+        inlineCode('Ui.Tabs.create<Value>()'),
+        ' takes one type parameter, ',
+        inlineCode('Value extends string'),
+        '. The view accepts ',
+        inlineCode('ReadonlyArray<Value>'),
+        ' as its tab list (a literal union ',
+        inlineCode('Value'),
+        ' is assignable to ',
+        inlineCode('string'),
+        '), and the OutMessage carries both the picked ',
+        inlineCode('value: Value'),
+        ' and its ',
         inlineCode('index: number'),
-        ' rather than ',
-        inlineCode('item: Item'),
-        ', so there is no Item type to fix at the binding site. Consumers look up the picked action from their own items array on receipt, e.g. ',
-        inlineCode('Array.getUnsafe(actions, index)'),
-        '. The Item-generic drift problem the factory solves doesn’t apply to Menu, so the factory would only add ceremony.',
+        '. The single parameter is enough because Tabs values are always inline strings; there is no object form.',
+      ),
+      tableOfContentsEntryToHeader(menuHeader),
+      para(
+        inlineCode('Ui.Menu.create<Item>()'),
+        ' takes one type parameter, ',
+        inlineCode('Item extends string'),
+        '. The view accepts ',
+        inlineCode('ReadonlyArray<Item>'),
+        ' as its menu items, and the OutMessage carries both the picked ',
+        inlineCode('value: Item'),
+        ' and its ',
+        inlineCode('index: number'),
+        '. The picked value arrives directly in the OutMessage, so consumers no longer need to look it up from their own items array.',
       ),
     ],
   )
