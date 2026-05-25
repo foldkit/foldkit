@@ -71,10 +71,16 @@ const initConfigHeader: TableOfContentsEntry = {
   text: 'InitConfig',
 }
 
-const viewConfigHeader: TableOfContentsEntry = {
+const viewInputsHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'view-config',
-  text: 'ViewConfig',
+  id: 'view-inputs',
+  text: 'ViewInputs',
+}
+
+const renderInfoHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'render-info',
+  text: 'RenderInfo',
 }
 
 const outMessageHeader: TableOfContentsEntry = {
@@ -93,7 +99,8 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   accessibilityHeader,
   apiReferenceHeader,
   initConfigHeader,
-  viewConfigHeader,
+  viewInputsHeader,
+  renderInfoHeader,
   outMessageHeader,
 ]
 
@@ -125,52 +132,39 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
   },
 ]
 
-const viewConfigProps: ReadonlyArray<PropEntry> = [
+const viewInputsProps: ReadonlyArray<PropEntry> = [
   {
-    name: 'model',
-    type: 'Dialog.Model',
-    description: 'The dialog state from your parent Model.',
-  },
-  {
-    name: 'toParentMessage',
-    type: '(childMessage: Dialog.Message) => ParentMessage',
+    name: 'toView',
+    type: '(render: RenderInfo) => Html',
     description:
-      'Wraps Dialog Messages in your parent Message type for Submodel delegation.',
+      'Callback that receives the dialog, backdrop, and panel attribute bundles plus a derived `isVisible` flag, and returns the composed layout. The consumer MUST render an `h.dialog(...)` element so the framework can target it with `showModal()` / `close()`.',
+  },
+]
+
+const renderInfoProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'dialog',
+    type: 'ReadonlyArray<ChildAttribute>',
+    description:
+      'Spread onto an `h.dialog(...)` element. Carries the id, ARIA labelling, `open` prop, positioning style, and the Escape handler that wires to `RequestedClose`.',
   },
   {
-    name: 'panelContent',
-    type: 'Html',
-    description: 'Content rendered inside the dialog panel.',
+    name: 'backdrop',
+    type: 'ReadonlyArray<ChildAttribute>',
+    description:
+      'Spread onto the backdrop element. Includes the Animation data attributes and the outside-click handler that dispatches `RequestedClose` (suppressed while a leave animation is in progress).',
   },
   {
-    name: 'panelClassName',
-    type: 'string',
-    description: 'CSS class for the dialog panel.',
+    name: 'panel',
+    type: 'ReadonlyArray<ChildAttribute>',
+    description:
+      'Spread onto the panel element. Includes the panel id (`${id}-panel`) and the Animation data attributes.',
   },
   {
-    name: 'panelAttributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Additional attributes for the dialog panel.',
-  },
-  {
-    name: 'backdropClassName',
-    type: 'string',
-    description: 'CSS class for the backdrop overlay.',
-  },
-  {
-    name: 'backdropAttributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Additional attributes for the backdrop.',
-  },
-  {
-    name: 'className',
-    type: 'string',
-    description: 'CSS class for the native <dialog> element.',
-  },
-  {
-    name: 'attributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Additional attributes for the native <dialog> element.',
+    name: 'isVisible',
+    type: 'boolean',
+    description:
+      'Derived from `isOpen` and the Animation `transitionState`. Render the backdrop and panel only while this is true.',
   },
 ]
 

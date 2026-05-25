@@ -210,9 +210,9 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
 const outMessageProps: ReadonlyArray<PropEntry> = [
   {
     name: 'Selected',
-    type: '{ item: Item; wasAdded: boolean }',
+    type: '{ value: Value; wasAdded: boolean }',
     description:
-      'Emitted when an item is committed. Single-select listboxes always emit `wasAdded: true`. Multi-select listboxes emit `wasAdded: true` when adding to the selection and `wasAdded: false` when toggling off. Pattern-match the third tuple element of Listbox.update in your GotListboxMessage handler to lift the item into domain state.',
+      'Emitted when an item is committed. Single-select listboxes always emit `wasAdded: true`. Multi-select listboxes emit `wasAdded: true` when adding to the selection and `wasAdded: false` when toggling off. Pattern-match the third tuple element of Listbox.update in your GotListboxMessage handler to lift the value into domain state.',
   },
 ]
 

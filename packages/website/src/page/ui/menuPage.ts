@@ -187,9 +187,9 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
 const outMessageProps: ReadonlyArray<PropEntry> = [
   {
     name: 'Selected',
-    type: '{ item: Item; index: number }',
+    type: '{ value: Item; index: number }',
     description:
-      'Emitted when a menu item is selected. Carries both the item (typed as your `Item` union via `Menu.create<Item>()`) and its index into the items array supplied at view time. Menu closes itself on selection; the parent does not need to dispatch Menu.close. Pattern-match the third tuple element of Menu.update in your GotMenuMessage handler to dispatch the corresponding domain action.',
+      'Emitted when a menu item is selected. Carries both the value (typed as your `Item` union via `Menu.create<Item>()`) and its index into the items array supplied at view time. Menu closes itself on selection; the parent does not need to dispatch Menu.close. Pattern-match the third tuple element of Menu.update in your GotMenuMessage handler to dispatch the corresponding domain action.',
   },
 ]
 
@@ -282,8 +282,8 @@ export const view = <ParentMessage>(
         ' behind ',
         inlineCode('Ui.Menu.create<Item>()'),
         ' at module scope. The factory threads your item union through both, so ',
-        inlineCode('Selected({ item, index })'),
-        ' carries the picked item directly. Menu closes automatically after selection.',
+        inlineCode('Selected({ value, index })'),
+        ' carries the picked value directly. Menu closes automatically after selection.',
       ),
       demoContainer(...Menu.basicDemo(model.menuBasicDemo, toParentMessage)),
       highlightedCodeBlock(

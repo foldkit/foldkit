@@ -88,6 +88,12 @@ const sliderAttributesHeader: TableOfContentsEntry = {
   text: 'SliderAttributes',
 }
 
+const outMessagesHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-messages',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -99,6 +105,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   initConfigHeader,
   viewConfigHeader,
   sliderAttributesHeader,
+  outMessagesHeader,
 ]
 
 // SECTION DATA
@@ -220,6 +227,15 @@ const sliderAttributesProps: ReadonlyArray<PropEntry> = [
     type: 'ReadonlyArray<Attribute<Message>>',
     description:
       'Spread onto a hidden <input> for form submission. Only populated when the name prop is set.',
+  },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'ChangedValue',
+    type: '{ value: number }',
+    description:
+      'Emitted whenever the slider value changes via drag, click-to-jump, or keyboard navigation. Pattern-match the third tuple element of Slider.update in your GotSliderMessage handler to react: persist the value, validate, or trigger a downstream Command.',
   },
 ]
 
@@ -413,6 +429,17 @@ export const view = <ParentMessage>(
         ' callback.',
       ),
       propTable(sliderAttributesProps),
+      heading(
+        outMessagesHeader.level,
+        outMessagesHeader.id,
+        outMessagesHeader.text,
+      ),
+      para(
+        'Messages emitted to the parent through the third element of ',
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
+        '. Parents pattern-match on the OutMessage in their own update handler.',
+      ),
+      propTable(outMessageProps),
     ],
   )
 }
