@@ -27,7 +27,9 @@ export const CompletedScrollToAnchor = m('CompletedScrollToAnchor')
 export const CompletedApplyTheme = m('CompletedApplyTheme')
 export const CompletedSaveThemePreference = m('CompletedSaveThemePreference')
 export const CompletedSaveSidebarState = m('CompletedSaveSidebarState')
-export const ScrolledSidebar = m('ScrolledSidebar', { scroll: S.Number })
+export const CompletedScrollSidebarActiveLinkIntoView = m(
+  'CompletedScrollSidebarActiveLinkIntoView',
+)
 export const SucceededCopyLink = m('SucceededCopyLink')
 export const FailedCopyLink = m('FailedCopyLink')
 export const ClickedLink = m('ClickedLink', {
@@ -120,6 +122,9 @@ export const GotForReactDevelopersGroupMessage = m(
 export const GotGuidesGroupMessage = m('GotGuidesGroupMessage', {
   message: Ui.Disclosure.Message,
 })
+export const GotFaqGroupMessage = m('GotFaqGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
 export const GotTestingGroupMessage = m('GotTestingGroupMessage', {
   message: Ui.Disclosure.Message,
 })
@@ -158,7 +163,7 @@ export const Message = S.Union([
   CompletedApplyTheme,
   CompletedSaveThemePreference,
   CompletedSaveSidebarState,
-  ScrolledSidebar,
+  CompletedScrollSidebarActiveLinkIntoView,
   SucceededCopyLink,
   FailedCopyLink,
   ClickedLink,
@@ -195,6 +200,7 @@ export const Message = S.Union([
   GotCoreConceptsGroupMessage,
   GotForReactDevelopersGroupMessage,
   GotGuidesGroupMessage,
+  GotFaqGroupMessage,
   GotTestingGroupMessage,
   GotBestPracticesGroupMessage,
   GotPatternsGroupMessage,

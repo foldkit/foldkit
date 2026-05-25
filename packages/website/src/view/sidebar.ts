@@ -1,19 +1,16 @@
 import { clsx } from 'clsx'
-import {
-  Array,
-  Duration,
-  Effect,
-  Option,
-  Queue,
-  Schema as S,
-  Stream,
-  pipe,
-} from 'effect'
-import { Mount, Ui } from 'foldkit'
+import { Array, Option, pipe } from 'effect'
+import { Ui } from 'foldkit'
 import { Html, createLazy, html } from 'foldkit/html'
 import apiModuleIndex from 'virtual:api-module-index'
 
-import { type NavPage, docsSections, isNavPageActive } from '../docsNav'
+import {
+  DOCS_SIDEBAR_NAV_ID,
+  type NavPage,
+  docsSections,
+  findActiveSectionKey,
+  isNavPageActive,
+} from '../docsNav'
 import { Icon } from '../icon'
 import { Link } from '../link'
 import { type Model } from '../main'
@@ -23,6 +20,7 @@ import {
   GotBestPracticesGroupMessage,
   GotCoreConceptsGroupMessage,
   GotExamplesGroupMessage,
+  GotFaqGroupMessage,
   GotFoldkitUiGroupMessage,
   GotForReactDevelopersGroupMessage,
   GotGetStartedGroupMessage,
@@ -31,56 +29,20 @@ import {
   GotPatternsGroupMessage,
   GotTestingGroupMessage,
   type Message,
-  ScrolledSidebar,
 } from '../message'
 import { ExampleDetailRoute, apiModuleRouter, homeRouter } from '../route'
+import { type GroupKey } from '../sidebarStorage'
 import { betaTag, iconLink } from './shared'
-
-export const DOCS_SIDEBAR_NAV_ID = 'docs-sidebar-nav'
-
-const SCROLL_DEBOUNCE_DURATION = Duration.millis(150)
-
-/** Combined Mount that restores the sidebar's scroll position on first mount
- *  and emits debounced `ScrolledSidebar` Messages over the element's lifetime.
- *  Bundling restore + listen into one Mount is forced by snabbdom's one-Mount-
- *  per-element constraint; the scroll restore is a side effect of `acquire`,
- *  and the scroll listener is the persistent work the Mount performs over the
- *  element's lifetime. */
-const SyncSidebarScroll = Mount.defineStream(
-  'SyncSidebarScroll',
-  { initialScroll: S.Number },
-  ScrolledSidebar,
-)(
-  ({ initialScroll }) =>
-    element =>
-      Stream.callback<typeof ScrolledSidebar.Type>(queue =>
-        Effect.gen(function* () {
-          yield* Effect.acquireRelease(
-            Effect.sync(() => {
-              element.scrollTop = initialScroll
-              const handler = () =>
-                Queue.offerUnsafe(
-                  queue,
-                  ScrolledSidebar({ scroll: element.scrollTop }),
-                )
-              element.addEventListener('scroll', handler, { passive: true })
-              return handler
-            }),
-            handler =>
-              Effect.sync(() => element.removeEventListener('scroll', handler)),
-          )
-          return yield* Effect.never
-        }),
-      ).pipe(Stream.debounce(SCROLL_DEBOUNCE_DURATION)),
-)
 
 const sidebarGroup = (config: {
   readonly label: string
   readonly model: Ui.Disclosure.Model
   readonly toParentMessage: (message: Ui.Disclosure.Message) => Message
   readonly children: Html
+  readonly isLocked: boolean
 }): Html => {
   const h = html<Message>()
+  const { isLocked } = config
 
   return h.li(
     [],
@@ -88,34 +50,42 @@ const sidebarGroup = (config: {
       Ui.Disclosure.view({
         model: config.model,
         toParentMessage: config.toParentMessage,
+        isDisabled: isLocked,
         buttonAttributes: [
           h.Class(
             clsx(
-              'w-full flex items-center justify-between cursor-pointer transition',
+              'w-full flex items-center justify-between transition',
               'px-4 py-2.5 md:py-2',
               'text-xs font-semibold uppercase tracking-wider',
               'text-gray-600 dark:text-gray-400',
               'bg-gray-200 dark:bg-gray-800',
-              'hover:bg-gray-300/60 dark:hover:bg-gray-700/60',
-              'hover:text-gray-700 dark:hover:text-gray-300',
+              isLocked
+                ? 'cursor-default'
+                : clsx(
+                    'cursor-pointer',
+                    'hover:bg-gray-300/60 dark:hover:bg-gray-700/60',
+                    'hover:text-gray-700 dark:hover:text-gray-300',
+                  ),
             ),
           ),
         ],
         buttonContent: h.div(
           [h.Class('flex items-center justify-between w-full')],
-          [
-            h.span([], [config.label]),
-            h.span(
-              [
-                h.Class(
-                  clsx({
-                    'rotate-180': config.model.isOpen,
-                  }),
+          isLocked
+            ? [h.span([], [config.label])]
+            : [
+                h.span([], [config.label]),
+                h.span(
+                  [
+                    h.Class(
+                      clsx({
+                        'rotate-180': config.model.isOpen,
+                      }),
+                    ),
+                  ],
+                  [Icon.chevronDown('w-3 h-3')],
                 ),
               ],
-              [Icon.chevronDown('w-3 h-3')],
-            ),
-          ],
         ),
         panelAttributes: [h.Class('px-4 py-2')],
         panelContent: config.children,
@@ -124,12 +94,18 @@ const sidebarGroup = (config: {
   )
 }
 
+type DisclosureBinding = Readonly<{
+  model: Ui.Disclosure.Model
+  toParentMessage: (message: Ui.Disclosure.Message) => Message
+}>
+
 const computeNavLinks = (
   route: Model['route'],
   getStartedGroup: Ui.Disclosure.Model,
   coreConceptsGroup: Ui.Disclosure.Model,
   forReactDevelopersGroup: Ui.Disclosure.Model,
   guidesGroup: Ui.Disclosure.Model,
+  faqGroup: Ui.Disclosure.Model,
   testingGroup: Ui.Disclosure.Model,
   bestPracticesGroup: Ui.Disclosure.Model,
   patternsGroup: Ui.Disclosure.Model,
@@ -149,6 +125,67 @@ const computeNavLinks = (
     ),
     Option.map(route => route.exampleSlug),
   )
+  const maybeActiveSectionKey = findActiveSectionKey(
+    route._tag,
+    maybeExampleSlug,
+  )
+  const isLocked = (key: GroupKey): boolean =>
+    Option.match(maybeActiveSectionKey, {
+      onNone: () => false,
+      onSome: activeKey => activeKey === key,
+    })
+
+  const disclosureByKey: Record<GroupKey, DisclosureBinding> = {
+    getStarted: {
+      model: getStartedGroup,
+      toParentMessage: message => GotGetStartedGroupMessage({ message }),
+    },
+    coreConcepts: {
+      model: coreConceptsGroup,
+      toParentMessage: message => GotCoreConceptsGroupMessage({ message }),
+    },
+    forReactDevelopers: {
+      model: forReactDevelopersGroup,
+      toParentMessage: message =>
+        GotForReactDevelopersGroupMessage({ message }),
+    },
+    guides: {
+      model: guidesGroup,
+      toParentMessage: message => GotGuidesGroupMessage({ message }),
+    },
+    faq: {
+      model: faqGroup,
+      toParentMessage: message => GotFaqGroupMessage({ message }),
+    },
+    testing: {
+      model: testingGroup,
+      toParentMessage: message => GotTestingGroupMessage({ message }),
+    },
+    bestPractices: {
+      model: bestPracticesGroup,
+      toParentMessage: message => GotBestPracticesGroupMessage({ message }),
+    },
+    patterns: {
+      model: patternsGroup,
+      toParentMessage: message => GotPatternsGroupMessage({ message }),
+    },
+    examples: {
+      model: examplesGroup,
+      toParentMessage: message => GotExamplesGroupMessage({ message }),
+    },
+    foldkitUi: {
+      model: foldkitUiGroup,
+      toParentMessage: message => GotFoldkitUiGroupMessage({ message }),
+    },
+    ai: {
+      model: aiGroup,
+      toParentMessage: message => GotAiGroupMessage({ message }),
+    },
+    apiReference: {
+      model: apiReferenceGroup,
+      toParentMessage: message => GotApiReferenceGroupMessage({ message }),
+    },
+  }
 
   const linkClass = (isActive: boolean) =>
     clsx(
@@ -176,55 +213,6 @@ const computeNavLinks = (
       ],
     )
 
-  const sectionDisclosures: ReadonlyArray<
-    Readonly<{
-      model: Ui.Disclosure.Model
-      toParentMessage: (message: Ui.Disclosure.Message) => Message
-    }>
-  > = [
-    {
-      model: getStartedGroup,
-      toParentMessage: message => GotGetStartedGroupMessage({ message }),
-    },
-    {
-      model: coreConceptsGroup,
-      toParentMessage: message => GotCoreConceptsGroupMessage({ message }),
-    },
-    {
-      model: forReactDevelopersGroup,
-      toParentMessage: message =>
-        GotForReactDevelopersGroupMessage({ message }),
-    },
-    {
-      model: guidesGroup,
-      toParentMessage: message => GotGuidesGroupMessage({ message }),
-    },
-    {
-      model: testingGroup,
-      toParentMessage: message => GotTestingGroupMessage({ message }),
-    },
-    {
-      model: bestPracticesGroup,
-      toParentMessage: message => GotBestPracticesGroupMessage({ message }),
-    },
-    {
-      model: patternsGroup,
-      toParentMessage: message => GotPatternsGroupMessage({ message }),
-    },
-    {
-      model: examplesGroup,
-      toParentMessage: message => GotExamplesGroupMessage({ message }),
-    },
-    {
-      model: foldkitUiGroup,
-      toParentMessage: message => GotFoldkitUiGroupMessage({ message }),
-    },
-    {
-      model: aiGroup,
-      toParentMessage: message => GotAiGroupMessage({ message }),
-    },
-  ]
-
   const pageGroupList = (pages: ReadonlyArray<NavPage>): Html =>
     h.ul(
       [h.Class('space-y-0.5')],
@@ -240,29 +228,29 @@ const computeNavLinks = (
   return h.ul(
     [h.Class('space-y-0.5')],
     [
-      ...Array.zipWith(
-        docsSections,
-        sectionDisclosures,
-        (section, disclosure) =>
-          sidebarGroup({
-            label: section.label,
-            model: disclosure.model,
-            toParentMessage: disclosure.toParentMessage,
-            children: h.div(
-              [h.Class('divide-y divide-gray-200 dark:divide-gray-800')],
-              Array.map(section.pageGroups, group =>
-                h.div(
-                  [h.Class('py-2 first:pt-0 last:pb-0')],
-                  [pageGroupList(group)],
-                ),
+      ...Array.map(docsSections, section => {
+        const binding = disclosureByKey[section.key]
+        return sidebarGroup({
+          label: section.label,
+          model: binding.model,
+          toParentMessage: binding.toParentMessage,
+          isLocked: isLocked(section.key),
+          children: h.div(
+            [h.Class('divide-y divide-gray-200 dark:divide-gray-800')],
+            Array.map(section.pageGroups, group =>
+              h.div(
+                [h.Class('py-2 first:pt-0 last:pb-0')],
+                [pageGroupList(group)],
               ),
             ),
-          }),
-      ),
+          ),
+        })
+      }),
       sidebarGroup({
         label: 'API Reference',
-        model: apiReferenceGroup,
-        toParentMessage: message => GotApiReferenceGroupMessage({ message }),
+        model: disclosureByKey.apiReference.model,
+        toParentMessage: disclosureByKey.apiReference.toParentMessage,
+        isLocked: isLocked('apiReference'),
         children: h.ul(
           [h.Class('space-y-0.5')],
           Array.map(apiModuleIndex, ({ slug, name }) =>
@@ -292,6 +280,7 @@ export const sidebarView = (model: Model): Html => {
     model.coreConceptsGroup,
     model.forReactDevelopersGroup,
     model.guidesGroup,
+    model.faqGroup,
     model.testingGroup,
     model.bestPracticesGroup,
     model.patternsGroup,
@@ -306,6 +295,7 @@ export const sidebarView = (model: Model): Html => {
     model.coreConceptsGroup,
     model.forReactDevelopersGroup,
     model.guidesGroup,
+    model.faqGroup,
     model.testingGroup,
     model.bestPracticesGroup,
     model.patternsGroup,
@@ -328,7 +318,6 @@ export const sidebarView = (model: Model): Html => {
           h.AriaLabel('Documentation'),
           h.Id(DOCS_SIDEBAR_NAV_ID),
           h.Class('flex-1 overflow-y-auto pb-4'),
-          h.OnMount(SyncSidebarScroll({ initialScroll: model.sidebarScroll })),
         ],
         [desktopNavLinks],
       ),
