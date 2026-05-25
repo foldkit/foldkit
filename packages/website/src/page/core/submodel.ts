@@ -1,6 +1,7 @@
 import { Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
+import { Icon } from '../../icon'
 import { Message, type TableOfContentsEntry } from '../../main'
 import { GotSubmodelMapMessagesDisclosureMessage } from '../../message'
 import {
@@ -428,24 +429,12 @@ export const view = (
         copiedSnippets,
         'mb-8',
       ),
-      para('Instead, dispatch the child’s own Message:'),
-      highlightedCodeBlock(
-        h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelDelegateCorrectHighlighted),
-          ],
-          [],
-        ),
-        Snippets.submodelDelegateCorrectRaw,
-        'Copy delegation to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
       para(
-        'Even cleaner, the child can export imperative helpers. The parent calls ',
-        inlineCode('Settings.changeTheme(model.settings, "Light")'),
-        ' and never needs to import the child Message itself. The child’s Message surface stays internal; the helpers are the public verbs the parent sees.',
+        'Instead, go through the child’s update. The canonical form is to call a helper the child exports. The parent writes ',
+        inlineCode('Settings.setTheme(model.settings, "Light")'),
+        ' and never imports ',
+        inlineCode('ChangedTheme'),
+        '. The child’s Message surface stays internal; the helper is the public verb the parent sees:',
       ),
       highlightedCodeBlock(
         h.div(
@@ -461,13 +450,19 @@ export const view = (
         'mb-8',
       ),
       para(
-        'Both correct forms work. The helper form is what every Foldkit UI primitive does: ',
+        'This is what every Foldkit UI primitive does. ',
         inlineCode('Ui.Listbox.selectItem'),
         ', ',
         inlineCode('Ui.Popover.close'),
         ', ',
+        inlineCode('Ui.Calendar.setMinDate'),
+        ', ',
         inlineCode('Ui.Tabs.selectTab'),
-        ' are all imperative helpers a parent calls without ever constructing the child’s Message. Reach for it when the same child operation gets invoked from multiple sites in the parent.',
+        ' are helpers a parent calls without ever constructing the child’s Message. The child can rename or restructure its Messages later without touching any consumer. Each helper is a thin wrapper over the child’s ',
+        inlineCode('update'),
+        ': it builds the child Message and runs it through update, returning the same ',
+        inlineCode('[Model, Commands]'),
+        ' tuple.',
       ),
       para('Three things break when the parent bypasses the child’s update.'),
       para(
@@ -546,17 +541,13 @@ export const view = (
         viewInputs: {
           toView: attributes =>
             h.div(
-              [
-                h.Class(
-                  'mb-8 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 overflow-hidden',
-                ),
-              ],
+              [h.Class('mb-8')],
               [
                 h.button(
                   [
                     ...attributes.button,
                     h.Class(
-                      'w-full flex items-center justify-between text-left cursor-pointer transition px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800',
+                      'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none select-none',
                     ),
                   ],
                   [
@@ -567,18 +558,21 @@ export const view = (
                     h.span(
                       [
                         h.Class(
-                          mapMessagesDisclosure.isOpen
-                            ? 'transition rotate-180'
-                            : 'transition',
+                          `text-gray-600 dark:text-gray-300 transition-transform ${mapMessagesDisclosure.isOpen ? 'rotate-180' : ''}`,
                         ),
                       ],
-                      ['▾'],
+                      [Icon.chevronDown('w-4 h-4')],
                     ),
                   ],
                 ),
                 mapMessagesDisclosure.isOpen
                   ? h.div(
-                      [...attributes.panel, h.Class('px-4 pb-4 pt-1')],
+                      [
+                        ...attributes.panel,
+                        h.Class(
+                          'px-4 py-3 border-x border-b border-gray-300 dark:border-gray-700 rounded-b-lg text-gray-800 dark:text-gray-200',
+                        ),
+                      ],
                       [
                         highlightedCodeBlock(
                           h.div(
@@ -595,20 +589,23 @@ export const view = (
                           copiedSnippets,
                           'mb-4',
                         ),
-                        para(
-                          'Three small layers compose into ',
-                          inlineCode('mapMessages'),
-                          '. ',
-                          inlineCode('Array.map'),
-                          ' iterates; ',
-                          inlineCode('mapMessage'),
-                          ' rebuilds each Command with its Effect re-typed; ',
-                          inlineCode('mapEffect'),
-                          ' is the actual rebuild (a spread that swaps in the transformed Effect). The Command’s ',
-                          inlineCode('name'),
-                          ' and ',
-                          inlineCode('args'),
-                          ' ride through untouched, which is why DevTools traces still attribute each Command to its original Submodel.',
+                        h.p(
+                          [h.Class('leading-relaxed')],
+                          [
+                            'Three small layers compose into ',
+                            inlineCode('mapMessages'),
+                            '. ',
+                            inlineCode('Array.map'),
+                            ' iterates; ',
+                            inlineCode('mapMessage'),
+                            ' rebuilds each Command with its Effect re-typed; ',
+                            inlineCode('mapEffect'),
+                            ' is the actual rebuild (a spread that swaps in the transformed Effect). The Command’s ',
+                            inlineCode('name'),
+                            ' and ',
+                            inlineCode('args'),
+                            ' ride through untouched, which is why DevTools traces still attribute each Command to its original Submodel.',
+                          ],
                         ),
                       ],
                     )
