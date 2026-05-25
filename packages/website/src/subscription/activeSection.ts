@@ -85,6 +85,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             CoreDevTools: () => Page.Core.DevTools.tableOfContents,
             PatternsSubmodels: () => Page.Patterns.Submodels.tableOfContents,
             PatternsOutMessage: () => Page.Patterns.OutMessage.tableOfContents,
+            PatternsRoutingSubmodels: () =>
+              Page.Patterns.RoutingSubmodels.tableOfContents,
             PatternsSubscriptionOrganization: () =>
               Page.Patterns.SubscriptionOrganization.tableOfContents,
             CoreViewMemoization: () =>
