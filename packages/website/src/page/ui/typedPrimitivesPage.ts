@@ -97,7 +97,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
   return h.div(
     [],
     [
-      pageTitle('ui/typed-primitives', 'Foldkit UI Primitives'),
+      pageTitle('ui/typed-primitives', 'Typed UI Primitives'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
         'Foldkit UI ships five primitives that carry a value type the consumer chooses: ',
@@ -224,9 +224,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('itemToValue'),
         ' callback that extracts the stringy identifier from each ',
         inlineCode('Item'),
-        '. ',
+        '.',
+      ),
+      para(
         inlineCode('Ui.Listbox.Multi.create<Item, Value?>()'),
-        ' has the same shape for multi-select.',
+        ' is the multi-select variant. Same type-parameter shape; the ',
+        inlineCode('Selected'),
+        ' OutMessage gains a ',
+        inlineCode('wasAdded: boolean'),
+        ' field that tells the parent whether the user selected or deselected the value.',
       ),
       tableOfContentsEntryToHeader(comboboxHeader),
       para(
@@ -235,9 +241,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('Item extends string'),
         '. Combobox items are typed strings (a literal union, a branded string type, or plain ',
         inlineCode('string'),
-        '). ',
+        ').',
+      ),
+      para(
         inlineCode('Ui.Combobox.Multi.create<Item>()'),
-        ' is the multi-select variant.',
+        ' is the multi-select variant. Same type-parameter shape; the ',
+        inlineCode('Selected'),
+        ' OutMessage gains a ',
+        inlineCode('wasAdded: boolean'),
+        ' field that tells the parent whether the user selected or deselected the value.',
       ),
       tableOfContentsEntryToHeader(radioGroupHeader),
       para(
