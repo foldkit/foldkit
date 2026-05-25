@@ -74,12 +74,12 @@ export type ManagedResourceServicesOf<MR> =
  * ```ts
  * const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
  *
- * const ManagedResourceDeps = S.Struct({
+ * const ManagedResourceRequirements = S.Struct({
  *   camera: S.Option(S.Struct({ facingMode: S.String })),
  * })
  *
  * const managedResources = ManagedResource.makeManagedResources(
- *   ManagedResourceDeps,
+ *   ManagedResourceRequirements,
  * )<Model, Message>({
  *   camera: {
  *     resource: CameraStream,
@@ -105,28 +105,28 @@ export type ManagedResourceServicesOf<MR> =
  * })
  * ```
  *
- * @param ManagedResourceDeps - An Effect Schema struct where each field's type
+ * @param ManagedResourceRequirements - An Effect Schema struct where each field's type
  * drives the requirements for one managed resource. Wrap in `S.Option(...)` for
  * resources that can be released (most cases).
  *
  * @see {@link ManagedResource.tag} for creating the resource identity.
  */
 export const makeManagedResources =
-  <ManagedResourceDeps extends Schema.Struct<any>>(
-    ManagedResourceDeps: ManagedResourceDeps,
+  <ManagedResourceRequirements extends Schema.Struct<any>>(
+    ManagedResourceRequirements: ManagedResourceRequirements,
   ) =>
   <Model, Message>(configs: {
-    [K in keyof Schema.Schema.Type<ManagedResourceDeps>]: {
+    [K in keyof Schema.Schema.Type<ManagedResourceRequirements>]: {
       readonly resource: ManagedResource<any, any>
       readonly modelToMaybeRequirements: (
         model: Model,
-      ) => Schema.Schema.Type<ManagedResourceDeps>[K]
+      ) => Schema.Schema.Type<ManagedResourceRequirements>[K]
       readonly acquire: (
-        params: Schema.Schema.Type<ManagedResourceDeps>[K] extends Option.Option<
+        params: Schema.Schema.Type<ManagedResourceRequirements>[K] extends Option.Option<
           infer P
         >
           ? P
-          : Schema.Schema.Type<ManagedResourceDeps>[K],
+          : Schema.Schema.Type<ManagedResourceRequirements>[K],
       ) => Effect.Effect<any, unknown>
       readonly release: (value: any) => Effect.Effect<void>
       readonly onAcquired: (value: any) => Message
@@ -140,7 +140,7 @@ export const makeManagedResources =
       (config, key) =>
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
         ({
-          schema: ManagedResourceDeps.fields[key],
+          schema: ManagedResourceRequirements.fields[key],
           ...config,
         }) as ManagedResourceConfig<Model, Message>,
     ) as ManagedResources<Model, Message>
