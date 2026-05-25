@@ -1,13 +1,12 @@
 import { describe, it } from '@effect/vitest'
-import { Effect, Option, flow } from 'effect'
+import { Option, flow } from 'effect'
 import { expect } from 'vitest'
 
 import * as Scene from '../../test/scene.js'
 import * as Story from '../../test/story.js'
 import * as Animation from '../animation/index.js'
-import { init, update, view } from './multi.js'
-import type { Model, ViewConfig } from './multi.js'
-import type { Message } from './shared.js'
+import { create, init, update } from './multi.js'
+import type { Model, ViewInputs } from './multi.js'
 import {
   ActivatedItem,
   CompletedFocusItems,
@@ -19,6 +18,9 @@ import {
   ScrollIntoView,
   SelectedItem,
 } from './shared.js'
+
+const TestListbox = create<string>()
+const view = TestListbox.view
 
 const acknowledgeBackdrop = Scene.Mount.resolve(
   PortalListboxBackdrop,
@@ -150,20 +152,18 @@ describe('Listbox.Multi', () => {
     const sceneView =
       (
         overrides: Omit<
-          Partial<ViewConfig<Message, string>>,
-          'model' | 'toParentMessage'
+          Partial<ViewInputs<string>>,
+          'items' | 'itemToConfig' | 'buttonContent'
         > = {},
       ) =>
       (model: Model) =>
-        view({
+        view(model, {
           items: ['Apple', 'Banana'],
           itemToConfig: () => ({
-            content: Effect.succeed(null),
+            content: null,
           }),
-          buttonContent: Effect.succeed(null),
+          buttonContent: null,
           ...overrides,
-          model,
-          toParentMessage: message => message,
         })
 
     describe('aria-multiselectable', () => {
@@ -237,6 +237,16 @@ describe('Listbox.Multi', () => {
           }),
         )
       })
+    })
+  })
+
+  describe('reflectSelectedItems', () => {
+    it('reflects a selection set onto the model without emitting', () => {
+      const next = TestListbox.reflectSelectedItems(init({ id: 'test' }), [
+        'a',
+        'b',
+      ])
+      expect(next.selectedItems).toStrictEqual(['a', 'b'])
     })
   })
 })

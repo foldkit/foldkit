@@ -33,7 +33,7 @@ const ghostElement = (model: Model) => {
       onSome: ({ ghostStyle, card }) =>
         h.div(
           [h.Style(ghostStyle), h.Class('w-64'), h.AriaHidden(true)],
-          [ghostCardView<Message>(card)],
+          [ghostCardView(card)],
         ),
     }),
   )
@@ -63,7 +63,7 @@ export const view = (model: Model): Document => {
             ),
           ],
           Array.map(model.columns, column =>
-            columnView<Message>(model, column, message => message),
+            columnView(model, column, message => message),
           ),
         ),
         ghostElement(model),

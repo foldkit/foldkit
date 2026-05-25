@@ -1,5 +1,5 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Array } from 'effect'
 import { Ui } from 'foldkit'
@@ -36,7 +36,8 @@ const GotOptionBMessage = m('GotOptionBMessage', {
 })
 
 // Inside your update function's M.tagsExhaustive({...}), toggling
-// "Select All" sets all children to the same state:
+// "Select All" routes each child through Ui.Checkbox.setChecked so the
+// update goes through the Submodel rather than mutating its fields directly:
 GotSelectAllMessage: () => {
   const isAllChecked = Array.every(
     [model.optionA, model.optionB],
@@ -44,10 +45,13 @@ GotSelectAllMessage: () => {
   )
   const nextChecked = !isAllChecked
 
+  const [nextOptionA] = Ui.Checkbox.setChecked(model.optionA, nextChecked)
+  const [nextOptionB] = Ui.Checkbox.setChecked(model.optionB, nextChecked)
+
   return [
     evo(model, {
-      optionA: () => evo(model.optionA, { isChecked: () => nextChecked }),
-      optionB: () => evo(model.optionB, { isChecked: () => nextChecked }),
+      optionA: () => nextOptionA,
+      optionB: () => nextOptionB,
     }),
     [],
   ]
@@ -59,27 +63,31 @@ const isAllChecked = Array.every(checkboxes, ({ isChecked }) => isChecked)
 const isIndeterminate =
   !isAllChecked && Array.some(checkboxes, ({ isChecked }) => isChecked)
 
-// Inside your view function, pass isIndeterminate to the parent checkbox:
+// Inside your view function, pass isIndeterminate via h.submodel's viewInputs:
 const view = () => {
   const h = html<Message>()
 
-  return Ui.Checkbox.view({
+  return h.submodel({
+    slotId: 'select-all',
     model: { id: 'select-all', isChecked: isAllChecked },
-    isIndeterminate,
+    view: Ui.Checkbox.view,
+    viewInputs: {
+      isIndeterminate,
+      toView: attributes =>
+        h.div(
+          [h.Class('flex items-center gap-2')],
+          [
+            h.button(
+              [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
+              isIndeterminate ? ['—'] : isAllChecked ? ['✓'] : [],
+            ),
+            h.label(
+              [...attributes.label, h.Class('text-sm')],
+              ['All notifications'],
+            ),
+          ],
+        ),
+    },
     toParentMessage: message => GotSelectAllMessage({ message }),
-    toView: attributes =>
-      h.div(
-        [h.Class('flex items-center gap-2')],
-        [
-          h.button(
-            [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
-            isIndeterminate ? ['—'] : isAllChecked ? ['✓'] : [],
-          ),
-          h.label(
-            [...attributes.label, h.Class('text-sm')],
-            ['All notifications'],
-          ),
-        ],
-      ),
   })
 }

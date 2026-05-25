@@ -40,7 +40,7 @@ export const afterCommit: Effect.Effect<void> = Effect.callback<void>(
  *
  * @example
  * ```typescript
- * Render.afterPaint.pipe(Effect.as(TransitionFrameAdvanced()))
+ * Render.afterPaint
  * ```
  */
 export const afterPaint: Effect.Effect<void> = Effect.callback<void>(resume => {

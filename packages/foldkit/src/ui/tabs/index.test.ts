@@ -1,21 +1,18 @@
 import { describe, it } from '@effect/vitest'
-import { Effect } from 'effect'
 import { expect } from 'vitest'
 
-import { html } from '../../html/index.js'
-import * as Scene from '../../test/scene.js'
 import * as Story from '../../test/story.js'
-import type { Message, Model, ViewConfig } from './index.js'
 import {
   CompletedFocusTab,
   FocusTab,
-  TabFocused,
-  TabSelected,
+  FocusedTab,
+  Selected,
+  SelectedTab,
   findFirstEnabledIndex,
   init,
   keyToIndex,
+  reflectSelectedTab,
   update,
-  view,
   wrapIndex,
 } from './index.js'
 
@@ -62,11 +59,12 @@ describe('Tabs', () => {
   })
 
   describe('update', () => {
-    it('sets activeIndex and focusedIndex on TabSelected', () => {
+    it('sets activeIndex and focusedIndex on SelectedTab and emits Selected', () => {
       Story.story(
         update,
         Story.with(init({ id: 'test' })),
-        Story.message(TabSelected({ index: 3 })),
+        Story.message(SelectedTab({ index: 3, value: 'tab-3' })),
+        Story.expectOutMessage(Selected({ value: 'tab-3', index: 3 })),
         Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
           expect(model.activeIndex).toBe(3)
@@ -75,11 +73,12 @@ describe('Tabs', () => {
       )
     })
 
-    it('replaces activeIndex on subsequent TabSelected', () => {
+    it('replaces activeIndex on subsequent SelectedTab and emits Selected', () => {
       Story.story(
         update,
         Story.with(init({ id: 'test', activeIndex: 1 })),
-        Story.message(TabSelected({ index: 0 })),
+        Story.message(SelectedTab({ index: 0, value: 'tab-0' })),
+        Story.expectOutMessage(Selected({ value: 'tab-0', index: 0 })),
         Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
           expect(model.activeIndex).toBe(0)
@@ -88,11 +87,11 @@ describe('Tabs', () => {
       )
     })
 
-    it('updates only focusedIndex on TabFocused', () => {
+    it('updates only focusedIndex on FocusedTab', () => {
       Story.story(
         update,
         Story.with(init({ id: 'test', activationMode: 'Manual' })),
-        Story.message(TabFocused({ index: 2 })),
+        Story.message(FocusedTab({ index: 2 })),
         Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
           expect(model.activeIndex).toBe(0)
@@ -101,7 +100,7 @@ describe('Tabs', () => {
       )
     })
 
-    it('does not change activeIndex on TabFocused', () => {
+    it('does not change activeIndex on FocusedTab', () => {
       Story.story(
         update,
         Story.with(
@@ -111,7 +110,7 @@ describe('Tabs', () => {
             activationMode: 'Manual',
           }),
         ),
-        Story.message(TabFocused({ index: 3 })),
+        Story.message(FocusedTab({ index: 3 })),
         Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
           expect(model.activeIndex).toBe(1)
@@ -120,14 +119,15 @@ describe('Tabs', () => {
       )
     })
 
-    it('TabSelected updates both indices in manual mode', () => {
+    it('SelectedTab updates both indices in manual mode and emits Selected', () => {
       Story.story(
         update,
         Story.with({
           ...init({ id: 'test', activationMode: 'Manual' }),
           focusedIndex: 2,
         }),
-        Story.message(TabSelected({ index: 2 })),
+        Story.message(SelectedTab({ index: 2, value: 'tab-2' })),
+        Story.expectOutMessage(Selected({ value: 'tab-2', index: 2 })),
         Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
           expect(model.activeIndex).toBe(2)
@@ -254,355 +254,27 @@ describe('Tabs', () => {
     })
   })
 
-  describe('view', () => {
-    const tabs = ['Alpha', 'Beta', 'Gamma'] as const
-    type Tab = (typeof tabs)[number]
-
-    const h = html<Message>()
-
-    const sceneView =
-      (
-        overrides: Omit<
-          Partial<ViewConfig<Message, Tab>>,
-          'model' | 'toParentMessage'
-        > = {},
-      ) =>
-      (model: Model) =>
-        view({
-          tabs,
-          tabToConfig: () => ({
-            buttonContent: Effect.succeed(null),
-            panelContent: Effect.succeed(null),
-          }),
-          tabListAriaLabel: 'Test tabs',
-          ...overrides,
-          model,
-          toParentMessage: message => message,
-        })
-
-    describe('ViewConfig.attributes', () => {
-      it('applies attributes to the wrapper element', () => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              attributes: [h.DataAttribute('testid', 'tabs-wrapper')],
-            }),
-          },
-          Scene.with(init({ id: 'test' })),
-          Scene.tap(({ html }) => {
-            expect(Scene.find(html, '[data-testid="tabs-wrapper"]')).toExist()
-          }),
-        )
-      })
-
-      it('applies className and attributes together on the wrapper', () => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              className: 'wrapper-class',
-              attributes: [h.DataAttribute('testid', 'tabs-wrapper')],
-            }),
-          },
-          Scene.with(init({ id: 'test' })),
-          Scene.tap(({ html }) => {
-            expect(
-              Scene.find(html, '.wrapper-class[data-testid="tabs-wrapper"]'),
-            ).toExist()
-          }),
-        )
-      })
+  describe('reflectSelectedTab', () => {
+    it('reflects a tab value onto the active and focused index', () => {
+      const next = reflectSelectedTab(init({ id: 'test' }), 'b', [
+        'a',
+        'b',
+        'c',
+      ])
+      expect(next.activeIndex).toBe(1)
+      expect(next.focusedIndex).toBe(1)
     })
 
-    describe('ViewConfig.tabListAttributes', () => {
-      it('applies tabListAttributes to the tab list element', () => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              tabListAttributes: [h.DataAttribute('testid', 'tab-list')],
-            }),
-          },
-          Scene.with(init({ id: 'test' })),
-          Scene.tap(({ html }) => {
-            expect(Scene.find(html, '[key="test-tablist"]')).toHaveAttr(
-              'data-testid',
-              'tab-list',
-            )
-          }),
-        )
-      })
-
-      it('applies tabListClassName and tabListAttributes together', () => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              tabListClassName: 'tab-list-class',
-              tabListAttributes: [h.DataAttribute('testid', 'tab-list')],
-            }),
-          },
-          Scene.with(init({ id: 'test' })),
-          Scene.tap(({ html }) => {
-            const tabList = Scene.find(html, '[key="test-tablist"]')
-            expect(tabList).toHaveClass('tab-list-class')
-            expect(tabList).toHaveAttr('data-testid', 'tab-list')
-          }),
-        )
-      })
+    it('is a no-op when the value is not in options', () => {
+      const model = init({ id: 'test' })
+      expect(reflectSelectedTab(model, 'z', ['a', 'b', 'c'])).toBe(model)
     })
 
-    describe('TabConfig.buttonAttributes', () => {
-      it('applies buttonAttributes to tab buttons', () => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              tabToConfig: (_tab, { isActive }) => ({
-                buttonContent: Effect.succeed(null),
-                panelContent: Effect.succeed(null),
-                buttonAttributes: [
-                  h.DataAttribute('active', isActive ? 'true' : 'false'),
-                ],
-              }),
-            }),
-          },
-          Scene.with(init({ id: 'test' })),
-          Scene.tap(({ html }) => {
-            expect(Scene.find(html, '[key="test-tab-0"]')).toHaveAttr(
-              'data-active',
-              'true',
-            )
-            expect(Scene.find(html, '[key="test-tab-1"]')).toHaveAttr(
-              'data-active',
-              'false',
-            )
-            expect(Scene.find(html, '[key="test-tab-2"]')).toHaveAttr(
-              'data-active',
-              'false',
-            )
-          }),
-        )
-      })
-
-      it('applies buttonClassName and buttonAttributes together', () => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              tabToConfig: () => ({
-                buttonContent: Effect.succeed(null),
-                panelContent: Effect.succeed(null),
-                buttonClassName: 'tab-button',
-                buttonAttributes: [h.DataAttribute('testid', 'btn')],
-              }),
-            }),
-          },
-          Scene.with(init({ id: 'test' })),
-          Scene.tap(({ html }) => {
-            const firstButton = Scene.find(html, '[key="test-tab-0"]')
-            expect(firstButton).toHaveClass('tab-button')
-            expect(firstButton).toHaveAttr('data-testid', 'btn')
-          }),
-        )
-      })
-    })
-
-    describe('TabConfig.panelAttributes', () => {
-      it('applies panelAttributes in activePanelOnly mode', () => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              tabToConfig: () => ({
-                buttonContent: Effect.succeed(null),
-                panelContent: Effect.succeed(null),
-                panelAttributes: [h.DataAttribute('testid', 'panel')],
-              }),
-            }),
-          },
-          Scene.with(init({ id: 'test' })),
-          Scene.tap(({ html }) => {
-            expect(Scene.find(html, '[key="test-panel-0"]')).toHaveAttr(
-              'data-testid',
-              'panel',
-            )
-          }),
-        )
-      })
-
-      it('applies panelClassName and panelAttributes together in activePanelOnly mode', () => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              tabToConfig: () => ({
-                buttonContent: Effect.succeed(null),
-                panelContent: Effect.succeed(null),
-                panelClassName: 'panel-class',
-                panelAttributes: [h.DataAttribute('testid', 'panel')],
-              }),
-            }),
-          },
-          Scene.with(init({ id: 'test' })),
-          Scene.tap(({ html }) => {
-            const panel = Scene.find(html, '[key="test-panel-0"]')
-            expect(panel).toHaveClass('panel-class')
-            expect(panel).toHaveAttr('data-testid', 'panel')
-          }),
-        )
-      })
-
-      it('applies panelAttributes in persistPanels mode', () => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              persistPanels: true,
-              tabToConfig: (_tab, { isActive }) => ({
-                buttonContent: Effect.succeed(null),
-                panelContent: Effect.succeed(null),
-                panelAttributes: [
-                  h.DataAttribute('active', isActive ? 'true' : 'false'),
-                ],
-              }),
-            }),
-          },
-          Scene.with(init({ id: 'test' })),
-          Scene.tap(({ html }) => {
-            expect(Scene.find(html, '[key="test-panel-0"]')).toHaveAttr(
-              'data-active',
-              'true',
-            )
-            expect(Scene.find(html, '[key="test-panel-1"]')).toHaveAttr(
-              'data-active',
-              'false',
-            )
-            expect(Scene.find(html, '[key="test-panel-2"]')).toHaveAttr(
-              'data-active',
-              'false',
-            )
-          }),
-        )
-      })
-
-      it('applies panelClassName and panelAttributes together in persistPanels mode', () => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              persistPanels: true,
-              tabToConfig: () => ({
-                buttonContent: Effect.succeed(null),
-                panelContent: Effect.succeed(null),
-                panelClassName: 'panel-class',
-                panelAttributes: [h.DataAttribute('testid', 'panel')],
-              }),
-            }),
-          },
-          Scene.with(init({ id: 'test' })),
-          Scene.tap(({ html }) => {
-            expect(Scene.findAll(html, '[key^="test-panel-"]')).toHaveLength(3)
-            expect(Scene.find(html, '[key="test-panel-0"]')).toHaveClass(
-              'panel-class',
-            )
-            expect(Scene.find(html, '[key="test-panel-0"]')).toHaveAttr(
-              'data-testid',
-              'panel',
-            )
-            expect(Scene.find(html, '[key="test-panel-1"]')).toHaveClass(
-              'panel-class',
-            )
-            expect(Scene.find(html, '[key="test-panel-1"]')).toHaveAttr(
-              'data-testid',
-              'panel',
-            )
-          }),
-        )
-      })
-
-      it('renders only the active panel in activePanelOnly mode', () => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              tabToConfig: (_tab, { isActive }) => ({
-                buttonContent: Effect.succeed(null),
-                panelContent: Effect.succeed(null),
-                panelAttributes: [
-                  h.DataAttribute('active', isActive ? 'true' : 'false'),
-                ],
-              }),
-            }),
-          },
-          Scene.with(init({ id: 'test', activeIndex: 1 })),
-          Scene.tap(({ html }) => {
-            expect(Scene.findAll(html, '[key^="test-panel-"]')).toHaveLength(1)
-            expect(Scene.find(html, '[key="test-panel-1"]')).toExist()
-            expect(Scene.find(html, '[key="test-panel-1"]')).toHaveAttr(
-              'data-active',
-              'true',
-            )
-          }),
-        )
-      })
-
-      it('renders all panels in persistPanels mode', () => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              persistPanels: true,
-              tabToConfig: (_tab, { isActive }) => ({
-                buttonContent: Effect.succeed(null),
-                panelContent: Effect.succeed(null),
-                panelAttributes: [
-                  h.DataAttribute('active', isActive ? 'true' : 'false'),
-                ],
-              }),
-            }),
-          },
-          Scene.with(init({ id: 'test', activeIndex: 1 })),
-          Scene.tap(({ html }) => {
-            expect(Scene.findAll(html, '[key^="test-panel-"]')).toHaveLength(3)
-            expect(Scene.find(html, '[key="test-panel-0"]')).toHaveAttr(
-              'data-active',
-              'false',
-            )
-            expect(Scene.find(html, '[key="test-panel-1"]')).toHaveAttr(
-              'data-active',
-              'true',
-            )
-            expect(Scene.find(html, '[key="test-panel-2"]')).toHaveAttr(
-              'data-active',
-              'false',
-            )
-          }),
-        )
-      })
-
-      it('applies inline display: none to inactive persisted panels and not to the active one', () => {
-        const panelZero = Scene.selector('[key="test-panel-0"]')
-        const panelOne = Scene.selector('[key="test-panel-1"]')
-        const panelTwo = Scene.selector('[key="test-panel-2"]')
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              persistPanels: true,
-              tabToConfig: () => ({
-                buttonContent: Effect.succeed(null),
-                panelContent: Effect.succeed(null),
-              }),
-            }),
-          },
-          Scene.with(init({ id: 'test', activeIndex: 1 })),
-          Scene.expect(panelZero).toHaveStyle('display', 'none'),
-          Scene.expect(panelOne).not.toHaveStyle('display'),
-          Scene.expect(panelTwo).toHaveStyle('display', 'none'),
-        )
-      })
+    it('supports the data-last form for point-free use in evo', () => {
+      const reflectToB = reflectSelectedTab('b', ['a', 'b', 'c'])
+      const next = reflectToB(init({ id: 'test' }))
+      expect(next.activeIndex).toBe(1)
+      expect(next.focusedIndex).toBe(1)
     })
   })
 })

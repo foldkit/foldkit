@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { uiShowcaseViewSourceHref } from '../../link'
@@ -88,6 +89,12 @@ const sliderAttributesHeader: TableOfContentsEntry = {
   text: 'SliderAttributes',
 }
 
+const outMessagesHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-messages',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -99,6 +106,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   initConfigHeader,
   viewConfigHeader,
   sliderAttributesHeader,
+  outMessagesHeader,
 ]
 
 // SECTION DATA
@@ -182,6 +190,12 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     description:
       'Form field name. When provided, a hidden input carrying the current numeric value is included for native form submission.',
   },
+  {
+    name: 'getTrackRoot',
+    type: '(() => Document | ShadowRoot) | undefined',
+    description:
+      'Optional accessor returning the DOM root that contains the slider track. Defaults to `document`. Override when rendering inside a Shadow DOM so the drag subscription can find the track element to measure cursor position.',
+  },
 ]
 
 const sliderAttributesProps: ReadonlyArray<PropEntry> = [
@@ -220,6 +234,15 @@ const sliderAttributesProps: ReadonlyArray<PropEntry> = [
     type: 'ReadonlyArray<Attribute<Message>>',
     description:
       'Spread onto a hidden <input> for form submission. Only populated when the name prop is set.',
+  },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'ChangedValue',
+    type: '{ value: number }',
+    description:
+      'Emitted whenever the slider value changes via drag, click-to-jump, or keyboard navigation. Pattern-match the third tuple element of Slider.update in your GotSliderMessage handler to react: persist the value, validate, or trigger a downstream Command.',
   },
 ]
 
@@ -274,145 +297,160 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/slider', 'Slider'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'A numeric range input for values that sit on a continuous or stepped scale. Common uses include rating scales, volume controls, filter thresholds, and brightness settings. Follows the WAI-ARIA slider pattern with ',
-        inlineCode('role="slider"'),
-        ', full keyboard navigation, and pointer drag.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how Slider is wired up in a ',
-        link(uiShowcaseViewSourceHref('slider'), 'real Foldkit app'),
-        '.',
-      ),
-      heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-      para(
-        'Slider is headless. Your ',
-        inlineCode('toView'),
-        ' callback controls all markup and styling. The component hands back attribute groups for the root, track, filled track, thumb, label, and an optional hidden input for form submission.',
-      ),
-      demoContainer(
-        ...Slider.sliderDemo(
-          model.sliderRatingDemo,
-          model.sliderVolumeDemo,
-          toParentMessage,
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/slider', 'Slider'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'A numeric range input for values that sit on a continuous or stepped scale. Common uses include rating scales, volume controls, filter thresholds, and brightness settings. Follows the WAI-ARIA slider pattern with ',
+          inlineCode('role="slider"'),
+          ', full keyboard navigation, and pointer drag.',
         ),
-      ),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiSliderBasicHighlighted)],
-          [],
+        infoCallout(
+          'See it in an app',
+          'Check out how Slider is wired up in a ',
+          link(uiShowcaseViewSourceHref('slider'), 'real Foldkit app'),
+          '.',
         ),
-        Snippet.uiSliderBasicRaw,
-        'Copy slider example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(
-        subscriptionsHeader.level,
-        subscriptionsHeader.id,
-        subscriptionsHeader.text,
-      ),
-      para(
-        'Pointer drag needs document-level ',
-        inlineCode('pointermove'),
-        ' / ',
-        inlineCode('pointerup'),
-        ' tracking (the cursor can leave the slider element). Slider exposes this as a Subscription you wire into your app’s ',
-        inlineCode('subscriptions'),
-        ' alongside an Escape-key subscription that cancels an in-progress drag. The example snippet above shows the full wiring.',
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'Slider exposes ',
-        inlineCode('data-dragging'),
-        ' while the user is actively dragging, ',
-        inlineCode('data-disabled'),
-        ' when disabled, and ',
-        inlineCode('data-orientation'),
-        ' on the root. The ',
-        inlineCode('filledTrack'),
-        ' attribute group carries an inline width so the filled portion always matches the current value.',
-      ),
-      dataAttributeTable(dataAttributes),
-      heading(
-        keyboardInteractionHeader.level,
-        keyboardInteractionHeader.id,
-        keyboardInteractionHeader.text,
-      ),
-      keyboardTable(keyboardEntries),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'The thumb receives ',
-        inlineCode('role="slider"'),
-        ', ',
-        inlineCode('aria-valuemin'),
-        ', ',
-        inlineCode('aria-valuemax'),
-        ', ',
-        inlineCode('aria-valuenow'),
-        ', and ',
-        inlineCode('aria-orientation'),
-        '. When ',
-        inlineCode('formatValue'),
-        ' is provided, the formatted string is announced via ',
-        inlineCode('aria-valuetext'),
-        '. By default the thumb is labeled via ',
-        inlineCode('aria-labelledby'),
-        ' pointing at the id carried on the ',
-        inlineCode('label'),
-        ' attribute group; you can override this with an explicit ',
-        inlineCode('ariaLabel'),
-        ' or ',
-        inlineCode('ariaLabelledBy'),
-        '.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
-      heading(
-        initConfigHeader.level,
-        initConfigHeader.id,
-        initConfigHeader.text,
-      ),
-      para('Configuration object passed to ', inlineCode('Slider.init()'), '.'),
-      propTable(initConfigProps),
-      heading(
-        viewConfigHeader.level,
-        viewConfigHeader.id,
-        viewConfigHeader.text,
-      ),
-      para('Configuration object passed to ', inlineCode('Slider.view()'), '.'),
-      propTable(viewConfigProps),
-      heading(
-        sliderAttributesHeader.level,
-        sliderAttributesHeader.id,
-        sliderAttributesHeader.text,
-      ),
-      para(
-        'Attribute groups provided to the ',
-        inlineCode('toView'),
-        ' callback.',
-      ),
-      propTable(sliderAttributesProps),
-    ],
-  )
-}
+        heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
+        para(
+          'Slider is headless. Your ',
+          inlineCode('toView'),
+          ' callback controls all markup and styling. The component hands back attribute groups for the root, track, filled track, thumb, label, and an optional hidden input for form submission.',
+        ),
+        demoContainer(
+          ...Slider.sliderDemo(model.sliderRatingDemo, model.sliderVolumeDemo),
+        ),
+        highlightedCodeBlock(
+          h.div(
+            [h.Class('text-sm'), h.InnerHTML(Snippet.uiSliderBasicHighlighted)],
+            [],
+          ),
+          Snippet.uiSliderBasicRaw,
+          'Copy slider example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(
+          subscriptionsHeader.level,
+          subscriptionsHeader.id,
+          subscriptionsHeader.text,
+        ),
+        para(
+          'Pointer drag needs document-level ',
+          inlineCode('pointermove'),
+          ' / ',
+          inlineCode('pointerup'),
+          ' tracking (the cursor can leave the slider element). Slider exposes this as a Subscription you wire into your app’s ',
+          inlineCode('subscriptions'),
+          ' alongside an Escape-key subscription that cancels an in-progress drag. The example snippet above shows the full wiring.',
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'Slider exposes ',
+          inlineCode('data-dragging'),
+          ' while the user is actively dragging, ',
+          inlineCode('data-disabled'),
+          ' when disabled, and ',
+          inlineCode('data-orientation'),
+          ' on the root. The ',
+          inlineCode('filledTrack'),
+          ' attribute group carries an inline width so the filled portion always matches the current value.',
+        ),
+        dataAttributeTable(dataAttributes),
+        heading(
+          keyboardInteractionHeader.level,
+          keyboardInteractionHeader.id,
+          keyboardInteractionHeader.text,
+        ),
+        keyboardTable(keyboardEntries),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'The thumb receives ',
+          inlineCode('role="slider"'),
+          ', ',
+          inlineCode('aria-valuemin'),
+          ', ',
+          inlineCode('aria-valuemax'),
+          ', ',
+          inlineCode('aria-valuenow'),
+          ', and ',
+          inlineCode('aria-orientation'),
+          '. When ',
+          inlineCode('formatValue'),
+          ' is provided, the formatted string is announced via ',
+          inlineCode('aria-valuetext'),
+          '. By default the thumb is labeled via ',
+          inlineCode('aria-labelledby'),
+          ' pointing at the id carried on the ',
+          inlineCode('label'),
+          ' attribute group; you can override this with an explicit ',
+          inlineCode('ariaLabel'),
+          ' or ',
+          inlineCode('ariaLabelledBy'),
+          '.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
+        heading(
+          initConfigHeader.level,
+          initConfigHeader.id,
+          initConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Slider.init()'),
+          '.',
+        ),
+        propTable(initConfigProps),
+        heading(
+          viewConfigHeader.level,
+          viewConfigHeader.id,
+          viewConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Slider.view()'),
+          '.',
+        ),
+        propTable(viewConfigProps),
+        heading(
+          sliderAttributesHeader.level,
+          sliderAttributesHeader.id,
+          sliderAttributesHeader.text,
+        ),
+        para(
+          'Attribute groups provided to the ',
+          inlineCode('toView'),
+          ' callback.',
+        ),
+        propTable(sliderAttributesProps),
+        heading(
+          outMessagesHeader.level,
+          outMessagesHeader.id,
+          outMessagesHeader.text,
+        ),
+        para(
+          'Messages emitted to the parent through the third element of ',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          '. Parents pattern-match on the OutMessage in their own update handler.',
+        ),
+        propTable(outMessageProps),
+      ],
+    )
+  },
+)

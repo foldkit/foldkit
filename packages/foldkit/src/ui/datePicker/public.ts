@@ -2,20 +2,21 @@ export {
   init,
   update,
   view,
-  lazy,
   open,
   close,
   selectDate,
   clear,
-  setMinDate,
-  setMaxDate,
-  setDisabledDates,
-  setDisabledDaysOfWeek,
+  reflectSelectedDate,
+  reflectMinDate,
+  reflectMaxDate,
+  reflectDisabledDates,
+  reflectDisabledDaysOfWeek,
   Model,
   Message,
   OutMessage,
   GotCalendarMessage,
   GotPopoverMessage,
+  RequestedSelectDate,
   SelectedDate,
   Cleared,
   Opened,
@@ -23,4 +24,4 @@ export {
   ChangedViewMonth,
 } from './index.js'
 
-export type { InitConfig, ViewConfig } from './index.js'
+export type { InitConfig, ViewInputs } from './index.js'

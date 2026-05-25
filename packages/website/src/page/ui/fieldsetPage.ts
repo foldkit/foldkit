@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { uiShowcaseViewSourceHref } from '../../link'
@@ -134,135 +135,140 @@ const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/fieldset', 'Fieldset'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'A semantic form section that groups related controls with a legend and description. Fieldset is a view-only component that wraps the native ',
-        inlineCode('<fieldset>'),
-        ' element. When disabled, the browser propagates the disabled state to all child form controls automatically.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how Fieldset is wired up in a ',
-        link(uiShowcaseViewSourceHref('fieldset'), 'real Foldkit app'),
-        '.',
-      ),
-      heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-      heading(
-        Fieldset.basicHeader.level,
-        Fieldset.basicHeader.id,
-        Fieldset.basicHeader.text,
-      ),
-      para(
-        'The ',
-        inlineCode('toView'),
-        ' callback receives three attribute groups: ',
-        inlineCode('fieldset'),
-        ' for the wrapper, ',
-        inlineCode('legend'),
-        ' for the group title, and ',
-        inlineCode('description'),
-        ' for help text. Nest other Foldkit UI components inside the fieldset body.',
-      ),
-      demoContainer(...Fieldset.basicDemo(model, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiFieldsetBasicHighlighted)],
-          [],
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/fieldset', 'Fieldset'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'A semantic form section that groups related controls with a legend and description. Fieldset is a stateless render helper that wraps the native ',
+          inlineCode('<fieldset>'),
+          ' element: call it directly with a ViewConfig in your own view; no Model, update, or ',
+          inlineCode('h.submodel'),
+          ' wrapping. When disabled, the browser propagates the disabled state to all child form controls automatically.',
         ),
-        Snippet.uiFieldsetBasicRaw,
-        'Copy basic fieldset example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(
-        Fieldset.disabledHeader.level,
-        Fieldset.disabledHeader.id,
-        Fieldset.disabledHeader.text,
-      ),
-      para(
-        'Set ',
-        inlineCode('isDisabled: true'),
-        ' to disable the entire group. The native ',
-        inlineCode('<fieldset disabled>'),
-        ' attribute propagates to all child inputs, textareas, buttons, and selects. You don’t need to disable each control individually.',
-      ),
-      demoContainer(...Fieldset.disabledDemo(model, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippet.uiFieldsetDisabledHighlighted),
-          ],
-          [],
+        infoCallout(
+          'See it in an app',
+          'Check out how Fieldset is wired up in a ',
+          link(uiShowcaseViewSourceHref('fieldset'), 'real Foldkit app'),
+          '.',
         ),
-        Snippet.uiFieldsetDisabledRaw,
-        'Copy disabled fieldset example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'Fieldset is headless. Your ',
-        inlineCode('toView'),
-        ' callback controls all markup and styling.',
-      ),
-      dataAttributeTable(dataAttributes),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'The ',
-        inlineCode('legend'),
-        ' attribute group includes an id (accessible via ',
-        inlineCode('Fieldset.legendId(id)'),
-        ') and the ',
-        inlineCode('description'),
-        ' group includes an id (accessible via ',
-        inlineCode('Fieldset.descriptionId(id)'),
-        ') that the fieldset references through ',
-        inlineCode('aria-describedby'),
-        '.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
-      heading(
-        viewConfigHeader.level,
-        viewConfigHeader.id,
-        viewConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('Fieldset.view()'),
-        '.',
-      ),
-      propTable(viewConfigProps),
-      heading(
-        fieldsetAttributesHeader.level,
-        fieldsetAttributesHeader.id,
-        fieldsetAttributesHeader.text,
-      ),
-      para(
-        'Attribute groups provided to the ',
-        inlineCode('toView'),
-        ' callback.',
-      ),
-      propTable(fieldsetAttributesProps),
-    ],
-  )
-}
+        heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
+        heading(
+          Fieldset.basicHeader.level,
+          Fieldset.basicHeader.id,
+          Fieldset.basicHeader.text,
+        ),
+        para(
+          'The ',
+          inlineCode('toView'),
+          ' callback receives three attribute groups: ',
+          inlineCode('fieldset'),
+          ' for the wrapper, ',
+          inlineCode('legend'),
+          ' for the group title, and ',
+          inlineCode('description'),
+          ' for help text. Nest other Foldkit UI components inside the fieldset body.',
+        ),
+        demoContainer(...Fieldset.basicDemo(model)),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiFieldsetBasicHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiFieldsetBasicRaw,
+          'Copy basic fieldset example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(
+          Fieldset.disabledHeader.level,
+          Fieldset.disabledHeader.id,
+          Fieldset.disabledHeader.text,
+        ),
+        para(
+          'Set ',
+          inlineCode('isDisabled: true'),
+          ' to disable the entire group. The native ',
+          inlineCode('<fieldset disabled>'),
+          ' attribute propagates to all child inputs, textareas, buttons, and selects. You don’t need to disable each control individually.',
+        ),
+        demoContainer(...Fieldset.disabledDemo(model)),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiFieldsetDisabledHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiFieldsetDisabledRaw,
+          'Copy disabled fieldset example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'Fieldset is headless. Your ',
+          inlineCode('toView'),
+          ' callback controls all markup and styling.',
+        ),
+        dataAttributeTable(dataAttributes),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'The ',
+          inlineCode('legend'),
+          ' attribute group includes an id (accessible via ',
+          inlineCode('Fieldset.legendId(id)'),
+          ') and the ',
+          inlineCode('description'),
+          ' group includes an id (accessible via ',
+          inlineCode('Fieldset.descriptionId(id)'),
+          ') that the fieldset references through ',
+          inlineCode('aria-describedby'),
+          '.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
+        heading(
+          viewConfigHeader.level,
+          viewConfigHeader.id,
+          viewConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Fieldset.view()'),
+          '.',
+        ),
+        propTable(viewConfigProps),
+        heading(
+          fieldsetAttributesHeader.level,
+          fieldsetAttributesHeader.id,
+          fieldsetAttributesHeader.text,
+        ),
+        para(
+          'Attribute groups provided to the ',
+          inlineCode('toView'),
+          ' callback.',
+        ),
+        propTable(fieldsetAttributesProps),
+      ],
+    )
+  },
+)

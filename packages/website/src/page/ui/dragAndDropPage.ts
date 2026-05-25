@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { exampleSourceHref, uiShowcaseViewSourceHref } from '../../link'
@@ -77,6 +78,12 @@ const viewHelpersHeader: TableOfContentsEntry = {
   text: 'View Helpers',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -87,6 +94,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiReferenceHeader,
   initConfigHeader,
   viewHelpersHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -154,6 +162,21 @@ const viewHelperProps: ReadonlyArray<PropEntry> = [
   },
 ]
 
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'Reordered',
+    type: '{ itemId, fromContainerId, fromIndex, toContainerId, toIndex }',
+    description:
+      'Emitted when a drag completes with a valid drop target. The parent uses this to commit the reorder against its own data (move the item in the source array, splice it into the destination). Pattern-match the third tuple element of DragAndDrop.update in your GotDragAndDropMessage handler.',
+  },
+  {
+    name: 'Cancelled',
+    type: '{}',
+    description:
+      'Emitted when a drag is cancelled via Escape or a pointer release without a valid drop target. No reorder should be applied.',
+  },
+]
+
 const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
   {
     attribute: 'data-draggable-id',
@@ -200,137 +223,151 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/drag-and-drop', 'Drag and Drop'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'Sortable lists and cross-container movement with pointer tracking, keyboard navigation, collision detection, auto-scrolling, and screen reader announcements.',
-      ),
-      para(
-        'DragAndDrop is different from other Foldkit UI components in two ways. First, it doesn’t have a ',
-        inlineCode('view()'),
-        ' function. Instead, you spread ',
-        inlineCode('draggable()'),
-        ' and ',
-        inlineCode('droppable()'),
-        ' attributes onto your own elements. Second, its update function returns a three-tuple: ',
-        inlineCode('[model, commands, maybeOutMessage]'),
-        '. You handle ',
-        inlineCode('Reordered'),
-        ' and ',
-        inlineCode('Cancelled'),
-        ' OutMessages to decide how to reorder your data.',
-      ),
-      para(
-        'Integration requires four pieces: a ',
-        inlineCode('DragAndDrop.Model'),
-        ' field in your Model, update delegation with OutMessage handling, ',
-        inlineCode('DragAndDrop.subscriptions'),
-        ' for document-level pointer and keyboard listeners, and ',
-        inlineCode('draggable()'),
-        ' / ',
-        inlineCode('droppable()'),
-        ' attributes in your view.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how DragAndDrop is wired up in the ',
-        link(exampleSourceHref('kanban'), 'kanban example'),
-        ' or the ',
-        link(uiShowcaseViewSourceHref('dragAndDrop'), 'UI showcase'),
-        '.',
-      ),
-      heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-      heading(
-        DragAndDrop.demoHeader.level,
-        DragAndDrop.demoHeader.id,
-        DragAndDrop.demoHeader.text,
-      ),
-      para(
-        'The snippet below shows a minimal sortable list with all four integration pieces. For a full example with persistence, cross-container moves, and add-card forms, see the ',
-        link(exampleDetailRouter({ exampleSlug: 'kanban' }), 'Kanban example'),
-        '.',
-      ),
-      demoContainer(...DragAndDrop.demo(model, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippet.uiDragAndDropBasicHighlighted),
-          ],
-          [],
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/drag-and-drop', 'Drag and Drop'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'Sortable lists and cross-container movement with pointer tracking, keyboard navigation, collision detection, auto-scrolling, and screen reader announcements.',
         ),
-        Snippet.uiDragAndDropBasicRaw,
-        'Copy drag and drop example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'DragAndDrop is fully headless. You render all items, containers, and ghost elements. Use ',
-        inlineCode('isDragging()'),
-        ' and ',
-        inlineCode('maybeDraggedItemId()'),
-        ' to conditionally style items during drag (e.g. reduced opacity on the source, a drop placeholder at the target).',
-      ),
-      dataAttributeTable(dataAttributes),
-      heading(
-        keyboardInteractionHeader.level,
-        keyboardInteractionHeader.id,
-        keyboardInteractionHeader.text,
-      ),
-      para(
-        'DragAndDrop supports full keyboard navigation. Space/Enter activates drag mode, arrow keys move the item, Tab/Shift+Tab moves between containers, and Escape cancels.',
-      ),
-      keyboardTable(keyboardEntries),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'Draggable items receive ',
-        inlineCode('role="option"'),
-        ' with ',
-        inlineCode('aria-roledescription="draggable"'),
-        '. Drop containers receive ',
-        inlineCode('role="listbox"'),
-        '. Screen reader announcements are emitted for drag start, movement, and drop via a live region.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
-      heading(
-        initConfigHeader.level,
-        initConfigHeader.id,
-        initConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('DragAndDrop.init()'),
-        '.',
-      ),
-      propTable(initConfigProps),
-      heading(
-        viewHelpersHeader.level,
-        viewHelpersHeader.id,
-        viewHelpersHeader.text,
-      ),
-      para(
-        'Functions for attaching drag-and-drop behavior to your elements and reading drag state.',
-      ),
-      propTable(viewHelperProps),
-    ],
-  )
-}
+        para(
+          'DragAndDrop is different from other Foldkit UI components in two ways. First, it doesn’t have a ',
+          inlineCode('view()'),
+          ' function. Instead, you spread ',
+          inlineCode('draggable()'),
+          ' and ',
+          inlineCode('droppable()'),
+          ' attributes onto your own elements. Second, its update function returns a three-tuple: ',
+          inlineCode('[model, commands, maybeOutMessage]'),
+          '. You handle ',
+          inlineCode('Reordered'),
+          ' and ',
+          inlineCode('Cancelled'),
+          ' OutMessages to decide how to reorder your data.',
+        ),
+        para(
+          'Integration requires four pieces: a ',
+          inlineCode('DragAndDrop.Model'),
+          ' field in your Model, update delegation with OutMessage handling, ',
+          inlineCode('DragAndDrop.subscriptions'),
+          ' for document-level pointer and keyboard listeners, and ',
+          inlineCode('draggable()'),
+          ' / ',
+          inlineCode('droppable()'),
+          ' attributes in your view.',
+        ),
+        infoCallout(
+          'See it in an app',
+          'Check out how DragAndDrop is wired up in the ',
+          link(exampleSourceHref('kanban'), 'kanban example'),
+          ' or the ',
+          link(uiShowcaseViewSourceHref('dragAndDrop'), 'UI showcase'),
+          '.',
+        ),
+        heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
+        heading(
+          DragAndDrop.demoHeader.level,
+          DragAndDrop.demoHeader.id,
+          DragAndDrop.demoHeader.text,
+        ),
+        para(
+          'The snippet below shows a minimal sortable list with all four integration pieces. For a full example with persistence, cross-container moves, and add-card forms, see the ',
+          link(
+            exampleDetailRouter({ exampleSlug: 'kanban' }),
+            'Kanban example',
+          ),
+          '.',
+        ),
+        demoContainer(...DragAndDrop.demo(model)),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiDragAndDropBasicHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiDragAndDropBasicRaw,
+          'Copy drag and drop example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'DragAndDrop is fully headless. You render all items, containers, and ghost elements. Use ',
+          inlineCode('isDragging()'),
+          ' and ',
+          inlineCode('maybeDraggedItemId()'),
+          ' to conditionally style items during drag (e.g. reduced opacity on the source, a drop placeholder at the target).',
+        ),
+        dataAttributeTable(dataAttributes),
+        heading(
+          keyboardInteractionHeader.level,
+          keyboardInteractionHeader.id,
+          keyboardInteractionHeader.text,
+        ),
+        para(
+          'DragAndDrop supports full keyboard navigation. Space/Enter activates drag mode, arrow keys move the item, Tab/Shift+Tab moves between containers, and Escape cancels.',
+        ),
+        keyboardTable(keyboardEntries),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'Draggable items receive ',
+          inlineCode('role="option"'),
+          ' with ',
+          inlineCode('aria-roledescription="draggable"'),
+          '. Drop containers receive ',
+          inlineCode('role="listbox"'),
+          '. Screen reader announcements are emitted for drag start, movement, and drop via a live region.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
+        heading(
+          initConfigHeader.level,
+          initConfigHeader.id,
+          initConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('DragAndDrop.init()'),
+          '.',
+        ),
+        propTable(initConfigProps),
+        heading(
+          viewHelpersHeader.level,
+          viewHelpersHeader.id,
+          viewHelpersHeader.text,
+        ),
+        para(
+          'Functions for attaching drag-and-drop behavior to your elements and reading drag state.',
+        ),
+        propTable(viewHelperProps),
+        heading(
+          outMessageHeader.level,
+          outMessageHeader.id,
+          outMessageHeader.text,
+        ),
+        para(
+          'Messages emitted to the parent through the third element of ',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          '. Pattern-match on the OutMessage in your update handler.',
+        ),
+        propTable(outMessageProps),
+      ],
+    )
+  },
+)

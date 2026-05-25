@@ -5,7 +5,6 @@ import { UrlRequest } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
 
 import * as Page from './page'
-import { ExampleSlug } from './page/example/meta'
 import * as Search from './search'
 
 // THEME
@@ -85,9 +84,6 @@ export const GotDemoTabsMessage = m('GotDemoTabsMessage', {
 export const GotPlaygroundMenuMessage = m('GotPlaygroundMenuMessage', {
   message: Ui.Menu.Message,
 })
-export const SelectedPlaygroundExample = m('SelectedPlaygroundExample', {
-  slug: ExampleSlug,
-})
 export const GotPlaygroundMessage = m('GotPlaygroundMessage', {
   message: Page.Playground.Message,
 })
@@ -148,6 +144,12 @@ export const GotExampleDetailMessage = m('GotExampleDetailMessage', {
 export const GotSearchMessage = m('GotSearchMessage', {
   message: Search.Message,
 })
+export const GotSubmodelMapMessagesDisclosureMessage = m(
+  'GotSubmodelMapMessagesDisclosureMessage',
+  {
+    message: Ui.Disclosure.Message,
+  },
+)
 
 export const Message = S.Union([
   CompletedNavigateInternal,
@@ -184,7 +186,6 @@ export const Message = S.Union([
   ToggledAiHeading,
   GotDemoTabsMessage,
   GotPlaygroundMenuMessage,
-  SelectedPlaygroundExample,
   GotPlaygroundMessage,
   GotAsyncCounterDemoMessage,
   GotNotePlayerDemoMessage,
@@ -204,5 +205,6 @@ export const Message = S.Union([
   GotApiReferenceGroupMessage,
   GotExampleDetailMessage,
   GotSearchMessage,
+  GotSubmodelMapMessagesDisclosureMessage,
 ])
 export type Message = typeof Message.Type

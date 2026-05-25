@@ -83,8 +83,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             CoreSlowView: () => Page.Core.SlowView.tableOfContents,
             CoreFreezeModel: () => Page.Core.FreezeModel.tableOfContents,
             CoreDevTools: () => Page.Core.DevTools.tableOfContents,
-            PatternsSubmodels: () => Page.Patterns.Submodels.tableOfContents,
-            PatternsOutMessage: () => Page.Patterns.OutMessage.tableOfContents,
+            CoreSubmodel: () => Page.Core.Submodel.tableOfContents,
             PatternsSubscriptionOrganization: () =>
               Page.Patterns.SubscriptionOrganization.tableOfContents,
             CoreViewMemoization: () =>
@@ -114,6 +113,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             UiAnimation: () => Page.UiPages.AnimationPage.tableOfContents,
             UiVirtualList: () => Page.UiPages.VirtualListPage.tableOfContents,
             UiOverview: () => Page.UiPages.OverviewPage.tableOfContents,
+            UiSelectionSubmodels: () =>
+              Page.UiPages.SelectionSubmodelsPage.tableOfContents,
             AiOverview: () => Page.AiOverview.tableOfContents,
             AiSkills: () => Page.AiSkills.tableOfContents,
             AiMcp: () => Page.AiMcp.tableOfContents,

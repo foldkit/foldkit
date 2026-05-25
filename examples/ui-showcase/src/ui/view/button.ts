@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { ClickedButtonDemo, type UiMessage } from '../message'
@@ -7,11 +7,8 @@ import type { UiModel } from '../model'
 const buttonClassName =
   'inline-flex items-center gap-2 rounded-lg bg-accent-600 px-3 py-2 text-base font-semibold text-white shadow-sm transition-colors hover:not-data-[disabled]:bg-accent-600/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 cursor-pointer data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [],
@@ -25,8 +22,8 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('flex flex-col items-start gap-2')],
         [
-          Ui.Button.view({
-            onClick: toParentMessage(ClickedButtonDemo()),
+          Ui.Button.view<UiMessage>({
+            onClick: ClickedButtonDemo(),
             toView: attributes =>
               h.button(
                 [...attributes.button, h.Class(buttonClassName)],
@@ -46,7 +43,7 @@ export const view = <ParentMessage>(
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
-      Ui.Button.view<ParentMessage>({
+      Ui.Button.view<UiMessage>({
         isDisabled: true,
         toView: attributes =>
           h.button(
@@ -56,4 +53,4 @@ export const view = <ParentMessage>(
       }),
     ],
   )
-}
+})

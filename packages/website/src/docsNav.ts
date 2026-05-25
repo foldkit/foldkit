@@ -29,6 +29,7 @@ import {
   coreResourcesRouter,
   coreRuntimeRouter,
   coreSlowViewRouter,
+  coreSubmodelRouter,
   coreSubscriptionsRouter,
   coreUpdateRouter,
   coreViewMemoizationRouter,
@@ -38,8 +39,6 @@ import {
   fieldValidationRouter,
   gettingStartedRouter,
   manifestoRouter,
-  patternsOutMessageRouter,
-  patternsSubmodelsRouter,
   patternsSubscriptionOrganizationRouter,
   projectOrganizationRouter,
   reactComparisonRouter,
@@ -66,6 +65,7 @@ import {
   uiPopoverRouter,
   uiRadioGroupRouter,
   uiSelectRouter,
+  uiSelectionSubmodelsRouter,
   uiSliderRouter,
   uiSwitchRouter,
   uiTabsRouter,
@@ -190,6 +190,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Init & Flags',
         },
         {
+          _tag: 'CoreSubmodel',
+          href: coreSubmodelRouter(),
+          label: 'Submodel',
+        },
+        {
           _tag: 'CoreRuntime',
           href: coreRuntimeRouter(),
           label: 'Runtime',
@@ -302,16 +307,6 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Project Organization',
         },
         {
-          _tag: 'PatternsSubmodels',
-          href: patternsSubmodelsRouter(),
-          label: 'Submodels',
-        },
-        {
-          _tag: 'PatternsOutMessage',
-          href: patternsOutMessageRouter(),
-          label: 'OutMessage',
-        },
-        {
           _tag: 'PatternsSubscriptionOrganization',
           href: patternsSubscriptionOrganizationRouter(),
           label: 'Subscription Organization',
@@ -337,99 +332,6 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     ],
   },
   {
-    label: 'Testing',
-    pageGroups: [
-      [
-        {
-          _tag: 'Testing',
-          href: testingRouter(),
-          label: 'Overview',
-        },
-        {
-          _tag: 'TestingStory',
-          href: testingStoryRouter(),
-          label: 'Story',
-        },
-        {
-          _tag: 'TestingScene',
-          href: testingSceneRouter(),
-          label: 'Scene',
-        },
-      ],
-    ],
-  },
-  {
-    label: 'Best Practices',
-    pageGroups: [
-      [
-        {
-          _tag: 'BestPracticesSideEffects',
-          href: bestPracticesSideEffectsRouter(),
-          label: 'Side Effects & Purity',
-        },
-        {
-          _tag: 'BestPracticesMessages',
-          href: bestPracticesMessagesRouter(),
-          label: 'Messages',
-        },
-        {
-          _tag: 'BestPracticesKeying',
-          href: bestPracticesKeyingRouter(),
-          label: 'Keying',
-        },
-        {
-          _tag: 'BestPracticesImmutability',
-          href: bestPracticesImmutabilityRouter(),
-          label: 'Immutability',
-        },
-      ],
-    ],
-  },
-  {
-    label: 'Examples',
-    pageGroups: [
-      [
-        {
-          _tag: 'Examples',
-          href: examplesRouter(),
-          label: 'Overview',
-        },
-        ...Array.map(examples, example => ({
-          _tag: exampleDetailTag(example.slug),
-          href: exampleDetailRouter({ exampleSlug: example.slug }),
-          label: example.title,
-        })),
-        {
-          _tag: 'TypingTerminal',
-          href: typingTerminalRouter(),
-          label: 'Typing Terminal',
-        },
-      ],
-    ],
-  },
-  {
-    label: 'AI',
-    pageGroups: [
-      [
-        {
-          _tag: 'AiOverview',
-          href: aiOverviewRouter(),
-          label: 'Overview',
-        },
-        {
-          _tag: 'AiSkills',
-          href: aiSkillsRouter(),
-          label: 'Skills',
-        },
-        {
-          _tag: 'AiMcp',
-          href: aiMcpRouter(),
-          label: 'DevTools MCP',
-        },
-      ],
-    ],
-  },
-  {
     label: 'Foldkit UI',
     pageGroups: [
       [
@@ -437,6 +339,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'UiOverview',
           href: uiOverviewRouter(),
           label: 'Overview',
+        },
+        {
+          _tag: 'UiSelectionSubmodels',
+          href: uiSelectionSubmodelsRouter(),
+          label: 'Selection Submodels',
         },
       ],
       [
@@ -565,6 +472,99 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'UiVirtualList',
           href: uiVirtualListRouter(),
           label: 'Virtual List',
+        },
+      ],
+    ],
+  },
+  {
+    label: 'AI',
+    pageGroups: [
+      [
+        {
+          _tag: 'AiOverview',
+          href: aiOverviewRouter(),
+          label: 'Overview',
+        },
+        {
+          _tag: 'AiSkills',
+          href: aiSkillsRouter(),
+          label: 'Skills',
+        },
+        {
+          _tag: 'AiMcp',
+          href: aiMcpRouter(),
+          label: 'DevTools MCP',
+        },
+      ],
+    ],
+  },
+  {
+    label: 'Testing',
+    pageGroups: [
+      [
+        {
+          _tag: 'Testing',
+          href: testingRouter(),
+          label: 'Overview',
+        },
+        {
+          _tag: 'TestingStory',
+          href: testingStoryRouter(),
+          label: 'Story',
+        },
+        {
+          _tag: 'TestingScene',
+          href: testingSceneRouter(),
+          label: 'Scene',
+        },
+      ],
+    ],
+  },
+  {
+    label: 'Best Practices',
+    pageGroups: [
+      [
+        {
+          _tag: 'BestPracticesSideEffects',
+          href: bestPracticesSideEffectsRouter(),
+          label: 'Side Effects & Purity',
+        },
+        {
+          _tag: 'BestPracticesMessages',
+          href: bestPracticesMessagesRouter(),
+          label: 'Messages',
+        },
+        {
+          _tag: 'BestPracticesKeying',
+          href: bestPracticesKeyingRouter(),
+          label: 'Keying',
+        },
+        {
+          _tag: 'BestPracticesImmutability',
+          href: bestPracticesImmutabilityRouter(),
+          label: 'Immutability',
+        },
+      ],
+    ],
+  },
+  {
+    label: 'Examples',
+    pageGroups: [
+      [
+        {
+          _tag: 'Examples',
+          href: examplesRouter(),
+          label: 'Overview',
+        },
+        ...Array.map(examples, example => ({
+          _tag: exampleDetailTag(example.slug),
+          href: exampleDetailRouter({ exampleSlug: example.slug }),
+          label: example.title,
+        })),
+        {
+          _tag: 'TypingTerminal',
+          href: typingTerminalRouter(),
+          label: 'Typing Terminal',
         },
       ],
     ],

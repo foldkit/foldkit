@@ -28,6 +28,8 @@ import { evo } from 'foldkit/struct'
 
 // MODEL
 
+const PronounsListbox = Ui.Listbox.create<string>()
+
 export const Model = S.Struct({
   firstName: Field,
   lastName: Field,
@@ -223,18 +225,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotPronounsMessage: ({ message: listboxMessage }) => {
-        const [nextPronouns, listboxCommands] = Ui.Listbox.update(
+        const [nextPronouns, listboxCommands] = PronounsListbox.update(
           model.pronouns,
           listboxMessage,
         )
         return [
           evo(model, { pronouns: () => nextPronouns }),
-          listboxCommands.map(
-            Command.mapEffect(
-              Effect.map(innerMessage =>
-                GotPronounsMessage({ message: innerMessage }),
-              ),
-            ),
+          Command.mapMessages(listboxCommands, innerMessage =>
+            GotPronounsMessage({ message: innerMessage }),
           ),
         ]
       },
@@ -258,12 +256,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         )
         return [
           evo(model, { availableDate: () => nextDate }),
-          commands.map(
-            Command.mapEffect(
-              Effect.map(innerMessage =>
-                GotAvailableDateMessage({ message: innerMessage }),
-              ),
-            ),
+          Command.mapMessages(commands, innerMessage =>
+            GotAvailableDateMessage({ message: innerMessage }),
           ),
         ]
       },

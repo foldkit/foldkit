@@ -22,26 +22,39 @@ const TOOLTIP_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-export const demo = <ParentMessage>(
-  tooltipModel: Ui.Tooltip.Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const demo = (tooltipModel: Ui.Tooltip.Model) => {
+  const h = html<Message>()
 
   return [
     h.div(
       [h.Class('relative')],
       [
-        Ui.Tooltip.view({
+        h.submodel({
+          slotId: tooltipModel.id,
           model: tooltipModel,
-          toParentMessage: message =>
-            toParentMessage(GotTooltipDemoMessage({ message })),
-          anchor: TOOLTIP_ANCHOR,
-          triggerContent: h.span([], ['Hover or focus me']),
-          triggerAttributes: [h.Class(triggerClassName)],
-          content: h.span([], ['This is a tooltip']),
-          panelAttributes: [h.Class(panelClassName)],
-          attributes: [h.Class(wrapperClassName)],
+          view: Ui.Tooltip.view,
+          viewInputs: {
+            anchor: TOOLTIP_ANCHOR,
+            toView: ({ trigger, panel, isVisible }) =>
+              h.div(
+                [h.Class(wrapperClassName)],
+                [
+                  h.button(
+                    [...trigger, h.Class(triggerClassName)],
+                    [h.span([], ['Hover or focus me'])],
+                  ),
+                  ...(isVisible
+                    ? [
+                        h.div(
+                          [...panel, h.Class(panelClassName)],
+                          [h.span([], ['This is a tooltip'])],
+                        ),
+                      ]
+                    : []),
+                ],
+              ),
+          },
+          toParentMessage: message => GotTooltipDemoMessage({ message }),
         }),
       ],
     ),

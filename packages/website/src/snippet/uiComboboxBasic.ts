@@ -1,11 +1,16 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Array, Effect, Option } from 'effect'
+import { Array, Effect, Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
-import { html } from 'foldkit/html'
+import { childAttributes, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
+
+type City = 'Johannesburg' | 'Kyiv' | 'Oxford' | 'Wellington'
+
+// Declare a typed Combobox once at module scope:
+const CityCombobox = Ui.Combobox.create<City>()
 
 // Add a field to your Model for the Combobox Submodel, plus a field for
 // the selected value your app actually cares about:
@@ -25,53 +30,42 @@ const init = () => [
   [],
 ]
 
-// Embed the Combobox Message for keyboard/input events, plus your own
-// Message for the actual selection:
+// Wrap Combobox's Messages so they can flow through your update:
 const GotComboboxMessage = m('GotComboboxMessage', {
   message: Ui.Combobox.Message,
 })
-const SelectedCity = m('SelectedCity', { value: S.String })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate keyboard
-// navigation, typeahead, and open/close to Combobox.update:
+// Delegate keyboard navigation, typeahead, and open/close to
+// CityCombobox.update. The OutMessage's `Selected` carries the chosen
+// item; lift it into your domain state:
 GotComboboxMessage: ({ message }) => {
-  const [nextCombobox, commands] = Ui.Combobox.update(model.combobox, message)
-
-  return [
-    // Merge the next state into your Model:
-    evo(model, { combobox: () => nextCombobox }),
-    // Forward the Submodel's Commands through your parent Message:
-    commands.map(
-      Command.mapEffect(Effect.map(message => GotComboboxMessage({ message }))),
-    ),
-  ]
-}
-
-// Still inside your update function's M.tagsExhaustive({...}), handle your
-// own selection Message:
-SelectedCity: ({ value }) => {
-  // Ui.Combobox.selectItem gives you the next combobox state with the
-  // selection reflected (input value updated, dropdown closed), plus
-  // the Commands that return focus to the input. Single-select combobox
-  // takes both the item value and the display text:
-  const [nextCombobox, commands] = Ui.Combobox.selectItem(
+  const [nextCombobox, commands, maybeOutMessage] = CityCombobox.update(
     model.combobox,
-    value,
-    value,
+    message,
+  )
+  const mappedCommands = Command.mapMessages(commands, message =>
+    GotComboboxMessage({ message }),
   )
 
-  return [
-    evo(model, {
-      maybeCity: () => Option.some(value),
-      combobox: () => nextCombobox,
-    }),
-    commands.map(
-      Command.mapEffect(Effect.map(message => GotComboboxMessage({ message }))),
+  return Option.match(maybeOutMessage, {
+    onNone: () => [
+      evo(model, { combobox: () => nextCombobox }),
+      mappedCommands,
+    ],
+    onSome: M.type<Ui.Combobox.OutMessage>().pipe(
+      M.tagsExhaustive({
+        Selected: ({ value }) => [
+          evo(model, {
+            combobox: () => nextCombobox,
+            maybeCity: () => Option.some(value),
+          }),
+          mappedCommands,
+        ],
+      }),
     ),
-  ]
+  })
 }
 
-type City = 'Johannesburg' | 'Kyiv' | 'Oxford' | 'Wellington'
 const cities: ReadonlyArray<City> = [
   'Johannesburg',
   'Kyiv',
@@ -87,34 +81,38 @@ const filteredCities =
         city.toLowerCase().includes(model.combobox.inputValue.toLowerCase()),
       )
 
-// Inside your view function, pass onSelectedItem to fire your SelectedCity
-// Message on selection:
+// Inside your view function, embed the Combobox via h.submodel:
 const view = () => {
   const h = html<Message>()
 
-  return Ui.Combobox.view({
+  return h.submodel({
+    slotId: 'city',
     model: model.combobox,
+    view: CityCombobox.view,
+    viewInputs: {
+      items: filteredCities,
+      itemToValue: city => city,
+      itemToDisplayText: city => city,
+      itemToConfig: (city, { isSelected }) => ({
+        className: 'px-3 py-2 cursor-pointer data-[active]:bg-blue-100',
+        content: h.div(
+          [h.Class('flex items-center gap-2')],
+          [
+            isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
+            h.span([], [city]),
+          ],
+        ),
+      }),
+      inputAttributes: childAttributes([
+        h.Class('w-full rounded-lg border px-3 py-2'),
+        h.Placeholder('Search cities...'),
+      ]),
+      itemsAttributes: childAttributes([
+        h.Class('rounded-lg border shadow-lg'),
+      ]),
+      backdropAttributes: childAttributes([h.Class('fixed inset-0')]),
+      anchor: { placement: 'bottom-start', gap: 8, padding: 8 },
+    },
     toParentMessage: message => GotComboboxMessage({ message }),
-    onSelectedItem: value => SelectedCity({ value }),
-    items: filteredCities,
-    itemToValue: city => city,
-    itemToDisplayText: city => city,
-    itemToConfig: (city, { isSelected }) => ({
-      className: 'px-3 py-2 cursor-pointer data-[active]:bg-blue-100',
-      content: h.div(
-        [h.Class('flex items-center gap-2')],
-        [
-          isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
-          h.span([], [city]),
-        ],
-      ),
-    }),
-    inputAttributes: [
-      h.Class('w-full rounded-lg border px-3 py-2'),
-      h.Placeholder('Search cities...'),
-    ],
-    itemsAttributes: [h.Class('rounded-lg border shadow-lg')],
-    backdropAttributes: [h.Class('fixed inset-0')],
-    anchor: { placement: 'bottom-start', gap: 8, padding: 8 },
   })
 }

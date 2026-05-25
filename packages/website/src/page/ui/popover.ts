@@ -1,5 +1,5 @@
 import { Ui } from 'foldkit'
-import { html } from 'foldkit/html'
+import { type Html, html } from 'foldkit/html'
 import type { AnchorConfig } from 'foldkit/ui/popover'
 
 import type { TableOfContentsEntry } from '../../main'
@@ -52,10 +52,10 @@ const POPOVER_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-const popoverViewConfig = <ParentMessage>(panelClassName: string) => {
-  const h = html<ParentMessage>()
+const panelContent = (): Html => {
+  const h = html<Message>()
 
-  const panelContent = h.div(
+  return h.div(
     [],
     [
       h.p(
@@ -68,55 +68,74 @@ const popoverViewConfig = <ParentMessage>(panelClassName: string) => {
       ),
     ],
   )
-
-  return {
-    anchor: POPOVER_ANCHOR,
-    buttonContent: h.span([], ['Solutions']),
-    buttonAttributes: [h.Class(triggerClassName)],
-    panelContent,
-    panelAttributes: [h.Class(panelClassName)],
-    backdropAttributes: [h.Class(backdropClassName)],
-    attributes: [h.Class(wrapperClassName)],
-  }
 }
 
-export const basicDemo = <ParentMessage>(
+const popoverDemo = (
   popoverModel: Ui.Popover.Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+  toMessage: (message: Ui.Popover.Message) => Message,
+  panelClassNameValue: string,
+): Html => {
+  const h = html<Message>()
+
+  return h.submodel({
+    slotId: popoverModel.id,
+    model: popoverModel,
+    view: Ui.Popover.view,
+    viewInputs: {
+      anchor: POPOVER_ANCHOR,
+      toView: ({ button, panel, backdrop, isVisible }) =>
+        h.div(
+          [h.Class(wrapperClassName)],
+          [
+            h.button(
+              [...button, h.Class(triggerClassName)],
+              [h.span([], ['Solutions'])],
+            ),
+            ...(isVisible
+              ? [
+                  h.div([...backdrop, h.Class(backdropClassName)], []),
+                  h.div(
+                    [...panel, h.Class(panelClassNameValue)],
+                    [panelContent()],
+                  ),
+                ]
+              : []),
+          ],
+        ),
+    },
+    toParentMessage: toMessage,
+  })
+}
+
+export const basicDemo = (popoverModel: Ui.Popover.Model) => {
+  const h = html<Message>()
 
   return [
     h.div(
       [h.Class('relative')],
       [
-        Ui.Popover.view({
-          model: popoverModel,
-          toParentMessage: message =>
-            toParentMessage(GotPopoverBasicDemoMessage({ message })),
-          ...popoverViewConfig<ParentMessage>(basicPanelClassName),
-        }),
+        popoverDemo(
+          popoverModel,
+          message => GotPopoverBasicDemoMessage({ message }),
+          basicPanelClassName,
+        ),
       ],
     ),
   ]
 }
 
-export const animatedDemo = <ParentMessage>(
-  popoverModel: Ui.Popover.Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const animatedDemo = (popoverModel: Ui.Popover.Model) => {
+  const h = html<Message>()
 
   return [
     h.div(
       [h.Class('relative')],
       [
-        Ui.Popover.view({
-          model: popoverModel,
-          toParentMessage: message =>
-            toParentMessage(GotPopoverAnimatedDemoMessage({ message })),
-          ...popoverViewConfig<ParentMessage>(animatedPanelClassName),
-        }),
+        popoverDemo(
+          popoverModel,
+          message => GotPopoverAnimatedDemoMessage({ message }),
+          animatedPanelClassName,
+        ),
       ],
     ),
   ]

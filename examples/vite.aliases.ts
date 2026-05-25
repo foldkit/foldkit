@@ -45,6 +45,10 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/foldkit/src/subscription',
   ),
+  'foldkit/test/vitest': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/test/vitest',
+  ),
   'foldkit/ui/dialog': path.resolve(
     dirname,
     '../../packages/foldkit/src/ui/dialog',

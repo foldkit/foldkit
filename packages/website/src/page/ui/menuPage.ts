@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { uiShowcaseViewSourceHref } from '../../link'
@@ -77,6 +78,12 @@ const viewConfigHeader: TableOfContentsEntry = {
   text: 'ViewConfig',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -88,6 +95,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiReferenceHeader,
   initConfigHeader,
   viewConfigHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -136,50 +144,123 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'Maps each item to its className and content. The context provides isActive and isDisabled.',
   },
   {
-    name: 'onSelectedItem',
-    type: '(value: string) => Message',
-    description:
-      'Fires your Message when an item is selected. Since Menu is fire-and-forget, this is the primary way to handle selection.',
-  },
-  {
     name: 'buttonContent',
     type: 'Html',
     description: 'Content rendered inside the trigger button.',
   },
   {
     name: 'isItemDisabled',
-    type: '(item, index) => boolean',
+    type: '((item, index) => boolean) | undefined',
     description: 'Disables individual menu items.',
   },
   {
+    name: 'itemToSearchText',
+    type: '((item, index) => string) | undefined',
+    description:
+      'Optional override for the string typeahead matches against. Defaults to the item itself; override when items carry searchable text distinct from their display content.',
+  },
+  {
+    name: 'isButtonDisabled',
+    type: 'boolean | undefined',
+    description:
+      'Disables the trigger button entirely. The menu cannot be opened while true.',
+  },
+  {
     name: 'itemGroupKey',
-    type: '(item, index) => string',
+    type: '((item, index) => string) | undefined',
     description: 'Groups contiguous items by key.',
   },
   {
     name: 'groupToHeading',
-    type: '(groupKey) => GroupHeading | undefined',
+    type: '((groupKey) => GroupHeading | undefined) | undefined',
     description: 'Renders a heading for each group.',
   },
   {
     name: 'anchor',
-    type: 'AnchorConfig',
+    type: 'AnchorConfig | undefined',
     description: 'Floating positioning config: placement, gap, and padding.',
   },
   {
     name: 'buttonClassName',
-    type: 'string',
+    type: 'string | undefined',
     description: 'CSS class for the trigger button.',
   },
   {
+    name: 'buttonAttributes',
+    type: 'ReadonlyArray<ChildAttribute> | undefined',
+    description:
+      'Extra attributes spread onto the trigger button alongside its built-in click/keyboard handlers and aria-* attributes.',
+  },
+  {
     name: 'itemsClassName',
-    type: 'string',
-    description: 'CSS class for the items container.',
+    type: 'string | undefined',
+    description: 'CSS class for the items container (the panel root).',
+  },
+  {
+    name: 'itemsAttributes',
+    type: 'ReadonlyArray<ChildAttribute> | undefined',
+    description: 'Extra attributes spread onto the items container.',
+  },
+  {
+    name: 'itemsScrollClassName',
+    type: 'string | undefined',
+    description:
+      'CSS class for the inner scrollable wrapper around the item list. Useful for setting max-height/overflow without restyling the panel root.',
+  },
+  {
+    name: 'itemsScrollAttributes',
+    type: 'ReadonlyArray<ChildAttribute> | undefined',
+    description: 'Extra attributes spread onto the inner scrollable wrapper.',
   },
   {
     name: 'backdropClassName',
-    type: 'string',
+    type: 'string | undefined',
     description: 'CSS class for the backdrop.',
+  },
+  {
+    name: 'backdropAttributes',
+    type: 'ReadonlyArray<ChildAttribute> | undefined',
+    description: 'Extra attributes spread onto the backdrop element.',
+  },
+  {
+    name: 'groupClassName',
+    type: 'string | undefined',
+    description: 'CSS class applied to each group wrapper.',
+  },
+  {
+    name: 'groupAttributes',
+    type: 'ReadonlyArray<ChildAttribute> | undefined',
+    description: 'Extra attributes spread onto each group wrapper.',
+  },
+  {
+    name: 'separatorClassName',
+    type: 'string | undefined',
+    description:
+      'CSS class applied to the separator rendered between adjacent groups.',
+  },
+  {
+    name: 'separatorAttributes',
+    type: 'ReadonlyArray<ChildAttribute> | undefined',
+    description: 'Extra attributes spread onto each group separator.',
+  },
+  {
+    name: 'className',
+    type: 'string | undefined',
+    description: 'CSS class applied to the outer Menu root element.',
+  },
+  {
+    name: 'attributes',
+    type: 'ReadonlyArray<ChildAttribute> | undefined',
+    description: 'Extra attributes spread onto the outer Menu root element.',
+  },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'Selected',
+    type: '{ value: Item; index: number }',
+    description:
+      'Emitted when a menu item is selected. Carries both the value (typed as your `Item` union via `Menu.create<Item>()`) and its index into the items array supplied at view time. Menu closes itself on selection; the parent does not need to dispatch Menu.close. Pattern-match the third tuple element of Menu.update in your GotMenuMessage handler to dispatch the corresponding domain action.',
   },
 ]
 
@@ -224,149 +305,169 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/menu', 'Menu'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'A dropdown menu for actions, like a macOS context menu. Menu is fire-and-forget: it doesn’t track a selected value (use Listbox for persistent selection). It supports typeahead search, drag-to-select, keyboard navigation, grouped items, and anchor positioning.',
-      ),
-      para(
-        'For programmatic control in update functions, use ',
-        inlineCode('Menu.open(model)'),
-        ', ',
-        inlineCode('Menu.close(model)'),
-        ', and ',
-        inlineCode('Menu.selectItem(model, index)'),
-        '. Each returns ',
-        inlineCode('[Model, Commands]'),
-        ' directly.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how Menu is wired up in a ',
-        link(uiShowcaseViewSourceHref('menu'), 'real Foldkit app'),
-        '.',
-      ),
-      heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-      heading(
-        Menu.basicHeader.level,
-        Menu.basicHeader.id,
-        Menu.basicHeader.text,
-      ),
-      para(
-        'Use ',
-        inlineCode('onSelectedItem'),
-        ' to handle menu item selection. Menu closes automatically after selection.',
-      ),
-      demoContainer(...Menu.basicDemo(model.menuBasicDemo, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiMenuBasicHighlighted)],
-          [],
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/menu', 'Menu'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'A dropdown menu for actions, like a macOS context menu. Menu is fire-and-forget: it doesn’t track a selected value (use Listbox for persistent selection). It supports typeahead search, drag-to-select, keyboard navigation, grouped items, and anchor positioning.',
         ),
-        Snippet.uiMenuBasicRaw,
-        'Copy menu example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(
-        Menu.animatedHeader.level,
-        Menu.animatedHeader.id,
-        Menu.animatedHeader.text,
-      ),
-      para(
-        'Pass ',
-        inlineCode('isAnimated: true'),
-        ' at init for animation coordination.',
-      ),
-      demoContainer(
-        ...Menu.animatedDemo(model.menuAnimatedDemo, toParentMessage),
-      ),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiMenuAnimatedHighlighted)],
-          [],
+        para(
+          'For programmatic control in update functions, use the factory’s ',
+          inlineCode('open(model)'),
+          ', ',
+          inlineCode('close(model)'),
+          ', and ',
+          inlineCode('selectItem(model, item, index)'),
+          ' methods. Each returns the same ',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          ' tuple as ',
+          inlineCode('update'),
+          '.',
         ),
-        Snippet.uiMenuAnimatedRaw,
-        'Copy animated menu example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'Menu is headless. The ',
-        inlineCode('itemToConfig'),
-        ' callback controls all item markup. Group items with ',
-        inlineCode('itemGroupKey'),
-        ' and ',
-        inlineCode('groupToHeading'),
-        '.',
-      ),
-      para(
-        'When ',
-        inlineCode('isAnimated'),
-        ' is true, enter/leave animations flow through the ',
-        link(uiAnimationRouter(), 'Animation'),
-        ' module. Style with CSS transitions or CSS keyframe animations. Animation advances once every animation on the element has settled.',
-      ),
-      dataAttributeTable(dataAttributes),
-      heading(
-        keyboardInteractionHeader.level,
-        keyboardInteractionHeader.id,
-        keyboardInteractionHeader.text,
-      ),
-      para(
-        'Menu uses ',
-        inlineCode('aria-activedescendant'),
-        '. Focus stays on the items container while arrow keys update the highlighted item. Typeahead search accumulates characters for 350ms.',
-      ),
-      keyboardTable(keyboardEntries),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'The button receives ',
-        inlineCode('aria-haspopup="menu"'),
-        ' and ',
-        inlineCode('aria-expanded'),
-        '. The items container receives ',
-        inlineCode('role="menu"'),
-        ' with ',
-        inlineCode('aria-activedescendant'),
-        '. Each item receives ',
-        inlineCode('role="menuitem"'),
-        '.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
-      heading(
-        initConfigHeader.level,
-        initConfigHeader.id,
-        initConfigHeader.text,
-      ),
-      para('Configuration object passed to ', inlineCode('Menu.init()'), '.'),
-      propTable(initConfigProps),
-      heading(
-        viewConfigHeader.level,
-        viewConfigHeader.id,
-        viewConfigHeader.text,
-      ),
-      para('Configuration object passed to ', inlineCode('Menu.view()'), '.'),
-      propTable(viewConfigProps),
-    ],
-  )
-}
+        infoCallout(
+          'See it in an app',
+          'Check out how Menu is wired up in a ',
+          link(uiShowcaseViewSourceHref('menu'), 'real Foldkit app'),
+          '.',
+        ),
+        heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
+        heading(
+          Menu.basicHeader.level,
+          Menu.basicHeader.id,
+          Menu.basicHeader.text,
+        ),
+        para(
+          'Pair ',
+          inlineCode('view'),
+          ' and ',
+          inlineCode('update'),
+          ' behind ',
+          inlineCode('Ui.Menu.create<Item>()'),
+          ' at module scope. The factory threads your item union through both, so ',
+          inlineCode('Selected({ value, index })'),
+          ' carries the picked value directly. Menu closes automatically after selection.',
+        ),
+        demoContainer(...Menu.basicDemo(model.menuBasicDemo)),
+        highlightedCodeBlock(
+          h.div(
+            [h.Class('text-sm'), h.InnerHTML(Snippet.uiMenuBasicHighlighted)],
+            [],
+          ),
+          Snippet.uiMenuBasicRaw,
+          'Copy menu example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(
+          Menu.animatedHeader.level,
+          Menu.animatedHeader.id,
+          Menu.animatedHeader.text,
+        ),
+        para(
+          'Pass ',
+          inlineCode('isAnimated: true'),
+          ' at init for animation coordination.',
+        ),
+        demoContainer(...Menu.animatedDemo(model.menuAnimatedDemo)),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiMenuAnimatedHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiMenuAnimatedRaw,
+          'Copy animated menu example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'Menu is headless. The ',
+          inlineCode('itemToConfig'),
+          ' callback controls all item markup. Group items with ',
+          inlineCode('itemGroupKey'),
+          ' and ',
+          inlineCode('groupToHeading'),
+          '.',
+        ),
+        para(
+          'When ',
+          inlineCode('isAnimated'),
+          ' is true, enter/leave animations flow through the ',
+          link(uiAnimationRouter(), 'Animation'),
+          ' module. Style with CSS transitions or CSS keyframe animations. Animation advances once every animation on the element has settled.',
+        ),
+        dataAttributeTable(dataAttributes),
+        heading(
+          keyboardInteractionHeader.level,
+          keyboardInteractionHeader.id,
+          keyboardInteractionHeader.text,
+        ),
+        para(
+          'Menu uses ',
+          inlineCode('aria-activedescendant'),
+          '. Focus stays on the items container while arrow keys update the highlighted item. Typeahead search accumulates characters for 350ms.',
+        ),
+        keyboardTable(keyboardEntries),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'The button receives ',
+          inlineCode('aria-haspopup="menu"'),
+          ' and ',
+          inlineCode('aria-expanded'),
+          '. The items container receives ',
+          inlineCode('role="menu"'),
+          ' with ',
+          inlineCode('aria-activedescendant'),
+          '. Each item receives ',
+          inlineCode('role="menuitem"'),
+          '.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
+        heading(
+          initConfigHeader.level,
+          initConfigHeader.id,
+          initConfigHeader.text,
+        ),
+        para('Configuration object passed to ', inlineCode('Menu.init()'), '.'),
+        propTable(initConfigProps),
+        heading(
+          viewConfigHeader.level,
+          viewConfigHeader.id,
+          viewConfigHeader.text,
+        ),
+        para('Configuration object passed to ', inlineCode('Menu.view()'), '.'),
+        propTable(viewConfigProps),
+        heading(
+          outMessageHeader.level,
+          outMessageHeader.id,
+          outMessageHeader.text,
+        ),
+        para(
+          'Messages emitted to the parent through the third element of ',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          '. Pattern-match on the OutMessage in your update handler.',
+        ),
+        propTable(outMessageProps),
+      ],
+    )
+  },
+)

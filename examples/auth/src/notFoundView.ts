@@ -1,11 +1,11 @@
 import { Html, html } from 'foldkit/html'
 
-export const notFoundView = <ParentMessage>(
+export const notFoundView = (
   path: string,
   backLinkHref: string,
   backLinkText: string,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html()
 
   return h.div(
     [h.Class('max-w-4xl mx-auto px-4 text-center')],

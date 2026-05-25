@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit each into your own Model, init, Message,
 // update, view, and subscription definitions.
-import { Effect, Schema as S } from 'effect'
+import { Match as M, Option, Schema as S } from 'effect'
 import { Command, Subscription, Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -34,18 +34,37 @@ const GotSliderMessage = m('GotSliderMessage', {
   message: Ui.Slider.Message,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate to Slider.update:
+// Inside your update function's M.tagsExhaustive({...}), delegate to
+// Ui.Slider.update. The OutMessage's `ChangedValue` carries the new
+// number. Lift it to domain state, validate, or persist on each commit.
 GotSliderMessage: ({ message }) => {
-  const [nextSlider, commands] = Ui.Slider.update(model.ratingDemo, message)
+  const [nextSlider, commands, maybeOutMessage] = Ui.Slider.update(
+    model.ratingDemo,
+    message,
+  )
+  const mappedCommands = Command.mapMessages(commands, message =>
+    GotSliderMessage({ message }),
+  )
 
-  return [
-    // Merge the next state into your Model:
-    evo(model, { ratingDemo: () => nextSlider }),
-    // Forward the Submodel's Commands through your parent Message:
-    commands.map(
-      Command.mapEffect(Effect.map(message => GotSliderMessage({ message }))),
+  return Option.match(maybeOutMessage, {
+    onNone: () => [
+      evo(model, { ratingDemo: () => nextSlider }),
+      mappedCommands,
+    ],
+    onSome: M.type<Ui.Slider.OutMessage>().pipe(
+      M.tagsExhaustive({
+        ChangedValue: ({ value }) => [
+          // The child has emitted `ChangedValue`. The body commits
+          // the child's next state as usual. In this arm the parent
+          // can also update its own state or dispatch its own
+          // Commands, for example persist the value, validate, or
+          // trigger a downstream Command.
+          evo(model, { ratingDemo: () => nextSlider }),
+          mappedCommands,
+        ],
+      }),
     ),
-  ]
+  })
 }
 
 // NOTE: wire BOTH dragPointer and dragEscape. Without dragEscape, pressing
@@ -70,60 +89,64 @@ const subscriptions = Subscription.aggregate<Model, Message>()(
 const view = (model: Model) => {
   const h = html<Message>()
 
-  return Ui.Slider.view({
+  return h.submodel({
+    slotId: 'rating',
     model: model.ratingDemo,
+    view: Ui.Slider.view,
+    viewInputs: {
+      formatValue: value => `${String(value)} of 10`,
+      toView: attributes =>
+        h.div(
+          [h.Class('flex flex-col gap-2 w-full max-w-sm')],
+          [
+            h.div(
+              [h.Class('flex items-center justify-between text-sm')],
+              [
+                h.label(
+                  [...attributes.label, h.Class('font-medium')],
+                  ['Rating'],
+                ),
+                h.span(
+                  [h.Class('tabular-nums text-gray-600')],
+                  [`${String(model.ratingDemo.value)} / 10`],
+                ),
+              ],
+            ),
+            h.div(
+              [
+                ...attributes.root,
+                h.Class('relative h-6 w-full flex items-center'),
+              ],
+              [
+                h.div(
+                  [
+                    ...attributes.track,
+                    h.Class('h-1.5 w-full rounded-full bg-gray-200'),
+                  ],
+                  [
+                    h.div(
+                      [
+                        ...attributes.filledTrack,
+                        h.Class('h-full rounded-full bg-blue-600'),
+                      ],
+                      [],
+                    ),
+                  ],
+                ),
+                h.div(
+                  [
+                    ...attributes.thumb,
+                    h.Class(
+                      'h-5 w-5 rounded-full bg-white border-2 border-blue-600 shadow cursor-grab focus-visible:ring-2 focus-visible:ring-blue-600 data-[dragging]:cursor-grabbing',
+                    ),
+                  ],
+                  [],
+                ),
+              ],
+            ),
+          ],
+        ),
+    },
     toParentMessage: message => GotSliderMessage({ message }),
-    formatValue: value => `${String(value)} of 10`,
-    toView: attributes =>
-      h.div(
-        [h.Class('flex flex-col gap-2 w-full max-w-sm')],
-        [
-          h.div(
-            [h.Class('flex items-center justify-between text-sm')],
-            [
-              h.label(
-                [...attributes.label, h.Class('font-medium')],
-                ['Rating'],
-              ),
-              h.span(
-                [h.Class('tabular-nums text-gray-600')],
-                [`${String(model.ratingDemo.value)} / 10`],
-              ),
-            ],
-          ),
-          h.div(
-            [
-              ...attributes.root,
-              h.Class('relative h-6 w-full flex items-center'),
-            ],
-            [
-              h.div(
-                [
-                  ...attributes.track,
-                  h.Class('h-1.5 w-full rounded-full bg-gray-200'),
-                ],
-                [
-                  h.div(
-                    [
-                      ...attributes.filledTrack,
-                      h.Class('h-full rounded-full bg-blue-600'),
-                    ],
-                    [],
-                  ),
-                ],
-              ),
-              h.div(
-                [
-                  ...attributes.thumb,
-                  h.Class(
-                    'h-5 w-5 rounded-full bg-white border-2 border-blue-600 shadow cursor-grab focus-visible:ring-2 focus-visible:ring-blue-600 data-[dragging]:cursor-grabbing',
-                  ),
-                ],
-                [],
-              ),
-            ],
-          ),
-        ],
-      ),
   })
 }

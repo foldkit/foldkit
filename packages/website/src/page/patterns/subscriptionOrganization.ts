@@ -8,7 +8,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
-import { coreSubscriptionsRouter, patternsSubmodelsRouter } from '../../route'
+import { coreSubmodelRouter, coreSubscriptionsRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -212,7 +212,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       tableOfContentsEntryToHeader(overviewHeader),
       para(
         'Once your app uses ',
-        link(patternsSubmodelsRouter(), 'Submodels'),
+        link(coreSubmodelRouter(), 'Submodel'),
         ' and any of those Submodels need ',
         link(coreSubscriptionsRouter(), 'Subscriptions'),
         ', a question shows up: where do the Subscription definitions live, and who translates the Stream of child Messages into the parent’s Message type?',

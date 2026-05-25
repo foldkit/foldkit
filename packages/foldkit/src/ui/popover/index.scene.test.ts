@@ -1,14 +1,14 @@
 import { describe, it } from '@effect/vitest'
-import { Effect } from 'effect'
 
+import { html } from '../../html/index.js'
 import * as Scene from '../../test/scene.js'
-import type { Message, Model, ViewConfig } from './index.js'
+import type { Message, Model, ViewInputs } from './index.js'
 import {
   AnchorPopover,
   CompletedAnchorPopover,
   CompletedPortalPopoverBackdrop,
-  Opened,
   PortalPopoverBackdrop,
+  RequestedOpen,
   init,
   update,
   view,
@@ -24,31 +24,38 @@ const acknowledgeBackdrop = Scene.Mount.resolve(
 )
 
 const sceneView =
-  (
-    overrides: Omit<
-      Partial<ViewConfig<Message>>,
-      'model' | 'toParentMessage'
-    > = {},
-  ) =>
-  (model: Model) =>
-    view({
+  (overrides: Omit<Partial<ViewInputs>, 'toView' | 'anchor'> = {}) =>
+  (model: Model) => {
+    const h = html<Message>()
+
+    return view(model, {
       anchor: { placement: 'bottom-start' },
-      buttonContent: Effect.succeed(null),
-      panelContent: Effect.succeed(null),
+      toView: ({ button, panel, backdrop, isVisible }) =>
+        h.div(
+          [],
+          [
+            h.keyed('button')('test-button', [...button], []),
+            ...(isVisible
+              ? [
+                  h.keyed('div')('test-backdrop', [...backdrop], []),
+                  h.keyed('div')('test-panel-container', [...panel], []),
+                ]
+              : []),
+          ],
+        ),
       ...overrides,
-      model,
-      toParentMessage: message => message,
     })
+  }
 
 const button = Scene.selector('[key="test-button"]')
 const panel = Scene.selector('[key="test-panel-container"]')
 const backdrop = Scene.selector('[key="test-backdrop"]')
 
 const closedModel = init({ id: 'test' })
-const [openModel] = update(init({ id: 'test' }), Opened())
+const [openModel] = update(init({ id: 'test' }), RequestedOpen())
 const [openContentFocusModel] = update(
   init({ id: 'test', contentFocus: true }),
-  Opened(),
+  RequestedOpen(),
 )
 
 describe('Popover', () => {

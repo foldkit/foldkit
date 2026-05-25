@@ -2,17 +2,15 @@ import { describe, it } from '@effect/vitest'
 
 import { html } from '../../html/index.js'
 import * as Scene from '../../test/scene.js'
-import type { Message, Model, ViewConfig } from './index.js'
+import type { Message, Model, ViewInputs } from './index.js'
 import { EnteredDragZone, init, update, view } from './index.js'
 
 const sceneView =
-  (overrides: Partial<ViewConfig<Message>> = {}) =>
+  (overrides: Omit<Partial<ViewInputs>, 'toView'> = {}) =>
   (model: Model) => {
     const h = html<Message>()
 
-    return view({
-      model,
-      toParentMessage: message => message,
+    return view(model, {
       toView: attrs =>
         h.label(attrs.root, [
           h.p([], ['Drop files or click to upload']),

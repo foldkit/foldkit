@@ -10,7 +10,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../prose'
-import { exampleDetailRouter, patternsSubmodelsRouter } from '../route'
+import { coreSubmodelRouter, exampleDetailRouter } from '../route'
 import * as Snippets from '../snippet'
 import {
   type CopiedSnippets,
@@ -88,7 +88,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       tableOfContentsEntryToHeader(fileLayoutHeader),
       para(
         'As your app grows and you ',
-        link(patternsSubmodelsRouter(), 'scale with Submodels'),
+        link(coreSubmodelRouter(), 'scale with Submodels'),
         ', a consistent file layout helps you navigate the codebase. Each page or feature becomes a folder:',
       ),
       codeBlock(

@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { uiShowcaseViewSourceHref } from '../../link'
@@ -191,140 +192,146 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/select', 'Select'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'A wrapper around the native ',
-        inlineCode('<select>'),
-        ' element with ARIA label/description linking and data-attribute hooks. Select is a view-only component. For a custom dropdown with keyboard navigation and custom rendering, use Listbox or Combobox instead.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how Select is wired up in a ',
-        link(uiShowcaseViewSourceHref('select'), 'real Foldkit app'),
-        '.',
-      ),
-      heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-      heading(
-        Select.basicHeader.level,
-        Select.basicHeader.id,
-        Select.basicHeader.text,
-      ),
-      para(
-        'Pass an ',
-        inlineCode('onChange'),
-        ' handler that receives the selected option’s value as a string. You provide the ',
-        inlineCode('<option>'),
-        ' elements inside the ',
-        inlineCode('<select>'),
-        ' in your ',
-        inlineCode('toView'),
-        ' callback.',
-      ),
-      demoContainer(...Select.basicDemo(model, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiSelectBasicHighlighted)],
-          [],
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/select', 'Select'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'A wrapper around the native ',
+          inlineCode('<select>'),
+          ' element with ARIA label/description linking and data-attribute hooks. Select is a stateless render helper: call it directly with a ViewConfig in your own view; no Model, update, or ',
+          inlineCode('h.submodel'),
+          ' wrapping. For a custom dropdown with keyboard navigation and custom rendering, use Listbox or Combobox instead.',
         ),
-        Snippet.uiSelectBasicRaw,
-        'Copy basic select example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(
-        Select.disabledHeader.level,
-        Select.disabledHeader.id,
-        Select.disabledHeader.text,
-      ),
-      para('Set ', inlineCode('isDisabled: true'), ' to disable the select.'),
-      demoContainer(...Select.disabledDemo(model, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippet.uiSelectDisabledHighlighted),
-          ],
-          [],
+        infoCallout(
+          'See it in an app',
+          'Check out how Select is wired up in a ',
+          link(uiShowcaseViewSourceHref('select'), 'real Foldkit app'),
+          '.',
         ),
-        Snippet.uiSelectDisabledRaw,
-        'Copy disabled select example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'Select is headless. Your ',
-        inlineCode('toView'),
-        ' callback controls all markup and styling. The native ',
-        inlineCode('<select>'),
-        ' dropdown appearance varies by browser and OS. Use ',
-        inlineCode('appearance-none'),
-        ' in CSS and add a custom chevron icon for a consistent look.',
-      ),
-      dataAttributeTable(dataAttributes),
-      heading(
-        keyboardInteractionHeader.level,
-        keyboardInteractionHeader.id,
-        keyboardInteractionHeader.text,
-      ),
-      para(
-        'Select uses the native ',
-        inlineCode('<select>'),
-        ' element, so keyboard interaction is handled by the browser.',
-      ),
-      keyboardTable(keyboardEntries),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'Select provides the same ARIA wiring as Input. The ',
-        inlineCode('label'),
-        ' group links via ',
-        inlineCode('for'),
-        ', and the ',
-        inlineCode('description'),
-        ' group is referenced by ',
-        inlineCode('aria-describedby'),
-        '. You can access the description ID directly with ',
-        inlineCode('Select.descriptionId(id)'),
-        '.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
-      heading(
-        viewConfigHeader.level,
-        viewConfigHeader.id,
-        viewConfigHeader.text,
-      ),
-      para('Configuration object passed to ', inlineCode('Select.view()'), '.'),
-      propTable(viewConfigProps),
-      heading(
-        selectAttributesHeader.level,
-        selectAttributesHeader.id,
-        selectAttributesHeader.text,
-      ),
-      para(
-        'Attribute groups provided to the ',
-        inlineCode('toView'),
-        ' callback.',
-      ),
-      propTable(selectAttributesProps),
-    ],
-  )
-}
+        heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
+        heading(
+          Select.basicHeader.level,
+          Select.basicHeader.id,
+          Select.basicHeader.text,
+        ),
+        para(
+          'Pass an ',
+          inlineCode('onChange'),
+          ' handler that receives the selected option’s value as a string. You provide the ',
+          inlineCode('<option>'),
+          ' elements inside the ',
+          inlineCode('<select>'),
+          ' in your ',
+          inlineCode('toView'),
+          ' callback.',
+        ),
+        demoContainer(...Select.basicDemo(model)),
+        highlightedCodeBlock(
+          h.div(
+            [h.Class('text-sm'), h.InnerHTML(Snippet.uiSelectBasicHighlighted)],
+            [],
+          ),
+          Snippet.uiSelectBasicRaw,
+          'Copy basic select example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(
+          Select.disabledHeader.level,
+          Select.disabledHeader.id,
+          Select.disabledHeader.text,
+        ),
+        para('Set ', inlineCode('isDisabled: true'), ' to disable the select.'),
+        demoContainer(...Select.disabledDemo(model)),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiSelectDisabledHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiSelectDisabledRaw,
+          'Copy disabled select example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'Select is headless. Your ',
+          inlineCode('toView'),
+          ' callback controls all markup and styling. The native ',
+          inlineCode('<select>'),
+          ' dropdown appearance varies by browser and OS. Use ',
+          inlineCode('appearance-none'),
+          ' in CSS and add a custom chevron icon for a consistent look.',
+        ),
+        dataAttributeTable(dataAttributes),
+        heading(
+          keyboardInteractionHeader.level,
+          keyboardInteractionHeader.id,
+          keyboardInteractionHeader.text,
+        ),
+        para(
+          'Select uses the native ',
+          inlineCode('<select>'),
+          ' element, so keyboard interaction is handled by the browser.',
+        ),
+        keyboardTable(keyboardEntries),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'Select provides the same ARIA wiring as Input. The ',
+          inlineCode('label'),
+          ' group links via ',
+          inlineCode('for'),
+          ', and the ',
+          inlineCode('description'),
+          ' group is referenced by ',
+          inlineCode('aria-describedby'),
+          '. You can access the description ID directly with ',
+          inlineCode('Select.descriptionId(id)'),
+          '.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
+        heading(
+          viewConfigHeader.level,
+          viewConfigHeader.id,
+          viewConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Select.view()'),
+          '.',
+        ),
+        propTable(viewConfigProps),
+        heading(
+          selectAttributesHeader.level,
+          selectAttributesHeader.id,
+          selectAttributesHeader.text,
+        ),
+        para(
+          'Attribute groups provided to the ',
+          inlineCode('toView'),
+          ' callback.',
+        ),
+        propTable(selectAttributesProps),
+      ],
+    )
+  },
+)

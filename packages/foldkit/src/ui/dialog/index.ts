@@ -3,9 +3,10 @@ import { Effect, Match as M, Option, Schema as S } from 'effect'
 import * as Command from '../../command/index.js'
 import * as Dom from '../../dom/index.js'
 import {
-  type Attribute,
+  type ChildAttribute,
   type Html,
-  createLazy,
+  childAttributes,
+  defineView,
   html,
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
@@ -42,12 +43,12 @@ export type Model = typeof Model.Type
 // MESSAGE
 
 /** Sent when the dialog should open. Triggers the showModal command. */
-export const Opened = m('Opened')
-/** Sent when the dialog should close (Escape key, backdrop click, or programmatic). Triggers the closeModal command. */
-export const Closed = m('Closed')
-/** Sent when the show-dialog command completes (scroll lock + showModal). */
+export const RequestedOpen = m('RequestedOpen')
+/** Sent when the dialog should close (Escape key, backdrop click, or programmatic). */
+export const RequestedClose = m('RequestedClose')
+/** Sent when the show-dialog command completes. */
 export const CompletedShowDialog = m('CompletedShowDialog')
-/** Sent when the close-dialog command completes (closeModal + scroll unlock). */
+/** Sent when the close-dialog command completes. */
 export const CompletedCloseDialog = m('CompletedCloseDialog')
 /** Wraps an Animation submodel message for delegation. */
 export const GotAnimationMessage = m('GotAnimationMessage', {
@@ -57,30 +58,51 @@ export const GotAnimationMessage = m('GotAnimationMessage', {
 /** Union of all messages the dialog component can produce. */
 export const Message: S.Union<
   [
-    typeof Opened,
-    typeof Closed,
+    typeof RequestedOpen,
+    typeof RequestedClose,
     typeof CompletedShowDialog,
     typeof CompletedCloseDialog,
     typeof GotAnimationMessage,
   ]
 > = S.Union([
-  Opened,
-  Closed,
+  RequestedOpen,
+  RequestedClose,
   CompletedShowDialog,
   CompletedCloseDialog,
   GotAnimationMessage,
 ])
 
-export type Opened = typeof Opened.Type
-export type Closed = typeof Closed.Type
+export type RequestedOpen = typeof RequestedOpen.Type
+export type RequestedClose = typeof RequestedClose.Type
 export type CompletedShowDialog = typeof CompletedShowDialog.Type
 export type CompletedCloseDialog = typeof CompletedCloseDialog.Type
 
 export type Message = typeof Message.Type
 
+// OUT MESSAGE
+
+/** Sent once the dialog has transitioned to open. Fires after `update`
+ *  has processed `RequestedOpen` and `isOpen` reflects the new state.
+ *  Programmatic `Dialog.open` on an already-open model is a no-op that
+ *  does not re-emit. */
+export const Opened = m('Opened')
+
+/** Sent once the dialog has transitioned to closed. Programmatic
+ *  `Dialog.close` on an already-closed model is a no-op that does not
+ *  re-emit; calling close while a leave animation is in progress is
+ *  also a no-op. */
+export const Closed = m('Closed')
+
+/** Union of out-messages the dialog component can produce. */
+export const OutMessage = S.Union([Opened, Closed])
+
+export type Opened = typeof Opened.Type
+export type Closed = typeof Closed.Type
+export type OutMessage = typeof OutMessage.Type
+
 // INIT
 
-/** Configuration for creating a dialog model with `init`. `isAnimated` enables animation coordination (default `false`). */
+/** Configuration for creating a dialog model with `init`. */
 export type InitConfig = Readonly<{
   id: string
   isOpen?: boolean
@@ -104,7 +126,11 @@ export const init = (config: InitConfig): Model => ({
 
 const dialogSelector = (id: string): string => `#${id}`
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message>>,
+  Option.Option<OutMessage>,
+]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 /** Locks page scroll and calls `showModal()` on the native dialog element. */
@@ -141,7 +167,7 @@ export const CloseDialog = Command.define(
   ),
 )
 
-const toParentMessage = (message: AnimationMessage): Message =>
+const wrapAnimationMessage = (message: AnimationMessage): Message =>
   GotAnimationMessage({ message })
 
 const delegateToAnimation = (
@@ -153,8 +179,9 @@ const delegateToAnimation = (
     animationMessage,
   )
 
-  const mappedCommands = animationCommands.map(
-    Command.mapEffect(Effect.map(toParentMessage)),
+  const mappedCommands = Command.mapMessages(
+    animationCommands,
+    wrapAnimationMessage,
   )
 
   const additionalCommands = Option.match(maybeOutMessage, {
@@ -162,9 +189,9 @@ const delegateToAnimation = (
     onSome: M.type<AnimationOutMessage>().pipe(
       M.tagsExhaustive({
         StartedLeaveAnimating: () => [
-          Command.mapEffect(
+          Command.mapMessage(
             animationDefaultLeaveCommand(nextAnimation),
-            Effect.map(toParentMessage),
+            wrapAnimationMessage,
           ),
         ],
         TransitionedOut: () => [CloseDialog({ id: model.id })],
@@ -175,6 +202,7 @@ const delegateToAnimation = (
   return [
     evo(model, { animation: () => nextAnimation }),
     [...mappedCommands, ...additionalCommands],
+    Option.none(),
   ]
 }
 
@@ -183,14 +211,18 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      Opened: () => {
+      RequestedOpen: () => {
+        const wasClosed = !model.isOpen
         const maybeShow = Option.liftPredicate(
           ShowDialog({
             id: model.id,
             maybeFocusSelector: model.maybeFocusSelector,
           }),
-          () => !model.isOpen,
+          () => wasClosed,
         )
+        const maybeOutMessage = wasClosed
+          ? Option.some(Opened())
+          : Option.none()
 
         if (model.isAnimated) {
           const [nextModel, animationCommands] = delegateToAnimation(
@@ -201,21 +233,29 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           return [
             evo(nextModel, { isOpen: () => true }),
             [...Option.toArray(maybeShow), ...animationCommands],
+            maybeOutMessage,
           ]
         }
 
-        return [evo(model, { isOpen: () => true }), Option.toArray(maybeShow)]
+        return [
+          evo(model, { isOpen: () => true }),
+          Option.toArray(maybeShow),
+          maybeOutMessage,
+        ]
       },
 
-      Closed: () => {
+      RequestedClose: () => {
         const { transitionState } = model.animation
         const isLeaving =
           transitionState === 'LeaveStart' ||
           transitionState === 'LeaveAnimating'
 
         if (isLeaving) {
-          return [model, []]
+          return [model, [], Option.none()]
         }
+
+        const wasOpen = model.isOpen
+        const maybeOutMessage = wasOpen ? Option.some(Closed()) : Option.none()
 
         if (model.isAnimated) {
           const [nextModel, animationCommands] = delegateToAnimation(
@@ -223,24 +263,36 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             AnimationHid(),
           )
 
-          return [nextModel, animationCommands]
+          return [nextModel, animationCommands, maybeOutMessage]
         }
 
         const maybeClose = Option.liftPredicate(
           CloseDialog({ id: model.id }),
-          () => model.isOpen,
+          () => wasOpen,
         )
 
-        return [evo(model, { isOpen: () => false }), Option.toArray(maybeClose)]
+        return [
+          evo(model, { isOpen: () => false }),
+          Option.toArray(maybeClose),
+          maybeOutMessage,
+        ]
       },
 
       GotAnimationMessage: ({ message: animationMessage }) =>
         delegateToAnimation(model, animationMessage),
 
-      CompletedShowDialog: () => [model, []],
-      CompletedCloseDialog: () => [model, []],
+      CompletedShowDialog: () => [model, [], Option.none()],
+      CompletedCloseDialog: () => [model, [], Option.none()],
     }),
   )
+
+/** Programmatically opens the dialog. */
+export const open = (model: Model): UpdateReturn =>
+  update(model, RequestedOpen())
+
+/** Programmatically closes the dialog. */
+export const close = (model: Model): UpdateReturn =>
+  update(model, RequestedClose())
 
 // VIEW
 
@@ -250,68 +302,52 @@ export const titleId = (model: Model): string => `${model.id}-title`
 /** Returns the ID used for `aria-describedby` on the dialog. Apply this to your description element. */
 export const descriptionId = (model: Model): string => `${model.id}-description`
 
-/** Configuration for rendering a dialog with `view`. */
-export type ViewConfig<ParentMessage> = Readonly<{
-  model: Model
-  toParentMessage: (
-    message: Closed | CompletedShowDialog | CompletedCloseDialog,
-  ) => ParentMessage
-  onClosed?: () => ParentMessage
-  panelContent: Html
-  panelClassName?: string
-  panelAttributes?: ReadonlyArray<Attribute<ParentMessage>>
-  backdropClassName?: string
-  backdropAttributes?: ReadonlyArray<Attribute<ParentMessage>>
-  className?: string
-  attributes?: ReadonlyArray<Attribute<ParentMessage>>
+/** Render-time payload published to the consumer's `toView`.
+ *
+ *  - `dialog`: attributes for the native `<dialog>` element. Carries
+ *    the id, ARIA labelling, `open` prop, positioning style, and the
+ *    `OnCancel` handler that wires Escape to `RequestedClose`. The
+ *    consumer MUST render an `h.dialog(...)` element so the framework's
+ *    `showModal`/`close()` commands can target it.
+ *  - `backdrop`: attributes for the backdrop element. Includes the
+ *    Animation data attributes and the `OnClick` handler that closes
+ *    the dialog on outside-click (suppressed while a leave animation
+ *    is in progress).
+ *  - `panel`: attributes for the panel element. Includes the panel id
+ *    (`${model.id}-panel`) and the Animation data attributes.
+ *  - `isVisible`: derived from `isOpen` and the Animation
+ *    `transitionState`. The consumer renders backdrop + panel only
+ *    while this is true. */
+export type RenderInfo = Readonly<{
+  dialog: ReadonlyArray<ChildAttribute>
+  backdrop: ReadonlyArray<ChildAttribute>
+  panel: ReadonlyArray<ChildAttribute>
+  isVisible: boolean
 }>
 
-/** Programmatically opens the dialog, updating the model and returning
- *  show commands. Use this in domain-event handlers to open the dialog. */
-export const open = (
-  model: Model,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  update(model, Opened())
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field. */
+export type ViewInputs = Readonly<{
+  toView: (render: RenderInfo) => Html
+}>
 
-/** Programmatically closes the dialog, updating the model and returning
- *  close commands. Use this in domain-event handlers when the dialog uses `onClosed`. */
-export const close = (
-  model: Model,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  update(model, Closed())
+/** Renders a headless dialog component backed by the native `<dialog>`
+ *  element with `showModal()`. */
+export const view = defineView<Model, Message, ViewInputs>(
+  (model, viewInputs): Html => {
+    const h = html<Message>()
 
-/** Renders a headless dialog component backed by the native `<dialog>` element with `showModal()`. */
-export const view = <ParentMessage>(
-  config: ViewConfig<ParentMessage>,
-): Html => {
-  const h = html<ParentMessage>()
-
-  const {
-    model: {
+    const {
       id,
       isOpen,
       animation: { transitionState },
-    },
-    toParentMessage,
-    onClosed,
-    panelContent,
-    panelClassName,
-    panelAttributes = [],
-    backdropClassName,
-    backdropAttributes = [],
-    className,
-    attributes = [],
-  } = config
+    } = model
+    const { toView } = viewInputs
 
-  const dispatchClosed = (): ParentMessage =>
-    onClosed ? onClosed() : toParentMessage(Closed())
+    const isLeaving =
+      transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
+    const isVisible = isOpen || isLeaving
 
-  const isLeaving =
-    transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
-  const isVisible = isOpen || isLeaving
-
-  const animationAttributes: ReadonlyArray<ReturnType<typeof h.DataAttribute>> =
-    M.value(transitionState).pipe(
+    const animationAttributes = M.value(transitionState).pipe(
       M.when('EnterStart', () => [
         h.DataAttribute('closed', ''),
         h.DataAttribute('enter', ''),
@@ -333,87 +369,40 @@ export const view = <ParentMessage>(
       M.orElse(() => []),
     )
 
-  const dialogAttributes = [
-    h.Id(id),
-    h.AriaLabelledBy(`${id}-title`),
-    h.AriaDescribedBy(`${id}-description`),
-    h.OnCancel(dispatchClosed()),
-    h.Open(isVisible),
-    h.Style({
-      width: '100%',
-      height: '100%',
-      maxWidth: '100%',
-      maxHeight: '100%',
-      padding: '0',
-      border: 'none',
-      background: 'transparent',
-      ...(isVisible
-        ? { position: 'fixed', inset: '0', zIndex: '2147483600' }
-        : {}),
-    }),
-    ...(isVisible ? [h.DataAttribute('open', '')] : []),
-    ...(className ? [h.Class(className)] : []),
-    ...attributes,
-  ]
+    const dialogAttributes = [
+      h.Id(id),
+      h.AriaLabelledBy(`${id}-title`),
+      h.AriaDescribedBy(`${id}-description`),
+      h.OnCancel(RequestedClose()),
+      h.Open(isVisible),
+      h.Style({
+        width: '100%',
+        height: '100%',
+        maxWidth: '100%',
+        maxHeight: '100%',
+        padding: '0',
+        border: 'none',
+        background: 'transparent',
+        ...(isVisible
+          ? { position: 'fixed', inset: '0', zIndex: '2147483600' }
+          : {}),
+      }),
+      ...(isVisible ? [h.DataAttribute('open', '')] : []),
+    ]
 
-  const backdrop = h.keyed('div')(
-    `${id}-backdrop`,
-    [
+    const backdropAttributes = [
       h.Style({ minHeight: '100vh' }),
       ...animationAttributes,
-      ...(isLeaving ? [] : [h.OnClick(dispatchClosed())]),
-      ...(backdropClassName ? [h.Class(backdropClassName)] : []),
-      ...backdropAttributes,
-    ],
-    [],
-  )
+      ...(isLeaving ? [] : [h.OnClick(RequestedClose())]),
+    ]
 
-  const panel = h.keyed('div')(
-    `${id}-panel`,
-    [
-      h.Id(`${id}-panel`),
-      ...animationAttributes,
-      ...(panelClassName ? [h.Class(panelClassName)] : []),
-      ...panelAttributes,
-    ],
-    [panelContent],
-  )
+    const panelAttributes = [h.Id(`${id}-panel`), ...animationAttributes]
 
-  const content = isVisible ? [backdrop, panel] : []
-
-  return h.keyed('dialog')(id, dialogAttributes, content)
-}
-
-/** Creates a memoized dialog view. Static config (className, panelClassName,
- *  etc.) is captured in a closure. Dynamic fields — `model`, `toParentMessage`,
- *  and `panelContent` — are compared by reference per render via `createLazy`.
- *  When any of them change, the view re-renders; otherwise the cached VNode is
- *  reused and snabbdom skips the entire subtree. */
-export const lazy = <ParentMessage>(
-  staticConfig: Omit<
-    ViewConfig<ParentMessage>,
-    'model' | 'toParentMessage' | 'onClosed' | 'panelContent'
-  >,
-): ((
-  model: Model,
-  toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-  panelContent: Html,
-) => Html) => {
-  const lazyView = createLazy()
-
-  return (model, toParentMessage, panelContent) =>
-    lazyView(
-      (
-        currentModel: Model,
-        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-        currentPanelContent: Html,
-      ) =>
-        view({
-          ...staticConfig,
-          model: currentModel,
-          toParentMessage: currentToParentMessage,
-          panelContent: currentPanelContent,
-        }),
-      [model, toParentMessage, panelContent],
-    )
-}
+    return toView({
+      dialog: childAttributes(dialogAttributes),
+      backdrop: childAttributes(backdropAttributes),
+      panel: childAttributes(panelAttributes),
+      isVisible,
+    })
+  },
+)

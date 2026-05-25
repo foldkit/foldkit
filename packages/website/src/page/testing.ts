@@ -10,7 +10,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../prose'
 import {
-  patternsSubmodelsRouter,
+  coreSubmodelRouter,
   testingSceneRouter,
   testingStoryRouter,
 } from '../route'
@@ -57,7 +57,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('Story'),
         ' tests the state machine: you send Messages directly through update, resolve Commands inline, and assert on the Model. ',
         inlineCode('Scene'),
-        ' tests features through the rendered view (clicking buttons, typing into inputs, pressing keys) using accessible locators. Both are pure, deterministic, and fast.',
+        ' tests features through the rendered view (for example clicking buttons, typing into inputs, or pressing keys) using accessible locators. Both are pure, deterministic, and fast.',
       ),
       para(
         'Use Story for update logic, edge cases, and Command wiring. Use Scene for user flows, view rendering, and accessibility. A well-tested Foldkit app uses both.',
@@ -104,7 +104,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' and ',
         inlineCode('view'),
         '. In a ',
-        link(patternsSubmodelsRouter(), 'Submodel'),
+        link(coreSubmodelRouter(), 'Submodel'),
         ' app, only the root view has the ',
         inlineCode('(model) => Html'),
         ' signature that ',

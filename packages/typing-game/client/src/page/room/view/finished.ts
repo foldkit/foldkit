@@ -3,6 +3,7 @@ import { clsx } from 'clsx'
 import { Array, Number, Option, Order, pipe } from 'effect'
 import { Html, html } from 'foldkit/html'
 
+import type { Message } from '../message'
 import { RoomPlayerSession } from '../model'
 
 const byHighestWpm = pipe(
@@ -11,11 +12,11 @@ const byHighestWpm = pipe(
   Order.flip,
 )
 
-const scoreboardView = <ParentMessage>(
+const scoreboardView = (
   scoreboard: Shared.Scoreboard,
   hostId: string,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
   const sortedScoreboard = Array.sort(scoreboard, byHighestWpm)
 
   return h.table(
@@ -130,12 +131,12 @@ const scoreboardView = <ParentMessage>(
   )
 }
 
-export const finished = <ParentMessage>(
+export const finished = (
   maybeScoreboard: Option.Option<Shared.Scoreboard>,
   hostId: string,
   maybeSession: Option.Option<RoomPlayerSession>,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
   const isLocalPlayerHost = Option.exists(
     maybeSession,
     session => session.player.id === hostId,
@@ -147,7 +148,7 @@ export const finished = <ParentMessage>(
       h.h3([h.Class('uppercase')], ['[Game complete]']),
       Option.match(maybeScoreboard, {
         onNone: () => h.empty,
-        onSome: scoreboard => scoreboardView<ParentMessage>(scoreboard, hostId),
+        onSome: scoreboard => scoreboardView(scoreboard, hostId),
       }),
       ...(isLocalPlayerHost
         ? [h.div([h.Class('mt-4')], ['> Enter to play again'])]

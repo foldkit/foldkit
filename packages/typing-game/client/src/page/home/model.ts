@@ -8,7 +8,7 @@ export const HomeAction = S.Literals([
 ])
 export type HomeAction = typeof HomeAction.Type
 
-export const HOME_ACTIONS: readonly HomeAction[] = [
+export const HOME_ACTIONS: ReadonlyArray<HomeAction> = [
   'CreateRoom',
   'JoinRoom',
   'ChangeUsername',

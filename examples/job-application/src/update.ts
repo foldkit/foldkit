@@ -1,4 +1,4 @@
-import { Array, Effect, Match as M, Option, pipe } from 'effect'
+import { Array, Match as M, Option, pipe } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
@@ -23,6 +23,8 @@ import {
   Skills,
   WorkHistory,
 } from './step'
+
+const StepMenu = Ui.Menu.create<Step.Step>()
 
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
@@ -52,10 +54,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         )
         return [
           evo(model, { personalInfo: () => nextPersonalInfo }),
-          commands.map(
-            Command.mapEffect(
-              Effect.map(message => GotPersonalInfoMessage({ message })),
-            ),
+          Command.mapMessages(commands, message =>
+            GotPersonalInfoMessage({ message }),
           ),
         ]
       },
@@ -67,10 +67,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         )
         return [
           evo(model, { workHistory: () => nextWorkHistory }),
-          commands.map(
-            Command.mapEffect(
-              Effect.map(message => GotWorkHistoryMessage({ message })),
-            ),
+          Command.mapMessages(commands, message =>
+            GotWorkHistoryMessage({ message }),
           ),
         ]
       },
@@ -82,10 +80,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         )
         return [
           evo(model, { education: () => nextEducation }),
-          commands.map(
-            Command.mapEffect(
-              Effect.map(message => GotEducationMessage({ message })),
-            ),
+          Command.mapMessages(commands, message =>
+            GotEducationMessage({ message }),
           ),
         ]
       },
@@ -94,10 +90,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         const [nextSkills, commands] = Skills.update(model.skills, stepMessage)
         return [
           evo(model, { skills: () => nextSkills }),
-          commands.map(
-            Command.mapEffect(
-              Effect.map(message => GotSkillsMessage({ message })),
-            ),
+          Command.mapMessages(commands, message =>
+            GotSkillsMessage({ message }),
           ),
         ]
       },
@@ -109,10 +103,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         )
         return [
           evo(model, { coverLetter: () => nextCoverLetter }),
-          commands.map(
-            Command.mapEffect(
-              Effect.map(message => GotCoverLetterMessage({ message })),
-            ),
+          Command.mapMessages(commands, message =>
+            GotCoverLetterMessage({ message }),
           ),
         ]
       },
@@ -124,27 +116,40 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         )
         return [
           evo(model, { attachments: () => nextAttachments }),
-          commands.map(
-            Command.mapEffect(
-              Effect.map(message => GotAttachmentsMessage({ message })),
-            ),
+          Command.mapMessages(commands, message =>
+            GotAttachmentsMessage({ message }),
           ),
         ]
       },
 
       GotStepMenuMessage: ({ message: menuMessage }) => {
-        const [nextStepMenu, commands] = Ui.Menu.update(
+        const [nextStepMenu, commands, maybeOutMessage] = StepMenu.update(
           model.stepMenu,
           menuMessage,
         )
-        return [
-          evo(model, { stepMenu: () => nextStepMenu }),
-          commands.map(
-            Command.mapEffect(
-              Effect.map(message => GotStepMenuMessage({ message })),
-            ),
+        const mappedCommands = Command.mapMessages(commands, message =>
+          GotStepMenuMessage({ message }),
+        )
+        return Option.match(maybeOutMessage, {
+          onNone: (): readonly [
+            Model,
+            ReadonlyArray<Command.Command<Message>>,
+          ] => [evo(model, { stepMenu: () => nextStepMenu }), mappedCommands],
+          onSome: M.type<Ui.Menu.OutMessage<Step.Step>>().pipe(
+            M.withReturnType<
+              readonly [Model, ReadonlyArray<Command.Command<Message>>]
+            >(),
+            M.tagsExhaustive({
+              Selected: ({ value }) => [
+                evo(model, {
+                  stepMenu: () => nextStepMenu,
+                  currentStep: () => value,
+                }),
+                mappedCommands,
+              ],
+            }),
           ),
-        ]
+        })
       },
 
       NavigatedToStep: ({ step }) => [

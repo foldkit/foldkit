@@ -7,7 +7,7 @@ import {
   Schema as S,
   Stream,
 } from 'effect'
-import { Command, Mount, Ui } from 'foldkit'
+import { Command, Mount, Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -176,16 +176,14 @@ export const update = (
     >(),
     M.tagsExhaustive({
       GotSourceFileTabsMessage: ({ message }) => {
-        const [nextTabs, tabsCommands] = Ui.Tabs.update(
+        const [nextTabs, tabsCommands] = SourceFileTabs.update(
           model.sourceFileTabs,
           message,
         )
         return [
           evo(model, { sourceFileTabs: () => nextTabs }),
-          tabsCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotSourceFileTabsMessage({ message })),
-            ),
+          Command.mapMessages(tabsCommands, message =>
+            GotSourceFileTabsMessage({ message }),
           ),
         ]
       },
@@ -200,12 +198,8 @@ export const update = (
         )
         return [
           evo(model, { livePreviewDisclosure: () => nextDisclosure }),
-          disclosureCommands.map(
-            Command.mapEffect(
-              Effect.map(message =>
-                GotLivePreviewDisclosureMessage({ message }),
-              ),
-            ),
+          Command.mapMessages(disclosureCommands, message =>
+            GotLivePreviewDisclosureMessage({ message }),
           ),
         ]
       },
@@ -237,8 +231,8 @@ export const update = (
 
 // VIEW
 
-const featureTag = <ParentMessage>(text: string): Html => {
-  const h = html<ParentMessage>()
+const featureTag = (text: string): Html => {
+  const h = html<Message>()
 
   return h.div(
     [
@@ -250,8 +244,8 @@ const featureTag = <ParentMessage>(text: string): Html => {
   )
 }
 
-const chromeRecommendedHint = <ParentMessage>(): Html => {
-  const h = html<ParentMessage>()
+const chromeRecommendedHint = (): Html => {
+  const h = html<Message>()
 
   return h.p(
     [h.Class('text-xs text-gray-500 dark:text-gray-400')],
@@ -259,11 +253,11 @@ const chromeRecommendedHint = <ParentMessage>(): Html => {
   )
 }
 
-const launchPlaygroundSection = <ParentMessage>(
+const launchPlaygroundSection = (
   meta: ExampleMeta,
   isChromium: boolean,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return h.div(
     [h.Class('flex flex-col items-start gap-1')],
@@ -275,16 +269,13 @@ const launchPlaygroundSection = <ParentMessage>(
         ],
         [Icon.bolt('w-4 h-4'), 'Launch Playground'],
       ),
-      ...(isChromium ? [] : [chromeRecommendedHint<ParentMessage>()]),
+      ...(isChromium ? [] : [chromeRecommendedHint()]),
     ],
   )
 }
 
-const headerView = <ParentMessage>(
-  meta: ExampleMeta,
-  isChromium: boolean,
-): Html => {
-  const h = html<ParentMessage>()
+const headerView = (meta: ExampleMeta, isChromium: boolean): Html => {
+  const h = html<Message>()
 
   return h.div(
     [h.Class('mb-6')],
@@ -302,12 +293,12 @@ const headerView = <ParentMessage>(
       para(meta.description),
       h.div(
         [h.Class('flex flex-wrap items-center gap-2 mt-3')],
-        Array.map(meta.tags, text => featureTag<ParentMessage>(text)),
+        Array.map(meta.tags, text => featureTag(text)),
       ),
       h.div(
         [h.Class('flex flex-col items-start gap-3 mt-3')],
         [
-          launchPlaygroundSection<ParentMessage>(meta, isChromium),
+          launchPlaygroundSection(meta, isChromium),
           h.a(
             [
               h.Href(exampleSourceHref(meta.slug)),
@@ -329,8 +320,8 @@ const urlBarContent = (
 ): string =>
   meta.hasRouting ? Option.getOrElse(maybeExampleUrl, () => '/') : '/'
 
-const trafficLightDots = <ParentMessage>(): Html => {
-  const h = html<ParentMessage>()
+const trafficLightDots = (): Html => {
+  const h = html<Message>()
 
   return h.div(
     [h.Class('flex gap-1.5')],
@@ -357,8 +348,8 @@ const DISCLOSURE_BUTTON_CLASS =
 const DISCLOSURE_PANEL_CLASS =
   'rounded-b-xl overflow-hidden border-x border-b border-gray-200 dark:border-gray-700/50 shadow-sm'
 
-const disclosureChevron = <ParentMessage>(isOpen: boolean): Html => {
-  const h = html<ParentMessage>()
+const disclosureChevron = (isOpen: boolean): Html => {
+  const h = html<Message>()
 
   return h.span(
     [
@@ -370,65 +361,89 @@ const disclosureChevron = <ParentMessage>(isOpen: boolean): Html => {
   )
 }
 
-const livePreviewDisclosureView = <ParentMessage>(
+const livePreviewDisclosureView = (
   disclosureModel: Ui.Disclosure.Model,
   meta: ExampleMeta,
   slug: string,
   maybeExampleUrl: Option.Option<string>,
-  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
-  return Ui.Disclosure.view({
+  return h.submodel({
+    slotId: disclosureModel.id,
     model: disclosureModel,
-    toParentMessage: message =>
-      toParentMessage(GotLivePreviewDisclosureMessage({ message })),
-    buttonAttributes: [h.Class(DISCLOSURE_BUTTON_CLASS)],
-    buttonContent: h.div(
-      [h.Class('flex items-center justify-between w-full')],
-      [
-        h.span([], ['Live Preview']),
-        disclosureChevron<ParentMessage>(disclosureModel.isOpen),
-      ],
-    ),
-    panelAttributes: [h.Class(DISCLOSURE_PANEL_CLASS)],
-    panelContent: h.div(
-      [],
-      [
+    view: Ui.Disclosure.view,
+    viewInputs: {
+      toView: attributes =>
         h.div(
+          [],
           [
-            h.Class(
-              'flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700/50',
-            ),
-          ],
-          [
-            trafficLightDots<ParentMessage>(),
-            h.div(
+            h.button(
+              [...attributes.button, h.Class(DISCLOSURE_BUTTON_CLASS)],
               [
-                h.Class(
-                  'flex-1 text-xs font-mono text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 rounded px-3 py-1 text-center truncate',
+                h.div(
+                  [h.Class('flex items-center justify-between w-full')],
+                  [
+                    h.span([], ['Live Preview']),
+                    disclosureChevron(disclosureModel.isOpen),
+                  ],
                 ),
               ],
-              [urlBarContent(meta, maybeExampleUrl)],
+            ),
+            h.div(
+              [
+                ...attributes.panel,
+                h.Class(DISCLOSURE_PANEL_CLASS),
+                h.Hidden(!disclosureModel.isOpen),
+                ...(disclosureModel.isOpen
+                  ? []
+                  : [h.Style({ display: 'none' })]),
+              ],
+              [
+                h.div(
+                  [],
+                  [
+                    h.div(
+                      [
+                        h.Class(
+                          'flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700/50',
+                        ),
+                      ],
+                      [
+                        trafficLightDots(),
+                        h.div(
+                          [
+                            h.Class(
+                              'flex-1 text-xs font-mono text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 rounded px-3 py-1 text-center truncate',
+                            ),
+                          ],
+                          [urlBarContent(meta, maybeExampleUrl)],
+                        ),
+                      ],
+                    ),
+                    h.iframe(
+                      [
+                        h.Src(
+                          `/example-apps-embed/${slug}/index.html?embedded`,
+                        ),
+                        h.Class('w-full bg-white h-[40rem]'),
+                        h.AriaLabel(`${meta.title} example running live`),
+                        h.OnMount(ObserveExampleUrlMessages()),
+                      ],
+                      [],
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
-        h.iframe(
-          [
-            h.Src(`/example-apps-embed/${slug}/index.html?embedded`),
-            h.Class('w-full bg-white h-[40rem]'),
-            h.AriaLabel(`${meta.title} example running live`),
-            h.OnMount(
-              Mount.mapMessage(ObserveExampleUrlMessages(), toParentMessage),
-            ),
-          ],
-          [],
-        ),
-      ],
-    ),
-    persistPanel: true,
+    },
+    toParentMessage: message => GotLivePreviewDisclosureMessage({ message }),
   })
 }
+
+const SourceFileTabs = Ui.Tabs.create()
 
 const TAB_BUTTON_BASE =
   'px-3 py-2 lg:py-1.5 whitespace-nowrap lg:whitespace-normal lg:w-full lg:text-left text-xs font-mono transition cursor-pointer'
@@ -441,62 +456,90 @@ const TAB_BUTTON_INACTIVE =
   TAB_BUTTON_BASE +
   ' text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-gray-800/50'
 
-const sourceCodeView = <ParentMessage>(
+const sourceCodeView = (
   files: ReadonlyArray<ExampleSourceFile>,
   tabsModel: Ui.Tabs.Model,
   copiedSnippets: CopiedSnippets,
   isNarrowViewport: boolean,
-  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   const filePaths = Array.map(files, file => file.path)
 
-  return Ui.Tabs.view({
+  return h.submodel({
+    slotId: tabsModel.id,
     model: tabsModel,
-    toParentMessage: message =>
-      toParentMessage(GotSourceFileTabsMessage({ message })),
-    tabs: filePaths,
-    tabToConfig: (filePath, { isActive }) => {
-      const maybeFile = Array.findFirst(files, file => file.path === filePath)
-
-      return {
-        buttonClassName: isActive ? TAB_BUTTON_ACTIVE : TAB_BUTTON_INACTIVE,
-        buttonContent: h.span([], [filePath.replaceAll('/', '/​')]),
-        panelClassName: 'code-embed-panel',
-        panelContent: Option.match(maybeFile, {
-          onNone: () => h.empty,
-          onSome: file =>
+    view: SourceFileTabs.view,
+    viewInputs: {
+      tabs: filePaths,
+      ariaLabel: 'Source files',
+      orientation: isNarrowViewport ? 'Horizontal' : 'Vertical',
+      toView: ({ tablist, tabs, activeIndex }) =>
+        h.div(
+          [
+            h.Class(
+              'flex flex-col lg:flex-row overflow-hidden max-h-[80vh] border border-gray-200 dark:border-gray-700/50',
+            ),
+          ],
+          [
             h.div(
-              [h.Class('code-embed-scroll')],
               [
-                highlightedCodeBlock(
-                  h.div(
-                    [h.Class('code-embed'), h.InnerHTML(file.highlightedHtml)],
-                    [],
-                  ),
-                  file.rawCode,
-                  `Copy ${file.path} to clipboard`,
-                  copiedSnippets,
-                  '!mt-0',
+                ...tablist,
+                h.Class(
+                  'flex flex-shrink-0 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto lg:w-44 lg:flex-col border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700/50 bg-gray-200 dark:bg-gray-800/50 divide-x lg:divide-x-0 lg:divide-y divide-gray-200 dark:divide-gray-700/50',
                 ),
               ],
+              tabs.map(tab =>
+                h.button(
+                  [
+                    ...tab.tab,
+                    h.Class(
+                      tab.isActive ? TAB_BUTTON_ACTIVE : TAB_BUTTON_INACTIVE,
+                    ),
+                  ],
+                  [h.span([], [tab.value.replaceAll('/', '/​')])],
+                ),
+              ),
             ),
-        }),
-      }
+            ...tabs
+              .filter(tab => tab.index === activeIndex)
+              .map(tab => {
+                const maybeFile = Array.findFirst(
+                  files,
+                  file => file.path === tab.value,
+                )
+                return h.div(
+                  [...tab.panel, h.Class('code-embed-panel')],
+                  [
+                    Option.match(maybeFile, {
+                      onNone: () => h.empty,
+                      onSome: file =>
+                        h.div(
+                          [h.Class('code-embed-scroll')],
+                          [
+                            highlightedCodeBlock(
+                              h.div(
+                                [
+                                  h.Class('code-embed'),
+                                  h.InnerHTML(file.highlightedHtml),
+                                ],
+                                [],
+                              ),
+                              file.rawCode,
+                              `Copy ${file.path} to clipboard`,
+                              copiedSnippets,
+                              '!mt-0',
+                            ),
+                          ],
+                        ),
+                    }),
+                  ],
+                )
+              }),
+          ],
+        ),
     },
-    orientation: isNarrowViewport ? 'Horizontal' : 'Vertical',
-    attributes: [
-      h.Class(
-        'flex flex-col lg:flex-row overflow-hidden max-h-[80vh] border border-gray-200 dark:border-gray-700/50',
-      ),
-    ],
-    tabListAriaLabel: 'Source files',
-    tabListAttributes: [
-      h.Class(
-        'flex flex-shrink-0 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto lg:w-44 lg:flex-col border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700/50 bg-gray-200 dark:bg-gray-800/50 divide-x lg:divide-x-0 lg:divide-y divide-gray-200 dark:divide-gray-700/50',
-      ),
-    ],
+    toParentMessage: message => GotSourceFileTabsMessage({ message }),
   })
 }
 
@@ -507,8 +550,8 @@ const skeletonFileRowClasses: ReadonlyArray<string> = [
   'w-36',
 ]
 
-const sourcesSkeletonView = <ParentMessage>(): Html => {
-  const h = html<ParentMessage>()
+const sourcesSkeletonView = (): Html => {
+  const h = html<Message>()
 
   return h.div(
     [
@@ -567,8 +610,8 @@ const sourcesSkeletonView = <ParentMessage>(): Html => {
   )
 }
 
-const sourcesFailureView = <ParentMessage>(error: string): Html => {
-  const h = html<ParentMessage>()
+const sourcesFailureView = (error: string): Html => {
+  const h = html<Message>()
 
   return h.div(
     [h.Class('rounded-lg border border-red-300 dark:border-red-800 p-6')],
@@ -586,58 +629,54 @@ const sourcesFailureView = <ParentMessage>(error: string): Html => {
   )
 }
 
-export const view = <ParentMessage>(
-  model: Model,
-  slug: string,
-  copiedSnippets: CopiedSnippets,
-  isNarrowViewport: boolean,
-  isChromium: boolean,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{
+  slug: string
+  copiedSnippets: CopiedSnippets
+  isNarrowViewport: boolean
+  isChromium: boolean
+}>
 
-  return Option.match(findBySlug(slug), {
-    onNone: () => h.div([], ['Example not found']),
-    onSome: meta =>
-      h.keyed('div')(
-        slug,
-        [],
-        [
-          headerView<ParentMessage>(meta, isChromium),
-          livePreviewDisclosureView<ParentMessage>(
-            model.livePreviewDisclosure,
-            meta,
-            slug,
-            model.maybeExampleUrl,
-            toParentMessage,
-          ),
-          h.div(
-            [h.Class('mt-6')],
-            [
-              M.value(model.currentSources).pipe(
-                M.withReturnType<Html>(),
-                M.tag('NotAsked', 'Loading', () =>
-                  sourcesSkeletonView<ParentMessage>(),
-                ),
-                M.tag('Failure', ({ error }) =>
-                  sourcesFailureView<ParentMessage>(error),
-                ),
-                M.tag('Ok', ({ data: sources }) =>
-                  sourceCodeView<ParentMessage>(
-                    sources.files,
-                    model.sourceFileTabs,
-                    copiedSnippets,
-                    isNarrowViewport,
-                    toParentMessage,
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { slug, copiedSnippets, isNarrowViewport, isChromium }): Html => {
+    const h = html<Message>()
+
+    return Option.match(findBySlug(slug), {
+      onNone: () => h.div([], ['Example not found']),
+      onSome: meta =>
+        h.keyed('div')(
+          slug,
+          [],
+          [
+            headerView(meta, isChromium),
+            livePreviewDisclosureView(
+              model.livePreviewDisclosure,
+              meta,
+              slug,
+              model.maybeExampleUrl,
+            ),
+            h.div(
+              [h.Class('mt-6')],
+              [
+                M.value(model.currentSources).pipe(
+                  M.withReturnType<Html>(),
+                  M.tag('NotAsked', 'Loading', () => sourcesSkeletonView()),
+                  M.tag('Failure', ({ error }) => sourcesFailureView(error)),
+                  M.tag('Ok', ({ data: sources }) =>
+                    sourceCodeView(
+                      sources.files,
+                      model.sourceFileTabs,
+                      copiedSnippets,
+                      isNarrowViewport,
+                    ),
                   ),
+                  M.exhaustive,
                 ),
-                M.exhaustive,
-              ),
-            ],
-          ),
-        ],
-      ),
-  })
-}
+              ],
+            ),
+          ],
+        ),
+    })
+  },
+)
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = []

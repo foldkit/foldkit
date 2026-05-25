@@ -26,31 +26,26 @@ const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
   ...overrides,
 })
 
-const defaultRenderEntry = (
-  entry: Entry,
-  _handlers: EntryHandlers<Message>,
-) => {
+const defaultRenderEntry = (entry: Entry, _handlers: EntryHandlers) => {
   const h = html<Message>()
 
   return h.div([], [h.span([], [entry.payload.body])])
 }
 
 type ViewOverrides = {
-  renderEntry?: (entry: Entry, handlers: EntryHandlers<Message>) => Html
+  entryToView?: (entry: Entry, handlers: EntryHandlers) => Html
   ariaLabel?: string
-  className?: string
+  containerClassName?: string
   entryClassName?: string
 }
 
 const sceneView =
   (overrides: ViewOverrides = {}) =>
   (model: Model) =>
-    Toast.view({
-      renderEntry: defaultRenderEntry,
+    Toast.view(model, {
+      entryToView: defaultRenderEntry,
       position: 'BottomRight',
       ...overrides,
-      model,
-      toParentMessage: message => message,
     })
 
 const container = Scene.selector('[key="test"]')

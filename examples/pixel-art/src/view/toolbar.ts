@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { Array } from 'effect'
 import { Ui } from 'foldkit'
-import { type Html, html } from 'foldkit/html'
+import { type Html, childAttributes, html } from 'foldkit/html'
 
 import { EMPTY_COLOR, GRID_SIZE_STRINGS } from '../constant'
 import {
@@ -13,15 +13,16 @@ import {
   GotThemeListboxMessage,
   GotToolRadioGroupMessage,
   type Message,
-  SelectedColor,
-  SelectedGridSize,
-  SelectedPaletteTheme,
-  SelectedTool,
 } from '../message'
 import type { MirrorMode, PaletteIndex, Tool } from '../model'
 import { PALETTE_THEMES, type PaletteTheme } from '../palette'
 
 const TOOLS: ReadonlyArray<Tool> = ['Brush', 'Fill', 'Eraser']
+
+export const ToolRadioGroup = Ui.RadioGroup.create<Tool>()
+export const GridSizeRadioGroup = Ui.RadioGroup.create<string>()
+export const PaletteRadioGroup = Ui.RadioGroup.create<string>()
+export const ThemeListbox = Ui.Listbox.create<string>()
 
 const TOOL_SHORTCUTS: Record<Tool, string> = {
   Brush: 'B',
@@ -148,39 +149,44 @@ const toolSectionView = (
     [],
     [
       sectionLabel('Tools'),
-      Ui.RadioGroup.view<Message, Tool>({
+      h.submodel({
+        slotId: toolRadioGroup.id,
         model: toolRadioGroup,
-        toParentMessage: message => GotToolRadioGroupMessage({ message }),
-        onSelected: tool => SelectedTool({ tool }),
-        options: TOOLS,
-        ariaLabel: 'Drawing tool',
-        optionToConfig: (tool, { isSelected }) => ({
-          value: tool,
-          content: attributes =>
-            h.button(
-              [
-                ...attributes.option,
-                h.Class(
-                  clsx(
-                    'flex items-center justify-between px-3 py-1.5 rounded text-sm transition motion-reduce:transition-none w-full cursor-pointer',
-                    {
-                      'bg-indigo-600 text-white': isSelected,
-                      'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200':
-                        !isSelected,
-                    },
-                  ),
-                ),
-              ],
-              [
-                h.span([], [tool]),
-                h.span(
-                  [h.Class('text-xs text-gray-400')],
-                  [TOOL_SHORTCUTS[tool]],
-                ),
-              ],
+        view: ToolRadioGroup.view,
+        viewInputs: {
+          options: TOOLS,
+          ariaLabel: 'Drawing tool',
+          toView: ({ group, options }) =>
+            h.div(
+              [...group, h.Class('flex flex-col gap-1.5')],
+              options.map(option => {
+                const tool = option.value
+                return h.button(
+                  [
+                    ...option.option,
+                    h.Class(
+                      clsx(
+                        'flex items-center justify-between px-3 py-1.5 rounded text-sm transition motion-reduce:transition-none w-full cursor-pointer',
+                        {
+                          'bg-indigo-600 text-white': option.isSelected,
+                          'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200':
+                            !option.isSelected,
+                        },
+                      ),
+                    ),
+                  ],
+                  [
+                    h.span([], [tool]),
+                    h.span(
+                      [h.Class('text-xs text-gray-400')],
+                      [TOOL_SHORTCUTS[tool]],
+                    ),
+                  ],
+                )
+              }),
             ),
-        }),
-        attributes: [h.Class('flex flex-col gap-1.5')],
+        },
+        toParentMessage: message => GotToolRadioGroupMessage({ message }),
       }),
     ],
   )
@@ -204,67 +210,75 @@ const mirrorSectionView = (
       h.div(
         [h.Class('flex gap-2')],
         [
-          Ui.Switch.view({
+          h.submodel({
+            slotId: mirrorHorizontalSwitch.id,
             model: mirrorHorizontalSwitch,
+            view: Ui.Switch.view,
+            viewInputs: {
+              toView: attributes =>
+                h.div(
+                  [h.Class('flex-1')],
+                  [
+                    h.span(
+                      [...attributes.label, h.Class('sr-only')],
+                      ['Mirror horizontal'],
+                    ),
+                    h.button(
+                      [
+                        ...attributes.button,
+                        h.Class(
+                          clsx(
+                            'w-full px-3 py-1.5 rounded text-sm transition motion-reduce:transition-none cursor-pointer',
+                            {
+                              'bg-indigo-600 text-white': isMirrorHorizontal,
+                              'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200':
+                                !isMirrorHorizontal,
+                            },
+                          ),
+                        ),
+                      ],
+                      ['H'],
+                    ),
+                  ],
+                ),
+            },
             toParentMessage: message =>
               GotMirrorHorizontalSwitchMessage({ message }),
-            toView: attributes =>
-              h.div(
-                [h.Class('flex-1')],
-                [
-                  h.span(
-                    [...attributes.label, h.Class('sr-only')],
-                    ['Mirror horizontal'],
-                  ),
-                  h.button(
-                    [
-                      ...attributes.button,
-                      h.Class(
-                        clsx(
-                          'w-full px-3 py-1.5 rounded text-sm transition motion-reduce:transition-none cursor-pointer',
-                          {
-                            'bg-indigo-600 text-white': isMirrorHorizontal,
-                            'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200':
-                              !isMirrorHorizontal,
-                          },
-                        ),
-                      ),
-                    ],
-                    ['H'],
-                  ),
-                ],
-              ),
           }),
-          Ui.Switch.view({
+          h.submodel({
+            slotId: mirrorVerticalSwitch.id,
             model: mirrorVerticalSwitch,
+            view: Ui.Switch.view,
+            viewInputs: {
+              toView: attributes =>
+                h.div(
+                  [h.Class('flex-1')],
+                  [
+                    h.span(
+                      [...attributes.label, h.Class('sr-only')],
+                      ['Mirror vertical'],
+                    ),
+                    h.button(
+                      [
+                        ...attributes.button,
+                        h.Class(
+                          clsx(
+                            'w-full px-3 py-1.5 rounded text-sm transition motion-reduce:transition-none cursor-pointer',
+                            {
+                              'bg-indigo-600 text-white': isMirrorVertical,
+                              'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200':
+                                !isMirrorVertical,
+                            },
+                          ),
+                        ),
+                      ],
+                      ['V'],
+                    ),
+                  ],
+                ),
+            },
             toParentMessage: message =>
               GotMirrorVerticalSwitchMessage({ message }),
-            toView: attributes =>
-              h.div(
-                [h.Class('flex-1')],
-                [
-                  h.span(
-                    [...attributes.label, h.Class('sr-only')],
-                    ['Mirror vertical'],
-                  ),
-                  h.button(
-                    [
-                      ...attributes.button,
-                      h.Class(
-                        clsx(
-                          'w-full px-3 py-1.5 rounded text-sm transition motion-reduce:transition-none cursor-pointer',
-                          {
-                            'bg-indigo-600 text-white': isMirrorVertical,
-                            'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200':
-                              !isMirrorVertical,
-                          },
-                        ),
-                      ),
-                    ],
-                    ['V'],
-                  ),
-                ],
-              ),
           }),
         ],
       ),
@@ -281,35 +295,38 @@ const sizeSectionView = (
     [],
     [
       sectionLabel('Grid Size'),
-      Ui.RadioGroup.view<Message, string>({
+      h.submodel({
+        slotId: gridSizeRadioGroup.id,
         model: gridSizeRadioGroup,
-        toParentMessage: message => GotGridSizeRadioGroupMessage({ message }),
-        onSelected: sizeString =>
-          SelectedGridSize({ size: Number(sizeString) }),
-        options: GRID_SIZE_STRINGS,
-        ariaLabel: 'Grid size',
-        orientation: 'Horizontal',
-        optionToConfig: (sizeString, { isSelected }) => ({
-          value: sizeString,
-          content: attributes =>
-            h.button(
-              [
-                ...attributes.option,
-                h.Class(
-                  clsx(
-                    'flex-1 px-2 py-1.5 rounded text-sm transition motion-reduce:transition-none cursor-pointer',
-                    {
-                      'bg-indigo-600 text-white': isSelected,
-                      'bg-gray-800 text-gray-400 hover:text-gray-200':
-                        !isSelected,
-                    },
-                  ),
+        view: GridSizeRadioGroup.view,
+        viewInputs: {
+          options: GRID_SIZE_STRINGS,
+          ariaLabel: 'Grid size',
+          orientation: 'Horizontal',
+          toView: ({ group, options }) =>
+            h.div(
+              [...group, h.Class('flex gap-1')],
+              options.map(option =>
+                h.button(
+                  [
+                    ...option.option,
+                    h.Class(
+                      clsx(
+                        'flex-1 px-2 py-1.5 rounded text-sm transition motion-reduce:transition-none cursor-pointer',
+                        {
+                          'bg-indigo-600 text-white': option.isSelected,
+                          'bg-gray-800 text-gray-400 hover:text-gray-200':
+                            !option.isSelected,
+                        },
+                      ),
+                    ),
+                  ],
+                  [option.value],
                 ),
-              ],
-              [sizeString],
+              ),
             ),
-        }),
-        attributes: [h.Class('flex gap-1')],
+        },
+        toParentMessage: message => GotGridSizeRadioGroupMessage({ message }),
       }),
     ],
   )
@@ -334,40 +351,42 @@ const paletteSectionView = (
         [h.Class('text-xs text-gray-400 font-mono pb-3')],
         [selectedHexColor],
       ),
-      Ui.RadioGroup.view<Message, string>({
+      h.submodel({
+        slotId: paletteRadioGroup.id,
         model: paletteRadioGroup,
-        toParentMessage: message => GotPaletteRadioGroupMessage({ message }),
-        onSelected: indexString =>
-          SelectedColor({ colorIndex: Number(indexString) as PaletteIndex }),
-        options: paletteIndexStrings,
-        ariaLabel: 'Color palette',
-        orientation: 'Horizontal',
-        optionToConfig: (indexString, { isSelected }) => {
-          const hexColor = theme.colors[Number(indexString)] ?? EMPTY_COLOR
-          return {
-            value: indexString,
-            content: attributes =>
-              h.button(
-                [
-                  ...attributes.option,
-                  h.Class(
-                    clsx(
-                      'aspect-square rounded-sm transition motion-reduce:transition-none cursor-pointer',
-                      {
-                        'ring-2 ring-white ring-offset-2 ring-offset-gray-900':
-                          isSelected,
-                        'hover:scale-105 motion-reduce:hover:scale-100':
-                          !isSelected,
-                      },
+        view: PaletteRadioGroup.view,
+        viewInputs: {
+          options: paletteIndexStrings,
+          ariaLabel: 'Color palette',
+          orientation: 'Horizontal',
+          toView: ({ group, options }) =>
+            h.div(
+              [...group, h.Class('grid grid-cols-4 gap-2.5')],
+              options.map(option => {
+                const hexColor =
+                  theme.colors[Number(option.value)] ?? EMPTY_COLOR
+                return h.button(
+                  [
+                    ...option.option,
+                    h.Class(
+                      clsx(
+                        'aspect-square rounded-sm transition motion-reduce:transition-none cursor-pointer',
+                        {
+                          'ring-2 ring-white ring-offset-2 ring-offset-gray-900':
+                            option.isSelected,
+                          'hover:scale-105 motion-reduce:hover:scale-100':
+                            !option.isSelected,
+                        },
+                      ),
                     ),
-                  ),
-                  h.Style({ backgroundColor: hexColor }),
-                ],
-                [h.span([...attributes.label, h.Class('sr-only')], [hexColor])],
-              ),
-          }
+                    h.Style({ backgroundColor: hexColor }),
+                  ],
+                  [h.span([...option.label, h.Class('sr-only')], [hexColor])],
+                )
+              }),
+            ),
         },
-        attributes: [h.Class('grid grid-cols-4 gap-2.5')],
+        toParentMessage: message => GotPaletteRadioGroupMessage({ message }),
       }),
       themeListboxView(themeListbox, theme),
     ],
@@ -380,47 +399,50 @@ const themeListboxView = (
 ): Html => {
   const h = html<Message>()
 
-  return Ui.Listbox.view<Message, string>({
+  return h.submodel({
+    slotId: themeListbox.id,
     model: themeListbox,
-    toParentMessage: message => GotThemeListboxMessage({ message }),
-    onSelectedItem: value =>
-      SelectedPaletteTheme({ themeIndex: Number(value) }),
-    anchor: THEME_LISTBOX_ANCHOR,
-    items: THEME_INDEX_STRINGS,
-    itemToConfig: (indexString, { isSelected }) => {
-      const themeName = PALETTE_THEMES[Number(indexString)]?.name ?? indexString
-      return {
-        className: clsx(
-          'px-3 py-2 text-sm cursor-pointer transition motion-reduce:transition-none',
-          isSelected
-            ? 'bg-indigo-600 text-white'
-            : 'text-gray-300 hover:bg-gray-700',
+    view: ThemeListbox.view,
+    viewInputs: {
+      anchor: THEME_LISTBOX_ANCHOR,
+      items: THEME_INDEX_STRINGS,
+      itemToConfig: (indexString, { isSelected }) => {
+        const themeName =
+          PALETTE_THEMES[Number(indexString)]?.name ?? indexString
+        return {
+          className: clsx(
+            'px-3 py-2 text-sm cursor-pointer transition motion-reduce:transition-none',
+            isSelected
+              ? 'bg-indigo-600 text-white'
+              : 'text-gray-300 hover:bg-gray-700',
+          ),
+          content: h.div(
+            [h.Class('flex items-center justify-between')],
+            [
+              h.span([], [themeName]),
+              ...(isSelected ? [h.span([h.Class('text-xs')], ['✓'])] : []),
+            ],
+          ),
+        }
+      },
+      buttonContent: h.div(
+        [h.Class('flex items-center justify-between w-full')],
+        [h.span([], [theme.name]), chevronDownIcon('w-4 h-4 text-gray-400')],
+      ),
+      buttonAttributes: childAttributes([
+        h.Class(
+          'w-full px-3 py-1.5 rounded text-sm bg-gray-800 text-gray-200 hover:bg-gray-700 cursor-pointer transition motion-reduce:transition-none',
         ),
-        content: h.div(
-          [h.Class('flex items-center justify-between')],
-          [
-            h.span([], [themeName]),
-            ...(isSelected ? [h.span([h.Class('text-xs')], ['✓'])] : []),
-          ],
+      ]),
+      itemsAttributes: childAttributes([
+        h.Class(
+          'w-[var(--button-width)] rounded-lg border border-gray-700 bg-gray-800 shadow-lg overflow-hidden z-10 outline-none',
         ),
-      }
+      ]),
+      backdropAttributes: childAttributes([h.Class('fixed inset-0 z-0')]),
+      attributes: childAttributes([h.Class('relative w-full mt-3')]),
     },
-    buttonContent: h.div(
-      [h.Class('flex items-center justify-between w-full')],
-      [h.span([], [theme.name]), chevronDownIcon('w-4 h-4 text-gray-400')],
-    ),
-    buttonAttributes: [
-      h.Class(
-        'w-full px-3 py-1.5 rounded text-sm bg-gray-800 text-gray-200 hover:bg-gray-700 cursor-pointer transition motion-reduce:transition-none',
-      ),
-    ],
-    itemsAttributes: [
-      h.Class(
-        'w-[var(--button-width)] rounded-lg border border-gray-700 bg-gray-800 shadow-lg overflow-hidden z-10 outline-none',
-      ),
-    ],
-    backdropAttributes: [h.Class('fixed inset-0 z-0')],
-    attributes: [h.Class('relative w-full mt-3')],
+    toParentMessage: message => GotThemeListboxMessage({ message }),
   })
 }
 

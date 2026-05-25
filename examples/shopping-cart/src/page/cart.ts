@@ -1,24 +1,18 @@
 import { Array, Number, Option } from 'effect'
-import { Route } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { Cart } from '../domain'
 import {
-  type CheckoutRoute,
-  ClickedCartQuantityChange,
   ClickedClearCart,
+  ClickedQuantityChange,
   ClickedRemoveCartItem,
   Message,
-  type ProductsRoute,
 } from '../main'
+import { checkoutRouter, productsRouter } from '../route'
 
 // VIEW
 
-export const view = (
-  cart: Cart.Cart,
-  productsRouter: Route.Router<ProductsRoute>,
-  checkoutRouter: Route.Router<CheckoutRoute>,
-): Html => {
+export const view = (cart: Cart.Cart): Html => {
   const h = html<Message>()
 
   return h.div(
@@ -58,7 +52,8 @@ export const view = (
                 h.section(
                   [h.Class('space-y-4 mb-6')],
                   cart.map(cartItem =>
-                    h.article(
+                    h.keyed('article')(
+                      cartItem.item.id,
                       [
                         h.Class(
                           'flex items-center justify-between p-4 border rounded-lg',
@@ -87,7 +82,7 @@ export const view = (
                                   'bg-gray-200 hover:bg-gray-300 text-gray-800 w-8 h-8 rounded flex items-center justify-center',
                                 ),
                                 h.OnClick(
-                                  ClickedCartQuantityChange({
+                                  ClickedQuantityChange({
                                     itemId: cartItem.item.id,
                                     quantity: Number.decrement(
                                       cartItem.quantity,
@@ -107,7 +102,7 @@ export const view = (
                                   'bg-gray-200 hover:bg-gray-300 text-gray-800 w-8 h-8 rounded flex items-center justify-center',
                                 ),
                                 h.OnClick(
-                                  ClickedCartQuantityChange({
+                                  ClickedQuantityChange({
                                     itemId: cartItem.item.id,
                                     quantity: cartItem.quantity + 1,
                                   }),

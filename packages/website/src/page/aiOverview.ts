@@ -9,12 +9,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../prose'
-import {
-  aiMcpRouter,
-  aiSkillsRouter,
-  patternsOutMessageRouter,
-  patternsSubmodelsRouter,
-} from '../route'
+import { aiMcpRouter, aiSkillsRouter, coreSubmodelRouter } from '../route'
 import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -70,9 +65,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       para(
         'An AI that understands this loop can reason about the entire program as a state machine. It can generate structurally valid code, not just syntactically valid code. It can scaffold Messages and know exactly where they wire through. It can extract ',
-        link(patternsSubmodelsRouter(), 'Submodels'),
+        link(coreSubmodelRouter(), 'Submodel'),
         ' and get the ',
-        link(patternsOutMessageRouter(), 'OutMessage'),
+        link(`${coreSubmodelRouter()}#surfacing-facts`, 'OutMessage'),
         ' pattern right.',
       ),
       para('This isn’t a bolt-on. It’s a consequence of the architecture.'),

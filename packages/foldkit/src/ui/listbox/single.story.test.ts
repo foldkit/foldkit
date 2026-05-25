@@ -1,5 +1,5 @@
 import { describe, it } from '@effect/vitest'
-import { Effect, Option, flow } from 'effect'
+import { Option, flow } from 'effect'
 import { expect } from 'vitest'
 
 import * as Scene from '../../test/scene.js'
@@ -16,11 +16,11 @@ import {
   CompletedClickItem,
   CompletedFocusButton,
   CompletedFocusItems,
+  CompletedInertOthers,
   CompletedLockScroll,
   CompletedPortalListboxBackdrop,
+  CompletedRestoreInert,
   CompletedScrollIntoView,
-  CompletedSetupInert,
-  CompletedTeardownInert,
   CompletedUnlockScroll,
   DeactivatedItem,
   DelayClearSearch,
@@ -43,9 +43,11 @@ import {
   SuppressedSpaceScroll,
   UnlockScroll,
 } from './shared.js'
-import type { Message } from './shared.js'
-import { init, update, view } from './single.js'
-import type { Model, ViewConfig } from './single.js'
+import { create, init, update } from './single.js'
+import type { Model, ViewInputs } from './single.js'
+
+const TestListbox = create<string>()
+const view = TestListbox.view
 
 const animationToListboxMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })
@@ -1175,7 +1177,7 @@ describe('Listbox', () => {
       Story.Command.resolveAll(
         [FocusItems, CompletedFocusItems()],
         [LockScroll, CompletedLockScroll()],
-        [InertOthers, CompletedSetupInert()],
+        [InertOthers, CompletedInertOthers()],
       ),
     )
 
@@ -1187,7 +1189,7 @@ describe('Listbox', () => {
         Story.Command.resolveAll(
           [FocusItems, CompletedFocusItems()],
           [LockScroll, CompletedLockScroll()],
-          [InertOthers, CompletedSetupInert()],
+          [InertOthers, CompletedInertOthers()],
         ),
         Story.model(model => {
           expect(model.isOpen).toBe(true)
@@ -1203,7 +1205,7 @@ describe('Listbox', () => {
         Story.Command.resolveAll(
           [FocusButton, CompletedFocusButton()],
           [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedTeardownInert()],
+          [RestoreInert, CompletedRestoreInert()],
         ),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
@@ -1218,7 +1220,7 @@ describe('Listbox', () => {
         Story.message(BlurredItems()),
         Story.Command.resolveAll(
           [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedTeardownInert()],
+          [RestoreInert, CompletedRestoreInert()],
         ),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
@@ -1234,7 +1236,7 @@ describe('Listbox', () => {
         Story.Command.resolveAll(
           [FocusButton, CompletedFocusButton()],
           [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedTeardownInert()],
+          [RestoreInert, CompletedRestoreInert()],
         ),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
@@ -1277,18 +1279,16 @@ describe('Listbox', () => {
     const sceneView =
       (
         overrides: Omit<
-          Partial<ViewConfig<Message, string>>,
-          'model' | 'toParentMessage'
+          Partial<ViewInputs<string>>,
+          'items' | 'itemToConfig' | 'buttonContent'
         > = {},
       ) =>
       (model: Model) =>
-        view({
+        view(model, {
           items: ['Apple', 'Banana'],
-          itemToConfig: () => ({ content: Effect.succeed(null) }),
-          buttonContent: Effect.succeed(null),
+          itemToConfig: () => ({ content: null }),
+          buttonContent: null,
           ...overrides,
-          model,
-          toParentMessage: message => message,
         })
 
     describe('ARIA', () => {
@@ -1488,7 +1488,7 @@ describe('Listbox', () => {
                 }>,
               ) => {
                 contexts.push(context)
-                return { content: Effect.succeed(null) }
+                return { content: null }
               },
             }),
           },
@@ -1525,7 +1525,7 @@ describe('Listbox', () => {
                 }>,
               ) => {
                 contexts.push(context)
-                return { content: Effect.succeed(null) }
+                return { content: null }
               },
             }),
           },
@@ -1735,27 +1735,22 @@ describe('Listbox', () => {
         { id: '3', name: 'Charlie' },
       ]
 
+      const PersonListbox = create<Person>()
+
       const personSceneView =
         (
           overrides: Omit<
-            Partial<ViewConfig<Message, Person>>,
-            | 'model'
-            | 'toParentMessage'
-            | 'items'
-            | 'itemToValue'
-            | 'itemToConfig'
-            | 'buttonContent'
+            Partial<ViewInputs<Person>>,
+            'items' | 'itemToValue' | 'itemToConfig' | 'buttonContent'
           > = {},
         ) =>
         (model: Model) =>
-          view({
+          PersonListbox.view(model, {
             items: people,
             itemToValue: person => person.id,
-            itemToConfig: () => ({ content: Effect.succeed(null) }),
-            buttonContent: Effect.succeed(null),
+            itemToConfig: () => ({ content: null }),
+            buttonContent: null,
             ...overrides,
-            model,
-            toParentMessage: message => message,
           })
 
       it('items have click handlers with object items', () => {
@@ -1821,6 +1816,24 @@ describe('Listbox', () => {
           }),
         )
       })
+    })
+  })
+
+  describe('reflectSelectedItem', () => {
+    it('reflects a selection onto maybeSelectedItem without emitting', () => {
+      const next = TestListbox.reflectSelectedItem(
+        init({ id: 'test' }),
+        Option.some('a'),
+      )
+      expect(next.maybeSelectedItem).toStrictEqual(Option.some('a'))
+    })
+
+    it('clears the selection on None', () => {
+      const next = TestListbox.reflectSelectedItem(
+        init({ id: 'test', selectedItem: 'a' }),
+        Option.none(),
+      )
+      expect(next.maybeSelectedItem).toStrictEqual(Option.none())
     })
   })
 })

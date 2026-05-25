@@ -37,11 +37,8 @@ const descriptionClassName = 'text-sm text-gray-500 dark:text-gray-400'
 
 // VIEW
 
-export const basicDemo = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const basicDemo = (model: Model) => {
+  const h = html<Message>()
 
   return [
     h.div(
@@ -50,7 +47,7 @@ export const basicDemo = <ParentMessage>(
         Ui.Select.view({
           id: 'select-basic-demo',
           value: model.selectDemoValue,
-          onChange: value => toParentMessage(UpdatedSelectDemoValue({ value })),
+          onChange: value => UpdatedSelectDemoValue({ value }),
           toView: attributes =>
             h.div(
               [h.Class('flex flex-col gap-1.5 w-full')],
@@ -89,14 +86,11 @@ export const basicDemo = <ParentMessage>(
   ]
 }
 
-export const disabledDemo = <ParentMessage>(
-  _model: Model,
-  _toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const disabledDemo = (_model: Model) => {
+  const h = html<Message>()
 
   return [
-    Ui.Select.view<ParentMessage>({
+    Ui.Select.view<Message>({
       id: 'select-disabled-demo',
       isDisabled: true,
       value: 'us',

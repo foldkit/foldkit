@@ -13,16 +13,18 @@ import {
   GotCalendarMessage,
   GotPopoverMessage,
   Opened,
+  RequestedSelectDate,
   SelectedDate,
   clear,
   close,
   init,
   open,
+  reflectDisabledDates,
+  reflectDisabledDaysOfWeek,
+  reflectMaxDate,
+  reflectMinDate,
+  reflectSelectedDate,
   selectDate,
-  setDisabledDates,
-  setDisabledDaysOfWeek,
-  setMaxDate,
-  setMinDate,
   update,
 } from './index.js'
 
@@ -235,14 +237,14 @@ describe('DatePicker', () => {
       })
     })
 
-    describe('SelectedDate', () => {
-      it('commits the date and closes the popover', () => {
+    describe('RequestedSelectDate', () => {
+      it('commits the date, closes the popover, and emits SelectedDate', () => {
         const target = Calendar.make(2026, 4, 20)
         Story.story(
           update,
           withOpen,
-          Story.message(SelectedDate({ date: target })),
-          Story.expectNoOutMessage(),
+          Story.message(RequestedSelectDate({ date: target })),
+          Story.expectOutMessage(SelectedDate({ date: target })),
           Story.Command.resolve(
             Popover.FocusButton,
             Popover.CompletedFocusButton(),
@@ -266,7 +268,7 @@ describe('DatePicker', () => {
         Story.story(
           update,
           withOpen,
-          Story.message(SelectedDate({ date: target })),
+          Story.message(RequestedSelectDate({ date: target })),
           Story.Command.resolve(
             Popover.FocusButton,
             Popover.CompletedFocusButton(),
@@ -344,7 +346,9 @@ describe('DatePicker', () => {
         Story.story(
           update,
           withOpen,
-          Story.message(GotPopoverMessage({ message: Popover.Closed() })),
+          Story.message(
+            GotPopoverMessage({ message: Popover.RequestedClose() }),
+          ),
           Story.Command.resolve(
             Popover.FocusButton,
             Popover.CompletedFocusButton(),
@@ -372,12 +376,15 @@ describe('DatePicker', () => {
       expect(commands.length).toBeGreaterThan(0)
     })
 
-    it('selectDate(model, date) commits the date and closes the popover', () => {
+    it('selectDate(model, date) commits the date, closes the popover, and emits SelectedDate', () => {
       const target = Calendar.make(2026, 4, 20)
       const [openedModel] = open(init({ id: 'picker', today }))
-      const [nextModel] = selectDate(openedModel, target)
+      const [nextModel, , maybeOutMessage] = selectDate(openedModel, target)
       expect(nextModel.maybeSelectedDate).toStrictEqual(Option.some(target))
       expect(nextModel.popover.isOpen).toBe(false)
+      expect(maybeOutMessage).toStrictEqual(
+        Option.some(SelectedDate({ date: target })),
+      )
     })
 
     it('clear(model) clears the selected date', () => {
@@ -388,49 +395,50 @@ describe('DatePicker', () => {
       })
       const [nextModel] = clear(seeded)
       expect(nextModel.maybeSelectedDate).toStrictEqual(Option.none())
+      expect(nextModel.calendar.maybeSelectedDate).toStrictEqual(Option.none())
     })
 
-    it('setMinDate(model, minDate) forwards to the embedded calendar', () => {
+    it('reflectMinDate(model, minDate) forwards to the embedded calendar', () => {
       const model = init({ id: 'picker', today })
       const newMin = Calendar.make(2026, 5, 1)
-      const next = setMinDate(model, Option.some(newMin))
+      const next = reflectMinDate(model, Option.some(newMin))
       expect(next.calendar.maybeMinDate).toStrictEqual(Option.some(newMin))
     })
 
-    it('setMinDate(model, Option.none()) clears the minimum', () => {
+    it('reflectMinDate(model, Option.none()) clears the minimum', () => {
       const model = init({
         id: 'picker',
         today,
         minDate: Calendar.make(2026, 1, 1),
       })
-      const next = setMinDate(model, Option.none())
+      const next = reflectMinDate(model, Option.none())
       expect(next.calendar.maybeMinDate).toStrictEqual(Option.none())
     })
 
-    it('setMaxDate(model, maxDate) forwards to the embedded calendar', () => {
+    it('reflectMaxDate(model, maxDate) forwards to the embedded calendar', () => {
       const model = init({ id: 'picker', today })
       const newMax = Calendar.make(2026, 12, 31)
-      const next = setMaxDate(model, Option.some(newMax))
+      const next = reflectMaxDate(model, Option.some(newMax))
       expect(next.calendar.maybeMaxDate).toStrictEqual(Option.some(newMax))
     })
 
-    it('setDisabledDates(model, dates) forwards to the embedded calendar', () => {
+    it('reflectDisabledDates(model, dates) forwards to the embedded calendar', () => {
       const model = init({ id: 'picker', today })
       const disabled = [Calendar.make(2026, 4, 15)]
-      const next = setDisabledDates(model, disabled)
+      const next = reflectDisabledDates(model, disabled)
       expect(next.calendar.disabledDates).toStrictEqual(disabled)
     })
 
-    it('setDisabledDaysOfWeek(model, days) forwards to the embedded calendar', () => {
+    it('reflectDisabledDaysOfWeek(model, days) forwards to the embedded calendar', () => {
       const model = init({ id: 'picker', today })
-      const next = setDisabledDaysOfWeek(model, ['Saturday', 'Sunday'])
+      const next = reflectDisabledDaysOfWeek(model, ['Saturday', 'Sunday'])
       expect(next.calendar.disabledDaysOfWeek).toStrictEqual([
         'Saturday',
         'Sunday',
       ])
     })
 
-    it('setMinDate does not reconcile a previously-selected date below the new min', () => {
+    it('reflectMinDate does not reconcile a previously-selected date below the new min', () => {
       const selected = Calendar.make(2026, 3, 15)
       const model = init({
         id: 'picker',
@@ -438,11 +446,34 @@ describe('DatePicker', () => {
         initialSelectedDate: selected,
       })
       const newMin = Calendar.make(2026, 6, 1)
-      const next = setMinDate(model, Option.some(newMin))
+      const next = reflectMinDate(model, Option.some(newMin))
       expect(next.maybeSelectedDate).toStrictEqual(Option.some(selected))
       expect(next.calendar.maybeSelectedDate).toStrictEqual(
         Option.some(selected),
       )
+    })
+  })
+
+  describe('reflectSelectedDate', () => {
+    it('reflects a date onto the picker and its embedded calendar', () => {
+      const date = Calendar.make(2026, 8, 15)
+      const next = reflectSelectedDate(
+        init({ id: 'picker', today }),
+        Option.some(date),
+      )
+      expect(next.maybeSelectedDate).toStrictEqual(Option.some(date))
+      expect(next.calendar.maybeSelectedDate).toStrictEqual(Option.some(date))
+    })
+
+    it('clears the selection on None', () => {
+      const date = Calendar.make(2026, 8, 15)
+      const selectedModel = reflectSelectedDate(
+        init({ id: 'picker', today }),
+        Option.some(date),
+      )
+      const cleared = reflectSelectedDate(selectedModel, Option.none())
+      expect(cleared.maybeSelectedDate).toStrictEqual(Option.none())
+      expect(cleared.calendar.maybeSelectedDate).toStrictEqual(Option.none())
     })
   })
 })

@@ -1,20 +1,14 @@
 import clsx from 'clsx'
-import {
-  Array,
-  Equal,
-  HashSet,
-  Match,
-  Number,
-  Option,
-  flow,
-  pipe,
-} from 'effect'
+import { Equal, HashSet, Match, Number, flow } from 'effect'
 import { Ui } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
 import { Step } from '../domain'
+import type { Message } from '../message'
 import { type Model } from '../model'
 import { chevronDown } from './icon'
+
+const StepMenu = Ui.Menu.create<Step.Step>()
 
 type StepStatus = 'Current' | 'Completed' | 'Upcoming'
 
@@ -46,12 +40,12 @@ const stepMarkerGlyph = (
   }
 }
 
-const stepMarker = <ParentMessage>(
+const stepMarker = (
   status: StepStatus,
   index: number,
   hasErrors: boolean,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html()
 
   return h.span(
     [
@@ -91,12 +85,12 @@ const stepButtonClass = (status: StepStatus, hasErrors: boolean): string =>
         ),
   )
 
-export const stepList = <ParentMessage>(
+export const stepList = (
   currentStep: Step.Step,
   stepsWithErrors: HashSet.HashSet<Step.Step>,
-  onSelectedStep: (step: Step.Step) => ParentMessage,
+  onSelectedStep: (step: Step.Step) => Message,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return h.nav(
     [h.AriaLabel('Application steps'), h.Class('space-y-1')],
@@ -122,7 +116,7 @@ export const stepList = <ParentMessage>(
                   h.Class(stepButtonClass(status, hasErrors)),
                 ],
                 [
-                  stepMarker<ParentMessage>(status, index, hasErrors),
+                  stepMarker(status, index, hasErrors),
                   h.span([], [Step.show(step)]),
                 ],
               ),
@@ -134,8 +128,8 @@ export const stepList = <ParentMessage>(
   )
 }
 
-const stepMenuTrigger = <ParentMessage>(currentStep: Step.Step): Html => {
-  const h = html<ParentMessage>()
+const stepMenuTrigger = (currentStep: Step.Step): Html => {
+  const h = html()
 
   return h.div(
     [h.Class('flex items-center justify-between w-full gap-3')],
@@ -155,73 +149,65 @@ const stepMenuTrigger = <ParentMessage>(currentStep: Step.Step): Html => {
           ),
         ],
       ),
-      h.span(
-        [h.Class('text-gray-400 shrink-0')],
-        [chevronDown<ParentMessage>()],
-      ),
+      h.span([h.Class('text-gray-400 shrink-0')], [chevronDown()]),
     ],
   )
 }
 
-export const stepMenu = <ParentMessage>(
+export const stepMenu = (
   model: Model,
   stepsWithErrors: HashSet.HashSet<Step.Step>,
-  toParentMessage: (message: Ui.Menu.Message) => ParentMessage,
-  onSelectedStep: (step: Step.Step) => ParentMessage,
+  toParentMessage: (message: Ui.Menu.Message) => Message,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
-  return Ui.Menu.view<ParentMessage, Step.Step>({
+  return h.submodel({
+    slotId: model.stepMenu.id,
     model: model.stepMenu,
-    toParentMessage,
-    items: Step.all,
-    onSelectedItem: index =>
-      onSelectedStep(
-        pipe(
-          Step.all,
-          Array.get(index),
-          Option.getOrElse(() => model.currentStep),
+    view: StepMenu.view,
+    viewInputs: {
+      items: Step.all,
+      buttonContent: stepMenuTrigger(model.currentStep),
+      buttonClassName:
+        'flex items-center w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-gray-300 cursor-pointer',
+      itemsClassName:
+        'rounded-lg border border-gray-200 bg-white shadow-lg py-1 w-(--button-width)',
+      itemToConfig: (step, { isActive, isDisabled }) => {
+        const status = stepToStatus(step, model.currentStep)
+        const hasErrors = HashSet.has(stepsWithErrors, step)
+        const index = Step.indexOf(step)
+        return {
+          className: clsx(
+            'flex items-center gap-3 px-4 py-2.5 text-sm',
+            isActive && 'bg-gray-50',
+            isDisabled ? 'cursor-not-allowed' : 'cursor-pointer',
+            hasErrors
+              ? 'text-red-700 font-semibold'
+              : Match.value(status).pipe(
+                  Match.withReturnType<string>(),
+                  Match.when('Current', () => 'text-indigo-700 font-semibold'),
+                  Match.when('Completed', () => 'text-gray-700'),
+                  Match.when('Upcoming', () => 'text-gray-400'),
+                  Match.exhaustive,
+                ),
+          ),
+          content: h.div(
+            [h.Class('flex items-center gap-3')],
+            [
+              stepMarker(status, index, hasErrors),
+              h.span([], [Step.show(step)]),
+            ],
+          ),
+        }
+      },
+      isItemDisabled: step =>
+        !isClickable(
+          stepToStatus(step, model.currentStep),
+          HashSet.has(stepsWithErrors, step),
         ),
-      ),
-    buttonContent: stepMenuTrigger<ParentMessage>(model.currentStep),
-    buttonClassName:
-      'flex items-center w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-gray-300 cursor-pointer',
-    itemsClassName:
-      'rounded-lg border border-gray-200 bg-white shadow-lg py-1 w-(--button-width)',
-    itemToConfig: (step, { isActive, isDisabled }) => {
-      const status = stepToStatus(step, model.currentStep)
-      const hasErrors = HashSet.has(stepsWithErrors, step)
-      const index = Step.indexOf(step)
-      return {
-        className: clsx(
-          'flex items-center gap-3 px-4 py-2.5 text-sm',
-          isActive && 'bg-gray-50',
-          isDisabled ? 'cursor-not-allowed' : 'cursor-pointer',
-          hasErrors
-            ? 'text-red-700 font-semibold'
-            : Match.value(status).pipe(
-                Match.withReturnType<string>(),
-                Match.when('Current', () => 'text-indigo-700 font-semibold'),
-                Match.when('Completed', () => 'text-gray-700'),
-                Match.when('Upcoming', () => 'text-gray-400'),
-                Match.exhaustive,
-              ),
-        ),
-        content: h.div(
-          [h.Class('flex items-center gap-3')],
-          [
-            stepMarker<ParentMessage>(status, index, hasErrors),
-            h.span([], [Step.show(step)]),
-          ],
-        ),
-      }
+      backdropClassName: 'fixed inset-0',
+      anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
     },
-    isItemDisabled: step =>
-      !isClickable(
-        stepToStatus(step, model.currentStep),
-        HashSet.has(stepsWithErrors, step),
-      ),
-    backdropClassName: 'fixed inset-0',
-    anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+    toParentMessage,
   })
 }

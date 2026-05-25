@@ -6,7 +6,7 @@ import { html } from '../../html/index.js'
 import * as Scene from '../../test/scene.js'
 import * as UiCalendar from '../calendar/index.js'
 import * as Popover from '../popover/public.js'
-import type { Message, Model, ViewConfig } from './index.js'
+import type { Message, Model, ViewInputs } from './index.js'
 import { GotPopoverMessage, Opened, init, update, view } from './index.js'
 
 const acknowledgeAnchorPopover = Scene.Mount.resolve(
@@ -20,7 +20,7 @@ const acknowledgePopoverBackdrop = Scene.Mount.resolve(
 
 const today = Calendar.make(2026, 4, 13)
 
-const testToCalendarView = (attrs: UiCalendar.CalendarAttributes<Message>) => {
+const testToCalendarView = (attrs: UiCalendar.CalendarAttributes) => {
   const h = html<Message>()
 
   return M.value(attrs).pipe(
@@ -115,19 +115,22 @@ const triggerContent = (maybeDate: Option.Option<Calendar.CalendarDate>) => {
 }
 
 const sceneView =
-  (overrides: Partial<ViewConfig<Message>> = {}) =>
+  (
+    overrides: Omit<
+      Partial<ViewInputs>,
+      'anchor' | 'triggerContent' | 'toCalendarView'
+    > = {},
+  ) =>
   (model: Model) =>
-    view({
-      model,
-      toParentMessage: message => message,
+    view(model, {
       anchor: { placement: 'bottom-start' },
       triggerContent,
       toCalendarView: testToCalendarView,
       ...overrides,
     })
 
-const trigger = Scene.selector('[key="picker-popover-button"]')
-const panel = Scene.selector('[key="picker-popover-panel-container"]')
+const trigger = Scene.selector('#picker-popover-button')
+const panel = Scene.selector('#picker-popover-panel')
 const grid = Scene.getByRole('grid')
 const hiddenInput = Scene.selector('input[type="hidden"]')
 

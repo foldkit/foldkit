@@ -1,6 +1,7 @@
 import {
   Effect,
   Equal,
+  Function,
   Match as M,
   Option,
   Schema as S,
@@ -11,15 +12,17 @@ import {
 
 import type { Command } from '../../command/index.js'
 import {
-  type Attribute,
+  type ChildAttribute,
   type Html,
-  createLazy,
+  childAttributes,
+  defineView,
   html,
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
 import * as Subscription from '../../runtime/subscription.js'
 import { ts } from '../../schema/index.js'
 import { evo } from '../../struct/index.js'
+import type { Reflect } from '../../submodel/submodel.js'
 
 // MODEL
 
@@ -98,12 +101,13 @@ export type PressedKeyboardNavigation = typeof PressedKeyboardNavigation.Type
 
 // OUT MESSAGE
 
-/** Emitted when the slider value changes. The parent uses this to react to
- *  value updates — e.g. to run validation or trigger a side effect. */
-export const ChangedValue = ts('ChangedValue', { value: S.Number })
+/** Emitted when the slider value changes. The parent can handle this to
+ *  update its own state or dispatch its own Commands, for example to run
+ *  validation or trigger a downstream Command. */
+export const ChangedValue = m('ChangedValue', { value: S.Number })
 
 /** Union of all out-messages the slider component can emit to its parent. */
-export const OutMessage = ChangedValue
+export const OutMessage = S.Union([ChangedValue])
 export type OutMessage = typeof OutMessage.Type
 
 // INIT
@@ -267,7 +271,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               model.max,
               model.step,
             )
-            const [modelWithValue, commands, maybeOut] = withValue(
+            const [modelWithValue, commands, maybeOutMessage] = withValue(
               model,
               snapped,
               [],
@@ -277,7 +281,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 dragState: () => Dragging({ originValue: model.value }),
               }),
               commands,
-              maybeOut,
+              maybeOutMessage,
             ]
           }),
         ),
@@ -323,35 +327,41 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     }),
   )
 
-/** Updates the slider's range. Snaps and clamps the current value into the
- *  new range. Use this when min/max derive from external state (e.g. a
- *  bounded buffer whose first/last index shifts over time). Unlike `setValue`,
- *  this runs even while the user is Dragging: a structural range change
- *  cannot leave the value out of bounds. */
-export const setRange = (
-  model: Model,
-  range: Readonly<{ min: number; max: number }>,
-): Model =>
-  evo(model, {
-    min: () => range.min,
-    max: () => range.max,
-    value: current => snapAndClamp(current, range.min, range.max, model.step),
-  })
+/** Reflects an externally-driven range onto the slider. Snaps and clamps the
+ *  current value into the new range. Use this when min/max derive from
+ *  external state (e.g. a bounded buffer whose first/last index shifts over
+ *  time). Unlike `reflectValue`, this runs even while the user is Dragging: a
+ *  structural range change cannot leave the value out of bounds. */
+export const reflectRange: Reflect<
+  Model,
+  Readonly<{ min: number; max: number }>
+> = Function.dual(
+  2,
+  (model: Model, range: Readonly<{ min: number; max: number }>): Model =>
+    evo(model, {
+      min: () => range.min,
+      max: () => range.max,
+      value: current => snapAndClamp(current, range.min, range.max, model.step),
+    }),
+)
 
-/** Sets the slider's value, snapped and clamped into the current range.
- *  No-op while the user is actively dragging. drag state owns the value.
- *  Does not emit `ChangedValue`; use when the value is being driven by
+/** Reflects an externally-driven value onto the slider, snapped and clamped
+ *  into range; a no-op while the user is dragging, since drag state owns the
+ *  value. Does not emit `ChangedValue`; use when the value is being driven by
  *  external state rather than user input. */
-export const setValue = (model: Model, value: number): Model =>
-  M.value(model.dragState).pipe(
-    M.withReturnType<Model>(),
-    M.tag('Dragging', () => model),
-    M.orElse(() =>
-      evo(model, {
-        value: () => snapAndClamp(value, model.min, model.max, model.step),
-      }),
+export const reflectValue: Reflect<Model, number> = Function.dual(
+  2,
+  (model: Model, value: number): Model =>
+    M.value(model.dragState).pipe(
+      M.withReturnType<Model>(),
+      M.tag('Dragging', () => model),
+      M.orElse(() =>
+        evo(model, {
+          value: () => snapAndClamp(value, model.min, model.max, model.step),
+        }),
+      ),
     ),
-  )
+)
 
 // SUBSCRIPTION
 
@@ -514,29 +524,21 @@ const percentString = (fraction: number): string =>
   `${Math.round(fraction * 10000) / 100}%`
 
 /** Attribute groups the slider component provides to the consumer's `toView`
- *  callback. */
-export type SliderAttributes<ParentMessage> = Readonly<{
-  root: ReadonlyArray<Attribute<ParentMessage>>
-  track: ReadonlyArray<Attribute<ParentMessage>>
-  filledTrack: ReadonlyArray<Attribute<ParentMessage>>
-  thumb: ReadonlyArray<Attribute<ParentMessage>>
-  label: ReadonlyArray<Attribute<ParentMessage>>
-  hiddenInput: ReadonlyArray<Attribute<ParentMessage>>
+ *  callback. Each bundle carries the boundary's captured dispatch, so the
+ *  consumer can spread it directly into element attributes without manual
+ *  Message wrapping. */
+export type SliderAttributes = Readonly<{
+  root: ReadonlyArray<ChildAttribute>
+  track: ReadonlyArray<ChildAttribute>
+  filledTrack: ReadonlyArray<ChildAttribute>
+  thumb: ReadonlyArray<ChildAttribute>
+  label: ReadonlyArray<ChildAttribute>
+  hiddenInput: ReadonlyArray<ChildAttribute>
 }>
 
-/** Configuration for rendering a slider with `view`. */
-export type ViewConfig<ParentMessage> = Readonly<{
-  model: Model
-  toParentMessage: (
-    message:
-      | PressedThumb
-      | PressedPointer
-      | MovedDragPointer
-      | ReleasedDragPointer
-      | CancelledDrag
-      | PressedKeyboardNavigation,
-  ) => ParentMessage
-  toView: (attributes: SliderAttributes<ParentMessage>) => Html
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field. */
+export type ViewInputs = Readonly<{
+  toView: (attributes: SliderAttributes) => Html
   ariaLabel?: string
   ariaLabelledBy?: string
   formatValue?: (value: number) => string
@@ -551,178 +553,149 @@ export type ViewConfig<ParentMessage> = Readonly<{
 
 /** Renders an accessible slider by building ARIA attribute groups and
  *  delegating layout to the consumer's `toView` callback. Follows the
- *  WAI-ARIA slider pattern — role="slider" on the thumb, aria-valuemin /
+ *  WAI-ARIA slider pattern: role="slider" on the thumb, aria-valuemin /
  *  aria-valuemax / aria-valuenow, keyboard navigation by step / page / home /
  *  end. Pointer drag is handled by the component's drag subscriptions. */
-export const view = <ParentMessage>(
-  config: ViewConfig<ParentMessage>,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = defineView<Model, Message, ViewInputs>(
+  (model, viewInputs): Html => {
+    const h = html<Message>()
 
-  const {
-    model,
-    toParentMessage,
-    formatValue,
-    isDisabled = false,
-    name,
-    getTrackRoot = () => document,
-  } = config
-  const { id, value, min, max } = model
-  const isDragging = model.dragState._tag === 'Dragging'
-  const fraction = fractionOfValue(model)
+    const {
+      formatValue,
+      isDisabled = false,
+      name,
+      getTrackRoot = () => document,
+    } = viewInputs
+    const { id, value, min, max } = model
+    const isDragging = model.dragState._tag === 'Dragging'
+    const fraction = fractionOfValue(model)
 
-  const handleKeyDown = (key: string): Option.Option<ParentMessage> =>
-    Option.map(keyToDirection(key), direction =>
-      toParentMessage(PressedKeyboardNavigation({ direction })),
-    )
+    const handleKeyDown = (key: string): Option.Option<Message> =>
+      Option.map(keyToDirection(key), direction =>
+        PressedKeyboardNavigation({ direction }),
+      )
 
-  const pointerAtClientX = (clientX: number): Option.Option<ParentMessage> =>
-    Option.map(trackElement(id, getTrackRoot()), element =>
-      toParentMessage(
+    const pointerAtClientX = (clientX: number): Option.Option<Message> =>
+      Option.map(trackElement(id, getTrackRoot()), element =>
         PressedPointer({
           value: valueFromClientX(clientX, element, min, max),
         }),
-      ),
-    )
+      )
 
-  const trackPointerHandler = (
-    _pointerType: string,
-    button: number,
-    _screenX: number,
-    _screenY: number,
-    _timeStamp: number,
-    clientX: number,
-  ): Option.Option<ParentMessage> =>
-    pipe(
-      button,
-      Option.liftPredicate(Equal.equals(LEFT_MOUSE_BUTTON)),
-      Option.flatMap(() => pointerAtClientX(clientX)),
-    )
+    const trackPointerHandler = (
+      _pointerType: string,
+      button: number,
+      _screenX: number,
+      _screenY: number,
+      _timeStamp: number,
+      clientX: number,
+    ): Option.Option<Message> =>
+      pipe(
+        button,
+        Option.liftPredicate(Equal.equals(LEFT_MOUSE_BUTTON)),
+        Option.flatMap(() => pointerAtClientX(clientX)),
+      )
 
-  const thumbPointerHandler = (
-    _pointerType: string,
-    button: number,
-  ): Option.Option<ParentMessage> =>
-    pipe(
-      button,
-      Option.liftPredicate(Equal.equals(LEFT_MOUSE_BUTTON)),
-      Option.map(() => toParentMessage(PressedThumb())),
-    )
+    const thumbPointerHandler = (
+      _pointerType: string,
+      button: number,
+    ): Option.Option<Message> =>
+      pipe(
+        button,
+        Option.liftPredicate(Equal.equals(LEFT_MOUSE_BUTTON)),
+        Option.map(() => PressedThumb()),
+      )
 
-  const stateAttributes = [
-    ...(isDragging ? [h.DataAttribute('dragging', '')] : []),
-    ...(isDisabled ? [h.DataAttribute('disabled', '')] : []),
-  ]
+    const stateAttributes = [
+      ...(isDragging ? [h.DataAttribute('dragging', '')] : []),
+      ...(isDisabled ? [h.DataAttribute('disabled', '')] : []),
+    ]
 
-  const rootAttributes = [
-    h.DataAttribute('slider-id', id),
-    h.DataAttribute('orientation', 'horizontal'),
-    ...stateAttributes,
-  ]
+    const rootAttributes = [
+      h.DataAttribute('slider-id', id),
+      h.DataAttribute('orientation', 'horizontal'),
+      ...stateAttributes,
+    ]
 
-  const trackInteractionAttributes = isDisabled
-    ? []
-    : [h.OnPointerDown(trackPointerHandler)]
+    const trackInteractionAttributes = isDisabled
+      ? []
+      : [h.OnPointerDown(trackPointerHandler)]
 
-  const trackAttributes = [
-    h.DataAttribute('slider-track-id', id),
-    h.Style({ position: 'relative', 'touch-action': 'none' }),
-    ...stateAttributes,
-    ...trackInteractionAttributes,
-  ]
+    const trackAttributes = [
+      h.DataAttribute('slider-track-id', id),
+      h.Style({ position: 'relative', 'touch-action': 'none' }),
+      ...stateAttributes,
+      ...trackInteractionAttributes,
+    ]
 
-  const filledTrackAttributes = [
-    h.Style({
-      position: 'absolute',
-      left: '0',
-      top: '0',
-      bottom: '0',
-      width: percentString(fraction),
-      'pointer-events': 'none',
-    }),
-    ...stateAttributes,
-  ]
+    const filledTrackAttributes = [
+      h.Style({
+        position: 'absolute',
+        left: '0',
+        top: '0',
+        bottom: '0',
+        width: percentString(fraction),
+        'pointer-events': 'none',
+      }),
+      ...stateAttributes,
+    ]
 
-  const resolveThumbLabel = (): ReadonlyArray<Attribute<ParentMessage>> => {
-    if (config.ariaLabel !== undefined) {
-      return [h.AriaLabel(config.ariaLabel)]
-    } else if (config.ariaLabelledBy !== undefined) {
-      return [h.AriaLabelledBy(config.ariaLabelledBy)]
-    } else {
-      return [h.AriaLabelledBy(labelId(id))]
+    const resolveThumbLabel = () => {
+      if (viewInputs.ariaLabel !== undefined) {
+        return [h.AriaLabel(viewInputs.ariaLabel)]
+      } else if (viewInputs.ariaLabelledBy !== undefined) {
+        return [h.AriaLabelledBy(viewInputs.ariaLabelledBy)]
+      } else {
+        return [h.AriaLabelledBy(labelId(id))]
+      }
     }
-  }
 
-  const thumbLabelAttributes = resolveThumbLabel()
-  const maybeAriaValuetext =
-    formatValue !== undefined ? [h.AriaValuetext(formatValue(value))] : []
+    const thumbLabelAttributes = resolveThumbLabel()
+    const maybeAriaValuetext =
+      formatValue !== undefined ? [h.AriaValuetext(formatValue(value))] : []
 
-  const thumbInteractionAttributes = isDisabled
-    ? []
-    : [
-        h.OnPointerDown(thumbPointerHandler),
-        h.OnKeyDownPreventDefault(handleKeyDown),
-      ]
+    const thumbInteractionAttributes = isDisabled
+      ? []
+      : [
+          h.OnPointerDown(thumbPointerHandler),
+          h.OnKeyDownPreventDefault(handleKeyDown),
+        ]
 
-  const thumbAttributes = [
-    h.Id(`${id}-thumb`),
-    h.Role('slider'),
-    h.Tabindex(0),
-    h.AriaOrientation('horizontal'),
-    h.AriaValuemin(min),
-    h.AriaValuemax(max),
-    h.AriaValuenow(value),
-    ...maybeAriaValuetext,
-    ...thumbLabelAttributes,
-    ...(isDisabled ? [h.AriaDisabled(true)] : []),
-    h.Style({
-      position: 'absolute',
-      left: percentString(fraction),
-      transform: 'translateX(-50%)',
-      'touch-action': 'none',
-    }),
-    ...stateAttributes,
-    ...thumbInteractionAttributes,
-  ]
+    const thumbAttributes = [
+      h.Id(`${id}-thumb`),
+      h.Role('slider'),
+      h.Tabindex(0),
+      h.AriaOrientation('horizontal'),
+      h.AriaValuemin(min),
+      h.AriaValuemax(max),
+      h.AriaValuenow(value),
+      ...maybeAriaValuetext,
+      ...thumbLabelAttributes,
+      ...(isDisabled ? [h.AriaDisabled(true)] : []),
+      h.Style({
+        position: 'absolute',
+        left: percentString(fraction),
+        transform: 'translateX(-50%)',
+        'touch-action': 'none',
+      }),
+      ...stateAttributes,
+      ...thumbInteractionAttributes,
+    ]
 
-  const labelAttributes = [h.Id(labelId(id))]
+    const labelAttributes = [h.Id(labelId(id))]
 
-  const hiddenInputAttributes =
-    name !== undefined
-      ? [h.Type('hidden'), h.Name(name), h.Value(value.toString())]
-      : []
+    const hiddenInputAttributes =
+      name !== undefined
+        ? [h.Type('hidden'), h.Name(name), h.Value(value.toString())]
+        : []
 
-  return config.toView({
-    root: rootAttributes,
-    track: trackAttributes,
-    filledTrack: filledTrackAttributes,
-    thumb: thumbAttributes,
-    label: labelAttributes,
-    hiddenInput: hiddenInputAttributes,
-  })
-}
-
-/** Creates a memoized slider view. Static config is captured in a closure;
- *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <ParentMessage>(
-  staticConfig: Omit<ViewConfig<ParentMessage>, 'model' | 'toParentMessage'>,
-): ((
-  model: Model,
-  toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-) => Html) => {
-  const lazyView = createLazy()
-
-  return (model, toParentMessage) =>
-    lazyView(
-      (
-        currentModel: Model,
-        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-      ) =>
-        view({
-          ...staticConfig,
-          model: currentModel,
-          toParentMessage: currentToParentMessage,
-        }),
-      [model, toParentMessage],
-    )
-}
+    return viewInputs.toView({
+      root: childAttributes(rootAttributes),
+      track: childAttributes(trackAttributes),
+      filledTrack: childAttributes(filledTrackAttributes),
+      thumb: childAttributes(thumbAttributes),
+      label: childAttributes(labelAttributes),
+      hiddenInput: childAttributes(hiddenInputAttributes),
+    })
+  },
+)

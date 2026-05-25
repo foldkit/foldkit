@@ -11,8 +11,8 @@ import {
   ReleasedDragPointer,
   fractionOfValue,
   init,
-  setRange,
-  setValue,
+  reflectRange,
+  reflectValue,
   update,
 } from './index.js'
 
@@ -537,7 +537,7 @@ describe('Slider', () => {
     })
   })
 
-  describe('setRange', () => {
+  describe('reflectRange', () => {
     it('updates min and max', () => {
       const before = init({
         id: 'test',
@@ -546,7 +546,7 @@ describe('Slider', () => {
         step: 1,
         initialValue: 5,
       })
-      const after = setRange(before, { min: 100, max: 200 })
+      const after = reflectRange(before, { min: 100, max: 200 })
       expect(after.min).toBe(100)
       expect(after.max).toBe(200)
     })
@@ -559,10 +559,10 @@ describe('Slider', () => {
         step: 1,
         initialValue: 5,
       })
-      const narrower = setRange(before, { min: 7, max: 10 })
+      const narrower = reflectRange(before, { min: 7, max: 10 })
       expect(narrower.value).toBe(7)
 
-      const higher = setRange(before, { min: 0, max: 3 })
+      const higher = reflectRange(before, { min: 0, max: 3 })
       expect(higher.value).toBe(3)
     })
 
@@ -574,7 +574,7 @@ describe('Slider', () => {
         step: 0.1,
         initialValue: 0.4,
       })
-      const after = setRange(before, { min: 0.5, max: 1 })
+      const after = reflectRange(before, { min: 0.5, max: 1 })
       expect(after.value).toBeCloseTo(0.5)
     })
 
@@ -589,13 +589,13 @@ describe('Slider', () => {
       const [draggingModel] = update(idle, PressedThumb())
       expect(draggingModel.dragState._tag).toBe('Dragging')
 
-      const clamped = setRange(draggingModel, { min: 7, max: 10 })
+      const clamped = reflectRange(draggingModel, { min: 7, max: 10 })
       expect(clamped.value).toBe(7)
       expect(clamped.dragState._tag).toBe('Dragging')
     })
   })
 
-  describe('setValue', () => {
+  describe('reflectValue', () => {
     it('updates the value while Idle', () => {
       const before = init({
         id: 'test',
@@ -604,7 +604,7 @@ describe('Slider', () => {
         step: 1,
         initialValue: 5,
       })
-      const after = setValue(before, 8)
+      const after = reflectValue(before, 8)
       expect(after.value).toBe(8)
     })
 
@@ -616,7 +616,7 @@ describe('Slider', () => {
         step: 0.1,
         initialValue: 0.5,
       })
-      const after = setValue(before, 0.47)
+      const after = reflectValue(before, 0.47)
       expect(after.value).toBeCloseTo(0.5)
     })
 
@@ -628,8 +628,8 @@ describe('Slider', () => {
         step: 1,
         initialValue: 5,
       })
-      expect(setValue(before, -3).value).toBe(0)
-      expect(setValue(before, 99).value).toBe(10)
+      expect(reflectValue(before, -3).value).toBe(0)
+      expect(reflectValue(before, 99).value).toBe(10)
     })
 
     it('is a no-op while the user is Dragging, since drag state owns the value', () => {
@@ -644,7 +644,7 @@ describe('Slider', () => {
       expect(dragging.dragState._tag).toBe('Dragging')
       expect(dragging.value).toBe(5)
 
-      const after = setValue(dragging, 8)
+      const after = reflectValue(dragging, 8)
       expect(after.value).toBe(5)
       expect(after.dragState._tag).toBe('Dragging')
     })

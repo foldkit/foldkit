@@ -1,11 +1,10 @@
 import { describe, it } from '@effect/vitest'
-import { Effect, Option, flow } from 'effect'
+import { Option, flow } from 'effect'
 import { expect } from 'vitest'
 
 import * as Scene from '../../test/scene.js'
 import * as Story from '../../test/story.js'
 import * as Animation from '../animation/index.js'
-import type { Message } from './shared.js'
 import {
   ActivatedItem,
   AnchorCombobox,
@@ -17,11 +16,11 @@ import {
   CompletedAttachComboboxPreventBlur,
   CompletedClickItem,
   CompletedFocusInput,
+  CompletedInertOthers,
   CompletedLockScroll,
   CompletedPortalComboboxBackdrop,
+  CompletedRestoreInert,
   CompletedScrollIntoView,
-  CompletedSetupInert,
-  CompletedTeardownInert,
   CompletedUnlockScroll,
   DeactivatedItem,
   DetectMovementOrAnimationEnd,
@@ -40,8 +39,11 @@ import {
   UnlockScroll,
   UpdatedInputValue,
 } from './shared.js'
-import { init, update, view } from './single.js'
-import type { Model, ViewConfig } from './single.js'
+import { create, init, update } from './single.js'
+import type { Model, ViewInputs } from './single.js'
+
+const TestCombobox = create<string>()
+const view = TestCombobox.view
 
 const animationToComboboxMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })
@@ -933,7 +935,7 @@ describe('Combobox', () => {
       Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
       Story.Command.resolveAll(
         [LockScroll, CompletedLockScroll()],
-        [InertOthers, CompletedSetupInert()],
+        [InertOthers, CompletedInertOthers()],
       ),
     )
 
@@ -944,7 +946,7 @@ describe('Combobox', () => {
         Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
         Story.Command.resolveAll(
           [LockScroll, CompletedLockScroll()],
-          [InertOthers, CompletedSetupInert()],
+          [InertOthers, CompletedInertOthers()],
         ),
         Story.model(model => {
           expect(model.isOpen).toBe(true)
@@ -960,7 +962,7 @@ describe('Combobox', () => {
         Story.Command.resolveAll(
           [FocusInput, CompletedFocusInput()],
           [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedTeardownInert()],
+          [RestoreInert, CompletedRestoreInert()],
         ),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
@@ -975,7 +977,7 @@ describe('Combobox', () => {
         Story.message(BlurredInput()),
         Story.Command.resolveAll(
           [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedTeardownInert()],
+          [RestoreInert, CompletedRestoreInert()],
         ),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
@@ -991,7 +993,7 @@ describe('Combobox', () => {
         Story.Command.resolveAll(
           [FocusInput, CompletedFocusInput()],
           [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedTeardownInert()],
+          [RestoreInert, CompletedRestoreInert()],
         ),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
@@ -1033,19 +1035,17 @@ describe('Combobox', () => {
     const sceneView =
       (
         overrides: Omit<
-          Partial<ViewConfig<Message, string>>,
-          'model' | 'toParentMessage'
+          Partial<ViewInputs<string>>,
+          'items' | 'itemToConfig' | 'itemToValue' | 'itemToDisplayText'
         > = {},
       ) =>
       (model: Model) =>
-        view({
+        view(model, {
           items: ['Apple', 'Banana'],
-          itemToConfig: () => ({ content: Effect.succeed(null) }),
+          itemToConfig: () => ({ content: null }),
           itemToValue: item => item,
           itemToDisplayText: item => item,
           ...overrides,
-          model,
-          toParentMessage: message => message,
         })
 
     it('renders input with role="combobox" when closed', () => {
@@ -1366,7 +1366,7 @@ describe('Combobox', () => {
                 }>,
               ) => {
                 contexts.push(context)
-                return { content: Effect.succeed(null) }
+                return { content: null }
               },
             }),
           },
@@ -1403,7 +1403,7 @@ describe('Combobox', () => {
                 }>,
               ) => {
                 contexts.push(context)
-                return { content: Effect.succeed(null) }
+                return { content: null }
               },
             }),
           },
@@ -1418,6 +1418,29 @@ describe('Combobox', () => {
           acknowledgeBackdrop,
         )
       })
+    })
+  })
+
+  describe('reflectSelectedItem', () => {
+    it('reflects the selection, display text, and input text together', () => {
+      const next = TestCombobox.reflectSelectedItem(
+        init({ id: 'test' }),
+        Option.some({ item: 'apple', displayText: 'Apple' }),
+      )
+      expect(next.maybeSelectedItem).toStrictEqual(Option.some('apple'))
+      expect(next.maybeSelectedDisplayText).toStrictEqual(Option.some('Apple'))
+      expect(next.inputValue).toBe('Apple')
+    })
+
+    it('clears the selection and input on None', () => {
+      const selected = TestCombobox.reflectSelectedItem(
+        init({ id: 'test' }),
+        Option.some({ item: 'apple', displayText: 'Apple' }),
+      )
+      const cleared = TestCombobox.reflectSelectedItem(selected, Option.none())
+      expect(cleared.maybeSelectedItem).toStrictEqual(Option.none())
+      expect(cleared.maybeSelectedDisplayText).toStrictEqual(Option.none())
+      expect(cleared.inputValue).toBe('')
     })
   })
 })

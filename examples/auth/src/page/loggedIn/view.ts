@@ -1,11 +1,12 @@
 import { clsx } from 'clsx'
 import { Match as M } from 'effect'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { Session } from '../../domain/session'
 import { notFoundView } from '../../notFoundView'
 import { dashboardRouter, settingsRouter } from '../../route'
-import { GotSettingsMessage, Message } from './message'
+import { Message } from './message'
 import { Model } from './model'
 import * as Dashboard from './page/dashboard'
 import * as Settings from './page/settings'
@@ -15,11 +16,8 @@ const navLinkClassName = (isActive: boolean) =>
     'bg-blue-700 bg-opacity-50': isActive,
   })
 
-const navigationView = <ParentMessage>(
-  session: Session,
-  currentRouteTag: string,
-): Html => {
-  const h = html<ParentMessage>()
+const navigationView = (session: Session, currentRouteTag: string): Html => {
+  const h = html<Message>()
 
   return h.nav(
     [h.Class('bg-blue-500 text-white p-4')],
@@ -65,36 +63,32 @@ const navigationView = <ParentMessage>(
   )
 }
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<Model, Message>((model): Html => {
+  const h = html<Message>()
 
   return h.div(
     [h.Class('min-h-screen')],
     [
-      navigationView<ParentMessage>(model.session, model.route._tag),
+      navigationView(model.session, model.route._tag),
       h.main(
         [h.Class('py-8')],
         [
-          M.value(model.route).pipe(
-            M.tagsExhaustive({
-              Dashboard: () => Dashboard.view<ParentMessage>(model.session),
-              Settings: () =>
-                Settings.view<ParentMessage>(model.session, message =>
-                  toParentMessage(GotSettingsMessage({ message })),
-                ),
-              NotFound: ({ path }) =>
-                notFoundView<ParentMessage>(
-                  path,
-                  dashboardRouter(),
-                  'Go to Dashboard',
-                ),
-            }),
+          h.keyed('div')(
+            model.route._tag,
+            [],
+            [
+              M.value(model.route).pipe(
+                M.tagsExhaustive({
+                  Dashboard: () => Dashboard.view(model.session),
+                  Settings: () => Settings.view(model.session),
+                  NotFound: ({ path }) =>
+                    notFoundView(path, dashboardRouter(), 'Go to Dashboard'),
+                }),
+              ),
+            ],
           ),
         ],
       ),
     ],
   )
-}
+})

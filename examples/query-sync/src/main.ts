@@ -12,7 +12,7 @@ import {
   pipe,
 } from 'effect'
 import { Command, Route, Runtime, Ui } from 'foldkit'
-import { Document, Html, html } from 'foldkit/html'
+import { Document, Html, childAttributes, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { UrlRequest, load, pushUrl, replaceUrl } from 'foldkit/navigation'
 import { r } from 'foldkit/route'
@@ -167,10 +167,6 @@ export const GotDietListboxMessage = m('GotDietListboxMessage', {
 export const GotPeriodListboxMessage = m('GotPeriodListboxMessage', {
   message: Ui.Listbox.Message,
 })
-export const SelectedDietFilter = m('SelectedDietFilter', { value: S.String })
-export const SelectedPeriodFilter = m('SelectedPeriodFilter', {
-  value: S.String,
-})
 
 export const Message = S.Union([
   CompletedNavigateInternal,
@@ -182,8 +178,6 @@ export const Message = S.Union([
   ClickedColumnHeader,
   GotDietListboxMessage,
   GotPeriodListboxMessage,
-  SelectedDietFilter,
-  SelectedPeriodFilter,
 ])
 export type Message = typeof Message.Type
 
@@ -318,16 +312,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         return [
           evo(model, {
             route: () => nextRoute,
-            dietListbox: () =>
-              evo(model.dietListbox, {
-                maybeSelectedItem: () =>
-                  Option.orElse(fields.diet, () => Option.some('')),
-              }),
-            periodListbox: () =>
-              evo(model.periodListbox, {
-                maybeSelectedItem: () =>
-                  Option.orElse(fields.period, () => Option.some('')),
-              }),
+            dietListbox: DietListbox.reflectSelectedItem(
+              Option.orElse(fields.diet, () => Option.some('')),
+            ),
+            periodListbox: PeriodListbox.reflectSelectedItem(
+              Option.orElse(fields.period, () => Option.some('')),
+            ),
           }),
           [],
         ]
@@ -362,84 +352,75 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotDietListboxMessage: ({ message }) => {
-        const [nextDietListbox, listboxCommands] = Ui.Listbox.update(
-          model.dietListbox,
-          message,
+        const [nextDietListbox, listboxCommands, maybeOutMessage] =
+          DietListbox.update(model.dietListbox, message)
+        const mappedCommands = Command.mapMessages(listboxCommands, message =>
+          GotDietListboxMessage({ message }),
         )
 
-        return [
-          evo(model, { dietListbox: () => nextDietListbox }),
-          listboxCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotDietListboxMessage({ message })),
-            ),
+        return Option.match(maybeOutMessage, {
+          onNone: (): UpdateReturn => [
+            evo(model, { dietListbox: () => nextDietListbox }),
+            mappedCommands,
+          ],
+          onSome: M.type<Ui.Listbox.OutMessage>().pipe(
+            M.withReturnType<UpdateReturn>(),
+            M.tagsExhaustive({
+              Selected: () => {
+                const fields = routeToBrowseFields(model.route)
+                return [
+                  evo(model, { dietListbox: () => nextDietListbox }),
+                  [
+                    ...mappedCommands,
+                    ReplaceFilters({
+                      ...fields,
+                      diet: selectionToParam(
+                        nextDietListbox.maybeSelectedItem,
+                        Diet,
+                      ),
+                    }),
+                  ],
+                ]
+              },
+            }),
           ),
-        ]
+        })
       },
 
       GotPeriodListboxMessage: ({ message }) => {
-        const [nextPeriodListbox, listboxCommands] = Ui.Listbox.update(
-          model.periodListbox,
-          message,
+        const [nextPeriodListbox, listboxCommands, maybeOutMessage] =
+          PeriodListbox.update(model.periodListbox, message)
+        const mappedCommands = Command.mapMessages(listboxCommands, message =>
+          GotPeriodListboxMessage({ message }),
         )
 
-        return [
-          evo(model, { periodListbox: () => nextPeriodListbox }),
-          listboxCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotPeriodListboxMessage({ message })),
-            ),
+        return Option.match(maybeOutMessage, {
+          onNone: (): UpdateReturn => [
+            evo(model, { periodListbox: () => nextPeriodListbox }),
+            mappedCommands,
+          ],
+          onSome: M.type<Ui.Listbox.OutMessage>().pipe(
+            M.withReturnType<UpdateReturn>(),
+            M.tagsExhaustive({
+              Selected: () => {
+                const fields = routeToBrowseFields(model.route)
+                return [
+                  evo(model, { periodListbox: () => nextPeriodListbox }),
+                  [
+                    ...mappedCommands,
+                    ReplaceFilters({
+                      ...fields,
+                      period: selectionToParam(
+                        nextPeriodListbox.maybeSelectedItem,
+                        Period,
+                      ),
+                    }),
+                  ],
+                ]
+              },
+            }),
           ),
-        ]
-      },
-
-      SelectedDietFilter: ({ value }) => {
-        const [nextDietListbox, listboxCommands] = Ui.Listbox.selectItem(
-          model.dietListbox,
-          value,
-        )
-        const fields = routeToBrowseFields(model.route)
-
-        return [
-          evo(model, { dietListbox: () => nextDietListbox }),
-          [
-            ...listboxCommands.map(
-              Command.mapEffect(
-                Effect.map(message => GotDietListboxMessage({ message })),
-              ),
-            ),
-            ReplaceFilters({
-              ...fields,
-              diet: selectionToParam(nextDietListbox.maybeSelectedItem, Diet),
-            }),
-          ],
-        ]
-      },
-
-      SelectedPeriodFilter: ({ value }) => {
-        const [nextPeriodListbox, listboxCommands] = Ui.Listbox.selectItem(
-          model.periodListbox,
-          value,
-        )
-        const fields = routeToBrowseFields(model.route)
-
-        return [
-          evo(model, { periodListbox: () => nextPeriodListbox }),
-          [
-            ...listboxCommands.map(
-              Command.mapEffect(
-                Effect.map(message => GotPeriodListboxMessage({ message })),
-              ),
-            ),
-            ReplaceFilters({
-              ...fields,
-              period: selectionToParam(
-                nextPeriodListbox.maybeSelectedItem,
-                Period,
-              ),
-            }),
-          ],
-        ]
+        })
       },
     }),
   )
@@ -528,6 +509,41 @@ const headerButtonClass =
 
 const bodyCellClass = 'px-4 py-3 text-sm text-gray-700'
 
+const dinosaurRowView = (dinosaur: Dinosaur): Html => {
+  const h = html<Message>()
+  return h.keyed('tr')(
+    dinosaur.name,
+    [h.Class('border-b border-gray-100 hover:bg-gray-50 transition')],
+    [
+      h.td(
+        [h.Class(clsx(bodyCellClass, 'font-medium text-gray-900'))],
+        [dinosaur.name],
+      ),
+      h.td(
+        [h.Class(bodyCellClass)],
+        [
+          h.span(
+            [h.Class(periodBadgeClass(dinosaur.period))],
+            [dinosaur.period],
+          ),
+        ],
+      ),
+      h.td(
+        [h.Class(bodyCellClass)],
+        [h.span([h.Class(dietBadgeClass(dinosaur.diet))], [dinosaur.diet])],
+      ),
+      h.td(
+        [h.Class(clsx(bodyCellClass, 'text-right tabular-nums'))],
+        [dinosaur.lengthMeters.toString()],
+      ),
+      h.td(
+        [h.Class(clsx(bodyCellClass, 'text-right tabular-nums'))],
+        [dinosaur.weightKg.toLocaleString()],
+      ),
+    ],
+  )
+}
+
 const sortAriaLabel = (column: SortColumn, sorting: Sorting): string =>
   M.value(columnSortDirection(sorting, column)).pipe(
     M.when('Unsorted', () => `Sort by ${column}`),
@@ -580,6 +596,9 @@ const LISTBOX_ANCHOR: AnchorConfig = {
   gap: 4,
   padding: 8,
 }
+
+const DietListbox = Ui.Listbox.create<string>()
+const PeriodListbox = Ui.Listbox.create<string>()
 
 const listboxButtonClassName =
   'inline-flex items-center justify-between gap-2 min-w-40 px-4 py-2 text-sm border border-gray-300 rounded-lg bg-white cursor-pointer select-none hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:border-emerald-500'
@@ -683,7 +702,7 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
       h.p(
         [h.Class('text-gray-500 mb-6')],
         [
-          'Filter, sort, and search — every control syncs to the URL. Try changing the filters, then copy the URL or hit the back button.',
+          'Filter, sort, and search. Every control syncs to the URL. Try changing the filters, then copy the URL or hit the back button.',
         ],
       ),
 
@@ -698,43 +717,61 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
               'flex-1 min-w-48 px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500',
             ),
           ]),
-          Ui.Listbox.view<Message, string>({
+          h.submodel({
+            slotId: model.dietListbox.id,
             model: model.dietListbox,
+            view: DietListbox.view,
+            viewInputs: {
+              anchor: LISTBOX_ANCHOR,
+              items: dietFilterItems,
+              itemToConfig: item => filterItemConfig(dietLabel(item)),
+              itemToSearchText: dietLabel,
+              buttonContent: filterButtonContent(
+                filterButtonLabel(
+                  model.dietListbox.maybeSelectedItem,
+                  'All Diets',
+                ),
+              ),
+              buttonAttributes: childAttributes([
+                h.Class(listboxButtonClassName),
+              ]),
+              itemsAttributes: childAttributes([
+                h.Class(listboxItemsClassName),
+              ]),
+              backdropAttributes: childAttributes([
+                h.Class(listboxBackdropClassName),
+              ]),
+              attributes: childAttributes([h.Class(listboxWrapperClassName)]),
+            },
             toParentMessage: message => GotDietListboxMessage({ message }),
-            onSelectedItem: value => SelectedDietFilter({ value }),
-            anchor: LISTBOX_ANCHOR,
-            items: dietFilterItems,
-            itemToConfig: item => filterItemConfig(dietLabel(item)),
-            itemToSearchText: dietLabel,
-            buttonContent: filterButtonContent(
-              filterButtonLabel(
-                model.dietListbox.maybeSelectedItem,
-                'All Diets',
-              ),
-            ),
-            buttonAttributes: [h.Class(listboxButtonClassName)],
-            itemsAttributes: [h.Class(listboxItemsClassName)],
-            backdropAttributes: [h.Class(listboxBackdropClassName)],
-            attributes: [h.Class(listboxWrapperClassName)],
           }),
-          Ui.Listbox.view<Message, string>({
+          h.submodel({
+            slotId: model.periodListbox.id,
             model: model.periodListbox,
-            toParentMessage: message => GotPeriodListboxMessage({ message }),
-            onSelectedItem: value => SelectedPeriodFilter({ value }),
-            anchor: LISTBOX_ANCHOR,
-            items: periodFilterItems,
-            itemToConfig: item => filterItemConfig(periodLabel(item)),
-            itemToSearchText: periodLabel,
-            buttonContent: filterButtonContent(
-              filterButtonLabel(
-                model.periodListbox.maybeSelectedItem,
-                'All Periods',
+            view: PeriodListbox.view,
+            viewInputs: {
+              anchor: LISTBOX_ANCHOR,
+              items: periodFilterItems,
+              itemToConfig: item => filterItemConfig(periodLabel(item)),
+              itemToSearchText: periodLabel,
+              buttonContent: filterButtonContent(
+                filterButtonLabel(
+                  model.periodListbox.maybeSelectedItem,
+                  'All Periods',
+                ),
               ),
-            ),
-            buttonAttributes: [h.Class(listboxButtonClassName)],
-            itemsAttributes: [h.Class(listboxItemsClassName)],
-            backdropAttributes: [h.Class(listboxBackdropClassName)],
-            attributes: [h.Class(listboxWrapperClassName)],
+              buttonAttributes: childAttributes([
+                h.Class(listboxButtonClassName),
+              ]),
+              itemsAttributes: childAttributes([
+                h.Class(listboxItemsClassName),
+              ]),
+              backdropAttributes: childAttributes([
+                h.Class(listboxBackdropClassName),
+              ]),
+              attributes: childAttributes([h.Class(listboxWrapperClassName)]),
+            },
+            toParentMessage: message => GotPeriodListboxMessage({ message }),
           }),
         ],
       ),
@@ -795,65 +832,7 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
                       ),
                     ],
                   ),
-                  h.tbody(
-                    [],
-                    Array.map(rows, dinosaur =>
-                      h.tr(
-                        [
-                          h.Class(
-                            'border-b border-gray-100 hover:bg-gray-50 transition',
-                          ),
-                        ],
-                        [
-                          h.td(
-                            [
-                              h.Class(
-                                clsx(
-                                  bodyCellClass,
-                                  'font-medium text-gray-900',
-                                ),
-                              ),
-                            ],
-                            [dinosaur.name],
-                          ),
-                          h.td(
-                            [h.Class(bodyCellClass)],
-                            [
-                              h.span(
-                                [h.Class(periodBadgeClass(dinosaur.period))],
-                                [dinosaur.period],
-                              ),
-                            ],
-                          ),
-                          h.td(
-                            [h.Class(bodyCellClass)],
-                            [
-                              h.span(
-                                [h.Class(dietBadgeClass(dinosaur.diet))],
-                                [dinosaur.diet],
-                              ),
-                            ],
-                          ),
-                          h.td(
-                            [
-                              h.Class(
-                                clsx(bodyCellClass, 'text-right tabular-nums'),
-                              ),
-                            ],
-                            [dinosaur.lengthMeters.toString()],
-                          ),
-                          h.td(
-                            [
-                              h.Class(
-                                clsx(bodyCellClass, 'text-right tabular-nums'),
-                              ),
-                            ],
-                            [dinosaur.weightKg.toLocaleString()],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  h.tbody([], rows.map(dinosaurRowView)),
                 ],
               ),
             ],

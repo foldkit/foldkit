@@ -1,11 +1,13 @@
 import { Option } from 'effect'
 import { Html, html } from 'foldkit/html'
 
-export const countdown = <ParentMessage>(
+import type { Message } from '../message'
+
+export const countdown = (
   secondsLeft: number,
   maybeGameText: Option.Option<string>,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return h.div(
     [h.Class('space-y-6')],

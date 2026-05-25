@@ -51,16 +51,13 @@ const buttonClassName =
 
 // VIEW
 
-export const demo = <ParentMessage>(
+export const demo = (
   toastModel: Model,
-  toParentMessage: (message: Message) => ParentMessage,
+  maybeLastDismissedTitle: Option.Option<string>,
 ): ReadonlyArray<Html> => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
-  const renderToastEntry = (
-    entry: Entry,
-    handlers: EntryHandlers<ParentMessage>,
-  ): Html =>
+  const renderToastEntry = (entry: Entry, handlers: EntryHandlers): Html =>
     h.div(
       [
         h.Class(
@@ -77,10 +74,10 @@ export const demo = <ParentMessage>(
         }),
         h.button(
           [
+            ...handlers.dismiss,
             h.Class(
               'absolute top-2 right-2 opacity-60 hover:opacity-100 cursor-pointer rounded-md p-1 transition-opacity',
             ),
-            h.OnClick(handlers.dismiss),
           ],
           [Icon.close('w-4 h-4')],
         ),
@@ -92,49 +89,53 @@ export const demo = <ParentMessage>(
       [h.Class('flex flex-wrap gap-2')],
       [
         h.button(
-          [
-            h.Class(buttonClassName),
-            h.OnClick(toParentMessage(ClickedShowInfoToast())),
-          ],
+          [h.Class(buttonClassName), h.OnClick(ClickedShowInfoToast())],
           ['Info'],
         ),
         h.button(
-          [
-            h.Class(buttonClassName),
-            h.OnClick(toParentMessage(ClickedShowSuccessToast())),
-          ],
+          [h.Class(buttonClassName), h.OnClick(ClickedShowSuccessToast())],
           ['Success'],
         ),
         h.button(
-          [
-            h.Class(buttonClassName),
-            h.OnClick(toParentMessage(ClickedShowErrorToast())),
-          ],
+          [h.Class(buttonClassName), h.OnClick(ClickedShowErrorToast())],
           ['Error'],
         ),
         h.button(
-          [
-            h.Class(buttonClassName),
-            h.OnClick(toParentMessage(ClickedShowStickyToast())),
-          ],
+          [h.Class(buttonClassName), h.OnClick(ClickedShowStickyToast())],
           ['Sticky'],
         ),
         h.button(
-          [
-            h.Class(buttonClassName),
-            h.OnClick(toParentMessage(ClickedDismissAllToasts())),
-          ],
+          [h.Class(buttonClassName), h.OnClick(ClickedDismissAllToasts())],
           ['Dismiss all'],
         ),
       ],
     ),
-    Toast.view({
+    ...Option.match(maybeLastDismissedTitle, {
+      onNone: () => [
+        h.p(
+          [h.Class('text-sm text-gray-500 dark:text-gray-500 mt-3')],
+          ['No toasts dismissed yet'],
+        ),
+      ],
+      onSome: title => [
+        h.p(
+          [h.Class('text-sm text-gray-600 dark:text-gray-400 mt-3')],
+          [
+            `Last dismissed: "${title}" (lifted from DismissedToast OutMessage)`,
+          ],
+        ),
+      ],
+    }),
+    h.submodel({
+      slotId: toastModel.id,
       model: toastModel,
-      position: 'BottomRight',
-      toParentMessage: message =>
-        toParentMessage(GotToastDemoMessage({ message })),
-      renderEntry: renderToastEntry,
-      entryClassName,
+      view: Toast.view,
+      viewInputs: {
+        position: 'BottomRight',
+        entryToView: renderToastEntry,
+        entryClassName,
+      },
+      toParentMessage: message => GotToastDemoMessage({ message }),
     }),
   ]
 }

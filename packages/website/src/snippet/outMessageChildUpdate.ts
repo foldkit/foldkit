@@ -13,10 +13,10 @@ export const update = (
     M.tagsExhaustive({
       SubmittedLoginForm: () => [
         model,
-        [login(model.email, model.password)],
+        [Authenticate(model.email, model.password)],
         Option.none(),
       ],
-      SucceededRequestLogin: ({ sessionId }) => [
+      SucceededAuthenticate: ({ sessionId }) => [
         model,
         [],
         Option.some(SucceededLogin({ sessionId })),

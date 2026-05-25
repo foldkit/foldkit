@@ -2,6 +2,7 @@ import {
   Duration,
   Effect,
   Equal,
+  Function,
   Match as M,
   Number,
   Option,
@@ -11,19 +12,21 @@ import {
 import * as Command from '../../command/index.js'
 import { OptionExt } from '../../effectExtensions/index.js'
 import {
-  type Attribute,
+  type ChildAttribute,
   type Html,
-  createLazy,
+  childAttributes,
+  defineView,
   html,
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
 import * as Mount from '../../mount/index.js'
 import { evo } from '../../struct/index.js'
+import type { Reflect } from '../../submodel/submodel.js'
 import { AnchorConfig, anchorSetup } from '../anchor.js'
 
 // MODEL
 
-/** Schema for the tooltip component's state. `isOpen` is visibility; `isHovered` tracks pointer on trigger; `isFocused` tracks tooltip-affirming focus on the trigger (focus arriving without a preceding mouse press — keyboard, touch, or pen; mouse-click-induced focus is excluded since it doesn't affirm the user wants the tooltip visible); `isDismissed` suppresses re-opening after the user dismissed the tooltip (via Escape or left-click) until they disengage (leave or blur). `showDelay` is the hover-to-show duration. `maybeLastPointerType` records the most recent pointer type that pressed the trigger, so a mouse-click-induced focus can be distinguished from other focus. */
+/** Schema for the tooltip component's state. `isOpen` is visibility; `isHovered` tracks pointer on trigger; `isFocused` tracks tooltip-affirming focus on the trigger (focus arriving without a preceding mouse press, like keyboard, touch, or pen; mouse-click-induced focus is excluded since it doesn't affirm the user wants the tooltip visible); `isDismissed` suppresses re-opening after the user dismissed the tooltip (via Escape or left-click) until they disengage (leave or blur). `showDelay` is the hover-to-show duration. `maybeLastPointerType` records the most recent pointer type that pressed the trigger, so a mouse-click-induced focus can be distinguished from other focus. */
 export const Model = S.Struct({
   id: S.String,
   isOpen: S.Boolean,
@@ -39,30 +42,26 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** Sent when the pointer enters the tooltip trigger. Starts the show-delay timer. */
+/** Sent when the pointer enters the tooltip trigger. */
 export const EnteredTrigger = m('EnteredTrigger')
-/** Sent when the pointer leaves the tooltip trigger. Cancels any pending show-delay and hides the tooltip unless focus is active. */
+/** Sent when the pointer leaves the tooltip trigger. */
 export const LeftTrigger = m('LeftTrigger')
-/** Sent when focus enters the trigger. Shows the tooltip immediately unless the focus was caused by a mouse press, in which case the hover-delay path handles it instead. */
+/** Sent when focus enters the trigger. */
 export const FocusedTrigger = m('FocusedTrigger')
-/** Sent when focus leaves the trigger. Hides the tooltip unless hover is active. */
+/** Sent when focus leaves the trigger. */
 export const BlurredTrigger = m('BlurredTrigger')
-/** Sent when Escape is pressed while the tooltip is visible. Hides the tooltip and flags `isDismissed` so hover and focus do not re-open it until the user disengages (leaves or blurs the trigger). */
+/** Sent when Escape is pressed while the tooltip is visible. */
 export const PressedEscape = m('PressedEscape')
-/** Sent when a pointer presses the trigger. Records the pointer type so a following focus event from the same mouse click can be suppressed, and a left-click on an open tooltip dismisses it (the user is clicking the button for its action, not to keep the tooltip visible). */
+/** Sent when a pointer presses the trigger. */
 export const PressedPointerOnTrigger = m('PressedPointerOnTrigger', {
   pointerType: S.String,
   button: S.Number,
 })
-/** Sent when the show-delay timer fires. Carries a generation number that is compared against the current pending version to discard stale timers. */
+/** Sent when the show-delay timer fires. */
 export const ElapsedShowDelay = m('ElapsedShowDelay', {
   version: S.Number,
 })
-/** Signals that the show-delay has changed (e.g. in response to a user preference, input-method change, or reduced-motion setting). Does not affect the current open/closed state; the new delay applies to the next hover. Typically dispatched via the `setShowDelay` helper. */
-export const ChangedShowDelay = m('ChangedShowDelay', {
-  showDelay: S.DurationFromMillis,
-})
-/** Sent when the tooltip panel mounts and Floating UI has positioned it. Update no-ops; the side effect is the act of positioning, surfaced for DevTools observability. */
+/** Sent when the tooltip panel mounts and Floating UI has positioned it. */
 export const CompletedAnchorTooltip = m('CompletedAnchorTooltip')
 
 /** Union of all messages the tooltip component can produce. */
@@ -75,7 +74,6 @@ export const Message: S.Union<
     typeof PressedEscape,
     typeof PressedPointerOnTrigger,
     typeof ElapsedShowDelay,
-    typeof ChangedShowDelay,
     typeof CompletedAnchorTooltip,
   ]
 > = S.Union([
@@ -86,7 +84,6 @@ export const Message: S.Union<
   PressedEscape,
   PressedPointerOnTrigger,
   ElapsedShowDelay,
-  ChangedShowDelay,
   CompletedAnchorTooltip,
 ])
 
@@ -99,13 +96,30 @@ export type PressedPointerOnTrigger = typeof PressedPointerOnTrigger.Type
 
 export type Message = typeof Message.Type
 
+// OUT MESSAGE
+
+/** Emitted once the tooltip transitions to visible (`isOpen` becomes true).
+ *  Consumers typically use this for analytics, instrumentation, or to
+ *  coordinate with other transient UI. */
+export const Shown = m('Shown')
+
+/** Emitted once the tooltip transitions to hidden (`isOpen` becomes false). */
+export const Hidden = m('Hidden')
+
+/** Union of out-messages the tooltip component can produce. */
+export const OutMessage = S.Union([Shown, Hidden])
+
+export type Shown = typeof Shown.Type
+export type Hidden = typeof Hidden.Type
+export type OutMessage = typeof OutMessage.Type
+
 // INIT
 
 const DEFAULT_SHOW_DELAY = Duration.millis(500)
 
 const LEFT_MOUSE_BUTTON = 0
 
-/** Configuration for creating a tooltip model with `init`. `showDelay` controls how long the pointer must hover before the tooltip appears (default 500ms). Accepts any `Duration.Input` — a bare number is interpreted as milliseconds. Keyboard focus shows the tooltip immediately regardless of this value. */
+/** Configuration for creating a tooltip model with `init`. */
 export type InitConfig = Readonly<{
   id: string
   showDelay?: Duration.Input
@@ -128,10 +142,13 @@ export const init = (config: InitConfig): Model => ({
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
+type InnerUpdateReturn = readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message>>,
+]
+const withUpdateReturn = M.withReturnType<InnerUpdateReturn>()
 
-/** Waits for the tooltip's show delay before emitting `ElapsedShowDelay`. The version is echoed back so a stale timer is ignored when the user leaves before the delay fires. */
+/** Waits for the tooltip's show delay before emitting `ElapsedShowDelay`. */
 export const ShowAfterDelay = Command.define(
   'ShowAfterDelay',
   { delay: S.DurationFromMillis, version: S.Number },
@@ -140,9 +157,7 @@ export const ShowAfterDelay = Command.define(
   Effect.sleep(delay).pipe(Effect.as(ElapsedShowDelay({ version }))),
 )
 
-/** The anchor-positioning Mount this Tooltip renders on its panel. Exposed so
- *  Scene tests can call `Scene.Mount.resolve(AnchorTooltip, CompletedAnchorTooltip())`
- *  to acknowledge the mount produced by the rendered panel. */
+/** The anchor-positioning Mount this Tooltip renders on its panel. */
 export const AnchorTooltip = Mount.define(
   'AnchorTooltip',
   { buttonId: S.String, anchor: AnchorConfig },
@@ -165,8 +180,7 @@ export const AnchorTooltip = Mount.define(
       }),
 )
 
-/** Processes a tooltip message and returns the next model and commands. */
-export const update = (model: Model, message: Message): UpdateReturn =>
+const computeUpdate = (model: Model, message: Message): InnerUpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
@@ -286,168 +300,122 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         return [evo(model, { isOpen: () => true }), []]
       },
 
-      ChangedShowDelay: ({ showDelay }) => [
-        evo(model, { showDelay: () => showDelay }),
-        [],
-      ],
-
       CompletedAnchorTooltip: () => [model, []],
     }),
   )
 
-/** Programmatically updates the tooltip's hover show-delay. Use this in response to user preference changes, input-method switches, or reduced-motion settings. The new delay applies to the next hover; any pending timer is unaffected (its stale version will discard harmlessly when it fires). */
-export const setShowDelay = (
-  model: Model,
-  showDelay: Duration.Input,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  update(
-    model,
-    ChangedShowDelay({ showDelay: Duration.fromInputUnsafe(showDelay) }),
-  )
+type UpdateReturn = readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message>>,
+  Option.Option<OutMessage>,
+]
+
+/** Processes a tooltip message and returns the next model, commands, and
+ *  an optional OutMessage. `Shown`/`Hidden` fire only on `isOpen`
+ *  transitions, so consumers don't get spurious events for messages that
+ *  only update hover/focus/delay state without changing visibility. */
+export const update = (model: Model, message: Message): UpdateReturn => {
+  const [nextModel, commands] = computeUpdate(model, message)
+  const maybeOutMessage: Option.Option<OutMessage> =
+    !model.isOpen && nextModel.isOpen
+      ? Option.some(Shown())
+      : model.isOpen && !nextModel.isOpen
+        ? Option.some(Hidden())
+        : Option.none()
+  return [nextModel, commands, maybeOutMessage]
+}
+
+/** Reflects an externally-sourced hover show-delay onto the model without
+ *  emitting an OutMessage. Use to mirror an external config value (a user
+ *  preference, a restored setting) onto the tooltip. */
+export const reflectShowDelay: Reflect<Model, Duration.Input> = Function.dual(
+  2,
+  (model: Model, showDelay: Duration.Input): Model =>
+    evo(model, { showDelay: () => Duration.fromInputUnsafe(showDelay) }),
+)
 
 // VIEW
 
-/** Configuration for rendering a tooltip with `view`. */
-export type ViewConfig<ParentMessage> = Readonly<{
-  model: Model
-  toParentMessage: (
-    message:
-      | EnteredTrigger
-      | LeftTrigger
-      | FocusedTrigger
-      | BlurredTrigger
-      | PressedEscape
-      | PressedPointerOnTrigger
-      | typeof CompletedAnchorTooltip.Type,
-  ) => ParentMessage
-  anchor: AnchorConfig
-  triggerContent: Html
-  triggerClassName?: string
-  triggerAttributes?: ReadonlyArray<Attribute<ParentMessage>>
-  content: Html
-  panelClassName?: string
-  panelAttributes?: ReadonlyArray<Attribute<ParentMessage>>
-  isDisabled?: boolean
-  className?: string
-  attributes?: ReadonlyArray<Attribute<ParentMessage>>
+/** Render-time payload published to the consumer's `toView`.
+ *
+ *  - `trigger`: attribute bundle for the trigger element. Carries the
+ *    hover/focus/keyboard handlers + ARIA `aria-describedby` linking to
+ *    the panel.
+ *  - `panel`: attribute bundle for the panel element. Carries the
+ *    `role="tooltip"`, the anchor Mount that positions the panel via
+ *    Floating UI, and a `data-open` attribute when visible.
+ *  - `isVisible`: derived state. The consumer decides whether to render
+ *    the panel conditionally on this. */
+export type RenderInfo = Readonly<{
+  trigger: ReadonlyArray<ChildAttribute>
+  panel: ReadonlyArray<ChildAttribute>
+  isVisible: boolean
 }>
 
-/** Renders a headless tooltip with an anchored non-interactive panel. Shows on hover (after delay) or focus (from keyboard, touch, or pen; mouse-click focus is excluded); hides on leave, blur, Escape, or left-click of the trigger. Uses `role="tooltip"` and links the trigger via `aria-describedby`. */
-export const view = <ParentMessage>(
-  config: ViewConfig<ParentMessage>,
-): Html => {
-  const h = html<ParentMessage>()
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field. */
+export type ViewInputs = Readonly<{
+  anchor: AnchorConfig
+  toView: (render: RenderInfo) => Html
+  isDisabled?: boolean
+}>
 
-  const {
-    model: { id, isOpen },
-    toParentMessage,
-    anchor,
-    triggerContent,
-    triggerClassName,
-    triggerAttributes = [],
-    content,
-    panelClassName,
-    panelAttributes = [],
-    isDisabled,
-    className,
-    attributes = [],
-  } = config
+/** Renders a headless tooltip with an anchored non-interactive panel.
+ *  Shows on hover (after delay) or focus (from keyboard, touch, or pen;
+ *  mouse-click focus is excluded); hides on leave, blur, Escape, or
+ *  left-click of the trigger. */
+export const view = defineView<Model, Message, ViewInputs>(
+  (model, viewInputs): Html => {
+    const h = html<Message>()
 
-  const handleTriggerKeyDown = (key: string): Option.Option<ParentMessage> =>
-    M.value(key).pipe(
-      M.when('Escape', () =>
-        OptionExt.when(isOpen, toParentMessage(PressedEscape())),
-      ),
-      M.orElse(() => Option.none()),
-    )
+    const { id, isOpen } = model
+    const { anchor, toView, isDisabled } = viewInputs
 
-  const handleTriggerPointerDown = (
-    pointerType: string,
-    button: number,
-  ): Option.Option<ParentMessage> =>
-    Option.some(
-      toParentMessage(PressedPointerOnTrigger({ pointerType, button })),
-    )
+    const handleTriggerKeyDown = (key: string): Option.Option<PressedEscape> =>
+      M.value(key).pipe(
+        M.when('Escape', () => OptionExt.when(isOpen, PressedEscape())),
+        M.orElse(() => Option.none()),
+      )
 
-  const resolvedTriggerAttributes = [
-    h.Id(`${id}-trigger`),
-    h.Type('button'),
-    h.AriaDescribedBy(`${id}-panel`),
-    ...(isOpen ? [h.DataAttribute('open', '')] : []),
-    ...(isDisabled
-      ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
-      : [
-          h.OnMouseEnter(toParentMessage(EnteredTrigger())),
-          h.OnMouseLeave(toParentMessage(LeftTrigger())),
-          h.OnFocus(toParentMessage(FocusedTrigger())),
-          h.OnBlur(toParentMessage(BlurredTrigger())),
-          h.OnKeyDownPreventDefault(handleTriggerKeyDown),
-          h.OnPointerDown(handleTriggerPointerDown),
-        ]),
-    ...(triggerClassName ? [h.Class(triggerClassName)] : []),
-    ...triggerAttributes,
-  ]
+    const handleTriggerPointerDown = (
+      pointerType: string,
+      button: number,
+    ): Option.Option<PressedPointerOnTrigger> =>
+      Option.some(PressedPointerOnTrigger({ pointerType, button }))
 
-  const anchorTooltip = Mount.mapMessage(
-    AnchorTooltip({ buttonId: `${id}-trigger`, anchor }),
-    toParentMessage,
-  )
+    const triggerAttributes = [
+      h.Id(`${id}-trigger`),
+      h.Type('button'),
+      h.AriaDescribedBy(`${id}-panel`),
+      ...(isOpen ? [h.DataAttribute('open', '')] : []),
+      ...(isDisabled
+        ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
+        : [
+            h.OnMouseEnter(EnteredTrigger()),
+            h.OnMouseLeave(LeftTrigger()),
+            h.OnFocus(FocusedTrigger()),
+            h.OnBlur(BlurredTrigger()),
+            h.OnKeyDownPreventDefault(handleTriggerKeyDown),
+            h.OnPointerDown(handleTriggerPointerDown),
+          ]),
+    ]
 
-  const anchorAttributes = [
-    h.Style({
-      position: 'absolute',
-      margin: '0',
-      visibility: 'hidden',
-      pointerEvents: 'none',
-    }),
-    h.OnMount(anchorTooltip),
-  ]
+    const panelAttributes = [
+      h.Id(`${id}-panel`),
+      h.Role('tooltip'),
+      h.Style({
+        position: 'absolute',
+        margin: '0',
+        visibility: 'hidden',
+        pointerEvents: 'none',
+      }),
+      h.OnMount(AnchorTooltip({ buttonId: `${id}-trigger`, anchor })),
+      ...(isOpen ? [h.DataAttribute('open', '')] : []),
+    ]
 
-  const resolvedPanelAttributes = [
-    h.Id(`${id}-panel`),
-    h.Role('tooltip'),
-    ...anchorAttributes,
-    ...(isOpen ? [h.DataAttribute('open', '')] : []),
-    ...(panelClassName ? [h.Class(panelClassName)] : []),
-    ...panelAttributes,
-  ]
-
-  const wrapperAttributes = [
-    ...(className ? [h.Class(className)] : []),
-    ...attributes,
-  ]
-
-  return h.div(wrapperAttributes, [
-    h.keyed('button')(`${id}-trigger`, resolvedTriggerAttributes, [
-      triggerContent,
-    ]),
-    ...(isOpen
-      ? [h.keyed('div')(`${id}-panel`, resolvedPanelAttributes, [content])]
-      : []),
-  ])
-}
-
-/** Creates a memoized tooltip view. Static config is captured in a closure;
- *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <ParentMessage>(
-  staticConfig: Omit<ViewConfig<ParentMessage>, 'model' | 'toParentMessage'>,
-): ((
-  model: Model,
-  toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-) => Html) => {
-  const lazyView = createLazy()
-
-  return (model, toParentMessage) =>
-    lazyView(
-      (
-        currentModel: Model,
-        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-      ) =>
-        view({
-          ...staticConfig,
-          model: currentModel,
-          toParentMessage: currentToParentMessage,
-        }),
-      [model, toParentMessage],
-    )
-}
+    return toView({
+      trigger: childAttributes(triggerAttributes),
+      panel: childAttributes(panelAttributes),
+      isVisible: isOpen,
+    })
+  },
+)

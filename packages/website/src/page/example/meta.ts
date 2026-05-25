@@ -4,6 +4,7 @@ type Difficulty = 'Beginner' | 'Intermediate' | 'Advanced'
 
 export const ExampleSlug = S.Literals([
   'counter',
+  'counters',
   'todo',
   'stopwatch',
   'crash-view',
@@ -43,6 +44,15 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'The classic counter example. Increment, decrement, and reset a number.',
     difficulty: 'Beginner',
     tags: ['State'],
+    hasRouting: false,
+  },
+  {
+    slug: 'counters',
+    title: 'Counters',
+    description:
+      'A dynamic list of Counter Submodels. Add and remove rows; each row is an independent Submodel embedded via h.submodel, with per-instance routing via a wrapper Message.',
+    difficulty: 'Beginner',
+    tags: ['Submodels'],
     hasRouting: false,
   },
   {

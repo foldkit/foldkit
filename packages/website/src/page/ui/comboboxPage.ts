@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { uiShowcaseViewSourceHref } from '../../link'
@@ -12,6 +13,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { uiSelectionSubmodelsRouter } from '../../route'
 import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import {
@@ -76,6 +78,12 @@ const viewConfigHeader: TableOfContentsEntry = {
   text: 'ViewConfig',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -89,6 +97,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiReferenceHeader,
   initConfigHeader,
   viewConfigHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -150,12 +159,6 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'Wraps Combobox Messages in your parent Message type for Submodel delegation.',
   },
   {
-    name: 'onSelectedItem',
-    type: '(value: string) => ParentMessage',
-    description:
-      'Alternative to Submodel delegation: fires your own Message on selection. Use with Combobox.selectItem() in your update handler to reflect the selection in the combobox state.',
-  },
-  {
     name: 'items',
     type: 'ReadonlyArray<Item>',
     description:
@@ -210,6 +213,15 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
   },
 ]
 
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'Selected',
+    type: '{ value: Item; wasAdded: boolean }',
+    description:
+      'Emitted when an item is committed. Single-select comboboxes always emit `wasAdded: true`. Multi-select comboboxes emit `wasAdded: true` when adding to the selection and `wasAdded: false` when toggling off. Pattern-match the third tuple element of CityCombobox.update in your GotComboboxMessage handler to lift the value into domain state.',
+  },
+]
+
 const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
   {
     attribute: 'data-active',
@@ -256,214 +268,228 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/combobox', 'Combobox'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'A searchable select with input filtering, keyboard navigation, and anchor positioning. Unlike Listbox (which uses a button trigger), Combobox has a text input for searching. You control the filtering logic: read ',
-        inlineCode('model.inputValue'),
-        ' and pass the filtered items array.',
-      ),
-      para(
-        'For programmatic control in update functions, use ',
-        inlineCode('Combobox.open(model)'),
-        ', ',
-        inlineCode('Combobox.close(model)'),
-        ', and ',
-        inlineCode('Combobox.selectItem(model, item, displayText)'),
-        '. Each returns ',
-        inlineCode('[Model, Commands]'),
-        ' directly.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how Combobox is wired up in a ',
-        link(uiShowcaseViewSourceHref('combobox'), 'real Foldkit app'),
-        '.',
-      ),
-      heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-      heading(
-        Combobox.singleSelectHeader.level,
-        Combobox.singleSelectHeader.id,
-        Combobox.singleSelectHeader.text,
-      ),
-      para(
-        'Pass ',
-        inlineCode('itemToValue'),
-        ' and ',
-        inlineCode('itemToDisplayText'),
-        ' to control how items map to values and what text appears in the input on selection. Filter the ',
-        inlineCode('items'),
-        ' array yourself based on ',
-        inlineCode('model.inputValue'),
-        '.',
-      ),
-      h.section(
-        [h.AriaLabelledBy(Combobox.singleSelectHeader.id)],
-        [
-          demoContainer(
-            ...Combobox.comboboxDemo(model.comboboxDemo, toParentMessage),
-          ),
-        ],
-      ),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiComboboxBasicHighlighted)],
-          [],
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/combobox', 'Combobox'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'A searchable select with input filtering, keyboard navigation, and anchor positioning. Unlike Listbox (which uses a button trigger), Combobox has a text input for searching. You control the filtering logic: read ',
+          inlineCode('model.inputValue'),
+          ' and pass the filtered items array.',
         ),
-        Snippet.uiComboboxBasicRaw,
-        'Copy combobox example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(
-        Combobox.nullableHeader.level,
-        Combobox.nullableHeader.id,
-        Combobox.nullableHeader.text,
-      ),
-      para(
-        'Pass ',
-        inlineCode('nullable: true'),
-        ' at init to allow clearing the selection by clicking the selected item again.',
-      ),
-      h.section(
-        [h.AriaLabelledBy(Combobox.nullableHeader.id)],
-        [
-          demoContainer(
-            ...Combobox.nullableDemo(
-              model.comboboxNullableDemo,
-              toParentMessage,
-            ),
-          ),
-        ],
-      ),
-      heading(
-        Combobox.selectOnFocusHeader.level,
-        Combobox.selectOnFocusHeader.id,
-        Combobox.selectOnFocusHeader.text,
-      ),
-      para(
-        'Pass ',
-        inlineCode('selectInputOnFocus: true'),
-        ' at init to highlight the input text when the combobox receives focus. Typing immediately replaces the current value, making it easy to start a new search.',
-      ),
-      h.section(
-        [h.AriaLabelledBy(Combobox.selectOnFocusHeader.id)],
-        [
-          demoContainer(
-            ...Combobox.selectOnFocusDemo(
-              model.comboboxSelectOnFocusDemo,
-              toParentMessage,
-            ),
-          ),
-        ],
-      ),
-      heading(
-        Combobox.multiHeader.level,
-        Combobox.multiHeader.id,
-        Combobox.multiHeader.text,
-      ),
-      para(
-        'Use ',
-        inlineCode('Combobox.Multi'),
-        ' for multi-selection. The dropdown stays open on selection and items toggle on/off. Selected items are stored in ',
-        inlineCode('model.selectedItems'),
-        '.',
-      ),
-      h.section(
-        [h.AriaLabelledBy(Combobox.multiHeader.id)],
-        [
-          demoContainer(
-            ...Combobox.multiDemo(model.comboboxMultiDemo, toParentMessage),
-          ),
-        ],
-      ),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiComboboxMultiHighlighted)],
-          [],
+        para(
+          'Embed Combobox via the ',
+          link(uiSelectionSubmodelsRouter(), 'create<Item>() factory'),
+          ' at module scope: ',
+          inlineCode('const CityCombobox = Ui.Combobox.create<City>()'),
+          '. The factory binds the view, update, and imperative helpers to the same ',
+          inlineCode('Item'),
+          ' type so the selected value flows through the OutMessage typed end-to-end. Combobox constrains ',
+          inlineCode('Item extends string'),
+          '.',
         ),
-        Snippet.uiComboboxMultiRaw,
-        'Copy multi-select combobox example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'Combobox is headless. The ',
-        inlineCode('itemToConfig'),
-        ' callback controls all item markup. Style the input, button, items container, and backdrop through their respective attribute props.',
-      ),
-      dataAttributeTable(dataAttributes),
-      heading(
-        keyboardInteractionHeader.level,
-        keyboardInteractionHeader.id,
-        keyboardInteractionHeader.text,
-      ),
-      para(
-        'Focus stays on the input while arrow keys navigate items via ',
-        inlineCode('aria-activedescendant'),
-        '.',
-      ),
-      keyboardTable(keyboardEntries),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'The input receives ',
-        inlineCode('role="combobox"'),
-        ' with ',
-        inlineCode('aria-expanded'),
-        ' and ',
-        inlineCode('aria-activedescendant'),
-        '. The items container receives ',
-        inlineCode('role="listbox"'),
-        ' and each item receives ',
-        inlineCode('role="option"'),
-        ' with ',
-        inlineCode('aria-selected'),
-        '.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
-      heading(
-        initConfigHeader.level,
-        initConfigHeader.id,
-        initConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('Combobox.init()'),
-        ' or ',
-        inlineCode('Combobox.Multi.init()'),
-        '.',
-      ),
-      propTable(initConfigProps),
-      heading(
-        viewConfigHeader.level,
-        viewConfigHeader.id,
-        viewConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('Combobox.view()'),
-        '.',
-      ),
-      propTable(viewConfigProps),
-    ],
-  )
-}
+        para(
+          'For programmatic control in update functions, use ',
+          inlineCode('CityCombobox.open(model)'),
+          ', ',
+          inlineCode('CityCombobox.close(model)'),
+          ', and ',
+          inlineCode('CityCombobox.selectItem(model, item, displayText)'),
+          '. Each returns ',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          ' directly. To mirror an externally-sourced selection without emitting (restoring a draft, a URL), use ',
+          inlineCode('CityCombobox.reflectSelectedItem(model, maybeItem)'),
+          ', which returns the model directly without an OutMessage.',
+        ),
+        infoCallout(
+          'See it in an app',
+          'Check out how Combobox is wired up in a ',
+          link(uiShowcaseViewSourceHref('combobox'), 'real Foldkit app'),
+          '.',
+        ),
+        heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
+        heading(
+          Combobox.singleSelectHeader.level,
+          Combobox.singleSelectHeader.id,
+          Combobox.singleSelectHeader.text,
+        ),
+        para(
+          'Pass ',
+          inlineCode('itemToValue'),
+          ' and ',
+          inlineCode('itemToDisplayText'),
+          ' to control how items map to values and what text appears in the input on selection. Filter the ',
+          inlineCode('items'),
+          ' array yourself based on ',
+          inlineCode('model.inputValue'),
+          '.',
+        ),
+        h.section(
+          [h.AriaLabelledBy(Combobox.singleSelectHeader.id)],
+          [demoContainer(...Combobox.comboboxDemo(model.comboboxDemo))],
+        ),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiComboboxBasicHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiComboboxBasicRaw,
+          'Copy combobox example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(
+          Combobox.nullableHeader.level,
+          Combobox.nullableHeader.id,
+          Combobox.nullableHeader.text,
+        ),
+        para(
+          'Pass ',
+          inlineCode('nullable: true'),
+          ' at init to allow clearing the selection by clicking the selected item again.',
+        ),
+        h.section(
+          [h.AriaLabelledBy(Combobox.nullableHeader.id)],
+          [demoContainer(...Combobox.nullableDemo(model.comboboxNullableDemo))],
+        ),
+        heading(
+          Combobox.selectOnFocusHeader.level,
+          Combobox.selectOnFocusHeader.id,
+          Combobox.selectOnFocusHeader.text,
+        ),
+        para(
+          'Pass ',
+          inlineCode('selectInputOnFocus: true'),
+          ' at init to highlight the input text when the combobox receives focus. Typing immediately replaces the current value, making it easy to start a new search.',
+        ),
+        h.section(
+          [h.AriaLabelledBy(Combobox.selectOnFocusHeader.id)],
+          [
+            demoContainer(
+              ...Combobox.selectOnFocusDemo(model.comboboxSelectOnFocusDemo),
+            ),
+          ],
+        ),
+        heading(
+          Combobox.multiHeader.level,
+          Combobox.multiHeader.id,
+          Combobox.multiHeader.text,
+        ),
+        para(
+          'Use ',
+          inlineCode('Combobox.Multi'),
+          ' for multi-selection. The dropdown stays open on selection and items toggle on/off. Selected items are stored in ',
+          inlineCode('model.selectedItems'),
+          '.',
+        ),
+        h.section(
+          [h.AriaLabelledBy(Combobox.multiHeader.id)],
+          [demoContainer(...Combobox.multiDemo(model.comboboxMultiDemo))],
+        ),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiComboboxMultiHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiComboboxMultiRaw,
+          'Copy multi-select combobox example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'Combobox is headless. The ',
+          inlineCode('itemToConfig'),
+          ' callback controls all item markup. Style the input, button, items container, and backdrop through their respective attribute props.',
+        ),
+        dataAttributeTable(dataAttributes),
+        heading(
+          keyboardInteractionHeader.level,
+          keyboardInteractionHeader.id,
+          keyboardInteractionHeader.text,
+        ),
+        para(
+          'Focus stays on the input while arrow keys navigate items via ',
+          inlineCode('aria-activedescendant'),
+          '.',
+        ),
+        keyboardTable(keyboardEntries),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'The input receives ',
+          inlineCode('role="combobox"'),
+          ' with ',
+          inlineCode('aria-expanded'),
+          ' and ',
+          inlineCode('aria-activedescendant'),
+          '. The items container receives ',
+          inlineCode('role="listbox"'),
+          ' and each item receives ',
+          inlineCode('role="option"'),
+          ' with ',
+          inlineCode('aria-selected'),
+          '.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
+        heading(
+          initConfigHeader.level,
+          initConfigHeader.id,
+          initConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Combobox.init()'),
+          ' or ',
+          inlineCode('Combobox.Multi.init()'),
+          '.',
+        ),
+        propTable(initConfigProps),
+        heading(
+          viewConfigHeader.level,
+          viewConfigHeader.id,
+          viewConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('CityCombobox.view'),
+          '.',
+        ),
+        propTable(viewConfigProps),
+        heading(
+          outMessageHeader.level,
+          outMessageHeader.id,
+          outMessageHeader.text,
+        ),
+        para(
+          'Messages emitted to the parent through the third element of ',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          '. Pattern-match on the OutMessage in your update handler. The same shape applies to ',
+          inlineCode('Combobox.Multi.update'),
+          '.',
+        ),
+        propTable(outMessageProps),
+      ],
+    )
+  },
+)

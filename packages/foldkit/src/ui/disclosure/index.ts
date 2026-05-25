@@ -1,16 +1,17 @@
-import { Effect, Match as M, Option, Schema as S } from 'effect'
+import { Effect, Function, Match as M, Option, Schema as S } from 'effect'
 
 import * as Command from '../../command/index.js'
 import * as Dom from '../../dom/index.js'
 import {
-  type Attribute,
+  type ChildAttribute,
   type Html,
-  type TagName,
-  createLazy,
+  childAttributes,
+  defineView,
   html,
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
 import { evo } from '../../struct/index.js'
+import type { Reflect } from '../../submodel/submodel.js'
 
 // MODEL
 
@@ -41,6 +42,16 @@ export type Closed = typeof Closed.Type
 export type CompletedFocusButton = typeof CompletedFocusButton.Type
 
 export type Message = typeof Message.Type
+
+// OUT MESSAGE
+
+/** Sent to the parent each time the disclosure toggles. The new open state is available on the next model snapshot; this OutMessage signals only that the transition happened. Consumers typically use this for analytics, lazy content loading, or saving open/closed state to a store. */
+export const ToggledOpenState = m('ToggledOpenState', { isOpen: S.Boolean })
+
+export const OutMessage = S.Union([ToggledOpenState])
+export type OutMessage = typeof OutMessage.Type
+
+export type ToggledOpenState = typeof ToggledOpenState.Type
 
 // INIT
 
@@ -76,195 +87,138 @@ export const FocusButton = Command.define(
   ),
 )
 
-/** Processes a disclosure message and returns the next model and commands. */
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+type UpdateReturn = readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message>>,
+  Option.Option<OutMessage>,
+]
+const withUpdateReturn = M.withReturnType<UpdateReturn>()
+
+/** Processes a disclosure message and returns the next model, commands, and optional OutMessage. */
+export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
+    withUpdateReturn,
     M.tagsExhaustive({
       Toggled: () => {
+        const nextIsOpen = !model.isOpen
         const maybeFocus = Option.liftPredicate(
           FocusButton({ id: model.id }),
           () => model.isOpen,
         )
 
         return [
-          evo(model, { isOpen: () => !model.isOpen }),
+          evo(model, { isOpen: () => nextIsOpen }),
           Option.toArray(maybeFocus),
+          Option.some(ToggledOpenState({ isOpen: nextIsOpen })),
         ]
       },
       Closed: () => {
+        if (!model.isOpen) {
+          return [model, [], Option.none()]
+        }
         const maybeFocus = Option.liftPredicate(
           FocusButton({ id: model.id }),
           () => model.isOpen,
         )
 
-        return [evo(model, { isOpen: () => false }), Option.toArray(maybeFocus)]
+        return [
+          evo(model, { isOpen: () => false }),
+          Option.toArray(maybeFocus),
+          Option.some(ToggledOpenState({ isOpen: false })),
+        ]
       },
-      CompletedFocusButton: () => [model, []],
+      CompletedFocusButton: () => [model, [], Option.none()],
     }),
   )
 
-// VIEW
-
-/** Configuration for rendering a disclosure with `view`. */
-export type ViewConfig<ParentMessage> = Readonly<{
-  model: Model
-  toParentMessage: (
-    message: Toggled | Closed | CompletedFocusButton,
-  ) => ParentMessage
-  onToggled?: () => ParentMessage
-  buttonClassName?: string
-  buttonAttributes?: ReadonlyArray<Attribute<ParentMessage>>
-  buttonContent: Html
-  panelClassName?: string
-  panelAttributes?: ReadonlyArray<Attribute<ParentMessage>>
-  panelContent: Html
-  isDisabled?: boolean
-  persistPanel?: boolean
-  buttonElement?: TagName
-  panelElement?: TagName
-  className?: string
-  attributes?: ReadonlyArray<Attribute<ParentMessage>>
-}>
-
 /** Programmatically toggles the disclosure, updating the model and returning
- *  focus commands. Use this in domain-event handlers when the disclosure uses `onToggled`. */
-export const toggle = (
-  model: Model,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  update(model, Toggled())
+ *  focus commands plus a `ToggledOpenState` OutMessage. */
+export const toggle = (model: Model): UpdateReturn => update(model, Toggled())
 
 /** Programmatically closes the disclosure, updating the model and returning
- *  focus commands. Use this in domain-event handlers to close the disclosure. */
-export const close = (
-  model: Model,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  update(model, Closed())
+ *  focus commands plus a `ToggledOpenState` OutMessage when it was open. */
+export const close = (model: Model): UpdateReturn => update(model, Closed())
 
-/** Renders a headless disclosure component with accessible ARIA attributes and keyboard support. */
-export const view = <ParentMessage>(
-  config: ViewConfig<ParentMessage>,
-): Html => {
-  const h = html<ParentMessage>()
+/** Reflects an externally-sourced open state onto the model without
+ *  emitting an OutMessage or running the focus command. Use this to mirror
+ *  external truth (restored storage, a deep link) onto the disclosure.
+ *  Contrast with `toggle`/`close`, which represent user or programmatic
+ *  *choices* and emit `ToggledOpenState`. Returns the model directly
+ *  because it produces no commands and no OutMessage. */
+export const reflectOpenState: Reflect<Model, boolean> = Function.dual(
+  2,
+  (model: Model, isOpen: boolean): Model =>
+    evo(model, { isOpen: () => isOpen }),
+)
 
-  const {
-    model: { id, isOpen },
-    toParentMessage,
-    onToggled,
-    buttonClassName,
-    buttonAttributes = [],
-    buttonContent,
-    panelClassName,
-    panelAttributes = [],
-    panelContent,
-    isDisabled,
-    persistPanel,
-    buttonElement = 'button',
-    panelElement = 'div',
-    className,
-    attributes = [],
-  } = config
+// VIEW
 
-  const dispatchToggled = (): ParentMessage =>
-    onToggled ? onToggled() : toParentMessage(Toggled())
+/** Attribute groups the disclosure component provides to the consumer's
+ *  `toView` callback. The consumer composes the button + panel layout
+ *  themselves using these bundles. */
+export type DisclosureAttributes = Readonly<{
+  button: ReadonlyArray<ChildAttribute>
+  panel: ReadonlyArray<ChildAttribute>
+}>
 
-  const isNativeButton = buttonElement === 'button'
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
+ *
+ *  - `toView`: receives the disclosure's `button` and `panel` attribute
+ *    bundles and returns the composed layout. The consumer reads
+ *    `isOpen` from their parent model when they need to render
+ *    conditionally on it.
+ *  - `isDisabled`: when true, the button is not clickable, gets
+ *    `aria-disabled` and a `data-disabled` attribute. */
+export type ViewInputs = Readonly<{
+  toView: (attributes: DisclosureAttributes) => Html
+  isDisabled?: boolean
+}>
 
-  const handleKeyDown = (key: string): Option.Option<ParentMessage> =>
-    M.value(key).pipe(
-      M.whenOr('Enter', ' ', () => Option.some(dispatchToggled())),
-      M.orElse(() => Option.none()),
-    )
+/** Renders a headless disclosure component with accessible ARIA
+ *  attributes and keyboard support. The consumer composes the layout
+ *  through the `toView` slot, spreading the published `button` and
+ *  `panel` attribute bundles onto their own elements.
+ *
+ *  Designed to be embedded via `h.submodel`. The consumer reacts to
+ *  toggle events by pattern-matching the `ToggledOpenState` OutMessage
+ *  from the third element of `update`'s return tuple. */
+export const view = defineView<Model, Message, ViewInputs>(
+  (model, viewInputs): Html => {
+    const h = html<Message>()
 
-  const disabledAttributes = [
-    h.Disabled(true),
-    h.AriaDisabled(true),
-    h.DataAttribute('disabled', ''),
-  ]
+    const { id, isOpen } = model
+    const { toView, isDisabled = false } = viewInputs
 
-  const interactionAttributes = isDisabled
-    ? disabledAttributes
-    : [
-        h.OnClick(dispatchToggled()),
-        ...(!isNativeButton ? [h.OnKeyDownPreventDefault(handleKeyDown)] : []),
-      ]
+    const handleKeyDown = (key: string): Option.Option<Toggled> =>
+      M.value(key).pipe(
+        M.whenOr('Enter', ' ', () => Option.some(Toggled())),
+        M.orElse(() => Option.none()),
+      )
 
-  const resolvedButtonAttributes = [
-    h.Id(buttonId(id)),
-    h.AriaExpanded(isOpen),
-    h.AriaControls(panelId(id)),
-    ...(isNativeButton ? [h.Type('button')] : [h.Tabindex(0)]),
-    ...(isOpen ? [h.DataAttribute('open', '')] : []),
-    ...interactionAttributes,
-    ...(buttonClassName ? [h.Class(buttonClassName)] : []),
-    ...buttonAttributes,
-  ]
+    const disabledAttributes = isDisabled
+      ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
+      : []
 
-  const resolvedPanelAttributes = [
-    h.Id(panelId(id)),
-    ...(isOpen ? [h.DataAttribute('open', '')] : []),
-    ...(panelClassName ? [h.Class(panelClassName)] : []),
-    ...panelAttributes,
-  ]
+    const buttonAttributes = [
+      h.Id(buttonId(id)),
+      h.AriaExpanded(isOpen),
+      h.AriaControls(panelId(id)),
+      h.Tabindex(0),
+      ...(isOpen ? [h.DataAttribute('open', '')] : []),
+      ...disabledAttributes,
+      ...(isDisabled
+        ? []
+        : [h.OnClick(Toggled()), h.OnKeyDownPreventDefault(handleKeyDown)]),
+    ]
 
-  const persistedPanel = h.keyed(panelElement)(
-    panelId(id),
-    [
-      ...resolvedPanelAttributes,
-      h.Hidden(!isOpen),
-      ...(isOpen ? [] : [h.Style({ display: 'none' })]),
-    ],
-    [panelContent],
-  )
+    const panelAttributes = [
+      h.Id(panelId(id)),
+      ...(isOpen ? [h.DataAttribute('open', '')] : []),
+    ]
 
-  const activePanel = isOpen
-    ? h.keyed(panelElement)(panelId(id), resolvedPanelAttributes, [
-        panelContent,
-      ])
-    : h.empty
-
-  const panel = persistPanel ? persistedPanel : activePanel
-
-  return h.div(
-    [...(className ? [h.Class(className)] : []), ...attributes],
-    [
-      h.keyed(buttonElement)(buttonId(id), resolvedButtonAttributes, [
-        buttonContent,
-      ]),
-      panel,
-    ],
-  )
-}
-
-/** Creates a memoized disclosure view. Static config is captured in a closure;
- *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <ParentMessage>(
-  staticConfig: Omit<
-    ViewConfig<ParentMessage>,
-    'model' | 'toParentMessage' | 'onToggled'
-  >,
-): ((
-  model: Model,
-  toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-) => Html) => {
-  const lazyView = createLazy()
-
-  return (model, toParentMessage) =>
-    lazyView(
-      (
-        currentModel: Model,
-        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-      ) =>
-        view({
-          ...staticConfig,
-          model: currentModel,
-          toParentMessage: currentToParentMessage,
-        }),
-      [model, toParentMessage],
-    )
-}
+    return toView({
+      button: childAttributes(buttonAttributes),
+      panel: childAttributes(panelAttributes),
+    })
+  },
+)

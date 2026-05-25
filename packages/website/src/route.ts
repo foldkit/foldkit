@@ -63,14 +63,14 @@ export const CoreCrashViewRoute = r('CoreCrashView')
 export const CoreSlowViewRoute = r('CoreSlowView')
 export const CoreFreezeModelRoute = r('CoreFreezeModel')
 export const CoreViewMemoizationRoute = r('CoreViewMemoization')
+export const CoreSubmodelRoute = r('CoreSubmodel')
 
-export const PatternsSubmodelsRoute = r('PatternsSubmodels')
-export const PatternsOutMessageRoute = r('PatternsOutMessage')
 export const PatternsSubscriptionOrganizationRoute = r(
   'PatternsSubscriptionOrganization',
 )
 
 export const UiOverviewRoute = r('UiOverview')
+export const UiSelectionSubmodelsRoute = r('UiSelectionSubmodels')
 export const UiButtonRoute = r('UiButton')
 export const UiCalendarRoute = r('UiCalendar')
 export const UiDatePickerRoute = r('UiDatePicker')
@@ -148,10 +148,10 @@ export const DocsRoute = S.Union([
   CoreSlowViewRoute,
   CoreFreezeModelRoute,
   CoreViewMemoizationRoute,
-  PatternsSubmodelsRoute,
-  PatternsOutMessageRoute,
+  CoreSubmodelRoute,
   PatternsSubscriptionOrganizationRoute,
   UiOverviewRoute,
+  UiSelectionSubmodelsRoute,
   UiButtonRoute,
   UiCalendarRoute,
   UiDatePickerRoute,
@@ -398,17 +398,12 @@ export const coreViewMemoizationRouter = pipe(
   slash(literal('view-memoization')),
   mapTo(CoreViewMemoizationRoute),
 )
+export const coreSubmodelRouter = pipe(
+  literal('core'),
+  slash(literal('submodel')),
+  mapTo(CoreSubmodelRoute),
+)
 
-export const patternsSubmodelsRouter = pipe(
-  literal('patterns'),
-  slash(literal('submodels')),
-  mapTo(PatternsSubmodelsRoute),
-)
-export const patternsOutMessageRouter = pipe(
-  literal('patterns'),
-  slash(literal('out-message')),
-  mapTo(PatternsOutMessageRoute),
-)
 export const patternsSubscriptionOrganizationRouter = pipe(
   literal('patterns'),
   slash(literal('subscription-organization')),
@@ -419,6 +414,11 @@ export const uiOverviewRouter = pipe(
   literal('ui'),
   slash(literal('overview')),
   mapTo(UiOverviewRoute),
+)
+export const uiSelectionSubmodelsRouter = pipe(
+  literal('ui'),
+  slash(literal('selection-submodels')),
+  mapTo(UiSelectionSubmodelsRoute),
 )
 export const uiButtonRouter = pipe(
   literal('ui'),
@@ -608,16 +608,14 @@ const coreParser = oneOf(
   coreSlowViewRouter,
   coreFreezeModelRouter,
   coreViewMemoizationRouter,
+  coreSubmodelRouter,
 )
 
-const patternsParser = oneOf(
-  patternsSubmodelsRouter,
-  patternsOutMessageRouter,
-  patternsSubscriptionOrganizationRouter,
-)
+const patternsParser = oneOf(patternsSubscriptionOrganizationRouter)
 
 const uiParser = oneOf(
   uiOverviewRouter,
+  uiSelectionSubmodelsRouter,
   uiButtonRouter,
   uiCalendarRouter,
   uiDatePickerRouter,

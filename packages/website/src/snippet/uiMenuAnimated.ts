@@ -1,5 +1,6 @@
-// Pseudocode walkthrough — same Model, Messages, and update as the basic
-// menu; only init and view change. Each labeled block below is an excerpt.
+// Pseudocode walkthrough using the same Model, Messages, and update as
+// the basic menu; only init and view change. Each labeled block below is
+// an excerpt.
 import { Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -21,24 +22,30 @@ const GotMenuMessage = m('GotMenuMessage', {
   message: Ui.Menu.Message,
 })
 
+// Pair view and update behind a single Item-typed factory at module scope:
+const ActionMenu = Ui.Menu.create<Action>()
+
 // Inside your view function, use data-[closed] for enter/leave transitions:
 const view = () => {
   const h = html<Message>()
 
-  return Ui.Menu.view({
+  return h.submodel({
+    slotId: 'menu',
     model: model.menu,
+    view: ActionMenu.view,
+    viewInputs: {
+      items: actions,
+      buttonContent: h.span([], ['Options']),
+      buttonClassName: 'rounded-lg border px-3 py-2 cursor-pointer',
+      itemsClassName:
+        'rounded-lg border shadow-lg transition duration-150 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
+      itemToConfig: (action, { isActive }) => ({
+        className: isActive ? 'bg-blue-100' : '',
+        content: h.div([h.Class('px-3 py-2')], [action]),
+      }),
+      backdropClassName: 'fixed inset-0',
+      anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+    },
     toParentMessage: message => GotMenuMessage({ message }),
-    items: actions,
-    onSelectedItem: value => SelectedAction({ value }),
-    buttonContent: h.span([], ['Options']),
-    buttonClassName: 'rounded-lg border px-3 py-2 cursor-pointer',
-    itemsClassName:
-      'rounded-lg border shadow-lg transition duration-150 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
-    itemToConfig: (action, { isActive }) => ({
-      className: isActive ? 'bg-blue-100' : '',
-      content: h.div([h.Class('px-3 py-2')], [action]),
-    }),
-    backdropClassName: 'fixed inset-0',
-    anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
   })
 }

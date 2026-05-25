@@ -1,5 +1,6 @@
 export const EXAMPLE_VALUES = [
   'counter',
+  'counters',
   'todo',
   'stopwatch',
   'crash-view',
@@ -31,6 +32,12 @@ export const examples: ReadonlyArray<{
     value: 'counter',
     title: 'counter',
     description: 'Simple increment/decrement with reset',
+  },
+  {
+    value: 'counters',
+    title: 'counters',
+    description:
+      'A dynamic list of Counter Submodels with per-instance routing via a wrapper Message',
   },
   {
     value: 'todo',

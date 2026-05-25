@@ -1,7 +1,7 @@
 import { clsx } from 'clsx'
 import { Array } from 'effect'
 import { Ui } from 'foldkit'
-import { html } from 'foldkit/html'
+import { childAttributes, html } from 'foldkit/html'
 import type { AnchorConfig } from 'foldkit/ui/combobox'
 
 import { Icon } from '../../icon'
@@ -58,6 +58,9 @@ type City =
   | 'Wellington'
   | 'Zurich'
 
+export const CityCombobox = Ui.Combobox.create<City>()
+export const CityMultiCombobox = Ui.Combobox.Multi.create<City>()
+
 const CITIES: ReadonlyArray<City> = [
   'Johannesburg',
   'Kyiv',
@@ -97,117 +100,90 @@ const filterCities = (inputValue: string): ReadonlyArray<City> =>
         city.toLowerCase().includes(inputValue.toLowerCase()),
       )
 
+const comboboxViewInputs = (
+  inputValue: string,
+): Ui.Combobox.ViewInputs<City> => {
+  const h = html<Message>()
+  const filteredCities = filterCities(inputValue)
+
+  return {
+    items: filteredCities,
+    itemToConfig: (city, context) => ({
+      className: itemClassName,
+      content: h.div(
+        [h.Class('flex items-center gap-2')],
+        [
+          Icon.check(
+            clsx('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
+              visible: context.isSelected,
+              invisible: !context.isSelected,
+            }),
+          ),
+          h.span([], [city]),
+        ],
+      ),
+    }),
+    itemToValue: city => city,
+    itemToDisplayText: city => city,
+    inputAttributes: childAttributes([
+      h.Class(inputClassName),
+      h.Placeholder('Search cities...'),
+    ]),
+    itemsAttributes: childAttributes([h.Class(itemsClassName)]),
+    backdropAttributes: childAttributes([h.Class(backdropClassName)]),
+    attributes: childAttributes([h.Class(wrapperClassName)]),
+    inputWrapperAttributes: childAttributes([h.Class('relative')]),
+    buttonContent: Icon.chevronDown('w-4 h-4'),
+    buttonAttributes: childAttributes([h.Class(buttonClassName)]),
+    anchor: COMBOBOX_ANCHOR,
+  }
+}
+
 // VIEW
 
-export const comboboxDemo = <ParentMessage>(
-  comboboxModel: Ui.Combobox.Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
-
-  const filteredCities = filterCities(comboboxModel.inputValue)
+export const comboboxDemo = (comboboxModel: Ui.Combobox.Model) => {
+  const h = html<Message>()
 
   return [
     h.div(
       [h.Class('relative')],
       [
-        Ui.Combobox.view({
+        h.submodel({
+          slotId: comboboxModel.id,
           model: comboboxModel,
-          toParentMessage: message =>
-            toParentMessage(GotComboboxDemoMessage({ message })),
-          items: filteredCities,
-          itemToConfig: (city, context) => ({
-            className: itemClassName,
-            content: h.div(
-              [h.Class('flex items-center gap-2')],
-              [
-                Icon.check(
-                  clsx('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
-                    visible: context.isSelected,
-                    invisible: !context.isSelected,
-                  }),
-                ),
-                h.span([], [city]),
-              ],
-            ),
-          }),
-          itemToValue: city => city,
-          itemToDisplayText: city => city,
-          inputAttributes: [
-            h.Class(inputClassName),
-            h.Placeholder('Search cities...'),
-          ],
-          itemsAttributes: [h.Class(itemsClassName)],
-          backdropAttributes: [h.Class(backdropClassName)],
-          attributes: [h.Class(wrapperClassName)],
-          inputWrapperAttributes: [h.Class('relative')],
-          buttonContent: Icon.chevronDown('w-4 h-4'),
-          buttonAttributes: [h.Class(buttonClassName)],
-          anchor: COMBOBOX_ANCHOR,
+          view: CityCombobox.view,
+          viewInputs: comboboxViewInputs(comboboxModel.inputValue),
+          toParentMessage: message => GotComboboxDemoMessage({ message }),
         }),
       ],
     ),
   ]
 }
 
-export const nullableDemo = <ParentMessage>(
-  comboboxNullableModel: Ui.Combobox.Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
-
-  const filteredCities = filterCities(comboboxNullableModel.inputValue)
+export const nullableDemo = (comboboxNullableModel: Ui.Combobox.Model) => {
+  const h = html<Message>()
 
   return [
     h.div(
       [h.Class('relative')],
       [
-        Ui.Combobox.view({
+        h.submodel({
+          slotId: comboboxNullableModel.id,
           model: comboboxNullableModel,
+          view: CityCombobox.view,
+          viewInputs: comboboxViewInputs(comboboxNullableModel.inputValue),
           toParentMessage: message =>
-            toParentMessage(GotComboboxNullableDemoMessage({ message })),
-          items: filteredCities,
-          itemToConfig: (city, context) => ({
-            className: itemClassName,
-            content: h.div(
-              [h.Class('flex items-center gap-2')],
-              [
-                Icon.check(
-                  clsx('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
-                    visible: context.isSelected,
-                    invisible: !context.isSelected,
-                  }),
-                ),
-                h.span([], [city]),
-              ],
-            ),
-          }),
-          itemToValue: city => city,
-          itemToDisplayText: city => city,
-          inputAttributes: [
-            h.Class(inputClassName),
-            h.Placeholder('Search cities...'),
-          ],
-          itemsAttributes: [h.Class(itemsClassName)],
-          backdropAttributes: [h.Class(backdropClassName)],
-          attributes: [h.Class(wrapperClassName)],
-          inputWrapperAttributes: [h.Class('relative')],
-          buttonContent: Icon.chevronDown('w-4 h-4'),
-          buttonAttributes: [h.Class(buttonClassName)],
-          anchor: COMBOBOX_ANCHOR,
+            GotComboboxNullableDemoMessage({ message }),
         }),
       ],
     ),
   ]
 }
 
-export const selectOnFocusDemo = <ParentMessage>(
+export const selectOnFocusDemo = (
   comboboxSelectOnFocusModel: Ui.Combobox.Model,
-  toParentMessage: (message: Message) => ParentMessage,
 ) => {
-  const h = html<ParentMessage>()
-
-  const filteredCities = filterCities(comboboxSelectOnFocusModel.inputValue)
+  const h = html<Message>()
 
   return [
     subPara(
@@ -218,39 +194,13 @@ export const selectOnFocusDemo = <ParentMessage>(
     h.div(
       [h.Class('relative')],
       [
-        Ui.Combobox.view({
+        h.submodel({
+          slotId: comboboxSelectOnFocusModel.id,
           model: comboboxSelectOnFocusModel,
+          view: CityCombobox.view,
+          viewInputs: comboboxViewInputs(comboboxSelectOnFocusModel.inputValue),
           toParentMessage: message =>
-            toParentMessage(GotComboboxSelectOnFocusDemoMessage({ message })),
-          items: filteredCities,
-          itemToConfig: (city, context) => ({
-            className: itemClassName,
-            content: h.div(
-              [h.Class('flex items-center gap-2')],
-              [
-                Icon.check(
-                  clsx('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
-                    visible: context.isSelected,
-                    invisible: !context.isSelected,
-                  }),
-                ),
-                h.span([], [city]),
-              ],
-            ),
-          }),
-          itemToValue: city => city,
-          itemToDisplayText: city => city,
-          inputAttributes: [
-            h.Class(inputClassName),
-            h.Placeholder('Search cities...'),
-          ],
-          itemsAttributes: [h.Class(itemsClassName)],
-          backdropAttributes: [h.Class(backdropClassName)],
-          attributes: [h.Class(wrapperClassName)],
-          inputWrapperAttributes: [h.Class('relative')],
-          buttonContent: Icon.chevronDown('w-4 h-4'),
-          buttonAttributes: [h.Class(buttonClassName)],
-          anchor: COMBOBOX_ANCHOR,
+            GotComboboxSelectOnFocusDemoMessage({ message }),
         }),
       ],
     ),
@@ -262,13 +212,8 @@ const tagClassName =
 
 const emptyTagClassName = 'text-sm py-0.5 text-gray-400 dark:text-gray-500'
 
-export const multiDemo = <ParentMessage>(
-  comboboxMultiModel: Ui.Combobox.Multi.Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
-
-  const filteredCities = filterCities(comboboxMultiModel.inputValue)
+export const multiDemo = (comboboxMultiModel: Ui.Combobox.Multi.Model) => {
+  const h = html<Message>()
 
   return [
     h.div(
@@ -286,39 +231,12 @@ export const multiDemo = <ParentMessage>(
               ),
           }),
         ),
-        Ui.Combobox.Multi.view({
+        h.submodel({
+          slotId: comboboxMultiModel.id,
           model: comboboxMultiModel,
-          toParentMessage: message =>
-            toParentMessage(GotComboboxMultiDemoMessage({ message })),
-          items: filteredCities,
-          itemToConfig: (city, context) => ({
-            className: itemClassName,
-            content: h.div(
-              [h.Class('flex items-center gap-2')],
-              [
-                Icon.check(
-                  clsx('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
-                    visible: context.isSelected,
-                    invisible: !context.isSelected,
-                  }),
-                ),
-                h.span([], [city]),
-              ],
-            ),
-          }),
-          itemToValue: city => city,
-          itemToDisplayText: city => city,
-          inputAttributes: [
-            h.Class(inputClassName),
-            h.Placeholder('Search cities...'),
-          ],
-          itemsAttributes: [h.Class(itemsClassName)],
-          backdropAttributes: [h.Class(backdropClassName)],
-          attributes: [h.Class(wrapperClassName)],
-          inputWrapperAttributes: [h.Class('relative')],
-          buttonContent: Icon.chevronDown('w-4 h-4'),
-          buttonAttributes: [h.Class(buttonClassName)],
-          anchor: COMBOBOX_ANCHOR,
+          view: CityMultiCombobox.view,
+          viewInputs: comboboxViewInputs(comboboxMultiModel.inputValue),
+          toParentMessage: message => GotComboboxMultiDemoMessage({ message }),
         }),
       ],
     ),

@@ -24,29 +24,25 @@ export const BlurredRoomPageUsernameInput = m('BlurredRoomPageUsernameInput')
 export const ChangedRoomPageUsername = m('ChangedRoomPageUsername', {
   value: S.String,
 })
-export const SubmittedJoinRoomFromPage = m('SubmittedJoinRoomFromPage', {
-  roomId: S.String,
-})
+export const SubmittedJoinRoomFromPage = m('SubmittedJoinRoomFromPage')
 export const UpdatedRoom = m('UpdatedRoom', {
   room: Shared.Room,
   maybePlayerProgress: S.Option(Shared.PlayerProgress),
 })
 export const FailedStreamRoom = m('FailedStreamRoom', { error: S.String })
 export const RequestedStartGame = m('RequestedStartGame', {
-  roomId: S.String,
   playerId: S.String,
 })
 export const LoadedSession = m('LoadedSession', {
   maybeSession: S.Option(RoomPlayerSession),
 })
 export const SucceededFetchRoom = m('SucceededFetchRoom', { room: Shared.Room })
-export const FailedFetchRoom = m('FailedFetchRoom', { roomId: S.String })
-export const ClickedCopyRoomId = m('ClickedCopyRoomId', { roomId: S.String })
+export const FailedFetchRoom = m('FailedFetchRoom')
+export const ClickedCopyRoomId = m('ClickedCopyRoomId')
 export const SucceededCopyRoomId = m('SucceededCopyRoomId')
 export const HidRoomIdCopiedIndicator = m('HidRoomIdCopiedIndicator')
 export const TickedExitCountdown = m('TickedExitCountdown')
 export const SucceededJoinRoom = m('SucceededJoinRoom', {
-  roomId: S.String,
   player: Shared.Player,
 })
 

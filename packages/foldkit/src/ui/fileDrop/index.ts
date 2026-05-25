@@ -3,9 +3,10 @@ import { Array, Match as M, Option, Schema as S } from 'effect'
 import * as Command from '../../command/index.js'
 import * as File from '../../file/index.js'
 import {
-  type Attribute,
+  type ChildAttribute,
   type Html,
-  createLazy,
+  childAttributes,
+  defineView,
   html,
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
@@ -40,19 +41,19 @@ export const LeftDragZone = m('LeftDragZone')
 export const DroppedFiles = m('DroppedFiles', {
   files: S.NonEmptyArray(File.File),
 })
-/** Sent when a drop or input-change event fires without any files —
+/** Sent when a drop or input-change event fires without any files,
  * typically a drag of non-file data (text, URLs, images from another
- * page). Resets `isDragOver` and emits `DroppedWithoutFiles` as an
+ * page). Resets `isDragOver` and emits `RejectedNonFiles` as an
  * OutMessage so the consumer can surface a message (e.g. "Only files are
  * accepted"). */
-export const DroppedWithoutFiles = m('DroppedWithoutFiles')
+export const DroppedNonFiles = m('DroppedNonFiles')
 
 /** Union of all messages the file-drop component can produce. */
 export const Message = S.Union([
   EnteredDragZone,
   LeftDragZone,
   DroppedFiles,
-  DroppedWithoutFiles,
+  DroppedNonFiles,
 ])
 export type Message = typeof Message.Type
 
@@ -65,12 +66,14 @@ export const ReceivedFiles = m('ReceivedFiles', {
   files: S.NonEmptyArray(File.File),
 })
 
+/** Emitted when a drop or input-change event produces no files. The
+ * consumer's parent update handles this to surface a message (e.g. "Only
+ * files are accepted"). */
+export const RejectedNonFiles = m('RejectedNonFiles')
+
 /** The file-drop component's OutMessages: `ReceivedFiles` on the happy
- * path and `DroppedWithoutFiles` when a drop event fires without files.
- * `DroppedWithoutFiles` is reused from the Message definitions — the
- * fact is the same whether the component is handling it or reporting it
- * up. */
-export const OutMessage = S.Union([ReceivedFiles, DroppedWithoutFiles])
+ * path and `RejectedNonFiles` when a drop event fires without files. */
+export const OutMessage = S.Union([ReceivedFiles, RejectedNonFiles])
 export type OutMessage = typeof OutMessage.Type
 
 // INIT
@@ -115,10 +118,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
         Option.some(ReceivedFiles({ files })),
       ],
-      DroppedWithoutFiles: () => [
+      DroppedNonFiles: () => [
         evo(model, { isDragOver: () => false }),
         [],
-        Option.some(DroppedWithoutFiles()),
+        Option.some(RejectedNonFiles()),
       ],
     }),
   )
@@ -126,133 +129,72 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 // VIEW
 
 /** Attribute groups the file-drop component provides to the consumer's
- * `toView` callback. Spread each group onto the element that plays that
- * role: `root` typically goes on a `<label>` so clicking it focuses the
- * hidden input, `input` on the `<input type="file">`. */
-export type FileDropAttributes<ParentMessage> = Readonly<{
+ *  `toView` callback. */
+export type FileDropAttributes = Readonly<{
   /** Attributes for the outer drop zone element (typically a `<label>`):
-   * drag-and-drop handlers, `data-drag-over` while a drag hovers, and
-   * `data-disabled` when disabled. */
-  root: ReadonlyArray<Attribute<ParentMessage>>
+   *  drag-and-drop handlers, `data-drag-over` while a drag hovers, and
+   *  `data-disabled` when disabled. */
+  root: ReadonlyArray<ChildAttribute>
   /** Attributes for a hidden `<input type="file">` nested inside the
-   * root: file-change handler, `type`, `id`, `multiple`, `accept`, and
-   * `sr-only` class. */
-  input: ReadonlyArray<Attribute<ParentMessage>>
+   *  root: file-change handler, `type`, `id`, `multiple`, `accept`, and
+   *  `sr-only` class. */
+  input: ReadonlyArray<ChildAttribute>
 }>
 
-/** Configuration for rendering a file-drop with `view`.
- *
- * The `ParentMessage` type parameter is your parent's Message type, not
- * FileDrop's. `toParentMessage` receives a FileDrop message and returns
- * your parent message. */
-export type ViewConfig<ParentMessage> = Readonly<{
-  model: Model
-  toParentMessage: (message: Message) => ParentMessage
-  toView: (attributes: FileDropAttributes<ParentMessage>) => Html
-  /** List of accepted MIME types or file extensions (e.g.
-   * `['application/pdf', '.doc']`). Joined with commas and forwarded to
-   * the hidden input's `accept` attribute. Omit or pass an empty array
-   * to accept any file type. */
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field. */
+export type ViewInputs = Readonly<{
+  toView: (attributes: FileDropAttributes) => Html
   accept?: ReadonlyArray<string>
-  /** When true, the hidden input accepts multiple files per selection. */
   multiple?: boolean
-  /** When true, drag handlers are stripped from the root and the input
-   * is disabled. Styling can react via `data-disabled` on the root. */
   isDisabled?: boolean
 }>
 
-/** Renders an accessible file-drop zone by building attribute groups for
- * a `<label>`-wrapped hidden file input. The consumer's `toView` callback
- * composes those groups into concrete markup. The component owns the
- * drag-state and file-arrival messaging; the consumer owns the visual
- * rendering. */
-export const view = <ParentMessage>(
-  config: ViewConfig<ParentMessage>,
-): Html => {
-  const h = html<ParentMessage>()
-
-  const {
-    model: { id, isDragOver },
-    toParentMessage,
-    accept,
-    multiple = false,
-    isDisabled = false,
-  } = config
-
-  const stateAttributes = [
-    ...(isDragOver ? [h.DataAttribute('drag-over', '')] : []),
-    ...(isDisabled ? [h.DataAttribute('disabled', '')] : []),
-  ]
-
-  const rootAttributes = isDisabled
-    ? stateAttributes
-    : [
-        ...stateAttributes,
-        h.OnDragEnter(toParentMessage(EnteredDragZone())),
-        h.OnDragLeave(toParentMessage(LeftDragZone())),
-        h.AllowDrop(),
-        h.OnDropFiles(files =>
-          toParentMessage(
-            Array.match(files, {
-              onEmpty: () => DroppedWithoutFiles(),
-              onNonEmpty: nonEmptyFiles =>
-                DroppedFiles({ files: [...nonEmptyFiles] }),
-            }),
-          ),
-        ),
-      ]
-
-  const inputAttributes = [
-    h.Id(id),
-    h.Type('file'),
-    h.Class('sr-only'),
-    ...(multiple ? [h.Multiple(true)] : []),
-    ...(accept !== undefined && accept.length > 0
-      ? [h.Accept(accept.join(','))]
-      : []),
-    ...(isDisabled
-      ? [h.Disabled(true)]
-      : [
-          h.OnFileChange(files =>
-            toParentMessage(
-              Array.match(files, {
-                onEmpty: () => DroppedWithoutFiles(),
-                onNonEmpty: nonEmptyFiles =>
-                  DroppedFiles({ files: [...nonEmptyFiles] }),
-              }),
-            ),
-          ),
-        ]),
-  ]
-
-  return config.toView({
-    root: rootAttributes,
-    input: inputAttributes,
+const dispatchDroppedFiles = (files: ReadonlyArray<File.File>) =>
+  Array.match(files, {
+    onEmpty: () => DroppedNonFiles(),
+    onNonEmpty: nonEmptyFiles => DroppedFiles({ files: [...nonEmptyFiles] }),
   })
-}
 
-/** Creates a memoized file-drop view. Static config is captured in a
- * closure; only `model` and `toParentMessage` are compared per render via
- * `createLazy`. */
-export const lazy = <ParentMessage>(
-  staticConfig: Omit<ViewConfig<ParentMessage>, 'model' | 'toParentMessage'>,
-): ((
-  model: Model,
-  toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-) => Html) => {
-  const lazyView = createLazy()
+/** Renders an accessible file-drop zone by publishing attribute groups
+ *  for a `<label>`-wrapped hidden file input. */
+export const view = defineView<Model, Message, ViewInputs>(
+  (model, viewInputs): Html => {
+    const h = html<Message>()
 
-  return (model, toParentMessage) =>
-    lazyView(
-      (
-        currentModel: Model,
-        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-      ) =>
-        view({
-          ...staticConfig,
-          model: currentModel,
-          toParentMessage: currentToParentMessage,
-        }),
-      [model, toParentMessage],
-    )
-}
+    const { id, isDragOver } = model
+    const { toView, accept, multiple = false, isDisabled = false } = viewInputs
+
+    const stateAttributes = [
+      ...(isDragOver ? [h.DataAttribute('drag-over', '')] : []),
+      ...(isDisabled ? [h.DataAttribute('disabled', '')] : []),
+    ]
+
+    const rootAttributes = isDisabled
+      ? stateAttributes
+      : [
+          ...stateAttributes,
+          h.OnDragEnter(EnteredDragZone()),
+          h.OnDragLeave(LeftDragZone()),
+          h.AllowDrop(),
+          h.OnDropFiles(dispatchDroppedFiles),
+        ]
+
+    const inputAttributes = [
+      h.Id(id),
+      h.Type('file'),
+      h.Class('sr-only'),
+      ...(multiple ? [h.Multiple(true)] : []),
+      ...(accept !== undefined && accept.length > 0
+        ? [h.Accept(accept.join(','))]
+        : []),
+      ...(isDisabled
+        ? [h.Disabled(true)]
+        : [h.OnFileChange(dispatchDroppedFiles)]),
+    ]
+
+    return toView({
+      root: childAttributes(rootAttributes),
+      input: childAttributes(inputAttributes),
+    })
+  },
+)

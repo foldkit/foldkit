@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Option, Record, Result, pipe } from 'effect'
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { Html, createKeyedLazy, html } from 'foldkit/html'
 import { Disclosure } from 'foldkit/ui'
 
@@ -17,15 +17,15 @@ import {
   sectionId,
 } from './domain'
 import { GotDisclosureMessage, type Message } from './message'
-import type { ApiData, Disclosures } from './model'
+import type { ApiData, Model } from './model'
 
 type Highlights = ApiData['highlights']
 
-const sourceLink = <ParentMessage>(
+const sourceLink = (
   sourceUrl: Option.Option<string>,
   name: string,
 ): ReadonlyArray<Html> => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return Option.match(sourceUrl, {
     onNone: () => [],
@@ -46,14 +46,13 @@ const sourceLink = <ParentMessage>(
 
 const lazyItem = createKeyedLazy()
 
-const functionView = <ParentMessage>(
+const functionView = (
   moduleName: string,
   apiFunction: ApiFunction,
   maybeDisclosure: Disclosure.Model | undefined,
   highlights: Highlights,
-  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
   const id = scopedId('function', moduleName, apiFunction.name)
 
   return h.div(
@@ -86,30 +85,21 @@ const functionView = <ParentMessage>(
                 ],
                 ['function'],
               ),
-              ...sourceLink<ParentMessage>(
-                apiFunction.sourceUrl,
-                apiFunction.name,
-              ),
+              ...sourceLink(apiFunction.sourceUrl, apiFunction.name),
             ],
           ),
           headingLinkButton(id, apiFunction.name),
         ],
       ),
-      signaturesView<ParentMessage>(
-        id,
-        apiFunction,
-        maybeDisclosure,
-        highlights,
-        toParentMessage,
-      ),
+      signaturesView(id, apiFunction, maybeDisclosure, highlights),
     ],
   )
 }
 
-const allParameterDescriptions = <ParentMessage>(
+const allParameterDescriptions = (
   apiFunction: ApiFunction,
 ): ReadonlyArray<Html> => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return pipe(
     Array.flatMap(apiFunction.signatures, signature => signature.parameters),
@@ -150,8 +140,8 @@ const allParameterDescriptions = <ParentMessage>(
   )
 }
 
-const chevron = <ParentMessage>(isOpen: boolean): Html => {
-  const h = html<ParentMessage>()
+const chevron = (isOpen: boolean): Html => {
+  const h = html<Message>()
 
   return h.span(
     [
@@ -170,14 +160,13 @@ const disclosureButtonClassName =
 
 const disclosurePanelClassName = 'rounded-b-lg overflow-x-auto'
 
-const signaturesView = <ParentMessage>(
+const signaturesView = (
   key: string,
   apiFunction: ApiFunction,
   maybeDisclosure: Disclosure.Model | undefined,
   highlights: Highlights,
-  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
   const maybeHighlighted = Record.get(highlights, key)
   const isInDisclosure = maybeDisclosure !== undefined
 
@@ -193,7 +182,7 @@ const signaturesView = <ParentMessage>(
       ),
       content: [
         h.div([h.InnerHTML(highlighted)], []),
-        ...allParameterDescriptions<ParentMessage>(apiFunction),
+        ...allParameterDescriptions(apiFunction),
       ],
     }),
     onNone: () => ({
@@ -202,37 +191,54 @@ const signaturesView = <ParentMessage>(
         'rounded-b-lg rounded-t-none': isInDisclosure,
       }),
       content: [
-        ...descriptionCommentFallback<ParentMessage>(apiFunction.description),
+        ...descriptionCommentFallback(apiFunction.description),
         ...Array.flatMap(apiFunction.signatures, signature =>
-          signatureChildrenFallback<ParentMessage>(signature),
+          signatureChildrenFallback(signature),
         ),
       ],
     }),
   })
 
   return maybeDisclosure !== undefined
-    ? Ui.Disclosure.view({
+    ? h.submodel({
+        slotId: maybeDisclosure.id,
         model: maybeDisclosure,
-        toParentMessage: message =>
-          toParentMessage(GotDisclosureMessage({ id: key, message })),
-        buttonAttributes: [h.Class(disclosureButtonClassName)],
-        buttonContent: h.div(
-          [h.Class('flex items-center justify-between w-full')],
-          [
-            h.span([], ['Show signature']),
-            chevron<ParentMessage>(maybeDisclosure.isOpen),
-          ],
-        ),
-        panelAttributes: [h.Class(disclosurePanelClassName)],
-        panelContent: h.div([h.Class(wrapperClass)], content),
+        view: Ui.Disclosure.view,
+        viewInputs: {
+          toView: attributes =>
+            h.div(
+              [],
+              [
+                h.button(
+                  [...attributes.button, h.Class(disclosureButtonClassName)],
+                  [
+                    h.div(
+                      [h.Class('flex items-center justify-between w-full')],
+                      [
+                        h.span([], ['Show signature']),
+                        chevron(maybeDisclosure.isOpen),
+                      ],
+                    ),
+                  ],
+                ),
+                maybeDisclosure.isOpen
+                  ? h.div(
+                      [...attributes.panel, h.Class(disclosurePanelClassName)],
+                      [h.div([h.Class(wrapperClass)], content)],
+                    )
+                  : h.empty,
+              ],
+            ),
+        },
+        toParentMessage: message => GotDisclosureMessage({ id: key, message }),
       })
     : h.div([h.Class(wrapperClass)], content)
 }
 
-const parameterDescriptions = <ParentMessage>(
+const parameterDescriptions = (
   parameters: ReadonlyArray<ApiParameter>,
 ): ReadonlyArray<Html> => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return pipe(
     parameters,
@@ -272,70 +278,66 @@ const parameterDescriptions = <ParentMessage>(
   )
 }
 
-const punctuation = <ParentMessage>(text: string): Html => {
-  const h = html<ParentMessage>()
+const punctuation = (text: string): Html => {
+  const h = html<Message>()
 
   return h.span([h.Class('text-gray-500')], [text])
 }
 
-const parameterView = <ParentMessage>(
-  parameter: ApiParameter,
-): ReadonlyArray<Html> => {
-  const h = html<ParentMessage>()
+const parameterView = (parameter: ApiParameter): ReadonlyArray<Html> => {
+  const h = html<Message>()
 
   return [
     h.span(
       [h.Class('font-normal text-gray-900 dark:text-gray-200')],
       [parameter.name],
     ),
-    ...(parameter.isOptional ? [punctuation<ParentMessage>('?')] : []),
-    punctuation<ParentMessage>(': '),
+    ...(parameter.isOptional ? [punctuation('?')] : []),
+    punctuation(': '),
     h.span([h.Class('whitespace-pre-wrap')], [parameter.type]),
   ]
 }
 
-const parameterListView = <ParentMessage>(
+const parameterListView = (
   parameters: ReadonlyArray<ApiParameter>,
 ): ReadonlyArray<Html> => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return Array.match(parameters, {
-    onEmpty: () => [
-      h.div([h.Class('mb-2')], [punctuation<ParentMessage>('()')]),
-    ],
+    onEmpty: () => [h.div([h.Class('mb-2')], [punctuation('()')])],
     onNonEmpty: nonEmpty => [
       h.div(
         [h.Class('mb-2')],
         [
-          punctuation<ParentMessage>('('),
+          punctuation('('),
           ...Array.flatMap(nonEmpty, (parameter, index) => [
-            ...(index > 0 ? [punctuation<ParentMessage>(', ')] : []),
-            ...parameterView<ParentMessage>(parameter),
+            ...(index > 0 ? [punctuation(', ')] : []),
+            ...parameterView(parameter),
           ]),
-          punctuation<ParentMessage>(')'),
+          punctuation(')'),
         ],
       ),
-      ...parameterDescriptions<ParentMessage>(nonEmpty),
+      ...parameterDescriptions(nonEmpty),
     ],
   })
 }
 
-const returnTypeView = <ParentMessage>(returnType: string): Html => {
-  const h = html<ParentMessage>()
+const returnTypeView = (returnType: string): Html => {
+  const h = html<Message>()
 
   return h.div(
     [h.Class('whitespace-pre-wrap')],
     [
-      punctuation<ParentMessage>('→ '),
+      punctuation('→ '),
       h.span([h.Class('text-accent-600 dark:text-accent-400')], [returnType]),
     ],
   )
 }
 
-const descriptionCommentFallback = <ParentMessage>(
+const descriptionCommentFallback = (
   maybeDescription: Option.Option<string>,
 ): ReadonlyArray<Html> => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return Option.match(maybeDescription, {
     onNone: () => [],
@@ -348,12 +350,12 @@ const descriptionCommentFallback = <ParentMessage>(
   })
 }
 
-const signatureChildrenFallback = <ParentMessage>(signature: {
+const signatureChildrenFallback = (signature: {
   readonly parameters: ReadonlyArray<ApiParameter>
   readonly returnType: string
   readonly typeParameters: ReadonlyArray<string>
 }): ReadonlyArray<Html> => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return [
     ...Array.match(signature.typeParameters, {
@@ -365,17 +367,17 @@ const signatureChildrenFallback = <ParentMessage>(signature: {
         ),
       ],
     }),
-    ...parameterListView<ParentMessage>(signature.parameters),
-    returnTypeView<ParentMessage>(signature.returnType),
+    ...parameterListView(signature.parameters),
+    returnTypeView(signature.returnType),
   ]
 }
 
-const typeView = <ParentMessage>(
+const typeView = (
   moduleName: string,
   type: ApiType,
   highlights: Highlights,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
   const id = scopedId('type', moduleName, type.name)
   const maybeHighlighted = Record.get(highlights, id)
 
@@ -409,7 +411,7 @@ const typeView = <ParentMessage>(
                 ],
                 ['type'],
               ),
-              ...sourceLink<ParentMessage>(type.sourceUrl, type.name),
+              ...sourceLink(type.sourceUrl, type.name),
             ],
           ),
           headingLinkButton(id, type.name),
@@ -435,7 +437,7 @@ const typeView = <ParentMessage>(
               ),
             ],
             [
-              ...descriptionCommentFallback<ParentMessage>(type.description),
+              ...descriptionCommentFallback(type.description),
               type.typeDefinition,
             ],
           ),
@@ -445,12 +447,12 @@ const typeView = <ParentMessage>(
   )
 }
 
-const interfaceView = <ParentMessage>(
+const interfaceView = (
   moduleName: string,
   apiInterface: ApiInterface,
   highlights: Highlights,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
   const id = scopedId('interface', moduleName, apiInterface.name)
   const maybeHighlighted = Record.get(highlights, id)
 
@@ -484,10 +486,7 @@ const interfaceView = <ParentMessage>(
                 ],
                 ['interface'],
               ),
-              ...sourceLink<ParentMessage>(
-                apiInterface.sourceUrl,
-                apiInterface.name,
-              ),
+              ...sourceLink(apiInterface.sourceUrl, apiInterface.name),
             ],
           ),
           headingLinkButton(id, apiInterface.name),
@@ -513,9 +512,7 @@ const interfaceView = <ParentMessage>(
               ),
             ],
             [
-              ...descriptionCommentFallback<ParentMessage>(
-                apiInterface.description,
-              ),
+              ...descriptionCommentFallback(apiInterface.description),
               apiInterface.typeDefinition,
             ],
           ),
@@ -525,12 +522,12 @@ const interfaceView = <ParentMessage>(
   )
 }
 
-const variableView = <ParentMessage>(
+const variableView = (
   moduleName: string,
   variable: ApiVariable,
   highlights: Highlights,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
   const id = scopedId('const', moduleName, variable.name)
   const maybeHighlighted = Record.get(highlights, id)
 
@@ -564,7 +561,7 @@ const variableView = <ParentMessage>(
                 ],
                 ['const'],
               ),
-              ...sourceLink<ParentMessage>(variable.sourceUrl, variable.name),
+              ...sourceLink(variable.sourceUrl, variable.name),
             ],
           ),
           headingLinkButton(id, variable.name),
@@ -590,9 +587,7 @@ const variableView = <ParentMessage>(
               ),
             ],
             [
-              ...descriptionCommentFallback<ParentMessage>(
-                variable.description,
-              ),
+              ...descriptionCommentFallback(variable.description),
               variable.type,
             ],
           ),
@@ -616,55 +611,57 @@ const section = <T extends { readonly name: string }>(
     ],
   })
 
-export const view = <ParentMessage>(
-  module: ApiModule,
-  disclosures: Disclosures,
-  highlights: Highlights,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{
+  module: ApiModule
+  highlights: Highlights
+}>
 
-  return h.div(
-    [h.DataAttribute('pagefind-meta', 'kind:API Reference')],
-    [
-      pageTitle(module.name, module.name),
-      ...section(module.name, 'Functions', module.functions, apiFunction => {
-        const key = scopedId('function', module.name, apiFunction.name)
-        return lazyItem(key, functionView<ParentMessage>, [
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { module, highlights }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [h.DataAttribute('pagefind-meta', 'kind:API Reference')],
+      [
+        pageTitle(module.name, module.name),
+        ...section(module.name, 'Functions', module.functions, apiFunction => {
+          const key = scopedId('function', module.name, apiFunction.name)
+          return lazyItem(key, functionView, [
+            module.name,
+            apiFunction,
+            model.disclosures[key],
+            highlights,
+          ])
+        }),
+        ...section(module.name, 'Types', module.types, type => {
+          const key = scopedId('type', module.name, type.name)
+          return lazyItem(key, typeView, [module.name, type, highlights])
+        }),
+        ...section(
           module.name,
-          apiFunction,
-          disclosures[key],
-          highlights,
-          toParentMessage,
-        ])
-      }),
-      ...section(module.name, 'Types', module.types, type => {
-        const key = scopedId('type', module.name, type.name)
-        return lazyItem(key, typeView<ParentMessage>, [
-          module.name,
-          type,
-          highlights,
-        ])
-      }),
-      ...section(module.name, 'Interfaces', module.interfaces, apiInterface => {
-        const key = scopedId('interface', module.name, apiInterface.name)
-        return lazyItem(key, interfaceView<ParentMessage>, [
-          module.name,
-          apiInterface,
-          highlights,
-        ])
-      }),
-      ...section(module.name, 'Constants', module.variables, variable => {
-        const key = scopedId('const', module.name, variable.name)
-        return lazyItem(key, variableView<ParentMessage>, [
-          module.name,
-          variable,
-          highlights,
-        ])
-      }),
-    ],
-  )
-}
+          'Interfaces',
+          module.interfaces,
+          apiInterface => {
+            const key = scopedId('interface', module.name, apiInterface.name)
+            return lazyItem(key, interfaceView, [
+              module.name,
+              apiInterface,
+              highlights,
+            ])
+          },
+        ),
+        ...section(module.name, 'Constants', module.variables, variable => {
+          const key = scopedId('const', module.name, variable.name)
+          return lazyItem(key, variableView, [
+            module.name,
+            variable,
+            highlights,
+          ])
+        }),
+      ],
+    )
+  },
+)
 
 const skeletonFunctionBlocks: ReadonlyArray<{
   readonly labelWidth: string
@@ -680,8 +677,8 @@ const skeletonFunctionBlocks: ReadonlyArray<{
 
 const skeletonSurfaceClass = 'bg-gray-200 dark:bg-gray-800'
 
-export const skeletonView = <ParentMessage>(): Html => {
-  const h = html<ParentMessage>()
+export const skeletonView = (): Html => {
+  const h = html<Message>()
 
   return h.div(
     [h.Class('animate-pulse')],
@@ -711,8 +708,8 @@ export const skeletonView = <ParentMessage>(): Html => {
   )
 }
 
-export const failureView = <ParentMessage>(error: string): Html => {
-  const h = html<ParentMessage>()
+export const failureView = (error: string): Html => {
+  const h = html<Message>()
 
   return h.div(
     [h.Class('rounded-lg border border-red-300 dark:border-red-800 p-6')],

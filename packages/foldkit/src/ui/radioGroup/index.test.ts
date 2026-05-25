@@ -7,6 +7,7 @@ import {
   FocusOption,
   SelectedOption,
   init,
+  reflectSelectedValue,
   update,
 } from './index.js'
 
@@ -90,6 +91,24 @@ describe('RadioGroup', () => {
           expect(model).toBe(originalModel)
         }),
       )
+    })
+  })
+
+  describe('reflectSelectedValue', () => {
+    it('reflects a value onto selectedValue without emitting', () => {
+      const next = reflectSelectedValue(
+        init({ id: 'test' }),
+        Option.some('enterprise'),
+      )
+      expect(next.selectedValue).toStrictEqual(Option.some('enterprise'))
+    })
+
+    it('clears the selection when given None', () => {
+      const next = reflectSelectedValue(
+        init({ id: 'test', selectedValue: 'startup' }),
+        Option.none(),
+      )
+      expect(next.selectedValue).toStrictEqual(Option.none())
     })
   })
 })

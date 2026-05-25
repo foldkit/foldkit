@@ -1,29 +1,56 @@
 import { describe, it } from '@effect/vitest'
-import { Effect } from 'effect'
+import { Context } from 'effect'
 import { h } from 'snabbdom'
-import { expect } from 'vitest'
+import { afterEach, beforeEach, expect } from 'vitest'
 
+import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
 import { createKeyedLazy, createLazy } from './lazy.js'
+import {
+  type DispatchSync,
+  clearRuntime,
+  setRuntime,
+} from './runtimeSingleton.js'
 
-const noOpDispatch = Dispatch.of({
-  dispatchAsync: () => Effect.void,
-  dispatchSync: () => {},
+const noOpDispatchSync: DispatchSync = () => {}
+
+const noOpDispatchService = Dispatch.of({
+  dispatchAsync: () =>
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    Promise.resolve() as unknown as ReturnType<
+      typeof Dispatch.Service.dispatchAsync
+    >,
+  dispatchSync: noOpDispatchSync,
 })
 
-const runHtml = <A>(effect: Effect.Effect<A, never, Dispatch>): A =>
-  Effect.runSync(Effect.provideService(effect, Dispatch, noOpDispatch))
+const noOpContext = Context.make(Dispatch, noOpDispatchService).pipe(
+  Context.add(MountTracker, {
+    started: () => {},
+    ended: () => {},
+  }),
+)
+
+const pushNoOpRuntime = (): void => {
+  setRuntime(noOpDispatchSync, noOpContext)
+}
 
 describe('createLazy', () => {
+  beforeEach(() => {
+    pushNoOpRuntime()
+  })
+  afterEach(() => {
+    clearRuntime()
+  })
+
   it('calls the view function on first render', () => {
     let callCount = 0
     const viewFn = (label: string) => {
       callCount++
-      return Effect.succeed(h('div', {}, [label]))
+      return h('div', {}, [label])
     }
 
     const lazy = createLazy()
-    runHtml(lazy(viewFn, ['hello']))
+    lazy(viewFn, ['hello'])
 
     expect(callCount).toBe(1)
   })
@@ -32,12 +59,12 @@ describe('createLazy', () => {
     let callCount = 0
     const viewFn = (label: string) => {
       callCount++
-      return Effect.succeed(h('div', {}, [label]))
+      return h('div', {}, [label])
     }
 
     const lazy = createLazy()
-    const firstVNode = runHtml(lazy(viewFn, ['hello']))
-    const secondVNode = runHtml(lazy(viewFn, ['hello']))
+    const firstVNode = lazy(viewFn, ['hello'])
+    const secondVNode = lazy(viewFn, ['hello'])
 
     expect(callCount).toBe(1)
     expect(secondVNode).toBe(firstVNode)
@@ -47,12 +74,12 @@ describe('createLazy', () => {
     let callCount = 0
     const viewFn = (count: number) => {
       callCount++
-      return Effect.succeed(h('div', {}, [`count: ${count}`]))
+      return h('div', {}, [`count: ${count}`])
     }
 
     const lazy = createLazy()
-    const firstVNode = runHtml(lazy(viewFn, [1]))
-    const secondVNode = runHtml(lazy(viewFn, [2]))
+    const firstVNode = lazy(viewFn, [1])
+    const secondVNode = lazy(viewFn, [2])
 
     expect(callCount).toBe(2)
     expect(secondVNode).not.toBe(firstVNode)
@@ -62,12 +89,12 @@ describe('createLazy', () => {
     let callCount = 0
     const makeViewFn = () => (label: string) => {
       callCount++
-      return Effect.succeed(h('div', {}, [label]))
+      return h('div', {}, [label])
     }
 
     const lazy = createLazy()
-    runHtml(lazy(makeViewFn(), ['hello']))
-    runHtml(lazy(makeViewFn(), ['hello']))
+    lazy(makeViewFn(), ['hello'])
+    lazy(makeViewFn(), ['hello'])
 
     expect(callCount).toBe(2)
   })
@@ -76,12 +103,12 @@ describe('createLazy', () => {
     let callCount = 0
     const viewFn = (label: string, count: number) => {
       callCount++
-      return Effect.succeed(h('div', {}, [`${label}: ${count}`]))
+      return h('div', {}, [`${label}: ${count}`])
     }
 
     const lazy = createLazy()
-    runHtml(lazy(viewFn, ['hello', 42]))
-    runHtml(lazy(viewFn, ['hello', 42]))
+    lazy(viewFn, ['hello', 42])
+    lazy(viewFn, ['hello', 42])
 
     expect(callCount).toBe(1)
   })
@@ -90,12 +117,12 @@ describe('createLazy', () => {
     let callCount = 0
     const viewFn = (label: string, count: number) => {
       callCount++
-      return Effect.succeed(h('div', {}, [`${label}: ${count}`]))
+      return h('div', {}, [`${label}: ${count}`])
     }
 
     const lazy = createLazy()
-    runHtml(lazy(viewFn, ['hello', 1]))
-    runHtml(lazy(viewFn, ['hello', 2]))
+    lazy(viewFn, ['hello', 1])
+    lazy(viewFn, ['hello', 2])
 
     expect(callCount).toBe(2)
   })
@@ -104,13 +131,13 @@ describe('createLazy', () => {
     let callCount = 0
     const viewFn = (model: Readonly<{ value: number }>) => {
       callCount++
-      return Effect.succeed(h('div', {}, [`${model.value}`]))
+      return h('div', {}, [`${model.value}`])
     }
 
     const model = { value: 1 }
     const lazy = createLazy()
-    runHtml(lazy(viewFn, [model]))
-    runHtml(lazy(viewFn, [model]))
+    lazy(viewFn, [model])
+    lazy(viewFn, [model])
 
     expect(callCount).toBe(1)
   })
@@ -119,12 +146,12 @@ describe('createLazy', () => {
     let callCount = 0
     const viewFn = (model: Readonly<{ value: number }>) => {
       callCount++
-      return Effect.succeed(h('div', {}, [`${model.value}`]))
+      return h('div', {}, [`${model.value}`])
     }
 
     const lazy = createLazy()
-    runHtml(lazy(viewFn, [{ value: 1 }]))
-    runHtml(lazy(viewFn, [{ value: 1 }]))
+    lazy(viewFn, [{ value: 1 }])
+    lazy(viewFn, [{ value: 1 }])
 
     expect(callCount).toBe(2)
   })
@@ -133,13 +160,13 @@ describe('createLazy', () => {
     let callCount = 0
     const viewFn = (label: string) => {
       callCount++
-      return Effect.succeed(h('div', {}, [label]))
+      return h('div', {}, [label])
     }
 
     const lazyA = createLazy()
     const lazyB = createLazy()
-    runHtml(lazyA(viewFn, ['hello']))
-    runHtml(lazyB(viewFn, ['hello']))
+    lazyA(viewFn, ['hello'])
+    lazyB(viewFn, ['hello'])
 
     expect(callCount).toBe(2)
   })
@@ -148,51 +175,61 @@ describe('createLazy', () => {
     let callCount = 0
     const viewFn = () => {
       callCount++
-      return Effect.succeed(null)
+      return null
     }
 
     const lazy = createLazy()
-    const firstResult = runHtml(lazy(viewFn, []))
-    const secondResult = runHtml(lazy(viewFn, []))
+    const firstResult = lazy(viewFn, [])
+    const secondResult = lazy(viewFn, [])
 
     expect(callCount).toBe(1)
     expect(firstResult).toBeNull()
     expect(secondResult).toBeNull()
   })
 
-  it('recomputes when dispatch context changes', () => {
+  it('recomputes when dispatch changes between renders', () => {
     let callCount = 0
     const viewFn = (label: string) => {
       callCount++
-      return Effect.succeed(h('div', {}, [label]))
+      return h('div', {}, [label])
     }
 
-    const otherDispatch = Dispatch.of({
-      dispatchAsync: () => Effect.void,
-      dispatchSync: () => {},
-    })
+    const otherDispatchSync: DispatchSync = () => {}
+    const otherContext = Context.make(Dispatch, noOpDispatchService).pipe(
+      Context.add(MountTracker, {
+        started: () => {},
+        ended: () => {},
+      }),
+    )
 
     const lazy = createLazy()
-    runHtml(lazy(viewFn, ['hello']))
-    Effect.runSync(
-      Effect.provideService(lazy(viewFn, ['hello']), Dispatch, otherDispatch),
-    )
+    lazy(viewFn, ['hello'])
+    clearRuntime()
+    setRuntime(otherDispatchSync, otherContext)
+    lazy(viewFn, ['hello'])
 
     expect(callCount).toBe(2)
   })
 })
 
 describe('createKeyedLazy', () => {
+  beforeEach(() => {
+    pushNoOpRuntime()
+  })
+  afterEach(() => {
+    clearRuntime()
+  })
+
   it('calls the view function on first render for each key', () => {
     let callCount = 0
     const viewFn = (label: string) => {
       callCount++
-      return Effect.succeed(h('div', {}, [label]))
+      return h('div', {}, [label])
     }
 
     const lazy = createKeyedLazy()
-    runHtml(lazy('a', viewFn, ['hello']))
-    runHtml(lazy('b', viewFn, ['world']))
+    lazy('a', viewFn, ['hello'])
+    lazy('b', viewFn, ['world'])
 
     expect(callCount).toBe(2)
   })
@@ -201,14 +238,14 @@ describe('createKeyedLazy', () => {
     let callCount = 0
     const viewFn = (label: string) => {
       callCount++
-      return Effect.succeed(h('div', {}, [label]))
+      return h('div', {}, [label])
     }
 
     const lazy = createKeyedLazy()
-    runHtml(lazy('a', viewFn, ['hello']))
-    runHtml(lazy('b', viewFn, ['world']))
-    runHtml(lazy('a', viewFn, ['hello']))
-    runHtml(lazy('b', viewFn, ['world']))
+    lazy('a', viewFn, ['hello'])
+    lazy('b', viewFn, ['world'])
+    lazy('a', viewFn, ['hello'])
+    lazy('b', viewFn, ['world'])
 
     expect(callCount).toBe(2)
   })
@@ -217,60 +254,58 @@ describe('createKeyedLazy', () => {
     const calls: Array<string> = []
     const viewFn = (label: string) => {
       calls.push(label)
-      return Effect.succeed(h('div', {}, [label]))
+      return h('div', {}, [label])
     }
 
     const lazy = createKeyedLazy()
-    runHtml(lazy('a', viewFn, ['hello']))
-    runHtml(lazy('b', viewFn, ['world']))
-    runHtml(lazy('a', viewFn, ['hello']))
-    runHtml(lazy('b', viewFn, ['changed']))
+    lazy('a', viewFn, ['hello'])
+    lazy('b', viewFn, ['world'])
+    lazy('a', viewFn, ['hello'])
+    lazy('b', viewFn, ['changed'])
 
     expect(calls).toStrictEqual(['hello', 'world', 'changed'])
   })
 
   it('returns cached VNode reference on cache hit', () => {
-    const viewFn = (label: string) => Effect.succeed(h('div', {}, [label]))
+    const viewFn = (label: string) => h('div', {}, [label])
 
     const lazy = createKeyedLazy()
-    const first = runHtml(lazy('a', viewFn, ['hello']))
-    const second = runHtml(lazy('a', viewFn, ['hello']))
+    const first = lazy('a', viewFn, ['hello'])
+    const second = lazy('a', viewFn, ['hello'])
 
     expect(second).toBe(first)
   })
 
   it('returns different VNode references on cache miss', () => {
-    const viewFn = (active: boolean) =>
-      Effect.succeed(h('div', {}, [String(active)]))
+    const viewFn = (active: boolean) => h('div', {}, [String(active)])
 
     const lazy = createKeyedLazy()
-    const first = runHtml(lazy('a', viewFn, [false]))
-    const second = runHtml(lazy('a', viewFn, [true]))
+    const first = lazy('a', viewFn, [false])
+    const second = lazy('a', viewFn, [true])
 
     expect(second).not.toBe(first)
   })
 
-  it('recomputes when dispatch context changes', () => {
+  it('recomputes when dispatch changes between renders', () => {
     let callCount = 0
     const viewFn = (label: string) => {
       callCount++
-      return Effect.succeed(h('div', {}, [label]))
+      return h('div', {}, [label])
     }
 
-    const otherDispatch = Dispatch.of({
-      dispatchAsync: () => Effect.void,
-      dispatchSync: () => {},
-    })
+    const otherDispatchSync: DispatchSync = () => {}
+    const otherContext = Context.make(Dispatch, noOpDispatchService).pipe(
+      Context.add(MountTracker, {
+        started: () => {},
+        ended: () => {},
+      }),
+    )
 
     const lazy = createKeyedLazy()
-    runHtml(lazy('a', viewFn, ['hello']))
-    Effect.runSync(
-      Effect.provideService(
-        lazy('a', viewFn, ['hello']),
-        Dispatch,
-        otherDispatch,
-      ),
-    )
+    lazy('a', viewFn, ['hello'])
+    clearRuntime()
+    setRuntime(otherDispatchSync, otherContext)
+    lazy('a', viewFn, ['hello'])
 
     expect(callCount).toBe(2)
   })

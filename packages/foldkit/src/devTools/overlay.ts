@@ -27,6 +27,7 @@ import {
   DEVTOOLS_HOST_ID,
   type Document,
   type Html,
+  childAttributes,
   createKeyedLazy,
   createLazy,
   html,
@@ -53,6 +54,8 @@ import {
   extractSubmodelInfo,
   isTagged,
 } from './submodelPath.js'
+
+const SubmodelFilterListbox = Listbox.create<string>()
 
 // MODEL
 
@@ -87,6 +90,15 @@ const InspectorTabsModel = S.Struct({
   focusedIndex: S.Number,
   activationMode: S.Literals(['Automatic', 'Manual']),
 })
+
+type InspectorTab = 'Model' | 'Message' | 'Commands' | 'Mounts'
+const INSPECTOR_TABS: ReadonlyArray<InspectorTab> = [
+  'Model',
+  'Message',
+  'Commands',
+  'Mounts',
+]
+const InspectorTabs = Tabs.create<InspectorTab>()
 
 /**
  * `S.Unknown` whose equivalence is reference equality. Effect 4's default
@@ -185,9 +197,6 @@ const ReceivedStoreUpdate = m('ReceivedStoreUpdate', {
 const GotSubmodelFilterMessage = m('GotSubmodelFilterMessage', {
   message: Listbox.Message,
 })
-const SelectedSubmodelFilter = m('SelectedSubmodelFilter', {
-  tag: S.String,
-})
 // NOTE: suspend for the same init-order reason as scrubberSlider above.
 const GotScrubberSliderMessage = m('GotScrubberSliderMessage', {
   message: S.suspend((): typeof Slider.Message => Slider.Message),
@@ -213,7 +222,6 @@ const Message = S.Union([
   GotInspectorTabsMessage,
   ReceivedStoreUpdate,
   GotSubmodelFilterMessage,
-  SelectedSubmodelFilter,
   GotScrubberSliderMessage,
 ])
 type Message = typeof Message.Type
@@ -335,6 +343,8 @@ const collapsedPreview = (value: unknown): string =>
   )
 
 // UPDATE
+
+type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 
 class StoreService extends Context.Service<StoreService, DevToolsStore>()(
   'foldkit/DevToolsStore',
@@ -458,14 +468,9 @@ const makeUpdate = (
   const toggleScrollLock = (shouldLock: boolean) =>
     shouldLock ? LockScroll() : UnlockScroll()
 
-  return (
-    model: Model,
-    message: Message,
-  ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  return (model: Model, message: Message): UpdateReturn =>
     M.value(message).pipe(
-      M.withReturnType<
-        readonly [Model, ReadonlyArray<Command.Command<Message>>]
-      >(),
+      M.withReturnType<UpdateReturn>(),
       M.tags({
         ClickedToggle: () => {
           const nextIsOpen = !model.isOpen
@@ -566,7 +571,7 @@ const makeUpdate = (
           [],
         ],
         GotInspectorTabsMessage: ({ message: tabsMessage }) => {
-          const [nextTabsModel, tabsCommands] = Tabs.update(
+          const [nextTabsModel, tabsCommands] = InspectorTabs.update(
             model.inspectorTabs,
             /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
             tabsMessage as Tabs.Message,
@@ -576,12 +581,8 @@ const makeUpdate = (
             evo(model, {
               inspectorTabs: () => nextTabsModel,
             }),
-            tabsCommands.map(
-              Command.mapEffect(
-                Effect.map(innerMessage =>
-                  GotInspectorTabsMessage({ message: innerMessage }),
-                ),
-              ),
+            Command.mapMessages(tabsCommands, innerMessage =>
+              GotInspectorTabsMessage({ message: innerMessage }),
             ),
           ]
         },
@@ -649,8 +650,8 @@ const makeUpdate = (
                 const targetSliderValue = isPaused
                   ? hostIndexToSliderValue(pausedAtIndex, startIndex)
                   : sliderMax
-                return Slider.setValue(
-                  Slider.setRange(current, { min: 0, max: sliderMax }),
+                return Slider.reflectValue(
+                  Slider.reflectRange(current, { min: 0, max: sliderMax }),
                   targetSliderValue,
                 )
               },
@@ -662,44 +663,35 @@ const makeUpdate = (
           ]
         },
         GotSubmodelFilterMessage: ({ message: listboxMessage }) => {
-          const [nextListboxModel, listboxCommands] = Listbox.update(
-            model.submodelFilterListbox,
-            listboxMessage,
+          const [nextListboxModel, listboxCommands, maybeOutMessage] =
+            SubmodelFilterListbox.update(
+              model.submodelFilterListbox,
+              listboxMessage,
+            )
+          const mappedCommands = Command.mapMessages(
+            listboxCommands,
+            innerMessage => GotSubmodelFilterMessage({ message: innerMessage }),
           )
 
-          return [
-            evo(model, {
-              submodelFilterListbox: () => nextListboxModel,
-            }),
-            listboxCommands.map(
-              Command.mapEffect(
-                Effect.map(innerMessage =>
-                  GotSubmodelFilterMessage({ message: innerMessage }),
-                ),
-              ),
+          return Option.match(maybeOutMessage, {
+            onNone: (): UpdateReturn => [
+              evo(model, { submodelFilterListbox: () => nextListboxModel }),
+              mappedCommands,
+            ],
+            onSome: M.type<Listbox.OutMessage>().pipe(
+              M.withReturnType<UpdateReturn>(),
+              M.tagsExhaustive({
+                Selected: ({ value }) => [
+                  evo(model, {
+                    maybeSubmodelFilter: () =>
+                      Option.liftPredicate(value, String_.isNonEmpty),
+                    submodelFilterListbox: () => nextListboxModel,
+                  }),
+                  mappedCommands,
+                ],
+              }),
             ),
-          ]
-        },
-        SelectedSubmodelFilter: ({ tag }) => {
-          const [nextListbox, listboxCommands] = Listbox.selectItem(
-            model.submodelFilterListbox,
-            tag,
-          )
-
-          return [
-            evo(model, {
-              maybeSubmodelFilter: () =>
-                Option.liftPredicate(tag, String_.isNonEmpty),
-              submodelFilterListbox: () => nextListbox,
-            }),
-            listboxCommands.map(
-              Command.mapEffect(
-                Effect.map(innerMessage =>
-                  GotSubmodelFilterMessage({ message: innerMessage }),
-                ),
-              ),
-            ),
-          ]
+          })
         },
         GotScrubberSliderMessage: ({ message: sliderMessage }) => {
           const [nextSlider, sliderCommands, maybeOutMessage] = Slider.update(
@@ -707,12 +699,9 @@ const makeUpdate = (
             sliderMessage,
           )
 
-          const mappedSliderCommands = sliderCommands.map(
-            Command.mapEffect(
-              Effect.map(innerMessage =>
-                GotScrubberSliderMessage({ message: innerMessage }),
-              ),
-            ),
+          const mappedSliderCommands = Command.mapMessages(
+            sliderCommands,
+            innerMessage => GotScrubberSliderMessage({ message: innerMessage }),
           )
 
           const additionalCommands = Option.match(maybeOutMessage, {
@@ -847,27 +836,38 @@ const makeView = (
   const leafValueView = (value: unknown): Html =>
     M.value(value).pipe(
       M.when(Predicate.isNull, () =>
-        h.span([h.Class('json-null italic')], ['null']),
+        h.span([h.Key('value'), h.Class('json-null italic')], ['null']),
       ),
       M.when(Predicate.isUndefined, () =>
-        h.span([h.Class('json-null italic')], ['undefined']),
+        h.span([h.Key('value'), h.Class('json-null italic')], ['undefined']),
       ),
       M.when(Predicate.isString, stringValue =>
-        h.span([h.Class('json-string')], [`"${stringValue}"`]),
+        h.span([h.Key('value'), h.Class('json-string')], [`"${stringValue}"`]),
       ),
       M.when(Predicate.isNumber, numberValue =>
-        h.span([h.Class('json-number')], [String(numberValue)]),
+        h.span([h.Key('value'), h.Class('json-number')], [String(numberValue)]),
       ),
       M.when(Predicate.isBoolean, booleanValue =>
-        h.span([h.Class('json-boolean')], [String(booleanValue)]),
+        h.span(
+          [h.Key('value'), h.Class('json-boolean')],
+          [String(booleanValue)],
+        ),
       ),
       M.orElse(unknownValue =>
-        h.span([h.Class('json-null')], [String(unknownValue)]),
+        h.span([h.Key('value'), h.Class('json-null')], [String(unknownValue)]),
       ),
     )
 
+  // NOTE: each row-child view declares an explicit key. snabbdom's
+  // `sameVnode` only checks `key + sel`, and foldkit element vnodes carry
+  // `sel = tagName` with classes stored in `data.class`. Without per-role
+  // keys, two unkeyed spans with different classes (e.g. `.json-key` and
+  // `.diff-dot`) are sameVnode to snabbdom, so a single DOM span gets
+  // recycled across roles as rows transition shape \u2014 and the text-node
+  // children from the old role can leak into the new role's element.
+  // Keying by role pins each slot to its own DOM element.
   const keyView = (key: string): Html =>
-    h.span([h.Class('json-key')], [`${key}:\u00a0`])
+    h.span([h.Key('key'), h.Class('json-key')], [`${key}:\u00a0`])
 
   const CHEVRON_RIGHT = 'M8.25 4.5l7.5 7.5-7.5 7.5'
   const CHEVRON_DOWN = 'M19.5 8.25l-7.5 7.5-7.5-7.5'
@@ -875,9 +875,10 @@ const makeView = (
   const arrowView = (isExpanded: boolean): Html =>
     h.svg(
       [
+        h.Key('arrow'),
         h.AriaHidden(true),
         h.Class('json-arrow shrink-0'),
-        h.Xmlns('http://www.w3.org/2000/h.svg'),
+        h.Xmlns('http://www.w3.org/2000/svg'),
         h.Fill('none'),
         h.ViewBox('0 0 24 24'),
         h.StrokeWidth('2'),
@@ -896,9 +897,9 @@ const makeView = (
     )
 
   const tagLabelView = (tag: string): Html =>
-    h.span([h.Class('json-tag')], [tag])
+    h.span([h.Key('tag'), h.Class('json-tag')], [tag])
 
-  const diffDotView: Html = h.span([h.Class('diff-dot')], [])
+  const diffDotView: Html = h.span([h.Key('diffdot'), h.Class('diff-dot')], [])
   const inlineDiffDotView: Html = h.span([h.Class('diff-dot-inline')], [])
 
   type FlatNode = Readonly<{
@@ -1052,7 +1053,7 @@ const makeView = (
         ...(!isRoot && hasDiffDot ? [diffDotView] : []),
         ...(String_.isNonEmpty(key) ? [keyView(key)] : []),
         ...(String_.isNonEmpty(tag) ? [tagLabelView(tag)] : []),
-        h.span([h.Class('json-preview')], [preview]),
+        h.span([h.Key('value'), h.Class('json-preview')], [preview]),
       ],
     )
   }
@@ -1144,21 +1145,13 @@ const makeView = (
     ['Click a message to inspect'],
   )
 
-  type InspectorTab = 'Model' | 'Message' | 'Commands' | 'Mounts'
-  const INSPECTOR_TABS: ReadonlyArray<InspectorTab> = [
-    'Model',
-    'Message',
-    'Commands',
-    'Mounts',
-  ]
-
   const noMessageView: Html = h.div(
     [
       h.Class(
         'flex-1 flex items-center justify-center text-dt-muted text-2xs font-mono min-w-0',
       ),
     ],
-    ['init — no Message'],
+    ['init: no Message'],
   )
 
   const modelTabContent = (
@@ -1514,32 +1507,63 @@ const makeView = (
         ),
       ],
       [
-        Tabs.view<Message, InspectorTab>({
+        h.submodel({
+          slotId: model.inspectorTabs.id,
           model: model.inspectorTabs,
-          toParentMessage: tabsMessage =>
-            GotInspectorTabsMessage({ message: tabsMessage }),
-          tabs: INSPECTOR_TABS,
-          tabListAriaLabel: 'Inspector tabs',
-          persistPanels: true,
-          attributes: [h.Class('flex flex-col flex-1 min-h-0')],
-          tabListAttributes: [h.Class('flex border-b shrink-0')],
-          tabToConfig: (tab, { isActive }) => ({
-            buttonAttributes: [
-              h.Class(
-                clsx(
-                  'dt-tab-button cursor-pointer text-base font-mono px-3 py-1',
-                  isActive ? 'text-dt dt-tab-active' : 'text-dt-muted',
-                ),
+          view: InspectorTabs.view,
+          viewInputs: {
+            tabs: INSPECTOR_TABS,
+            ariaLabel: 'Inspector tabs',
+            toView: ({ tablist, tabs, activeIndex }) =>
+              h.div(
+                [h.Class('flex flex-col flex-1 min-h-0')],
+                [
+                  h.div(
+                    [...tablist, h.Class('flex border-b shrink-0')],
+                    tabs.map(tab =>
+                      h.button(
+                        [
+                          ...tab.tab,
+                          h.Class(
+                            clsx(
+                              'dt-tab-button cursor-pointer text-base font-mono px-3 py-1',
+                              tab.isActive
+                                ? 'text-dt dt-tab-active'
+                                : 'text-dt-muted',
+                            ),
+                          ),
+                        ],
+                        [h.span([], [tab.value])],
+                      ),
+                    ),
+                  ),
+                  ...tabs.map(tab =>
+                    h.div(
+                      [
+                        ...tab.panel,
+                        h.Class('flex flex-col flex-1 min-h-0 min-w-0'),
+                        h.Hidden(tab.index !== activeIndex),
+                        ...(tab.index === activeIndex
+                          ? []
+                          : [h.Style({ display: 'none' })]),
+                      ],
+                      [
+                        Option.match(model.maybeInspectedModel, {
+                          onNone: () => emptyInspectorView,
+                          onSome: inspectedModel =>
+                            inspectorTabContent(
+                              model,
+                              tab.value,
+                              inspectedModel,
+                            ),
+                        }),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-            buttonContent: h.span([], [tab]),
-            panelAttributes: [h.Class('flex flex-col flex-1 min-h-0 min-w-0')],
-            panelContent: Option.match(model.maybeInspectedModel, {
-              onNone: () => emptyInspectorView,
-              onSome: inspectedModel =>
-                inspectorTabContent(model, tab, inspectedModel),
-            }),
-          }),
+          },
+          toParentMessage: message => GotInspectorTabsMessage({ message }),
         }),
       ],
     )
@@ -1564,7 +1588,7 @@ const makeView = (
           ? h.svg(
               [
                 h.AriaHidden(true),
-                h.Xmlns('http://www.w3.org/2000/h.svg'),
+                h.Xmlns('http://www.w3.org/2000/svg'),
                 h.Fill('none'),
                 h.ViewBox('0 0 24 24'),
                 h.StrokeWidth('1.5'),
@@ -1618,7 +1642,7 @@ const makeView = (
     [
       h.AriaHidden(true),
       h.Class('dt-filter-check shrink-0'),
-      h.Xmlns('http://www.w3.org/2000/h.svg'),
+      h.Xmlns('http://www.w3.org/2000/svg'),
       h.Fill('none'),
       h.ViewBox('0 0 24 24'),
       h.StrokeWidth('2'),
@@ -1641,7 +1665,7 @@ const makeView = (
     [
       h.AriaHidden(true),
       h.Class('dt-scroll-pill-icon shrink-0'),
-      h.Xmlns('http://www.w3.org/2000/h.svg'),
+      h.Xmlns('http://www.w3.org/2000/svg'),
       h.Fill('none'),
       h.ViewBox('0 0 24 24'),
       h.StrokeWidth('2'),
@@ -1673,50 +1697,53 @@ const makeView = (
       onSome: submodelLabel,
     })
 
-    return Listbox.view<Message, string>({
+    return h.submodel({
+      slotId: 'submodel-filter',
       model: model.submodelFilterListbox,
-      toParentMessage: message => GotSubmodelFilterMessage({ message }),
-      onSelectedItem: tag => SelectedSubmodelFilter({ tag }),
-      items: [ALL_MESSAGES_VALUE, ...model.submodelTags],
-      itemToConfig: item => ({
-        className: 'dt-filter-item',
-        content: h.div(
-          [h.Class('flex items-center gap-2')],
-          [checkIconView, h.span([], [filterItemLabel(item)])],
-        ),
-      }),
-      buttonContent: h.span(
-        [h.Class('flex flex-1 items-center justify-between')],
-        [
-          h.span([], [buttonLabel]),
-          h.svg(
-            [
-              h.AriaHidden(true),
-              h.Class('json-arrow shrink-0'),
-              h.Xmlns('http://www.w3.org/2000/h.svg'),
-              h.Fill('none'),
-              h.ViewBox('0 0 24 24'),
-              h.StrokeWidth('2'),
-              h.Stroke('currentColor'),
-            ],
-            [
-              h.path(
-                [
-                  h.D(CHEVRON_DOWN),
-                  h.StrokeLinecap('round'),
-                  h.StrokeLinejoin('round'),
-                ],
-                [],
-              ),
-            ],
+      view: SubmodelFilterListbox.view,
+      viewInputs: {
+        items: [ALL_MESSAGES_VALUE, ...model.submodelTags],
+        itemToConfig: item => ({
+          className: 'dt-filter-item',
+          content: h.div(
+            [h.Class('flex items-center gap-2')],
+            [checkIconView, h.span([], [filterItemLabel(item)])],
           ),
-        ],
-      ),
-      buttonClassName: 'dt-filter-button',
-      itemsClassName: 'dt-filter-items',
-      className: 'dt-filter-wrapper',
-      attributes: [h.Key('submodel-filter')],
-      backdropClassName: 'dt-filter-backdrop',
+        }),
+        buttonContent: h.span(
+          [h.Class('flex flex-1 items-center justify-between')],
+          [
+            h.span([], [buttonLabel]),
+            h.svg(
+              [
+                h.AriaHidden(true),
+                h.Class('json-arrow shrink-0'),
+                h.Xmlns('http://www.w3.org/2000/svg'),
+                h.Fill('none'),
+                h.ViewBox('0 0 24 24'),
+                h.StrokeWidth('2'),
+                h.Stroke('currentColor'),
+              ],
+              [
+                h.path(
+                  [
+                    h.D(CHEVRON_DOWN),
+                    h.StrokeLinecap('round'),
+                    h.StrokeLinejoin('round'),
+                  ],
+                  [],
+                ),
+              ],
+            ),
+          ],
+        ),
+        buttonClassName: 'dt-filter-button',
+        itemsClassName: 'dt-filter-items',
+        className: 'dt-filter-wrapper',
+        attributes: childAttributes([h.Key('submodel-filter')]),
+        backdropClassName: 'dt-filter-backdrop',
+      },
+      toParentMessage: message => GotSubmodelFilterMessage({ message }),
     })
   }
 
@@ -1811,7 +1838,7 @@ const makeView = (
     [
       h.AriaHidden(true),
       h.Class('dt-pause-icon'),
-      h.Xmlns('http://www.w3.org/2000/h.svg'),
+      h.Xmlns('http://www.w3.org/2000/svg'),
       h.Fill('none'),
       h.ViewBox('0 0 24 24'),
       h.StrokeWidth('2.5'),
@@ -1975,51 +2002,59 @@ const makeView = (
   }
 
   const scrubberView = (model: Model): Html =>
-    Slider.view<Message>({
+    h.submodel({
+      slotId: model.scrubberSlider.id,
       model: model.scrubberSlider,
+      view: Slider.view,
+      viewInputs: {
+        ariaLabel: 'Session scrubber',
+        getTrackRoot: () => shadow,
+        formatValue: value =>
+          value === 0 ? 'init' : `Message ${String(value)}`,
+        toView: attributes =>
+          h.div(
+            [
+              h.Class(
+                'dt-scrubber-row flex items-center gap-3 px-3 py-2 border-t shrink-0',
+              ),
+            ],
+            [
+              h.div(
+                [
+                  ...attributes.root,
+                  h.Class('dt-scrubber-control flex-1 flex items-center'),
+                ],
+                [
+                  h.div(
+                    [...attributes.track, h.Class('dt-scrubber-track')],
+                    [
+                      h.div(
+                        [
+                          ...attributes.filledTrack,
+                          h.Class('dt-scrubber-fill'),
+                        ],
+                        [],
+                      ),
+                      h.div(
+                        [...attributes.thumb, h.Class('dt-scrubber-thumb')],
+                        [],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              h.span(
+                [
+                  h.Class(
+                    'dt-scrubber-position text-2xs text-dt-muted font-mono shrink-0 tabular-nums',
+                  ),
+                ],
+                [scrubberPositionLabel(model)],
+              ),
+            ],
+          ),
+      },
       toParentMessage: message => GotScrubberSliderMessage({ message }),
-      ariaLabel: 'Session scrubber',
-      getTrackRoot: () => shadow,
-      formatValue: value => (value === 0 ? 'init' : `Message ${String(value)}`),
-      toView: attributes =>
-        h.div(
-          [
-            h.Class(
-              'dt-scrubber-row flex items-center gap-3 px-3 py-2 border-t shrink-0',
-            ),
-          ],
-          [
-            h.div(
-              [
-                ...attributes.root,
-                h.Class('dt-scrubber-control flex-1 flex items-center'),
-              ],
-              [
-                h.div(
-                  [...attributes.track, h.Class('dt-scrubber-track')],
-                  [
-                    h.div(
-                      [...attributes.filledTrack, h.Class('dt-scrubber-fill')],
-                      [],
-                    ),
-                    h.div(
-                      [...attributes.thumb, h.Class('dt-scrubber-thumb')],
-                      [],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            h.span(
-              [
-                h.Class(
-                  'dt-scrubber-position text-2xs text-dt-muted font-mono shrink-0 tabular-nums',
-                ),
-              ],
-              [scrubberPositionLabel(model)],
-            ),
-          ],
-        ),
     })
 
   // PANEL
@@ -2152,9 +2187,7 @@ export const createOverlay = (
       }
     })
 
-    const init = (
-      flags: typeof Flags.Type,
-    ): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
+    const init = (flags: typeof Flags.Type): UpdateReturn => {
       const sliderMax = flags.entries.length
       const initialSliderValue = flags.isPaused
         ? hostIndexToSliderValue(flags.pausedAtIndex, flags.startIndex)

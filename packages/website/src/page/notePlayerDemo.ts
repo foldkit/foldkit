@@ -13,7 +13,7 @@ import {
   String as Str,
   pipe,
 } from 'effect'
-import { Command, FieldValidation, Ui } from 'foldkit'
+import { Command, FieldValidation, Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -21,7 +21,6 @@ import { evo } from 'foldkit/struct'
 import notePlayerDemoCodeHtml from 'virtual:note-player-demo-code'
 
 import { Icon } from '../icon'
-import type { Message as ParentMessage } from '../message'
 import * as DemoView from './demoView'
 
 // CONSTANTS
@@ -106,10 +105,6 @@ export type Model = typeof Model.Type
 // MESSAGE
 
 const ChangedNoteInput = m('ChangedNoteInput', { value: S.String })
-const SelectedNoteDuration = m('SelectedNoteDuration', {
-  duration: NoteDuration,
-  radioGroupMessage: Ui.RadioGroup.Message,
-})
 const GotDurationRadioGroupMessage = m('GotDurationRadioGroupMessage', {
   message: Ui.RadioGroup.Message,
 })
@@ -123,7 +118,6 @@ const ProgressedNotePhase = m('ProgressedNotePhase', {
 
 export const Message = S.Union([
   ChangedNoteInput,
-  SelectedNoteDuration,
   GotDurationRadioGroupMessage,
   ClickedPlay,
   ClickedPause,
@@ -238,40 +232,41 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      SelectedNoteDuration: ({ duration, radioGroupMessage }) => {
-        const [nextRadioGroup, radioGroupCommands] = Ui.RadioGroup.update(
-          model.durationRadioGroup,
-          radioGroupMessage,
-        )
-
-        return [
-          evo(model, {
-            durationRadioGroup: () => nextRadioGroup,
-            noteDuration: () => duration,
-            messageLog: prependToLog(`SelectedNoteDuration(${duration})`),
-          }),
-          radioGroupCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotDurationRadioGroupMessage({ message })),
-            ),
-          ),
-        ]
-      },
-
       GotDurationRadioGroupMessage: ({ message: radioGroupMessage }) => {
-        const [nextRadioGroup, radioGroupCommands] = Ui.RadioGroup.update(
-          model.durationRadioGroup,
-          radioGroupMessage,
+        const [nextRadioGroup, radioGroupCommands, maybeOutMessage] =
+          NoteDurationRadioGroup.update(
+            model.durationRadioGroup,
+            radioGroupMessage,
+          )
+        const mappedCommands = Command.mapMessages(
+          radioGroupCommands,
+          message => GotDurationRadioGroupMessage({ message }),
         )
 
-        return [
-          evo(model, { durationRadioGroup: () => nextRadioGroup }),
-          radioGroupCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotDurationRadioGroupMessage({ message })),
-            ),
+        return Option.match(maybeOutMessage, {
+          onNone: (): readonly [
+            Model,
+            ReadonlyArray<Command.Command<Message>>,
+          ] => [
+            evo(model, { durationRadioGroup: () => nextRadioGroup }),
+            mappedCommands,
+          ],
+          onSome: M.type<Ui.RadioGroup.OutMessage<NoteDuration>>().pipe(
+            M.withReturnType<
+              readonly [Model, ReadonlyArray<Command.Command<Message>>]
+            >(),
+            M.tagsExhaustive({
+              Selected: ({ value }) => [
+                evo(model, {
+                  durationRadioGroup: () => nextRadioGroup,
+                  noteDuration: () => value,
+                  messageLog: prependToLog(`SelectedNoteDuration(${value})`),
+                }),
+                mappedCommands,
+              ],
+            }),
           ),
-        ]
+        })
       },
 
       ClickedPlay: () =>
@@ -528,25 +523,21 @@ const durationButtonClass = (
       !isSelected && isDisabled,
   })
 
-export const view = (
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  DemoView.demoViewShell(
-    DemoView.codePanelView(
-      'note-demo-code-panel',
-      'note-demo-phase',
-      model.highlightPhase,
-      notePlayerDemoCodeHtml,
+export const view = Submodel.defineView<Model, Message>(
+  (model): Html =>
+    DemoView.demoViewShell(
+      DemoView.codePanelView(
+        'note-demo-code-panel',
+        'note-demo-phase',
+        model.highlightPhase,
+        notePlayerDemoCodeHtml,
+      ),
+      appPanel(model),
     ),
-    appPanel(model, toParentMessage),
-  )
+)
 
-const appPanel = (
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+const appPanel = (model: Model): Html => {
+  const h = html<Message>()
 
   const isPlaying = model.playbackState._tag === 'Playing'
   const isPaused = model.playbackState._tag === 'Paused'
@@ -564,9 +555,9 @@ const appPanel = (
             [h.Class('flex flex-col gap-3')],
             [
               noteSequenceView(model),
-              noteInputView(model, isInputLocked, toParentMessage),
-              durationSelectorView(model, isInputLocked, toParentMessage),
-              playbackControlView(model, canPlay, toParentMessage),
+              noteInputView(model, isInputLocked),
+              durationSelectorView(model, isInputLocked),
+              playbackControlView(model, canPlay),
             ],
           ),
           DemoView.modelStateView([
@@ -585,17 +576,13 @@ const appPanel = (
   )
 }
 
-const noteInputView = (
-  model: Model,
-  isInputLocked: boolean,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+const noteInputView = (model: Model, isInputLocked: boolean): Html => {
+  const h = html<Message>()
 
-  return Ui.Input.view<ParentMessage>({
+  return Ui.Input.view<Message>({
     id: 'note-input',
     value: model.noteInput.value,
-    onInput: value => toParentMessage(ChangedNoteInput({ value })),
+    onInput: value => ChangedNoteInput({ value }),
     isDisabled: isInputLocked,
     isInvalid: model.noteInput._tag === 'Invalid',
     placeholder: 'CDEFGAB',
@@ -659,12 +646,10 @@ const noteInputView = (
 
 const noteDurations: ReadonlyArray<NoteDuration> = ['Short', 'Medium', 'Long']
 
-const durationSelectorView = (
-  model: Model,
-  isInputLocked: boolean,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+const NoteDurationRadioGroup = Ui.RadioGroup.create<NoteDuration>()
+
+const durationSelectorView = (model: Model, isInputLocked: boolean): Html => {
+  const h = html<Message>()
 
   return h.div(
     [h.Class('flex flex-col gap-1.5')],
@@ -673,46 +658,43 @@ const durationSelectorView = (
         [h.Class('text-xs text-gray-500 dark:text-gray-400')],
         ['Note Length'],
       ),
-      Ui.RadioGroup.view<ParentMessage, NoteDuration>({
+      h.submodel({
+        slotId: model.durationRadioGroup.id,
         model: model.durationRadioGroup,
-        toParentMessage: radioGroupMessage =>
-          radioGroupMessage._tag === 'SelectedOption'
-            ? toParentMessage(
-                SelectedNoteDuration({
-                  duration: radioGroupMessage.value,
-                  radioGroupMessage,
-                }),
-              )
-            : toParentMessage(
-                GotDurationRadioGroupMessage({ message: radioGroupMessage }),
-              ),
-        options: noteDurations,
-        ariaLabel: 'Note length',
-        className:
-          'flex rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden',
-        isDisabled: isInputLocked,
-        optionToConfig: (duration, { isSelected, isDisabled }) => ({
-          value: duration,
-          content: attributes =>
+        view: NoteDurationRadioGroup.view,
+        viewInputs: {
+          options: noteDurations,
+          ariaLabel: 'Note length',
+          isDisabled: isInputLocked,
+          toView: ({ group, options }) =>
             h.div(
               [
-                ...attributes.option,
-                h.Class(durationButtonClass(isSelected, isDisabled)),
+                ...group,
+                h.Class(
+                  'flex rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden',
+                ),
               ],
-              [duration],
+              options.map(option =>
+                h.div(
+                  [
+                    ...option.option,
+                    h.Class(
+                      durationButtonClass(option.isSelected, option.isDisabled),
+                    ),
+                  ],
+                  [option.value],
+                ),
+              ),
             ),
-        }),
+        },
+        toParentMessage: message => GotDurationRadioGroupMessage({ message }),
       }),
     ],
   )
 }
 
-const playbackControlView = (
-  model: Model,
-  canPlay: boolean,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+const playbackControlView = (model: Model, canPlay: boolean): Html => {
+  const h = html<Message>()
 
   const isPlaying = model.playbackState._tag === 'Playing'
   const isActive = isPlaying || model.playbackState._tag === 'Paused'
@@ -721,8 +703,8 @@ const playbackControlView = (
     [h.Class('flex gap-2')],
     [
       isPlaying
-        ? Ui.Button.view<ParentMessage>({
-            onClick: toParentMessage(ClickedPause()),
+        ? Ui.Button.view<Message>({
+            onClick: ClickedPause(),
             toView: attributes =>
               h.button(
                 [
@@ -735,8 +717,8 @@ const playbackControlView = (
                 [Icon.pause('w-4 h-4'), 'Pause'],
               ),
           })
-        : Ui.Button.view<ParentMessage>({
-            onClick: toParentMessage(ClickedPlay()),
+        : Ui.Button.view<Message>({
+            onClick: ClickedPlay(),
             isDisabled: !canPlay,
             toView: attributes =>
               h.button(
@@ -758,8 +740,8 @@ const playbackControlView = (
                 [Icon.play('w-4 h-4'), 'Play'],
               ),
           }),
-      Ui.Button.view<ParentMessage>({
-        onClick: toParentMessage(ClickedStop()),
+      Ui.Button.view<Message>({
+        onClick: ClickedStop(),
         isDisabled: !isActive,
         toView: attributes =>
           h.button(
@@ -786,7 +768,7 @@ const playbackControlView = (
 }
 
 const placeholderVisualizerView = (): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return h.div(
     [h.Class('flex gap-2')],
@@ -805,7 +787,7 @@ const placeholderVisualizerView = (): Html => {
 }
 
 const noteSequenceView = (model: Model): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   const notes = parseNotes(model.noteInput.value)
 
@@ -825,7 +807,7 @@ const noteSequenceView = (model: Model): Html => {
 }
 
 const noteVisualizerView = (model: Model, notes: ReadonlyArray<Note>): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   const maybeCurrentIndex = M.value(model.playbackState).pipe(
     M.tag('Playing', 'Paused', ({ currentNoteIndex }) =>

@@ -2,7 +2,6 @@ export {
   init,
   update,
   view,
-  lazy,
   Model,
   Message,
   OutMessage,
@@ -10,7 +9,8 @@ export {
   EnteredDragZone,
   LeftDragZone,
   DroppedFiles,
-  DroppedWithoutFiles,
+  DroppedNonFiles,
+  RejectedNonFiles,
 } from './index.js'
 
-export type { InitConfig, ViewConfig, FileDropAttributes } from './index.js'
+export type { InitConfig, ViewInputs, FileDropAttributes } from './index.js'

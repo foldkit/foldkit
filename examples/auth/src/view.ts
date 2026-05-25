@@ -25,13 +25,20 @@ export const view = (model: Model): Document => {
             M.value(model).pipe(
               M.tagsExhaustive({
                 LoggedOut: loggedOutModel =>
-                  LoggedOut.view<Message>(loggedOutModel, message =>
-                    GotLoggedOutMessage({ message }),
-                  ),
+                  h.submodel({
+                    slotId: 'logged-out',
+                    model: loggedOutModel,
+                    view: LoggedOut.view,
+                    toParentMessage: message =>
+                      GotLoggedOutMessage({ message }),
+                  }),
                 LoggedIn: loggedInModel =>
-                  LoggedIn.view<Message>(loggedInModel, message =>
-                    GotLoggedInMessage({ message }),
-                  ),
+                  h.submodel({
+                    slotId: 'logged-in',
+                    model: loggedInModel,
+                    view: LoggedIn.view,
+                    toParentMessage: message => GotLoggedInMessage({ message }),
+                  }),
               }),
             ),
           ],

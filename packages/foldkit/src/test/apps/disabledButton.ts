@@ -1,4 +1,4 @@
-import { Effect, Match as M, Schema as S } from 'effect'
+import { Match as M, Schema as S } from 'effect'
 
 import * as Command from '../../command/index.js'
 import { type Html, html } from '../../html/index.js'
@@ -51,12 +51,8 @@ export const update = (
         )
         return [
           { ...model, dialog: nextDialog },
-          commands.map(
-            Command.mapEffect(
-              Effect.map(dialogMessage =>
-                GotDialogMessage({ message: dialogMessage }),
-              ),
-            ),
+          Command.mapMessages(commands, dialogMessage =>
+            GotDialogMessage({ message: dialogMessage }),
           ),
         ]
       },
@@ -77,7 +73,7 @@ const submitButton = (isEnabled: boolean): Html => {
   )
 }
 
-/** Plain view — no dialog wrapper. */
+/** Plain view, no dialog wrapper. */
 export const view = (model: Model): Html => {
   const h = html<Message>()
 
@@ -90,7 +86,7 @@ export const view = (model: Model): Html => {
   )
 }
 
-/** View with submit button inside a dialog's panelContent. */
+/** View with submit button inside a dialog's panel. */
 export const viewWithDialog = (model: Model): Html => {
   const h = html<Message>()
 
@@ -98,32 +94,24 @@ export const viewWithDialog = (model: Model): Html => {
     [],
     [
       h.button([h.OnClick(ClickedToggle())], ['Toggle']),
-      Dialog.view({
+      h.submodel({
+        slotId: model.dialog.id,
         model: model.dialog,
-        toParentMessage: (dialogMessage): Message =>
-          GotDialogMessage({ message: dialogMessage }),
-        panelContent: submitButton(model.isEnabled),
+        view: Dialog.view,
+        viewInputs: {
+          toView: ({ dialog, backdrop, panel, isVisible }) =>
+            h.dialog(
+              [...dialog],
+              isVisible
+                ? [
+                    h.div([...backdrop], []),
+                    h.div([...panel], [submitButton(model.isEnabled)]),
+                  ]
+                : [],
+            ),
+        },
+        toParentMessage: message => GotDialogMessage({ message }),
       }),
-    ],
-  )
-}
-
-/** View using Dialog.lazy with panelContent passed dynamically. */
-const lazyDialogView = Dialog.lazy<Message>({})
-
-export const viewWithLazyDialog = (model: Model): Html => {
-  const h = html<Message>()
-
-  return h.div(
-    [],
-    [
-      h.button([h.OnClick(ClickedToggle())], ['Toggle']),
-      lazyDialogView(
-        model.dialog,
-        (dialogMessage): Message =>
-          GotDialogMessage({ message: dialogMessage }),
-        submitButton(model.isEnabled),
-      ),
     ],
   )
 }

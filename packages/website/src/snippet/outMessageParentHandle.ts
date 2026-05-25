@@ -1,4 +1,4 @@
-import { Array, Effect, Match as M, Option } from 'effect'
+import { Match as M, Option } from 'effect'
 import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
@@ -14,11 +14,8 @@ export const update = (
           message,
         )
 
-        const mappedCommands = Array.map(
-          commands,
-          Command.mapEffect(
-            Effect.map(message => GotLoginMessage({ message })),
-          ),
+        const mappedCommands = Command.mapMessages(commands, message =>
+          GotLoginMessage({ message }),
         )
 
         return Option.match(maybeOutMessage, {
@@ -31,7 +28,7 @@ export const update = (
               M.tagsExhaustive({
                 SucceededLogin: ({ sessionId }) => [
                   LoggedIn({ sessionId }),
-                  [...mappedCommands, saveSession(sessionId)],
+                  [...mappedCommands, SaveSession(sessionId)],
                 ],
               }),
             ),

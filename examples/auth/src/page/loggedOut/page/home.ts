@@ -1,9 +1,10 @@
 import { Html, html } from 'foldkit/html'
 
 import { loginRouter } from '../../../route'
+import type { Message } from '../message'
 
-export const view = <ParentMessage>(): Html => {
-  const h = html<ParentMessage>()
+export const view = (): Html => {
+  const h = html<Message>()
 
   return h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
@@ -35,15 +36,15 @@ export const view = <ParentMessage>(): Html => {
       h.div(
         [h.Class('grid grid-cols-1 md:grid-cols-3 gap-8 mt-16')],
         [
-          featureCard<ParentMessage>(
+          featureCard(
             'Model as Union',
             'App state is fundamentally LoggedOut | LoggedIn, not a flat struct with optional session.',
           ),
-          featureCard<ParentMessage>(
+          featureCard(
             'Route Guards',
             'Protected routes redirect to login. Auth routes redirect to dashboard when logged in.',
           ),
-          featureCard<ParentMessage>(
+          featureCard(
             'Session Persistence',
             'Session survives page refresh via localStorage and the Flags pattern.',
           ),
@@ -53,11 +54,8 @@ export const view = <ParentMessage>(): Html => {
   )
 }
 
-const featureCard = <ParentMessage>(
-  title: string,
-  description: string,
-): Html => {
-  const h = html<ParentMessage>()
+const featureCard = (title: string, description: string): Html => {
+  const h = html<Message>()
 
   return h.div(
     [h.Class('bg-white rounded-lg shadow-md p-6')],

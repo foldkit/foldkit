@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { type UiMessage, UpdatedInputDemoValue } from '../message'
@@ -11,11 +11,8 @@ const labelClassName = 'block text-sm font-medium text-gray-700'
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [],
@@ -29,10 +26,10 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('flex flex-col items-start gap-2 max-w-sm')],
         [
-          Ui.Input.view({
+          Ui.Input.view<UiMessage>({
             id: 'input-basic-demo',
             value: model.inputDemoValue,
-            onInput: value => toParentMessage(UpdatedInputDemoValue({ value })),
+            onInput: value => UpdatedInputDemoValue({ value }),
             placeholder: 'Enter your full name',
             toView: attributes =>
               h.div(
@@ -57,7 +54,7 @@ export const view = <ParentMessage>(
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
-      Ui.Input.view<ParentMessage>({
+      Ui.Input.view<UiMessage>({
         id: 'input-disabled-demo',
         isDisabled: true,
         value: 'Ada Lovelace',
@@ -76,4 +73,4 @@ export const view = <ParentMessage>(
       }),
     ],
   )
-}
+})

@@ -1,4 +1,3 @@
-import { Array } from 'effect'
 import { Html, html } from 'foldkit/html'
 
 import type { Message } from '../message'
@@ -48,6 +47,15 @@ export const modelStateView = (fields: ReadonlyArray<Html>): Html => {
   )
 }
 
+const messageLogEntryView = (entry: string, index: number): Html => {
+  const h = html<Message>()
+  return h.keyed('div')(
+    `${entry}-${index}`,
+    [h.Class('py-0.5 text-emerald-600 dark:text-emerald-400 break-all')],
+    [h.span([], [entry])],
+  )
+}
+
 export const eventLogView = (messageLog: ReadonlyArray<string>): Html => {
   const h = html<Message>()
 
@@ -61,17 +69,7 @@ export const eventLogView = (messageLog: ReadonlyArray<string>): Html => {
             'font-mono text-xs bg-gray-200 dark:bg-gray-800 rounded-lg p-3 flex-1 min-h-0 overflow-y-auto',
           ),
         ],
-        Array.map(messageLog, (entry, index) =>
-          h.keyed('div')(
-            `${entry}-${index}`,
-            [
-              h.Class(
-                'py-0.5 text-emerald-600 dark:text-emerald-400 break-all',
-              ),
-            ],
-            [h.span([], [entry])],
-          ),
-        ),
+        messageLog.map(messageLogEntryView),
       ),
     ],
   )

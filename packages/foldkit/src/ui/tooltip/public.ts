@@ -2,10 +2,12 @@ export {
   init,
   update,
   view,
-  lazy,
-  setShowDelay,
+  reflectShowDelay,
   Model,
   Message,
+  OutMessage,
+  Shown,
+  Hidden,
   EnteredTrigger,
   LeftTrigger,
   FocusedTrigger,
@@ -13,12 +15,11 @@ export {
   PressedEscape,
   PressedPointerOnTrigger,
   ElapsedShowDelay,
-  ChangedShowDelay,
   ShowAfterDelay,
   CompletedAnchorTooltip,
   AnchorTooltip,
 } from './index.js'
 
-export type { InitConfig, ViewConfig } from './index.js'
+export type { InitConfig, ViewInputs, RenderInfo } from './index.js'
 
 export type { AnchorConfig } from '../anchor.js'

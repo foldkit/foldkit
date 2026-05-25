@@ -41,51 +41,48 @@ const descriptionClassName = 'text-sm text-gray-500 dark:text-gray-400'
 
 // VIEW
 
-export const basicDemo = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const basicDemo = (model: Model) => {
+  const h = html<Message>()
 
   const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
 
   return [
-    Ui.Checkbox.view({
+    h.submodel({
+      slotId: 'checkbox-basic-demo',
       model: model.checkboxBasicDemo,
-      toParentMessage: message =>
-        toParentMessage(GotCheckboxBasicDemoMessage({ message })),
-      toView: attributes =>
-        h.div(
-          [h.Class(wrapperClassName)],
-          [
-            h.div(
-              [h.Class(topRowClassName)],
-              [
-                h.button(
-                  [...attributes.checkbox, h.Class(checkboxClassName)],
-                  model.checkboxBasicDemo.isChecked ? [checkmark] : [],
-                ),
-                h.label(
-                  [...attributes.label, h.Class(labelClassName)],
-                  ['Accept terms and conditions'],
-                ),
-              ],
-            ),
-            h.p(
-              [...attributes.description, h.Class(descriptionClassName)],
-              ['You agree to our Terms of Service and Privacy Policy.'],
-            ),
-          ],
-        ),
+      view: Ui.Checkbox.view,
+      viewInputs: {
+        toView: attributes =>
+          h.div(
+            [h.Class(wrapperClassName)],
+            [
+              h.div(
+                [h.Class(topRowClassName)],
+                [
+                  h.button(
+                    [...attributes.checkbox, h.Class(checkboxClassName)],
+                    model.checkboxBasicDemo.isChecked ? [checkmark] : [],
+                  ),
+                  h.label(
+                    [...attributes.label, h.Class(labelClassName)],
+                    ['Accept terms and conditions'],
+                  ),
+                ],
+              ),
+              h.p(
+                [...attributes.description, h.Class(descriptionClassName)],
+                ['You agree to our Terms of Service and Privacy Policy.'],
+              ),
+            ],
+          ),
+      },
+      toParentMessage: message => GotCheckboxBasicDemoMessage({ message }),
     }),
   ]
 }
 
-export const indeterminateDemo = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const indeterminateDemo = (model: Model) => {
+  const h = html<Message>()
 
   const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
   const indeterminateMark = h.span([h.Class('text-white text-xs')], ['—'])
@@ -106,69 +103,80 @@ export const indeterminateDemo = <ParentMessage>(
     h.div(
       [h.Class('flex flex-col gap-3')],
       [
-        Ui.Checkbox.view({
+        h.submodel({
+          slotId: 'checkbox-all-demo',
           model: {
             id: 'checkbox-all-demo',
             isChecked: isAllChecked,
           },
-          isIndeterminate,
-          toParentMessage: message =>
-            toParentMessage(GotCheckboxAllDemoMessage({ message })),
-          toView: attributes =>
-            h.div(
-              [h.Class(topRowClassName)],
-              [
-                h.button(
-                  [...attributes.checkbox, h.Class(checkboxClassName)],
-                  selectAllMark ? [selectAllMark] : [],
-                ),
-                h.label(
-                  [...attributes.label, h.Class(labelClassName)],
-                  ['All notifications'],
-                ),
-              ],
-            ),
+          view: Ui.Checkbox.view,
+          viewInputs: {
+            isIndeterminate,
+            toView: attributes =>
+              h.div(
+                [h.Class(topRowClassName)],
+                [
+                  h.button(
+                    [...attributes.checkbox, h.Class(checkboxClassName)],
+                    selectAllMark ? [selectAllMark] : [],
+                  ),
+                  h.label(
+                    [...attributes.label, h.Class(labelClassName)],
+                    ['All notifications'],
+                  ),
+                ],
+              ),
+          },
+          toParentMessage: message => GotCheckboxAllDemoMessage({ message }),
         }),
         h.div(
           [h.Class('ml-7 flex flex-col gap-3')],
           [
-            Ui.Checkbox.view({
+            h.submodel({
+              slotId: 'checkbox-option-a-demo',
               model: model.checkboxOptionADemo,
+              view: Ui.Checkbox.view,
+              viewInputs: {
+                toView: attributes =>
+                  h.div(
+                    [h.Class(topRowClassName)],
+                    [
+                      h.button(
+                        [...attributes.checkbox, h.Class(checkboxClassName)],
+                        model.checkboxOptionADemo.isChecked ? [checkmark] : [],
+                      ),
+                      h.label(
+                        [...attributes.label, h.Class(labelClassName)],
+                        ['Email notifications'],
+                      ),
+                    ],
+                  ),
+              },
               toParentMessage: message =>
-                toParentMessage(GotCheckboxOptionADemoMessage({ message })),
-              toView: attributes =>
-                h.div(
-                  [h.Class(topRowClassName)],
-                  [
-                    h.button(
-                      [...attributes.checkbox, h.Class(checkboxClassName)],
-                      model.checkboxOptionADemo.isChecked ? [checkmark] : [],
-                    ),
-                    h.label(
-                      [...attributes.label, h.Class(labelClassName)],
-                      ['Email notifications'],
-                    ),
-                  ],
-                ),
+                GotCheckboxOptionADemoMessage({ message }),
             }),
-            Ui.Checkbox.view({
+            h.submodel({
+              slotId: 'checkbox-option-b-demo',
               model: model.checkboxOptionBDemo,
+              view: Ui.Checkbox.view,
+              viewInputs: {
+                toView: attributes =>
+                  h.div(
+                    [h.Class(topRowClassName)],
+                    [
+                      h.button(
+                        [...attributes.checkbox, h.Class(checkboxClassName)],
+                        model.checkboxOptionBDemo.isChecked ? [checkmark] : [],
+                      ),
+                      h.label(
+                        [...attributes.label, h.Class(labelClassName)],
+                        ['Push notifications'],
+                      ),
+                    ],
+                  ),
+              },
               toParentMessage: message =>
-                toParentMessage(GotCheckboxOptionBDemoMessage({ message })),
-              toView: attributes =>
-                h.div(
-                  [h.Class(topRowClassName)],
-                  [
-                    h.button(
-                      [...attributes.checkbox, h.Class(checkboxClassName)],
-                      model.checkboxOptionBDemo.isChecked ? [checkmark] : [],
-                    ),
-                    h.label(
-                      [...attributes.label, h.Class(labelClassName)],
-                      ['Push notifications'],
-                    ),
-                  ],
-                ),
+                GotCheckboxOptionBDemoMessage({ message }),
             }),
           ],
         ),
