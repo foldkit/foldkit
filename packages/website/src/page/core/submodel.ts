@@ -1,6 +1,8 @@
+import { Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { Message, type TableOfContentsEntry } from '../../main'
+import { GotSubmodelMapMessagesDisclosureMessage } from '../../message'
 import {
   bullets,
   infoCallout,
@@ -290,7 +292,10 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiChildAttributeHeader,
 ]
 
-export const view = (copiedSnippets: CopiedSnippets): Html => {
+export const view = (
+  copiedSnippets: CopiedSnippets,
+  mapMessagesDisclosure: Ui.Disclosure.Model,
+): Html => {
   const h = html<Message>()
 
   return h.div(
@@ -437,6 +442,33 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         copiedSnippets,
         'mb-8',
       ),
+      para(
+        'Even cleaner, the child can export imperative helpers. The parent calls ',
+        inlineCode('Settings.changeTheme(model.settings, "Light")'),
+        ' and never needs to import the child Message itself. The child’s Message surface stays internal; the helpers are the public verbs the parent sees.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.submodelDelegateViaHelperHighlighted),
+          ],
+          [],
+        ),
+        Snippets.submodelDelegateViaHelperRaw,
+        'Copy helper delegation to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'Both correct forms work. The helper form is what every Foldkit UI primitive does: ',
+        inlineCode('Ui.Listbox.selectItem'),
+        ', ',
+        inlineCode('Ui.Popover.close'),
+        ', ',
+        inlineCode('Ui.Tabs.selectTab'),
+        ' are all imperative helpers a parent calls without ever constructing the child’s Message. Reach for it when the same child operation gets invoked from multiple sites in the parent.',
+      ),
       para('Three things break when the parent bypasses the child’s update.'),
       para(
         'First, DevTools never sees the change as a Submodel Message, so it disappears from the Submodel filter and the timeline reads wrong.',
@@ -507,60 +539,86 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('GotSettingsMessage'),
         '. The helper preserves each Command’s name and args, so DevTools traces still show each Command’s original name.',
       ),
-      h.details(
-        [
-          h.Class(
-            'mb-8 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3',
-          ),
-        ],
-        [
-          h.summary(
-            [
-              h.Class(
-                'cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white',
-              ),
-            ],
-            ['Under the hood: Command.mapMessages is one line'],
-          ),
-          h.pre(
-            [
-              h.Class(
-                'mt-3 overflow-x-auto rounded bg-gray-100 dark:bg-gray-800 p-3 text-xs leading-6',
-              ),
-            ],
-            [
-              h.code(
-                [],
-                [
-                  'export const mapMessages = (commands, f) =>\n  Array.map(commands, command => mapMessage(command, f))',
-                ],
-              ),
-            ],
-          ),
-          h.p(
-            [
-              h.Class(
-                'mt-3 text-sm text-gray-700 dark:text-gray-300 leading-relaxed',
-              ),
-            ],
-            [
-              'No magic. ',
-              inlineCode('Array.map'),
-              ' over the list, ',
-              inlineCode('Command.mapMessage'),
-              ' on each entry. The per-Command lift is itself one line: ',
-              inlineCode('mapEffect(command, Effect.map(f))'),
-              ', composing the Effect-level ',
-              inlineCode('Effect.map'),
-              ' with the Command-level ',
-              inlineCode('Command.mapEffect'),
-              '. Reach for ',
-              inlineCode('Command.mapMessage'),
-              ' directly when a child returns one Command rather than a list.',
-            ],
-          ),
-        ],
-      ),
+      h.submodel({
+        id: 'submodel-map-messages-disclosure',
+        model: mapMessagesDisclosure,
+        view: Ui.Disclosure.view,
+        viewInputs: {
+          toView: attributes =>
+            h.div(
+              [
+                h.Class(
+                  'mb-8 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 overflow-hidden',
+                ),
+              ],
+              [
+                h.button(
+                  [
+                    ...attributes.button,
+                    h.Class(
+                      'w-full flex items-center justify-between text-left cursor-pointer transition px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800',
+                    ),
+                  ],
+                  [
+                    h.span(
+                      [],
+                      ['Under the hood: the Command.mapMessages chain'],
+                    ),
+                    h.span(
+                      [
+                        h.Class(
+                          mapMessagesDisclosure.isOpen
+                            ? 'transition rotate-180'
+                            : 'transition',
+                        ),
+                      ],
+                      ['▾'],
+                    ),
+                  ],
+                ),
+                mapMessagesDisclosure.isOpen
+                  ? h.div(
+                      [...attributes.panel, h.Class('px-4 pb-4 pt-1')],
+                      [
+                        highlightedCodeBlock(
+                          h.div(
+                            [
+                              h.Class('text-sm'),
+                              h.InnerHTML(
+                                Snippets.commandMapMessagesUnderHoodHighlighted,
+                              ),
+                            ],
+                            [],
+                          ),
+                          Snippets.commandMapMessagesUnderHoodRaw,
+                          'Copy snippet to clipboard',
+                          copiedSnippets,
+                          'mb-4',
+                        ),
+                        para(
+                          'Three small layers compose into ',
+                          inlineCode('mapMessages'),
+                          '. ',
+                          inlineCode('Array.map'),
+                          ' iterates; ',
+                          inlineCode('mapMessage'),
+                          ' rebuilds each Command with its Effect re-typed; ',
+                          inlineCode('mapEffect'),
+                          ' is the actual rebuild (a spread that swaps in the transformed Effect). The Command’s ',
+                          inlineCode('name'),
+                          ' and ',
+                          inlineCode('args'),
+                          ' ride through untouched, which is why DevTools traces still attribute each Command to its original Submodel.',
+                        ),
+                      ],
+                    )
+                  : h.empty,
+              ],
+            ),
+        },
+        toParentMessage: message =>
+          GotSubmodelMapMessagesDisclosureMessage({ message }),
+      }),
       tableOfContentsEntryToHeader(wiringTheViewHeader),
       para(
         'The Submodel exports a view defined with ',

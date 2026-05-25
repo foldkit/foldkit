@@ -143,6 +143,12 @@ export const GotExampleDetailMessage = m('GotExampleDetailMessage', {
 export const GotSearchMessage = m('GotSearchMessage', {
   message: Search.Message,
 })
+export const GotSubmodelMapMessagesDisclosureMessage = m(
+  'GotSubmodelMapMessagesDisclosureMessage',
+  {
+    message: Ui.Disclosure.Message,
+  },
+)
 
 export const Message = S.Union([
   CompletedNavigateInternal,
@@ -199,5 +205,6 @@ export const Message = S.Union([
   GotApiReferenceGroupMessage,
   GotExampleDetailMessage,
   GotSearchMessage,
+  GotSubmodelMapMessagesDisclosureMessage,
 ])
 export type Message = typeof Message.Type

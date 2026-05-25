@@ -66,6 +66,7 @@ import {
   GotPatternsGroupMessage,
   GotPlaygroundMenuMessage,
   GotSearchMessage,
+  GotSubmodelMapMessagesDisclosureMessage,
   GotTestingGroupMessage,
   GotUiPageMessage,
   HidCopiedIndicator,
@@ -248,6 +249,7 @@ export const Model = S.Struct({
   aiGroup: Ui.Disclosure.Model,
   examplesGroup: Ui.Disclosure.Model,
   apiReferenceGroup: Ui.Disclosure.Model,
+  submodelMapMessagesDisclosure: Ui.Disclosure.Model,
   sidebarScroll: S.Number,
   aiHeadingToggleCount: S.Number,
   themePreference: ThemePreference,
@@ -413,6 +415,10 @@ export const init: Runtime.RoutingProgramInit<
       apiReferenceGroup: Ui.Disclosure.init({
         id: 'api-reference-group',
         isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'apiReference'),
+      }),
+      submodelMapMessagesDisclosure: Ui.Disclosure.init({
+        id: 'submodel-map-messages-disclosure',
+        isOpen: false,
       }),
       sidebarScroll: Option.match(flags.maybeSidebarState, {
         onNone: () => INITIAL_SIDEBAR_SCROLL,
@@ -933,6 +939,19 @@ export const update = (
           next => evo(model, { apiReferenceGroup: () => next }),
           message => GotApiReferenceGroupMessage({ message }),
         ),
+
+      GotSubmodelMapMessagesDisclosureMessage: ({ message }) => {
+        const [next, commands] = Ui.Disclosure.update(
+          model.submodelMapMessagesDisclosure,
+          message,
+        )
+        return [
+          evo(model, { submodelMapMessagesDisclosure: () => next }),
+          Command.mapMessages(commands, message =>
+            GotSubmodelMapMessagesDisclosureMessage({ message }),
+          ),
+        ]
+      },
 
       ScrolledSidebar: ({ scroll }) => {
         const nextModel = evo(model, { sidebarScroll: () => scroll })

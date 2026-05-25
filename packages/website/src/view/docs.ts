@@ -643,7 +643,10 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       CoreSubmodel: () =>
         withTableOfContents(
-          lazyDocsContent(Page.Core.Submodel.view, [model.copiedSnippets]),
+          lazyDocsContent(Page.Core.Submodel.view, [
+            model.copiedSnippets,
+            model.submodelMapMessagesDisclosure,
+          ]),
           Page.Core.Submodel.tableOfContents,
         ),
       PatternsSubscriptionOrganization: () =>

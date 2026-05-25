@@ -40,6 +40,21 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
 
 `Submodel.View` and `Submodel.Config` are accessible as types under the namespace for cases where consumers annotate them directly. Most consumers never do; the brand and `Parameters<View>` carry the inference, so `h.submodel`'s `model` and `viewInputs` config fields are also fully inferred.
 
+### `childAttributes`
+
+A new `childAttributes` helper (and companion `ChildAttribute` type) is exported from `foldkit/html`. Use it in `toView` slot callbacks to mark attribute lists that originate inside the child Submodel and should keep their handlers bound to the child's dispatch, even though the call site lives in the parent's boundary.
+
+```ts
+import { type ChildAttribute, childAttributes } from 'foldkit/html'
+
+return viewInputs.toView({
+  button: childAttributes([h.OnClick(Toggled())]),
+  panel: childAttributes([h.Id(panelId(model.id))]),
+})
+```
+
+`childAttributes` is "what the child publishes to the parent" in the same role-named vocabulary as `viewInputs` (parent → child view), `context` (parent → child update), and `OutMessage` (child → parent update). Every interactive Foldkit UI primitive uses it internally.
+
 ### Boundary semantics
 
 - **Duplicate id detection.** Two `h.submodel` calls inside the same parent boundary with the same `id` throw at view-build time, naming both call sites and the convention: `id` is DOM-position identity, not model identity. If the same model is rendered in two locations (desktop + mobile, master + detail), each position needs its own id.
