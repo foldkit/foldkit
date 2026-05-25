@@ -291,63 +291,64 @@ const sliderThumbClass =
 const playPauseLabel = (isRunning: boolean): string =>
   isRunning ? 'Pause' : 'Play'
 
-const slider = <ParentMessage>(
+const slider = (
   label: string,
   sliderModel: Ui.Slider.Model,
-  toParentMessage: (message: Ui.Slider.Message) => ParentMessage,
+  toParentMessage: (message: Ui.Slider.Message) => Message,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
-  return Ui.Slider.view<ParentMessage>({
+  return h.submodel({
+    slotId: sliderModel.id,
     model: sliderModel,
+    view: Ui.Slider.view,
+    viewInputs: {
+      formatValue: value => value.toFixed(2),
+      toView: attributes =>
+        h.div(
+          [h.Class(sliderRowClass)],
+          [
+            h.div(
+              [h.Class(sliderHeaderClass)],
+              [
+                h.label(
+                  [...attributes.label, h.Class(sliderLabelClass)],
+                  [label],
+                ),
+                h.span(
+                  [h.Class(sliderValueClass)],
+                  [sliderModel.value.toFixed(2)],
+                ),
+              ],
+            ),
+            h.div(
+              [...attributes.root, h.Class(sliderRootClass)],
+              [
+                h.div(
+                  [...attributes.track, h.Class(sliderTrackClass)],
+                  [
+                    h.div(
+                      [
+                        ...attributes.filledTrack,
+                        h.Class(sliderFilledTrackClass),
+                      ],
+                      [],
+                    ),
+                  ],
+                ),
+                h.div([...attributes.thumb, h.Class(sliderThumbClass)], []),
+              ],
+            ),
+          ],
+        ),
+    },
     toParentMessage,
-    formatValue: value => value.toFixed(2),
-    toView: attributes =>
-      h.div(
-        [h.Class(sliderRowClass)],
-        [
-          h.div(
-            [h.Class(sliderHeaderClass)],
-            [
-              h.label(
-                [...attributes.label, h.Class(sliderLabelClass)],
-                [label],
-              ),
-              h.span(
-                [h.Class(sliderValueClass)],
-                [sliderModel.value.toFixed(2)],
-              ),
-            ],
-          ),
-          h.div(
-            [...attributes.root, h.Class(sliderRootClass)],
-            [
-              h.div(
-                [...attributes.track, h.Class(sliderTrackClass)],
-                [
-                  h.div(
-                    [
-                      ...attributes.filledTrack,
-                      h.Class(sliderFilledTrackClass),
-                    ],
-                    [],
-                  ),
-                ],
-              ),
-              h.div([...attributes.thumb, h.Class(sliderThumbClass)], []),
-            ],
-          ),
-        ],
-      ),
   })
 }
 
-const controlButton = <ParentMessage>(
-  label: string,
-  onClick: ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
-  return Ui.Button.view<ParentMessage>({
+const controlButton = (label: string, onClick: Message): Html => {
+  const h = html<Message>()
+  return Ui.Button.view<Message>({
     onClick,
     toView: attributes =>
       h.button([...attributes.button, h.Class(buttonClass)], [label]),

@@ -41,8 +41,8 @@ GotAnimationMessage: ({ message }) => {
   )
 
   // Forward the Submodel's Commands through your parent Message:
-  const mappedCommands = commands.map(
-    Command.mapEffect(Effect.map(message => GotAnimationMessage({ message }))),
+  const mappedCommands = Command.mapMessages(commands, message =>
+    GotAnimationMessage({ message }),
   )
 
   const lifecycleCommands = Option.match(maybeOutMessage, {
@@ -59,9 +59,9 @@ GotAnimationMessage: ({ message }) => {
           // element to settle, then dispatches EndedAnimation back into
           // Animation.update. Use it unless you need a custom strategy.
           StartedLeaveAnimating: () => [
-            Command.mapEffect(
+            Command.mapMessage(
               Ui.Animation.defaultLeaveCommand(nextAnimation),
-              Effect.map(message => GotAnimationMessage({ message })),
+              message => GotAnimationMessage({ message }),
             ),
           ],
           // TransitionedOut is Animation's signal that the leave has fully
@@ -104,12 +104,17 @@ const view = () => {
         ],
         [model.animation.isShowing ? 'Hide' : 'Show'],
       ),
-      Ui.Animation.view({
+      h.submodel({
+        slotId: 'content',
         model: model.animation,
-        animateSize: true,
-        className:
-          'transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
-        content: h.p([], ['This content animates in and out.']),
+        view: Ui.Animation.view,
+        viewInputs: {
+          animateSize: true,
+          className:
+            'transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
+          content: h.p([], ['This content animates in and out.']),
+        },
+        toParentMessage: message => GotAnimationMessage({ message }),
       }),
     ],
   )

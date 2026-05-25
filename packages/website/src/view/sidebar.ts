@@ -75,6 +75,7 @@ const SyncSidebarScroll = Mount.defineStream(
 )
 
 const sidebarGroup = (config: {
+  readonly id: string
   readonly label: string
   readonly model: Ui.Disclosure.Model
   readonly toParentMessage: (message: Ui.Disclosure.Message) => Message
@@ -82,49 +83,66 @@ const sidebarGroup = (config: {
 }): Html => {
   const h = html<Message>()
 
+  const buttonClassName = clsx(
+    'w-full flex items-center justify-between cursor-pointer transition',
+    'px-4 py-2.5 md:py-2',
+    'text-xs font-semibold uppercase tracking-wider',
+    'text-gray-600 dark:text-gray-400',
+    'bg-gray-200 dark:bg-gray-800',
+    'hover:bg-gray-300/60 dark:hover:bg-gray-700/60',
+    'hover:text-gray-700 dark:hover:text-gray-300',
+  )
+
   return h.li(
     [],
     [
-      Ui.Disclosure.view({
+      h.submodel({
+        slotId: config.id,
         model: config.model,
-        toParentMessage: config.toParentMessage,
-        buttonAttributes: [
-          h.Class(
-            clsx(
-              'w-full flex items-center justify-between cursor-pointer transition',
-              'px-4 py-2.5 md:py-2',
-              'text-xs font-semibold uppercase tracking-wider',
-              'text-gray-600 dark:text-gray-400',
-              'bg-gray-200 dark:bg-gray-800',
-              'hover:bg-gray-300/60 dark:hover:bg-gray-700/60',
-              'hover:text-gray-700 dark:hover:text-gray-300',
-            ),
-          ),
-        ],
-        buttonContent: h.div(
-          [h.Class('flex items-center justify-between w-full')],
-          [
-            h.span([], [config.label]),
-            h.span(
+        view: Ui.Disclosure.view,
+        viewInputs: {
+          toView: attributes =>
+            h.div(
+              [],
               [
-                h.Class(
-                  clsx({
-                    'rotate-180': config.model.isOpen,
-                  }),
+                h.button(
+                  [...attributes.button, h.Class(buttonClassName)],
+                  [
+                    h.div(
+                      [h.Class('flex items-center justify-between w-full')],
+                      [
+                        h.span([], [config.label]),
+                        h.span(
+                          [
+                            h.Class(
+                              clsx({
+                                'rotate-180': config.model.isOpen,
+                              }),
+                            ),
+                          ],
+                          [Icon.chevronDown('w-3 h-3')],
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
+                config.model.isOpen
+                  ? h.div(
+                      [...attributes.panel, h.Class('px-4 py-2')],
+                      [config.children],
+                    )
+                  : h.empty,
               ],
-              [Icon.chevronDown('w-3 h-3')],
             ),
-          ],
-        ),
-        panelAttributes: [h.Class('px-4 py-2')],
-        panelContent: config.children,
+        },
+        toParentMessage: message => config.toParentMessage(message),
       }),
     ],
   )
 }
 
 const computeNavLinks = (
+  idPrefix: string,
   route: Model['route'],
   getStartedGroup: Ui.Disclosure.Model,
   coreConceptsGroup: Ui.Disclosure.Model,
@@ -245,6 +263,7 @@ const computeNavLinks = (
         sectionDisclosures,
         (section, disclosure) =>
           sidebarGroup({
+            id: `${idPrefix}-${disclosure.model.id}`,
             label: section.label,
             model: disclosure.model,
             toParentMessage: disclosure.toParentMessage,
@@ -260,6 +279,7 @@ const computeNavLinks = (
           }),
       ),
       sidebarGroup({
+        id: `${idPrefix}-${apiReferenceGroup.id}`,
         label: 'API Reference',
         model: apiReferenceGroup,
         toParentMessage: message => GotApiReferenceGroupMessage({ message }),
@@ -287,6 +307,7 @@ export const sidebarView = (model: Model): Html => {
   const h = html<Message>()
 
   const desktopNavLinks = lazyDesktopNavLinks(computeNavLinks, [
+    'desktop',
     model.route,
     model.getStartedGroup,
     model.coreConceptsGroup,
@@ -301,6 +322,7 @@ export const sidebarView = (model: Model): Html => {
     model.apiReferenceGroup,
   ])
   const mobileNavLinks = lazyMobileNavLinks(computeNavLinks, [
+    'mobile',
     model.route,
     model.getStartedGroup,
     model.coreConceptsGroup,
@@ -366,7 +388,7 @@ export const sidebarView = (model: Model): Html => {
               h.AriaLabel('Close menu'),
               h.OnClick(
                 GotMobileMenuDialogMessage({
-                  message: Ui.Dialog.Closed(),
+                  message: Ui.Dialog.RequestedClose(),
                 }),
               ),
             ],
@@ -400,15 +422,31 @@ export const sidebarView = (model: Model): Html => {
     ],
   )
 
-  const mobileMenu = Ui.Dialog.view({
+  const mobileMenu = h.submodel({
+    slotId: model.mobileMenuDialog.id,
     model: model.mobileMenuDialog,
+    view: Ui.Dialog.view,
+    viewInputs: {
+      toView: ({ dialog, backdrop, panel, isVisible }) =>
+        h.dialog(
+          [...dialog, h.Class('md:hidden')],
+          isVisible
+            ? [
+                h.div([...backdrop, h.Class('fixed inset-0 z-[59]')], []),
+                h.div(
+                  [
+                    ...panel,
+                    h.Class(
+                      'fixed inset-0 z-[60] bg-cream dark:bg-gray-900 flex flex-col',
+                    ),
+                  ],
+                  [mobileMenuContent],
+                ),
+              ]
+            : [],
+        ),
+    },
     toParentMessage: message => GotMobileMenuDialogMessage({ message }),
-    panelContent: mobileMenuContent,
-    panelAttributes: [
-      h.Class('fixed inset-0 z-[60] bg-cream dark:bg-gray-900 flex flex-col'),
-    ],
-    backdropAttributes: [h.Class('fixed inset-0 z-[59]')],
-    attributes: [h.Class('md:hidden')],
   })
 
   return h.div([], [desktopSidebar, mobileMenu])

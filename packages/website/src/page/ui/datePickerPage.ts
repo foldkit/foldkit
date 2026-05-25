@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { uiShowcaseViewSourceHref } from '../../link'
@@ -12,7 +13,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
-import { patternsOutMessageRouter, uiCalendarRouter } from '../../route'
+import { coreSubmodelRouter, uiCalendarRouter } from '../../route'
 import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import {
@@ -213,12 +214,6 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'Wraps DatePicker Messages in your parent Message type for Submodel delegation.',
   },
   {
-    name: 'onSelectedDate',
-    type: '(date: CalendarDate) => ParentMessage',
-    description:
-      'Optional. When provided, click / Enter / Space on a day dispatches this callback directly (controlled mode: parent owns the event). When omitted, DatePicker manages its own maybeSelectedDate automatically (uncontrolled mode). In controlled mode, use DatePicker.selectDate(model, date) to write the selection back to internal state.',
-  },
-  {
     name: 'anchor',
     type: 'AnchorConfig',
     description:
@@ -232,9 +227,9 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
   },
   {
     name: 'toCalendarView',
-    type: '(attributes: CalendarAttributes<ParentMessage>) => Html',
+    type: '(attributes: CalendarAttributes) => Html',
     description:
-      'Renders the calendar grid layout inside the popover panel. Same callback shape as Calendar.view toView. Lay out the attribute groups (grid, header, weeks, cells) however you like.',
+      'Renders the calendar grid layout inside the popover panel. Same callback shape as Calendar.view toView. Lay out the attribute groups (for example grid, header, weeks, or cells) however you like.',
   },
   {
     name: 'isDisabled',
@@ -271,19 +266,31 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
 
 const outMessagesProps: ReadonlyArray<PropEntry> = [
   {
+    name: 'SelectedDate',
+    type: '{ date: CalendarDate }',
+    description:
+      'Emitted when the user commits a date (click / Enter / Space). Pattern-match the third tuple element of DatePicker.update in your GotDatePickerMessage handler to lift the date into domain state.',
+  },
+  {
     name: 'ChangedViewMonth',
     type: '{ year: number; month: number }',
     description:
-      'Emitted when navigation changes the visible month inside the calendar grid. Date selection goes through the onSelectedDate ViewConfig callback, not OutMessage.',
+      'Emitted when navigation changes the visible month inside the calendar grid.',
   },
 ]
 
 const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
   {
     name: 'selectDate',
-    type: '(model: Model, date: CalendarDate) => [Model, Commands]',
+    type: '(model: Model, date: CalendarDate) => [Model, Commands, Option<OutMessage>]',
     description:
-      'Commits the given date and closes the popover. Use in controlled mode (when ViewConfig provides onSelectedDate) to write the selection back to the date picker.',
+      'Commits the given date and closes the popover, emitting SelectedDate. Use for a programmatic selection equivalent to a user pick. To mirror an external date without emitting (restoring from storage, a URL), use reflectSelectedDate.',
+  },
+  {
+    name: 'reflectSelectedDate',
+    type: '(model: Model, maybeDate: Option<CalendarDate>) => Model',
+    description:
+      'Reflects an externally-sourced selected date onto the picker and its embedded calendar without emitting an OutMessage or touching the popover. Pass Option.none() to clear. Use to mirror external truth (a URL, a saved draft).',
   },
   {
     name: 'clear',
@@ -302,25 +309,25 @@ const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
     description: 'Programmatically closes the popover.',
   },
   {
-    name: 'setMinDate',
+    name: 'reflectMinDate',
     type: '(model: Model, maybeMinDate: Option<CalendarDate>) => Model',
     description:
       "Updates the minimum selectable date. Pass Option.none() to remove the minimum. Use for cross-field validation, e.g. an end date picker whose minimum tracks a start date picker's selection. Does not reconcile the current selection if it falls below the new minimum.",
   },
   {
-    name: 'setMaxDate',
+    name: 'reflectMaxDate',
     type: '(model: Model, maybeMaxDate: Option<CalendarDate>) => Model',
     description:
       'Updates the maximum selectable date. Pass Option.none() to remove the maximum. Does not reconcile the current selection.',
   },
   {
-    name: 'setDisabledDates',
+    name: 'reflectDisabledDates',
     type: '(model: Model, disabledDates: ReadonlyArray<CalendarDate>) => Model',
     description:
       'Replaces the list of individually-disabled dates (e.g. holidays). Pass an empty array to clear.',
   },
   {
-    name: 'setDisabledDaysOfWeek',
+    name: 'reflectDisabledDaysOfWeek',
     type: '(model: Model, disabledDaysOfWeek: ReadonlyArray<DayOfWeek>) => Model',
     description:
       'Replaces the list of disabled days of the week (e.g. ["Saturday", "Sunday"]). Pass an empty array to clear.',
@@ -403,225 +410,229 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/date-picker', 'Date Picker'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'An accessible date picker that wraps ',
-        inlineCode('Calendar'),
-        ' in a ',
-        inlineCode('Popover'),
-        '. Consumers provide the trigger button face and the calendar grid layout. DatePicker handles focus choreography (opening focuses the grid, closing returns focus to the trigger), open/close state, and an optional hidden form input for native form submission.',
-      ),
-      para(
-        'DatePicker uses the Submodel pattern: initialize with ',
-        inlineCode('DatePicker.init()'),
-        ', store the Model in your parent, delegate Messages via ',
-        inlineCode('DatePicker.update()'),
-        ', and render with ',
-        inlineCode('DatePicker.view()'),
-        '. The update function returns ',
-        inlineCode('[Model, Commands, Option<OutMessage>]'),
-        '. The ',
-        link(patternsOutMessageRouter(), 'OutMessage'),
-        " forwards the embedded calendar's ",
-        inlineCode('ChangedViewMonth'),
-        ' so consumers can react to month-scoped data needs. Date selection goes through the ',
-        inlineCode('onSelectedDate'),
-        ' ViewConfig callback, not OutMessage. For programmatic control in update functions, use ',
-        inlineCode('DatePicker.open(model)'),
-        ' and ',
-        inlineCode('DatePicker.close(model)'),
-        ' which return ',
-        inlineCode('[Model, Commands]'),
-        ' directly.',
-      ),
-      para(
-        'The calendar heading inside the popover is a button: clicking it switches the day grid into a 3x4 months grid; clicking the year heading from there switches into a paged 3x4 years grid. Selecting a year drills back to the months grid for that year; selecting a month drills back to the days grid for that month. Re-opening the popover always shows the day grid.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how DatePicker is wired up in a ',
-        link(uiShowcaseViewSourceHref('datePicker'), 'real Foldkit app'),
-        '.',
-      ),
-      heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-      para(
-        'A date picker constrained to a one-year window around today via ',
-        inlineCode('minDate'),
-        ' and ',
-        inlineCode('maxDate'),
-        '. Click the trigger to open, pick a date, click the heading to drill into a months grid (and again to drill into a years grid), or navigate with the full WAI-ARIA grid keyboard pattern. Press Enter to commit, Escape to dismiss.',
-      ),
-      demoContainer(...DatePicker.basicDemo(model, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippet.uiDatePickerBasicHighlighted),
-          ],
-          [],
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/date-picker', 'Date Picker'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'An accessible date picker that wraps ',
+          inlineCode('Calendar'),
+          ' in a ',
+          inlineCode('Popover'),
+          '. Consumers provide the trigger button face and the calendar grid layout. DatePicker handles focus choreography (opening focuses the grid, closing returns focus to the trigger), open/close state, and an optional hidden form input for native form submission.',
         ),
-        Snippet.uiDatePickerBasicRaw,
-        'Copy date picker example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'DatePicker is headless. You control the trigger button via ',
-        inlineCode('triggerContent'),
-        ' and ',
-        inlineCode('triggerClassName'),
-        ', the popover panel via ',
-        inlineCode('panelClassName'),
-        ', and the calendar grid via the ',
-        inlineCode('toCalendarView'),
-        ' callback. Data attributes on day cells let you style state variants with CSS selectors like ',
-        inlineCode('group-data-[selected]:'),
-        ' and ',
-        inlineCode('group-data-[disabled]:'),
-        '.',
-      ),
-      dataAttributeTable(dataAttributes),
-      heading(
-        keyboardInteractionHeader.level,
-        keyboardInteractionHeader.id,
-        keyboardInteractionHeader.text,
-      ),
-      para(
-        'The trigger button opens the popover on Enter, Space, or ArrowDown. Inside the popover, the calendar grid handles the full WAI-ARIA grid keyboard pattern. Escape closes the popover from both the trigger and the grid.',
-      ),
-      keyboardTable(keyboardEntries),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'The trigger button uses ',
-        inlineCode('aria-expanded'),
-        ' and ',
-        inlineCode('aria-controls'),
-        ' to announce the popover relationship. Inside the popover, the calendar grid renders with ',
-        inlineCode('role="grid"'),
-        ' and an explicit ',
-        inlineCode('aria-label'),
-        ' that leads with a non-numeric word ("Calendar, April 2026") so VoiceOver does not pattern-match the grid\'s row position into a date literal. ',
-        inlineCode('aria-activedescendant'),
-        ' tracks the keyboard cursor; rows carry ',
-        inlineCode('role="row"'),
-        ' with ',
-        inlineCode('aria-rowindex'),
-        '; cells carry ',
-        inlineCode('role="gridcell"'),
-        ', ',
-        inlineCode('aria-colindex'),
-        ', and ',
-        inlineCode('aria-selected'),
-        ' on the chosen date. Day buttons carry full accessible names via ',
-        inlineCode('aria-label'),
-        ' and disabled days get ',
-        inlineCode('aria-disabled="true"'),
-        '. When a hidden form input is enabled via the ',
-        inlineCode('name'),
-        ' prop, the selected date is encoded as an ISO string (',
-        inlineCode('YYYY-MM-DD'),
-        ') for native form submission.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
-      heading(
-        initConfigHeader.level,
-        initConfigHeader.id,
-        initConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('DatePicker.init()'),
-        '. Calendar constraints (min/max, disabled dates) are forwarded to the embedded Calendar submodel.',
-      ),
-      propTable(initConfigProps),
-      heading(modelHeader.level, modelHeader.id, modelHeader.text),
-      para(
-        'The DatePicker Model. Stored on your parent Model and threaded through ',
-        inlineCode('DatePicker.update()'),
-        ' and ',
-        inlineCode('DatePicker.view()'),
-        '.',
-      ),
-      propTable(modelProps),
-      heading(
-        viewConfigHeader.level,
-        viewConfigHeader.id,
-        viewConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('DatePicker.view()'),
-        '.',
-      ),
-      propTable(viewConfigProps),
-      heading(
-        calendarAttributesHeader.level,
-        calendarAttributesHeader.id,
-        calendarAttributesHeader.text,
-      ),
-      para(
-        'The discriminated union passed to ',
-        inlineCode('toCalendarView'),
-        '. Pattern-match on ',
-        inlineCode('_tag'),
-        ' (',
-        inlineCode("'Days' | 'Months' | 'Years'"),
-        ') with ',
-        inlineCode('M.tagsExhaustive'),
-        ' to render each grid. Each variant exposes a different shape: Days carries weeks plus a headingButton; Months carries 12 month cells plus a headingButton; Years carries 12 year cells plus prev/next page buttons. See ',
-        link(
-          uiCalendarRouter(),
-          "the Calendar page's CalendarAttributes section",
+        para(
+          'DatePicker uses the Submodel pattern: initialize with ',
+          inlineCode('DatePicker.init()'),
+          ', store the Model in your parent, delegate Messages via ',
+          inlineCode('DatePicker.update()'),
+          ', and render with ',
+          inlineCode('DatePicker.view()'),
+          '. The update function returns ',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          '. The ',
+          link(`${coreSubmodelRouter()}#surfacing-facts`, 'OutMessage'),
+          ' carries ',
+          inlineCode('SelectedDate({ date })'),
+          ' when the user commits a date and ',
+          inlineCode('ChangedViewMonth'),
+          ' when navigation shifts the visible month. Pattern-match the third tuple element of ',
+          inlineCode('DatePicker.update'),
+          ' in your ',
+          inlineCode('GotDatePickerMessage'),
+          ' handler to react. For programmatic control in update functions, use ',
+          inlineCode('DatePicker.open(model)'),
+          ' and ',
+          inlineCode('DatePicker.close(model)'),
+          ' which return ',
+          inlineCode('[Model, Commands]'),
+          ' directly.',
         ),
-        ' for the full prop table — the type is the same.',
-      ),
-      heading(
-        outMessagesHeader.level,
-        outMessagesHeader.id,
-        outMessagesHeader.text,
-      ),
-      para(
-        'Messages emitted to the parent through the third element of ',
-        inlineCode('[Model, Commands, Option<OutMessage>]'),
-        '. Pattern-match on the OutMessage in your update handler.',
-      ),
-      propTable(outMessagesProps),
-      heading(
-        programmaticHelpersHeader.level,
-        programmaticHelpersHeader.id,
-        programmaticHelpersHeader.text,
-      ),
-      para(
-        'Helpers you call from your own update handlers to drive the date picker imperatively: for writing back the selection in controlled mode, opening/closing on domain events, or updating constraints when they derive from other Model state.',
-      ),
-      para(
-        'The four ',
-        inlineCode('set*'),
-        ' helpers are how you implement cross-field date validation. Constraints are set at init time and updated via these helpers. They do not live on ViewConfig, because the update function needs them for keyboard-navigation disabled-skipping and commit-time validation. For an end date that must be on or after a start date, call ',
-        inlineCode('setMinDate(endDate, startDate.maybeSelectedDate)'),
-        ' in the handler that processes the start date change.',
-      ),
-      propTable(programmaticHelpersProps),
-    ],
-  )
-}
+        para(
+          'The calendar heading inside the popover is a button: clicking it switches the day grid into a 3x4 months grid; clicking the year heading from there switches into a paged 3x4 years grid. Selecting a year drills back to the months grid for that year; selecting a month drills back to the days grid for that month. Re-opening the popover always shows the day grid.',
+        ),
+        infoCallout(
+          'See it in an app',
+          'Check out how DatePicker is wired up in a ',
+          link(uiShowcaseViewSourceHref('datePicker'), 'real Foldkit app'),
+          '.',
+        ),
+        heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
+        para(
+          'A date picker constrained to a one-year window around today via ',
+          inlineCode('minDate'),
+          ' and ',
+          inlineCode('maxDate'),
+          '. Click the trigger to open, pick a date, click the heading to drill into a months grid (and again to drill into a years grid), or navigate with the full WAI-ARIA grid keyboard pattern. Press Enter to commit, Escape to dismiss.',
+        ),
+        demoContainer(...DatePicker.basicDemo(model)),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiDatePickerBasicHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiDatePickerBasicRaw,
+          'Copy date picker example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'DatePicker is headless. You control the trigger button via ',
+          inlineCode('triggerContent'),
+          ' and ',
+          inlineCode('triggerClassName'),
+          ', the popover panel via ',
+          inlineCode('panelClassName'),
+          ', and the calendar grid via the ',
+          inlineCode('toCalendarView'),
+          ' callback. Data attributes on day cells let you style state variants with CSS selectors like ',
+          inlineCode('group-data-[selected]:'),
+          ' and ',
+          inlineCode('group-data-[disabled]:'),
+          '.',
+        ),
+        dataAttributeTable(dataAttributes),
+        heading(
+          keyboardInteractionHeader.level,
+          keyboardInteractionHeader.id,
+          keyboardInteractionHeader.text,
+        ),
+        para(
+          'The trigger button opens the popover on Enter, Space, or ArrowDown. Inside the popover, the calendar grid handles the full WAI-ARIA grid keyboard pattern. Escape closes the popover from both the trigger and the grid.',
+        ),
+        keyboardTable(keyboardEntries),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'The trigger button uses ',
+          inlineCode('aria-expanded'),
+          ' and ',
+          inlineCode('aria-controls'),
+          ' to announce the popover relationship. Inside the popover, the calendar grid renders with ',
+          inlineCode('role="grid"'),
+          ' and an explicit ',
+          inlineCode('aria-label'),
+          ' that leads with a non-numeric word ("Calendar, April 2026") so VoiceOver does not pattern-match the grid\'s row position into a date literal. ',
+          inlineCode('aria-activedescendant'),
+          ' tracks the keyboard cursor; rows carry ',
+          inlineCode('role="row"'),
+          ' with ',
+          inlineCode('aria-rowindex'),
+          '; cells carry ',
+          inlineCode('role="gridcell"'),
+          ', ',
+          inlineCode('aria-colindex'),
+          ', and ',
+          inlineCode('aria-selected'),
+          ' on the chosen date. Day buttons carry full accessible names via ',
+          inlineCode('aria-label'),
+          ' and disabled days get ',
+          inlineCode('aria-disabled="true"'),
+          '. When a hidden form input is enabled via the ',
+          inlineCode('name'),
+          ' prop, the selected date is encoded as an ISO string (',
+          inlineCode('YYYY-MM-DD'),
+          ') for native form submission.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
+        heading(
+          initConfigHeader.level,
+          initConfigHeader.id,
+          initConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('DatePicker.init()'),
+          '. Calendar constraints (min/max, disabled dates) are forwarded to the embedded Calendar submodel.',
+        ),
+        propTable(initConfigProps),
+        heading(modelHeader.level, modelHeader.id, modelHeader.text),
+        para(
+          'The DatePicker Model. Stored on your parent Model and threaded through ',
+          inlineCode('DatePicker.update()'),
+          ' and ',
+          inlineCode('DatePicker.view()'),
+          '.',
+        ),
+        propTable(modelProps),
+        heading(
+          viewConfigHeader.level,
+          viewConfigHeader.id,
+          viewConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('DatePicker.view()'),
+          '.',
+        ),
+        propTable(viewConfigProps),
+        heading(
+          calendarAttributesHeader.level,
+          calendarAttributesHeader.id,
+          calendarAttributesHeader.text,
+        ),
+        para(
+          'The discriminated union passed to ',
+          inlineCode('toCalendarView'),
+          '. Pattern-match on ',
+          inlineCode('_tag'),
+          ' (',
+          inlineCode("'Days' | 'Months' | 'Years'"),
+          ') with ',
+          inlineCode('M.tagsExhaustive'),
+          ' to render each grid. Each variant exposes a different shape: Days carries weeks plus a headingButton; Months carries 12 month cells plus a headingButton; Years carries 12 year cells plus prev/next page buttons. See ',
+          link(
+            uiCalendarRouter(),
+            "the Calendar page's CalendarAttributes section",
+          ),
+          ' for the full prop table. The type is the same.',
+        ),
+        heading(
+          outMessagesHeader.level,
+          outMessagesHeader.id,
+          outMessagesHeader.text,
+        ),
+        para(
+          'Messages emitted to the parent through the third element of ',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          '. Pattern-match on the OutMessage in your update handler.',
+        ),
+        propTable(outMessagesProps),
+        heading(
+          programmaticHelpersHeader.level,
+          programmaticHelpersHeader.id,
+          programmaticHelpersHeader.text,
+        ),
+        para(
+          'Helpers you call from your own update handlers to drive the date picker imperatively: for writing back the selection in controlled mode, opening/closing on domain events, or updating constraints when they derive from other Model state.',
+        ),
+        para(
+          'The four ',
+          inlineCode('reflect*'),
+          ' helpers are how you implement cross-field date validation. Constraints are set at init time and updated via these helpers. They do not live on ViewConfig, because the update function needs them for keyboard-navigation disabled-skipping and commit-time validation. For an end date that must be on or after a start date, call ',
+          inlineCode('reflectMinDate(endDate, startDate.maybeSelectedDate)'),
+          ' in the handler that processes the start date change.',
+        ),
+        propTable(programmaticHelpersProps),
+      ],
+    )
+  },
+)

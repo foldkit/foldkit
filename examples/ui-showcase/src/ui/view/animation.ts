@@ -1,7 +1,11 @@
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
-import { ToggledAnimationDemo, type UiMessage } from '../message'
+import {
+  GotAnimationDemoMessage,
+  ToggledAnimationDemo,
+  type UiMessage,
+} from '../message'
 import type { UiModel } from '../model'
 
 const triggerClassName =
@@ -10,11 +14,8 @@ const triggerClassName =
 const contentClassName =
   'rounded-lg bg-indigo-50 border border-indigo-200 p-4 transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:scale-95 data-[closed]:-translate-y-2'
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [],
@@ -24,10 +25,7 @@ export const view = <ParentMessage>(
         [h.Class('flex gap-3')],
         [
           h.button(
-            [
-              h.Class(triggerClassName),
-              h.OnClick(toParentMessage(ToggledAnimationDemo())),
-            ],
+            [h.Class(triggerClassName), h.OnClick(ToggledAnimationDemo())],
             [model.isAnimationDemoShowing ? 'Hide Content' : 'Show Content'],
           ),
         ],
@@ -35,19 +33,24 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('mt-4')],
         [
-          Ui.Animation.view({
+          h.submodel({
+            slotId: model.animationDemo.id,
             model: model.animationDemo,
-            className: contentClassName,
-            animateSize: true,
-            content: h.p(
-              [h.Class('text-indigo-800')],
-              [
-                'This content smoothly animates in and out. The Animation component coordinates CSS enter/leave lifecycles via data attributes, while animateSize uses a CSS grid wrapper for smooth height animation.',
-              ],
-            ),
+            view: Ui.Animation.view,
+            viewInputs: {
+              className: contentClassName,
+              animateSize: true,
+              content: h.p(
+                [h.Class('text-indigo-800')],
+                [
+                  'This content smoothly animates in and out. The Animation component coordinates CSS enter/leave lifecycles via data attributes, while animateSize uses a CSS grid wrapper for smooth height animation.',
+                ],
+              ),
+            },
+            toParentMessage: message => GotAnimationDemoMessage({ message }),
           }),
         ],
       ),
     ],
   )
-}
+})

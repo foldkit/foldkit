@@ -41,7 +41,19 @@ export type UpdateReturn = readonly [
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-export const update = (model: Model, message: Message): UpdateReturn =>
+/** Per-dispatch parent state the Room page needs from the root.
+ *  `roomId` comes from the current Room route when the user is on the
+ *  Room page, or from the just-created room when the join flow
+ *  bridges from Home. */
+export type Context = Readonly<{
+  roomId: string
+}>
+
+export const update = (
+  model: Model,
+  message: Message,
+  context: Context,
+): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tags({
@@ -103,9 +115,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
 
-      SubmittedJoinRoomFromPage: ({ roomId }) => {
+      SubmittedJoinRoomFromPage: () => {
         const maybeJoinRoom = optionWhen(Str.isNonEmpty(model.username), () =>
-          JoinRoom({ username: model.username, roomId }),
+          JoinRoom({ username: model.username, roomId: context.roomId }),
         )
 
         return [model, Array.fromOption(maybeJoinRoom)]
@@ -117,9 +129,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         return [model, []]
       },
 
-      RequestedStartGame: ({ roomId, playerId }) => [
+      RequestedStartGame: ({ playerId }) => [
         model,
-        [StartGame({ roomId, playerId })],
+        [StartGame({ roomId: context.roomId, playerId })],
       ],
 
       LoadedSession: ({ maybeSession }) => {
@@ -155,7 +167,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
 
-      ClickedCopyRoomId: ({ roomId }) => [model, [CopyRoomId({ roomId })]],
+      ClickedCopyRoomId: () => [
+        model,
+        [CopyRoomId({ roomId: context.roomId })],
+      ],
 
       SucceededCopyRoomId: () =>
         model.isRoomIdCopyIndicatorVisible
@@ -188,8 +203,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      SucceededJoinRoom: ({ roomId, player }) => {
-        const session = { roomId, player }
+      SucceededJoinRoom: ({ player }) => {
+        const session = { roomId: context.roomId, player }
         return [
           evo(model, {
             maybeSession: () => Option.some(session),

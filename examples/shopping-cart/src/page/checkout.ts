@@ -1,15 +1,13 @@
 import { Array, Option } from 'effect'
-import { Route } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { Cart } from '../domain'
 import {
-  type CartRoute,
   ClickedPlaceOrder,
   Message,
-  type ProductsRoute,
   UpdatedDeliveryInstructions,
 } from '../main'
+import { cartRouter, productsRouter } from '../route'
 
 // VIEW
 
@@ -17,8 +15,6 @@ export const view = (
   cart: Cart.Cart,
   deliveryInstructions: string,
   orderPlaced: boolean,
-  productsRouter: Route.Router<ProductsRoute>,
-  cartRouter: Route.Router<CartRoute>,
 ): Html => {
   const h = html<Message>()
 
@@ -94,7 +90,8 @@ export const view = (
                 h.div(
                   [h.Class('space-y-2 mb-6')],
                   cart.map(cartItem =>
-                    h.div(
+                    h.keyed('div')(
+                      cartItem.item.id,
                       [
                         h.Class(
                           'flex justify-between items-center py-2 border-b',

@@ -123,7 +123,7 @@ export const PressedArrowKey = m('PressedArrowKey', {
   ]),
 })
 /** An animation frame fired during auto-scroll. */
-export const CompletedAutoScroll = m('CompletedAutoScroll')
+export const AdvancedAutoScrollFrame = m('AdvancedAutoScrollFrame')
 /** The FocusItem Command completed. */
 export const CompletedFocusItem = m('CompletedFocusItem')
 
@@ -138,7 +138,7 @@ export const Message: S.Union<
     typeof ResolvedKeyboardMove,
     typeof ConfirmedKeyboardDrop,
     typeof PressedArrowKey,
-    typeof CompletedAutoScroll,
+    typeof AdvancedAutoScrollFrame,
     typeof CompletedFocusItem,
   ]
 > = S.Union([
@@ -150,7 +150,7 @@ export const Message: S.Union<
   ResolvedKeyboardMove,
   ConfirmedKeyboardDrop,
   PressedArrowKey,
-  CompletedAutoScroll,
+  AdvancedAutoScrollFrame,
   CompletedFocusItem,
 ])
 
@@ -159,7 +159,7 @@ export type Message = typeof Message.Type
 // OUT MESSAGE
 
 /** Emitted when a drag completes with a valid drop target. The parent uses this to commit the reorder. */
-export const Reordered = ts('Reordered', {
+export const Reordered = m('Reordered', {
   itemId: S.String,
   fromContainerId: S.String,
   fromIndex: S.Number,
@@ -167,7 +167,7 @@ export const Reordered = ts('Reordered', {
   toIndex: S.Number,
 })
 /** Emitted when a drag is cancelled via Escape or pointer release without a drop target. */
-export const Cancelled = ts('Cancelled')
+export const Cancelled = m('Cancelled')
 
 /** Union of all out-messages the drag-and-drop component can emit to its parent. */
 export const OutMessage = S.Union([Reordered, Cancelled])
@@ -529,7 +529,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           M.orElse(() => [model, [], Option.none()]),
         ),
 
-      CompletedAutoScroll: () => [model, [], Option.none()],
+      AdvancedAutoScrollFrame: () => [model, [], Option.none()],
 
       CompletedFocusItem: () => [model, [], Option.none()],
     }),
@@ -726,7 +726,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
               (event): Effect.Effect<Option.Option<Message>> =>
                 Effect.sync(() => {
                   // NOTE: the draggable's OnKeyDownPreventDefault calls preventDefault on
-                  // the Space that activates keyboard drag — skip it here so the same
+                  // the Space that activates keyboard drag. Skip it here so the same
                   // keypress doesn't also confirm the drop in the same tick.
                   if (event.defaultPrevented) {
                     return Option.none()
@@ -780,13 +780,13 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       }),
       dependenciesToStream: ({ isDragging }, readDependencies) =>
         Stream.when(
-          Stream.callback<typeof CompletedAutoScroll.Type>(queue =>
+          Stream.callback<typeof AdvancedAutoScrollFrame.Type>(queue =>
             Effect.acquireRelease(
               Effect.sync(() => {
                 const ref = { id: 0 }
                 const step = () => {
                   autoScroll(readDependencies().clientY)
-                  Queue.offerUnsafe(queue, CompletedAutoScroll())
+                  Queue.offerUnsafe(queue, AdvancedAutoScrollFrame())
                   ref.id = requestAnimationFrame(step)
                 }
                 ref.id = requestAnimationFrame(step)
@@ -814,6 +814,13 @@ const arrowKeyToDirection = (key: string): Option.Option<Direction> =>
     M.when('ArrowRight', () => 'Right'),
     M.option,
   )
+
+// NOTE: DragAndDrop has no `view` function and is not embedded via
+// `h.submodel`. It's a behavior+helpers primitive: the consumer renders
+// their own elements (cards, columns) and attaches the attribute bundles
+// returned by `draggable`, `droppable`, and `sortable` below. Each helper
+// is parameterized over the consumer's `ParentMessage`; threading
+// `toParentMessage` is the consumer's responsibility.
 
 /** Messages the draggable view helper can dispatch. */
 export type DraggableMessage =

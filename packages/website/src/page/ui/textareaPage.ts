@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { uiShowcaseViewSourceHref } from '../../link'
@@ -193,159 +194,164 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/textarea', 'Textarea'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'An accessible multi-line text input that links a label and description via ARIA attributes. Textarea is a view-only component with the same three attribute groups as Input (',
-        inlineCode('textarea'),
-        ', ',
-        inlineCode('label'),
-        ', and ',
-        inlineCode('description'),
-        ') plus a ',
-        inlineCode('rows'),
-        ' prop to control the visible height.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how Textarea is wired up in a ',
-        link(uiShowcaseViewSourceHref('textarea'), 'real Foldkit app'),
-        '.',
-      ),
-      heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-      heading(
-        Textarea.basicHeader.level,
-        Textarea.basicHeader.id,
-        Textarea.basicHeader.text,
-      ),
-      para(
-        'The ',
-        inlineCode('toView'),
-        ' callback receives attribute groups for the label, description, and textarea element. Spread ',
-        inlineCode('attributes.textarea'),
-        ' onto a ',
-        inlineCode('<textarea>'),
-        ' in your layout to wire up ARIA, focus, and change handling.',
-      ),
-      demoContainer(...Textarea.basicDemo(model, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiTextareaBasicHighlighted)],
-          [],
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/textarea', 'Textarea'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'An accessible multi-line text input that links a label and description via ARIA attributes. Textarea is a stateless render helper: call it directly with a ViewConfig in your own view; no Model, update, or ',
+          inlineCode('h.submodel'),
+          ' wrapping. It exposes the same three attribute groups as Input (',
+          inlineCode('textarea'),
+          ', ',
+          inlineCode('label'),
+          ', and ',
+          inlineCode('description'),
+          ') plus a ',
+          inlineCode('rows'),
+          ' prop to control the visible height.',
         ),
-        Snippet.uiTextareaBasicRaw,
-        'Copy basic textarea example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(
-        Textarea.disabledHeader.level,
-        Textarea.disabledHeader.id,
-        Textarea.disabledHeader.text,
-      ),
-      para(
-        'Set ',
-        inlineCode('isDisabled: true'),
-        ' to disable the textarea. Like Input, this sets both the native ',
-        inlineCode('disabled'),
-        ' attribute and ',
-        inlineCode('aria-disabled'),
-        '.',
-      ),
-      demoContainer(...Textarea.disabledDemo(model, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippet.uiTextareaDisabledHighlighted),
-          ],
-          [],
+        infoCallout(
+          'See it in an app',
+          'Check out how Textarea is wired up in a ',
+          link(uiShowcaseViewSourceHref('textarea'), 'real Foldkit app'),
+          '.',
         ),
-        Snippet.uiTextareaDisabledRaw,
-        'Copy disabled textarea example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'Textarea is headless. Your ',
-        inlineCode('toView'),
-        ' callback controls all markup and styling. Use the data attributes below to style different states.',
-      ),
-      dataAttributeTable(dataAttributes),
-      heading(
-        keyboardInteractionHeader.level,
-        keyboardInteractionHeader.id,
-        keyboardInteractionHeader.text,
-      ),
-      para(
-        'Textarea uses the native ',
-        inlineCode('<textarea>'),
-        ' element, so all keyboard interaction is handled by the browser.',
-      ),
-      keyboardTable(keyboardEntries),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'Textarea provides the same ARIA wiring as Input. The ',
-        inlineCode('label'),
-        ' group links via ',
-        inlineCode('for'),
-        ', and the ',
-        inlineCode('description'),
-        ' group is referenced by ',
-        inlineCode('aria-describedby'),
-        ' on the textarea. You can access the description ID directly with ',
-        inlineCode('Textarea.descriptionId(id)'),
-        '.',
-      ),
-      para(
-        'When ',
-        inlineCode('isInvalid'),
-        ' is true, ',
-        inlineCode('aria-invalid="true"'),
-        ' is set on the textarea element.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
-      heading(
-        viewConfigHeader.level,
-        viewConfigHeader.id,
-        viewConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('Textarea.view()'),
-        '.',
-      ),
-      propTable(viewConfigProps),
-      heading(
-        textareaAttributesHeader.level,
-        textareaAttributesHeader.id,
-        textareaAttributesHeader.text,
-      ),
-      para(
-        'Attribute groups provided to the ',
-        inlineCode('toView'),
-        ' callback.',
-      ),
-      propTable(textareaAttributesProps),
-    ],
-  )
-}
+        heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
+        heading(
+          Textarea.basicHeader.level,
+          Textarea.basicHeader.id,
+          Textarea.basicHeader.text,
+        ),
+        para(
+          'The ',
+          inlineCode('toView'),
+          ' callback receives attribute groups for the label, description, and textarea element. Spread ',
+          inlineCode('attributes.textarea'),
+          ' onto a ',
+          inlineCode('<textarea>'),
+          ' in your layout to wire up ARIA, focus, and change handling.',
+        ),
+        demoContainer(...Textarea.basicDemo(model)),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiTextareaBasicHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiTextareaBasicRaw,
+          'Copy basic textarea example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(
+          Textarea.disabledHeader.level,
+          Textarea.disabledHeader.id,
+          Textarea.disabledHeader.text,
+        ),
+        para(
+          'Set ',
+          inlineCode('isDisabled: true'),
+          ' to disable the textarea. Like Input, this sets both the native ',
+          inlineCode('disabled'),
+          ' attribute and ',
+          inlineCode('aria-disabled'),
+          '.',
+        ),
+        demoContainer(...Textarea.disabledDemo(model)),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiTextareaDisabledHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiTextareaDisabledRaw,
+          'Copy disabled textarea example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'Textarea is headless. Your ',
+          inlineCode('toView'),
+          ' callback controls all markup and styling. Use the data attributes below to style different states.',
+        ),
+        dataAttributeTable(dataAttributes),
+        heading(
+          keyboardInteractionHeader.level,
+          keyboardInteractionHeader.id,
+          keyboardInteractionHeader.text,
+        ),
+        para(
+          'Textarea uses the native ',
+          inlineCode('<textarea>'),
+          ' element, so all keyboard interaction is handled by the browser.',
+        ),
+        keyboardTable(keyboardEntries),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'Textarea provides the same ARIA wiring as Input. The ',
+          inlineCode('label'),
+          ' group links via ',
+          inlineCode('for'),
+          ', and the ',
+          inlineCode('description'),
+          ' group is referenced by ',
+          inlineCode('aria-describedby'),
+          ' on the textarea. You can access the description ID directly with ',
+          inlineCode('Textarea.descriptionId(id)'),
+          '.',
+        ),
+        para(
+          'When ',
+          inlineCode('isInvalid'),
+          ' is true, ',
+          inlineCode('aria-invalid="true"'),
+          ' is set on the textarea element.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
+        heading(
+          viewConfigHeader.level,
+          viewConfigHeader.id,
+          viewConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Textarea.view()'),
+          '.',
+        ),
+        propTable(viewConfigProps),
+        heading(
+          textareaAttributesHeader.level,
+          textareaAttributesHeader.id,
+          textareaAttributesHeader.text,
+        ),
+        para(
+          'Attribute groups provided to the ',
+          inlineCode('toView'),
+          ' callback.',
+        ),
+        propTable(textareaAttributesProps),
+      ],
+    )
+  },
+)

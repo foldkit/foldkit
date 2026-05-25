@@ -2,6 +2,7 @@ import * as Shared from '@typing-game/shared'
 import { Array, Match, Option, flow, pipe } from 'effect'
 import { Html, html } from 'foldkit/html'
 
+import type { Message } from '../message'
 import { RoomPlayerSession } from '../model'
 
 type Badge = 'Host' | 'You'
@@ -18,12 +19,12 @@ const isLocalPlayer = (
 ): boolean =>
   Option.exists(maybeSession, session => session.player.id === player.id)
 
-const player = <ParentMessage>(
+const player = (
   players: ReadonlyArray<Shared.Player>,
   hostId: string,
   maybeSession: Option.Option<RoomPlayerSession>,
 ): Array<Html> => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return Array.map(players, player => {
     const badges = pipe(
@@ -45,12 +46,12 @@ const player = <ParentMessage>(
   })
 }
 
-export const waiting = <ParentMessage>(
+export const waiting = (
   players: ReadonlyArray<Shared.Player>,
   hostId: string,
   maybeSession: Option.Option<RoomPlayerSession>,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
   const isLocalPlayerHost = Option.exists(
     maybeSession,
     session => session.player.id === hostId,
@@ -62,7 +63,7 @@ export const waiting = <ParentMessage>(
       h.h3([h.Class('uppercase mb-2')], ['[Connected users]']),
       h.div(
         [h.Class('space-y-2 mb-12')],
-        player<ParentMessage>(players, hostId, maybeSession),
+        player(players, hostId, maybeSession),
       ),
       ...(isLocalPlayerHost ? [h.div([], ['> Enter to start game'])] : []),
     ],

@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import {
@@ -32,11 +32,8 @@ const checkboxLabelClassName =
 
 const checkboxDescriptionClassName = 'text-sm text-gray-500'
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
   const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
 
@@ -49,7 +46,7 @@ export const view = <ParentMessage>(
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Basic'],
       ),
-      Ui.Fieldset.view<ParentMessage>({
+      Ui.Fieldset.view<UiMessage>({
         id: 'fieldset-basic-demo',
         toView: attributes =>
           h.fieldset(
@@ -69,11 +66,10 @@ export const view = <ParentMessage>(
               h.div(
                 [h.Class('mt-4 flex flex-col gap-4')],
                 [
-                  Ui.Input.view({
+                  Ui.Input.view<UiMessage>({
                     id: 'fieldset-name-input',
                     value: model.fieldsetInputValue,
-                    onInput: value =>
-                      toParentMessage(UpdatedFieldsetInputValue({ value })),
+                    onInput: value => UpdatedFieldsetInputValue({ value }),
                     placeholder: 'Enter your full name',
                     toView: inputAttributes =>
                       h.div(
@@ -97,11 +93,10 @@ export const view = <ParentMessage>(
                         ],
                       ),
                   }),
-                  Ui.Textarea.view({
+                  Ui.Textarea.view<UiMessage>({
                     id: 'fieldset-bio-textarea',
                     value: model.fieldsetTextareaValue,
-                    onInput: value =>
-                      toParentMessage(UpdatedFieldsetTextareaValue({ value })),
+                    onInput: value => UpdatedFieldsetTextareaValue({ value }),
                     placeholder: 'Tell us about yourself...',
                     rows: 3,
                     toView: textareaAttributes =>
@@ -132,48 +127,50 @@ export const view = <ParentMessage>(
                         ],
                       ),
                   }),
-                  Ui.Checkbox.view({
+                  h.submodel({
+                    slotId: 'fieldset-checkbox-demo',
                     model: model.fieldsetCheckboxDemo,
+                    view: Ui.Checkbox.view,
+                    viewInputs: {
+                      toView: checkboxAttributes =>
+                        h.div(
+                          [h.Class('flex flex-col gap-1')],
+                          [
+                            h.div(
+                              [h.Class('flex items-center gap-2')],
+                              [
+                                h.button(
+                                  [
+                                    ...checkboxAttributes.checkbox,
+                                    h.Class(checkboxClassName),
+                                  ],
+                                  model.fieldsetCheckboxDemo.isChecked
+                                    ? [checkmark]
+                                    : [],
+                                ),
+                                h.label(
+                                  [
+                                    ...checkboxAttributes.label,
+                                    h.Class(checkboxLabelClassName),
+                                  ],
+                                  ['I agree to the terms and conditions'],
+                                ),
+                              ],
+                            ),
+                            h.p(
+                              [
+                                ...checkboxAttributes.description,
+                                h.Class(checkboxDescriptionClassName),
+                              ],
+                              [
+                                'You agree to our Terms of Service and Privacy Policy.',
+                              ],
+                            ),
+                          ],
+                        ),
+                    },
                     toParentMessage: message =>
-                      toParentMessage(
-                        GotFieldsetCheckboxDemoMessage({ message }),
-                      ),
-                    toView: checkboxAttributes =>
-                      h.div(
-                        [h.Class('flex flex-col gap-1')],
-                        [
-                          h.div(
-                            [h.Class('flex items-center gap-2')],
-                            [
-                              h.button(
-                                [
-                                  ...checkboxAttributes.checkbox,
-                                  h.Class(checkboxClassName),
-                                ],
-                                model.fieldsetCheckboxDemo.isChecked
-                                  ? [checkmark]
-                                  : [],
-                              ),
-                              h.label(
-                                [
-                                  ...checkboxAttributes.label,
-                                  h.Class(checkboxLabelClassName),
-                                ],
-                                ['I agree to the terms and conditions'],
-                              ),
-                            ],
-                          ),
-                          h.p(
-                            [
-                              ...checkboxAttributes.description,
-                              h.Class(checkboxDescriptionClassName),
-                            ],
-                            [
-                              'You agree to our Terms of Service and Privacy Policy.',
-                            ],
-                          ),
-                        ],
-                      ),
+                      GotFieldsetCheckboxDemoMessage({ message }),
                   }),
                 ],
               ),
@@ -185,7 +182,7 @@ export const view = <ParentMessage>(
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
-      Ui.Fieldset.view<ParentMessage>({
+      Ui.Fieldset.view<UiMessage>({
         id: 'fieldset-disabled-demo',
         isDisabled: true,
         toView: attributes =>
@@ -206,7 +203,7 @@ export const view = <ParentMessage>(
               h.div(
                 [h.Class('mt-4 flex flex-col gap-4')],
                 [
-                  Ui.Input.view<ParentMessage>({
+                  Ui.Input.view<UiMessage>({
                     id: 'fieldset-disabled-name-input',
                     isDisabled: true,
                     value: 'Ada Lovelace',
@@ -225,7 +222,7 @@ export const view = <ParentMessage>(
                         ],
                       ),
                   }),
-                  Ui.Textarea.view<ParentMessage>({
+                  Ui.Textarea.view<UiMessage>({
                     id: 'fieldset-disabled-bio-textarea',
                     isDisabled: true,
                     value:
@@ -252,36 +249,38 @@ export const view = <ParentMessage>(
                         ],
                       ),
                   }),
-                  Ui.Checkbox.view({
+                  h.submodel({
+                    slotId: 'fieldset-disabled-checkbox',
                     model: {
                       id: 'fieldset-disabled-checkbox',
                       isChecked: true,
                     },
-                    isDisabled: true,
+                    view: Ui.Checkbox.view,
+                    viewInputs: {
+                      isDisabled: true,
+                      toView: checkboxAttributes =>
+                        h.div(
+                          [h.Class('flex items-center gap-2')],
+                          [
+                            h.button(
+                              [
+                                ...checkboxAttributes.checkbox,
+                                h.Class(checkboxClassName),
+                              ],
+                              [checkmark],
+                            ),
+                            h.label(
+                              [
+                                ...checkboxAttributes.label,
+                                h.Class(checkboxLabelClassName),
+                              ],
+                              ['I agree to the terms and conditions'],
+                            ),
+                          ],
+                        ),
+                    },
                     toParentMessage: message =>
-                      toParentMessage(
-                        GotFieldsetCheckboxDemoMessage({ message }),
-                      ),
-                    toView: checkboxAttributes =>
-                      h.div(
-                        [h.Class('flex items-center gap-2')],
-                        [
-                          h.button(
-                            [
-                              ...checkboxAttributes.checkbox,
-                              h.Class(checkboxClassName),
-                            ],
-                            [checkmark],
-                          ),
-                          h.label(
-                            [
-                              ...checkboxAttributes.label,
-                              h.Class(checkboxLabelClassName),
-                            ],
-                            ['I agree to the terms and conditions'],
-                          ),
-                        ],
-                      ),
+                      GotFieldsetCheckboxDemoMessage({ message }),
                   }),
                 ],
               ),
@@ -290,4 +289,4 @@ export const view = <ParentMessage>(
       }),
     ],
   )
-}
+})

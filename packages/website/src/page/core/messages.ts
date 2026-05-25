@@ -9,7 +9,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
-import { coreArchitectureRouter, patternsSubmodelsRouter } from '../../route'
+import { coreArchitectureRouter, coreSubmodelRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -78,7 +78,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' for Command results, and ',
         inlineCode('Got*'),
         ' for ',
-        link(patternsSubmodelsRouter(), 'Submodel results'),
+        link(coreSubmodelRouter(), 'Submodel results'),
         '.',
       ),
       para(

@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { uiShowcaseViewSourceHref } from '../../link'
@@ -82,6 +83,12 @@ const switchAttributesHeader: TableOfContentsEntry = {
   text: 'SwitchAttributes',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -92,6 +99,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   initConfigHeader,
   viewConfigHeader,
   switchAttributesHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -175,6 +183,15 @@ const switchAttributesProps: ReadonlyArray<PropEntry> = [
   },
 ]
 
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'ToggledChecked',
+    type: '{ isChecked: boolean }',
+    description:
+      'Emitted each time the switch toggles. Carries the new checked state. Pattern-match the third tuple element of Switch.update in your GotSwitchMessage handler to lift the toggle into a domain Message (e.g., persisting the setting or dispatching a sync command).',
+  },
+]
+
 const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
   {
     attribute: 'data-checked',
@@ -195,109 +212,128 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/switch', 'Switch'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'An on/off toggle. Semantically different from Checkbox: Switch represents an immediate action (like a light switch), while Checkbox represents a form value that gets submitted. Switch uses the Submodel pattern with the same wiring as Checkbox.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how Switch is wired up in a ',
-        link(uiShowcaseViewSourceHref('switch'), 'real Foldkit app'),
-        '.',
-      ),
-      heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-      para(
-        'The switch renders as a ',
-        inlineCode('<button>'),
-        ' with ',
-        inlineCode('role="switch"'),
-        '. The typical visual is a track with a sliding knob, styled with the ',
-        inlineCode('data-checked'),
-        ' attribute for the on state.',
-      ),
-      demoContainer(...Switch.switchDemo(model.switchDemo, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiSwitchBasicHighlighted)],
-          [],
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/switch', 'Switch'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'An on/off toggle. Semantically different from Checkbox: Switch represents an immediate action (like a light switch), while Checkbox represents a form value that gets submitted. Switch uses the Submodel pattern with the same wiring as Checkbox.',
         ),
-        Snippet.uiSwitchBasicRaw,
-        'Copy switch example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'Switch is headless. Your ',
-        inlineCode('toView'),
-        ' callback controls all markup and styling. Use ',
-        inlineCode('data-[checked]'),
-        ' to change the track color and translate the knob.',
-      ),
-      dataAttributeTable(dataAttributes),
-      heading(
-        keyboardInteractionHeader.level,
-        keyboardInteractionHeader.id,
-        keyboardInteractionHeader.text,
-      ),
-      keyboardTable(keyboardEntries),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'The switch button receives ',
-        inlineCode('role="switch"'),
-        ' and ',
-        inlineCode('aria-checked'),
-        '. The label is linked via ',
-        inlineCode('aria-labelledby'),
-        ' and the description via ',
-        inlineCode('aria-describedby'),
-        '. Clicking the label toggles the switch.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
-      heading(
-        initConfigHeader.level,
-        initConfigHeader.id,
-        initConfigHeader.text,
-      ),
-      para('Configuration object passed to ', inlineCode('Switch.init()'), '.'),
-      propTable(initConfigProps),
-      heading(
-        viewConfigHeader.level,
-        viewConfigHeader.id,
-        viewConfigHeader.text,
-      ),
-      para('Configuration object passed to ', inlineCode('Switch.view()'), '.'),
-      propTable(viewConfigProps),
-      heading(
-        switchAttributesHeader.level,
-        switchAttributesHeader.id,
-        switchAttributesHeader.text,
-      ),
-      para(
-        'Attribute groups provided to the ',
-        inlineCode('toView'),
-        ' callback.',
-      ),
-      propTable(switchAttributesProps),
-    ],
-  )
-}
+        infoCallout(
+          'See it in an app',
+          'Check out how Switch is wired up in a ',
+          link(uiShowcaseViewSourceHref('switch'), 'real Foldkit app'),
+          '.',
+        ),
+        heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
+        para(
+          'The switch renders as a ',
+          inlineCode('<button>'),
+          ' with ',
+          inlineCode('role="switch"'),
+          '. The typical visual is a track with a sliding knob, styled with the ',
+          inlineCode('data-checked'),
+          ' attribute for the on state.',
+        ),
+        demoContainer(...Switch.switchDemo(model.switchDemo)),
+        highlightedCodeBlock(
+          h.div(
+            [h.Class('text-sm'), h.InnerHTML(Snippet.uiSwitchBasicHighlighted)],
+            [],
+          ),
+          Snippet.uiSwitchBasicRaw,
+          'Copy switch example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'Switch is headless. Your ',
+          inlineCode('toView'),
+          ' callback controls all markup and styling. Use ',
+          inlineCode('data-[checked]'),
+          ' to change the track color and translate the knob.',
+        ),
+        dataAttributeTable(dataAttributes),
+        heading(
+          keyboardInteractionHeader.level,
+          keyboardInteractionHeader.id,
+          keyboardInteractionHeader.text,
+        ),
+        keyboardTable(keyboardEntries),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'The switch button receives ',
+          inlineCode('role="switch"'),
+          ' and ',
+          inlineCode('aria-checked'),
+          '. The label is linked via ',
+          inlineCode('aria-labelledby'),
+          ' and the description via ',
+          inlineCode('aria-describedby'),
+          '. Clicking the label toggles the switch.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
+        heading(
+          initConfigHeader.level,
+          initConfigHeader.id,
+          initConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Switch.init()'),
+          '.',
+        ),
+        propTable(initConfigProps),
+        heading(
+          viewConfigHeader.level,
+          viewConfigHeader.id,
+          viewConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Switch.view()'),
+          '.',
+        ),
+        propTable(viewConfigProps),
+        heading(
+          switchAttributesHeader.level,
+          switchAttributesHeader.id,
+          switchAttributesHeader.text,
+        ),
+        para(
+          'Attribute groups provided to the ',
+          inlineCode('toView'),
+          ' callback.',
+        ),
+        propTable(switchAttributesProps),
+        heading(
+          outMessageHeader.level,
+          outMessageHeader.id,
+          outMessageHeader.text,
+        ),
+        para(
+          'Messages emitted to the parent through the third element of ',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          '. Pattern-match on the OutMessage in your update handler.',
+        ),
+        propTable(outMessageProps),
+      ],
+    )
+  },
+)

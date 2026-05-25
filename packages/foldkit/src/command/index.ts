@@ -1,4 +1,4 @@
-import { Effect, Function, Predicate, Schema } from 'effect'
+import { Array, Effect, Function, Predicate, Schema } from 'effect'
 
 /** Type-level brand for CommandDefinition values. */
 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -199,4 +199,131 @@ export const mapEffect: {
     args?: Record<string, unknown>
     effect: Effect.Effect<B, E2, R2>
   }> => ({ ...command, effect: f(command.effect) }),
+)
+
+/** Lifts a single Command's result Message through `f`, transforming
+ *  `FromMessage` to `ToMessage`. The singular complement to
+ *  {@link mapMessages}: reach for this when a child returns one Command
+ *  (e.g. an animation leave Command), reach for `mapMessages` when it
+ *  returns a list.
+ *
+ *  Preserves the Command's `name` and `args` so traces still attribute
+ *  it to the originating Submodel. When you need to transform the
+ *  Effect itself (not just the result Message), reach for
+ *  {@link mapEffect} instead. */
+export const mapMessage: {
+  <FromMessage, ToMessage, E = never, R = never>(
+    command: Readonly<{
+      name: string
+      args?: Record<string, unknown>
+      effect: Effect.Effect<FromMessage, E, R>
+    }>,
+    f: (message: FromMessage) => ToMessage,
+  ): Readonly<{
+    name: string
+    args?: Record<string, unknown>
+    effect: Effect.Effect<ToMessage, E, R>
+  }>
+  <FromMessage, ToMessage>(
+    f: (message: FromMessage) => ToMessage,
+  ): <E = never, R = never>(
+    command: Readonly<{
+      name: string
+      args?: Record<string, unknown>
+      effect: Effect.Effect<FromMessage, E, R>
+    }>,
+  ) => Readonly<{
+    name: string
+    args?: Record<string, unknown>
+    effect: Effect.Effect<ToMessage, E, R>
+  }>
+} = Function.dual(
+  2,
+  <FromMessage, ToMessage, E = never, R = never>(
+    command: Readonly<{
+      name: string
+      args?: Record<string, unknown>
+      effect: Effect.Effect<FromMessage, E, R>
+    }>,
+    f: (message: FromMessage) => ToMessage,
+  ): Readonly<{
+    name: string
+    args?: Record<string, unknown>
+    effect: Effect.Effect<ToMessage, E, R>
+  }> => mapEffect(command, Effect.map(f)),
+)
+
+/** Lifts every Command in a list through `f`, transforming the result
+ *  Message type from `FromMessage` to `ToMessage`. Reach for this at the
+ *  boundary where a child Submodel's `update` returns Commands typed in
+ *  the child's Message and the parent needs them typed in the parent's
+ *  Message:
+ *
+ *  ```ts
+ *  GotChildMessage: ({ message }) => {
+ *    const [nextChild, commands, maybeOutMessage] = Child.update(model.child, message)
+ *    const mappedCommands = Command.mapMessages(
+ *      commands,
+ *      message => GotChildMessage({ message }),
+ *    )
+ *    // ...
+ *  }
+ *  ```
+ *
+ *  Preserves each Command's `name` and `args` so traces still attribute
+ *  the Command to the originating Submodel. When you need to transform
+ *  the Effect itself (not just the result Message), reach for
+ *  {@link mapEffect} instead. */
+export const mapMessages: {
+  <FromMessage, ToMessage, E = never, R = never>(
+    commands: ReadonlyArray<
+      Readonly<{
+        name: string
+        args?: Record<string, unknown>
+        effect: Effect.Effect<FromMessage, E, R>
+      }>
+    >,
+    f: (message: FromMessage) => ToMessage,
+  ): ReadonlyArray<
+    Readonly<{
+      name: string
+      args?: Record<string, unknown>
+      effect: Effect.Effect<ToMessage, E, R>
+    }>
+  >
+  <FromMessage, ToMessage>(
+    f: (message: FromMessage) => ToMessage,
+  ): <E = never, R = never>(
+    commands: ReadonlyArray<
+      Readonly<{
+        name: string
+        args?: Record<string, unknown>
+        effect: Effect.Effect<FromMessage, E, R>
+      }>
+    >,
+  ) => ReadonlyArray<
+    Readonly<{
+      name: string
+      args?: Record<string, unknown>
+      effect: Effect.Effect<ToMessage, E, R>
+    }>
+  >
+} = Function.dual(
+  2,
+  <FromMessage, ToMessage, E = never, R = never>(
+    commands: ReadonlyArray<
+      Readonly<{
+        name: string
+        args?: Record<string, unknown>
+        effect: Effect.Effect<FromMessage, E, R>
+      }>
+    >,
+    f: (message: FromMessage) => ToMessage,
+  ): ReadonlyArray<
+    Readonly<{
+      name: string
+      args?: Record<string, unknown>
+      effect: Effect.Effect<ToMessage, E, R>
+    }>
+  > => Array.map(commands, command => mapMessage(command, f)),
 )

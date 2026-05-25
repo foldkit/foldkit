@@ -1,4 +1,4 @@
-import { Array, Effect, Match as M, Option, Record, pipe } from 'effect'
+import { Array, Match as M, Option, Record, pipe } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
@@ -84,10 +84,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 disclosures: disclosures =>
                   Record.set(disclosures, id, nextDisclosure),
               }),
-              commands.map(
-                Command.mapEffect(
-                  Effect.map(message => GotDisclosureMessage({ id, message })),
-                ),
+              Command.mapMessages(commands, message =>
+                GotDisclosureMessage({ id, message }),
               ),
             ]
           },

@@ -1,9 +1,10 @@
 import { Match as M, Schema as S } from 'effect'
 
 import {
-  type Attribute,
+  type ChildAttribute,
   type Html,
-  createLazy,
+  childAttributes,
+  defineView,
   html,
 } from '../../html/index.js'
 import {
@@ -105,10 +106,13 @@ const positionToContainerStyle = (
   )
 }
 
-/** Handlers passed to `renderEntry`. Attach `dismiss` to a close button's
- *  `OnClick` to let users dismiss the entry manually. */
-export type EntryHandlers<ParentMessage> = Readonly<{
-  dismiss: ParentMessage
+/** Handlers passed to `entryToView`. Spread `dismiss` onto a close
+ *  button's attribute array (typically inside `h.button([...dismiss])`)
+ *  to let users dismiss the entry manually. The attribute carries the
+ *  Toast's dismiss handler bound to this entry's id; it routes through
+ *  the Toast boundary's wrap chain at click time. */
+export type EntryHandlers = Readonly<{
+  dismiss: ReadonlyArray<ChildAttribute>
 }>
 
 const DEFAULT_ARIA_LABEL = 'Notifications'
@@ -119,11 +123,11 @@ const DEFAULT_ARIA_LABEL = 'Notifications'
  *  `dismiss` / `dismissAll` helpers, and the headless `view`.
  *
  *  The payload is whatever content shape the consumer supplies via Schema.
- *  The component never reads it — it flows through to `renderEntry`. The
+ *  The component never reads it. It flows through to `entryToView`. The
  *  component itself owns only lifecycle and a11y fields (id, variant,
  *  animation, dismiss timer, hover state).
  *
- *  Consume the bound module's exports everywhere — `Toast.Model` in your app
+ *  Consume the bound module's exports everywhere. `Toast.Model` in your app
  *  Model, `Toast.Message` in your parent Message union, `Toast.show` /
  *  `Toast.dismiss` in your update, `Toast.view` in your view. The top-level
  *  exports (`Variant`, `Position`, static message tags, `DismissAfter`) are
@@ -146,19 +150,17 @@ export const make = <A, I>(payloadSchema: S.Codec<A, I>) => {
   const runtime = makeRuntime(payloadSchema)
   type Entry = typeof runtime.Entry.Type
 
-  /** Configuration for rendering the bound toast container with `view`. */
-  type ViewConfig<ParentMessage> = Readonly<{
-    model: typeof runtime.Model.Type
+  type ToastModel = typeof runtime.Model.Type
+  type ToastMessage = typeof runtime.Message.Type
+
+  /** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs`
+   *  field. */
+  type ViewInputs = Readonly<{
     position: Position
-    toParentMessage: (
-      message: Dismissed | HoveredEntry | LeftEntry,
-    ) => ParentMessage
-    renderEntry: (entry: Entry, handlers: EntryHandlers<ParentMessage>) => Html
+    entryToView: (entry: Entry, handlers: EntryHandlers) => Html
     ariaLabel?: string
-    className?: string
-    attributes?: ReadonlyArray<Attribute<ParentMessage>>
+    containerClassName?: string
     entryClassName?: string
-    entryAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   }>
 
   /** Renders a headless toast stack. The `<ol>` container is always present
@@ -167,119 +169,86 @@ export const make = <A, I>(payloadSchema: S.Codec<A, I>) => {
    *  animation data attributes (`data-enter`, `data-leave`,
    *  `data-transition`, `data-closed`) and `data-variant` reflecting the
    *  entry's variant. */
-  const view = <ParentMessage>(config: ViewConfig<ParentMessage>): Html => {
-    const h = html<ParentMessage>()
+  const view = defineView<ToastModel, ToastMessage, ViewInputs>(
+    (model, viewInputs): Html => {
+      const h = html<ToastMessage>()
 
-    const {
-      model: { id, entries },
-      position,
-      toParentMessage,
-      renderEntry,
-      ariaLabel = DEFAULT_ARIA_LABEL,
-      className,
-      attributes = [],
-      entryClassName,
-      entryAttributes = [],
-    } = config
+      const { id, entries } = model
+      const {
+        position,
+        entryToView,
+        ariaLabel = DEFAULT_ARIA_LABEL,
+        containerClassName,
+        entryClassName,
+      } = viewInputs
 
-    const containerAttributes = [
-      h.Id(id),
-      h.Role('region'),
-      h.AriaLabel(ariaLabel),
-      h.AriaLive('polite'),
-      h.Style(positionToContainerStyle(position)),
-      ...(className ? [h.Class(className)] : []),
-      ...attributes,
-    ]
-
-    const renderEntryItem = (entry: Entry): Html => {
-      const { transitionState } = entry.animation
-
-      const animationAttributes: ReadonlyArray<
-        ReturnType<typeof h.DataAttribute>
-      > = M.value(transitionState).pipe(
-        M.when('EnterStart', () => [
-          h.DataAttribute('closed', ''),
-          h.DataAttribute('enter', ''),
-          h.DataAttribute('transition', ''),
-        ]),
-        M.when('EnterAnimating', () => [
-          h.DataAttribute('enter', ''),
-          h.DataAttribute('transition', ''),
-        ]),
-        M.when('LeaveStart', () => [
-          h.DataAttribute('leave', ''),
-          h.DataAttribute('transition', ''),
-        ]),
-        M.when('LeaveAnimating', () => [
-          h.DataAttribute('closed', ''),
-          h.DataAttribute('leave', ''),
-          h.DataAttribute('transition', ''),
-        ]),
-        M.orElse(() => []),
-      )
-
-      const handlers: EntryHandlers<ParentMessage> = {
-        dismiss: toParentMessage(Dismissed({ entryId: entry.id })),
-      }
-
-      const itemAttributes = [
-        h.Id(entry.id),
-        h.Role(variantToRole(entry.variant)),
-        h.AriaAtomic(true),
-        h.DataAttribute('variant', entry.variant),
-        h.Style({ pointerEvents: 'auto' }),
-        h.OnMouseEnter(toParentMessage(HoveredEntry({ entryId: entry.id }))),
-        h.OnMouseLeave(toParentMessage(LeftEntry({ entryId: entry.id }))),
-        ...animationAttributes,
-        ...(entryClassName ? [h.Class(entryClassName)] : []),
-        ...entryAttributes,
+      const containerAttributes = [
+        h.Id(id),
+        h.Role('region'),
+        h.AriaLabel(ariaLabel),
+        h.AriaLive('polite'),
+        h.Style(positionToContainerStyle(position)),
+        ...(containerClassName ? [h.Class(containerClassName)] : []),
       ]
 
-      return h.keyed('li')(entry.id, itemAttributes, [
-        renderEntry(entry, handlers),
-      ])
-    }
+      const renderEntryItem = (entry: Entry): Html => {
+        const { transitionState } = entry.animation
 
-    return h.keyed('ol')(id, containerAttributes, entries.map(renderEntryItem))
-  }
+        const animationAttributes = M.value(transitionState).pipe(
+          M.when('EnterStart', () => [
+            h.DataAttribute('closed', ''),
+            h.DataAttribute('enter', ''),
+            h.DataAttribute('transition', ''),
+          ]),
+          M.when('EnterAnimating', () => [
+            h.DataAttribute('enter', ''),
+            h.DataAttribute('transition', ''),
+          ]),
+          M.when('LeaveStart', () => [
+            h.DataAttribute('leave', ''),
+            h.DataAttribute('transition', ''),
+          ]),
+          M.when('LeaveAnimating', () => [
+            h.DataAttribute('closed', ''),
+            h.DataAttribute('leave', ''),
+            h.DataAttribute('transition', ''),
+          ]),
+          M.orElse(() => []),
+        )
 
-  /** Creates a memoized toast container view. Static config (className,
-   *  entryClassName, etc.) is captured in a closure. Dynamic fields —
-   *  `model`, `toParentMessage`, and `renderEntry` — are compared by
-   *  reference per render via `createLazy`. */
-  const lazy = <ParentMessage>(
-    staticConfig: Omit<
-      ViewConfig<ParentMessage>,
-      'model' | 'toParentMessage' | 'renderEntry'
-    >,
-  ): ((
-    model: typeof runtime.Model.Type,
-    toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-    renderEntry: ViewConfig<ParentMessage>['renderEntry'],
-  ) => Html) => {
-    const lazyView = createLazy()
+        const itemAttributes = [
+          h.Id(entry.id),
+          h.Role(variantToRole(entry.variant)),
+          h.AriaAtomic(true),
+          h.DataAttribute('variant', entry.variant),
+          h.Style({ pointerEvents: 'auto' }),
+          h.OnMouseEnter(HoveredEntry({ entryId: entry.id })),
+          h.OnMouseLeave(LeftEntry({ entryId: entry.id })),
+          ...animationAttributes,
+          ...(entryClassName ? [h.Class(entryClassName)] : []),
+        ]
 
-    return (model, toParentMessage, renderEntry) =>
-      lazyView(
-        (
-          currentModel: typeof runtime.Model.Type,
-          currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-          currentRenderEntry: ViewConfig<ParentMessage>['renderEntry'],
-        ) =>
-          view({
-            ...staticConfig,
-            model: currentModel,
-            toParentMessage: currentToParentMessage,
-            renderEntry: currentRenderEntry,
-          }),
-        [model, toParentMessage, renderEntry],
+        const handlers: EntryHandlers = {
+          dismiss: childAttributes([
+            h.OnClick(Dismissed({ entryId: entry.id })),
+          ]),
+        }
+
+        return h.keyed('li')(entry.id, itemAttributes, [
+          entryToView(entry, handlers),
+        ])
+      }
+
+      return h.keyed('ol')(
+        id,
+        containerAttributes,
+        entries.map(renderEntryItem),
       )
-  }
+    },
+  )
 
   return {
     ...runtime,
     view,
-    lazy,
   } as const
 }

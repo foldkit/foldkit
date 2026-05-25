@@ -1,10 +1,9 @@
 import { clsx } from 'clsx'
 import { Array, Match as M, Option, String, pipe } from 'effect'
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { Icon } from '../icon'
-import type { Message as ParentMessage } from '../main'
 import { SEARCH_INPUT_ID } from './command'
 import {
   ClearedSearchQuery,
@@ -18,30 +17,23 @@ import {
 import type { Model } from './model'
 import { resultsFromState } from './model'
 
-type ToMessage = (message: Message) => ParentMessage
-
 const RESULTS_LIST_ID = 'search-results'
 const resultItemId = (index: number): string => `search-result-${index}`
 
 const handleSearchInputKeyDown = (
   key: string,
   model: Model,
-  toParentMessage: ToMessage,
-): Option.Option<ParentMessage> =>
+): Option.Option<Message> =>
   M.value(key).pipe(
     M.when('ArrowDown', () =>
-      Option.some(toParentMessage(PressedArrowKey({ direction: 'Down' }))),
+      Option.some(PressedArrowKey({ direction: 'Down' })),
     ),
-    M.when('ArrowUp', () =>
-      Option.some(toParentMessage(PressedArrowKey({ direction: 'Up' }))),
-    ),
+    M.when('ArrowUp', () => Option.some(PressedArrowKey({ direction: 'Up' }))),
     M.when('Escape', () =>
       String.isNonEmpty(model.query)
-        ? Option.some(toParentMessage(ClearedSearchQuery()))
+        ? Option.some(ClearedSearchQuery())
         : Option.some(
-            toParentMessage(
-              GotSearchDialogMessage({ message: Ui.Dialog.Closed() }),
-            ),
+            GotSearchDialogMessage({ message: Ui.Dialog.RequestedClose() }),
           ),
     ),
     M.when('Enter', () =>
@@ -50,17 +42,15 @@ const handleSearchInputKeyDown = (
             model.searchState,
             resultsFromState,
             Array.get(model.activeResultIndex),
-            Option.map(result =>
-              toParentMessage(SelectedSearchResult({ url: result.url })),
-            ),
+            Option.map(result => SelectedSearchResult({ url: result.url })),
           )
         : Option.none(),
     ),
     M.orElse(() => Option.none()),
   )
 
-const searchInputView = (model: Model, toParentMessage: ToMessage): Html => {
-  const h = html<ParentMessage>()
+const searchInputView = (model: Model): Html => {
+  const h = html<Message>()
 
   const isListboxVisible =
     model.searchState._tag === 'Ok' || model.searchState._tag === 'Loading'
@@ -90,12 +80,8 @@ const searchInputView = (model: Model, toParentMessage: ToMessage): Html => {
         h.Class(
           'flex-1 bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none text-base',
         ),
-        h.OnInput(value =>
-          toParentMessage(UpdatedSearchQuery({ query: value })),
-        ),
-        h.OnKeyDownPreventDefault(key =>
-          handleSearchInputKeyDown(key, model, toParentMessage),
-        ),
+        h.OnInput(value => UpdatedSearchQuery({ query: value })),
+        h.OnKeyDownPreventDefault(key => handleSearchInputKeyDown(key, model)),
       ]),
     ],
   )
@@ -116,7 +102,7 @@ const resultLabelText = (
   ])
 
 const resultLabel = (result: typeof SearchResult.Type): ReadonlyArray<Html> => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return Option.match(resultLabelText(result), {
     onSome: text => [h.span([h.Class(labelPillClassName)], [text])],
@@ -128,9 +114,8 @@ const resultItemView = (
   result: typeof SearchResult.Type,
   index: number,
   isActive: boolean,
-  toParentMessage: ToMessage,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return h.a(
     [
@@ -146,7 +131,7 @@ const resultItemView = (
         ),
       ),
       h.DataAttribute('search-result-index', `${index}`),
-      h.OnClick(toParentMessage(SelectedSearchResult({ url: result.url }))),
+      h.OnClick(SelectedSearchResult({ url: result.url })),
     ],
     [
       h.div(
@@ -173,7 +158,7 @@ const resultItemView = (
 }
 
 const emptyPrompt: Html = (() => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return h.div(
     [h.Class('px-4 py-12 text-center')],
@@ -187,7 +172,7 @@ const emptyPrompt: Html = (() => {
 })()
 
 const searchingIndicator: Html = (() => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return h.div(
     [h.Class('px-4 py-12 text-center'), h.AriaLive('polite')],
@@ -201,7 +186,7 @@ const searchingIndicator: Html = (() => {
 })()
 
 const noResultsView = (query: string): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return h.div(
     [h.Class('px-4 py-12 text-center'), h.AriaLive('polite')],
@@ -217,9 +202,8 @@ const noResultsView = (query: string): Html => {
 const resultListView = (
   results: ReadonlyArray<typeof SearchResult.Type>,
   activeResultIndex: number,
-  toParentMessage: ToMessage,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return Array.match(results, {
     onEmpty: () => h.empty,
@@ -232,40 +216,33 @@ const resultListView = (
           h.Class('max-h-[60dvh] overflow-y-auto'),
         ],
         Array.map(nonEmptyResults, (result, index) =>
-          resultItemView(
-            result,
-            index,
-            index === activeResultIndex,
-            toParentMessage,
-          ),
+          resultItemView(result, index, index === activeResultIndex),
         ),
       ),
   })
 }
 
-const resultsListView = (model: Model, toParentMessage: ToMessage): Html =>
+const resultsListView = (model: Model): Html =>
   M.value(model.searchState).pipe(
     M.withReturnType<Html>(),
     M.tag('Idle', () => emptyPrompt),
     M.tag('Loading', ({ results }) =>
       Array.match(results, {
         onEmpty: () => searchingIndicator,
-        onNonEmpty: () =>
-          resultListView(results, model.activeResultIndex, toParentMessage),
+        onNonEmpty: () => resultListView(results, model.activeResultIndex),
       }),
     ),
     M.tag('Ok', ({ results }) =>
       Array.match(results, {
         onEmpty: () => noResultsView(model.query),
-        onNonEmpty: () =>
-          resultListView(results, model.activeResultIndex, toParentMessage),
+        onNonEmpty: () => resultListView(results, model.activeResultIndex),
       }),
     ),
     M.exhaustive,
   )
 
 const resultCountAnnouncement = (model: Model): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   const results = resultsFromState(model.searchState)
   const count = results.length
@@ -276,36 +253,58 @@ const resultCountAnnouncement = (model: Model): Html => {
   )
 }
 
-export const view = (model: Model, toParentMessage: ToMessage): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<Model, Message>((model): Html => {
+  const h = html<Message>()
 
-  return Ui.Dialog.view({
+  return h.submodel({
+    slotId: model.dialog.id,
     model: model.dialog,
-    toParentMessage: message =>
-      toParentMessage(GotSearchDialogMessage({ message })),
-    panelContent: h.div(
-      [
-        h.Class(
-          'w-full max-w-xl mx-auto mt-[15vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl dark:shadow-black/50 border border-gray-200 dark:border-gray-700 overflow-hidden',
+    view: Ui.Dialog.view,
+    viewInputs: {
+      toView: ({ dialog, backdrop, panel, isVisible }) =>
+        h.dialog(
+          [...dialog],
+          isVisible
+            ? [
+                h.div(
+                  [
+                    ...backdrop,
+                    h.Class(
+                      'fixed inset-0 z-[59] bg-black/50 dark:bg-black/70',
+                    ),
+                  ],
+                  [],
+                ),
+                h.div(
+                  [
+                    ...panel,
+                    h.Class(
+                      'fixed inset-0 z-[60] overflow-y-auto px-4 sm:px-6 pointer-events-none [&>*]:pointer-events-auto',
+                    ),
+                  ],
+                  [
+                    h.div(
+                      [
+                        h.Class(
+                          'w-full max-w-xl mx-auto mt-[15vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl dark:shadow-black/50 border border-gray-200 dark:border-gray-700 overflow-hidden',
+                        ),
+                      ],
+                      [
+                        h.span(
+                          [h.Id('search-dialog-title'), h.Class('sr-only')],
+                          ['Search documentation'],
+                        ),
+                        searchInputView(model),
+                        resultsListView(model),
+                        resultCountAnnouncement(model),
+                      ],
+                    ),
+                  ],
+                ),
+              ]
+            : [],
         ),
-      ],
-      [
-        h.span(
-          [h.Id('search-dialog-title'), h.Class('sr-only')],
-          ['Search documentation'],
-        ),
-        searchInputView(model, toParentMessage),
-        resultsListView(model, toParentMessage),
-        resultCountAnnouncement(model),
-      ],
-    ),
-    panelAttributes: [
-      h.Class(
-        'fixed inset-0 z-[60] overflow-y-auto px-4 sm:px-6 pointer-events-none [&>*]:pointer-events-auto',
-      ),
-    ],
-    backdropAttributes: [
-      h.Class('fixed inset-0 z-[59] bg-black/50 dark:bg-black/70'),
-    ],
+    },
+    toParentMessage: message => GotSearchDialogMessage({ message }),
   })
-}
+})

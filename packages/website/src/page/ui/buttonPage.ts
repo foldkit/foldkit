@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { uiShowcaseViewSourceHref } from '../../link'
@@ -153,146 +154,152 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/button', 'Button'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'A thin wrapper around the native button element that provides consistent accessibility attributes and data-attribute hooks for styling. Button is a view-only component with no Model, Messages, or update function.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how Button is wired up in a ',
-        link(uiShowcaseViewSourceHref('button'), 'real Foldkit app'),
-        '.',
-      ),
-      heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-      heading(
-        Button.basicHeader.level,
-        Button.basicHeader.id,
-        Button.basicHeader.text,
-      ),
-      para(
-        'Pass an ',
-        inlineCode('onClick'),
-        ' Message and a ',
-        inlineCode('toView'),
-        ' callback that spreads the provided attributes onto a ',
-        inlineCode('<button>'),
-        ' element.',
-      ),
-      demoContainer(...Button.basicDemo(model, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiButtonBasicHighlighted)],
-          [],
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/button', 'Button'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'A thin wrapper around the native button element that provides consistent accessibility attributes and data-attribute hooks for styling. Button is a stateless render helper: call it directly with a ViewConfig in your own view. No Model, Messages, update, or ',
+          inlineCode('h.submodel'),
+          ' wrapping.',
         ),
-        Snippet.uiButtonBasicRaw,
-        'Copy basic button example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-
-      heading(
-        Button.disabledHeader.level,
-        Button.disabledHeader.id,
-        Button.disabledHeader.text,
-      ),
-      para(
-        'Set ',
-        inlineCode('isDisabled: true'),
-        ' to disable the button. Foldkit uses ',
-        inlineCode('aria-disabled'),
-        ' instead of the native ',
-        inlineCode('disabled'),
-        ' attribute so the button remains focusable for screen readers.',
-      ),
-      demoContainer(...Button.disabledDemo(model, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippet.uiButtonDisabledHighlighted),
-          ],
-          [],
+        infoCallout(
+          'See it in an app',
+          'Check out how Button is wired up in a ',
+          link(uiShowcaseViewSourceHref('button'), 'real Foldkit app'),
+          '.',
         ),
-        Snippet.uiButtonDisabledRaw,
-        'Copy disabled button example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'Button is headless. It provides no default styles. Your ',
-        inlineCode('toView'),
-        ' callback receives attribute groups to spread onto the element, and you control all markup and styling.',
-      ),
-      para('Use the following data attributes to style different states:'),
-      dataAttributeTable(dataAttributes),
-      heading(
-        keyboardInteractionHeader.level,
-        keyboardInteractionHeader.id,
-        keyboardInteractionHeader.text,
-      ),
-      para(
-        'Button uses the native ',
-        inlineCode('<button>'),
-        ' element, so keyboard interaction is handled by the browser.',
-      ),
-      keyboardTable(keyboardEntries),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'Button sets ',
-        inlineCode('aria-disabled="true"'),
-        ' when disabled instead of the native ',
-        inlineCode('disabled'),
-        ' attribute. This ensures the button remains in the tab order and is announced by screen readers, while preventing click handlers from firing.',
-      ),
-      para(
-        inlineCode('tabindex="0"'),
-        ' is always set to ensure focusability. The ',
-        inlineCode('type'),
-        ' attribute defaults to ',
-        inlineCode('"button"'),
-        ' to prevent accidental form submissions.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
+        heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
+        heading(
+          Button.basicHeader.level,
+          Button.basicHeader.id,
+          Button.basicHeader.text,
+        ),
+        para(
+          'Pass an ',
+          inlineCode('onClick'),
+          ' Message and a ',
+          inlineCode('toView'),
+          ' callback that spreads the provided attributes onto a ',
+          inlineCode('<button>'),
+          ' element.',
+        ),
+        demoContainer(...Button.basicDemo(model)),
+        highlightedCodeBlock(
+          h.div(
+            [h.Class('text-sm'), h.InnerHTML(Snippet.uiButtonBasicHighlighted)],
+            [],
+          ),
+          Snippet.uiButtonBasicRaw,
+          'Copy basic button example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
 
-      heading(
-        viewConfigHeader.level,
-        viewConfigHeader.id,
-        viewConfigHeader.text,
-      ),
-      para('Configuration object passed to ', inlineCode('Button.view()'), '.'),
-      propTable(viewConfigProps),
+        heading(
+          Button.disabledHeader.level,
+          Button.disabledHeader.id,
+          Button.disabledHeader.text,
+        ),
+        para(
+          'Set ',
+          inlineCode('isDisabled: true'),
+          ' to disable the button. Foldkit uses ',
+          inlineCode('aria-disabled'),
+          ' instead of the native ',
+          inlineCode('disabled'),
+          ' attribute so the button remains focusable for screen readers.',
+        ),
+        demoContainer(...Button.disabledDemo(model)),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiButtonDisabledHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiButtonDisabledRaw,
+          'Copy disabled button example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'Button is headless. It provides no default styles. Your ',
+          inlineCode('toView'),
+          ' callback receives attribute groups to spread onto the element, and you control all markup and styling.',
+        ),
+        para('Use the following data attributes to style different states:'),
+        dataAttributeTable(dataAttributes),
+        heading(
+          keyboardInteractionHeader.level,
+          keyboardInteractionHeader.id,
+          keyboardInteractionHeader.text,
+        ),
+        para(
+          'Button uses the native ',
+          inlineCode('<button>'),
+          ' element, so keyboard interaction is handled by the browser.',
+        ),
+        keyboardTable(keyboardEntries),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'Button sets ',
+          inlineCode('aria-disabled="true"'),
+          ' when disabled instead of the native ',
+          inlineCode('disabled'),
+          ' attribute. This ensures the button remains in the tab order and is announced by screen readers, while preventing click handlers from firing.',
+        ),
+        para(
+          inlineCode('tabindex="0"'),
+          ' is always set to ensure focusability. The ',
+          inlineCode('type'),
+          ' attribute defaults to ',
+          inlineCode('"button"'),
+          ' to prevent accidental form submissions.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
 
-      heading(
-        buttonAttributesHeader.level,
-        buttonAttributesHeader.id,
-        buttonAttributesHeader.text,
-      ),
-      para(
-        'Attribute groups provided to the ',
-        inlineCode('toView'),
-        ' callback.',
-      ),
-      propTable(buttonAttributesProps),
-    ],
-  )
-}
+        heading(
+          viewConfigHeader.level,
+          viewConfigHeader.id,
+          viewConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Button.view()'),
+          '.',
+        ),
+        propTable(viewConfigProps),
+
+        heading(
+          buttonAttributesHeader.level,
+          buttonAttributesHeader.id,
+          buttonAttributesHeader.text,
+        ),
+        para(
+          'Attribute groups provided to the ',
+          inlineCode('toView'),
+          ' callback.',
+        ),
+        propTable(buttonAttributesProps),
+      ],
+    )
+  },
+)

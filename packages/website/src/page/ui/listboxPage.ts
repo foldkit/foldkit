@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { uiShowcaseViewSourceHref } from '../../link'
@@ -12,6 +13,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { uiSelectionSubmodelsRouter } from '../../route'
 import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import {
@@ -76,6 +78,12 @@ const viewConfigHeader: TableOfContentsEntry = {
   text: 'ViewConfig',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -88,6 +96,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiReferenceHeader,
   initConfigHeader,
   viewConfigHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -154,12 +163,6 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'Content rendered inside the listbox button (typically the selected value).',
   },
   {
-    name: 'onSelectedItem',
-    type: '(value: string) => Message',
-    description:
-      'Alternative to Submodel delegation: fires your own Message on selection. Use with Listbox.selectItem() to update the Model while also handling domain logic.',
-  },
-  {
     name: 'itemToValue',
     type: '(item: Item) => string',
     description:
@@ -203,6 +206,15 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     type: 'boolean',
     default: 'false',
     description: 'Marks the listbox as invalid for validation styling.',
+  },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'Selected',
+    type: '{ value: Value; wasAdded: boolean }',
+    description:
+      'Emitted when an item is committed. Single-select listboxes always emit `wasAdded: true`. Multi-select listboxes emit `wasAdded: true` when adding to the selection and `wasAdded: false` when toggling off. Pattern-match the third tuple element of Listbox.update in your GotListboxMessage handler to lift the value into domain state.',
   },
 ]
 
@@ -272,195 +284,219 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/listbox', 'Listbox'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'A custom select dropdown with persistent selection, keyboard navigation, typeahead search, and anchor positioning. Unlike Menu (which is for actions), Listbox tracks the selected value and reflects it in the button. For a searchable input with filtering, use Combobox instead.',
-      ),
-      para(
-        'For programmatic control in update functions, use ',
-        inlineCode('Listbox.open(model)'),
-        ', ',
-        inlineCode('Listbox.close(model)'),
-        ', and ',
-        inlineCode('Listbox.selectItem(model, item)'),
-        '. Each returns ',
-        inlineCode('[Model, Commands]'),
-        ' directly.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how Listbox is wired up in a ',
-        link(uiShowcaseViewSourceHref('listbox'), 'real Foldkit app'),
-        '.',
-      ),
-      heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-      heading(
-        Listbox.singleSelectHeader.level,
-        Listbox.singleSelectHeader.id,
-        Listbox.singleSelectHeader.text,
-      ),
-      para(
-        'Pass an ',
-        inlineCode('itemToConfig'),
-        ' callback that maps each item to its content. The context provides ',
-        inlineCode('isSelected'),
-        ' and ',
-        inlineCode('isActive'),
-        ' for styling the highlighted and selected states.',
-      ),
-      demoContainer(...Listbox.basicDemo(model.listboxDemo, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiListboxBasicHighlighted)],
-          [],
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/listbox', 'Listbox'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'A custom select dropdown with persistent selection, keyboard navigation, typeahead search, and anchor positioning. Unlike Menu (which is for actions), Listbox tracks the selected value and reflects it in the button. For a searchable input with filtering, use Combobox instead.',
         ),
-        Snippet.uiListboxBasicRaw,
-        'Copy listbox example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(
-        Listbox.multiSelectHeader.level,
-        Listbox.multiSelectHeader.id,
-        Listbox.multiSelectHeader.text,
-      ),
-      para(
-        'Use ',
-        inlineCode('Listbox.Multi'),
-        ' for multi-selection. The dropdown stays open on selection and items toggle on/off. Selected items are stored in ',
-        inlineCode('model.selectedItems'),
-        '.',
-      ),
-      demoContainer(
-        ...Listbox.multiSelectDemo(model.listboxMultiDemo, toParentMessage),
-      ),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiListboxMultiHighlighted)],
-          [],
+        para(
+          'Embed Listbox via the ',
+          link(uiSelectionSubmodelsRouter(), 'create<Item, Value?>() factory'),
+          ' at module scope: ',
+          inlineCode('const PlansListbox = Ui.Listbox.create<Plan>()'),
+          '. The factory binds the view, update, and imperative helpers to the same ',
+          inlineCode('Item'),
+          ' type so the selected value flows through the OutMessage typed end-to-end.',
         ),
-        Snippet.uiListboxMultiRaw,
-        'Copy multi-select listbox example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(
-        Listbox.groupedHeader.level,
-        Listbox.groupedHeader.id,
-        Listbox.groupedHeader.text,
-      ),
-      para(
-        'Pass ',
-        inlineCode('itemGroupKey'),
-        ' to group contiguous items by key, and ',
-        inlineCode('groupToHeading'),
-        ' to render section headers. Groups are separated automatically.',
-      ),
-      demoContainer(
-        ...Listbox.groupedDemo(model.listboxGroupedDemo, toParentMessage),
-      ),
-      highlightedCodeBlock(
-        h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippet.uiListboxGroupedHighlighted),
-          ],
-          [],
+        para(
+          'For programmatic control in update functions, use ',
+          inlineCode('Listbox.open(model)'),
+          ', ',
+          inlineCode('Listbox.close(model)'),
+          ', and ',
+          inlineCode('Listbox.selectItem(model, item)'),
+          '. Each returns ',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          ' directly.',
         ),
-        Snippet.uiListboxGroupedRaw,
-        'Copy grouped listbox example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'Listbox is headless. The ',
-        inlineCode('itemToConfig'),
-        ' callback controls all item markup. Use ',
-        inlineCode('data-active'),
-        ' for the keyboard/pointer highlight and ',
-        inlineCode('data-selected'),
-        ' for the persistent selection indicator.',
-      ),
-      para(
-        'To make the items panel match the trigger button width, set ',
-        inlineCode('width: var(--button-width)'),
-        ' (or Tailwind ',
-        inlineCode('w-(--button-width)'),
-        ') on the items class. The anchor system writes the trigger button’s measured width to this CSS variable on the items element every time it positions the panel, so the panel always matches the button even as content or viewport sizes change. Without it, the items panel sizes to its content.',
-      ),
-      dataAttributeTable(dataAttributes),
-      heading(
-        keyboardInteractionHeader.level,
-        keyboardInteractionHeader.id,
-        keyboardInteractionHeader.text,
-      ),
-      para(
-        'Listbox uses typeahead search: typing printable characters jumps to the first matching item. Characters accumulate for 350ms before the search resets.',
-      ),
-      keyboardTable(keyboardEntries),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'The button receives ',
-        inlineCode('aria-haspopup="listbox"'),
-        ' and ',
-        inlineCode('aria-expanded'),
-        '. The items container receives ',
-        inlineCode('role="listbox"'),
-        ' with ',
-        inlineCode('aria-activedescendant'),
-        ' tracking the highlighted item. Each item receives ',
-        inlineCode('role="option"'),
-        ' with ',
-        inlineCode('aria-selected'),
-        '.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
-      heading(
-        initConfigHeader.level,
-        initConfigHeader.id,
-        initConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('Listbox.init()'),
-        ' or ',
-        inlineCode('Listbox.Multi.init()'),
-        '.',
-      ),
-      propTable(initConfigProps),
-      heading(
-        viewConfigHeader.level,
-        viewConfigHeader.id,
-        viewConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('Listbox.view()'),
-        '. The same structure is used for ',
-        inlineCode('Listbox.Multi.view()'),
-        '.',
-      ),
-      propTable(viewConfigProps),
-    ],
-  )
-}
+        infoCallout(
+          'See it in an app',
+          'Check out how Listbox is wired up in a ',
+          link(uiShowcaseViewSourceHref('listbox'), 'real Foldkit app'),
+          '.',
+        ),
+        heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
+        heading(
+          Listbox.singleSelectHeader.level,
+          Listbox.singleSelectHeader.id,
+          Listbox.singleSelectHeader.text,
+        ),
+        para(
+          'Pass an ',
+          inlineCode('itemToConfig'),
+          ' callback that maps each item to its content. The context provides ',
+          inlineCode('isSelected'),
+          ' and ',
+          inlineCode('isActive'),
+          ' for styling the highlighted and selected states.',
+        ),
+        demoContainer(...Listbox.basicDemo(model.listboxDemo)),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiListboxBasicHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiListboxBasicRaw,
+          'Copy listbox example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(
+          Listbox.multiSelectHeader.level,
+          Listbox.multiSelectHeader.id,
+          Listbox.multiSelectHeader.text,
+        ),
+        para(
+          'Use ',
+          inlineCode('Listbox.Multi'),
+          ' for multi-selection. The dropdown stays open on selection and items toggle on/off. Selected items are stored in ',
+          inlineCode('model.selectedItems'),
+          '.',
+        ),
+        demoContainer(...Listbox.multiSelectDemo(model.listboxMultiDemo)),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiListboxMultiHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiListboxMultiRaw,
+          'Copy multi-select listbox example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(
+          Listbox.groupedHeader.level,
+          Listbox.groupedHeader.id,
+          Listbox.groupedHeader.text,
+        ),
+        para(
+          'Pass ',
+          inlineCode('itemGroupKey'),
+          ' to group contiguous items by key, and ',
+          inlineCode('groupToHeading'),
+          ' to render section headers. Groups are separated automatically.',
+        ),
+        demoContainer(...Listbox.groupedDemo(model.listboxGroupedDemo)),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiListboxGroupedHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiListboxGroupedRaw,
+          'Copy grouped listbox example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'Listbox is headless. The ',
+          inlineCode('itemToConfig'),
+          ' callback controls all item markup. Use ',
+          inlineCode('data-active'),
+          ' for the keyboard/pointer highlight and ',
+          inlineCode('data-selected'),
+          ' for the persistent selection indicator.',
+        ),
+        para(
+          'To make the items panel match the trigger button width, set ',
+          inlineCode('width: var(--button-width)'),
+          ' (or Tailwind ',
+          inlineCode('w-(--button-width)'),
+          ') on the items class. The anchor system writes the trigger button’s measured width to this CSS variable on the items element every time it positions the panel, so the panel always matches the button even as content or viewport sizes change. Without it, the items panel sizes to its content.',
+        ),
+        dataAttributeTable(dataAttributes),
+        heading(
+          keyboardInteractionHeader.level,
+          keyboardInteractionHeader.id,
+          keyboardInteractionHeader.text,
+        ),
+        para(
+          'Listbox uses typeahead search: typing printable characters jumps to the first matching item. Characters accumulate for 350ms before the search resets.',
+        ),
+        keyboardTable(keyboardEntries),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'The button receives ',
+          inlineCode('aria-haspopup="listbox"'),
+          ' and ',
+          inlineCode('aria-expanded'),
+          '. The items container receives ',
+          inlineCode('role="listbox"'),
+          ' with ',
+          inlineCode('aria-activedescendant'),
+          ' tracking the highlighted item. Each item receives ',
+          inlineCode('role="option"'),
+          ' with ',
+          inlineCode('aria-selected'),
+          '.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
+        heading(
+          initConfigHeader.level,
+          initConfigHeader.id,
+          initConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Listbox.init()'),
+          ' or ',
+          inlineCode('Listbox.Multi.init()'),
+          '.',
+        ),
+        propTable(initConfigProps),
+        heading(
+          viewConfigHeader.level,
+          viewConfigHeader.id,
+          viewConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Listbox.view()'),
+          '. The same structure is used for ',
+          inlineCode('Listbox.Multi.view()'),
+          '.',
+        ),
+        propTable(viewConfigProps),
+        heading(
+          outMessageHeader.level,
+          outMessageHeader.id,
+          outMessageHeader.text,
+        ),
+        para(
+          'Messages emitted to the parent through the third element of ',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          '. Pattern-match on the OutMessage in your update handler. The same shape applies to ',
+          inlineCode('Listbox.Multi.update'),
+          '.',
+        ),
+        propTable(outMessageProps),
+      ],
+    )
+  },
+)

@@ -69,7 +69,7 @@ const queryHTMLElement = (
  *
  * @example
  * ```typescript
- * Dom.focus('#email-input').pipe(Effect.ignore, Effect.as(CompletedFocusInput()))
+ * Dom.focus('#email-input')
  * Dom.focus('#section', { preventScroll: true, makeFocusable: true })
  * ```
  */
@@ -97,8 +97,8 @@ export const focus = (
  *
  * @example
  * ```typescript
- * Dom.showModal('#my-dialog').pipe(Effect.ignore, Effect.as(CompletedShowDialog()))
- * Dom.showModal('#my-dialog', { focusSelector: '#search-input' }).pipe(Effect.ignore, Effect.as(CompletedShowDialog()))
+ * Dom.showModal('#my-dialog')
+ * Dom.showModal('#my-dialog', { focusSelector: '#search-input' })
  * ```
  */
 export const showModal = (
@@ -182,7 +182,7 @@ const trapFocusWithinDialog = (
  *
  * @example
  * ```typescript
- * Dom.closeModal('#my-dialog').pipe(Effect.ignore, Effect.as(CompletedCloseDialog()))
+ * Dom.closeModal('#my-dialog')
  * ```
  */
 export const closeModal = (
@@ -209,7 +209,7 @@ export const closeModal = (
  *
  * @example
  * ```typescript
- * Dom.clickElement('#menu-item-2').pipe(Effect.ignore, Effect.as(CompletedClickItem()))
+ * Dom.clickElement('#menu-item-2')
  * ```
  */
 export const clickElement = (
@@ -232,7 +232,7 @@ export const clickElement = (
  *
  * @example
  * ```typescript
- * Dom.scrollIntoView('#active-item').pipe(Effect.ignore, Effect.as(CompletedScrollIntoView()))
+ * Dom.scrollIntoView('#active-item')
  * Dom.scrollIntoView('#section-2', { block: 'start' })
  * ```
  */
@@ -263,10 +263,7 @@ export const scrollIntoView = (
  *
  * @example
  * ```typescript
- * Dom.scrollIntoViewAfterPaint('#overview').pipe(
- *   Effect.ignore,
- *   Effect.as(CompletedScrollIntoViewAfterPaint()),
- * )
+ * Dom.scrollIntoViewAfterPaint('#overview')
  * Dom.scrollIntoViewAfterPaint(`#${hash}`, { block: 'start' })
  * ```
  */
@@ -289,7 +286,7 @@ export type FocusDirection = 'Next' | 'Previous'
  *
  * @example
  * ```typescript
- * Dom.advanceFocus('#menu-button', 'Next').pipe(Effect.ignore, Effect.as(CompletedAdvanceFocus()))
+ * Dom.advanceFocus('#menu-button', 'Next')
  * ```
  */
 export const advanceFocus = (

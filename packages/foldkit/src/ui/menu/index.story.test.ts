@@ -1,26 +1,22 @@
 import { describe, it } from '@effect/vitest'
-import { Effect, Option, flow } from 'effect'
+import { Option, flow } from 'effect'
 import { expect } from 'vitest'
 
-import * as Scene from '../../test/scene.js'
 import * as Story from '../../test/story.js'
 import * as Animation from '../animation/index.js'
 import {
   ActivatedItem,
-  AnchorMenu,
   BlurredItems,
   ClearedSearch,
   ClickItem,
   Closed,
-  CompletedAnchorMenu,
   CompletedClickItem,
   CompletedFocusButton,
   CompletedFocusItems,
+  CompletedInertOthers,
   CompletedLockScroll,
-  CompletedPortalMenuBackdrop,
+  CompletedRestoreInert,
   CompletedScrollIntoView,
-  CompletedSetupInert,
-  CompletedTeardownInert,
   CompletedUnlockScroll,
   DeactivatedItem,
   DelayClearSearch,
@@ -33,7 +29,6 @@ import {
   LockScroll,
   MovedPointerOverItem,
   Opened,
-  PortalMenuBackdrop,
   PressedPointerOnButton,
   ReleasedPointerOnItems,
   RequestedItemClick,
@@ -46,21 +41,14 @@ import {
   init,
   resolveTypeaheadMatch,
   update,
-  view,
 } from './index.js'
-import type { Message, Model, ViewConfig } from './index.js'
 
 const animationToMenuMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })
 
-const acknowledgeAnchor = Scene.Mount.resolve(AnchorMenu, CompletedAnchorMenu())
 const acknowledgeFocusItems = Story.Command.resolve(
   FocusItems,
   CompletedFocusItems(),
-)
-const acknowledgeBackdrop = Scene.Mount.resolve(
-  PortalMenuBackdrop,
-  CompletedPortalMenuBackdrop(),
 )
 
 const animationEndMessage = GotAnimationMessage({
@@ -725,7 +713,7 @@ describe('Menu', () => {
         Story.story(
           update,
           withOpen,
-          Story.message(SelectedItem({ index: 2 })),
+          Story.message(SelectedItem({ index: 2, item: 'item-2' })),
           Story.Command.resolve(FocusButton, CompletedFocusButton()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
@@ -1055,7 +1043,7 @@ describe('Menu', () => {
           Story.story(
             update,
             withOpenAnimated,
-            Story.message(SelectedItem({ index: 0 })),
+            Story.message(SelectedItem({ index: 0, item: 'item-0' })),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
@@ -1278,7 +1266,7 @@ describe('Menu', () => {
       Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
       Story.Command.resolveAll(
         [LockScroll, CompletedLockScroll()],
-        [InertOthers, CompletedSetupInert()],
+        [InertOthers, CompletedInertOthers()],
         [FocusItems, CompletedFocusItems()],
       ),
     )
@@ -1290,7 +1278,7 @@ describe('Menu', () => {
         Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
         Story.Command.resolveAll(
           [LockScroll, CompletedLockScroll()],
-          [InertOthers, CompletedSetupInert()],
+          [InertOthers, CompletedInertOthers()],
           [FocusItems, CompletedFocusItems()],
         ),
         Story.model(model => {
@@ -1307,7 +1295,7 @@ describe('Menu', () => {
         Story.Command.resolveAll(
           [FocusButton, CompletedFocusButton()],
           [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedTeardownInert()],
+          [RestoreInert, CompletedRestoreInert()],
         ),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
@@ -1322,7 +1310,7 @@ describe('Menu', () => {
         Story.message(BlurredItems()),
         Story.Command.resolveAll(
           [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedTeardownInert()],
+          [RestoreInert, CompletedRestoreInert()],
         ),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
@@ -1334,11 +1322,11 @@ describe('Menu', () => {
       Story.story(
         update,
         withOpenModal,
-        Story.message(SelectedItem({ index: 0 })),
+        Story.message(SelectedItem({ index: 0, item: 'item-0' })),
         Story.Command.resolveAll(
           [FocusButton, CompletedFocusButton()],
           [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedTeardownInert()],
+          [RestoreInert, CompletedRestoreInert()],
         ),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
@@ -1661,153 +1649,6 @@ describe('Menu', () => {
         { key: 'first', items: ['a', 'b'] },
         { key: 'second', items: ['c', 'd'] },
       ])
-    })
-  })
-
-  describe('view', () => {
-    const openModel = (): Model => {
-      let model!: Model
-      Story.story(
-        update,
-        withOpen,
-        Story.model(extractedModel => {
-          model = extractedModel
-        }),
-      )
-      return model
-    }
-
-    const sceneView =
-      (
-        overrides: Omit<
-          Partial<ViewConfig<Message, string>>,
-          'model' | 'toParentMessage'
-        > = {},
-      ) =>
-      (model: Model) =>
-        view({
-          items: ['Edit', 'Delete'],
-          itemToConfig: () => ({
-            content: Effect.succeed(null),
-          }),
-          buttonContent: Effect.succeed(null),
-          ...overrides,
-          model,
-          toParentMessage: message => message,
-        })
-
-    describe('anchor', () => {
-      it('adds absolute positioning, initial visibility hidden, and hooks when anchor is provided', () => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              anchor: { placement: 'bottom-start' as const },
-            }),
-          },
-          Scene.with(openModel()),
-          Scene.tap(({ html }) => {
-            const itemsContainer = Scene.find(
-              html,
-              '[key="test-items-container"]',
-            )
-            expect(itemsContainer).toHaveStyle('position', 'absolute')
-            expect(itemsContainer).toHaveStyle('margin', '0')
-            expect(itemsContainer).toHaveStyle('visibility', 'hidden')
-            expect(itemsContainer).toHaveHook('insert')
-            expect(itemsContainer).toHaveHook('destroy')
-          }),
-          acknowledgeAnchor,
-          acknowledgeBackdrop,
-        )
-      })
-
-      it('does not add positioning styles when anchor is absent', () => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView(),
-          },
-          Scene.with(openModel()),
-          Scene.tap(({ html }) => {
-            const itemsContainer = Scene.find(
-              html,
-              '[key="test-items-container"]',
-            )
-            expect(itemsContainer).not.toHaveStyle('position')
-          }),
-          acknowledgeBackdrop,
-        )
-      })
-
-      it('adds hooks when portal is true', () => {
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              anchor: { placement: 'bottom-start' as const, portal: true },
-            }),
-          },
-          Scene.with(openModel()),
-          Scene.tap(({ html }) => {
-            const itemsContainer = Scene.find(
-              html,
-              '[key="test-items-container"]',
-            )
-            expect(itemsContainer).toHaveStyle('position', 'absolute')
-            expect(itemsContainer).toHaveStyle('visibility', 'hidden')
-            expect(itemsContainer).toHaveHook('insert')
-            expect(itemsContainer).toHaveHook('destroy')
-          }),
-          acknowledgeAnchor,
-          acknowledgeBackdrop,
-        )
-      })
-
-      it('does not affect button attributes when anchor is provided', () => {
-        const model = openModel()
-
-        let buttonWithAnchor: ReturnType<typeof Option.getOrThrow>
-        let buttonWithoutAnchor: ReturnType<typeof Option.getOrThrow>
-
-        Scene.scene(
-          {
-            update,
-            view: sceneView({
-              anchor: { placement: 'bottom-start' as const },
-            }),
-          },
-          Scene.with(model),
-          Scene.tap(({ html }) => {
-            buttonWithAnchor = Option.getOrThrow(
-              Scene.find(html, '[key="test-button"]'),
-            )
-          }),
-          acknowledgeAnchor,
-          acknowledgeBackdrop,
-        )
-
-        Scene.scene(
-          {
-            update,
-            view: sceneView(),
-          },
-          Scene.with(model),
-          Scene.tap(({ html }) => {
-            buttonWithoutAnchor = Option.getOrThrow(
-              Scene.find(html, '[key="test-button"]'),
-            )
-          }),
-          acknowledgeBackdrop,
-        )
-
-        expect(buttonWithAnchor!.data?.attrs).toStrictEqual(
-          buttonWithoutAnchor!.data?.attrs,
-        )
-        expect(buttonWithAnchor!.data?.props).toStrictEqual(
-          buttonWithoutAnchor!.data?.props,
-        )
-      })
     })
   })
 })

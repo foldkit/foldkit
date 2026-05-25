@@ -6,17 +6,17 @@ import { describe, expect, test } from 'vitest'
 import { products } from './data/products'
 import {
   ChangedUrl,
-  ClickedAddToCart,
-  ClickedCartQuantityChange,
   ClickedClearCart,
   ClickedPlaceOrder,
+  ClickedQuantityChange,
   ClickedRemoveCartItem,
+  GotProductsMessage,
   type Model,
-  ProductsRoute,
   UpdatedDeliveryInstructions,
   update,
 } from './main'
 import { Products } from './page'
+import { ProductsRoute } from './route'
 
 const apple = { id: '1', name: 'Apple', price: 1.5 }
 const banana = { id: '2', name: 'Banana', price: 0.75 }
@@ -89,11 +89,15 @@ describe('update', () => {
   })
 
   describe('cart updates', () => {
-    test('ClickedAddToCart adds the item with quantity one', () => {
+    test('Products.AddedToCart OutMessage adds the item with quantity one', () => {
       Story.story(
         update,
         Story.with(baseModel),
-        Story.message(ClickedAddToCart({ item: apple })),
+        Story.message(
+          GotProductsMessage({
+            message: Products.ClickedAddToCart({ item: apple }),
+          }),
+        ),
         Story.model(model => {
           expect(model.cart).toHaveLength(1)
           expect(model.cart[0]?.item.id).toBe('1')
@@ -106,8 +110,16 @@ describe('update', () => {
       Story.story(
         update,
         Story.with(baseModel),
-        Story.message(ClickedAddToCart({ item: apple })),
-        Story.message(ClickedAddToCart({ item: apple })),
+        Story.message(
+          GotProductsMessage({
+            message: Products.ClickedAddToCart({ item: apple }),
+          }),
+        ),
+        Story.message(
+          GotProductsMessage({
+            message: Products.ClickedAddToCart({ item: apple }),
+          }),
+        ),
         Story.model(model => {
           expect(model.cart).toHaveLength(1)
           expect(model.cart[0]?.quantity).toBe(2)
@@ -115,14 +127,14 @@ describe('update', () => {
       )
     })
 
-    test('ClickedCartQuantityChange replaces the quantity for an item', () => {
+    test('ClickedQuantityChange replaces the quantity for an item', () => {
       Story.story(
         update,
         Story.with({
           ...baseModel,
           cart: [{ item: apple, quantity: 1 }],
         }),
-        Story.message(ClickedCartQuantityChange({ itemId: '1', quantity: 5 })),
+        Story.message(ClickedQuantityChange({ itemId: '1', quantity: 5 })),
         Story.model(model => {
           expect(model.cart[0]?.quantity).toBe(5)
         }),

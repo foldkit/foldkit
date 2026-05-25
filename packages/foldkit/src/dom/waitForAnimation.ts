@@ -11,7 +11,7 @@ import { Effect } from 'effect'
  *
  * @example
  * ```typescript
- * Dom.waitForAnimationSettled('#menu-items').pipe(Effect.as(EndedAnimation()))
+ * Dom.waitForAnimationSettled('#menu-items')
  * ```
  */
 export const waitForAnimationSettled = (

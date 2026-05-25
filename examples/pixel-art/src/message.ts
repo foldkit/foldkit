@@ -22,9 +22,6 @@ export const ClickedRedoStep = m('ClickedRedoStep', {
   stepIndex: S.Number,
 })
 export const ClickedClear = m('ClickedClear')
-export const SelectedPaletteTheme = m('SelectedPaletteTheme', {
-  themeIndex: S.Number,
-})
 export const ClickedExport = m('ClickedExport')
 export const SucceededExportPng = m('SucceededExportPng')
 export const FailedExportPng = m('FailedExportPng', { error: S.String })
@@ -77,7 +74,6 @@ export const Message = S.Union([
   ClickedHistoryStep,
   ClickedRedoStep,
   ClickedClear,
-  SelectedPaletteTheme,
   ClickedExport,
   SucceededExportPng,
   FailedExportPng,

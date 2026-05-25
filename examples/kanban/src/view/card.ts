@@ -4,10 +4,11 @@ import { Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { Card } from '../domain'
+import type { Message } from '../message'
 import type { Model } from '../model'
 
-const cardContent = <ParentMessage>(card: Card.Card): ReadonlyArray<Html> => {
-  const h = html<ParentMessage>()
+const cardContent = (card: Card.Card): ReadonlyArray<Html> => {
+  const h = html<Message>()
   return [
     h.span([h.Class('text-sm font-medium text-gray-900')], [card.title]),
     ...(String.isNonEmpty(card.description)
@@ -21,14 +22,14 @@ const cardContent = <ParentMessage>(card: Card.Card): ReadonlyArray<Html> => {
   ]
 }
 
-export const cardView = <ParentMessage>(
+export const cardView = (
   model: Model,
   card: Card.Card,
   columnId: string,
   index: number,
-  toParentMessage: (message: Ui.DragAndDrop.Message) => ParentMessage,
+  toParentMessage: (message: Ui.DragAndDrop.Message) => Message,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   const isThisCardBeingDragged = Option.exists(
     Ui.DragAndDrop.maybeDraggedItemId(model.dragAndDrop),
@@ -60,18 +61,18 @@ export const cardView = <ParentMessage>(
         index,
       }),
     ],
-    cardContent<ParentMessage>(card),
+    cardContent(card),
   )
 }
 
-export const ghostCardView = <ParentMessage>(card: Card.Card): Html => {
-  const h = html<ParentMessage>()
+export const ghostCardView = (card: Card.Card): Html => {
+  const h = html<Message>()
   return h.div(
     [
       h.Class(
         'rounded-lg bg-white shadow-lg p-3 border border-gray-200 scale-105 rotate-2',
       ),
     ],
-    cardContent<ParentMessage>(card),
+    cardContent(card),
   )
 }

@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { uiShowcaseViewSourceHref } from '../../link'
@@ -81,6 +82,12 @@ const programmaticHelpersHeader: TableOfContentsEntry = {
   text: 'Programmatic Helpers',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -91,6 +98,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   showInputHeader,
   viewConfigHeader,
   programmaticHelpersHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -115,7 +123,7 @@ const showInputProps: ReadonlyArray<PropEntry> = [
     name: 'payload',
     type: 'A (your payload type)',
     description:
-      'Content for this entry, in whatever shape you supplied to Toast.make(). The component never reads it; it flows through to your renderEntry callback.',
+      'Content for this entry, in whatever shape you supplied to Toast.make(). The component never reads it; it flows through to your entryToView callback.',
   },
   {
     name: 'variant',
@@ -157,10 +165,10 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'Wraps the subset of Toast Messages that fire from DOM events in your parent Message type.',
   },
   {
-    name: 'renderEntry',
-    type: '(entry: typeof Toast.Entry.Type, handlers: { dismiss: ParentMessage }) => Html',
+    name: 'entryToView',
+    type: '(entry: typeof Toast.Entry.Type, handlers: { dismiss: ReadonlyArray<ChildAttribute> }) => Html',
     description:
-      "Renders each entry from its lifecycle fields (id, variant, transition) and its payload (your shape). The component wraps the return in an <li> with role, lifecycle handlers, and transition data attributes. Wire handlers.dismiss to a close button's OnClick.",
+      'Renders each entry from its lifecycle fields (for example id, variant, and animation) and its payload (your shape). The component wraps the return in an <li> with role, lifecycle handlers, and transition data attributes. Spread handlers.dismiss onto a close button (h.button([...handlers.dismiss], [...])) so users can dismiss the entry manually.',
   },
   {
     name: 'ariaLabel',
@@ -169,7 +177,7 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     description: 'aria-label on the container region.',
   },
   {
-    name: 'className',
+    name: 'containerClassName',
     type: 'string',
     description: 'CSS class for the container <ol>.',
   },
@@ -200,6 +208,15 @@ const programmaticHelpers: ReadonlyArray<PropEntry> = [
   },
 ]
 
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'DismissedToast',
+    type: '{ payload: Payload }',
+    description:
+      'Emitted once an entry has finished its leave animation and is being removed from the model. Carries the toast’s payload typed as your `Payload` schema. Pattern-match the third tuple element of Toast.update in your GotToastMessage handler to lift the dismissal into a domain Message (e.g., resolving a pending action or firing analytics). Only fires after `TransitionedOut`, so it represents the actual removal, not the initial dismiss request.',
+  },
+]
+
 const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
   {
     attribute: 'data-variant',
@@ -227,126 +244,151 @@ const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/toast', 'Toast'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'A stack of transient notifications anchored to a corner of the viewport. Each entry has its own enter and leave animation, its own auto-dismiss timer, and its own hover-to-pause behavior. One container lives at the app root; entries are added dynamically via ',
-        inlineCode('Toast.show'),
-        '.',
-      ),
-      para(
-        'Toast is parameterized on a user-provided payload schema. The component owns only lifecycle and a11y fields: id, variant (drives ARIA role), transition, dismiss timer, hover state. Everything else lives in your payload and is rendered by your ',
-        inlineCode('renderEntry'),
-        ' callback. ',
-        inlineCode('Ui.Toast.make(PayloadSchema)'),
-        ' returns a module with ',
-        inlineCode('Model'),
-        ', ',
-        inlineCode('show'),
-        ', ',
-        inlineCode('view'),
-        ', and the rest bound to your payload type.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how Toast is wired up in a ',
-        link(uiShowcaseViewSourceHref('toast'), 'real Foldkit app'),
-        '.',
-      ),
-      heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-      para(
-        'Click a variant to push a toast onto the stack. Hover a toast to pause its auto-dismiss; move away and the timer restarts.',
-      ),
-      demoContainer(...Toast.demo(model.toastDemo, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiToastBasicHighlighted)],
-          [],
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/toast', 'Toast'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'A stack of transient notifications anchored to a corner of the viewport. Each entry has its own enter and leave animation, its own auto-dismiss timer, and its own hover-to-pause behavior. One container lives at the app root; entries are added dynamically via ',
+          inlineCode('Toast.show'),
+          '.',
         ),
-        Snippet.uiToastBasicRaw,
-        'Copy toast example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'Toast is headless. The container gets ',
-        inlineCode('position: fixed'),
-        ' and flex-column layout from the component (so entries stack correctly for each ',
-        inlineCode('position'),
-        '); every other visual decision lives in your ',
-        inlineCode('renderEntry'),
-        ' callback and your ',
-        inlineCode('entryClassName'),
-        '. Use ',
-        inlineCode('data-variant'),
-        ' on the entry to drive per-variant styling.',
-      ),
-      para(
-        'Each entry’s enter/leave animations flow through the ',
-        link(uiAnimationRouter(), 'Animation'),
-        ' module. Style with CSS transitions or CSS keyframe animations. Animation advances once every animation on the element has settled.',
-      ),
-      dataAttributeTable(dataAttributes),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'The container is a ',
-        inlineCode('role="region"'),
-        ' with ',
-        inlineCode('aria-live="polite"'),
-        ', always rendered (even when empty) so screen readers observe the live region from page load. Individual entries receive ',
-        inlineCode('role="status"'),
-        ' for Info and Success variants, ',
-        inlineCode('role="alert"'),
-        ' for Warning and Error. Auto-dismiss pauses on pointer hover.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
-      heading(
-        initConfigHeader.level,
-        initConfigHeader.id,
-        initConfigHeader.text,
-      ),
-      para('Configuration object passed to ', inlineCode('Toast.init()'), '.'),
-      propTable(initConfigProps),
-      heading(showInputHeader.level, showInputHeader.id, showInputHeader.text),
-      para('Input shape for ', inlineCode('Toast.show(model, input)'), '.'),
-      propTable(showInputProps),
-      heading(
-        viewConfigHeader.level,
-        viewConfigHeader.id,
-        viewConfigHeader.text,
-      ),
-      para('Configuration object passed to ', inlineCode('Toast.view()'), '.'),
-      propTable(viewConfigProps),
-      heading(
-        programmaticHelpersHeader.level,
-        programmaticHelpersHeader.id,
-        programmaticHelpersHeader.text,
-      ),
-      para(
-        'Helper functions for driving toasts from parent update handlers, returning ',
-        inlineCode('[Model, Commands]'),
-        '.',
-      ),
-      propTable(programmaticHelpers),
-    ],
-  )
-}
+        para(
+          'Toast is parameterized on a user-provided payload schema. The component owns only lifecycle and a11y fields: id, variant (drives ARIA role), transition, dismiss timer, hover state. Everything else lives in your payload and is rendered by your ',
+          inlineCode('entryToView'),
+          ' callback. ',
+          inlineCode('Ui.Toast.make(PayloadSchema)'),
+          ' returns a module with ',
+          inlineCode('Model'),
+          ', ',
+          inlineCode('show'),
+          ', ',
+          inlineCode('view'),
+          ', and the rest bound to your payload type.',
+        ),
+        infoCallout(
+          'See it in an app',
+          'Check out how Toast is wired up in a ',
+          link(uiShowcaseViewSourceHref('toast'), 'real Foldkit app'),
+          '.',
+        ),
+        heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
+        para(
+          'Click a variant to push a toast onto the stack. Hover a toast to pause its auto-dismiss; move away and the timer restarts.',
+        ),
+        demoContainer(
+          ...Toast.demo(model.toastDemo, model.maybeLastDismissedToastTitle),
+        ),
+        highlightedCodeBlock(
+          h.div(
+            [h.Class('text-sm'), h.InnerHTML(Snippet.uiToastBasicHighlighted)],
+            [],
+          ),
+          Snippet.uiToastBasicRaw,
+          'Copy toast example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'Toast is headless. The container gets ',
+          inlineCode('position: fixed'),
+          ' and flex-column layout from the component (so entries stack correctly for each ',
+          inlineCode('position'),
+          '); every other visual decision lives in your ',
+          inlineCode('entryToView'),
+          ' callback and your ',
+          inlineCode('entryClassName'),
+          '. Use ',
+          inlineCode('data-variant'),
+          ' on the entry to drive per-variant styling.',
+        ),
+        para(
+          'Each entry’s enter/leave animations flow through the ',
+          link(uiAnimationRouter(), 'Animation'),
+          ' module. Style with CSS transitions or CSS keyframe animations. Animation advances once every animation on the element has settled.',
+        ),
+        dataAttributeTable(dataAttributes),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'The container is a ',
+          inlineCode('role="region"'),
+          ' with ',
+          inlineCode('aria-live="polite"'),
+          ', always rendered (even when empty) so screen readers observe the live region from page load. Individual entries receive ',
+          inlineCode('role="status"'),
+          ' for Info and Success variants, ',
+          inlineCode('role="alert"'),
+          ' for Warning and Error. Auto-dismiss pauses on pointer hover.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
+        heading(
+          initConfigHeader.level,
+          initConfigHeader.id,
+          initConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Toast.init()'),
+          '.',
+        ),
+        propTable(initConfigProps),
+        heading(
+          showInputHeader.level,
+          showInputHeader.id,
+          showInputHeader.text,
+        ),
+        para('Input shape for ', inlineCode('Toast.show(model, input)'), '.'),
+        propTable(showInputProps),
+        heading(
+          viewConfigHeader.level,
+          viewConfigHeader.id,
+          viewConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Toast.view()'),
+          '.',
+        ),
+        propTable(viewConfigProps),
+        heading(
+          programmaticHelpersHeader.level,
+          programmaticHelpersHeader.id,
+          programmaticHelpersHeader.text,
+        ),
+        para(
+          'Helper functions for driving toasts from parent update handlers, returning ',
+          inlineCode('[Model, Commands]'),
+          '.',
+        ),
+        propTable(programmaticHelpers),
+        heading(
+          outMessageHeader.level,
+          outMessageHeader.id,
+          outMessageHeader.text,
+        ),
+        para(
+          'Messages emitted to the parent through the third element of ',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          '. Pattern-match on the OutMessage in your update handler.',
+        ),
+        propTable(outMessageProps),
+      ],
+    )
+  },
+)

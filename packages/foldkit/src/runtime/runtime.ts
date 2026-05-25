@@ -32,7 +32,14 @@ import {
   createDevToolsStore,
 } from '../devTools/store.js'
 import { startWebSocketBridge } from '../devTools/webSocketBridge.js'
-import { Document } from '../html/index.js'
+import {
+  type BoundaryRegistry,
+  Document,
+  __beginRender as beginHtmlRender,
+  __clearRuntime as clearHtmlRuntime,
+  __createBoundaryRegistry as createHtmlBoundaryRegistry,
+  __setRuntime as setHtmlRuntime,
+} from '../html/index.js'
 import { MountTracker } from '../mount/index.js'
 import { UrlRequest } from '../navigation/urlRequest.js'
 import { Url, fromString as urlFromString } from '../url/index.js'
@@ -215,7 +222,7 @@ export type CrashContext<Model, Message> = Readonly<{
   message: Message
 }>
 
-/** Configuration for crash handling — custom crash UI and/or crash reporting. */
+/** Configuration for crash handling, with custom crash UI and/or crash reporting. */
 export type CrashConfig<Model, Message> = Readonly<{
   view?: (context: CrashContext<Model, Message>) => Document
   report?: (context: CrashContext<Model, Message>) => void
@@ -533,13 +540,6 @@ const makeRuntime = <
   // setTimeout(0) is clamped to 4ms+; MessageChannel delivers in ~0.5ms.
   const FRAME_BUDGET_MS = 5
 
-  const yieldToBrowser: Effect.Effect<void> = Effect.callback<void>(resume => {
-    const channel = new MessageChannel()
-    channel.port2.onmessage = () => resume(Effect.void)
-    channel.port1.postMessage(null)
-    return Effect.sync(() => channel.port2.close())
-  })
-
   // NOTE: render coalescing relies on this firing once per frame. Multiple
   // Messages dispatched between frames all flag the renderLoop dirty; the
   // next rAF tick reads the latest model and renders once. Without this,
@@ -562,7 +562,49 @@ const makeRuntime = <
             ),
           )
         }
+
+        // NOTE: one persistent MessageChannel for the runtime lifetime,
+        // shared by every burst-budget yield. The queue-drain fiber is the
+        // sole consumer, so a single `pendingYieldResume` slot is sufficient.
+        const yieldChannel = yield* Effect.acquireRelease(
+          Effect.sync(() => new MessageChannel()),
+          channel =>
+            Effect.sync(() => {
+              channel.port1.close()
+              channel.port2.close()
+            }),
+        )
+        let pendingYieldResume: ((effect: Effect.Effect<void>) => void) | null =
+          null
+        yieldChannel.port2.onmessage = () => {
+          const resume = pendingYieldResume
+          pendingYieldResume = null
+          if (resume !== null) {
+            resume(Effect.void)
+          }
+        }
+        const yieldToBrowser: Effect.Effect<void> = Effect.callback<void>(
+          resume => {
+            pendingYieldResume = resume
+            yieldChannel.port1.postMessage(null)
+            return Effect.sync(() => {
+              if (pendingYieldResume === resume) {
+                pendingYieldResume = null
+              }
+            })
+          },
+        )
+
         const maybeResourceLayer = Option.fromNullishOr(resources)
+
+        // NOTE: One boundary registry per runtime instance, shared
+        // across renders so Submodel wrap descriptors registered by
+        // h.submodel persist between renders. The render function calls
+        // `beginHtmlRender` at the start of each pass; wraps for
+        // unmounted Submodels (e.g. an entry removed from a list) are
+        // dropped from the registry via snabbdom destroy hooks attached
+        // by `h.submodel` to each child vnode.
+        const boundaryRegistry: BoundaryRegistry = createHtmlBoundaryRegistry()
 
         const managedResourceEntries: ReadonlyArray<
           [string, ManagedResourceConfig<Model, Message>]
@@ -750,13 +792,20 @@ const makeRuntime = <
           Option.none(),
         )
 
-        const currentMessageRef = yield* Ref.make<Option.Option<Message>>(
-          Option.none(),
-        )
+        // NOTE: queue-drain-fiber-local state. Kept as plain closure
+        // variables instead of `Ref`s because nothing else reads or writes
+        // them concurrently, and JS's single-threaded model already orders
+        // writes against subsequent reads. `currentMessage` is read by the
+        // crash handler, which runs inside the same `forever` fiber via
+        // `Effect.catchCause`.
+        let currentMessage = Option.none<Message>()
+        let burstStartedAt = 0
 
-        const maybeDevToolsStoreRef = yield* Ref.make<
-          Option.Option<DevToolsStore>
-        >(Option.none())
+        // NOTE: the DevTools store is installed at most once during boot and
+        // never replaced. Caching it in a closure variable avoids a
+        // `Ref.get` on every message and on every render-loop tick (the
+        // store powers `isPausedEffect`).
+        let maybeDevToolsStore: Option.Option<DevToolsStore> = Option.none()
 
         const dispatchSync = (message: unknown): void => {
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -774,16 +823,15 @@ const makeRuntime = <
           Option.none(),
         )
 
-        const isPausedEffect: Effect.Effect<boolean> = Effect.gen(function* () {
-          const maybeStore = yield* Ref.get(maybeDevToolsStoreRef)
-          return yield* Option.match(maybeStore, {
+        const isPausedEffect: Effect.Effect<boolean> = Effect.suspend(() =>
+          Option.match(maybeDevToolsStore, {
             onNone: () => Effect.succeed(false),
             onSome: ({ stateRef }) =>
               SubscriptionRef.get(stateRef).pipe(
                 Effect.map(({ isPaused }) => isPaused),
               ),
-          })
-        })
+          }),
+        )
 
         const mountStartBuffer: Array<MountRecord> = []
         const mountEndBuffer: Array<MountRecord> = []
@@ -824,54 +872,53 @@ const makeRuntime = <
               yield* schedulePreserveModel(nextModel)
             }
 
-            yield* Effect.forEach(
-              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              commands as ReadonlyArray<
-                AnyCommand<Message, never, Resources | ManagedResourceServices>
-              >,
-              command =>
-                Effect.forkDetach(
-                  command.effect.pipe(
-                    Effect.withSpan(command.name, {
-                      attributes: command.args ?? {},
-                    }),
-                    provideAllResources,
-                    Effect.flatMap(enqueueNormal),
+            if (!Array.isReadonlyArrayEmpty(commands)) {
+              yield* Effect.forEach(
+                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                commands as ReadonlyArray<
+                  AnyCommand<
+                    Message,
+                    never,
+                    Resources | ManagedResourceServices
+                  >
+                >,
+                command =>
+                  Effect.forkDetach(
+                    command.effect.pipe(
+                      Effect.withSpan(command.name, {
+                        attributes: command.args ?? {},
+                      }),
+                      provideAllResources,
+                      Effect.flatMap(enqueueNormal),
+                    ),
                   ),
-                ),
-            )
+              )
+            }
 
-            const maybeDevToolsStore = yield* Ref.get(maybeDevToolsStoreRef)
             /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
             const messageTag = (message as { _tag: string })._tag
             const isModelChanged = currentModel !== nextModel
             const isExcludedFromHistory = excludeFromHistoryTags.has(messageTag)
 
-            yield* Option.match(maybeDevToolsStore, {
-              onNone: () => Effect.void,
-              onSome: store => {
-                if (!isExcludedFromHistory) {
-                  return store.recordMessage(
+            if (Option.isSome(maybeDevToolsStore)) {
+              const store = maybeDevToolsStore.value
+              if (!isExcludedFromHistory) {
+                yield* store.recordMessage(
+                  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                  message as Message & { _tag: string },
+                  currentModel,
+                  nextModel,
+                  Array.map(
                     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                    message as Message & { _tag: string },
-                    currentModel,
-                    nextModel,
-                    Array.map(
-                      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                      commands as ReadonlyArray<AnyCommand<Message>>,
-                      toCommandRecord,
-                    ),
-                    isModelChanged,
-                  )
-                }
-
-                if (isModelChanged) {
-                  return store.updateLatestModel(nextModel)
-                }
-
-                return Effect.void
-              },
-            })
+                    commands as ReadonlyArray<AnyCommand<Message>>,
+                    toCommandRecord,
+                  ),
+                  isModelChanged,
+                )
+              } else if (isModelChanged) {
+                yield* store.updateLatestModel(nextModel)
+              }
+            }
           })
 
         // NOTE: `dispatchService` defaults to the live dispatch but is
@@ -888,9 +935,21 @@ const makeRuntime = <
           dispatchService: typeof Dispatch.Service = dispatch,
         ) =>
           Effect.gen(function* () {
+            const runtimeContext = yield* Effect.context<never>()
             const viewStart = performance.now()
-            const nextDocument = view(model)
-            const nullableNextVNode = yield* nextDocument.body
+            beginHtmlRender(boundaryRegistry)
+            setHtmlRuntime(
+              dispatchService.dispatchSync,
+              runtimeContext,
+              boundaryRegistry,
+            )
+            let nextDocument: Document
+            try {
+              nextDocument = view(model)
+            } finally {
+              clearHtmlRuntime()
+            }
+            const nextVNode = nextDocument.body
             const viewDuration = performance.now() - viewStart
 
             Option.match(resolvedSlowView, {
@@ -910,7 +969,7 @@ const makeRuntime = <
             const maybeCurrentVNode = yield* Ref.get(maybeCurrentVNodeRef)
 
             const patchedVNode = yield* Effect.sync(() =>
-              patchVNode(maybeCurrentVNode, nullableNextVNode, container),
+              patchVNode(maybeCurrentVNode, nextVNode, container),
             )
             yield* Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode))
 
@@ -944,7 +1003,7 @@ const makeRuntime = <
           const { position, mode, maybeBanner } = resolvedDevTools.value
           // NOTE: when excludeFromHistory is active, the runtime drops
           // excluded Messages from the recorded history. Replay walks the
-          // recorded entries forward from the nearest keyframe — but with
+          // recorded entries forward from the nearest keyframe. With
           // exclusion, the dropped Messages aren't in that walk, so any
           // cumulative state they would have produced is missing from the
           // replayed model. Setting keyframeInterval to 1 stores a full
@@ -992,7 +1051,7 @@ const makeRuntime = <
               }),
             },
           )
-          yield* Ref.set(maybeDevToolsStoreRef, Option.some(devToolsStore))
+          maybeDevToolsStore = Option.some(devToolsStore)
           // The init render runs below; capture the events it produces. We
           // record init AFTER that render so the buffer reflects the mounts
           // that fired on the first paint.
@@ -1017,8 +1076,7 @@ const makeRuntime = <
         yield* render(initModel, Option.none())
 
         const initMountEvents = drainMountEvents()
-        const maybeStoreForInit = yield* Ref.get(maybeDevToolsStoreRef)
-        yield* Option.match(maybeStoreForInit, {
+        yield* Option.match(maybeDevToolsStore, {
           onNone: () => Effect.void,
           onSome: store =>
             store.recordInit(
@@ -1045,8 +1103,7 @@ const makeRuntime = <
             yield* render(model, maybeMessage)
 
             const mountEvents = drainMountEvents()
-            const maybeStore = yield* Ref.get(maybeDevToolsStoreRef)
-            yield* Option.match(maybeStore, {
+            yield* Option.match(maybeDevToolsStore, {
               onNone: () => Effect.void,
               onSome: store =>
                 store.attachRenderedMounts(
@@ -1210,20 +1267,17 @@ const makeRuntime = <
           },
         )
 
-        const burstStartedAtRef = yield* Ref.make(0)
-
         const processWithBudget = (message: Message): Effect.Effect<void> =>
           Effect.gen(function* () {
-            yield* Ref.set(currentMessageRef, Option.some(message))
+            currentMessage = Option.some(message)
             yield* processMessage(message)
 
-            const burstStartedAt = yield* Ref.get(burstStartedAtRef)
             if (performance.now() - burstStartedAt < FRAME_BUDGET_MS) {
               return
             }
 
             yield* yieldToBrowser
-            yield* Ref.set(burstStartedAtRef, performance.now())
+            burstStartedAt = performance.now()
           })
 
         const processBatch = (
@@ -1275,7 +1329,7 @@ const makeRuntime = <
                 onNone: () =>
                   Effect.gen(function* () {
                     const message = yield* Queue.take(messageQueue)
-                    yield* Ref.set(burstStartedAtRef, performance.now())
+                    burstStartedAt = performance.now()
                     return message
                   }),
                 onSome: Effect.succeed,
@@ -1294,10 +1348,7 @@ const makeRuntime = <
                   : new Error(String(squashed))
 
               const model = Effect.runSync(Ref.get(modelRef))
-              const message = Ref.get(currentMessageRef).pipe(
-                Effect.runSync,
-                Option.getOrThrow,
-              )
+              const message = Option.getOrThrow(currentMessage)
               renderCrashView(
                 { error: appError, model, message },
                 crash,
@@ -1387,35 +1438,51 @@ const renderCrashView = <Model, Message>(
     }
   }
 
+  const crashContext = Context.make(Dispatch, noOpDispatch).pipe(
+    Context.add(MountTracker, {
+      started: () => {},
+      ended: () => {},
+    }),
+  )
+
   try {
-    const crashDocument = crash?.view
-      ? crash.view(context)
-      : defaultCrashView(context)
+    setHtmlRuntime(noOpDispatch.dispatchSync, crashContext)
+    let crashDocument: Document
+    try {
+      crashDocument = crash?.view
+        ? crash.view(context)
+        : defaultCrashView(context)
+    } finally {
+      clearHtmlRuntime()
+    }
 
     const maybeCurrentVNode = Effect.runSync(Ref.get(maybeCurrentVNodeRef))
-
-    const vnode = crashDocument.body.pipe(
-      Effect.provideService(Dispatch, noOpDispatch),
-      Effect.runSync,
+    const patchedVNode = patchVNode(
+      maybeCurrentVNode,
+      crashDocument.body,
+      container,
     )
-
-    const patchedVNode = patchVNode(maybeCurrentVNode, vnode, container)
     applyDocumentMetadata(crashDocument, patchedVNode.elm)
   } catch (viewError) {
     console.error('[foldkit] crash.view failed:', viewError)
 
-    const maybeCurrentVNode = Effect.runSync(Ref.get(maybeCurrentVNodeRef))
-
     const fallbackViewError =
       viewError instanceof Error ? viewError : new Error(String(viewError))
 
-    const fallbackDocument = defaultCrashView(context, fallbackViewError)
-    const vnode = fallbackDocument.body.pipe(
-      Effect.provideService(Dispatch, noOpDispatch),
-      Effect.runSync,
-    )
+    setHtmlRuntime(noOpDispatch.dispatchSync, crashContext)
+    let fallbackDocument: Document
+    try {
+      fallbackDocument = defaultCrashView(context, fallbackViewError)
+    } finally {
+      clearHtmlRuntime()
+    }
 
-    const patchedVNode = patchVNode(maybeCurrentVNode, vnode, container)
+    const maybeCurrentVNode = Effect.runSync(Ref.get(maybeCurrentVNodeRef))
+    const patchedVNode = patchVNode(
+      maybeCurrentVNode,
+      fallbackDocument.body,
+      container,
+    )
     applyDocumentMetadata(fallbackDocument, patchedVNode.elm)
   }
 }

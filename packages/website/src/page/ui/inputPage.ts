@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { uiShowcaseViewSourceHref } from '../../link'
@@ -106,9 +107,9 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
   },
   {
     name: 'onInput',
-    type: '(value: string) => Message',
+    type: '((value: string) => Message) | undefined',
     description:
-      'Function that maps the current input value to a Message on each input event.',
+      'Optional function that maps the current input value to a Message on each input event. Omit for a read-only display.',
   },
   {
     name: 'value',
@@ -194,170 +195,179 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/input', 'Input'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'An accessible text input that links a label and description to the input element via ARIA attributes. Input is a view-only component with no Model or update function. It provides three attribute groups (',
-        inlineCode('input'),
-        ', ',
-        inlineCode('label'),
-        ', and ',
-        inlineCode('description'),
-        ') that you spread onto your own elements to get correct accessibility wiring.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how Input is wired up in a ',
-        link(uiShowcaseViewSourceHref('input'), 'real Foldkit app'),
-        '.',
-      ),
-      heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-      heading(
-        Input.basicHeader.level,
-        Input.basicHeader.id,
-        Input.basicHeader.text,
-      ),
-      para(
-        'Pass an ',
-        inlineCode('id'),
-        ', an ',
-        inlineCode('onInput'),
-        ' handler, and a ',
-        inlineCode('toView'),
-        ' callback. The callback receives attribute groups for three elements: ',
-        inlineCode('label'),
-        ' (linked via ',
-        inlineCode('for'),
-        '), ',
-        inlineCode('input'),
-        ' (with ARIA attributes), and ',
-        inlineCode('description'),
-        ' (linked via ',
-        inlineCode('aria-describedby'),
-        ').',
-      ),
-      demoContainer(...Input.basicDemo(model, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiInputBasicHighlighted)],
-          [],
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/input', 'Input'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'An accessible text input that links a label and description to the input element via ARIA attributes. Input is a stateless render helper: call it directly with a ViewConfig in your own view; no Model, update, or ',
+          inlineCode('h.submodel'),
+          ' wrapping. It provides three attribute groups (',
+          inlineCode('input'),
+          ', ',
+          inlineCode('label'),
+          ', and ',
+          inlineCode('description'),
+          ') that you spread onto your own elements to get correct accessibility wiring.',
         ),
-        Snippet.uiInputBasicRaw,
-        'Copy basic input example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(
-        Input.disabledHeader.level,
-        Input.disabledHeader.id,
-        Input.disabledHeader.text,
-      ),
-      para(
-        'Set ',
-        inlineCode('isDisabled: true'),
-        ' to disable the input. Unlike Button, Input uses the native ',
-        inlineCode('disabled'),
-        ' attribute in addition to ',
-        inlineCode('aria-disabled'),
-        ', so the browser prevents interaction entirely.',
-      ),
-      demoContainer(...Input.disabledDemo(model, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiInputDisabledHighlighted)],
-          [],
+        infoCallout(
+          'See it in an app',
+          'Check out how Input is wired up in a ',
+          link(uiShowcaseViewSourceHref('input'), 'real Foldkit app'),
+          '.',
         ),
-        Snippet.uiInputDisabledRaw,
-        'Copy disabled input example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'Input is headless. Your ',
-        inlineCode('toView'),
-        ' callback controls all markup and styling. Use the data attributes below to style different states. For validation, set ',
-        inlineCode('isInvalid: true'),
-        ' and style with ',
-        inlineCode('data-[invalid]'),
-        ' in your CSS.',
-      ),
-      dataAttributeTable(dataAttributes),
-      heading(
-        keyboardInteractionHeader.level,
-        keyboardInteractionHeader.id,
-        keyboardInteractionHeader.text,
-      ),
-      para(
-        'Input uses the native ',
-        inlineCode('<input>'),
-        ' element, so all keyboard interaction is handled by the browser.',
-      ),
-      keyboardTable(keyboardEntries),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'The three attribute groups wire up ARIA relationships automatically. The ',
-        inlineCode('label'),
-        ' group includes ',
-        inlineCode('for'),
-        ' pointing to the input ',
-        inlineCode('id'),
-        '. The ',
-        inlineCode('description'),
-        ' group includes an ',
-        inlineCode('id'),
-        ' that the input references via ',
-        inlineCode('aria-describedby'),
-        '. You can access this description ID directly with ',
-        inlineCode('Input.descriptionId(id)'),
-        ' if you need to reference it outside the ',
-        inlineCode('toView'),
-        ' callback.',
-      ),
-      para(
-        'When ',
-        inlineCode('isInvalid'),
-        ' is true, ',
-        inlineCode('aria-invalid="true"'),
-        ' is set on the input element so screen readers announce the error state.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
-      heading(
-        viewConfigHeader.level,
-        viewConfigHeader.id,
-        viewConfigHeader.text,
-      ),
-      para('Configuration object passed to ', inlineCode('Input.view()'), '.'),
-      propTable(viewConfigProps),
-      heading(
-        inputAttributesHeader.level,
-        inputAttributesHeader.id,
-        inputAttributesHeader.text,
-      ),
-      para(
-        'Attribute groups provided to the ',
-        inlineCode('toView'),
-        ' callback.',
-      ),
-      propTable(inputAttributesProps),
-    ],
-  )
-}
+        heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
+        heading(
+          Input.basicHeader.level,
+          Input.basicHeader.id,
+          Input.basicHeader.text,
+        ),
+        para(
+          'Pass an ',
+          inlineCode('id'),
+          ', an ',
+          inlineCode('onInput'),
+          ' handler, and a ',
+          inlineCode('toView'),
+          ' callback. The callback receives attribute groups for three elements: ',
+          inlineCode('label'),
+          ' (linked via ',
+          inlineCode('for'),
+          '), ',
+          inlineCode('input'),
+          ' (with ARIA attributes), and ',
+          inlineCode('description'),
+          ' (linked via ',
+          inlineCode('aria-describedby'),
+          ').',
+        ),
+        demoContainer(...Input.basicDemo(model)),
+        highlightedCodeBlock(
+          h.div(
+            [h.Class('text-sm'), h.InnerHTML(Snippet.uiInputBasicHighlighted)],
+            [],
+          ),
+          Snippet.uiInputBasicRaw,
+          'Copy basic input example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(
+          Input.disabledHeader.level,
+          Input.disabledHeader.id,
+          Input.disabledHeader.text,
+        ),
+        para(
+          'Set ',
+          inlineCode('isDisabled: true'),
+          ' to disable the input. Unlike Button, Input uses the native ',
+          inlineCode('disabled'),
+          ' attribute in addition to ',
+          inlineCode('aria-disabled'),
+          ', so the browser prevents interaction entirely.',
+        ),
+        demoContainer(...Input.disabledDemo(model)),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiInputDisabledHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiInputDisabledRaw,
+          'Copy disabled input example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'Input is headless. Your ',
+          inlineCode('toView'),
+          ' callback controls all markup and styling. Use the data attributes below to style different states. For validation, set ',
+          inlineCode('isInvalid: true'),
+          ' and style with ',
+          inlineCode('data-[invalid]'),
+          ' in your CSS.',
+        ),
+        dataAttributeTable(dataAttributes),
+        heading(
+          keyboardInteractionHeader.level,
+          keyboardInteractionHeader.id,
+          keyboardInteractionHeader.text,
+        ),
+        para(
+          'Input uses the native ',
+          inlineCode('<input>'),
+          ' element, so all keyboard interaction is handled by the browser.',
+        ),
+        keyboardTable(keyboardEntries),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'The three attribute groups wire up ARIA relationships automatically. The ',
+          inlineCode('label'),
+          ' group includes ',
+          inlineCode('for'),
+          ' pointing to the input ',
+          inlineCode('id'),
+          '. The ',
+          inlineCode('description'),
+          ' group includes an ',
+          inlineCode('id'),
+          ' that the input references via ',
+          inlineCode('aria-describedby'),
+          '. You can access this description ID directly with ',
+          inlineCode('Input.descriptionId(id)'),
+          ' if you need to reference it outside the ',
+          inlineCode('toView'),
+          ' callback.',
+        ),
+        para(
+          'When ',
+          inlineCode('isInvalid'),
+          ' is true, ',
+          inlineCode('aria-invalid="true"'),
+          ' is set on the input element so screen readers announce the error state.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
+        heading(
+          viewConfigHeader.level,
+          viewConfigHeader.id,
+          viewConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Input.view()'),
+          '.',
+        ),
+        propTable(viewConfigProps),
+        heading(
+          inputAttributesHeader.level,
+          inputAttributesHeader.id,
+          inputAttributesHeader.text,
+        ),
+        para(
+          'Attribute groups provided to the ',
+          inlineCode('toView'),
+          ' callback.',
+        ),
+        propTable(inputAttributesProps),
+      ],
+    )
+  },
+)

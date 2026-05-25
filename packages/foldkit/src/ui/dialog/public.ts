@@ -4,13 +4,15 @@ export {
   open,
   close,
   view,
-  lazy,
   titleId,
   descriptionId,
   Model,
   Message,
+  OutMessage,
   Opened,
   Closed,
+  RequestedOpen,
+  RequestedClose,
   CompletedShowDialog,
   CompletedCloseDialog,
   GotAnimationMessage,
@@ -18,4 +20,4 @@ export {
   CloseDialog,
 } from './index.js'
 
-export type { InitConfig, ViewConfig } from './index.js'
+export type { InitConfig, ViewInputs, RenderInfo } from './index.js'

@@ -4,4 +4,10 @@ export type {
   CommandDefinitionNoArgs,
   CommandDefinitionWithArgs,
 } from './index.js'
-export { CommandDefinitionTypeId, define, mapEffect } from './index.js'
+export {
+  CommandDefinitionTypeId,
+  define,
+  mapEffect,
+  mapMessage,
+  mapMessages,
+} from './index.js'

@@ -43,10 +43,8 @@ GotActivityListMessage: ({ message }) => {
 
   return [
     evo(model, { activityList: () => nextList }),
-    commands.map(
-      Command.mapEffect(
-        Effect.map(message => GotActivityListMessage({ message })),
-      ),
+    Command.mapMessages(commands, message =>
+      GotActivityListMessage({ message }),
     ),
   ]
 }
@@ -75,26 +73,36 @@ const subscriptions = Subscription.aggregate<Model, Message>()(
 const view = (model: Model) => {
   const h = html<Message>()
 
-  return Ui.VirtualList.view({
+  return h.submodel({
+    slotId: 'activity-list',
     model: model.activityList,
-    items: model.activities,
-    itemToKey: activity => String(activity.id),
-    itemToView: activity =>
-      h.div(
-        [h.Class('grid grid-cols-[2rem_1fr_5rem] items-center gap-3 px-4')],
-        [
-          h.div(
-            [h.Class('flex h-7 w-7 items-center justify-center rounded-full')],
-            [activity.initial],
-          ),
-          h.span([h.Class('truncate text-sm')], [activity.label]),
-          h.span(
-            [h.Class('text-right text-xs text-gray-500 tabular-nums')],
-            [activity.timeAgo],
-          ),
-        ],
-      ),
-    className: 'h-96 w-full rounded-lg bg-white ring-1 ring-gray-200',
+    view: Ui.VirtualList.view<Activity>(),
+    viewInputs: {
+      items: model.activities,
+      itemToKey: activity => String(activity.id),
+      itemToView: activity =>
+        h.div(
+          [h.Class('grid grid-cols-[2rem_1fr_5rem] items-center gap-3 px-4')],
+          [
+            h.div(
+              [
+                h.Class(
+                  'flex h-7 w-7 items-center justify-center rounded-full',
+                ),
+              ],
+              [activity.initial],
+            ),
+            h.span([h.Class('truncate text-sm')], [activity.label]),
+            h.span(
+              [h.Class('text-right text-xs text-gray-500 tabular-nums')],
+              [activity.timeAgo],
+            ),
+          ],
+        ),
+      containerClassName:
+        'h-96 w-full rounded-lg bg-white ring-1 ring-gray-200',
+    },
+    toParentMessage: message => GotActivityListMessage({ message }),
   })
 }
 

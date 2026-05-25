@@ -1,6 +1,6 @@
 import { Match as M } from 'effect'
 import { Ui } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Html, childAttributes, html } from 'foldkit/html'
 import type { AnchorConfig } from 'foldkit/ui/menu'
 
 import { Icon } from '../../icon'
@@ -56,6 +56,8 @@ const ICON_SIZE = 'w-4 h-4'
 
 type MenuItem = 'Edit' | 'Duplicate' | 'Archive' | 'Move' | 'Delete'
 
+export const DemoMenu = Ui.Menu.create<MenuItem>()
+
 const MENU_ITEMS: ReadonlyArray<MenuItem> = [
   'Edit',
   'Duplicate',
@@ -90,8 +92,8 @@ const MENU_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-const menuViewConfig = <ParentMessage>(itemsClassName: string) => {
-  const h = html<ParentMessage>()
+const menuViewConfig = (itemsClassName: string) => {
+  const h = html<Message>()
 
   const groupToHeading = (groupKey: string) =>
     M.value(groupKey).pipe(
@@ -117,51 +119,47 @@ const menuViewConfig = <ParentMessage>(itemsClassName: string) => {
       [h.Class('flex items-center gap-4')],
       [h.span([], ['Actions']), Icon.chevronDown('w-4 h-4')],
     ),
-    buttonAttributes: [h.Class(triggerClassName)],
-    itemsAttributes: [h.Class(itemsClassName)],
-    backdropAttributes: [h.Class(backdropClassName)],
-    attributes: [h.Class(wrapperClassName)],
+    buttonAttributes: childAttributes([h.Class(triggerClassName)]),
+    itemsAttributes: childAttributes([h.Class(itemsClassName)]),
+    backdropAttributes: childAttributes([h.Class(backdropClassName)]),
+    attributes: childAttributes([h.Class(wrapperClassName)]),
     itemGroupKey,
     groupToHeading,
   }
 }
 
-export const basicDemo = <ParentMessage>(
-  menuModel: Ui.Menu.Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const basicDemo = (menuModel: Ui.Menu.Model) => {
+  const h = html<Message>()
 
   return [
     h.div(
       [h.Class('relative')],
       [
-        Ui.Menu.view({
+        h.submodel({
+          slotId: menuModel.id,
           model: menuModel,
-          toParentMessage: message =>
-            toParentMessage(GotMenuBasicDemoMessage({ message })),
-          ...menuViewConfig<ParentMessage>(basicItemsClassName),
+          view: DemoMenu.view,
+          viewInputs: menuViewConfig(basicItemsClassName),
+          toParentMessage: message => GotMenuBasicDemoMessage({ message }),
         }),
       ],
     ),
   ]
 }
 
-export const animatedDemo = <ParentMessage>(
-  menuModel: Ui.Menu.Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const animatedDemo = (menuModel: Ui.Menu.Model) => {
+  const h = html<Message>()
 
   return [
     h.div(
       [h.Class('relative')],
       [
-        Ui.Menu.view({
+        h.submodel({
+          slotId: menuModel.id,
           model: menuModel,
-          toParentMessage: message =>
-            toParentMessage(GotMenuAnimatedDemoMessage({ message })),
-          ...menuViewConfig<ParentMessage>(animatedItemsClassName),
+          view: DemoMenu.view,
+          viewInputs: menuViewConfig(animatedItemsClassName),
+          toParentMessage: message => GotMenuAnimatedDemoMessage({ message }),
         }),
       ],
     ),

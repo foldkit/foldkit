@@ -35,6 +35,8 @@ type DemoTab = 'Foldkit' | 'React' | 'Elm'
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']
 
+export const DemoTabs = Ui.Tabs.create<DemoTab>()
+
 const buttonClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-t-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 mb-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-cream data-[selected]:dark:bg-gray-900 data-[selected]:text-gray-900 data-[selected]:dark:text-white data-[selected]:border-b-0'
 
@@ -49,11 +51,8 @@ const verticalPanelClassName =
 
 // VIEW
 
-export const horizontalDemo = <ParentMessage>(
-  tabsModel: Ui.Tabs.Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const horizontalDemo = (tabsModel: Ui.Tabs.Model) => {
+  const h = html<Message>()
 
   const foldkitPanel = h.div(
     [],
@@ -121,36 +120,53 @@ export const horizontalDemo = <ParentMessage>(
     ],
   )
 
-  const tabToConfig = (tab: DemoTab, _context: { isActive: boolean }) => ({
-    buttonClassName,
-    buttonContent: h.span([], [tab]),
-    panelClassName,
-    panelContent: M.value(tab).pipe(
+  const panelFor = (tab: DemoTab) =>
+    M.value(tab).pipe(
       M.when('Foldkit', () => foldkitPanel),
       M.when('React', () => reactPanel),
       M.when('Elm', () => elmPanel),
       M.exhaustive,
-    ),
-  })
+    )
 
   return [
-    Ui.Tabs.view({
+    h.submodel({
+      slotId: tabsModel.id,
       model: tabsModel,
-      toParentMessage: message =>
-        toParentMessage(GotHorizontalTabsDemoMessage({ message })),
-      tabs: demoTabs,
-      tabToConfig,
-      tabListAttributes: [h.Class('flex')],
-      tabListAriaLabel: 'Framework comparison tabs',
+      view: DemoTabs.view,
+      viewInputs: {
+        tabs: demoTabs,
+        ariaLabel: 'Framework comparison tabs',
+        toView: ({ tablist, tabs, activeIndex }) =>
+          h.div(
+            [],
+            [
+              h.div(
+                [...tablist, h.Class('flex')],
+                tabs.map(tab =>
+                  h.button(
+                    [...tab.tab, h.Class(buttonClassName)],
+                    [h.span([], [tab.value])],
+                  ),
+                ),
+              ),
+              ...tabs
+                .filter(tab => tab.index === activeIndex)
+                .map(tab =>
+                  h.div(
+                    [...tab.panel, h.Class(panelClassName)],
+                    [panelFor(tab.value)],
+                  ),
+                ),
+            ],
+          ),
+      },
+      toParentMessage: message => GotHorizontalTabsDemoMessage({ message }),
     }),
   ]
 }
 
-export const verticalDemo = <ParentMessage>(
-  tabsModel: Ui.Tabs.Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const verticalDemo = (tabsModel: Ui.Tabs.Model) => {
+  const h = html<Message>()
 
   const foldkitPanel = h.div(
     [],
@@ -218,32 +234,48 @@ export const verticalDemo = <ParentMessage>(
     ],
   )
 
-  const verticalTabToConfig = (
-    tab: DemoTab,
-    _context: { isActive: boolean },
-  ) => ({
-    buttonClassName: verticalButtonClassName,
-    buttonContent: h.span([], [tab]),
-    panelClassName: verticalPanelClassName,
-    panelContent: M.value(tab).pipe(
+  const panelFor = (tab: DemoTab) =>
+    M.value(tab).pipe(
       M.when('Foldkit', () => foldkitPanel),
       M.when('React', () => reactPanel),
       M.when('Elm', () => elmPanel),
       M.exhaustive,
-    ),
-  })
+    )
 
   return [
-    Ui.Tabs.view({
+    h.submodel({
+      slotId: tabsModel.id,
       model: tabsModel,
-      toParentMessage: message =>
-        toParentMessage(GotVerticalTabsDemoMessage({ message })),
-      tabs: demoTabs,
-      tabToConfig: verticalTabToConfig,
-      orientation: 'Vertical',
-      attributes: [h.Class('flex')],
-      tabListAttributes: [h.Class('flex flex-col')],
-      tabListAriaLabel: 'Framework comparison tabs',
+      view: DemoTabs.view,
+      viewInputs: {
+        tabs: demoTabs,
+        ariaLabel: 'Framework comparison tabs',
+        orientation: 'Vertical',
+        toView: ({ tablist, tabs, activeIndex }) =>
+          h.div(
+            [h.Class('flex')],
+            [
+              h.div(
+                [...tablist, h.Class('flex flex-col')],
+                tabs.map(tab =>
+                  h.button(
+                    [...tab.tab, h.Class(verticalButtonClassName)],
+                    [h.span([], [tab.value])],
+                  ),
+                ),
+              ),
+              ...tabs
+                .filter(tab => tab.index === activeIndex)
+                .map(tab =>
+                  h.div(
+                    [...tab.panel, h.Class(verticalPanelClassName)],
+                    [panelFor(tab.value)],
+                  ),
+                ),
+            ],
+          ),
+      },
+      toParentMessage: message => GotVerticalTabsDemoMessage({ message }),
     }),
   ]
 }

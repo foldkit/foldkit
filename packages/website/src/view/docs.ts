@@ -78,7 +78,7 @@ const docsHeaderView = (model: Model) => {
               h.OnClick(
                 GotSearchMessage({
                   message: Search.GotSearchDialogMessage({
-                    message: Ui.Dialog.Opened(),
+                    message: Ui.Dialog.RequestedOpen(),
                   }),
                 }),
               ),
@@ -128,7 +128,7 @@ const docsHeaderView = (model: Model) => {
               h.OnClick(
                 GotSearchMessage({
                   message: Search.GotSearchDialogMessage({
-                    message: Ui.Dialog.Opened(),
+                    message: Ui.Dialog.RequestedOpen(),
                   }),
                 }),
               ),
@@ -144,7 +144,7 @@ const docsHeaderView = (model: Model) => {
               h.AriaLabel('Toggle menu'),
               h.OnClick(
                 GotMobileMenuDialogMessage({
-                  message: Ui.Dialog.Opened(),
+                  message: Ui.Dialog.RequestedOpen(),
                 }),
               ),
             ],
@@ -364,12 +364,20 @@ const toApiReferenceMessage = (message: Page.ApiReference.Message): Message =>
 const toUiPageMessage = (message: Page.UiPages.Message): Message =>
   GotUiPageMessage({ message })
 
-const apiReferenceView = (
+const renderApiReference = (
+  apiReference: Page.ApiReference.Model,
   module: Page.ApiReference.ApiModule,
-  disclosures: Page.ApiReference.Disclosures,
   highlights: Page.ApiReference.ApiData['highlights'],
-): Html =>
-  Page.ApiReference.view(module, disclosures, highlights, toApiReferenceMessage)
+): Html => {
+  const h = html<Message>()
+  return h.submodel({
+    slotId: `api-reference-${module.name}`,
+    model: apiReference,
+    view: Page.ApiReference.view,
+    viewInputs: { module, highlights },
+    toParentMessage: toApiReferenceMessage,
+  })
+}
 
 const lazyDocsContent = createLazy()
 const lazyApiReference = createLazy()
@@ -402,11 +410,13 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       ComingFromReact: () =>
         withTableOfContents(
-          Page.ComingFromReact.view(
-            model.copiedSnippets,
-            model.comingFromReact,
-            message => GotComingFromReactMessage({ message }),
-          ),
+          h.submodel({
+            slotId: 'coming-from-react',
+            model: model.comingFromReact,
+            view: Page.ComingFromReact.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: message => GotComingFromReactMessage({ message }),
+          }),
           Page.ComingFromReact.tableOfContents,
         ),
       ReactComparison: () =>
@@ -452,14 +462,18 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       ExampleDetail: ({ exampleSlug }) =>
         withoutTableOfContents(
-          Page.Example.ExampleDetail.view(
-            model.exampleDetail,
-            exampleSlug,
-            model.copiedSnippets,
-            model.isNarrowViewport,
-            model.isChromium,
-            message => GotExampleDetailMessage({ message }),
-          ),
+          h.submodel({
+            slotId: `example-detail-${exampleSlug}`,
+            model: model.exampleDetail,
+            view: Page.Example.ExampleDetail.view,
+            viewInputs: {
+              slug: exampleSlug,
+              copiedSnippets: model.copiedSnippets,
+              isNarrowViewport: model.isNarrowViewport,
+              isChromium: model.isChromium,
+            },
+            toParentMessage: message => GotExampleDetailMessage({ message }),
+          }),
         ),
       BestPracticesSideEffects: () =>
         withTableOfContents(
@@ -505,9 +519,9 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
               Page.ApiReference.resolveModule(data.parsedApi, moduleSlug),
               {
                 onSome: module => ({
-                  content: lazyApiReference(apiReferenceView, [
+                  content: lazyApiReference(renderApiReference, [
+                    model.apiReference,
                     module,
-                    model.apiReference.disclosures,
                     data.highlights,
                   ]),
                   tableOfContents: Option.some(
@@ -644,17 +658,13 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           lazyDocsContent(Page.Core.FreezeModel.view, []),
           Page.Core.FreezeModel.tableOfContents,
         ),
-      PatternsSubmodels: () =>
+      CoreSubmodel: () =>
         withTableOfContents(
-          lazyDocsContent(Page.Patterns.Submodels.view, [model.copiedSnippets]),
-          Page.Patterns.Submodels.tableOfContents,
-        ),
-      PatternsOutMessage: () =>
-        withTableOfContents(
-          lazyDocsContent(Page.Patterns.OutMessage.view, [
+          lazyDocsContent(Page.Core.Submodel.view, [
             model.copiedSnippets,
+            model.submodelMapMessagesDisclosure,
           ]),
-          Page.Patterns.OutMessage.tableOfContents,
+          Page.Core.Submodel.tableOfContents,
         ),
       PatternsSubscriptionOrganization: () =>
         withTableOfContents(
@@ -675,220 +685,275 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.UiPages.OverviewPage.view(),
           Page.UiPages.OverviewPage.tableOfContents,
         ),
+      UiSelectionSubmodels: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.UiPages.SelectionSubmodelsPage.view, [
+            model.copiedSnippets,
+          ]),
+          Page.UiPages.SelectionSubmodelsPage.tableOfContents,
+        ),
       UiButton: () =>
         withTableOfContents(
-          Page.UiPages.ButtonPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Button',
+            model: model.uiPages,
+            view: Page.UiPages.ButtonPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.ButtonPage.tableOfContents,
         ),
       UiTabs: () =>
         withTableOfContents(
-          Page.UiPages.TabsPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Tabs',
+            model: model.uiPages,
+            view: Page.UiPages.TabsPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.TabsPage.tableOfContents,
         ),
       UiDisclosure: () =>
         withTableOfContents(
-          Page.UiPages.DisclosurePage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Disclosure',
+            model: model.uiPages,
+            view: Page.UiPages.DisclosurePage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.DisclosurePage.tableOfContents,
         ),
       UiDialog: () =>
         withTableOfContents(
-          Page.UiPages.DialogPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Dialog',
+            model: model.uiPages,
+            view: Page.UiPages.DialogPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.DialogPage.tableOfContents,
         ),
       UiMenu: () =>
         withTableOfContents(
-          Page.UiPages.MenuPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Menu',
+            model: model.uiPages,
+            view: Page.UiPages.MenuPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.MenuPage.tableOfContents,
         ),
       UiPopover: () =>
         withTableOfContents(
-          Page.UiPages.PopoverPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Popover',
+            model: model.uiPages,
+            view: Page.UiPages.PopoverPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.PopoverPage.tableOfContents,
         ),
       UiTooltip: () =>
         withTableOfContents(
-          Page.UiPages.TooltipPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Tooltip',
+            model: model.uiPages,
+            view: Page.UiPages.TooltipPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.TooltipPage.tableOfContents,
         ),
       UiToast: () =>
         withTableOfContents(
-          Page.UiPages.ToastPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Toast',
+            model: model.uiPages,
+            view: Page.UiPages.ToastPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.ToastPage.tableOfContents,
         ),
       UiListbox: () =>
         withTableOfContents(
-          Page.UiPages.ListboxPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Listbox',
+            model: model.uiPages,
+            view: Page.UiPages.ListboxPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.ListboxPage.tableOfContents,
         ),
       UiRadioGroup: () =>
         withTableOfContents(
-          Page.UiPages.RadioGroupPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-RadioGroup',
+            model: model.uiPages,
+            view: Page.UiPages.RadioGroupPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.RadioGroupPage.tableOfContents,
         ),
       UiSlider: () =>
         withTableOfContents(
-          Page.UiPages.SliderPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Slider',
+            model: model.uiPages,
+            view: Page.UiPages.SliderPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.SliderPage.tableOfContents,
         ),
       UiSwitch: () =>
         withTableOfContents(
-          Page.UiPages.SwitchPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Switch',
+            model: model.uiPages,
+            view: Page.UiPages.SwitchPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.SwitchPage.tableOfContents,
         ),
       UiCalendar: () =>
         withTableOfContents(
-          Page.UiPages.CalendarPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Calendar',
+            model: model.uiPages,
+            view: Page.UiPages.CalendarPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.CalendarPage.tableOfContents,
         ),
       UiDatePicker: () =>
         withTableOfContents(
-          Page.UiPages.DatePickerPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-DatePicker',
+            model: model.uiPages,
+            view: Page.UiPages.DatePickerPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.DatePickerPage.tableOfContents,
         ),
       UiCheckbox: () =>
         withTableOfContents(
-          Page.UiPages.CheckboxPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Checkbox',
+            model: model.uiPages,
+            view: Page.UiPages.CheckboxPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.CheckboxPage.tableOfContents,
         ),
       UiCombobox: () =>
         withTableOfContents(
-          Page.UiPages.ComboboxPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Combobox',
+            model: model.uiPages,
+            view: Page.UiPages.ComboboxPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.ComboboxPage.tableOfContents,
         ),
       UiInput: () =>
         withTableOfContents(
-          Page.UiPages.InputPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Input',
+            model: model.uiPages,
+            view: Page.UiPages.InputPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.InputPage.tableOfContents,
         ),
       UiTextarea: () =>
         withTableOfContents(
-          Page.UiPages.TextareaPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Textarea',
+            model: model.uiPages,
+            view: Page.UiPages.TextareaPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.TextareaPage.tableOfContents,
         ),
       UiFieldset: () =>
         withTableOfContents(
-          Page.UiPages.FieldsetPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Fieldset',
+            model: model.uiPages,
+            view: Page.UiPages.FieldsetPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.FieldsetPage.tableOfContents,
         ),
       UiSelect: () =>
         withTableOfContents(
-          Page.UiPages.SelectPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Select',
+            model: model.uiPages,
+            view: Page.UiPages.SelectPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.SelectPage.tableOfContents,
         ),
       UiDragAndDrop: () =>
         withTableOfContents(
-          Page.UiPages.DragAndDropPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-DragAndDrop',
+            model: model.uiPages,
+            view: Page.UiPages.DragAndDropPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.DragAndDropPage.tableOfContents,
         ),
       UiFileDrop: () =>
         withTableOfContents(
-          Page.UiPages.FileDropPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-FileDrop',
+            model: model.uiPages,
+            view: Page.UiPages.FileDropPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.FileDropPage.tableOfContents,
         ),
       UiAnimation: () =>
         withTableOfContents(
-          Page.UiPages.AnimationPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-Animation',
+            model: model.uiPages,
+            view: Page.UiPages.AnimationPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.AnimationPage.tableOfContents,
         ),
       UiVirtualList: () =>
         withTableOfContents(
-          Page.UiPages.VirtualListPage.view(
-            model.uiPages,
-            toUiPageMessage,
-            model.copiedSnippets,
-          ),
+          h.submodel({
+            slotId: 'ui-VirtualList',
+            model: model.uiPages,
+            view: Page.UiPages.VirtualListPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
           Page.UiPages.VirtualListPage.tableOfContents,
         ),
       AiOverview: () =>
@@ -911,16 +976,18 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
     }),
   )
 
-  const toParentMessage = (message: Search.Message): Message =>
-    GotSearchMessage({ message })
-
   return h.keyed('div')(
     'docs',
     [h.Class('flex flex-col min-h-screen')],
     [
       skipNavLink,
       docsHeaderView(model),
-      Search.view(model.search, toParentMessage),
+      h.submodel({
+        slotId: 'search',
+        model: model.search,
+        view: Search.view,
+        toParentMessage: message => GotSearchMessage({ message }),
+      }),
       h.div(
         [h.Class('flex flex-1 pt-[var(--header-height)] md:pl-64')],
         [

@@ -17,9 +17,7 @@ const rectToPosition = (rect: DOMRect): string => `${rect.x},${rect.y}`
  *
  * @example
  * ```typescript
- * Dom.detectElementMovement('#menu-button').pipe(
- *   Effect.as(DetectedButtonMovement()),
- * )
+ * Dom.detectElementMovement('#menu-button')
  * ```
  */
 export const detectElementMovement = (selector: string): Effect.Effect<void> =>

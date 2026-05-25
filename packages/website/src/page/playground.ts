@@ -15,7 +15,7 @@ import {
   String as String_,
   pipe,
 } from 'effect'
-import { Command, ManagedResource, Mount, Ui } from 'foldkit'
+import { Command, ManagedResource, Mount, Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -634,18 +634,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
       GotFileTabsMessage: ({ message: tabsMessage }) => {
-        const [nextTabs, tabsCommands] = Ui.Tabs.update(
+        const [nextTabs, tabsCommands] = PlaygroundFileTabs.update(
           model.fileTabs,
           tabsMessage,
         )
         return [
           evo(model, { fileTabs: () => nextTabs }),
-          tabsCommands.map(
-            Command.mapEffect(
-              Effect.map(nextMessage =>
-                GotFileTabsMessage({ message: nextMessage }),
-              ),
-            ),
+          Command.mapMessages(tabsCommands, message =>
+            GotFileTabsMessage({ message }),
           ),
         ]
       },
@@ -793,13 +789,12 @@ const failurePanelView = (reason: string): Html => {
   )
 }
 
-const editorPanelContent = <ParentMessage>(
+const editorPanelContent = (
   path: string,
   content: string,
   files: Readonly<Record<string, string>>,
-  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return h.div(
     [h.Class('flex-1 min-w-0 min-h-0 flex flex-col bg-[#1e1e1e] text-sm')],
@@ -808,12 +803,7 @@ const editorPanelContent = <ParentMessage>(
         `editor-${path}`,
         [
           h.Class('flex-1 min-h-0 min-w-0 overflow-hidden'),
-          h.OnMount(
-            Mount.mapMessage(
-              PlaygroundEditor({ path, initialContent: content, files }),
-              toParentMessage,
-            ),
-          ),
+          h.OnMount(PlaygroundEditor({ path, initialContent: content, files })),
         ],
         [],
       ),
@@ -913,28 +903,24 @@ const tooNarrowMessageView = (): Html => {
   )
 }
 
-const responsiveEditorView = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+const responsiveEditorView = (model: Model): Html => {
+  const h = html<Message>()
   return h.div(
     [h.Class('flex-1 min-h-0 flex flex-col')],
     [
       tooNarrowMessageView(),
       h.div(
         [h.Class('flex-1 min-h-0 min-w-0 flex max-md:hidden')],
-        [editorLayoutView<ParentMessage>(model, toParentMessage)],
+        [editorLayoutView(model)],
       ),
     ],
   )
 }
 
-const editorLayoutView = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+const PlaygroundFileTabs = Ui.Tabs.create<string>()
+
+const editorLayoutView = (model: Model): Html => {
+  const h = html<Message>()
   const paths = sortedPaths(model.files)
   return h.div(
     [h.Class('flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden')],
@@ -943,37 +929,60 @@ const editorLayoutView = <ParentMessage>(
       h.div(
         [h.Class('flex-1 min-h-0 min-w-0 flex max-playground-wide:flex-col')],
         [
-          Ui.Tabs.view<ParentMessage, string>({
+          h.submodel({
+            slotId: model.fileTabs.id,
             model: model.fileTabs,
-            toParentMessage: message =>
-              toParentMessage(GotFileTabsMessage({ message })),
-            tabs: paths,
-            tabListAriaLabel: 'Playground files',
-            orientation: 'Vertical',
-            attributes: [
-              h.Class(
-                'shrink-0 min-h-0 flex w-[1056px] max-playground-wide:w-full max-playground-wide:h-1/2',
-              ),
-            ],
-            tabListAttributes: [
-              h.Class(
-                'w-56 shrink-0 overflow-y-auto border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 py-3 text-sm flex flex-col',
-              ),
-            ],
-            tabToConfig: path => ({
-              buttonClassName: fileTabButtonClassName,
-              buttonContent: h.span([], [path]),
-              panelClassName: 'flex-1 min-w-0 min-h-0 flex flex-col',
-              panelContent: editorPanelContent<ParentMessage>(
-                path,
-                pipe(
-                  Record.get(model.files, path),
-                  Option.getOrElse(() => ''),
+            view: PlaygroundFileTabs.view,
+            viewInputs: {
+              tabs: paths,
+              ariaLabel: 'Playground files',
+              orientation: 'Vertical',
+              toView: ({ tablist, tabs, activeIndex }) =>
+                h.div(
+                  [
+                    h.Class(
+                      'shrink-0 min-h-0 flex w-[1056px] max-playground-wide:w-full max-playground-wide:h-1/2',
+                    ),
+                  ],
+                  [
+                    h.div(
+                      [
+                        ...tablist,
+                        h.Class(
+                          'w-56 shrink-0 overflow-y-auto border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 py-3 text-sm flex flex-col',
+                        ),
+                      ],
+                      tabs.map(tab =>
+                        h.button(
+                          [...tab.tab, h.Class(fileTabButtonClassName)],
+                          [h.span([], [tab.value])],
+                        ),
+                      ),
+                    ),
+                    ...tabs
+                      .filter(tab => tab.index === activeIndex)
+                      .map(tab =>
+                        h.div(
+                          [
+                            ...tab.panel,
+                            h.Class('flex-1 min-w-0 min-h-0 flex flex-col'),
+                          ],
+                          [
+                            editorPanelContent(
+                              tab.value,
+                              pipe(
+                                Record.get(model.files, tab.value),
+                                Option.getOrElse(() => ''),
+                              ),
+                              model.files,
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
-                model.files,
-                toParentMessage,
-              ),
-            }),
+            },
+            toParentMessage: message => GotFileTabsMessage({ message }),
           }),
           previewPaneView(model.state),
         ],
@@ -982,57 +991,50 @@ const editorLayoutView = <ParentMessage>(
   )
 }
 
-export const view = <ParentMessage>(
-  slug: string,
-  isChromium: boolean,
-  maybeModel: Option.Option<Model>,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ isChromium: boolean }>
 
-  const maybeMeta = findBySlug(slug)
-  const maybeFiles = Option.fromNullishOr(filesBySlug[slug])
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { isChromium }): Html => {
+    const h = html<Message>()
 
-  const content = M.value({
-    isChromium,
-    maybeMeta,
-    maybeFiles,
-    maybeModel,
-  }).pipe(
-    M.when(
-      ({ isChromium }) => !isChromium,
-      () =>
-        messageView(
-          'Playground requires a Chromium browser',
-          'The editable playground runs on WebContainers, which requires Chrome, Edge, Brave, or another Chromium-based browser. You can still see the example running on its detail page.',
-          maybeMeta,
-        ),
-    ),
-    M.orElse(() =>
-      Option.match(Option.all([maybeMeta, maybeFiles, maybeModel]), {
-        onNone: () =>
+    const maybeMeta = findBySlug(model.slug)
+    const maybeFiles = Option.fromNullishOr(filesBySlug[model.slug])
+
+    const content = M.value({ isChromium, maybeMeta, maybeFiles }).pipe(
+      M.when(
+        ({ isChromium }) => !isChromium,
+        () =>
           messageView(
-            'Playground coming soon',
-            'This example is not yet available in the embedded playground. Open its example detail page to see it running.',
+            'Playground requires a Chromium browser',
+            'The editable playground runs on WebContainers, which requires Chrome, Edge, Brave, or another Chromium-based browser. You can still see the example running on its detail page.',
             maybeMeta,
           ),
-        onSome: ([, , model]) => responsiveEditorView(model, toParentMessage),
-      }),
-    ),
-  )
-
-  return h.keyed('div')(
-    `playground-${slug}`,
-    [h.Class('flex flex-col h-screen')],
-    [
-      h.main(
-        [
-          h.Id('main-content'),
-          h.Class('flex-1 flex flex-col min-h-0'),
-          h.AriaLabel('Playground'),
-        ],
-        [content],
       ),
-    ],
-  )
-}
+      M.orElse(() =>
+        Option.match(Option.all([maybeMeta, maybeFiles]), {
+          onNone: () =>
+            messageView(
+              'Playground coming soon',
+              'This example is not yet available in the embedded playground. Open its example detail page to see it running.',
+              maybeMeta,
+            ),
+          onSome: () => responsiveEditorView(model),
+        }),
+      ),
+    )
+
+    return h.div(
+      [h.Class('flex flex-col h-screen')],
+      [
+        h.main(
+          [
+            h.Id('main-content'),
+            h.Class('flex-1 flex flex-col min-h-0'),
+            h.AriaLabel('Playground'),
+          ],
+          [content],
+        ),
+      ],
+    )
+  },
+)

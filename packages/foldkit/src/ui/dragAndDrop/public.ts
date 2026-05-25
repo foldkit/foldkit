@@ -20,7 +20,7 @@ export {
   ResolvedKeyboardMove,
   ConfirmedKeyboardDrop,
   PressedArrowKey,
-  CompletedAutoScroll,
+  AdvancedAutoScrollFrame,
   CompletedFocusItem,
   FocusItem,
   ResolveKeyboardMove,

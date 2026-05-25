@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { GotSwitchDemoMessage, type UiMessage } from '../message'
@@ -15,8 +15,8 @@ const labelClassName =
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-const knob = <ParentMessage>(isChecked: boolean): Html => {
-  const h = html<ParentMessage>()
+const knob = (isChecked: boolean): Html => {
+  const h = html()
 
   return h.span(
     [
@@ -31,11 +31,8 @@ const knob = <ParentMessage>(isChecked: boolean): Html => {
   )
 }
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [],
@@ -44,39 +41,42 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('mt-4')],
         [
-          Ui.Switch.view({
+          h.submodel({
+            slotId: 'switch-demo',
             model: model.switchDemo,
-            toParentMessage: message =>
-              toParentMessage(GotSwitchDemoMessage({ message })),
-            toView: attributes =>
-              h.div(
-                [h.Class(wrapperClassName)],
-                [
-                  h.button(
-                    [...attributes.button, h.Class(buttonClassName)],
-                    [knob<ParentMessage>(model.switchDemo.isChecked)],
-                  ),
-                  h.div(
-                    [],
-                    [
-                      h.label(
-                        [...attributes.label, h.Class(labelClassName)],
-                        ['Enable notifications'],
-                      ),
-                      h.p(
-                        [
-                          ...attributes.description,
-                          h.Class(descriptionClassName),
-                        ],
-                        ['Get notified when something important happens.'],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            view: Ui.Switch.view,
+            viewInputs: {
+              toView: attributes =>
+                h.div(
+                  [h.Class(wrapperClassName)],
+                  [
+                    h.button(
+                      [...attributes.button, h.Class(buttonClassName)],
+                      [knob(model.switchDemo.isChecked)],
+                    ),
+                    h.div(
+                      [],
+                      [
+                        h.label(
+                          [...attributes.label, h.Class(labelClassName)],
+                          ['Enable notifications'],
+                        ),
+                        h.p(
+                          [
+                            ...attributes.description,
+                            h.Class(descriptionClassName),
+                          ],
+                          ['Get notified when something important happens.'],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+            },
+            toParentMessage: message => GotSwitchDemoMessage({ message }),
           }),
         ],
       ),
     ],
   )
-}
+})

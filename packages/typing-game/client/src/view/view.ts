@@ -21,10 +21,20 @@ export const view = (model: Model): Document => {
   const content = M.value(model.route).pipe(
     M.tagsExhaustive({
       Home: () =>
-        Home.view<Message>(model.home, message => GotHomeMessage({ message })),
-      Room: Room.view<Message>(model.room, message =>
-        GotRoomMessage({ message }),
-      ),
+        h.submodel({
+          slotId: 'home',
+          model: model.home,
+          view: Home.view,
+          toParentMessage: message => GotHomeMessage({ message }),
+        }),
+      Room: ({ roomId }) =>
+        h.submodel({
+          slotId: 'room',
+          model: model.room,
+          view: Room.view,
+          viewInputs: { roomId },
+          toParentMessage: message => GotRoomMessage({ message }),
+        }),
       NotFound: notFound,
     }),
   )

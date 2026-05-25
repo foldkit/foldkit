@@ -8,13 +8,12 @@ import {
   Schema as S,
   pipe,
 } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command, Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 import demoCodeHtml from 'virtual:counter-demo-code'
 
-import type { Message as ParentMessage } from '../message'
 import * as DemoView from './demoView'
 
 // CONSTANTS
@@ -295,25 +294,21 @@ const phaseColorClass = (phase: AnimationPhase): string =>
     M.exhaustive,
   )
 
-export const view = (
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  DemoView.demoViewShell(
-    DemoView.codePanelView(
-      'demo-code-panel',
-      'demo-phase',
-      model.phase,
-      demoCodeHtml,
+export const view = Submodel.defineView<Model, Message>(
+  (model): Html =>
+    DemoView.demoViewShell(
+      DemoView.codePanelView(
+        'demo-code-panel',
+        'demo-phase',
+        model.phase,
+        demoCodeHtml,
+      ),
+      appPanel(model),
     ),
-    appPanel(model, toParentMessage),
-  )
+)
 
-const appPanel = (
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+const appPanel = (model: Model): Html => {
+  const h = html<Message>()
 
   return h.div(
     [h.Class('relative')],
@@ -321,7 +316,7 @@ const appPanel = (
       h.div(
         [h.Class('lg:absolute lg:inset-0 flex flex-col gap-4 overflow-hidden')],
         [
-          viewAndControlsView(model, toParentMessage),
+          viewAndControlsView(model),
           DemoView.modelStateView([
             DemoView.modelStateField('count', String(model.count)),
             DemoView.modelStateField('isResetting', String(model.isResetting)),
@@ -352,11 +347,8 @@ const stepperButtonClass = (isDisabled: boolean): string =>
 const parseResetDuration = (value: string): number =>
   N.clamp(Number(value), { minimum: 0, maximum: MAX_RESET_DURATION })
 
-const viewAndControlsView = (
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+const viewAndControlsView = (model: Model): Html => {
+  const h = html<Message>()
 
   return h.div(
     [h.Class('flex flex-col gap-3')],
@@ -383,8 +375,8 @@ const viewAndControlsView = (
           ),
         ],
       ),
-      Ui.Button.view<ParentMessage>({
-        onClick: toParentMessage(ClickedDemoIncrement()),
+      Ui.Button.view<Message>({
+        onClick: ClickedDemoIncrement(),
         toView: attributes =>
           h.button(
             [
@@ -396,15 +388,13 @@ const viewAndControlsView = (
             ['Add 1'],
           ),
       }),
-      Ui.Input.view<ParentMessage>({
+      Ui.Input.view<Message>({
         id: 'demo-reset-duration',
         value: String(model.resetDuration),
         onInput: value =>
-          toParentMessage(
-            ChangedDemoResetDuration({
-              seconds: parseResetDuration(value),
-            }),
-          ),
+          ChangedDemoResetDuration({
+            seconds: parseResetDuration(value),
+          }),
         type: 'number',
         toView: attributes =>
           h.div(
@@ -429,15 +419,13 @@ const viewAndControlsView = (
                     h.Min(String(MIN_RESET_DURATION)),
                     h.Max(String(MAX_RESET_DURATION)),
                   ]),
-                  Ui.Button.view<ParentMessage>({
-                    onClick: toParentMessage(
-                      ChangedDemoResetDuration({
-                        seconds: N.clamp(model.resetDuration - 1, {
-                          minimum: MIN_RESET_DURATION,
-                          maximum: MAX_RESET_DURATION,
-                        }),
+                  Ui.Button.view<Message>({
+                    onClick: ChangedDemoResetDuration({
+                      seconds: N.clamp(model.resetDuration - 1, {
+                        minimum: MIN_RESET_DURATION,
+                        maximum: MAX_RESET_DURATION,
                       }),
-                    ),
+                    }),
                     isDisabled: model.resetDuration <= MIN_RESET_DURATION,
                     toView: buttonAttributes =>
                       h.button(
@@ -453,15 +441,13 @@ const viewAndControlsView = (
                         ['−'],
                       ),
                   }),
-                  Ui.Button.view<ParentMessage>({
-                    onClick: toParentMessage(
-                      ChangedDemoResetDuration({
-                        seconds: N.clamp(model.resetDuration + 1, {
-                          minimum: MIN_RESET_DURATION,
-                          maximum: MAX_RESET_DURATION,
-                        }),
+                  Ui.Button.view<Message>({
+                    onClick: ChangedDemoResetDuration({
+                      seconds: N.clamp(model.resetDuration + 1, {
+                        minimum: MIN_RESET_DURATION,
+                        maximum: MAX_RESET_DURATION,
                       }),
-                    ),
+                    }),
                     isDisabled: model.resetDuration >= MAX_RESET_DURATION,
                     toView: buttonAttributes =>
                       h.button(
@@ -482,8 +468,8 @@ const viewAndControlsView = (
             ],
           ),
       }),
-      Ui.Button.view<ParentMessage>({
-        onClick: toParentMessage(ClickedDemoReset()),
+      Ui.Button.view<Message>({
+        onClick: ClickedDemoReset(),
         isDisabled: model.isResetting,
         toView: attributes =>
           h.button(
@@ -520,7 +506,7 @@ const phaseIndicatorView = (model: Model): Html => {
 }
 
 const progressBarView = (model: Model, isCommand: boolean): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return h.div(
     [

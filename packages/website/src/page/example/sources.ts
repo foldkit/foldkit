@@ -16,6 +16,7 @@ type SourceLoader = () => Promise<Readonly<{ default: ExampleSources }>>
 
 const loadersBySlug: Readonly<Record<string, SourceLoader | undefined>> = {
   counter: () => import('virtual:example-sources/counter'),
+  counters: () => import('virtual:example-sources/counters'),
   todo: () => import('virtual:example-sources/todo'),
   stopwatch: () => import('virtual:example-sources/stopwatch'),
   form: () => import('virtual:example-sources/form'),

@@ -22,11 +22,8 @@ const contentClassName =
 
 // VIEW
 
-export const animationDemo = <ParentMessage>(
-  animationModel: Ui.Animation.Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const animationDemo = (animationModel: Ui.Animation.Model) => {
+  const h = html<Message>()
 
   const toggleMessage = animationModel.isShowing
     ? Ui.Animation.Hid()
@@ -39,24 +36,25 @@ export const animationDemo = <ParentMessage>(
         h.button(
           [
             h.Class(triggerClassName),
-            h.OnClick(
-              toParentMessage(
-                GotAnimationDemoMessage({ message: toggleMessage }),
-              ),
-            ),
+            h.OnClick(GotAnimationDemoMessage({ message: toggleMessage })),
           ],
           [animationModel.isShowing ? 'Hide Content' : 'Show Content'],
         ),
-        Ui.Animation.view({
+        h.submodel({
+          slotId: animationModel.id,
           model: animationModel,
-          className: contentClassName,
-          animateSize: true,
-          content: h.p(
-            [h.Class('text-accent-800 dark:text-accent-200')],
-            [
-              'This content fades in and out using CSS transitions coordinated by the Animation component. The data attributes (data-closed, data-enter, data-leave, data-transition) drive the animation via Tailwind selectors.',
-            ],
-          ),
+          view: Ui.Animation.view,
+          viewInputs: {
+            className: contentClassName,
+            animateSize: true,
+            content: h.p(
+              [h.Class('text-accent-800 dark:text-accent-200')],
+              [
+                'This content fades in and out using CSS transitions coordinated by the Animation component. The data attributes (data-closed, data-enter, data-leave, data-transition) drive the animation via Tailwind selectors.',
+              ],
+            ),
+          },
+          toParentMessage: message => GotAnimationDemoMessage({ message }),
         }),
       ],
     ),

@@ -1,4 +1,4 @@
-import { Array, Effect, Match as M, Number, Option, Result } from 'effect'
+import { Array, Match as M, Number, Option, Result } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
@@ -288,10 +288,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         )
         return [
           evo(model, { flowStrengthSlider: () => nextSlider }),
-          sliderCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotFlowStrengthSliderMessage({ message })),
-            ),
+          Command.mapMessages(sliderCommands, message =>
+            GotFlowStrengthSliderMessage({ message }),
           ),
         ]
       },
@@ -303,10 +301,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         )
         return [
           evo(model, { noiseScaleSlider: () => nextSlider }),
-          sliderCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotNoiseScaleSliderMessage({ message })),
-            ),
+          Command.mapMessages(sliderCommands, message =>
+            GotNoiseScaleSliderMessage({ message }),
           ),
         ]
       },

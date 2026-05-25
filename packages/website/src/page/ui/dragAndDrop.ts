@@ -40,14 +40,13 @@ const findDraggedCard = (
 const cardClassName =
   'rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 cursor-grab active:cursor-grabbing select-none transition-opacity'
 
-const cardView = <ParentMessage>(
+const cardView = (
   card: DemoCardType,
   index: number,
   containerId: string,
   dragAndDropModel: Ui.DragAndDrop.Model,
-  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   const maybeItemId = Ui.DragAndDrop.maybeDraggedItemId(dragAndDropModel)
   const isBeingDragged = Option.exists(maybeItemId, id => id === card.id)
@@ -65,27 +64,25 @@ const cardView = <ParentMessage>(
   return h.div(
     [
       h.Class(cardClassName + opacityClass + keyboardClass),
-      ...Ui.DragAndDrop.draggable<ParentMessage>({
+      ...Ui.DragAndDrop.draggable<Message>({
         model: dragAndDropModel,
-        toParentMessage: message =>
-          toParentMessage(GotDragAndDropDemoMessage({ message })),
+        toParentMessage: message => GotDragAndDropDemoMessage({ message }),
         itemId: card.id,
         containerId,
         index,
       }),
-      ...Ui.DragAndDrop.sortable<ParentMessage>(card.id),
+      ...Ui.DragAndDrop.sortable<Message>(card.id),
     ],
     [card.label],
   )
 }
 
-const columnView = <ParentMessage>(
+const columnView = (
   columns: ReadonlyArray<DemoColumnType>,
   column: DemoColumnType,
   dragAndDropModel: Ui.DragAndDrop.Model,
-  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   const dropPlaceholder: Html = h.div(
     [
@@ -117,17 +114,11 @@ const columnView = <ParentMessage>(
   )
 
   const cardElements = Array.map(visibleCards, (card, index) =>
-    cardView<ParentMessage>(
-      card,
-      index,
-      column.id,
-      dragAndDropModel,
-      toParentMessage,
-    ),
+    cardView(card, index, column.id, dragAndDropModel),
   )
 
   if (!isTargetColumn) {
-    return renderColumn<ParentMessage>(column, dragAndDropModel, cardElements)
+    return renderColumn(column, dragAndDropModel, cardElements)
   }
 
   const targetIndex = pipe(
@@ -143,13 +134,7 @@ const columnView = <ParentMessage>(
     : Option.match(findDraggedCard(columns, maybeItemId), {
         onNone: () => dropPlaceholder,
         onSome: card =>
-          cardView<ParentMessage>(
-            card,
-            targetIndex,
-            column.id,
-            dragAndDropModel,
-            toParentMessage,
-          ),
+          cardView(card, targetIndex, column.id, dragAndDropModel),
       })
 
   const withInsert: ReadonlyArray<Html> = pipe(
@@ -158,15 +143,15 @@ const columnView = <ParentMessage>(
     Option.getOrElse(() => [...cardElements, insertElement]),
   )
 
-  return renderColumn<ParentMessage>(column, dragAndDropModel, withInsert)
+  return renderColumn(column, dragAndDropModel, withInsert)
 }
 
-const renderColumn = <ParentMessage>(
+const renderColumn = (
   column: DemoColumnType,
   dragAndDropModel: Ui.DragAndDrop.Model,
   children: ReadonlyArray<Html>,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   const maybeTarget = Ui.DragAndDrop.maybeDropTarget(dragAndDropModel)
   const isDropTarget =
@@ -193,7 +178,7 @@ const renderColumn = <ParentMessage>(
                 : 'border-transparent'
             }`,
           ),
-          ...Ui.DragAndDrop.droppable<ParentMessage>(column.id, column.label),
+          ...Ui.DragAndDrop.droppable<Message>(column.id, column.label),
         ],
         [...children],
       ),
@@ -201,11 +186,11 @@ const renderColumn = <ParentMessage>(
   )
 }
 
-const ghostView = <ParentMessage>(
+const ghostView = (
   columns: ReadonlyArray<DemoColumnType>,
   dragAndDropModel: Ui.DragAndDrop.Model,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   const maybeItemId = Ui.DragAndDrop.maybeDraggedItemId(dragAndDropModel)
 
@@ -233,11 +218,8 @@ const ghostView = <ParentMessage>(
   )
 }
 
-export const demo = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-): ReadonlyArray<Html> => {
-  const h = html<ParentMessage>()
+export const demo = (model: Model): ReadonlyArray<Html> => {
+  const h = html<Message>()
 
   return [
     h.div(
@@ -246,18 +228,14 @@ export const demo = <ParentMessage>(
         h.div(
           [h.Class('grid grid-cols-2 gap-4')],
           Array.map(model.dragAndDropDemoColumns, column =>
-            columnView<ParentMessage>(
+            columnView(
               model.dragAndDropDemoColumns,
               column,
               model.dragAndDropDemo,
-              toParentMessage,
             ),
           ),
         ),
-        ghostView<ParentMessage>(
-          model.dragAndDropDemoColumns,
-          model.dragAndDropDemo,
-        ),
+        ghostView(model.dragAndDropDemoColumns, model.dragAndDropDemo),
       ],
     ),
   ]

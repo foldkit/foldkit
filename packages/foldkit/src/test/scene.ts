@@ -1,5 +1,6 @@
 import {
   Array,
+  Context,
   Effect,
   Function,
   Option,
@@ -12,8 +13,14 @@ import { dual } from 'effect/Function'
 import type { CommandDefinition } from '../command/index.js'
 import type { File } from '../file/index.js'
 import type { FoldkitMountMarker } from '../html/index.js'
-import { FOLDKIT_MOUNT_KEY, FileHandlerSymbol } from '../html/index.js'
+import {
+  FOLDKIT_MOUNT_KEY,
+  FileHandlerSymbol,
+  __clearRuntime as clearHtmlRuntime,
+  __setRuntime as setHtmlRuntime,
+} from '../html/index.js'
 import type { Document, Html, KeyboardModifiers } from '../html/index.js'
+import { MountTracker } from '../mount/index.js'
 import type { MountDefinition } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
 import type { VNode } from '../vdom.js'
@@ -138,10 +145,10 @@ export const all = {
 export { sceneMatchers } from './matchers.js'
 
 /** An immutable test simulation that includes the rendered VNode tree.
- *  The Model and Message are intentionally opaque — Scene tests assert
+ *  The Model and Message are intentionally opaque. Scene tests assert
  *  through the view, not the model. Use Story for model-level assertions. */
 export type SceneSimulation<Model, Message, OutMessage = undefined> = Readonly<{
-  /** @internal Phantom type — preserves Model and Message for step chain inference. */
+  /** @internal Phantom type that preserves Model and Message for step chain inference. */
   _phantom: [Model, Message]
   commands: ReadonlyArray<AnyCommand>
   mounts: ReadonlyArray<PendingMount>
@@ -155,7 +162,7 @@ type WithStep<Model> = Readonly<{ _phantomModel: Model }> &
     simulation: SceneSimulation<M, Message, OutMessage>,
   ) => SceneSimulation<M, Message, OutMessage>)
 
-/** A single step in a scene — either a `with` step or a scene simulation transform. */
+/** A single step in a scene: either a `with` step or a scene simulation transform. */
 export type SceneStep<Model, Message, OutMessage> =
   | WithStep<NoInfer<Model>>
   | ((
@@ -388,13 +395,24 @@ const renderView = <Model>(
   model: Model,
   dispatch: DispatchService,
 ): VNode => {
-  const result = viewFn(model)
-  const body = Effect.isEffect(result) ? result : result.body
-  const maybeVNode = Effect.runSync(
-    Effect.provideService(body, Dispatch, dispatch),
+  const sceneContext = Context.make(Dispatch, dispatch).pipe(
+    Context.add(MountTracker, {
+      started: () => {},
+      ended: () => {},
+    }),
   )
 
-  if (Predicate.isNull(maybeVNode)) {
+  setHtmlRuntime(dispatch.dispatchSync, sceneContext)
+  let result: Html | Document
+  try {
+    result = viewFn(model)
+  } finally {
+    clearHtmlRuntime()
+  }
+
+  const vnode = isDocument(result) ? (result.body ?? null) : result
+
+  if (vnode === null) {
     throw new Error(
       'The view function returned null.\n\n' +
         'Scene tests require a non-null view. ' +
@@ -402,8 +420,11 @@ const renderView = <Model>(
     )
   }
 
-  return maybeVNode
+  return vnode
 }
+
+const isDocument = (value: Html | Document): value is Document =>
+  value !== null && 'body' in value
 
 // INTERACTION HELPERS
 
@@ -573,7 +594,7 @@ const assertFileHandler = (
   const correctAttribute = isFileChange ? 'OnFileChange' : 'OnDropFiles'
   const wrongAttribute = isFileChange ? 'OnChange' : 'OnDrop'
   const alternativeHelper = isFileChange
-    ? 'Use `Scene.change` for text inputs and selects.'
+    ? 'Use `Scene.change` for text viewInputs and selects.'
     : 'Remove `Scene.dropFiles` or add an `OnDropFiles` attribute to the drop zone.'
 
   throw new Error(
@@ -995,7 +1016,7 @@ const runSteps = <Model, Message, OutMessage>(
 /* eslint-enable @typescript-eslint/consistent-type-assertions */
 
 /** Scopes a sequence of steps to a parent element. Every Locator referenced by
- *  child steps — assertions, interactions — resolves within the parent's subtree.
+ *  child steps (assertions, interactions) resolves within the parent's subtree.
  *  Use this when several steps share the same scope. For a single scoped query,
  *  prefer `within(parent, child)` directly. Nested `inside` calls compose scopes
  *  via `within(outer, inner)`. */
@@ -1043,7 +1064,7 @@ const findAncestorWithHandler = (
 
 /** Simulates a click on the element matching the target.
  *  When the element has no click handler, the event bubbles up to the
- *  nearest ancestor with one — mirroring browser event propagation.
+ *  nearest ancestor with one, mirroring browser event propagation.
  *  When the element is a submit button (`<button>` with no type or
  *  `type="submit"`, `<input type="submit">`, `<input type="image">`) with no
  *  click handler in its ancestor chain, the click falls through to the
@@ -1139,7 +1160,7 @@ export const click =
 
 /** Simulates a double-click on the element matching the target.
  *  When the element has no dblclick handler, the event bubbles up to the
- *  nearest ancestor with one — mirroring browser event propagation. */
+ *  nearest ancestor with one, mirroring browser event propagation. */
 export const doubleClick =
   (target: string | Locator) =>
   <Model, Message, OutMessage = undefined>(
@@ -1219,7 +1240,7 @@ const DEFAULT_POINTER_DOWN_OPTIONS: Required<PointerDownOptions> = {
 
 /** Simulates a pointerdown event on the element matching the target.
  *  When the element has no pointerdown handler, the event bubbles up to
- *  the nearest ancestor with one — mirroring browser event propagation.
+ *  the nearest ancestor with one, mirroring browser event propagation.
  *  Defaults to `pointerType: 'mouse'`, `button: 0`, and `screenX/screenY: 0`. */
 export const pointerDown =
   (target: string | Locator, options?: PointerDownOptions) =>
@@ -1303,7 +1324,7 @@ const DEFAULT_POINTER_UP_OPTIONS: Required<PointerUpOptions> = {
 
 /** Simulates a pointerup event on the element matching the target.
  *  When the element has no pointerup handler, the event bubbles up to
- *  the nearest ancestor with one — mirroring browser event propagation.
+ *  the nearest ancestor with one, mirroring browser event propagation.
  *  Defaults to `pointerType: 'mouse'` and `screenX/screenY: 0`. */
 export const pointerUp =
   (target: string | Locator, options?: PointerUpOptions) =>

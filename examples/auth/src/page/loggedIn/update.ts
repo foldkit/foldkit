@@ -13,13 +13,8 @@ const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
+    withUpdateReturn,
     M.tagsExhaustive({
-      GotSettingsMessage: ({ message }) =>
-        M.value(message).pipe(
-          withUpdateReturn,
-          M.tagsExhaustive({
-            ClickedLogout: () => [model, [], Option.some(RequestedLogout())],
-          }),
-        ),
+      ClickedLogout: () => [model, [], Option.some(RequestedLogout())],
     }),
   )

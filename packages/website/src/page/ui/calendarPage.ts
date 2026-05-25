@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { uiShowcaseViewSourceHref } from '../../link'
@@ -246,12 +247,6 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'Wraps Calendar Messages in your parent Message type for Submodel delegation (navigation, keyboard, picker-mode transitions).',
   },
   {
-    name: 'onSelectedDate',
-    type: '(date: CalendarDate) => ParentMessage',
-    description:
-      'Optional. When provided, click / Enter / Space on a day dispatches this callback directly (controlled mode: parent owns the event). When omitted, the calendar manages its own maybeSelectedDate automatically (uncontrolled mode). In controlled mode, use Calendar.selectDate(model, date) to write the selection back to internal state.',
-  },
-  {
     name: 'toView',
     type: '(attributes: CalendarAttributes) => Html',
     description:
@@ -305,7 +300,7 @@ const calendarAttributesProps: ReadonlyArray<PropEntry> = [
     name: '_tag',
     type: "'Days' | 'Months' | 'Years'",
     description:
-      'Discriminator matching model.viewMode. Use M.tagsExhaustive to render each variant. The fields below describe the union of variants — only the fields documented for the current _tag are present.',
+      'Discriminator matching model.viewMode. Use M.tagsExhaustive to render each variant. The fields below describe the union of variants. Only the fields documented for the current _tag are present.',
   },
   {
     name: 'root',
@@ -359,16 +354,22 @@ const calendarAttributesProps: ReadonlyArray<PropEntry> = [
     name: 'cells',
     type: 'ReadonlyArray<MonthCell<Message>> | ReadonlyArray<YearCell<Message>>',
     description:
-      '(Months, Years.) Twelve cells. In Months mode each cell carries the month number (1-12), the full localized name (label, e.g. "September"), and the localized abbreviation (shortLabel, e.g. "Sep") — render whichever fits, never substring label to abbreviate. In Years mode each cell carries a year from the current 12-year window. Both expose cellAttributes (role="gridcell", aria-selected), buttonAttributes (click dispatches SelectedMonth/SelectedYear), and state flags (isSelected, isFocused, isCurrentMonth/isCurrentYear, isDisabled).',
+      '(Months, Years.) Twelve cells. In Months mode each cell carries the month number (1-12), the full localized name (label, e.g. "September"), and the localized abbreviation (shortLabel, e.g. "Sep"). Render whichever fits, never substring label to abbreviate. In Years mode each cell carries a year from the current 12-year window. Both expose cellAttributes (role="gridcell", aria-selected), buttonAttributes (click dispatches SelectedMonth/SelectedYear), and state flags (isSelected, isFocused, isCurrentMonth/isCurrentYear, isDisabled).',
   },
 ]
 
 const outMessagesProps: ReadonlyArray<PropEntry> = [
   {
+    name: 'SelectedDate',
+    type: '{ date: CalendarDate }',
+    description:
+      'Emitted when the user commits a date (click / Enter / Space). Pattern-match the third tuple element of Calendar.update in your GotCalendarMessage handler to lift the date into domain state.',
+  },
+  {
     name: 'ChangedViewMonth',
     type: '{ year: number; month: number }',
     description:
-      'Emitted when navigation changes the visible month (prev/next buttons, heading-drill selection of a different month, or arrow keys crossing a month boundary, or a commit that crosses a month). Useful for inline-calendar consumers loading month-scoped data like holidays or availability. Note: date selection does NOT go through OutMessage. Consumers subscribe via the onSelectedDate ViewConfig callback (see above).',
+      'Emitted when navigation changes the visible month (prev/next buttons, heading-drill selection of a different month, arrow keys crossing a month boundary, or a commit that crosses a month). Useful for inline-calendar consumers loading month-scoped data like holidays or availability.',
   },
 ]
 
@@ -377,13 +378,19 @@ const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
     name: 'selectDate',
     type: '(model: Model, date: CalendarDate) => [Model, Commands, Option<OutMessage>]',
     description:
-      'Commits the given date and moves the cursor onto it. Use in controlled mode (when ViewConfig provides onSelectedDate) to write the selection back to the calendar.',
+      'Commits the given date and moves the cursor onto it, emitting SelectedDate. Use for a programmatic selection that should behave like a user pick. To mirror an external date without emitting (restoring from storage, a URL), use reflectSelectedDate.',
   },
   {
-    name: 'focusGrid',
-    type: '(modelId: string) => Command',
+    name: 'reflectSelectedDate',
+    type: '(model: Model, maybeDate: Option<CalendarDate>) => Model',
     description:
-      "Returns a command that focuses the calendar grid container. Parent components like DatePicker use this to hand focus to the grid's keyboard layer after opening.",
+      'Reflects an externally-sourced selected date onto the model without emitting an OutMessage, moving the view to the date so it stays visible. Pass Option.none() to clear. Use to mirror external truth (a URL, a saved draft) onto the calendar.',
+  },
+  {
+    name: 'FocusGrid',
+    type: '(args: { id: string }) => Command',
+    description:
+      "A Command constructor, dispatched as FocusGrid({ id }), that focuses the calendar grid container. Parent components like DatePicker dispatch it to hand focus to the grid's keyboard layer after opening.",
   },
   {
     name: 'dropToDays',
@@ -392,28 +399,28 @@ const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
       'Returns the calendar to Days mode regardless of current depth (Days, Months, or Years). Useful for standalone consumers that want to wire their own back-out gesture; popovered consumers like DatePicker call this internally on open and close so the picker always reopens at the day grid.',
   },
   {
-    name: 'setMinDate',
+    name: 'reflectMinDate',
     type: '(model: Model, maybeMinDate: Option<CalendarDate>) => Model',
     description:
-      'Updates the minimum selectable date. Pass Option.none() to remove the minimum. Use for cross-field validation when the minimum derives from other Model state. Does not reconcile the current selection if it falls below the new minimum.',
+      'Reflects the minimum selectable date onto the model without emitting an OutMessage. Pass Option.none() to remove the minimum. Use for cross-field validation when the minimum derives from other Model state. Does not reconcile the current selection if it falls below the new minimum.',
   },
   {
-    name: 'setMaxDate',
+    name: 'reflectMaxDate',
     type: '(model: Model, maybeMaxDate: Option<CalendarDate>) => Model',
     description:
-      'Updates the maximum selectable date. Pass Option.none() to remove the maximum. Does not reconcile the current selection.',
+      'Reflects the maximum selectable date onto the model without emitting an OutMessage. Pass Option.none() to remove the maximum. Does not reconcile the current selection.',
   },
   {
-    name: 'setDisabledDates',
+    name: 'reflectDisabledDates',
     type: '(model: Model, disabledDates: ReadonlyArray<CalendarDate>) => Model',
     description:
-      'Replaces the list of individually-disabled dates (e.g. holidays). Pass an empty array to clear.',
+      'Reflects the list of individually-disabled dates (e.g. holidays) onto the model. Pass an empty array to clear.',
   },
   {
-    name: 'setDisabledDaysOfWeek',
+    name: 'reflectDisabledDaysOfWeek',
     type: '(model: Model, disabledDaysOfWeek: ReadonlyArray<DayOfWeek>) => Model',
     description:
-      'Replaces the list of disabled days of the week (e.g. ["Saturday", "Sunday"]). Pass an empty array to clear.',
+      'Reflects the list of disabled days of the week (e.g. ["Saturday", "Sunday"]) onto the model. Pass an empty array to clear.',
   },
 ]
 
@@ -421,12 +428,12 @@ const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
   {
     attribute: 'data-today',
     condition:
-      'Present on the cell representing "today" — the day cell in Days mode, the current month cell in Months mode, the current year cell in Years mode.',
+      'Present on the cell representing "today": the day cell in Days mode, the current month cell in Months mode, the current year cell in Years mode.',
   },
   {
     attribute: 'data-selected',
     condition:
-      "Present on the calendar's currently-centered cell — the selected date in Days mode, the centered month (viewMonth) in Months mode, the centered year (viewYear) in Years mode.",
+      "Present on the calendar's currently-centered cell: the selected date in Days mode, the centered month (viewMonth) in Months mode, the centered year (viewYear) in Years mode.",
   },
   {
     attribute: 'data-focused',
@@ -479,172 +486,177 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/calendar', 'Calendar'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'An accessible inline calendar grid built to the WAI-ARIA grid pattern. Calendar manages the 2D keyboard navigation state machine and renders a 6×7 grid of days with full screen reader support. Use it standalone for scheduling UIs and event calendars, or as the foundation of a date picker.',
-      ),
-      para(
-        'The calendar heading is a button: clicking it switches the day grid into a 3×4 months grid. Clicking the year heading from there switches into a paged 3×4 years grid (prev/next page through 12-year windows). Selecting a year drills back to the months grid for that year; selecting a month drills back to the days grid for that month.',
-      ),
-      para(
-        'Calendar uses the Submodel pattern: initialize with ',
-        inlineCode('Calendar.init()'),
-        ', store the Model in your parent, delegate Messages via ',
-        inlineCode('Calendar.update()'),
-        ', and render with ',
-        inlineCode('Calendar.view()'),
-        '. The update function returns ',
-        inlineCode('[Model, Commands, Option<OutMessage>]'),
-        '. The OutMessage lets parents react to meaningful events like date selection and month changes.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how Calendar is wired up in a ',
-        link(uiShowcaseViewSourceHref('calendar'), 'real Foldkit app'),
-        '.',
-      ),
-      heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-      para(
-        'A basic calendar with today highlighted. Click a day to select it, or tab into the grid and use the arrow keys. Navigation follows the full WAI-ARIA pattern including Home/End, PageUp/Down, and Shift+PageUp/Down for year jumps.',
-      ),
-      demoContainer(...Calendar.basicDemo(model, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiCalendarBasicHighlighted)],
-          [],
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/calendar', 'Calendar'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'An accessible inline calendar grid built to the WAI-ARIA grid pattern. Calendar manages the 2D keyboard navigation state machine and renders a 6×7 grid of days with full screen reader support. Use it standalone for scheduling UIs and event calendars, or as the foundation of a date picker.',
         ),
-        Snippet.uiCalendarBasicRaw,
-        'Copy basic calendar example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'Calendar is headless. Your ',
-        inlineCode('toView'),
-        ' callback controls all markup and styling. The attribute groups carry ARIA and event wiring; data attributes on day cells let you style state variants with CSS selectors like ',
-        inlineCode('data-[today]:'),
-        ' and ',
-        inlineCode('group-data-[selected]:'),
-        '.',
-      ),
-      dataAttributeTable(dataAttributes),
-      heading(
-        keyboardInteractionHeader.level,
-        keyboardInteractionHeader.id,
-        keyboardInteractionHeader.text,
-      ),
-      para(
-        'The grid container receives DOM focus, and navigation happens via ',
-        inlineCode('aria-activedescendant'),
-        '. Screen readers announce the focused cell without moving browser focus. Disabled dates are skipped during navigation with a bounded cap so fully-disabled ranges terminate cleanly.',
-      ),
-      keyboardTable(keyboardEntries),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'The grid renders with ',
-        inlineCode('role="grid"'),
-        ' and an explicit ',
-        inlineCode('aria-label'),
-        ' that leads with a non-numeric word ("Calendar, April 2026") so VoiceOver doesn\'t pattern-match the grid\'s row position into a date literal. Each row has ',
-        inlineCode('role="row"'),
-        ', column headers have ',
-        inlineCode('role="columnheader"'),
-        ', and day cells have ',
-        inlineCode('role="gridcell"'),
-        ' with ',
-        inlineCode('aria-selected'),
-        ' set on the chosen date. Day buttons carry a full accessible name via ',
-        inlineCode('aria-label'),
-        ' (e.g. "Monday, April 13, 2026"), and disabled days get ',
-        inlineCode('aria-disabled="true"'),
-        '.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
-      heading(
-        initConfigHeader.level,
-        initConfigHeader.id,
-        initConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('Calendar.init()'),
-        '.',
-      ),
-      propTable(initConfigProps),
-      heading(modelHeader.level, modelHeader.id, modelHeader.text),
-      para(
-        'The calendar state managed as a Submodel field in your parent Model.',
-      ),
-      propTable(modelProps),
-      heading(
-        viewConfigHeader.level,
-        viewConfigHeader.id,
-        viewConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('Calendar.view()'),
-        '.',
-      ),
-      propTable(viewConfigProps),
-      heading(
-        calendarAttributesHeader.level,
-        calendarAttributesHeader.id,
-        calendarAttributesHeader.text,
-      ),
-      para(
-        'Attribute groups and derived data provided to the ',
-        inlineCode('toView'),
-        ' callback.',
-      ),
-      propTable(calendarAttributesProps),
-      heading(
-        outMessagesHeader.level,
-        outMessagesHeader.id,
-        outMessagesHeader.text,
-      ),
-      para(
-        'Messages emitted to the parent through the third element of ',
-        inlineCode('[Model, Commands, Option<OutMessage>]'),
-        '. Parents pattern-match on the OutMessage in their own update handler.',
-      ),
-      propTable(outMessagesProps),
-      heading(
-        programmaticHelpersHeader.level,
-        programmaticHelpersHeader.id,
-        programmaticHelpersHeader.text,
-      ),
-      para(
-        'Helpers you call from your own update handlers to drive the calendar imperatively: writing back the selection in controlled mode, focusing the grid, or updating constraints when they derive from other Model state.',
-      ),
-      para(
-        'The four ',
-        inlineCode('set*'),
-        ' helpers are how you implement cross-field date validation. Constraints are set at init time and updated via these helpers. They do not live on ViewConfig, because the update function needs them for keyboard-navigation disabled-skipping and commit-time validation. For an end date that must be on or after a start date, call ',
-        inlineCode('setMinDate(endCalendar, startCalendar.maybeSelectedDate)'),
-        ' in the handler that processes the start date change.',
-      ),
-      propTable(programmaticHelpersProps),
-    ],
-  )
-}
+        para(
+          'The calendar heading is a button: clicking it switches the day grid into a 3×4 months grid. Clicking the year heading from there switches into a paged 3×4 years grid (prev/next page through 12-year windows). Selecting a year drills back to the months grid for that year; selecting a month drills back to the days grid for that month.',
+        ),
+        para(
+          'Calendar uses the Submodel pattern: initialize with ',
+          inlineCode('Calendar.init()'),
+          ', store the Model in your parent, delegate Messages via ',
+          inlineCode('Calendar.update()'),
+          ', and render with ',
+          inlineCode('Calendar.view()'),
+          '. The update function returns ',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          '. The OutMessage lets the parent handle meaningful events, for example date selection or month changes.',
+        ),
+        infoCallout(
+          'See it in an app',
+          'Check out how Calendar is wired up in a ',
+          link(uiShowcaseViewSourceHref('calendar'), 'real Foldkit app'),
+          '.',
+        ),
+        heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
+        para(
+          'A basic calendar with today highlighted. Click a day to select it, or tab into the grid and use the arrow keys. Navigation follows the full WAI-ARIA pattern including Home/End, PageUp/Down, and Shift+PageUp/Down for year jumps.',
+        ),
+        demoContainer(...Calendar.basicDemo(model)),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiCalendarBasicHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiCalendarBasicRaw,
+          'Copy basic calendar example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'Calendar is headless. Your ',
+          inlineCode('toView'),
+          ' callback controls all markup and styling. The attribute groups carry ARIA and event wiring; data attributes on day cells let you style state variants with CSS selectors like ',
+          inlineCode('data-[today]:'),
+          ' and ',
+          inlineCode('group-data-[selected]:'),
+          '.',
+        ),
+        dataAttributeTable(dataAttributes),
+        heading(
+          keyboardInteractionHeader.level,
+          keyboardInteractionHeader.id,
+          keyboardInteractionHeader.text,
+        ),
+        para(
+          'The grid container receives DOM focus, and navigation happens via ',
+          inlineCode('aria-activedescendant'),
+          '. Screen readers announce the focused cell without moving browser focus. Disabled dates are skipped during navigation with a bounded cap so fully-disabled ranges terminate cleanly.',
+        ),
+        keyboardTable(keyboardEntries),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'The grid renders with ',
+          inlineCode('role="grid"'),
+          ' and an explicit ',
+          inlineCode('aria-label'),
+          ' that leads with a non-numeric word ("Calendar, April 2026") so VoiceOver doesn\'t pattern-match the grid\'s row position into a date literal. Each row has ',
+          inlineCode('role="row"'),
+          ', column headers have ',
+          inlineCode('role="columnheader"'),
+          ', and day cells have ',
+          inlineCode('role="gridcell"'),
+          ' with ',
+          inlineCode('aria-selected'),
+          ' set on the chosen date. Day buttons carry a full accessible name via ',
+          inlineCode('aria-label'),
+          ' (e.g. "Monday, April 13, 2026"), and disabled days get ',
+          inlineCode('aria-disabled="true"'),
+          '.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
+        heading(
+          initConfigHeader.level,
+          initConfigHeader.id,
+          initConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Calendar.init()'),
+          '.',
+        ),
+        propTable(initConfigProps),
+        heading(modelHeader.level, modelHeader.id, modelHeader.text),
+        para(
+          'The calendar state managed as a Submodel field in your parent Model.',
+        ),
+        propTable(modelProps),
+        heading(
+          viewConfigHeader.level,
+          viewConfigHeader.id,
+          viewConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Calendar.view()'),
+          '.',
+        ),
+        propTable(viewConfigProps),
+        heading(
+          calendarAttributesHeader.level,
+          calendarAttributesHeader.id,
+          calendarAttributesHeader.text,
+        ),
+        para(
+          'Attribute groups and derived data provided to the ',
+          inlineCode('toView'),
+          ' callback.',
+        ),
+        propTable(calendarAttributesProps),
+        heading(
+          outMessagesHeader.level,
+          outMessagesHeader.id,
+          outMessagesHeader.text,
+        ),
+        para(
+          'Messages emitted to the parent through the third element of ',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          '. Parents pattern-match on the OutMessage in their own update handler.',
+        ),
+        propTable(outMessagesProps),
+        heading(
+          programmaticHelpersHeader.level,
+          programmaticHelpersHeader.id,
+          programmaticHelpersHeader.text,
+        ),
+        para(
+          'Helpers you call from your own update handlers to drive the calendar imperatively: writing back the selection in controlled mode, focusing the grid, or updating constraints when they derive from other Model state.',
+        ),
+        para(
+          'The four ',
+          inlineCode('reflect*'),
+          ' helpers are how you implement cross-field date validation. Constraints are set at init time and updated via these helpers. They do not live on ViewConfig, because the update function needs them for keyboard-navigation disabled-skipping and commit-time validation. For an end date that must be on or after a start date, call ',
+          inlineCode(
+            'reflectMinDate(endCalendar, startCalendar.maybeSelectedDate)',
+          ),
+          ' in the handler that processes the start date change.',
+        ),
+        propTable(programmaticHelpersProps),
+      ],
+    )
+  },
+)

@@ -5,15 +5,17 @@ import { expect } from 'vitest'
 import * as Story from '../../test/story.js'
 import {
   BlurredTrigger,
-  ChangedShowDelay,
   ElapsedShowDelay,
   EnteredTrigger,
   FocusedTrigger,
+  Hidden,
   LeftTrigger,
   PressedEscape,
   PressedPointerOnTrigger,
   ShowAfterDelay,
+  Shown,
   init,
+  reflectShowDelay,
   update,
 } from './index.js'
 
@@ -80,7 +82,7 @@ describe('Tooltip', () => {
         )
       })
 
-      it('opens the tooltip when the delay completes while hovering', () => {
+      it('opens the tooltip and emits Shown when the delay completes while hovering', () => {
         Story.story(
           update,
           withHidden,
@@ -89,6 +91,7 @@ describe('Tooltip', () => {
             ShowAfterDelay,
             ElapsedShowDelay({ version: 1 }),
           ),
+          Story.expectOutMessage(Shown()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.isHovered).toBe(true)
@@ -156,11 +159,12 @@ describe('Tooltip', () => {
         )
       })
 
-      it('hides the tooltip when hover was the only source', () => {
+      it('hides the tooltip and emits Hidden when hover was the only source', () => {
         Story.story(
           update,
           withHoveredOpen,
           Story.message(LeftTrigger()),
+          Story.expectOutMessage(Hidden()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.isHovered).toBe(false)
@@ -526,36 +530,27 @@ describe('Tooltip', () => {
       })
     })
 
-    describe('ChangedShowDelay', () => {
-      it('updates the stored show delay without side effects', () => {
-        Story.story(
-          update,
-          withHidden,
-          Story.message(ChangedShowDelay({ showDelay: Duration.seconds(1) })),
-          Story.Command.expectNone(),
-          Story.model(model => {
-            expect(model.showDelay).toStrictEqual(Duration.seconds(1))
-            expect(model.isOpen).toBe(false)
-            expect(model.pendingShowVersion).toBe(0)
-          }),
-        )
+    describe('reflectShowDelay', () => {
+      it('reflects the show delay onto the model without side effects', () => {
+        const next = reflectShowDelay(init({ id: 'test' }), Duration.seconds(1))
+        expect(next.showDelay).toStrictEqual(Duration.seconds(1))
+        expect(next.isOpen).toBe(false)
+        expect(next.pendingShowVersion).toBe(0)
       })
 
-      it('uses the new delay on a subsequent fresh hover', () => {
+      it('uses the reflected delay on a fresh hover', () => {
         Story.story(
           update,
-          withHidden,
-          Story.message(EnteredTrigger()),
-          resolveShowAsStale,
-          Story.message(LeftTrigger()),
-          Story.message(ChangedShowDelay({ showDelay: Duration.millis(50) })),
+          Story.with(
+            reflectShowDelay(init({ id: 'test' }), Duration.millis(50)),
+          ),
           Story.message(EnteredTrigger()),
           Story.model(model => {
             expect(model.showDelay).toStrictEqual(Duration.millis(50))
           }),
           Story.Command.resolve(
             ShowAfterDelay,
-            ElapsedShowDelay({ version: 3 }),
+            ElapsedShowDelay({ version: 1 }),
           ),
           Story.model(model => {
             expect(model.isOpen).toBe(true)

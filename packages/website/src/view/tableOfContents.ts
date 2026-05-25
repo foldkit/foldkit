@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Option } from 'effect'
-import { Html, createKeyedLazy, html } from 'foldkit/html'
+import { type Html, html } from 'foldkit/html'
 
 import { Icon } from '../icon'
 import { type TableOfContentsEntry } from '../main'
@@ -12,28 +12,26 @@ import {
 } from '../message'
 
 const tableOfContentsEntryView = (
-  level: TableOfContentsEntry['level'],
-  id: string,
-  text: string,
+  entry: TableOfContentsEntry,
   isActive: boolean,
 ): Html => {
   const h = html<Message>()
 
   return h.keyed('li')(
-    id,
+    entry.id,
     [
       h.Class(
         clsx({
-          'ml-3': level === 'h3',
-          'ml-6': level === 'h4',
+          'ml-3': entry.level === 'h3',
+          'ml-6': entry.level === 'h4',
         }),
       ),
     ],
     [
       h.a(
         [
-          h.Href(`#${id}`),
-          h.OnClick(ChangedActiveSection({ sectionId: id })),
+          h.Href(`#${entry.id}`),
+          h.OnClick(ChangedActiveSection({ sectionId: entry.id })),
           h.Class(
             clsx('transition block', {
               'text-accent-600 dark:text-accent-400 underline': isActive,
@@ -43,13 +41,11 @@ const tableOfContentsEntryView = (
           ),
           ...(isActive ? [h.AriaCurrent('location')] : []),
         ],
-        [text],
+        [entry.text],
       ),
     ],
   )
 }
-
-const lazyTableOfContentsEntry = createKeyedLazy()
 
 export const tableOfContentsView = (
   entries: ReadonlyArray<TableOfContentsEntry>,
@@ -78,19 +74,15 @@ export const tableOfContentsView = (
         [
           h.ul(
             [h.Class('space-y-2 text-sm')],
-            Array.map(entries, ({ level, id, text }) => {
-              const isActive = Option.exists(
-                maybeActiveSectionId,
-                activeSectionId => activeSectionId === id,
-              )
-
-              return lazyTableOfContentsEntry(id, tableOfContentsEntryView, [
-                level,
-                id,
-                text,
-                isActive,
-              ])
-            }),
+            Array.map(entries, entry =>
+              tableOfContentsEntryView(
+                entry,
+                Option.exists(
+                  maybeActiveSectionId,
+                  activeSectionId => activeSectionId === entry.id,
+                ),
+              ),
+            ),
           ),
         ],
       ),

@@ -1,46 +1,21 @@
-import { Effect, Match as M, Option, Schema as S, pipe } from 'effect'
-import { Command, Route, Runtime } from 'foldkit'
+import { Effect, Match as M, Option, Schema as S } from 'effect'
+import { Command, Runtime } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
-import { literal, r } from 'foldkit/route'
 import { evo } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import { products } from './data/products'
-import { Cart, Item } from './domain'
+import { Cart } from './domain'
 import { Cart as CartPage, Checkout, Products } from './page'
-
-// ROUTE
-
-export const ProductsRoute = r('Products', { searchText: S.Option(S.String) })
-export const CartRoute = r('Cart')
-export const CheckoutRoute = r('Checkout')
-export const NotFoundRoute = r('NotFound', { path: S.String })
-export const AppRoute = S.Union([
-  ProductsRoute,
-  CartRoute,
-  CheckoutRoute,
-  NotFoundRoute,
-])
-
-export type ProductsRoute = typeof ProductsRoute.Type
-export type CartRoute = typeof CartRoute.Type
-export type CheckoutRoute = typeof CheckoutRoute.Type
-export type NotFoundRoute = typeof NotFoundRoute.Type
-export type AppRoute = typeof AppRoute.Type
-
-const productsRouter = pipe(
-  Route.root,
-  Route.query(S.Struct({ searchText: S.OptionFromOptional(S.String) })),
-  Route.mapTo(ProductsRoute),
-)
-const cartRouter = pipe(literal('cart'), Route.mapTo(CartRoute))
-const checkoutRouter = pipe(literal('checkout'), Route.mapTo(CheckoutRoute))
-
-const routeParser = Route.oneOf(checkoutRouter, cartRouter, productsRouter)
-
-const urlToAppRoute = Route.parseUrlWithFallback(routeParser, NotFoundRoute)
+import {
+  AppRoute,
+  cartRouter,
+  checkoutRouter,
+  productsRouter,
+  urlToAppRoute,
+} from './route'
 
 // MODEL
 
@@ -64,12 +39,7 @@ export const ChangedUrl = m('ChangedUrl', { url: Url })
 export const GotProductsMessage = m('GotProductsMessage', {
   message: Products.Message,
 })
-export const ClickedAddToCart = m('ClickedAddToCart', { item: Item.Item })
-const ClickedQuantityChange = m('ClickedQuantityChange', {
-  itemId: S.String,
-  quantity: S.Number,
-})
-export const ClickedCartQuantityChange = m('ClickedCartQuantityChange', {
+export const ClickedQuantityChange = m('ClickedQuantityChange', {
   itemId: S.String,
   quantity: S.Number,
 })
@@ -88,9 +58,7 @@ export const Message = S.Union([
   ClickedLink,
   ChangedUrl,
   GotProductsMessage,
-  ClickedAddToCart,
   ClickedQuantityChange,
-  ClickedCartQuantityChange,
   ClickedRemoveCartItem,
   ClickedClearCart,
   UpdatedDeliveryInstructions,
@@ -129,31 +97,19 @@ const LoadExternal = Command.define(
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+const withUpdateReturn = M.withReturnType<UpdateReturn>()
+
+export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
+    withUpdateReturn,
     M.tagsExhaustive({
       CompletedNavigateInternal: () => [model, []],
       CompletedLoadExternal: () => [model, []],
 
       ClickedLink: ({ request }) =>
         M.value(request).pipe(
-          M.withReturnType<
-            [
-              Model,
-              ReadonlyArray<
-                Command.Command<
-                  | typeof CompletedNavigateInternal
-                  | typeof CompletedLoadExternal
-                >
-              >,
-            ]
-          >(),
+          withUpdateReturn,
           M.tagsExhaustive({
             Internal: ({ url }) => [
               model,
@@ -172,47 +128,50 @@ export const update = (
       ],
 
       GotProductsMessage: ({ message }) => {
-        const [newProductsModel, commands] = Products.update(productsRouter)(
+        const [nextProductsModel, commands, maybeOutMessage] = Products.update(
           model.productsPage,
           message,
         )
-
-        return [
-          evo(model, {
-            productsPage: () => newProductsModel,
-          }),
-          commands.map(
-            Command.mapEffect(
-              Effect.map(message => GotProductsMessage({ message })),
-            ),
+        const mappedCommands = Command.mapMessages(commands, message =>
+          GotProductsMessage({ message }),
+        )
+        return Option.match(maybeOutMessage, {
+          onNone: (): UpdateReturn => [
+            evo(model, { productsPage: () => nextProductsModel }),
+            mappedCommands,
+          ],
+          onSome: M.type<Products.OutMessage>().pipe(
+            withUpdateReturn,
+            M.tagsExhaustive({
+              AddedToCart: ({ item }) => [
+                evo(model, {
+                  productsPage: () => nextProductsModel,
+                  cart: Cart.addItem(item),
+                }),
+                mappedCommands,
+              ],
+              ChangedQuantity: ({ itemId, quantity }) => [
+                evo(model, {
+                  productsPage: () => nextProductsModel,
+                  cart: Cart.changeQuantity(itemId, quantity),
+                }),
+                mappedCommands,
+              ],
+            }),
           ),
-        ]
+        })
       },
-
-      ClickedAddToCart: ({ item }) => [
-        evo(model, {
-          cart: () => Cart.addItem(item)(model.cart),
-        }),
-        [],
-      ],
 
       ClickedQuantityChange: ({ itemId, quantity }) => [
         evo(model, {
-          cart: () => Cart.changeQuantity(itemId, quantity)(model.cart),
-        }),
-        [],
-      ],
-
-      ClickedCartQuantityChange: ({ itemId, quantity }) => [
-        evo(model, {
-          cart: () => Cart.changeQuantity(itemId, quantity)(model.cart),
+          cart: Cart.changeQuantity(itemId, quantity),
         }),
         [],
       ],
 
       ClickedRemoveCartItem: ({ itemId }) => [
         evo(model, {
-          cart: () => Cart.removeItem(itemId)(model.cart),
+          cart: Cart.removeItem(itemId),
         }),
         [],
       ],
@@ -299,18 +258,18 @@ const navigationView = (currentRoute: AppRoute, cartCount: number): Html => {
 }
 
 const productsView = (model: Model): Html => {
-  return Products.view<Message>(
-    model.productsPage,
-    model.cart,
-    cartRouter,
-    message => GotProductsMessage({ message }),
-    item => ClickedAddToCart({ item }),
-    (itemId, quantity) => ClickedQuantityChange({ itemId, quantity }),
-  )
+  const h = html<Message>()
+  return h.submodel({
+    slotId: 'products',
+    model: model.productsPage,
+    view: Products.view,
+    viewInputs: { cart: model.cart },
+    toParentMessage: message => GotProductsMessage({ message }),
+  })
 }
 
 const cartView = (model: Model): Html => {
-  return CartPage.view(model.cart, productsRouter, checkoutRouter)
+  return CartPage.view(model.cart)
 }
 
 const checkoutView = (model: Model): Html => {
@@ -318,8 +277,6 @@ const checkoutView = (model: Model): Html => {
     model.cart,
     model.deliveryInstructions,
     model.orderPlaced,
-    productsRouter,
-    cartRouter,
   )
 }
 

@@ -1,13 +1,12 @@
 export {
   init,
-  update,
-  selectTab,
-  view,
-  lazy,
+  create,
   Model,
   Message,
-  TabSelected,
-  TabFocused,
+  OutMessage,
+  Selected,
+  SelectedTab,
+  FocusedTab,
   CompletedFocusTab,
   FocusTab,
 } from './index.js'
@@ -16,6 +15,7 @@ export type {
   Orientation,
   ActivationMode,
   InitConfig,
-  ViewConfig,
-  TabConfig,
+  ViewInputs,
+  RenderInfo,
+  TabInfo,
 } from './index.js'

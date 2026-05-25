@@ -5,6 +5,7 @@ export { update } from './update'
 export { subscriptions } from './subscriptions'
 
 export * as OverviewPage from './overviewPage'
+export * as SelectionSubmodelsPage from './selectionSubmodelsPage'
 export * as ButtonPage from './buttonPage'
 export * as InputPage from './inputPage'
 export * as TextareaPage from './textareaPage'

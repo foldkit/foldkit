@@ -28,7 +28,7 @@ import {
   Subscription,
   Ui,
 } from 'foldkit'
-import type { Document } from 'foldkit/html'
+import { type Document, html } from 'foldkit/html'
 import { load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
@@ -67,6 +67,7 @@ import {
   GotPlaygroundMenuMessage,
   GotPlaygroundMessage,
   GotSearchMessage,
+  GotSubmodelMapMessagesDisclosureMessage,
   GotTestingGroupMessage,
   GotUiPageMessage,
   HidCopiedIndicator,
@@ -78,6 +79,7 @@ import {
   ThemePreference,
 } from './message'
 import * as Page from './page'
+import { type ExampleSlug } from './page/example/meta'
 import {
   AppRoute,
   isLandingHeaderAlwaysVisible,
@@ -95,7 +97,7 @@ import {
   SidebarStateJsonString,
 } from './sidebarStorage'
 import * as Subscriptions from './subscription'
-import { docsView, landingView, newsletterView } from './view'
+import { DemoTabs, docsView, landingView, newsletterView } from './view'
 
 export type { Message } from './message'
 
@@ -249,6 +251,7 @@ export const Model = S.Struct({
   aiGroup: Ui.Disclosure.Model,
   examplesGroup: Ui.Disclosure.Model,
   apiReferenceGroup: Ui.Disclosure.Model,
+  submodelMapMessagesDisclosure: Ui.Disclosure.Model,
   sidebarScroll: S.Number,
   aiHeadingToggleCount: S.Number,
   themePreference: ThemePreference,
@@ -266,6 +269,8 @@ export const Model = S.Struct({
 })
 
 export type Model = typeof Model.Type
+
+const PlaygroundMenu = Ui.Menu.create<ExampleSlug>()
 
 // INIT
 
@@ -324,38 +329,33 @@ export const init: Runtime.RoutingProgramInit<
   const [exampleDetail, exampleDetailCommands] =
     Page.Example.ExampleDetail.boot(maybeInitialExampleSlug)
 
-  const mappedAsyncCounterDemoCommands = asyncCounterDemoCommands.map(
-    Command.mapEffect(
-      Effect.map(message => GotAsyncCounterDemoMessage({ message })),
-    ),
+  const mappedAsyncCounterDemoCommands = Command.mapMessages(
+    asyncCounterDemoCommands,
+    message => GotAsyncCounterDemoMessage({ message }),
   )
 
-  const mappedNotePlayerDemoCommands = notePlayerDemoCommands.map(
-    Command.mapEffect(
-      Effect.map(message => GotNotePlayerDemoMessage({ message })),
-    ),
+  const mappedNotePlayerDemoCommands = Command.mapMessages(
+    notePlayerDemoCommands,
+    message => GotNotePlayerDemoMessage({ message }),
   )
 
-  const mappedUiPagesCommands = uiPagesCommands.map(
-    Command.mapEffect(Effect.map(message => GotUiPageMessage({ message }))),
+  const mappedUiPagesCommands = Command.mapMessages(uiPagesCommands, message =>
+    GotUiPageMessage({ message }),
   )
 
-  const mappedComingFromReactCommands = comingFromReactCommands.map(
-    Command.mapEffect(
-      Effect.map(message => GotComingFromReactMessage({ message })),
-    ),
+  const mappedComingFromReactCommands = Command.mapMessages(
+    comingFromReactCommands,
+    message => GotComingFromReactMessage({ message }),
   )
 
-  const mappedApiReferenceCommands = apiReferenceCommands.map(
-    Command.mapEffect(
-      Effect.map(message => GotApiReferenceMessage({ message })),
-    ),
+  const mappedApiReferenceCommands = Command.mapMessages(
+    apiReferenceCommands,
+    message => GotApiReferenceMessage({ message }),
   )
 
-  const mappedExampleDetailCommands = exampleDetailCommands.map(
-    Command.mapEffect(
-      Effect.map(message => GotExampleDetailMessage({ message })),
-    ),
+  const mappedExampleDetailCommands = Command.mapMessages(
+    exampleDetailCommands,
+    message => GotExampleDetailMessage({ message }),
   )
 
   return [
@@ -425,6 +425,10 @@ export const init: Runtime.RoutingProgramInit<
         id: 'api-reference-group',
         isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'apiReference'),
       }),
+      submodelMapMessagesDisclosure: Ui.Disclosure.init({
+        id: 'submodel-map-messages-disclosure',
+        isOpen: false,
+      }),
       sidebarScroll: Option.match(flags.maybeSidebarState, {
         onNone: () => INITIAL_SIDEBAR_SCROLL,
         onSome: ({ scroll }) => scroll,
@@ -478,7 +482,7 @@ const handleSidebarGroup = (
   return [
     nextModel,
     [
-      ...commands.map(Command.mapEffect(Effect.map(toParentMessage))),
+      ...Command.mapMessages(commands, toParentMessage),
       saveSidebarState(nextModel),
     ],
   ]
@@ -539,12 +543,12 @@ export const update = (
 
       ChangedUrl: ({ url }) => {
         const nextRoute = urlToAppRoute(url)
-        const [closedMobileMenu, closeMobileMenuCommands] = Ui.Dialog.update(
+        const [closedMobileMenu, closeMobileMenuCommands] = Ui.Dialog.close(
           model.mobileMenuDialog,
-          Ui.Dialog.Closed(),
         )
-        const [closedSearchDialog, closeSearchDialogCommands] =
-          Ui.Dialog.update(model.search.dialog, Ui.Dialog.Closed())
+        const [closedSearchDialog, closeSearchDialogCommands] = Ui.Dialog.close(
+          model.search.dialog,
+        )
         const [nextApiReference, apiReferenceLoadCommands] = M.value(
           nextRoute,
         ).pipe(
@@ -604,33 +608,19 @@ export const update = (
                 : apiReferenceGroup,
           }),
           [
-            ...closeMobileMenuCommands.map(
-              Command.mapEffect(
-                Effect.map(message => GotMobileMenuDialogMessage({ message })),
-              ),
+            ...Command.mapMessages(closeMobileMenuCommands, message =>
+              GotMobileMenuDialogMessage({ message }),
             ),
-            ...closeSearchDialogCommands.map(
-              Command.mapEffect(
-                Effect.map(message =>
-                  GotSearchMessage({
-                    message: Search.GotSearchDialogMessage({ message }),
-                  }),
-                ),
-              ),
+            ...Command.mapMessages(closeSearchDialogCommands, message =>
+              GotSearchMessage({
+                message: Search.GotSearchDialogMessage({ message }),
+              }),
             ),
-            ...apiReferenceLoadCommands.map(command =>
-              Command.mapEffect(command, effect =>
-                Effect.map(effect, message =>
-                  GotApiReferenceMessage({ message }),
-                ),
-              ),
+            ...Command.mapMessages(apiReferenceLoadCommands, message =>
+              GotApiReferenceMessage({ message }),
             ),
-            ...exampleDetailLoadCommands.map(command =>
-              Command.mapEffect(command, effect =>
-                Effect.map(effect, message =>
-                  GotExampleDetailMessage({ message }),
-                ),
-              ),
+            ...Command.mapMessages(exampleDetailLoadCommands, message =>
+              GotExampleDetailMessage({ message }),
             ),
             ...Option.match(url.hash, {
               onNone: () => [ScrollToTop()],
@@ -713,10 +703,8 @@ export const update = (
           evo(model, {
             mobileMenuDialog: () => nextMobileMenuDialog,
           }),
-          mobileMenuDialogCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotMobileMenuDialogMessage({ message })),
-            ),
+          Command.mapMessages(mobileMenuDialogCommands, message =>
+            GotMobileMenuDialogMessage({ message }),
           ),
         ]
       },
@@ -774,56 +762,58 @@ export const update = (
       },
 
       GotDemoTabsMessage: ({ message }) => {
-        const [nextDemoTabs, demoTabsCommands] = Ui.Tabs.update(
+        const [nextDemoTabs, demoTabsCommands] = DemoTabs.update(
           model.demoTabs,
           message,
         )
 
         return [
           evo(model, { demoTabs: () => nextDemoTabs }),
-          demoTabsCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotDemoTabsMessage({ message })),
-            ),
+          Command.mapMessages(demoTabsCommands, message =>
+            GotDemoTabsMessage({ message }),
           ),
         ]
       },
 
       GotPlaygroundMenuMessage: ({ message }) => {
-        const [nextMenu, menuCommands] = Ui.Menu.update(
+        const [nextMenu, menuCommands, maybeOutMessage] = PlaygroundMenu.update(
           model.playgroundMenu,
           message,
         )
-
-        return [
-          evo(model, { playgroundMenu: () => nextMenu }),
-          menuCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotPlaygroundMenuMessage({ message })),
-            ),
-          ),
-        ]
-      },
-
-      SelectedPlaygroundExample: ({ slug }) => {
-        const [closedMenu, closeMenuCommands] = Ui.Menu.close(
-          model.playgroundMenu,
+        const mappedCommands = Command.mapMessages(menuCommands, message =>
+          GotPlaygroundMenuMessage({ message }),
         )
-
-        return [
-          evo(model, { playgroundMenu: () => closedMenu }),
-          [
-            ...closeMenuCommands.map(
-              Command.mapEffect(
-                Effect.map(message => GotPlaygroundMenuMessage({ message })),
-              ),
-            ),
-            // NOTE: `LoadExternal` (not `NavigateInternal`). Same
-            // cross-origin-isolation reason as the playground branch of
-            // `ClickedLink`.
-            LoadExternal({ href: playgroundRouter({ exampleSlug: slug }) }),
-          ],
+        type UpdateReturn = readonly [
+          Model,
+          ReadonlyArray<Command.Command<Message>>,
         ]
+
+        return Option.match(maybeOutMessage, {
+          onNone: (): UpdateReturn => [
+            evo(model, { playgroundMenu: () => nextMenu }),
+            mappedCommands,
+          ],
+          onSome: M.type<Ui.Menu.OutMessage<ExampleSlug>>().pipe(
+            M.withReturnType<UpdateReturn>(),
+            M.tagsExhaustive({
+              // NOTE: `LoadExternal` (not `NavigateInternal`).
+              // WebContainer requires `window.crossOriginIsolated`,
+              // which is only true when the document is loaded with
+              // COEP/COOP headers. SPA navigation reuses the previous
+              // page's document (no headers), so playground URLs need
+              // a fresh document load.
+              Selected: ({ value }) => [
+                evo(model, { playgroundMenu: () => nextMenu }),
+                [
+                  ...mappedCommands,
+                  LoadExternal({
+                    href: playgroundRouter({ exampleSlug: value }),
+                  }),
+                ],
+              ],
+            }),
+          ),
+        })
       },
 
       GotAsyncCounterDemoMessage: ({ message }) => {
@@ -834,10 +824,8 @@ export const update = (
           evo(model, {
             asyncCounterDemo: () => nextAsyncCounterDemo,
           }),
-          asyncCounterDemoCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotAsyncCounterDemoMessage({ message })),
-            ),
+          Command.mapMessages(asyncCounterDemoCommands, message =>
+            GotAsyncCounterDemoMessage({ message }),
           ),
         ]
       },
@@ -850,10 +838,8 @@ export const update = (
           evo(model, {
             notePlayerDemo: () => nextNotePlayerDemo,
           }),
-          notePlayerDemoCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotNotePlayerDemoMessage({ message })),
-            ),
+          Command.mapMessages(notePlayerDemoCommands, message =>
+            GotNotePlayerDemoMessage({ message }),
           ),
         ]
       },
@@ -878,10 +864,8 @@ export const update = (
           evo(model, {
             comingFromReact: () => nextComingFromReact,
           }),
-          comingFromReactCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotComingFromReactMessage({ message })),
-            ),
+          Command.mapMessages(comingFromReactCommands, message =>
+            GotComingFromReactMessage({ message }),
           ),
         ]
       },
@@ -892,10 +876,8 @@ export const update = (
 
         return [
           evo(model, { apiReference: () => nextApiReference }),
-          apiReferenceCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotApiReferenceMessage({ message })),
-            ),
+          Command.mapMessages(apiReferenceCommands, message =>
+            GotApiReferenceMessage({ message }),
           ),
         ]
       },
@@ -908,10 +890,8 @@ export const update = (
 
         return [
           evo(model, { uiPages: () => nextUiPages }),
-          uiPagesCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotUiPageMessage({ message })),
-            ),
+          Command.mapMessages(uiPagesCommands, message =>
+            GotUiPageMessage({ message }),
           ),
         ]
       },
@@ -1004,6 +984,19 @@ export const update = (
           message => GotApiReferenceGroupMessage({ message }),
         ),
 
+      GotSubmodelMapMessagesDisclosureMessage: ({ message }) => {
+        const [next, commands] = Ui.Disclosure.update(
+          model.submodelMapMessagesDisclosure,
+          message,
+        )
+        return [
+          evo(model, { submodelMapMessagesDisclosure: () => next }),
+          Command.mapMessages(commands, message =>
+            GotSubmodelMapMessagesDisclosureMessage({ message }),
+          ),
+        ]
+      },
+
       ScrolledSidebar: ({ scroll }) => {
         const nextModel = evo(model, { sidebarScroll: () => scroll })
         return [nextModel, [saveSidebarState(nextModel)]]
@@ -1017,10 +1010,8 @@ export const update = (
           evo(model, {
             exampleDetail: () => nextExampleDetail,
           }),
-          exampleDetailCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotExampleDetailMessage({ message })),
-            ),
+          Command.mapMessages(exampleDetailCommands, message =>
+            GotExampleDetailMessage({ message }),
           ),
         ]
       },
@@ -1033,10 +1024,8 @@ export const update = (
 
         return [
           evo(model, { search: () => nextSearch }),
-          searchCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotSearchMessage({ message })),
-            ),
+          Command.mapMessages(searchCommands, message =>
+            GotSearchMessage({ message }),
           ),
         ]
       },
@@ -1051,12 +1040,8 @@ export const update = (
             )
             return [
               evo(model, { playground: () => Option.some(nextPlayground) }),
-              playgroundCommands.map(
-                Command.mapEffect(
-                  Effect.map(nextMessage =>
-                    GotPlaygroundMessage({ message: nextMessage }),
-                  ),
-                ),
+              Command.mapMessages(playgroundCommands, message =>
+                GotPlaygroundMessage({ message }),
               ),
             ]
           },
@@ -1270,22 +1255,31 @@ const LoadExternal = Command.define(
 
 // VIEW
 
-export const view = (model: Model): Document => ({
-  title: routeTitle(model.route, model.apiReference.apiData),
-  body: M.value(model.route).pipe(
-    M.tag('Home', () => landingView(model)),
-    M.tag('Newsletter', () => newsletterView(model)),
-    M.tag('Playground', ({ exampleSlug }) =>
-      Page.Playground.view(
-        exampleSlug,
-        model.isChromium,
-        model.playground,
-        message => GotPlaygroundMessage({ message }),
+export const view = (model: Model): Document => {
+  const h = html<Message>()
+
+  return {
+    title: routeTitle(model.route, model.apiReference.apiData),
+    body: M.value(model.route).pipe(
+      M.tag('Home', () => landingView(model)),
+      M.tag('Newsletter', () => newsletterView(model)),
+      M.tag('Playground', () =>
+        Option.match(model.playground, {
+          onNone: () => h.empty,
+          onSome: playgroundModel =>
+            h.submodel({
+              slotId: `playground-${playgroundModel.slug}`,
+              model: playgroundModel,
+              view: Page.Playground.view,
+              viewInputs: { isChromium: model.isChromium },
+              toParentMessage: message => GotPlaygroundMessage({ message }),
+            }),
+        }),
       ),
+      M.orElse(route => docsView(model, route)),
     ),
-    M.orElse(route => docsView(model, route)),
-  ),
-})
+  }
+}
 
 // TITLE
 

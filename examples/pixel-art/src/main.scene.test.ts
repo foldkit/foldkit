@@ -9,6 +9,7 @@ import {
   FailedExportPng,
   GotErrorDialogMessage,
   GotGridSizeConfirmDialogMessage,
+  GotGridSizeRadioGroupMessage,
   GotToolRadioGroupMessage,
   type Message,
   SucceededExportPng,
@@ -249,6 +250,11 @@ describe('grid size change', () => {
       { update, view },
       Scene.with(createPaintedModel()),
       Scene.click(Scene.role('radio', { name: '8' })),
+      Scene.Command.resolve(
+        Ui.RadioGroup.FocusOption,
+        Ui.RadioGroup.CompletedFocusOption(),
+        radioMessage => GotGridSizeRadioGroupMessage({ message: radioMessage }),
+      ),
       Scene.Command.resolve(
         Ui.Dialog.ShowDialog,
         Ui.Dialog.CompletedShowDialog(),

@@ -73,6 +73,7 @@ export const Model = S.Struct({
   fileDropBasicDemo: FileDrop.Model,
   fileDropBasicDemoFiles: S.Array(File.File),
   toastDemo: Toast.Model,
+  maybeLastDismissedToastTitle: S.Option(S.String),
   tooltipDemo: Tooltip.Model,
   animationDemo: Animation.Model,
   virtualListDemo: VirtualList.Model,

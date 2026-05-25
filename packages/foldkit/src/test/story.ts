@@ -47,12 +47,18 @@ export type WithStep<Model> = Readonly<{ _phantomModel: Model }> &
     simulation: StorySimulation<M, Message, OutMessage>,
   ) => StorySimulation<M, Message, OutMessage>)
 
-/** A single step in a story — either a {@link WithStep} or a simulation transform. */
-export type StoryStep<Model, Message, OutMessage> =
+/** A model-assertion step produced by {@link model}. */
+export type ModelStep<Model> = Readonly<{
+  readonly _tag: 'ModelStep'
+  readonly assert: (model: Model) => void
+}>
+
+/** A single step in a story: a {@link WithStep}, a {@link ModelStep},
+ *  or a simulation transform. */
+export type StoryStep<Model> =
   | WithStep<NoInfer<Model>>
-  | ((
-      simulation: StorySimulation<Model, Message, OutMessage>,
-    ) => StorySimulation<Model, Message, OutMessage>)
+  | ModelStep<NoInfer<Model>>
+  | ((sim: StorySimulation<any, any, any>) => StorySimulation<any, any, any>)
 
 // INTERNAL
 
@@ -103,29 +109,32 @@ const with_ = <Model>(model: Model): WithStep<Model> => {
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
 }
 
-/** Sends a Message through update. Commands stay pending until resolve or resolveAll. */
+/** Sends a Message through update. Commands stay pending until resolve or
+ *  resolveAll. */
 export const message =
-  <Message>(message_: NoInfer<Message>) =>
-  <Model, OutMessage = undefined>(
+  <MessageInput>(message_: MessageInput) =>
+  <Model, Message, OutMessage>(
     simulation: StorySimulation<Model, Message, OutMessage>,
   ): StorySimulation<Model, Message, OutMessage> => {
     const internal = toInternal(simulation)
 
     assertNoUnresolvedCommands(internal.commands, 'when you sent a new Message')
 
-    const result = internal.updateFn(internal.model, message_)
+    /* eslint-disable @typescript-eslint/consistent-type-assertions */
+    const messageAsParent = message_ as unknown as Message
+    const result = internal.updateFn(internal.model, messageAsParent)
     const nextModel = result[0]
     const commands = result[1]
     const outMessage = result.length === 3 ? result[2] : internal.outMessage
 
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return {
       ...internal,
       model: nextModel,
-      message: message_,
+      message: messageAsParent,
       commands: Array.appendAll(internal.commands, commands),
       outMessage,
     } as StorySimulation<Model, Message, OutMessage>
+    /* eslint-enable @typescript-eslint/consistent-type-assertions */
   }
 
 /** Resolves a pending Command with the given result Message. Accepts either
@@ -224,14 +233,10 @@ const resolveAllCommands =
     >
 
 /** Runs an assertion function against the current Model. */
-export const model =
-  <Model, Message, OutMessage = undefined>(f: (model: Model) => void) =>
-  (
-    simulation: StorySimulation<Model, Message, OutMessage>,
-  ): StorySimulation<Model, Message, OutMessage> => {
-    f(toInternal(simulation).model)
-    return simulation
-  }
+export const model = <Model>(f: (model: Model) => void): ModelStep<Model> => ({
+  _tag: 'ModelStep',
+  assert: f,
+})
 
 /** Asserts that every given matcher matches a pending Command. Definition
  *  matchers match by name only; Instance matchers match by name + args. */
@@ -289,8 +294,8 @@ export const Command = {
 
 /** Asserts that the OutMessage is Some with the expected value. */
 export const expectOutMessage =
-  <OutMessage>(expected: OutMessage) =>
-  <Model, Message>(
+  <Expected>(expected: Expected) =>
+  <Model, Message, OutMessage>(
     simulation: StorySimulation<Model, Message, Option.Option<OutMessage>>,
   ): StorySimulation<Model, Message, Option.Option<OutMessage>> => {
     const internal = toInternal(simulation)
@@ -339,18 +344,18 @@ export const story: {
       model: Model,
       message: Message,
     ) => readonly [Model, ReadonlyArray<AnyCommand>, OutMessage],
-    ...steps: ReadonlyArray<StoryStep<Model, Message, OutMessage>>
+    ...steps: ReadonlyArray<StoryStep<NoInfer<Model>>>
   ): void
   <Model, Message>(
     updateFn: (
       model: Model,
       message: Message,
     ) => readonly [Model, ReadonlyArray<AnyCommand>],
-    ...steps: ReadonlyArray<StoryStep<Model, Message, undefined>>
+    ...steps: ReadonlyArray<StoryStep<NoInfer<Model>>>
   ): void
 } = <Model, Message, OutMessage = undefined>(
   updateFn: (model: Model, message: Message) => UpdateResult<Model, OutMessage>,
-  ...steps: ReadonlyArray<StoryStep<Model, Message, OutMessage>>
+  ...steps: ReadonlyArray<StoryStep<Model>>
 ): void => {
   /* eslint-disable @typescript-eslint/consistent-type-assertions */
   const seed = {
@@ -362,13 +367,21 @@ export const story: {
     resolvers: [],
   } as unknown as StorySimulation<Model, Message, OutMessage>
 
-  const result = steps.reduce(
-    (current, step) =>
-      (
-        step as (
-          simulation: StorySimulation<Model, Message, OutMessage>,
-        ) => StorySimulation<Model, Message, OutMessage>
-      )(current),
+  const result = steps.reduce<StorySimulation<Model, Message, OutMessage>>(
+    (current, step) => {
+      if (typeof step === 'function') {
+        return (
+          step as (
+            simulation: StorySimulation<Model, Message, OutMessage>,
+          ) => StorySimulation<Model, Message, OutMessage>
+        )(current)
+      }
+      if ('_tag' in step && step._tag === 'ModelStep') {
+        step.assert(toInternal(current).model)
+        return current
+      }
+      return current
+    },
     seed,
   )
   /* eslint-enable @typescript-eslint/consistent-type-assertions */

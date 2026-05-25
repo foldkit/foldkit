@@ -31,11 +31,8 @@ const descriptionClassName = 'text-sm text-gray-500 dark:text-gray-400'
 
 // VIEW
 
-export const basicDemo = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const basicDemo = (model: Model) => {
+  const h = html<Message>()
 
   return [
     h.div(
@@ -44,8 +41,7 @@ export const basicDemo = <ParentMessage>(
         Ui.Textarea.view({
           id: 'textarea-basic-demo',
           value: model.textareaDemoValue,
-          onInput: value =>
-            toParentMessage(UpdatedTextareaDemoValue({ value })),
+          onInput: value => UpdatedTextareaDemoValue({ value }),
           placeholder: 'Tell us about yourself...',
           rows: 4,
           toView: attributes =>
@@ -72,14 +68,11 @@ export const basicDemo = <ParentMessage>(
   ]
 }
 
-export const disabledDemo = <ParentMessage>(
-  _model: Model,
-  _toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const disabledDemo = (_model: Model) => {
+  const h = html<Message>()
 
   return [
-    Ui.Textarea.view<ParentMessage>({
+    Ui.Textarea.view<Message>({
       id: 'textarea-disabled-demo',
       isDisabled: true,
       value:

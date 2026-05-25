@@ -3,14 +3,20 @@ export {
   update,
   toggle,
   close,
+  reflectOpenState,
   view,
-  lazy,
   Model,
   Message,
-  Toggled,
+  OutMessage,
+  ToggledOpenState,
   Closed,
   CompletedFocusButton,
   FocusButton,
 } from './index.js'
 
-export type { InitConfig, ViewConfig } from './index.js'
+export type {
+  InitConfig,
+  ViewInputs,
+  DisclosureAttributes,
+  Toggled,
+} from './index.js'

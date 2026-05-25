@@ -1,6 +1,6 @@
 import { Match as M } from 'effect'
-import { Ui } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Submodel, Ui } from 'foldkit'
+import { Html, childAttributes, html } from 'foldkit/html'
 
 import * as Icon from '../../icon'
 import {
@@ -33,6 +33,8 @@ const ICON_SIZE = 'w-4 h-4'
 
 type MenuItem = 'Edit' | 'Duplicate' | 'Archive' | 'Move' | 'Delete'
 
+const ActionMenu = Ui.Menu.create<MenuItem>()
+
 const MENU_ITEMS: ReadonlyArray<MenuItem> = [
   'Edit',
   'Duplicate',
@@ -41,13 +43,13 @@ const MENU_ITEMS: ReadonlyArray<MenuItem> = [
   'Delete',
 ]
 
-const menuItemIcon = <ParentMessage>(item: MenuItem): Html =>
+const menuItemIcon = (item: MenuItem): Html =>
   M.value(item).pipe(
-    M.when('Edit', () => Icon.pencil<ParentMessage>(ICON_SIZE)),
-    M.when('Duplicate', () => Icon.documentDuplicate<ParentMessage>(ICON_SIZE)),
-    M.when('Archive', () => Icon.archiveBox<ParentMessage>(ICON_SIZE)),
-    M.when('Move', () => Icon.arrowRight<ParentMessage>(ICON_SIZE)),
-    M.when('Delete', () => Icon.trash<ParentMessage>(ICON_SIZE)),
+    M.when('Edit', () => Icon.pencil(ICON_SIZE)),
+    M.when('Duplicate', () => Icon.documentDuplicate(ICON_SIZE)),
+    M.when('Archive', () => Icon.archiveBox(ICON_SIZE)),
+    M.when('Move', () => Icon.arrowRight(ICON_SIZE)),
+    M.when('Delete', () => Icon.trash(ICON_SIZE)),
     M.exhaustive,
   )
 
@@ -59,10 +61,8 @@ const itemGroupKey = (item: MenuItem): string =>
     M.orElse(() => 'Actions'),
   )
 
-const groupToHeading = <ParentMessage>(
-  groupKey: string,
-): Ui.Menu.GroupHeading | undefined => {
-  const h = html<ParentMessage>()
+const groupToHeading = (groupKey: string): Ui.Menu.GroupHeading | undefined => {
+  const h = html()
 
   return M.value(groupKey).pipe(
     M.when('Danger', () => ({
@@ -79,8 +79,8 @@ const MENU_ANCHOR = {
   padding: 8,
 }
 
-const menuViewConfig = <ParentMessage>(itemsClassNameValue: string) => {
-  const h = html<ParentMessage>()
+const menuViewConfig = (itemsClassNameValue: string) => {
+  const h = html<UiMessage>()
 
   return {
     anchor: MENU_ANCHOR,
@@ -89,29 +89,25 @@ const menuViewConfig = <ParentMessage>(itemsClassNameValue: string) => {
       className: itemClassName,
       content: h.div(
         [h.Class('flex items-center gap-2.5')],
-        [menuItemIcon<ParentMessage>(item), h.span([], [item])],
+        [menuItemIcon(item), h.span([], [item])],
       ),
     }),
     isItemDisabled,
     buttonContent: h.div(
       [h.Class('flex items-center gap-4')],
-      [h.span([], ['Actions']), Icon.chevronDown<ParentMessage>('w-4 h-4')],
+      [h.span([], ['Actions']), Icon.chevronDown('w-4 h-4')],
     ),
-    buttonAttributes: [h.Class(triggerClassName)],
-    itemsAttributes: [h.Class(itemsClassNameValue)],
-    backdropAttributes: [h.Class(backdropClassName)],
-    attributes: [h.Class(wrapperClassName)],
+    buttonAttributes: childAttributes([h.Class(triggerClassName)]),
+    itemsAttributes: childAttributes([h.Class(itemsClassNameValue)]),
+    backdropAttributes: childAttributes([h.Class(backdropClassName)]),
+    attributes: childAttributes([h.Class(wrapperClassName)]),
     itemGroupKey,
-    groupToHeading: (groupKey: string) =>
-      groupToHeading<ParentMessage>(groupKey),
+    groupToHeading,
   }
 }
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [],
@@ -125,11 +121,12 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('relative')],
         [
-          Ui.Menu.view({
+          h.submodel({
+            slotId: model.menuBasicDemo.id,
             model: model.menuBasicDemo,
-            toParentMessage: message =>
-              toParentMessage(GotMenuBasicDemoMessage({ message })),
-            ...menuViewConfig<ParentMessage>(basicItemsClassName),
+            view: ActionMenu.view,
+            viewInputs: menuViewConfig(basicItemsClassName),
+            toParentMessage: message => GotMenuBasicDemoMessage({ message }),
           }),
         ],
       ),
@@ -141,14 +138,15 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('relative')],
         [
-          Ui.Menu.view({
+          h.submodel({
+            slotId: model.menuAnimatedDemo.id,
             model: model.menuAnimatedDemo,
-            toParentMessage: message =>
-              toParentMessage(GotMenuAnimatedDemoMessage({ message })),
-            ...menuViewConfig<ParentMessage>(animatedItemsClassName),
+            view: ActionMenu.view,
+            viewInputs: menuViewConfig(animatedItemsClassName),
+            toParentMessage: message => GotMenuAnimatedDemoMessage({ message }),
           }),
         ],
       ),
     ],
   )
-}
+})

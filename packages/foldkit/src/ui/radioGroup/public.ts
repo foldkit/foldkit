@@ -1,21 +1,19 @@
 export {
   init,
-  update,
-  select,
-  view,
-  lazy,
+  create,
   Model,
   Message,
+  OutMessage,
+  Selected,
   SelectedOption,
   CompletedFocusOption,
   FocusOption,
 } from './index.js'
 
 export type {
-  NarrowedSelectedOption,
   Orientation,
   InitConfig,
-  ViewConfig,
-  OptionAttributes,
-  OptionConfig,
+  ViewInputs,
+  RenderInfo,
+  OptionInfo,
 } from './index.js'

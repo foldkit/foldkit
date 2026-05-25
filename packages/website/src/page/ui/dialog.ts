@@ -57,14 +57,11 @@ const confirmButtonClassName =
 
 // VIEW
 
-export const dialogDemo = <ParentMessage>(
-  dialogModel: Ui.Dialog.Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const dialogDemo = (dialogModel: Ui.Dialog.Model) => {
+  const h = html<Message>()
 
-  const dialogToParentMessage = (message: Ui.Dialog.Message): ParentMessage =>
-    toParentMessage(GotDialogDemoMessage({ message }))
+  const dialogToParentMessage = (message: Ui.Dialog.Message): Message =>
+    GotDialogDemoMessage({ message })
 
   return [
     h.div(
@@ -73,64 +70,87 @@ export const dialogDemo = <ParentMessage>(
         h.button(
           [
             h.Class(triggerClassName),
-            h.OnClick(dialogToParentMessage(Ui.Dialog.Opened())),
+            h.OnClick(dialogToParentMessage(Ui.Dialog.RequestedOpen())),
           ],
           ['Open Dialog'],
         ),
       ],
     ),
-    Ui.Dialog.view({
+    h.submodel({
+      slotId: dialogModel.id,
       model: dialogModel,
-      toParentMessage: dialogToParentMessage,
-      panelContent: h.div(
-        [],
-        [
-          h.h2(
-            [h.Class(titleClassName), h.Id(Ui.Dialog.titleId(dialogModel))],
-            ['Confirm Action'],
+      view: Ui.Dialog.view,
+      viewInputs: {
+        toView: ({ dialog, backdrop, panel, isVisible }) =>
+          h.dialog(
+            [...dialog, h.Class(dialogClassName)],
+            isVisible
+              ? [
+                  h.div([...backdrop, h.Class(backdropClassName)], []),
+                  h.div(
+                    [...panel, h.Class(panelClassName)],
+                    [
+                      h.div(
+                        [],
+                        [
+                          h.h2(
+                            [
+                              h.Class(titleClassName),
+                              h.Id(Ui.Dialog.titleId(dialogModel)),
+                            ],
+                            ['Confirm Action'],
+                          ),
+                          h.p(
+                            [h.Class('text-gray-600 dark:text-gray-300 mb-4')],
+                            [
+                              'Are you sure you want to proceed? This action demonstrates the Dialog component with focus trapping, backdrop click, and Escape key handling.',
+                            ],
+                          ),
+                          h.div(
+                            [h.Class('flex gap-2 justify-end')],
+                            [
+                              h.button(
+                                [
+                                  h.Class(cancelButtonClassName),
+                                  h.OnClick(
+                                    dialogToParentMessage(
+                                      Ui.Dialog.RequestedClose(),
+                                    ),
+                                  ),
+                                ],
+                                ['Cancel'],
+                              ),
+                              h.button(
+                                [
+                                  h.Class(confirmButtonClassName),
+                                  h.OnClick(
+                                    dialogToParentMessage(
+                                      Ui.Dialog.RequestedClose(),
+                                    ),
+                                  ),
+                                ],
+                                ['Confirm'],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ]
+              : [],
           ),
-          h.p(
-            [h.Class('text-gray-600 dark:text-gray-300 mb-4')],
-            [
-              'Are you sure you want to proceed? This action demonstrates the Dialog component with focus trapping, backdrop click, and Escape key handling.',
-            ],
-          ),
-          h.div(
-            [h.Class('flex gap-2 justify-end')],
-            [
-              h.button(
-                [
-                  h.Class(cancelButtonClassName),
-                  h.OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
-                ],
-                ['Cancel'],
-              ),
-              h.button(
-                [
-                  h.Class(confirmButtonClassName),
-                  h.OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
-                ],
-                ['Confirm'],
-              ),
-            ],
-          ),
-        ],
-      ),
-      panelAttributes: [h.Class(panelClassName)],
-      backdropAttributes: [h.Class(backdropClassName)],
-      attributes: [h.Class(dialogClassName)],
+      },
+      toParentMessage: message => dialogToParentMessage(message),
     }),
   ]
 }
 
-export const dialogAnimatedDemo = <ParentMessage>(
-  dialogModel: Ui.Dialog.Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const dialogAnimatedDemo = (dialogModel: Ui.Dialog.Model) => {
+  const h = html<Message>()
 
-  const dialogToParentMessage = (message: Ui.Dialog.Message): ParentMessage =>
-    toParentMessage(GotDialogAnimatedDemoMessage({ message }))
+  const dialogToParentMessage = (message: Ui.Dialog.Message): Message =>
+    GotDialogAnimatedDemoMessage({ message })
 
   return [
     h.div(
@@ -139,52 +159,78 @@ export const dialogAnimatedDemo = <ParentMessage>(
         h.button(
           [
             h.Class(triggerClassName),
-            h.OnClick(dialogToParentMessage(Ui.Dialog.Opened())),
+            h.OnClick(dialogToParentMessage(Ui.Dialog.RequestedOpen())),
           ],
           ['Open Animated Dialog'],
         ),
       ],
     ),
-    Ui.Dialog.view({
+    h.submodel({
+      slotId: dialogModel.id,
       model: dialogModel,
-      toParentMessage: dialogToParentMessage,
-      panelContent: h.div(
-        [],
-        [
-          h.h2(
-            [h.Class(titleClassName), h.Id(Ui.Dialog.titleId(dialogModel))],
-            ['Confirm Action'],
+      view: Ui.Dialog.view,
+      viewInputs: {
+        toView: ({ dialog, backdrop, panel, isVisible }) =>
+          h.dialog(
+            [...dialog, h.Class(dialogClassName)],
+            isVisible
+              ? [
+                  h.div([...backdrop, h.Class(animatedBackdropClassName)], []),
+                  h.div(
+                    [...panel, h.Class(animatedPanelClassName)],
+                    [
+                      h.div(
+                        [],
+                        [
+                          h.h2(
+                            [
+                              h.Class(titleClassName),
+                              h.Id(Ui.Dialog.titleId(dialogModel)),
+                            ],
+                            ['Confirm Action'],
+                          ),
+                          h.p(
+                            [h.Class('text-gray-600 dark:text-gray-300 mb-4')],
+                            [
+                              'This dialog uses CSS transitions coordinated by the TransitionState machine: a fade on the backdrop and a scale-up on the panel. Content stays mounted during exit so both enter and leave transitions play smoothly.',
+                            ],
+                          ),
+                          h.div(
+                            [h.Class('flex gap-2 justify-end')],
+                            [
+                              h.button(
+                                [
+                                  h.Class(cancelButtonClassName),
+                                  h.OnClick(
+                                    dialogToParentMessage(
+                                      Ui.Dialog.RequestedClose(),
+                                    ),
+                                  ),
+                                ],
+                                ['Cancel'],
+                              ),
+                              h.button(
+                                [
+                                  h.Class(confirmButtonClassName),
+                                  h.OnClick(
+                                    dialogToParentMessage(
+                                      Ui.Dialog.RequestedClose(),
+                                    ),
+                                  ),
+                                ],
+                                ['Confirm'],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ]
+              : [],
           ),
-          h.p(
-            [h.Class('text-gray-600 dark:text-gray-300 mb-4')],
-            [
-              'This dialog uses CSS transitions coordinated by the TransitionState machine: a fade on the backdrop and a scale-up on the panel. Content stays mounted during exit so both enter and leave transitions play smoothly.',
-            ],
-          ),
-          h.div(
-            [h.Class('flex gap-2 justify-end')],
-            [
-              h.button(
-                [
-                  h.Class(cancelButtonClassName),
-                  h.OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
-                ],
-                ['Cancel'],
-              ),
-              h.button(
-                [
-                  h.Class(confirmButtonClassName),
-                  h.OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
-                ],
-                ['Confirm'],
-              ),
-            ],
-          ),
-        ],
-      ),
-      panelAttributes: [h.Class(animatedPanelClassName)],
-      backdropAttributes: [h.Class(animatedBackdropClassName)],
-      attributes: [h.Class(dialogClassName)],
+      },
+      toParentMessage: message => dialogToParentMessage(message),
     }),
   ]
 }

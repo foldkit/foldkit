@@ -7,7 +7,7 @@ import {
   type Message,
   type Model,
   ScrolledContainer,
-  type ViewConfig,
+  type ViewInputs,
   init,
   update,
   view,
@@ -33,20 +33,19 @@ const ROW_HEIGHT = 30
 const sceneView =
   (
     overrides: Omit<
-      Partial<ViewConfig<Message, DemoItem>>,
-      'model' | 'items' | 'itemToKey' | 'itemToView'
+      Partial<ViewInputs<DemoItem>>,
+      'items' | 'itemToKey' | 'itemToView'
     > = {},
   ) =>
   (model: Model) => {
     const h = html<Message>()
 
-    return view({
+    return view<DemoItem>()(model, {
       items: demoItems,
       itemToKey: item => String(item.id),
       itemToView: item => h.div([], [h.span([], [item.label])]),
       overscan: 0,
       ...overrides,
-      model,
     })
   }
 
@@ -86,7 +85,7 @@ describe('VirtualList scene', () => {
 
     it('applies the consumer className when provided', () => {
       Scene.scene(
-        { update, view: sceneView({ className: 'h-96 bg-white' }) },
+        { update, view: sceneView({ containerClassName: 'h-96 bg-white' }) },
         Scene.with(unmeasuredModel),
         Scene.expect(container).toHaveClass('h-96'),
         Scene.expect(container).toHaveClass('bg-white'),

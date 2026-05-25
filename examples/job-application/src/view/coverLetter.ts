@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
 import { CoverLetter } from '../step'
@@ -7,11 +7,11 @@ import { CoverLetter } from '../step'
 const MAX_COVER_LETTER_LENGTH = 2000
 const WARNING_THRESHOLD_CHARS = 200
 
-export const coverLetterView = <ParentMessage>(
-  model: CoverLetter.Model,
-  toParentMessage: (message: CoverLetter.Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const coverLetterView = Submodel.defineView<
+  CoverLetter.Model,
+  CoverLetter.Message
+>((model): Html => {
+  const h = html<CoverLetter.Message>()
 
   const remaining = MAX_COVER_LETTER_LENGTH - model.content.length
   const isOverLimit = remaining < 0
@@ -20,7 +20,7 @@ export const coverLetterView = <ParentMessage>(
   return Ui.Textarea.view({
     id: 'cover-letter',
     value: model.content,
-    onInput: value => toParentMessage(CoverLetter.UpdatedContent({ value })),
+    onInput: value => CoverLetter.UpdatedContent({ value }),
     rows: 12,
     placeholder:
       'Tell us why you want to work on Foldkit and what excites you about the Elm Architecture...',
@@ -69,4 +69,4 @@ export const coverLetterView = <ParentMessage>(
         ],
       ),
   })
-}
+})

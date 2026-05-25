@@ -4,16 +4,9 @@ import { describe, test } from 'vitest'
 
 import { products } from './data/products'
 import { Cart } from './domain'
-import {
-  CartRoute,
-  CheckoutRoute,
-  type Model,
-  NotFoundRoute,
-  ProductsRoute,
-  update,
-  view,
-} from './main'
+import { type Model, update, view } from './main'
 import { Products } from './page'
+import { CartRoute, CheckoutRoute, NotFoundRoute, ProductsRoute } from './route'
 
 const apple = { id: '1', name: 'Apple', price: 1.5 }
 const banana = { id: '2', name: 'Banana', price: 0.75 }

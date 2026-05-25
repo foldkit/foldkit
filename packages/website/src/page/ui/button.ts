@@ -26,18 +26,15 @@ const buttonClassName =
 
 // VIEW
 
-export const basicDemo = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const basicDemo = (model: Model) => {
+  const h = html<Message>()
 
   return [
     h.div(
       [h.Class('flex flex-col items-center gap-2')],
       [
-        Ui.Button.view({
-          onClick: toParentMessage(ClickedButtonDemo()),
+        Ui.Button.view<Message>({
+          onClick: ClickedButtonDemo(),
           toView: attributes =>
             h.button(
               [...attributes.button, h.Class(buttonClassName)],
@@ -55,14 +52,11 @@ export const basicDemo = <ParentMessage>(
   ]
 }
 
-export const disabledDemo = <ParentMessage>(
-  _model: Model,
-  _toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const disabledDemo = (_model: Model) => {
+  const h = html<Message>()
 
   return [
-    Ui.Button.view<ParentMessage>({
+    Ui.Button.view<Message>({
       isDisabled: true,
       toView: attributes =>
         h.button(

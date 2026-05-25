@@ -11,7 +11,7 @@ import {
 /** Semantic category of a toast. Drives the default ARIA role: `status` for
  *  `Info` / `Success`, `alert` for `Warning` / `Error`. Also surfaced as
  *  `data-variant` on each entry for per-variant CSS. This is the only
- *  content-adjacent field the component owns — the rest of the entry's
+ *  content-adjacent field the component owns. The rest of the entry's
  *  content lives in the user-provided payload. */
 export const Variant = S.Literals(['Info', 'Success', 'Warning', 'Error'])
 export type Variant = typeof Variant.Type
@@ -32,7 +32,7 @@ export type Position = typeof Position.Type
 // ENTRY
 
 /** Schema factory for a single toast entry. `payloadSchema` is user-provided
- *  and defines the shape of per-entry content — whatever the consumer wants
+ *  and defines the shape of per-entry content, whatever the consumer wants
  *  to encode. The component itself owns only lifecycle + a11y fields: `id`,
  *  `variant` (for ARIA role), `animation`, `maybeDuration`,
  *  `pendingDismissVersion` (for cancellable auto-dismiss), and `isHovered`
@@ -52,8 +52,8 @@ export const makeEntry = <A, I>(payloadSchema: S.Codec<A, I>) =>
 
 /** Schema factory for the toast container's state. `nextEntryKey` is a
  *  monotonic counter used to generate unique entry IDs purely from Model
- *  state. Thread the updated model through successive `show()` calls —
- *  calling `show()` twice against the same pre-update model in the same tick
+ *  state. Thread the updated model through successive `show()` calls.
+ *  Calling `show()` twice against the same pre-update model in the same tick
  *  will produce duplicate entry IDs. */
 export const makeModel = <A, I>(payloadSchema: S.Codec<A, I>) =>
   S.Struct({
@@ -112,6 +112,17 @@ export const makeMessage = <A, I>(payloadSchema: S.Codec<A, I>) =>
     LeftEntry,
     GotAnimationMessage,
   ])
+
+/** Factory for `DismissedToast`, the OutMessage emitted once an entry has
+ *  finished dismissing (leave-animation `TransitionedOut`). Carries the
+ *  payload so consumers can lift the dismissal into a domain Message
+ *  without looking the entry up from a stale model. */
+export const makeDismissedToast = <A, I>(payloadSchema: S.Codec<A, I>) =>
+  m('DismissedToast', { payload: payloadSchema })
+
+/** Factory for the union of out-messages the toast component can produce. */
+export const makeOutMessage = <A, I>(payloadSchema: S.Codec<A, I>) =>
+  S.Union([makeDismissedToast(payloadSchema)])
 
 // INIT
 

@@ -1,19 +1,12 @@
-import { Schema as S } from 'effect'
 import { Html, html } from 'foldkit/html'
-import { m } from 'foldkit/message'
 
 import { Session } from '../../../domain/session'
-
-// MESSAGE
-
-export const ClickedLogout = m('ClickedLogout')
-export const Message = S.Union([ClickedLogout])
-export type Message = typeof Message.Type
+import { ClickedLogout, type Message } from '../message'
 
 // VIEW
 
-const infoRow = <ParentMessage>(label: string, value: string): Html => {
-  const h = html<ParentMessage>()
+const infoRow = (label: string, value: string): Html => {
+  const h = html<Message>()
 
   return h.div(
     [
@@ -28,11 +21,8 @@ const infoRow = <ParentMessage>(label: string, value: string): Html => {
   )
 }
 
-export const view = <ParentMessage>(
-  session: Session,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = (session: Session): Html => {
+  const h = html<Message>()
 
   return h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
@@ -48,9 +38,9 @@ export const view = <ParentMessage>(
           h.div(
             [h.Class('space-y-4')],
             [
-              infoRow<ParentMessage>('User ID', session.userId),
-              infoRow<ParentMessage>('Email', session.email),
-              infoRow<ParentMessage>('Name', session.name),
+              infoRow('User ID', session.userId),
+              infoRow('Email', session.email),
+              infoRow('Name', session.name),
             ],
           ),
         ],
@@ -64,7 +54,7 @@ export const view = <ParentMessage>(
           ),
           h.button(
             [
-              h.OnClick(toParentMessage(ClickedLogout())),
+              h.OnClick(ClickedLogout()),
               h.Class(
                 'px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition cursor-pointer',
               ),

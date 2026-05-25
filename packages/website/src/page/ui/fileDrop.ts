@@ -45,36 +45,36 @@ const formatFileSize = (bytes: number): string => {
 
 // VIEW
 
-export const basicDemo = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-): ReadonlyArray<Html> => {
-  const h = html<ParentMessage>()
+export const basicDemo = (model: Model): ReadonlyArray<Html> => {
+  const h = html<Message>()
 
   return [
     h.div(
       [h.Class('flex flex-col gap-3 w-full max-w-md')],
       [
-        Ui.FileDrop.view({
+        h.submodel({
+          slotId: model.fileDropBasicDemo.id,
           model: model.fileDropBasicDemo,
-          toParentMessage: message =>
-            toParentMessage(GotFileDropBasicDemoMessage({ message })),
-          multiple: true,
-          toView: attributes =>
-            h.label(
-              [...attributes.root, h.Class(dropZoneClassName)],
-              [
-                h.p(
-                  [h.Class(primaryTextClassName)],
-                  ['Drop files or click to browse'],
-                ),
-                h.p(
-                  [h.Class(secondaryTextClassName)],
-                  ['Any file type. This demo just lists them.'],
-                ),
-                h.input(attributes.input),
-              ],
-            ),
+          view: Ui.FileDrop.view,
+          viewInputs: {
+            multiple: true,
+            toView: attributes =>
+              h.label(
+                [...attributes.root, h.Class(dropZoneClassName)],
+                [
+                  h.p(
+                    [h.Class(primaryTextClassName)],
+                    ['Drop files or click to browse'],
+                  ),
+                  h.p(
+                    [h.Class(secondaryTextClassName)],
+                    ['Any file type. This demo just lists them.'],
+                  ),
+                  h.input(attributes.input),
+                ],
+              ),
+          },
+          toParentMessage: message => GotFileDropBasicDemoMessage({ message }),
         }),
         ...Array.match(model.fileDropBasicDemoFiles, {
           onEmpty: () => [],
@@ -96,11 +96,7 @@ export const basicDemo = <ParentMessage>(
                   h.button(
                     [
                       h.Type('button'),
-                      h.OnClick(
-                        toParentMessage(
-                          ClickedRemoveFileDropDemoFile({ fileIndex }),
-                        ),
-                      ),
+                      h.OnClick(ClickedRemoveFileDropDemoFile({ fileIndex })),
                       h.Class(removeButtonClassName),
                     ],
                     ['Remove'],

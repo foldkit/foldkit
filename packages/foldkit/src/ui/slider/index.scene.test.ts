@@ -2,20 +2,15 @@ import { describe, it } from '@effect/vitest'
 
 import { html } from '../../html/index.js'
 import * as Scene from '../../test/scene.js'
-import type { Message, Model, ViewConfig } from './index.js'
+import type { Message, Model, ViewInputs } from './index.js'
 import { PressedThumb, init, update, view } from './index.js'
 
 const sceneView =
-  (
-    overrides: Omit<
-      Partial<ViewConfig<Message>>,
-      'model' | 'toParentMessage'
-    > = {},
-  ) =>
+  (overrides: Omit<Partial<ViewInputs>, 'toView'> = {}) =>
   (model: Model) => {
     const h = html<Message>()
 
-    return view({
+    return view(model, {
       toView: attributes =>
         h.div(
           [...attributes.root],
@@ -32,8 +27,6 @@ const sceneView =
           ],
         ),
       ...overrides,
-      model,
-      toParentMessage: message => message,
     })
   }
 

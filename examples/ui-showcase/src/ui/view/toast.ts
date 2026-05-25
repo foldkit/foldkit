@@ -1,4 +1,5 @@
 import { Match as M, Option } from 'effect'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import type { EntryHandlers, Variant } from 'foldkit/ui/toast'
 
@@ -32,11 +33,8 @@ const variantClassName = (variant: Variant): string =>
 
 const entryClassName = 'w-80'
 
-const renderToastEntry = <ParentMessage>(
-  entry: Entry,
-  handlers: EntryHandlers<ParentMessage>,
-): Html => {
-  const h = html<ParentMessage>()
+const renderToastEntry = (entry: Entry, handlers: EntryHandlers): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [
@@ -54,12 +52,12 @@ const renderToastEntry = <ParentMessage>(
       }),
       h.button(
         [
+          ...handlers.dismiss,
           h.Class(
             'absolute top-2 right-2 text-gray-500 hover:text-gray-900 cursor-pointer rounded-md p-1 transition-colors',
           ),
-          h.OnClick(handlers.dismiss),
         ],
-        [Icon.xMark<ParentMessage>('w-4 h-4')],
+        [Icon.xMark('w-4 h-4')],
       ),
     ],
   )
@@ -68,11 +66,8 @@ const renderToastEntry = <ParentMessage>(
 const demoButtonClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [],
@@ -93,31 +88,25 @@ export const view = <ParentMessage>(
         [h.Class('flex flex-wrap gap-2')],
         [
           h.button(
-            [
-              h.Class(demoButtonClassName),
-              h.OnClick(toParentMessage(ClickedShowInfoToast())),
-            ],
+            [h.Class(demoButtonClassName), h.OnClick(ClickedShowInfoToast())],
             ['Info'],
           ),
           h.button(
             [
               h.Class(demoButtonClassName),
-              h.OnClick(toParentMessage(ClickedShowSuccessToast())),
+              h.OnClick(ClickedShowSuccessToast()),
             ],
             ['Success'],
           ),
           h.button(
             [
               h.Class(demoButtonClassName),
-              h.OnClick(toParentMessage(ClickedShowWarningToast())),
+              h.OnClick(ClickedShowWarningToast()),
             ],
             ['Warning'],
           ),
           h.button(
-            [
-              h.Class(demoButtonClassName),
-              h.OnClick(toParentMessage(ClickedShowErrorToast())),
-            ],
+            [h.Class(demoButtonClassName), h.OnClick(ClickedShowErrorToast())],
             ['Error'],
           ),
         ],
@@ -142,31 +131,30 @@ export const view = <ParentMessage>(
         [h.Class('flex flex-wrap gap-2')],
         [
           h.button(
-            [
-              h.Class(demoButtonClassName),
-              h.OnClick(toParentMessage(ClickedShowStickyToast())),
-            ],
+            [h.Class(demoButtonClassName), h.OnClick(ClickedShowStickyToast())],
             ['Show sticky toast'],
           ),
           h.button(
             [
               h.Class(demoButtonClassName),
-              h.OnClick(toParentMessage(ClickedDismissAllToasts())),
+              h.OnClick(ClickedDismissAllToasts()),
             ],
             ['Dismiss all'],
           ),
         ],
       ),
 
-      Toast.view({
+      h.submodel({
+        slotId: model.toastDemo.id,
         model: model.toastDemo,
-        position: 'BottomRight',
-        toParentMessage: message =>
-          toParentMessage(GotToastDemoMessage({ message })),
-        renderEntry: (entry, handlers) =>
-          renderToastEntry<ParentMessage>(entry, handlers),
-        entryClassName,
+        view: Toast.view,
+        viewInputs: {
+          position: 'BottomRight',
+          entryToView: (entry, handlers) => renderToastEntry(entry, handlers),
+          entryClassName,
+        },
+        toParentMessage: message => GotToastDemoMessage({ message }),
       }),
     ],
   )
-}
+})

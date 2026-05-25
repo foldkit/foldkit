@@ -26,11 +26,8 @@ const descriptionClassName = 'text-sm text-gray-500 dark:text-gray-400'
 
 // VIEW
 
-export const switchDemo = <ParentMessage>(
-  switchModel: Ui.Switch.Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const switchDemo = (switchModel: Ui.Switch.Model) => {
+  const h = html<Message>()
 
   const knob = (isChecked: boolean) =>
     h.span(
@@ -43,33 +40,36 @@ export const switchDemo = <ParentMessage>(
     )
 
   return [
-    Ui.Switch.view({
+    h.submodel({
+      slotId: 'switch-demo',
       model: switchModel,
-      toParentMessage: message =>
-        toParentMessage(GotSwitchDemoMessage({ message })),
-      toView: attributes =>
-        h.div(
-          [h.Class(wrapperClassName)],
-          [
-            h.button(
-              [...attributes.button, h.Class(buttonClassName)],
-              [knob(switchModel.isChecked)],
-            ),
-            h.div(
-              [],
-              [
-                h.label(
-                  [...attributes.label, h.Class(labelClassName)],
-                  ['Enable notifications'],
-                ),
-                h.p(
-                  [...attributes.description, h.Class(descriptionClassName)],
-                  ['Get notified when something important happens.'],
-                ),
-              ],
-            ),
-          ],
-        ),
+      view: Ui.Switch.view,
+      viewInputs: {
+        toView: attributes =>
+          h.div(
+            [h.Class(wrapperClassName)],
+            [
+              h.button(
+                [...attributes.button, h.Class(buttonClassName)],
+                [knob(switchModel.isChecked)],
+              ),
+              h.div(
+                [],
+                [
+                  h.label(
+                    [...attributes.label, h.Class(labelClassName)],
+                    ['Enable notifications'],
+                  ),
+                  h.p(
+                    [...attributes.description, h.Class(descriptionClassName)],
+                    ['Get notified when something important happens.'],
+                  ),
+                ],
+              ),
+            ],
+          ),
+      },
+      toParentMessage: message => GotSwitchDemoMessage({ message }),
     }),
   ]
 }

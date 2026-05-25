@@ -4,10 +4,11 @@ import { expect } from 'vitest'
 import * as Story from '../../test/story.js'
 import {
   DroppedFiles,
-  DroppedWithoutFiles,
+  DroppedNonFiles,
   EnteredDragZone,
   LeftDragZone,
   ReceivedFiles,
+  RejectedNonFiles,
   init,
   update,
 } from './index.js'
@@ -91,13 +92,13 @@ describe('FileDrop', () => {
       })
     })
 
-    describe('DroppedWithoutFiles', () => {
-      it('emits DroppedWithoutFiles as an OutMessage', () => {
+    describe('DroppedNonFiles', () => {
+      it('emits RejectedNonFiles as an OutMessage', () => {
         Story.story(
           update,
           withInitial,
-          Story.message(DroppedWithoutFiles()),
-          Story.expectOutMessage(DroppedWithoutFiles()),
+          Story.message(DroppedNonFiles()),
+          Story.expectOutMessage(RejectedNonFiles()),
         )
       })
 
@@ -106,7 +107,7 @@ describe('FileDrop', () => {
           update,
           withInitial,
           Story.message(EnteredDragZone()),
-          Story.message(DroppedWithoutFiles()),
+          Story.message(DroppedNonFiles()),
           Story.model(model => {
             expect(model.isDragOver).toBe(false)
           }),

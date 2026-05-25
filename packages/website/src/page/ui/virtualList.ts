@@ -6,6 +6,8 @@ import type { TableOfContentsEntry } from '../../main'
 import {
   ClickedVirtualListScrollToMiddle,
   ClickedVirtualListVariableScrollToMiddle,
+  GotVirtualListDemoMessage,
+  GotVirtualListVariableDemoMessage,
   type Message,
 } from './message'
 
@@ -155,11 +157,8 @@ const buttonClassName =
 const headerClassName =
   'flex items-end justify-between text-sm text-gray-600 dark:text-gray-400'
 
-export const virtualListDemo = <ParentMessage>(
-  model: Ui.VirtualList.Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const virtualListDemo = (model: Ui.VirtualList.Model) => {
+  const h = html<Message>()
 
   return [
     h.div(
@@ -172,38 +171,43 @@ export const virtualListDemo = <ParentMessage>(
             h.button(
               [
                 h.Class(buttonClassName),
-                h.OnClick(toParentMessage(ClickedVirtualListScrollToMiddle())),
+                h.OnClick(ClickedVirtualListScrollToMiddle()),
               ],
               ['Jump to middle'],
             ),
           ],
         ),
-        Ui.VirtualList.view({
+        h.submodel({
+          slotId: model.id,
           model,
-          items: sampleActivities,
-          itemToKey: row => String(row.id),
-          itemToView: row =>
-            h.div(
-              [h.Class(rowClassName)],
-              [
-                h.div(
-                  [h.Class(avatarClassName(row.colorClass))],
-                  [row.initial],
-                ),
-                h.div(
-                  [h.Class(activityTextClassName)],
-                  [
-                    h.span([h.Class(actorClassName)], [row.actor]),
-                    ' ',
-                    row.verb,
-                    ' ',
-                    h.span([h.Class(targetClassName)], [row.target]),
-                  ],
-                ),
-                h.div([h.Class(timeAgoClassName)], [row.timeAgo]),
-              ],
-            ),
-          className: containerClassName,
+          view: Ui.VirtualList.view<Activity>(),
+          viewInputs: {
+            items: sampleActivities,
+            itemToKey: row => String(row.id),
+            itemToView: row =>
+              h.div(
+                [h.Class(rowClassName)],
+                [
+                  h.div(
+                    [h.Class(avatarClassName(row.colorClass))],
+                    [row.initial],
+                  ),
+                  h.div(
+                    [h.Class(activityTextClassName)],
+                    [
+                      h.span([h.Class(actorClassName)], [row.actor]),
+                      ' ',
+                      row.verb,
+                      ' ',
+                      h.span([h.Class(targetClassName)], [row.target]),
+                    ],
+                  ),
+                  h.div([h.Class(timeAgoClassName)], [row.timeAgo]),
+                ],
+              ),
+            containerClassName,
+          },
+          toParentMessage: message => GotVirtualListDemoMessage({ message }),
         }),
       ],
     ),
@@ -279,11 +283,8 @@ const variableSummaryBodyClassName =
 const variableArtifactClassName =
   'mt-1 inline-flex w-fit rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 font-mono text-[10px] text-gray-600 dark:text-gray-300'
 
-export const virtualListVariableDemo = <ParentMessage>(
-  model: Ui.VirtualList.Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const virtualListVariableDemo = (model: Ui.VirtualList.Model) => {
+  const h = html<Message>()
 
   const variableTallRow = (row: Activity, summary: Summary) =>
     h.div(
@@ -347,24 +348,28 @@ export const virtualListVariableDemo = <ParentMessage>(
             h.button(
               [
                 h.Class(buttonClassName),
-                h.OnClick(
-                  toParentMessage(ClickedVirtualListVariableScrollToMiddle()),
-                ),
+                h.OnClick(ClickedVirtualListVariableScrollToMiddle()),
               ],
               ['Jump to middle'],
             ),
           ],
         ),
-        Ui.VirtualList.view({
+        h.submodel({
+          slotId: model.id,
           model,
-          items: variableActivities,
-          itemToKey: row => String(row.id),
-          itemToRowHeightPx: variableRowHeightPx,
-          itemToView: (row, index) =>
-            row.hasSummary
-              ? variableTallRow(row, summaryFor(index))
-              : variableShortRow(row),
-          className: containerClassName,
+          view: Ui.VirtualList.view<Activity>(),
+          viewInputs: {
+            items: variableActivities,
+            itemToKey: row => String(row.id),
+            itemToRowHeightPx: variableRowHeightPx,
+            itemToView: (row, index) =>
+              row.hasSummary
+                ? variableTallRow(row, summaryFor(index))
+                : variableShortRow(row),
+            containerClassName,
+          },
+          toParentMessage: message =>
+            GotVirtualListVariableDemoMessage({ message }),
         }),
       ],
     ),

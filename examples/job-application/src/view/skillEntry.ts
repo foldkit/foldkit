@@ -1,55 +1,60 @@
 import clsx from 'clsx'
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
 import { ProficiencyLevel } from '../domain'
 import { Skills } from '../step'
 import { inputField } from './field'
 
-export const skillEntryView = <ParentMessage>(
-  model: Skills.Entry.Model,
-  toParentMessage: (message: Skills.Entry.Message) => ParentMessage,
-  onRemove: ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+const ProficiencyRadioGroup = Ui.RadioGroup.create<string>()
 
-  const nameView = inputField<ParentMessage>({
+export const skillEntryView = Submodel.defineView<
+  Skills.Entry.Model,
+  Skills.Entry.Message
+>((model): Html => {
+  const h = html<Skills.Entry.Message>()
+
+  const nameView = inputField<Skills.Entry.Message>({
     id: `${model.id}-name`,
     label: 'Skill',
     field: model.name,
-    onInput: value => toParentMessage(Skills.Entry.UpdatedName({ value })),
+    onInput: value => Skills.Entry.UpdatedName({ value }),
     placeholder: 'e.g. TypeScript, React, Effect-TS',
   })
 
-  const proficiencyView = Ui.RadioGroup.view({
+  const proficiencyView = h.submodel({
+    slotId: model.proficiency.id,
     model: model.proficiency,
-    toParentMessage: message =>
-      toParentMessage(Skills.Entry.GotProficiencyMessage({ message })),
-    options: ProficiencyLevel.all,
-    orientation: 'Horizontal',
-    className: 'inline-flex flex-wrap gap-2',
-    optionToConfig: (level, { isSelected }) => ({
-      value: level,
-      content: attributes =>
+    view: ProficiencyRadioGroup.view,
+    viewInputs: {
+      options: ProficiencyLevel.all,
+      orientation: 'Horizontal',
+      ariaLabel: 'Proficiency level',
+      toView: attributes =>
         h.div(
-          [
-            ...attributes.option,
-            h.Class(
-              clsx(
-                'cursor-pointer rounded-full border px-3 py-1 text-sm transition select-none',
-                isSelected
-                  ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                  : 'border-gray-300 text-gray-600 hover:border-gray-400',
-              ),
+          [...attributes.group, h.Class('inline-flex flex-wrap gap-2')],
+          attributes.options.map(option =>
+            h.div(
+              [
+                ...option.option,
+                h.Class(
+                  clsx(
+                    'cursor-pointer rounded-full border px-3 py-1 text-sm transition select-none',
+                    option.isSelected
+                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-300 text-gray-600 hover:border-gray-400',
+                  ),
+                ),
+              ],
+              [
+                h.input([...option.label, h.Class('sr-only')]),
+                h.span([], [option.value]),
+              ],
             ),
-          ],
-          [
-            h.input([...attributes.label, h.Class('sr-only')]),
-            h.span([], [level]),
-          ],
+          ),
         ),
-    }),
-    ariaLabel: 'Proficiency level',
+    },
+    toParentMessage: message => Skills.Entry.GotProficiencyMessage({ message }),
   })
 
   return h.keyed('div')(
@@ -73,7 +78,7 @@ export const skillEntryView = <ParentMessage>(
           h.button(
             [
               h.Type('button'),
-              h.OnClick(onRemove),
+              h.OnClick(Skills.Entry.ClickedRemoveSelf()),
               h.Class(
                 'text-sm text-gray-400 hover:text-red-500 transition cursor-pointer',
               ),
@@ -84,4 +89,4 @@ export const skillEntryView = <ParentMessage>(
       ),
     ],
   )
-}
+})

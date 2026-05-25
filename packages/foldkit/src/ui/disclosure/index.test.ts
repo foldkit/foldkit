@@ -8,6 +8,7 @@ import {
   FocusButton,
   Toggled,
   init,
+  reflectOpenState,
   update,
 } from './index.js'
 
@@ -86,6 +87,18 @@ describe('Disclosure', () => {
           expect(model).toBe(originalModel)
         }),
       )
+    })
+  })
+
+  describe('reflectOpenState', () => {
+    it('reflects open state onto the model without emitting', () => {
+      expect(reflectOpenState(init({ id: 'test' }), true).isOpen).toBe(true)
+    })
+
+    it('reflects closed state without running the focus command', () => {
+      expect(
+        reflectOpenState(init({ id: 'test', isOpen: true }), false).isOpen,
+      ).toBe(false)
     })
   })
 })

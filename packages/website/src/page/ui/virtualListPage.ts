@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { uiShowcaseViewSourceHref } from '../../link'
@@ -167,16 +168,16 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       "HTML tag for each row wrapper. Defaults to li (since the container is rendered as ul). Override only when you also wrap the list in something whose children aren't expected to be li.",
   },
   {
-    name: 'className',
-    type: 'string',
+    name: 'containerClassName',
+    type: 'string | undefined',
     description:
       'CSS class applied to the scrollable container. The container needs a constrained height (e.g. h-96) for virtualization to work.',
   },
   {
-    name: 'attributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
+    name: 'containerAttributes',
+    type: 'ReadonlyArray<ChildAttribute> | undefined',
     description:
-      'Additional attributes spread onto the scrollable container. Pass extra Style({...}) entries for CSS like overscroll-behavior or scroll-margin, data attributes, or any other Attribute<Message>.',
+      'Additional attributes spread onto the scrollable container. Pass extra Style({...}) entries for CSS like overscroll-behavior or scroll-margin, data attributes, or any other ChildAttribute.',
   },
 ]
 
@@ -195,174 +196,171 @@ const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/virtualList', 'VirtualList'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'A virtualization primitive for large lists. Only items inside the viewport plus an overscan buffer are mounted. Spacer divs above and below the visible slice keep the scrollbar physically correct. The demo below manages ten thousand items; only the rows currently visible exist in the DOM.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how VirtualList is wired up in a ',
-        link(uiShowcaseViewSourceHref('virtualList'), 'real Foldkit app'),
-        '.',
-      ),
-      heading(exampleHeader.level, exampleHeader.id, exampleHeader.text),
-      para(
-        'Items live in your Model, not the component, and pass through ',
-        inlineCode('ViewConfig.items'),
-        ' on each render. The parent owns the data and can swap, filter, sort, or paginate freely without sending Messages to the list. Each item must be keyed via ',
-        inlineCode('itemToKey'),
-        ' so the VDOM matches rows by data identity, not by position, when the visible slice shifts.',
-      ),
-      heading(basicHeader.level, basicHeader.id, basicHeader.text),
-      para(
-        'Every row uses the same height, configured at init through ',
-        inlineCode('rowHeightPx'),
-        '. The component divides scroll math by that constant. Prefer this path when row heights are stable.',
-      ),
-      ...VirtualList.virtualListDemo(model.virtualListDemo, toParentMessage),
-      highlightedCodeBlock(
-        h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippet.uiVirtualListBasicHighlighted),
-          ],
-          [],
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/virtualList', 'VirtualList'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'A virtualization primitive for large lists. Only items inside the viewport plus an overscan buffer are mounted. Spacer divs above and below the visible slice keep the scrollbar physically correct. The demo below manages ten thousand items; only the rows currently visible exist in the DOM.',
         ),
-        Snippet.uiVirtualListBasicRaw,
-        'Copy virtual list example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(variableHeader.level, variableHeader.id, variableHeader.text),
-      para(
-        'Pass an ',
-        inlineCode('itemToRowHeightPx'),
-        ' callback on ',
-        inlineCode('ViewConfig'),
-        ' and rows take the height the callback returns for each item. The component walks the items at render time to compute cumulative offsets for the visible slice and the spacers. Use this for tables with wrapping cells, taller detail rows, or any list where heights differ.',
-      ),
-      para(
-        'Programmatic scrolling for variable-height lists uses ',
-        inlineCode('scrollToIndexVariable'),
-        ', which walks the heights to compute the target ',
-        inlineCode('scrollTop'),
-        '. Pass the same ',
-        inlineCode('items'),
-        ' and ',
-        inlineCode('itemToRowHeightPx'),
-        ' you pass to ',
-        inlineCode('view'),
-        ' so the math agrees.',
-      ),
-      ...VirtualList.virtualListVariableDemo(
-        model.virtualListVariableDemo,
-        toParentMessage,
-      ),
-      highlightedCodeBlock(
-        h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippet.uiVirtualListVariableHighlighted),
-          ],
-          [],
+        infoCallout(
+          'See it in an app',
+          'Check out how VirtualList is wired up in a ',
+          link(uiShowcaseViewSourceHref('virtualList'), 'real Foldkit app'),
+          '.',
         ),
-        Snippet.uiVirtualListVariableRaw,
-        'Copy variable-height virtual list example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(
-        subscriptionsHeader.level,
-        subscriptionsHeader.id,
-        subscriptionsHeader.text,
-      ),
-      para(
-        'VirtualList exposes a single subscription, ',
-        inlineCode('containerEvents'),
-        ', that listens for ',
-        inlineCode('scroll'),
-        ' events on the container and observes its size with ',
-        inlineCode('ResizeObserver'),
-        ". Wire it into your app's subscriptions alongside the rest of the framework subscriptions.",
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'The container needs a constrained height for virtualization to work. Without it, the container grows to fit children and never scrolls. Pass ',
-        inlineCode('className'),
-        ' or ',
-        inlineCode('attributes'),
-        ' on ',
-        inlineCode('ViewConfig'),
-        ' to apply the height through your styling system. The component sets only ',
-        inlineCode('overflow: auto'),
-        ' inline; the rest is yours.',
-      ),
-      para(
-        'VirtualList exposes two data attributes for styling and test selectors: ',
-        inlineCode('data-virtual-list-id'),
-        ' on the scrollable container and ',
-        inlineCode('data-virtual-list-item-index'),
-        ' on each rendered row.',
-      ),
-      dataAttributeTable(dataAttributes),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'The container is rendered as ',
-        inlineCode('<ul>'),
-        ' and each row as ',
-        inlineCode('<li>'),
-        '. The top and bottom spacer ',
-        inlineCode('<li>'),
-        ' elements carry ',
-        inlineCode('role="presentation"'),
-        ' so they do not contribute to the list. Each rendered row carries ',
-        inlineCode('aria-setsize'),
-        ' (total item count) and ',
-        inlineCode('aria-posinset'),
-        ' (1-based logical position), so screen readers announce "row 5,234 of 10,000" rather than the much smaller count of mounted rows. No consumer wiring required.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
-      heading(
-        initConfigHeader.level,
-        initConfigHeader.id,
-        initConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('VirtualList.init()'),
-        '.',
-      ),
-      propTable(initConfigProps),
-      heading(
-        viewConfigHeader.level,
-        viewConfigHeader.id,
-        viewConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('VirtualList.view()'),
-        '.',
-      ),
-      propTable(viewConfigProps),
-    ],
-  )
-}
+        heading(exampleHeader.level, exampleHeader.id, exampleHeader.text),
+        para(
+          'Items live in your Model, not the component, and pass through ',
+          inlineCode('ViewConfig.items'),
+          ' on each render. The parent owns the data and can swap, filter, sort, or paginate freely without sending Messages to the list. Each item must be keyed via ',
+          inlineCode('itemToKey'),
+          ' so the VDOM matches rows by data identity, not by position, when the visible slice shifts.',
+        ),
+        heading(basicHeader.level, basicHeader.id, basicHeader.text),
+        para(
+          'Every row uses the same height, configured at init through ',
+          inlineCode('rowHeightPx'),
+          '. The component divides scroll math by that constant. Prefer this path when row heights are stable.',
+        ),
+        ...VirtualList.virtualListDemo(model.virtualListDemo),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiVirtualListBasicHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiVirtualListBasicRaw,
+          'Copy virtual list example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(variableHeader.level, variableHeader.id, variableHeader.text),
+        para(
+          'Pass an ',
+          inlineCode('itemToRowHeightPx'),
+          ' callback on ',
+          inlineCode('ViewConfig'),
+          ' and rows take the height the callback returns for each item. The component walks the items at render time to compute cumulative offsets for the visible slice and the spacers. Use this for tables with wrapping cells, taller detail rows, or any list where heights differ.',
+        ),
+        para(
+          'Programmatic scrolling for variable-height lists uses ',
+          inlineCode('scrollToIndexVariable'),
+          ', which walks the heights to compute the target ',
+          inlineCode('scrollTop'),
+          '. Pass the same ',
+          inlineCode('items'),
+          ' and ',
+          inlineCode('itemToRowHeightPx'),
+          ' you pass to ',
+          inlineCode('view'),
+          ' so the math agrees.',
+        ),
+        ...VirtualList.virtualListVariableDemo(model.virtualListVariableDemo),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiVirtualListVariableHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiVirtualListVariableRaw,
+          'Copy variable-height virtual list example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(
+          subscriptionsHeader.level,
+          subscriptionsHeader.id,
+          subscriptionsHeader.text,
+        ),
+        para(
+          'VirtualList exposes a single subscription, ',
+          inlineCode('containerEvents'),
+          ', that listens for ',
+          inlineCode('scroll'),
+          ' events on the container and observes its size with ',
+          inlineCode('ResizeObserver'),
+          ". Wire it into your app's subscriptions alongside the rest of the framework subscriptions.",
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'The container needs a constrained height for virtualization to work. Without it, the container grows to fit children and never scrolls. Pass ',
+          inlineCode('className'),
+          ' or ',
+          inlineCode('attributes'),
+          ' on ',
+          inlineCode('ViewConfig'),
+          ' to apply the height through your styling system. The component sets only ',
+          inlineCode('overflow: auto'),
+          ' inline; the rest is yours.',
+        ),
+        para(
+          'VirtualList exposes two data attributes for styling and test selectors: ',
+          inlineCode('data-virtual-list-id'),
+          ' on the scrollable container and ',
+          inlineCode('data-virtual-list-item-index'),
+          ' on each rendered row.',
+        ),
+        dataAttributeTable(dataAttributes),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'The container is rendered as ',
+          inlineCode('<ul>'),
+          ' and each row as ',
+          inlineCode('<li>'),
+          '. The top and bottom spacer ',
+          inlineCode('<li>'),
+          ' elements carry ',
+          inlineCode('role="presentation"'),
+          ' so they do not contribute to the list. Each rendered row carries ',
+          inlineCode('aria-setsize'),
+          ' (total item count) and ',
+          inlineCode('aria-posinset'),
+          ' (1-based logical position), so screen readers announce "row 5,234 of 10,000" rather than the much smaller count of mounted rows. No consumer wiring required.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
+        heading(
+          initConfigHeader.level,
+          initConfigHeader.id,
+          initConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('VirtualList.init()'),
+          '.',
+        ),
+        propTable(initConfigProps),
+        heading(
+          viewConfigHeader.level,
+          viewConfigHeader.id,
+          viewConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('VirtualList.view()'),
+          '.',
+        ),
+        propTable(viewConfigProps),
+      ],
+    )
+  },
+)

@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { uiShowcaseViewSourceHref } from '../../link'
@@ -166,7 +167,7 @@ const outMessageProps: ReadonlyArray<PropEntry> = [
       'Emitted when the user drops files on the zone or selects them via the hidden input. The files list is guaranteed non-empty. Pattern-match on the OutMessage in your parent update to process the files (validate, upload, store in Model).',
   },
   {
-    name: 'DroppedWithoutFiles',
+    name: 'RejectedNonFiles',
     type: '{}',
     description:
       'Emitted when a drop or input-change event fires without any files, typically a drag of non-file data (text, URLs, images from another page). Consumers can ignore this or surface a hint to the user.',
@@ -186,145 +187,148 @@ const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/fileDrop', 'FileDrop'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'A file drop zone that accepts files via both drag-and-drop and a hidden ',
-        inlineCode('<input type="file">'),
-        '. FileDrop is headless. The component owns drag state and file-arrival events; your ',
-        inlineCode('toView'),
-        ' callback owns the visual.',
-      ),
-      para(
-        'FileDrop uses the Submodel pattern: initialize with ',
-        inlineCode('FileDrop.init()'),
-        ', delegate in your parent update via ',
-        inlineCode('FileDrop.update()'),
-        ', and render with ',
-        inlineCode('FileDrop.view()'),
-        '. The update function returns ',
-        inlineCode('[Model, Commands, Option<OutMessage>]'),
-        '. `ReceivedFiles` fires when files arrive with a guaranteed non-empty list; `DroppedWithoutFiles` fires when a drop or change event produced no files (e.g. a drag of non-file data). Pattern-match on both.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how FileDrop is wired up in a ',
-        link(uiShowcaseViewSourceHref('fileDrop'), 'real Foldkit app'),
-        '.',
-      ),
-      heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-      para(
-        'A multi-file drop zone. Drag files on or click to browse. The component exposes ',
-        inlineCode('data-drag-over'),
-        ' on the root while a drag hovers, so you can style the highlighted state with ',
-        inlineCode('data-[drag-over]:*'),
-        ' utilities.',
-      ),
-      demoContainer(...FileDrop.basicDemo(model, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiFileDropBasicHighlighted)],
-          [],
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/fileDrop', 'FileDrop'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'A file drop zone that accepts files via both drag-and-drop and a hidden ',
+          inlineCode('<input type="file">'),
+          '. FileDrop is headless. The component owns drag state and file-arrival events; your ',
+          inlineCode('toView'),
+          ' callback owns the visual.',
         ),
-        Snippet.uiFileDropBasicRaw,
-        'Copy file drop example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'FileDrop is headless. Your ',
-        inlineCode('toView'),
-        ' callback composes a ',
-        inlineCode('<label>'),
-        ' with the ',
-        inlineCode('root'),
-        ' attributes and a ',
-        inlineCode('<input>'),
-        ' with the ',
-        inlineCode('input'),
-        ' attributes. Wrap the input inside the label so native click-to-browse works. Use ',
-        inlineCode('data-[drag-over]:*'),
-        ' and ',
-        inlineCode('data-[disabled]:*'),
-        ' utilities to style state variants.',
-      ),
-      dataAttributeTable(dataAttributes),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'The hidden ',
-        inlineCode('<input type="file">'),
-        ' stays in the DOM but visually hidden via the ',
-        inlineCode('sr-only'),
-        ' class so keyboard users can tab to it and trigger the native file picker. Wrapping the input in a ',
-        inlineCode('<label>'),
-        ' (via ',
-        inlineCode('attributes.root'),
-        ') means clicking anywhere on the drop zone opens the picker.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
-      heading(
-        initConfigHeader.level,
-        initConfigHeader.id,
-        initConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('FileDrop.init()'),
-        '.',
-      ),
-      propTable(initConfigProps),
-      heading(
-        viewConfigHeader.level,
-        viewConfigHeader.id,
-        viewConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('FileDrop.view()'),
-        '.',
-      ),
-      propTable(viewConfigProps),
-      heading(
-        fileDropAttributesHeader.level,
-        fileDropAttributesHeader.id,
-        fileDropAttributesHeader.text,
-      ),
-      para(
-        'Attribute groups provided to the ',
-        inlineCode('toView'),
-        ' callback.',
-      ),
-      propTable(fileDropAttributesProps),
-      heading(
-        outMessageHeader.level,
-        outMessageHeader.id,
-        outMessageHeader.text,
-      ),
-      para(
-        'The third element of the update tuple (',
-        inlineCode('[Model, Commands, Option<OutMessage>]'),
-        '). Pattern-match in your parent update handler to process arriving files.',
-      ),
-      propTable(outMessageProps),
-    ],
-  )
-}
+        para(
+          'FileDrop uses the Submodel pattern: initialize with ',
+          inlineCode('FileDrop.init()'),
+          ', delegate in your parent update via ',
+          inlineCode('FileDrop.update()'),
+          ', and render with ',
+          inlineCode('FileDrop.view()'),
+          '. The update function returns ',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          '. `ReceivedFiles` fires when files arrive with a guaranteed non-empty list; `RejectedNonFiles` fires when a drop or change event produced no files (e.g. a drag of non-file data). Pattern-match on both.',
+        ),
+        infoCallout(
+          'See it in an app',
+          'Check out how FileDrop is wired up in a ',
+          link(uiShowcaseViewSourceHref('fileDrop'), 'real Foldkit app'),
+          '.',
+        ),
+        heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
+        para(
+          'A multi-file drop zone. Drag files on or click to browse. The component exposes ',
+          inlineCode('data-drag-over'),
+          ' on the root while a drag hovers, so you can style the highlighted state with ',
+          inlineCode('data-[drag-over]:*'),
+          ' utilities.',
+        ),
+        demoContainer(...FileDrop.basicDemo(model)),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiFileDropBasicHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiFileDropBasicRaw,
+          'Copy file drop example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'FileDrop is headless. Your ',
+          inlineCode('toView'),
+          ' callback composes a ',
+          inlineCode('<label>'),
+          ' with the ',
+          inlineCode('root'),
+          ' attributes and a ',
+          inlineCode('<input>'),
+          ' with the ',
+          inlineCode('input'),
+          ' attributes. Wrap the input inside the label so native click-to-browse works. Use ',
+          inlineCode('data-[drag-over]:*'),
+          ' and ',
+          inlineCode('data-[disabled]:*'),
+          ' utilities to style state variants.',
+        ),
+        dataAttributeTable(dataAttributes),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'The hidden ',
+          inlineCode('<input type="file">'),
+          ' stays in the DOM but visually hidden via the ',
+          inlineCode('sr-only'),
+          ' class so keyboard users can tab to it and trigger the native file picker. Wrapping the input in a ',
+          inlineCode('<label>'),
+          ' (via ',
+          inlineCode('attributes.root'),
+          ') means clicking anywhere on the drop zone opens the picker.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
+        heading(
+          initConfigHeader.level,
+          initConfigHeader.id,
+          initConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('FileDrop.init()'),
+          '.',
+        ),
+        propTable(initConfigProps),
+        heading(
+          viewConfigHeader.level,
+          viewConfigHeader.id,
+          viewConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('FileDrop.view()'),
+          '.',
+        ),
+        propTable(viewConfigProps),
+        heading(
+          fileDropAttributesHeader.level,
+          fileDropAttributesHeader.id,
+          fileDropAttributesHeader.text,
+        ),
+        para(
+          'Attribute groups provided to the ',
+          inlineCode('toView'),
+          ' callback.',
+        ),
+        propTable(fileDropAttributesProps),
+        heading(
+          outMessageHeader.level,
+          outMessageHeader.id,
+          outMessageHeader.text,
+        ),
+        para(
+          'The third element of the update tuple (',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          '). Pattern-match in your parent update handler to process arriving files.',
+        ),
+        propTable(outMessageProps),
+      ],
+    )
+  },
+)

@@ -31,11 +31,8 @@ const descriptionClassName = 'text-sm text-gray-500 dark:text-gray-400'
 
 // VIEW
 
-export const basicDemo = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const basicDemo = (model: Model) => {
+  const h = html<Message>()
 
   return [
     h.div(
@@ -44,7 +41,7 @@ export const basicDemo = <ParentMessage>(
         Ui.Input.view({
           id: 'input-basic-demo',
           value: model.inputDemoValue,
-          onInput: value => toParentMessage(UpdatedInputDemoValue({ value })),
+          onInput: value => UpdatedInputDemoValue({ value }),
           placeholder: 'Enter your full name',
           toView: attributes =>
             h.div(
@@ -67,14 +64,11 @@ export const basicDemo = <ParentMessage>(
   ]
 }
 
-export const disabledDemo = <ParentMessage>(
-  _model: Model,
-  _toParentMessage: (message: Message) => ParentMessage,
-) => {
-  const h = html<ParentMessage>()
+export const disabledDemo = (_model: Model) => {
+  const h = html<Message>()
 
   return [
-    Ui.Input.view<ParentMessage>({
+    Ui.Input.view<Message>({
       id: 'input-disabled-demo',
       isDisabled: true,
       value: 'Ada Lovelace',

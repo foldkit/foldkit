@@ -1,3 +1,4 @@
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { uiShowcaseViewSourceHref } from '../../link'
@@ -76,10 +77,22 @@ const viewConfigHeader: TableOfContentsEntry = {
   text: 'ViewConfig',
 }
 
+const renderInfoHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'render-info',
+  text: 'RenderInfo',
+}
+
 const programmaticHelpersHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'programmatic-helpers',
   text: 'Programmatic Helpers',
+}
+
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
 }
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
@@ -91,7 +104,9 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiReferenceHeader,
   initConfigHeader,
   viewConfigHeader,
+  renderInfoHeader,
   programmaticHelpersHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -130,34 +145,10 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'Floating positioning config: placement, gap, and padding. Required.',
   },
   {
-    name: 'triggerContent',
-    type: 'Html',
-    description: 'Content rendered inside the trigger button.',
-  },
-  {
-    name: 'content',
-    type: 'Html',
-    description: 'Content rendered inside the tooltip panel.',
-  },
-  {
-    name: 'triggerClassName',
-    type: 'string',
-    description: 'CSS class for the trigger button.',
-  },
-  {
-    name: 'triggerAttributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Additional attributes for the trigger button.',
-  },
-  {
-    name: 'panelClassName',
-    type: 'string',
-    description: 'CSS class for the panel.',
-  },
-  {
-    name: 'panelAttributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Additional attributes for the panel.',
+    name: 'toView',
+    type: '(render: RenderInfo) => Html',
+    description:
+      'Callback that receives the `trigger` and `panel` attribute bundles plus a derived `isVisible` flag, and returns the composed layout.',
   },
   {
     name: 'isDisabled',
@@ -168,12 +159,48 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
   },
 ]
 
+const renderInfoProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'trigger',
+    type: 'ReadonlyArray<ChildAttribute>',
+    description:
+      'Spread onto the trigger element. Carries `type="button"`, the hover/focus/keyboard handlers, and `aria-describedby` linking to the panel.',
+  },
+  {
+    name: 'panel',
+    type: 'ReadonlyArray<ChildAttribute>',
+    description:
+      'Spread onto the panel element. Carries `role="tooltip"`, the anchor Mount that positions the panel via Floating UI, and a `data-open` attribute when visible.',
+  },
+  {
+    name: 'isVisible',
+    type: 'boolean',
+    description:
+      'Whether the tooltip is currently visible. The consumer decides whether to render the panel conditionally on this.',
+  },
+]
+
 const programmaticHelpers: ReadonlyArray<PropEntry> = [
   {
-    name: 'setShowDelay',
-    type: '(model: Model, showDelay: Duration.Input) => [Model, Commands]',
+    name: 'reflectShowDelay',
+    type: '(model: Model, showDelay: Duration.Input) => Model',
     description:
-      'Updates the hover show-delay. Accepts any Effect Duration input (a bare number is interpreted as milliseconds). Applies to subsequent hovers; any in-flight delay is invalidated.',
+      'Reflects an externally-sourced hover show-delay onto the model (a user preference, a restored setting) without emitting an OutMessage. Accepts any Effect Duration input; a bare number is milliseconds. The new delay applies on the next hover. Dual: pass just the delay for a point-free setter in an evo callback.',
+  },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'Shown',
+    type: '{}',
+    description:
+      'Emitted once the tooltip transitions to visible (isOpen becomes true). Pattern-match the third tuple element of Tooltip.update to react. Useful for analytics, instrumentation, or coordinating with other transient UI.',
+  },
+  {
+    name: 'Hidden',
+    type: '{}',
+    description:
+      'Emitted once the tooltip transitions to hidden (isOpen becomes false).',
   },
 ]
 
@@ -198,118 +225,145 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-  copiedSnippets: CopiedSnippets,
-): Html => {
-  const h = html<ParentMessage>()
+type ViewInputs = Readonly<{ copiedSnippets: CopiedSnippets }>
 
-  return h.div(
-    [],
-    [
-      pageTitle('ui/tooltip', 'Tooltip'),
-      tableOfContentsEntryToHeader(overviewHeader),
-      para(
-        'A non-interactive floating label anchored to a trigger. Tooltips appear on hover after a short delay, or immediately on keyboard focus. They hide on pointer-leave, blur, Escape, or left-click of the trigger. Use tooltips for short hints about a control. For rich content or interactive panels, use ',
-        inlineCode('Popover'),
-        ' instead.',
-      ),
-      para(
-        'The positioning engine is shared with ',
-        inlineCode('Popover'),
-        ' and ',
-        inlineCode('Menu'),
-        '. Pass ',
-        inlineCode('anchor'),
-        ' to control placement and spacing.',
-      ),
-      infoCallout(
-        'See it in an app',
-        'Check out how Tooltip is wired up in a ',
-        link(uiShowcaseViewSourceHref('tooltip'), 'real Foldkit app'),
-        '.',
-      ),
-      heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-      para(
-        'Hover or tab into the trigger to reveal the tooltip. Hover waits for ',
-        inlineCode('showDelay'),
-        ' (default 500ms); keyboard focus shows it immediately.',
-      ),
-      demoContainer(...Tooltip.demo(model.tooltipDemo, toParentMessage)),
-      highlightedCodeBlock(
-        h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.uiTooltipBasicHighlighted)],
-          [],
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, { copiedSnippets }): Html => {
+    const h = html<Message>()
+
+    return h.div(
+      [],
+      [
+        pageTitle('ui/tooltip', 'Tooltip'),
+        tableOfContentsEntryToHeader(overviewHeader),
+        para(
+          'A non-interactive floating label anchored to a trigger. Tooltips appear on hover after a short delay, or immediately on keyboard focus. They hide on pointer-leave, blur, Escape, or left-click of the trigger. Use tooltips for short hints about a control. For rich content or interactive panels, use ',
+          inlineCode('Popover'),
+          ' instead.',
         ),
-        Snippet.uiTooltipBasicRaw,
-        'Copy tooltip example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
-      para(
-        'Tooltip is headless. The trigger and panel are both styled through className and attribute props. The panel is rendered with ',
-        inlineCode('pointer-events: none'),
-        ' so it never captures hover or clicks, which keeps the open/close logic tied to the trigger.',
-      ),
-      dataAttributeTable(dataAttributes),
-      heading(
-        keyboardInteractionHeader.level,
-        keyboardInteractionHeader.id,
-        keyboardInteractionHeader.text,
-      ),
-      keyboardTable(keyboardEntries),
-      heading(
-        accessibilityHeader.level,
-        accessibilityHeader.id,
-        accessibilityHeader.text,
-      ),
-      para(
-        'The panel has ',
-        inlineCode('role="tooltip"'),
-        ' and the trigger is linked via ',
-        inlineCode('aria-describedby'),
-        '. Focus is never moved into the tooltip, so assistive technology announces the panel contents as a description of the trigger.',
-      ),
-      heading(
-        apiReferenceHeader.level,
-        apiReferenceHeader.id,
-        apiReferenceHeader.text,
-      ),
-      heading(
-        initConfigHeader.level,
-        initConfigHeader.id,
-        initConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('Tooltip.init()'),
-        '.',
-      ),
-      propTable(initConfigProps),
-      heading(
-        viewConfigHeader.level,
-        viewConfigHeader.id,
-        viewConfigHeader.text,
-      ),
-      para(
-        'Configuration object passed to ',
-        inlineCode('Tooltip.view()'),
-        '.',
-      ),
-      propTable(viewConfigProps),
-      heading(
-        programmaticHelpersHeader.level,
-        programmaticHelpersHeader.id,
-        programmaticHelpersHeader.text,
-      ),
-      para(
-        'Helper functions for driving the tooltip from parent update handlers, returning ',
-        inlineCode('[Model, Commands]'),
-        '.',
-      ),
-      propTable(programmaticHelpers),
-    ],
-  )
-}
+        para(
+          'The positioning engine is shared with ',
+          inlineCode('Popover'),
+          ' and ',
+          inlineCode('Menu'),
+          '. Pass ',
+          inlineCode('anchor'),
+          ' to control placement and spacing.',
+        ),
+        infoCallout(
+          'See it in an app',
+          'Check out how Tooltip is wired up in a ',
+          link(uiShowcaseViewSourceHref('tooltip'), 'real Foldkit app'),
+          '.',
+        ),
+        heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
+        para(
+          'Hover or tab into the trigger to reveal the tooltip. Hover waits for ',
+          inlineCode('showDelay'),
+          ' (default 500ms); keyboard focus shows it immediately.',
+        ),
+        demoContainer(...Tooltip.demo(model.tooltipDemo)),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiTooltipBasicHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiTooltipBasicRaw,
+          'Copy tooltip example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
+        heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
+        para(
+          'Tooltip is headless. The ',
+          inlineCode('toView'),
+          ' callback receives attribute bundles for the trigger and panel, and the consumer composes the markup. The panel is rendered with ',
+          inlineCode('pointer-events: none'),
+          ' so it never captures hover or clicks, which keeps the open/close logic tied to the trigger.',
+        ),
+        dataAttributeTable(dataAttributes),
+        heading(
+          keyboardInteractionHeader.level,
+          keyboardInteractionHeader.id,
+          keyboardInteractionHeader.text,
+        ),
+        keyboardTable(keyboardEntries),
+        heading(
+          accessibilityHeader.level,
+          accessibilityHeader.id,
+          accessibilityHeader.text,
+        ),
+        para(
+          'The panel has ',
+          inlineCode('role="tooltip"'),
+          ' and the trigger is linked via ',
+          inlineCode('aria-describedby'),
+          '. Focus is never moved into the tooltip, so assistive technology announces the panel contents as a description of the trigger.',
+        ),
+        heading(
+          apiReferenceHeader.level,
+          apiReferenceHeader.id,
+          apiReferenceHeader.text,
+        ),
+        heading(
+          initConfigHeader.level,
+          initConfigHeader.id,
+          initConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Tooltip.init()'),
+          '.',
+        ),
+        propTable(initConfigProps),
+        heading(
+          viewConfigHeader.level,
+          viewConfigHeader.id,
+          viewConfigHeader.text,
+        ),
+        para(
+          'Configuration object passed to ',
+          inlineCode('Tooltip.view()'),
+          '.',
+        ),
+        propTable(viewConfigProps),
+        heading(
+          renderInfoHeader.level,
+          renderInfoHeader.id,
+          renderInfoHeader.text,
+        ),
+        para(
+          'Payload delivered to the ',
+          inlineCode('toView'),
+          ' callback each render.',
+        ),
+        propTable(renderInfoProps),
+        heading(
+          programmaticHelpersHeader.level,
+          programmaticHelpersHeader.id,
+          programmaticHelpersHeader.text,
+        ),
+        para(
+          'Helper functions for driving the tooltip from parent update handlers, returning ',
+          inlineCode('[Model, Commands]'),
+          '.',
+        ),
+        propTable(programmaticHelpers),
+        heading(
+          outMessageHeader.level,
+          outMessageHeader.id,
+          outMessageHeader.text,
+        ),
+        para(
+          'Messages emitted to the parent through the third element of ',
+          inlineCode('[Model, Commands, Option<OutMessage>]'),
+          '. Fire only on visibility transitions, so consumers don’t see spurious events for messages that only update internal hover/focus/delay state.',
+        ),
+        propTable(outMessageProps),
+      ],
+    )
+  },
+)

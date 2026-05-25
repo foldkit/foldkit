@@ -1,6 +1,6 @@
 import { Array, Option } from 'effect'
-import { Ui } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Submodel, Ui } from 'foldkit'
+import { Html, childAttributes, html } from 'foldkit/html'
 
 import * as Icon from '../../icon'
 import {
@@ -36,6 +36,10 @@ type Character = Readonly<{
   firstName: string
   lastName: string
 }>
+
+export const ItemListbox = Ui.Listbox.create<ListboxItem>()
+export const ItemMultiListbox = Ui.Listbox.Multi.create<ListboxItem>()
+export const CharacterListbox = Ui.Listbox.create<Character>()
 
 const characterName = (character: Character): string =>
   `${character.firstName} ${character.lastName}`
@@ -75,11 +79,8 @@ const LISTBOX_ANCHOR = {
   padding: 8,
 }
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
   const singleButtonLabel = Option.getOrElse(
     model.listboxDemo.maybeSelectedItem,
@@ -109,35 +110,35 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('relative')],
         [
-          Ui.Listbox.view({
+          h.submodel({
+            slotId: 'listbox-single',
             model: model.listboxDemo,
-            toParentMessage: message =>
-              toParentMessage(GotListboxDemoMessage({ message })),
-            anchor: LISTBOX_ANCHOR,
-            items: LISTBOX_ITEMS,
-            itemToConfig: item => ({
-              className: itemClassName,
-              content: h.div(
-                [h.Class('flex items-center gap-2')],
-                [
-                  Icon.check<ParentMessage>(
-                    'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900',
-                  ),
-                  h.span([], [item]),
-                ],
+            view: ItemListbox.view,
+            viewInputs: {
+              anchor: LISTBOX_ANCHOR,
+              items: LISTBOX_ITEMS,
+              itemToConfig: item => ({
+                className: itemClassName,
+                content: h.div(
+                  [h.Class('flex items-center gap-2')],
+                  [
+                    Icon.check(
+                      'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900',
+                    ),
+                    h.span([], [item]),
+                  ],
+                ),
+              }),
+              buttonContent: h.div(
+                [h.Class('flex w-full items-center justify-between gap-4')],
+                [h.span([], [singleButtonLabel]), Icon.chevronDown('w-4 h-4')],
               ),
-            }),
-            buttonContent: h.div(
-              [h.Class('flex w-full items-center justify-between gap-4')],
-              [
-                h.span([], [singleButtonLabel]),
-                Icon.chevronDown<ParentMessage>('w-4 h-4'),
-              ],
-            ),
-            buttonAttributes: [h.Class(triggerClassName)],
-            itemsAttributes: [h.Class(itemsClassName)],
-            backdropAttributes: [h.Class(backdropClassName)],
-            attributes: [h.Class(wrapperClassName)],
+              buttonAttributes: childAttributes([h.Class(triggerClassName)]),
+              itemsAttributes: childAttributes([h.Class(itemsClassName)]),
+              backdropAttributes: childAttributes([h.Class(backdropClassName)]),
+              attributes: childAttributes([h.Class(wrapperClassName)]),
+            },
+            toParentMessage: message => GotListboxDemoMessage({ message }),
           }),
         ],
       ),
@@ -149,35 +150,35 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('relative')],
         [
-          Ui.Listbox.Multi.view({
+          h.submodel({
+            slotId: 'listbox-multi',
             model: model.listboxMultiDemo,
-            toParentMessage: message =>
-              toParentMessage(GotListboxMultiDemoMessage({ message })),
-            anchor: LISTBOX_ANCHOR,
-            items: LISTBOX_ITEMS,
-            itemToConfig: item => ({
-              className: itemClassName,
-              content: h.div(
-                [h.Class('flex items-center gap-2')],
-                [
-                  Icon.check<ParentMessage>(
-                    'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900',
-                  ),
-                  h.span([], [item]),
-                ],
+            view: ItemMultiListbox.view,
+            viewInputs: {
+              anchor: LISTBOX_ANCHOR,
+              items: LISTBOX_ITEMS,
+              itemToConfig: item => ({
+                className: itemClassName,
+                content: h.div(
+                  [h.Class('flex items-center gap-2')],
+                  [
+                    Icon.check(
+                      'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900',
+                    ),
+                    h.span([], [item]),
+                  ],
+                ),
+              }),
+              buttonContent: h.div(
+                [h.Class('flex w-full items-center justify-between gap-4')],
+                [h.span([], [multiButtonLabel]), Icon.chevronDown('w-4 h-4')],
               ),
-            }),
-            buttonContent: h.div(
-              [h.Class('flex w-full items-center justify-between gap-4')],
-              [
-                h.span([], [multiButtonLabel]),
-                Icon.chevronDown<ParentMessage>('w-4 h-4'),
-              ],
-            ),
-            buttonAttributes: [h.Class(triggerClassName)],
-            itemsAttributes: [h.Class(itemsClassName)],
-            backdropAttributes: [h.Class(backdropClassName)],
-            attributes: [h.Class(wrapperClassName)],
+              buttonAttributes: childAttributes([h.Class(triggerClassName)]),
+              itemsAttributes: childAttributes([h.Class(itemsClassName)]),
+              backdropAttributes: childAttributes([h.Class(backdropClassName)]),
+              attributes: childAttributes([h.Class(wrapperClassName)]),
+            },
+            toParentMessage: message => GotListboxMultiDemoMessage({ message }),
           }),
         ],
       ),
@@ -189,45 +190,48 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('relative')],
         [
-          Ui.Listbox.view({
+          h.submodel({
+            slotId: 'listbox-grouped',
             model: model.listboxGroupedDemo,
-            toParentMessage: message =>
-              toParentMessage(GotListboxGroupedDemoMessage({ message })),
-            anchor: LISTBOX_ANCHOR,
-            items: GROUPED_CHARACTERS,
-            itemToValue: characterName,
-            itemGroupKey: character => character.lastName,
-            groupToHeading: lastName => ({
-              content: h.span([], [`${lastName}s`]),
-              className: groupHeadingClassName,
-            }),
-            separatorAttributes: [h.Class(separatorClassName)],
-            itemToConfig: character => ({
-              className: itemClassName,
-              content: h.div(
-                [h.Class('flex items-center gap-2')],
-                [
-                  Icon.check<ParentMessage>(
-                    'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900',
-                  ),
-                  h.span([], [characterName(character)]),
-                ],
+            view: CharacterListbox.view,
+            viewInputs: {
+              anchor: LISTBOX_ANCHOR,
+              items: GROUPED_CHARACTERS,
+              itemToValue: characterName,
+              itemGroupKey: character => character.lastName,
+              groupToHeading: lastName => ({
+                content: h.span([], [`${lastName}s`]),
+                className: groupHeadingClassName,
+              }),
+              separatorAttributes: childAttributes([
+                h.Class(separatorClassName),
+              ]),
+              itemToConfig: character => ({
+                className: itemClassName,
+                content: h.div(
+                  [h.Class('flex items-center gap-2')],
+                  [
+                    Icon.check(
+                      'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900',
+                    ),
+                    h.span([], [characterName(character)]),
+                  ],
+                ),
+              }),
+              buttonContent: h.div(
+                [h.Class('flex w-full items-center justify-between gap-4')],
+                [h.span([], [groupedButtonLabel]), Icon.chevronDown('w-4 h-4')],
               ),
-            }),
-            buttonContent: h.div(
-              [h.Class('flex w-full items-center justify-between gap-4')],
-              [
-                h.span([], [groupedButtonLabel]),
-                Icon.chevronDown<ParentMessage>('w-4 h-4'),
-              ],
-            ),
-            buttonAttributes: [h.Class(triggerClassName)],
-            itemsAttributes: [h.Class(itemsClassName)],
-            backdropAttributes: [h.Class(backdropClassName)],
-            attributes: [h.Class(wrapperClassName)],
+              buttonAttributes: childAttributes([h.Class(triggerClassName)]),
+              itemsAttributes: childAttributes([h.Class(itemsClassName)]),
+              backdropAttributes: childAttributes([h.Class(backdropClassName)]),
+              attributes: childAttributes([h.Class(wrapperClassName)]),
+            },
+            toParentMessage: message =>
+              GotListboxGroupedDemoMessage({ message }),
           }),
         ],
       ),
     ],
   )
-}
+})

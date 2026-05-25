@@ -175,7 +175,7 @@ Foldkit is a complete system, not a collection of libraries you stitch together.
 - **Managed Resources**: Model-driven lifecycle for long-lived browser resources like WebSockets, AudioContext, and RTCPeerConnection. Acquire on state change, release on cleanup.
 - **Submodels**: A pattern for composing nested modules. A child owns its own Model, Messages, update function, and view; the parent embeds it and wraps child Messages in a `Got*Message` envelope. The pattern scales unchanged from a login form to a multi-page app.
 - **OutMessage**: A typed channel for a child Submodel to emit domain events up to its parent, so the parent reacts to meaningful facts instead of internal child Messages.
-- **UI Components**: Accessible, keyboard-friendly primitives covering Button, Checkbox, Combobox, Dialog, Disclosure, DragAndDrop, Fieldset, Input, Listbox, Menu, Popover, RadioGroup, Select, Switch, Tabs, Textarea, and Transition. Every component is a Submodel with a typed `ViewConfig`, domain-event callbacks like `onSelected`, `onClosed`, and `onToggled`, and `className` plus `attributes` props on every slot for styling and extension. Animated components share a `Transition` Submodel that coordinates CSS enter and leave animations.
+- **UI Components**: Accessible, keyboard-friendly primitives covering Button, Checkbox, Combobox, Dialog, Disclosure, DragAndDrop, Fieldset, Input, Listbox, Menu, Popover, RadioGroup, Select, Switch, Tabs, Textarea, and Transition. Stateful components (Checkbox, Combobox, Dialog, Listbox, Menu, and the like) are Submodels you embed with `h.submodel` and consume through their OutMessage; stateless render helpers (Button, Input, Textarea, Select, Fieldset) are called directly with a typed `ViewConfig`. Both expose attribute hooks on every slot for styling and extension. Animated components share a `Transition` Submodel that coordinates CSS enter and leave animations.
 - **Canvas**: Declarative 2D rendering. Describe a scene as a tree of `Shape` values (Rect, Circle, Path, Text, plus Group, which composes children under translate / rotate / scale / opacity), pass them to `Canvas.view`, and the runtime re-paints on every patch. The canvas pixels are a pure function of the shapes, so DevTools time-travel reproduces past frames exactly. Pair with `Subscription.animationFrame` for `requestAnimationFrame`-driven Subscriptions.
 - **Field Validation**: Per-field validation state modeled as a discriminated union. Define rules as data, apply them in update, and the Model tracks the result.
 - **Virtual DOM**: Declarative views powered by [Snabbdom](https://github.com/snabbdom/snabbdom), with lazy memoization and fast, keyed diffing. Views are plain functions of your Model.
@@ -196,6 +196,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 ## Examples
 
 - **[Counter](https://foldkit.dev/example-apps/counter)** — Increment/decrement with reset
+- **[Counters](https://foldkit.dev/example-apps/counters)** — A dynamic list of Counter Submodels with per-instance routing
 - **[Todo](https://foldkit.dev/example-apps/todo)** — CRUD operations with localStorage persistence
 - **[Stopwatch](https://foldkit.dev/example-apps/stopwatch)** — Timer with start/stop/reset
 - **[Crash View](https://foldkit.dev/example-apps/crash-view)** — Custom crash fallback UI with crash reporting

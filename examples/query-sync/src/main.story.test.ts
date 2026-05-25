@@ -13,7 +13,6 @@ import {
   GotDietListboxMessage,
   type Model,
   ReplaceFilters,
-  SelectedDietFilter,
   Unsorted,
   update,
 } from './main'
@@ -118,12 +117,16 @@ describe('update', () => {
     })
   })
 
-  describe('SelectedDietFilter', () => {
+  describe('Listbox SelectedItem', () => {
     test('selecting a diet refocuses the listbox button and replaces the URL', () => {
       Story.story(
         update,
         Story.with(browseModel),
-        Story.message(SelectedDietFilter({ value: 'Carnivore' })),
+        Story.message(
+          GotDietListboxMessage({
+            message: Ui.Listbox.SelectedItem({ item: 'Carnivore' }),
+          }),
+        ),
         Story.Command.resolve(
           Ui.Listbox.FocusButton,
           Ui.Listbox.CompletedFocusButton(),
