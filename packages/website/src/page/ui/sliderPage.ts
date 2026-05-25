@@ -189,6 +189,12 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     description:
       'Form field name. When provided, a hidden input carrying the current numeric value is included for native form submission.',
   },
+  {
+    name: 'getTrackRoot',
+    type: '(() => Document | ShadowRoot) | undefined',
+    description:
+      'Optional accessor returning the DOM root that contains the slider track. Defaults to `document`. Override when rendering inside a Shadow DOM so the drag subscription can find the track element to measure cursor position.',
+  },
 ]
 
 const sliderAttributesProps: ReadonlyArray<PropEntry> = [

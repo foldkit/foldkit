@@ -167,16 +167,16 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       "HTML tag for each row wrapper. Defaults to li (since the container is rendered as ul). Override only when you also wrap the list in something whose children aren't expected to be li.",
   },
   {
-    name: 'className',
-    type: 'string',
+    name: 'containerClassName',
+    type: 'string | undefined',
     description:
       'CSS class applied to the scrollable container. The container needs a constrained height (e.g. h-96) for virtualization to work.',
   },
   {
-    name: 'attributes',
-    type: 'ReadonlyArray<Attribute<Message>>',
+    name: 'containerAttributes',
+    type: 'ReadonlyArray<ChildAttribute> | undefined',
     description:
-      'Additional attributes spread onto the scrollable container. Pass extra Style({...}) entries for CSS like overscroll-behavior or scroll-margin, data attributes, or any other Attribute<Message>.',
+      'Additional attributes spread onto the scrollable container. Pass extra Style({...}) entries for CSS like overscroll-behavior or scroll-margin, data attributes, or any other ChildAttribute.',
   },
 ]
 

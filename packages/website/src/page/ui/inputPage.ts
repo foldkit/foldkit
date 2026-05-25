@@ -106,9 +106,9 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
   },
   {
     name: 'onInput',
-    type: '(value: string) => Message',
+    type: '((value: string) => Message) | undefined',
     description:
-      'Function that maps the current input value to a Message on each input event.',
+      'Optional function that maps the current input value to a Message on each input event. Omit for a read-only display.',
   },
   {
     name: 'value',

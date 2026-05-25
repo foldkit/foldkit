@@ -261,7 +261,7 @@ export const view = <ParentMessage>(
         ' and ',
         inlineCode('Popover.close(model)'),
         ' which return ',
-        inlineCode('[Model, Commands]'),
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
         ' directly.',
       ),
       infoCallout(

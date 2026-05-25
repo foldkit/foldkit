@@ -12,6 +12,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { uiTypedPrimitivesRouter } from '../../route'
 import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import {
@@ -298,6 +299,15 @@ export const view = <ParentMessage>(
         'A custom select dropdown with persistent selection, keyboard navigation, typeahead search, and anchor positioning. Unlike Menu (which is for actions), Listbox tracks the selected value and reflects it in the button. For a searchable input with filtering, use Combobox instead.',
       ),
       para(
+        'Embed Listbox via the ',
+        link(uiTypedPrimitivesRouter(), 'create<Item, Value?>() factory'),
+        ' at module scope: ',
+        inlineCode('const PlansListbox = Ui.Listbox.create<Plan>()'),
+        '. The factory binds the view, update, and imperative helpers to the same ',
+        inlineCode('Item'),
+        ' type so the selected value flows through the OutMessage typed end-to-end.',
+      ),
+      para(
         'For programmatic control in update functions, use ',
         inlineCode('Listbox.open(model)'),
         ', ',
@@ -305,7 +315,7 @@ export const view = <ParentMessage>(
         ', and ',
         inlineCode('Listbox.selectItem(model, item)'),
         '. Each returns ',
-        inlineCode('[Model, Commands]'),
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
         ' directly.',
       ),
       infoCallout(

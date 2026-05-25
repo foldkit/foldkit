@@ -149,38 +149,108 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
   },
   {
     name: 'isItemDisabled',
-    type: '(item, index) => boolean',
+    type: '((item, index) => boolean) | undefined',
     description: 'Disables individual menu items.',
   },
   {
+    name: 'itemToSearchText',
+    type: '((item, index) => string) | undefined',
+    description:
+      'Optional override for the string typeahead matches against. Defaults to the item itself; override when items carry searchable text distinct from their display content.',
+  },
+  {
+    name: 'isButtonDisabled',
+    type: 'boolean | undefined',
+    description:
+      'Disables the trigger button entirely. The menu cannot be opened while true.',
+  },
+  {
     name: 'itemGroupKey',
-    type: '(item, index) => string',
+    type: '((item, index) => string) | undefined',
     description: 'Groups contiguous items by key.',
   },
   {
     name: 'groupToHeading',
-    type: '(groupKey) => GroupHeading | undefined',
+    type: '((groupKey) => GroupHeading | undefined) | undefined',
     description: 'Renders a heading for each group.',
   },
   {
     name: 'anchor',
-    type: 'AnchorConfig',
+    type: 'AnchorConfig | undefined',
     description: 'Floating positioning config: placement, gap, and padding.',
   },
   {
     name: 'buttonClassName',
-    type: 'string',
+    type: 'string | undefined',
     description: 'CSS class for the trigger button.',
   },
   {
+    name: 'buttonAttributes',
+    type: 'ReadonlyArray<ChildAttribute> | undefined',
+    description:
+      'Extra attributes spread onto the trigger button alongside its built-in click/keyboard handlers and aria-* attributes.',
+  },
+  {
     name: 'itemsClassName',
-    type: 'string',
-    description: 'CSS class for the items container.',
+    type: 'string | undefined',
+    description: 'CSS class for the items container (the panel root).',
+  },
+  {
+    name: 'itemsAttributes',
+    type: 'ReadonlyArray<ChildAttribute> | undefined',
+    description: 'Extra attributes spread onto the items container.',
+  },
+  {
+    name: 'itemsScrollClassName',
+    type: 'string | undefined',
+    description:
+      'CSS class for the inner scrollable wrapper around the item list. Useful for setting max-height/overflow without restyling the panel root.',
+  },
+  {
+    name: 'itemsScrollAttributes',
+    type: 'ReadonlyArray<ChildAttribute> | undefined',
+    description: 'Extra attributes spread onto the inner scrollable wrapper.',
   },
   {
     name: 'backdropClassName',
-    type: 'string',
+    type: 'string | undefined',
     description: 'CSS class for the backdrop.',
+  },
+  {
+    name: 'backdropAttributes',
+    type: 'ReadonlyArray<ChildAttribute> | undefined',
+    description: 'Extra attributes spread onto the backdrop element.',
+  },
+  {
+    name: 'groupClassName',
+    type: 'string | undefined',
+    description: 'CSS class applied to each group wrapper.',
+  },
+  {
+    name: 'groupAttributes',
+    type: 'ReadonlyArray<ChildAttribute> | undefined',
+    description: 'Extra attributes spread onto each group wrapper.',
+  },
+  {
+    name: 'separatorClassName',
+    type: 'string | undefined',
+    description:
+      'CSS class applied to the separator rendered between adjacent groups.',
+  },
+  {
+    name: 'separatorAttributes',
+    type: 'ReadonlyArray<ChildAttribute> | undefined',
+    description: 'Extra attributes spread onto each group separator.',
+  },
+  {
+    name: 'className',
+    type: 'string | undefined',
+    description: 'CSS class applied to the outer Menu root element.',
+  },
+  {
+    name: 'attributes',
+    type: 'ReadonlyArray<ChildAttribute> | undefined',
+    description: 'Extra attributes spread onto the outer Menu root element.',
   },
 ]
 

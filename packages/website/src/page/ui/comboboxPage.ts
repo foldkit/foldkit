@@ -12,6 +12,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { uiTypedPrimitivesRouter } from '../../route'
 import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import {
@@ -284,6 +285,17 @@ export const view = <ParentMessage>(
         ' and pass the filtered items array.',
       ),
       para(
+        'Embed Combobox via the ',
+        link(uiTypedPrimitivesRouter(), 'create<Item>() factory'),
+        ' at module scope: ',
+        inlineCode('const CityCombobox = Ui.Combobox.create<City>()'),
+        '. The factory binds the view, update, and imperative helpers to the same ',
+        inlineCode('Item'),
+        ' type so the selected value flows through the OutMessage typed end-to-end. Combobox constrains ',
+        inlineCode('Item extends string'),
+        '.',
+      ),
+      para(
         'For programmatic control in update functions, use ',
         inlineCode('Combobox.open(model)'),
         ', ',
@@ -291,7 +303,7 @@ export const view = <ParentMessage>(
         ', and ',
         inlineCode('Combobox.selectItem(model, item, displayText)'),
         '. Each returns ',
-        inlineCode('[Model, Commands]'),
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
         ' directly.',
       ),
       infoCallout(
