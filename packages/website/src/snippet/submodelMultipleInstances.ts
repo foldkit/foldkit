@@ -28,18 +28,18 @@ export const view = (model: Model): Html => {
 }
 
 // Update: route the wrapper Message by `entryId` to the right slice.
-// Find the index, delegate to the child's update, and re-wrap any
-// Commands the child returned with the same `entryId`.
+// Find the matching applicant and its index, delegate to the child's
+// update, and re-wrap any Commands the child returned with the same
+// `entryId`.
 GotApplicantMessage: ({ entryId, message }) =>
   Option.match(
-    Array.findFirstIndex(
+    Array.findFirstWithIndex(
       model.applicants,
       applicant => applicant.id === entryId,
     ),
     {
       onNone: () => [model, []],
-      onSome: index => {
-        const applicant = model.applicants[index]
+      onSome: ([applicant, index]) => {
         const [nextEntry, commands] = Applicant.update(applicant.entry, message)
         return [
           evo(model, {

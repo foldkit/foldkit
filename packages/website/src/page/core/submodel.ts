@@ -430,7 +430,7 @@ export const view = (
         'mb-8',
       ),
       para(
-        'Instead, go through the child’s update. The canonical form is to call a helper the child exports. The parent writes ',
+        'Instead, go through the child’s update. When the parent has its own Message that needs to change child state (a Click handler, a route effect, a Command result), the canonical form is to call a helper the child exports. The parent writes ',
         inlineCode('Settings.setTheme(model.settings, "Light")'),
         ' and never imports ',
         inlineCode('ChangedTheme'),
@@ -450,7 +450,7 @@ export const view = (
         'mb-8',
       ),
       para(
-        'This is what every Foldkit UI primitive does. ',
+        'This is the pattern most stateful Foldkit UI primitives use for common parent-initiated operations. ',
         inlineCode('Ui.Listbox.selectItem'),
         ', ',
         inlineCode('Ui.Popover.close'),
@@ -463,6 +463,13 @@ export const view = (
         ': it builds the child Message and runs it through update, returning the same ',
         inlineCode('[Model, Commands]'),
         ' tuple.',
+      ),
+      para(
+        'This only applies to parent-initiated changes. For Messages that came from the child via ',
+        inlineCode('GotChildMessage'),
+        ' (a toggle dispatched from the user clicking the child’s button, a Command result returning back into the child), you already have the Message; just call ',
+        inlineCode('Child.update(model.child, message)'),
+        ' directly. The helper pattern is for the inverse direction: parent code that needs to drive the child.',
       ),
       para('Three things break when the parent bypasses the child’s update.'),
       para(
@@ -574,20 +581,25 @@ export const view = (
                         ),
                       ],
                       [
-                        highlightedCodeBlock(
-                          h.div(
-                            [
-                              h.Class('text-sm'),
-                              h.InnerHTML(
-                                Snippets.commandMapMessagesUnderHoodHighlighted,
+                        h.div(
+                          [h.Class('-mt-8')],
+                          [
+                            highlightedCodeBlock(
+                              h.div(
+                                [
+                                  h.Class('text-sm'),
+                                  h.InnerHTML(
+                                    Snippets.commandMapMessagesUnderHoodHighlighted,
+                                  ),
+                                ],
+                                [],
                               ),
-                            ],
-                            [],
-                          ),
-                          Snippets.commandMapMessagesUnderHoodRaw,
-                          'Copy snippet to clipboard',
-                          copiedSnippets,
-                          'mb-4',
+                              Snippets.commandMapMessagesUnderHoodRaw,
+                              'Copy snippet to clipboard',
+                              copiedSnippets,
+                              'mb-4',
+                            ),
+                          ],
                         ),
                         h.p(
                           [h.Class('leading-relaxed')],
