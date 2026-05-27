@@ -31,10 +31,10 @@ const whatFoldkitIsForHeader: TableOfContentsEntry = {
   text: 'The kind of app Foldkit is for',
 }
 
-const prerenderingHeader: TableOfContentsEntry = {
+const ssgTodayHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'what-foldkit-does-instead-ssg',
-  text: 'What Foldkit does instead: SSG',
+  id: 'what-foldkit-does-today-ssg',
+  text: 'What Foldkit does today: SSG',
 }
 
 const thisSiteHeader: TableOfContentsEntry = {
@@ -43,7 +43,19 @@ const thisSiteHeader: TableOfContentsEntry = {
   text: 'This site uses SSG',
 }
 
-const noPerRequestHeader: TableOfContentsEntry = {
+const perRequestRoadmapHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'on-the-roadmap-per-request-render-and-hydrate',
+  text: 'On the roadmap: per-request render and hydrate',
+}
+
+const underConsiderationHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'under-consideration-running-commands-on-the-server',
+  text: 'Under consideration: running Commands on the server',
+}
+
+const willNotDoHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'what-foldkit-will-not-do',
   text: 'What Foldkit will not do',
@@ -53,9 +65,11 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   whatSsrBuysHeader,
   whatFoldkitIsForHeader,
-  prerenderingHeader,
+  ssgTodayHeader,
   thisSiteHeader,
-  noPerRequestHeader,
+  perRequestRoadmapHeader,
+  underConsiderationHeader,
+  willNotDoHeader,
 ]
 
 export const view = (): Html => {
@@ -67,7 +81,7 @@ export const view = (): Html => {
       pageTitle('on-ssr', 'On SSR'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Foldkit is a client-first framework. Apps run as a single-page application: ship a small HTML shell and boot the Foldkit runtime. People coming from Next.js or TanStack Start often ask why Foldkit does not render on the server.',
+        'Foldkit is a client-first framework. Apps run as a single-page application today: ship a small HTML shell and boot the Foldkit runtime. Static pre-rendering is supported. Per-request server rendering with a hydration handoff is on the roadmap as a first-class capability.',
       ),
       tableOfContentsEntryToHeader(whatSsrBuysHeader),
       para(
@@ -100,7 +114,7 @@ export const view = (): Html => {
       para(
         'For a marketing site, a docs site, or a content-heavy app where users read more than they interact, you should probably pick a different tool. Astro, Next.js, and TanStack Start are excellent at that job. Foldkit is not built for it.',
       ),
-      tableOfContentsEntryToHeader(prerenderingHeader),
+      tableOfContentsEntryToHeader(ssgTodayHeader),
       para(
         'The architecture is not hostile to pre-rendering. ',
         link(coreViewRouter(), 'The view function'),
@@ -130,16 +144,48 @@ export const view = (): Html => {
         inlineCode('init'),
         ' will pre-render their loading state, with real content arriving after hydration.',
       ),
-      tableOfContentsEntryToHeader(noPerRequestHeader),
+      tableOfContentsEntryToHeader(perRequestRoadmapHeader),
       para(
-        'Per-request server rendering with a hydration handoff is not on the roadmap. Frameworks that try to be both render-on-the-server and run-on-the-client end up with two programming models pretending to be one. Foldkit picks one.',
+        'Per-request server rendering with a hydration handoff is on the roadmap as a first-class capability. The developer enables SSR once, and the server handles initial page loads for every route, the same way SSG handles every route today. When a request arrives, the server runs ',
+        inlineCode('init'),
+        ' for that URL, renders ',
+        inlineCode('view(model)'),
+        ' to a string, and ships the HTML in the response. The browser boots the runtime, reconstructs the same Model, attaches event listeners to the pre-rendered DOM, and runs the Commands that ',
+        inlineCode('init'),
+        ' returned. From there, in-app navigation is client-side, the same as any Foldkit SPA.',
       ),
       para(
-        'The result is an architecture that is uniform end to end: no ',
+        'The same code runs on both sides. Same ',
+        inlineCode('init'),
+        ', same ',
+        inlineCode('view'),
+        ', same ',
+        inlineCode('update'),
+        ', same Model. No two flavors of data fetching, no ',
         inlineCode("'use client'"),
         ' or ',
         inlineCode("'use server'"),
-        ' annotations, no two flavors of data fetching, no hydration mismatches. The entire app is one Model evolving through one update loop.',
+        ' boundary. Hydration mismatch is structurally ruled out: the view is a pure function of the Model, and both sides start from the same Model.',
+      ),
+      para(
+        'This is the form of SSR most people are asking about when they say "SSR". It covers correct first-paint HTML, SEO for dynamic URLs, and social link previews, without introducing a second programming model.',
+      ),
+      tableOfContentsEntryToHeader(underConsiderationHeader),
+      para(
+        'A further step is to run Commands on the server during the initial render, so HTML ships with data already loaded rather than a loading state. This is tractable but introduces environment-awareness that Foldkit currently keeps out: per-request server context (cookies, auth, headers), Commands tagged as server-runnable versus client-only (a ',
+        inlineCode('ServerCommand'),
+        ' primitive), and services bound differently per side.',
+      ),
+      para(
+        'None of that splits the programming model in the Server Components sense. It does add an environment dimension to primitives that today have none. The shape is being designed before commitment.',
+      ),
+      tableOfContentsEntryToHeader(willNotDoHeader),
+      para(
+        'Server Components are not on the roadmap. The Foldkit tree is a function of one Model. Splitting it into server-only and client-only halves breaks the architecture. No ',
+        inlineCode("'use client'"),
+        ' or ',
+        inlineCode("'use server'"),
+        ' annotations, no two flavors of data fetching, no two programming models pretending to be one.',
       ),
       para(
         'The recommendation is Effect-TS across the stack: a backend whose job is receiving requests and returning data, a Foldkit frontend whose job is rendering it. The line between server and client stays at the data, not the view.',
