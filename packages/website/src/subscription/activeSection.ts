@@ -29,7 +29,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           M.tags({
             Manifesto: () => Page.Manifesto.tableOfContents,
             WhyNoJsx: () => Page.WhyNoJsx.tableOfContents,
-            OnSsr: () => Page.OnSsr.tableOfContents,
+            WhatAboutSsr: () => Page.WhatAboutSsr.tableOfContents,
             GettingStarted: () => Page.GettingStarted.tableOfContents,
             ComingFromReact: () => Page.ComingFromReact.tableOfContents,
             ReactComparison: () => Page.ReactComparison.tableOfContents,
