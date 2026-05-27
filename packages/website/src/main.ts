@@ -496,27 +496,7 @@ export const update = (
             }): [
               Model,
               ReadonlyArray<Command.Command<typeof CompletedNavigateInternal>>,
-            ] =>
-              Option.match(url.hash, {
-                onNone: () => [
-                  model,
-                  [NavigateInternal({ url: urlToString(url) })],
-                ],
-                onSome: hash => {
-                  const isSamePagePath =
-                    urlToString({ ...url, hash: Option.none() }) ===
-                    urlToString({ ...model.url, hash: Option.none() })
-
-                  if (isSamePagePath) {
-                    return [model, [NavigateToFragment({ hash })]]
-                  } else {
-                    return [
-                      model,
-                      [NavigateInternal({ url: urlToString(url) })],
-                    ]
-                  }
-                },
-              }),
+            ] => [model, [NavigateInternal({ url: urlToString(url) })]],
             External: ({
               href,
             }): [
@@ -1227,22 +1207,6 @@ const NavigateInternal = Command.define(
   { url: S.String },
   CompletedNavigateInternal,
 )(({ url }) => pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())))
-
-// NOTE: iOS Safari's Share Sheet does not reliably reflect `history.pushState`
-// URL changes for hash-only fragments. Setting `location.hash` is native hash
-// navigation, which Safari treats as a real navigation and copies into the
-// share URL. We also dispatch `foldkit:urlchange` so the runtime updates the
-// model in sync.
-const NavigateToFragment = Command.define(
-  'NavigateToFragment',
-  { hash: S.String },
-  CompletedNavigateInternal,
-)(({ hash }) =>
-  Effect.sync(() => {
-    window.location.hash = hash
-    window.dispatchEvent(new CustomEvent('foldkit:urlchange'))
-  }).pipe(Effect.as(CompletedNavigateInternal())),
-)
 
 const LoadExternal = Command.define(
   'LoadExternal',
