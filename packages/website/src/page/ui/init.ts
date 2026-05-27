@@ -70,6 +70,13 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
       id: 'popover-animated-demo',
       isAnimated: true,
     }),
+    popoverNestedParentDemo: Ui.Popover.init({
+      id: 'popover-nested-parent-demo',
+      contentFocus: true,
+    }),
+    popoverNestedChildDemo: Ui.Popover.init({
+      id: 'popover-nested-child-demo',
+    }),
     verticalRadioGroupDemo: Ui.RadioGroup.init({
       id: 'vertical-radio-group-demo',
     }),
