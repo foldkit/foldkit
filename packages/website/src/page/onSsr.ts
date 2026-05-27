@@ -19,12 +19,6 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
-const whatSsrBuysHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'what-ssr-actually-buys-you',
-  text: 'What SSR actually buys you',
-}
-
 const whatFoldkitIsForHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'the-kind-of-app-foldkit-is-for',
@@ -63,7 +57,6 @@ const willNotDoHeader: TableOfContentsEntry = {
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
-  whatSsrBuysHeader,
   whatFoldkitIsForHeader,
   ssgTodayHeader,
   thisSiteHeader,
@@ -83,22 +76,6 @@ export const view = (): Html => {
       para(
         'Foldkit is a client-first framework. Apps run as a single-page application today: ship a small HTML shell and boot the Foldkit runtime. Static pre-rendering is supported. Per-request server rendering with a hydration handoff is on the roadmap as a first-class capability.',
       ),
-      tableOfContentsEntryToHeader(whatSsrBuysHeader),
-      para(
-        'SSR is a bundle of features that often get conflated. It is worth separating them before deciding what you actually need:',
-      ),
-      bullets(
-        'Faster first paint, because rendered HTML arrives in the response.',
-        'Better SEO for pages whose content needs to be indexed.',
-        'Less JavaScript on the client for content that does not need interactivity.',
-        'Server-side data fetching with no client waterfall.',
-      ),
-      para(
-        'Each of these has a different cost. Static pre-rendering gives you the first three at build time, with no server. Per-request SSR adds latency to every navigation and requires running infrastructure. Server components add an entire second programming model on top.',
-      ),
-      para(
-        'When a framework says "we have SSR", it pays to ask which of those features you are signing up for, and which costs come with them.',
-      ),
       tableOfContentsEntryToHeader(whatFoldkitIsForHeader),
       para(
         'Foldkit is for apps, not documents. The architecture pays off when:',
@@ -109,10 +86,10 @@ export const view = (): Html => {
         'The interesting questions are about behavior over time, not first paint.',
       ),
       para(
-        'Editors, dashboards, multiplayer rooms, internal tools, configurators, games. The user opens the app, works inside it, closes it. SEO rarely matters. First paint matters once. Time to interactive matters more.',
+        'Editors, dashboards, multiplayer rooms, internal tools, configurators, games. The user opens the app, works inside it, closes it. Time to interactive is what matters most.',
       ),
       para(
-        'For a marketing site, a docs site, or a content-heavy app where users read more than they interact, you should probably pick a different tool. Astro, Next.js, and TanStack Start are excellent at that job. Foldkit is not built for it.',
+        'Per-request SSR landing as a first-class capability widens the door for content-heavy app shells too. They can get correct first-paint HTML, SEO for dynamic URLs, and social previews without leaving the architecture. Where another tool still fits better is the inverse case: a site that is mostly prose with a sprinkle of interactivity, where the framework exists to deliver content. Astro is excellent at that.',
       ),
       tableOfContentsEntryToHeader(ssgTodayHeader),
       para(
@@ -168,7 +145,7 @@ export const view = (): Html => {
         ' boundary. Hydration mismatch is structurally ruled out: the view is a pure function of the Model, and both sides start from the same Model.',
       ),
       para(
-        'This is the form of SSR most people are asking about when they say "SSR". It covers correct first-paint HTML, SEO for dynamic URLs, and social link previews, without introducing a second programming model.',
+        'When people say "SSR" they usually mean a bundle of things: rendered HTML arriving in the response for a faster first paint, SEO for content that needs indexing, social link previews for dynamic URLs, and server-side data fetching so the client does not waterfall. Per-request render and hydrate covers the first three out of the box, without introducing a second programming model. The fourth is the next open question.',
       ),
       tableOfContentsEntryToHeader(underConsiderationHeader),
       para(
