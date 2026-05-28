@@ -8,6 +8,7 @@ import { Icon } from '../icon'
 import type { Message } from '../message'
 import { exampleDetailRouter, examplesRouter } from '../route'
 import { type ExampleMeta, findBySlug } from './example/meta'
+import { stackBlitzPlaygroundEmbedOptions } from './playgroundConfig'
 
 export const SucceededPlaygroundEmbed = m('SucceededPlaygroundEmbed')
 export const FailedPlaygroundEmbed = m('FailedPlaygroundEmbed', {
@@ -42,13 +43,7 @@ const PlaygroundEmbed = Mount.define(
                 template: 'node',
                 files,
               },
-              {
-                height: '100%',
-                hideNavigation: true,
-                openFile: 'src/main.ts',
-                showSidebar: true,
-                view: 'default',
-              },
+              stackBlitzPlaygroundEmbedOptions,
             ),
           ),
         )
