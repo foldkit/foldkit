@@ -42,8 +42,13 @@ const PlaygroundEmbed = Mount.define(
                 template: 'node',
                 files,
               },
+              // NOTE: crossOriginIsolated requires the COOP/COEP headers
+              // set on /playground/(.*) in vercel.json. Without those
+              // headers the host page is not cross-origin isolated and
+              // the WebContainer embed fails to bootstrap.
               {
                 height: '100%',
+                crossOriginIsolated: true,
                 hideNavigation: true,
                 openFile: 'src/main.ts',
                 showSidebar: true,
