@@ -71,7 +71,7 @@ export const view = (): Html => {
   return h.div(
     [],
     [
-      pageTitle('on-ssr', 'On SSR'),
+      pageTitle('what-about-ssr', 'What about SSR?'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
         'Foldkit is a client-first framework. Apps run as a single-page application today: ship a small HTML shell and boot the Foldkit runtime. Static pre-rendering is supported. Per-request server rendering with a hydration handoff is on the roadmap as a first-class capability.',
@@ -115,7 +115,7 @@ export const view = (): Html => {
         'The cost is paid at build time, not at runtime. There is no Node server in production. The output is plain static files that any CDN can serve. Crawlers see fully rendered HTML. Users see real content before the runtime boots.',
       ),
       para(
-        'A Foldkit primitive for this pattern is on the roadmap. Until then, the website pre-render script is the reference implementation. It captures the view as it stands right after ',
+        'The website pre-render script is the reference implementation for this pattern. It captures the view as it stands right after ',
         inlineCode('init'),
         ' returns. That is the full content when the Model already has everything the page needs (docs, marketing, this site). App shells that fetch data after ',
         inlineCode('init'),

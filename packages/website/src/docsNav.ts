@@ -38,7 +38,6 @@ import {
   fieldValidationRouter,
   gettingStartedRouter,
   manifestoRouter,
-  onSsrRouter,
   patternsOutMessageRouter,
   patternsSubmodelsRouter,
   patternsSubscriptionOrganizationRouter,
@@ -74,6 +73,7 @@ import {
   uiToastRouter,
   uiTooltipRouter,
   uiVirtualListRouter,
+  whatAboutSsrRouter,
   whyNoJsxRouter,
 } from './route'
 
@@ -329,9 +329,9 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Why no JSX?',
         },
         {
-          _tag: 'OnSsr',
-          href: onSsrRouter(),
-          label: 'On SSR',
+          _tag: 'WhatAboutSsr',
+          href: whatAboutSsrRouter(),
+          label: 'What about SSR?',
         },
       ],
     ],

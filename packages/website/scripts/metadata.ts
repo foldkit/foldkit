@@ -55,8 +55,8 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Why Foldkit uses a typed function-call DSL instead of JSX, with side-by-side comparisons of buttons, inputs, and conditional rendering.',
     'FAQ',
   ),
-  OnSsr: docs(
-    'On SSR',
+  WhatAboutSsr: docs(
+    'What about SSR?',
     'Foldkit is client-first by design. What server rendering actually buys you, the kind of app Foldkit is for, the tradeoff, and how the Foldkit website pre-renders every route at build time using the runtime in headless Chromium.',
     'FAQ',
   ),
