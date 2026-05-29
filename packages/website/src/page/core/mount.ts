@@ -72,9 +72,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' is a function from Model to Html. It doesn’t reach into the DOM, it doesn’t hold references, it doesn’t run side effects. That purity is what makes Foldkit programs predictable.',
       ),
       para(
-        'Mount is the moment an element enters the live DOM, when the virtual DOM becomes real. ',
+        'Mount binds an imperative, element-scoped side effect to a view element for as long as that element lives in the DOM. It sets up when the element enters and tears down when the element leaves. ',
         inlineCode('OnMount'),
-        ' is the seam where view code can drop down to imperative work at that moment. The common shape, ',
+        ' is the seam where view code drops down to imperative work on the live element. The common shape, ',
         inlineCode('Mount.define'),
         ', runs an ',
         inlineCode('Effect<Message>'),
