@@ -2,11 +2,14 @@ import { Layer } from 'effect'
 import { Runtime } from 'foldkit'
 
 import {
+  type AppManagedResources,
+  type AppResources,
   Flags,
   Model,
   devTracerLayer,
   flags,
   init,
+  managedResources,
   subscriptions,
   update,
   view,
@@ -15,7 +18,18 @@ import { ChangedUrl, ClickedLink, Message } from './message'
 import * as Page from './page'
 import * as Search from './search'
 
-const program = Runtime.makeProgram({
+// NOTE: TS can't infer `Resources`/`ManagedResourceServices` from the
+// config object. `update` returns Commands whose requirement is the
+// union of every service the app uses, but inference walks the config
+// shape, not the Commands inside. The explicit generics tell TS the
+// full set so each Command's requirements stay assignable.
+const program = Runtime.makeProgram<
+  typeof Model.Type,
+  Message,
+  typeof Flags.Type,
+  AppResources,
+  AppManagedResources
+>({
   Model,
   Flags,
   flags,
@@ -23,6 +37,7 @@ const program = Runtime.makeProgram({
   update,
   view,
   subscriptions,
+  managedResources,
   container: document.getElementById('root'),
   routing: {
     onUrlRequest: request => ClickedLink({ request }),

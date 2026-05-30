@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+@theme {
+  --breakpoint-playground-wide: 1780px;
+}
+
 @font-face {
   font-family: 'ABC Favorit';
   src: url('/fonts/ABCFavorit-Light.woff2') format('woff2');

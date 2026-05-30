@@ -73,6 +73,21 @@ jobs:
                 },
                 "continue": true
               },
+              {
+                "src": "^/playground/.*",
+                "headers": {
+                  "Cross-Origin-Embedder-Policy": "credentialless",
+                  "Cross-Origin-Opener-Policy": "same-origin"
+                },
+                "continue": true
+              },
+              {
+                "src": ".*",
+                "headers": {
+                  "Cross-Origin-Resource-Policy": "same-origin"
+                },
+                "continue": true
+              },
               { "handle": "filesystem" },
               {
                 "src": "/",

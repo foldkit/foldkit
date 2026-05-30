@@ -6,7 +6,9 @@ import { basename, extname, join, relative, resolve } from 'node:path'
 import { codeToHtml } from 'shiki'
 import { type Plugin, defineConfig } from 'vite'
 
+import { monacoWorkersPlugin } from './scripts/monacoWorkersPlugin'
 import { playgroundFilesPlugin } from './scripts/playgroundFilesPlugin'
+import { playgroundTypesPlugin } from './scripts/playgroundTypesPlugin'
 import {
   ParsedApiReference,
   collectNamedSchemas,
@@ -877,11 +879,49 @@ const embeddedExampleRedirectPlugin = (): Plugin => ({
   },
 })
 
+// NOTE: Mirrors the `/playground/.*` COOP/COEP rule in
+// .github/workflows/deploy-website.yml so the WebContainer playground
+// boots in `pnpm dev` and `pnpm preview`. The deployed Vercel config is
+// the source of truth; this is the dev-mode equivalent.
+//
+// CORP same-origin goes on every response (not just /playground/*) so
+// that Monaco's editor and worker scripts loaded by the credentialless
+// /playground/* page satisfy COEP. Workers in credentialless contexts
+// require their script URLs to return a CORP-compatible response, and
+// Vite serves those from non-/playground paths.
+const setIsolationHeaders = (
+  url: string | undefined,
+  res: { setHeader: (name: string, value: string) => void },
+) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin')
+  if (url?.startsWith('/playground/')) {
+    res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless')
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
+  }
+}
+
+const playgroundIsolationHeadersPlugin = (): Plugin => ({
+  name: 'playground-isolation-headers',
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      setIsolationHeaders(req.url, res)
+      next()
+    })
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use((req, res, next) => {
+      setIsolationHeaders(req.url, res)
+      next()
+    })
+  },
+})
+
 export default defineConfig({
   plugins: [
     tailwindcss(),
     foldkit({ devToolsMcpPort: 9988 }),
     embeddedExampleRedirectPlugin(),
+    playgroundIsolationHeadersPlugin(),
     highlightCodePlugin(),
     highlightApiSignaturesPlugin(),
     apiModuleIndexPlugin(),
@@ -891,6 +931,8 @@ export default defineConfig({
     notePlayerDemoCodePlugin(),
     highlightExampleSourcesPlugin(),
     playgroundFilesPlugin(),
+    playgroundTypesPlugin(),
+    monacoWorkersPlugin(),
     cssLoadOrderPlugin(),
   ],
 })

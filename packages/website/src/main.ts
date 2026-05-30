@@ -65,6 +65,7 @@ import {
   GotNotePlayerDemoMessage,
   GotPatternsGroupMessage,
   GotPlaygroundMenuMessage,
+  GotPlaygroundMessage,
   GotSearchMessage,
   GotTestingGroupMessage,
   GotUiPageMessage,
@@ -80,6 +81,7 @@ import * as Page from './page'
 import {
   AppRoute,
   isLandingHeaderAlwaysVisible,
+  isPlaygroundRoute,
   playgroundRouter,
   urlToAppRoute,
 } from './route'
@@ -235,7 +237,7 @@ export const Model = S.Struct({
   isLandingHeaderVisible: S.Boolean,
   isNarrowViewport: S.Boolean,
   isChromium: S.Boolean,
-  playgroundError: S.Option(S.String),
+  playground: S.Option(Page.Playground.Model),
   getStartedGroup: Ui.Disclosure.Model,
   coreConceptsGroup: Ui.Disclosure.Model,
   forReactDevelopersGroup: Ui.Disclosure.Model,
@@ -267,9 +269,11 @@ export type Model = typeof Model.Type
 
 // INIT
 
-type AppResources =
+export type AppResources =
   | Page.NotePlayerDemo.AudioContextService
   | Search.PagefindService
+
+export type AppManagedResources = Page.Playground.WebContainerPlaygroundService
 
 const isGroupOpenOnBoot = (
   maybeSidebarState: Option.Option<SidebarState>,
@@ -284,7 +288,8 @@ export const init: Runtime.RoutingProgramInit<
   Model,
   Message,
   Flags,
-  AppResources
+  AppResources,
+  AppManagedResources
 > = (flags: Flags, url: Url) => {
   const themePreference = Option.getOrElse(
     flags.themePreference,
@@ -368,7 +373,11 @@ export const init: Runtime.RoutingProgramInit<
       isLandingHeaderVisible: isLandingHeaderAlwaysVisible(initialRoute),
       isNarrowViewport: flags.isNarrowViewport,
       isChromium: flags.isChromium,
-      playgroundError: Option.none(),
+      playground: pipe(
+        initialRoute,
+        Option.liftPredicate(isPlaygroundRoute),
+        Option.map(({ exampleSlug }) => Page.Playground.init(exampleSlug)),
+      ),
       getStartedGroup: Ui.Disclosure.init({
         id: 'get-started-group',
         isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'getStarted'),
@@ -460,7 +469,9 @@ const handleSidebarGroup = (
   toParentMessage: (message: Ui.Disclosure.Message) => Message,
 ): readonly [
   Model,
-  ReadonlyArray<Command.Command<Message, never, AppResources>>,
+  ReadonlyArray<
+    Command.Command<Message, never, AppResources | AppManagedResources>
+  >,
 ] => {
   const [next, commands] = Ui.Disclosure.update(prev, message)
   const nextModel = toModel(next)
@@ -478,13 +489,17 @@ export const update = (
   message: Message,
 ): readonly [
   Model,
-  ReadonlyArray<Command.Command<Message, never, AppResources>>,
+  ReadonlyArray<
+    Command.Command<Message, never, AppResources | AppManagedResources>
+  >,
 ] =>
   M.value(message).pipe(
     M.withReturnType<
       readonly [
         Model,
-        ReadonlyArray<Command.Command<Message, never, AppResources>>,
+        ReadonlyArray<
+          Command.Command<Message, never, AppResources | AppManagedResources>
+        >,
       ]
     >(),
     M.tags({
@@ -495,8 +510,24 @@ export const update = (
               url,
             }): [
               Model,
-              ReadonlyArray<Command.Command<typeof CompletedNavigateInternal>>,
-            ] => [model, [NavigateInternal({ url: urlToString(url) })]],
+              ReadonlyArray<
+                Command.Command<
+                  | typeof CompletedNavigateInternal
+                  | typeof CompletedLoadExternal
+                >
+              >,
+            ] => {
+              // NOTE: WebContainer requires `window.crossOriginIsolated`,
+              // which only becomes true when the document is loaded with
+              // the COEP/COOP response headers set in deploy-website.yml
+              // and vite.config.ts. SPA navigation reuses the previous
+              // page's document (no headers), so we navigate to playground
+              // URLs by loading a fresh document instead.
+              if (isPlaygroundRoute(urlToAppRoute(url))) {
+                return [model, [LoadExternal({ href: urlToString(url) })]]
+              }
+              return [model, [NavigateInternal({ url: urlToString(url) })]]
+            },
             External: ({
               href,
             }): [
@@ -550,7 +581,14 @@ export const update = (
             mobileMenuDialog: () => closedMobileMenu,
             apiReference: () => nextApiReference,
             exampleDetail: () => nextExampleDetail,
-            playgroundError: () => Option.none(),
+            playground: () =>
+              pipe(
+                nextRoute,
+                Option.liftPredicate(isPlaygroundRoute),
+                Option.map(({ exampleSlug }) =>
+                  Page.Playground.init(exampleSlug),
+                ),
+              ),
             search: search => ({
               ...search,
               dialog: closedSearchDialog,
@@ -780,9 +818,10 @@ export const update = (
                 Effect.map(message => GotPlaygroundMenuMessage({ message })),
               ),
             ),
-            NavigateInternal({
-              url: playgroundRouter({ exampleSlug: slug }),
-            }),
+            // NOTE: `LoadExternal` (not `NavigateInternal`). Same
+            // cross-origin-isolation reason as the playground branch of
+            // `ClickedLink`.
+            LoadExternal({ href: playgroundRouter({ exampleSlug: slug }) }),
           ],
         ]
       },
@@ -1002,10 +1041,26 @@ export const update = (
         ]
       },
 
-      FailedPlaygroundEmbed: ({ reason }) => [
-        evo(model, { playgroundError: () => Option.some(reason) }),
-        [],
-      ],
+      GotPlaygroundMessage: ({ message }) =>
+        Option.match(model.playground, {
+          onNone: () => [model, []],
+          onSome: playgroundModel => {
+            const [nextPlayground, playgroundCommands] = Page.Playground.update(
+              playgroundModel,
+              message,
+            )
+            return [
+              evo(model, { playground: () => Option.some(nextPlayground) }),
+              playgroundCommands.map(
+                Command.mapEffect(
+                  Effect.map(nextMessage =>
+                    GotPlaygroundMessage({ message: nextMessage }),
+                  ),
+                ),
+              ),
+            ]
+          },
+        }),
     }),
     M.tag(
       'CompletedNavigateInternal',
@@ -1020,7 +1075,6 @@ export const update = (
       'SucceededCopyLink',
       'FailedCopyLink',
       'FailedCopySnippet',
-      'SucceededPlaygroundEmbed',
       () => [model, []],
     ),
     M.exhaustive,
@@ -1225,7 +1279,8 @@ export const view = (model: Model): Document => ({
       Page.Playground.view(
         exampleSlug,
         model.isChromium,
-        model.playgroundError,
+        model.playground,
+        message => GotPlaygroundMessage({ message }),
       ),
     ),
     M.orElse(route => docsView(model, route)),
@@ -1316,6 +1371,16 @@ export const subscriptions = Subscription.aggregate<Model, Message>()(
   Subscriptions.SystemTheme.subscriptions,
   Subscriptions.ViewportWidth.subscriptions,
 )
+
+// MANAGED RESOURCES
+
+export const managedResources = Page.Playground.toManagedResources<
+  Model,
+  Message
+>({
+  toChildModel: model => model.playground,
+  toParentMessage: message => GotPlaygroundMessage({ message }),
+})
 
 // TRACER
 // NOTE: Custom dev tracer disabled pending Effect v4 beta Tracer/Layer API rewrite.

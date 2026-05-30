@@ -65,6 +65,14 @@ declare module 'virtual:playground-files' {
   export default data
 }
 
+declare module 'virtual:playground-types' {
+  const data: ReadonlyArray<{
+    readonly path: string
+    readonly contents: string
+  }>
+  export default data
+}
+
 interface Window {
   readonly __FOLDKIT_PRERENDER__?: boolean
 }
