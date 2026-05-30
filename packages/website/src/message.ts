@@ -88,8 +88,9 @@ export const GotPlaygroundMenuMessage = m('GotPlaygroundMenuMessage', {
 export const SelectedPlaygroundExample = m('SelectedPlaygroundExample', {
   slug: ExampleSlug,
 })
-export const { SucceededPlaygroundEmbed, FailedPlaygroundEmbed } =
-  Page.Playground
+export const GotPlaygroundMessage = m('GotPlaygroundMessage', {
+  message: Page.Playground.Message,
+})
 export const GotAsyncCounterDemoMessage = m('GotAsyncCounterDemoMessage', {
   message: Page.AsyncCounterDemo.Message,
 })
@@ -184,8 +185,7 @@ export const Message = S.Union([
   GotDemoTabsMessage,
   GotPlaygroundMenuMessage,
   SelectedPlaygroundExample,
-  SucceededPlaygroundEmbed,
-  FailedPlaygroundEmbed,
+  GotPlaygroundMessage,
   GotAsyncCounterDemoMessage,
   GotNotePlayerDemoMessage,
   GotUiPageMessage,

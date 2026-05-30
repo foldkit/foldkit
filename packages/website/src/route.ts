@@ -32,6 +32,7 @@ export const TypingTerminalRoute = r('TypingTerminal')
 export const PlaygroundRoute = r('Playground', {
   exampleSlug: S.String,
 })
+export type PlaygroundRoute = typeof PlaygroundRoute.Type
 export const BestPracticesSideEffectsRoute = r('BestPracticesSideEffects')
 export const BestPracticesMessagesRoute = r('BestPracticesMessages')
 export const BestPracticesKeyingRoute = r('BestPracticesKeying')
@@ -189,6 +190,9 @@ export const AppRoute = S.Union([
   DocsRoute,
 ])
 export type AppRoute = typeof AppRoute.Type
+
+export const isPlaygroundRoute = (route: AppRoute): route is PlaygroundRoute =>
+  route._tag === 'Playground'
 
 // ROUTERS
 
