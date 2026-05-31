@@ -23,9 +23,16 @@ const accessingManagedResourcesHeader: TableOfContentsEntry = {
   text: 'Accessing Managed Resources in Commands',
 }
 
+const composingSubmodelsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'composing-child-submodels',
+  text: 'Composing Child Submodels',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   accessingManagedResourcesHeader,
+  composingSubmodelsHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
@@ -52,7 +59,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'Define a managed resource identity with ',
         inlineCode('ManagedResource.tag'),
         ', then wire its lifecycle with ',
-        inlineCode('makeManagedResources'),
+        inlineCode('ManagedResource.make'),
         '. The ',
         inlineCode('modelToMaybeRequirements'),
         ' function returns ',
@@ -127,6 +134,52 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' has been received), the ',
         inlineCode('catchTag'),
         ' is a safety net that never fires. But if your model logic has a bug, you get a graceful error message instead of a crash.',
+      ),
+      tableOfContentsEntryToHeader(composingSubmodelsHeader),
+      para(
+        'A child Submodel owns its managed resources in its own Model and Message terms, built with ',
+        inlineCode('ManagedResource.make'),
+        ' and knowing nothing about any parent. ',
+        inlineCode('ManagedResource.lift'),
+        ' translates that record into the parent through a single Model lens and a single Message wrapper, the same shape as update delegation and ',
+        inlineCode('Subscription.lift'),
+        '. ',
+        inlineCode('ManagedResource.aggregate'),
+        ' then combines a root-level record with any lifted child records into the single record ',
+        inlineCode('makeProgram'),
+        ' expects, throwing at startup on duplicate keys.',
+      ),
+      para(
+        'Unlike ',
+        inlineCode('Subscription.lift'),
+        ', ',
+        inlineCode('toChildModel'),
+        ' returns an ',
+        inlineCode('Option'),
+        '. A managed resource already speaks in ',
+        inlineCode('Option'),
+        ' (',
+        inlineCode('modelToMaybeRequirements'),
+        ' returns ',
+        inlineCode('Option.none()'),
+        ' to release), so a Submodel embedded as ',
+        inlineCode('Option'),
+        ' that is not mounted is just another ',
+        inlineCode('none'),
+        ': a missing child releases the resource through the same channel.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.managedResourcesLiftHighlighted),
+          ],
+          [],
+        ),
+        Snippets.managedResourcesLiftRaw,
+        'Copy managed resources composition example to clipboard',
+        copiedSnippets,
+        'mb-8',
       ),
       infoCallout(
         'Resources vs Managed Resources',

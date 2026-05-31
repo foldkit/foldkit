@@ -321,7 +321,7 @@ For each Foldkit module you plan to use, read the `.d.ts` at the paths below. Re
 
 # If using mount / managed-resource / custom-element
 <project>/node_modules/foldkit/dist/mount/index.d.ts             # Mount.define: for per-instance VNode lifecycle
-<project>/node_modules/foldkit/dist/managedResource/index.d.ts   # ManagedResource: for stateful runtime objects keyed on Model condition
+<project>/node_modules/foldkit/dist/managedResource/public.d.ts  # ManagedResource.make / lift / aggregate + tag: for stateful runtime objects keyed on Model condition
 <project>/node_modules/foldkit/dist/customElement/index.d.ts     # CustomElement.define: for typed bindings to native web components
 
 # If using forms
@@ -549,6 +549,14 @@ For file uploads (resumes, images, attachments):
 - Subscriptions auto-start/stop based on Model state. Never manually managed
 - For Subscriptions with no Model dependencies (always active), pass `{}` as the `entry` fields argument and return `{}` from `modelToDependencies`
 - To embed child Subscriptions, use `Subscription.lift(childRecord)<Parent, Parent>({ toChildModel, toParentMessage })`. To combine multiple records, use `Subscription.aggregate<Model, Message>()(...records)`
+
+### Managed resources (if stateful runtime handles)
+
+- Define with `ManagedResource.make<Model, Message>()(entry => ({ key: entry(requirementsSchema, config) }))`. The first `entry` argument is the requirements schema (usually `S.Option(...)`, positional for the same inference reason as `Subscription`); `config` carries `resource` (a `ManagedResource.tag`), `modelToMaybeRequirements`, `acquire`, `release`, `onAcquired`, `onReleased`, `onAcquireError`
+- `modelToMaybeRequirements` returns `Option.some(params)` to acquire (or re-acquire when params change) and `Option.none()` to release. The runtime diffs it with the schema's equivalence, the same engine subscriptions use
+- The service union is inferred from the `resource` tags. Read it off a finished record with `ManagedResource.ServicesOf<typeof managedResources>` instead of hand-maintaining it
+- To embed a child Submodel's managed resources, use `ManagedResource.lift(childRecord)<Parent, Parent>({ toChildModel, toParentMessage })`. Unlike `Subscription.lift`, `toChildModel` returns `Option<ChildModel>`: an unmounted Submodel releases the resource through the same `Option` channel, so lifted child requirements must be `S.Option`-wrapped. Combine records with `ManagedResource.aggregate<Model, Message>()(...records)`
+- App-lifetime handles are `resources` (a static Layer), not managed resources. There is no `persistent` here
 
 ## Phase 4.5: Self-check before verification
 

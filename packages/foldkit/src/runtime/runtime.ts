@@ -290,7 +290,8 @@ type RuntimeConfig<
    * Model-driven resources with acquire/release lifecycle. Unlike `resources`
    * which persist for the application's lifetime, managed resources are
    * acquired and released based on the current model state. Create with
-   * `makeManagedResources`.
+   * `ManagedResource.make`, compose child Submodels with `ManagedResource.lift`,
+   * and combine records with `ManagedResource.aggregate`.
    */
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
   devTools?: DevToolsConfig

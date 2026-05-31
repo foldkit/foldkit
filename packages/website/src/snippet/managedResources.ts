@@ -4,16 +4,10 @@ import { ManagedResource, Runtime } from 'foldkit'
 // 1. Define a managed resource identity
 const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
 
-// 2. Define a requirements schema. Option.some = active, Option.none = inactive
-const ManagedResourceDeps = S.Struct({
-  camera: S.Option(S.Struct({ facingMode: S.String })),
-})
-
-// 3. Wire lifecycle with makeManagedResources
-const managedResources = ManagedResource.makeManagedResources(
-  ManagedResourceDeps,
-)<Model, Message>({
-  camera: {
+// 2. Wire the lifecycle with make. The requirements schema sits inline next
+//    to its config: Option.some = active, Option.none = inactive
+const managedResources = ManagedResource.make<Model, Message>()(entry => ({
+  camera: entry(S.Option(S.Struct({ facingMode: S.String })), {
     resource: CameraStream,
     modelToMaybeRequirements: model =>
       pipe(
@@ -37,10 +31,10 @@ const managedResources = ManagedResource.makeManagedResources(
     onAcquired: () => AcquiredCamera(),
     onReleased: () => ReleasedCamera(),
     onAcquireError: error => FailedAcquireCamera({ error: String(error) }),
-  },
-})
+  }),
+}))
 
-// 4. Pass to makeProgram
+// 3. Pass to makeProgram
 const program = Runtime.makeProgram({
   Model,
   init,
