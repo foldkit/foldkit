@@ -1,5 +1,11 @@
 # @foldkit/vite-plugin
 
+## 0.7.0
+
+### Minor Changes
+
+- f1d8c31: Republished against foldkit 0.102.0. No source change to the plugin itself, but foldkit's exact-pinned peer dependency means consumers must install matching versions. Pin foldkit and @foldkit/vite-plugin together: this version of @foldkit/vite-plugin expects foldkit 0.102.0 or later.
+
 ## 0.6.0
 
 ### Minor Changes

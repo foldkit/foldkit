@@ -1,5 +1,819 @@
 # foldkit
 
+## 0.102.0
+
+### Minor Changes
+
+- f1d8c31: Add `Command.mapMessage` and `Command.mapMessages` for lifting Commands through a Message-mapping function. Collapses the `Command.mapEffect` composed with `Effect.map` boilerplate that Submodel embeddings used to write at every delegate site.
+
+  ### `Command.mapMessages`
+
+  Lifts every Command in a list through a Message mapper.
+
+  ```ts
+  const mapMessages: <FromMessage, ToMessage, E = never, R = never>(
+    commands: ReadonlyArray<Command.Command<FromMessage, E, R>>,
+    f: (message: FromMessage) => ToMessage,
+  ) => ReadonlyArray<Command.Command<ToMessage, E, R>>
+  ```
+
+  ### `Command.mapMessage`
+
+  The singular complement. Lifts a single Command's result Message through a mapper. Reach for it when a child returns one Command (e.g. an animation leave Command); reach for `mapMessages` when it returns a list.
+
+  ```ts
+  const mapMessage: <FromMessage, ToMessage, E = never, R = never>(
+    command: Command.Command<FromMessage, E, R>,
+    f: (message: FromMessage) => ToMessage,
+  ) => Command.Command<ToMessage, E, R>
+  ```
+
+  ### Migration
+
+  Before:
+
+  ```ts
+  const mappedCommands = commands.map(
+    Command.mapEffect(Effect.map(message => GotChildMessage({ message }))),
+  )
+  ```
+
+  After:
+
+  ```ts
+  const mappedCommands = Command.mapMessages(commands, message =>
+    GotChildMessage({ message }),
+  )
+  ```
+
+  Both helpers preserve each Command's `name` and `args`, so DevTools traces still attribute the Command to the originating Submodel. `Command.mapEffect` stays exposed for the rare case where the Effect itself (not just its result Message) needs transformation.
+
+- f1d8c31: Submodels become first-class. A new `h.submodel` primitive (also exposed as `submodel` from `foldkit/html`) embeds a child view as a pure function of its own model. A new top-level `Submodel` namespace exports `defineView`, `View`, and `Config`.
+
+  ### `h.submodel`
+
+  ```ts
+  // Parent view:
+  h.submodel({
+    slotId: row.id,
+    model: row.counter,
+    view: Counter.view,
+    toParentMessage: message => GotCounterMessage({ id: row.id, message }),
+  })
+
+  // Child view, no parent-awareness:
+  export const view = Submodel.defineView<Model, Message>(model => {
+    const h = html<Message>()
+    return h.button([h.OnClick(ClickedIncrement())], ['+'])
+  })
+  ```
+
+  The parent-Message wrap is declared as data at the embed site via `toParentMessage` and resolved through a runtime scope registry at event-fire time. The cached child VNode carries stable values; the per-render-fresh wrap closure does not enter the VNode. This is what enables memoization across Submodel boundaries.
+
+  `viewInputs` (optional second view argument) carries slot content built in the parent's boundary. Top-level function values in `viewInputs` are auto-wrapped to execute in the parent's boundary so user-provided handlers inside slots dispatch through the user's chain, not the embedded Submodel's. Function values nested below the top level (inside object fields or array elements) throw at view-build time with a path-based error like `viewInputs.config.onSubmit`. The check is runtime-only because TypeScript cannot structurally distinguish a user-declared nested callback from a data value whose prototype carries methods, so a misuse compiles cleanly and surfaces the first time the boundary renders.
+
+  Nested Submodels compose automatically: a deeper `h.submodel` extends the boundary chain, and wrapping at event-fire time walks the full chain from innermost to outermost.
+
+  ### `Submodel.defineView`
+
+  `Submodel.defineView` is REQUIRED for views passed to `h.submodel`. Plain view functions fail to type-check at the embed site rather than silently inferring `Message = never`. Build views with `Submodel.defineView<Model, Message, ViewInputs>(fn)`:
+
+  ```ts
+  export const view = Submodel.defineView<Model, Message, ViewInputs>(
+    (model, viewInputs) => h.div([...], [...])
+  )
+  ```
+
+  `Submodel.View` and `Submodel.Config` are accessible as types under the namespace for cases where consumers annotate them directly. Most consumers never do; the view itself carries the inference, so `h.submodel`'s `model` and `viewInputs` config fields are fully inferred.
+
+  ### `childAttributes`
+
+  A new `childAttributes` helper (and companion `ChildAttribute` type) is exported from `foldkit/html`. Use it in `toView` slot callbacks to mark attribute lists that originate inside the child Submodel and should keep their handlers bound to the child's dispatch, even though the call site lives in the parent's boundary.
+
+  ```ts
+  import { type ChildAttribute, childAttributes } from 'foldkit/html'
+
+  return viewInputs.toView({
+    button: childAttributes([h.OnClick(Toggled())]),
+    panel: childAttributes([h.Id(panelId(model.id))]),
+  })
+  ```
+
+  `childAttributes` is "what the child publishes to the parent" in the same role-named vocabulary as `viewInputs` (parent → child view), `context` (parent → child update), and `OutMessage` (child → parent update). Every interactive Foldkit UI primitive uses it internally.
+
+  ### Boundary semantics
+  - **Duplicate slotId detection.** Two `h.submodel` calls inside the same parent boundary with the same `slotId` throw at view-build time, naming both call sites and the convention: `slotId` is DOM-slot identity, not model identity. If the same model is rendered in two locations (desktop + mobile, master + detail), each slot needs its own id. Detection works across `createLazy` / `createKeyedLazy` cache hits: the lazy helpers capture the boundary ids registered during their first run and replay them on cache hit, so a sibling collision against a memoized entry throws instead of silently overwriting its wrap.
+  - **Wrap lifecycle tied to VNode lifecycle.** `h.submodel` attaches a snabbdom `destroy` hook that deregisters the scope's wrap when the DOM node is removed. Wraps persist as long as their VNode is in the tree, evict cleanly on removal, survive cache hits, and survive reorder.
+  - **Resilient wrap deregistration on view failure.** If the child view throws, the wrap is deregistered before propagating. If it returns `null`, the wrap is deregistered eagerly.
+  - **Lazy dispatch capture in element constructors.** `h.div(...)`, `h.code(...)`, etc. no longer require an active runtime frame when their attribute list contains no event-bearing attributes. Static Html fragments constructed at module top level (`const fragment = h.code([h.Class('x')], ['text'])`) now succeed. Event-bearing Html constructed outside a render still fails at event-fire time with a clear message, rather than at import time with an opaque trace.
+
+  ### `examples/counters`
+
+  Ships as a new example demonstrating the pattern: a parent that hosts a dynamic list of `Counter` Submodels, each embedded via `h.submodel`. `Counter.view` is `(model: Counter.Model) => Html` with no parent-awareness; the same Counter would work unchanged under any host.
+
+  ### Ui.\* implications
+
+  Every Ui.\* component's `view` is now a pure `(model, viewInputs?) => Html` typed via `Submodel.defineView` rather than `<ParentMessage>(config: ViewConfig)`. Embed via `h.submodel({ view: Ui.X.view, ... })` instead of calling `Ui.X.view({ ... })` directly. See `ui-out-messages.md` and `ui-selection-factory.md` for per-component migration details.
+
+- f1d8c31: Rename `Ui.Popover` and `Ui.Dialog` internal `Opened`/`Closed` Messages to `RequestedOpen`/`RequestedClose`. The new names are more honest. They're requests to open or close, not the events themselves. The actual events the parent observes are the `Opened` and `Closed` OutMessage variants described in the broader OutMessage migration.
+
+  ### Migration
+
+  #### `Ui.Popover`
+
+  ```ts
+  // Before
+  h.OnClick(toPopoverMessage(Ui.Popover.Opened()))
+  h.OnClick(toPopoverMessage(Ui.Popover.Closed()))
+
+  const [next, commands] = Ui.Popover.update(model.popover, Ui.Popover.Closed())
+
+  // After
+  h.OnClick(toPopoverMessage(Ui.Popover.RequestedOpen()))
+  h.OnClick(toPopoverMessage(Ui.Popover.RequestedClose()))
+
+  const [next, commands] = Ui.Popover.update(
+    model.popover,
+    Ui.Popover.RequestedClose(),
+  )
+  ```
+
+  #### `Ui.Dialog`
+
+  ```ts
+  // Before
+  h.OnClick(toDialogMessage(Ui.Dialog.Opened()))
+  h.OnClick(toDialogMessage(Ui.Dialog.Closed()))
+
+  const [next, commands] = Ui.Dialog.update(model.dialog, Ui.Dialog.Closed())
+
+  // After
+  h.OnClick(toDialogMessage(Ui.Dialog.RequestedOpen()))
+  h.OnClick(toDialogMessage(Ui.Dialog.RequestedClose()))
+
+  const [next, commands] = Ui.Dialog.update(
+    model.dialog,
+    Ui.Dialog.RequestedClose(),
+  )
+  ```
+
+- f1d8c31: Render views synchronously. The `Html` type changes from `Effect<VNode | null, never, Dispatch>` to `VNode | null`. Element constructors read dispatch from a runtime-managed singleton set up around each render rather than pulling it from Effect context. The fiber-loop wrapper around every `h.div(...)`, `h.input(...)`, etc. is gone.
+
+  `html()` now memoizes its factory result across calls. The ~320 element and attribute constructors carry no per-program state, so the same cached object serves every render. This makes the recommended pattern of binding `const h = html<Message>()` inside view (recommended in 5338579) zero-cost.
+
+  `buildVNodeData` hoists its `Match.tagsExhaustive` dispatch object once per `buildVNodeData` call instead of once per attribute, and accumulates into `VNodeData` fields with `Object.assign` instead of spreading.
+
+  `createLazy` and `createKeyedLazy` keep dispatch identity in their cache key so DevTools `jumpTo` renders (which set up the runtime with `noOpDispatch`) do not return live-dispatch-bound VNodes to subsequent live renders. The per-(outerDispatch, boundaryId) Submodel dispatcher cache makes the dispatch reference stable across renders within a single outerDispatch, so lazy hits are common in steady state.
+
+  The synchronous render path is the largest single contributor to this release's perf overhaul; see the release notes for the bundled before/after numbers.
+
+  Migration: code that built `Html` values via `Effect.gen` or `Effect.succeed` should now return `VNode | null` directly. View functions written with the `html()` factory require no changes.
+
+- f1d8c31: `Story` testing helper signatures decoupled from the simulation's `Message` / `OutMessage` to fix type inference when an update returns the 3-tuple `[Model, Commands, Option<OutMessage>]`. The previous generic signatures inferred the simulation type from the helper argument, which broke variance for narrow argument values (e.g. `expectOutMessage(SpecificVariant({...}))` against a wider OutMessage union) and collapsed `Model` and `Message` to `unknown` across every step.
+
+  ### What changed
+  - `Story.expectOutMessage` no longer infers its narrowing from the expected argument. The runtime equality check still surfaces wrong-payload mismatches.
+  - `Story.message` no longer narrows the simulation's `Message` parameter from the argument.
+  - `Story.model` is now a function returning a branded `ModelStep<Model>` tagged object instead of a generic curried function. The story loop interprets `ModelStep` alongside the other step variants. `Model` flows contextually from the story's update function, so test files no longer need per-call annotations like `Story.model((model: Model) => ...)`.
+  - `StoryStep<Model, Message, OutMessage>` collapsed to `StoryStep<Model>`. The narrower generics aren't load-bearing on the step union since each step variant either uses `any` for its sim type or carries its own generic.
+
+  ### Migration
+
+  For most consumers this is source-compatible. The annotation-on-`Story.model` pattern can be dropped:
+
+  ```ts
+  // Before
+  Story.story(
+    update,
+    Story.with(initialModel),
+    Story.message(ClickedIncrement()),
+    Story.model((model: Model) => {
+      expect(model.count).toBe(1)
+    }),
+  )
+
+  // After
+  Story.story(
+    update,
+    Story.with(initialModel),
+    Story.message(ClickedIncrement()),
+    Story.model(model => {
+      expect(model.count).toBe(1)
+    }),
+  )
+  ```
+
+  Direct uses of `StoryStep<A, B, C>` need to be rewritten as `StoryStep<A>`. The other two type parameters had no remaining call sites that benefited from the narrower signature.
+
+- f1d8c31: `Ui.Checkbox.update` now returns `[Model, Commands, Option<OutMessage>]` (was `[Model, Commands]`). Adds a new `ToggledChecked({ isChecked: boolean })` OutMessage variant, emitted on every toggle. Closes a gap that pushed consumers to shortcut the Submodel boundary: wrapping `Ui.Checkbox.Message` as a domain Message directly in `toParentMessage` instead of the conventional `GotCheckboxMessage` wrapper, which bypassed `Ui.Checkbox.update` and left `model.checkbox.isChecked` stale.
+
+  Existing 2-tuple destructures (`const [next, commands] = Ui.Checkbox.update(...)`) keep compiling; TypeScript accepts binding the head of a longer tuple. Consumers wanting to react to the toggle as a domain event now pattern-match the third element:
+
+  ```ts
+  GotAdminCheckboxMessage: ({ message }) => {
+    const [next, commands, maybeOutMessage] = Ui.Checkbox.update(
+      model.admin,
+      message,
+    )
+    const mappedCommands = Command.mapMessages(commands, message =>
+      GotAdminCheckboxMessage({ message }),
+    )
+    return Option.match(maybeOutMessage, {
+      onNone: () => [evo(model, { admin: () => next }), mappedCommands],
+      onSome: M.type<Ui.Checkbox.OutMessage>().pipe(
+        M.tagsExhaustive({
+          ToggledChecked: ({ isChecked }) => [
+            evo(model, { admin: () => next }),
+            [...mappedCommands, PersistAdminFlag({ value: isChecked })],
+          ],
+        }),
+      ),
+    })
+  }
+  ```
+
+- f1d8c31: `Ui.Checkbox` gains a `SetChecked({ isChecked: boolean })` Message and a
+  matching `setChecked(model, isChecked)` programmatic helper. `SetChecked`
+  forces the checked state to a specific value (unlike `Toggled`, which
+  flips) and emits the same `ToggledChecked({ isChecked })` OutMessage so
+  consumers react to programmatic state assignment the same way they react
+  to user toggles. Use this in domain-event handlers that need to assign a
+  specific state, such as a "select all" handler that forces every child
+  checkbox to the same value:
+
+  ```ts
+  GotSelectAllMessage: () => {
+    const isAllChecked = Array.every(
+      [model.optionA, model.optionB],
+      ({ isChecked }) => isChecked,
+    )
+    const nextChecked = !isAllChecked
+
+    const [nextOptionA] = Ui.Checkbox.setChecked(model.optionA, nextChecked)
+    const [nextOptionB] = Ui.Checkbox.setChecked(model.optionB, nextChecked)
+
+    return [
+      evo(model, {
+        optionA: () => nextOptionA,
+        optionB: () => nextOptionB,
+      }),
+      [],
+    ]
+  }
+  ```
+
+  Previously the only update path was `Toggled`, whose flip semantics could
+  not reliably reach a target state when child checkboxes started in mixed
+  states. The convention pushed consumers to assign `isChecked` directly on
+  the submodel field, bypassing `Ui.Checkbox.update`. `setChecked` is the
+  idiomatic route.
+
+- f1d8c31: Small consumer-facing changes that fall out of the Ui.\* shape migration.
+
+  ### `Ui.X.lazy` removed across the board
+
+  `Ui.X.lazy` is removed from every component that exposed it: `Animation`, `Calendar`, `Checkbox`, `Combobox`, `DatePicker`, `Dialog`, `Disclosure`, `FileDrop`, `Listbox`, `Menu`, `Popover`, `RadioGroup`, `Slider`, `Switch`, `Tabs`, `Tooltip`, and `VirtualList`. An `import { lazy }` or a `Ui.X.lazy(...)` call from any of them no longer compiles.
+
+  Each `Ui.X.lazy` was a no-op in practice: its cache key included a per-render-fresh `toParentMessage` closure, so the comparison missed every render. The new `h.submodel` boundary design keeps per-render closures out of the cached VNode, so a parent-side `createLazy` / `createKeyedLazy` around `h.submodel` now actually hits.
+
+  Migration: switch to plain `Ui.X.view` embedded via `h.submodel`. Wrap with `createLazy` / `createKeyedLazy` at the parent's call site if you want memoization (the wrapping is per-instance, not per-component, so it lives where the component is rendered).
+
+  ```ts
+  // Before:
+  Ui.Checkbox.lazy(
+    {
+      // ... static config
+    },
+    toParentMessage,
+  )(model)
+
+  // After (without memoization):
+  h.submodel({
+    slotId: 'agree-to-terms',
+    model: model.agreeToTerms,
+    view: Ui.Checkbox.view,
+    viewInputs: {
+      /* ... slot content if needed */
+    },
+    toParentMessage: message => GotCheckboxMessage({ message }),
+  })
+
+  // After (with memoization, parent-side):
+  const lazyCheckbox = createLazy()
+  // ... inside view:
+  lazyCheckbox(
+    () =>
+      h.submodel({
+        slotId: 'agree-to-terms',
+        model: model.agreeToTerms,
+        view: Ui.Checkbox.view,
+        toParentMessage: message => GotCheckboxMessage({ message }),
+      }),
+    [model.agreeToTerms],
+  )
+  ```
+
+  ### `Ui.Tooltip` exposes `RenderInfo` for slot content
+
+  Tooltip's `view` now takes a `toView` slot via `viewInputs`, consistent with the slot-based pattern used across Ui.\*. The slot receives a `RenderInfo`:
+
+  ```ts
+  export type RenderInfo = Readonly<{
+    trigger: ReadonlyArray<ChildAttribute>
+    panel: ReadonlyArray<ChildAttribute>
+    isVisible: boolean
+  }>
+  ```
+
+  The consumer spreads `trigger` onto the trigger element and `panel` onto the panel element, and decides whether and how to render the panel content based on `isVisible`. Replaces main's `ViewConfig` shape (where `triggerContent` / `content` were fixed fields on the config) with the consistent `viewInputs.toView(renderInfo)` shape that lets the consumer assemble both elements directly.
+
+  ### Removed type exports
+
+  `Ui.RadioGroup` no longer exports `OptionConfig`, `OptionAttributes`, or `NarrowedSelectedOption`, and `Ui.Tabs` no longer exports `TabConfig`. These named fields of the old `ViewConfig` shape; the slot-based `ViewInputs` shape replaces them.
+
+- f1d8c31: Rename `Ui.DatePicker` internal `SelectedDate` Message to `RequestedSelectDate`. The new name is more honest. It's a request to select a date, not the event of one being selected. The actual event the parent observes is the `SelectedDate` OutMessage described in the broader OutMessage migration. The new name also frees `SelectedDate` for the OutMessage so the public-facing name lines up with `Ui.Calendar.SelectedDate`, which propagates the same fact from one layer down.
+
+  ### Migration
+
+  ```ts
+  // Before
+  update(model, Ui.DatePicker.SelectedDate({ date }))
+
+  // After
+  update(model, Ui.DatePicker.RequestedSelectDate({ date }))
+  ```
+
+- f1d8c31: `Ui.Dialog.update` now returns `[Model, Commands, Option<OutMessage>]` (was `[Model, Commands]`). Adds two OutMessage variants mirroring `Ui.Popover`:
+  - `Opened()`: emitted once the dialog has transitioned to open (after `update` has processed the `RequestedOpen` request and `isOpen` reflects the new state).
+  - `Closed()`: emitted once the dialog has transitioned to closed. Programmatic `Dialog.close` on an already-closed model is a no-op that does not re-emit; calling close while a leave animation is already in progress is also a no-op.
+
+  `Ui.Dialog.open` and `Ui.Dialog.close` return the full 3-tuple as well. Existing 2-tuple destructures keep compiling.
+
+  Consumers reacting to dialog lifecycle as a domain event (focus restoration, analytics, scroll position) now have the canonical OutMessage path instead of pattern-matching internal `RequestedOpen`/`RequestedClose` Messages:
+
+  ```ts
+  GotSettingsDialogMessage: ({ message }) => {
+    const [next, commands, maybeOutMessage] = Ui.Dialog.update(
+      model.settingsDialog,
+      message,
+    )
+    const mappedCommands = Command.mapMessages(commands, message =>
+      GotSettingsDialogMessage({ message }),
+    )
+    return Option.match(maybeOutMessage, {
+      onNone: () => [
+        evo(model, { settingsDialog: () => next }),
+        mappedCommands,
+      ],
+      onSome: M.type<Ui.Dialog.OutMessage>().pipe(
+        M.tagsExhaustive({
+          Opened: () => [
+            evo(model, { settingsDialog: () => next }),
+            mappedCommands,
+          ],
+          Closed: () => [
+            evo(model, { settingsDialog: () => next }),
+            [...mappedCommands, RestoreTriggerFocus()],
+          ],
+        }),
+      ),
+    })
+  }
+  ```
+
+- f1d8c31: Rename several `Ui.*` Messages to follow the verb-first past-tense convention, remove two dead Messages, and align one public helper with the `reflect*` convention. Most of the Message renames are internal lifecycle Messages each component's own `update` handles, so consumers who embed components through `h.submodel` and delegate via a `Got*Message` are unaffected. The `Ui.FileDrop` and `Ui.Tooltip` changes below are consumer-facing: a renamed OutMessage variant and a renamed public helper, respectively. Only code that imports or references these specific Message constructors, OutMessage variants, helpers, or types needs updating.
+  - `Ui.Tabs`: `TabSelected` becomes `SelectedTab`, `TabFocused` becomes `FocusedTab`.
+  - `Ui.Combobox`, `Ui.Listbox`, `Ui.Menu`, `Ui.Popover`: `CompletedSetupInert` becomes `CompletedInertOthers` and `CompletedTeardownInert` becomes `CompletedRestoreInert`, so each acknowledgement mirrors its `InertOthers` / `RestoreInert` Command.
+  - `Ui.DragAndDrop`: `CompletedAutoScroll` becomes `AdvancedAutoScrollFrame`, since it is a recurring animation-frame tick rather than a Command acknowledgement.
+  - `Ui.Menu`: the unused `CompletedAdvanceFocus` Message is removed.
+  - `Ui.FileDrop`: the `DroppedWithoutFiles` Message becomes `DroppedNonFiles`, and the OutMessage it previously reused is now a distinct `RejectedNonFiles`. This is consumer-facing: a parent that pattern-matches the `DroppedWithoutFiles` arm of the FileDrop OutMessage renames that arm to `RejectedNonFiles`.
+  - `Ui.Tooltip`: the `setShowDelay` helper becomes `reflectShowDelay`, a silent `reflect*` setter returning `Model` (it conforms the tooltip to an externally-sourced config value and emits nothing). Its internal `ChangedShowDelay` Message is removed.
+
+  ### Migration
+
+  ```ts
+  // Before
+  Ui.Tabs.TabSelected({ index, value })
+  Ui.Tabs.TabFocused({ index })
+
+  // After
+  Ui.Tabs.SelectedTab({ index, value })
+  Ui.Tabs.FocusedTab({ index })
+  ```
+
+  For `Ui.FileDrop`, rename the OutMessage match arm in your `Got*Message` handler:
+
+  ```ts
+  // Before                  // After
+  ReceivedFiles: ...         ReceivedFiles: ...
+  DroppedWithoutFiles: ...   RejectedNonFiles: ...
+  ```
+
+  For `Ui.Tooltip`, `setShowDelay(model, delay)` becomes `reflectShowDelay(model, delay)` and returns `Model` directly (no command tuple).
+
+- f1d8c31: Ui.\* components that previously routed child events through ViewConfig callback props (`onSelectedItem`, `onSelected`, `onSelectedDate`, `onToggled`, `onOpened`, `onClosed`) now expose `OutMessage`. Each migrated component's `update` returns `[Model, Commands, Option<OutMessage>]`; the parent pattern-matches the third tuple element to lift child events to domain Messages.
+
+  The shift is paired with the new `h.submodel` embedding primitive: Ui.\* components are no longer called as `Ui.X.view({ ... })` with config callbacks. Consumers embed them via `h.submodel({ view: Ui.X.view, ... })` and handle OutMessages in the parent's update.
+
+  ### Migration
+
+  Before:
+
+  ```ts
+  // In view:
+  Ui.Menu.view<ExampleSlug>({
+    model: model.menu,
+    toParentMessage: message => GotMenuMessage({ message }),
+    onSelectedItem: index => SelectedExample({ slug: slugs[index] }),
+    // ... other ViewConfig fields
+  })
+
+  // In update:
+  GotMenuMessage: ({ message }) => {
+    const [nextMenu, commands] = Ui.Menu.update(model.menu, message)
+    return [
+      evo(model, { menu: () => nextMenu }),
+      commands.map(
+        Command.mapEffect(Effect.map(message => GotMenuMessage({ message }))),
+      ),
+    ]
+  }
+  ```
+
+  After:
+
+  ```ts
+  // At module scope:
+  const ExampleMenu = Ui.Menu.create<ExampleSlug>()
+
+  // In view:
+  h.submodel({
+    slotId: 'menu',
+    model: model.menu,
+    view: ExampleMenu.view,
+    toParentMessage: message => GotMenuMessage({ message }),
+  })
+
+  // In update:
+  GotMenuMessage: ({ message }) => {
+    const [nextMenu, commands, maybeOutMessage] = ExampleMenu.update(
+      model.menu,
+      message,
+    )
+    const mappedCommands = Command.mapMessages(commands, message =>
+      GotMenuMessage({ message }),
+    )
+    return Option.match(maybeOutMessage, {
+      onNone: () => [
+        evo(model, { menu: () => nextMenu }),
+        mappedCommands,
+        Option.none(),
+      ],
+      onSome: M.type<Ui.Menu.OutMessage<ExampleSlug>>().pipe(
+        M.tagsExhaustive({
+          Selected: ({ value }) => [
+            evo(model, { menu: () => nextMenu }),
+            [...mappedCommands, Navigation.go(ExampleRoute(value))],
+            Option.none(),
+          ],
+        }),
+      ),
+    })
+  }
+  ```
+
+  ### OutMessage variants per component
+  - **`Ui.Menu.Selected({ value: Item, index: number })`**: replaces `onSelectedItem(index)`. Carries both the picked value (typed as `Item` via `Ui.Menu.create<Item>()`) and its index. The menu closes itself; consumers do not need to dispatch `Ui.Menu.close`.
+  - **`Ui.Disclosure.ToggledOpenState({ isOpen: boolean })`**: replaces `onToggled()`. Fires on each toggle.
+  - **`Ui.Listbox.Selected({ value: string, wasAdded: boolean })`**: replaces `onSelectedItem(value)`. Single-select always emits `wasAdded: true`; multi-select emits `wasAdded: false` when toggling off.
+  - **`Ui.Combobox.Selected({ value: string, wasAdded: boolean })`**: replaces `onSelectedItem(value)`. Same semantics as Listbox.
+  - **`Ui.RadioGroup.Selected({ value: string, index: number })`**: replaces `onSelected(value, index)`. Programmatic `RadioGroup.select` carries the same signal.
+  - **`Ui.Tabs.Selected({ value: Value, index: number })`**: new. Carries both the tab's value (typed via `Ui.Tabs.create<Value>()`) and its index. `Tabs.update` now returns a 3-tuple to match the rest of the family. The internal `TabSelected` Message also carries `value` so the OutMessage is populated from every dispatch site; `Tabs.selectTab` becomes `(model, value, index)`.
+  - **`Ui.Calendar.SelectedDate({ date })`**: replaces `onSelectedDate(date)`. `Calendar.commitSelection` always emits `SelectedDate`. The pre-existing `Ui.Calendar.ChangedViewMonth` OutMessage remains.
+  - **`Ui.DatePicker.SelectedDate({ date })`**: replaces `onSelectedDate(date)`. The pre-existing `Ui.DatePicker.ChangedViewMonth` OutMessage remains. DatePicker's internal `delegateToCalendar`/`delegateToPopover` helpers now handle Calendar and Popover OutMessages directly: on `Calendar.SelectedDate` it closes the popover and propagates `SelectedDate`; on `Popover.Opened`/`Closed` it drops the calendar back to the Days view. The programmatic helpers `DatePicker.open`, `close`, `selectDate`, and `clear` now return the full `[Model, Commands, Option<OutMessage>]` tuple (previously they discarded the third element), so a programmatic `selectDate` emits the same `SelectedDate` a user-initiated selection would.
+  - **`Ui.Popover.Opened()` / `Ui.Popover.Closed()`**: replace `onOpened()` and `onClosed()`. The OutMessage fires once `update` has processed the corresponding `RequestedOpen`/`RequestedClose` Message and `isOpen` reflects the new state. Programmatic `Popover.close` on an already-closed model is a no-op that does not re-emit.
+
+  ### When the parent has no reaction
+
+  If the parent has no reaction to the child's OutMessage, drop the `Option.match` entirely. Destructure only the first two tuple elements and return `Option.none()` for your own OutMessage:
+
+  ```ts
+  GotProficiencyMessage: ({ message }) => {
+    const [next, commands] = Ui.RadioGroup.update(model.proficiency, message)
+    return [
+      evo(model, { proficiency: () => next }),
+      Command.mapMessages(commands, message =>
+        GotProficiencyMessage({ message }),
+      ),
+      Option.none(),
+    ]
+  }
+  ```
+
+  The `Option.match` only earns its weight when `onSome` does work `onNone` doesn't, for example lifting to a richer parent type, dispatching additional commands, or mutating sibling state.
+
+  ### Public exports
+
+  `OutMessage` types and their variant tag constructors are exposed from each migrated primitive's public module:
+  - `Ui.Menu.OutMessage`, `Ui.Menu.Selected`
+  - `Ui.Disclosure.OutMessage`, `Ui.Disclosure.ToggledOpenState`
+  - `Ui.Listbox.OutMessage`, `Ui.Listbox.Selected`
+  - `Ui.Combobox.OutMessage`, `Ui.Combobox.Selected`
+  - `Ui.RadioGroup.OutMessage`, `Ui.RadioGroup.Selected`
+  - `Ui.Tabs.OutMessage`, `Ui.Tabs.Selected`
+  - `Ui.Calendar.OutMessage`, `Ui.Calendar.SelectedDate`, `Ui.Calendar.ChangedViewMonth`
+  - `Ui.DatePicker.OutMessage`, `Ui.DatePicker.SelectedDate`, `Ui.DatePicker.ChangedViewMonth`
+  - `Ui.Popover.OutMessage`, `Ui.Popover.Opened`, `Ui.Popover.Closed`
+
+- f1d8c31: Establish `reflect*` as the convention for conforming a Submodel to
+  externally-sourced state. A `reflect*` helper sets a Submodel's value to mirror
+  something that originated outside it (a URL, a server push, restored storage,
+  parent state, or a sibling Submodel), without emitting an OutMessage. It is the
+  inbound complement to OutMessage's outbound direction: OutMessage announces a
+  change the Submodel made itself, so the parent reacts; `reflect*` conforms the
+  Submodel to a change the world made, silently, because the external thing is
+  already the source of truth. The silence is what lets a parent reflect external
+  state without echoing it back out and looping (for example a `ChangedUrl`
+  handler syncing a listbox to the URL).
+
+  Each `reflect*` returns `Model` directly, not the `[Model, Commands,
+Option<OutMessage>]` tuple the choice-based setters (`selectItem`, `select`,
+  `selectTab`, `selectDate`, `setChecked`, `toggle`) return. The different return
+  type makes "this cannot emit" visible at the call site. Each is also
+  `Function.dual`, so it reads point-free in an `evo` callback:
+
+  ```ts
+  ChangedUrl: () => [
+    evo(model, {
+      dietListbox: DietListbox.reflectSelectedItem(fromUrl),
+    }),
+    [],
+  ]
+  ```
+
+  ### Added
+  - `Listbox.create().reflectSelectedItem(model, Option<Value>)` and
+    `Listbox.Multi.create().reflectSelectedItems(model, ReadonlyArray<Value>)`
+  - `Combobox.create().reflectSelectedItem(model, Option<{ item, displayText }>)`
+    (sets the input text alongside the selection) and
+    `Combobox.Multi.create().reflectSelectedItems(model, ReadonlyArray<Value>)`
+  - `RadioGroup.create().reflectSelectedValue(model, Option<Value>)`
+  - `Tabs.create().reflectSelectedTab(model, value, options)` (resolves the value
+    to an index, mirroring `select`; a value not in `options` is a no-op)
+  - `Calendar.reflectSelectedDate(model, Option<CalendarDate>)` and
+    `DatePicker.reflectSelectedDate(model, Option<CalendarDate>)` (the picker also
+    reflects onto its embedded calendar); both move the view to the date so the
+    selection stays visible
+  - `Checkbox.reflectChecked(model, boolean)`,
+    `Switch.reflectChecked(model, boolean)`, and
+    `Disclosure.reflectOpenState(model, boolean)`
+
+  ### Renamed (breaking)
+
+  The silent setters that already existed are renamed to the `reflect*` convention
+  and are now dual. Behavior is unchanged; only the names change, plus the added
+  data-last form.
+  - `Calendar` and `DatePicker`: `setMinDate` → `reflectMinDate`, `setMaxDate` →
+    `reflectMaxDate`, `setDisabledDates` → `reflectDisabledDates`,
+    `setDisabledDaysOfWeek` → `reflectDisabledDaysOfWeek`
+  - `Slider`: `setValue` → `reflectValue`, `setRange` → `reflectRange`
+
+  The choice-based setters that emit (`setChecked`, `selectItem`, `selectDate`,
+  and the rest) keep their names.
+
+- f1d8c31: Replace `Ui.Listbox.view<Item>()` / `Ui.Combobox.view<Item>()` / `Ui.RadioGroup.view` / `Ui.Tabs.view` with `create<Item>()` factories that pair `view`, `update`, and the imperative helpers (`selectItem`, `open`, `close`, `select`, `selectTab`) behind a single type-parameterized entry point. Closes the soundness hole where the previous separate `view<Item>` and `update<Item>` generics could drift independently and TypeScript would accept the mismatch.
+
+  ### Migration
+
+  Before:
+
+  ```ts
+  // In view:
+  Ui.Listbox.view<Color>({
+    model: model.colorListbox,
+    toParentMessage: message => GotColorListboxMessage({ message }),
+    onSelectedItem: value => SelectedColor({ color: value as Color }), // cast required
+    // ... other ViewConfig
+  })
+
+  // In update:
+  const [next, commands] = Ui.Listbox.update(model.colorListbox, message)
+  ```
+
+  After:
+
+  ```ts
+  // At module scope:
+  const ColorListbox = Ui.Listbox.create<Color>()
+
+  // In view:
+  h.submodel({
+    slotId: 'colors',
+    model: model.colorListbox,
+    view: ColorListbox.view,
+    toParentMessage: message => GotColorListboxMessage({ message }),
+  })
+
+  // In update:
+  const [next, commands, maybeOutMessage] = ColorListbox.update(
+    model.colorListbox,
+    message,
+  )
+  // maybeOutMessage: Option<Ui.Listbox.OutMessage<Color>>
+  // Selected branch carries `item: Color` directly; no cast needed.
+  ```
+
+  Declare the factory once at module scope. The returned object pairs everything Item-typed (view, update, selectItem, open, close) so Item drift becomes impossible: there's only one type parameter to set.
+
+  ### Components in scope
+  - **`Ui.Listbox.create<Item, Value?>()`**: two type params support object-typed items via `itemToValue`. `Value` defaults to `Item` when `Item extends string`, else `string`. The `itemToValue` extractor on `ViewInputs` is now typed `(item: Item) => Value` (was `=> string`), and is required when items are objects (optional when `Item extends string`, where the default is identity). Closes a soundness gap where `create<Person, 'red' | 'blue'>()` would accept an extractor returning any `string`.
+  - **`Ui.Listbox.Multi.create<Item, Value?>()`**: same shape.
+  - **`Ui.Combobox.create<Item>()`**: `Item extends string`. `itemToValue` codomain is now `Item` (was `string`).
+  - **`Ui.Combobox.Multi.create<Item>()`**: same.
+  - **`Ui.RadioGroup.create<Value>()`**: single type param, `Value extends string`. The view's ViewInputs stays string-typed (consumers pass a `ReadonlyArray<MyUnion>` which is assignable to `ReadonlyArray<string>`); the fenced cast inside `update` types the OutMessage's `value` as `Value`. The same propagation flows into `toView`: `option.value` is now typed as the consumer's `Value`, removing casts in the slot callback.
+  - **`Ui.Tabs.create<Value>()`**: single type param, `Value extends string`. `TabInfo.value` in `toView` is typed as the consumer's tab union; removes the `tab.value as MyTab` cast at every Tabs consumer.
+  - **`Ui.Menu.create<Item>()`**: single type param, `Item extends string`. `Selected` now carries `{ value: Item, index: number }` (was `{ index: number }`); consumers receive the picked value directly and no longer have to look it up via `items[index]`. `selectItem` becomes `(model, item, index)` to match.
+
+  ### Bare runtime exports removed
+
+  The factory is the only public path to `view`, `update`, and the imperative helpers (`selectItem`, `open`, `close`, `select`, `selectTab`) for the six components above. `Ui.Listbox.view`, `Ui.Listbox.update`, `Ui.Listbox.open`, `Ui.Listbox.close`, `Ui.Listbox.selectItem`, and the `Multi` counterparts are no longer exported, and the same applies to `Ui.Combobox.*`, `Ui.RadioGroup.update` / `select`, `Ui.Tabs.view` / `update` / `selectTab`, and `Ui.Menu.view` / `update` / `open` / `close` / `selectItem`. Forcing every call through `create<Item>()` makes Item-drift impossible: there's only one binding site for the type parameter.
+
+  Migration: declare the factory at module scope and use the returned methods.
+
+  ```ts
+  // Before
+  const [next, commands] = Ui.RadioGroup.update<Tool>(model.tool, message)
+
+  // After
+  const ToolRadioGroup = Ui.RadioGroup.create<Tool>()
+  const [next, commands] = ToolRadioGroup.update(model.tool, message)
+  ```
+
+  ### Soundness
+
+  The Item generic flows from `create<Item>()` to the OutMessage's `value` / `item` field through a fenced cast at `update`'s return. The cast is sound iff the value emitted in the OutMessage was originally drawn from the consumer-supplied items array, which holds for click and typeahead-search paths (both index into the items array).
+
+  The realistic violation is a stale model surviving an items-list change: selecting `'Red'` when items are `[Red, Green, Blue]`, then later passing `[Yellow, Purple]` keeps the stored selection at `'Red'`, which the type system would now claim is in the new union but is not. The cast itself never throws; downstream code that assumes exhaustiveness (`Match.exhaustive`, `Record<Union, X>` lookups) might. Consumers using long-lived selections across dynamic-items renders should validate at the boundary if they are concerned.
+
+- f1d8c31: `Ui.Switch.update` now returns `[Model, Commands, Option<OutMessage>]` (was `[Model, Commands]`). Adds a new `ToggledChecked({ isChecked: boolean })` OutMessage variant, emitted on every toggle. Same shape as `Ui.Checkbox.ToggledChecked`. Closes the same gap where consumers shortcut around the Submodel wrapper to dispatch a domain Message directly.
+
+  Existing 2-tuple destructures keep compiling; TypeScript accepts binding the head of a longer tuple. Consumers wanting to react to the toggle as a domain event pattern-match the third element:
+
+  ```ts
+  GotNotificationSwitchMessage: ({ message }) => {
+    const [next, commands, maybeOutMessage] = Ui.Switch.update(
+      model.notifications,
+      message,
+    )
+    const mappedCommands = Command.mapMessages(commands, message =>
+      GotNotificationSwitchMessage({ message }),
+    )
+    return Option.match(maybeOutMessage, {
+      onNone: () => [evo(model, { notifications: () => next }), mappedCommands],
+      onSome: M.type<Ui.Switch.OutMessage>().pipe(
+        M.tagsExhaustive({
+          ToggledChecked: ({ isChecked }) => [
+            evo(model, { notifications: () => next }),
+            [
+              ...mappedCommands,
+              PersistNotificationsEnabled({ value: isChecked }),
+            ],
+          ],
+        }),
+      ),
+    })
+  }
+  ```
+
+- f1d8c31: `Ui.Switch` gains a `SetChecked({ isChecked: boolean })` Message and a
+  matching `setChecked(model, isChecked)` programmatic helper, mirroring
+  `Ui.Checkbox.setChecked`. `SetChecked` forces the checked state to a
+  specific value (unlike `Toggled`, which flips) and emits the same
+  `ToggledChecked({ isChecked })` OutMessage so consumers react to
+  programmatic state assignment the same way they react to user toggles.
+  Use this in domain-event handlers that need to assign a specific state
+  rather than flip the current one:
+
+  ```ts
+  const [nextSwitch] = Ui.Switch.setChecked(model.notifications, true)
+  return [evo(model, { notifications: () => nextSwitch }), []]
+  ```
+
+  Previously the only update path was `Toggled`, whose flip semantics could
+  not reliably reach a target state. The convention pushed consumers to
+  assign `isChecked` directly on the submodel field, bypassing
+  `Ui.Switch.update`. `setChecked` is the idiomatic route.
+
+- f1d8c31: Rename the Toast view-config `renderEntry` field to `entryToView` so it lines up with the `toView` / `toConfig` slot-callback family used across the rest of `Ui.*`.
+
+  ### Migration
+
+  ```ts
+  // Before
+  viewInputs: {
+    renderEntry: (entry, handlers) => h.div(...),
+  }
+
+  // After
+  viewInputs: {
+    entryToView: (entry, handlers) => h.div(...),
+  }
+  ```
+
+- f1d8c31: `Ui.Toast.make(payloadSchema)` now returns a runtime whose `update` produces `[Model, Commands, Option<OutMessage>]` (was `[Model, Commands]`). Adds a new `DismissedToast({ payload })` OutMessage variant, emitted once an entry finishes its leave animation and is being removed from the model. The payload is typed as your `Payload` schema, so consumers can lift the dismissal directly into a domain Message.
+
+  Why the emit moment is `TransitionedOut`, not `Dismissed`: the internal `Dismissed` Message only requests the start of the leave animation. Firing `DismissedToast` at request time would emit too early. The entry is still visible and the parent might want to react when the dismissal actually completes (cleanup, analytics, resolving a pending Action). The OutMessage fires from `delegateToEntryAnimation`'s `TransitionedOut` arm, which is also where the entry is removed from `model.entries`.
+
+  The factory now also returns `OutMessage` (the Schema union) and `DismissedToast` (the constructor) alongside the existing `Message`, `Added`, etc.:
+
+  ```ts
+  const Toast = Ui.Toast.make(ToastPayload)
+  // Toast.OutMessage, Toast.DismissedToast: new
+  // Toast.Message, Toast.Added: unchanged
+  ```
+
+  Existing 2-tuple destructures keep compiling; TypeScript accepts binding the head of a longer tuple. Consumers wanting to react to the dismissal as a domain event pattern-match the third element:
+
+  ```ts
+  const Toast = Ui.Toast.make(ToastPayload)
+
+  GotToastMessage: ({ message }) => {
+    const [next, commands, maybeOutMessage] = Toast.update(model.toast, message)
+    const mappedCommands = Command.mapMessages(commands, message =>
+      GotToastMessage({ message }),
+    )
+    return Option.match(maybeOutMessage, {
+      onNone: () => [evo(model, { toast: () => next }), mappedCommands],
+      onSome: M.type<Toast.OutMessage>().pipe(
+        M.tagsExhaustive({
+          DismissedToast: ({ payload }) => [
+            evo(model, { toast: () => next }),
+            [...mappedCommands, ResolveToastAction({ payload })],
+          ],
+        }),
+      ),
+    })
+  }
+  ```
+
+- f1d8c31: `Ui.Tooltip.update` now returns `[Model, Commands, Option<OutMessage>]` (was `[Model, Commands]`). Adds two OutMessage variants:
+  - `Shown()`: emitted once the tooltip transitions to visible (`isOpen` becomes true).
+  - `Hidden()`: emitted once the tooltip transitions to hidden (`isOpen` becomes false).
+
+  Only fires on actual visibility transitions, not on internal state changes (hover, focus, delay updates), so consumers don't get spurious events. Useful for analytics, instrumentation, or coordinating with other transient UI.
+
+  `Ui.Tooltip.setShowDelay` returns the same 3-tuple. Existing 2-tuple destructures keep compiling; TypeScript accepts binding the head of a longer tuple. Consumers wanting to react to visibility transitions as a domain event pattern-match the third element:
+
+  ```ts
+  GotHelpTooltipMessage: ({ message }) => {
+    const [next, commands, maybeOutMessage] = Ui.Tooltip.update(
+      model.helpTooltip,
+      message,
+    )
+    const mappedCommands = Command.mapMessages(commands, message =>
+      GotHelpTooltipMessage({ message }),
+    )
+    return Option.match(maybeOutMessage, {
+      onNone: () => [evo(model, { helpTooltip: () => next }), mappedCommands],
+      onSome: M.type<Ui.Tooltip.OutMessage>().pipe(
+        M.tagsExhaustive({
+          Shown: () => [
+            evo(model, { helpTooltip: () => next }),
+            [...mappedCommands, TrackTooltipShown({ id: 'help' })],
+          ],
+          Hidden: () => [
+            evo(model, { helpTooltip: () => next }),
+            mappedCommands,
+          ],
+        }),
+      ),
+    })
+  }
+  ```
+
+### Patch Changes
+
+- f1d8c31: Fix `Ui.DatePicker.clear` (and the underlying `Cleared` Message) leaving the
+  embedded calendar's selection highlighted. `clear` cleared the picker's
+  `maybeSelectedDate` but not the embedded calendar's, and the popover grid
+  renders from the calendar's own state, so reopening showed the old date still
+  highlighted even though the trigger and hidden input read empty. `clear` now
+  clears the calendar's selection too.
+- f1d8c31: Faster view rendering. The HTML attribute matcher used to be built once per VNode inside `buildVNodeData`; it is now built once at module load and shared across every VNode. Both naive and optimised paths benefit; naive constructs the matcher per VNode, so the gain is largest there, while optimised still does matcher work on items that change between renders (cache misses).
+- f1d8c31: Trim runtime dispatch overhead on the queue-drain hot path.
+  - `orderByPriority` now partitions a batch in a single forward pass with two small array allocations, instead of two `Array.filter` calls plus `Array.appendAll` plus `Array.map`. Per-call cost in the runtime microbenchmark drops from ~1.9µs to ~1.2µs (-40%).
+  - `yieldToBrowser` reuses one `MessageChannel` for the runtime's lifetime, scoped via `Effect.acquireRelease`. Previously every burst-budget yield allocated a fresh channel and closed it on cancel.
+  - `burstStartedAt` and `currentMessage` are now plain closure variables in the queue-drain fiber. They were `Ref`s but were never touched by another fiber, so the per-message `Ref.get`/`Ref.set` pair was pure overhead.
+  - The DevTools store, installed at most once during boot, is cached in a closure variable instead of stored in a `Ref` that was read on every message and every render-loop tick.
+  - `processMessage` guards its `Effect.forEach` over `commands` with an `Array.isReadonlyArrayEmpty` check. Most Messages produce zero Commands.
+
+  Internal microbenchmark (`RUN_RUNTIME_BENCH=1 pnpm vitest run src/runtime/dispatchBench.test.ts`) on a happy-dom shell, 5000 external Messages per run, 8 measured runs per trial, 4 trials:
+  - External burst total wall-clock: ~168.8 ms -> ~135.8 ms median (-19.5%)
+  - Dispatch throughput: ~29.6k msg/s -> ~36.8k msg/s (+24%)
+  - `orderByPriority` (batch=100): ~1.92µs -> ~1.17µs per call (-40%)
+
+  No public API change. View functions, Commands, Mounts, Subscriptions, and DevTools all behave identically.
+
 ## 0.101.0
 
 ### Minor Changes

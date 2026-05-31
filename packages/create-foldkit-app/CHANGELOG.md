@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.12.4
+
+### Patch Changes
+
+- f1d8c31: Update the scaffolder's example catalog (the example list, descriptions, and copy) to match the current example set and the `Ui.*` Submodel / OutMessage shape that newly scaffolded apps target.
+
 ## 0.12.3
 
 ### Patch Changes

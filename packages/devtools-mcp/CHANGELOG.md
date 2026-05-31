@@ -1,5 +1,11 @@
 # @foldkit/devtools-mcp
 
+## 0.9.0
+
+### Minor Changes
+
+- f1d8c31: Republished against foldkit 0.102.0. No source change to the MCP server itself, but foldkit's perf overhaul and Submodel boundary restructure (see foldkit changelog) reshape the runtime that devtools-mcp talks to over the DevTools protocol. Pin foldkit and @foldkit/devtools-mcp together: this version of devtools-mcp expects foldkit 0.102.0 or later.
+
 ## 0.8.1
 
 ### Patch Changes
