@@ -160,7 +160,7 @@ const displaySuccessMessage = (name: string, packageManager: PackageManager) =>
       `Incident report: ${chalk.cyan('github.com/foldkit/foldkit/issues')}`,
     )
     yield* Console.log('')
-    yield* Console.log(`Crew channel: ${chalk.cyan('discord.gg/kav8VNxqG')}`)
+    yield* Console.log(`Crew channel: ${chalk.cyan('discord.gg/kav8VNxqGm')}`)
     yield* Console.log('')
     yield* Console.log('Transmissions:')
     yield* Console.log(`  Newsletter:  ${chalk.cyan('foldkit.dev/newsletter')}`)

@@ -37,7 +37,7 @@ export const Link = {
     'https://github.com/foldkit/foldkit/tree/main/packages/create-foldkit-app',
   msw: 'https://mswjs.io',
   github: 'https://github.com/foldkit/foldkit',
-  discord: 'https://discord.gg/kav8VNxqG',
+  discord: 'https://discord.gg/kav8VNxqGm',
   xSocial: 'https://x.com/devinjameson',
   foldkitSource:
     'https://github.com/foldkit/foldkit/tree/main/packages/foldkit',
