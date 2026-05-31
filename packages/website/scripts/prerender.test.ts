@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { STATIC_ROUTES, enumerateRoutes, injectHtml } from './prerender'
+import {
+  STATIC_ROUTES,
+  buildPlaygroundShellHtml,
+  enumerateRoutes,
+  injectHtml,
+} from './prerender'
 
 describe('injectHtml', () => {
   it('wraps rendered html in the root div', () => {
@@ -15,6 +20,17 @@ describe('injectHtml', () => {
     const base = '<body><div id="other"></div></body>'
     const rendered = '<div class="app"><p>hello</p></div>'
     expect(injectHtml(base, rendered)).toBe(base)
+  })
+})
+
+describe('buildPlaygroundShellHtml', () => {
+  it('injects the neutral spinner shell into the root div', () => {
+    const base = '<body><div id="root"></div></body>'
+    const result = buildPlaygroundShellHtml(base)
+    expect(result.startsWith('<body><div id="root">')).toBe(true)
+    expect(result).toContain('Starting playground')
+    expect(result).toContain('animate-spin')
+    expect(result).not.toContain('<div id="root"></div>')
   })
 })
 

@@ -916,12 +916,37 @@ const playgroundIsolationHeadersPlugin = (): Plugin => ({
   },
 })
 
+// NOTE: Mirrors the `/playground/(.*)` rewrite in
+// .github/workflows/deploy-website.yml so the prerendered build can be
+// verified with `pnpm preview`. Playground routes aren't prerendered, so the
+// SPA fallback would otherwise serve the home page and flash the landing view
+// before the app boots. `pnpm dev` needs nothing: there's no prerender, so
+// `#root` is empty and there's no landing markup to flash.
+const playgroundShellFallbackPlugin = (): Plugin => ({
+  name: 'playground-shell-fallback',
+  configurePreviewServer(server) {
+    server.middlewares.use((req, _res, next) => {
+      if (req.url) {
+        const { pathname, search } = new URL(req.url, 'http://localhost')
+        if (
+          pathname.startsWith('/playground/') &&
+          pathname !== '/playground/index.html'
+        ) {
+          req.url = `/playground/index.html${search}`
+        }
+      }
+      next()
+    })
+  },
+})
+
 export default defineConfig({
   plugins: [
     tailwindcss(),
     foldkit({ devToolsMcpPort: 9988 }),
     embeddedExampleRedirectPlugin(),
     playgroundIsolationHeadersPlugin(),
+    playgroundShellFallbackPlugin(),
     highlightCodePlugin(),
     highlightApiSignaturesPlugin(),
     apiModuleIndexPlugin(),

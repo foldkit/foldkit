@@ -94,6 +94,7 @@ jobs:
                 "has": [{ "type": "query", "key": "embedded", "value": "(?<slug>[^&]+)" }],
                 "dest": "/example-apps-embed/$slug/index.html"
               },
+              { "src": "/playground/(.*)", "dest": "/playground/index.html" },
               { "src": "/(.*)", "dest": "/index.html" }
             ]
           }
