@@ -43,7 +43,7 @@ import {
 import { MountTracker } from '../mount/index.js'
 import { UrlRequest } from '../navigation/urlRequest.js'
 import { Url, fromString as urlFromString } from '../url/index.js'
-import { VNode, patch, toVNode } from '../vdom.js'
+import { VNode, dedupeSharedVNodes, patch, toVNode } from '../vdom.js'
 import {
   addBfcacheRestoreListener,
   addNavigationEventListeners,
@@ -1364,18 +1364,20 @@ const makeRuntime = <
   return { runtimeId, start }
 }
 
-const patchVNode = (
+// NOTE: exported for `patchVNode.test.ts` to assert the dedupeSharedVNodes
+// wiring; not part of the public surface (`runtime/public.ts` is curated).
+export const patchVNode = (
   maybeCurrentVNode: Option.Option<VNode>,
-  nullableNextVNode: VNode | null,
+  nextVNode: VNode | null,
   container: HTMLElement,
 ): VNode => {
-  const nextVNode = Predicate.isNotNull(nullableNextVNode)
-    ? nullableNextVNode
+  const dedupedVNode = Predicate.isNotNull(nextVNode)
+    ? dedupeSharedVNodes(nextVNode)
     : h('!')
 
   return Option.match(maybeCurrentVNode, {
-    onNone: () => patch(toVNode(container), nextVNode),
-    onSome: currentVNode => patch(currentVNode, nextVNode),
+    onNone: () => patch(toVNode(container), dedupedVNode),
+    onSome: currentVNode => patch(currentVNode, dedupedVNode),
   })
 }
 
