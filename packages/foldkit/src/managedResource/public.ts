@@ -7,10 +7,11 @@ export type {
   ServiceOf,
 } from './index.js'
 
-export { makeManagedResources } from '../runtime/managedResource.js'
+export { make, lift, aggregate } from '../runtime/managedResource.js'
 
 export type {
-  ManagedResourceConfig,
+  Entry,
   ManagedResources,
-  ManagedResourceServicesOf,
+  ManagedResourceConfig,
+  ServicesOf,
 } from '../runtime/managedResource.js'

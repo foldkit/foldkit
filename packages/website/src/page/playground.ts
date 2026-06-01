@@ -209,37 +209,21 @@ const reasonFromError = (error: unknown): string => {
   return String(error)
 }
 
-const ManagedResourceDeps = S.Struct({
-  webContainerPlayground: S.Option(PlaygroundParams),
-})
-
-// NOTE: ManagedResource has no `lift` helper today, so this factory stands
-// in for one: it takes a getter from the parent's model into our Submodel
-// and a wrapper for the parent's Message union. Will be consolidated once
-// ManagedResource Submodel helpers land (e.g. ManagedResource.lift).
-export const toManagedResources = <ParentModel, ParentMessage>(
-  config: Readonly<{
-    toChildModel: (model: ParentModel) => Option.Option<Model>
-    toParentMessage: (message: Message) => ParentMessage
-  }>,
-) => {
-  const { toChildModel, toParentMessage } = config
-  return ManagedResource.makeManagedResources(ManagedResourceDeps)<
-    ParentModel,
-    ParentMessage
-  >({
-    webContainerPlayground: {
+export const managedResources = ManagedResource.make<Model, Message>()(
+  entry => ({
+    webContainerPlayground: entry(S.Option(PlaygroundParams), {
       resource: WebContainerPlayground,
-      modelToMaybeRequirements: parent =>
-        toChildModel(parent).pipe(
-          Option.flatMap(({ slug }) =>
-            Option.liftPredicate(slug, () => Record.has(filesBySlug, slug)),
-          ),
-          Option.map(slug => ({ slug })),
+      modelToMaybeRequirements: ({ slug }) =>
+        pipe(
+          slug,
+          Option.liftPredicate(() => Record.has(filesBySlug, slug)),
+          Option.map(() => ({ slug })),
         ),
       acquire: ({ slug }) =>
         Effect.gen(function* () {
-          const entry = yield* Effect.fromOption(Record.get(filesBySlug, slug))
+          const fileEntry = yield* Effect.fromOption(
+            Record.get(filesBySlug, slug),
+          )
           const { WebContainer } = yield* Effect.tryPromise(
             () => import('@webcontainer/api'),
           )
@@ -250,7 +234,7 @@ export const toManagedResources = <ParentModel, ParentMessage>(
             }),
           )
           yield* Effect.tryPromise(() =>
-            container.mount(fileSystemTreeFromFiles(entry.files)),
+            container.mount(fileSystemTreeFromFiles(fileEntry.files)),
           )
           const install = yield* Effect.tryPromise(() =>
             container.spawn('npm', ['install']),
@@ -283,16 +267,13 @@ export const toManagedResources = <ParentModel, ParentMessage>(
           }
           yield* Effect.sync(() => container.teardown())
         }),
-      onAcquired: ({ previewUrl }) =>
-        toParentMessage(BootedPlayground({ previewUrl })),
-      onReleased: () => toParentMessage(ReleasedPlayground()),
+      onAcquired: ({ previewUrl }) => BootedPlayground({ previewUrl }),
+      onReleased: () => ReleasedPlayground(),
       onAcquireError: error =>
-        toParentMessage(
-          FailedBootPlayground({ reason: reasonFromError(error) }),
-        ),
-    },
-  })
-}
+        FailedBootPlayground({ reason: reasonFromError(error) }),
+    }),
+  }),
+)
 
 // MOUNT
 

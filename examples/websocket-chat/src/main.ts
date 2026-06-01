@@ -241,60 +241,56 @@ export const SendMessage = Command.define(
 
 // MANAGED RESOURCE
 
-const ManagedResourceDeps = S.Struct({
-  chatSocket: S.Option(S.Null),
-})
-
-export const managedResources = ManagedResource.makeManagedResources(
-  ManagedResourceDeps,
-)<Model, Message>({
-  chatSocket: {
-    resource: ChatSocket,
-    modelToMaybeRequirements: model =>
-      M.value(model.connection).pipe(
-        M.tag('ConnectionConnecting', () => Option.some(null)),
-        M.tag('ConnectionConnected', () => Option.some(null)),
-        M.orElse(() => Option.none()),
-      ),
-    acquire: () =>
-      Effect.callback<WebSocket, Error>(resume => {
-        const ws = new WebSocket(WS_URL)
-
-        const handleOpen = () => {
-          ws.removeEventListener('error', handleError)
-          resume(Effect.succeed(ws))
-        }
-
-        const handleError = () => {
-          ws.removeEventListener('open', handleOpen)
-          resume(Effect.fail(new Error('Failed to connect to WebSocket')))
-        }
-
-        ws.addEventListener('open', handleOpen)
-        ws.addEventListener('error', handleError)
-
-        return Effect.sync(() => {
-          ws.removeEventListener('open', handleOpen)
-          ws.removeEventListener('error', handleError)
-        })
-      }).pipe(
-        Effect.timeout(Duration.millis(CONNECTION_TIMEOUT_MS)),
-        Effect.catchTag('TimeoutError', () =>
-          Effect.fail(new Error('Connection timeout')),
+export const managedResources = ManagedResource.make<Model, Message>()(
+  entry => ({
+    chatSocket: entry(S.Option(S.Null), {
+      resource: ChatSocket,
+      modelToMaybeRequirements: model =>
+        M.value(model.connection).pipe(
+          M.tag('ConnectionConnecting', () => Option.some(null)),
+          M.tag('ConnectionConnected', () => Option.some(null)),
+          M.orElse(() => Option.none()),
         ),
-      ),
-    release: socket =>
-      Effect.sync(() => {
-        socket.close()
-      }),
-    onAcquired: () => Connected(),
-    onReleased: () => Disconnected(),
-    onAcquireError: error =>
-      FailedConnect({
-        error: error instanceof Error ? error.message : 'Unknown error',
-      }),
-  },
-})
+      acquire: () =>
+        Effect.callback<WebSocket, Error>(resume => {
+          const ws = new WebSocket(WS_URL)
+
+          const handleOpen = () => {
+            ws.removeEventListener('error', handleError)
+            resume(Effect.succeed(ws))
+          }
+
+          const handleError = () => {
+            ws.removeEventListener('open', handleOpen)
+            resume(Effect.fail(new Error('Failed to connect to WebSocket')))
+          }
+
+          ws.addEventListener('open', handleOpen)
+          ws.addEventListener('error', handleError)
+
+          return Effect.sync(() => {
+            ws.removeEventListener('open', handleOpen)
+            ws.removeEventListener('error', handleError)
+          })
+        }).pipe(
+          Effect.timeout(Duration.millis(CONNECTION_TIMEOUT_MS)),
+          Effect.catchTag('TimeoutError', () =>
+            Effect.fail(new Error('Connection timeout')),
+          ),
+        ),
+      release: socket =>
+        Effect.sync(() => {
+          socket.close()
+        }),
+      onAcquired: () => Connected(),
+      onReleased: () => Disconnected(),
+      onAcquireError: error =>
+        FailedConnect({
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }),
+    }),
+  }),
+)
 
 // SUBSCRIPTION
 

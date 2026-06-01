@@ -24,6 +24,7 @@ import {
   Command,
   Dom,
   FieldValidation,
+  ManagedResource,
   Runtime,
   Subscription,
   Ui,
@@ -278,7 +279,9 @@ export type AppResources =
   | Page.NotePlayerDemo.AudioContextService
   | Search.PagefindService
 
-export type AppManagedResources = Page.Playground.WebContainerPlaygroundService
+export type AppManagedResources = ManagedResource.ServicesOf<
+  typeof managedResources
+>
 
 const isGroupOpenOnBoot = (
   maybeSidebarState: Option.Option<SidebarState>,
@@ -1368,10 +1371,9 @@ export const subscriptions = Subscription.aggregate<Model, Message>()(
 
 // MANAGED RESOURCES
 
-export const managedResources = Page.Playground.toManagedResources<
-  Model,
-  Message
->({
+export const managedResources = ManagedResource.lift(
+  Page.Playground.managedResources,
+)<Model, Message>({
   toChildModel: model => model.playground,
   toParentMessage: message => GotPlaygroundMessage({ message }),
 })
