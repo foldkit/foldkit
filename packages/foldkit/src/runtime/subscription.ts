@@ -197,7 +197,7 @@ export const aggregate =
     > = {}
     for (const record of records) {
       for (const key of Object.keys(record)) {
-        if (key in result) {
+        if (Object.hasOwn(result, key)) {
           throw new Error(
             `Subscription.aggregate: duplicate key "${key}" across records`,
           )

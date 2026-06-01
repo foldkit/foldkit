@@ -85,7 +85,7 @@ Read `${CLAUDE_SKILL_DIR}/../../examples/shopping-cart/src/main.ts` (nested doma
 **Tier 6: Submodels, OutMessage, multi-step forms, auth flows, multi-module apps:**
 Read `${CLAUDE_SKILL_DIR}/../../examples/auth/src/main.ts` (login/signup with Submodels, OutMessage, protected routes) and `${CLAUDE_SKILL_DIR}/../../examples/job-application/src/main.ts` (multi-step form with deeply nested Submodels in `step/`, `Ui.DatePicker`, `Ui.FileDrop`, `Ui.Menu`, `Calendar` module for date handling)
 
-**Tier 7: Real-time, WebSocket, managed resources, production-grade:**
+**Tier 7: Real-time, WebSocket, Managed Resources, production-grade:**
 Read `${CLAUDE_SKILL_DIR}/../../packages/typing-game/client/src/update.ts`, then explore its `page/home/` and `page/room/` directories for the full Submodel/OutMessage pattern.
 
 Read examples from the target tier AND all lower tiers. A Tier 4 app should reflect patterns from Tiers 1-3 as well.
@@ -321,7 +321,7 @@ For each Foldkit module you plan to use, read the `.d.ts` at the paths below. Re
 
 # If using mount / managed-resource / custom-element
 <project>/node_modules/foldkit/dist/mount/index.d.ts             # Mount.define: for per-instance VNode lifecycle
-<project>/node_modules/foldkit/dist/managedResource/index.d.ts   # ManagedResource: for stateful runtime objects keyed on Model condition
+<project>/node_modules/foldkit/dist/managedResource/public.d.ts  # ManagedResource.make / lift / aggregate + tag: for stateful runtime objects keyed on Model condition
 <project>/node_modules/foldkit/dist/customElement/index.d.ts     # CustomElement.define: for typed bindings to native web components
 
 # If using forms
@@ -549,6 +549,15 @@ For file uploads (resumes, images, attachments):
 - Subscriptions auto-start/stop based on Model state. Never manually managed
 - For Subscriptions with no Model dependencies (always active), pass `{}` as the `entry` fields argument and return `{}` from `modelToDependencies`
 - To embed child Subscriptions, use `Subscription.lift(childRecord)<Parent, Parent>({ toChildModel, toParentMessage })`. To combine multiple records, use `Subscription.aggregate<Model, Message>()(...records)`
+
+### Managed Resources (if stateful runtime handles)
+
+- Define with `ManagedResource.make<Model, Message>()(entry => ({ key: entry(requirementsSchema, config) }))`. `requirementsSchema` is the positional first argument (usually `S.Option(...)`); `config` carries the `resource` tag, `modelToMaybeRequirements`, the `acquire`/`release` Effects, and the `onAcquired`/`onReleased`/`onAcquireError` Messages
+- `modelToMaybeRequirements` returns `Option.some(params)` to acquire (or re-acquire when params change) and `Option.none()` to release. Resources auto-acquire/release on Model state, like Subscriptions
+- For a resource with no params, use `S.Option(S.Null)` and return `Option.some(null)`
+- Read the service union with `ManagedResource.ServicesOf<typeof managedResources>`
+- To embed a child Submodel's resources, use `ManagedResource.lift(childRecord)<Parent, Parent>({ toChildModel, toParentMessage })` (its `toChildModel` returns `Option<ChildModel>`, so lifted requirements must be `S.Option`-wrapped). Combine records with `ManagedResource.aggregate<Model, Message>()(...records)`
+- App-lifetime handles go in `resources`, not here; there is no `persistent`
 
 ## Phase 4.5: Self-check before verification
 

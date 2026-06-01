@@ -4,10 +4,12 @@ import { Message, type TableOfContentsEntry } from '../../main'
 import {
   infoCallout,
   inlineCode,
+  link,
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { patternsSubscriptionOrganizationRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -23,9 +25,16 @@ const accessingManagedResourcesHeader: TableOfContentsEntry = {
   text: 'Accessing Managed Resources in Commands',
 }
 
+const composingSubmodelsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'composing-child-submodels',
+  text: 'Composing Child Submodels',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   accessingManagedResourcesHeader,
+  composingSubmodelsHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
@@ -40,19 +49,19 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'Resources live for the entire application lifecycle. But some resources are heavy and should only be active while the model is in a particular state, like a camera stream during a video call, a ',
         inlineCode('WebSocket'),
         ' connection while on a chat page, or a Web Worker pool during a computation. ',
-        'Managed resources provide model-driven acquire/release lifecycle, using the same deps-diffing engine as subscriptions.',
+        'Managed Resources provide model-driven acquire/release lifecycle, using the same deps-diffing engine as subscriptions.',
       ),
       infoCallout(
         'The restaurant analogy',
-        'If resources are kitchen equipment (permanent, always on), managed resources are specialty ingredients sourced on demand. When the menu shifts to a seafood special (model state changes), the kitchen orders in fresh lobster and sets up the shellfish station. When the special ends, the lobster goes back to the supplier and the station is broken down. If the chef (Command) tries to plate lobster when it’s not in season, they get a clear signal: ',
+        'If resources are kitchen equipment (permanent, always on), Managed Resources are specialty ingredients sourced on demand. When the menu shifts to a seafood special (model state changes), the kitchen orders in fresh lobster and sets up the shellfish station. When the special ends, the lobster goes back to the supplier and the station is broken down. If the chef (Command) tries to plate lobster when it’s not in season, they get a clear signal: ',
         inlineCode('ResourceNotAvailable'),
         '. And if the special changes from Maine lobster to king crab (params change), the old stock is returned and new stock is sourced, just like switching camera resolutions triggers release and reacquire.',
       ),
       para(
-        'Define a managed resource identity with ',
+        'Define a Managed Resource identity with ',
         inlineCode('ManagedResource.tag'),
         ', then wire its lifecycle with ',
-        inlineCode('makeManagedResources'),
+        inlineCode('ManagedResource.make'),
         '. The ',
         inlineCode('modelToMaybeRequirements'),
         ' function returns ',
@@ -70,7 +79,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
           [],
         ),
         Snippets.managedResourcesRaw,
-        'Copy managed resources example to clipboard',
+        'Copy Managed Resources example to clipboard',
         copiedSnippets,
         'mb-8',
       ),
@@ -113,7 +122,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
           [],
         ),
         Snippets.managedResourcesCommandRaw,
-        'Copy managed resource command example to clipboard',
+        'Copy Managed Resource command example to clipboard',
         copiedSnippets,
         'mb-8',
       ),
@@ -127,6 +136,66 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' has been received), the ',
         inlineCode('catchTag'),
         ' is a safety net that never fires. But if your model logic has a bug, you get a graceful error message instead of a crash.',
+      ),
+      tableOfContentsEntryToHeader(composingSubmodelsHeader),
+      para(
+        'A child Submodel owns its Managed Resources in its own Model and Message terms, built with ',
+        inlineCode('ManagedResource.make'),
+        ' and knowing nothing about any parent. ',
+        inlineCode('ManagedResource.lift'),
+        ' translates that record into the parent through a single Model lens and a single Message wrapper, the same shape as update delegation and ',
+        inlineCode('Subscription.lift'),
+        '. ',
+        inlineCode('ManagedResource.aggregate'),
+        ' then combines a root-level record with any lifted child records into the single record ',
+        inlineCode('makeProgram'),
+        ' expects, throwing at startup on duplicate keys.',
+      ),
+      para(
+        'Unlike ',
+        inlineCode('Subscription.lift'),
+        ', ',
+        inlineCode('toChildModel'),
+        ' returns an ',
+        inlineCode('Option'),
+        '. A Managed Resource already speaks in ',
+        inlineCode('Option'),
+        ' (',
+        inlineCode('modelToMaybeRequirements'),
+        ' returns ',
+        inlineCode('Option.none()'),
+        ' to release), so a Submodel embedded as ',
+        inlineCode('Option'),
+        ' that is not mounted is just another ',
+        inlineCode('none'),
+        ': a missing child releases the resource through the same channel.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.managedResourcesLiftHighlighted),
+          ],
+          [],
+        ),
+        Snippets.managedResourcesLiftRaw,
+        'Copy Managed Resources composition example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'These verbs compose across Submodel levels the same way their Subscription counterparts do. The ',
+        link(
+          patternsSubscriptionOrganizationRouter(),
+          'Subscription Organization',
+        ),
+        ' page traces the full leaf-to-root walkthrough. It uses Subscriptions for its example, but the shape is identical here: ',
+        inlineCode('make'),
+        ' at each level, ',
+        inlineCode('lift'),
+        ' each child, ',
+        inlineCode('aggregate'),
+        ' the results.',
       ),
       infoCallout(
         'Resources vs Managed Resources',
@@ -143,7 +212,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' connections, media recorders).',
       ),
       para(
-        'With resources and managed resources, your app can work with any browser API. But what happens when something goes seriously wrong, like an unrecoverable error in update, view, or a Command? The next page covers crash views.',
+        'With resources and Managed Resources, your app can work with any browser API. But what happens when something goes seriously wrong, like an unrecoverable error in update, view, or a Command? The next page covers crash views.',
       ),
     ],
   )
