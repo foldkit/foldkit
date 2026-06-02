@@ -122,7 +122,7 @@ export const mobileTableOfContentsView = (
       h.Open(isOpen),
       h.OnToggle(open => ToggledMobileTableOfContents({ isOpen: open })),
       h.Class(
-        'group xl:hidden fixed top-[var(--header-height)] left-0 right-0 md:left-64 z-40 bg-cream dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800',
+        'group xl:hidden fixed top-[var(--header-height)] left-0 right-0 md:left-64 z-40 bg-cream dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800 transform-gpu will-change-transform [backface-visibility:hidden]',
       ),
     ],
     [

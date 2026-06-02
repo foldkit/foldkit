@@ -341,7 +341,7 @@ export const sidebarView = (model: Model): Html => {
     [
       h.AriaLabel('Documentation sidebar'),
       h.Class(
-        'hidden md:flex fixed top-[var(--header-height)] bottom-0 left-0 z-40 w-64 bg-cream dark:bg-gray-900 border-r border-gray-300 dark:border-gray-800 flex-col',
+        'hidden md:flex fixed top-[var(--header-height)] bottom-0 left-0 z-40 w-64 bg-cream dark:bg-gray-900 border-r border-gray-300 dark:border-gray-800 flex-col transform-gpu will-change-transform [backface-visibility:hidden]',
       ),
     ],
     [
