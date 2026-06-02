@@ -215,11 +215,14 @@ export type RoutingConfig<Message> = Readonly<{
   onUrlChange: (url: Url) => Message
 }>
 
-/** Context provided to crash.view and crash.report when the runtime encounters an unrecoverable error. */
+/** Context provided to crash.view and crash.report when the runtime encounters
+ *  an unrecoverable error. `message` is the Message being processed when the
+ *  crash occurred, present as an `Option` because a crash during the initial
+ *  render has no triggering Message. */
 export type CrashContext<Model, Message> = Readonly<{
   error: Error
   model: Model
-  message: Message
+  message: Option.Option<Message>
 }>
 
 /** Configuration for crash handling, with custom crash UI and/or crash reporting. */
@@ -792,6 +795,27 @@ const makeRuntime = <
           Option.none(),
         )
 
+        // NOTE: shared by every perpetual fiber's crash path (init render,
+        // render loop, message drain). Each fiber catches its own cause so a
+        // failure surfaces as the crash view instead of dying silently and
+        // leaving the DOM frozen at the last successful render.
+        const crashWith = (
+          cause: Cause.Cause<never>,
+          maybeMessage: Option.Option<Message>,
+        ): Effect.Effect<void> =>
+          Effect.gen(function* () {
+            const model = yield* Ref.get(modelRef)
+            const squashed = Cause.squash(cause)
+            const error =
+              squashed instanceof Error ? squashed : new Error(String(squashed))
+            renderCrashView(
+              { error, model, message: maybeMessage },
+              crash,
+              container,
+              maybeCurrentVNodeRef,
+            )
+          })
+
         // NOTE: queue-drain-fiber-local state. Kept as plain closure
         // variables instead of `Ref`s because nothing else reads or writes
         // them concurrently, and JS's single-threaded model already orders
@@ -819,9 +843,9 @@ const makeRuntime = <
         const dispatch = { dispatchAsync, dispatchSync }
 
         const isRenderPendingRef = yield* SubscriptionRef.make(false)
-        const lastDirtyMessageRef = yield* Ref.make<Option.Option<Message>>(
-          Option.none(),
-        )
+        const maybeLastDirtyMessageRef = yield* Ref.make<
+          Option.Option<Message>
+        >(Option.none())
 
         const isPausedEffect: Effect.Effect<boolean> = Effect.suspend(() =>
           Option.match(maybeDevToolsStore, {
@@ -866,7 +890,7 @@ const makeRuntime = <
             if (currentModel !== nextModel) {
               yield* Ref.set(modelRef, nextModel)
               yield* SubscriptionRef.set(isRenderPendingRef, true)
-              yield* Ref.set(lastDirtyMessageRef, Option.some(message))
+              yield* Ref.set(maybeLastDirtyMessageRef, Option.some(message))
 
               PubSub.publishUnsafe(modelPubSub, nextModel)
               yield* schedulePreserveModel(nextModel)
@@ -1073,7 +1097,13 @@ const makeRuntime = <
           }
         }
 
-        yield* render(initModel, Option.none())
+        const initRenderExit = yield* Effect.exit(
+          render(initModel, Option.none()),
+        )
+        if (Exit.isFailure(initRenderExit)) {
+          yield* crashWith(initRenderExit.cause, Option.none())
+          return
+        }
 
         const initMountEvents = drainMountEvents()
         yield* Option.match(maybeDevToolsStore, {
@@ -1086,12 +1116,12 @@ const makeRuntime = <
             ),
         })
 
-        // NOTE: lastDirtyMessageRef holds the most recent dirtying Message, so
-        // slow-view callbacks during high-rate bursts attribute to the last
-        // Message in the frame batch, not the specific one that pushed the
-        // view past threshold. Acceptable for a debug callback; full
-        // attribution would require correlating each message with its render
-        // contribution, which isn't worth the complexity.
+        // NOTE: maybeLastDirtyMessageRef holds the most recent dirtying
+        // Message, so slow-view callbacks during high-rate bursts attribute
+        // to the last Message in the frame batch, not the specific one that
+        // pushed the view past threshold. Acceptable for a debug callback;
+        // full attribution would require correlating each message with its
+        // render contribution, which isn't worth the complexity.
 
         const renderLoop = makeRenderLoop({
           pendingRef: isRenderPendingRef,
@@ -1099,7 +1129,7 @@ const makeRuntime = <
           isPaused: isPausedEffect,
           render: Effect.gen(function* () {
             const model = yield* Ref.get(modelRef)
-            const maybeMessage = yield* Ref.get(lastDirtyMessageRef)
+            const maybeMessage = yield* Ref.get(maybeLastDirtyMessageRef)
             yield* render(model, maybeMessage)
 
             const mountEvents = drainMountEvents()
@@ -1114,7 +1144,16 @@ const makeRuntime = <
           }),
         })
 
-        yield* Effect.forkDetach(renderLoop)
+        yield* Effect.forkDetach(
+          renderLoop.pipe(
+            Effect.catchCause(cause =>
+              Effect.gen(function* () {
+                const maybeMessage = yield* Ref.get(maybeLastDirtyMessageRef)
+                yield* crashWith(cause, maybeMessage)
+              }),
+            ),
+          ),
+        )
 
         addBfcacheRestoreListener()
 
@@ -1339,24 +1378,7 @@ const makeRuntime = <
               yield* drainQueue
             }),
           ),
-          Effect.catchCause(cause =>
-            Effect.sync(() => {
-              const squashed = Cause.squash(cause)
-              const appError =
-                squashed instanceof Error
-                  ? squashed
-                  : new Error(String(squashed))
-
-              const model = Effect.runSync(Ref.get(modelRef))
-              const message = Option.getOrThrow(currentMessage)
-              renderCrashView(
-                { error: appError, model, message },
-                crash,
-                container,
-                maybeCurrentVNodeRef,
-              )
-            }),
-          ),
+          Effect.catchCause(cause => crashWith(cause, currentMessage)),
         )
       }),
     )

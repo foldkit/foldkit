@@ -1,3 +1,4 @@
+import { Option } from 'effect'
 import { Runtime } from 'foldkit'
 
 const program = Runtime.makeProgram({
@@ -8,7 +9,7 @@ const program = Runtime.makeProgram({
   crash: {
     report: ({ error, model, message }) => {
       Sentry.captureException(error, {
-        extra: { model, message },
+        extra: { model, message: Option.getOrUndefined(message) },
       })
     },
   },

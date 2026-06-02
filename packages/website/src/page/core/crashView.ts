@@ -58,7 +58,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('model'),
         ' at the time of the crash, and the ',
         inlineCode('message'),
-        ' being processed:',
+        ' being processed as an ',
+        inlineCode('Option'),
+        ' (it is absent when the crash happens during the initial render):',
       ),
       highlightedCodeBlock(
         h.div(
