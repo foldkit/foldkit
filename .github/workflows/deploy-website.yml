@@ -88,6 +88,20 @@ jobs:
                 },
                 "continue": true
               },
+              {
+                "src": "^/assets/(.*)",
+                "headers": {
+                  "Cache-Control": "public, max-age=31536000, immutable"
+                },
+                "continue": true
+              },
+              {
+                "src": "^/([^.]*)$",
+                "headers": {
+                  "Cache-Control": "public, max-age=0, must-revalidate"
+                },
+                "continue": true
+              },
               { "handle": "filesystem" },
               {
                 "src": "/",
