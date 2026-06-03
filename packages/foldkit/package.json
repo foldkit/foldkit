@@ -1,6 +1,6 @@
 {
   "name": "foldkit",
-  "version": "0.102.1",
+  "version": "0.103.0",
   "description": "A TypeScript frontend framework, built on Effect and architected like Elm",
   "type": "module",
   "main": "./dist/index.js",
