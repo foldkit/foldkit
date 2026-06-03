@@ -4,7 +4,6 @@ export const SIDEBAR_STORAGE_KEY = 'foldkit-sidebar-state'
 
 export const SidebarState = S.Struct({
   open: S.Record(S.String, S.Boolean),
-  scroll: S.Number,
 })
 export type SidebarState = typeof SidebarState.Type
 
@@ -14,7 +13,7 @@ export const GroupKey = S.Literals([
   'getStarted',
   'coreConcepts',
   'forReactDevelopers',
-  'guides',
+  'faq',
   'testing',
   'bestPractices',
   'patterns',
@@ -29,5 +28,3 @@ export const DEFAULT_OPEN_GROUPS: ReadonlyArray<GroupKey> = [
   'getStarted',
   'coreConcepts',
 ]
-
-export const INITIAL_SIDEBAR_SCROLL = 0

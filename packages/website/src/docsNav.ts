@@ -76,6 +76,9 @@ import {
   whatAboutSsrRouter,
   whyNoJsxRouter,
 } from './route'
+import { type GroupKey } from './sidebarStorage'
+
+export const DOCS_SIDEBAR_NAV_ID = 'docs-sidebar-nav'
 
 // NAV PAGE
 
@@ -109,12 +112,14 @@ export const isNavPageActive = (
 // DOCS SECTIONS
 
 export type DocsSection = Readonly<{
+  key: GroupKey
   label: string
   pageGroups: ReadonlyArray<ReadonlyArray<NavPage>>
 }>
 
 export const docsSections: ReadonlyArray<DocsSection> = [
   {
+    key: 'getStarted',
     label: 'Get Started',
     pageGroups: [
       [
@@ -132,6 +137,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     ],
   },
   {
+    key: 'coreConcepts',
     label: 'Core Concepts',
     pageGroups: [
       [
@@ -281,6 +287,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     ],
   },
   {
+    key: 'forReactDevelopers',
     label: 'For React Developers',
     pageGroups: [
       [
@@ -298,6 +305,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     ],
   },
   {
+    key: 'patterns',
     label: 'Patterns',
     pageGroups: [
       [
@@ -315,6 +323,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     ],
   },
   {
+    key: 'faq',
     label: 'FAQ',
     pageGroups: [
       [
@@ -332,6 +341,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     ],
   },
   {
+    key: 'foldkitUi',
     label: 'Foldkit UI',
     pageGroups: [
       [
@@ -477,6 +487,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     ],
   },
   {
+    key: 'ai',
     label: 'AI',
     pageGroups: [
       [
@@ -499,6 +510,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     ],
   },
   {
+    key: 'testing',
     label: 'Testing',
     pageGroups: [
       [
@@ -521,6 +533,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     ],
   },
   {
+    key: 'bestPractices',
     label: 'Best Practices',
     pageGroups: [
       [
@@ -548,6 +561,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     ],
   },
   {
+    key: 'examples',
     label: 'Examples',
     pageGroups: [
       [
@@ -600,3 +614,27 @@ export const pageNeighbors = (_tag: string): PageNeighbors =>
       }),
     }),
   )
+
+export const findActiveSectionKey = (
+  routeTag: string,
+  maybeExampleSlug: Option.Option<string>,
+): Option.Option<GroupKey> => {
+  // NOTE: ApiModule pages aren't in docsSections; their apiReference group is
+  // rendered separately, so map them explicitly.
+  if (routeTag === 'ApiModule') {
+    return Option.some('apiReference')
+  }
+  return pipe(
+    docsSections,
+    Array.findFirst(section =>
+      pipe(
+        section.pageGroups,
+        Array.flatten,
+        Array.some(page =>
+          isNavPageActive(routeTag, maybeExampleSlug, page._tag),
+        ),
+      ),
+    ),
+    Option.map(section => section.key),
+  )
+}
