@@ -398,6 +398,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
   Popovertarget: { readonly value: string }
   Popovertargetaction: { readonly value: string }
   OnClick: { readonly message: Message }
+  OnClickFocus: { readonly focusSelector: string; readonly message: Message }
   OnDoubleClick: { readonly message: Message }
   OnMouseDown: { readonly message: Message }
   OnMouseUp: { readonly message: Message }
@@ -690,6 +691,7 @@ const {
   Popovertarget,
   Popovertargetaction,
   OnClick,
+  OnClickFocus,
   OnDoubleClick,
   OnMouseDown,
   OnMouseUp,
@@ -1089,6 +1091,18 @@ const attributeMatcher: (
       ({ message }) =>
       (ctx: BuildContext) =>
         updateDataOn(ctx, { click: () => ctx.dispatch(message) }),
+    OnClickFocus:
+      ({ focusSelector, message }) =>
+      (ctx: BuildContext) =>
+        updateDataOn(ctx, {
+          click: () => {
+            const focusTarget = document.querySelector(focusSelector)
+            if (focusTarget instanceof HTMLElement) {
+              focusTarget.focus()
+            }
+            ctx.dispatch(message)
+          },
+        }),
     OnDoubleClick:
       ({ message }) =>
       (ctx: BuildContext) =>
@@ -2868,6 +2882,14 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnClick'
     readonly message: Message
   }
+  OnClickFocus: (
+    focusSelector: string,
+    message: Message,
+  ) => {
+    readonly _tag: 'OnClickFocus'
+    readonly focusSelector: string
+    readonly message: Message
+  }
   OnDoubleClick: (message: Message) => {
     readonly _tag: 'OnDoubleClick'
     readonly message: Message
@@ -3685,6 +3707,38 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   Popovertarget: (value: string) => Popovertarget({ value }),
   Popovertargetaction: (value: string) => Popovertargetaction({ value }),
   OnClick: (message: Message) => OnClick({ message }),
+  /**
+   * Click handler that synchronously focuses the element matching
+   * `focusSelector`, then dispatches `message`. Both run inside the originating
+   * click event handler, preserving the user-gesture context.
+   *
+   * Use this when tapping the element must open the on-screen keyboard on
+   * iOS Safari. Safari only opens the keyboard if `.focus()` runs synchronously
+   * inside the originating user-gesture handler, which a Command's `Dom.focus`
+   * cannot satisfy (Commands fork through `Effect.forkDetach` +
+   * `requestAnimationFrame` and resolve after the gesture has expired).
+   *
+   * When the real input only mounts later (a search field inside a dialog,
+   * say), focus it in two steps. First, keep a focusable text input that is
+   * always in the DOM (a visually hidden "keyboard warmup") and point
+   * `focusSelector` at it, so the tap focuses the input (which opens the
+   * keyboard) and dispatches a Message. Second, update's branch for that
+   * Message opens the dialog and returns a `Dom.focus` Command pointed at the
+   * real input; by the time it runs the input has mounted, so focus moves to
+   * it. iOS keeps the keyboard up when focus moves between two text inputs,
+   * so it stays open and now targets the real input.
+   *
+   * Like `OnKeyDownPreventDefault`, the side effect (focusing another
+   * element) lives inside the framework's event handler so user code stays
+   * declarative.
+   *
+   * @example
+   * ```typescript
+   * h.OnClickFocus('#search-keyboard-warmup', ClickedSearch())
+   * ```
+   */
+  OnClickFocus: (focusSelector: string, message: Message) =>
+    OnClickFocus({ focusSelector, message }),
   OnDoubleClick: (message: Message) => OnDoubleClick({ message }),
   OnMouseDown: (message: Message) => OnMouseDown({ message }),
   OnMouseUp: (message: Message) => OnMouseUp({ message }),

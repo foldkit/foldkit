@@ -31,10 +31,17 @@ const eventHandlingHeader: TableOfContentsEntry = {
   text: 'Event Handling',
 }
 
+const eventHandlerSideEffectsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'event-handler-side-effects',
+  text: 'Event Handler Side Effects',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   typedHtmlHelpersHeader,
   eventHandlingHeader,
+  eventHandlerSideEffectsHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
@@ -125,6 +132,53 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       para(
         'For simple events like clicks, you pass the Message directly. For events that carry data (like input changes), you pass a function that receives the event and returns a Message. This keeps your view declarative. It describes what Messages should be sent, not how to handle them.',
+      ),
+      tableOfContentsEntryToHeader(eventHandlerSideEffectsHeader),
+      para(
+        'Foldkit runs your side effects for you. Your view only declares attributes and returns Messages. Usually Foldkit defers those effects to lifecycle primitives like Commands, Subscriptions, and Mounts, which run after the current event has returned. A few effects cannot wait that long. The browser only honors them when they run synchronously, inside the originating user-gesture event handler, and a deferred primitive runs a frame too late. Foldkit handles those from inside the event attribute itself. It is still Foldkit running the effect, not your view.',
+      ),
+      para(
+        'Two cases show up in practice. ',
+        inlineCode('event.preventDefault()'),
+        ' must run synchronously to suppress a default browser action like form submission or scroll. ',
+        inlineCode('.focus()'),
+        ' on iOS Safari only opens the on-screen keyboard if it runs inside the gesture; the same call from a Command resolves a frame later and the keyboard never appears.',
+      ),
+      para(
+        'Foldkit exposes these as attribute primitives. ',
+        inlineCode('OnKeyDownPreventDefault'),
+        ' takes a function returning ',
+        inlineCode('Option<Message>'),
+        '. When the function returns ',
+        inlineCode('Some'),
+        ', the framework calls ',
+        inlineCode('preventDefault'),
+        ' and dispatches the Message. ',
+        inlineCode('OnClickFocus'),
+        ' takes a selector and a Message; it synchronously focuses the element matching the selector and then dispatches.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.eventHandlerSideEffectsHighlighted),
+          ],
+          [],
+        ),
+        Snippets.eventHandlerSideEffectsRaw,
+        'Copy event handler side effects example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'The iOS keyboard case has one wrinkle. The element you focus has to be in the page at the instant of the tap. A search field inside a dialog is not: while the dialog is closed its input is not rendered, and opening the dialog does not help because that happens a frame later, after the gesture has ended.',
+      ),
+      infoCallout(
+        'Focus a stand-in, then hand off',
+        'Keep an always-present, visually hidden text input (the “keyboard warmup”) and point OnClickFocus at it. The tap focuses the warmup (which opens the keyboard) and dispatches a Message. update’s branch for that Message opens the dialog and returns a Dom.focus Command pointed at the real input. It runs once the dialog has mounted, so focus lands on the real input, and iOS keeps the keyboard up as focus moves between the two text inputs.',
+      ),
+      para(
+        'These are ordinary declarative attributes, not an escape hatch into imperative code. Foldkit still owns the side effect and runs it inside the framework’s handler, so your callbacks stay pure and your Messages stay facts. Reach for them only when the browser requires a synchronous side effect inside the gesture. Anything that can wait belongs in the normal lifecycle, usually a Command.',
       ),
       para(
         'So far everything has been synchronous. The user clicks a button, update produces a new Model, the view rerenders. But real apps need side effects: HTTP requests, timers, browser APIs. That’s where Commands come in.',

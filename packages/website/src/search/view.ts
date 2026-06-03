@@ -4,7 +4,7 @@ import { Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { Icon } from '../icon'
-import { SEARCH_INPUT_ID } from './command'
+import { KEYBOARD_WARMUP_INPUT_ID, SEARCH_INPUT_ID } from './command'
 import {
   ClearedSearchQuery,
   GotSearchDialogMessage,
@@ -253,58 +253,85 @@ const resultCountAnnouncement = (model: Model): Html => {
   )
 }
 
+// NOTE: iOS Safari only shows the on-screen keyboard if `.focus()` runs
+// synchronously inside the originating user-gesture event handler. The real
+// search input doesn't exist in the DOM until the dialog renders, so it
+// can't be focused inside the gesture. This always-rendered hidden input
+// gives `h.OnClickFocus` (used on the search trigger buttons in
+// `view/docs.ts`) something to focus inside the click handler, which opens
+// the keyboard; the `FocusSearchInput` Command then transfers focus to the
+// real input once the dialog renders, and iOS keeps the keyboard up across
+// a programmatic focus transfer between two text inputs.
+const keyboardWarmupInput: Html = (() => {
+  const h = html<Message>()
+
+  return h.input([
+    h.Id(KEYBOARD_WARMUP_INPUT_ID),
+    h.Type('text'),
+    h.AriaHidden(true),
+    h.Tabindex(-1),
+    h.Class('fixed top-0 left-0 w-px h-px opacity-0 pointer-events-none -z-10'),
+  ])
+})()
+
 export const view = Submodel.defineView<Model, Message>((model): Html => {
   const h = html<Message>()
 
-  return h.submodel({
-    slotId: model.dialog.id,
-    model: model.dialog,
-    view: Ui.Dialog.view,
-    viewInputs: {
-      toView: ({ dialog, backdrop, panel, isVisible }) =>
-        h.dialog(
-          [...dialog],
-          isVisible
-            ? [
-                h.div(
-                  [
-                    ...backdrop,
-                    h.Class(
-                      'fixed inset-0 z-[59] bg-black/50 dark:bg-black/70',
-                    ),
-                  ],
-                  [],
-                ),
-                h.div(
-                  [
-                    ...panel,
-                    h.Class(
-                      'fixed inset-0 z-[60] overflow-y-auto px-4 sm:px-6 pointer-events-none [&>*]:pointer-events-auto',
-                    ),
-                  ],
-                  [
+  return h.div(
+    [],
+    [
+      keyboardWarmupInput,
+      h.submodel({
+        slotId: model.dialog.id,
+        model: model.dialog,
+        view: Ui.Dialog.view,
+        viewInputs: {
+          toView: ({ dialog, backdrop, panel, isVisible }) =>
+            h.dialog(
+              [...dialog],
+              isVisible
+                ? [
                     h.div(
                       [
+                        ...backdrop,
                         h.Class(
-                          'w-full max-w-xl mx-auto mt-[15vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl dark:shadow-black/50 border border-gray-200 dark:border-gray-700 overflow-hidden',
+                          'fixed inset-0 z-[59] bg-black/50 dark:bg-black/70',
+                        ),
+                      ],
+                      [],
+                    ),
+                    h.div(
+                      [
+                        ...panel,
+                        h.Class(
+                          'fixed inset-0 z-[60] overflow-y-auto px-4 sm:px-6 pointer-events-none [&>*]:pointer-events-auto',
                         ),
                       ],
                       [
-                        h.span(
-                          [h.Id('search-dialog-title'), h.Class('sr-only')],
-                          ['Search documentation'],
+                        h.div(
+                          [
+                            h.Class(
+                              'w-full max-w-xl mx-auto mt-[15vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl dark:shadow-black/50 border border-gray-200 dark:border-gray-700 overflow-hidden',
+                            ),
+                          ],
+                          [
+                            h.span(
+                              [h.Id('search-dialog-title'), h.Class('sr-only')],
+                              ['Search documentation'],
+                            ),
+                            searchInputView(model),
+                            resultsListView(model),
+                            resultCountAnnouncement(model),
+                          ],
                         ),
-                        searchInputView(model),
-                        resultsListView(model),
-                        resultCountAnnouncement(model),
                       ],
                     ),
-                  ],
-                ),
-              ]
-            : [],
-        ),
-    },
-    toParentMessage: message => GotSearchDialogMessage({ message }),
-  })
+                  ]
+                : [],
+            ),
+        },
+        toParentMessage: message => GotSearchDialogMessage({ message }),
+      }),
+    ],
+  )
 })

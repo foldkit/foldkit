@@ -14,6 +14,7 @@ import {
 const MAX_RESULTS = 8
 
 const SEARCH_INPUT_ID = 'search-input'
+const KEYBOARD_WARMUP_INPUT_ID = 'search-keyboard-warmup'
 const SEARCH_RESULT_SELECTOR = '[data-search-result-index='
 
 type PagefindResult = Readonly<{
@@ -119,4 +120,4 @@ export const FocusSearchInput = Command.define(
   ),
 )
 
-export { SEARCH_INPUT_ID }
+export { SEARCH_INPUT_ID, KEYBOARD_WARMUP_INPUT_ID }
