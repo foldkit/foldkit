@@ -15,7 +15,7 @@ With it attached, agents can:
 
 ## Quick Start
 
-Projects scaffolded with [`create-foldkit-app`](https://foldkit.dev/getting-started) ship with the MCP server pre-wired. Open the project in your AI agent and the tools appear under the `foldkit-devtools` prefix.
+Projects scaffolded with [`create-foldkit-app`](https://foldkit.dev/get-started/getting-started) ship with the MCP server pre-wired. Open the project in your AI agent and the tools appear under the `foldkit-devtools` prefix.
 
 For existing projects, run the init command in your project root:
 

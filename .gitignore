@@ -12,3 +12,4 @@ packages/website/src/generated/
 .playwright-mcp/
 playwright-report/
 test-results/
+.DS_Store

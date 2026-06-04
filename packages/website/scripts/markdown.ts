@@ -348,7 +348,7 @@ export const buildLlmsIndex = (
     ),
   )
 
-  const header = `# Foldkit\n\n> ${SITE_BLURB}\n\nThis index lists every page on the Foldkit documentation site with a short description. Every page is also available as Markdown by appending \`.md\` to its URL (e.g. ${SITE_URL}/getting-started.md). A single-file concatenation of every page is available at ${SITE_URL}/llms-full.txt.`
+  const header = `# Foldkit\n\n> ${SITE_BLURB}\n\nThis index lists every page on the Foldkit documentation site with a short description. Every page is also available as Markdown by appending \`.md\` to its URL (e.g. ${SITE_URL}/get-started/getting-started.md). A single-file concatenation of every page is available at ${SITE_URL}/llms-full.txt.`
 
   return `${header}\n\n${Array_.join(sectionBlocks, '\n\n')}\n`
 }

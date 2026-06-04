@@ -74,11 +74,11 @@ const sidebarGroup = (config: {
                   [
                     h.div(
                       [h.Class('flex items-center justify-between w-full')],
-                      config.isLocked
-                        ? [h.span([], [config.label])]
-                        : [
-                            h.span([], [config.label]),
-                            h.span(
+                      [
+                        h.span([], [config.label]),
+                        config.isLocked
+                          ? h.empty
+                          : h.span(
                               [
                                 h.Class(
                                   clsx({
@@ -88,7 +88,7 @@ const sidebarGroup = (config: {
                               ],
                               [Icon.chevronDown('w-3 h-3')],
                             ),
-                          ],
+                      ],
                     ),
                   ],
                 ),

@@ -13,7 +13,7 @@
 <h3 align="center">The frontend framework for correctness.</h3>
 
 <p align="center">
-  <a href="https://foldkit.dev"><strong>Documentation</strong></a> · <a href="https://foldkit.dev/manifesto"><strong>Manifesto</strong></a> · <a href="https://foldkit.dev/example-apps"><strong>Examples</strong></a> · <a href="https://foldkit.dev/getting-started"><strong>Getting Started</strong></a> · <a href="https://discord.gg/kav8VNxqGm"><strong>Discord</strong></a>
+  <a href="https://foldkit.dev"><strong>Documentation</strong></a> · <a href="https://foldkit.dev/get-started/manifesto"><strong>Manifesto</strong></a> · <a href="https://foldkit.dev/example-apps"><strong>Examples</strong></a> · <a href="https://foldkit.dev/get-started/getting-started"><strong>Getting Started</strong></a> · <a href="https://discord.gg/kav8VNxqGm"><strong>Discord</strong></a>
 </p>
 
 ---
@@ -35,7 +35,7 @@ Every Foldkit application is an [Effect](https://effect.website/) program. Your 
 
 ## Coming from React?
 
-[Coming from React](https://foldkit.dev/coming-from-react) is a guided walk through the differences. [Foldkit vs React: Side by Side](https://foldkit.dev/foldkit-vs-react-side-by-side) implements the same pixel-art editor in both frameworks so you can read them line by line.
+[Coming from React](https://foldkit.dev/react/coming-from-react) is a guided walk through the differences. [Foldkit vs React: Side by Side](https://foldkit.dev/react/foldkit-vs-react-side-by-side) implements the same pixel-art editor in both frameworks so you can read them line by line.
 
 ## Get Started
 

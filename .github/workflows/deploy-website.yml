@@ -69,7 +69,7 @@ jobs:
               {
                 "src": "^/$",
                 "headers": {
-                  "Link": "</sitemap.xml>; rel=\"sitemap\", </manifesto>; rel=\"about\", </getting-started>; rel=\"help\", </example-apps>; rel=\"related\", </ai/overview>; rel=\"describedby\""
+                  "Link": "</sitemap.xml>; rel=\"sitemap\", </get-started/manifesto>; rel=\"about\", </get-started/getting-started>; rel=\"help\", </example-apps>; rel=\"related\", </ai/overview>; rel=\"describedby\""
                 },
                 "continue": true
               },
@@ -102,6 +102,24 @@ jobs:
                 },
                 "continue": true
               },
+              { "src": "^/manifesto$", "status": 308, "headers": { "Location": "/get-started/manifesto" } },
+              { "src": "^/manifesto\\.md$", "status": 308, "headers": { "Location": "/get-started/manifesto.md" } },
+              { "src": "^/getting-started$", "status": 308, "headers": { "Location": "/get-started/getting-started" } },
+              { "src": "^/getting-started\\.md$", "status": 308, "headers": { "Location": "/get-started/getting-started.md" } },
+              { "src": "^/why-no-jsx$", "status": 308, "headers": { "Location": "/faq/why-no-jsx" } },
+              { "src": "^/why-no-jsx\\.md$", "status": 308, "headers": { "Location": "/faq/why-no-jsx.md" } },
+              { "src": "^/what-about-ssr$", "status": 308, "headers": { "Location": "/faq/what-about-ssr" } },
+              { "src": "^/what-about-ssr\\.md$", "status": 308, "headers": { "Location": "/faq/what-about-ssr.md" } },
+              { "src": "^/coming-from-react$", "status": 308, "headers": { "Location": "/react/coming-from-react" } },
+              { "src": "^/coming-from-react\\.md$", "status": 308, "headers": { "Location": "/react/coming-from-react.md" } },
+              { "src": "^/foldkit-vs-react-side-by-side$", "status": 308, "headers": { "Location": "/react/foldkit-vs-react-side-by-side" } },
+              { "src": "^/foldkit-vs-react-side-by-side\\.md$", "status": 308, "headers": { "Location": "/react/foldkit-vs-react-side-by-side.md" } },
+              { "src": "^/routing-and-navigation$", "status": 308, "headers": { "Location": "/core/routing-and-navigation" } },
+              { "src": "^/routing-and-navigation\\.md$", "status": 308, "headers": { "Location": "/core/routing-and-navigation.md" } },
+              { "src": "^/field-validation$", "status": 308, "headers": { "Location": "/core/field-validation" } },
+              { "src": "^/field-validation\\.md$", "status": 308, "headers": { "Location": "/core/field-validation.md" } },
+              { "src": "^/project-organization$", "status": 308, "headers": { "Location": "/patterns/project-organization" } },
+              { "src": "^/project-organization\\.md$", "status": 308, "headers": { "Location": "/patterns/project-organization.md" } },
               { "handle": "filesystem" },
               {
                 "src": "/",

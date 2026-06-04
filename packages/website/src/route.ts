@@ -196,48 +196,58 @@ export const isPlaygroundRoute = (route: AppRoute): route is PlaygroundRoute =>
 
 // ROUTERS
 
+const page = <T>(slug: string, route: { make: (input: {}) => T }) =>
+  pipe(literal(slug), mapTo(route))
+
+const section =
+  (sectionSlug: string) =>
+  <T>(pageSlug: string, route: { make: (input: {}) => T }) =>
+    pipe(literal(sectionSlug), slash(literal(pageSlug)), mapTo(route))
+
+const getStarted = section('get-started')
+const faq = section('faq')
+const react = section('react')
+const core = section('core')
+const patterns = section('patterns')
+const testing = section('testing')
+const bestPractices = section('best-practices')
+const ui = section('ui')
+const ai = section('ai')
+
 export const homeRouter = pipe(root, mapTo(HomeRoute))
-export const manifestoRouter = pipe(literal('manifesto'), mapTo(ManifestoRoute))
-export const whyNoJsxRouter = pipe(literal('why-no-jsx'), mapTo(WhyNoJsxRoute))
-export const whatAboutSsrRouter = pipe(
-  literal('what-about-ssr'),
-  mapTo(WhatAboutSsrRoute),
+
+export const manifestoRouter = getStarted('manifesto', ManifestoRoute)
+export const gettingStartedRouter = getStarted(
+  'getting-started',
+  GettingStartedRoute,
 )
-export const comingFromReactRouter = pipe(
-  literal('coming-from-react'),
-  mapTo(ComingFromReactRoute),
+
+export const whyNoJsxRouter = faq('why-no-jsx', WhyNoJsxRoute)
+export const whatAboutSsrRouter = faq('what-about-ssr', WhatAboutSsrRoute)
+
+export const comingFromReactRouter = react(
+  'coming-from-react',
+  ComingFromReactRoute,
 )
-export const reactComparisonRouter = pipe(
-  literal('foldkit-vs-react-side-by-side'),
-  mapTo(ReactComparisonRoute),
+export const reactComparisonRouter = react(
+  'foldkit-vs-react-side-by-side',
+  ReactComparisonRoute,
 )
-export const gettingStartedRouter = pipe(
-  literal('getting-started'),
-  mapTo(GettingStartedRoute),
+
+export const routingAndNavigationRouter = core(
+  'routing-and-navigation',
+  RoutingAndNavigationRoute,
 )
-export const routingAndNavigationRouter = pipe(
-  literal('routing-and-navigation'),
-  mapTo(RoutingAndNavigationRoute),
+export const fieldValidationRouter = core(
+  'field-validation',
+  FieldValidationRoute,
 )
-export const fieldValidationRouter = pipe(
-  literal('field-validation'),
-  mapTo(FieldValidationRoute),
-)
-export const testingRouter = pipe(literal('testing'), mapTo(TestingRoute))
-export const testingStoryRouter = pipe(
-  literal('testing'),
-  slash(literal('story')),
-  mapTo(TestingStoryRoute),
-)
-export const testingSceneRouter = pipe(
-  literal('testing'),
-  slash(literal('scene')),
-  mapTo(TestingSceneRoute),
-)
-export const examplesRouter = pipe(
-  literal('example-apps'),
-  mapTo(ExamplesRoute),
-)
+
+export const testingRouter = page('testing', TestingRoute)
+export const testingStoryRouter = testing('story', TestingStoryRoute)
+export const testingSceneRouter = testing('scene', TestingSceneRoute)
+
+export const examplesRouter = page('example-apps', ExamplesRoute)
 export const exampleDetailRouter = pipe(
   literal('example-apps'),
   slash(string('exampleSlug')),
@@ -248,340 +258,144 @@ export const typingTerminalRouter = pipe(
   slash(literal('typing-terminal')),
   mapTo(TypingTerminalRoute),
 )
+
 export const playgroundRouter = pipe(
   literal('playground'),
   slash(string('exampleSlug')),
   mapTo(PlaygroundRoute),
 )
-export const bestPracticesSideEffectsRouter = pipe(
-  literal('best-practices'),
-  slash(literal('side-effects-and-purity')),
-  mapTo(BestPracticesSideEffectsRoute),
+
+export const bestPracticesSideEffectsRouter = bestPractices(
+  'side-effects-and-purity',
+  BestPracticesSideEffectsRoute,
 )
-export const bestPracticesMessagesRouter = pipe(
-  literal('best-practices'),
-  slash(literal('messages')),
-  mapTo(BestPracticesMessagesRoute),
+export const bestPracticesMessagesRouter = bestPractices(
+  'messages',
+  BestPracticesMessagesRoute,
 )
-export const bestPracticesKeyingRouter = pipe(
-  literal('best-practices'),
-  slash(literal('keying')),
-  mapTo(BestPracticesKeyingRoute),
+export const bestPracticesKeyingRouter = bestPractices(
+  'keying',
+  BestPracticesKeyingRoute,
 )
-export const bestPracticesImmutabilityRouter = pipe(
-  literal('best-practices'),
-  slash(literal('immutability')),
-  mapTo(BestPracticesImmutabilityRoute),
+export const bestPracticesImmutabilityRouter = bestPractices(
+  'immutability',
+  BestPracticesImmutabilityRoute,
 )
-export const projectOrganizationRouter = pipe(
-  literal('project-organization'),
-  mapTo(ProjectOrganizationRoute),
+
+export const projectOrganizationRouter = patterns(
+  'project-organization',
+  ProjectOrganizationRoute,
 )
+
 export const apiModuleRouter = pipe(
   literal('api-reference'),
   slash(string('moduleSlug')),
   mapTo(ApiModuleRoute),
 )
 
-export const coreArchitectureRouter = pipe(
-  literal('core'),
-  slash(literal('architecture')),
-  mapTo(CoreArchitectureRoute),
+export const coreArchitectureRouter = core(
+  'architecture',
+  CoreArchitectureRoute,
 )
-export const coreCounterExampleRouter = pipe(
-  literal('core'),
-  slash(literal('counter-example')),
-  mapTo(CoreCounterExampleRoute),
+export const coreCounterExampleRouter = core(
+  'counter-example',
+  CoreCounterExampleRoute,
 )
-export const coreModelRouter = pipe(
-  literal('core'),
-  slash(literal('model')),
-  mapTo(CoreModelRoute),
+export const coreModelRouter = core('model', CoreModelRoute)
+export const coreMessagesRouter = core('messages', CoreMessagesRoute)
+export const coreUpdateRouter = core('update', CoreUpdateRoute)
+export const coreViewRouter = core('view', CoreViewRoute)
+export const coreCommandsRouter = core('commands', CoreCommandsRoute)
+export const coreMountRouter = core('mount', CoreMountRoute)
+export const coreCustomElementRouter = core(
+  'custom-element',
+  CoreCustomElementRoute,
 )
-export const coreMessagesRouter = pipe(
-  literal('core'),
-  slash(literal('messages')),
-  mapTo(CoreMessagesRoute),
+export const coreSubscriptionsRouter = core(
+  'subscriptions',
+  CoreSubscriptionsRoute,
 )
-export const coreUpdateRouter = pipe(
-  literal('core'),
-  slash(literal('update')),
-  mapTo(CoreUpdateRoute),
+export const coreInitAndFlagsRouter = core(
+  'init-and-flags',
+  CoreInitAndFlagsRoute,
 )
-export const coreViewRouter = pipe(
-  literal('core'),
-  slash(literal('view')),
-  mapTo(CoreViewRoute),
+export const coreDomRouter = core('dom', CoreDomRoute)
+export const coreRenderRouter = core('render', CoreRenderRoute)
+export const coreFileRouter = core('file', CoreFileRoute)
+export const coreCanvasRouter = core('canvas', CoreCanvasRoute)
+export const coreRuntimeRouter = core('runtime', CoreRuntimeRoute)
+export const coreResourcesRouter = core('resources', CoreResourcesRoute)
+export const coreManagedResourcesRouter = core(
+  'managed-resources',
+  CoreManagedResourcesRoute,
 )
-export const coreCommandsRouter = pipe(
-  literal('core'),
-  slash(literal('commands')),
-  mapTo(CoreCommandsRoute),
+export const coreDevToolsRouter = core('devtools', CoreDevToolsRoute)
+export const coreCrashViewRouter = core('crash-view', CoreCrashViewRoute)
+export const coreSlowViewRouter = core('slow-view', CoreSlowViewRoute)
+export const coreFreezeModelRouter = core('freeze-model', CoreFreezeModelRoute)
+export const coreViewMemoizationRouter = core(
+  'view-memoization',
+  CoreViewMemoizationRoute,
 )
-export const coreMountRouter = pipe(
-  literal('core'),
-  slash(literal('mount')),
-  mapTo(CoreMountRoute),
-)
-export const coreCustomElementRouter = pipe(
-  literal('core'),
-  slash(literal('custom-element')),
-  mapTo(CoreCustomElementRoute),
-)
-export const coreSubscriptionsRouter = pipe(
-  literal('core'),
-  slash(literal('subscriptions')),
-  mapTo(CoreSubscriptionsRoute),
-)
-export const coreInitAndFlagsRouter = pipe(
-  literal('core'),
-  slash(literal('init-and-flags')),
-  mapTo(CoreInitAndFlagsRoute),
-)
-export const coreDomRouter = pipe(
-  literal('core'),
-  slash(literal('dom')),
-  mapTo(CoreDomRoute),
-)
-export const coreRenderRouter = pipe(
-  literal('core'),
-  slash(literal('render')),
-  mapTo(CoreRenderRoute),
-)
-export const coreFileRouter = pipe(
-  literal('core'),
-  slash(literal('file')),
-  mapTo(CoreFileRoute),
-)
-export const coreCanvasRouter = pipe(
-  literal('core'),
-  slash(literal('canvas')),
-  mapTo(CoreCanvasRoute),
-)
-export const coreRuntimeRouter = pipe(
-  literal('core'),
-  slash(literal('runtime')),
-  mapTo(CoreRuntimeRoute),
-)
-export const coreResourcesRouter = pipe(
-  literal('core'),
-  slash(literal('resources')),
-  mapTo(CoreResourcesRoute),
-)
-export const coreManagedResourcesRouter = pipe(
-  literal('core'),
-  slash(literal('managed-resources')),
-  mapTo(CoreManagedResourcesRoute),
-)
-export const coreDevToolsRouter = pipe(
-  literal('core'),
-  slash(literal('devtools')),
-  mapTo(CoreDevToolsRoute),
-)
-export const coreCrashViewRouter = pipe(
-  literal('core'),
-  slash(literal('crash-view')),
-  mapTo(CoreCrashViewRoute),
-)
-export const coreSlowViewRouter = pipe(
-  literal('core'),
-  slash(literal('slow-view')),
-  mapTo(CoreSlowViewRoute),
-)
-export const coreFreezeModelRouter = pipe(
-  literal('core'),
-  slash(literal('freeze-model')),
-  mapTo(CoreFreezeModelRoute),
-)
-export const coreViewMemoizationRouter = pipe(
-  literal('core'),
-  slash(literal('view-memoization')),
-  mapTo(CoreViewMemoizationRoute),
-)
-export const coreSubmodelRouter = pipe(
-  literal('core'),
-  slash(literal('submodel')),
-  mapTo(CoreSubmodelRoute),
+export const coreSubmodelRouter = core('submodel', CoreSubmodelRoute)
+
+export const patternsSubscriptionOrganizationRouter = patterns(
+  'subscription-organization',
+  PatternsSubscriptionOrganizationRoute,
 )
 
-export const patternsSubscriptionOrganizationRouter = pipe(
-  literal('patterns'),
-  slash(literal('subscription-organization')),
-  mapTo(PatternsSubscriptionOrganizationRoute),
+export const uiOverviewRouter = ui('overview', UiOverviewRoute)
+export const uiSelectionSubmodelsRouter = ui(
+  'selection-submodels',
+  UiSelectionSubmodelsRoute,
 )
+export const uiButtonRouter = ui('button', UiButtonRoute)
+export const uiCalendarRouter = ui('calendar', UiCalendarRoute)
+export const uiDatePickerRouter = ui('date-picker', UiDatePickerRoute)
+export const uiCheckboxRouter = ui('checkbox', UiCheckboxRoute)
+export const uiTabsRouter = ui('tabs', UiTabsRoute)
+export const uiDisclosureRouter = ui('disclosure', UiDisclosureRoute)
+export const uiDialogRouter = ui('dialog', UiDialogRoute)
+export const uiMenuRouter = ui('menu', UiMenuRoute)
+export const uiPopoverRouter = ui('popover', UiPopoverRoute)
+export const uiListboxRouter = ui('listbox', UiListboxRoute)
+export const uiRadioGroupRouter = ui('radio-group', UiRadioGroupRoute)
+export const uiSelectRouter = ui('select', UiSelectRoute)
+export const uiSliderRouter = ui('slider', UiSliderRoute)
+export const uiSwitchRouter = ui('switch', UiSwitchRoute)
+export const uiComboboxRouter = ui('combobox', UiComboboxRoute)
+export const uiInputRouter = ui('input', UiInputRoute)
+export const uiTextareaRouter = ui('textarea', UiTextareaRoute)
+export const uiFieldsetRouter = ui('fieldset', UiFieldsetRoute)
+export const uiDragAndDropRouter = ui('drag-and-drop', UiDragAndDropRoute)
+export const uiFileDropRouter = ui('file-drop', UiFileDropRoute)
+export const uiToastRouter = ui('toast', UiToastRoute)
+export const uiTooltipRouter = ui('tooltip', UiTooltipRoute)
+export const uiAnimationRouter = ui('animation', UiAnimationRoute)
+export const uiVirtualListRouter = ui('virtual-list', UiVirtualListRoute)
 
-export const uiOverviewRouter = pipe(
-  literal('ui'),
-  slash(literal('overview')),
-  mapTo(UiOverviewRoute),
-)
-export const uiSelectionSubmodelsRouter = pipe(
-  literal('ui'),
-  slash(literal('selection-submodels')),
-  mapTo(UiSelectionSubmodelsRoute),
-)
-export const uiButtonRouter = pipe(
-  literal('ui'),
-  slash(literal('button')),
-  mapTo(UiButtonRoute),
-)
-export const uiCalendarRouter = pipe(
-  literal('ui'),
-  slash(literal('calendar')),
-  mapTo(UiCalendarRoute),
-)
-export const uiDatePickerRouter = pipe(
-  literal('ui'),
-  slash(literal('date-picker')),
-  mapTo(UiDatePickerRoute),
-)
-export const uiCheckboxRouter = pipe(
-  literal('ui'),
-  slash(literal('checkbox')),
-  mapTo(UiCheckboxRoute),
-)
-export const uiTabsRouter = pipe(
-  literal('ui'),
-  slash(literal('tabs')),
-  mapTo(UiTabsRoute),
-)
-export const uiDisclosureRouter = pipe(
-  literal('ui'),
-  slash(literal('disclosure')),
-  mapTo(UiDisclosureRoute),
-)
-export const uiDialogRouter = pipe(
-  literal('ui'),
-  slash(literal('dialog')),
-  mapTo(UiDialogRoute),
-)
-export const uiMenuRouter = pipe(
-  literal('ui'),
-  slash(literal('menu')),
-  mapTo(UiMenuRoute),
-)
-export const uiPopoverRouter = pipe(
-  literal('ui'),
-  slash(literal('popover')),
-  mapTo(UiPopoverRoute),
-)
-export const uiListboxRouter = pipe(
-  literal('ui'),
-  slash(literal('listbox')),
-  mapTo(UiListboxRoute),
-)
-export const uiRadioGroupRouter = pipe(
-  literal('ui'),
-  slash(literal('radio-group')),
-  mapTo(UiRadioGroupRoute),
-)
-export const uiSelectRouter = pipe(
-  literal('ui'),
-  slash(literal('select')),
-  mapTo(UiSelectRoute),
-)
-export const uiSliderRouter = pipe(
-  literal('ui'),
-  slash(literal('slider')),
-  mapTo(UiSliderRoute),
-)
-export const uiSwitchRouter = pipe(
-  literal('ui'),
-  slash(literal('switch')),
-  mapTo(UiSwitchRoute),
-)
-export const uiComboboxRouter = pipe(
-  literal('ui'),
-  slash(literal('combobox')),
-  mapTo(UiComboboxRoute),
-)
-export const uiInputRouter = pipe(
-  literal('ui'),
-  slash(literal('input')),
-  mapTo(UiInputRoute),
-)
-export const uiTextareaRouter = pipe(
-  literal('ui'),
-  slash(literal('textarea')),
-  mapTo(UiTextareaRoute),
-)
-export const uiFieldsetRouter = pipe(
-  literal('ui'),
-  slash(literal('fieldset')),
-  mapTo(UiFieldsetRoute),
-)
-export const uiDragAndDropRouter = pipe(
-  literal('ui'),
-  slash(literal('drag-and-drop')),
-  mapTo(UiDragAndDropRoute),
-)
-export const uiFileDropRouter = pipe(
-  literal('ui'),
-  slash(literal('file-drop')),
-  mapTo(UiFileDropRoute),
-)
-export const uiToastRouter = pipe(
-  literal('ui'),
-  slash(literal('toast')),
-  mapTo(UiToastRoute),
-)
-export const uiTooltipRouter = pipe(
-  literal('ui'),
-  slash(literal('tooltip')),
-  mapTo(UiTooltipRoute),
-)
-export const uiAnimationRouter = pipe(
-  literal('ui'),
-  slash(literal('animation')),
-  mapTo(UiAnimationRoute),
-)
-export const uiVirtualListRouter = pipe(
-  literal('ui'),
-  slash(literal('virtual-list')),
-  mapTo(UiVirtualListRoute),
-)
-
-export const aiOverviewRouter = pipe(
-  literal('ai'),
-  slash(literal('overview')),
-  mapTo(AiOverviewRoute),
-)
-export const aiSkillsRouter = pipe(
-  literal('ai'),
-  slash(literal('skills')),
-  mapTo(AiSkillsRoute),
-)
-export const aiMcpRouter = pipe(
-  literal('ai'),
-  slash(literal('mcp')),
-  mapTo(AiMcpRoute),
-)
+export const aiOverviewRouter = ai('overview', AiOverviewRoute)
+export const aiSkillsRouter = ai('skills', AiSkillsRoute)
+export const aiMcpRouter = ai('mcp', AiMcpRoute)
 
 // PARSER
 
-const topLevelDocsParser = oneOf(
-  manifestoRouter,
-  whyNoJsxRouter,
-  whatAboutSsrRouter,
-  comingFromReactRouter,
-  reactComparisonRouter,
-  gettingStartedRouter,
-  routingAndNavigationRouter,
-  fieldValidationRouter,
+const getStartedParser = oneOf(manifestoRouter, gettingStartedRouter)
+
+const faqParser = oneOf(whyNoJsxRouter, whatAboutSsrRouter)
+
+const reactParser = oneOf(comingFromReactRouter, reactComparisonRouter)
+
+const testingParser = oneOf(
   testingStoryRouter,
   testingSceneRouter,
   testingRouter,
+)
+
+const examplesParser = oneOf(
   typingTerminalRouter,
   exampleDetailRouter,
   examplesRouter,
-  projectOrganizationRouter,
-)
-
-const bestPracticesParser = oneOf(
-  bestPracticesSideEffectsRouter,
-  bestPracticesMessagesRouter,
-  bestPracticesKeyingRouter,
-  bestPracticesImmutabilityRouter,
 )
 
 const coreParser = oneOf(
@@ -609,9 +423,21 @@ const coreParser = oneOf(
   coreFreezeModelRouter,
   coreViewMemoizationRouter,
   coreSubmodelRouter,
+  routingAndNavigationRouter,
+  fieldValidationRouter,
 )
 
-const patternsParser = oneOf(patternsSubscriptionOrganizationRouter)
+const patternsParser = oneOf(
+  patternsSubscriptionOrganizationRouter,
+  projectOrganizationRouter,
+)
+
+const bestPracticesParser = oneOf(
+  bestPracticesSideEffectsRouter,
+  bestPracticesMessagesRouter,
+  bestPracticesKeyingRouter,
+  bestPracticesImmutabilityRouter,
+)
 
 const uiParser = oneOf(
   uiOverviewRouter,
@@ -645,18 +471,19 @@ const uiParser = oneOf(
 const aiParser = oneOf(aiOverviewRouter, aiSkillsRouter, aiMcpRouter)
 
 const docsParser = oneOf(
-  topLevelDocsParser,
+  getStartedParser,
+  faqParser,
+  reactParser,
   coreParser,
-  bestPracticesParser,
   patternsParser,
+  bestPracticesParser,
+  testingParser,
+  examplesParser,
   uiParser,
   aiParser,
 )
 
-export const newsletterRouter = pipe(
-  literal('newsletter'),
-  mapTo(NewsletterRoute),
-)
+export const newsletterRouter = page('newsletter', NewsletterRoute)
 
 export const routeParser = oneOf(
   docsParser,
