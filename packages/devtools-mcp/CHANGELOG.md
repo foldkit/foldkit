@@ -1,5 +1,11 @@
 # @foldkit/devtools-mcp
 
+## 0.9.1
+
+### Patch Changes
+
+- 7b1286a: Update README documentation links to the new section-prefixed docs URLs.
+
 ## 0.9.0
 
 ### Minor Changes
