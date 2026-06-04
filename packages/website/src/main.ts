@@ -36,6 +36,7 @@ import { evo } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import { DOCS_SIDEBAR_NAV_ID, allPages, findActiveSectionKey } from './docsNav'
+import { GitHubStarsRemoteData } from './githubStars'
 import {
   CompletedApplyTheme,
   CompletedInjectAnalytics,
@@ -49,6 +50,7 @@ import {
   CompletedScrollToTop,
   FailedCopyLink,
   FailedCopySnippet,
+  FailedFetchGitHubStars,
   FailedSubscribeToNewsletter,
   GotAiGroupMessage,
   GotApiReferenceGroupMessage,
@@ -78,6 +80,7 @@ import {
   ResolvedTheme,
   SucceededCopyLink,
   SucceededCopySnippet,
+  SucceededFetchGitHubStars,
   SucceededSubscribeToNewsletter,
   ThemePreference,
 } from './message'
@@ -234,6 +237,7 @@ export const Model = S.Struct({
   copiedSnippets: S.HashSet(S.String),
   emailField: FieldValidation.Field,
   emailSubscriptionStatus: EmailSubscriptionStatus,
+  githubStars: GitHubStarsRemoteData.Union,
   currentYear: S.Number,
   mobileMenuDialog: Ui.Dialog.Model,
   isMobileTableOfContentsOpen: S.Boolean,
@@ -382,6 +386,7 @@ export const init: Runtime.RoutingProgramInit<
       copiedSnippets: HashSet.empty(),
       emailField: FieldValidation.NotValidated({ value: '' }),
       emailSubscriptionStatus: 'Idle',
+      githubStars: GitHubStarsRemoteData.Loading(),
       currentYear: flags.currentYear,
       mobileMenuDialog: Ui.Dialog.init({ id: 'mobile-menu' }),
       isMobileTableOfContentsOpen: false,
@@ -504,6 +509,7 @@ export const init: Runtime.RoutingProgramInit<
       InjectAnalytics(),
       InjectSpeedInsights(),
       ApplyTheme({ theme: resolvedTheme }),
+      FetchGitHubStars(),
       ...mappedAsyncCounterDemoCommands,
       ...mappedNotePlayerDemoCommands,
       ...mappedUiPagesCommands,
@@ -755,6 +761,20 @@ export const update = (
       FailedSubscribeToNewsletter: () => [
         evo(model, {
           emailSubscriptionStatus: () => 'Failed',
+        }),
+        [],
+      ],
+
+      SucceededFetchGitHubStars: ({ count }) => [
+        evo(model, {
+          githubStars: () => GitHubStarsRemoteData.Ok({ data: count }),
+        }),
+        [],
+      ],
+
+      FailedFetchGitHubStars: ({ error }) => [
+        evo(model, {
+          githubStars: () => GitHubStarsRemoteData.Failure({ error }),
         }),
         [],
       ],
@@ -1255,6 +1275,43 @@ const SubscribeToNewsletter = Command.define(
     return SucceededSubscribeToNewsletter()
   }).pipe(
     Effect.catch(() => Effect.succeed(FailedSubscribeToNewsletter())),
+    Effect.provideService(HttpClient.TracerPropagationEnabled, false),
+    Effect.provide(FetchHttpClient.layer),
+  ),
+)
+
+const GITHUB_REPO_API_URL = 'https://api.github.com/repos/foldkit/foldkit'
+
+const GitHubRepo = S.Struct({ stargazers_count: S.Number })
+
+const FetchGitHubStars = Command.define(
+  'FetchGitHubStars',
+  SucceededFetchGitHubStars,
+  FailedFetchGitHubStars,
+)(
+  Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient
+    const response = yield* client.execute(
+      HttpClientRequest.get(GITHUB_REPO_API_URL),
+    )
+
+    if (response.status >= 400) {
+      return yield* Effect.fail('Failed to fetch GitHub stars')
+    }
+
+    const body = yield* response.json
+    const { stargazers_count } = yield* S.decodeUnknownEffect(GitHubRepo)(body)
+
+    return SucceededFetchGitHubStars({ count: stargazers_count })
+  }).pipe(
+    Effect.catch(error =>
+      Effect.succeed(
+        FailedFetchGitHubStars({
+          error:
+            typeof error === 'string' ? error : 'Failed to fetch GitHub stars',
+        }),
+      ),
+    ),
     Effect.provideService(HttpClient.TracerPropagationEnabled, false),
     Effect.provide(FetchHttpClient.layer),
   ),

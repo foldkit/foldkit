@@ -3,6 +3,7 @@ import { Match as M, Option } from 'effect'
 import { Ui } from 'foldkit'
 import { Html, childAttributes, createLazy, html } from 'foldkit/html'
 
+import { maybeStarCount } from '../githubStars'
 import { Icon } from '../icon'
 import { Link } from '../link'
 import { type Model } from '../main'
@@ -365,6 +366,7 @@ export const landingView = (model: Model) => {
             emailSignupView,
             playgroundMenu,
             model.aiHeadingToggleCount,
+            maybeStarCount(model.githubStars),
           ),
         ],
       ),

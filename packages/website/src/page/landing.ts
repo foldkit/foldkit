@@ -37,6 +37,7 @@ import {
   codeBlock,
   highlightedCodeBlock,
 } from '../view/codeBlock'
+import { githubStarBadge } from '../view/shared'
 import { exampleAppCount } from './examples'
 
 // CONSTANTS
@@ -83,13 +84,14 @@ export const view = (
   emailSignupView: Html,
   playgroundMenuView: Html,
   aiHeadingToggleCount: number,
+  maybeStarCount: Option.Option<number>,
 ): Html => {
   const h = html<Message>()
 
   return h.div(
     [h.Class('isolate overflow-x-hidden')],
     [
-      heroSection(copiedSnippets, playgroundMenuView),
+      heroSection(copiedSnippets, playgroundMenuView, maybeStarCount),
       glyph('{ }'),
       promiseSection(),
       glyph('=>'),
@@ -111,7 +113,23 @@ export const view = (
       glyph('...', '-translate-y-1/3'),
       trustSection(),
       glyph('->'),
-      finalCtaSection(emailSignupView),
+      finalCtaSection(emailSignupView, maybeStarCount),
+    ],
+  )
+}
+
+const viewOnGitHubButton = (maybeStarCount: Option.Option<number>): Html => {
+  const h = html<Message>()
+
+  return h.a(
+    [h.Href(Link.github), h.Class('cta-secondary')],
+    [
+      Icon.github('w-5 h-5'),
+      h.span([h.Class('mr-2')], ['View on GitHub']),
+      ...Option.match(maybeStarCount, {
+        onNone: () => [],
+        onSome: count => [githubStarBadge(count)],
+      }),
     ],
   )
 }
@@ -161,6 +179,7 @@ const INSTALL_COMMAND = 'npx create-foldkit-app@latest'
 const heroSection = (
   copiedSnippets: CopiedSnippets,
   playgroundMenuView: Html,
+  maybeStarCount: Option.Option<number>,
 ): Html => {
   const h = html<Message>()
 
@@ -237,10 +256,7 @@ const heroSection = (
                 ['Dive In', Icon.arrowRight('w-5 h-5')],
               ),
               playgroundMenuView,
-              h.a(
-                [h.Href(Link.github), h.Class('cta-secondary')],
-                [Icon.github('w-5 h-5'), 'View on GitHub'],
-              ),
+              viewOnGitHubButton(maybeStarCount),
             ],
           ),
         ],
@@ -1241,7 +1257,10 @@ const aiSection = (aiHeadingToggleCount: number): Html => {
 
 // FINAL CTA
 
-const finalCtaSection = (emailSignupView: Html): Html => {
+const finalCtaSection = (
+  emailSignupView: Html,
+  maybeStarCount: Option.Option<number>,
+): Html => {
   const h = html<Message>()
 
   return h.section(
@@ -1286,10 +1305,7 @@ const finalCtaSection = (emailSignupView: Html): Html => {
                         ],
                         ['Dive In', Icon.arrowRight('w-5 h-5')],
                       ),
-                      h.a(
-                        [h.Href(Link.github), h.Class('cta-secondary')],
-                        [Icon.github('w-5 h-5'), 'View on GitHub'],
-                      ),
+                      viewOnGitHubButton(maybeStarCount),
                     ],
                   ),
                 ],

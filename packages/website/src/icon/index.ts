@@ -33,6 +33,7 @@ import { route } from './route'
 import { shieldCheck } from './shieldCheck'
 import { signal } from './signal'
 import { squareStack } from './squareStack'
+import { star } from './star'
 import { stop } from './stop'
 import { sun } from './sun'
 import { trash } from './trash'
@@ -73,6 +74,7 @@ export const Icon = {
   route,
   shieldCheck,
   signal,
+  star,
   stop,
   squareStack,
   sun,

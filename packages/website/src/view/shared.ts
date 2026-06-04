@@ -3,6 +3,8 @@ import { Array, Match as M } from 'effect'
 import type { Field } from 'foldkit/fieldValidation'
 import { Html, html } from 'foldkit/html'
 
+import { formatStarCount } from '../githubStars'
+import { Icon } from '../icon'
 import { type EmailSubscriptionStatus } from '../main'
 import { type Message, SubmittedEmailForm, UpdatedEmailField } from '../message'
 
@@ -32,6 +34,23 @@ export const iconLink = (link: string, ariaLabel: string, icon: Html) => {
       h.AriaLabel(ariaLabel),
     ],
     [icon],
+  )
+}
+
+export const githubStarBadge = (count: number): Html => {
+  const h = html<Message>()
+
+  return h.span(
+    [
+      h.Class(
+        'inline-flex items-center gap-1 rounded-full bg-gray-900 dark:bg-white px-2 pt-0.5 pb-0.75 text-xs font-semibold text-white dark:text-gray-900',
+      ),
+      h.AriaHidden(true),
+    ],
+    [
+      Icon.star('w-3.5 h-3.5'),
+      h.span([h.Class('mt-px')], [formatStarCount(count)]),
+    ],
   )
 }
 
