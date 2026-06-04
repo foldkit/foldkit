@@ -10,10 +10,10 @@
     "bench": "vitest run --config vitest.bench.config.ts"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-beta.66",
+    "@effect/platform-browser": "4.0.0-beta.78",
     "@tailwindcss/vite": "^4.2.4",
     "clsx": "^2.1.1",
-    "effect": "4.0.0-beta.66",
+    "effect": "4.0.0-beta.78",
     "foldkit": "workspace:*",
     "tailwindcss": "^4.2.4"
   },

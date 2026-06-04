@@ -22,13 +22,13 @@
     "preview:search": "pnpm build && pnpm prerender && vite preview"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-beta.66",
+    "@effect/platform-browser": "4.0.0-beta.78",
     "@tailwindcss/vite": "^4.2.4",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "@webcontainer/api": "^1.6.4",
     "clsx": "^2.1.1",
-    "effect": "4.0.0-beta.66",
+    "effect": "4.0.0-beta.78",
     "foldkit": "workspace:*",
     "monaco-editor": "^0.55.1",
     "shiki": "^4.0.2",
@@ -36,7 +36,7 @@
     "tailwindcss": "^4.2.4"
   },
   "devDependencies": {
-    "@effect/platform-node": "4.0.0-beta.66",
+    "@effect/platform-node": "4.0.0-beta.78",
     "@eslint/js": "^10.0.1",
     "@foldkit/vite-plugin": "workspace:*",
     "@playwright/test": "^1.59.1",

@@ -1,9 +1,10 @@
+import { BrowserCrypto } from '@effect/platform-browser'
 import {
   Array,
+  Crypto,
   Effect,
   Match as M,
   Option,
-  Random,
   Schema as S,
   pipe,
 } from 'effect'
@@ -47,12 +48,17 @@ export const init = (today: CalendarDate, initialEntryId: string): Model => ({
   today,
 })
 
+const randomUUIDv4: Effect.Effect<string> = Effect.gen(function* () {
+  const crypto = yield* Crypto.Crypto
+  return yield* crypto.randomUUIDv4
+}).pipe(Effect.provide(BrowserCrypto.layer), Effect.orDie)
+
 // COMMAND
 
 export const AddEntry = Command.define(
   'AddEntry',
   AddedEntry,
-)(Random.nextUUIDv4.pipe(Effect.map(entryId => AddedEntry({ entryId }))))
+)(randomUUIDv4.pipe(Effect.map(entryId => AddedEntry({ entryId }))))
 
 // UPDATE
 

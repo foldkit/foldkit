@@ -1,4 +1,5 @@
-import { Effect, Random, Schema as S } from 'effect'
+import { BrowserCrypto } from '@effect/platform-browser'
+import { Crypto, Effect, Schema as S } from 'effect'
 import { Calendar, Runtime, Ui } from 'foldkit'
 
 import { Message } from './message'
@@ -14,6 +15,11 @@ import {
 import { update } from './update'
 import { view } from './view'
 
+const randomUUIDv4: Effect.Effect<string> = Effect.gen(function* () {
+  const crypto = yield* Crypto.Crypto
+  return yield* crypto.randomUUIDv4
+}).pipe(Effect.provide(BrowserCrypto.layer), Effect.orDie)
+
 // FLAGS
 
 export const Flags = S.Struct({
@@ -26,9 +32,9 @@ export type Flags = typeof Flags.Type
 
 export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const today = yield* Calendar.today.local
-  const initialWorkHistoryEntryId = yield* Random.nextUUIDv4
-  const initialEducationEntryId = yield* Random.nextUUIDv4
-  const initialSkillsEntryId = yield* Random.nextUUIDv4
+  const initialWorkHistoryEntryId = yield* randomUUIDv4
+  const initialEducationEntryId = yield* randomUUIDv4
+  const initialSkillsEntryId = yield* randomUUIDv4
   return {
     today,
     initialWorkHistoryEntryId,
