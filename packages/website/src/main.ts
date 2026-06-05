@@ -616,18 +616,15 @@ export const update = (
         const [closedMobileMenu, closeMobileMenuCommands] = Ui.Dialog.close(
           model.mobileMenuDialog,
         )
-        const [closedSearchDialog, closeSearchDialogCommands] = Ui.Dialog.close(
-          model.search.dialog,
+        const [nextSearch, searchResetCommands] = Search.informRouteChanged(
+          model.search,
         )
         const [nextApiReference, apiReferenceLoadCommands] = M.value(
           nextRoute,
         ).pipe(
           M.withReturnType<ReturnType<typeof Page.ApiReference.update>>(),
           M.tag('ApiModule', () =>
-            Page.ApiReference.update(
-              model.apiReference,
-              Page.ApiReference.RequestedApiData(),
-            ),
+            Page.ApiReference.informRouteChanged(model.apiReference),
           ),
           M.orElse(() => [model.apiReference, []]),
         )
@@ -638,11 +635,9 @@ export const update = (
             ReturnType<typeof Page.Example.ExampleDetail.update>
           >(),
           M.tag('ExampleDetail', ({ exampleSlug }) =>
-            Page.Example.ExampleDetail.update(
+            Page.Example.ExampleDetail.informRouteChanged(
               model.exampleDetail,
-              Page.Example.ExampleDetail.RequestedExampleSources({
-                slug: exampleSlug,
-              }),
+              exampleSlug,
             ),
           ),
           M.orElse(() => [model.exampleDetail, []]),
@@ -663,13 +658,7 @@ export const update = (
                   Page.Playground.init(exampleSlug),
                 ),
               ),
-            search: search => ({
-              ...search,
-              dialog: closedSearchDialog,
-              query: '',
-              searchState: Search.Idle(),
-              activeResultIndex: -1,
-            }),
+            search: () => nextSearch,
             isLandingHeaderVisible: () =>
               isLandingHeaderAlwaysVisible(nextRoute),
             getStartedGroup: expandIfActive('getStarted'),
@@ -688,10 +677,8 @@ export const update = (
             ...Command.mapMessages(closeMobileMenuCommands, message =>
               GotMobileMenuDialogMessage({ message }),
             ),
-            ...Command.mapMessages(closeSearchDialogCommands, message =>
-              GotSearchMessage({
-                message: Search.GotSearchDialogMessage({ message }),
-              }),
+            ...Command.mapMessages(searchResetCommands, message =>
+              GotSearchMessage({ message }),
             ),
             ...Command.mapMessages(apiReferenceLoadCommands, message =>
               GotApiReferenceMessage({ message }),

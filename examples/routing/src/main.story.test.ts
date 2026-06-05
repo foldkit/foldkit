@@ -1,25 +1,54 @@
-import { Option } from 'effect'
+import { Array, Option, String } from 'effect'
 import { Story } from 'foldkit'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import {
-  ChangedSearchInput,
   ChangedUrl,
-  CompletedNavigateInternal,
+  GotPeopleMessage,
   HomeRoute,
-  type Model,
+  Model,
   PeopleRoute,
-  ReplaceSearchUrl,
   update,
 } from './main'
+import { People } from './page'
 
-const home: Model = { route: HomeRoute() }
+const peoplePageWith = (searchInput: string) =>
+  People.Model.make({
+    searchInput,
+    searchHistory: Array.liftPredicate(String.isNonEmpty)(searchInput),
+    results: People.SearchLoaded({
+      query: searchInput,
+      people: People.searchPeople(searchInput),
+    }),
+  })
+
+const initialPeoplePage = peoplePageWith('')
+
+const home = Model.make({ route: HomeRoute(), peoplePage: initialPeoplePage })
+
+const onPeople = (searchInput: string) =>
+  Model.make({
+    route: PeopleRoute({
+      searchText: Option.liftPredicate(String.isNonEmpty)(searchInput),
+    }),
+    peoplePage: peoplePageWith(searchInput),
+  })
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
     fromString(raw),
     () => new Error(`Failed to parse url: ${raw}`),
+  )
+
+const resolveFetch = (searchText: string) =>
+  Story.Command.resolve(
+    People.FetchPeople,
+    People.SucceededFetchPeople({
+      query: searchText,
+      people: People.searchPeople(searchText),
+    }),
+    message => GotPeopleMessage({ message }),
   )
 
 describe('update', () => {
@@ -38,6 +67,7 @@ describe('update', () => {
             throw new Error('Expected People route')
           }
         }),
+        resolveFetch(''),
       )
     })
 
@@ -57,6 +87,7 @@ describe('update', () => {
             throw new Error('Expected People route')
           }
         }),
+        resolveFetch('foo'),
       )
     })
 
@@ -108,28 +139,75 @@ describe('update', () => {
         }),
       )
     })
-  })
 
-  describe('ChangedSearchInput', () => {
-    test('typing search text fires a URL replacement command', () => {
+    test('a same-page URL change syncs the input, records history, and refetches', () => {
       Story.story(
         update,
-        Story.with({ route: PeopleRoute({ searchText: Option.none() }) }),
-        Story.message(ChangedSearchInput({ value: 'designer' })),
-        Story.Command.expectHas(ReplaceSearchUrl),
-        Story.Command.resolve(ReplaceSearchUrl, CompletedNavigateInternal()),
+        Story.with(onPeople('')),
+        Story.message(
+          ChangedUrl({
+            url: urlOrThrow('http://localhost/people?searchText=designer'),
+          }),
+        ),
+        Story.model(model => {
+          expect(model.peoplePage.searchInput).toBe('designer')
+          expect(model.peoplePage.searchHistory).toStrictEqual(['designer'])
+          expect(model.peoplePage.results._tag).toBe('SearchLoading')
+        }),
+        Story.Command.expectHas(People.FetchPeople),
+        resolveFetch('designer'),
+        Story.model(model => {
+          if (model.peoplePage.results._tag === 'SearchLoaded') {
+            expect(
+              model.peoplePage.results.people.map(person => person.name),
+            ).toStrictEqual(['Alice Johnson', 'Eva Brown'])
+          } else {
+            throw new Error('Expected SearchLoaded')
+          }
+        }),
+      )
+    })
+  })
+
+  describe('GotPeopleMessage', () => {
+    test('typing updates the input without recording history or firing a command', () => {
+      Story.story(
+        update,
+        Story.with(onPeople('')),
+        Story.message(
+          GotPeopleMessage({
+            message: People.ChangedSearchInput({ value: 'd' }),
+          }),
+        ),
+        Story.message(
+          GotPeopleMessage({
+            message: People.ChangedSearchInput({ value: 'de' }),
+          }),
+        ),
+        Story.message(
+          GotPeopleMessage({
+            message: People.ChangedSearchInput({ value: 'designer' }),
+          }),
+        ),
+        Story.Command.expectNone(),
+        Story.model(model => {
+          expect(model.peoplePage.searchInput).toBe('designer')
+          expect(model.peoplePage.searchHistory).toStrictEqual([])
+        }),
       )
     })
 
-    test('clearing the search input still fires a URL replacement', () => {
+    test('submitting the search pushes the current input to the URL', () => {
       Story.story(
         update,
-        Story.with({
-          route: PeopleRoute({ searchText: Option.some('foo') }),
-        }),
-        Story.message(ChangedSearchInput({ value: '' })),
-        Story.Command.expectHas(ReplaceSearchUrl),
-        Story.Command.resolve(ReplaceSearchUrl, CompletedNavigateInternal()),
+        Story.with(onPeople('designer')),
+        Story.message(GotPeopleMessage({ message: People.SubmittedSearch() })),
+        Story.Command.expectHas(People.PushSearchUrl),
+        Story.Command.resolve(
+          People.PushSearchUrl,
+          People.CompletedPushSearchUrl(),
+          message => GotPeopleMessage({ message }),
+        ),
       )
     })
   })

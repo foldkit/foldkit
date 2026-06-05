@@ -8,5 +8,5 @@ export {
   ScrollToResult,
 } from './command'
 export { init } from './init'
-export { update } from './update'
+export { informRouteChanged, update } from './update'
 export { view } from './view'

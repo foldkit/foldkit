@@ -39,6 +39,7 @@ import {
   fieldValidationRouter,
   gettingStartedRouter,
   manifestoRouter,
+  patternsInformingSubmodelsRouter,
   patternsSubscriptionOrganizationRouter,
   projectOrganizationRouter,
   reactComparisonRouter,
@@ -313,6 +314,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'ProjectOrganization',
           href: projectOrganizationRouter(),
           label: 'Project Organization',
+        },
+        {
+          _tag: 'PatternsInformingSubmodels',
+          href: patternsInformingSubmodelsRouter(),
+          label: 'Informing Submodels',
         },
         {
           _tag: 'PatternsSubscriptionOrganization',

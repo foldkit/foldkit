@@ -47,7 +47,7 @@ export const ChangedExampleUrl = m('ChangedExampleUrl', { url: S.String })
 const GotLivePreviewDisclosureMessage = m('GotLivePreviewDisclosureMessage', {
   message: Ui.Disclosure.Message,
 })
-export const RequestedExampleSources = m('RequestedExampleSources', {
+const RequestedExampleSources = m('RequestedExampleSources', {
   slug: S.String,
 })
 export const SucceededLoadExampleSources = m('SucceededLoadExampleSources', {
@@ -228,6 +228,9 @@ export const update = (
       ],
     }),
   )
+
+export const informRouteChanged = (model: Model, slug: string) =>
+  update(model, RequestedExampleSources({ slug }))
 
 // VIEW
 

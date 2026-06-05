@@ -1,87 +1,35 @@
-import { Array, Effect, Match as M, Option, Schema as S, pipe } from 'effect'
-import { Command, Route, Runtime } from 'foldkit'
+import { Effect, Match as M, Option, Schema as S } from 'effect'
+import { Command, Runtime } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
-import { UrlRequest, load, pushUrl, replaceUrl } from 'foldkit/navigation'
-import { int, literal, r, slash } from 'foldkit/route'
+import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
-// ROUTE
+import { People } from './page'
+import {
+  AppRoute,
+  PeopleRoute,
+  homeRouter,
+  nestedRouter,
+  peopleRouter,
+  urlToAppRoute,
+} from './route'
 
-export const HomeRoute = r('Home')
-export const NestedRoute = r('Nested')
-export const PeopleRoute = r('People', { searchText: S.Option(S.String) })
-export const PersonRoute = r('Person', { personId: S.Number })
-export const NotFoundRoute = r('NotFound', { path: S.String })
-
-export const AppRoute = S.Union([
+export {
+  AppRoute,
   HomeRoute,
   NestedRoute,
+  NotFoundRoute,
   PeopleRoute,
   PersonRoute,
-  NotFoundRoute,
-])
-
-type HomeRoute = typeof HomeRoute.Type
-type NestedRoute = typeof NestedRoute.Type
-type PeopleRoute = typeof PeopleRoute.Type
-type PersonRoute = typeof PersonRoute.Type
-type NotFoundRoute = typeof NotFoundRoute.Type
-
-export type AppRoute = typeof AppRoute.Type
-
-const homeRouter = pipe(Route.root, Route.mapTo(HomeRoute))
-
-const nestedRouter = pipe(
-  literal('nested'),
-  slash(literal('route')),
-  slash(literal('is')),
-  slash(literal('very')),
-  slash(literal('nested')),
-  Route.mapTo(NestedRoute),
-)
-
-const peopleRouter = pipe(
-  literal('people'),
-  Route.query(
-    S.Struct({
-      searchText: S.OptionFromOptional(S.String),
-    }),
-  ),
-  Route.mapTo(PeopleRoute),
-)
-
-const personRouter = pipe(
-  literal('people'),
-  slash(int('personId')),
-  Route.mapTo(PersonRoute),
-)
-
-const routeParser = Route.oneOf(
-  personRouter,
-  peopleRouter,
-  nestedRouter,
-  homeRouter,
-)
-
-const urlToAppRoute = Route.parseUrlWithFallback(routeParser, NotFoundRoute)
-
-const people = [
-  { id: 1, name: 'Alice Johnson', role: 'Designer' },
-  { id: 2, name: 'Bob Smith', role: 'Developer' },
-  { id: 3, name: 'Carol Davis', role: 'Manager' },
-  { id: 4, name: 'David Wilson', role: 'Developer' },
-  { id: 5, name: 'Eva Brown', role: 'Designer' },
-]
-
-const findPerson = (id: number) =>
-  Array.findFirst(people, person => person.id === id)
+} from './route'
 
 // MODEL
 
 export const Model = S.Struct({
   route: AppRoute,
+  peoplePage: People.Model,
 })
 
 export type Model = typeof Model.Type
@@ -94,21 +42,37 @@ export const ClickedLink = m('ClickedLink', {
   request: UrlRequest,
 })
 export const ChangedUrl = m('ChangedUrl', { url: Url })
-export const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
+export const GotPeopleMessage = m('GotPeopleMessage', {
+  message: People.Message,
+})
 
 export const Message = S.Union([
   CompletedNavigateInternal,
   CompletedLoadExternal,
   ClickedLink,
   ChangedUrl,
-  ChangedSearchInput,
+  GotPeopleMessage,
 ])
 export type Message = typeof Message.Type
 
 // INIT
 
 export const init: Runtime.RoutingProgramInit<Model, Message> = (url: Url) => {
-  return [{ route: urlToAppRoute(url) }, []]
+  const route = urlToAppRoute(url)
+
+  const initialPeopleRoute = M.value(route).pipe(
+    M.tag('People', peopleRoute => peopleRoute),
+    M.orElse(() => PeopleRoute({ searchText: Option.none() })),
+  )
+
+  const [peoplePage, peopleCommands] = People.init(initialPeopleRoute)
+
+  return [
+    { route, peoplePage },
+    Command.mapMessages(peopleCommands, childMessage =>
+      GotPeopleMessage({ message: childMessage }),
+    ),
+  ]
 }
 
 // COMMAND
@@ -125,63 +89,64 @@ const LoadExternal = Command.define(
   CompletedLoadExternal,
 )(({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())))
 
-export const ReplaceSearchUrl = Command.define(
-  'ReplaceSearchUrl',
-  { searchText: S.Option(S.String) },
-  CompletedNavigateInternal,
-)(({ searchText }) =>
-  replaceUrl(peopleRouter({ searchText })).pipe(
-    Effect.as(CompletedNavigateInternal()),
-  ),
-)
-
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+const withUpdateReturn = M.withReturnType<UpdateReturn>()
+
+export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
+    withUpdateReturn,
     M.tagsExhaustive({
       CompletedNavigateInternal: () => [model, []],
       CompletedLoadExternal: () => [model, []],
 
       ClickedLink: ({ request }) =>
         M.value(request).pipe(
+          withUpdateReturn,
           M.tagsExhaustive({
-            Internal: ({
-              url,
-            }): [
-              Model,
-              ReadonlyArray<Command.Command<typeof CompletedNavigateInternal>>,
-            ] => [model, [NavigateInternal({ url: urlToString(url) })]],
-            External: ({
-              href,
-            }): [
-              Model,
-              ReadonlyArray<Command.Command<typeof CompletedLoadExternal>>,
-            ] => [model, [LoadExternal({ href })]],
+            Internal: ({ url }) => [
+              model,
+              [NavigateInternal({ url: urlToString(url) })],
+            ],
+            External: ({ href }) => [model, [LoadExternal({ href })]],
           }),
         ),
 
-      ChangedUrl: ({ url }) => [
-        evo(model, {
-          route: () => urlToAppRoute(url),
-        }),
-        [],
-      ],
+      ChangedUrl: ({ url }) => {
+        const nextRoute = urlToAppRoute(url)
+        const modelWithNextRoute = evo(model, { route: () => nextRoute })
 
-      ChangedSearchInput: ({ value }) => [
-        model,
-        [
-          ReplaceSearchUrl({
-            searchText: Option.fromNullishOr(value || null),
+        return M.value(nextRoute).pipe(
+          withUpdateReturn,
+          M.tag('People', peopleRoute => {
+            const [nextPeoplePage, peopleCommands] = People.informRouteChanged(
+              modelWithNextRoute.peoplePage,
+              peopleRoute,
+            )
+            return [
+              evo(modelWithNextRoute, { peoplePage: () => nextPeoplePage }),
+              Command.mapMessages(peopleCommands, childMessage =>
+                GotPeopleMessage({ message: childMessage }),
+              ),
+            ]
           }),
-        ],
-      ],
+          M.orElse(() => [modelWithNextRoute, []]),
+        )
+      },
+
+      GotPeopleMessage: ({ message }) => {
+        const [nextPeoplePage, peopleCommands] = People.update(
+          model.peoplePage,
+          message,
+        )
+        return [
+          evo(model, { peoplePage: () => nextPeoplePage }),
+          Command.mapMessages(peopleCommands, childMessage =>
+            GotPeopleMessage({ message: childMessage }),
+          ),
+        ]
+      },
     }),
   )
 
@@ -285,85 +250,10 @@ const nestedView = (): Html => {
   )
 }
 
-const peopleView = (searchText: Option.Option<string>): Html => {
-  const h = html<Message>()
-
-  const filteredPeople = Option.match(searchText, {
-    onNone: () => people,
-    onSome: query =>
-      Array.filter(
-        people,
-        person =>
-          person.name.toLowerCase().includes(query.toLowerCase()) ||
-          person.role.toLowerCase().includes(query.toLowerCase()),
-      ),
-  })
-
-  return h.div(
-    [h.Class('max-w-4xl mx-auto px-4')],
-    [
-      h.h1([h.Class('text-4xl font-bold text-gray-800 mb-6')], ['People']),
-
-      h.search(
-        [h.Class('mb-6')],
-        [
-          h.input([
-            h.Value(Option.getOrElse(searchText, () => '')),
-            h.Placeholder('Search by name or role...'),
-            h.Class(
-              'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
-            ),
-            h.OnInput(value => ChangedSearchInput({ value })),
-          ]),
-        ],
-      ),
-
-      h.p(
-        [h.Class('text-lg text-gray-600 mb-6')],
-        [
-          Option.match(searchText, {
-            onNone: () => 'Click on any person to view their details:',
-            onSome: query =>
-              `Searching for "${query}" - ${Array.length(filteredPeople)} results:`,
-          }),
-        ],
-      ),
-      h.ul(
-        [h.Class('space-y-3')],
-        Array.map(filteredPeople, person =>
-          h.li(
-            [h.Class('border border-gray-200 rounded-lg hover:bg-gray-50')],
-            [
-              h.a(
-                [
-                  h.Href(personRouter({ personId: person.id })),
-                  h.Class('block p-4 '),
-                ],
-                [
-                  h.div(
-                    [h.Class('flex justify-between items-center')],
-                    [
-                      h.h2(
-                        [h.Class('text-xl font-semibold text-gray-800')],
-                        [person.name],
-                      ),
-                      h.p([h.Class('text-gray-600')], [person.role]),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    ],
-  )
-}
-
 const personView = (personId: number): Html => {
   const h = html<Message>()
 
-  const person = findPerson(personId)
+  const person = People.findPerson(personId)
 
   return Option.match(person, {
     onNone: () =>
@@ -495,7 +385,13 @@ export const view = (model: Model): Document => {
     M.tagsExhaustive({
       Home: homeView,
       Nested: nestedView,
-      People: ({ searchText }) => peopleView(searchText),
+      People: () =>
+        h.submodel({
+          slotId: 'people',
+          model: model.peoplePage,
+          view: People.view,
+          toParentMessage: message => GotPeopleMessage({ message }),
+        }),
       Person: ({ personId }) => personView(personId),
       NotFound: ({ path }) => notFoundView(path),
     }),

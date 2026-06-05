@@ -1,10 +1,10 @@
-import { Option } from 'effect'
+import { Array, Option, String } from 'effect'
 import { Scene } from 'foldkit'
 import { describe, test } from 'vitest'
 
 import {
   HomeRoute,
-  type Model,
+  Model,
   NestedRoute,
   NotFoundRoute,
   PeopleRoute,
@@ -12,18 +12,42 @@ import {
   update,
   view,
 } from './main'
+import { People } from './page'
 
-const home: Model = { route: HomeRoute() }
-const people = (searchText: Option.Option<string>): Model => ({
-  route: PeopleRoute({ searchText }),
+const peoplePageWith = (searchInput: string) =>
+  People.Model.make({
+    searchInput,
+    searchHistory: Array.liftPredicate(String.isNonEmpty)(searchInput),
+    results: People.SearchLoaded({
+      query: searchInput,
+      people: People.searchPeople(searchInput),
+    }),
+  })
+
+const initialPeoplePage = peoplePageWith('')
+
+const home = Model.make({ route: HomeRoute(), peoplePage: initialPeoplePage })
+const people = (searchInput: string) =>
+  Model.make({
+    route: PeopleRoute({
+      searchText: Option.liftPredicate(String.isNonEmpty)(searchInput),
+    }),
+    peoplePage: peoplePageWith(searchInput),
+  })
+const person = (personId: number) =>
+  Model.make({
+    route: PersonRoute({ personId }),
+    peoplePage: initialPeoplePage,
+  })
+const nested = Model.make({
+  route: NestedRoute(),
+  peoplePage: initialPeoplePage,
 })
-const person = (personId: number): Model => ({
-  route: PersonRoute({ personId }),
-})
-const nested: Model = { route: NestedRoute() }
-const notFound = (path: string): Model => ({
-  route: NotFoundRoute({ path }),
-})
+const notFound = (path: string) =>
+  Model.make({
+    route: NotFoundRoute({ path }),
+    peoplePage: initialPeoplePage,
+  })
 
 describe('scene', () => {
   test('the nav bar appears on every route', () => {
@@ -57,7 +81,7 @@ describe('scene', () => {
   test('the People route lists every person', () => {
     Scene.scene(
       { update, view },
-      Scene.with(people(Option.none())),
+      Scene.with(people('')),
       Scene.expect(Scene.text('Alice Johnson')).toExist(),
       Scene.expect(Scene.text('Bob Smith')).toExist(),
       Scene.expect(Scene.text('Carol Davis')).toExist(),
@@ -69,7 +93,7 @@ describe('scene', () => {
   test('a search filters People to matches by name or role', () => {
     Scene.scene(
       { update, view },
-      Scene.with(people(Option.some('designer'))),
+      Scene.with(people('designer')),
       Scene.expect(Scene.text('Alice Johnson')).toExist(),
       Scene.expect(Scene.text('Eva Brown')).toExist(),
       Scene.expect(Scene.text('Bob Smith')).toBeAbsent(),

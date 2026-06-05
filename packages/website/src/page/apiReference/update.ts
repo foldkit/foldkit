@@ -8,7 +8,7 @@ import {
   scopedId,
   signaturesLength,
 } from './domain'
-import { GotDisclosureMessage, type Message } from './message'
+import { GotDisclosureMessage, type Message, RequestedApiData } from './message'
 import {
   type ApiData,
   ApiDataRemoteData,
@@ -92,3 +92,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         }),
     }),
   )
+
+export const informRouteChanged = (model: Model) =>
+  update(model, RequestedApiData())

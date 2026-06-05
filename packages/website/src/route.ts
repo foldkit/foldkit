@@ -65,6 +65,7 @@ export const CoreFreezeModelRoute = r('CoreFreezeModel')
 export const CoreViewMemoizationRoute = r('CoreViewMemoization')
 export const CoreSubmodelRoute = r('CoreSubmodel')
 
+export const PatternsInformingSubmodelsRoute = r('PatternsInformingSubmodels')
 export const PatternsSubscriptionOrganizationRoute = r(
   'PatternsSubscriptionOrganization',
 )
@@ -149,6 +150,7 @@ export const DocsRoute = S.Union([
   CoreFreezeModelRoute,
   CoreViewMemoizationRoute,
   CoreSubmodelRoute,
+  PatternsInformingSubmodelsRoute,
   PatternsSubscriptionOrganizationRoute,
   UiOverviewRoute,
   UiSelectionSubmodelsRoute,
@@ -339,6 +341,10 @@ export const coreViewMemoizationRouter = core(
 )
 export const coreSubmodelRouter = core('submodel', CoreSubmodelRoute)
 
+export const patternsInformingSubmodelsRouter = patterns(
+  'informing-submodels',
+  PatternsInformingSubmodelsRoute,
+)
 export const patternsSubscriptionOrganizationRouter = patterns(
   'subscription-organization',
   PatternsSubscriptionOrganizationRoute,
@@ -428,6 +434,7 @@ const coreParser = oneOf(
 )
 
 const patternsParser = oneOf(
+  patternsInformingSubmodelsRouter,
   patternsSubscriptionOrganizationRouter,
   projectOrganizationRouter,
 )

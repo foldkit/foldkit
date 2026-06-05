@@ -9,7 +9,11 @@ import {
   type PagefindService,
   ScrollToResult,
 } from './command'
-import { GotSearchDialogMessage, type Message } from './message'
+import {
+  ClearedSearchQuery,
+  GotSearchDialogMessage,
+  type Message,
+} from './message'
 import type { Model } from './model'
 import { Idle, Loading, Ok, resultsFromState } from './model'
 
@@ -141,3 +145,15 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       CompletedFocusSearchInput: () => [model, []],
     }),
   )
+
+export const informRouteChanged = (model: Model): UpdateReturn => {
+  const [closedDialog, closeCommands] = Ui.Dialog.close(model.dialog)
+  const [clearedModel] = update(model, ClearedSearchQuery())
+  return [
+    evo(clearedModel, { dialog: () => closedDialog }),
+    Command.mapMessages(
+      closeCommands,
+      (message): Message => GotSearchDialogMessage({ message }),
+    ),
+  ]
+}
