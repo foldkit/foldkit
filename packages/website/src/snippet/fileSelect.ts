@@ -1,12 +1,18 @@
-import { Effect } from 'effect'
+import { Effect, Option } from 'effect'
 import { Command, File } from 'foldkit'
 
 const SelectResume = Command.define(
   'SelectResume',
   SelectedResume,
+  CancelledSelectResume,
 )(
   File.select(['application/pdf']).pipe(
-    Effect.map(files => SelectedResume({ files })),
+    Effect.map(
+      Option.match({
+        onNone: () => CancelledSelectResume(),
+        onSome: file => SelectedResume({ file }),
+      }),
+    ),
   ),
 )
 
