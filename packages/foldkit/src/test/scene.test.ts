@@ -2020,10 +2020,7 @@ describe('scene with Command-based file upload flow', () => {
       Scene.with(resumeInitialModel),
       Scene.expect(chooseButton).toExist(),
       Scene.click(chooseButton),
-      Scene.Command.resolve(
-        SelectResume,
-        SelectedResume({ files: [resumePdf] }),
-      ),
+      Scene.Command.resolve(SelectResume, SelectedResume({ file: resumePdf })),
       Scene.expect(Scene.text('resume.pdf')).toExist(),
       Scene.expect(readingStatus).toHaveText('Reading preview...'),
       Scene.Command.resolve(
@@ -2047,25 +2044,12 @@ describe('scene with Command-based file upload flow', () => {
     )
   })
 
-  test('empty selection: resolving SelectResume with no files is treated as cancel', () => {
-    Scene.scene(
-      { update: resumeUpdate, view: resumeView },
-      Scene.with(resumeInitialModel),
-      Scene.click(chooseButton),
-      Scene.Command.resolve(SelectResume, SelectedResume({ files: [] })),
-      Scene.expect(chooseButton).toExist(),
-    )
-  })
-
   test('preview failure: reading fails → file still visible, alert shown', () => {
     Scene.scene(
       { update: resumeUpdate, view: resumeView },
       Scene.with(resumeInitialModel),
       Scene.click(chooseButton),
-      Scene.Command.resolve(
-        SelectResume,
-        SelectedResume({ files: [resumePdf] }),
-      ),
+      Scene.Command.resolve(SelectResume, SelectedResume({ file: resumePdf })),
       Scene.Command.resolve(ReadResumePreview, FailedReadPreview()),
       Scene.expect(Scene.text('resume.pdf')).toExist(),
       Scene.expect(errorAlert).toHaveText('Could not read preview'),
@@ -2098,7 +2082,7 @@ describe('scene with Command-based file upload flow', () => {
       Scene.with(resumeInitialModel),
       Scene.click(chooseButton),
       Scene.Command.resolveAll(
-        [SelectResume, SelectedResume({ files: [resumePdf] })],
+        [SelectResume, SelectedResume({ file: resumePdf })],
         [ReadResumePreview, SucceededReadPreview({ dataUrl: previewDataUrl })],
       ),
       Scene.expect(Scene.text('resume.pdf')).toExist(),
@@ -2106,7 +2090,7 @@ describe('scene with Command-based file upload flow', () => {
       Scene.expect(chooseButton).toExist(),
       Scene.click(chooseButton),
       Scene.Command.resolveAll(
-        [SelectResume, SelectedResume({ files: [secondResume] })],
+        [SelectResume, SelectedResume({ file: secondResume })],
         [ReadResumePreview, SucceededReadPreview({ dataUrl: secondDataUrl })],
       ),
       Scene.expect(Scene.text('resume-v2.pdf')).toExist(),

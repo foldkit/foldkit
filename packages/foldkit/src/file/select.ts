@@ -1,4 +1,4 @@
-import { Array, Effect } from 'effect'
+import { Array, Effect, Option } from 'effect'
 
 import type { File } from './file.js'
 
@@ -45,7 +45,7 @@ const openPicker = ({
 
 /**
  * Opens the native file picker allowing a single file to be selected. Resolves
- * with an array containing the selected file, or an empty array if the user
+ * with `Option.some(file)` if the user picked one, or `Option.none()` if they
  * cancelled. Mirrors Elm's `File.Select.file`.
  *
  * The `accept` argument is a list of MIME types or file extensions that
@@ -55,14 +55,20 @@ const openPicker = ({
  * ```typescript
  * SelectResume(
  *   File.select(['application/pdf']).pipe(
- *     Effect.map(files => SelectedResume({ files })),
+ *     Effect.map(
+ *       Option.match({
+ *         onNone: () => CancelledSelectResume(),
+ *         onSome: file => SelectedResume({ file }),
+ *       }),
+ *     ),
  *   ),
  * )
  * ```
  */
 export const select = (
   accept: ReadonlyArray<string>,
-): Effect.Effect<ReadonlyArray<File>> => openPicker({ accept, multiple: false })
+): Effect.Effect<Option.Option<File>> =>
+  openPicker({ accept, multiple: false }).pipe(Effect.map(Array.head))
 
 /**
  * Opens the native file picker allowing multiple files to be selected at

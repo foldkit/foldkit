@@ -1,5 +1,5 @@
 import { describe, it } from '@effect/vitest'
-import { Effect, Fiber } from 'effect'
+import { Effect, Fiber, Option } from 'effect'
 import { expect } from 'vitest'
 
 import {
@@ -120,8 +120,7 @@ describe('select', () => {
       simulateFileSelection(input, [file])
 
       const result = yield* Fiber.join(fiber)
-      expect(result).toHaveLength(1)
-      expect(name(result[0])).toBe('resume.pdf')
+      expect(Option.map(result, name)).toEqual(Option.some('resume.pdf'))
     }),
   )
 
@@ -140,7 +139,7 @@ describe('select', () => {
     }),
   )
 
-  it.effect('resolves with an empty array when no files are selected', () =>
+  it.effect('resolves with Option.none when no file is selected', () =>
     Effect.gen(function* () {
       const fiber = yield* Effect.forkChild(select(['*/*']))
       yield* Effect.yieldNow
@@ -149,7 +148,7 @@ describe('select', () => {
       simulateFileSelection(input, [])
 
       const result = yield* Fiber.join(fiber)
-      expect(result).toEqual([])
+      expect(result).toEqual(Option.none())
     }),
   )
 
