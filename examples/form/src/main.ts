@@ -224,7 +224,7 @@ export const update = (
           [
             SubmitForm({
               name: model.name.value,
-              email: model.name.value,
+              email: model.email.value,
               message: model.message.value,
             }),
           ],
