@@ -7,22 +7,13 @@ export {
   isRequired,
   allValid,
   anyInvalid,
-  resolveMessage,
   NotValidated,
   Validating,
   Valid,
   Invalid,
   Field,
-  minLength,
-  maxLength,
-  pattern,
-  email,
-  url,
-  startsWith,
-  endsWith,
-  includes,
-  equals,
-  oneOf,
 } from './index.js'
 
-export type { Rules, MakeRulesOptions, Rule, RuleMessage } from './index.js'
+export type { Rules, MakeRulesOptions } from './index.js'
+
+export * as Rule from './rule.js'

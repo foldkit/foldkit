@@ -12,15 +12,12 @@ import {
   Field,
   Invalid,
   NotValidated,
+  Rule,
   Valid,
   Validating,
   allValid,
   anyInvalid,
-  email,
   makeRules,
-  minLength,
-  pattern,
-  url,
   validate,
 } from 'foldkit/fieldValidation'
 import { m } from 'foldkit/message'
@@ -31,14 +28,14 @@ import { evo } from 'foldkit/struct'
 const PronounsListbox = Ui.Listbox.create<string>()
 
 export const Model = S.Struct({
-  firstName: Field,
-  lastName: Field,
-  email: Field,
+  firstName: Field(S.String),
+  lastName: Field(S.String),
+  email: Field(S.String),
   emailValidationId: S.Number,
-  phone: Field,
+  phone: Field(S.String),
   pronouns: Ui.Listbox.Model,
   customPronouns: S.String,
-  portfolioUrl: Field,
+  portfolioUrl: Field(S.String),
   availableDate: Ui.DatePicker.Model,
 })
 export type Model = typeof Model.Type
@@ -50,7 +47,7 @@ export const UpdatedLastName = m('UpdatedLastName', { value: S.String })
 export const UpdatedEmail = m('UpdatedEmail', { value: S.String })
 export const ValidatedEmail = m('ValidatedEmail', {
   validationId: S.Number,
-  field: Field,
+  field: Field(S.String),
 })
 export const UpdatedPhone = m('UpdatedPhone', { value: S.String })
 export const GotPronounsMessage = m('GotPronounsMessage', {
@@ -101,7 +98,7 @@ export const init = (today: CalendarDate): Model => ({
 
 const firstNameRules = makeRules({
   required: 'First name is required',
-  rules: [minLength(2, 'First name must be at least 2 characters')],
+  rules: [Rule.minLength(2, 'First name must be at least 2 characters')],
 })
 
 const lastNameRules = makeRules({
@@ -110,18 +107,18 @@ const lastNameRules = makeRules({
 
 const emailRules = makeRules({
   required: 'Email is required',
-  rules: [email('Please enter a valid email address')],
+  rules: [Rule.email('Please enter a valid email address')],
 })
 
 const PHONE_PATTERN = /^\+?[\d\s()-]{7,}$/
 
 const phoneRules = makeRules({
-  rules: [pattern(PHONE_PATTERN, 'Please enter a valid phone number')],
+  rules: [Rule.pattern(PHONE_PATTERN, 'Please enter a valid phone number')],
 })
 
 const portfolioUrlRules = makeRules({
   rules: [
-    url({
+    Rule.url({
       message: 'Please enter a valid URL',
       requireProtocol: false,
     }),
@@ -266,7 +263,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 // VALIDATION SUMMARY
 
-const validatedFields = (model: Model): ReadonlyArray<Field> => [
+const validatedFields = (model: Model): ReadonlyArray<Field<string>> => [
   model.firstName,
   model.lastName,
   model.email,

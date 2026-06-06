@@ -14,8 +14,8 @@ import {
   Field,
   Invalid,
   NotValidated,
+  Rule,
   allValid,
-  email,
   makeRules,
   validate,
 } from 'foldkit/fieldValidation'
@@ -29,8 +29,8 @@ import { homeRouter } from '../../../route'
 // MODEL
 
 export const Model = S.Struct({
-  email: Field,
-  password: Field,
+  email: Field(S.String),
+  password: Field(S.String),
   isSubmitting: S.Boolean,
 })
 
@@ -73,7 +73,7 @@ export type OutMessage = typeof OutMessage.Type
 
 const emailRules = makeRules({
   required: 'Email is required',
-  rules: [email('Please enter a valid email')],
+  rules: [Rule.email('Please enter a valid email')],
 })
 
 const passwordRules = makeRules({
@@ -180,7 +180,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 // VIEW
 
-const fieldToBorderClass = (field: Field) =>
+const fieldToBorderClass = (field: Field<string>) =>
   M.value(field).pipe(
     M.tagsExhaustive({
       NotValidated: () => 'border-gray-300',
@@ -193,7 +193,7 @@ const fieldToBorderClass = (field: Field) =>
 const fieldView = (
   id: string,
   labelText: string,
-  field: Field,
+  field: Field<string>,
   onUpdate: (value: string) => Message,
   type: 'text' | 'email' | 'password' = 'text',
   placeholder = '',

@@ -4,7 +4,7 @@ import { Ui } from 'foldkit'
 import { type Field } from 'foldkit/fieldValidation'
 import { type Html, html } from 'foldkit/html'
 
-const borderClass = (field: Field): string =>
+const borderClass = (field: Field<string>): string =>
   M.value(field).pipe(
     M.tagsExhaustive({
       NotValidated: () => 'border-gray-300',
@@ -18,7 +18,7 @@ export const inputField = <ParentMessage>(
   config: Readonly<{
     id: string
     label: string
-    field: Field
+    field: Field<string>
     onInput: (value: string) => ParentMessage
     type?: string
     placeholder?: string

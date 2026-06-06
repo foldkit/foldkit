@@ -132,7 +132,7 @@ const resolveTheme = (
 
 const emailRules = FieldValidation.makeRules({
   required: 'Email is required',
-  rules: [FieldValidation.email('Please enter a valid email address')],
+  rules: [FieldValidation.Rule.email('Please enter a valid email address')],
 })
 
 const EmailSubscriptionStatus = S.Literals([
@@ -235,7 +235,7 @@ export const Model = S.Struct({
   route: AppRoute,
   url: Url,
   copiedSnippets: S.HashSet(S.String),
-  emailField: FieldValidation.Field,
+  emailField: FieldValidation.Field(S.String),
   emailSubscriptionStatus: EmailSubscriptionStatus,
   githubStars: GitHubStarsRemoteData.Union,
   currentYear: S.Number,

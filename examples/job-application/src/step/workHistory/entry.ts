@@ -29,8 +29,8 @@ const validateTitle = validate(titleRules)
 
 export const Model = S.Struct({
   id: S.String,
-  company: Field,
-  title: Field,
+  company: Field(S.String),
+  title: Field(S.String),
   startDate: Ui.DatePicker.Model,
   endDate: Ui.DatePicker.Model,
   isCurrentlyEmployed: Ui.Checkbox.Model,

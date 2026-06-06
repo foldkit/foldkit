@@ -2,33 +2,40 @@ import { describe, it } from '@effect/vitest'
 import { Option, Schema as S } from 'effect'
 import { expect } from 'vitest'
 
+import { CalendarDateFromIsoString } from '../calendar/public.js'
 import {
   Field,
   Invalid,
   NotValidated,
-  type Rule,
   Valid,
   Validating,
   allValid,
   anyInvalid,
-  email,
-  endsWith,
-  equals,
-  includes,
   isInvalid,
   isRequired,
   isValid,
   makeRules,
+  validate,
+  validateAll,
+} from './index.js'
+import {
+  type Rule,
+  email,
+  endsWith,
+  equals,
+  fromSchema,
+  includes,
+  maxItems,
   maxLength,
+  minItems,
   minLength,
+  nonEmpty,
   oneOf,
   pattern,
   resolveMessage,
   startsWith,
   url,
-  validate,
-  validateAll,
-} from './index.js'
+} from './rule.js'
 
 describe('state constructors', () => {
   it('build tagged instances for each state', () => {
@@ -37,11 +44,16 @@ describe('state constructors', () => {
     expect(Valid({ value: 'x' })._tag).toBe('Valid')
     expect(Invalid({ value: 'x', errors: ['bad'] })._tag).toBe('Invalid')
   })
+
+  it('carry non-string values', () => {
+    expect(Valid({ value: true }).value).toBe(true)
+    expect(Valid({ value: ['a', 'b'] }).value).toEqual(['a', 'b'])
+  })
 })
 
 describe('Field schema', () => {
   it('decodes each variant', () => {
-    const decoded = S.decodeUnknownOption(Field)({
+    const decoded = S.decodeUnknownOption(Field(S.String))({
       _tag: 'NotValidated',
       value: 'hi',
     })
@@ -49,11 +61,19 @@ describe('Field schema', () => {
   })
 
   it('rejects unknown tags', () => {
-    const decoded = S.decodeUnknownOption(Field)({
+    const decoded = S.decodeUnknownOption(Field(S.String))({
       _tag: 'Unknown',
       value: 'hi',
     })
     expect(Option.isNone(decoded)).toBe(true)
+  })
+
+  it('decodes a non-string value field', () => {
+    const decoded = S.decodeUnknownOption(Field(S.Boolean))({
+      _tag: 'Valid',
+      value: true,
+    })
+    expect(Option.isSome(decoded)).toBe(true)
   })
 })
 
@@ -64,6 +84,12 @@ describe('makeRules', () => {
     expect(rules.rules).toHaveLength(0)
     expect(rules.isEmpty('')).toBe(true)
     expect(rules.isEmpty(' ')).toBe(false)
+  })
+
+  it('treats an empty array as empty by default', () => {
+    const rules = makeRules<ReadonlyArray<string>>()
+    expect(rules.isEmpty([])).toBe(true)
+    expect(rules.isEmpty(['a'])).toBe(false)
   })
 
   it('accepts required, rules, and isEmpty', () => {
@@ -172,6 +198,42 @@ describe('validate', () => {
       expect(state._tag).toBe('Valid')
     })
   })
+
+  describe('array value field', () => {
+    const tagsRules = makeRules<ReadonlyArray<string>>({
+      required: 'Pick at least one tag',
+      rules: [maxItems(3, 'Choose at most three')],
+    })
+
+    it('treats an empty array as empty for a required field', () => {
+      const state = validate(tagsRules)([])
+      expect(state._tag).toBe('Invalid')
+      if (state._tag === 'Invalid') {
+        expect(state.errors).toEqual(['Pick at least one tag'])
+      }
+    })
+
+    it('returns Invalid when an array rule fails', () => {
+      const state = validate(tagsRules)(['a', 'b', 'c', 'd'])
+      expect(state._tag).toBe('Invalid')
+      if (state._tag === 'Invalid') {
+        expect(state.errors).toEqual(['Choose at most three'])
+      }
+    })
+
+    it('returns Valid when array rules pass', () => {
+      const state = validate(tagsRules)(['a', 'b'])
+      expect(state._tag).toBe('Valid')
+    })
+  })
+
+  describe('boolean value field', () => {
+    it('treats false as present, so required does not gate an unchecked boolean', () => {
+      const rules = makeRules<boolean>({ required: 'You must accept' })
+      expect(validate(rules)(false)._tag).toBe('Valid')
+      expect(validate(rules)(true)._tag).toBe('Valid')
+    })
+  })
 })
 
 describe('validateAll', () => {
@@ -249,7 +311,7 @@ describe('allValid', () => {
   const requiredRules = makeRules({ required: 'Required' })
   const optionalRules = makeRules()
 
-  it('returns true when every pair is acceptable', () => {
+  it('returns true when every field is acceptable per its rules', () => {
     expect(
       allValid([
         [Valid({ value: 'a' }), requiredRules],
@@ -258,7 +320,7 @@ describe('allValid', () => {
     ).toBe(true)
   })
 
-  it('returns false when any pair is not acceptable', () => {
+  it('returns false when any field is unacceptable', () => {
     expect(
       allValid([
         [Valid({ value: 'a' }), requiredRules],
@@ -434,9 +496,71 @@ describe('oneOf', () => {
   })
 })
 
+describe('array rules', () => {
+  describe('minItems', () => {
+    it('fails below minimum', () => {
+      const [predicate] = minItems(2)
+      expect(predicate(['a'])).toBe(false)
+    })
+
+    it('passes at minimum', () => {
+      const [predicate] = minItems(2)
+      expect(predicate(['a', 'b'])).toBe(true)
+    })
+
+    it('accepts custom message', () => {
+      const [, message] = minItems(2, 'Pick two')
+      expect(resolveMessage(message, [])).toBe('Pick two')
+    })
+  })
+
+  describe('maxItems', () => {
+    it('fails above maximum', () => {
+      const [predicate] = maxItems(2)
+      expect(predicate(['a', 'b', 'c'])).toBe(false)
+    })
+
+    it('passes at maximum', () => {
+      const [predicate] = maxItems(2)
+      expect(predicate(['a', 'b'])).toBe(true)
+    })
+  })
+
+  describe('nonEmpty', () => {
+    it('fails for empty array', () => {
+      const [predicate] = nonEmpty()
+      expect(predicate([])).toBe(false)
+    })
+
+    it('passes for non-empty array', () => {
+      const [predicate] = nonEmpty()
+      expect(predicate(['a'])).toBe(true)
+    })
+  })
+})
+
+describe('fromSchema', () => {
+  it('passes when the value decodes through the schema', () => {
+    const [predicate] = fromSchema(
+      CalendarDateFromIsoString,
+      'Enter a valid date',
+    )
+    expect(predicate('2026-04-13')).toBe(true)
+    expect(predicate('nonsense')).toBe(false)
+  })
+
+  it('carries the message', () => {
+    const [, message] = fromSchema(
+      CalendarDateFromIsoString,
+      'Enter a valid date',
+    )
+    expect(resolveMessage(message, 'nonsense')).toBe('Enter a valid date')
+  })
+})
+
 describe('Rule type', () => {
   it('exists as an exported type', () => {
-    const rule: Rule = [value => value.length > 0, 'Required']
+    const rule: Rule<string> = [value => value.length > 0, 'Required']
     const [predicate] = rule
     expect(predicate('x')).toBe(true)
     expect(predicate('')).toBe(false)

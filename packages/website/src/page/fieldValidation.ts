@@ -69,6 +69,12 @@ const conditionalRulesHeader: TableOfContentsEntry = {
   text: 'Conditional Rules',
 }
 
+const rulesFromSchemaHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'rules-from-a-schema',
+  text: 'Rules from a Schema',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   definingAFieldHeader,
   conditionalRulesHeader,
@@ -78,6 +84,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   customRulesHeader,
   crossFieldValidationHeader,
   builtInRulesHeader,
+  rulesFromSchemaHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
@@ -105,8 +112,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' takes an options object and returns a ',
         inlineCode('Rules'),
         ' bundle. ',
-        inlineCode('Field'),
-        ' is the four-state schema you put in your Model.',
+        inlineCode('Field(valueSchema)'),
+        ' builds the four-state schema you put in your Model.',
       ),
       highlightedCodeBlock(
         h.div(
@@ -137,6 +144,23 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' additionally carries an ',
         inlineCode('errors'),
         ' array.',
+      ),
+      para(
+        'The schema you pass ',
+        inlineCode('Field'),
+        ' is the field’s editing buffer, so use the loose representation a control actually holds: ',
+        inlineCode('Field(S.String)'),
+        ' for text inputs, ',
+        inlineCode('Field(S.Array(Tag))'),
+        ' for a multi-select. A scalar like a checkbox’s boolean usually stays plain ',
+        inlineCode('S.Boolean'),
+        ' in the Model; wrap it in ',
+        inlineCode('Field'),
+        ' only when it needs the validation lifecycle. Values you reach by parsing text, like numbers and dates, stay ',
+        inlineCode('Field(S.String)'),
+        ': a half-typed entry is still a string, so parse it into its domain type on submit. Validation rules stay separate, in the ',
+        inlineCode('Rules'),
+        ' bundle.',
       ),
       para(
         'Each entry in the ',
@@ -221,15 +245,21 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
 
       tableOfContentsEntryToHeader(displayingStateHeader),
       para(
-        'Match exhaustively on the four tags to derive border colors, status indicators, and error messages. For form-level submit gates, use ',
-        inlineCode('allValid'),
-        ' to fold across every field’s state and rules; for a single field, use ',
+        'Match exhaustively on the four tags to derive border colors, status indicators, and error messages. For a single field, use ',
         inlineCode('isValid(rules)(state)'),
         '. If the rules are required, only ',
         inlineCode('Valid'),
         ' passes; if optional, ',
         inlineCode('NotValidated'),
-        ' also passes.',
+        ' also passes. For form-level submit gates, pass ',
+        inlineCode('[state, rules]'),
+        ' pairs to ',
+        inlineCode('allValid'),
+        '. A single call gates fields of one value type, so a form that mixes types calls ',
+        inlineCode('allValid'),
+        ' per type and combines the results with ',
+        inlineCode('&&'),
+        '.',
       ),
       highlightedCodeBlock(
         h.div(
@@ -345,34 +375,74 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ['Rule', 'Description'],
         [
           [
-            [plainCode('minLength(min, message?)')],
+            [plainCode('Rule.minLength(min, message?)')],
             ['Minimum character count'],
           ],
           [
-            [plainCode('maxLength(max, message?)')],
+            [plainCode('Rule.maxLength(max, message?)')],
             ['Maximum character count'],
           ],
           [
-            [plainCode('pattern(regex, message?)')],
+            [plainCode('Rule.pattern(regex, message?)')],
             ['Matches a regular expression'],
           ],
-          [[plainCode('email(message?)')], ['Valid email format']],
-          [[plainCode('url(options?)')], ['Valid URL format']],
+          [[plainCode('Rule.email(message?)')], ['Valid email format']],
+          [[plainCode('Rule.url(options?)')], ['Valid URL format']],
           [
-            [plainCode('startsWith(prefix, message?)')],
+            [plainCode('Rule.startsWith(prefix, message?)')],
             ['Begins with a prefix'],
           ],
-          [[plainCode('endsWith(suffix, message?)')], ['Ends with a suffix']],
           [
-            [plainCode('includes(substring, message?)')],
+            [plainCode('Rule.endsWith(suffix, message?)')],
+            ['Ends with a suffix'],
+          ],
+          [
+            [plainCode('Rule.includes(substring, message?)')],
             ['Contains a substring'],
           ],
-          [[plainCode('equals(expected, message?)')], ['Exact string match']],
           [
-            [plainCode('oneOf(values, message?)')],
+            [plainCode('Rule.equals(expected, message?)')],
+            ['Exact string match'],
+          ],
+          [
+            [plainCode('Rule.oneOf(values, message?)')],
             ['Value is in a set of allowed strings'],
           ],
         ],
+      ),
+      para(
+        'For array-valued fields like a multi-select, validate with ',
+        inlineCode('Rule.minItems(min, message?)'),
+        ', ',
+        inlineCode('Rule.maxItems(max, message?)'),
+        ', and ',
+        inlineCode('Rule.nonEmpty(message?)'),
+        '. A required array field already treats the empty array as missing, so reach for these when you need a specific count.',
+      ),
+
+      tableOfContentsEntryToHeader(rulesFromSchemaHeader),
+      para(
+        'When a value is already modeled by a Schema, a domain codec, or a refined or branded type, ',
+        inlineCode('Rule.fromSchema(schema, message)'),
+        ' turns it into a rule, so the field stays in sync with that Schema instead of duplicating its checks. It does nothing a custom rule can’t, so reach for it only when you already maintain the Schema; for plain checks the dedicated rules above are clearer.',
+      ),
+      para(
+        'Its sweet spot is values where “valid” means “decodes”, which the string-shaped rules can’t express. The buffer stays a string and you run the real decode on submit. Here a date field reuses the same ',
+        inlineCode('Calendar.CalendarDateFromIsoString'),
+        ' codec it will decode with on submit:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.fieldValidationSchemaHighlighted),
+          ],
+          [],
+        ),
+        Snippets.fieldValidationSchemaRaw,
+        'Copy schema rule example to clipboard',
+        copiedSnippets,
+        'mb-8',
       ),
       para(
         'See the full ',

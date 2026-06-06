@@ -424,12 +424,11 @@ import {
   Field,
   Invalid,
   NotValidated,
+  Rule,
   Valid,
   Validating,
   allValid,
-  email,
   makeRules,
-  minLength,
   validate,
 } from 'foldkit/fieldValidation'
 ```

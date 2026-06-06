@@ -208,6 +208,8 @@ export { default as fieldValidationCrossFieldRaw } from './fieldValidationCrossF
 export { default as fieldValidationCrossFieldHighlighted } from './fieldValidationCrossField.ts?highlighted'
 export { default as fieldValidationConditionalRaw } from './fieldValidationConditional.ts?raw'
 export { default as fieldValidationConditionalHighlighted } from './fieldValidationConditional.ts?highlighted'
+export { default as fieldValidationSchemaRaw } from './fieldValidationSchema.ts?raw'
+export { default as fieldValidationSchemaHighlighted } from './fieldValidationSchema.ts?highlighted'
 export { default as testingApiRaw } from './testingApi.ts?raw'
 export { default as testingApiHighlighted } from './testingApi.ts?highlighted'
 export { default as sceneApiRaw } from './sceneApi.ts?raw'

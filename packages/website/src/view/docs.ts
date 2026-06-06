@@ -155,7 +155,7 @@ const docsHeaderView = (model: Model) => {
 // DOCS FOOTER
 
 const docsFooterView = (
-  emailField: Field,
+  emailField: Field<string>,
   emailSubscriptionStatus: EmailSubscriptionStatus,
   currentYear: number,
 ): Html => {

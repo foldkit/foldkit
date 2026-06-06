@@ -33,9 +33,9 @@ const validateFieldOfStudy = validate(fieldOfStudyRules)
 
 export const Model = S.Struct({
   id: S.String,
-  school: Field,
-  degree: Field,
-  fieldOfStudy: Field,
+  school: Field(S.String),
+  degree: Field(S.String),
+  fieldOfStudy: Field(S.String),
   graduationYear: S.String,
   graduationYearListbox: Ui.Listbox.Model,
   isCurrentlyEnrolled: Ui.Checkbox.Model,

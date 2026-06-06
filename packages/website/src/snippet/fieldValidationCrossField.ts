@@ -2,15 +2,15 @@ import { Match as M } from 'effect'
 import {
   type Field,
   Invalid,
+  Rule,
   makeRules,
-  minLength,
   validate,
 } from 'foldkit/fieldValidation'
 import { evo } from 'foldkit/struct'
 
 const passwordRules = makeRules({
   required: 'Password is required',
-  rules: [minLength(8, 'Must be at least 8 characters')],
+  rules: [Rule.minLength(8, 'Must be at least 8 characters')],
 })
 
 const validatePassword = validate(passwordRules)
@@ -18,7 +18,7 @@ const validatePassword = validate(passwordRules)
 const validateConfirmPassword = (
   password: string,
   confirmPassword: string,
-): Field => {
+): Field<string> => {
   const result = validatePassword(confirmPassword)
   if (result._tag === 'Valid' && result.value !== password) {
     return Invalid({

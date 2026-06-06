@@ -69,7 +69,7 @@ export const skipNavLink: Html = (() => {
 })()
 
 export const emailFormView = (
-  emailField: Field,
+  emailField: Field<string>,
   status: 'Idle' | 'Submitting' | 'Failed',
   formClassName: string,
 ): Html => {
@@ -139,7 +139,7 @@ export const emailFormView = (
 }
 
 export const emailSignupContentView = (
-  emailField: Field,
+  emailField: Field<string>,
   emailSubscriptionStatus: EmailSubscriptionStatus,
 ): Html => {
   const h = html<Message>()

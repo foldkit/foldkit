@@ -231,7 +231,7 @@ Files:
 Model:
   route: AppRoute
   links: ReadonlyArray<Link>
-  newLinkForm: NewLinkForm (url: Field, title/description/tagsInput: string, submitState)
+  newLinkForm: NewLinkForm (url: Field<string>, title/description/tagsInput: string, submitState)
 
 Messages:
   Clicks: ClickedSaveLink, ClickedDeleteLink
@@ -325,8 +325,8 @@ For each Foldkit module you plan to use, read the `.d.ts` at the paths below. Re
 <project>/node_modules/foldkit/dist/customElement/index.d.ts     # CustomElement.define: for typed bindings to native web components
 
 # If using forms
-<project>/node_modules/foldkit/dist/fieldValidation/public.d.ts # Field (tagged union), makeRules({required?, rules: Rule[]}), validate, url(options), email, minLength, allValid
-# Rule is [Predicate, RuleMessage], NOT {test, message}. Field.Invalid has `errors: NonEmptyArray<RuleMessage>`, not `error: string`.
+<project>/node_modules/foldkit/dist/fieldValidation/public.d.ts # Field (tagged union), makeRules({required?, rules}), validate, allValid; rule constructors on the Rule namespace (Rule.url(options), Rule.email, Rule.minLength, Rule.pattern, Rule.fromSchema, ...)
+# Rule.Rule is [Predicate, Rule.RuleMessage], NOT {test, message}. Field.Invalid has `errors: NonEmptyArray<string>`, not `error: string`.
 
 # If using any UI component
 <project>/node_modules/foldkit/dist/ui/<component>/public.d.ts  # Model, Message, init, update, view (Submodel-shaped) or ViewConfig (render-helper-shaped), OutMessage when applicable
@@ -363,8 +363,8 @@ Record these in the crib and keep them visible while generating:
 - **`Route.mapTo` takes the route schema, not a factory function.** `pipe(literal('new'), Route.mapTo(NewLinkRoute))`. NOT `Route.mapTo(() => NewLinkRoute())`.
 - **`Effect.ignore` is ONLY for fallible Effects.** `pushUrl(path).pipe(Effect.as(Message()))`. No `Effect.ignore` because `pushUrl` returns `Effect<void>`.
 - **`Command.define` requires result Message schemas after the name**: `Command.define('Fetch', SucceededFetch, FailedFetch)`. Infallible Commands only need one result: `Command.define('ReadClock', RecordedTime)`.
-- **`makeRules` takes `{ required?: RuleMessage, rules: Rule[] }` where `Rule = [Predicate, RuleMessage]`**: a tuple, NOT `{ test, message }`. Use the built-in rule constructors (`url({ message })`, `email(message?)`, `minLength(n, message?)`, `pattern(regex, message?)`).
-- **`Field.Invalid` has `errors: NonEmptyArray<RuleMessage>`, not `error: string`.** Use `Array.headNonEmpty(errors)` to get the first message; use `resolveMessage(rule, value)` to get the final string.
+- **`makeRules` takes `{ required?: Rule.RuleMessage, rules: Array<Rule.Rule> }` where `Rule.Rule = [Predicate, Rule.RuleMessage]`**: a tuple, NOT `{ test, message }`. Rule constructors live on the `Rule` namespace (`Rule.url({ message })`, `Rule.email(message?)`, `Rule.minLength(n, message?)`, `Rule.pattern(regex, message?)`, `Rule.fromSchema(schema, message)`).
+- **`Field.Invalid` has `errors: NonEmptyArray<string>`, not `error: string`.** Use `Array.headNonEmpty(errors)` to get the first message; use `Rule.resolveMessage(message, value)` to resolve a rule message to its final string.
 - **Route variants are `HomeRoute`, `NewLinkRoute`, etc., with the `Route` suffix.** Every exemplar uses this convention.
 - **Routers are callable for printing**: `homeRouter()` returns `'/'`, `tagFilterRouter({ tag: 'foo' })` returns `'/tag/foo'`. Never hand-construct URLs.
 
@@ -466,32 +466,31 @@ import {
   Field,
   Invalid,
   NotValidated,
+  Rule,
   Valid,
   Validating,
   allValid,
-  email,
   makeRules,
-  minLength,
   validate,
 } from 'foldkit/fieldValidation'
 
 const nameRules = makeRules({
-  rules: [minLength(2, 'Name must be at least 2 characters')],
+  rules: [Rule.minLength(2, 'Name must be at least 2 characters')],
 })
 
 const emailRules = makeRules({
   required: 'Email is required',
-  rules: [email('Please enter a valid email address')],
+  rules: [Rule.email('Please enter a valid email address')],
 })
 
 const Model = S.Struct({
-  name: Field,
-  email: Field,
+  name: Field(S.String),
+  email: Field(S.String),
   // ...
 })
 ```
 
-The `Field` schema is a tagged union: `NotValidated | Validating | Valid | Invalid`. Use `validate(rules, value)` in update handlers to transition a field, `allValid(fields)` to gate submission, and `FieldValidation.optional(rules)` to build optional-field rule sets.
+`Field(valueSchema)` builds a tagged union: `NotValidated | Validating | Valid | Invalid`. The value schema is the field's editing buffer, so use the loose representation a control holds: `Field(S.String)` for text inputs, `Field(S.Array(Tag))` for a multi-select. A checkbox's boolean usually stays plain `S.Boolean` in the Model unless it needs the validation lifecycle. Rules stay separate in `makeRules`. Use `validate(rules)(value)` in update handlers to transition a field, and gate submission with `allValid([[state, rules], ...])`, which gates one field value type per call (combine calls with `&&` across types). Omit `required` from `makeRules` to make a field optional.
 
 Canonical reference: `${CLAUDE_SKILL_DIR}/../../examples/form/src/main.ts` (async email uniqueness check with version-based cancellation) and `${CLAUDE_SKILL_DIR}/../../examples/job-application/src/step/` (validated multi-step forms across submodels).
 

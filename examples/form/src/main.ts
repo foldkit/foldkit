@@ -13,12 +13,11 @@ import {
   Field,
   Invalid,
   NotValidated,
+  Rule,
   Valid,
   Validating,
   allValid,
-  email,
   makeRules,
-  minLength,
   validate,
 } from 'foldkit/fieldValidation'
 import { type Attribute, Document, Html, html } from 'foldkit/html'
@@ -27,12 +26,12 @@ import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 
 const nameRules = makeRules({
-  rules: [minLength(2, 'Name must be at least 2 characters')],
+  rules: [Rule.minLength(2, 'Name must be at least 2 characters')],
 })
 
 const emailRules = makeRules({
   required: 'Email is required',
-  rules: [email('Please enter a valid email address')],
+  rules: [Rule.email('Please enter a valid email address')],
 })
 
 // MODEL
@@ -56,10 +55,10 @@ type SubmitError = typeof SubmitError.Type
 type Submission = typeof Submission.Type
 
 export const Model = S.Struct({
-  name: Field,
-  email: Field,
+  name: Field(S.String),
+  email: Field(S.String),
   emailValidationId: S.Number,
-  message: Field,
+  message: Field(S.String),
   submission: Submission,
 })
 export type Model = typeof Model.Type
@@ -70,7 +69,7 @@ export const UpdatedName = m('UpdatedName', { value: S.String })
 export const UpdatedEmail = m('UpdatedEmail', { value: S.String })
 export const ValidatedEmail = m('ValidatedEmail', {
   validationId: S.Number,
-  field: Field,
+  field: Field(S.String),
 })
 export const UpdatedMessage = m('UpdatedMessage', { value: S.String })
 export const ClickedFormSubmit = m('ClickedFormSubmit')
@@ -287,7 +286,7 @@ export const SubmitForm = Command.define(
 const LABEL_CLASS = 'text-sm font-medium text-gray-700'
 const DESCRIPTION_CLASS = 'text-sm mt-1'
 
-const borderClass = (field: Field): string =>
+const borderClass = (field: Field<string>): string =>
   M.value(field).pipe(
     M.tagsExhaustive({
       NotValidated: () => 'border-gray-300',
@@ -297,13 +296,13 @@ const borderClass = (field: Field): string =>
     }),
   )
 
-const inputClassName = (field: Field): string =>
+const inputClassName = (field: Field<string>): string =>
   clsx(
     'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
     borderClass(field),
   )
 
-const statusIndicator = (field: Field): Html => {
+const statusIndicator = (field: Field<string>): Html => {
   const h = html<Message>()
 
   return M.value(field).pipe(
@@ -318,7 +317,7 @@ const statusIndicator = (field: Field): Html => {
 }
 
 const descriptionView = (
-  field: Field,
+  field: Field<string>,
   descriptionAttributes: ReadonlyArray<Attribute<Message>>,
 ): Html => {
   const h = html<Message>()
@@ -350,7 +349,7 @@ const descriptionView = (
 const inputFieldView = (
   id: string,
   labelText: string,
-  field: Field,
+  field: Field<string>,
   onUpdate: (value: string) => Message,
   type: string = 'text',
 ): Html => {
@@ -383,7 +382,7 @@ const inputFieldView = (
 const textareaFieldView = (
   id: string,
   labelText: string,
-  field: Field,
+  field: Field<string>,
   onUpdate: (value: string) => Message,
 ): Html => {
   const h = html<Message>()

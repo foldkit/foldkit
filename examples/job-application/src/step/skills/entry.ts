@@ -25,7 +25,7 @@ const ProficiencyRadioGroup = Ui.RadioGroup.create<string>()
 
 export const Model = S.Struct({
   id: S.String,
-  name: Field,
+  name: Field(S.String),
   proficiency: Ui.RadioGroup.Model,
 })
 export type Model = typeof Model.Type

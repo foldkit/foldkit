@@ -60,9 +60,15 @@ type NoteDuration = typeof NoteDuration.Type
 const noteInputRules = FieldValidation.makeRules({
   required: 'Enter some notes',
   rules: [
-    FieldValidation.pattern(/^[A-G]+$/, 'Use notes A through G'),
-    FieldValidation.minLength(MIN_NOTES, `Enter at least ${MIN_NOTES} notes`),
-    FieldValidation.maxLength(MAX_NOTES, `Enter at most ${MAX_NOTES} notes`),
+    FieldValidation.Rule.pattern(/^[A-G]+$/, 'Use notes A through G'),
+    FieldValidation.Rule.minLength(
+      MIN_NOTES,
+      `Enter at least ${MIN_NOTES} notes`,
+    ),
+    FieldValidation.Rule.maxLength(
+      MAX_NOTES,
+      `Enter at most ${MAX_NOTES} notes`,
+    ),
   ],
 })
 
@@ -91,7 +97,7 @@ const NoteHighlightPhase = S.Literals([
 type NoteHighlightPhase = typeof NoteHighlightPhase.Type
 
 export const Model = S.Struct({
-  noteInput: FieldValidation.Field,
+  noteInput: FieldValidation.Field(S.String),
   noteDuration: NoteDuration,
   durationRadioGroup: Ui.RadioGroup.Model,
   playbackState: PlaybackState,
@@ -501,7 +507,7 @@ const PlayNote = Command.define(
 
 // VIEW
 
-const inputBorderClass = (field: FieldValidation.Field): string =>
+const inputBorderClass = (field: FieldValidation.Field<string>): string =>
   M.value(field).pipe(
     M.tagsExhaustive({
       NotValidated: () => 'border-gray-300 dark:border-gray-600',
