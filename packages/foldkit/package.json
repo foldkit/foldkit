@@ -200,6 +200,7 @@
       "import": "./dist/devTools/public.js"
     }
   },
+  "sideEffects": false,
   "files": [
     "dist"
   ],
