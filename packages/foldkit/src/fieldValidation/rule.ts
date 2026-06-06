@@ -128,7 +128,7 @@ export const minItems = (
   min: number,
   message?: RuleMessage<ReadonlyArray<unknown>>,
 ): Rule<ReadonlyArray<unknown>> => [
-  items => items.length >= min,
+  flow(Array.length, Number_.isGreaterThanOrEqualTo(min)),
   message ?? `Must select at least ${min}`,
 ]
 
@@ -137,7 +137,7 @@ export const maxItems = (
   max: number,
   message?: RuleMessage<ReadonlyArray<unknown>>,
 ): Rule<ReadonlyArray<unknown>> => [
-  items => items.length <= max,
+  flow(Array.length, Number_.isLessThanOrEqualTo(max)),
   message ?? `Must select at most ${max}`,
 ]
 
@@ -153,7 +153,4 @@ export const maxItems = (
 export const fromSchema = <A, I>(
   schema: S.Codec<A, I>,
   message: RuleMessage<I>,
-): Rule<I> => {
-  const decode = S.decodeOption(schema)
-  return [value => Option.isSome(decode(value)), message]
-}
+): Rule<I> => [flow(S.decodeOption(schema), Option.isSome), message]
