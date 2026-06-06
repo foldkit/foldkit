@@ -7,7 +7,7 @@ import { LoggedIn, LoggedOut, Model } from './model'
 const title = (model: Model): string =>
   M.value(model.route).pipe(
     M.tag('Home', () => 'Auth'),
-    M.orElse(({ _tag }) => `${_tag} — Auth`),
+    M.orElse(({ _tag }) => `${_tag} | Auth`),
   )
 
 export const view = (model: Model): Document => {

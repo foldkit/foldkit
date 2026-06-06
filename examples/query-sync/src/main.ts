@@ -877,7 +877,7 @@ const notFoundView = (path: string): Html => {
 const routeTitle = (route: Model['route']): string =>
   M.value(route).pipe(
     M.tag('Browse', () => 'Dinosaur Explorer'),
-    M.orElse(() => 'Not Found — Dinosaur Explorer'),
+    M.orElse(() => 'Not Found | Dinosaur Explorer'),
   )
 
 export const view = (model: Model): Document => {

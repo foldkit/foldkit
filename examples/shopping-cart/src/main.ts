@@ -308,7 +308,7 @@ const notFoundView = (path: string): Html => {
 const routeTitle = (route: Model['route']): string =>
   M.value(route).pipe(
     M.tag('Products', () => 'Shopping Cart'),
-    M.orElse(({ _tag }) => `${_tag} — Shopping Cart`),
+    M.orElse(({ _tag }) => `${_tag} | Shopping Cart`),
   )
 
 export const view = (model: Model): Document => {

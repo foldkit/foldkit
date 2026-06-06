@@ -1434,20 +1434,20 @@ const routeTitle = (
 ): string =>
   M.value(route).pipe(
     M.tag('Home', () => SITE_NAME),
-    M.tag('Newsletter', () => `Newsletter — ${SITE_NAME}`),
-    M.tag('NotFound', () => `Not Found — ${SITE_NAME}`),
+    M.tag('Newsletter', () => `Newsletter | ${SITE_NAME}`),
+    M.tag('NotFound', () => `Not Found | ${SITE_NAME}`),
     M.tag(
       'ApiModule',
       ({ moduleSlug }) =>
-        `${resolveApiModuleName(apiData, moduleSlug)} — API — ${SITE_NAME}`,
+        `${resolveApiModuleName(apiData, moduleSlug)} | API | ${SITE_NAME}`,
     ),
     M.tag('ExampleDetail', ({ exampleSlug }) =>
       pipe(
         allPages,
         Array.findFirst(({ _tag }) => _tag === `ExampleDetail:${exampleSlug}`),
         Option.match({
-          onNone: () => `${exampleSlug} — Examples — ${SITE_NAME}`,
-          onSome: ({ label }) => `${label} — Examples — ${SITE_NAME}`,
+          onNone: () => `${exampleSlug} | Examples | ${SITE_NAME}`,
+          onSome: ({ label }) => `${label} | Examples | ${SITE_NAME}`,
         }),
       ),
     ),
@@ -1456,8 +1456,8 @@ const routeTitle = (
         allPages,
         Array.findFirst(({ _tag }) => _tag === `ExampleDetail:${exampleSlug}`),
         Option.match({
-          onNone: () => `Playground — ${SITE_NAME}`,
-          onSome: ({ label }) => `${label} — Playground — ${SITE_NAME}`,
+          onNone: () => `Playground | ${SITE_NAME}`,
+          onSome: ({ label }) => `${label} | Playground | ${SITE_NAME}`,
         }),
       ),
     ),
@@ -1467,7 +1467,7 @@ const routeTitle = (
         Array.findFirst(page => page._tag === _tag),
         Option.match({
           onNone: () => SITE_NAME,
-          onSome: page => `${page.label} — ${SITE_NAME}`,
+          onSome: page => `${page.label} | ${SITE_NAME}`,
         }),
       ),
     ),

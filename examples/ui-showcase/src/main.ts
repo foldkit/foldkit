@@ -645,7 +645,7 @@ const contentView = (model: Model): Html => {
 const routeTitle = (route: Model['route']): string =>
   M.value(route).pipe(
     M.tag('Home', () => 'Foldkit UI Showcase'),
-    M.orElse(({ _tag }) => `${_tag} — Foldkit UI Showcase`),
+    M.orElse(({ _tag }) => `${_tag} | Foldkit UI Showcase`),
   )
 
 export const view = (model: Model): Document => {

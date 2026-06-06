@@ -10,8 +10,8 @@ const routeTitle = (route: Model['route']): string =>
   M.value(route).pipe(
     M.tagsExhaustive({
       Home: () => 'Typing Game',
-      Room: ({ roomId }) => `Room ${roomId} — Typing Game`,
-      NotFound: () => 'Not Found — Typing Game',
+      Room: ({ roomId }) => `Room ${roomId} | Typing Game`,
+      NotFound: () => 'Not Found | Typing Game',
     }),
   )
 

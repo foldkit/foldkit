@@ -14,7 +14,7 @@ const view = (model: Model): Document => {
   )
 
   return {
-    title: `${model.route._tag} — Shop`,
+    title: `${model.route._tag} | Shop`,
     body: h.div(
       [],
       [

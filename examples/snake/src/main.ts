@@ -339,7 +339,7 @@ export const view = (model: Model): Document => {
   const h = html<Message>()
 
   return {
-    title: `Snake — ${model.points} pts`,
+    title: `Snake | ${model.points} pts`,
     body: h.div(
       [
         h.Class(

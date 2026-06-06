@@ -60,7 +60,7 @@ export const crashView = ({
   const h = html<never>()
 
   return {
-    title: 'Crash View Example — crashed',
+    title: 'Crash View Example | crashed',
     body: h.div(
       [h.Class('min-h-screen flex items-center justify-center bg-red-50 p-8')],
       [
