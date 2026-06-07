@@ -15,11 +15,6 @@ import {
 import { update } from './update'
 import { view } from './view'
 
-const randomUUIDv4: Effect.Effect<string> = Effect.gen(function* () {
-  const crypto = yield* Crypto.Crypto
-  return yield* crypto.randomUUIDv4
-}).pipe(Effect.provide(BrowserCrypto.layer), Effect.orDie)
-
 // FLAGS
 
 export const Flags = S.Struct({
@@ -32,16 +27,17 @@ export type Flags = typeof Flags.Type
 
 export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const today = yield* Calendar.today.local
-  const initialWorkHistoryEntryId = yield* randomUUIDv4
-  const initialEducationEntryId = yield* randomUUIDv4
-  const initialSkillsEntryId = yield* randomUUIDv4
+  const crypto = yield* Crypto.Crypto
+  const initialWorkHistoryEntryId = yield* Effect.orDie(crypto.randomUUIDv4)
+  const initialEducationEntryId = yield* Effect.orDie(crypto.randomUUIDv4)
+  const initialSkillsEntryId = yield* Effect.orDie(crypto.randomUUIDv4)
   return {
     today,
     initialWorkHistoryEntryId,
     initialEducationEntryId,
     initialSkillsEntryId,
   }
-})
+}).pipe(Effect.provide(BrowserCrypto.layer))
 
 // INIT
 

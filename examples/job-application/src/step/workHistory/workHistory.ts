@@ -48,17 +48,18 @@ export const init = (today: CalendarDate, initialEntryId: string): Model => ({
   today,
 })
 
-const randomUUIDv4: Effect.Effect<string> = Effect.gen(function* () {
-  const crypto = yield* Crypto.Crypto
-  return yield* crypto.randomUUIDv4
-}).pipe(Effect.provide(BrowserCrypto.layer), Effect.orDie)
-
 // COMMAND
 
 export const AddEntry = Command.define(
   'AddEntry',
   AddedEntry,
-)(randomUUIDv4.pipe(Effect.map(entryId => AddedEntry({ entryId }))))
+)(
+  Effect.gen(function* () {
+    const crypto = yield* Crypto.Crypto
+    const entryId = yield* Effect.orDie(crypto.randomUUIDv4)
+    return AddedEntry({ entryId })
+  }).pipe(Effect.provide(BrowserCrypto.layer)),
+)
 
 // UPDATE
 

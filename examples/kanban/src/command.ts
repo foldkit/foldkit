@@ -12,19 +12,16 @@ import {
 } from './message'
 import { SavedBoard } from './model'
 
-const randomUUIDv4: Effect.Effect<string> = Effect.gen(function* () {
-  const crypto = yield* Crypto.Crypto
-  return yield* crypto.randomUUIDv4
-}).pipe(Effect.provide(BrowserCrypto.layer), Effect.orDie)
-
 export const GenerateCardId = Command.define(
   'GenerateCardId',
   { columnId: S.String, title: S.String },
   GeneratedCardId,
 )(({ columnId, title }) =>
-  randomUUIDv4.pipe(
-    Effect.map(cardId => GeneratedCardId({ cardId, columnId, title })),
-  ),
+  Effect.gen(function* () {
+    const crypto = yield* Crypto.Crypto
+    const cardId = yield* Effect.orDie(crypto.randomUUIDv4)
+    return GeneratedCardId({ cardId, columnId, title })
+  }).pipe(Effect.provide(BrowserCrypto.layer)),
 )
 
 export const SaveBoard = Command.define(
