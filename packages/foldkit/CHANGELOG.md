@@ -1,5 +1,58 @@
 # foldkit
 
+## 0.105.0
+
+### Minor Changes
+
+- f80c1c8: Generalize `FieldValidation` over the field's value type, group the rule constructors under a `Rule` namespace, and add `Rule.fromSchema`.
+
+  `Field` is now a function that takes the value Schema for the field's editing buffer, so fields can hold values other than strings. `Field(S.String)` replaces the old bare `Field` for text inputs, and non-string fields are now supported, like `Field(S.Array(S.String))` for a multi-select. A scalar like a checkbox's boolean usually stays plain `S.Boolean`; wrap it in `Field` only when it needs the validation lifecycle. Validation rules stay separate in `makeRules`.
+
+  The rule constructors and the `Rule`/`RuleMessage` types now live under a `Rule` namespace: `import { Rule } from 'foldkit/fieldValidation'`, then `Rule.minLength(2)`, `Rule.email()`, and the type `Rule.Rule<string>`. New `Rule.fromSchema(schema, message)` builds a rule that passes when a value decodes through an Effect Schema, for reusing a domain codec or refined type you already maintain rather than duplicating its checks as a predicate.
+
+  Adds array rules `Rule.minItems` and `Rule.maxItems`. The default empty check now treats an empty array as empty (alongside the empty string), so a required multi-select rejects an empty selection.
+
+  Breaking changes:
+  - `Field` is a function. Replace `Field` in a Model or message with `Field(S.String)`, and `Field` type annotations with `Field<string>`.
+  - Rule constructors and the rule types moved under the `Rule` namespace. Replace `minLength(2)` with `Rule.minLength(2)`, `Rule<string>` with `Rule.Rule<string>`, and `RuleMessage` with `Rule.RuleMessage`.
+  - `Rule.Rule`, `Rule.RuleMessage`, `Rules`, and `MakeRulesOptions` are generic over the value type. `makeRules` defaults the value type to `string`; annotate other fields, e.g. `makeRules<ReadonlyArray<Tag>>({ ... })`.
+
+- df078ee: `File.select` now returns `Effect<Option<File>>` instead of `Effect<ReadonlyArray<File>>`. The browser only ever produces zero or one file from a single-select picker, so `Option` makes the impossible "two or more files from a singular picker" state unrepresentable and matches Foldkit's preference for `Option` over array sentinels.
+
+  `File.selectMultiple` is unchanged. It legitimately resolves with zero-to-many files and keeps `Effect<ReadonlyArray<File>>`.
+
+  Migration: replace `Array.match`/`Array.head` over the result with `Option.match`. The cancel branch maps to `Option.none()`, the picked-a-file branch to `Option.some(file)`.
+
+  ```ts
+  // Before
+  File.select(['application/pdf']).pipe(
+    Effect.map(
+      Array.match({
+        onEmpty: () => CancelledSelectResume(),
+        onNonEmpty: files => SelectedResume({ files }),
+      }),
+    ),
+  )
+
+  // After
+  File.select(['application/pdf']).pipe(
+    Effect.map(
+      Option.match({
+        onNone: () => CancelledSelectResume(),
+        onSome: file => SelectedResume({ file }),
+      }),
+    ),
+  )
+  ```
+
+### Patch Changes
+
+- 18afeb0: Mark the `foldkit` package as side-effect-free (`"sideEffects": false`) so bundlers can tree-shake unused modules from production builds.
+
+  Foldkit has no module-level side effects (no CSS imports, no top-level `customElements.define`, no global mutations), but without this field bundlers conservatively retain every module they touch. In practice that meant the dev-only DevTools overlay, HMR Model-preservation, and WebSocket bridge code, all gated behind `import.meta.hot` and dead-code-eliminated in production, could not be dropped from the module graph and shipped in every app.
+
+  A minimal counter app drops from 314.9 KB to 268.4 KB raw (102.8 KB to 87.9 KB gzip), roughly a 15% reduction, with no source changes required by consumers.
+
 ## 0.104.1
 
 ### Patch Changes
