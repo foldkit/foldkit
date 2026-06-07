@@ -13,11 +13,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-beta.66",
+    "@effect/platform-browser": "4.0.0-beta.78",
     "@tailwindcss/vite": "^4.2.4",
     "@typing-game/shared": "workspace:*",
     "clsx": "^2.1.1",
-    "effect": "4.0.0-beta.66",
+    "effect": "4.0.0-beta.78",
     "foldkit": "workspace:*",
     "tailwindcss": "^4.2.4"
   },

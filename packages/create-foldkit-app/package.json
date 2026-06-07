@@ -18,10 +18,10 @@
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
-    "@effect/platform-node": "4.0.0-beta.66",
-    "@effect/platform-node-shared": "4.0.0-beta.66",
+    "@effect/platform-node": "4.0.0-beta.78",
+    "@effect/platform-node-shared": "4.0.0-beta.78",
     "chalk": "^5.6.2",
-    "effect": "4.0.0-beta.66",
+    "effect": "4.0.0-beta.78",
     "rimraf": "^6.1.3",
     "typescript": "^6.0.3"
   },

@@ -1,5 +1,5 @@
-import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { Effect, Random, Schema as S } from 'effect'
+import { BrowserCrypto, BrowserKeyValueStore } from '@effect/platform-browser'
+import { Crypto, Effect, Schema as S } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
 import { Command, Dom } from 'foldkit'
 
@@ -17,9 +17,11 @@ export const GenerateCardId = Command.define(
   { columnId: S.String, title: S.String },
   GeneratedCardId,
 )(({ columnId, title }) =>
-  Random.nextUUIDv4.pipe(
-    Effect.map(cardId => GeneratedCardId({ cardId, columnId, title })),
-  ),
+  Effect.gen(function* () {
+    const crypto = yield* Crypto.Crypto
+    const cardId = yield* Effect.orDie(crypto.randomUUIDv4)
+    return GeneratedCardId({ cardId, columnId, title })
+  }).pipe(Effect.provide(BrowserCrypto.layer)),
 )
 
 export const SaveBoard = Command.define(

@@ -11,9 +11,9 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@effect/platform-node": "4.0.0-beta.66",
+    "@effect/platform-node": "4.0.0-beta.78",
     "@typing-game/shared": "workspace:*",
-    "effect": "4.0.0-beta.66"
+    "effect": "4.0.0-beta.78"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
