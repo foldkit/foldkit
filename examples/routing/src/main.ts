@@ -374,8 +374,8 @@ const notFoundView = (path: string): Html => {
 const routeTitle = (route: Model['route']): string =>
   M.value(route).pipe(
     M.tag('Home', () => 'Routing'),
-    M.tag('Person', ({ personId }) => `Person ${personId} — Routing`),
-    M.orElse(({ _tag }) => `${_tag} — Routing`),
+    M.tag('Person', ({ personId }) => `Person ${personId} | Routing`),
+    M.orElse(({ _tag }) => `${_tag} | Routing`),
   )
 
 export const view = (model: Model): Document => {
