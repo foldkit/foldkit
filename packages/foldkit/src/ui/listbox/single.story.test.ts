@@ -1302,6 +1302,7 @@ describe('Listbox', () => {
               'listbox',
             )
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -1316,6 +1317,7 @@ describe('Listbox', () => {
               'listbox',
             )
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -1334,6 +1336,7 @@ describe('Listbox', () => {
               'option',
             )
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -1352,6 +1355,7 @@ describe('Listbox', () => {
               'true',
             )
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -1370,6 +1374,7 @@ describe('Listbox', () => {
               'false',
             )
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -1391,6 +1396,7 @@ describe('Listbox', () => {
               '',
             )
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -1404,6 +1410,7 @@ describe('Listbox', () => {
               Scene.find(html, '[key="test-items-container"]'),
             ).not.toHaveAttr('aria-multiselectable')
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -1496,6 +1503,7 @@ describe('Listbox', () => {
           Scene.tap(() => {
             expect(contexts[0]?.isSelected).toBe(true)
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -1533,6 +1541,7 @@ describe('Listbox', () => {
           Scene.tap(() => {
             expect(contexts[1]?.isSelected).toBe(false)
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -1564,7 +1573,7 @@ describe('Listbox', () => {
         )
       })
 
-      it('does not add positioning styles when anchor is absent', () => {
+      it('applies anchor positioning by default when anchor is absent', () => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.with(openModel()),
@@ -1573,8 +1582,13 @@ describe('Listbox', () => {
               html,
               '[key="test-items-container"]',
             )
-            expect(itemsContainer).not.toHaveStyle('position')
+            expect(itemsContainer).toHaveStyle('position', 'absolute')
+            expect(itemsContainer).toHaveStyle('margin', '0')
+            expect(itemsContainer).toHaveStyle('visibility', 'hidden')
+            expect(itemsContainer).toHaveHook('insert')
+            expect(itemsContainer).toHaveHook('destroy')
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -1591,6 +1605,7 @@ describe('Listbox', () => {
               'vertical',
             )
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -1606,6 +1621,7 @@ describe('Listbox', () => {
               'horizontal',
             )
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -1762,6 +1778,7 @@ describe('Listbox', () => {
               'click',
             )
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -1781,6 +1798,7 @@ describe('Listbox', () => {
               '',
             )
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -1799,6 +1817,7 @@ describe('Listbox', () => {
               'data-selected',
             )
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })

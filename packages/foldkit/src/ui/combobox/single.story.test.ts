@@ -8,12 +8,10 @@ import * as Animation from '../animation/index.js'
 import {
   ActivatedItem,
   AnchorCombobox,
-  AttachComboboxPreventBlur,
   BlurredInput,
   ClickItem,
   Closed,
   CompletedAnchorCombobox,
-  CompletedAttachComboboxPreventBlur,
   CompletedClickItem,
   CompletedFocusInput,
   CompletedInertOthers,
@@ -48,10 +46,6 @@ const view = TestCombobox.view
 const animationToComboboxMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })
 
-const acknowledgePreventBlur = Scene.Mount.resolve(
-  AttachComboboxPreventBlur,
-  CompletedAttachComboboxPreventBlur(),
-)
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorCombobox,
   CompletedAnchorCombobox(),
@@ -1068,7 +1062,7 @@ describe('Combobox', () => {
             'listbox',
           )
         }),
-        acknowledgePreventBlur,
+        acknowledgeAnchor,
         acknowledgeBackdrop,
       )
     })
@@ -1081,7 +1075,7 @@ describe('Combobox', () => {
           expect(Scene.find(html, '[key="test-items-container"]')).toExist()
           expect(Scene.findAll(html, '[key^="test-item-"]')).toHaveLength(2)
         }),
-        acknowledgePreventBlur,
+        acknowledgeAnchor,
         acknowledgeBackdrop,
       )
     })
@@ -1112,7 +1106,7 @@ describe('Combobox', () => {
             '',
           )
         }),
-        acknowledgePreventBlur,
+        acknowledgeAnchor,
         acknowledgeBackdrop,
       )
     })
@@ -1133,7 +1127,7 @@ describe('Combobox', () => {
             '',
           )
         }),
-        acknowledgePreventBlur,
+        acknowledgeAnchor,
         acknowledgeBackdrop,
       )
     })
@@ -1176,7 +1170,7 @@ describe('Combobox', () => {
             expect(Option.some(item)).toHaveAttr('role', 'option')
           })
         }),
-        acknowledgePreventBlur,
+        acknowledgeAnchor,
         acknowledgeBackdrop,
       )
     })
@@ -1194,7 +1188,7 @@ describe('Combobox', () => {
             'true',
           )
         }),
-        acknowledgePreventBlur,
+        acknowledgeAnchor,
         acknowledgeBackdrop,
       )
     })
@@ -1212,7 +1206,7 @@ describe('Combobox', () => {
             'false',
           )
         }),
-        acknowledgePreventBlur,
+        acknowledgeAnchor,
         acknowledgeBackdrop,
       )
     })
@@ -1226,7 +1220,7 @@ describe('Combobox', () => {
             Scene.find(html, '[key="test-items-container"]'),
           ).not.toHaveAttr('aria-multiselectable')
         }),
-        acknowledgePreventBlur,
+        acknowledgeAnchor,
         acknowledgeBackdrop,
       )
     })
@@ -1238,7 +1232,7 @@ describe('Combobox', () => {
         Scene.tap(({ html }) => {
           expect(Scene.find(html, 'input')).toHaveAttr('aria-expanded', 'true')
         }),
-        acknowledgePreventBlur,
+        acknowledgeAnchor,
         acknowledgeBackdrop,
       )
     })
@@ -1329,16 +1323,22 @@ describe('Combobox', () => {
         )
       })
 
-      it('does not add positioning styles when anchor is absent', () => {
+      it('applies anchor positioning by default when anchor is absent', () => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.with(openModel()),
           Scene.tap(({ html }) => {
-            expect(
-              Scene.find(html, '[key="test-items-container"]'),
-            ).not.toHaveStyle('position')
+            const itemsContainer = Scene.find(
+              html,
+              '[key="test-items-container"]',
+            )
+            expect(itemsContainer).toHaveStyle('position', 'absolute')
+            expect(itemsContainer).toHaveStyle('margin', '0')
+            expect(itemsContainer).toHaveStyle('visibility', 'hidden')
+            expect(itemsContainer).toHaveHook('insert')
+            expect(itemsContainer).toHaveHook('destroy')
           }),
-          acknowledgePreventBlur,
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -1377,7 +1377,7 @@ describe('Combobox', () => {
           Scene.tap(() => {
             expect(contexts[0]?.isSelected).toBe(true)
           }),
-          acknowledgePreventBlur,
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -1414,7 +1414,7 @@ describe('Combobox', () => {
           Scene.tap(() => {
             expect(contexts[1]?.isSelected).toBe(false)
           }),
-          acknowledgePreventBlur,
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })

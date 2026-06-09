@@ -59,7 +59,7 @@ const triggerClassName =
   'inline-flex items-center justify-between gap-2 min-w-48 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
 
 const itemsClassName =
-  'absolute mt-1 w-56 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden z-10 outline-none'
+  'w-56 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden z-10 outline-none'
 
 const itemClassName =
   'group px-3 py-2 text-base text-gray-700 cursor-pointer data-[active]:bg-gray-100'

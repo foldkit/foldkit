@@ -209,7 +209,8 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
   {
     name: 'anchor',
     type: 'AnchorConfig',
-    description: 'Floating positioning config: placement, gap, and padding.',
+    description:
+      'Floating positioning config: placement, gap, offset, padding, and portal. The items panel is always anchored to the input wrapper; when omitted, the panel uses bottom-start placement. Portaled to the document body by default; pass portal: false to keep the panel inside the wrapper.',
   },
 ]
 
@@ -414,6 +415,13 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           'Combobox is headless. The ',
           inlineCode('itemToConfig'),
           ' callback controls all item markup. Style the input, button, items container, and backdrop through their respective attribute props.',
+        ),
+        para(
+          'The items panel is portaled to the document body and positioned relative to the input wrapper with Floating UI. Ancestor stacking contexts and overflow clipping no longer apply, so a clipped container or a sibling overlay wrapper cannot hide the open panel. The panel still stacks at the document level: give it a z-index above elevated content like sticky headers or toasts, as the demos on this page do with ',
+          inlineCode('z-10'),
+          '. Pass ',
+          inlineCode('anchor: { portal: false }'),
+          ' to keep the panel inside the wrapper instead.',
         ),
         dataAttributeTable(dataAttributes),
         heading(

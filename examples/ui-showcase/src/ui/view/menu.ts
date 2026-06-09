@@ -14,10 +14,10 @@ const triggerClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
 
 const basicItemsClassName =
-  'absolute mt-1 w-48 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden z-10 outline-none'
+  'w-48 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden z-10 outline-none'
 
 const animatedItemsClassName =
-  'absolute mt-1 w-48 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden z-10 outline-none transition duration-200 ease-out data-[closed]:scale-95 data-[closed]:opacity-0'
+  'w-48 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden z-10 outline-none transition duration-200 ease-out data-[closed]:scale-95 data-[closed]:opacity-0'
 
 const itemClassName =
   'px-3 py-2 text-base text-gray-700 cursor-pointer data-[active]:bg-gray-100 data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed'

@@ -9,9 +9,9 @@ import { create, init, update } from './multi.js'
 import type { Model, ViewInputs } from './multi.js'
 import {
   ActivatedItem,
-  AttachComboboxPreventBlur,
+  AnchorCombobox,
   Closed,
-  CompletedAttachComboboxPreventBlur,
+  CompletedAnchorCombobox,
   CompletedFocusInput,
   CompletedPortalComboboxBackdrop,
   CompletedScrollIntoView,
@@ -25,9 +25,9 @@ import {
 const TestCombobox = create<string>()
 const view = TestCombobox.view
 
-const acknowledgePreventBlur = Scene.Mount.resolve(
-  AttachComboboxPreventBlur,
-  CompletedAttachComboboxPreventBlur(),
+const acknowledgeAnchor = Scene.Mount.resolve(
+  AnchorCombobox,
+  CompletedAnchorCombobox(),
 )
 const acknowledgeBackdrop = Scene.Mount.resolve(
   PortalComboboxBackdrop,
@@ -245,7 +245,7 @@ describe('Combobox.Multi', () => {
               'true',
             )
           }),
-          acknowledgePreventBlur,
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -270,7 +270,7 @@ describe('Combobox.Multi', () => {
               '',
             )
           }),
-          acknowledgePreventBlur,
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
