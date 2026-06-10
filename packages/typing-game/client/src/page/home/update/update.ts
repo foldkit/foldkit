@@ -3,6 +3,7 @@ import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { optionWhen } from '../../../optionWhen'
+import { RoomsClient } from '../../../rpc'
 import {
   CreateRoom,
   FocusRoomIdInput,
@@ -15,7 +16,7 @@ import { handleKeyPressed } from './handleKeyPressed'
 
 export type UpdateReturn = readonly [
   Model,
-  ReadonlyArray<Command.Command<Message>>,
+  ReadonlyArray<Command.Command<Message, never, RoomsClient>>,
   Option.Option<OutMessage>,
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()

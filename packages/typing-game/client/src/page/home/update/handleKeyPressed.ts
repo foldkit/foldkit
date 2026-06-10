@@ -2,6 +2,7 @@ import { Array, Match as M, Number, Option, flow, pipe } from 'effect'
 import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
+import { RoomsClient } from '../../../rpc'
 import { CreateRoom, FocusRoomIdInput, FocusUsernameInput } from '../command'
 import { Message } from '../message'
 import {
@@ -13,7 +14,10 @@ import {
   SelectAction,
 } from '../model'
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message, never, RoomsClient>>,
+]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const handleKeyPressed =

@@ -2,22 +2,27 @@ import { Array, Option, pipe } from 'effect'
 import { Command } from 'foldkit'
 
 import { AppRoute } from '../../route'
+import { RoomsClient } from '../../rpc'
 import { FetchRoom, LoadSession } from './command'
 import { Message } from './message'
 import { Model, RoomRemoteData } from './model'
 
-export type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+export type InitReturn = [
+  Model,
+  ReadonlyArray<Command.Command<Message, never, RoomsClient>>,
+]
 export const init = (route: AppRoute): InitReturn => {
-  const commands: ReadonlyArray<Command.Command<Message>> = pipe(
-    route,
-    Option.liftPredicate(route => route._tag === 'Room'),
-    Option.map(({ roomId }) => [
-      LoadSession({ roomId }),
-      FetchRoom({ roomId }),
-    ]),
-    Array.fromOption,
-    Array.flatten,
-  )
+  const commands: ReadonlyArray<Command.Command<Message, never, RoomsClient>> =
+    pipe(
+      route,
+      Option.liftPredicate(route => route._tag === 'Room'),
+      Option.map(({ roomId }) => [
+        LoadSession({ roomId }),
+        FetchRoom({ roomId }),
+      ]),
+      Array.fromOption,
+      Array.flatten,
+    )
   return [
     {
       roomRemoteData: RoomRemoteData.Idle(),

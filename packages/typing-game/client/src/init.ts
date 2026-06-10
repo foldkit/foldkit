@@ -6,10 +6,14 @@ import type { Message } from './message'
 import { Model } from './model'
 import { Home, Room } from './page'
 import { urlToAppRoute } from './route'
+import { RoomsClient } from './rpc'
 
-export const init: Runtime.RoutingApplicationInit<Model, Message> = (
-  url: Url.Url,
-) => {
+export const init: Runtime.RoutingApplicationInit<
+  Model,
+  Message,
+  void,
+  RoomsClient
+> = (url: Url.Url) => {
   const route = urlToAppRoute(url)
 
   const [home, homeCommands] = Home.init()

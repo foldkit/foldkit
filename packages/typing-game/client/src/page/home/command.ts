@@ -2,7 +2,7 @@ import { Effect, Schema as S } from 'effect'
 import { Command, Dom } from 'foldkit'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../constant'
-import { RoomsClient, RoomsClientLive } from '../../rpc.js'
+import { RoomsClient } from '../../rpc'
 import {
   CompletedFocusRoomIdInput,
   CompletedFocusUsernameInput,
@@ -25,7 +25,6 @@ export const CreateRoom = Command.define(
     Effect.catch(error =>
       Effect.succeed(FailedJoinRoom({ error: String(error) })),
     ),
-    Effect.provide(RoomsClientLive),
   ),
 )
 
@@ -43,7 +42,6 @@ export const JoinRoom = Command.define(
     Effect.catch(error =>
       Effect.succeed(FailedJoinRoom({ error: String(error) })),
     ),
-    Effect.provide(RoomsClientLive),
   ),
 )
 

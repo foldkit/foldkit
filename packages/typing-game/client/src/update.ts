@@ -15,6 +15,7 @@ import {
 import { Model } from './model'
 import { Home, Room } from './page'
 import { urlToAppRoute } from './route'
+import { RoomsClient } from './rpc'
 
 const NavigateInternal = Command.define(
   'NavigateInternal',
@@ -30,7 +31,7 @@ const LoadExternal = Command.define(
 
 export type UpdateReturn<Model, Message> = [
   Model,
-  ReadonlyArray<Command.Command<Message>>,
+  ReadonlyArray<Command.Command<Message, never, RoomsClient>>,
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn<Model, Message>>()
 

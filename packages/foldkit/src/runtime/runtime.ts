@@ -302,13 +302,27 @@ type RuntimeConfig<
    */
   freezeModel?: boolean
   /**
-   * An Effect Layer providing long-lived resources that persist across command
-   * invocations. Use this for browser resources with lifecycle (AudioContext,
-   * RTCPeerConnection, CanvasRenderingContext2D). Stateless utilities like
-   * HttpClient or BrowserKeyValueStore should be provided per-command instead.
+   * An Effect Layer providing services shared by every Command and
+   * Subscription. The runtime builds the Layer once, the first time it is
+   * needed: at startup in an app that declares Subscriptions (their
+   * pipelines run for the application's lifetime), otherwise when the first
+   * Command runs. The built services are reused for the application's
+   * lifetime and released at runtime teardown.
    *
-   * The runtime memoizes the layer, ensuring a single shared instance for all
-   * commands and subscriptions throughout the application's lifetime.
+   * Put a service here when construction is expensive relative to how often
+   * Commands need it (an RPC client rebuilt on every invocation, for
+   * example), or when every Command must see the same instance (an
+   * AudioContext, an RTCPeerConnection). A Layer that fails to build crashes
+   * the app with the crash view: the runtime provides this Layer to every
+   * Command, so a service that cannot be constructed leaves no Command safe
+   * to run.
+   *
+   * Provide a service inside the Command's Effect instead when construction
+   * is cheap (`FetchHttpClient.layer`), when different Commands need
+   * different implementations of the same tag (`KeyValueStore` over
+   * localStorage in one Command and sessionStorage in another), or when a
+   * service that can fail to construct should only take down the Commands
+   * that use it.
    */
   resources?: Layer.Layer<Resources>
   /**
@@ -1039,7 +1053,31 @@ const makeRuntime = <
           },
         )
 
-        const maybeResourceLayer = Option.fromNullishOr(resources)
+        // NOTE: `Effect.provide(effect, layer)` builds the Layer into a
+        // scope that closes when the provided effect ends, so providing the
+        // Layer per Command would construct and tear down every resource on
+        // each invocation. Building once into `runtimeScope` through a
+        // cached Effect is what makes `resources` long-lived: the first
+        // Command or Subscription that runs triggers construction, every
+        // later one shares the same built services, and release happens at
+        // runtime teardown. The build is uninterruptible because
+        // `Effect.cached` caches whatever Exit the first run produces:
+        // dispose racing an in-flight build would otherwise cache an
+        // interrupt, which every waiter would then surface as a crash.
+        const maybeAcquireResourceContext: Option.Option<
+          Effect.Effect<Context.Context<Resources>>
+        > = yield* Option.match(Option.fromNullishOr(resources), {
+          onNone: () => Effect.succeed(Option.none()),
+          onSome: resourceLayer =>
+            Effect.map(
+              Effect.cached(
+                Effect.uninterruptible(
+                  Layer.buildWithScope(resourceLayer, runtimeScope),
+                ),
+              ),
+              Option.some,
+            ),
+        })
 
         const maybePortChannels: Option.Option<PortChannelsBundle> = pipe(
           Option.fromNullishOr(ports),
@@ -1118,9 +1156,12 @@ const makeRuntime = <
         const provideAllResources = <A>(
           effect: Effect.Effect<A, never, Resources | ManagedResourceServices>,
         ): Effect.Effect<A> => {
-          const withResources = Option.match(maybeResourceLayer, {
+          const withResources = Option.match(maybeAcquireResourceContext, {
             onNone: () => effect,
-            onSome: resourceLayer => Effect.provide(effect, resourceLayer),
+            onSome: acquireResourceContext =>
+              Effect.flatMap(acquireResourceContext, resourceContext =>
+                Effect.provideContext(effect, resourceContext),
+              ),
           })
 
           const withManagedResources = Option.match(maybeManagedResourceLayer, {
@@ -1241,23 +1282,6 @@ const makeRuntime = <
 
         const modelPubSub = yield* PubSub.unbounded<Model>()
 
-        yield* Effect.forEach(
-          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-          initCommands as ReadonlyArray<
-            AnyCommand<Message, never, Resources | ManagedResourceServices>
-          >,
-          command =>
-            Effect.forkIn(runtimeScope)(
-              command.effect.pipe(
-                Effect.withSpan(command.name, {
-                  attributes: command.args ?? {},
-                }),
-                provideAllResources,
-                Effect.flatMap(enqueueNormal),
-              ),
-            ),
-        )
-
         if (routingConfig) {
           yield* Effect.acquireRelease(
             Effect.sync(() =>
@@ -1310,15 +1334,26 @@ const makeRuntime = <
           }),
         )
 
-        // NOTE: shared by every perpetual fiber's crash path (init render,
-        // render loop, message drain). Each fiber catches its own cause so a
-        // failure surfaces as the crash view instead of dying silently and
-        // leaving the DOM frozen at the last successful render.
+        const isCrashedRef = yield* Ref.make(false)
+
+        // NOTE: shared by every fiber's crash path: init render, render
+        // loop, message drain, and the Command and Subscription forks
+        // (their effects are typed never-failing, so a cause escaping one
+        // can only be a `resources` Layer build failure or an escaped
+        // defect, both unrecoverable). Each fiber catches its own cause so
+        // a failure surfaces as the crash view instead of dying silently
+        // and leaving the DOM frozen at the last successful render. The
+        // first crash wins: concurrent Command fibers can fail on the same
+        // broken Layer, and only one should report and render.
         const crashWith = (
           cause: Cause.Cause<never>,
           maybeMessage: Option.Option<Message>,
         ): Effect.Effect<void> =>
           Effect.gen(function* () {
+            const wasCrashed = yield* Ref.getAndSet(isCrashedRef, true)
+            if (wasCrashed) {
+              return
+            }
             const model = yield* Ref.get(modelRef)
             const squashed = Cause.squash(cause)
             const error =
@@ -1331,6 +1366,24 @@ const makeRuntime = <
               manageDocument,
             )
           })
+
+        yield* Effect.forEach(
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          initCommands as ReadonlyArray<
+            AnyCommand<Message, never, Resources | ManagedResourceServices>
+          >,
+          command =>
+            Effect.forkIn(runtimeScope)(
+              command.effect.pipe(
+                Effect.withSpan(command.name, {
+                  attributes: command.args ?? {},
+                }),
+                provideAllResources,
+                Effect.flatMap(enqueueNormal),
+                Effect.catchCause(cause => crashWith(cause, Option.none())),
+              ),
+            ),
+        )
 
         // NOTE: queue-drain-fiber-local state. Kept as plain closure
         // variables instead of `Ref`s because nothing else reads or writes
@@ -1430,6 +1483,9 @@ const makeRuntime = <
                       }),
                       provideAllResources,
                       Effect.flatMap(enqueueNormal),
+                      Effect.catchCause(cause =>
+                        crashWith(cause, Option.some(message)),
+                      ),
                     ),
                   ),
               )
@@ -1615,6 +1671,16 @@ const makeRuntime = <
           }
         }
 
+        // NOTE: a fast-failing init Command (a `resources` Layer that
+        // throws synchronously) can render the crash view before this
+        // point. Rendering the init view would paint over it, so a crashed
+        // runtime suspends here instead, exactly like the failing-init-
+        // render path below.
+        const isCrashedBeforeInitRender = yield* Ref.get(isCrashedRef)
+        if (isCrashedBeforeInitRender) {
+          return yield* Effect.never
+        }
+
         const initRenderExit = yield* Effect.exit(
           render(initModel, Option.none()),
         )
@@ -1649,6 +1715,14 @@ const makeRuntime = <
           awaitNextFrame,
           isPaused: isPausedEffect,
           render: Effect.gen(function* () {
+            // NOTE: a Message that dirtied the model can also be the one
+            // whose Command crashed the runtime. Without this guard the
+            // next animation frame would render the live view over the
+            // crash view.
+            const isCrashed = yield* Ref.get(isCrashedRef)
+            if (isCrashed) {
+              return
+            }
             const model = yield* Ref.get(modelRef)
             const maybeMessage = yield* Ref.get(maybeLastDirtyMessageRef)
             yield* render(model, maybeMessage)
@@ -1741,6 +1815,9 @@ const makeRuntime = <
                         enqueueHigh(message as Message),
                       ),
                       provideAllResources,
+                      Effect.catchCause(cause =>
+                        crashWith(cause, Option.none()),
+                      ),
                     ),
                   )
                 }),

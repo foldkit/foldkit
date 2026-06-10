@@ -8,7 +8,7 @@ import {
   ROOM_PLAYER_SESSION_KEY,
   USER_GAME_TEXT_INPUT_ID,
 } from '../../constant'
-import { RoomsClient, RoomsClientLive } from '../../rpc.js'
+import { RoomsClient } from '../../rpc'
 import {
   CompletedClearSession,
   CompletedFocusRoomPageUsernameInput,
@@ -39,10 +39,7 @@ export const FetchRoom = Command.define(
     const client = yield* RoomsClient
     const room = yield* client.getRoomById({ roomId })
     return SucceededFetchRoom({ room })
-  }).pipe(
-    Effect.catch(() => Effect.succeed(FailedFetchRoom())),
-    Effect.provide(RoomsClientLive),
-  ),
+  }).pipe(Effect.catch(() => Effect.succeed(FailedFetchRoom()))),
 )
 
 export const LoadSession = Command.define(
@@ -87,10 +84,7 @@ export const JoinRoom = Command.define(
     const client = yield* RoomsClient
     const { player } = yield* client.joinRoom({ username, roomId })
     return SucceededJoinRoom({ player })
-  }).pipe(
-    Effect.catch(() => Effect.succeed(FailedJoinRoom())),
-    Effect.provide(RoomsClientLive),
-  ),
+  }).pipe(Effect.catch(() => Effect.succeed(FailedJoinRoom()))),
 )
 
 export const StartGame = Command.define(
@@ -103,10 +97,7 @@ export const StartGame = Command.define(
     const client = yield* RoomsClient
     yield* client.startGame({ roomId, playerId })
     return SucceededStartGame()
-  }).pipe(
-    Effect.catch(() => Effect.succeed(FailedStartGame())),
-    Effect.provide(RoomsClientLive),
-  ),
+  }).pipe(Effect.catch(() => Effect.succeed(FailedStartGame()))),
 )
 
 export const UpdatePlayerProgress = Command.define(
@@ -128,10 +119,7 @@ export const UpdatePlayerProgress = Command.define(
       charsTyped,
     })
     return CompletedUpdatePlayerProgress()
-  }).pipe(
-    Effect.catch(() => Effect.succeed(CompletedUpdatePlayerProgress())),
-    Effect.provide(RoomsClientLive),
-  ),
+  }).pipe(Effect.catch(() => Effect.succeed(CompletedUpdatePlayerProgress()))),
 )
 
 export const CopyRoomId = Command.define(

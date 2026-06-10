@@ -14,6 +14,7 @@ import { evo } from 'foldkit/struct'
 
 import { optionWhen } from '../../../optionWhen'
 import { homeRouter } from '../../../route'
+import { RoomsClient } from '../../../rpc'
 import {
   ClearSession,
   CopyRoomId,
@@ -37,7 +38,7 @@ const NavigateHome = Command.define(
 
 export type UpdateReturn = readonly [
   Model,
-  ReadonlyArray<Command.Command<Message>>,
+  ReadonlyArray<Command.Command<Message, never, RoomsClient>>,
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
