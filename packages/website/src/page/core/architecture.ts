@@ -245,7 +245,7 @@ export const view = (): Html => {
           [
             ['Submodel'],
             [
-              'A self-contained Model, Message, update, and Commands that a parent embeds as a field and delegates to in update. Submodels are how an app grows past a single update function: each Foldkit UI primitive (Menu, Listbox, DatePicker, etc.) ships as one, and you build your own for feature pages, repeated forms, or any unit of composition. Children surface high-level facts to parents through an OutMessage in the third tuple element of update.',
+              'A self-contained Model, Message, update, and Commands that a parent embeds as a field and delegates to in update. Submodels are how an app grows past a single update function: each Foldkit UI component (Menu, Listbox, DatePicker, etc.) ships as one, and you build your own for feature pages, repeated forms, or any unit of composition. Children surface high-level facts to parents through an OutMessage in the third tuple element of update.',
             ],
           ],
         ],

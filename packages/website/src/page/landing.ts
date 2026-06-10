@@ -570,7 +570,7 @@ const includedSection = (): Html => {
                       ),
                     ],
                     [
-                      'Accessible primitives (dialog, menu, tabs, listbox, disclosure, and more) built for The Elm Architecture. Easy to style and customize.',
+                      'Accessible components (dialog, menu, tabs, listbox, disclosure, and more) built for The Elm Architecture. Easy to style and customize.',
                     ],
                   ),
                   h.a(

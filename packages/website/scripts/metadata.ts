@@ -245,11 +245,11 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   UiOverview: ui(
     'Foldkit UI',
-    'Headless, accessible UI primitives for Foldkit: dialog, menu, tabs, listbox, and more. Built for The Elm Architecture with Effect-TS.',
+    'Headless, accessible UI components for Foldkit: dialog, menu, tabs, listbox, and more. Built for The Elm Architecture with Effect-TS.',
   ),
   UiSelectionSubmodels: ui(
     'Selection Submodels',
-    'How Foldkit UI primitives expose create<Item>() factories that pair view and update behind one type parameter so Item types cannot drift between the rendered list and the selection handler.',
+    'How Foldkit UI components expose create<Item>() factories that pair view and update behind one type parameter so Item types cannot drift between the rendered list and the selection handler.',
   ),
   UiButton: ui(
     'Button',

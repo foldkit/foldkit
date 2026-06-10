@@ -816,7 +816,7 @@ const arrowKeyToDirection = (key: string): Option.Option<Direction> =>
   )
 
 // NOTE: DragAndDrop has no `view` function and is not embedded via
-// `h.submodel`. It's a behavior+helpers primitive: the consumer renders
+// `h.submodel`. It's a behavior+helpers component: the consumer renders
 // their own elements (cards, columns) and attaches the attribute bundles
 // returned by `draggable`, `droppable`, and `sortable` below. Each helper
 // is parameterized over the consumer's `ParentMessage`; threading

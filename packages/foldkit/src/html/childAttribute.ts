@@ -4,7 +4,7 @@ const BRAND = '__childAttribute'
 
 /** An attribute carrying a handler that dispatches through a Submodel
  *  boundary's wrapping chain. Published by Submodels (typically Foldkit's
- *  `Ui.*` primitives) for a parent to spread into its own element
+ *  `Ui.*` components) for a parent to spread into its own element
  *  attribute arrays. The parent does not know or care which child
  *  produced these; the runtime routes each handler through the
  *  originating Submodel's wrap chain at event-fire time.
