@@ -24,8 +24,8 @@ const PlayNote = Command.define(
   }),
 )
 
-// 3. Pass the service's default layer to makeProgram
-const program = Runtime.makeProgram({
+// 3. Pass the service's default layer to makeApplication
+const program = Runtime.makeApplication({
   Model,
   init,
   update,

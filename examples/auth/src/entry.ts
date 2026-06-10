@@ -6,7 +6,7 @@ import { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const program = Runtime.makeProgram({
+const program = Runtime.makeApplication({
   Model,
   Flags,
   flags,

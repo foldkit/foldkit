@@ -120,9 +120,7 @@ export const defaultCrashView = (
           [
             'This is the default crash view. You can customize it by providing a ',
             h.span([inlineCodeStyle], ['crash.view']),
-            ' function to ',
-            h.span([inlineCodeStyle], ['makeProgram']),
-            '.',
+            ' function.',
           ],
         ),
       ]

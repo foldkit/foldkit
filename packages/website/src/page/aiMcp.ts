@@ -314,7 +314,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       para(
         'In your ',
-        inlineCode('Runtime.makeProgram'),
+        inlineCode('Runtime.makeApplication'),
         ' call, pass your ',
         inlineCode('Message'),
         ' Schema. The runtime decodes every dispatched Message against it before reaching your update function:',
@@ -323,12 +323,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.aiMcpProgramConfigHighlighted),
+            h.InnerHTML(Snippets.aiMcpApplicationConfigHighlighted),
           ],
           [],
         ),
-        Snippets.aiMcpProgramConfigRaw,
-        'Copy program config snippet',
+        Snippets.aiMcpApplicationConfigRaw,
+        'Copy application config snippet',
         copiedSnippets,
         'mb-4',
       ),

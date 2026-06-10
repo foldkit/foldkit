@@ -37,7 +37,7 @@ const DEFAULT_CONTENT = 'https://foldkit.dev'
 const DEFAULT_FILL_COLOR = '#1e1b4b'
 const DEFAULT_BACKGROUND_COLOR = '#fef3c7'
 
-export const init: Runtime.ProgramInit<Model, Message> = () => [
+export const init: Runtime.ApplicationInit<Model, Message> = () => [
   {
     content: DEFAULT_CONTENT,
     fillColor: DEFAULT_FILL_COLOR,

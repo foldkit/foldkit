@@ -57,7 +57,7 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init: Runtime.ProgramInit<Model, Message> = () => {
+export const init: Runtime.ApplicationInit<Model, Message> = () => {
   const snake = Snake.create(GAME.INITIAL_POSITION)
 
   return [

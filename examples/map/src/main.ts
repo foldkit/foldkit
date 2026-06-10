@@ -325,7 +325,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 // INIT
 
-export const init: Runtime.ProgramInit<Model, Message> = () => [
+export const init: Runtime.ApplicationInit<Model, Message> = () => [
   {
     locations: featuredLocations,
     searchQuery: '',

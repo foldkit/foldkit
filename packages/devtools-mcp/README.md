@@ -48,10 +48,10 @@ export default defineConfig({
 })
 ```
 
-In your `Runtime.makeProgram` call, pass your `Message` Schema. The runtime decodes every dispatched payload against it, returning a clean error if the shape does not match before it reaches your update function:
+In your `Runtime.makeApplication` call, pass your `Message` Schema. The runtime decodes every dispatched payload against it, returning a clean error if the shape does not match before it reaches your update function:
 
 ```typescript
-Runtime.makeProgram({
+Runtime.makeApplication({
   devTools: {
     // Rest of your DevTools config
     Message,

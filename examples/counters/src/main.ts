@@ -94,7 +94,7 @@ export const update = (
 
 // INIT
 
-export const init: Runtime.ProgramInit<Model, Message> = () => [
+export const init: Runtime.ApplicationInit<Model, Message> = () => [
   {
     rows: [
       { id: 'counter-0', counter: Counter.init },

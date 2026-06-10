@@ -1,15 +1,19 @@
-export { makeProgram, run } from './runtime.js'
+export { makeApplication, makeElement, run } from './runtime.js'
 
 export type {
   RoutingConfig,
   CrashConfig,
   CrashContext,
-  RoutingProgramConfigWithFlags,
-  RoutingProgramConfig,
-  ProgramConfigWithFlags,
-  ProgramConfig,
-  ProgramInit,
-  RoutingProgramInit,
+  ElementCrashConfig,
+  RoutingApplicationConfigWithFlags,
+  RoutingApplicationConfig,
+  ApplicationConfigWithFlags,
+  ApplicationConfig,
+  ElementConfigWithFlags,
+  ElementConfig,
+  ApplicationInit,
+  RoutingApplicationInit,
+  ElementInit,
   MakeRuntimeReturn,
   Visibility,
   SlowViewContext,

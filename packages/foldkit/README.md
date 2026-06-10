@@ -95,7 +95,7 @@ export const update = (
 
 // INIT
 
-export const init: Runtime.ProgramInit<Model, Message> = () => [
+export const init: Runtime.ApplicationInit<Model, Message> = () => [
   { count: 0 },
   [],
 ]
@@ -151,7 +151,7 @@ import { Runtime } from 'foldkit'
 
 import { Model, init, update, view } from './main'
 
-const program = Runtime.makeProgram({
+const program = Runtime.makeApplication({
   Model,
   init,
   update,
@@ -184,7 +184,7 @@ Foldkit is a complete system, not a collection of libraries you stitch together.
 - **Crash View and Reporting**: Configure `crash.view` to render a custom fallback UI when the update loop throws. A `crash.report` callback fires first with the error, Model, and triggering Message, so you can ship it straight to Sentry or your logger.
 - **Story Testing**: Exercise the update function directly. Send Messages, resolve Commands inline with `Story.Command.resolve` and `Story.Command.resolveAll`, and assert with focused helpers: `Story.model`, `Story.Command.expectHas`, `Story.Command.expectExact`, `Story.Command.expectNone`, and `Story.expectOutMessage`. No mocking libraries, no fake timers.
 - **Scene Testing**: Drive your app the way a user does. Scene renders your real view, then clicks buttons, types into inputs, presses keys, and asserts on what's on screen. Accessible locators (`role`, `label`, `placeholder`, `altText`, `title`, `testId`, `displayValue`) with full options (`name`, `level`, `checked`, `selected`, `pressed`, `expanded`, `disabled`), multi-match `Scene.all` with `Scene.filter` and `Scene.nth`, scoped steps via `Scene.inside`, pointer events, event bubbling, and Vitest matchers like `toHaveText`, `toBeVisible`, `toHaveAccessibleName`, and `toHaveCount`. API parity with React Testing Library and Playwright, without a browser.
-- **Slow-View Monitoring**: Wire `slowView` on `makeProgram` to catch renders that exceed a threshold you set. The callback fires with the current Model, the triggering Message, and the render duration, so you can log it, sample it, or ship it to your observability tool.
+- **Slow-View Monitoring**: Wire `slowView` on `makeApplication` to catch renders that exceed a threshold you set. The callback fires with the current Model, the triggering Message, and the render duration, so you can log it, sample it, or ship it to your observability tool.
 - **HMR**: Vite plugin with state-preserving hot module replacement. Change your view, keep your state.
 
 ## Correctness You (And Your LLM) Can See

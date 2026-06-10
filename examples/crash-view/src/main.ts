@@ -26,7 +26,7 @@ export const update = (
 
 // INIT
 
-export const init: Runtime.ProgramInit<Model, Message> = () => [null, []]
+export const init: Runtime.ApplicationInit<Model, Message> = () => [null, []]
 
 // VIEW
 

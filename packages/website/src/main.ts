@@ -305,7 +305,7 @@ const isGroupOpenOnBoot = (
   })
 }
 
-export const init: Runtime.RoutingProgramInit<
+export const init: Runtime.RoutingApplicationInit<
   Model,
   Message,
   Flags,

@@ -102,7 +102,7 @@ export type Flags = typeof Flags.Type
 
 // INIT
 
-export const init: Runtime.ProgramInit<Model, Message, Flags> = flags => [
+export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => [
   {
     todos: Option.getOrElse(flags.todos, () => []),
     newTodoText: '',

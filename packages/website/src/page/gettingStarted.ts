@@ -117,7 +117,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' holds the pure definitions for your application: Model, Messages, update, init, and view. ',
         inlineCode('src/entry.ts'),
         ' imports them and boots the runtime with ',
-        inlineCode('Runtime.makeProgram'),
+        inlineCode('Runtime.makeApplication'),
         ' and ',
         inlineCode('Runtime.run'),
         '. Some starter examples keep ',

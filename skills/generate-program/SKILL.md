@@ -160,14 +160,14 @@ A common mistake (because kanban colocates `SavedBoard` in `model.ts`): putting 
 
 ```
 src/main.ts          ← Model, Message, init, update, view
-src/entry.ts         ← Runtime.makeProgram + Runtime.run
+src/entry.ts         ← Runtime.makeApplication + Runtime.run
 ```
 
 **Split commands + messages** (Tier 3, has async operations):
 
 ```
 src/main.ts          ← Model, init, update, view
-src/entry.ts         ← Runtime.makeProgram + Runtime.run
+src/entry.ts         ← Runtime.makeApplication + Runtime.run
 src/message.ts       ← Message definitions
 src/command.ts       ← Command functions
 ```
@@ -178,7 +178,7 @@ src/command.ts       ← Command functions
 
 ```
 src/main.ts          ← init, update, view
-src/entry.ts         ← Runtime.makeProgram + Runtime.run
+src/entry.ts         ← Runtime.makeApplication + Runtime.run
 src/model.ts         ← Model schema
 src/message.ts       ← Message definitions
 src/command.ts       ← Command functions
@@ -191,7 +191,7 @@ src/domain/          ← Shared domain schemas (if multiple entities)
 
 ```
 src/main.ts          ← Root init, update, view
-src/entry.ts         ← Runtime.makeProgram + Runtime.run
+src/entry.ts         ← Runtime.makeApplication + Runtime.run
 src/model.ts         ← Root model (contains submodels)
 src/message.ts       ← Root messages + Got* bridging
 src/command.ts       ← Shared commands
@@ -305,7 +305,7 @@ For each Foldkit module you plan to use, read the `.d.ts` at the paths below. Re
 <project>/node_modules/foldkit/dist/message/index.d.ts  # m()
 <project>/node_modules/foldkit/dist/schema/index.d.ts   # ts(), r()
 <project>/node_modules/foldkit/dist/struct/index.d.ts   # evo(): check nested-update signature
-<project>/node_modules/foldkit/dist/runtime/runtime.d.ts # ProgramInit, RoutingProgramInit, makeProgram
+<project>/node_modules/foldkit/dist/runtime/runtime.d.ts # ApplicationInit, RoutingApplicationInit, makeApplication, makeElement
 
 # If using routing
 <project>/node_modules/foldkit/dist/route/parser.d.ts   # literal, slash, string, int, Route.root, Route.mapTo, Route.oneOf, Route.parseUrlWithFallback
@@ -359,7 +359,7 @@ Record these in the crib and keep them visible while generating:
 - **`OnClick` and `OnSubmit` take a Message directly**, not a `() => Message`. Only `OnInput` takes `(value) => Message` because it needs the input value.
 - **`keyed`, `empty` are properties on the record returned by `html<Message>()`**: accessed as `h.keyed` and `h.empty` after `const h = html<Message>()`. They are not top-level exports of `foldkit/html`.
 - **Attribute helpers are specific**: `Value(...)`, `Type(...)`, `Placeholder(...)`, `Href(...)`, `Target(...)`, `Rel(...)`, `Rows(n)`, `Id(...)`, `For(...)`, `Role(...)`, `AriaLabel(...)`. There is no generic `Attr('...', '...')`.
-- **`ProgramInit<Model, Message, Flags>` has no URL parameter.** For routed apps, use `RoutingProgramInit<Model, Message, Flags>`: the second arg is `url: Url`.
+- **`ApplicationInit<Model, Message, Flags>` has no URL parameter.** For routed apps, use `RoutingApplicationInit<Model, Message, Flags>`: the second arg is `url: Url`.
 - **`Route.mapTo` takes the route schema, not a factory function.** `pipe(literal('new'), Route.mapTo(NewLinkRoute))`. NOT `Route.mapTo(() => NewLinkRoute())`.
 - **`Effect.ignore` is ONLY for fallible Effects.** `pushUrl(path).pipe(Effect.as(Message()))`. No `Effect.ignore` because `pushUrl` returns `Effect<void>`.
 - **`Command.define` requires result Message schemas after the name**: `Command.define('Fetch', SucceededFetch, FailedFetch)`. Infallible Commands only need one result: `Command.define('ReadClock', RecordedTime)`.
@@ -523,8 +523,8 @@ For file uploads (resumes, images, attachments):
 
 ### Runtime Wiring
 
-- Use `Runtime.makeProgram`. Add `routing: { onUrlRequest, onUrlChange }` for apps with URL routing
-- Add `title: model => ...` to set `document.title` after every render. Derive from route or any model state
+- Use `Runtime.makeApplication` for apps that own the page. Add `routing: { onUrlRequest, onUrlChange }` for apps with URL routing. The `view` returns a `Document` (`{ title, canonical?, ogUrl?, body }`); the runtime applies `title` and the canonical / og:url tags after every render
+- Use `Runtime.makeElement` for a widget embedded on a page it does not own. The `view` returns `Html` and the runtime never touches the document `<head>`. No `routing` config
 - See the With and Without URL Routing section in [architecture.md](architecture.md) for the full pattern
 - Include `ClickedLink` and `ChangedUrl` Messages for programs with routing, with proper `InternalUrl`/`ExternalUrl` handling in update
 - Always end with `Runtime.run(program)`

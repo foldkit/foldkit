@@ -63,7 +63,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'Define a service using ',
         link(Link.effectService, 'Context.Service'),
         ', then pass its default layer to ',
-        inlineCode('makeProgram'),
+        inlineCode('makeApplication'),
         ' via the ',
         inlineCode('resources'),
         ' config field. The runtime creates the layer once and makes it available to every Command. Commands access it by yielding the service tag.',

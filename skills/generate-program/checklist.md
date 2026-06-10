@@ -220,7 +220,7 @@ Foldkit UI components ARE the a11y pass for their covered patterns. These checks
 - [ ] Required form fields are marked `AriaRequired(true)` OR the `Ui.Input` `required: true` is set. The `required` HTML attribute alone is not enough for every screen reader.
 - [ ] Focus is visible, either via Tailwind's `focus-visible:` classes or the browser default. If you've reset outline, you must replace it. Grep for `outline-none` without a paired `focus-visible:` class.
 - [ ] Color is not the only carrier of meaning. A red border on an invalid input needs an accompanying error message or icon. Don't ship "invalid = red only."
-- [ ] Page `<title>` is set via `Runtime.makeProgram`'s `title: model => ...` for routed apps. Each route returns a distinct title.
+- [ ] Page `<title>` is set via the `title` field of the `Document` returned by `view` (with `Runtime.makeApplication`). For routed apps, each route returns a distinct title.
 
 ### Mechanical check: a11y
 

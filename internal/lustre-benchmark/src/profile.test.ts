@@ -1,6 +1,6 @@
 import { Effect } from 'effect'
 import { Document } from 'foldkit/html'
-import { makeProgram } from 'foldkit/runtime'
+import { makeApplication } from 'foldkit/runtime'
 import { describe, it } from 'vitest'
 
 // Internal API not on the public surface but needed by the profile harness
@@ -125,7 +125,7 @@ const runProfile = async (
     return wrappedView.fn(model)
   }
 
-  const program = makeProgram({
+  const program = makeApplication({
     Model,
     init,
     update: wrappedUpdate.fn,

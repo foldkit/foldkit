@@ -54,7 +54,7 @@ const printNextSteps = (alreadyRegistered: boolean): void => {
   console.log('       plugins: [foldkit({ devToolsMcpPort: 9988 })]')
   console.log('')
   console.log(
-    '  2. Pass your Message Schema to Runtime.makeProgram (enables dispatch):',
+    '  2. Pass your Message Schema to Runtime.makeApplication (enables dispatch):',
   )
   console.log('')
   console.log('       devTools: { Message }')

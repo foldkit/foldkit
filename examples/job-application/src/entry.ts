@@ -2,7 +2,7 @@ import { Runtime } from 'foldkit'
 
 import { Flags, Message, Model, flags, init, update, view } from './main'
 
-const program = Runtime.makeProgram({
+const program = Runtime.makeApplication({
   Model,
   Flags,
   flags,

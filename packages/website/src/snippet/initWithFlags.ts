@@ -17,7 +17,7 @@ const ClickedIncrement = m('ClickedIncrement')
 const Message = S.Union([ClickedIncrement])
 type Message = typeof Message.Type
 
-const init: Runtime.ProgramInit<Model, Message, Flags> = flags => [
+const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => [
   {
     count: Option.getOrElse(flags.savedCount, () => 0),
     startingCount: flags.savedCount,

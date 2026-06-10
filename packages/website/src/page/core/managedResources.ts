@@ -148,7 +148,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         '. ',
         inlineCode('ManagedResource.aggregate'),
         ' then combines a root-level record with any lifted child records into the single record ',
-        inlineCode('makeProgram'),
+        inlineCode('makeApplication'),
         ' expects, throwing at startup on duplicate keys.',
       ),
       para(

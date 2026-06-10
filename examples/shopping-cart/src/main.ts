@@ -68,7 +68,9 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init: Runtime.RoutingProgramInit<Model, Message> = (url: Url) => {
+export const init: Runtime.RoutingApplicationInit<Model, Message> = (
+  url: Url,
+) => {
   return [
     {
       route: urlToAppRoute(url),

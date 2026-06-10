@@ -35,6 +35,7 @@ import { startWebSocketBridge } from '../devTools/webSocketBridge.js'
 import {
   type BoundaryRegistry,
   Document,
+  Html,
   __beginRender as beginHtmlRender,
   __clearRuntime as clearHtmlRuntime,
   __createBoundaryRegistry as createHtmlBoundaryRegistry,
@@ -257,6 +258,15 @@ type RuntimeConfig<
     ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
   ]
   view: (model: Model) => Document
+  /**
+   * Whether the runtime owns document-level state. When `true`, each render
+   * applies the view's `title`, `canonical`, and `og:url` to the document
+   * `<head>`. When `false`, the runtime is scoped to its container and never
+   * touches the `<head>`, so an app can be embedded at a node without
+   * clobbering the host page's metadata. `makeApplication` sets this to `true`;
+   * `makeElement` sets it to `false`.
+   */
+  manageDocument: boolean
   subscriptions?: Subscriptions<
     Model,
     Message,
@@ -300,7 +310,7 @@ type RuntimeConfig<
   devTools?: DevToolsConfig
 }>
 
-type BaseProgramConfig<
+type BaseApplicationConfig<
   Model,
   Message,
   Resources = never,
@@ -329,14 +339,14 @@ type BaseProgramConfig<
   devTools?: DevToolsConfig
 }>
 
-/** Configuration for `makeProgram` with flags and URL routing. */
-export type RoutingProgramConfigWithFlags<
+/** Configuration for `makeApplication` with flags and URL routing. */
+export type RoutingApplicationConfigWithFlags<
   Model,
   Message,
   Flags,
   Resources = never,
   ManagedResourceServices = never,
-> = BaseProgramConfig<Model, Message, Resources, ManagedResourceServices> &
+> = BaseApplicationConfig<Model, Message, Resources, ManagedResourceServices> &
   Readonly<{
     Flags: Schema.Codec<Flags, any, unknown, unknown>
     flags: Effect.Effect<Flags>
@@ -352,13 +362,13 @@ export type RoutingProgramConfigWithFlags<
     ]
   }>
 
-/** Configuration for `makeProgram` with URL routing but no flags. */
-export type RoutingProgramConfig<
+/** Configuration for `makeApplication` with URL routing but no flags. */
+export type RoutingApplicationConfig<
   Model,
   Message,
   Resources = never,
   ManagedResourceServices = never,
-> = BaseProgramConfig<Model, Message, Resources, ManagedResourceServices> &
+> = BaseApplicationConfig<Model, Message, Resources, ManagedResourceServices> &
   Readonly<{
     routing: RoutingConfig<Message>
     init: (
@@ -371,14 +381,14 @@ export type RoutingProgramConfig<
     ]
   }>
 
-/** Configuration for `makeProgram` with flags but no URL routing. */
-export type ProgramConfigWithFlags<
+/** Configuration for `makeApplication` with flags but no URL routing. */
+export type ApplicationConfigWithFlags<
   Model,
   Message,
   Flags,
   Resources = never,
   ManagedResourceServices = never,
-> = BaseProgramConfig<Model, Message, Resources, ManagedResourceServices> &
+> = BaseApplicationConfig<Model, Message, Resources, ManagedResourceServices> &
   Readonly<{
     Flags: Schema.Codec<Flags, any, unknown, unknown>
     flags: Effect.Effect<Flags>
@@ -392,13 +402,13 @@ export type ProgramConfigWithFlags<
     ]
   }>
 
-/** Configuration for `makeProgram` without flags or URL routing. */
-export type ProgramConfig<
+/** Configuration for `makeApplication` without flags or URL routing. */
+export type ApplicationConfig<
   Model,
   Message,
   Resources = never,
   ManagedResourceServices = never,
-> = BaseProgramConfig<Model, Message, Resources, ManagedResourceServices> &
+> = BaseApplicationConfig<Model, Message, Resources, ManagedResourceServices> &
   Readonly<{
     init: () => readonly [
       Model,
@@ -408,8 +418,82 @@ export type ProgramConfig<
     ]
   }>
 
-/** The `init` function type for programs without URL routing. */
-export type ProgramInit<
+/** Configuration for crash handling in a `makeElement` app. The crash view
+ *  returns `Html`, not a `Document`, because a scoped app never owns the
+ *  document `<head>`. */
+export type ElementCrashConfig<Model, Message> = Readonly<{
+  view?: (context: CrashContext<Model, Message>) => Html
+  report?: (context: CrashContext<Model, Message>) => void
+}>
+
+type BaseElementConfig<
+  Model,
+  Message,
+  Resources = never,
+  ManagedResourceServices = never,
+> = Readonly<{
+  Model: Schema.Codec<Model, any, unknown, unknown>
+  update: (
+    model: Model,
+    message: Message,
+  ) => readonly [
+    Model,
+    ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
+  ]
+  view: (model: Model) => Html
+  subscriptions?: Subscriptions<
+    Model,
+    Message,
+    Resources | ManagedResourceServices
+  >
+  container: HTMLElement | null
+  crash?: ElementCrashConfig<Model, Message>
+  slowView?: SlowViewConfig<Model, Message>
+  freezeModel?: boolean
+  resources?: Layer.Layer<Resources>
+  managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
+  devTools?: DevToolsConfig
+}>
+
+/** Configuration for `makeElement` with flags. */
+export type ElementConfigWithFlags<
+  Model,
+  Message,
+  Flags,
+  Resources = never,
+  ManagedResourceServices = never,
+> = BaseElementConfig<Model, Message, Resources, ManagedResourceServices> &
+  Readonly<{
+    Flags: Schema.Codec<Flags, any, unknown, unknown>
+    flags: Effect.Effect<Flags>
+    init: (
+      flags: Flags,
+    ) => readonly [
+      Model,
+      ReadonlyArray<
+        Command<Message, never, Resources | ManagedResourceServices>
+      >,
+    ]
+  }>
+
+/** Configuration for `makeElement` without flags. */
+export type ElementConfig<
+  Model,
+  Message,
+  Resources = never,
+  ManagedResourceServices = never,
+> = BaseElementConfig<Model, Message, Resources, ManagedResourceServices> &
+  Readonly<{
+    init: () => readonly [
+      Model,
+      ReadonlyArray<
+        Command<Message, never, Resources | ManagedResourceServices>
+      >,
+    ]
+  }>
+
+/** The `init` function type for a `makeApplication` app without URL routing. */
+export type ApplicationInit<
   Model,
   Message,
   Flags = void,
@@ -431,8 +515,8 @@ export type ProgramInit<
       >,
     ]
 
-/** The `init` function type for programs with URL routing, receives the current URL and optional flags. */
-export type RoutingProgramInit<
+/** The `init` function type for a `makeApplication` app with URL routing, receives the current URL and optional flags. */
+export type RoutingApplicationInit<
   Model,
   Message,
   Flags = void,
@@ -457,7 +541,18 @@ export type RoutingProgramInit<
       >,
     ]
 
-/** A configured Foldkit runtime returned by `makeProgram`, passed to `run` to start the application. */
+/** The `init` function type for a `makeElement` app. A scoped app never owns
+ *  the URL, so its `init` has the same shape as a non-routing
+ *  `ApplicationInit`: argless, or receiving flags when `Flags` is set. */
+export type ElementInit<
+  Model,
+  Message,
+  Flags = void,
+  Resources = never,
+  ManagedResourceServices = never,
+> = ApplicationInit<Model, Message, Flags, Resources, ManagedResourceServices>
+
+/** A configured Foldkit runtime returned by `makeApplication` or `makeElement`, passed to `run` to start the app. */
 export type MakeRuntimeReturn = Readonly<{
   runtimeId: string
   start: (hmrModel?: unknown) => Effect.Effect<void>
@@ -475,6 +570,7 @@ const makeRuntime = <
   init,
   update,
   view,
+  manageDocument,
   subscriptions,
   container,
   routing: routingConfig,
@@ -562,7 +658,7 @@ const makeRuntime = <
           return yield* Effect.die(
             new Error(
               '[foldkit] Runtime container must have an `id` for HMR model preservation. ' +
-                'Set `container.id = "app"` (or any unique string) before passing it to makeProgram.',
+                'Set `container.id = "app"` (or any unique string) before passing it to makeApplication or makeElement.',
             ),
           )
         }
@@ -814,6 +910,7 @@ const makeRuntime = <
               crash,
               container,
               maybeCurrentVNodeRef,
+              manageDocument,
             )
           })
 
@@ -998,9 +1095,11 @@ const makeRuntime = <
             )
             yield* Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode))
 
-            yield* Effect.sync(() =>
-              applyDocumentMetadata(nextDocument, patchedVNode.elm),
-            )
+            if (manageDocument) {
+              yield* Effect.sync(() =>
+                applyDocumentMetadata(nextDocument, patchedVNode.elm),
+              )
+            }
           }).pipe(
             Effect.provideService(Dispatch, dispatchService),
             Effect.provideService(MountTracker, mountTracker),
@@ -1451,6 +1550,7 @@ const renderCrashView = <Model, Message>(
   crash: CrashConfig<Model, Message> | undefined,
   container: HTMLElement,
   maybeCurrentVNodeRef: Ref.Ref<Option.Option<VNode>>,
+  manageDocument: boolean,
 ): void => {
   console.error('[foldkit] Application crash:', context.error)
 
@@ -1486,7 +1586,9 @@ const renderCrashView = <Model, Message>(
       crashDocument.body,
       container,
     )
-    applyDocumentMetadata(crashDocument, patchedVNode.elm)
+    if (manageDocument) {
+      applyDocumentMetadata(crashDocument, patchedVNode.elm)
+    }
   } catch (viewError) {
     console.error('[foldkit] crash.view failed:', viewError)
 
@@ -1507,19 +1609,25 @@ const renderCrashView = <Model, Message>(
       fallbackDocument.body,
       container,
     )
-    applyDocumentMetadata(fallbackDocument, patchedVNode.elm)
+    if (manageDocument) {
+      applyDocumentMetadata(fallbackDocument, patchedVNode.elm)
+    }
   }
 }
 
-/** Creates a Foldkit program and returns a runtime that can be passed to `run`. Add a `routing` config for URL routing. */
-export function makeProgram<
+/** Creates a Foldkit application that owns the page and returns a runtime that
+ *  can be passed to `run`. The `view` returns a `Document`, so the runtime
+ *  manages `document.title` and the canonical / og:url tags. Add a `routing`
+ *  config for URL routing. To mount an app scoped to a node without touching the
+ *  document `<head>`, use `makeElement`. */
+export function makeApplication<
   Model,
   Message extends { _tag: string },
   Flags,
   Resources = never,
   ManagedResourceServices = never,
 >(
-  config: RoutingProgramConfigWithFlags<
+  config: RoutingApplicationConfigWithFlags<
     Model,
     Message,
     Flags,
@@ -1528,13 +1636,13 @@ export function makeProgram<
   >,
 ): MakeRuntimeReturn
 
-export function makeProgram<
+export function makeApplication<
   Model,
   Message extends { _tag: string },
   Resources = never,
   ManagedResourceServices = never,
 >(
-  config: RoutingProgramConfig<
+  config: RoutingApplicationConfig<
     Model,
     Message,
     Resources,
@@ -1542,14 +1650,14 @@ export function makeProgram<
   >,
 ): MakeRuntimeReturn
 
-export function makeProgram<
+export function makeApplication<
   Model,
   Message extends { _tag: string },
   Flags,
   Resources = never,
   ManagedResourceServices = never,
 >(
-  config: ProgramConfigWithFlags<
+  config: ApplicationConfigWithFlags<
     Model,
     Message,
     Flags,
@@ -1558,16 +1666,16 @@ export function makeProgram<
   >,
 ): MakeRuntimeReturn
 
-export function makeProgram<
+export function makeApplication<
   Model,
   Message extends { _tag: string },
   Resources = never,
   ManagedResourceServices = never,
 >(
-  config: ProgramConfig<Model, Message, Resources, ManagedResourceServices>,
+  config: ApplicationConfig<Model, Message, Resources, ManagedResourceServices>,
 ): MakeRuntimeReturn
 
-export function makeProgram<
+export function makeApplication<
   Model,
   Message extends { _tag: string },
   Flags,
@@ -1575,28 +1683,33 @@ export function makeProgram<
   ManagedResourceServices = never,
 >(
   config:
-    | RoutingProgramConfigWithFlags<
+    | RoutingApplicationConfigWithFlags<
         Model,
         Message,
         Flags,
         Resources,
         ManagedResourceServices
       >
-    | RoutingProgramConfig<Model, Message, Resources, ManagedResourceServices>
-    | ProgramConfigWithFlags<
+    | RoutingApplicationConfig<
+        Model,
+        Message,
+        Resources,
+        ManagedResourceServices
+      >
+    | ApplicationConfigWithFlags<
         Model,
         Message,
         Flags,
         Resources,
         ManagedResourceServices
       >
-    | ProgramConfig<Model, Message, Resources, ManagedResourceServices>,
+    | ApplicationConfig<Model, Message, Resources, ManagedResourceServices>,
 ): MakeRuntimeReturn {
   const { container } = config
   if (container === null) {
     throw new Error(
       '[foldkit] Container is null. Make sure the element exists in the DOM ' +
-        'before calling makeProgram (e.g. that your <div id="root"></div> has ' +
+        'before calling makeApplication (e.g. that your <div id="root"></div> has ' +
         'rendered, and your script runs after it).',
     )
   }
@@ -1612,6 +1725,7 @@ export function makeProgram<
     Model: config.Model,
     update: config.update,
     view: config.view,
+    manageDocument: true,
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
     container,
     ...(hasRouting && { routing: config.routing }),
@@ -1639,7 +1753,7 @@ export function makeProgram<
       flags: config.flags,
       init: (flags: unknown, url) =>
         (
-          config as RoutingProgramConfigWithFlags<
+          config as RoutingApplicationConfigWithFlags<
             Model,
             Message,
             Flags,
@@ -1661,7 +1775,7 @@ export function makeProgram<
       flags: Effect.succeed(undefined),
       init: (_flags, url) =>
         (
-          config as RoutingProgramConfig<
+          config as RoutingApplicationConfig<
             Model,
             Message,
             Resources,
@@ -1682,7 +1796,7 @@ export function makeProgram<
       flags: config.flags,
       init: (flags: unknown) =>
         (
-          config as ProgramConfigWithFlags<
+          config as ApplicationConfigWithFlags<
             Model,
             Message,
             Flags,
@@ -1704,7 +1818,174 @@ export function makeProgram<
       flags: Effect.succeed(undefined),
       init: () =>
         (
-          config as ProgramConfig<
+          config as ApplicationConfig<
+            Model,
+            Message,
+            Resources,
+            ManagedResourceServices
+          >
+        ).init(),
+    } as RuntimeConfig<
+      Model,
+      Message,
+      void,
+      Resources,
+      ManagedResourceServices
+    >)
+  }
+  /* eslint-enable @typescript-eslint/consistent-type-assertions */
+}
+
+const toCrashConfig = <Model, Message>(
+  nullableCrash: ElementCrashConfig<Model, Message> | undefined,
+): CrashConfig<Model, Message> | undefined => {
+  if (Predicate.isUndefined(nullableCrash)) {
+    return undefined
+  }
+
+  const elementCrashView = nullableCrash.view
+
+  return {
+    ...(Predicate.isNotUndefined(elementCrashView) && {
+      view: (context: CrashContext<Model, Message>): Document => ({
+        title: '',
+        body: elementCrashView(context),
+      }),
+    }),
+    ...(Predicate.isNotUndefined(nullableCrash.report) && {
+      report: nullableCrash.report,
+    }),
+  }
+}
+
+/**
+ * Creates a Foldkit app scoped to its container and returns a runtime that
+ * can be passed to `run`.
+ *
+ * Unlike `makeApplication`, the `view` returns `Html` directly rather than a
+ * `Document`, and the runtime never touches the document `<head>`. This lets a
+ * Foldkit app be embedded at a node (a widget on a page it does not own)
+ * without clobbering the host page's `title`, `canonical`, or `og:url`. Use
+ * `makeApplication` when the app owns the page and should manage those tags, and
+ * `makeElement` when it is one component among others on a page it does not
+ * control. Embedded apps do not own the URL bar, so `makeElement` has no
+ * `routing` config.
+ */
+export function makeElement<
+  Model,
+  Message extends { _tag: string },
+  Flags,
+  Resources = never,
+  ManagedResourceServices = never,
+>(
+  config: ElementConfigWithFlags<
+    Model,
+    Message,
+    Flags,
+    Resources,
+    ManagedResourceServices
+  >,
+): MakeRuntimeReturn
+
+export function makeElement<
+  Model,
+  Message extends { _tag: string },
+  Resources = never,
+  ManagedResourceServices = never,
+>(
+  config: ElementConfig<Model, Message, Resources, ManagedResourceServices>,
+): MakeRuntimeReturn
+
+export function makeElement<
+  Model,
+  Message extends { _tag: string },
+  Flags,
+  Resources = never,
+  ManagedResourceServices = never,
+>(
+  config:
+    | ElementConfigWithFlags<
+        Model,
+        Message,
+        Flags,
+        Resources,
+        ManagedResourceServices
+      >
+    | ElementConfig<Model, Message, Resources, ManagedResourceServices>,
+): MakeRuntimeReturn {
+  const { container } = config
+  if (container === null) {
+    throw new Error(
+      '[foldkit] Container is null. Make sure the element exists in the DOM ' +
+        'before calling makeElement (e.g. that your <div id="root"></div> has ' +
+        'rendered, and your script runs after it).',
+    )
+  }
+
+  const hasFlags = 'Flags' in config
+
+  const elementView = config.view
+  const view = (model: Model): Document => ({
+    title: '',
+    body: elementView(model),
+  })
+
+  const nullableCrash = toCrashConfig(config.crash)
+
+  const baseConfig = {
+    Model: config.Model,
+    update: config.update,
+    view,
+    manageDocument: false,
+    ...(config.subscriptions && { subscriptions: config.subscriptions }),
+    container,
+    ...(Predicate.isNotUndefined(nullableCrash) && { crash: nullableCrash }),
+    ...(Predicate.isNotUndefined(config.slowView) && {
+      slowView: config.slowView,
+    }),
+    ...(Predicate.isNotUndefined(config.freezeModel) && {
+      freezeModel: config.freezeModel,
+    }),
+    ...(config.resources && { resources: config.resources }),
+    ...(config.managedResources && {
+      managedResources: config.managedResources,
+    }),
+    ...(Predicate.isNotUndefined(config.devTools) && {
+      devTools: config.devTools,
+    }),
+  }
+
+  /* eslint-disable @typescript-eslint/consistent-type-assertions */
+  if (hasFlags) {
+    return makeRuntime({
+      ...baseConfig,
+      Flags: config.Flags,
+      flags: config.flags,
+      init: (flags: unknown) =>
+        (
+          config as ElementConfigWithFlags<
+            Model,
+            Message,
+            Flags,
+            Resources,
+            ManagedResourceServices
+          >
+        ).init(flags as Flags),
+    } as RuntimeConfig<
+      Model,
+      Message,
+      Flags,
+      Resources,
+      ManagedResourceServices
+    >)
+  } else {
+    return makeRuntime({
+      ...baseConfig,
+      Flags: Schema.Void,
+      flags: Effect.succeed(undefined),
+      init: () =>
+        (
+          config as ElementConfig<
             Model,
             Message,
             Resources,

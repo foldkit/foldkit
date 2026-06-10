@@ -7,7 +7,7 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const program = Runtime.makeProgram({
+const program = Runtime.makeApplication({
   Model,
   init,
   update,

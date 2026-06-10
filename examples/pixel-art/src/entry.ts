@@ -11,7 +11,7 @@ import {
   view,
 } from './main'
 
-const program = Runtime.makeProgram({
+const program = Runtime.makeApplication({
   Model,
   Flags,
   flags,

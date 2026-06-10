@@ -15,7 +15,7 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-export const init: Runtime.ProgramInit<Model, Message> = () => [
+export const init: Runtime.ApplicationInit<Model, Message> = () => [
   {
     particles: [],
     nextId: 0,

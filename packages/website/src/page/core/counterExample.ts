@@ -57,7 +57,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         inlineCode('entry.ts'),
         ' is the only place runtime side effects happen. ',
-        inlineCode('Runtime.makeProgram'),
+        inlineCode('Runtime.makeApplication'),
         ' bundles the pieces together. ',
         inlineCode('Runtime.run'),
         ' starts the app.',

@@ -198,7 +198,9 @@ const routeToBrowseFields = (route: AppRoute): BrowseFields =>
     M.orElse(() => emptyBrowseFields),
   )
 
-export const init: Runtime.RoutingProgramInit<Model, Message> = (url: Url) => {
+export const init: Runtime.RoutingApplicationInit<Model, Message> = (
+  url: Url,
+) => {
   const route = urlToAppRoute(url)
   const fields = routeToBrowseFields(route)
 

@@ -39,7 +39,7 @@ export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
 
 // INIT
 
-export const init: Runtime.ProgramInit<Model, Message, Flags> = flags => [
+export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => [
   {
     grid: Option.match(flags.maybeSavedCanvas, {
       onNone: () => createEmptyGrid(DEFAULT_GRID_SIZE),

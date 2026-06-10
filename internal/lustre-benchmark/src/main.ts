@@ -87,7 +87,7 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init: Runtime.ProgramInit<Model, Message> = () => [
+export const init: Runtime.ApplicationInit<Model, Message> = () => [
   {
     todos: [],
     newTodoText: '',

@@ -4,7 +4,7 @@ import { describe, it } from 'vitest'
 import { Document, __requireDispatch, html } from '../html/index.js'
 import { m } from '../message/index.js'
 import { type EnvelopedMessage, orderByPriority } from './messagePriority.js'
-import { makeProgram } from './runtime.js'
+import { makeApplication } from './runtime.js'
 
 /**
  * Internal dispatch-throughput benchmark. Skipped by default to keep CI
@@ -75,7 +75,7 @@ const runOnce = async (messageCount: number): Promise<number> => {
     capturedDispatch = d
   }
 
-  const program = makeProgram<Model, Message>({
+  const program = makeApplication<Model, Message>({
     Model,
     init,
     update,

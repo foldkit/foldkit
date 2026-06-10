@@ -2,7 +2,7 @@ import { Effect, Fiber } from 'effect'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import type { Command } from '../../command/index.js'
-import { makeProgram } from '../../runtime/index.js'
+import { makeApplication } from '../../runtime/index.js'
 import * as App from './crashOnRender.js'
 
 let runningFiber: Fiber.Fiber<void> | null = null
@@ -15,7 +15,7 @@ const boot = (
   container.id = 'app'
   document.body.appendChild(container)
 
-  const program = makeProgram<App.Model, App.Message>({
+  const program = makeApplication<App.Model, App.Message>({
     Model: App.Model,
     init: () => [initialModel, commands],
     update: App.update,

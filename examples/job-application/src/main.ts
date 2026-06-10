@@ -41,7 +41,7 @@ export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
 
 // INIT
 
-export const init: Runtime.ProgramInit<Model, Message, Flags> = ({
+export const init: Runtime.ApplicationInit<Model, Message, Flags> = ({
   today,
   initialWorkHistoryEntryId,
   initialEducationEntryId,

@@ -25,7 +25,6 @@ import { lockScroll, unlockScroll } from '../dom/scrollLock.js'
 import { OptionExt } from '../effectExtensions/index.js'
 import {
   DEVTOOLS_HOST_ID,
-  type Document,
   type Html,
   childAttributes,
   createKeyedLazy,
@@ -33,7 +32,7 @@ import {
   html,
 } from '../html/index.js'
 import { m } from '../message/index.js'
-import { makeProgram } from '../runtime/runtime.js'
+import { makeElement } from '../runtime/runtime.js'
 import type { DevToolsMode, DevToolsPosition } from '../runtime/runtime.js'
 import * as Subscription from '../runtime/subscription.js'
 import { evo } from '../struct/index.js'
@@ -823,7 +822,7 @@ const makeView = (
   mode: DevToolsMode,
   shadow: ShadowRoot,
   maybeBanner: Option.Option<string>,
-): ((model: Model) => Document) => {
+): ((model: Model) => Html) => {
   const h = html<Message>()
 
   const lazyTreeNode = createKeyedLazy()
@@ -2112,9 +2111,8 @@ const makeView = (
 
   const interactionBlocker = h.div([h.Class('dt-interaction-blocker')], [])
 
-  return (model: Model): Document => ({
-    title: 'Foldkit DevTools',
-    body: h.div(
+  return (model: Model): Html =>
+    h.div(
       [],
       [
         ...OptionExt.when(
@@ -2124,8 +2122,7 @@ const makeView = (
         ...OptionExt.when(model.isOpen, panelView(model)).pipe(Option.toArray),
         badgeView(model),
       ],
-    ),
-  })
+    )
 }
 
 // CREATE
@@ -2224,7 +2221,7 @@ export const createOverlay = (
       ]
     }
 
-    const overlayRuntime = makeProgram({
+    const overlayRuntime = makeElement({
       Model,
       Flags,
       flags,

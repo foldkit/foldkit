@@ -212,7 +212,7 @@ export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   return { today }
 })
 
-export const init: Runtime.RoutingProgramInit<Model, Message, Flags> = (
+export const init: Runtime.RoutingApplicationInit<Model, Message, Flags> = (
   flags: Flags,
   url: Url,
 ) => {

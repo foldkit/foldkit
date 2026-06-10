@@ -127,7 +127,11 @@ export type Child = Html | string
  *  the application container.
  *
  *  When `canonical` is omitted, it defaults to the current URL (origin +
- *  pathname + search). When `ogUrl` is omitted, it falls back to `canonical`. */
+ *  pathname + search). When `ogUrl` is omitted, it falls back to `canonical`.
+ *
+ *  This is the return type of a `makeApplication` view, which owns the document. An
+ *  app embedded at a node should use `makeElement` instead, whose view returns
+ *  `Html` and never touches the `<head>`. */
 export type Document = Readonly<{
   title: string
   canonical?: string

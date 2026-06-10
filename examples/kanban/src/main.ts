@@ -33,7 +33,7 @@ export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
 
 // INIT
 
-export const init: Runtime.ProgramInit<Model, Message, Flags> = flags => {
+export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => {
   const columns = Option.match(flags.maybeSavedBoard, {
     onNone: () => DEFAULT_COLUMNS,
     onSome: ({ columns }) => columns,

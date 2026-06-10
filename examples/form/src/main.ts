@@ -100,7 +100,7 @@ export const initialModel: Model = {
   submission: NotSubmitted(),
 }
 
-export const init: Runtime.ProgramInit<Model, Message> = () => [
+export const init: Runtime.ApplicationInit<Model, Message> = () => [
   initialModel,
   [],
 ]

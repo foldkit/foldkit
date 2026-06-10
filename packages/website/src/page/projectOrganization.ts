@@ -68,7 +68,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ': Model, Messages, init, update, and view. A separate ',
         inlineCode('entry.ts'),
         ' imports those definitions and boots the runtime with ',
-        inlineCode('Runtime.makeProgram'),
+        inlineCode('Runtime.makeApplication'),
         ' and ',
         inlineCode('Runtime.run'),
         '. The split keeps ',

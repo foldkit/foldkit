@@ -141,7 +141,7 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   return Flags({ createdAt: now })
 })
 
-const init: Runtime.ProgramInit<Model, Message, Flags> = (flags) => [
+const init: Runtime.ApplicationInit<Model, Message, Flags> = (flags) => [
   { createdAt: flags.createdAt },
   [],
 ]
@@ -154,10 +154,10 @@ Flags are an `Effect<Flags>`. The runtime executes them once before init, and pa
 - Reading browser capabilities (`navigator.language`, `matchMedia`)
 - Decoding data embedded in the HTML (`<script type="application/json">`)
 
-Pass `Flags` and `flags` to `Runtime.makeProgram`:
+Pass `Flags` and `flags` to `Runtime.makeApplication`:
 
 ```ts
-const program = Runtime.makeProgram({
+const program = Runtime.makeApplication({
   Model,
   Flags,
   flags,
@@ -312,14 +312,14 @@ Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, o
 
 ## With and Without URL Routing
 
-`Runtime.makeProgram` handles both cases. Add a `routing` config when the app needs URL routing.
+`Runtime.makeApplication` handles both cases. Add a `routing` config when the app needs URL routing.
 
 ### Without Routing
 
-For self-contained widgets, embedded components, or single-page apps without navigation. init receives only flags (if any):
+For single-page apps that own the page but don't navigate. init receives only flags (if any):
 
 ```ts
-const program = Runtime.makeProgram({
+const program = Runtime.makeApplication({
   Model,
   init,
   update,
@@ -335,12 +335,11 @@ Runtime.run(program)
 For apps with pages, navigation, and URL-driven state. init receives flags (if any) and the current URL. Add a `routing` config with two Message constructors:
 
 ```ts
-const program = Runtime.makeProgram({
+const program = Runtime.makeApplication({
   Model,
   init,
   update,
   view,
-  title: model => routeTitle(model.route),
   container: document.getElementById('root'),
   routing: {
     onUrlRequest: request => ClickedLink({ request }),
@@ -351,9 +350,27 @@ const program = Runtime.makeProgram({
 Runtime.run(program)
 ```
 
+### Scoped to a Node (Embedded Widgets)
+
+`makeApplication` assumes it owns the page: its `view` returns a `Document` (`{ title, canonical?, ogUrl?, body }`) and the runtime writes `document.title` and manages the canonical / og:url tags on every render. For a widget embedded on a page you do not control, that clobbers the host page's metadata.
+
+Use `Runtime.makeElement` instead. Its `view` returns `Html` directly (no title to discard) and the runtime never touches the document `<head>`. Everything else (Model, init, update, Commands, Subscriptions, flags, crash handling) is identical. Embedded apps don't own the URL bar, so `makeElement` has no `routing` config.
+
+```ts
+const program = Runtime.makeElement({
+  Model,
+  init,
+  update,
+  view, // view: (model) => Html
+  container: document.getElementById('widget'),
+})
+
+Runtime.run(program)
+```
+
 ### Document Title
 
-Pass a `title` function to set `document.title` after every render. It receives the current Model and returns a string. This is optional. Programs that omit `title` don't touch the document title, which is the right default for embedded widgets. The `title` function is independent of `routing`. Non-routed programs can set titles based on any model state (e.g. a game showing "Level 3" or "Game Over").
+With `makeApplication`, the `view` returns a `Document`. The runtime sets `document.title` from its `title` field after every render and syncs the canonical / og:url tags (both default to the current URL when omitted). With `makeElement`, there is no title or head management at all.
 
 `onUrlRequest` fires when the user clicks a link. The Message receives a `UrlRequest` (a tagged union from the `Navigation` namespace) which you handle in update by matching on its `_tag`. `onUrlChange` fires when the browser URL changes (back/forward buttons); the handler updates the route from the new URL.
 
@@ -361,5 +378,6 @@ For the canonical update-handler shapes (the exact `UrlRequest` tag names, how t
 
 ### How to Choose
 
-- Description mentions "pages", "navigation", "routes", URLs → add `routing` config
-- Everything else → omit `routing`
+- App is a widget embedded on a page it does not own (must not touch the host `<head>`) → `makeElement`
+- App owns the page and mentions "pages", "navigation", "routes", URLs → `makeApplication` with `routing` config
+- App owns the page with no navigation → `makeApplication` without `routing`

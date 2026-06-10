@@ -49,7 +49,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'By default, Foldkit shows a built-in crash screen with the error message and a reload button. Pass a ',
         inlineCode('crash.view'),
         ' function to ',
-        inlineCode('makeProgram'),
+        inlineCode('makeApplication'),
         ' to customize it. It receives a ',
         inlineCode('CrashContext'),
         ' containing the ',

@@ -39,7 +39,7 @@ const crashView = ({
   }
 }
 
-const program = Runtime.makeProgram({
+const program = Runtime.makeApplication({
   Model,
   init,
   update,

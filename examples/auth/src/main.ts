@@ -59,7 +59,7 @@ const RedirectToDashboard = Command.define(
 type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withInitReturn = M.withReturnType<InitReturn>()
 
-export const init: Runtime.RoutingProgramInit<Model, Message, Flags> = (
+export const init: Runtime.RoutingApplicationInit<Model, Message, Flags> = (
   flags: Flags,
   url: Url,
 ): InitReturn => {

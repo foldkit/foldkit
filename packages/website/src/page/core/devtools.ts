@@ -120,7 +120,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'DevTools are enabled by default in development. Pass a ',
         inlineCode('devTools'),
         ' object to ',
-        inlineCode('makeProgram'),
+        inlineCode('makeApplication'),
         ' to configure behavior:',
       ),
       highlightedCodeBlock(

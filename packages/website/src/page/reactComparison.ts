@@ -550,7 +550,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'No refs. No manual memoization at the component boundary. No prop threading. The ',
         inlineCode('init'),
         ' function returns the initial Model and an empty list of startup Commands. ',
-        inlineCode('Runtime.makeProgram'),
+        inlineCode('Runtime.makeApplication'),
         ' takes the Model schema, init, update, view, and subscriptions, plus the Flags schema and DOM container. ',
         inlineCode('Runtime.run'),
         ' starts it. The runtime handles event dispatch, memoization, and side effect execution. You declare what the program is. The framework runs it.',
