@@ -1,16 +1,17 @@
-import { Scene } from 'foldkit'
+import { DataCommand, Scene } from 'foldkit'
 import { Valid } from 'foldkit/fieldValidation'
 import { describe, test } from 'vitest'
 
-import { SaveSession } from '../../../command'
+import { execute } from '../../../command'
+import type { Message as RootMessage } from '../../../message'
 import {
   CompletedNavigateInternal,
   GotLoggedOutMessage,
   SucceededSaveSession,
 } from '../../../message'
-import { LoggedOut } from '../../../model'
+import { LoggedOut, type Model as RootModel } from '../../../model'
 import { LoginRoute } from '../../../route'
-import { RedirectToDashboard, update } from '../../../update'
+import { update } from '../../../update'
 import { view } from '../../../view'
 import { GotLoginMessage } from '../message'
 import {
@@ -18,8 +19,17 @@ import {
   Message,
   SimulateAuthRequest,
   SucceededSimulateAuthRequest,
+  execute as executeLogin,
   initModel as initLoginModel,
 } from './login'
+
+const interpretAll = DataCommand.toCommands(execute)
+const interpretLogin = DataCommand.toCommand(executeLogin)
+
+const interpretedUpdate = (model: RootModel, message: RootMessage) => {
+  const [nextModel, commands] = update(model, message)
+  return [nextModel, interpretAll(commands)] as const
+}
 
 const toLoginMessage = (message: Message) =>
   GotLoggedOutMessage({ message: GotLoginMessage({ message }) })
@@ -37,10 +47,15 @@ const validModel = LoggedOut.Model({
 
 const aliceSession = { userId: '1', email: 'alice@example.com', name: 'alice' }
 
+const validAuthRequest = SimulateAuthRequest({
+  email: 'alice@example.com',
+  password: 'password',
+})
+
 describe('login scene', () => {
   test('initial view renders form with sign in heading, inputs, and submit button', () => {
     Scene.scene(
-      { update, view },
+      { update: interpretedUpdate, view },
       Scene.with(initialModel),
       Scene.expect(Scene.role('heading', { name: 'Sign In' })).toExist(),
       Scene.expect(Scene.label('Email')).toExist(),
@@ -51,7 +66,7 @@ describe('login scene', () => {
 
   test('typing a valid email shows checkmark', () => {
     Scene.scene(
-      { update, view },
+      { update: interpretedUpdate, view },
       Scene.with(initialModel),
       Scene.type(Scene.label('Email'), 'alice@example.com'),
       Scene.expect(Scene.text('✓')).toExist(),
@@ -60,7 +75,7 @@ describe('login scene', () => {
 
   test('typing an invalid email shows error message', () => {
     Scene.scene(
-      { update, view },
+      { update: interpretedUpdate, view },
       Scene.with(initialModel),
       Scene.type(Scene.label('Email'), 'notanemail'),
       Scene.expect(Scene.text('Please enter a valid email')).toExist(),
@@ -69,7 +84,7 @@ describe('login scene', () => {
 
   test('submit button is enabled after typing valid email and password', () => {
     Scene.scene(
-      { update, view },
+      { update: interpretedUpdate, view },
       Scene.with(initialModel),
       Scene.type(Scene.label('Email'), 'alice@example.com'),
       Scene.type(Scene.label('Password'), 'password'),
@@ -79,16 +94,16 @@ describe('login scene', () => {
 
   test('submitting with valid fields shows loading state', () => {
     Scene.scene(
-      { update, view },
+      { update: interpretedUpdate, view },
       Scene.with(validModel),
       Scene.submit(Scene.role('form')),
       Scene.expect(Scene.role('button', { name: 'Signing in...' })).toExist(),
       Scene.expect(
         Scene.role('button', { name: 'Signing in...' }),
       ).toBeDisabled(),
-      Scene.Command.expectExact(SimulateAuthRequest),
+      Scene.Command.expectExact({ name: 'SimulateAuthRequest' }),
       Scene.Command.resolve(
-        SimulateAuthRequest,
+        interpretLogin(validAuthRequest),
         FailedSimulateAuthRequest({ error: '' }),
         toLoginMessage,
       ),
@@ -97,12 +112,12 @@ describe('login scene', () => {
 
   test('failed auth shows error text', () => {
     Scene.scene(
-      { update, view },
+      { update: interpretedUpdate, view },
       Scene.with(validModel),
       Scene.submit(Scene.role('form')),
-      Scene.Command.expectExact(SimulateAuthRequest),
+      Scene.Command.expectExact({ name: 'SimulateAuthRequest' }),
       Scene.Command.resolve(
-        SimulateAuthRequest,
+        interpretLogin(validAuthRequest),
         FailedSimulateAuthRequest({ error: 'Invalid credentials' }),
         toLoginMessage,
       ),
@@ -115,19 +130,22 @@ describe('login scene', () => {
 
   test('successful login transitions to dashboard', () => {
     Scene.scene(
-      { update, view },
+      { update: interpretedUpdate, view },
       Scene.with(validModel),
       Scene.submit(Scene.role('form')),
-      Scene.Command.expectExact(SimulateAuthRequest),
+      Scene.Command.expectExact({ name: 'SimulateAuthRequest' }),
       Scene.Command.resolve(
-        SimulateAuthRequest,
+        interpretLogin(validAuthRequest),
         SucceededSimulateAuthRequest({ session: aliceSession }),
         toLoginMessage,
       ),
-      Scene.Command.expectExact(SaveSession, RedirectToDashboard),
+      Scene.Command.expectExact(
+        { name: 'SaveSession' },
+        { name: 'RedirectToDashboard' },
+      ),
       Scene.Command.resolveAll(
-        [SaveSession, SucceededSaveSession()],
-        [RedirectToDashboard, CompletedNavigateInternal()],
+        [{ name: 'SaveSession' }, SucceededSaveSession()],
+        [{ name: 'RedirectToDashboard' }, CompletedNavigateInternal()],
       ),
       Scene.expect(Scene.text('Welcome back, alice!')).toExist(),
     )

@@ -1,21 +1,13 @@
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Effect, Match as M, Option, Schema as S } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
-import { Command, Runtime } from 'foldkit'
-import { replaceUrl } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
 
+import { Command, RedirectToDashboard, RedirectToLogin } from './command'
 import { SESSION_STORAGE_KEY } from './constant'
 import { Session } from './domain/session'
-import { CompletedNavigateInternal, Message } from './message'
 import { LoggedIn, LoggedOut, Model } from './model'
-import {
-  DashboardRoute,
-  LoginRoute,
-  dashboardRouter,
-  loginRouter,
-  urlToAppRoute,
-} from './route'
+import { DashboardRoute, LoginRoute, urlToAppRoute } from './route'
 
 // FLAGS
 
@@ -42,27 +34,12 @@ export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
 
 export type Flags = typeof Flags.Type
 
-// COMMAND
-
-const RedirectToLogin = Command.define(
-  'RedirectToLogin',
-  CompletedNavigateInternal,
-)(replaceUrl(loginRouter()).pipe(Effect.as(CompletedNavigateInternal())))
-
-const RedirectToDashboard = Command.define(
-  'RedirectToDashboard',
-  CompletedNavigateInternal,
-)(replaceUrl(dashboardRouter()).pipe(Effect.as(CompletedNavigateInternal())))
-
 // INIT
 
-type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+type InitReturn = [Model, ReadonlyArray<Command>]
 const withInitReturn = M.withReturnType<InitReturn>()
 
-export const init: Runtime.RoutingProgramInit<Model, Message, Flags> = (
-  flags: Flags,
-  url: Url,
-): InitReturn => {
+export const init = (flags: Flags, url: Url): InitReturn => {
   const route = urlToAppRoute(url)
 
   return Option.match(flags.maybeSession, {

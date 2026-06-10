@@ -1,55 +1,24 @@
-import { Effect, Match as M, Option, Schema as S } from 'effect'
-import { Command } from 'foldkit'
-import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
+import { Array, Match as M, Option } from 'effect'
 import { evo } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
-import { ClearSession, LogError, SaveSession } from './command'
 import {
-  CompletedLoadExternal,
-  CompletedNavigateInternal,
-  GotLoggedInMessage,
-  GotLoggedOutMessage,
-  Message,
-} from './message'
+  ClearSession,
+  Command,
+  LiftLoggedOut,
+  LoadExternal,
+  LogError,
+  NavigateInternal,
+  RedirectToDashboard,
+  RedirectToHome,
+  RedirectToLogin,
+  SaveSession,
+} from './command'
+import { Message } from './message'
 import { LoggedIn, LoggedOut, Model } from './model'
-import {
-  DashboardRoute,
-  HomeRoute,
-  dashboardRouter,
-  homeRouter,
-  loginRouter,
-  urlToAppRoute,
-} from './route'
+import { DashboardRoute, HomeRoute, urlToAppRoute } from './route'
 
-const NavigateInternal = Command.define(
-  'NavigateInternal',
-  { url: S.String },
-  CompletedNavigateInternal,
-)(({ url }) => pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())))
-
-const LoadExternal = Command.define(
-  'LoadExternal',
-  { href: S.String },
-  CompletedLoadExternal,
-)(({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())))
-
-const RedirectToLogin = Command.define(
-  'RedirectToLogin',
-  CompletedNavigateInternal,
-)(replaceUrl(loginRouter()).pipe(Effect.as(CompletedNavigateInternal())))
-
-export const RedirectToDashboard = Command.define(
-  'RedirectToDashboard',
-  CompletedNavigateInternal,
-)(replaceUrl(dashboardRouter()).pipe(Effect.as(CompletedNavigateInternal())))
-
-const RedirectToHome = Command.define(
-  'RedirectToHome',
-  CompletedNavigateInternal,
-)(replaceUrl(homeRouter()).pipe(Effect.as(CompletedNavigateInternal())))
-
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = readonly [Model, ReadonlyArray<Command>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const update = (model: Model, message: Message): UpdateReturn =>
@@ -146,12 +115,12 @@ const handleGotLoggedOutMessage = (
     message,
   )
 
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotLoggedOutMessage({ message }),
+  const liftedCommands = Array.map(commands, command =>
+    LiftLoggedOut({ command }),
   )
 
   return Option.match(maybeOutMessage, {
-    onNone: () => [nextModel, mappedCommands],
+    onNone: () => [nextModel, liftedCommands],
     onSome: outMessage =>
       M.value(outMessage).pipe(
         withUpdateReturn,
@@ -159,7 +128,7 @@ const handleGotLoggedOutMessage = (
           SucceededLogin: ({ session }) => [
             LoggedIn.init(DashboardRoute(), session),
             [
-              ...mappedCommands,
+              ...liftedCommands,
               SaveSession({ session }),
               RedirectToDashboard(),
             ],
@@ -179,19 +148,15 @@ const handleGotLoggedInMessage = (
 
   const [nextModel, commands, maybeOutMessage] = LoggedIn.update(model, message)
 
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotLoggedInMessage({ message }),
-  )
-
   return Option.match(maybeOutMessage, {
-    onNone: () => [nextModel, mappedCommands],
+    onNone: () => [nextModel, commands],
     onSome: outMessage =>
       M.value(outMessage).pipe(
         withUpdateReturn,
         M.tagsExhaustive({
           RequestedLogout: () => [
             LoggedOut.init(HomeRoute()),
-            [...mappedCommands, ClearSession(), RedirectToHome()],
+            [...commands, ClearSession(), RedirectToHome()],
           ],
         }),
       ),

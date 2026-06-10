@@ -1,12 +1,11 @@
 import { Match as M, Option } from 'effect'
-import { Command } from 'foldkit'
 
 import { Message, type OutMessage, RequestedLogout } from './message'
 import { Model } from './model'
 
 type UpdateReturn = readonly [
   Model,
-  ReadonlyArray<Command.Command<Message>>,
+  ReadonlyArray<never>,
   Option.Option<OutMessage>,
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()

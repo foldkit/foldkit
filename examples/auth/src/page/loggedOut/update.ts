@@ -1,5 +1,6 @@
-import { Match as M, Option } from 'effect'
-import { Command } from 'foldkit'
+import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
+import { DataCommand } from 'foldkit'
+import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 
 import {
@@ -11,9 +12,28 @@ import {
 import { Model } from './model'
 import * as Login from './page/login'
 
+// COMMAND
+
+export const LiftLogin = ts('LiftLogin', { command: Login.Command })
+
+export const Command = S.Union([LiftLogin])
+export type Command = typeof Command.Type
+
+export const execute = (command: Command): Effect.Effect<Message> =>
+  M.value(command).pipe(
+    M.tagsExhaustive({
+      LiftLogin: ({ command }) =>
+        DataCommand.delegate(Login.execute, message =>
+          GotLoginMessage({ message }),
+        )(command),
+    }),
+  )
+
+// UPDATE
+
 type UpdateReturn = readonly [
   Model,
-  ReadonlyArray<Command.Command<Message>>,
+  ReadonlyArray<Command>,
   Option.Option<OutMessage>,
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
@@ -28,13 +48,13 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           message,
         )
 
-        const mappedCommands = Command.mapMessages(commands, message =>
-          GotLoginMessage({ message }),
+        const liftedCommands = Array.map(commands, command =>
+          LiftLogin({ command }),
         )
 
         return [
           evo(model, { loginModel: () => loginModel }),
-          mappedCommands,
+          liftedCommands,
           Option.map(maybeOutMessage, ({ session }) =>
             SucceededLogin({ session }),
           ),

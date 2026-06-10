@@ -9,7 +9,7 @@ import {
   String,
   pipe,
 } from 'effect'
-import { Command, Submodel } from 'foldkit'
+import { Submodel } from 'foldkit'
 import {
   Field,
   Invalid,
@@ -21,6 +21,7 @@ import {
 } from 'foldkit/fieldValidation'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
+import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 
 import { Session } from '../../../domain/session'
@@ -89,40 +90,49 @@ const isFormValid = (model: Model): boolean =>
     [model.password, passwordRules],
   ])
 
+// COMMAND
+
+export const SimulateAuthRequest = ts('SimulateAuthRequest', {
+  email: S.String,
+  password: S.String,
+})
+
+export const Command = S.Union([SimulateAuthRequest])
+export type Command = typeof Command.Type
+
+export const execute = (command: Command): Effect.Effect<Message> =>
+  M.value(command).pipe(
+    M.tagsExhaustive({
+      SimulateAuthRequest: ({ email, password }) =>
+        Effect.gen(function* () {
+          yield* Effect.sleep(Duration.seconds(1))
+
+          if (password !== 'password') {
+            return FailedSimulateAuthRequest({ error: 'Invalid credentials' })
+          }
+
+          const name = pipe(
+            email,
+            String.split('@'),
+            Array.head,
+            Option.getOrElse(() => email),
+          )
+
+          const session: Session = { userId: '1', email, name }
+
+          return SucceededSimulateAuthRequest({ session })
+        }),
+    }),
+  )
+
 // UPDATE
 
 type UpdateReturn = readonly [
   Model,
-  ReadonlyArray<Command.Command<Message>>,
+  ReadonlyArray<Command>,
   Option.Option<OutMessage>,
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
-
-export const SimulateAuthRequest = Command.define(
-  'SimulateAuthRequest',
-  { email: S.String, password: S.String },
-  SucceededSimulateAuthRequest,
-  FailedSimulateAuthRequest,
-)(({ email, password }) =>
-  Effect.gen(function* () {
-    yield* Effect.sleep(Duration.seconds(1))
-
-    if (password !== 'password') {
-      return FailedSimulateAuthRequest({ error: 'Invalid credentials' })
-    }
-
-    const name = pipe(
-      email,
-      String.split('@'),
-      Array.head,
-      Option.getOrElse(() => email),
-    )
-
-    const session: Session = { userId: '1', email, name }
-
-    return SucceededSimulateAuthRequest({ session })
-  }),
-)
 
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
