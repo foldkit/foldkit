@@ -63,6 +63,7 @@ export const CoreCrashViewRoute = r('CoreCrashView')
 export const CoreSlowViewRoute = r('CoreSlowView')
 export const CoreFreezeModelRoute = r('CoreFreezeModel')
 export const CoreViewMemoizationRoute = r('CoreViewMemoization')
+export const CoreEmbeddingRoute = r('CoreEmbedding')
 export const CoreSubmodelRoute = r('CoreSubmodel')
 
 export const PatternsInformingSubmodelsRoute = r('PatternsInformingSubmodels')
@@ -149,6 +150,7 @@ export const DocsRoute = S.Union([
   CoreSlowViewRoute,
   CoreFreezeModelRoute,
   CoreViewMemoizationRoute,
+  CoreEmbeddingRoute,
   CoreSubmodelRoute,
   PatternsInformingSubmodelsRoute,
   PatternsSubscriptionOrganizationRoute,
@@ -339,6 +341,7 @@ export const coreViewMemoizationRouter = core(
   'view-memoization',
   CoreViewMemoizationRoute,
 )
+export const coreEmbeddingRouter = core('embedding', CoreEmbeddingRoute)
 export const coreSubmodelRouter = core('submodel', CoreSubmodelRoute)
 
 export const patternsInformingSubmodelsRouter = patterns(
@@ -428,6 +431,7 @@ const coreParser = oneOf(
   coreSlowViewRouter,
   coreFreezeModelRouter,
   coreViewMemoizationRouter,
+  coreEmbeddingRouter,
   coreSubmodelRouter,
   routingAndNavigationRouter,
   fieldValidationRouter,

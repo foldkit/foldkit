@@ -3,7 +3,7 @@ import { Runtime } from 'foldkit'
 import { Model, init, update } from './main'
 import { view } from './main.optimised'
 
-const program = Runtime.makeApplication({
+const application = Runtime.makeApplication({
   Model,
   init,
   update,
@@ -12,4 +12,4 @@ const program = Runtime.makeApplication({
   devTools: false,
 })
 
-Runtime.run(program)
+Runtime.run(application)

@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { Runtime } from 'foldkit'
 
-const program = Runtime.makeApplication({
+const application = Runtime.makeApplication({
   Model,
   init,
   update,
@@ -16,4 +16,4 @@ const program = Runtime.makeApplication({
   container: document.getElementById('root'),
 })
 
-Runtime.run(program)
+Runtime.run(application)

@@ -8,27 +8,37 @@ import { RoutingConfig } from './runtime.js'
 export const addNavigationEventListeners = <Message>(
   dispatch: (message: Message) => void,
   routingConfig: RoutingConfig<Message>,
-) => {
-  addPopStateListener(dispatch, routingConfig)
-  addLinkClickListener(dispatch, routingConfig)
-  addProgrammaticNavigationListener(dispatch, routingConfig)
+): (() => void) => {
+  const removePopStateListener = addPopStateListener(dispatch, routingConfig)
+  const removeLinkClickListener = addLinkClickListener(dispatch, routingConfig)
+  const removeProgrammaticNavigationListener =
+    addProgrammaticNavigationListener(dispatch, routingConfig)
+
+  return () => {
+    removePopStateListener()
+    removeLinkClickListener()
+    removeProgrammaticNavigationListener()
+  }
 }
 
 const addPopStateListener = <Message>(
   dispatch: (message: Message) => void,
   routingConfig: RoutingConfig<Message>,
-) => {
+): (() => void) => {
   const onPopState = () => {
     dispatch(routingConfig.onUrlChange(locationToUrl()))
   }
 
   window.addEventListener('popstate', onPopState)
+  return () => {
+    window.removeEventListener('popstate', onPopState)
+  }
 }
 
 export const addLinkClickListener = <Message>(
   dispatch: (message: Message) => void,
   routingConfig: RoutingConfig<Message>,
-) => {
+): (() => void) => {
   const onLinkClick = (event: MouseEvent) => {
     const isNonPrimaryButton = event.button !== 0
     const isModifierKeyPressed =
@@ -79,17 +89,23 @@ export const addLinkClickListener = <Message>(
   }
 
   document.addEventListener('click', onLinkClick)
+  return () => {
+    document.removeEventListener('click', onLinkClick)
+  }
 }
 
 const addProgrammaticNavigationListener = <Message>(
   dispatch: (message: Message) => void,
   routingConfig: RoutingConfig<Message>,
-) => {
+): (() => void) => {
   const onProgrammaticNavigation = () => {
     dispatch(routingConfig.onUrlChange(locationToUrl()))
   }
 
   window.addEventListener('foldkit:urlchange', onProgrammaticNavigation)
+  return () => {
+    window.removeEventListener('foldkit:urlchange', onProgrammaticNavigation)
+  }
 }
 
 const urlToFoldkitUrl = (url: URL): Url => {
@@ -107,13 +123,17 @@ const urlToFoldkitUrl = (url: URL): Url => {
 
 const locationToUrl = (): Url => urlToFoldkitUrl(new URL(window.location.href))
 
-export const addBfcacheRestoreListener = () => {
-  window.addEventListener(
-    'pageshow',
-    ({ persisted: isRestoredFromBfcache }) => {
-      if (isRestoredFromBfcache) {
-        location.reload()
-      }
-    },
-  )
+export const addBfcacheRestoreListener = (): (() => void) => {
+  const onPageShow = ({
+    persisted: isRestoredFromBfcache,
+  }: PageTransitionEvent): void => {
+    if (isRestoredFromBfcache) {
+      location.reload()
+    }
+  }
+
+  window.addEventListener('pageshow', onPageShow)
+  return () => {
+    window.removeEventListener('pageshow', onPageShow)
+  }
 }

@@ -2,7 +2,7 @@ import { Runtime } from 'foldkit'
 
 import { Model, init, update, view } from './main'
 
-const program = Runtime.makeElement({
+const element = Runtime.makeElement({
   Model,
   init,
   update,
@@ -10,4 +10,4 @@ const program = Runtime.makeElement({
   container: document.getElementById('widget'),
 })
 
-Runtime.run(program)
+Runtime.run(element)

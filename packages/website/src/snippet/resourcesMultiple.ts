@@ -1,7 +1,7 @@
 import { Layer } from 'effect'
 import { Runtime } from 'foldkit'
 
-const program = Runtime.makeApplication({
+const application = Runtime.makeApplication({
   Model,
   init,
   update,

@@ -8,6 +8,7 @@ import {
   Option,
   Order,
   Schema as S,
+  Scope,
   SubscriptionRef,
   pipe,
 } from 'effect'
@@ -122,7 +123,7 @@ export const startWebSocketBridge = (
   hot: Hot,
   dispatch: (message: unknown) => Effect.Effect<void>,
   maybeMessageSchema: Option.Option<S.Codec<any, any>>,
-): Effect.Effect<void> =>
+): Effect.Effect<void, never, Scope.Scope> =>
   Effect.gen(function* () {
     const connectionId = generateConnectionId()
     const capturedContext = yield* Effect.context<never>()
@@ -208,6 +209,18 @@ export const startWebSocketBridge = (
     })
 
     window.addEventListener('beforeunload', emitDisconnect, { once: true })
+
+    // NOTE: a disposed runtime must disconnect from the MCP relay and stop
+    // answering requests. Without this finalizer, every embed/dispose cycle
+    // would leave a ghost connection that keeps responding with the dead
+    // runtime's state.
+    yield* Effect.addFinalizer(() =>
+      Effect.sync(() => {
+        emitDisconnect()
+        hot.off(REQUEST_CHANNEL, handleRequestFrame)
+        window.removeEventListener('beforeunload', emitDisconnect)
+      }),
+    )
   })
 
 const presentResolution = (

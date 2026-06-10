@@ -227,6 +227,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'View Memoization',
     'Optimize rendering performance with memoized views.',
   ),
+  CoreEmbedding: core(
+    'Embedding',
+    'Run a Foldkit app inside a host application with a typed lifecycle handle and Ports.',
+  ),
   CoreSubmodel: core(
     'Submodel',
     'Compose applications from independent, encapsulated modules.',

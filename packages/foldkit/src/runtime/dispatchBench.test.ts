@@ -12,7 +12,7 @@ import { makeApplication } from './runtime.js'
  *
  *   RUN_RUNTIME_BENCH=1 pnpm vitest run src/runtime/dispatchBench.test.ts
  *
- * Constructs a minimal Foldkit program (counter Model, trivial view that
+ * Constructs a minimal Foldkit application (counter Model, trivial view that
  * captures the runtime dispatcher), starts it under happy-dom, then dispatches
  * N Messages from outside the runtime and measures wall-clock time for the
  * queue to drain. Also includes a pure-function microbenchmark of
@@ -75,7 +75,7 @@ const runOnce = async (messageCount: number): Promise<number> => {
     capturedDispatch = d
   }
 
-  const program = makeApplication<Model, Message>({
+  const application = makeApplication<Model, Message>({
     Model,
     init,
     update,
@@ -85,7 +85,7 @@ const runOnce = async (messageCount: number): Promise<number> => {
     freezeModel: false,
   })
 
-  Effect.runFork(program.start())
+  Effect.runFork(application.start())
 
   await new Promise<void>(resolve => {
     const wait = (): void => {

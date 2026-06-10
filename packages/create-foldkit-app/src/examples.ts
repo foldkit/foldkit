@@ -18,6 +18,7 @@ export const EXAMPLE_VALUES = [
   'websocket-chat',
   'kanban',
   'web-components',
+  'embedding',
   'ui-showcase',
 ] as const
 
@@ -131,6 +132,12 @@ export const examples: ReadonlyArray<{
     title: 'web-components',
     description:
       'QR code designer wiring two real third-party web components into Foldkit with CustomElement.define (vanilla-colorful and Shoelace)',
+  },
+  {
+    value: 'embedding',
+    title: 'embedding',
+    description:
+      'A Foldkit widget embedded in a plain TypeScript host page via Runtime.embed, with Flags in, typed Ports in both directions, and dispose on unmount',
   },
   {
     value: 'ui-showcase',

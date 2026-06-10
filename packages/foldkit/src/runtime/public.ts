@@ -1,4 +1,4 @@
-export { makeApplication, makeElement, run } from './runtime.js'
+export { embed, makeApplication, makeElement, run } from './runtime.js'
 
 export type {
   RoutingConfig,
@@ -14,6 +14,12 @@ export type {
   ApplicationInit,
   RoutingApplicationInit,
   ElementInit,
+  EmbedHandle,
+  InboundPortHandle,
+  InboundPortHandles,
+  OutboundPortHandle,
+  OutboundPortHandles,
+  PortHandles,
   MakeRuntimeReturn,
   Visibility,
   SlowViewContext,

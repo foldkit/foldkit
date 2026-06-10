@@ -21,6 +21,7 @@ Before writing any code, analyze the description to identify:
 7. **Form validation needs**: required fields, format checks, async uniqueness → `foldkit/fieldValidation` module (see Phase 4)
 8. **Date handling**: birthdays, deadlines, scheduling → `Calendar` module + `Ui.DatePicker` or `Ui.Calendar`
 9. **File handling**: uploads, attachments, images → `File` module + `Ui.FileDrop`
+10. **Host embedding**: the program runs inside another app ("a widget in our React app", "embed this in an existing page", "the host needs to control it") → `Runtime.makeElement` plus the `Runtime.embed` lifecycle handle, with Flags for initial data and Ports for ongoing communication in both directions. `repos/foldkit/examples/embedding/` is the canonical reference: a plain TypeScript host driving a Foldkit widget end to end
 
 Present this analysis to the user before proceeding.
 
@@ -527,7 +528,8 @@ For file uploads (resumes, images, attachments):
 - Use `Runtime.makeElement` for a widget embedded on a page it does not own. The `view` returns `Html` and the runtime never touches the document `<head>`. No `routing` config
 - See the With and Without URL Routing section in [architecture.md](architecture.md) for the full pattern
 - Include `ClickedLink` and `ChangedUrl` Messages for programs with routing, with proper `InternalUrl`/`ExternalUrl` handling in update
-- Always end with `Runtime.run(program)`
+- Always end with `Runtime.run(application)` for a page-owning app. When a host application controls the program's lifecycle, end with `Runtime.embed(element)` instead and hand the returned handle to the host; mirror `repos/foldkit/examples/embedding/src/host.ts` for the host side and its `main.ts` for the widget side
+- Name the variable holding a `makeApplication` result `application`, and the variable holding a `makeElement` result `element`
 
 ### Routes (if multi-page)
 

@@ -35,6 +35,7 @@ const loadersBySlug: Readonly<Record<string, SourceLoader | undefined>> = {
   'canvas-art': () => import('virtual:example-sources/canvas-art'),
   'generative-art': () => import('virtual:example-sources/generative-art'),
   'web-components': () => import('virtual:example-sources/web-components'),
+  embedding: () => import('virtual:example-sources/embedding'),
   'ui-showcase': () => import('virtual:example-sources/ui-showcase'),
 }
 

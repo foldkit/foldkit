@@ -15,7 +15,7 @@ const boot = (
   container.id = 'app'
   document.body.appendChild(container)
 
-  const program = makeApplication<App.Model, App.Message>({
+  const application = makeApplication<App.Model, App.Message>({
     Model: App.Model,
     init: () => [initialModel, commands],
     update: App.update,
@@ -24,7 +24,7 @@ const boot = (
     devTools: false,
   })
 
-  runningFiber = Effect.runFork(program.start())
+  runningFiber = Effect.runFork(application.start())
 }
 
 const waitForBodyText = async (

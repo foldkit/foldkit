@@ -23,7 +23,7 @@ import * as Search from './search'
 // union of every service the app uses, but inference walks the config
 // shape, not the Commands inside. The explicit generics tell TS the
 // full set so each Command's requirements stay assignable.
-const program = Runtime.makeApplication<
+const application = Runtime.makeApplication<
   typeof Model.Type,
   Message,
   typeof Flags.Type,
@@ -57,4 +57,4 @@ const program = Runtime.makeApplication<
   },
 })
 
-Runtime.run(program)
+Runtime.run(application)

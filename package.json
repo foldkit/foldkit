@@ -49,6 +49,7 @@
     "dev:example:canvas-art": "pnpm --filter canvas-art-example dev",
     "dev:example:generative-art": "pnpm --filter generative-art-example dev",
     "dev:example:web-components": "pnpm --filter web-components-example dev",
+    "dev:example:embedding": "pnpm --filter embedding-example dev",
     "dev:example:ui-showcase": "pnpm --filter ui-showcase dev",
     "changeset": "changeset",
     "version-packages": "changeset version && tsx scripts/reset-peer-deps.ts && pnpm install --no-frozen-lockfile",

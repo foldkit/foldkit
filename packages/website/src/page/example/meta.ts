@@ -23,6 +23,7 @@ export const ExampleSlug = S.Literals([
   'canvas-art',
   'generative-art',
   'web-components',
+  'embedding',
   'ui-showcase',
 ])
 export type ExampleSlug = typeof ExampleSlug.Type
@@ -215,6 +216,15 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'QR code designer wiring two real third-party web components into Foldkit with CustomElement.define. A hex color picker from vanilla-colorful emits color-changed CustomEvents that flow back as Messages, and the sl-qr-code element from Shoelace accepts typed properties. The picker and the QR never touch each other directly; they share state through the Model.',
     difficulty: 'Advanced',
     tags: ['Web Components', 'CustomElement', 'Third-Party Library'],
+    hasRouting: false,
+  },
+  {
+    slug: 'embedding',
+    title: 'Embedding',
+    description:
+      'A Foldkit widget embedded in a plain TypeScript host page through Runtime.embed. The host seeds initial state with Flags, pushes a step value in through an inbound Port, mirrors the count the widget emits through an outbound Port, and mounts and unmounts the widget with dispose. All communication crosses one Schema-typed handle; the host never touches the Model.',
+    difficulty: 'Advanced',
+    tags: ['Embedding', 'Ports', 'makeElement', 'Host Interop'],
     hasRouting: false,
   },
   {

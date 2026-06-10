@@ -6,6 +6,7 @@ import {
   Duration,
   Effect,
   Exit,
+  Fiber,
   Function,
   Layer,
   Match,
@@ -43,6 +44,15 @@ import {
 } from '../html/index.js'
 import { MountTracker } from '../mount/index.js'
 import { UrlRequest } from '../navigation/urlRequest.js'
+import {
+  type Inbound,
+  type Outbound,
+  type Ports,
+  __CurrentPortChannels,
+  type __InboundChannel,
+  type __PortChannels,
+  __makeInboundChannel,
+} from '../port/index.js'
 import { Url, fromString as urlFromString } from '../url/index.js'
 import { VNode, dedupeSharedVNodes, patch, toVNode } from '../vdom.js'
 import {
@@ -239,7 +249,9 @@ type RuntimeConfig<
   Flags,
   Resources = never,
   ManagedResourceServices = never,
+  P extends Ports | undefined = undefined,
 > = Readonly<{
+  ports: P
   Model: Schema.Codec<Model, any, unknown, unknown>
   Flags: Schema.Codec<Flags, any, unknown, unknown>
   flags: Effect.Effect<Flags>
@@ -315,6 +327,7 @@ type BaseApplicationConfig<
   Message,
   Resources = never,
   ManagedResourceServices = never,
+  P extends Ports | undefined = undefined,
 > = Readonly<{
   Model: Schema.Codec<Model, any, unknown, unknown>
   update: (
@@ -331,6 +344,7 @@ type BaseApplicationConfig<
     Resources | ManagedResourceServices
   >
   container: HTMLElement | null
+  ports?: P
   crash?: CrashConfig<Model, Message>
   slowView?: SlowViewConfig<Model, Message>
   freezeModel?: boolean
@@ -346,7 +360,14 @@ export type RoutingApplicationConfigWithFlags<
   Flags,
   Resources = never,
   ManagedResourceServices = never,
-> = BaseApplicationConfig<Model, Message, Resources, ManagedResourceServices> &
+  P extends Ports | undefined = undefined,
+> = BaseApplicationConfig<
+  Model,
+  Message,
+  Resources,
+  ManagedResourceServices,
+  P
+> &
   Readonly<{
     Flags: Schema.Codec<Flags, any, unknown, unknown>
     flags: Effect.Effect<Flags>
@@ -368,7 +389,14 @@ export type RoutingApplicationConfig<
   Message,
   Resources = never,
   ManagedResourceServices = never,
-> = BaseApplicationConfig<Model, Message, Resources, ManagedResourceServices> &
+  P extends Ports | undefined = undefined,
+> = BaseApplicationConfig<
+  Model,
+  Message,
+  Resources,
+  ManagedResourceServices,
+  P
+> &
   Readonly<{
     routing: RoutingConfig<Message>
     init: (
@@ -388,7 +416,14 @@ export type ApplicationConfigWithFlags<
   Flags,
   Resources = never,
   ManagedResourceServices = never,
-> = BaseApplicationConfig<Model, Message, Resources, ManagedResourceServices> &
+  P extends Ports | undefined = undefined,
+> = BaseApplicationConfig<
+  Model,
+  Message,
+  Resources,
+  ManagedResourceServices,
+  P
+> &
   Readonly<{
     Flags: Schema.Codec<Flags, any, unknown, unknown>
     flags: Effect.Effect<Flags>
@@ -408,7 +443,14 @@ export type ApplicationConfig<
   Message,
   Resources = never,
   ManagedResourceServices = never,
-> = BaseApplicationConfig<Model, Message, Resources, ManagedResourceServices> &
+  P extends Ports | undefined = undefined,
+> = BaseApplicationConfig<
+  Model,
+  Message,
+  Resources,
+  ManagedResourceServices,
+  P
+> &
   Readonly<{
     init: () => readonly [
       Model,
@@ -431,6 +473,7 @@ type BaseElementConfig<
   Message,
   Resources = never,
   ManagedResourceServices = never,
+  P extends Ports | undefined = undefined,
 > = Readonly<{
   Model: Schema.Codec<Model, any, unknown, unknown>
   update: (
@@ -447,6 +490,7 @@ type BaseElementConfig<
     Resources | ManagedResourceServices
   >
   container: HTMLElement | null
+  ports?: P
   crash?: ElementCrashConfig<Model, Message>
   slowView?: SlowViewConfig<Model, Message>
   freezeModel?: boolean
@@ -462,7 +506,8 @@ export type ElementConfigWithFlags<
   Flags,
   Resources = never,
   ManagedResourceServices = never,
-> = BaseElementConfig<Model, Message, Resources, ManagedResourceServices> &
+  P extends Ports | undefined = undefined,
+> = BaseElementConfig<Model, Message, Resources, ManagedResourceServices, P> &
   Readonly<{
     Flags: Schema.Codec<Flags, any, unknown, unknown>
     flags: Effect.Effect<Flags>
@@ -482,7 +527,8 @@ export type ElementConfig<
   Message,
   Resources = never,
   ManagedResourceServices = never,
-> = BaseElementConfig<Model, Message, Resources, ManagedResourceServices> &
+  P extends Ports | undefined = undefined,
+> = BaseElementConfig<Model, Message, Resources, ManagedResourceServices, P> &
   Readonly<{
     init: () => readonly [
       Model,
@@ -552,11 +598,292 @@ export type ElementInit<
   ManagedResourceServices = never,
 > = ApplicationInit<Model, Message, Flags, Resources, ManagedResourceServices>
 
-/** A configured Foldkit runtime returned by `makeApplication` or `makeElement`, passed to `run` to start the app. */
-export type MakeRuntimeReturn = Readonly<{
-  runtimeId: string
-  start: (hmrModel?: unknown) => Effect.Effect<void>
+/** A configured Foldkit runtime returned by `makeApplication` or `makeElement`.
+ *  Pass it to `run` to start a page-owning app, or to `embed` to start it under
+ *  a host-controlled lifecycle handle. `ports` is the Ports record from the
+ *  config (or `undefined` when the config declared none); it types the
+ *  `EmbedHandle` that `embed` returns. */
+export type MakeRuntimeReturn<P extends Ports | undefined = undefined> =
+  Readonly<{
+    runtimeId: string
+    start: (hmrModel?: unknown) => Effect.Effect<void>
+    ports: P
+  }>
+
+/** Host-side handle for one inbound Port. `send` validates the value by
+ *  decoding it against the Port's Schema: on success the decoded value enters
+ *  the app through the Port's Subscription; on failure nothing reaches the
+ *  app, the failure is logged, and the returned `Exit` carries the
+ *  `SchemaError`. Sends after `dispose` are no-ops. */
+export type InboundPortHandle<Encoded> = Readonly<{
+  send: (value: Encoded) => Exit.Exit<void, Schema.SchemaError>
 }>
+
+/** Host-side handle for one outbound Port. `subscribe` registers a listener
+ *  for the encoded values the app emits with `Port.emit` and returns an
+ *  unsubscribe function. Multiple listeners receive each value in
+ *  registration order. */
+export type OutboundPortHandle<Encoded> = Readonly<{
+  subscribe: (listener: (value: Encoded) => void) => () => void
+}>
+
+/** The inbound half of `PortHandles`: one `InboundPortHandle` per declared
+ *  inbound Port, keyed by Port name. */
+export type InboundPortHandles<InboundPorts> =
+  InboundPorts extends Readonly<Record<string, Inbound<any, any>>>
+    ? {
+        readonly [Name in keyof InboundPorts]: InboundPorts[Name] extends Inbound<
+          any,
+          infer Encoded
+        >
+          ? InboundPortHandle<Encoded>
+          : never
+      }
+    : unknown
+
+/** The outbound half of `PortHandles`: one `OutboundPortHandle` per declared
+ *  outbound Port, keyed by Port name. */
+export type OutboundPortHandles<OutboundPorts> =
+  OutboundPorts extends Readonly<Record<string, Outbound<any, any>>>
+    ? {
+        readonly [Name in keyof OutboundPorts]: OutboundPorts[Name] extends Outbound<
+          any,
+          infer Encoded
+        >
+          ? OutboundPortHandle<Encoded>
+          : never
+      }
+    : unknown
+
+/** The `ports` field of an `EmbedHandle`: one `InboundPortHandle` or
+ *  `OutboundPortHandle` per declared Port, keyed by Port name. */
+export type PortHandles<P extends Ports | undefined> = P extends Ports
+  ? InboundPortHandles<P['inbound']> & OutboundPortHandles<P['outbound']>
+  : unknown
+
+/**
+ * The handle returned by `embed`. The host talks to the embedded app only
+ * through it: `ports.<name>.send` pushes values in, `ports.<name>.subscribe`
+ * listens to values the app emits, and `dispose` shuts the runtime down.
+ *
+ * `dispose` is idempotent. It interrupts the runtime and runs all cleanup:
+ * Subscriptions, ManagedResources, Mounts, listeners, and in-flight Commands
+ * stop, and the rendered DOM is removed with the container element restored
+ * empty in its place, ready for a fresh `embed`.
+ */
+export type EmbedHandle<P extends Ports | undefined = undefined> = Readonly<{
+  ports: PortHandles<P>
+  dispose: () => void
+}>
+
+type HostConnector = Readonly<{
+  sendInbound: (
+    portName: string,
+    port: Inbound<any, any>,
+    value: unknown,
+  ) => Exit.Exit<void, Schema.SchemaError>
+  addListener: (
+    port: Outbound<any, any>,
+    listener: (encodedValue: unknown) => void,
+  ) => () => void
+  deliverOutbound: (port: Outbound<any, any>, encodedValue: unknown) => void
+  bind: (
+    deliverInbound: (port: Inbound<any, any>, value: unknown) => void,
+  ) => void
+  unbind: () => void
+  dispose: () => void
+}>
+
+const makeHostConnector = (): HostConnector => {
+  let isDisposed = false
+  let maybeDeliverInbound: Option.Option<
+    (port: Inbound<any, any>, value: unknown) => void
+  > = Option.none()
+  const pendingInboundSends: Array<{
+    port: Inbound<any, any>
+    value: unknown
+  }> = []
+  const listenersByPort = new Map<
+    Outbound<any, any>,
+    Set<(encodedValue: unknown) => void>
+  >()
+
+  const sendInbound = (
+    portName: string,
+    port: Inbound<any, any>,
+    value: unknown,
+  ): Exit.Exit<void, Schema.SchemaError> => {
+    if (isDisposed) {
+      return Exit.void
+    }
+    const decodeExit = Schema.decodeUnknownExit(port.schema)(value)
+    Exit.match(decodeExit, {
+      onFailure: cause => {
+        console.error(
+          `[foldkit] Inbound port "${portName}" rejected a value:`,
+          Cause.squash(cause),
+        )
+      },
+      onSuccess: decodedValue => {
+        Option.match(maybeDeliverInbound, {
+          onNone: () => {
+            pendingInboundSends.push({ port, value: decodedValue })
+          },
+          onSome: deliverInbound => deliverInbound(port, decodedValue),
+        })
+      },
+    })
+    return Exit.asVoid(decodeExit)
+  }
+
+  const addListener = (
+    port: Outbound<any, any>,
+    listener: (encodedValue: unknown) => void,
+  ): (() => void) => {
+    if (isDisposed) {
+      return Function.constVoid
+    }
+    const listeners = listenersByPort.get(port) ?? new Set()
+    listenersByPort.set(port, listeners)
+    listeners.add(listener)
+    return () => {
+      listeners.delete(listener)
+    }
+  }
+
+  // NOTE: delivery is deferred to a microtask so a host listener never runs
+  // inside the runtime's Command fiber (a listener that synchronously calls
+  // send or dispose must not re-enter the runtime), and so a host that
+  // subscribes synchronously right after embed() returns still receives
+  // emissions from init Commands.
+  const deliverOutbound = (
+    port: Outbound<any, any>,
+    encodedValue: unknown,
+  ): void => {
+    if (isDisposed) {
+      return
+    }
+    queueMicrotask(() => {
+      if (isDisposed) {
+        return
+      }
+      const listeners = listenersByPort.get(port) ?? new Set()
+      listeners.forEach(listener => {
+        try {
+          listener(encodedValue)
+        } catch (listenerError) {
+          console.error(
+            '[foldkit] An outbound port listener threw:',
+            listenerError,
+          )
+        }
+      })
+    })
+  }
+
+  const bind = (
+    deliverInbound: (port: Inbound<any, any>, value: unknown) => void,
+  ): void => {
+    maybeDeliverInbound = Option.some(deliverInbound)
+    const flushedSends = pendingInboundSends.splice(0)
+    flushedSends.forEach(({ port, value }) => deliverInbound(port, value))
+  }
+
+  const unbind = (): void => {
+    maybeDeliverInbound = Option.none()
+  }
+
+  const dispose = (): void => {
+    isDisposed = true
+    pendingInboundSends.length = 0
+    listenersByPort.forEach(listeners => listeners.clear())
+    listenersByPort.clear()
+  }
+
+  return { sendInbound, addListener, deliverOutbound, bind, unbind, dispose }
+}
+
+type PortChannelsBundle = Readonly<{
+  channels: __PortChannels
+  deliverInbound: (port: Inbound<any, any>, value: unknown) => void
+}>
+
+const makePortChannels = (
+  ports: Ports,
+  maybeConnector: Option.Option<HostConnector>,
+): PortChannelsBundle => {
+  const inboundChannelsByPort = new Map<Inbound<any, any>, __InboundChannel>()
+  Object.values(ports.inbound ?? {}).forEach(port => {
+    inboundChannelsByPort.set(port, __makeInboundChannel())
+  })
+
+  const outboundPorts = new Set(Object.values(ports.outbound ?? {}))
+
+  const channels: __PortChannels = {
+    isConfigured: true,
+    lookupInbound: port =>
+      Option.fromNullishOr(inboundChannelsByPort.get(port)),
+    lookupOutbound: port =>
+      outboundPorts.has(port)
+        ? Option.some(encodedValue =>
+            Option.match(maybeConnector, {
+              onNone: Function.constVoid,
+              onSome: connector =>
+                connector.deliverOutbound(port, encodedValue),
+            }),
+          )
+        : Option.none(),
+  }
+
+  const deliverInbound = (port: Inbound<any, any>, value: unknown): void => {
+    Option.match(Option.fromNullishOr(inboundChannelsByPort.get(port)), {
+      onNone: Function.constVoid,
+      onSome: channel => channel.deliver(value),
+    })
+  }
+
+  return { channels, deliverInbound }
+}
+
+const validatePorts = (ports: Ports): void => {
+  const inboundEntries = Object.entries(ports.inbound ?? {})
+  const outboundEntries = Object.entries(ports.outbound ?? {})
+
+  const inboundNames = new Set(inboundEntries.map(([name]) => name))
+  outboundEntries.forEach(([name]) => {
+    if (inboundNames.has(name)) {
+      throw new Error(
+        `[foldkit] Port name "${name}" appears in both inbound and outbound. ` +
+          'Port names share one namespace on the EmbedHandle, so each name ' +
+          'must be unique across both records.',
+      )
+    }
+  })
+
+  const seenPorts = new Set<unknown>()
+  const allEntries = [...inboundEntries, ...outboundEntries]
+  allEntries.forEach(([name, port]) => {
+    if (seenPorts.has(port)) {
+      throw new Error(
+        `[foldkit] The Port registered as "${name}" is also registered under ` +
+          'another name. Each entry in the ports record needs its own ' +
+          'Port.inbound or Port.outbound value.',
+      )
+    }
+    seenPorts.add(port)
+  })
+}
+
+type RuntimeInternals = {
+  startWith: (
+    maybeConnector: Option.Option<HostConnector>,
+    hmrModel?: unknown,
+  ) => Effect.Effect<void>
+  isEmbedActive: boolean
+  maybeActiveFiber: Option.Option<Fiber.Fiber<void>>
+}
+
+const runtimeInternals = new WeakMap<MakeRuntimeReturn<any>, RuntimeInternals>()
 
 const makeRuntime = <
   Model,
@@ -564,7 +891,9 @@ const makeRuntime = <
   Flags,
   Resources,
   ManagedResourceServices,
+  P extends Ports | undefined,
 >({
+  ports,
   Model,
   flags: resolveFlags,
   init,
@@ -585,8 +914,9 @@ const makeRuntime = <
   Message,
   Flags,
   Resources,
-  ManagedResourceServices
->): MakeRuntimeReturn => {
+  ManagedResourceServices,
+  P
+>): MakeRuntimeReturn<P> => {
   const resolvedSlowView = pipe(
     slowView ?? {},
     Option.liftPredicate(config => config !== false),
@@ -631,6 +961,10 @@ const makeRuntime = <
   const maybeFreezeModel = (model: Model): Model =>
     isFreezeModelActive ? deepFreeze(model) : model
 
+  if (Predicate.isNotUndefined(ports)) {
+    validatePorts(ports)
+  }
+
   const runtimeId = container?.id ?? ''
 
   // NOTE: When the message queue drains a chain of dispatches (e.g. recursive
@@ -651,7 +985,10 @@ const makeRuntime = <
     return Effect.sync(() => cancelAnimationFrame(handle))
   })
 
-  const start = (hmrModel?: unknown): Effect.Effect<void> =>
+  const startWith = (
+    maybeConnector: Option.Option<HostConnector>,
+    hmrModel?: unknown,
+  ): Effect.Effect<void> =>
     Effect.scoped(
       Effect.gen(function* () {
         if (runtimeId === '') {
@@ -662,6 +999,13 @@ const makeRuntime = <
             ),
           )
         }
+
+        // NOTE: every perpetual fiber (render loop, Subscription streams,
+        // ManagedResource lifecycles) and every Command fiber forks into the
+        // runtime scope, so interrupting the runtime fiber (what dispose
+        // does) interrupts them all and runs their finalizers. A detached
+        // fork would outlive the runtime.
+        const runtimeScope = yield* Effect.scope
 
         // NOTE: one persistent MessageChannel for the runtime lifetime,
         // shared by every burst-budget yield. The queue-drain fiber is the
@@ -696,6 +1040,28 @@ const makeRuntime = <
         )
 
         const maybeResourceLayer = Option.fromNullishOr(resources)
+
+        const maybePortChannels: Option.Option<PortChannelsBundle> = pipe(
+          Option.fromNullishOr(ports),
+          Option.map(portsConfig =>
+            makePortChannels(portsConfig, maybeConnector),
+          ),
+        )
+
+        yield* Option.match(
+          Option.all({
+            connector: maybeConnector,
+            portChannels: maybePortChannels,
+          }),
+          {
+            onNone: () => Effect.void,
+            onSome: ({ connector, portChannels }) =>
+              Effect.acquireRelease(
+                Effect.sync(() => connector.bind(portChannels.deliverInbound)),
+                () => Effect.sync(() => connector.unbind()),
+              ),
+          },
+        )
 
         // NOTE: One boundary registry per runtime instance, shared
         // across renders so Submodel wrap descriptors registered by
@@ -757,12 +1123,22 @@ const makeRuntime = <
             onSome: resourceLayer => Effect.provide(effect, resourceLayer),
           })
 
-          return Option.match(maybeManagedResourceLayer, {
+          const withManagedResources = Option.match(maybeManagedResourceLayer, {
             /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
             onNone: () => withResources as Effect.Effect<A>,
             onSome: managedLayer =>
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
               Effect.provide(withResources, managedLayer) as Effect.Effect<A>,
+          })
+
+          return Option.match(maybePortChannels, {
+            onNone: () => withManagedResources,
+            onSome: portChannels =>
+              Effect.provideService(
+                withManagedResources,
+                __CurrentPortChannels,
+                portChannels.channels,
+              ),
           })
         }
 
@@ -871,7 +1247,7 @@ const makeRuntime = <
             AnyCommand<Message, never, Resources | ManagedResourceServices>
           >,
           command =>
-            Effect.forkDetach(
+            Effect.forkIn(runtimeScope)(
               command.effect.pipe(
                 Effect.withSpan(command.name, {
                   attributes: command.args ?? {},
@@ -883,13 +1259,55 @@ const makeRuntime = <
         )
 
         if (routingConfig) {
-          addNavigationEventListeners(enqueueHighUnsafe, routingConfig)
+          yield* Effect.acquireRelease(
+            Effect.sync(() =>
+              addNavigationEventListeners(enqueueHighUnsafe, routingConfig),
+            ),
+            removeNavigationEventListeners =>
+              Effect.sync(() => removeNavigationEventListeners()),
+          )
         }
 
         const modelRef = yield* Ref.make<Model>(initModel)
 
         const maybeCurrentVNodeRef = yield* Ref.make<Option.Option<VNode>>(
           Option.none(),
+        )
+
+        // NOTE: registered before any perpetual fiber is forked so it runs
+        // after they are interrupted (scope finalizers are LIFO). Patching to
+        // an empty tree fires snabbdom destroy hooks, which is what releases
+        // Mounts; swapping the placeholder for the original container leaves
+        // the host DOM as it was before the first render, ready for a fresh
+        // embed of the same container. Gated on interruption: that is the
+        // dispose path. A runtime that stops because it crashed completes
+        // normally after rendering the crash view, and the crash view must
+        // stay visible.
+        yield* Effect.addFinalizer(exit =>
+          Effect.gen(function* () {
+            if (!Exit.hasInterrupts(exit)) {
+              return
+            }
+            const maybeCurrentVNode = yield* Ref.get(maybeCurrentVNodeRef)
+            yield* Option.match(maybeCurrentVNode, {
+              onNone: () => Effect.void,
+              onSome: currentVNode =>
+                Effect.sync(() => {
+                  const placeholderNode = patchVNode(
+                    Option.some(currentVNode),
+                    null,
+                    container,
+                  ).elm
+                  if (placeholderNode && placeholderNode.parentNode) {
+                    placeholderNode.parentNode.replaceChild(
+                      container,
+                      placeholderNode,
+                    )
+                    container.replaceChildren()
+                  }
+                }),
+            })
+          }),
         )
 
         // NOTE: shared by every perpetual fiber's crash path (init render,
@@ -1005,7 +1423,7 @@ const makeRuntime = <
                   >
                 >,
                 command =>
-                  Effect.forkDetach(
+                  Effect.forkIn(runtimeScope)(
                     command.effect.pipe(
                       Effect.withSpan(command.name, {
                         attributes: command.args ?? {},
@@ -1201,7 +1619,11 @@ const makeRuntime = <
           render(initModel, Option.none()),
         )
         if (Exit.isFailure(initRenderExit)) {
-          return yield* crashWith(initRenderExit.cause, Option.none())
+          yield* crashWith(initRenderExit.cause, Option.none())
+          // NOTE: suspend instead of returning. Completing would close the
+          // runtime scope and tear down the crash view; the scope must stay
+          // open until the runtime is interrupted (dispose, or page unload).
+          return yield* Effect.never
         }
 
         const initMountEvents = drainMountEvents()
@@ -1243,7 +1665,7 @@ const makeRuntime = <
           }),
         })
 
-        yield* Effect.forkDetach(
+        yield* Effect.forkIn(runtimeScope)(
           renderLoop.pipe(
             Effect.catchCause(cause =>
               Effect.gen(function* () {
@@ -1254,7 +1676,16 @@ const makeRuntime = <
           ),
         )
 
-        addBfcacheRestoreListener()
+        // NOTE: reloading on bfcache restore is a page-level decision, so
+        // only a page-owning runtime installs the listener. An embedded app
+        // must never force the host page to reload.
+        if (manageDocument) {
+          yield* Effect.acquireRelease(
+            Effect.sync(() => addBfcacheRestoreListener()),
+            removeBfcacheRestoreListener =>
+              Effect.sync(() => removeBfcacheRestoreListener()),
+          )
+        }
 
         if (subscriptions) {
           yield* pipe(
@@ -1283,7 +1714,7 @@ const makeRuntime = <
                     Stream.fromPubSub(modelPubSub),
                   )
 
-                  yield* Effect.forkDetach(
+                  yield* Effect.forkIn(runtimeScope)(
                     modelStream.pipe(
                       // NOTE: Ref.set runs upstream of Stream.changesWith on
                       // every model change, so readDependencies() returns
@@ -1384,7 +1815,7 @@ const makeRuntime = <
 
             const equivalence = Schema.toEquivalence(config.schema)
 
-            yield* Effect.forkDetach(
+            yield* Effect.forkIn(runtimeScope)(
               modelStream.pipe(
                 Stream.map(config.modelToMaybeRequirements),
                 Stream.changesWith(equivalence),
@@ -1479,10 +1910,25 @@ const makeRuntime = <
           ),
           Effect.catchCause(cause => crashWith(cause, currentMessage)),
         )
+
+        // NOTE: reached only after the drain loop crashed and the crash view
+        // rendered. Suspending keeps the runtime scope open so the crash view
+        // and the DevTools overlay stay up for inspection; interruption
+        // (dispose, or page unload) still tears everything down.
+        yield* Effect.never
       }),
     )
 
-  return { runtimeId, start }
+  const start = (hmrModel?: unknown): Effect.Effect<void> =>
+    startWith(Option.none(), hmrModel)
+
+  const program: MakeRuntimeReturn<P> = { runtimeId, start, ports }
+  runtimeInternals.set(program, {
+    startWith,
+    isEmbedActive: false,
+    maybeActiveFiber: Option.none(),
+  })
+  return program
 }
 
 // NOTE: exported for `patchVNode.test.ts` to assert the dedupeSharedVNodes
@@ -1586,6 +2032,7 @@ const renderCrashView = <Model, Message>(
       crashDocument.body,
       container,
     )
+    Effect.runSync(Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode)))
     if (manageDocument) {
       applyDocumentMetadata(crashDocument, patchedVNode.elm)
     }
@@ -1609,6 +2056,7 @@ const renderCrashView = <Model, Message>(
       fallbackDocument.body,
       container,
     )
+    Effect.runSync(Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode)))
     if (manageDocument) {
       applyDocumentMetadata(fallbackDocument, patchedVNode.elm)
     }
@@ -1626,29 +2074,33 @@ export function makeApplication<
   Flags,
   Resources = never,
   ManagedResourceServices = never,
+  P extends Ports | undefined = undefined,
 >(
   config: RoutingApplicationConfigWithFlags<
     Model,
     Message,
     Flags,
     Resources,
-    ManagedResourceServices
+    ManagedResourceServices,
+    P
   >,
-): MakeRuntimeReturn
+): MakeRuntimeReturn<P>
 
 export function makeApplication<
   Model,
   Message extends { _tag: string },
   Resources = never,
   ManagedResourceServices = never,
+  P extends Ports | undefined = undefined,
 >(
   config: RoutingApplicationConfig<
     Model,
     Message,
     Resources,
-    ManagedResourceServices
+    ManagedResourceServices,
+    P
   >,
-): MakeRuntimeReturn
+): MakeRuntimeReturn<P>
 
 export function makeApplication<
   Model,
@@ -1656,24 +2108,33 @@ export function makeApplication<
   Flags,
   Resources = never,
   ManagedResourceServices = never,
+  P extends Ports | undefined = undefined,
 >(
   config: ApplicationConfigWithFlags<
     Model,
     Message,
     Flags,
     Resources,
-    ManagedResourceServices
+    ManagedResourceServices,
+    P
   >,
-): MakeRuntimeReturn
+): MakeRuntimeReturn<P>
 
 export function makeApplication<
   Model,
   Message extends { _tag: string },
   Resources = never,
   ManagedResourceServices = never,
+  P extends Ports | undefined = undefined,
 >(
-  config: ApplicationConfig<Model, Message, Resources, ManagedResourceServices>,
-): MakeRuntimeReturn
+  config: ApplicationConfig<
+    Model,
+    Message,
+    Resources,
+    ManagedResourceServices,
+    P
+  >,
+): MakeRuntimeReturn<P>
 
 export function makeApplication<
   Model,
@@ -1681,6 +2142,7 @@ export function makeApplication<
   Flags,
   Resources = never,
   ManagedResourceServices = never,
+  P extends Ports | undefined = undefined,
 >(
   config:
     | RoutingApplicationConfigWithFlags<
@@ -1688,23 +2150,26 @@ export function makeApplication<
         Message,
         Flags,
         Resources,
-        ManagedResourceServices
+        ManagedResourceServices,
+        P
       >
     | RoutingApplicationConfig<
         Model,
         Message,
         Resources,
-        ManagedResourceServices
+        ManagedResourceServices,
+        P
       >
     | ApplicationConfigWithFlags<
         Model,
         Message,
         Flags,
         Resources,
-        ManagedResourceServices
+        ManagedResourceServices,
+        P
       >
-    | ApplicationConfig<Model, Message, Resources, ManagedResourceServices>,
-): MakeRuntimeReturn {
+    | ApplicationConfig<Model, Message, Resources, ManagedResourceServices, P>,
+): MakeRuntimeReturn<P> {
   const { container } = config
   if (container === null) {
     throw new Error(
@@ -1726,6 +2191,7 @@ export function makeApplication<
     update: config.update,
     view: config.view,
     manageDocument: true,
+    ports: config.ports,
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
     container,
     ...(hasRouting && { routing: config.routing }),
@@ -1766,7 +2232,8 @@ export function makeApplication<
       Message,
       Flags,
       Resources,
-      ManagedResourceServices
+      ManagedResourceServices,
+      P
     >)
   } else if (hasRouting) {
     return makeRuntime({
@@ -1787,7 +2254,8 @@ export function makeApplication<
       Message,
       void,
       Resources,
-      ManagedResourceServices
+      ManagedResourceServices,
+      P
     >)
   } else if (hasFlags) {
     return makeRuntime({
@@ -1809,7 +2277,8 @@ export function makeApplication<
       Message,
       Flags,
       Resources,
-      ManagedResourceServices
+      ManagedResourceServices,
+      P
     >)
   } else {
     return makeRuntime({
@@ -1830,7 +2299,8 @@ export function makeApplication<
       Message,
       void,
       Resources,
-      ManagedResourceServices
+      ManagedResourceServices,
+      P
     >)
   }
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
@@ -1877,24 +2347,27 @@ export function makeElement<
   Flags,
   Resources = never,
   ManagedResourceServices = never,
+  P extends Ports | undefined = undefined,
 >(
   config: ElementConfigWithFlags<
     Model,
     Message,
     Flags,
     Resources,
-    ManagedResourceServices
+    ManagedResourceServices,
+    P
   >,
-): MakeRuntimeReturn
+): MakeRuntimeReturn<P>
 
 export function makeElement<
   Model,
   Message extends { _tag: string },
   Resources = never,
   ManagedResourceServices = never,
+  P extends Ports | undefined = undefined,
 >(
-  config: ElementConfig<Model, Message, Resources, ManagedResourceServices>,
-): MakeRuntimeReturn
+  config: ElementConfig<Model, Message, Resources, ManagedResourceServices, P>,
+): MakeRuntimeReturn<P>
 
 export function makeElement<
   Model,
@@ -1902,6 +2375,7 @@ export function makeElement<
   Flags,
   Resources = never,
   ManagedResourceServices = never,
+  P extends Ports | undefined = undefined,
 >(
   config:
     | ElementConfigWithFlags<
@@ -1909,10 +2383,11 @@ export function makeElement<
         Message,
         Flags,
         Resources,
-        ManagedResourceServices
+        ManagedResourceServices,
+        P
       >
-    | ElementConfig<Model, Message, Resources, ManagedResourceServices>,
-): MakeRuntimeReturn {
+    | ElementConfig<Model, Message, Resources, ManagedResourceServices, P>,
+): MakeRuntimeReturn<P> {
   const { container } = config
   if (container === null) {
     throw new Error(
@@ -1937,6 +2412,7 @@ export function makeElement<
     update: config.update,
     view,
     manageDocument: false,
+    ports: config.ports,
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
     container,
     ...(Predicate.isNotUndefined(nullableCrash) && { crash: nullableCrash }),
@@ -1976,7 +2452,8 @@ export function makeElement<
       Message,
       Flags,
       Resources,
-      ManagedResourceServices
+      ManagedResourceServices,
+      P
     >)
   } else {
     return makeRuntime({
@@ -1997,7 +2474,8 @@ export function makeElement<
       Message,
       void,
       Resources,
-      ManagedResourceServices
+      ManagedResourceServices,
+      P
     >)
   }
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
@@ -2051,49 +2529,162 @@ const provideBrowserScheduler = <A, E, R>(
 ): Effect.Effect<A, E, R> =>
   Effect.provide(effect, Layer.succeed(Scheduler.Scheduler, browserScheduler))
 
-/** Starts a Foldkit runtime, with HMR support for development. */
-export const run = (program: MakeRuntimeReturn): void => {
-  if (import.meta.hot) {
-    const hot = import.meta.hot
-    const { runtimeId, start } = program
-
-    const requestPreservedModel = pipe(
-      Effect.callback<unknown>(resume => {
-        const handler = (message: unknown): void => {
-          Exit.match(decodeRestoreModelMessage(message), {
-            onFailure: Function.constVoid,
-            onSuccess: ({ id, model }) => {
-              if (id === runtimeId) {
-                hot.off('foldkit:restore-model', handler)
-                resume(Effect.succeed(model))
-              }
-            },
-          })
-        }
-        hot.on('foldkit:restore-model', handler)
-        hot.send(
-          'foldkit:request-model',
-          encodeRequestModelMessage(
-            RequestModelMessage.make({ id: runtimeId }),
-          ),
-        )
-        return Effect.sync(() => hot.off('foldkit:restore-model', handler))
-      }),
-      Effect.timeout(PLUGIN_RESPONSE_TIMEOUT_MS),
-      Effect.catchTag('TimeoutError', () => {
-        console.warn(
-          '[foldkit] No response from @foldkit/vite-plugin. Add it to your vite.config.ts for HMR model preservation:\n\n' +
-            "  import { foldkit } from '@foldkit/vite-plugin'\n\n" +
-            '  export default defineConfig({ plugins: [foldkit()] })\n\n' +
-            'Starting without HMR support.',
-        )
-        return Effect.succeed(undefined)
-      }),
-      Effect.flatMap(start),
-    )
-
-    BrowserRuntime.runMain(provideBrowserScheduler(requestPreservedModel))
-  } else {
-    BrowserRuntime.runMain(provideBrowserScheduler(program.start()))
+// NOTE: asks @foldkit/vite-plugin for a model preserved across the last HMR
+// reload. The plugin only serves a model whose preservation was flushed by a
+// reload, so a host-driven dispose-then-embed remount initializes fresh while
+// a code reload restores state.
+const resolveHmrModel = (runtimeId: string): Effect.Effect<unknown> => {
+  const hot = import.meta.hot
+  if (!hot) {
+    return Effect.succeed(undefined)
   }
+
+  return pipe(
+    Effect.callback<unknown>(resume => {
+      const handler = (message: unknown): void => {
+        Exit.match(decodeRestoreModelMessage(message), {
+          onFailure: Function.constVoid,
+          onSuccess: ({ id, model }) => {
+            if (id === runtimeId) {
+              hot.off('foldkit:restore-model', handler)
+              resume(Effect.succeed(model))
+            }
+          },
+        })
+      }
+      hot.on('foldkit:restore-model', handler)
+      hot.send(
+        'foldkit:request-model',
+        encodeRequestModelMessage(RequestModelMessage.make({ id: runtimeId })),
+      )
+      return Effect.sync(() => hot.off('foldkit:restore-model', handler))
+    }),
+    Effect.timeout(PLUGIN_RESPONSE_TIMEOUT_MS),
+    Effect.catchTag('TimeoutError', () => {
+      console.warn(
+        '[foldkit] No response from @foldkit/vite-plugin. Add it to your vite.config.ts for HMR model preservation:\n\n' +
+          "  import { foldkit } from '@foldkit/vite-plugin'\n\n" +
+          '  export default defineConfig({ plugins: [foldkit()] })\n\n' +
+          'Starting without HMR support.',
+      )
+      return Effect.succeed(undefined)
+    }),
+  )
+}
+
+/** Starts a Foldkit runtime that owns the page for the page's whole lifetime,
+ *  with HMR support for development. To start a runtime under a
+ *  host-controlled lifecycle instead, use `embed`. */
+export const run = (program: MakeRuntimeReturn<Ports | undefined>): void => {
+  BrowserRuntime.runMain(
+    provideBrowserScheduler(
+      Effect.flatMap(resolveHmrModel(program.runtimeId), program.start),
+    ),
+  )
+}
+
+const buildPortHandles = <P extends Ports | undefined>(
+  ports: P,
+  connector: HostConnector,
+): PortHandles<P> => {
+  const handles: Record<string, unknown> = {}
+
+  if (Predicate.isNotUndefined(ports)) {
+    Object.entries(ports.inbound ?? {}).forEach(([portName, port]) => {
+      handles[portName] = {
+        send: (value: unknown) => connector.sendInbound(portName, port, value),
+      }
+    })
+    Object.entries(ports.outbound ?? {}).forEach(([portName, port]) => {
+      handles[portName] = {
+        subscribe: (listener: (encodedValue: unknown) => void) =>
+          connector.addListener(port, listener),
+      }
+    })
+  }
+
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return handles as PortHandles<P>
+}
+
+/**
+ * Starts a Foldkit runtime under a host-controlled lifecycle and returns an
+ * `EmbedHandle`. This is the entry point for embedding a Foldkit app inside
+ * another application: the host pushes values in through the handle's inbound
+ * Ports, listens to outbound Ports, and calls `dispose` when it unmounts the
+ * app. The host never touches the Model or dispatches Messages directly; the
+ * Schema-typed Ports are the whole boundary.
+ *
+ * Works with programs from both `makeApplication` and `makeElement`; for a
+ * widget on a page the host owns, `makeElement` is the natural fit.
+ *
+ * A program can be embedded once at a time (it owns one container). After
+ * `dispose`, the same container can be embedded again with a fresh program.
+ *
+ * ```ts
+ * const handle = Runtime.embed(element)
+ *
+ * handle.ports.stepChanged.send(5)
+ * const unsubscribe = handle.ports.countChanged.subscribe(count => {
+ *   console.log(count)
+ * })
+ *
+ * handle.dispose()
+ * ```
+ */
+export const embed = <P extends Ports | undefined = undefined>(
+  program: MakeRuntimeReturn<P>,
+): EmbedHandle<P> => {
+  const nullableInternals = runtimeInternals.get(program)
+  if (Predicate.isUndefined(nullableInternals)) {
+    throw new Error(
+      '[foldkit] embed expects a program created by makeApplication or makeElement.',
+    )
+  }
+  const internals = nullableInternals
+
+  if (internals.isEmbedActive) {
+    throw new Error(
+      '[foldkit] This program is already embedded. Dispose the existing ' +
+        'handle first, or create a separate program: each program owns one ' +
+        'container.',
+    )
+  }
+  internals.isEmbedActive = true
+
+  const connector = makeHostConnector()
+
+  // NOTE: a dispose immediately followed by a fresh embed (React strict mode
+  // runs effects exactly that way) must not start the new runtime while the
+  // old one is still tearing down: the teardown finalizer is what puts the
+  // container element back in the DOM. Awaiting the previous fiber's exit
+  // sequences the two.
+  const startEffect = pipe(
+    Option.match(internals.maybeActiveFiber, {
+      onNone: () => Effect.void,
+      onSome: previousFiber => Effect.asVoid(Fiber.await(previousFiber)),
+    }),
+    Effect.andThen(resolveHmrModel(program.runtimeId)),
+    Effect.flatMap(hmrModel =>
+      internals.startWith(Option.some(connector), hmrModel),
+    ),
+  )
+
+  const fiber = Effect.runFork(provideBrowserScheduler(startEffect))
+  internals.maybeActiveFiber = Option.some(fiber)
+
+  let isHandleDisposed = false
+  const dispose = (): void => {
+    if (isHandleDisposed) {
+      return
+    }
+    isHandleDisposed = true
+    connector.dispose()
+    internals.isEmbedActive = false
+    Effect.runFork(Fiber.interrupt(fiber))
+  }
+
+  const ports = buildPortHandles(program.ports, connector)
+
+  return { ports, dispose }
 }

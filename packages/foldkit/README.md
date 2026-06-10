@@ -151,7 +151,7 @@ import { Runtime } from 'foldkit'
 
 import { Model, init, update, view } from './main'
 
-const program = Runtime.makeApplication({
+const application = Runtime.makeApplication({
   Model,
   init,
   update,
@@ -159,7 +159,7 @@ const program = Runtime.makeApplication({
   container: document.getElementById('root'),
 })
 
-Runtime.run(program)
+Runtime.run(application)
 ```
 
 Source: [examples/counter/src/main.ts](https://github.com/foldkit/foldkit/blob/main/examples/counter/src/main.ts), [examples/counter/src/entry.ts](https://github.com/foldkit/foldkit/blob/main/examples/counter/src/entry.ts)
@@ -214,6 +214,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 - **[Pixel Art](https://foldkit.dev/example-apps/pixel-art)** — Grid-based pixel editor with painting, erasing, and palette selection
 - **[Canvas Art](https://foldkit.dev/example-apps/canvas-art)** — Declarative 2D canvas with shapes, animation-frame Subscriptions, and pointer events
 - **[Web Components](https://foldkit.dev/example-apps/web-components)**: QR code designer wiring two real third-party web components into Foldkit with `CustomElement.define` (vanilla-colorful + Shoelace)
+- **[Embedding](https://foldkit.dev/example-apps/embedding)** — A Foldkit widget embedded in a plain TypeScript host page via `Runtime.embed`, with typed Ports in both directions and `dispose` on unmount
 - **[UI Showcase](https://foldkit.dev/example-apps/ui-showcase)** — Interactive showcase of every Foldkit UI component
 - **[Typing Game](https://github.com/foldkit/foldkit/tree/main/packages/typing-game)** — Multiplayer typing game with Effect RPC backend ([play it live](https://typingterminal.com))
 

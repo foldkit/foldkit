@@ -157,7 +157,7 @@ Flags are an `Effect<Flags>`. The runtime executes them once before init, and pa
 Pass `Flags` and `flags` to `Runtime.makeApplication`:
 
 ```ts
-const program = Runtime.makeApplication({
+const application = Runtime.makeApplication({
   Model,
   Flags,
   flags,
@@ -319,7 +319,7 @@ Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, o
 For single-page apps that own the page but don't navigate. init receives only flags (if any):
 
 ```ts
-const program = Runtime.makeApplication({
+const application = Runtime.makeApplication({
   Model,
   init,
   update,
@@ -327,7 +327,7 @@ const program = Runtime.makeApplication({
   container: document.getElementById('root'),
 })
 
-Runtime.run(program)
+Runtime.run(application)
 ```
 
 ### With Routing
@@ -335,7 +335,7 @@ Runtime.run(program)
 For apps with pages, navigation, and URL-driven state. init receives flags (if any) and the current URL. Add a `routing` config with two Message constructors:
 
 ```ts
-const program = Runtime.makeApplication({
+const application = Runtime.makeApplication({
   Model,
   init,
   update,
@@ -347,7 +347,7 @@ const program = Runtime.makeApplication({
   },
 })
 
-Runtime.run(program)
+Runtime.run(application)
 ```
 
 ### Scoped to a Node (Embedded Widgets)
@@ -357,7 +357,7 @@ Runtime.run(program)
 Use `Runtime.makeElement` instead. Its `view` returns `Html` directly (no title to discard) and the runtime never touches the document `<head>`. Everything else (Model, init, update, Commands, Subscriptions, flags, crash handling) is identical. Embedded apps don't own the URL bar, so `makeElement` has no `routing` config.
 
 ```ts
-const program = Runtime.makeElement({
+const element = Runtime.makeElement({
   Model,
   init,
   update,
@@ -365,8 +365,10 @@ const program = Runtime.makeElement({
   container: document.getElementById('widget'),
 })
 
-Runtime.run(program)
+Runtime.run(element)
 ```
+
+When the host application needs to control the embedded app (mount and unmount it, push data in, receive values out), start it with `Runtime.embed(program)` instead of `Runtime.run`. `embed` returns a handle with `dispose` plus one entry per Port declared on the config: the host sends on inbound Ports, subscribes to outbound Ports, and disposes on unmount, never touching the Model. Inbound Ports are consumed by the app as Subscription sources and outbound Ports are written from Commands, so the app itself stays inside the standard architecture. `repos/foldkit/examples/embedding/` shows the full pattern: the widget in `src/main.ts`, the host in `src/host.ts`.
 
 ### Document Title
 
@@ -379,5 +381,6 @@ For the canonical update-handler shapes (the exact `UrlRequest` tag names, how t
 ### How to Choose
 
 - App is a widget embedded on a page it does not own (must not touch the host `<head>`) → `makeElement`
+- The host application also needs to drive it (lifecycle, data in, values out) → `makeElement` started with `Runtime.embed`, communicating through Flags and Ports
 - App owns the page and mentions "pages", "navigation", "routes", URLs → `makeApplication` with `routing` config
 - App owns the page with no navigation → `makeApplication` without `routing`

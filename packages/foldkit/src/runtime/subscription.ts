@@ -8,7 +8,12 @@ type DependenciesSchema<Dependencies> = Schema.Schema<Dependencies> & {
   readonly fields: Schema.Struct.Fields
 }
 
-type EntryWithoutKeepAlive<Model, Message, Dependencies, Services> = {
+/**
+ * The entry shape produced by helpers like `Subscription.persistent` and
+ * `Port.subscription` before branding. Pass values of this shape into
+ * `Subscription.make` as entry values.
+ */
+export type EntryWithoutKeepAlive<Model, Message, Dependencies, Services> = {
   readonly dependenciesSchema: DependenciesSchema<Dependencies>
   readonly modelToDependencies: (model: Model) => Dependencies
   readonly keepAliveEquivalence?: never

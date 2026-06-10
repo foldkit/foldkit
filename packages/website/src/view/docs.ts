@@ -683,6 +683,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           ]),
           Page.Core.ViewMemoization.tableOfContents,
         ),
+      CoreEmbedding: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.Core.Embedding.view, [model.copiedSnippets]),
+          Page.Core.Embedding.tableOfContents,
+        ),
       UiOverview: () =>
         withTableOfContents(
           Page.UiPages.OverviewPage.view(),

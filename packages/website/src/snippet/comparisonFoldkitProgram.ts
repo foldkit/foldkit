@@ -25,7 +25,7 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => [
 
 // src/entry.ts (imports Model, Flags, flags, init, update, view, subscriptions from ./main)
 
-const program = Runtime.makeApplication({
+const application = Runtime.makeApplication({
   Model,
   Flags,
   flags,
@@ -36,4 +36,4 @@ const program = Runtime.makeApplication({
   container: document.getElementById('root'),
 })
 
-Runtime.run(program)
+Runtime.run(application)

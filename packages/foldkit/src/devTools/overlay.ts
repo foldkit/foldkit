@@ -2173,7 +2173,13 @@ export const createOverlay = (
   maybeBanner: Option.Option<string>,
 ) =>
   Effect.gen(function* () {
-    const { container, shadow } = createShadowContainer()
+    const { container, shadow } = yield* Effect.acquireRelease(
+      Effect.sync(() => createShadowContainer()),
+      createdShadowContainer =>
+        Effect.sync(() => {
+          createdShadowContainer.shadow.host.remove()
+        }),
+    )
     container.id = '__foldkit_devtools_overlay__'
 
     const flags: Effect.Effect<typeof Flags.Type> = Effect.gen(function* () {
@@ -2234,5 +2240,5 @@ export const createOverlay = (
       freezeModel: false,
     })
 
-    yield* Effect.forkDetach(overlayRuntime.start())
+    yield* Effect.forkScoped(overlayRuntime.start())
   })

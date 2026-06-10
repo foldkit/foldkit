@@ -125,7 +125,7 @@ const runProfile = async (
     return wrappedView.fn(model)
   }
 
-  const program = makeApplication({
+  const application = makeApplication({
     Model,
     init,
     update: wrappedUpdate.fn,
@@ -135,7 +135,7 @@ const runProfile = async (
     freezeModel: false,
   })
 
-  Effect.runFork(program.start())
+  Effect.runFork(application.start())
 
   await waitForCondition(() => capturedDispatch !== null)
 

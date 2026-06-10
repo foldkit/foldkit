@@ -11,7 +11,7 @@ import {
   view,
 } from './main'
 
-const program = Runtime.makeApplication({
+const application = Runtime.makeApplication({
   Model,
   Flags,
   flags,
@@ -25,4 +25,4 @@ const program = Runtime.makeApplication({
   },
 })
 
-Runtime.run(program)
+Runtime.run(application)

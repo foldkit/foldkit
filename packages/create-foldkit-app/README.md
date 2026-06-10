@@ -32,6 +32,7 @@ The CLI prompts you for a project name, starter example, and package manager. Pa
 | `shopping-cart`  | Complex state management with nested Models                                         |
 | `websocket-chat` | Managed resources with WebSocket                                                    |
 | `auth`           | Authentication with Submodels, OutMessage, and protected routes                     |
+| `embedding`      | A Foldkit widget embedded in a plain TypeScript host page with Ports and dispose    |
 | `ui-showcase`    | Every Foldkit UI component with routing                                             |
 
 ## License

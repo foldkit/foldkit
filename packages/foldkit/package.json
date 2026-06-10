@@ -51,6 +51,10 @@
       "types": "./dist/navigation/public.d.ts",
       "import": "./dist/navigation/public.js"
     },
+    "./port": {
+      "types": "./dist/port/public.d.ts",
+      "import": "./dist/port/public.js"
+    },
     "./render": {
       "types": "./dist/render/public.d.ts",
       "import": "./dist/render/public.js"

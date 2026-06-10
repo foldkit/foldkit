@@ -36,6 +36,7 @@
     "canvas-art-example",
     "generative-art-example",
     "web-components-example",
+    "embedding-example",
     "pixel-art-react-comparison",
     "@foldkit/performance-harness",
     "@foldkit/examples-e2e",

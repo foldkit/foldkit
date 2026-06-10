@@ -90,6 +90,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
               Page.Patterns.SubscriptionOrganization.tableOfContents,
             CoreViewMemoization: () =>
               Page.Core.ViewMemoization.tableOfContents,
+            CoreEmbedding: () => Page.Core.Embedding.tableOfContents,
             UiButton: () => Page.UiPages.ButtonPage.tableOfContents,
             UiInput: () => Page.UiPages.InputPage.tableOfContents,
             UiTextarea: () => Page.UiPages.TextareaPage.tableOfContents,

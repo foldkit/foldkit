@@ -68,7 +68,7 @@ const expectHeadUntouched = (): void => {
 
 describe('makeElement', () => {
   it('renders into its container without touching the document head', async () => {
-    const program = makeElement({
+    const element = makeElement({
       Model,
       init: () => [{ label: 'hello' }, []],
       update,
@@ -76,7 +76,7 @@ describe('makeElement', () => {
       container,
     })
 
-    const fiber = Effect.runFork(program.start())
+    const fiber = Effect.runFork(element.start())
 
     try {
       await awaitBodyText('hello')
@@ -87,7 +87,7 @@ describe('makeElement', () => {
   })
 
   it('leaves the document head untouched across re-renders', async () => {
-    const program = makeElement({
+    const element = makeElement({
       Model,
       init: () => [{ label: 'hello' }, []],
       update,
@@ -99,7 +99,7 @@ describe('makeElement', () => {
       container,
     })
 
-    const fiber = Effect.runFork(program.start())
+    const fiber = Effect.runFork(element.start())
 
     try {
       await awaitBodyText('hello')
@@ -118,7 +118,7 @@ describe('makeElement', () => {
   it('seeds the initial model from flags', async () => {
     const Flags = S.Struct({ initialLabel: S.String })
 
-    const program = makeElement({
+    const element = makeElement({
       Model,
       Flags,
       flags: Effect.succeed({ initialLabel: 'from-flags' }),
@@ -128,7 +128,7 @@ describe('makeElement', () => {
       container,
     })
 
-    const fiber = Effect.runFork(program.start())
+    const fiber = Effect.runFork(element.start())
 
     try {
       await awaitBodyText('from-flags')
@@ -139,7 +139,7 @@ describe('makeElement', () => {
   })
 
   it('renders a scoped crash view without touching the document head', async () => {
-    const program = makeElement({
+    const element = makeElement({
       Model,
       init: () => [{ label: 'hello' }, []],
       update,
@@ -152,7 +152,7 @@ describe('makeElement', () => {
       container,
     })
 
-    const fiber = Effect.runFork(program.start())
+    const fiber = Effect.runFork(element.start())
 
     try {
       await awaitBodyText('Crashed Widget')
@@ -165,7 +165,7 @@ describe('makeElement', () => {
 
 describe('makeApplication', () => {
   it('owns the document head, applying title and canonical metadata', async () => {
-    const program = makeApplication({
+    const application = makeApplication({
       Model,
       init: () => [{ label: 'hello' }, []],
       update,
@@ -173,7 +173,7 @@ describe('makeApplication', () => {
       container,
     })
 
-    const fiber = Effect.runFork(program.start())
+    const fiber = Effect.runFork(application.start())
 
     try {
       await awaitBodyText('hello')
