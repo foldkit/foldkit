@@ -1,5 +1,64 @@
 # foldkit
 
+## 0.107.0
+
+### Minor Changes
+
+- 1e4a4e6: Add `Runtime.embed` and the `Port` module: a typed, lifecycle-managed handle for running a Foldkit app inside a host application, modeled on Elm's ports.
+
+  **New:** `Runtime.embed(program)` starts a runtime under host control and returns an `EmbedHandle`. The host drives the app only through the handle: `ports.<name>.send(value)` pushes data in, `ports.<name>.subscribe(listener)` receives values out (returning an unsubscribe function), and `dispose()` shuts the runtime down. `dispose` is idempotent and runs full cleanup: Subscriptions, Mounts, ManagedResources, and in-flight Commands stop, the rendered DOM is removed, and the container element is restored empty, ready to be embedded again. Works with programs from both `makeApplication` and `makeElement`. New types: `EmbedHandle`, `PortHandles`, `InboundPortHandle`, `OutboundPortHandle`; `MakeRuntimeReturn` gains a type parameter (defaulted, existing annotations unaffected) carrying the program's Ports.
+
+  **New:** the `Port` module (`foldkit/port`) declares the boundary. `Port.inbound(schema)` and `Port.outbound(schema)` create typed Ports, grouped in a record and registered through the new `ports` config field on `makeApplication` and `makeElement`. Each direction maps onto an existing primitive: the app consumes an inbound Port as a Subscription source (`Port.subscription(port, toMessage)`, or `Port.stream(port)` for Model-gated entries) and writes an outbound Port from a Command (`Port.emit(port, value)`). Values are validated at the boundary: `send` decodes against the Port's Schema and returns an `Exit`, so an invalid value never reaches the app; `emit` encodes, so host listeners receive the Schema's Encoded form.
+
+  ```ts
+  const ports = {
+    inbound: { stepChanged: Port.inbound(S.Number) },
+    outbound: { countChanged: Port.outbound(S.Number) },
+  }
+
+  const element = Runtime.makeElement({
+    Model,
+    init,
+    update,
+    view,
+    ports,
+    container,
+  })
+
+  const handle = Runtime.embed(element)
+  handle.ports.stepChanged.send(5)
+  const unsubscribe = handle.ports.countChanged.subscribe(count =>
+    console.log(count),
+  )
+  handle.dispose()
+  ```
+
+  **Changed:** interrupting a runtime's `start()` fiber now tears the whole runtime down. The render loop, Subscription streams, ManagedResource lifecycles, and Command fibers fork into the runtime scope instead of detaching, navigation and bfcache listeners are removed on shutdown, and the DevTools overlay is cleaned up with its runtime. `makeElement` apps no longer install the page-reloading bfcache listener; reloading on bfcache restore is a page-level decision, so only page-owning `makeApplication` apps register it.
+
+- 127e9f5: Split the runtime into `makeApplication` and `makeElement`, following Elm's `Browser.application` / `Browser.element` convention.
+
+  **Breaking:** `Runtime.makeProgram` is renamed to `Runtime.makeApplication`. The behavior is identical (its `view` returns a `Document`; the runtime owns `document.title` and the canonical / og:url tags). The associated exported types are renamed to match: `ProgramConfig` → `ApplicationConfig`, `ProgramConfigWithFlags` → `ApplicationConfigWithFlags`, `RoutingProgramConfig` → `RoutingApplicationConfig`, `RoutingProgramConfigWithFlags` → `RoutingApplicationConfigWithFlags`, `ProgramInit` → `ApplicationInit`, `RoutingProgramInit` → `RoutingApplicationInit`. To migrate, replace `makeProgram` with `makeApplication` (and the `*Program*` type names with their `*Application*` equivalents).
+
+  **New:** `Runtime.makeElement` mounts a Foldkit app scoped to a DOM node. Its `view` returns `Html` directly (no title to discard) and the runtime never touches the document `<head>`, so an app can be embedded on a page it does not own without clobbering the host page's `title`, `canonical`, or `og:url`. Everything else (Model, `init`, `update`, Commands, Subscriptions, flags, crash handling) works exactly as it does with `makeApplication`. Embedded apps do not own the URL bar, so `makeElement` has no `routing` config. New types: `ElementConfig`, `ElementConfigWithFlags`, `ElementCrashConfig`, `ElementInit`.
+
+  ```ts
+  import { Runtime } from 'foldkit'
+
+  import { Model, init, update, view } from './main'
+
+  // view: (model) => Html
+
+  const element = Runtime.makeElement({
+    Model,
+    init,
+    update,
+    view,
+    container: document.getElementById('widget'),
+  })
+
+  Runtime.run(element)
+  ```
+
 ## 0.106.0
 
 ### Minor Changes

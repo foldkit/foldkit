@@ -1,5 +1,11 @@
 # @foldkit/devtools-mcp
 
+## 0.10.1
+
+### Patch Changes
+
+- 127e9f5: Update the README and CLI install instructions to reference `Runtime.makeApplication` instead of the renamed `Runtime.makeProgram`.
+
 ## 0.10.0
 
 ### Minor Changes

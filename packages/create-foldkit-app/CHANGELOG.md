@@ -1,5 +1,15 @@
 # create-foldkit-app
 
+## 0.14.0
+
+### Minor Changes
+
+- 1e4a4e6: Add the `embedding` example: a Foldkit widget embedded in a plain TypeScript host page via `Runtime.embed`, with Flags in, typed Ports in both directions, and `dispose` on unmount.
+
+### Patch Changes
+
+- 127e9f5: Update the scaffolded `AGENTS.md` to reference `Runtime.makeApplication` instead of the renamed `Runtime.makeProgram`.
+
 ## 0.13.0
 
 ### Minor Changes
