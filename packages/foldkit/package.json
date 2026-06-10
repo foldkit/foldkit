@@ -27,6 +27,10 @@
       "types": "./dist/customElement/public.d.ts",
       "import": "./dist/customElement/public.js"
     },
+    "./dataCommand": {
+      "types": "./dist/dataCommand/public.d.ts",
+      "import": "./dist/dataCommand/public.js"
+    },
     "./dom": {
       "types": "./dist/dom/public.d.ts",
       "import": "./dist/dom/public.js"

@@ -15,6 +15,10 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/foldkit/src/customElement',
   ),
+  'foldkit/dataCommand': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/dataCommand',
+  ),
   'foldkit/dom': path.resolve(dirname, '../../packages/foldkit/src/dom'),
   'foldkit/fieldValidation': path.resolve(
     dirname,
