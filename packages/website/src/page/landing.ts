@@ -23,6 +23,9 @@ import {
   comingFromReactRouter,
   coreArchitectureRouter,
   coreDevToolsRouter,
+  coreEmbeddingRouter,
+  coreManagedResourcesRouter,
+  coreSubmodelRouter,
   coreSubscriptionsRouter,
   examplesRouter,
   fieldValidationRouter,
@@ -588,6 +591,17 @@ const includedSection = (): Html => {
                 ],
               ),
               includedFeature(
+                Icon.squareStack('w-6 h-6'),
+                'Submodels',
+                [
+                  'A self-contained Model, Messages, update, and view, embedded inside a larger program. Children surface domain facts as typed OutMessages and parents handle them in update. Every stateful Foldkit UI component ships as a Submodel.',
+                ],
+                {
+                  href: coreSubmodelRouter(),
+                  label: 'Explore Submodels',
+                },
+              ),
+              includedFeature(
                 Icon.signal('w-6 h-6'),
                 'Subscriptions',
                 [
@@ -596,6 +610,17 @@ const includedSection = (): Html => {
                 {
                   href: coreSubscriptionsRouter(),
                   label: 'Explore Subscriptions',
+                },
+              ),
+              includedFeature(
+                Icon.circleStack('w-6 h-6'),
+                'Managed Resources',
+                [
+                  'Model-driven lifecycles for long-lived browser resources like WebSockets, AudioContext, and RTCPeerConnection. The runtime acquires when the Model calls for the resource and releases when it no longer does.',
+                ],
+                {
+                  href: coreManagedResourcesRouter(),
+                  label: 'Explore Managed Resources',
                 },
               ),
               includedFeature(
@@ -629,6 +654,17 @@ const includedSection = (): Html => {
                 {
                   href: coreDevToolsRouter(),
                   label: 'Explore DevTools',
+                },
+              ),
+              includedFeature(
+                Icon.codeBracket('w-6 h-6'),
+                'Embedding',
+                [
+                  'Run a Foldkit widget inside any host application with Runtime.embed. The host pushes data in and receives values out through Schema-typed Ports, and tears the widget down with dispose.',
+                ],
+                {
+                  href: coreEmbeddingRouter(),
+                  label: 'Explore embedding',
                 },
               ),
             ],
@@ -940,7 +976,7 @@ const audienceSection = (): Html => {
                     [
                       audienceNotItem(
                         'Large existing React codebases',
-                        'Foldkit isn’t an incremental adoption. It’s a different architecture. Migration means a rewrite.',
+                        'Foldkit isn’t an incremental adoption. It’s a different architecture, and migrating means a rewrite. The middle path is embedding: Runtime.embed runs a Foldkit widget inside an existing app.',
                       ),
                       audienceNotItem(
                         'Teams not ready to invest in Effect',
