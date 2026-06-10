@@ -10,7 +10,6 @@ import {
   String,
 } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
-import { Command, Runtime } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -102,7 +101,9 @@ export type Flags = typeof Flags.Type
 
 // INIT
 
-export const init: Runtime.ProgramInit<Model, Message, Flags> = flags => [
+export const init = (
+  flags: Flags,
+): readonly [Model, ReadonlyArray<Command>] => [
   {
     todos: Option.getOrElse(flags.todos, () => []),
     newTodoText: '',
@@ -117,11 +118,9 @@ export const init: Runtime.ProgramInit<Model, Message, Flags> = flags => [
 export const update = (
   model: Model,
   message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command>] =>
   M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
+    M.withReturnType<readonly [Model, ReadonlyArray<Command>]>(),
     M.tagsExhaustive({
       UpdatedNewTodo: ({ text }) => [
         evo(model, {
@@ -215,9 +214,7 @@ export const update = (
 
       SavedEdit: () =>
         M.value(model.editing).pipe(
-          M.withReturnType<
-            readonly [Model, ReadonlyArray<Command.Command<Message>>]
-          >(),
+          M.withReturnType<readonly [Model, ReadonlyArray<Command>]>(),
           M.tagsExhaustive({
             NotEditing: () => [model, []],
 
@@ -300,37 +297,38 @@ export const update = (
 
 // COMMAND
 
-export const GenerateTodo = Command.define(
-  'GenerateTodo',
-  { text: S.String },
-  GeneratedTodo,
-)(({ text }) =>
-  Effect.gen(function* () {
-    const id = yield* Random.nextIntBetween(0, Number.MAX_SAFE_INTEGER).pipe(
-      Effect.map(value => value.toString(36)),
-    )
-    const timestamp = yield* Clock.currentTimeMillis
-    return GeneratedTodo({ id, timestamp, text })
-  }),
-)
+export const GenerateTodo = ts('GenerateTodo', { text: S.String })
+export const SaveTodos = ts('SaveTodos', { todos: Todos })
 
-export const SaveTodos = Command.define(
-  'SaveTodos',
-  { todos: Todos },
-  SavedTodos,
-)(({ todos }) =>
-  Effect.gen(function* () {
-    const store = yield* KeyValueStore.KeyValueStore
-    yield* store.set(
-      TODOS_STORAGE_KEY,
-      S.encodeSync(S.fromJsonString(Todos))(todos),
-    )
-    return SavedTodos({ todos })
-  }).pipe(
-    Effect.catch(() => Effect.succeed(SavedTodos({ todos }))),
-    Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-  ),
-)
+export const Command = S.Union([GenerateTodo, SaveTodos])
+export type Command = typeof Command.Type
+
+export const execute = (
+  command: Command,
+): Effect.Effect<Message, never, KeyValueStore.KeyValueStore> =>
+  M.value(command).pipe(
+    M.tagsExhaustive({
+      GenerateTodo: ({ text }) =>
+        Effect.gen(function* () {
+          const id = yield* Random.nextIntBetween(
+            0,
+            Number.MAX_SAFE_INTEGER,
+          ).pipe(Effect.map(value => value.toString(36)))
+          const timestamp = yield* Clock.currentTimeMillis
+          return GeneratedTodo({ id, timestamp, text })
+        }),
+
+      SaveTodos: ({ todos }) =>
+        Effect.gen(function* () {
+          const store = yield* KeyValueStore.KeyValueStore
+          yield* store.set(
+            TODOS_STORAGE_KEY,
+            S.encodeSync(S.fromJsonString(Todos))(todos),
+          )
+          return SavedTodos({ todos })
+        }).pipe(Effect.catch(() => Effect.succeed(SavedTodos({ todos })))),
+    }),
+  )
 
 // VIEW
 

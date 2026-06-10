@@ -1,5 +1,5 @@
 import { Array, Option } from 'effect'
-import { Story } from 'foldkit'
+import { DataCommand, Story } from 'foldkit'
 import { describe, expect, test } from 'vitest'
 
 import {
@@ -10,6 +10,7 @@ import {
   Editing,
   GenerateTodo,
   GeneratedTodo,
+  type Message,
   type Model,
   NotEditing,
   SaveTodos,
@@ -21,8 +22,17 @@ import {
   ToggledTodo,
   UpdatedEditingTodo,
   UpdatedNewTodo,
+  execute,
   update,
 } from './main'
+
+const interpret = DataCommand.toCommand(execute)
+const interpretAll = DataCommand.toCommands(execute)
+
+const interpretedUpdate = (model: Model, message: Message) => {
+  const [nextModel, commands] = update(model, message)
+  return [nextModel, interpretAll(commands)] as const
+}
 
 const emptyModel: Model = {
   todos: [],
@@ -61,16 +71,27 @@ describe('update', () => {
   describe('add todo', () => {
     test('AddedTodo with text produces a GenerateTodo Command', () => {
       Story.story(
-        update,
+        interpretedUpdate,
         Story.with({ ...emptyModel, newTodoText: 'Buy milk' }),
         Story.message(AddedTodo()),
-        Story.Command.expectHas(GenerateTodo),
+        Story.Command.expectHas({ name: 'GenerateTodo' }),
         Story.Command.resolve(
-          GenerateTodo,
+          interpret(GenerateTodo({ text: 'Buy milk' })),
           GeneratedTodo({ id: 'abc', timestamp: 1000, text: 'Buy milk' }),
         ),
         Story.Command.resolve(
-          SaveTodos,
+          interpret(
+            SaveTodos({
+              todos: [
+                {
+                  id: 'abc',
+                  text: 'Buy milk',
+                  completed: false,
+                  createdAt: 1000,
+                },
+              ],
+            }),
+          ),
           SavedTodos({
             todos: [
               {
@@ -93,7 +114,7 @@ describe('update', () => {
 
     test('AddedTodo with empty text is ignored', () => {
       Story.story(
-        update,
+        interpretedUpdate,
         Story.with({ ...emptyModel, newTodoText: '' }),
         Story.message(AddedTodo()),
         Story.Command.expectNone(),
@@ -102,7 +123,7 @@ describe('update', () => {
 
     test('AddedTodo with whitespace-only text is ignored', () => {
       Story.story(
-        update,
+        interpretedUpdate,
         Story.with({ ...emptyModel, newTodoText: '   ' }),
         Story.message(AddedTodo()),
         Story.Command.expectNone(),
@@ -111,7 +132,7 @@ describe('update', () => {
 
     test('UpdatedNewTodo updates the input text', () => {
       Story.story(
-        update,
+        interpretedUpdate,
         Story.with(emptyModel),
         Story.message(UpdatedNewTodo({ text: 'Walk' })),
         Story.model(model => {
@@ -128,10 +149,13 @@ describe('update', () => {
       )
 
       Story.story(
-        update,
+        interpretedUpdate,
         Story.with(modelWithTodos),
         Story.message(ToggledTodo({ id: 'abc' })),
-        Story.Command.resolve(SaveTodos, SavedTodos({ todos: toggledTodos })),
+        Story.Command.resolve(
+          interpret(SaveTodos({ todos: toggledTodos })),
+          SavedTodos({ todos: toggledTodos }),
+        ),
         Story.model(model => {
           const todo = Array.findFirst(model.todos, ({ id }) => id === 'abc')
           expect(Option.map(todo, ({ completed }) => completed)).toStrictEqual(
@@ -147,10 +171,13 @@ describe('update', () => {
       )
 
       Story.story(
-        update,
+        interpretedUpdate,
         Story.with(modelWithTodos),
         Story.message(ToggledTodo({ id: 'ghi' })),
-        Story.Command.resolve(SaveTodos, SavedTodos({ todos: toggledTodos })),
+        Story.Command.resolve(
+          interpret(SaveTodos({ todos: toggledTodos })),
+          SavedTodos({ todos: toggledTodos }),
+        ),
         Story.model(model => {
           const todo = Array.findFirst(model.todos, ({ id }) => id === 'ghi')
           expect(Option.map(todo, ({ completed }) => completed)).toStrictEqual(
@@ -166,10 +193,13 @@ describe('update', () => {
       )
 
       Story.story(
-        update,
+        interpretedUpdate,
         Story.with(modelWithTodos),
         Story.message(DeletedTodo({ id: 'abc' })),
-        Story.Command.resolve(SaveTodos, SavedTodos({ todos: remainingTodos })),
+        Story.Command.resolve(
+          interpret(SaveTodos({ todos: remainingTodos })),
+          SavedTodos({ todos: remainingTodos }),
+        ),
         Story.model(model => {
           expect(model.todos).toHaveLength(2)
           expect(
@@ -183,7 +213,7 @@ describe('update', () => {
   describe('editing', () => {
     test('StartedEditing enters editing state with the todo text', () => {
       Story.story(
-        update,
+        interpretedUpdate,
         Story.with(modelWithTodos),
         Story.message(StartedEditing({ id: 'abc' })),
         Story.model(model => {
@@ -201,7 +231,7 @@ describe('update', () => {
       }
 
       Story.story(
-        update,
+        interpretedUpdate,
         Story.with(editingModel),
         Story.message(UpdatedEditingTodo({ text: 'Buy oat milk' })),
         Story.model(model => {
@@ -223,10 +253,13 @@ describe('update', () => {
       )
 
       Story.story(
-        update,
+        interpretedUpdate,
         Story.with(editingModel),
         Story.message(SavedEdit()),
-        Story.Command.resolve(SaveTodos, SavedTodos({ todos: editedTodos })),
+        Story.Command.resolve(
+          interpret(SaveTodos({ todos: editedTodos })),
+          SavedTodos({ todos: editedTodos }),
+        ),
         Story.model(model => {
           const todo = Array.findFirst(model.todos, ({ id }) => id === 'abc')
           expect(Option.map(todo, ({ text }) => text)).toStrictEqual(
@@ -244,7 +277,7 @@ describe('update', () => {
       }
 
       Story.story(
-        update,
+        interpretedUpdate,
         Story.with(editingModel),
         Story.message(SavedEdit()),
         Story.model(model => {
@@ -265,7 +298,7 @@ describe('update', () => {
       }
 
       Story.story(
-        update,
+        interpretedUpdate,
         Story.with(editingModel),
         Story.message(CancelledEdit()),
         Story.model(model => {
@@ -287,11 +320,11 @@ describe('update', () => {
       }))
 
       Story.story(
-        update,
+        interpretedUpdate,
         Story.with(modelWithTodos),
         Story.message(ToggledAll()),
         Story.Command.resolve(
-          SaveTodos,
+          interpret(SaveTodos({ todos: allCompletedTodos })),
           SavedTodos({ todos: allCompletedTodos }),
         ),
         Story.model(model => {
@@ -317,10 +350,13 @@ describe('update', () => {
       }))
 
       Story.story(
-        update,
+        interpretedUpdate,
         Story.with(allCompletedModel),
         Story.message(ToggledAll()),
-        Story.Command.resolve(SaveTodos, SavedTodos({ todos: allActiveTodos })),
+        Story.Command.resolve(
+          interpret(SaveTodos({ todos: allActiveTodos })),
+          SavedTodos({ todos: allActiveTodos }),
+        ),
         Story.model(model => {
           expect(Array.every(model.todos, ({ completed }) => !completed)).toBe(
             true,
@@ -335,10 +371,13 @@ describe('update', () => {
       )
 
       Story.story(
-        update,
+        interpretedUpdate,
         Story.with(modelWithTodos),
         Story.message(ClearedCompleted()),
-        Story.Command.resolve(SaveTodos, SavedTodos({ todos: activeTodos })),
+        Story.Command.resolve(
+          interpret(SaveTodos({ todos: activeTodos })),
+          SavedTodos({ todos: activeTodos }),
+        ),
         Story.model(model => {
           expect(model.todos).toHaveLength(2)
           expect(Array.every(model.todos, ({ completed }) => !completed)).toBe(
@@ -352,7 +391,7 @@ describe('update', () => {
   describe('filter', () => {
     test('SelectedFilter changes the active filter', () => {
       Story.story(
-        update,
+        interpretedUpdate,
         Story.with(modelWithTodos),
         Story.message(SelectedFilter({ filter: 'Active' })),
         Story.model(model => {
