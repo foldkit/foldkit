@@ -186,7 +186,7 @@ const collectPackageTypes = async (
     }),
   )
 
-  const barrelEntries: ReadonlyArray<readonly [string, string]> =
+  const exportBarrelEntries: ReadonlyArray<readonly [string, string]> =
     Object.entries(packageJson.exports ?? {}).flatMap(([subpath, entry]) => {
       const target = resolveTypesEntry(entry)
       if (target === undefined) {
@@ -224,6 +224,33 @@ const collectPackageTypes = async (
       const targetPath = `/node_modules/${packageName}/${target.replace(/^\.\//, '')}`
       return [[barrelPath, targetPath]] as const
     })
+
+  // NOTE: Packages that predate `exports` (e.g. `maplibre-gl`) declare
+  // their entry point only through the legacy `types`/`typings` field.
+  // Bundler resolution needs an `index.d.ts` at the package root to
+  // resolve the bare specifier, so synthesize one from `types`/`typings`
+  // when no `.` export already produced a root barrel.
+  const rootBarrelPath = `/node_modules/${packageName}/index.d.ts`
+  const legacyTypesTarget = resolveTypesEntry(
+    packageJson.types ?? packageJson.typings,
+  )
+  const hasRootBarrel = exportBarrelEntries.some(
+    ([barrelPath]) => barrelPath === rootBarrelPath,
+  )
+  const legacyBarrelEntries: ReadonlyArray<readonly [string, string]> =
+    legacyTypesTarget === undefined || hasRootBarrel
+      ? []
+      : [
+          [
+            rootBarrelPath,
+            `/node_modules/${packageName}/${legacyTypesTarget.replace(/^\.\//, '')}`,
+          ],
+        ]
+
+  const barrelEntries: ReadonlyArray<readonly [string, string]> = [
+    ...exportBarrelEntries,
+    ...legacyBarrelEntries,
+  ]
 
   // NOTE: Two cases that `export *` alone doesn't handle:
   //
@@ -285,15 +312,20 @@ const collectPackageTypes = async (
   return Record.values(merged)
 }
 
-const installedPackageRoot = (packageName: string): string =>
-  resolve(WEBSITE_ROOT, 'node_modules', packageName)
-
-const collectExampleDependencyNames = async (): Promise<
-  ReadonlyArray<string>
+// NOTE: pnpm symlinks each example's direct dependencies into that
+// example's own `node_modules`, pointing into the shared store. We
+// resolve types from there rather than the website's `node_modules` so
+// that example-only deps the website never imports (e.g. `maplibre-gl`)
+// still resolve in the editor. `foldkit` is excluded because its types
+// come from the monorepo source. Names are deduped across examples; the
+// first example that declares a dependency wins.
+const collectExampleDependencyRoots = async (): Promise<
+  ReadonlyArray<readonly [string, string]>
 > => {
-  const dependencyNames = new Set<string>()
+  const rootByName = new Map<string, string>()
   for (const slug of exampleSlugs) {
-    const packageJsonPath = resolve(REPO_ROOT, 'examples', slug, 'package.json')
+    const exampleRoot = resolve(REPO_ROOT, 'examples', slug)
+    const packageJsonPath = resolve(exampleRoot, 'package.json')
     if (!existsSync(packageJsonPath)) {
       continue
     }
@@ -302,10 +334,16 @@ const collectExampleDependencyNames = async (): Promise<
       dependencies?: Readonly<Record<string, string>>
     }> = JSON.parse(packageJsonRaw)
     for (const name of Object.keys(examplePackageJson.dependencies ?? {})) {
-      dependencyNames.add(name)
+      if (name === 'foldkit' || rootByName.has(name)) {
+        continue
+      }
+      const packageRoot = resolve(exampleRoot, 'node_modules', name)
+      if (existsSync(packageRoot)) {
+        rootByName.set(name, packageRoot)
+      }
     }
   }
-  return Array.fromIterable(dependencyNames)
+  return Array.fromIterable(rootByName)
 }
 
 export const playgroundTypesPlugin = (): Plugin => ({
@@ -322,20 +360,20 @@ export const playgroundTypesPlugin = (): Plugin => ({
     }
 
     // NOTE: Foldkit is a workspace package and is read from the monorepo
-    // source. All other runtime deps come from the installed
-    // `node_modules` tree, which lets us bundle types for whatever
-    // packages the examples currently use without enumerating them.
+    // source. Every other dependency is resolved from the example that
+    // declares it, which lets us bundle types for whatever packages the
+    // examples currently use without enumerating them in the website's
+    // own dependencies.
     const foldkit = await collectPackageTypes(
       resolve(REPO_ROOT, 'packages/foldkit'),
       'foldkit',
     )
 
-    const externalPackageNames = await collectExampleDependencyNames()
+    const externalPackageRoots = await collectExampleDependencyRoots()
     const externalPackages = await Promise.all(
-      externalPackageNames
-        .filter(name => name !== 'foldkit')
-        .filter(name => existsSync(installedPackageRoot(name)))
-        .map(name => collectPackageTypes(installedPackageRoot(name), name)),
+      externalPackageRoots.map(([name, packageRoot]) =>
+        collectPackageTypes(packageRoot, name),
+      ),
     )
 
     const allFiles = Array.flatten([foldkit, ...externalPackages])
