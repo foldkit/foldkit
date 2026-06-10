@@ -1,11 +1,9 @@
 import { Option } from 'effect'
-import { Command } from 'foldkit'
 
-import { FocusUsernameInput } from './command'
-import { Message } from './message'
+import { Command, FocusUsernameInput } from './command'
 import { EnterUsername, Model } from './model'
 
-export type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+export type InitReturn = [Model, ReadonlyArray<Command>]
 
 export const init = (): InitReturn => [
   {

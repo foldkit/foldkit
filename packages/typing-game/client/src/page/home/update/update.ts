@@ -1,9 +1,9 @@
 import { Array, Match as M, Option, String as Str } from 'effect'
-import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { optionWhen } from '../../../optionWhen'
 import {
+  Command,
   CreateRoom,
   FocusRoomIdInput,
   FocusUsernameInput,
@@ -15,7 +15,7 @@ import { handleKeyPressed } from './handleKeyPressed'
 
 export type UpdateReturn = readonly [
   Model,
-  ReadonlyArray<Command.Command<Message>>,
+  ReadonlyArray<Command>,
   Option.Option<OutMessage>,
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()

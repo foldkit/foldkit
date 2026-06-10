@@ -1,43 +1,25 @@
 import * as Shared from '@typing-game/shared'
-import { Effect, Match as M, Option, Schema as S } from 'effect'
-import { Command, Url } from 'foldkit'
-import { load, pushUrl } from 'foldkit/navigation'
+import { Array, Match as M, Option } from 'effect'
+import { Url } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import { NavigateToRoom } from './command'
 import {
-  CompletedLoadExternal,
-  CompletedNavigateInternal,
-  GotHomeMessage,
-  GotRoomMessage,
-  Message,
-} from './message'
+  Command,
+  LiftHome,
+  LiftRoom,
+  LoadExternal,
+  NavigateInternal,
+  NavigateToRoom,
+} from './command'
+import { Message } from './message'
 import { Model } from './model'
 import { Home, Room } from './page'
 import { urlToAppRoute } from './route'
 
-const NavigateInternal = Command.define(
-  'NavigateInternal',
-  { url: S.String },
-  CompletedNavigateInternal,
-)(({ url }) => pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())))
+export type UpdateReturn = [Model, ReadonlyArray<Command>]
+const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-const LoadExternal = Command.define(
-  'LoadExternal',
-  { href: S.String },
-  CompletedLoadExternal,
-)(({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())))
-
-export type UpdateReturn<Model, Message> = [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-]
-const withUpdateReturn = M.withReturnType<UpdateReturn<Model, Message>>()
-
-export const update = (
-  model: Model,
-  message: Message,
-): UpdateReturn<Model, Message> =>
+export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tags({
@@ -66,8 +48,8 @@ export const update = (
           message,
         )
 
-        const mappedCommands = Command.mapMessages(homeCommands, message =>
-          GotHomeMessage({ message }),
+        const liftedCommands = Array.map(homeCommands, command =>
+          LiftHome({ command }),
         )
 
         return Option.match(maybeOutMessage, {
@@ -75,7 +57,7 @@ export const update = (
             evo(model, {
               home: () => nextHomeModel,
             }),
-            mappedCommands,
+            liftedCommands,
           ],
           onSome: outMessage =>
             M.value(outMessage).pipe(
@@ -91,7 +73,7 @@ export const update = (
                   )
                   return [
                     evo(nextModel, { home: () => nextHomeModel }),
-                    [...mappedCommands, ...roomCommands],
+                    [...liftedCommands, ...roomCommands],
                   ]
                 },
               ),
@@ -114,9 +96,7 @@ export const update = (
               evo(model, {
                 room: () => nextRoomModel,
               }),
-              Command.mapMessages(roomCommands, message =>
-                GotRoomMessage({ message }),
-              ),
+              Array.map(roomCommands, command => LiftRoom({ command })),
             ]
           }),
           M.orElse(() => [model, []]),
@@ -138,7 +118,7 @@ const handleRoomJoined = (
   model: Model,
   roomId: string,
   player: Shared.Player,
-): UpdateReturn<Model, Message> => {
+): UpdateReturn => {
   const [nextRoomModel, roomCommands] = Room.update(
     model.room,
     Room.Message.SucceededJoinRoom({ player }),
@@ -149,9 +129,7 @@ const handleRoomJoined = (
     evo(model, { room: () => nextRoomModel }),
     [
       NavigateToRoom({ roomId }),
-      ...Command.mapMessages(roomCommands, message =>
-        GotRoomMessage({ message }),
-      ),
+      ...Array.map(roomCommands, command => LiftRoom({ command })),
     ],
   ]
 }

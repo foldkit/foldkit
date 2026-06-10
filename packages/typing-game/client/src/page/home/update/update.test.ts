@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { Story } from 'foldkit'
+import { DataCommand, Story } from 'foldkit'
 import { describe, expect, test } from 'vitest'
 
 import {
@@ -7,6 +7,7 @@ import {
   FocusRoomIdInput,
   FocusUsernameInput,
   JoinRoom,
+  execute,
 } from '../command'
 import {
   ChangedRoomId,
@@ -14,14 +15,23 @@ import {
   CompletedFocusRoomIdInput,
   CompletedFocusUsernameInput,
   FailedJoinRoom,
+  type Message,
   PressedKey,
   SubmittedJoinRoomForm,
   SubmittedUsernameForm,
   SucceededCreateRoom,
   SucceededJoinRoom,
 } from '../message'
-import { EnterRoomId, EnterUsername, SelectAction } from '../model'
+import { EnterRoomId, EnterUsername, type Model, SelectAction } from '../model'
 import { update } from './update'
+
+const interpret = DataCommand.toCommand(execute)
+const interpretAll = DataCommand.toCommands(execute)
+
+const interpretedUpdate = (model: Model, message: Message) => {
+  const [nextModel, commands, maybeOutMessage] = update(model, message)
+  return [nextModel, interpretAll(commands), maybeOutMessage] as const
+}
 
 const alice = { id: 'p1', username: 'alice' }
 
@@ -49,7 +59,7 @@ const withEnterRoomIdStep = () =>
 describe('entering a username', () => {
   test('typing updates the username', () => {
     Story.story(
-      update,
+      interpretedUpdate,
       withEnterUsernameStep(),
       Story.message(ChangedUsername({ value: 'alice' })),
       Story.model(model => {
@@ -63,7 +73,7 @@ describe('entering a username', () => {
 
   test('submitting advances to action selection', () => {
     Story.story(
-      update,
+      interpretedUpdate,
       withEnterUsernameStep(),
       Story.message(ChangedUsername({ value: 'alice' })),
       Story.message(SubmittedUsernameForm()),
@@ -79,7 +89,7 @@ describe('entering a username', () => {
 
   test('submitting with an empty username does nothing', () => {
     Story.story(
-      update,
+      interpretedUpdate,
       withEnterUsernameStep(),
       Story.message(SubmittedUsernameForm()),
       Story.model(model => {
@@ -92,7 +102,7 @@ describe('entering a username', () => {
 describe('selecting an action', () => {
   test('ArrowDown cycles through actions with wraparound', () => {
     Story.story(
-      update,
+      interpretedUpdate,
       withSelectActionStep(),
       Story.message(PressedKey({ key: 'ArrowDown' })),
       Story.model(model => {
@@ -120,7 +130,7 @@ describe('selecting an action', () => {
 
   test('ArrowUp wraps from first to last', () => {
     Story.story(
-      update,
+      interpretedUpdate,
       withSelectActionStep(),
       Story.message(PressedKey({ key: 'ArrowUp' })),
       Story.model(model => {
@@ -134,11 +144,14 @@ describe('selecting an action', () => {
 
   test('selecting JoinRoom transitions to room ID input', () => {
     Story.story(
-      update,
+      interpretedUpdate,
       withSelectActionStep(),
       Story.message(PressedKey({ key: 'ArrowDown' })),
       Story.message(PressedKey({ key: 'Enter' })),
-      Story.Command.resolve(FocusRoomIdInput, CompletedFocusRoomIdInput()),
+      Story.Command.resolve(
+        interpret(FocusRoomIdInput()),
+        CompletedFocusRoomIdInput(),
+      ),
       Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'EnterRoomId',
@@ -151,12 +164,15 @@ describe('selecting an action', () => {
 
   test('selecting ChangeUsername goes back to username input', () => {
     Story.story(
-      update,
+      interpretedUpdate,
       withSelectActionStep(),
       Story.message(PressedKey({ key: 'ArrowDown' })),
       Story.message(PressedKey({ key: 'ArrowDown' })),
       Story.message(PressedKey({ key: 'Enter' })),
-      Story.Command.resolve(FocusUsernameInput, CompletedFocusUsernameInput()),
+      Story.Command.resolve(
+        interpret(FocusUsernameInput()),
+        CompletedFocusUsernameInput(),
+      ),
       Story.model(model => {
         expect(model.homeStep._tag).toBe('EnterUsername')
       }),
@@ -165,11 +181,11 @@ describe('selecting an action', () => {
 
   test('selecting CreateRoom creates the room and signals the parent', () => {
     Story.story(
-      update,
+      interpretedUpdate,
       withSelectActionStep(),
       Story.message(PressedKey({ key: 'Enter' })),
       Story.Command.resolve(
-        CreateRoom,
+        interpret(CreateRoom({ username: 'alice' })),
         SucceededCreateRoom({ roomId: 'r1', player: alice }),
       ),
       Story.expectOutMessage(
@@ -182,7 +198,7 @@ describe('selecting an action', () => {
 describe('joining a room', () => {
   test('typing a room ID updates the model', () => {
     Story.story(
-      update,
+      interpretedUpdate,
       withEnterRoomIdStep(),
       Story.message(ChangedRoomId({ value: 'abc' })),
       Story.model(model => {
@@ -196,7 +212,7 @@ describe('joining a room', () => {
 
   test('typing clears a previous error', () => {
     Story.story(
-      update,
+      interpretedUpdate,
       Story.with({
         homeStep: EnterRoomId({ username: 'alice', roomId: '' }),
         formError: Option.some('Room not found'),
@@ -210,12 +226,12 @@ describe('joining a room', () => {
 
   test('submitting joins the room and signals the parent', () => {
     Story.story(
-      update,
+      interpretedUpdate,
       withEnterRoomIdStep(),
       Story.message(ChangedRoomId({ value: 'r1' })),
       Story.message(SubmittedJoinRoomForm()),
       Story.Command.resolve(
-        JoinRoom,
+        interpret(JoinRoom({ username: 'alice', roomId: 'r1' })),
         SucceededJoinRoom({ roomId: 'r1', player: alice }),
       ),
       Story.expectOutMessage(
@@ -226,7 +242,7 @@ describe('joining a room', () => {
 
   test('a failed join sets the error', () => {
     Story.story(
-      update,
+      interpretedUpdate,
       withEnterRoomIdStep(),
       Story.message(FailedJoinRoom({ error: 'Room not found' })),
       Story.model(model => {
@@ -240,7 +256,7 @@ describe('joining a room', () => {
 
   test('typing "exit" goes back to action selection', () => {
     Story.story(
-      update,
+      interpretedUpdate,
       withEnterRoomIdStep(),
       Story.message(ChangedRoomId({ value: 'exit' })),
       Story.message(SubmittedJoinRoomForm()),

@@ -1,30 +1,24 @@
-import { Match as M } from 'effect'
-import { Command, Runtime, Url } from 'foldkit'
+import { Array, Match as M } from 'effect'
+import { Url } from 'foldkit'
 
-import { GotHomeMessage, GotRoomMessage } from './message'
-import type { Message } from './message'
+import { Command, LiftHome, LiftRoom } from './command'
 import { Model } from './model'
 import { Home, Room } from './page'
 import { urlToAppRoute } from './route'
 
-export const init: Runtime.RoutingProgramInit<Model, Message> = (
-  url: Url.Url,
-) => {
+export type InitReturn = [Model, ReadonlyArray<Command>]
+
+export const init = (url: Url.Url): InitReturn => {
   const route = urlToAppRoute(url)
 
   const [home, homeCommands] = Home.init()
   const [room, roomCommands] = Room.init(route)
 
   const commands = M.value(route).pipe(
+    M.withReturnType<ReadonlyArray<Command>>(),
     M.tagsExhaustive({
-      Home: () =>
-        Command.mapMessages(homeCommands, message =>
-          GotHomeMessage({ message }),
-        ),
-      Room: () =>
-        Command.mapMessages(roomCommands, message =>
-          GotRoomMessage({ message }),
-        ),
+      Home: () => Array.map(homeCommands, command => LiftHome({ command })),
+      Room: () => Array.map(roomCommands, command => LiftRoom({ command })),
       NotFound: () => [],
     }),
   )

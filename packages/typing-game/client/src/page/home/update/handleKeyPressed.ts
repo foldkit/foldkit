@@ -1,9 +1,12 @@
 import { Array, Match as M, Number, Option, flow, pipe } from 'effect'
-import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import { CreateRoom, FocusRoomIdInput, FocusUsernameInput } from '../command'
-import { Message } from '../message'
+import {
+  Command,
+  CreateRoom,
+  FocusRoomIdInput,
+  FocusUsernameInput,
+} from '../command'
 import {
   EnterRoomId,
   EnterUsername,
@@ -13,7 +16,7 @@ import {
   SelectAction,
 } from '../model'
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = readonly [Model, ReadonlyArray<Command>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const handleKeyPressed =

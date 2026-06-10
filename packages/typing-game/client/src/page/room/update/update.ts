@@ -1,44 +1,27 @@
 import * as Shared from '@typing-game/shared'
-import {
-  Array,
-  Effect,
-  Match as M,
-  Number,
-  Option,
-  String as Str,
-  pipe,
-} from 'effect'
-import { Command } from 'foldkit'
-import { pushUrl } from 'foldkit/navigation'
+import { Array, Match as M, Number, Option, String as Str, pipe } from 'effect'
 import { evo } from 'foldkit/struct'
 
 import { optionWhen } from '../../../optionWhen'
-import { homeRouter } from '../../../route'
 import {
   ClearSession,
+  Command,
   CopyRoomId,
   FocusRoomPageUsernameInput,
   HideRoomIdCopiedIndicator,
   JoinRoom,
+  NavigateHome,
   SavePlayerSession,
   StartGame,
   TickExitCountdown,
   UpdatePlayerProgress,
 } from '../command'
-import { CompletedNavigateHome, Message } from '../message'
+import { Message } from '../message'
 import { Model, RoomRemoteData } from '../model'
 import { validateUserTextInput } from '../userGameText'
 import { handleRoomUpdated } from './handleRoomUpdates'
 
-const NavigateHome = Command.define(
-  'NavigateHome',
-  CompletedNavigateHome,
-)(pushUrl(homeRouter()).pipe(Effect.as(CompletedNavigateHome())))
-
-export type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-]
+export type UpdateReturn = readonly [Model, ReadonlyArray<Command>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 /** Per-dispatch parent state the Room page needs from the root.
