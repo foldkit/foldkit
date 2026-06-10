@@ -1,20 +1,31 @@
-import { Scene } from 'foldkit'
+import { DataCommand, Scene } from 'foldkit'
 import { describe, test } from 'vitest'
 
 import {
   FailedFetchWeather,
   FetchWeather,
+  type Message,
+  type Model,
   SucceededFetchWeather,
   WeatherInit,
+  execute,
   update,
   view,
 } from './main'
 import { weatherData, weatherModel } from './main.fixtures'
 
+const interpret = DataCommand.toCommand(execute)
+const interpretAll = DataCommand.toCommands(execute)
+
+const interpretedUpdate = (model: Model, message: Message) => {
+  const [nextModel, commands] = update(model, message)
+  return [nextModel, interpretAll(commands)] as const
+}
+
 describe('scene', () => {
   test('initial view shows empty form with Get Weather button', () => {
     Scene.scene(
-      { update, view },
+      { update: interpretedUpdate, view },
       Scene.with(weatherModel),
       Scene.expect(Scene.label('Zip code')).toExist(),
       Scene.expect(Scene.role('button', { name: 'Get Weather' })).toExist(),
@@ -24,7 +35,7 @@ describe('scene', () => {
 
   test('typing a zip code updates the input value', () => {
     Scene.scene(
-      { update, view },
+      { update: interpretedUpdate, view },
       Scene.with(weatherModel),
       Scene.type(Scene.label('Zip code'), '10001'),
       Scene.expect(Scene.label('Zip code')).toHaveValue('10001'),
@@ -33,13 +44,13 @@ describe('scene', () => {
 
   test('submitting the form shows loading state', () => {
     Scene.scene(
-      { update, view },
+      { update: interpretedUpdate, view },
       Scene.with(weatherModel),
       Scene.submit(Scene.role('form')),
       Scene.expect(Scene.role('button', { name: 'Loading...' })).toExist(),
-      Scene.Command.expectExact(FetchWeather({ zipCode: '90210' })),
+      Scene.Command.expectExact(interpret(FetchWeather({ zipCode: '90210' }))),
       Scene.Command.resolve(
-        FetchWeather,
+        interpret(FetchWeather({ zipCode: '90210' })),
         SucceededFetchWeather({ weather: weatherData }),
       ),
     )
@@ -47,12 +58,12 @@ describe('scene', () => {
 
   test('successful fetch renders weather card', () => {
     Scene.scene(
-      { update, view },
+      { update: interpretedUpdate, view },
       Scene.with(weatherModel),
       Scene.submit(Scene.role('form')),
-      Scene.Command.expectExact(FetchWeather({ zipCode: '90210' })),
+      Scene.Command.expectExact(interpret(FetchWeather({ zipCode: '90210' }))),
       Scene.Command.resolve(
-        FetchWeather,
+        interpret(FetchWeather({ zipCode: '90210' })),
         SucceededFetchWeather({ weather: weatherData }),
       ),
       Scene.inside(
@@ -69,12 +80,12 @@ describe('scene', () => {
 
   test('failed fetch renders error message', () => {
     Scene.scene(
-      { update, view },
+      { update: interpretedUpdate, view },
       Scene.with(weatherModel),
       Scene.submit(Scene.role('form')),
-      Scene.Command.expectExact(FetchWeather({ zipCode: '90210' })),
+      Scene.Command.expectExact(interpret(FetchWeather({ zipCode: '90210' }))),
       Scene.Command.resolve(
-        FetchWeather,
+        interpret(FetchWeather({ zipCode: '90210' })),
         FailedFetchWeather({ error: 'Network error' }),
       ),
       Scene.expect(Scene.role('article')).toBeAbsent(),
@@ -84,14 +95,14 @@ describe('scene', () => {
 
   test('full flow: type zip code, click get weather, see results', () => {
     Scene.scene(
-      { update, view },
+      { update: interpretedUpdate, view },
       Scene.with({ zipCodeInput: '', weather: WeatherInit() }),
       Scene.type(Scene.label('Zip code'), '90210'),
       Scene.click(Scene.role('button', { name: 'Get Weather' })),
       Scene.expect(Scene.role('button', { name: 'Loading...' })).toExist(),
-      Scene.Command.expectExact(FetchWeather({ zipCode: '90210' })),
+      Scene.Command.expectExact(interpret(FetchWeather({ zipCode: '90210' }))),
       Scene.Command.resolve(
-        FetchWeather,
+        interpret(FetchWeather({ zipCode: '90210' })),
         SucceededFetchWeather({ weather: weatherData }),
       ),
       Scene.inside(

@@ -1,10 +1,5 @@
 import { Array, Effect, Match as M, Option, Schema as S, String } from 'effect'
-import {
-  FetchHttpClient,
-  HttpClient,
-  HttpClientRequest,
-} from 'effect/unstable/http'
-import { Command, Runtime } from 'foldkit'
+import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -64,11 +59,9 @@ export type Message = typeof Message.Type
 export const update = (
   model: Model,
   message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command>] =>
   M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
+    M.withReturnType<readonly [Model, ReadonlyArray<Command>]>(),
     M.tagsExhaustive({
       UpdatedZipCodeInput: ({ value }) => [
         evo(model, {
@@ -102,7 +95,7 @@ export const update = (
 
 // INIT
 
-export const init: Runtime.ProgramInit<Model, Message> = () => [
+export const init = (): readonly [Model, ReadonlyArray<Command>] => [
   {
     zipCodeInput: '',
     weather: WeatherInit(),
@@ -111,6 +104,23 @@ export const init: Runtime.ProgramInit<Model, Message> = () => [
 ]
 
 // COMMAND
+
+export const FetchWeather = ts('FetchWeather', { zipCode: S.String })
+
+export const Command = S.Union([FetchWeather])
+export type Command = typeof Command.Type
+
+export const execute = (
+  command: Command,
+): Effect.Effect<Message, never, HttpClient.HttpClient> =>
+  M.value(command).pipe(
+    M.tagsExhaustive({
+      FetchWeather: ({ zipCode }) =>
+        fetchWeatherEffect(zipCode).pipe(
+          Effect.provideService(HttpClient.TracerPropagationEnabled, false),
+        ),
+    }),
+  )
 
 const GEOCODING_API = 'https://geocoding-api.open-meteo.com/v1/search'
 const WEATHER_API = 'https://api.open-meteo.com/v1/forecast'
@@ -230,18 +240,6 @@ export const fetchWeatherEffect = (zipCode: string) =>
       ),
     ),
   )
-
-export const FetchWeather = Command.define(
-  'FetchWeather',
-  { zipCode: S.String },
-  SucceededFetchWeather,
-  FailedFetchWeather,
-)(({ zipCode }) =>
-  fetchWeatherEffect(zipCode).pipe(
-    Effect.provideService(HttpClient.TracerPropagationEnabled, false),
-    Effect.provide(FetchHttpClient.layer),
-  ),
-)
 
 // VIEW
 

@@ -1,6 +1,5 @@
 import { Effect, Layer, Match as M, String } from 'effect'
 import { HttpClient, HttpClientResponse } from 'effect/unstable/http'
-import { Story } from 'foldkit'
 import { expect, test } from 'vitest'
 
 import {
@@ -19,43 +18,37 @@ import {
 } from './main.fixtures'
 
 test('submitting the weather form fetches weather and shows result', () => {
-  Story.story(
-    update,
-    Story.with(weatherModel),
-    Story.message(SubmittedWeatherForm()),
-    Story.model(model => {
-      expect(model.weather._tag).toBe('WeatherLoading')
-    }),
-    Story.Command.resolve(
-      FetchWeather,
-      SucceededFetchWeather({ weather: weatherData }),
-    ),
-    Story.model(model => {
-      expect(model.weather._tag).toBe('WeatherSuccess')
-      if (model.weather._tag === 'WeatherSuccess') {
-        expect(model.weather.data.temperature).toBe(72)
-        expect(model.weather.data.locationName).toBe('Beverly Hills')
-      }
-    }),
+  const [loadingModel, commands] = update(weatherModel, SubmittedWeatherForm())
+
+  expect(loadingModel.weather._tag).toBe('WeatherLoading')
+  expect(commands).toEqual([FetchWeather({ zipCode: '90210' })])
+
+  const [successModel] = update(
+    loadingModel,
+    SucceededFetchWeather({ weather: weatherData }),
   )
+
+  expect(successModel.weather._tag).toBe('WeatherSuccess')
+  if (successModel.weather._tag === 'WeatherSuccess') {
+    expect(successModel.weather.data.temperature).toBe(72)
+    expect(successModel.weather.data.locationName).toBe('Beverly Hills')
+  }
 })
 
 test('failed fetch shows failure state', () => {
-  Story.story(
-    update,
-    Story.with(weatherModel),
-    Story.message(SubmittedWeatherForm()),
-    Story.Command.resolve(
-      FetchWeather,
-      FailedFetchWeather({ error: 'Network error' }),
-    ),
-    Story.model(model => {
-      expect(model.weather._tag).toBe('WeatherFailure')
-      if (model.weather._tag === 'WeatherFailure') {
-        expect(model.weather.error).toBe('Network error')
-      }
-    }),
+  const [loadingModel, commands] = update(weatherModel, SubmittedWeatherForm())
+
+  expect(commands).toEqual([FetchWeather({ zipCode: '90210' })])
+
+  const [failureModel] = update(
+    loadingModel,
+    FailedFetchWeather({ error: 'Network error' }),
   )
+
+  expect(failureModel.weather._tag).toBe('WeatherFailure')
+  if (failureModel.weather._tag === 'WeatherFailure') {
+    expect(failureModel.weather.error).toBe('Network error')
+  }
 })
 
 test('fetchWeather returns SucceededFetchWeather with data on success', async () => {

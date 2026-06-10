@@ -1,13 +1,16 @@
-import { Runtime } from 'foldkit'
+import { FetchHttpClient } from 'effect/unstable/http'
+import { DataCommand, Runtime } from 'foldkit'
 
-import { Message, Model, init, update, view } from './main'
+import { Message, Model, execute, init, update, view } from './main'
 
-const program = Runtime.makeProgram({
+const program = DataCommand.makeProgram({
   Model,
   init,
   update,
+  execute,
   view,
   container: document.getElementById('root'),
+  resources: FetchHttpClient.layer,
   devTools: {
     Message,
   },
