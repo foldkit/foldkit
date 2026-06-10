@@ -27,7 +27,7 @@ Built on [Effect](https://effect.website/). Architected like [Elm](https://guide
 
 Foldkit is for developers who want to build their product with confidence instead of fighting their architecture. If you want a single pattern that scales from a counter to a multiplayer game without complexity creep, this is it.
 
-It's not incremental. There's no React interop, no escape hatch from Effect, no way to "just use hooks for this one part." You're all in or you're not.
+It's not incremental. Inside a Foldkit program there's no escape hatch from Effect, no way to "just use hooks for this one part." You're all in or you're not. The program doesn't have to own the whole page, though: [`Runtime.embed`](https://foldkit.dev/core/embedding) runs a Foldkit widget inside any existing app (React included), with Schema-typed Ports as the boundary.
 
 ## Built on Effect
 
@@ -173,8 +173,9 @@ Foldkit is a complete system, not a collection of libraries you stitch together.
 - **Routing**: Type-safe bidirectional routing built from parser combinators. URLs parse into typed Routes and Routes build back into URLs. No string matching, no mismatches between parsing and building.
 - **Subscriptions**: Declare which streams your app needs as a function of the Model. The runtime diffs and switches them as the Model changes.
 - **Managed Resources**: Model-driven lifecycle for long-lived browser resources like WebSockets, AudioContext, and RTCPeerConnection. Acquire on state change, release on cleanup.
-- **Submodels**: A pattern for composing nested modules. A child owns its own Model, Messages, update function, and view; the parent embeds it and wraps child Messages in a `Got*Message` envelope. The pattern scales unchanged from a login form to a multi-page app.
+- **Submodels**: A self-contained Model, Messages, update function, and view that a parent embeds in its own, wrapping child Messages in a `Got*Message` envelope. Reach for one to encapsulate a unit the parent shouldn't see inside, or to split a grown app into feature areas like Settings and Dashboard.
 - **OutMessage**: A typed channel for a child Submodel to emit domain events up to its parent, so the parent reacts to meaningful facts instead of internal child Messages.
+- **Embedding**: Run a Foldkit program inside a host application with `Runtime.embed`. The host starts the runtime, pushes data in and receives values out through Schema-typed Ports, and calls `dispose` for a complete teardown. The handle is the whole boundary; the host never reads the Model or dispatches Messages.
 - **UI Components**: Accessible, keyboard-friendly primitives — Button, Checkbox, Combobox, Dialog, Disclosure, DragAndDrop, Fieldset, Input, Listbox, Menu, Popover, RadioGroup, Select, Switch, Tabs, Textarea, and Transition. Every component is a Submodel you embed and style through a typed `ViewConfig`.
 - **Field Validation**: Per-field validation state modeled as a discriminated union. Define rules as data, apply them in update, and the Model tracks the result.
 - **Virtual DOM**: Declarative views powered by [Snabbdom](https://github.com/snabbdom/snabbdom), with lazy memoization and fast, keyed diffing. Views are plain functions of your Model.
