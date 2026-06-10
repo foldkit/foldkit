@@ -313,7 +313,15 @@ export const view = (
       pageTitle('core/submodel', 'Submodel'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'At some point, your app has 30 Messages, a sprawling Model, and an update function that scrolls for days. You’ve outgrown a single Model, Message, and update. It’s time to decompose into Submodels.',
+        'At some point, your app has 30 Messages, a sprawling Model, and an update function that scrolls for days. Splitting the code into files (',
+        inlineCode('model.ts'),
+        ', ',
+        inlineCode('message.ts'),
+        ', ',
+        inlineCode('update.ts'),
+        ', ',
+        inlineCode('view.ts'),
+        ') is the first move, but it only organizes the code: you still have one Model, one Message union, and one update. When a feature area’s Messages mostly touch its own slice of the Model, and what crosses to the rest of the app shrinks to a few nameable facts, it’s time to decompose the state machine itself into Submodels.',
       ),
       para(
         'A Submodel is a self-contained Model, Message, update, and Commands: the same pieces you already know, just embedded inside a larger program. A parent embeds the child by reserving a field for its Model, declaring a wrapper Message that carries the child’s Message, and delegating to it in update.',
@@ -324,8 +332,8 @@ export const view = (
           [],
           [
             h.strong([], ['Encapsulation.']),
-            ' The Submodel is a self-contained unit with its own state, keyboard handling, and accessibility wiring; the parent doesn’t need to see inside. Every stateful ',
-            link(uiOverviewRouter(), 'Foldkit UI primitive'),
+            ' The boundary is the point. The Submodel packages behavior (its own state, keyboard handling, accessibility wiring) that the parent should never see inside. Every stateful ',
+            link(uiOverviewRouter(), 'Foldkit UI component'),
             ' (',
             inlineCode('Ui.Dialog'),
             ', ',
@@ -339,13 +347,18 @@ export const view = (
           [],
           [
             h.strong([], ['Decomposition.']),
-            ' Your own app has grown large enough that splitting feature areas (for example Settings, Dashboard, or Profile) into Submodels keeps things organized. These children aren’t strictly black boxes; they may need to ',
+            ' The boundary is an organizational tool. Your own app has grown large enough that splitting feature areas (for example Settings, Dashboard, or Profile) into Submodels keeps things organized. These children aren’t strictly black boxes; they may need to ',
             link('#reading-parent-state', 'read parent state'),
             ' or ',
             link('#surfacing-facts', 'surface domain facts back to the parent'),
             '.',
           ],
         ),
+      ),
+      para(
+        'These are two motivations, not two kinds of Submodel. Every Submodel has the same boundary shape: internals stay hidden, and what crosses is narrow and semantic. A ',
+        inlineCode('Ui.Listbox'),
+        ' reports that an item was selected, never its highlight index or focus bookkeeping. What varies is whose domain crosses the boundary. A UI component owns interaction state foreign to your app’s domain and needs almost nothing from the parent, while a feature-area child owns a slice of your domain, reads shared parent state, and surfaces domain facts.',
       ),
       para(
         'Either way, you’ll often want ',
@@ -377,7 +390,7 @@ export const view = (
         inlineCode('defineView'),
         ' brand, ',
         inlineCode('h.submodel'),
-        ' embedding) is overhead unless the child genuinely owns its own state machine. Foldkit UI primitives are Submodels because they have keyboard handling, focus state, dismissal logic, animation lifecycles. A reusable card that takes a title and content as props isn’t a Submodel; it’s a render function.',
+        ' embedding) is overhead unless the child genuinely owns its own state machine. Foldkit UI components are Submodels because they have keyboard handling, focus state, dismissal logic, animation lifecycles. A reusable card that takes a title and content as props isn’t a Submodel; it’s a render function.',
       ),
       tableOfContentsEntryToHeader(childSubmodelHeader),
       para(
@@ -466,7 +479,7 @@ export const view = (
         'mb-8',
       ),
       para(
-        'This is the same delegation pattern the stateful Foldkit UI primitives use for parent-initiated operations. ',
+        'This is the same delegation pattern the stateful Foldkit UI components use for parent-initiated operations. ',
         inlineCode('Listbox.selectItem'),
         ', ',
         inlineCode('Popover.close'),
@@ -478,7 +491,7 @@ export const view = (
         inlineCode('setTheme'),
         ' returns ',
         inlineCode('[Model, Commands]'),
-        '. The UI primitives ',
+        '. The UI components ',
         link('#surfacing-facts', 'surface facts'),
         ', so theirs return the ',
         inlineCode('[Model, Commands, Option<OutMessage>]'),
@@ -1203,7 +1216,7 @@ export const view = (
         ') are reflect helpers for exactly this.',
       ),
       para(
-        'Across the stateful Foldkit UI primitives the choice-based setters keep domain verbs (',
+        'Across the stateful Foldkit UI components the choice-based setters keep domain verbs (',
         inlineCode('selectItem'),
         ', ',
         inlineCode('select'),
@@ -1235,7 +1248,7 @@ export const view = (
         inlineCode('reflectValue'),
         ' and ',
         inlineCode('reflectRange'),
-        ' (Slider). It is a framework convention any Submodel can adopt; the Foldkit UI primitives are the canonical adopters.',
+        ' (Slider). It is a framework convention any Submodel can adopt; the Foldkit UI components are the canonical adopters.',
       ),
       tableOfContentsEntryToHeader(childAttributesHeader),
       para(
@@ -1329,9 +1342,9 @@ export const view = (
       ),
       tableOfContentsEntryToHeader(childAttributesWhenToReachHeader),
       para(
-        'If you’re consuming a Foldkit UI primitive, you don’t call ',
+        'If you’re consuming a Foldkit UI component, you don’t call ',
         inlineCode('childAttributes'),
-        ' yourself. The primitive’s view publishes branded attributes; you just spread them.',
+        ' yourself. The component’s view publishes branded attributes; you just spread them.',
       ),
       para(
         'If you’re authoring your own Submodel and publishing attribute bundles to a consumer’s slot callback, every published attribute group must be wrapped in ',

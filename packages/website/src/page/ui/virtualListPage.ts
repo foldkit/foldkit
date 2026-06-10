@@ -208,7 +208,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         pageTitle('ui/virtualList', 'VirtualList'),
         tableOfContentsEntryToHeader(overviewHeader),
         para(
-          'A virtualization primitive for large lists. Only items inside the viewport plus an overscan buffer are mounted. Spacer divs above and below the visible slice keep the scrollbar physically correct. The demo below manages ten thousand items; only the rows currently visible exist in the DOM.',
+          'A virtualization component for large lists. Only items inside the viewport plus an overscan buffer are mounted. Spacer divs above and below the visible slice keep the scrollbar physically correct. The demo below manages ten thousand items; only the rows currently visible exist in the DOM.',
         ),
         infoCallout(
           'See it in an app',
