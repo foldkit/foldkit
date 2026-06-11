@@ -244,6 +244,10 @@ export const root: Biparser<{}> = {
  * Requires at least one remaining segment. A bare prefix like `/files`
  * does not match; give it its own route alongside the catch-all route.
  *
+ * The catch-all also matches every URL that a more specific route under
+ * the same prefix accepts, so in `oneOf` the specific route must come
+ * before the catch-all route.
+ *
  * Nothing can follow a catch-all in the path, so the result is a
  * `TerminalParser`. It can still be extended with `query`.
  *

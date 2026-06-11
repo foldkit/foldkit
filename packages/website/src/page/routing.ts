@@ -258,7 +258,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('/people'),
         ' and ',
         inlineCode('/people/:id'),
-        ' can appear in any order. When several routes fully match the same URL, the first one wins.',
+        ' can appear in any order. When several routes fully match the same URL, the first one wins. That only happens when route shapes overlap, like a ',
+        inlineCode("literal('new')"),
+        ' page next to a ',
+        inlineCode("string('username')"),
+        ' profile: ',
+        inlineCode('/users/new'),
+        ' satisfies both, so list the literal route first.',
       ),
       tableOfContentsEntryToHeader(buildingUrlsHeader),
       para(
@@ -354,6 +360,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' above. The two never overlap: one matches exactly ',
         inlineCode('/files'),
         ', the other matches anything beneath it.',
+      ),
+      para(
+        'A specific route under the same prefix is different. The catch-all also matches every URL that ',
+        inlineCode("literal('files'), slash(literal('shared'))"),
+        ' accepts, so in ',
+        inlineCode('oneOf'),
+        ' the specific route must come before the catch-all route.',
       ),
       para(
         'Nothing can follow a catch-all in the path, so ',
