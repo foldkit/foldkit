@@ -51,10 +51,10 @@ const queryParametersHeader: TableOfContentsEntry = {
   text: 'Query Parameters',
 }
 
-const catchAllSegmentsHeader: TableOfContentsEntry = {
+const restSegmentsHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'catch-all-segments',
-  text: 'Catch-All Segments',
+  id: 'rest-segments',
+  text: 'Rest Segments',
 }
 
 const keyingRouteViewsHeader: TableOfContentsEntry = {
@@ -76,7 +76,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   parsingUrlsHeader,
   buildingUrlsHeader,
   queryParametersHeader,
-  catchAllSegmentsHeader,
+  restSegmentsHeader,
   keyingRouteViewsHeader,
   navigationHeader,
 ]
@@ -212,10 +212,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
           ),
           h.li(
             [],
-            [
-              inlineCode("catchAll('path')"),
-              ': captures all remaining segments',
-            ],
+            [inlineCode("rest('path')"), ': captures all remaining segments'],
           ),
           h.li(
             [],
@@ -330,46 +327,45 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ),
         '.',
       ),
-      tableOfContentsEntryToHeader(catchAllSegmentsHeader),
+      tableOfContentsEntryToHeader(restSegmentsHeader),
       para(
         'Some routes carry a whole path as data: a file tree, a documentation page, a breadcrumb trail. ',
-        inlineCode('catchAll'),
-        ' captures every remaining segment as a named field. The parsed value is a non-empty array of strings, so the route schema declares the field with ',
+        inlineCode('rest'),
+        ' captures every remaining segment as a named field, the feature other routers call catch-all or splat routes. The parsed value is a non-empty array of strings, so the route schema declares the field with ',
         inlineCode('S.NonEmptyArray(S.String)'),
         '.',
       ),
       highlightedCodeBlock(
         h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.routingCatchAllHighlighted),
-          ],
+          [h.Class('text-sm'), h.InnerHTML(Snippets.routingRestHighlighted)],
           [],
         ),
-        Snippets.routingCatchAllRaw,
-        'Copy catch-all example to clipboard',
+        Snippets.routingRestRaw,
+        'Copy rest segments example to clipboard',
         copiedSnippets,
         'mb-8',
       ),
       para(
-        inlineCode('catchAll'),
+        inlineCode('rest'),
         ' requires at least one segment, so the bare prefix ',
         inlineCode('/files'),
-        ' does not match the catch-all route. Give the prefix its own route, like ',
+        ' does not match the rest route. Give the prefix its own route, like ',
         inlineCode('FilesIndexRoute'),
         ' above. The two never overlap: one matches exactly ',
         inlineCode('/files'),
         ', the other matches anything beneath it.',
       ),
       para(
-        'A specific route under the same prefix is different. The catch-all also matches every URL that ',
+        'A specific route under the same prefix is different. The rest route also matches every URL that ',
         inlineCode("literal('files'), slash(literal('shared'))"),
         ' accepts, so in ',
         inlineCode('oneOf'),
-        ' the specific route must come before the catch-all route.',
+        ' the specific route must come first.',
       ),
       para(
-        'Nothing can follow a catch-all in the path, so ',
+        'Nothing can follow ',
+        inlineCode('rest'),
+        ' in the path, so ',
         inlineCode('slash'),
         ' cannot extend it. TypeScript rejects the composition. ',
         inlineCode('query'),
@@ -381,7 +377,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
           exampleDetailRouter({ exampleSlug: 'routing' }),
           'Routing example',
         ),
-        ' uses a catch-all route to drive a small file browser, building breadcrumb and directory links from the captured segments.',
+        ' uses a rest route to drive a small file browser, building breadcrumb and directory links from the captured segments.',
       ),
       tableOfContentsEntryToHeader(keyingRouteViewsHeader),
       warningCallout(

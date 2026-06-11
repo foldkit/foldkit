@@ -73,19 +73,19 @@ export type Router<A> = BuildFn<A> & {
 }
 
 /**
- * A `Biparser` that has been terminated (e.g. by `query` or `catchAll`)
+ * A `Biparser` that has been terminated (e.g. by `query` or `rest`)
  * and cannot be extended with `slash`.
  */
 export type TerminalParser<A> = Biparser<A> & { readonly __terminal: true }
 
 /**
  * A `Biparser` that can still be extended with `slash`. Terminal parsers
- * (`query`, `catchAll`) do not qualify, since nothing can follow them in
+ * (`query`, `rest`) do not qualify, since nothing can follow them in
  * the path.
  */
 export type ExtendableBiparser<A> = Biparser<A> & {
   readonly __terminal?: never
-  readonly 'Cannot use slash after a terminal parser - nothing can follow query or catchAll'?: never
+  readonly 'Cannot use slash after a terminal parser - nothing can follow query or rest'?: never
 }
 
 const makeTerminalParser = <A>(parser: Biparser<A>): TerminalParser<A> =>
@@ -242,23 +242,23 @@ export const root: Biparser<{}> = {
  * non-empty array field.
  *
  * Requires at least one remaining segment. A bare prefix like `/files`
- * does not match; give it its own route alongside the catch-all route.
+ * does not match; give it its own route alongside the rest route.
  *
- * The catch-all also matches every URL that a more specific route under
+ * A rest route also matches every URL that a more specific route under
  * the same prefix accepts, so in `oneOf` the specific route must come
- * before the catch-all route.
+ * first.
  *
- * Nothing can follow a catch-all in the path, so the result is a
+ * Nothing can follow `rest` in the path, so the result is a
  * `TerminalParser`. It can still be extended with `query`.
  *
  * @example
  * ```ts
- * pipe(literal('files'), slash(catchAll('path')))
+ * pipe(literal('files'), slash(rest('path')))
  * // parses /files/documents/taxes/2024.pdf
  * // into { path: ['documents', 'taxes', '2024.pdf'] }
  * ```
  */
-export const catchAll = <K extends string>(
+export const rest = <K extends string>(
   name: K,
 ): TerminalParser<Record<K, Array.NonEmptyReadonlyArray<string>>> => {
   const parser: Biparser<Record<K, Array.NonEmptyReadonlyArray<string>>> = {
@@ -267,8 +267,8 @@ export const catchAll = <K extends string>(
         onEmpty: () =>
           Effect.fail(
             new ParseError({
-              message: `Expected catch-all (${name})`,
-              expected: `catch-all (${name})`,
+              message: `Expected remaining segments (${name})`,
+              expected: `remaining segments (${name})`,
               actual: 'end of path',
               position: 0,
             }),
@@ -399,7 +399,7 @@ export const mapTo: {
 /**
  * Composes two `Biparser`s sequentially, combining their parsed values.
  *
- * Cannot be used after a terminal parser (`query` or `catchAll`).
+ * Cannot be used after a terminal parser (`query` or `rest`).
  * Composing with a terminal second parser yields a `TerminalParser`,
  * so terminality survives the composition.
  *

@@ -5,7 +5,7 @@ export {
   string,
   int,
   root,
-  catchAll,
+  rest,
   oneOf,
   mapTo,
   slash,

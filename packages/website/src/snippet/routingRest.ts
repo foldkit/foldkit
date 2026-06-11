@@ -1,6 +1,6 @@
 import { Schema as S, pipe } from 'effect'
 import { Route } from 'foldkit'
-import { catchAll, literal, r, slash } from 'foldkit/route'
+import { literal, r, rest, slash } from 'foldkit/route'
 
 const FilesIndexRoute = r('FilesIndex')
 const FilesRoute = r('Files', { path: S.NonEmptyArray(S.String) })
@@ -12,7 +12,7 @@ const filesIndexRouter = pipe(literal('files'), Route.mapTo(FilesIndexRoute))
 // path: ['documents', 'taxes', '2024.pdf']
 const filesRouter = pipe(
   literal('files'),
-  slash(catchAll('path')),
+  slash(rest('path')),
   Route.mapTo(FilesRoute),
 )
 

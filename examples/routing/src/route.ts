@@ -1,6 +1,6 @@
 import { Schema as S, pipe } from 'effect'
 import { Route } from 'foldkit'
-import { catchAll, int, literal, r, slash } from 'foldkit/route'
+import { int, literal, r, rest, slash } from 'foldkit/route'
 
 export const HomeRoute = r('Home')
 export const NestedRoute = r('Nested')
@@ -63,7 +63,7 @@ export const filesIndexRouter = pipe(
 
 export const filesRouter = pipe(
   literal('files'),
-  slash(catchAll('path')),
+  slash(rest('path')),
   Route.mapTo(FilesRoute),
 )
 

@@ -507,7 +507,7 @@ const filesIndexView = (): Html => {
       h.p(
         [h.Class('text-lg text-gray-600 mb-6')],
         [
-          'Every path under /files parses into a single catch-all route that captures the remaining segments.',
+          'Every path under /files parses into a single route that captures the remaining segments with rest.',
         ],
       ),
       entryListView([], fileTree),

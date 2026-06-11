@@ -5,13 +5,13 @@ import { expect } from 'vitest'
 import { Url } from '../url/index.js'
 import { r } from './index.js'
 import {
-  catchAll,
   int,
   literal,
   mapTo,
   oneOf,
   parseUrlWithFallback,
   query,
+  rest,
   root,
   slash,
   string,
@@ -147,18 +147,14 @@ describe('root', () => {
   )
 })
 
-describe('catchAll', () => {
+describe('rest', () => {
   const Files = r('Files', { path: S.NonEmptyArray(S.String) })
 
-  const filesRouter = pipe(
-    literal('files'),
-    slash(catchAll('path')),
-    mapTo(Files),
-  )
+  const filesRouter = pipe(literal('files'), slash(rest('path')), mapTo(Files))
 
   it.effect('captures all remaining segments as a named non-empty array', () =>
     Effect.gen(function* () {
-      const [value, remaining] = yield* catchAll('path').parse(['a', 'b', 'c'])
+      const [value, remaining] = yield* rest('path').parse(['a', 'b', 'c'])
       expect(value).toStrictEqual({ path: ['a', 'b', 'c'] })
       expect(remaining).toStrictEqual([])
     }),
@@ -166,7 +162,7 @@ describe('catchAll', () => {
 
   it.effect('fails on empty segments', () =>
     Effect.gen(function* () {
-      const error = yield* Effect.flip(catchAll('path').parse([]))
+      const error = yield* Effect.flip(rest('path').parse([]))
       expect(error._tag).toBe('ParseError')
       expect(error.actual).toBe('end of path')
     }),
@@ -174,7 +170,7 @@ describe('catchAll', () => {
 
   it.effect('prints all segments', () =>
     Effect.gen(function* () {
-      const state = yield* catchAll('path').print(
+      const state = yield* rest('path').print(
         { path: ['documents', 'taxes'] },
         { segments: ['files'], queryParams: new URLSearchParams() },
       )
@@ -184,7 +180,7 @@ describe('catchAll', () => {
 
   it.effect('composes after literals', () =>
     Effect.gen(function* () {
-      const parser = pipe(literal('files'), slash(catchAll('path')))
+      const parser = pipe(literal('files'), slash(rest('path')))
       const [value, remaining] = yield* parser.parse(['files', 'docs', '2024'])
       expect(value).toStrictEqual({ path: ['docs', '2024'] })
       expect(remaining).toStrictEqual([])
@@ -195,7 +191,7 @@ describe('catchAll', () => {
     Effect.gen(function* () {
       const parser = pipe(
         literal('files'),
-        slash(catchAll('path')),
+        slash(rest('path')),
         query(S.Struct({ sort: S.String })),
       )
       const [value] = yield* parser.parse(['files', 'a'], 'sort=name')
@@ -205,28 +201,28 @@ describe('catchAll', () => {
 
   it('cannot be extended with slash', () => {
     // @ts-expect-error slash cannot follow a terminal parser
-    const invalidParser = pipe(catchAll('path'), slash(literal('x')))
+    const invalidParser = pipe(rest('path'), slash(literal('x')))
     expect(invalidParser).toBeDefined()
   })
 
   it('cannot be extended with slash after composition', () => {
-    const composedParser = pipe(literal('files'), slash(catchAll('path')))
+    const composedParser = pipe(literal('files'), slash(rest('path')))
     // @ts-expect-error slash cannot follow a terminal parser
     const invalidParser = slash(literal('extra'))(composedParser)
     expect(invalidParser).toBeDefined()
   })
 
-  it('cannot be extended with slash when the catch-all is nested in the second parser', () => {
+  it('cannot be extended with slash when the rest parser is nested in the second parser', () => {
     const nestedParser = pipe(
       literal('files'),
-      slash(pipe(literal('shared'), slash(catchAll('path')))),
+      slash(pipe(literal('shared'), slash(rest('path')))),
     )
     // @ts-expect-error slash cannot follow a terminal parser
     const invalidParser = slash(literal('extra'))(nestedParser)
     expect(invalidParser).toBeDefined()
   })
 
-  it('builds a URL from catch-all route data', () => {
+  it('builds a URL from rest route data', () => {
     const url = filesRouter({ path: ['documents', 'taxes'] })
     expect(url).toBe('/files/documents/taxes')
   })
@@ -369,13 +365,13 @@ describe('oneOf', () => {
     }),
   )
 
-  it.effect('a prefix route listed first does not shadow a catch-all', () =>
+  it.effect('a prefix route listed first does not shadow a rest route', () =>
     Effect.gen(function* () {
       const FilesIndex = r('FilesIndex')
       const Files = r('Files', { path: S.NonEmptyArray(S.String) })
       const parser = oneOf(
         pipe(literal('files'), mapTo(FilesIndex)),
-        pipe(literal('files'), slash(catchAll('path')), mapTo(Files)),
+        pipe(literal('files'), slash(rest('path')), mapTo(Files)),
       )
 
       const [filesValue] = yield* parser.parse(['files', 'a', 'b'])
