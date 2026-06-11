@@ -12,4 +12,13 @@ test.describe('job-application example', () => {
     await page.getByRole('button', { name: 'Select pronouns' }).click()
     await expect(page.getByRole('option').first()).toBeVisible()
   })
+
+  test('opening the Pronouns listbox with the keyboard focuses the items panel', async ({
+    page,
+  }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: 'Select pronouns' }).focus()
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('listbox')).toBeFocused()
+  })
 })

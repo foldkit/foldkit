@@ -660,8 +660,13 @@ export const makeUpdate = <Model extends BaseModel>(
   return internalUpdate
 }
 
-/** The anchor-positioning Mount this Combobox renders when an anchor is
- *  configured. Exposed so Scene tests can call
+/** The anchor-positioning Mount this Combobox renders on its items panel.
+ *  The panel is always anchored to the input wrapper via Floating UI and
+ *  portaled to the document body (opt out of portaling with
+ *  `anchor.portal: false`), so it escapes ancestor stacking contexts and
+ *  overflow clipping. The Mount also installs the `pointerdown`-cancelling
+ *  capture listener that prevents input blur on item presses. Exposed so
+ *  Scene tests can call
  *  `Scene.Mount.resolve(AnchorCombobox, CompletedAnchorCombobox())`. */
 export const AnchorCombobox = Mount.define(
   'AnchorCombobox',
@@ -883,7 +888,7 @@ export const makeView = <Model extends BaseModel>(
         groupAttributes = [],
         separatorClassName,
         separatorAttributes = [],
-        anchor,
+        anchor = {},
       } = viewInputs
 
       const isLeaving =
@@ -1063,21 +1068,19 @@ export const makeView = <Model extends BaseModel>(
         ...inputAttributes,
       ]
 
-      const anchorAttributes = anchor
-        ? [
-            h.Style({
-              position: 'absolute',
-              margin: '0',
-              visibility: 'hidden',
-            }),
-            h.OnMount(
-              AnchorCombobox({
-                buttonId: `${id}-input-wrapper`,
-                anchor,
-              }),
-            ),
-          ]
-        : [h.OnMount(AttachComboboxPreventBlur())]
+      const anchorAttributes = [
+        h.Style({
+          position: 'absolute',
+          margin: '0',
+          visibility: 'hidden',
+        }),
+        h.OnMount(
+          AnchorCombobox({
+            buttonId: `${id}-input-wrapper`,
+            anchor,
+          }),
+        ),
+      ]
 
       const itemsContainerAttributes = [
         h.Id(`${id}-items`),

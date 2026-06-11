@@ -9,6 +9,8 @@ import { create, init, update } from './multi.js'
 import type { Model, ViewInputs } from './multi.js'
 import {
   ActivatedItem,
+  AnchorListbox,
+  CompletedAnchorListbox,
   CompletedFocusItems,
   CompletedPortalListboxBackdrop,
   CompletedScrollIntoView,
@@ -22,6 +24,10 @@ import {
 const TestListbox = create<string>()
 const view = TestListbox.view
 
+const acknowledgeAnchor = Scene.Mount.resolve(
+  AnchorListbox,
+  CompletedAnchorListbox(),
+)
 const acknowledgeBackdrop = Scene.Mount.resolve(
   PortalListboxBackdrop,
   CompletedPortalListboxBackdrop(),
@@ -177,6 +183,7 @@ describe('Listbox.Multi', () => {
               'true',
             )
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })
@@ -201,6 +208,7 @@ describe('Listbox.Multi', () => {
               '',
             )
           }),
+          acknowledgeAnchor,
           acknowledgeBackdrop,
         )
       })

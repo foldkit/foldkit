@@ -725,8 +725,11 @@ export const makeUpdate = <Model extends BaseModel>(
   return internalUpdate
 }
 
-/** The anchor-positioning Mount this Listbox renders when an anchor is
- *  configured. Exposed so Scene tests can call
+/** The anchor-positioning Mount this Listbox renders on its items panel.
+ *  The panel is always anchored to the button via Floating UI and portaled
+ *  to the document body (opt out of portaling with `anchor.portal: false`),
+ *  so it escapes ancestor stacking contexts and overflow clipping. Exposed
+ *  so Scene tests can call
  *  `Scene.Mount.resolve(AnchorListbox, CompletedAnchorListbox())`. */
 export const AnchorListbox = Mount.define(
   'AnchorListbox',
@@ -879,7 +882,7 @@ export const makeView = <Model extends BaseModel>(
         groupAttributes = [],
         separatorClassName,
         separatorAttributes = [],
-        anchor,
+        anchor = {},
         name,
         form,
         isDisabled,
@@ -1100,16 +1103,14 @@ export const makeView = <Model extends BaseModel>(
         onSome: index => [h.AriaActiveDescendant(itemId(id, index))],
       })
 
-      const anchorAttributes = anchor
-        ? [
-            h.Style({
-              position: 'absolute',
-              margin: '0',
-              visibility: 'hidden',
-            }),
-            h.OnMount(AnchorListbox({ buttonId: `${id}-button`, anchor })),
-          ]
-        : []
+      const anchorAttributes = [
+        h.Style({
+          position: 'absolute',
+          margin: '0',
+          visibility: 'hidden',
+        }),
+        h.OnMount(AnchorListbox({ buttonId: `${id}-button`, anchor })),
+      ]
 
       const itemsContainerAttributes = [
         h.Id(`${id}-items`),

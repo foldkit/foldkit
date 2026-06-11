@@ -721,9 +721,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   )
 }
 
-/** The anchor-positioning Mount this Menu renders on its panel. Exposed so
- *  Scene tests can call `Scene.Mount.resolve(AnchorMenu, CompletedAnchorMenu())`
- *  to acknowledge the mount produced by the rendered panel. */
+/** The anchor-positioning Mount this Menu renders on its panel. The panel is
+ *  always anchored to the button via Floating UI and portaled to the document
+ *  body (opt out of portaling with `anchor.portal: false`), so it escapes
+ *  ancestor stacking contexts and overflow clipping. Exposed so Scene tests
+ *  can call `Scene.Mount.resolve(AnchorMenu, CompletedAnchorMenu())`. */
 export const AnchorMenu = Mount.define(
   'AnchorMenu',
   { buttonId: S.String, anchor: AnchorConfig },
@@ -874,7 +876,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       groupAttributes = [],
       separatorClassName,
       separatorAttributes = [],
-      anchor,
+      anchor = {},
     } = viewInputs
 
     const dispatchSelectedItem = (item: string, index: number) =>
@@ -1078,12 +1080,10 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       onSome: index => [h.AriaActiveDescendant(itemId(id, index))],
     })
 
-    const anchorAttributes = anchor
-      ? [
-          h.Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
-          h.OnMount(AnchorMenu({ buttonId: `${id}-button`, anchor })),
-        ]
-      : []
+    const anchorAttributes = [
+      h.Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
+      h.OnMount(AnchorMenu({ buttonId: `${id}-button`, anchor })),
+    ]
 
     const itemsContainerAttributes = [
       h.Id(`${id}-items`),
