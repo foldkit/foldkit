@@ -200,7 +200,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     M.withReturnType<UpdateReturn>(),
     M.tagsExhaustive({
       GotTabsMessage: ({ message }) => {
-        const [nextTabs, tabsCommands, maybeSelected] = AppTabs.update(
+        const [nextTabs, tabsCommands, maybeOutMessage] = AppTabs.update(
           model.tabs,
           message,
         )
@@ -210,19 +210,24 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           GotTabsMessage({ message }),
         )
 
-        return Option.match(maybeSelected, {
+        return Option.match(maybeOutMessage, {
           onNone: () => [tabsModel, mappedCommands],
-          onSome: ({ value }) => {
-            const [activatedModel, activationCommands] = activateTab(
-              tabsModel,
-              value,
-            )
+          onSome: M.type<Ui.Tabs.OutMessage<Tab>>().pipe(
+            M.withReturnType<UpdateReturn>(),
+            M.tagsExhaustive({
+              Selected: ({ value }) => {
+                const [activatedModel, activationCommands] = activateTab(
+                  tabsModel,
+                  value,
+                )
 
-            return [
-              activatedModel,
-              Array.appendAll(mappedCommands, activationCommands),
-            ]
-          },
+                return [
+                  activatedModel,
+                  Array.appendAll(mappedCommands, activationCommands),
+                ]
+              },
+            }),
+          ),
         })
       },
 
