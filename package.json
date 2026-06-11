@@ -33,6 +33,7 @@
     "dev:example:counters": "pnpm --filter counters-example dev",
     "dev:example:stopwatch": "pnpm --filter stopwatch-example dev",
     "dev:example:weather": "pnpm --filter weather-example dev",
+    "dev:example:api-cache": "pnpm --filter api-cache-example dev",
     "dev:example:todo": "pnpm --filter todo-example dev",
     "dev:example:form": "pnpm --filter form-example dev",
     "dev:example:routing": "pnpm --filter routing-example dev",

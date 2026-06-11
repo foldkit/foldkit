@@ -23,6 +23,7 @@ const loadersBySlug: Readonly<Record<string, SourceLoader | undefined>> = {
   'job-application': () => import('virtual:example-sources/job-application'),
   kanban: () => import('virtual:example-sources/kanban'),
   weather: () => import('virtual:example-sources/weather'),
+  'api-cache': () => import('virtual:example-sources/api-cache'),
   routing: () => import('virtual:example-sources/routing'),
   'query-sync': () => import('virtual:example-sources/query-sync'),
   'shopping-cart': () => import('virtual:example-sources/shopping-cart'),

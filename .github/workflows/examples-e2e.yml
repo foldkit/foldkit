@@ -28,6 +28,7 @@ jobs:
           - form
           - job-application
           - weather
+          - api-cache
           - routing
           - query-sync
           - snake

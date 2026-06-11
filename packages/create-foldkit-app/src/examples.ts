@@ -7,6 +7,7 @@ export const EXAMPLE_VALUES = [
   'form',
   'job-application',
   'weather',
+  'api-cache',
   'routing',
   'query-sync',
   'snake',
@@ -70,6 +71,12 @@ export const examples: ReadonlyArray<{
     value: 'weather',
     title: 'weather',
     description: 'HTTP requests with async state handling',
+  },
+  {
+    value: 'api-cache',
+    title: 'api-cache',
+    description:
+      'Query caching in the Model with stale-while-revalidate, request deduplication, invalidation, and interval refetching',
   },
   {
     value: 'routing',

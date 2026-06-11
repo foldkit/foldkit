@@ -11,6 +11,7 @@ export const ExampleSlug = S.Literals([
   'form',
   'job-application',
   'weather',
+  'api-cache',
   'routing',
   'query-sync',
   'snake',
@@ -99,6 +100,15 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Look up weather by zip code. Demonstrates HTTP requests and loading states.',
     difficulty: 'Intermediate',
     tags: ['HTTP'],
+    hasRouting: false,
+  },
+  {
+    slug: 'api-cache',
+    title: 'API Cache',
+    description:
+      'Query caching without a query client. Demonstrates stale-while-revalidate, request deduplication, invalidation, and interval refetching.',
+    difficulty: 'Intermediate',
+    tags: ['Caching', 'Subscriptions', 'UI Components'],
     hasRouting: false,
   },
   {
