@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.15.0
+
+### Minor Changes
+
+- bd5356d: Add the api-cache example to the scaffolding choices: query caching in the Model with stale-while-revalidate, request deduplication, invalidation, and interval refetching.
+
 ## 0.14.0
 
 ### Minor Changes
