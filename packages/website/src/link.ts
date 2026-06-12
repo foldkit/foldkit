@@ -36,6 +36,9 @@ export const Link = {
   createFoldkitApp:
     'https://github.com/foldkit/foldkit/tree/main/packages/create-foldkit-app',
   msw: 'https://mswjs.io',
+  lustreBenchmark: 'https://github.com/lustre-labs/benchmark',
+  foldkitLustreBenchmark:
+    'https://github.com/foldkit/foldkit/tree/main/internal/lustre-benchmark',
   github: 'https://github.com/foldkit/foldkit',
   discord: 'https://discord.gg/kav8VNxqGm',
   xSocial: 'https://x.com/devinjameson',

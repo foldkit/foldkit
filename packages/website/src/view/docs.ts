@@ -325,6 +325,7 @@ const searchWeight = (tag: string): string =>
       'ReactComparison',
       'WhyNoJsx',
       'WhatAboutSsr',
+      'Performance',
       S.startsWith('Testing'),
       () => '6',
     ),
@@ -403,6 +404,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         withTableOfContents(
           Page.WhatAboutSsr.view(),
           Page.WhatAboutSsr.tableOfContents,
+        ),
+      Performance: () =>
+        withTableOfContents(
+          Page.Performance.view(),
+          Page.Performance.tableOfContents,
         ),
       ComingFromReact: () =>
         withTableOfContents(

@@ -16,6 +16,7 @@ export const HomeRoute = r('Home')
 export const ManifestoRoute = r('Manifesto')
 export const WhyNoJsxRoute = r('WhyNoJsx')
 export const WhatAboutSsrRoute = r('WhatAboutSsr')
+export const PerformanceRoute = r('Performance')
 export const ComingFromReactRoute = r('ComingFromReact')
 export const ReactComparisonRoute = r('ReactComparison')
 export const GettingStartedRoute = r('GettingStarted')
@@ -110,6 +111,7 @@ export const DocsRoute = S.Union([
   ManifestoRoute,
   WhyNoJsxRoute,
   WhatAboutSsrRoute,
+  PerformanceRoute,
   ComingFromReactRoute,
   ReactComparisonRoute,
   GettingStartedRoute,
@@ -228,6 +230,7 @@ export const gettingStartedRouter = getStarted(
 
 export const whyNoJsxRouter = faq('why-no-jsx', WhyNoJsxRoute)
 export const whatAboutSsrRouter = faq('what-about-ssr', WhatAboutSsrRoute)
+export const performanceRouter = faq('performance', PerformanceRoute)
 
 export const comingFromReactRouter = react(
   'coming-from-react',
@@ -391,7 +394,7 @@ export const aiMcpRouter = ai('mcp', AiMcpRoute)
 
 const getStartedParser = oneOf(manifestoRouter, gettingStartedRouter)
 
-const faqParser = oneOf(whyNoJsxRouter, whatAboutSsrRouter)
+const faqParser = oneOf(whyNoJsxRouter, whatAboutSsrRouter, performanceRouter)
 
 const reactParser = oneOf(comingFromReactRouter, reactComparisonRouter)
 

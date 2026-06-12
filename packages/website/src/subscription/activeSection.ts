@@ -30,6 +30,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             Manifesto: () => Page.Manifesto.tableOfContents,
             WhyNoJsx: () => Page.WhyNoJsx.tableOfContents,
             WhatAboutSsr: () => Page.WhatAboutSsr.tableOfContents,
+            Performance: () => Page.Performance.tableOfContents,
             GettingStarted: () => Page.GettingStarted.tableOfContents,
             ComingFromReact: () => Page.ComingFromReact.tableOfContents,
             ReactComparison: () => Page.ReactComparison.tableOfContents,
