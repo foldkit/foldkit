@@ -49,6 +49,12 @@ const conditionalHeader: TableOfContentsEntry = {
   text: 'Conditional rendering',
 }
 
+const couldFoldkitAddJsxHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'could-foldkit-add-jsx',
+  text: 'Could Foldkit add JSX?',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   familiarityHeader,
   dslInThirtySecondsHeader,
@@ -56,6 +62,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   buttonHeader,
   inputHeader,
   conditionalHeader,
+  couldFoldkitAddJsxHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
@@ -66,7 +73,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
     [
       pageTitle('why-no-jsx', 'Why no JSX?'),
       para(
-        'Foldkit is plain TypeScript. There is no JSX, no transform, no compiler step. The view is built with a typed function-call DSL. Developers coming from JSX often ask why Foldkit doesn’t use it. This is the answer.',
+        'Foldkit is plain TypeScript. There is no JSX, no transform, no compiler step. The view is built with a typed function-call DSL. Developers coming from JSX often ask why Foldkit doesn’t use it, and whether it could. This is the answer to both.',
       ),
       tableOfContentsEntryToHeader(familiarityHeader),
       para(
@@ -245,6 +252,40 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' braces inside a wrapping element, and every arm returns a React node. The DSL returns ',
         inlineCode('Html'),
         ' directly into the children array because the tree already is an array of values. No wrapping required. No expression embedding. The dispatch sits at the same level as everything else in the view.',
+      ),
+      tableOfContentsEntryToHeader(couldFoldkitAddJsxHeader),
+      para(
+        'JSX is not magic. A bundler compiles ',
+        inlineCode('<div class="x">hi</div>'),
+        ' into a function call like ',
+        inlineCode("jsx('div', { class: 'x', children: 'hi' })"),
+        ', and Foldkit could ship a JSX runtime that maps that props bag onto the same element factories the DSL already uses. Views are plain functions that return virtual nodes. No hooks, no reactivity tracking, no compile-time magic. At runtime, JSX support would be a small adapter.',
+      ),
+      para(
+        'The blocker is the type system. Everything above about typed handlers rests on one mechanism: ',
+        inlineCode('html<Message>()'),
+        ' parameterizes every element factory by your Message union, per view. TypeScript resolves lowercase JSX tags like ',
+        inlineCode('<div>'),
+        ' through ',
+        inlineCode('JSX.IntrinsicElements'),
+        ', a single non-generic interface shared by the whole project. There is no way for ',
+        inlineCode('<div onClick={...}>'),
+        ' to infer a Message type from the view function around it.',
+      ),
+      para(
+        'That leaves three ways to wire it up, and each one gives up something the DSL refuses to give up. Type handlers as ',
+        inlineCode('unknown'),
+        ', and any Message compiles in any view; the guarantee this page advertises is gone. Declare your app’s Message type into ',
+        inlineCode('JSX.IntrinsicElements'),
+        ' globally, and the first Submodel breaks it, because a Foldkit codebase routinely has several Message unions live at once and one global type cannot represent that. Or skip lowercase tags entirely and generate capitalized components per view, ',
+        inlineCode('const { Div, Button } = jsxElements<Message>()'),
+        ', which preserves the typing and throws away the familiarity that was the only reason to want JSX.',
+      ),
+      para(
+        'Even a perfectly typed JSX layer would be a second authoring syntax: a parallel set of docs, examples, and edge cases, with every future view feature needing two mappings. That is a permanent cost paid to soften a ramp-up that closes in a week.',
+      ),
+      para(
+        'So the precise answer is sharper than a style preference. JSX as syntax is feasible. JSX with the DSL’s guarantee, in the lowercase form people actually want, is not. “Every handler in this subtree produces a Message from this view’s union” is not something JSX’s type model can say. Foldkit isn’t avoiding JSX. It expresses a constraint JSX cannot.',
       ),
     ],
   )
