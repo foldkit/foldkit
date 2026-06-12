@@ -473,6 +473,11 @@ export type Attribute<Message> = Data.TaggedEnum<{
   OnCopy: { readonly message: Message }
   OnCut: { readonly message: Message }
   OnPaste: { readonly message: Message }
+  OnPastePreventDefault: {
+    readonly f: (text: string) => Option.Option<Message>
+  }
+  OnCopyText: { readonly text: string }
+  OnCutText: { readonly text: string; readonly message: Message }
   OnCancel: { readonly message: Message }
   OnToggle: { readonly f: (isOpen: boolean) => Message }
   OnContextMenu: { readonly message: Message }
@@ -725,6 +730,9 @@ const {
   OnCopy,
   OnCut,
   OnPaste,
+  OnPastePreventDefault,
+  OnCopyText,
+  OnCutText,
   OnCancel,
   OnToggle,
   OnContextMenu,
@@ -1330,6 +1338,42 @@ const attributeMatcher: (
       ({ message }) =>
       (ctx: BuildContext) =>
         updateDataOn(ctx, { paste: () => ctx.dispatch(message) }),
+    OnPastePreventDefault:
+      ({ f }) =>
+      (ctx: BuildContext) =>
+        updateDataOn(ctx, {
+          paste: (event: ClipboardEvent) => {
+            const text = event.clipboardData?.getData('text/plain') ?? ''
+            const maybeMessage = f(text)
+            if (Option.isSome(maybeMessage)) {
+              event.preventDefault()
+              ctx.dispatch(maybeMessage.value)
+            }
+          },
+        }),
+    OnCopyText:
+      ({ text }) =>
+      (ctx: BuildContext) =>
+        updateDataOn(ctx, {
+          copy: (event: ClipboardEvent) => {
+            if (event.clipboardData) {
+              event.clipboardData.setData('text/plain', text)
+              event.preventDefault()
+            }
+          },
+        }),
+    OnCutText:
+      ({ text, message }) =>
+      (ctx: BuildContext) =>
+        updateDataOn(ctx, {
+          cut: (event: ClipboardEvent) => {
+            if (event.clipboardData) {
+              event.clipboardData.setData('text/plain', text)
+              event.preventDefault()
+              ctx.dispatch(message)
+            }
+          },
+        }),
     OnCancel:
       ({ message }) =>
       (ctx: BuildContext) =>
@@ -3060,6 +3104,22 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnPaste'
     readonly message: Message
   }
+  OnPastePreventDefault: (f: (text: string) => Option.Option<Message>) => {
+    readonly _tag: 'OnPastePreventDefault'
+    readonly f: (text: string) => Option.Option<Message>
+  }
+  OnCopyText: (text: string) => {
+    readonly _tag: 'OnCopyText'
+    readonly text: string
+  }
+  OnCutText: (
+    text: string,
+    message: Message,
+  ) => {
+    readonly _tag: 'OnCutText'
+    readonly text: string
+    readonly message: Message
+  }
   OnCancel: (message: Message) => {
     readonly _tag: 'OnCancel'
     readonly message: Message
@@ -3804,6 +3864,52 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   OnCopy: (message: Message) => OnCopy({ message }),
   OnCut: (message: Message) => OnCut({ message }),
   OnPaste: (message: Message) => OnPaste({ message }),
+  /**
+   * Paste handler with synchronous clipboard access. The function receives
+   * the clipboard's `text/plain` payload. Returning `Some` calls
+   * `preventDefault`, suppressing the browser's default insertion, and
+   * dispatches the Message. Returning `None` leaves the paste to the
+   * browser.
+   *
+   * Like `OnKeyDownPreventDefault`, the side effect lives inside the
+   * framework's event handler. The clipboard is only readable and
+   * `preventDefault` only works synchronously inside the originating paste
+   * event; a Command resolves a frame too late.
+   *
+   * @example
+   * ```typescript
+   * h.OnPastePreventDefault(text => Option.some(PastedText({ text })))
+   * ```
+   */
+  OnPastePreventDefault: (f: (text: string) => Option.Option<Message>) =>
+    OnPastePreventDefault({ f }),
+  /**
+   * Copy handler that synchronously writes `text` to the clipboard as
+   * `text/plain` and calls `preventDefault`, replacing the browser's default
+   * copy payload. Derive `text` from the Model at view time, for example a
+   * markdown serialization of the current selection. The clipboard is only
+   * writable synchronously inside the originating copy event, so the write
+   * runs in the framework's event handler rather than a Command.
+   *
+   * @example
+   * ```typescript
+   * h.OnCopyText(serializeSelectionToMarkdown(model))
+   * ```
+   */
+  OnCopyText: (text: string) => OnCopyText({ text }),
+  /**
+   * Cut handler that synchronously writes `text` to the clipboard as
+   * `text/plain`, calls `preventDefault`, and dispatches `message` so update
+   * can remove the cut content from the Model. The clipboard is only
+   * writable synchronously inside the originating cut event, so the write
+   * runs in the framework's event handler rather than a Command.
+   *
+   * @example
+   * ```typescript
+   * h.OnCutText(serializeSelectionToMarkdown(model), CutSelection())
+   * ```
+   */
+  OnCutText: (text: string, message: Message) => OnCutText({ text, message }),
   OnCancel: (message: Message) => OnCancel({ message }),
   OnToggle: (f: (isOpen: boolean) => Message) => OnToggle({ f }),
   OnContextMenu: (message: Message) => OnContextMenu({ message }),

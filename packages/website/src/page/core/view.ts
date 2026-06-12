@@ -204,6 +204,21 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('OnClickFocus'),
         ' takes a selector and a Message; it synchronously focuses the element matching the selector and then dispatches.',
       ),
+      para(
+        'The clipboard family follows the same rule. ',
+        inlineCode('OnPastePreventDefault'),
+        ' hands your function the clipboard’s text/plain payload. Returning ',
+        inlineCode('Some'),
+        ' suppresses the browser’s default insertion and dispatches the Message carrying the pasted content; ',
+        inlineCode('None'),
+        ' lets the browser paste normally. ',
+        inlineCode('OnCopyText'),
+        ' and ',
+        inlineCode('OnCutText'),
+        ' go the other way: they write Model-derived text to the clipboard and call ',
+        inlineCode('preventDefault'),
+        ' inside the gesture, since the clipboard is only writable there. The cut variant also dispatches a Message so update can remove the cut content from the Model.',
+      ),
       highlightedCodeBlock(
         h.div(
           [
