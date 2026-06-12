@@ -176,6 +176,20 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('informRouteChanged'),
         ' helper of the Submodel that handles that route.',
       ),
+      warningCallout(
+        'Cold loads',
+        inlineCode('informRouteChanged'),
+        ' only runs when the URL changes, and a cold load is not a change. The parent’s ',
+        inlineCode('init'),
+        ' parses the initial URL and calls the Submodel’s ',
+        inlineCode('init(route)'),
+        ', which seeds the route-derived state and returns the boot Commands the route calls for. See ',
+        link(
+          `${routingAndNavigationRouter()}#cold-loads`,
+          'Cold Loads and the Initial Route',
+        ),
+        '.',
+      ),
       para(
         'The ',
         link(

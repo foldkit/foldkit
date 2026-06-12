@@ -11,7 +11,11 @@ import {
   tableOfContentsEntryToHeader,
   warningCallout,
 } from '../prose'
-import { bestPracticesKeyingRouter, exampleDetailRouter } from '../route'
+import {
+  bestPracticesKeyingRouter,
+  exampleDetailRouter,
+  patternsInformingSubmodelsRouter,
+} from '../route'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
@@ -69,6 +73,12 @@ const navigationHeader: TableOfContentsEntry = {
   text: 'Navigation',
 }
 
+const coldLoadsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'cold-loads',
+  text: 'Cold Loads and the Initial Route',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   biparserHeader,
   definingRoutesHeader,
@@ -79,6 +89,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   restSegmentsHeader,
   keyingRouteViewsHeader,
   navigationHeader,
+  coldLoadsHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
@@ -495,6 +506,51 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' changes the URL, Foldkit automatically calls your ',
         inlineCode('browser.onUrlChange'),
         ' handler with the new URL. This is where you parse the URL into a route and update your model.',
+      ),
+      tableOfContentsEntryToHeader(coldLoadsHeader),
+      para(
+        inlineCode('onUrlChange'),
+        ' fires when the URL changes after boot. On a cold load (a direct visit, a bookmark, a reload) there is no change to report: ',
+        inlineCode('init'),
+        ' receives the initial URL, parses it, and seeds the Model with the starting route. Foldkit does not synthesize a ',
+        inlineCode('ChangedUrl'),
+        ' for it, because the initial route is starting state, not a transition.',
+      ),
+      warningCallout(
+        'Don’t wire route fetches into navigation alone.',
+        'A fetch Command returned only from the ',
+        inlineCode('ChangedUrl'),
+        ' handler fires on every in-app navigation and never on a cold load. During development you reach every route by clicking from the home page, so everything works. Then a user reloads on a sub-route or follows a bookmark and lands on a Model stuck in its initial state, with no fetch in flight.',
+      ),
+      para(
+        'Both code paths resolve a URL into a route, and both should produce the same route-driven Commands. Factor those Commands into one helper and call it from both places:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.routingColdLoadHighlighted),
+          ],
+          [],
+        ),
+        Snippets.routingColdLoadRaw,
+        'Copy cold load example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'When the route-driven state lives in a Submodel, the same factoring follows the Submodel boundary instead of a shared helper: the Submodel’s ',
+        inlineCode('init(route)'),
+        ' seeds its state and returns the boot Commands for the cold load, and its ',
+        inlineCode('informRouteChanged'),
+        ' helper covers later transitions. ',
+        link(patternsInformingSubmodelsRouter(), 'Informing Submodels'),
+        ' shows that shape, and the ',
+        link(
+          exampleDetailRouter({ exampleSlug: 'routing' }),
+          'Routing example',
+        ),
+        ' runs on it.',
       ),
     ],
   )
