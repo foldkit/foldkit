@@ -8,9 +8,10 @@ records what survived TypeScript inference, what did not, and whether the
 idea is worth pursuing.
 
 Verification status: `pnpm typecheck` and `pnpm lint` pass. All 17 tests in
-`statechart.test.ts` pass, and every `@ts-expect-error` directive in the
-test file is consumed (checked with `tsc -p tsconfig.json`, which includes
-test files; the build config used by `pnpm typecheck` excludes them).
+`statechart.test.ts` and the 27 tests across `examples/` pass, and every
+`@ts-expect-error` directive in the test file is consumed (checked with
+`tsc -p tsconfig.json`, which includes test files; the build config used by
+`pnpm typecheck` excludes them).
 
 ## The API that shipped
 
@@ -238,14 +239,54 @@ So: no rework needed to add hierarchy later, but also no pressure to. If
 hierarchy ever lands it should be designed against Submodels, not bolted
 onto this table.
 
+## Where it shines: worked examples
+
+The connection machine above is the canonical demo, but it is mid-tier as a
+pitch: a competent developer writes it as a plain `update` branch without
+trouble. The cases that actually justify the module live in `examples/`,
+each a self-contained test file paired with an analysis markdown
+(`examples/README.md` is the index):
+
+- `staleAsyncPruning`: stale completion Messages are dropped by topology
+  (the only state with a `SucceededSave` edge is `Saving`), and the
+  remaining generation check collapses into a single guard. This replaces
+  the scattered request-id checks that are the most reliably forgotten
+  defensive code in Elm-architecture apps.
+- `dragGesture`: adversarial pointer-event orderings (cancel mid-drag,
+  second pointers, release without movement) become a fully decided
+  state-by-event matrix, with one test stepping every cell and asserting
+  which are `Ignored`.
+- `resumableUpload`: protocol legality is the table. Duplicate and racing
+  server acknowledgements are observably `Ignored`, and the Commands
+  attached to edges form an assertable request sequence, an executable
+  stand-in for the protocol's sequence diagram.
+- `rowSync`: one machine amortized over every row of a table, with
+  `Command.mapMessages` routing results back to the originating row and a
+  single analysis pass certifying the lifecycle for all instances. This is
+  where the table's fixed cost flips into a clear win.
+- `checkoutWizard`: the generated Mermaid diagram is the artifact a PM
+  reviews, skip logic is a symmetric guard pair on forward and back
+  navigation, and `unreachableStates` catches the orphaned step a flow
+  change left behind.
+
+The shared traits, in rough order of strength: a (state, message) matrix
+dense with combinations that must be rejected observably; messages arriving
+from sources the app does not control (network, pointer hardware, timers)
+in orders the happy path never exercises; one machine instantiated many
+times; and flows that non-engineers review.
+
 ## Recommendation
 
-Worth pursuing, narrowly. The type-level results are better than expected
-(exact narrowing with zero annotations, wrong-variant rejection, typo
-rejection), and the analysis and Mermaid output genuinely fall out of the
-data. But as a way to write transitions, the table is only a modest
-improvement over an idiomatic `Match`-based `update` branch, and it adds a
-vocabulary and an inference Jenga tower that someone has to maintain.
+Worth pursuing, positioned by scenario rather than by state count. The
+type-level results are better than expected (exact narrowing with zero
+annotations, wrong-variant rejection, typo rejection), and the analysis and
+Mermaid output genuinely fall out of the data. For the median Model field a
+plain `Match`-based `update` branch remains the right call, and the table
+is only a modest improvement there, paid for with a second vocabulary and
+an inference Jenga tower someone has to maintain. For the scenarios in
+`examples/`, the table is a structural improvement rather than a stylistic
+one: it deletes bug classes (stale async results, unhandled event
+orderings, drifting flow diagrams) instead of shortening code.
 
 The smallest version worth shipping:
 
@@ -261,6 +302,12 @@ The smallest version worth shipping:
 
 Ship it as an experimental `foldkit/statechart` subpath, document the
 two-stage call as a hard requirement with a short explanation of why, and
-treat the website docs' state-modeling page as the place to position it:
-reach for a Machine when a Model field has more than three or four states
-with non-obvious legal transitions, and stay with plain `update` otherwise.
+position it in the docs by trait, not by size. Reach for a Machine when
+illegal (state, message) combinations outnumber legal ones and must be
+rejected observably, when messages arrive from sources you do not control,
+when one machine is instantiated per entity, or when the flow itself is a
+review artifact for non-engineers. Stay with plain `update` for toggles,
+forms, and any state where most messages mutate data within a state rather
+than move between states. The per-row save/conflict machine
+(`examples/rowSync.test.ts`) is the motivating example the docs should lead
+with, not a connection machine.
