@@ -15,6 +15,7 @@ import {
   aiOverviewRouter,
   comingFromReactRouter,
   coreArchitectureRouter,
+  elmComparisonRouter,
   examplesRouter,
 } from '../route'
 import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
@@ -85,10 +86,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ],
       ),
       infoCallout(
-        'Coming from React?',
-        'If you’re familiar with React, check out the ',
+        'Coming from React or Elm?',
+        'If you know React, the ',
         link(comingFromReactRouter(), 'Coming from React'),
-        ' guide to understand how your existing knowledge applies.',
+        ' guide maps your existing knowledge onto Foldkit. If you know Elm, see ',
+        link(elmComparisonRouter(), 'Foldkit vs Elm: Side by Side'),
+        '.',
       ),
       tableOfContentsEntryToHeader(projectStructureHeader),
       para('A new Foldkit project has the following structure:'),
