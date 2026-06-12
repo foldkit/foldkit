@@ -31,6 +31,12 @@ const eventHandlingHeader: TableOfContentsEntry = {
   text: 'Event Handling',
 }
 
+const complexHandlersHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'complex-handlers',
+  text: 'Complex Handlers',
+}
+
 const eventHandlerSideEffectsHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'event-handler-side-effects',
@@ -41,6 +47,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   typedHtmlHelpersHeader,
   eventHandlingHeader,
+  complexHandlersHeader,
   eventHandlerSideEffectsHeader,
 ]
 
@@ -132,6 +139,46 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       para(
         'For simple events like clicks, you pass the Message directly. For events that carry data (like input changes), you pass a function that receives the event and returns a Message. This keeps your view declarative. It describes what Messages should be sent, not how to handle them.',
+      ),
+      tableOfContentsEntryToHeader(complexHandlersHeader),
+      para(
+        'The examples above are short, but handlers are not limited to one-liners. The rule is that a handler is a pure translator from event data to a Message, not that it stays small. For example, a keydown translator can branch on the key, read Model-derived state from view scope, and return ',
+        inlineCode('Option<Message>'),
+        ' so it dispatches only when the event means something:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.eventHandlingComplexHighlighted),
+          ],
+          [],
+        ),
+        Snippets.eventHandlingComplexRaw,
+        'Copy complex handler example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'Returning ',
+        inlineCode('Some'),
+        ' claims the key: the framework suppresses the browser’s default action and dispatches the Message. Returning ',
+        inlineCode('None'),
+        ' leaves the key to the browser. The next section covers why ',
+        inlineCode('OnKeyDownPreventDefault'),
+        ' runs that suppression for you.',
+      ),
+      para(
+        'A handler never runs Effects: the runtime is the only Effect executor, and anything effectful belongs in a Command returned from update. A handler also never decides consequences: it classifies the event into a fact, like Enter with an active result meaning ',
+        inlineCode('SelectedResult'),
+        ', and update decides what follows from that fact.',
+      ),
+      para(
+        'When a translator grows, extract it to a named pure function and pass it to the attribute, as the example above does with ',
+        inlineCode('handleResultsKeyDown'),
+        '. Foldkit’s own Listbox does the same: its keydown handler matches on Escape, Enter, Space, the navigation keys, and printable typeahead keys, with Model-derived state in scope, all as one pure function handed to ',
+        inlineCode('OnKeyDownPreventDefault'),
+        '.',
       ),
       tableOfContentsEntryToHeader(eventHandlerSideEffectsHeader),
       para(
