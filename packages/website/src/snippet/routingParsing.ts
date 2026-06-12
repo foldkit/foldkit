@@ -18,7 +18,7 @@ const init: Runtime.RoutingApplicationInit<Model, Message> = (url: Url) => {
 }
 
 // In your update function, handle URL changes:
-UrlChanged: ({ url }) => [
+ChangedUrl: ({ url }) => [
   evo(model, {
     route: () => urlToAppRoute(url),
   }),
