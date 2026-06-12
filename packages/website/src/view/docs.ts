@@ -323,6 +323,7 @@ const searchWeight = (tag: string): string =>
       'ProjectOrganization',
       'ComingFromReact',
       'ReactComparison',
+      'ElmComparison',
       'WhyNoJsx',
       'WhatAboutSsr',
       'Performance',
@@ -425,6 +426,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         withTableOfContents(
           lazyDocsContent(Page.ReactComparison.view, [model.copiedSnippets]),
           Page.ReactComparison.tableOfContents,
+        ),
+      ElmComparison: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.ElmComparison.view, [model.copiedSnippets]),
+          Page.ElmComparison.tableOfContents,
         ),
       GettingStarted: () =>
         withTableOfContents(

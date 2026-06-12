@@ -64,6 +64,7 @@ import {
   GotExamplesGroupMessage,
   GotFaqGroupMessage,
   GotFoldkitUiGroupMessage,
+  GotForElmDevelopersGroupMessage,
   GotForReactDevelopersGroupMessage,
   GotGetStartedGroupMessage,
   GotMobileMenuDialogMessage,
@@ -249,6 +250,7 @@ export const Model = S.Struct({
   getStartedGroup: Ui.Disclosure.Model,
   coreConceptsGroup: Ui.Disclosure.Model,
   forReactDevelopersGroup: Ui.Disclosure.Model,
+  forElmDevelopersGroup: Ui.Disclosure.Model,
   faqGroup: Ui.Disclosure.Model,
   testingGroup: Ui.Disclosure.Model,
   bestPracticesGroup: Ui.Disclosure.Model,
@@ -422,6 +424,14 @@ export const init: Runtime.RoutingApplicationInit<
           flags.maybeSidebarState,
           maybeInitialActiveSectionKey,
           'forReactDevelopers',
+        ),
+      }),
+      forElmDevelopersGroup: Ui.Disclosure.init({
+        id: 'for-elm-developers-group',
+        isOpen: isGroupOpenOnBoot(
+          flags.maybeSidebarState,
+          maybeInitialActiveSectionKey,
+          'forElmDevelopers',
         ),
       }),
       faqGroup: Ui.Disclosure.init({
@@ -670,6 +680,7 @@ export const update = (
             getStartedGroup: expandIfActive('getStarted'),
             coreConceptsGroup: expandIfActive('coreConcepts'),
             forReactDevelopersGroup: expandIfActive('forReactDevelopers'),
+            forElmDevelopersGroup: expandIfActive('forElmDevelopers'),
             faqGroup: expandIfActive('faq'),
             testingGroup: expandIfActive('testing'),
             bestPracticesGroup: expandIfActive('bestPractices'),
@@ -1002,6 +1013,14 @@ export const update = (
           message,
           next => evo(model, { forReactDevelopersGroup: () => next }),
           message => GotForReactDevelopersGroupMessage({ message }),
+        ),
+
+      GotForElmDevelopersGroupMessage: ({ message }) =>
+        handleSidebarGroup(
+          model.forElmDevelopersGroup,
+          message,
+          next => evo(model, { forElmDevelopersGroup: () => next }),
+          message => GotForElmDevelopersGroupMessage({ message }),
         ),
 
       GotFaqGroupMessage: ({ message }) =>
@@ -1353,6 +1372,7 @@ const modelToSidebarState = (model: Model): SidebarState => ({
     getStarted: model.getStartedGroup.isOpen,
     coreConcepts: model.coreConceptsGroup.isOpen,
     forReactDevelopers: model.forReactDevelopersGroup.isOpen,
+    forElmDevelopers: model.forElmDevelopersGroup.isOpen,
     faq: model.faqGroup.isOpen,
     testing: model.testingGroup.isOpen,
     bestPractices: model.bestPracticesGroup.isOpen,

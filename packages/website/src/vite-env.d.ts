@@ -20,6 +20,16 @@ declare module '*.tsx?highlighted' {
   export default html
 }
 
+declare module '*.elm?raw' {
+  const content: string
+  export default content
+}
+
+declare module '*.elm?highlighted' {
+  const html: string
+  export default html
+}
+
 declare module 'virtual:api-highlights' {
   const highlights: Record<string, string>
   export default highlights

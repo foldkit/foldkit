@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>PixelForge (Elm)</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="elm.js"></script>
+    <script>
+      var STORAGE_KEY = 'pixel-art-elm-canvas'
+
+      var savedCanvas = null
+      try {
+        savedCanvas = JSON.parse(localStorage.getItem(STORAGE_KEY))
+      } catch (error) {
+        savedCanvas = null
+      }
+
+      var app = Elm.Main.init({
+        node: document.getElementById('root'),
+        flags: savedCanvas,
+      })
+
+      app.ports.saveCanvas.subscribe(function (data) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+        } catch (error) {
+          // Silently fail on storage errors
+        }
+      })
+
+      app.ports.requestExportPng.subscribe(function (request) {
+        try {
+          var gridSize = request.pixels.length
+          var canvas = document.createElement('canvas')
+          canvas.width = gridSize * request.cellSize
+          canvas.height = gridSize * request.cellSize
+          var context = canvas.getContext('2d')
+          if (context === null) {
+            throw new Error('Canvas 2D context not available')
+          }
+
+          request.pixels.forEach(function (row, y) {
+            row.forEach(function (hexColor, x) {
+              context.fillStyle = hexColor
+              context.fillRect(
+                x * request.cellSize,
+                y * request.cellSize,
+                request.cellSize,
+                request.cellSize,
+              )
+            })
+          })
+
+          var link = document.createElement('a')
+          link.download = 'pixel-art.png'
+          link.href = canvas.toDataURL('image/png')
+          link.click()
+        } catch (error) {
+          app.ports.exportPngFailed.send(
+            error instanceof Error ? error.message : 'Failed to export image',
+          )
+        }
+      })
+    </script>
+  </body>
+</html>

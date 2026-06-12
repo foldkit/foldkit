@@ -13,6 +13,7 @@ export const GroupKey = S.Literals([
   'getStarted',
   'coreConcepts',
   'forReactDevelopers',
+  'forElmDevelopers',
   'faq',
   'testing',
   'bestPractices',

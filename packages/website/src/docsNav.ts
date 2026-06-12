@@ -35,6 +35,7 @@ import {
   coreUpdateRouter,
   coreViewMemoizationRouter,
   coreViewRouter,
+  elmComparisonRouter,
   exampleDetailRouter,
   examplesRouter,
   fieldValidationRouter,
@@ -308,6 +309,19 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'ReactComparison',
           href: reactComparisonRouter(),
           label: 'Foldkit vs React: Side by Side',
+        },
+      ],
+    ],
+  },
+  {
+    key: 'forElmDevelopers',
+    label: 'For Elm Developers',
+    pageGroups: [
+      [
+        {
+          _tag: 'ElmComparison',
+          href: elmComparisonRouter(),
+          label: 'Foldkit vs Elm: Side by Side',
         },
       ],
     ],

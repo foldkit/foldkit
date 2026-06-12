@@ -122,6 +122,12 @@ export const GotForReactDevelopersGroupMessage = m(
     message: Ui.Disclosure.Message,
   },
 )
+export const GotForElmDevelopersGroupMessage = m(
+  'GotForElmDevelopersGroupMessage',
+  {
+    message: Ui.Disclosure.Message,
+  },
+)
 export const GotFaqGroupMessage = m('GotFaqGroupMessage', {
   message: Ui.Disclosure.Message,
 })
@@ -205,6 +211,7 @@ export const Message = S.Union([
   GotGetStartedGroupMessage,
   GotCoreConceptsGroupMessage,
   GotForReactDevelopersGroupMessage,
+  GotForElmDevelopersGroupMessage,
   GotFaqGroupMessage,
   GotTestingGroupMessage,
   GotBestPracticesGroupMessage,

@@ -37,6 +37,16 @@ const shikiThemes = {
   dark: shikiDarkTheme,
 }
 
+const highlightLanguage = (filePath: string): string => {
+  if (filePath.endsWith('.tsx')) {
+    return 'tsx'
+  }
+  if (filePath.endsWith('.elm')) {
+    return 'elm'
+  }
+  return 'typescript'
+}
+
 const highlightCodePlugin = (): Plugin => ({
   name: 'highlight-code',
   async transform(_code, id) {
@@ -52,7 +62,7 @@ const highlightCodePlugin = (): Plugin => ({
     const lineCount = lines.length
     const lineDigits = String(lineCount).length
 
-    const lang = filePath.endsWith('.tsx') ? 'tsx' : 'typescript'
+    const lang = highlightLanguage(filePath)
 
     const html = await codeToHtml(code, {
       lang,

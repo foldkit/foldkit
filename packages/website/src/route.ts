@@ -19,6 +19,7 @@ export const WhatAboutSsrRoute = r('WhatAboutSsr')
 export const PerformanceRoute = r('Performance')
 export const ComingFromReactRoute = r('ComingFromReact')
 export const ReactComparisonRoute = r('ReactComparison')
+export const ElmComparisonRoute = r('ElmComparison')
 export const GettingStartedRoute = r('GettingStarted')
 export const RoutingAndNavigationRoute = r('RoutingAndNavigation')
 export const FieldValidationRoute = r('FieldValidation')
@@ -114,6 +115,7 @@ export const DocsRoute = S.Union([
   PerformanceRoute,
   ComingFromReactRoute,
   ReactComparisonRoute,
+  ElmComparisonRoute,
   GettingStartedRoute,
   RoutingAndNavigationRoute,
   FieldValidationRoute,
@@ -213,6 +215,7 @@ const section =
 const getStarted = section('get-started')
 const faq = section('faq')
 const react = section('react')
+const elm = section('elm')
 const core = section('core')
 const patterns = section('patterns')
 const testing = section('testing')
@@ -239,6 +242,10 @@ export const comingFromReactRouter = react(
 export const reactComparisonRouter = react(
   'foldkit-vs-react-side-by-side',
   ReactComparisonRoute,
+)
+export const elmComparisonRouter = elm(
+  'foldkit-vs-elm-side-by-side',
+  ElmComparisonRoute,
 )
 
 export const routingAndNavigationRouter = core(
@@ -398,6 +405,8 @@ const faqParser = oneOf(whyNoJsxRouter, whatAboutSsrRouter, performanceRouter)
 
 const reactParser = oneOf(comingFromReactRouter, reactComparisonRouter)
 
+const elmParser = elmComparisonRouter
+
 const testingParser = oneOf(
   testingStoryRouter,
   testingSceneRouter,
@@ -488,6 +497,7 @@ const docsParser = oneOf(
   getStartedParser,
   faqParser,
   reactParser,
+  elmParser,
   coreParser,
   patternsParser,
   bestPracticesParser,

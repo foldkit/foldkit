@@ -22,6 +22,7 @@ import {
   GotExamplesGroupMessage,
   GotFaqGroupMessage,
   GotFoldkitUiGroupMessage,
+  GotForElmDevelopersGroupMessage,
   GotForReactDevelopersGroupMessage,
   GotGetStartedGroupMessage,
   GotMobileMenuDialogMessage,
@@ -118,6 +119,7 @@ const computeNavLinks = (
   getStartedGroup: Ui.Disclosure.Model,
   coreConceptsGroup: Ui.Disclosure.Model,
   forReactDevelopersGroup: Ui.Disclosure.Model,
+  forElmDevelopersGroup: Ui.Disclosure.Model,
   faqGroup: Ui.Disclosure.Model,
   testingGroup: Ui.Disclosure.Model,
   bestPracticesGroup: Ui.Disclosure.Model,
@@ -158,6 +160,10 @@ const computeNavLinks = (
       model: forReactDevelopersGroup,
       toParentMessage: message =>
         GotForReactDevelopersGroupMessage({ message }),
+    },
+    forElmDevelopers: {
+      model: forElmDevelopersGroup,
+      toParentMessage: message => GotForElmDevelopersGroupMessage({ message }),
     },
     faq: {
       model: faqGroup,
@@ -288,6 +294,7 @@ export const sidebarView = (model: Model): Html => {
     model.getStartedGroup,
     model.coreConceptsGroup,
     model.forReactDevelopersGroup,
+    model.forElmDevelopersGroup,
     model.faqGroup,
     model.testingGroup,
     model.bestPracticesGroup,
@@ -303,6 +310,7 @@ export const sidebarView = (model: Model): Html => {
     model.getStartedGroup,
     model.coreConceptsGroup,
     model.forReactDevelopersGroup,
+    model.forElmDevelopersGroup,
     model.faqGroup,
     model.testingGroup,
     model.bestPracticesGroup,

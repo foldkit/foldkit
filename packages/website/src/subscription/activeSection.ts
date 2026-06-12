@@ -34,6 +34,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             GettingStarted: () => Page.GettingStarted.tableOfContents,
             ComingFromReact: () => Page.ComingFromReact.tableOfContents,
             ReactComparison: () => Page.ReactComparison.tableOfContents,
+            ElmComparison: () => Page.ElmComparison.tableOfContents,
             RoutingAndNavigation: () => Page.Routing.tableOfContents,
             FieldValidation: () => Page.FieldValidation.tableOfContents,
             Testing: () => Page.Testing.tableOfContents,

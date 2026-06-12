@@ -8,6 +8,7 @@ describe('findActiveSectionKey', () => {
     ['Manifesto', 'getStarted'],
     ['CoreModel', 'coreConcepts'],
     ['ComingFromReact', 'forReactDevelopers'],
+    ['ElmComparison', 'forElmDevelopers'],
     ['ProjectOrganization', 'patterns'],
     ['WhyNoJsx', 'faq'],
     ['UiButton', 'foldkitUi'],
