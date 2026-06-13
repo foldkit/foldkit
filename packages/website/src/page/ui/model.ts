@@ -60,6 +60,8 @@ export const Model = S.Struct({
   menuAnimatedDemo: Menu.Model,
   popoverBasicDemo: Popover.Model,
   popoverAnimatedDemo: Popover.Model,
+  popoverNestedParentDemo: Popover.Model,
+  popoverNestedChildDemo: Popover.Model,
   verticalRadioGroupDemo: RadioGroup.Model,
   horizontalRadioGroupDemo: RadioGroup.Model,
   selectDemoValue: S.String,

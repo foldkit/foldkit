@@ -6,6 +6,8 @@ import type { TableOfContentsEntry } from '../../main'
 import {
   GotPopoverAnimatedDemoMessage,
   GotPopoverBasicDemoMessage,
+  GotPopoverNestedChildDemoMessage,
+  GotPopoverNestedParentDemoMessage,
   type Message,
 } from './message'
 
@@ -27,6 +29,12 @@ export const animatedHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'animated-popover',
   text: 'Animated',
+}
+
+export const nestedHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'nested-popovers',
+  text: 'Nested',
 }
 
 // DEMO CONTENT
@@ -51,6 +59,14 @@ const POPOVER_ANCHOR: AnchorConfig = {
   gap: 4,
   padding: 8,
 }
+
+const NESTED_POPOVER_ANCHOR: AnchorConfig = {
+  placement: 'right-start',
+  gap: 8,
+  padding: 8,
+}
+
+const nestedChildButtonSelector = '#popover-nested-child-demo-button'
 
 const panelContent = (): Html => {
   const h = html<Message>()
@@ -136,6 +152,116 @@ export const animatedDemo = (popoverModel: Ui.Popover.Model) => {
           message => GotPopoverAnimatedDemoMessage({ message }),
           animatedPanelClassName,
         ),
+      ],
+    ),
+  ]
+}
+
+const nestedChildPopover = (childPopoverModel: Ui.Popover.Model): Html => {
+  const h = html<Message>()
+
+  return h.submodel({
+    slotId: childPopoverModel.id,
+    model: childPopoverModel,
+    view: Ui.Popover.view,
+    viewInputs: {
+      anchor: NESTED_POPOVER_ANCHOR,
+      toView: ({ button, panel, backdrop, isVisible }) =>
+        h.div(
+          [h.Class(wrapperClassName)],
+          [
+            h.button(
+              [...button, h.Class(triggerClassName)],
+              [h.span([], ['Advanced settings'])],
+            ),
+            ...(isVisible
+              ? [
+                  h.div([...backdrop, h.Class(backdropClassName)], []),
+                  h.div(
+                    [...panel, h.Class(basicPanelClassName)],
+                    [
+                      h.p(
+                        [
+                          h.Class(
+                            'text-sm font-semibold text-gray-900 dark:text-white mb-2',
+                          ),
+                        ],
+                        ['Permissions'],
+                      ),
+                      h.p(
+                        [h.Class('text-sm text-gray-600 dark:text-gray-400')],
+                        [
+                          'Review who can change billing, members, and integrations.',
+                        ],
+                      ),
+                    ],
+                  ),
+                ]
+              : []),
+          ],
+        ),
+    },
+    toParentMessage: message => GotPopoverNestedChildDemoMessage({ message }),
+  })
+}
+
+export const nestedDemo = (
+  parentPopoverModel: Ui.Popover.Model,
+  childPopoverModel: Ui.Popover.Model,
+) => {
+  const h = html<Message>()
+
+  return [
+    h.div(
+      [h.Class('relative')],
+      [
+        h.submodel({
+          slotId: parentPopoverModel.id,
+          model: parentPopoverModel,
+          view: Ui.Popover.view,
+          viewInputs: {
+            anchor: POPOVER_ANCHOR,
+            focusSelector: nestedChildButtonSelector,
+            toView: ({ button, panel, backdrop, isVisible }) =>
+              h.div(
+                [h.Class(wrapperClassName)],
+                [
+                  h.button(
+                    [...button, h.Class(triggerClassName)],
+                    [h.span([], ['Account'])],
+                  ),
+                  ...(isVisible
+                    ? [
+                        h.div([...backdrop, h.Class(backdropClassName)], []),
+                        h.div(
+                          [...panel, h.Class(basicPanelClassName)],
+                          [
+                            h.div(
+                              [h.Class('flex flex-col gap-4')],
+                              [
+                                h.p(
+                                  [
+                                    h.Class(
+                                      'text-sm text-gray-600 dark:text-gray-400',
+                                    ),
+                                  ],
+                                  [
+                                    'Manage account settings without leaving this panel.',
+                                  ],
+                                ),
+                                nestedChildPopover(childPopoverModel),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ]
+                    : []),
+                ],
+              ),
+          },
+          toParentMessage: message =>
+            GotPopoverNestedParentDemoMessage({ message }),
+        }),
       ],
     ),
   ]

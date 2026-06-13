@@ -95,6 +95,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   examplesHeader,
   Popover.basicHeader,
   Popover.animatedHeader,
+  Popover.nestedHeader,
   stylingHeader,
   keyboardInteractionHeader,
   accessibilityHeader,
@@ -235,7 +236,7 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
   {
     key: 'Tab',
     description:
-      'Navigates within the panel. Closes the popover when focus leaves.',
+      'Navigates within the panel. By default, closes the popover when focus leaves.',
   },
 ]
 
@@ -306,6 +307,37 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           ' at init for animation coordination.',
         ),
         demoContainer(...Popover.animatedDemo(model.popoverAnimatedDemo)),
+        heading(
+          Popover.nestedHeader.level,
+          Popover.nestedHeader.id,
+          Popover.nestedHeader.text,
+        ),
+        para(
+          'Use a separate Popover Model for each level. For a parent panel that opens onto another Popover trigger, pass ',
+          inlineCode('contentFocus: true'),
+          ' at init and ',
+          inlineCode('focusSelector'),
+          ' in the view so focus lands on the nested trigger.',
+        ),
+        demoContainer(
+          ...Popover.nestedDemo(
+            model.popoverNestedParentDemo,
+            model.popoverNestedChildDemo,
+          ),
+        ),
+        highlightedCodeBlock(
+          h.div(
+            [
+              h.Class('text-sm'),
+              h.InnerHTML(Snippet.uiPopoverNestedHighlighted),
+            ],
+            [],
+          ),
+          Snippet.uiPopoverNestedRaw,
+          'Copy nested popovers example to clipboard',
+          copiedSnippets,
+          'mb-8',
+        ),
         heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
         para(
           'Popover is headless. The ',
@@ -326,7 +358,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           keyboardInteractionHeader.text,
         ),
         para(
-          'The panel receives ',
+          'By default, the panel receives ',
           inlineCode('tabindex="0"'),
           ' so it can receive focus. Tab navigates naturally through the panel content. Escape closes and returns focus to the button.',
         ),
