@@ -32,6 +32,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             WhatAboutSsr: () => Page.WhatAboutSsr.tableOfContents,
             Performance: () => Page.Performance.tableOfContents,
             GettingStarted: () => Page.GettingStarted.tableOfContents,
+            Roadmap: () => Page.Roadmap.tableOfContents,
             ComingFromReact: () => Page.ComingFromReact.tableOfContents,
             ReactComparison: () => Page.ReactComparison.tableOfContents,
             ElmComparison: () => Page.ElmComparison.tableOfContents,

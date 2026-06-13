@@ -40,6 +40,7 @@ export const Link = {
   foldkitLustreBenchmark:
     'https://github.com/foldkit/foldkit/tree/main/internal/lustre-benchmark',
   github: 'https://github.com/foldkit/foldkit',
+  githubIssues: 'https://github.com/foldkit/foldkit/issues',
   discord: 'https://discord.gg/kav8VNxqGm',
   xSocial: 'https://x.com/devinjameson',
   foldkitSource:

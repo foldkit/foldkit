@@ -21,6 +21,7 @@ export const ComingFromReactRoute = r('ComingFromReact')
 export const ReactComparisonRoute = r('ReactComparison')
 export const ElmComparisonRoute = r('ElmComparison')
 export const GettingStartedRoute = r('GettingStarted')
+export const RoadmapRoute = r('Roadmap')
 export const RoutingAndNavigationRoute = r('RoutingAndNavigation')
 export const FieldValidationRoute = r('FieldValidation')
 export const TestingRoute = r('Testing')
@@ -117,6 +118,7 @@ export const DocsRoute = S.Union([
   ReactComparisonRoute,
   ElmComparisonRoute,
   GettingStartedRoute,
+  RoadmapRoute,
   RoutingAndNavigationRoute,
   FieldValidationRoute,
   TestingRoute,
@@ -230,6 +232,8 @@ export const gettingStartedRouter = getStarted(
   'getting-started',
   GettingStartedRoute,
 )
+
+export const roadmapRouter = page('roadmap', RoadmapRoute)
 
 export const whyNoJsxRouter = faq('why-no-jsx', WhyNoJsxRoute)
 export const whatAboutSsrRouter = faq('what-about-ssr', WhatAboutSsrRoute)
@@ -495,6 +499,7 @@ const aiParser = oneOf(aiOverviewRouter, aiSkillsRouter, aiMcpRouter)
 
 const docsParser = oneOf(
   getStartedParser,
+  roadmapRouter,
   faqParser,
   reactParser,
   elmParser,

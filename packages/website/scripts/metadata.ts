@@ -70,6 +70,11 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Set up your first Foldkit application in minutes. Install, scaffold with create-foldkit-app, and build a TypeScript frontend with Effect-TS.',
     'Docs',
   ),
+  Roadmap: docs(
+    'Roadmap',
+    'Where Foldkit is headed: the blocks of work that gate a production-ready 1.0, the directions under exploration after it, and the stances that will not change.',
+    'Docs',
+  ),
   ComingFromReact: docs(
     'Coming from React',
     'Moving from React to a principled architecture? Foldkit replaces hooks, useEffect, and component state with The Elm Architecture: one Model, one update function, explicit effects. Built on Effect-TS.',
