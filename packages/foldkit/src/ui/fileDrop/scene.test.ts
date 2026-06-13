@@ -26,7 +26,7 @@ const fileInput = Scene.selector('input[type="file"]')
 const initialModel = init({ id: 'uploader' })
 const [dragOverModel] = update(initialModel, EnteredDragZone())
 
-describe('FileDrop scene', () => {
+describe('FileDrop', () => {
   describe('rendering', () => {
     it('renders a label wrapping a hidden file input', () => {
       Scene.scene(

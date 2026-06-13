@@ -60,7 +60,7 @@ const notFound = (path: string) =>
     peoplePage: initialPeoplePage,
   })
 
-describe('scene', () => {
+describe('view', () => {
   test('the nav bar appears on every route', () => {
     Scene.scene(
       { update, view },

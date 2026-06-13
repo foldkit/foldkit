@@ -137,7 +137,7 @@ const hiddenInput = Scene.selector('input[type="hidden"]')
 const closedModel = init({ id: 'picker', today })
 const [openModel] = update(closedModel, Opened())
 
-describe('DatePicker scene', () => {
+describe('DatePicker', () => {
   describe('rendering', () => {
     it('renders the trigger button with type=button and default aria-expanded false', () => {
       Scene.scene(

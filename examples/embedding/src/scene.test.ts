@@ -11,7 +11,7 @@ import {
 
 const initialModel: Model = { count: 10, step: 1 }
 
-describe('scene', () => {
+describe('view', () => {
   test('initial view shows the count, the tick description, and the advance button', () => {
     Scene.scene(
       { update, view },

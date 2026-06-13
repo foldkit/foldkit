@@ -63,7 +63,7 @@ const container = Scene.selector('ul[data-virtual-list-id="test"]')
 const rows = Scene.all.selector('li[data-virtual-list-item-index]')
 const topSpacer = Scene.first(Scene.all.selector('li[role="presentation"]'))
 
-describe('VirtualList scene', () => {
+describe('VirtualList', () => {
   describe('container', () => {
     it('renders as a ul with id, the data-virtual-list-id selector the subscription relies on, and an explicit role=list for Safari + VoiceOver compatibility', () => {
       Scene.scene(

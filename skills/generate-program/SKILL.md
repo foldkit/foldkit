@@ -227,7 +227,7 @@ Example for a Tier 4 link saver:
 Files:
   src/main.ts, entry.ts, model.ts, message.ts, command.ts, route.ts
   src/domain/link.ts, index.ts
-  src/main.story.test.ts, main.scene.test.ts
+  src/story.test.ts, scene.test.ts
 
 Model:
   route: AppRoute
@@ -603,13 +603,13 @@ Fix ALL output from all four before declaring Phase 5 done. "Typecheck clean and
 
 ### Type errors first
 
-Then generate tests using `foldkit/test`. There are two test styles:
+Then generate tests using `foldkit/test`. There are two test styles. Name each test file for its style, beside the code under test: `story.test.ts` for Story tests (the state machine, driving `update`) and `scene.test.ts` for Scene tests (the rendered view). The name describes how the test works, not a source file, so it holds whether `update` and `view` live in `main.ts` or their own files. When a folder holds more than one test of a kind (sibling pages, component variants), prefix with the subject: `login.story.test.ts`. Scene tests always run from the root `update`/`view`, so a single root-level `scene.test.ts` is the right home even in a multi-page app.
 
-**Story tests** (`main.story.test.ts`) test the update function directly. You send Messages and assert on the Model and Commands. Study these exemplars:
+**Story tests** (`story.test.ts`) test the update function directly. You send Messages and assert on the Model and Commands. Study these exemplars:
 
-- `${CLAUDE_SKILL_DIR}/../../examples/weather/src/main.story.test.ts`: simple Command resolution (happy path + error path)
+- `${CLAUDE_SKILL_DIR}/../../examples/weather/src/story.test.ts`: simple Command resolution (happy path + error path)
 - `${CLAUDE_SKILL_DIR}/../../examples/auth/src/page/loggedOut/page/login.story.test.ts`: Submodel with OutMessage assertions, field validation
-- `${CLAUDE_SKILL_DIR}/../../packages/website/src/search/update.test.ts`: multi-step interactions (arrow key cycling, stale result handling)
+- `${CLAUDE_SKILL_DIR}/../../packages/website/src/search/story.test.ts`: multi-step interactions (arrow key cycling, stale result handling)
 
 Write `Story.story` pipelines covering:
 
@@ -618,11 +618,11 @@ Write `Story.story` pipelines covering:
 - **Multi-step interaction**: at least one test that chains multiple Messages and Command resolutions
 - **Edge cases**: empty states, boundary conditions, ignored inputs (e.g. stale results, duplicate submissions)
 
-**Scene tests** (`main.scene.test.ts`) test through the rendered view. You interact with elements by accessible locators (role, label, text) and assert on what the user sees. A `main.scene.test.ts` is **REQUIRED** for Tier 3+ apps. The review loop treats its absence as a BLOCKER, not a QUALITY item. No exceptions. Don't "defer" this. Study these exemplars:
+**Scene tests** (`scene.test.ts`) test through the rendered view. You interact with elements by accessible locators (role, label, text) and assert on what the user sees. A `scene.test.ts` is **REQUIRED** for Tier 3+ apps. The review loop treats its absence as a BLOCKER, not a QUALITY item. No exceptions. Don't "defer" this. Study these exemplars:
 
-- `${CLAUDE_SKILL_DIR}/../../examples/weather/src/main.scene.test.ts`: basic Scene flow with form interaction and Command resolution
-- `${CLAUDE_SKILL_DIR}/../../examples/auth/src/page/loggedOut/page/login.scene.test.ts`: Submodel Scene testing, field validation through the view
-- `${CLAUDE_SKILL_DIR}/../../examples/kanban/src/main.scene.test.ts`: scoped queries with `within`, `toHaveValue`, explicit test data
+- `${CLAUDE_SKILL_DIR}/../../examples/weather/src/scene.test.ts`: basic Scene flow with form interaction and Command resolution
+- `${CLAUDE_SKILL_DIR}/../../examples/auth/src/scene.test.ts`: a multi-page app's root-level Scene driving the login flow through the root view
+- `${CLAUDE_SKILL_DIR}/../../examples/kanban/src/scene.test.ts`: scoped queries with `within`, `toHaveValue`, explicit test data
 
 Write `Scene.scene` pipelines covering:
 
@@ -813,7 +813,7 @@ COMMON BLIND SPOTS. Check each explicitly; these are frequently missed:
     run the ones relevant to what the generator built.
 
 14. MISSING SCENE TEST. For Tier 3+ apps (routing, async Commands,
-    forms), `main.scene.test.ts` must exist. Check the file tree:
+    forms), `scene.test.ts` must exist. Check the file tree:
     if it's absent and the app is Tier 3+, that's a BLOCKER, not a
     QUALITY item. Story tests alone test the update function in
     isolation; Scene tests test the rendered view through accessible

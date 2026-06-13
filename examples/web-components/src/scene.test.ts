@@ -9,7 +9,7 @@ const initialModel: Model = {
   backgroundColor: '#fef3c7',
 }
 
-describe('scene', () => {
+describe('view', () => {
   test('initial view shows the page heading and field labels', () => {
     Scene.scene(
       { update, view },

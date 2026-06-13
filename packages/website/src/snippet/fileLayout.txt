@@ -5,6 +5,9 @@ src/
 ├── message.ts           App-level messages
 ├── route.ts             Route definitions
 ├── update.ts            App-level update
+├── view.ts              App-level view
+├── story.test.ts        Story tests (drive update)
+├── scene.test.ts        Scene tests (drive the rendered view, from the root)
 │
 ├── page/
 │   ├── index.ts         Re-exports all pages

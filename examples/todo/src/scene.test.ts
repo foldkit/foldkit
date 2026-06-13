@@ -28,7 +28,7 @@ const modelWithTodos: Model = {
   ],
 }
 
-describe('scene', () => {
+describe('view', () => {
   test('empty state shows heading and placeholder message', () => {
     Scene.scene(
       { update, view },

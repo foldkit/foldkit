@@ -55,7 +55,7 @@ const modelWithParticles = (count: number): Model => ({
   nextId: count,
 })
 
-describe('scene', () => {
+describe('view', () => {
   test('initial view shows Pause and Reset buttons and a zero particle counter', () => {
     Scene.scene(
       { update, view },

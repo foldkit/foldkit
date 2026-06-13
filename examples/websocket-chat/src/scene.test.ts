@@ -21,7 +21,7 @@ const idleModel: Model = {
 const zonedAt = (timestamp: number) =>
   DateTime.makeZonedUnsafe(timestamp, { timeZone: 'UTC' })
 
-describe('scene', () => {
+describe('view', () => {
   test('initial view shows the heading, status, and a Connect button', () => {
     Scene.scene(
       { update, view },

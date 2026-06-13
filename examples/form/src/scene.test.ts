@@ -11,7 +11,7 @@ import {
   view,
 } from './main'
 
-describe('scene', () => {
+describe('view', () => {
   test('initial view shows all fields and a disabled submit button', () => {
     Scene.scene(
       { update, view },

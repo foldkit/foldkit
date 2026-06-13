@@ -11,7 +11,7 @@ import {
 } from './main'
 import { weatherData, weatherModel } from './main.fixtures'
 
-describe('scene', () => {
+describe('view', () => {
   test('initial view shows empty form with Get Weather button', () => {
     Scene.scene(
       { update, view },

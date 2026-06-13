@@ -30,7 +30,7 @@ const modelForRoute = (route: Model['route']): Model => ({
 
 const homeModel = modelForRoute(HomeRoute())
 
-describe('scene', () => {
+describe('view', () => {
   test('the sidebar nav lists a sample of every component link', () => {
     Scene.scene(
       { update, view },

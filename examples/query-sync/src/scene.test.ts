@@ -22,7 +22,7 @@ const browseModel: Model = {
   periodListbox: Ui.Listbox.init({ id: 'period-filter', selectedItem: '' }),
 }
 
-describe('scene', () => {
+describe('view', () => {
   test('the Browse route renders the heading and search input', () => {
     Scene.scene(
       { update, view },

@@ -34,7 +34,7 @@ const initialModel: Model = {
   stepMenu: Ui.Menu.init({ id: 'step-menu' }),
 }
 
-describe('scene', () => {
+describe('view', () => {
   test('initial view shows the page heading and the PersonalInfo step', () => {
     Scene.scene(
       { update, view },

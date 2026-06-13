@@ -11,7 +11,7 @@ const initialModel: Model = {
   nextRowId: 2,
 }
 
-describe('counters scene', () => {
+describe('view', () => {
   test('renders one Counter row per entry', () => {
     Scene.scene(
       { update, view },

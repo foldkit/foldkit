@@ -52,7 +52,7 @@ const acknowledgeFocusInput = Scene.Command.resolve(
   CompletedFocusAddCardInput(),
 )
 
-describe('scene', () => {
+describe('view', () => {
   test('board renders columns with correct names', () => {
     Scene.scene(
       { update, view },

@@ -2,24 +2,24 @@ import { Scene } from 'foldkit'
 import { Valid } from 'foldkit/fieldValidation'
 import { describe, test } from 'vitest'
 
-import { SaveSession } from '../../../command'
+import { SaveSession } from './command'
 import {
   CompletedNavigateInternal,
   GotLoggedOutMessage,
   SucceededSaveSession,
-} from '../../../message'
-import { LoggedOut } from '../../../model'
-import { LoginRoute } from '../../../route'
-import { RedirectToDashboard, update } from '../../../update'
-import { view } from '../../../view'
-import { GotLoginMessage } from '../message'
+} from './message'
+import { LoggedOut } from './model'
+import { GotLoginMessage } from './page/loggedOut/message'
 import {
   FailedSimulateAuthRequest,
   Message,
   SimulateAuthRequest,
   SucceededSimulateAuthRequest,
   initModel as initLoginModel,
-} from './login'
+} from './page/loggedOut/page/login'
+import { LoginRoute } from './route'
+import { RedirectToDashboard, update } from './update'
+import { view } from './view'
 
 const toLoginMessage = (message: Message) =>
   GotLoggedOutMessage({ message: GotLoginMessage({ message }) })
@@ -37,7 +37,7 @@ const validModel = LoggedOut.Model({
 
 const aliceSession = { userId: '1', email: 'alice@example.com', name: 'alice' }
 
-describe('login scene', () => {
+describe('view', () => {
   test('initial view renders form with sign in heading, inputs, and submit button', () => {
     Scene.scene(
       { update, view },

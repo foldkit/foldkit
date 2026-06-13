@@ -15,7 +15,7 @@ const initialModel: Model = {
   startTime: 0,
 }
 
-describe('scene', () => {
+describe('view', () => {
   test('initial view shows the zeroed time and Start + Reset buttons', () => {
     Scene.scene(
       { update, view },

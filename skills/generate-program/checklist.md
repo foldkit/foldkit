@@ -253,7 +253,7 @@ Each confirmed miss is a concrete a11y bug a screen reader user would hit.
 
 **Story tests** (required at every tier):
 
-- [ ] `main.story.test.ts` (or `update.test.ts`) exists with `Story.story` pipelines
+- [ ] `story.test.ts` exists with `Story.story` pipelines (sibling pages or component variants use a subject prefix: `login.story.test.ts`)
 - [ ] Every fallible Command (`Succeeded*`/`Failed*` pair) tested for both outcomes
 - [ ] At least one multi-step test that chains Messages and Command resolutions
 - [ ] Submodel tests assert `outMessage` when the child signals to parent
@@ -262,9 +262,9 @@ Each confirmed miss is a concrete a11y bug a screen reader user would hit.
 
 **Scene tests** (REQUIRED at Tier 3+; strongly encouraged at Tier 2):
 
-For Tier 3+ apps (routing, async Commands, forms), missing `main.scene.test.ts` is a **BLOCKER**. The app has not been tested from the user's perspective without it.
+For Tier 3+ apps (routing, async Commands, forms), missing `scene.test.ts` is a **BLOCKER**. The app has not been tested from the user's perspective without it.
 
-- [ ] `main.scene.test.ts` exists
+- [ ] `scene.test.ts` exists (one root-level file; Scene always runs from the root `update`/`view`)
 - [ ] View rendering test: initial view has expected elements (headings, inputs, buttons)
 - [ ] User interactions test: click, type, submit produce visible changes
 - [ ] At minimum one test per discriminated-union state that has distinct view output (loading, error, empty, populated)

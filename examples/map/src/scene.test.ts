@@ -32,7 +32,7 @@ const acknowledgeBodyUnlock = Scene.Command.resolve(
   CompletedUnlockBodyScroll(),
 )
 
-describe('scene', () => {
+describe('view', () => {
   test('initial view lists every featured location in the sidebar', () => {
     Scene.scene(
       { update, view },

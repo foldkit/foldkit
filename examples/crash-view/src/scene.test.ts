@@ -3,7 +3,7 @@ import { describe, test } from 'vitest'
 
 import { update, view } from './main'
 
-describe('scene', () => {
+describe('view', () => {
   test('initial view shows the Crash button', () => {
     Scene.scene(
       { update, view },

@@ -25,7 +25,7 @@ const withCart = (cart: Cart.Cart, overrides: Partial<Model> = {}): Model => ({
   ...overrides,
 })
 
-describe('scene', () => {
+describe('view', () => {
   test('the nav bar lists every section', () => {
     Scene.scene(
       { update, view },

@@ -14,7 +14,7 @@ const baseModel: Model = {
   highScore: 0,
 }
 
-describe('scene', () => {
+describe('view', () => {
   test('initial view shows the heading, score, and start prompt', () => {
     Scene.scene(
       { update, view },

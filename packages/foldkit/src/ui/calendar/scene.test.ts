@@ -128,7 +128,7 @@ const monthCellById = (modelId: string, month: number) =>
 const yearCellById = (modelId: string, year: number) =>
   Scene.selector(`#${modelId}-cell-year-${year}`)
 
-describe('Calendar scene', () => {
+describe('Calendar', () => {
   describe('rendering', () => {
     it('renders the grid with role, tabindex, and an explicit aria-label that leads with a non-numeric word', () => {
       // NOTE: The aria-label must lead with "Calendar," so VoiceOver's TTS

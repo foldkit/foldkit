@@ -43,7 +43,7 @@ const track = Scene.selector('[data-slider-track-id="test"]')
 const thumb = Scene.getByRole('slider')
 const hiddenInput = Scene.selector('[type="hidden"]')
 
-describe('Slider scene', () => {
+describe('Slider', () => {
   describe('rendering', () => {
     it('renders the root with data-slider-id and data-orientation', () => {
       Scene.scene(

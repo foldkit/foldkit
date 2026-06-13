@@ -26,7 +26,7 @@ const resolveFocusTab = Scene.Command.resolve(
   message => GotTabsMessage({ message }),
 )
 
-describe('scene', () => {
+describe('view', () => {
   test('posts load into clickable rows with an Invalidate button', () => {
     Scene.scene(
       { update, view },

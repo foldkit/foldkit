@@ -5,7 +5,7 @@ import { type Model, update, view } from './main'
 
 const initialModel: Model = { count: 0 }
 
-describe('scene', () => {
+describe('view', () => {
   test('renders the initial count and three buttons', () => {
     Scene.scene(
       { update, view },

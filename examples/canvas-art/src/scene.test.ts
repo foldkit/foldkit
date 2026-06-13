@@ -9,7 +9,7 @@ const emptyModel: Model = {
   isRunning: true,
 }
 
-describe('scene', () => {
+describe('view', () => {
   test('initial view shows the heading, prompt, and Pause + Clear controls', () => {
     Scene.scene(
       { update, view },
