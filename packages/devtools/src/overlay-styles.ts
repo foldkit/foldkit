@@ -1,4 +1,4 @@
-:host {
+export const overlayStyles = `:host {
   position: relative;
   z-index: 2147483647;
 
@@ -64,10 +64,10 @@ ul {
 .inline-block {
   display: inline-block;
 }
-.gap-0\.5 {
+.gap-0\\.5 {
   gap: 2px;
 }
-.gap-1\.5 {
+.gap-1\\.5 {
   gap: 6px;
 }
 .gap-2 {
@@ -87,7 +87,7 @@ ul {
   padding-left: 8px;
   padding-right: 8px;
 }
-.px-2\.5 {
+.px-2\\.5 {
   padding-left: 10px;
   padding-right: 10px;
 }
@@ -98,7 +98,7 @@ ul {
   padding-left: 12px;
   padding-right: 12px;
 }
-.py-0\.5 {
+.py-0\\.5 {
   padding-top: 2px;
   padding-bottom: 2px;
 }
@@ -112,7 +112,7 @@ ul {
   padding-top: 4px;
   padding-bottom: 4px;
 }
-.py-1\.5 {
+.py-1\\.5 {
   padding-top: 6px;
   padding-bottom: 6px;
 }
@@ -124,10 +124,10 @@ ul {
   padding-top: 1px;
   padding-bottom: 1px;
 }
-.w-1\.5 {
+.w-1\\.5 {
   width: 6px;
 }
-.h-1\.5 {
+.h-1\\.5 {
   height: 6px;
 }
 .w-3 {
@@ -702,3 +702,4 @@ ul {
     bottom: 44px;
   }
 }
+`

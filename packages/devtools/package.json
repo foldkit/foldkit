@@ -18,10 +18,10 @@
   ],
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
-    "build": "pnpm run clean && node scripts/inline-css.js && tsc -b tsconfig.build.json",
-    "watch": "node scripts/inline-css.js && tsc -b tsconfig.build.json --watch",
+    "build": "pnpm run clean && tsc -b tsconfig.build.json",
+    "watch": "tsc -b tsconfig.build.json --watch",
     "lint": "eslint src",
-    "typecheck": "node scripts/inline-css.js && tsc -b tsconfig.build.json --noEmit"
+    "typecheck": "tsc -b tsconfig.build.json --noEmit"
   },
   "peerDependencies": {
     "@effect/platform-browser": "4.0.0-beta.78",
