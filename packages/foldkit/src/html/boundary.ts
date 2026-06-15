@@ -239,13 +239,13 @@ const dispatchAcrossBoundary = (
     if (descriptor === undefined) {
       throw new Error(
         `Foldkit: dispatchAcrossBoundary missing wrap for ancestor ` +
-          `"${ancestorBoundary}" of boundary "${boundaryId}". This means a ` +
-          `Submodel's wrap was deregistered between event scheduling and ` +
-          `dispatch. Most likely cause: a slot callback (h.submodel ` +
-          `\`viewInputs\` function value) was invoked from a deferred context ` +
-          `(setTimeout, Promise.then, stored callback) after the parent ` +
-          `Submodel unmounted. Slot callbacks must be invoked synchronously ` +
-          `inside the render in which they were created.`,
+          `"${ancestorBoundary}" of boundary "${boundaryId}". The Submodel's ` +
+          `wrap was absent from the registry at dispatch time. A known cause: ` +
+          `a slot callback (an h.submodel \`viewInputs\` function value) was ` +
+          `invoked from a deferred context (setTimeout, Promise.then, a ` +
+          `stored callback) after the parent Submodel unmounted. Slot ` +
+          `callbacks must be invoked synchronously inside the render that ` +
+          `created them.`,
       )
     }
     wrapped = descriptor.toParentMessage(wrapped)
@@ -281,7 +281,13 @@ export const getOrCreateBoundaryDispatch = (
  *  per-render duplicate-slotId tracking map so siblings inside the
  *  same parent boundary can be re-validated. Does NOT touch `wraps`
  *  or `boundaryDispatches`. Those persist across renders and are
- *  evicted by vnode destroy hooks instead. */
+ *  evicted by vnode destroy hooks instead.
+ *
+ *  Clear `seenThisRender` only here, at the start of a cycle, never
+ *  between the view and patch phases. The Submodel destroy hook reads
+ *  it during patch to tell a same-cycle remount (a keyed root whose
+ *  key changed) from a true unmount; clearing it mid-cycle would
+ *  resurrect the `dispatchAcrossBoundary missing wrap` crash. */
 export const beginRender = (registry: BoundaryRegistry): void => {
   registry.seenThisRender.clear()
 }

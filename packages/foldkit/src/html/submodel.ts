@@ -269,7 +269,18 @@ const withBoundaryCleanup = (
   const hook = data.hook ?? {}
   const previousDestroy = hook.destroy
   const compositeDestroy = (removed: VNode): void => {
-    deregisterBoundaryWrap(registry, boundaryId)
+    // NOTE: a Submodel whose root vnode changes snabbdom identity across
+    // renders (e.g. a keyed root whose key changed) re-registers its
+    // boundary in the new view phase, then snabbdom destroys the OLD root
+    // vnode in the following patch phase. That destroy must not evict the
+    // freshly re-registered wrap. `seenThisRender` is cleared in
+    // `beginRender`, so during patch it still reflects the just-completed
+    // view phase: the boundary's presence there means it is live this cycle
+    // (a remount), not a true unmount. Deleting it here would surface later
+    // as `dispatchAcrossBoundary missing wrap`.
+    if (!registry.seenThisRender.has(boundaryId)) {
+      deregisterBoundaryWrap(registry, boundaryId)
+    }
     if (previousDestroy !== undefined) {
       previousDestroy(removed)
     }

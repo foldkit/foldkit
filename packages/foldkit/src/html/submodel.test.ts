@@ -248,12 +248,42 @@ describe('h.submodel', () => {
 
     expect(registry.wraps.has('destroyable')).toBe(true)
 
-    // Simulate snabbdom removing this vnode from the DOM tree.
+    // A genuine unmount: a later render does not re-register the boundary,
+    // so `beginRender` clears it from `seenThisRender` before snabbdom
+    // removes the vnode and fires destroy.
+    beginRender(registry)
     const destroyHook = result?.data?.hook?.destroy
     expect(destroyHook).toBeDefined()
     destroyHook!(result!)
 
     expect(registry.wraps.has('destroyable')).toBe(false)
+  })
+
+  it('preserves the wrap when the old root vnode is destroyed after the boundary was re-registered the same cycle', () => {
+    const render = () =>
+      submodel({
+        slotId: 'remounted',
+        model: { value: 1 },
+        view: childView,
+        toParentMessage: message => GotChild({ entryId: 'remounted', message }),
+      })
+
+    // Render N: the keyed root is registered and produces a vnode whose
+    // destroy hook fires when snabbdom swaps the root on the next render.
+    const first = render()
+    const firstDestroy = first?.data?.hook?.destroy
+    expect(firstDestroy).toBeDefined()
+
+    // Render N+1: the keyed root's key changed, so the parent re-renders the
+    // same boundary, re-registering it before snabbdom patches.
+    beginRender(registry)
+    render()
+    expect(registry.wraps.has('remounted')).toBe(true)
+
+    // Patch N+1: snabbdom removes the OLD root vnode and fires its destroy
+    // hook. The wrap from the re-render must survive.
+    firstDestroy!(first!)
+    expect(registry.wraps.has('remounted')).toBe(true)
   })
 
   it('composes the user-supplied destroy hook with the boundary cleanup hook', () => {
@@ -284,6 +314,8 @@ describe('h.submodel', () => {
         GotChild({ entryId: 'with-user-destroy', message }),
     })
 
+    // Genuine unmount: the boundary is not re-registered this render.
+    beginRender(registry)
     const destroyHook = result?.data?.hook?.destroy
     destroyHook!(result!)
 
