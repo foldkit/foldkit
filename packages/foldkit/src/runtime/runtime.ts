@@ -1777,14 +1777,24 @@ const makeRuntime = <
         )
 
         // NOTE: reloading on bfcache restore is a page-level decision, so
-        // only a page-owning runtime installs the listener. An embedded app
-        // must never force the host page to reload.
-        if (manageDocument) {
-          yield* Effect.acquireRelease(
-            Effect.sync(() => addBfcacheRestoreListener()),
-            removeBfcacheRestoreListener =>
-              Effect.sync(() => removeBfcacheRestoreListener()),
-          )
+        // only a page-owning runtime that manages the document installs the
+        // listener. An app started through `embed` carries a host connector
+        // and must never force the host page to reload, so it is excluded
+        // even when it manages the document.
+        //
+        // The listener is installed for the page's whole lifetime and is
+        // deliberately not torn down with the runtime scope.
+        // `BrowserRuntime.runMain` interrupts the runtime on `beforeunload`,
+        // which is exactly when the browser freezes the page into the
+        // back/forward cache. A scope-bound listener would be removed by that
+        // interrupt before the freeze, so the `pageshow` restore would have
+        // nothing left to reload and the page would come back blank: the
+        // interrupt finalizer empties the container. A full document
+        // navigation (the only way into and out of a cross-origin-isolated
+        // page) is what exercises this path. Registration is idempotent, so an
+        // HMR re-run does not stack listeners.
+        if (manageDocument && Option.isNone(maybeConnector)) {
+          yield* Effect.sync(() => addBfcacheRestoreListener())
         }
 
         if (subscriptions) {

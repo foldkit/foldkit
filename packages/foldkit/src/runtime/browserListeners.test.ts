@@ -1,10 +1,13 @@
-import { afterEach, beforeAll, beforeEach, expect } from 'vitest'
+import { afterEach, beforeAll, beforeEach, expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import { type UrlRequest } from '../navigation/urlRequest.js'
 import { type Url } from '../url/index.js'
-import { addLinkClickListener } from './browserListeners.js'
+import {
+  addBfcacheRestoreListener,
+  addLinkClickListener,
+} from './browserListeners.js'
 import { type RoutingConfig } from './runtime.js'
 
 declare global {
@@ -208,5 +211,69 @@ describe('addLinkClickListener', () => {
 
     expect(dispatched).toHaveLength(0)
     expect(event.defaultPrevented).toBe(true)
+  })
+})
+
+describe('addBfcacheRestoreListener', () => {
+  const dispatchPageShow = (isRestoredFromBfcache: boolean): void => {
+    const event = new Event('pageshow')
+    Object.defineProperty(event, 'persisted', {
+      value: isRestoredFromBfcache,
+      configurable: true,
+    })
+    window.dispatchEvent(event)
+  }
+
+  let reloadSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    reloadSpy = vi
+      .spyOn(window.location, 'reload')
+      .mockImplementation(() => undefined)
+  })
+
+  afterEach(() => {
+    reloadSpy.mockRestore()
+  })
+
+  it('reloads when the page is restored from the back/forward cache', () => {
+    const removeListener = addBfcacheRestoreListener()
+
+    dispatchPageShow(true)
+
+    expect(reloadSpy).toHaveBeenCalledTimes(1)
+    removeListener()
+  })
+
+  it('does not reload on an ordinary (non-bfcache) pageshow', () => {
+    const removeListener = addBfcacheRestoreListener()
+
+    dispatchPageShow(false)
+
+    expect(reloadSpy).not.toHaveBeenCalled()
+    removeListener()
+  })
+
+  // NOTE: A page-owning runtime installs this once and never removes it, so a
+  // second install (HMR re-run) must not stack a second reload onto one
+  // restore.
+  it('registers idempotently across repeated installs', () => {
+    const removeFirst = addBfcacheRestoreListener()
+    const removeSecond = addBfcacheRestoreListener()
+
+    dispatchPageShow(true)
+
+    expect(reloadSpy).toHaveBeenCalledTimes(1)
+    removeFirst()
+    removeSecond()
+  })
+
+  it('stops reloading once the listener is removed', () => {
+    const removeListener = addBfcacheRestoreListener()
+    removeListener()
+
+    dispatchPageShow(true)
+
+    expect(reloadSpy).not.toHaveBeenCalled()
   })
 })
