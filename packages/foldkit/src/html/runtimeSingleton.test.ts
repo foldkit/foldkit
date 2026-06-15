@@ -80,4 +80,17 @@ describe('runtimeSingleton', () => {
     }).toThrow('view exploded')
     expect(() => requireDispatch()).toThrow(/runtime-driven render/)
   })
+
+  it('shares the dispatch stack across module instances via globalThis', () => {
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const globalRecord = globalThis as Record<symbol, Array<unknown>>
+    const stack = globalRecord[Symbol.for('foldkit/html/runtimeStack')]
+    expect(Array.isArray(stack)).toBe(true)
+
+    const dispatch: DispatchSync = () => {}
+    setRuntime(dispatch, makeContext(dispatch))
+    expect(stack.length).toBe(1)
+    clearRuntime()
+    expect(stack.length).toBe(0)
+  })
 })
