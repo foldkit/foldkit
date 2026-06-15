@@ -223,7 +223,7 @@ const defaultSlowViewCallback = (
   })
 
   console.warn(
-    `[foldkit] Slow view: ${context.durationMs.toFixed(1)}ms (budget: ${context.thresholdMs}ms), triggered by ${trigger}. Consider moving computation to update or memoizing with createLazy.`,
+    `[foldkit] Slow view: ${context.durationMs.toFixed(1)}ms (budget: ${context.thresholdMs}ms), triggered by ${trigger}. Memoize expensive subtrees with createLazy. Cache derived data on the model in update only when memoization cannot cover it, since every update branch then has to keep it in sync.`,
     ...Option.toArray(context.message),
   )
 }
