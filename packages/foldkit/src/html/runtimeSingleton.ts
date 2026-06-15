@@ -18,7 +18,31 @@ export type Frame = Readonly<{
   boundaryId: BoundaryId
 }>
 
-const stack: Array<Frame> = []
+// NOTE: the dispatch stack is keyed on a `Symbol.for` global rather than a
+// plain module-level array. A bundler can instantiate foldkit's internal
+// modules more than once in a single page (e.g. `foldkit` and `@foldkit/ui`
+// optimized in separate Vite passes, or `@foldkit/ui` externalized while
+// `foldkit` is inlined under Vitest). Each copy would otherwise get its own
+// empty stack, so the runtime pushes a render frame onto one instance's stack
+// while a UI component's element constructors read another instance's empty
+// stack and throw. Resolving the array from `globalThis` once at load time
+// collapses every duplicate onto a single shared stack, which also carries the
+// boundary registry across instances via the frame it holds.
+const RUNTIME_STACK_KEY = Symbol.for('foldkit/html/runtimeStack')
+
+const getOrCreateGlobalStack = (): Array<Frame> => {
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const globalRecord = globalThis as Record<symbol, Array<Frame> | undefined>
+  const existing = globalRecord[RUNTIME_STACK_KEY]
+  if (existing !== undefined) {
+    return existing
+  }
+  const created: Array<Frame> = []
+  globalRecord[RUNTIME_STACK_KEY] = created
+  return created
+}
+
+const stack: Array<Frame> = getOrCreateGlobalStack()
 
 /** Pushes a new dispatch and runtime context onto the singleton stack. The
  *  runtime calls this before invoking a user `view`, and any test or
