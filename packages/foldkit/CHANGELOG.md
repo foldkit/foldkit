@@ -1,5 +1,26 @@
 # foldkit
 
+## 0.112.4
+
+### Patch Changes
+
+- 61757b3: The render dispatch stack is a plain module-level singleton again, not keyed on a
+  `globalThis` symbol. Keying it globally let two foldkit instances (a bundler
+  loading `foldkit` and `@foldkit/ui` as separate copies) share one stack, hiding a
+  duplication that still broke Schema and tag identity. That duplication now
+  surfaces as a clear "runtime-driven render" or "dispatchAcrossBoundary missing
+  wrap" error naming the cause, instead of being silently absorbed. Prevent it with
+  `@foldkit/vite-plugin` (dev) and inlined foldkit packages in Vitest.
+- ddc2b0d: Fix a Submodel whose root vnode changes identity across renders (most
+  commonly a keyed element used as the Submodel's root, whose key changes)
+  crashing on a later interaction with `dispatchAcrossBoundary missing wrap
+for ancestor`. The root's destroy hook ran after the next render had
+  already re-registered the boundary, evicting the live wrap. The destroy
+  hook now skips deregistration when the boundary was re-registered in the
+  same render cycle, so a keyed Submodel root works without wrapping it in a
+  stable element. The `missing wrap` error no longer asserts a single
+  most-likely cause.
+
 ## 0.112.3
 
 ## 0.112.2
