@@ -1,5 +1,12 @@
 # @foldkit/vite-plugin
 
+## 0.8.1
+
+### Patch Changes
+
+- 5a059e7: Sort imports so `@`-scoped packages land in a trailing group after unscoped
+  third-party imports. Internal formatting only; no API or behavior change.
+
 ## 0.8.0
 
 ### Minor Changes

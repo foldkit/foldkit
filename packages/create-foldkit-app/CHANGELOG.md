@@ -1,5 +1,14 @@
 # create-foldkit-app
 
+## 0.15.2
+
+### Patch Changes
+
+- a481ddb: Pin `@foldkit/ui` and `@foldkit/devtools` to `latest` when scaffolding an
+  example. These ship from the same monorepo as `foldkit`, so an example that
+  depends on them now installs published versions instead of leaking a
+  `workspace:` specifier into the generated project.
+
 ## 0.15.1
 
 ### Patch Changes
