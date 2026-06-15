@@ -29,6 +29,8 @@ import {
   RequestModelMessage,
   RestoreModelMessage,
 } from 'foldkit/hmr-protocol'
+import { createRequire } from 'node:module'
+import { resolve } from 'node:path'
 import type { Plugin, ViteDevServer, WebSocketClient } from 'vite'
 import { type WebSocket, WebSocketServer } from 'ws'
 
@@ -91,6 +93,43 @@ const FORCE_INCLUDED_EFFECT_NAMESPACES: ReadonlyArray<string> = [
   'effect/SubscriptionRef',
   'effect/Types',
 ]
+
+// NOTE: a duplicate `foldkit` instance is its own hazard. If Vite's dep
+// optimizer pre-bundles `foldkit` and `@foldkit/ui` in separate passes,
+// foldkit's internal chunk is instantiated twice: the copies get distinct
+// Schema and tagged-message identities (decode and tag matching fail across
+// the boundary) and separate module-level singleton state, and foldkit's
+// graph is bundled twice. Forcing every installed Foldkit package into one
+// optimize pass keeps a single instance, the same duplication hazard the
+// Effect namespaces above guard against.
+const FOLDKIT_SINGLETON_PACKAGES: ReadonlyArray<string> = [
+  'foldkit',
+  '@foldkit/ui',
+  '@foldkit/devtools',
+]
+
+// NOTE: `@foldkit/ui` and `@foldkit/devtools` are optional, so include only
+// the ones the consumer installed; an unresolved `optimizeDeps.include` entry
+// fails the optimizer. An installed ESM package resolves to
+// ERR_PACKAGE_PATH_NOT_EXPORTED rather than succeeding, so a missing package
+// is signalled only by MODULE_NOT_FOUND.
+const resolveInstalledFoldkitPackages = (root: string): Array<string> => {
+  // NOTE: `root` (Vite's `config.root`) can be relative at config-hook time,
+  // and createRequire requires an absolute path; `resolve` normalizes it.
+  const requireFromRoot = createRequire(resolve(root, 'noop.js'))
+  return Array.filter(FOLDKIT_SINGLETON_PACKAGES, packageName => {
+    try {
+      requireFromRoot.resolve(packageName)
+      return true
+    } catch (error) {
+      return !(
+        error instanceof Error &&
+        'code' in error &&
+        error.code === 'MODULE_NOT_FOUND'
+      )
+    }
+  })
+}
 
 // EVENTS
 
@@ -556,9 +595,12 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Plugin => {
   return {
     name: 'foldkit-hmr',
     apply: 'serve',
-    config: () => ({
+    config: userConfig => ({
       optimizeDeps: {
-        include: [...FORCE_INCLUDED_EFFECT_NAMESPACES],
+        include: [
+          ...FORCE_INCLUDED_EFFECT_NAMESPACES,
+          ...resolveInstalledFoldkitPackages(userConfig.root ?? process.cwd()),
+        ],
       },
     }),
     configureServer: server => {
