@@ -1,5 +1,6 @@
+import { Disclosure } from '@foldkit/ui'
 import clsx from 'clsx'
-import { Submodel, Ui } from 'foldkit'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import * as Icon from '../../icon'
@@ -31,7 +32,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       h.submodel({
         slotId: 'disclosure-demo',
         model: model.disclosureDemo,
-        view: Ui.Disclosure.view,
+        view: Disclosure.view,
         viewInputs: {
           toView: attributes =>
             h.div(

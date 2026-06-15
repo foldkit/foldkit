@@ -1,22 +1,23 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Checkbox } from '@foldkit/ui'
 import { Match as M, Option } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // Add a field to your Model for the Checkbox Submodel:
 const Model = S.Struct({
-  checkboxDemo: Ui.Checkbox.Model,
+  checkboxDemo: Checkbox.Model,
   // ...your other fields
 })
 
 // In your init function, initialize the Checkbox Submodel with a unique id:
 const init = () => [
   {
-    checkboxDemo: Ui.Checkbox.init({ id: 'terms' }),
+    checkboxDemo: Checkbox.init({ id: 'terms' }),
     // ...your other fields
   },
   [],
@@ -24,15 +25,15 @@ const init = () => [
 
 // Embed the Checkbox Message in your parent Message:
 const GotCheckboxMessage = m('GotCheckboxMessage', {
-  message: Ui.Checkbox.Message,
+  message: Checkbox.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
-// Ui.Checkbox.update. The OutMessage's `ToggledChecked` carries the new
+// Checkbox.update. The OutMessage's `ToggledChecked` carries the new
 // `isChecked` value. Use it to fire analytics, validate a form, or push
 // the value to a backend at the toggle moment.
 GotCheckboxMessage: ({ message }) => {
-  const [nextCheckbox, commands, maybeOutMessage] = Ui.Checkbox.update(
+  const [nextCheckbox, commands, maybeOutMessage] = Checkbox.update(
     model.checkboxDemo,
     message,
   )
@@ -45,7 +46,7 @@ GotCheckboxMessage: ({ message }) => {
       evo(model, { checkboxDemo: () => nextCheckbox }),
       mappedCommands,
     ],
-    onSome: M.type<Ui.Checkbox.OutMessage>().pipe(
+    onSome: M.type<Checkbox.OutMessage>().pipe(
       M.tagsExhaustive({
         ToggledChecked: ({ isChecked }) => {
           // The child has emitted `ToggledChecked`. The body commits
@@ -70,7 +71,7 @@ const view = () => {
   return h.submodel({
     slotId: 'terms-checkbox',
     model: model.checkboxDemo,
-    view: Ui.Checkbox.view,
+    view: Checkbox.view,
     viewInputs: {
       toView: attributes =>
         h.div(

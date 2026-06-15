@@ -1,5 +1,6 @@
+import { VirtualList } from '@foldkit/ui'
 import { Array, Match as M, Option, pipe } from 'effect'
-import { Submodel, Ui } from 'foldkit'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import {
@@ -299,7 +300,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
               h.submodel({
                 slotId: model.virtualListDemo.id,
                 model: model.virtualListDemo,
-                view: Ui.VirtualList.view<Activity>(),
+                view: VirtualList.view<Activity>(),
                 viewInputs: {
                   items: sampleActivities,
                   itemToKey: row => String(row.id),
@@ -337,7 +338,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
               h.submodel({
                 slotId: model.virtualListVariableDemo.id,
                 model: model.virtualListVariableDemo,
-                view: Ui.VirtualList.view<Activity>(),
+                view: VirtualList.view<Activity>(),
                 viewInputs: {
                   items: variableActivities,
                   itemToKey: row => String(row.id),

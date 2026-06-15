@@ -1,6 +1,7 @@
+import { Checkbox, Listbox } from '@foldkit/ui'
 import clsx from 'clsx'
 import { Array } from 'effect'
-import { Submodel, Ui } from 'foldkit'
+import { Submodel } from 'foldkit'
 import { type CalendarDate } from 'foldkit/calendar'
 import { type Html, html } from 'foldkit/html'
 
@@ -11,7 +12,7 @@ import { chevronDown } from './icon'
 const GRADUATION_YEAR_WINDOW_SIZE = 30
 const GRADUATION_YEAR_FORWARD_OFFSET = 6
 
-const GraduationYearListbox = Ui.Listbox.create<string>()
+const GraduationYearListbox = Listbox.create<string>()
 
 const graduationYears = (today: CalendarDate): ReadonlyArray<string> =>
   Array.makeBy(GRADUATION_YEAR_WINDOW_SIZE, index =>
@@ -115,7 +116,7 @@ export const educationEntryView = Submodel.defineView<
       h.submodel({
         slotId: `${model.id}-currently-enrolled`,
         model: model.isCurrentlyEnrolled,
-        view: Ui.Checkbox.view,
+        view: Checkbox.view,
         viewInputs: {
           toView: attributes =>
             h.div(

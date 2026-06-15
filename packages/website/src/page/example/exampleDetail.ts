@@ -1,3 +1,4 @@
+import { Disclosure, Tabs } from '@foldkit/ui'
 import {
   Array,
   Effect,
@@ -7,7 +8,7 @@ import {
   Schema as S,
   Stream,
 } from 'effect'
-import { Command, Mount, Submodel, Ui } from 'foldkit'
+import { Command, Mount, Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -31,9 +32,9 @@ import {
 export const CurrentSourcesRemoteData = makeRemoteData(S.String, ExampleSources)
 
 export const Model = S.Struct({
-  sourceFileTabs: Ui.Tabs.Model,
+  sourceFileTabs: Tabs.Model,
   maybeExampleUrl: S.Option(S.String),
-  livePreviewDisclosure: Ui.Disclosure.Model,
+  livePreviewDisclosure: Disclosure.Model,
   currentSources: CurrentSourcesRemoteData.Union,
 })
 export type Model = typeof Model.Type
@@ -41,11 +42,11 @@ export type Model = typeof Model.Type
 // MESSAGE
 
 const GotSourceFileTabsMessage = m('GotSourceFileTabsMessage', {
-  message: Ui.Tabs.Message,
+  message: Tabs.Message,
 })
 export const ChangedExampleUrl = m('ChangedExampleUrl', { url: S.String })
 const GotLivePreviewDisclosureMessage = m('GotLivePreviewDisclosureMessage', {
-  message: Ui.Disclosure.Message,
+  message: Disclosure.Message,
 })
 const RequestedExampleSources = m('RequestedExampleSources', {
   slug: S.String,
@@ -137,9 +138,9 @@ export const init = (): readonly [
   ReadonlyArray<Command.Command<Message>>,
 ] => [
   {
-    sourceFileTabs: Ui.Tabs.init({ id: 'source-file-tabs' }),
+    sourceFileTabs: Tabs.init({ id: 'source-file-tabs' }),
     maybeExampleUrl: Option.none(),
-    livePreviewDisclosure: Ui.Disclosure.init({
+    livePreviewDisclosure: Disclosure.init({
       id: 'live-preview',
       isOpen: true,
     }),
@@ -192,7 +193,7 @@ export const update = (
         [],
       ],
       GotLivePreviewDisclosureMessage: ({ message }) => {
-        const [nextDisclosure, disclosureCommands] = Ui.Disclosure.update(
+        const [nextDisclosure, disclosureCommands] = Disclosure.update(
           model.livePreviewDisclosure,
           message,
         )
@@ -206,7 +207,7 @@ export const update = (
 
       RequestedExampleSources: ({ slug }) => [
         evo(model, {
-          sourceFileTabs: () => Ui.Tabs.init({ id: 'source-file-tabs' }),
+          sourceFileTabs: () => Tabs.init({ id: 'source-file-tabs' }),
           maybeExampleUrl: () => Option.none(),
           currentSources: () => CurrentSourcesRemoteData.Loading(),
         }),
@@ -365,7 +366,7 @@ const disclosureChevron = (isOpen: boolean): Html => {
 }
 
 const livePreviewDisclosureView = (
-  disclosureModel: Ui.Disclosure.Model,
+  disclosureModel: Disclosure.Model,
   meta: ExampleMeta,
   slug: string,
   maybeExampleUrl: Option.Option<string>,
@@ -375,7 +376,7 @@ const livePreviewDisclosureView = (
   return h.submodel({
     slotId: disclosureModel.id,
     model: disclosureModel,
-    view: Ui.Disclosure.view,
+    view: Disclosure.view,
     viewInputs: {
       toView: attributes =>
         h.div(
@@ -446,7 +447,7 @@ const livePreviewDisclosureView = (
   })
 }
 
-const SourceFileTabs = Ui.Tabs.create()
+const SourceFileTabs = Tabs.create()
 
 const TAB_BUTTON_BASE =
   'px-3 py-2 lg:py-1.5 whitespace-nowrap lg:whitespace-normal lg:w-full lg:text-left text-xs font-mono transition cursor-pointer'
@@ -461,7 +462,7 @@ const TAB_BUTTON_INACTIVE =
 
 const sourceCodeView = (
   files: ReadonlyArray<ExampleSourceFile>,
-  tabsModel: Ui.Tabs.Model,
+  tabsModel: Tabs.Model,
   copiedSnippets: CopiedSnippets,
   isNarrowViewport: boolean,
 ): Html => {

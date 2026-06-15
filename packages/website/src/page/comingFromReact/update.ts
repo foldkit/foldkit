@@ -1,5 +1,6 @@
+import { Disclosure } from '@foldkit/ui'
 import { Match as M, Option, Record } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 
 import { GotFaqDisclosureMessage, type Message } from './message'
 import type { Model } from './model'
@@ -18,7 +19,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         Option.match(Record.get(model, id), {
           onNone: () => [model, []],
           onSome: disclosure => {
-            const [nextDisclosure, commands] = Ui.Disclosure.update(
+            const [nextDisclosure, commands] = Disclosure.update(
               disclosure,
               message,
             )

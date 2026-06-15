@@ -1,8 +1,8 @@
+import { Disclosure } from '@foldkit/ui'
 import { clsx } from 'clsx'
 import { Array, Option, Record, Result, pipe } from 'effect'
-import { Submodel, Ui } from 'foldkit'
+import { Submodel } from 'foldkit'
 import { Html, createKeyedLazy, html } from 'foldkit/html'
-import { Disclosure } from 'foldkit/ui'
 
 import { Icon } from '../../icon'
 import { heading, headingLinkButton, pageTitle } from '../../prose'
@@ -203,7 +203,7 @@ const signaturesView = (
     ? h.submodel({
         slotId: maybeDisclosure.id,
         model: maybeDisclosure,
-        view: Ui.Disclosure.view,
+        view: Disclosure.view,
         viewInputs: {
           toView: attributes =>
             h.div(

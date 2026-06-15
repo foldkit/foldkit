@@ -1,8 +1,9 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit each into your own Model, init, Message,
 // update, subscriptions, and view definitions.
+import { DragAndDrop } from '@foldkit/ui'
 import { Effect, Match as M, Option } from 'effect'
-import { Command, Subscription, Ui } from 'foldkit'
+import { Command, Subscription } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -10,7 +11,7 @@ import { evo } from 'foldkit/struct'
 // Add a field to your Model for the DragAndDrop Submodel plus the items being sorted:
 const Model = S.Struct({
   items: S.Array(S.Struct({ id: S.String, label: S.String })),
-  dragAndDrop: Ui.DragAndDrop.Model,
+  dragAndDrop: DragAndDrop.Model,
   // ...your other fields
 })
 
@@ -22,7 +23,7 @@ const init = () => [
       { id: '2', label: 'Second' },
       { id: '3', label: 'Third' },
     ],
-    dragAndDrop: Ui.DragAndDrop.init({ id: 'sortable-list' }),
+    dragAndDrop: DragAndDrop.init({ id: 'sortable-list' }),
     // ...your other fields
   },
   [],
@@ -30,15 +31,17 @@ const init = () => [
 
 // Embed the DragAndDrop Message in your parent Message:
 const GotDragAndDropMessage = m('GotDragAndDropMessage', {
-  message: Ui.DragAndDrop.Message,
+  message: DragAndDrop.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), DragAndDrop.update
 // returns a three-tuple: [model, commands, maybeOutMessage]. Handle the
 // Reordered OutMessage to apply the move to your own list:
 GotDragAndDropMessage: ({ message: dragMessage }) => {
-  const [nextDragAndDrop, dragCommands, maybeOutMessage] =
-    Ui.DragAndDrop.update(model.dragAndDrop, dragMessage)
+  const [nextDragAndDrop, dragCommands, maybeOutMessage] = DragAndDrop.update(
+    model.dragAndDrop,
+    dragMessage,
+  )
 
   const mappedCommands = Command.mapMessages(dragCommands, message =>
     GotDragAndDropMessage({ message }),
@@ -82,10 +85,10 @@ GotDragAndDropMessage: ({ message: dragMessage }) => {
 // In your subscriptions, lift all four document-level listeners through
 // Subscription.lift in one shot:
 const dragAndDropSubscriptions = Subscription.lift({
-  dragPointer: Ui.DragAndDrop.subscriptions.documentPointer,
-  dragEscape: Ui.DragAndDrop.subscriptions.documentEscape,
-  dragKeyboard: Ui.DragAndDrop.subscriptions.documentKeyboard,
-  autoScroll: Ui.DragAndDrop.subscriptions.autoScroll,
+  dragPointer: DragAndDrop.subscriptions.documentPointer,
+  dragEscape: DragAndDrop.subscriptions.documentEscape,
+  dragKeyboard: DragAndDrop.subscriptions.documentKeyboard,
+  autoScroll: DragAndDrop.subscriptions.autoScroll,
 })<Model, Message>({
   toChildModel: model => model.dragAndDrop,
   toParentMessage: message => GotDragAndDropMessage({ message }),
@@ -103,13 +106,13 @@ const view = (model: Model) => {
 
   return h.ul(
     [
-      ...Ui.DragAndDrop.droppable('list', 'Sortable items'),
+      ...DragAndDrop.droppable('list', 'Sortable items'),
       h.Class('flex flex-col gap-2'),
     ],
     model.items.map((item, index) =>
       h.li(
         [
-          ...Ui.DragAndDrop.draggable({
+          ...DragAndDrop.draggable({
             model: model.dragAndDrop,
             toParentMessage: message => GotDragAndDropMessage({ message }),
             itemId: item.id,

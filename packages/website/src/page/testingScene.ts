@@ -683,7 +683,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       para(
         'Many UI components in ',
-        inlineCode('foldkit/ui'),
+        inlineCode('@foldkit/ui'),
         ' declare mounts internally (popovers positioning their panels, modal components portaling backdrops to the body, components that hand the live element to a third-party library). When the test renders any of these, the same ',
         inlineCode('OnMount'),
         ' shows up in the VNode tree, and Scene treats it as a pending mount. Acknowledging it advances the test through the same path the user takes: the view renders, the mount fires, the result Message updates the Model.',
@@ -746,9 +746,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       para(
         'UI components export their Mount definitions (',
-        inlineCode('Ui.Popover.AnchorPopover'),
+        inlineCode('Popover.AnchorPopover'),
         ', ',
-        inlineCode('Ui.Listbox.AnchorListbox'),
+        inlineCode('Listbox.AnchorListbox'),
         ', and so on) so consumer tests can name them in ',
         inlineCode('Scene.Mount.resolve'),
         '.',

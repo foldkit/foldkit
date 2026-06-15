@@ -1,3 +1,5 @@
+import { Listbox } from '@foldkit/ui'
+import { AnchorConfig } from '@foldkit/ui/listbox'
 import { clsx } from 'clsx'
 import {
   Array,
@@ -11,14 +13,13 @@ import {
   Types,
   pipe,
 } from 'effect'
-import { Command, Route, Runtime, Ui } from 'foldkit'
+import { Command, Route, Runtime } from 'foldkit'
 import { Document, Html, childAttributes, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { UrlRequest, load, pushUrl, replaceUrl } from 'foldkit/navigation'
 import { r } from 'foldkit/route'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
-import { AnchorConfig } from 'foldkit/ui/listbox'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import { type Dinosaur, dinosaurs } from './data'
@@ -145,8 +146,8 @@ const urlToAppRoute = Route.parseUrlWithFallback(routeParser, NotFoundRoute)
 
 export const Model = S.Struct({
   route: AppRoute,
-  dietListbox: Ui.Listbox.Model,
-  periodListbox: Ui.Listbox.Model,
+  dietListbox: Listbox.Model,
+  periodListbox: Listbox.Model,
 })
 export type Model = typeof Model.Type
 
@@ -162,10 +163,10 @@ export const ClickedColumnHeader = m('ClickedColumnHeader', {
   column: SortColumn,
 })
 export const GotDietListboxMessage = m('GotDietListboxMessage', {
-  message: Ui.Listbox.Message,
+  message: Listbox.Message,
 })
 export const GotPeriodListboxMessage = m('GotPeriodListboxMessage', {
-  message: Ui.Listbox.Message,
+  message: Listbox.Message,
 })
 
 export const Message = S.Union([
@@ -207,11 +208,11 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (
   return [
     {
       route,
-      dietListbox: Ui.Listbox.init({
+      dietListbox: Listbox.init({
         id: 'diet-filter',
         selectedItem: Option.getOrElse(fields.diet, () => ''),
       }),
-      periodListbox: Ui.Listbox.init({
+      periodListbox: Listbox.init({
         id: 'period-filter',
         selectedItem: Option.getOrElse(fields.period, () => ''),
       }),
@@ -365,7 +366,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             evo(model, { dietListbox: () => nextDietListbox }),
             mappedCommands,
           ],
-          onSome: M.type<Ui.Listbox.OutMessage>().pipe(
+          onSome: M.type<Listbox.OutMessage>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
               Selected: () => {
@@ -401,7 +402,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             evo(model, { periodListbox: () => nextPeriodListbox }),
             mappedCommands,
           ],
-          onSome: M.type<Ui.Listbox.OutMessage>().pipe(
+          onSome: M.type<Listbox.OutMessage>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
               Selected: () => {
@@ -599,8 +600,8 @@ const LISTBOX_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-const DietListbox = Ui.Listbox.create<string>()
-const PeriodListbox = Ui.Listbox.create<string>()
+const DietListbox = Listbox.create<string>()
+const PeriodListbox = Listbox.create<string>()
 
 const listboxButtonClassName =
   'inline-flex items-center justify-between gap-2 min-w-40 px-4 py-2 text-sm border border-gray-300 rounded-lg bg-white cursor-pointer select-none hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:border-emerald-500'
@@ -615,7 +616,7 @@ const listboxBackdropClassName = 'fixed inset-0 z-0'
 
 const listboxWrapperClassName = 'relative inline-block'
 
-const filterItemConfig = (label: string): Ui.Listbox.ItemConfig => {
+const filterItemConfig = (label: string): Listbox.ItemConfig => {
   const h = html<Message>()
 
   return {

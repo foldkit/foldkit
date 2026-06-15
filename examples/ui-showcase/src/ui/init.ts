@@ -1,4 +1,24 @@
-import { Calendar, Command, Ui } from 'foldkit'
+import {
+  Animation,
+  Checkbox,
+  Combobox,
+  DatePicker,
+  Dialog,
+  Disclosure,
+  DragAndDrop,
+  FileDrop,
+  Listbox,
+  Menu,
+  Popover,
+  RadioGroup,
+  Slider,
+  Switch,
+  Tabs,
+  Tooltip,
+  Calendar as UiCalendar,
+  VirtualList,
+} from '@foldkit/ui'
+import { Calendar, Command } from 'foldkit'
 
 import type { UiMessage } from './message'
 import type { UiModel } from './model'
@@ -8,59 +28,59 @@ export const uiInit = (
   today: Calendar.CalendarDate,
 ): [UiModel, ReadonlyArray<Command.Command<UiMessage>>] => [
   {
-    mobileMenuDialog: Ui.Dialog.init({ id: 'mobile-menu' }),
+    mobileMenuDialog: Dialog.init({ id: 'mobile-menu' }),
     buttonClickCount: 0,
     inputDemoValue: '',
     textareaDemoValue: '',
     fieldsetInputValue: '',
     fieldsetTextareaValue: '',
-    fieldsetCheckboxDemo: Ui.Checkbox.init({
+    fieldsetCheckboxDemo: Checkbox.init({
       id: 'fieldset-checkbox-demo',
     }),
-    calendarBasicDemo: Ui.Calendar.init({
+    calendarBasicDemo: UiCalendar.init({
       id: 'calendar-basic-demo',
       today,
       minDate: Calendar.subtractYears(today, 1),
       maxDate: Calendar.addYears(today, 1),
     }),
-    datePickerBasicDemo: Ui.DatePicker.init({
+    datePickerBasicDemo: DatePicker.init({
       id: 'date-picker-basic-demo',
       today,
       minDate: Calendar.subtractYears(today, 1),
       maxDate: Calendar.addYears(today, 1),
     }),
-    checkboxBasicDemo: Ui.Checkbox.init({ id: 'checkbox-basic-demo' }),
-    checkboxOptionADemo: Ui.Checkbox.init({
+    checkboxBasicDemo: Checkbox.init({ id: 'checkbox-basic-demo' }),
+    checkboxOptionADemo: Checkbox.init({
       id: 'checkbox-option-a-demo',
     }),
-    checkboxOptionBDemo: Ui.Checkbox.init({
+    checkboxOptionBDemo: Checkbox.init({
       id: 'checkbox-option-b-demo',
     }),
-    comboboxDemo: Ui.Combobox.init({ id: 'combobox-demo' }),
-    comboboxNullableDemo: Ui.Combobox.init({
+    comboboxDemo: Combobox.init({ id: 'combobox-demo' }),
+    comboboxNullableDemo: Combobox.init({
       id: 'combobox-nullable-demo',
       nullable: true,
     }),
-    comboboxMultiDemo: Ui.Combobox.Multi.init({
+    comboboxMultiDemo: Combobox.Multi.init({
       id: 'combobox-multi-demo',
     }),
-    comboboxSelectOnFocusDemo: Ui.Combobox.init({
+    comboboxSelectOnFocusDemo: Combobox.init({
       id: 'combobox-select-on-focus-demo',
       selectInputOnFocus: true,
     }),
-    dialogDemo: Ui.Dialog.init({ id: 'dialog-demo' }),
-    dialogAnimatedDemo: Ui.Dialog.init({
+    dialogDemo: Dialog.init({ id: 'dialog-demo' }),
+    dialogAnimatedDemo: Dialog.init({
       id: 'dialog-animated-demo',
       isAnimated: true,
     }),
-    overlayDialogDemo: Ui.Dialog.init({ id: 'overlay-dialog-demo' }),
-    overlayComboboxDemo: Ui.Combobox.init({ id: 'overlay-combobox-demo' }),
-    nestedDialogParentDemo: Ui.Dialog.init({
+    overlayDialogDemo: Dialog.init({ id: 'overlay-dialog-demo' }),
+    overlayComboboxDemo: Combobox.init({ id: 'overlay-combobox-demo' }),
+    nestedDialogParentDemo: Dialog.init({
       id: 'nested-dialog-parent-demo',
     }),
-    nestedDialogChildDemo: Ui.Dialog.init({ id: 'nested-dialog-child-demo' }),
-    disclosureDemo: Ui.Disclosure.init({ id: 'disclosure-demo' }),
-    dragAndDropDemo: Ui.DragAndDrop.init({ id: 'drag-and-drop-demo' }),
+    nestedDialogChildDemo: Dialog.init({ id: 'nested-dialog-child-demo' }),
+    disclosureDemo: Disclosure.init({ id: 'disclosure-demo' }),
+    dragAndDropDemo: DragAndDrop.init({ id: 'drag-and-drop-demo' }),
     dragAndDropDemoColumns: [
       {
         id: 'backlog',
@@ -80,72 +100,72 @@ export const uiInit = (
         ],
       },
     ],
-    fileDropBasicDemo: Ui.FileDrop.init({ id: 'file-drop-basic-demo' }),
+    fileDropBasicDemo: FileDrop.init({ id: 'file-drop-basic-demo' }),
     fileDropBasicDemoFiles: [],
-    listboxDemo: Ui.Listbox.init({ id: 'listbox-demo' }),
-    listboxMultiDemo: Ui.Listbox.Multi.init({
+    listboxDemo: Listbox.init({ id: 'listbox-demo' }),
+    listboxMultiDemo: Listbox.Multi.init({
       id: 'listbox-multi-demo',
     }),
-    listboxGroupedDemo: Ui.Listbox.init({
+    listboxGroupedDemo: Listbox.init({
       id: 'listbox-grouped-demo',
     }),
-    menuBasicDemo: Ui.Menu.init({ id: 'menu-basic-demo' }),
-    menuAnimatedDemo: Ui.Menu.init({
+    menuBasicDemo: Menu.init({ id: 'menu-basic-demo' }),
+    menuAnimatedDemo: Menu.init({
       id: 'menu-animated-demo',
       isAnimated: true,
     }),
-    popoverBasicDemo: Ui.Popover.init({ id: 'popover-basic-demo' }),
-    popoverAnimatedDemo: Ui.Popover.init({
+    popoverBasicDemo: Popover.init({ id: 'popover-basic-demo' }),
+    popoverAnimatedDemo: Popover.init({
       id: 'popover-animated-demo',
       isAnimated: true,
     }),
-    popoverNestedParentDemo: Ui.Popover.init({
+    popoverNestedParentDemo: Popover.init({
       id: 'popover-nested-parent-demo',
       contentFocus: true,
     }),
-    popoverNestedChildDemo: Ui.Popover.init({
+    popoverNestedChildDemo: Popover.init({
       id: 'popover-nested-child-demo',
     }),
-    verticalRadioGroupDemo: Ui.RadioGroup.init({
+    verticalRadioGroupDemo: RadioGroup.init({
       id: 'vertical-radio-group-demo',
     }),
-    horizontalRadioGroupDemo: Ui.RadioGroup.init({
+    horizontalRadioGroupDemo: RadioGroup.init({
       id: 'horizontal-radio-group-demo',
       orientation: 'Horizontal',
     }),
     selectDemoValue: 'us',
-    sliderRatingDemo: Ui.Slider.init({
+    sliderRatingDemo: Slider.init({
       id: 'slider-rating-demo',
       min: 0,
       max: 10,
       step: 1,
       initialValue: 3,
     }),
-    sliderVolumeDemo: Ui.Slider.init({
+    sliderVolumeDemo: Slider.init({
       id: 'slider-volume-demo',
       min: 0,
       max: 1,
       step: 0.05,
       initialValue: 0.5,
     }),
-    switchDemo: Ui.Switch.init({ id: 'switch-demo' }),
-    horizontalTabsDemo: Ui.Tabs.init({ id: 'horizontal-tabs-demo' }),
-    verticalTabsDemo: Ui.Tabs.init({
+    switchDemo: Switch.init({ id: 'switch-demo' }),
+    horizontalTabsDemo: Tabs.init({ id: 'horizontal-tabs-demo' }),
+    verticalTabsDemo: Tabs.init({
       id: 'vertical-tabs-demo',
     }),
     toastDemo: Toast.init({ id: 'toast-demo' }),
-    tooltipBasicDemo: Ui.Tooltip.init({ id: 'tooltip-basic-demo' }),
-    tooltipNoDelayDemo: Ui.Tooltip.init({
+    tooltipBasicDemo: Tooltip.init({ id: 'tooltip-basic-demo' }),
+    tooltipNoDelayDemo: Tooltip.init({
       id: 'tooltip-no-delay-demo',
       showDelay: 0,
     }),
-    animationDemo: Ui.Animation.init({ id: 'animation-demo' }),
+    animationDemo: Animation.init({ id: 'animation-demo' }),
     isAnimationDemoShowing: false,
-    virtualListDemo: Ui.VirtualList.init({
+    virtualListDemo: VirtualList.init({
       id: 'virtual-list-demo',
       rowHeightPx: 56,
     }),
-    virtualListVariableDemo: Ui.VirtualList.init({
+    virtualListVariableDemo: VirtualList.init({
       id: 'virtual-list-variable-demo',
       rowHeightPx: 56,
     }),

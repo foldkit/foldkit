@@ -1,5 +1,5 @@
+import { Tabs } from '@foldkit/ui'
 import { HashMap, Option } from 'effect'
-import { Ui } from 'foldkit'
 
 import type { Post, PostDetail, Stats } from './data'
 import type { Model } from './main'
@@ -34,7 +34,7 @@ export const fixtureStats: Stats = {
 }
 
 export const loadingPostsModel: Model = {
-  tabs: Ui.Tabs.init({ id: TABS_ID }),
+  tabs: Tabs.init({ id: TABS_ID }),
   activeTab: 'Posts',
   posts: PostsData.Loading(),
   postDetailById: HashMap.empty(),
@@ -58,7 +58,7 @@ export const cachedFirstPostModel: Model = {
 
 export const loadedStatsModel: Model = {
   ...loadedPostsModel,
-  tabs: Ui.Tabs.init({ id: TABS_ID, activeIndex: 1 }),
+  tabs: Tabs.init({ id: TABS_ID, activeIndex: 1 }),
   activeTab: 'Stats',
   stats: StatsData.Ok({ data: fixtureStats, fetchedAt: FETCHED_AT }),
 }

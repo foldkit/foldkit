@@ -1,21 +1,22 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Command, Ui } from 'foldkit'
+import { Dialog } from '@foldkit/ui'
+import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // Add a field to your Model for the Dialog Submodel:
 const Model = S.Struct({
-  dialog: Ui.Dialog.Model,
+  dialog: Dialog.Model,
   // ...your other fields
 })
 
 // In your init function, initialize the Dialog Submodel with a unique id:
 const init = () => [
   {
-    dialog: Ui.Dialog.init({ id: 'confirm' }),
+    dialog: Dialog.init({ id: 'confirm' }),
     // ...your other fields
   },
   [],
@@ -25,15 +26,15 @@ const init = () => [
 // Message for the submodel delegation:
 const ClickedOpenDialog = m('ClickedOpenDialog')
 const GotDialogMessage = m('GotDialogMessage', {
-  message: Ui.Dialog.Message,
+  message: Dialog.Message,
 })
 
-// Open the dialog from your update with Ui.Dialog.open. Escape, the backdrop,
+// Open the dialog from your update with Dialog.open. Escape, the backdrop,
 // and the closeButton bundle all flow back through GotDialogMessage, where you
-// delegate to Ui.Dialog.update. (Both return an Option<OutMessage> as the
+// delegate to Dialog.update. (Both return an Option<OutMessage> as the
 // third element; match Opened/Closed there to react to the transitions.)
 ClickedOpenDialog: () => {
-  const [nextDialog, dialogCommands] = Ui.Dialog.open(model.dialog)
+  const [nextDialog, dialogCommands] = Dialog.open(model.dialog)
   return [
     evo(model, { dialog: () => nextDialog }),
     Command.mapMessages(dialogCommands, message =>
@@ -43,7 +44,7 @@ ClickedOpenDialog: () => {
 }
 
 GotDialogMessage: ({ message }) => {
-  const [nextDialog, dialogCommands] = Ui.Dialog.update(model.dialog, message)
+  const [nextDialog, dialogCommands] = Dialog.update(model.dialog, message)
   return [
     evo(model, { dialog: () => nextDialog }),
     Command.mapMessages(dialogCommands, message =>
@@ -64,7 +65,7 @@ const view = () => {
       h.submodel({
         slotId: model.dialog.id,
         model: model.dialog,
-        view: Ui.Dialog.view,
+        view: Dialog.view,
         viewInputs: {
           toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
             h.dialog(
@@ -82,7 +83,7 @@ const view = () => {
                       ],
                       [
                         h.h2(
-                          [h.Id(Ui.Dialog.titleId(model.dialog))],
+                          [h.Id(Dialog.titleId(model.dialog))],
                           ['Confirm Action'],
                         ),
                         h.p([], ['Are you sure you want to proceed?']),

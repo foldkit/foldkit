@@ -19,8 +19,11 @@ Based on the above changes, create a single git commit. Follow these steps in or
 The published packages in this monorepo are:
 
 - `foldkit` (path: `packages/foldkit/`)
+- `@foldkit/ui` (path: `packages/foldkit-ui/`)
+- `@foldkit/devtools` (path: `packages/foldkit-devtools/`)
 - `create-foldkit-app` (path: `packages/create-foldkit-app/`)
 - `@foldkit/vite-plugin` (path: `packages/vite-plugin-foldkit/`)
+- `@foldkit/devtools-mcp` (path: `packages/devtools-mcp/`)
 
 Look at the changed files. If ANY changed file is inside a published package path, check whether a `.changeset/*.md` file (excluding README.md and config.json) already exists that covers that package.
 

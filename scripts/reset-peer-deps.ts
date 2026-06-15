@@ -3,6 +3,9 @@ import { readFileSync, writeFileSync } from 'node:fs'
 const TARGETS = [
   { path: 'packages/vite-plugin-foldkit/package.json', dep: 'foldkit' },
   { path: 'packages/devtools-mcp/package.json', dep: 'foldkit' },
+  { path: 'packages/foldkit-ui/package.json', dep: 'foldkit' },
+  { path: 'packages/foldkit-devtools/package.json', dep: 'foldkit' },
+  { path: 'packages/foldkit-devtools/package.json', dep: '@foldkit/ui' },
 ] as const
 
 const BROAD_RANGE = 'workspace:^0'

@@ -1,21 +1,21 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Ui } from 'foldkit'
+import { Combobox, Dialog } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
 // One Model field for the dialog, one for the overlay it contains:
 const Model = S.Struct({
-  dialog: Ui.Dialog.Model,
-  combobox: Ui.Combobox.Model,
+  dialog: Dialog.Model,
+  combobox: Combobox.Model,
   // ...your other fields
 })
 
 const init = () => [
   {
-    dialog: Ui.Dialog.init({ id: 'edit-filters' }),
-    combobox: Ui.Combobox.init({ id: 'city' }),
+    dialog: Dialog.init({ id: 'edit-filters' }),
+    combobox: Combobox.init({ id: 'city' }),
     // ...your other fields
   },
   [],
@@ -23,9 +23,9 @@ const init = () => [
 
 // Embed each submodel's Message in your parent Message and delegate both to
 // their own update (see the Dialog and Combobox examples for the delegation).
-const GotDialogMessage = m('GotDialogMessage', { message: Ui.Dialog.Message })
+const GotDialogMessage = m('GotDialogMessage', { message: Dialog.Message })
 const GotComboboxMessage = m('GotComboboxMessage', {
-  message: Ui.Combobox.Message,
+  message: Combobox.Message,
 })
 
 // Render the overlay inside the dialog panel. The key is `portal: false` on
@@ -38,7 +38,7 @@ const view = () => {
   return h.submodel({
     slotId: model.dialog.id,
     model: model.dialog,
-    view: Ui.Dialog.view,
+    view: Dialog.view,
     viewInputs: {
       toView: ({ dialog, backdrop, panel, isVisible }) =>
         h.dialog(
@@ -53,7 +53,7 @@ const view = () => {
                   ],
                   [
                     h.h2(
-                      [h.Id(Ui.Dialog.titleId(model.dialog))],
+                      [h.Id(Dialog.titleId(model.dialog))],
                       ['Edit filters'],
                     ),
                     h.submodel({

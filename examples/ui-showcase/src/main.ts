@@ -1,3 +1,4 @@
+import { Dialog } from '@foldkit/ui'
 import clsx from 'clsx'
 import { Effect, Match as M, Schema as S, pipe } from 'effect'
 import {
@@ -7,7 +8,6 @@ import {
   Runtime,
   Submodel,
   Subscription,
-  Ui,
 } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -236,7 +236,7 @@ export const init: Runtime.RoutingApplicationInit<Model, Message, Flags> = (
 const toUiMessage = (message: typeof UiMessage.Type): Message =>
   GotUiMessage({ message })
 
-const toMobileMenuDialogMessage = (message: Ui.Dialog.Message): Message =>
+const toMobileMenuDialogMessage = (message: Dialog.Message): Message =>
   GotUiMessage({ message: GotMobileMenuDialogMessage({ message }) })
 
 export const update = (
@@ -270,7 +270,7 @@ export const update = (
         ),
 
       ChangedUrl: ({ url }) => {
-        const [closedDialog, closeDialogCommands] = Ui.Dialog.close(
+        const [closedDialog, closeDialogCommands] = Dialog.close(
           model.uiModel.mobileMenuDialog,
         )
 
@@ -408,7 +408,7 @@ const sidebarView = (currentRoute: AppRoute): Html => {
 
 const mobileMenuContent = (
   currentRoute: AppRoute,
-  closeButton: Ui.Dialog.RenderInfo['closeButton'],
+  closeButton: Dialog.RenderInfo['closeButton'],
 ): Html => {
   const h = html<Message>()
 
@@ -535,7 +535,7 @@ const mobileMenuView = (model: Model): Html => {
   return h.submodel({
     slotId: model.uiModel.mobileMenuDialog.id,
     model: model.uiModel.mobileMenuDialog,
-    view: Ui.Dialog.view,
+    view: Dialog.view,
     viewInputs: {
       toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
         h.dialog(

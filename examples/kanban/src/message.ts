@@ -1,9 +1,9 @@
+import { DragAndDrop } from '@foldkit/ui'
 import { Schema as S } from 'effect'
-import { Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 
 export const GotDragAndDropMessage = m('GotDragAndDropMessage', {
-  message: Ui.DragAndDrop.Message,
+  message: DragAndDrop.Message,
 })
 export const ClickedAddCard = m('ClickedAddCard', { columnId: S.String })
 export const ChangedNewCardTitle = m('ChangedNewCardTitle', {

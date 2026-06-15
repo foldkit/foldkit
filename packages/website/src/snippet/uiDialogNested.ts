@@ -1,45 +1,46 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Command, Ui } from 'foldkit'
+import { Dialog } from '@foldkit/ui'
+import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // One Model field per dialog level:
 const Model = S.Struct({
-  settingsDialog: Ui.Dialog.Model,
-  confirmDialog: Ui.Dialog.Model,
+  settingsDialog: Dialog.Model,
+  confirmDialog: Dialog.Model,
   // ...your other fields
 })
 
 const init = () => [
   {
-    settingsDialog: Ui.Dialog.init({ id: 'settings' }),
-    confirmDialog: Ui.Dialog.init({ id: 'confirm-delete' }),
+    settingsDialog: Dialog.init({ id: 'settings' }),
+    confirmDialog: Dialog.init({ id: 'confirm-delete' }),
     // ...your other fields
   },
   [],
 ]
 
 // Embed each Dialog Message in your parent Message and delegate each to its
-// own Ui.Dialog.update (see the basic Dialog example for the delegation).
+// own Dialog.update (see the basic Dialog example for the delegation).
 const GotSettingsDialogMessage = m('GotSettingsDialogMessage', {
-  message: Ui.Dialog.Message,
+  message: Dialog.Message,
 })
 const GotConfirmDialogMessage = m('GotConfirmDialogMessage', {
-  message: Ui.Dialog.Message,
+  message: Dialog.Message,
 })
 
 // Opening the confirmation is a parent fact, not a hand-wrapped child message.
 // The button dispatches ClickedDeleteProject; the update opens the confirmation
-// through Ui.Dialog.open, keeping Got* for genuine child results.
+// through Dialog.open, keeping Got* for genuine child results.
 const ClickedDeleteProject = m('ClickedDeleteProject')
 const ConfirmedDeleteProject = m('ConfirmedDeleteProject')
 
 // ...in your update's M.tagsExhaustive({...}):
 ClickedDeleteProject: () => {
-  const [nextConfirmDialog, confirmDialogCommands] = Ui.Dialog.open(
+  const [nextConfirmDialog, confirmDialogCommands] = Dialog.open(
     model.confirmDialog,
   )
   return [
@@ -51,10 +52,10 @@ ClickedDeleteProject: () => {
 }
 
 // Confirming runs the deletion, then closes the confirmation through
-// Ui.Dialog.close, the same API the opening fact used.
+// Dialog.close, the same API the opening fact used.
 ConfirmedDeleteProject: () => {
   // ...run the deletion here, then:
-  const [nextConfirmDialog, confirmDialogCommands] = Ui.Dialog.close(
+  const [nextConfirmDialog, confirmDialogCommands] = Dialog.close(
     model.confirmDialog,
   )
   return [
@@ -68,14 +69,14 @@ ConfirmedDeleteProject: () => {
 // Each dialog is its own submodel; the framework stacks them by z-index, traps
 // focus in the topmost, and Escape closes the topmost before the one beneath
 // it. Cancel dismisses the confirmation by spreading the `closeButton` bundle; Delete
-// dispatches a fact that runs the work and closes through Ui.Dialog.close.
+// dispatches a fact that runs the work and closes through Dialog.close.
 const view = () => {
   const h = html<Message>()
 
   const confirmDialog = h.submodel({
     slotId: model.confirmDialog.id,
     model: model.confirmDialog,
-    view: Ui.Dialog.view,
+    view: Dialog.view,
     viewInputs: {
       toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
         h.dialog(
@@ -90,7 +91,7 @@ const view = () => {
                   ],
                   [
                     h.h2(
-                      [h.Id(Ui.Dialog.titleId(model.confirmDialog))],
+                      [h.Id(Dialog.titleId(model.confirmDialog))],
                       ['Delete project?'],
                     ),
                     h.button([...closeButton], ['Cancel']),
@@ -107,7 +108,7 @@ const view = () => {
   const settingsDialog = h.submodel({
     slotId: model.settingsDialog.id,
     model: model.settingsDialog,
-    view: Ui.Dialog.view,
+    view: Dialog.view,
     viewInputs: {
       toView: ({ dialog, backdrop, panel, isVisible }) =>
         h.dialog(
@@ -122,7 +123,7 @@ const view = () => {
                   ],
                   [
                     h.h2(
-                      [h.Id(Ui.Dialog.titleId(model.settingsDialog))],
+                      [h.Id(Dialog.titleId(model.settingsDialog))],
                       ['Project settings'],
                     ),
                     h.button(

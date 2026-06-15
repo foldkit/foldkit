@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Button } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 import type { TableOfContentsEntry } from '../../main'
@@ -33,7 +33,7 @@ export const basicDemo = (model: Model) => {
     h.div(
       [h.Class('flex flex-col items-center gap-2')],
       [
-        Ui.Button.view<Message>({
+        Button.view<Message>({
           onClick: ClickedButtonDemo(),
           toView: attributes =>
             h.button(
@@ -56,7 +56,7 @@ export const disabledDemo = (_model: Model) => {
   const h = html<Message>()
 
   return [
-    Ui.Button.view<Message>({
+    Button.view<Message>({
       isDisabled: true,
       toView: attributes =>
         h.button(

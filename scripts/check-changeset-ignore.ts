@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs'
 
 const PUBLISHABLE_PACKAGES = [
   'foldkit',
+  '@foldkit/ui',
+  '@foldkit/devtools',
   'create-foldkit-app',
   '@foldkit/vite-plugin',
   '@foldkit/devtools-mcp',

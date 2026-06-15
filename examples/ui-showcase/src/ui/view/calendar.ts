@@ -1,5 +1,6 @@
+import { Calendar } from '@foldkit/ui'
 import { Match as M } from 'effect'
-import { Submodel, Ui } from 'foldkit'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import * as Icon from '../../icon'
@@ -51,7 +52,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       h.submodel({
         slotId: model.calendarBasicDemo.id,
         model: model.calendarBasicDemo,
-        view: Ui.Calendar.view,
+        view: Calendar.view,
         viewInputs: {
           toView: attributes =>
             M.value(attributes).pipe(

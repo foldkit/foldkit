@@ -1,5 +1,6 @@
+import { Listbox } from '@foldkit/ui'
 import { Option } from 'effect'
-import { Story, Ui } from 'foldkit'
+import { Story } from 'foldkit'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
@@ -24,8 +25,8 @@ const browseModel: Model = {
     diet: Option.none(),
     period: Option.none(),
   }),
-  dietListbox: Ui.Listbox.init({ id: 'diet-filter', selectedItem: '' }),
-  periodListbox: Ui.Listbox.init({ id: 'period-filter', selectedItem: '' }),
+  dietListbox: Listbox.init({ id: 'diet-filter', selectedItem: '' }),
+  periodListbox: Listbox.init({ id: 'period-filter', selectedItem: '' }),
 }
 
 const urlOrThrow = (raw: string) =>
@@ -124,12 +125,12 @@ describe('update', () => {
         Story.with(browseModel),
         Story.message(
           GotDietListboxMessage({
-            message: Ui.Listbox.SelectedItem({ item: 'Carnivore' }),
+            message: Listbox.SelectedItem({ item: 'Carnivore' }),
           }),
         ),
         Story.Command.resolve(
-          Ui.Listbox.FocusButton,
-          Ui.Listbox.CompletedFocusButton(),
+          Listbox.FocusButton,
+          Listbox.CompletedFocusButton(),
           listboxMessage => GotDietListboxMessage({ message: listboxMessage }),
         ),
         Story.Command.expectHas(ReplaceFilters),

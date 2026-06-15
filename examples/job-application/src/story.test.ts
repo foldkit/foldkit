@@ -1,5 +1,6 @@
+import { FileDrop, Menu } from '@foldkit/ui'
 import { Array, Option, pipe } from 'effect'
-import { Calendar, Story, Ui } from 'foldkit'
+import { Calendar, Story } from 'foldkit'
 import { Valid, Validating } from 'foldkit/fieldValidation'
 import { describe, expect, test } from 'vitest'
 
@@ -42,7 +43,7 @@ const initialModel: Model = {
   attachments: Attachments.init(),
   isPreviewVisible: false,
   submission: NotSubmitted(),
-  stepMenu: Ui.Menu.init({ id: 'step-menu' }),
+  stepMenu: Menu.init({ id: 'step-menu' }),
 }
 
 const withInitial = Story.with(initialModel)
@@ -472,7 +473,7 @@ describe('update', () => {
         Story.message(
           GotAttachmentsMessage({
             message: Attachments.GotResumeDropMessage({
-              message: Ui.FileDrop.DroppedFiles({ files: [resume] }),
+              message: FileDrop.DroppedFiles({ files: [resume] }),
             }),
           }),
         ),
@@ -492,7 +493,7 @@ describe('update', () => {
         Story.message(
           GotAttachmentsMessage({
             message: Attachments.GotAdditionalFilesDropMessage({
-              message: Ui.FileDrop.DroppedFiles({ files: [file] }),
+              message: FileDrop.DroppedFiles({ files: [file] }),
             }),
           }),
         ),

@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Disclosure } from '@foldkit/ui'
 import { Html, html } from 'foldkit/html'
 
 import { Icon } from '../../icon'
@@ -303,7 +303,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 
 export const view = (
   copiedSnippets: CopiedSnippets,
-  mapMessagesDisclosure: Ui.Disclosure.Model,
+  mapMessagesDisclosure: Disclosure.Model,
 ): Html => {
   const h = html<Message>()
 
@@ -335,11 +335,11 @@ export const view = (
             ' The boundary is the point. The Submodel packages behavior (its own state, keyboard handling, accessibility wiring) that the parent should never see inside. Every stateful ',
             link(uiOverviewRouter(), 'Foldkit UI component'),
             ' (',
-            inlineCode('Ui.Dialog'),
+            inlineCode('Dialog'),
             ', ',
-            inlineCode('Ui.Menu'),
+            inlineCode('Menu'),
             ', ',
-            inlineCode('Ui.Listbox'),
+            inlineCode('Listbox'),
             ', etc.) is shipped this way, which is how they hand you their behavior without you having to know how they work inside.',
           ],
         ),
@@ -357,7 +357,7 @@ export const view = (
       ),
       para(
         'These are two motivations, not two kinds of Submodel. Every Submodel has the same boundary shape: internals stay hidden, and what crosses is narrow and semantic. A ',
-        inlineCode('Ui.Listbox'),
+        inlineCode('Listbox'),
         ' reports that an item was selected, never its highlight index or focus bookkeeping. What varies is whose domain crosses the boundary. A UI component owns interaction state foreign to your app’s domain and needs almost nothing from the parent, while a feature-area child owns a slice of your domain, reads shared parent state, and surfaces domain facts.',
       ),
       para(
@@ -581,7 +581,7 @@ export const view = (
       h.submodel({
         slotId: 'submodel-map-messages-disclosure',
         model: mapMessagesDisclosure,
-        view: Ui.Disclosure.view,
+        view: Disclosure.view,
         viewInputs: {
           toView: attributes =>
             h.div(
@@ -1356,9 +1356,9 @@ export const view = (
       infoCallout(
         'Render helpers don’t need this',
         'Stateless render helpers like ',
-        inlineCode('Ui.Button'),
+        inlineCode('Button'),
         ' and ',
-        inlineCode('Ui.Input'),
+        inlineCode('Input'),
         ' don’t publish via ',
         inlineCode('childAttributes'),
         '. They’re not Submodels; their ',

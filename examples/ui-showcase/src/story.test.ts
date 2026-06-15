@@ -1,5 +1,6 @@
+import { Dialog } from '@foldkit/ui'
 import { Option } from 'effect'
-import { Calendar, Story, Ui } from 'foldkit'
+import { Calendar, Story } from 'foldkit'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
@@ -97,7 +98,7 @@ describe('update', () => {
         ...initialModel,
         uiModel: {
           ...initialModel.uiModel,
-          mobileMenuDialog: Ui.Dialog.init({
+          mobileMenuDialog: Dialog.init({
             id: 'mobile-menu',
             isOpen: true,
           }),
@@ -111,8 +112,8 @@ describe('update', () => {
           ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
         ),
         Story.Command.resolve(
-          Ui.Dialog.CloseDialog,
-          Ui.Dialog.CompletedCloseDialog(),
+          Dialog.CloseDialog,
+          Dialog.CompletedCloseDialog(),
           dialogMessage =>
             GotUiMessage({
               message: GotMobileMenuDialogMessage({ message: dialogMessage }),

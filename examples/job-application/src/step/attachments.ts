@@ -1,14 +1,15 @@
+import { FileDrop } from '@foldkit/ui'
 import { Array, Match as M, Option, Schema as S, pipe } from 'effect'
-import { Command, File, Ui } from 'foldkit'
+import { Command, File } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // MODEL
 
 export const Model = S.Struct({
-  resumeDrop: Ui.FileDrop.Model,
+  resumeDrop: FileDrop.Model,
   maybeResume: S.Option(File.File),
-  additionalFilesDrop: Ui.FileDrop.Model,
+  additionalFilesDrop: FileDrop.Model,
   additionalFiles: S.Array(File.File),
 })
 export type Model = typeof Model.Type
@@ -16,11 +17,11 @@ export type Model = typeof Model.Type
 // MESSAGE
 
 export const GotResumeDropMessage = m('GotResumeDropMessage', {
-  message: Ui.FileDrop.Message,
+  message: FileDrop.Message,
 })
 export const GotAdditionalFilesDropMessage = m(
   'GotAdditionalFilesDropMessage',
-  { message: Ui.FileDrop.Message },
+  { message: FileDrop.Message },
 )
 export const RemovedResume = m('RemovedResume')
 export const RemovedAdditionalFile = m('RemovedAdditionalFile', {
@@ -38,9 +39,9 @@ export type Message = typeof Message.Type
 // INIT
 
 export const init = (): Model => ({
-  resumeDrop: Ui.FileDrop.init({ id: 'attachments-resume' }),
+  resumeDrop: FileDrop.init({ id: 'attachments-resume' }),
   maybeResume: Option.none(),
-  additionalFilesDrop: Ui.FileDrop.init({ id: 'attachments-additional' }),
+  additionalFilesDrop: FileDrop.init({ id: 'attachments-additional' }),
   additionalFiles: [],
 })
 
@@ -53,14 +54,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     M.withReturnType<UpdateReturn>(),
     M.tagsExhaustive({
       GotResumeDropMessage: ({ message: dropMessage }) => {
-        const [nextDrop, commands, maybeOutMessage] = Ui.FileDrop.update(
+        const [nextDrop, commands, maybeOutMessage] = FileDrop.update(
           model.resumeDrop,
           dropMessage,
         )
 
         const nextMaybeResume = Option.match(maybeOutMessage, {
           onNone: () => model.maybeResume,
-          onSome: M.type<Ui.FileDrop.OutMessage>().pipe(
+          onSome: M.type<FileDrop.OutMessage>().pipe(
             M.tagsExhaustive({
               ReceivedFiles: ({ files }) =>
                 pipe(
@@ -85,14 +86,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotAdditionalFilesDropMessage: ({ message: dropMessage }) => {
-        const [nextDrop, commands, maybeOutMessage] = Ui.FileDrop.update(
+        const [nextDrop, commands, maybeOutMessage] = FileDrop.update(
           model.additionalFilesDrop,
           dropMessage,
         )
 
         const nextAdditionalFiles = Option.match(maybeOutMessage, {
           onNone: () => model.additionalFiles,
-          onSome: M.type<Ui.FileDrop.OutMessage>().pipe(
+          onSome: M.type<FileDrop.OutMessage>().pipe(
             M.tagsExhaustive({
               ReceivedFiles: ({ files }) => [
                 ...model.additionalFiles,

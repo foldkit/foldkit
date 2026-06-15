@@ -1,8 +1,9 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Combobox } from '@foldkit/ui'
 import { Array, Effect, Match as M, Option } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { childAttributes, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -10,13 +11,13 @@ import { evo } from 'foldkit/struct'
 type City = 'Johannesburg' | 'Kyiv' | 'Oxford' | 'Wellington'
 
 // Declare a typed multi-select Combobox once at module scope:
-const CitiesCombobox = Ui.Combobox.Multi.create<City>()
+const CitiesCombobox = Combobox.Multi.create<City>()
 
 // Add a field to your Model for the Combobox.Multi Submodel, plus a field
 // for the selected values your app actually cares about:
 const Model = S.Struct({
   selectedCities: S.Array(S.String),
-  comboboxMulti: Ui.Combobox.Multi.Model,
+  comboboxMulti: Combobox.Multi.Model,
   // ...your other fields
 })
 
@@ -24,7 +25,7 @@ const Model = S.Struct({
 const init = () => [
   {
     selectedCities: [],
-    comboboxMulti: Ui.Combobox.Multi.init({ id: 'cities-multi' }),
+    comboboxMulti: Combobox.Multi.init({ id: 'cities-multi' }),
     // ...your other fields
   },
   [],
@@ -32,7 +33,7 @@ const init = () => [
 
 // Wrap Combobox's Messages so they can flow through your update:
 const GotComboboxMultiMessage = m('GotComboboxMultiMessage', {
-  message: Ui.Combobox.Message,
+  message: Combobox.Message,
 })
 
 // Delegate keyboard navigation, typeahead, and open/close to
@@ -52,7 +53,7 @@ GotComboboxMultiMessage: ({ message }) => {
       evo(model, { comboboxMulti: () => nextCombobox }),
       mappedCommands,
     ],
-    onSome: M.type<Ui.Combobox.OutMessage>().pipe(
+    onSome: M.type<Combobox.OutMessage>().pipe(
       M.tagsExhaustive({
         Selected: ({ value, wasAdded }) => [
           evo(model, {

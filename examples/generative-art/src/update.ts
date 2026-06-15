@@ -1,5 +1,6 @@
+import { Slider } from '@foldkit/ui'
 import { Array, Match as M, Number, Option, Result } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { SpawnAmbientParticle, SpawnBurstParticle } from './command'
@@ -282,7 +283,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotFlowStrengthSliderMessage: ({ message }) => {
-        const [nextSlider, sliderCommands] = Ui.Slider.update(
+        const [nextSlider, sliderCommands] = Slider.update(
           model.flowStrengthSlider,
           message,
         )
@@ -295,7 +296,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotNoiseScaleSliderMessage: ({ message }) => {
-        const [nextSlider, sliderCommands] = Ui.Slider.update(
+        const [nextSlider, sliderCommands] = Slider.update(
           model.noiseScaleSlider,
           message,
         )

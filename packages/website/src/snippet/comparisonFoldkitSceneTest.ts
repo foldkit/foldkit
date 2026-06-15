@@ -11,8 +11,8 @@ test('failed export shows error dialog that can be dismissed', () => {
       FailedExportPng({ error: 'Canvas 2D context not available' }),
     ),
     Scene.Command.resolve(
-      Ui.Dialog.ShowDialog,
-      Ui.Dialog.CompletedShowDialog(),
+      Dialog.ShowDialog,
+      Dialog.CompletedShowDialog(),
       errorDialogMessageToMessage,
     ),
     // The error dialog is open. Find elements by role and text content —
@@ -25,8 +25,8 @@ test('failed export shows error dialog that can be dismissed', () => {
     // The update function returned a CloseDialog Command. Resolve it
     // the same way Story.Command.resolve does — synchronously, inline.
     Scene.Command.resolve(
-      Ui.Dialog.CloseDialog,
-      Ui.Dialog.CompletedCloseDialog(),
+      Dialog.CloseDialog,
+      Dialog.CompletedCloseDialog(),
       errorDialogMessageToMessage,
     ),
     // After the Command resolves, the dialog is gone.

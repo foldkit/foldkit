@@ -1,12 +1,12 @@
 // Pseudocode — Textarea is view-only. The value lives in your own Model as
 // a string. Replace model.bio and UpdatedBio with your own field and Message.
-import { Ui } from 'foldkit'
+import { Textarea } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 const view = (model: Model) => {
   const h = html<Message>()
 
-  return Ui.Textarea.view({
+  return Textarea.view({
     id: 'bio',
     value: model.bio, // your Model field
     onInput: value => UpdatedBio({ value }), // your Message

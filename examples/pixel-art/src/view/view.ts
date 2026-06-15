@@ -1,6 +1,6 @@
+import { Button } from '@foldkit/ui'
 import clsx from 'clsx'
 import { Array, Option, pipe } from 'effect'
-import { Ui } from 'foldkit'
 import { type Document, type Html, createLazy, html } from 'foldkit/html'
 
 import { isGridEmpty } from '../grid'
@@ -120,7 +120,7 @@ const headerView = (): Html => {
       h.div(
         [h.Class('flex items-center gap-4')],
         [
-          Ui.Button.view({
+          Button.view({
             onClick: ClickedExport(),
             toView: attributes =>
               h.button(

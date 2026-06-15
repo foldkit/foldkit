@@ -1,4 +1,5 @@
-import { Calendar, Scene, Ui } from 'foldkit'
+import { Menu } from '@foldkit/ui'
+import { Calendar, Scene } from 'foldkit'
 import { describe, test } from 'vitest'
 
 import {
@@ -31,7 +32,7 @@ const initialModel: Model = {
   attachments: Attachments.init(),
   isPreviewVisible: false,
   submission: NotSubmitted(),
-  stepMenu: Ui.Menu.init({ id: 'step-menu' }),
+  stepMenu: Menu.init({ id: 'step-menu' }),
 }
 
 describe('view', () => {

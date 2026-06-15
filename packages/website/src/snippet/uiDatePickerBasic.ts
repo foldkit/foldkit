@@ -1,15 +1,16 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { DatePicker } from '@foldkit/ui'
 import { Effect, Match as M, Option } from 'effect'
-import { Calendar, Command, Ui } from 'foldkit'
+import { Calendar, Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // Add a field to your Model for the DatePicker Submodel:
 const Model = S.Struct({
-  datePickerDemo: Ui.DatePicker.Model,
+  datePickerDemo: DatePicker.Model,
   // ...your other fields
 })
 
@@ -28,7 +29,7 @@ const flags = Effect.gen(function* () {
 // Optional: constrain the selectable range with minDate / maxDate.
 const init = (flags: Flags) => [
   {
-    datePickerDemo: Ui.DatePicker.init({
+    datePickerDemo: DatePicker.init({
       id: 'date-picker-demo',
       today: flags.today,
       minDate: flags.today,
@@ -42,7 +43,7 @@ const init = (flags: Flags) => [
 // Embed the DatePicker Message in your parent Message. DatePicker handles
 // Calendar + Popover routing internally. You only need one wrapper:
 const GotDatePickerMessage = m('GotDatePickerMessage', {
-  message: Ui.DatePicker.Message,
+  message: DatePicker.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate
@@ -52,7 +53,7 @@ const GotDatePickerMessage = m('GotDatePickerMessage', {
 // domain state. `ChangedViewMonth` fires when calendar navigation shifts
 // the visible month without selecting a date.
 GotDatePickerMessage: ({ message }) => {
-  const [nextDatePicker, commands, maybeOutMessage] = Ui.DatePicker.update(
+  const [nextDatePicker, commands, maybeOutMessage] = DatePicker.update(
     model.datePickerDemo,
     message,
   )
@@ -65,7 +66,7 @@ GotDatePickerMessage: ({ message }) => {
       evo(model, { datePickerDemo: () => nextDatePicker }),
       mappedCommands,
     ],
-    onSome: M.type<Ui.DatePicker.OutMessage>().pipe(
+    onSome: M.type<DatePicker.OutMessage>().pipe(
       M.tagsExhaustive({
         SelectedDate: ({ date }) => [
           // The child has emitted `SelectedDate`. The body commits
@@ -103,7 +104,7 @@ const view = () => {
   return h.submodel({
     slotId: 'date-picker-demo',
     model: model.datePickerDemo,
-    view: Ui.DatePicker.view,
+    view: DatePicker.view,
     viewInputs: {
       anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
       triggerContent: maybeDate =>

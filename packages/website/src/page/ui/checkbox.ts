@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Checkbox } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 import type { TableOfContentsEntry } from '../../main'
@@ -50,7 +50,7 @@ export const basicDemo = (model: Model) => {
     h.submodel({
       slotId: 'checkbox-basic-demo',
       model: model.checkboxBasicDemo,
-      view: Ui.Checkbox.view,
+      view: Checkbox.view,
       viewInputs: {
         toView: attributes =>
           h.div(
@@ -109,7 +109,7 @@ export const indeterminateDemo = (model: Model) => {
             id: 'checkbox-all-demo',
             isChecked: isAllChecked,
           },
-          view: Ui.Checkbox.view,
+          view: Checkbox.view,
           viewInputs: {
             isIndeterminate,
             toView: attributes =>
@@ -135,7 +135,7 @@ export const indeterminateDemo = (model: Model) => {
             h.submodel({
               slotId: 'checkbox-option-a-demo',
               model: model.checkboxOptionADemo,
-              view: Ui.Checkbox.view,
+              view: Checkbox.view,
               viewInputs: {
                 toView: attributes =>
                   h.div(
@@ -158,7 +158,7 @@ export const indeterminateDemo = (model: Model) => {
             h.submodel({
               slotId: 'checkbox-option-b-demo',
               model: model.checkboxOptionBDemo,
-              view: Ui.Checkbox.view,
+              view: Checkbox.view,
               viewInputs: {
                 toView: attributes =>
                   h.div(

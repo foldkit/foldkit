@@ -1,12 +1,12 @@
 // Pseudocode — Input is view-only. Disabled inputs display a fixed value
 // and ignore onInput events.
-import { Ui } from 'foldkit'
+import { Input } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 const view = () => {
   const h = html<Message>()
 
-  return Ui.Input.view({
+  return Input.view({
     id: 'email-disabled',
     isDisabled: true,
     value: 'ada@lovelace.dev',

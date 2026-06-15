@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Slider } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 import type { TableOfContentsEntry } from '../../main'
@@ -47,8 +47,8 @@ const volumeFormatted = (value: number): string =>
   `${String(Math.round(value * 100))}%`
 
 export const sliderDemo = (
-  ratingModel: Ui.Slider.Model,
-  volumeModel: Ui.Slider.Model,
+  ratingModel: Slider.Model,
+  volumeModel: Slider.Model,
 ) => {
   const h = html<Message>()
 
@@ -59,7 +59,7 @@ export const sliderDemo = (
         h.submodel({
           slotId: ratingModel.id,
           model: ratingModel,
-          view: Ui.Slider.view,
+          view: Slider.view,
           viewInputs: {
             formatValue: value => `${String(value)} of 10`,
             toView: attributes =>
@@ -105,7 +105,7 @@ export const sliderDemo = (
         h.submodel({
           slotId: volumeModel.id,
           model: volumeModel,
-          view: Ui.Slider.view,
+          view: Slider.view,
           viewInputs: {
             formatValue: value => `${String(Math.round(value * 100))} percent`,
             toView: attributes =>

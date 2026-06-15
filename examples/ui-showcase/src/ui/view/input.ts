@@ -1,4 +1,5 @@
-import { Submodel, Ui } from 'foldkit'
+import { Input } from '@foldkit/ui'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { type UiMessage, UpdatedInputDemoValue } from '../message'
@@ -26,7 +27,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       h.div(
         [h.Class('flex flex-col items-start gap-2 max-w-sm')],
         [
-          Ui.Input.view<UiMessage>({
+          Input.view<UiMessage>({
             id: 'input-basic-demo',
             value: model.inputDemoValue,
             onInput: value => UpdatedInputDemoValue({ value }),
@@ -54,7 +55,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
-      Ui.Input.view<UiMessage>({
+      Input.view<UiMessage>({
         id: 'input-disabled-demo',
         isDisabled: true,
         value: 'Ada Lovelace',

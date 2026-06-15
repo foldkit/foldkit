@@ -1,3 +1,4 @@
+import { DatePicker, Listbox } from '@foldkit/ui'
 import {
   Array,
   Duration,
@@ -6,7 +7,7 @@ import {
   Number,
   Schema as S,
 } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { type CalendarDate } from 'foldkit/calendar'
 import {
   Field,
@@ -25,7 +26,7 @@ import { evo } from 'foldkit/struct'
 
 // MODEL
 
-const PronounsListbox = Ui.Listbox.create<string>()
+const PronounsListbox = Listbox.create<string>()
 
 export const Model = S.Struct({
   firstName: Field(S.String),
@@ -33,10 +34,10 @@ export const Model = S.Struct({
   email: Field(S.String),
   emailValidationId: S.Number,
   phone: Field(S.String),
-  pronouns: Ui.Listbox.Model,
+  pronouns: Listbox.Model,
   customPronouns: S.String,
   portfolioUrl: Field(S.String),
-  availableDate: Ui.DatePicker.Model,
+  availableDate: DatePicker.Model,
 })
 export type Model = typeof Model.Type
 
@@ -51,7 +52,7 @@ export const ValidatedEmail = m('ValidatedEmail', {
 })
 export const UpdatedPhone = m('UpdatedPhone', { value: S.String })
 export const GotPronounsMessage = m('GotPronounsMessage', {
-  message: Ui.Listbox.Message,
+  message: Listbox.Message,
 })
 export const UpdatedCustomPronouns = m('UpdatedCustomPronouns', {
   value: S.String,
@@ -60,7 +61,7 @@ export const UpdatedPortfolioUrl = m('UpdatedPortfolioUrl', {
   value: S.String,
 })
 export const GotAvailableDateMessage = m('GotAvailableDateMessage', {
-  message: Ui.DatePicker.Message,
+  message: DatePicker.Message,
 })
 
 export const Message = S.Union([
@@ -84,10 +85,10 @@ export const init = (today: CalendarDate): Model => ({
   email: NotValidated({ value: '' }),
   emailValidationId: 0,
   phone: NotValidated({ value: '' }),
-  pronouns: Ui.Listbox.init({ id: 'pronouns' }),
+  pronouns: Listbox.init({ id: 'pronouns' }),
   customPronouns: '',
   portfolioUrl: NotValidated({ value: '' }),
-  availableDate: Ui.DatePicker.init({
+  availableDate: DatePicker.init({
     id: 'available-date',
     today,
     minDate: today,
@@ -247,7 +248,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotAvailableDateMessage: ({ message: dateMessage }) => {
-        const [nextDate, commands] = Ui.DatePicker.update(
+        const [nextDate, commands] = DatePicker.update(
           model.availableDate,
           dateMessage,
         )

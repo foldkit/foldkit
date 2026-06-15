@@ -1,15 +1,16 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit each into your own Model, init, Message,
 // update, view, and subscription definitions.
+import { Slider } from '@foldkit/ui'
 import { Match as M, Option, Schema as S } from 'effect'
-import { Command, Subscription, Ui } from 'foldkit'
+import { Command, Subscription } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // Add a field to your Model for the Slider Submodel:
 const Model = S.Struct({
-  ratingDemo: Ui.Slider.Model,
+  ratingDemo: Slider.Model,
   // ...your other fields
 })
 
@@ -17,7 +18,7 @@ const Model = S.Struct({
 // step and a unique id:
 const init = () => [
   {
-    ratingDemo: Ui.Slider.init({
+    ratingDemo: Slider.init({
       id: 'rating',
       min: 0,
       max: 10,
@@ -31,14 +32,14 @@ const init = () => [
 
 // Embed the Slider Message in your parent Message:
 const GotSliderMessage = m('GotSliderMessage', {
-  message: Ui.Slider.Message,
+  message: Slider.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
-// Ui.Slider.update. The OutMessage's `ChangedValue` carries the new
+// Slider.update. The OutMessage's `ChangedValue` carries the new
 // number. Lift it to domain state, validate, or persist on each commit.
 GotSliderMessage: ({ message }) => {
-  const [nextSlider, commands, maybeOutMessage] = Ui.Slider.update(
+  const [nextSlider, commands, maybeOutMessage] = Slider.update(
     model.ratingDemo,
     message,
   )
@@ -51,7 +52,7 @@ GotSliderMessage: ({ message }) => {
       evo(model, { ratingDemo: () => nextSlider }),
       mappedCommands,
     ],
-    onSome: M.type<Ui.Slider.OutMessage>().pipe(
+    onSome: M.type<Slider.OutMessage>().pipe(
       M.tagsExhaustive({
         ChangedValue: ({ value }) => [
           // The child has emitted `ChangedValue`. The body commits
@@ -71,8 +72,8 @@ GotSliderMessage: ({ message }) => {
 // Escape during a drag won't cancel back to the origin value, but every
 // other drag mechanic still works. Silent partial breakage.
 const sliderSubscriptions = Subscription.lift({
-  sliderPointer: Ui.Slider.subscriptions.dragPointer,
-  sliderEscape: Ui.Slider.subscriptions.dragEscape,
+  sliderPointer: Slider.subscriptions.dragPointer,
+  sliderEscape: Slider.subscriptions.dragEscape,
 })<Model, Message>({
   toChildModel: model => model.ratingDemo,
   toParentMessage: message => GotSliderMessage({ message }),
@@ -92,7 +93,7 @@ const view = (model: Model) => {
   return h.submodel({
     slotId: 'rating',
     model: model.ratingDemo,
-    view: Ui.Slider.view,
+    view: Slider.view,
     viewInputs: {
       formatValue: value => `${String(value)} of 10`,
       toView: attributes =>

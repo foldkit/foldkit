@@ -1,5 +1,5 @@
+import { Button, Dialog } from '@foldkit/ui'
 import { Option } from 'effect'
-import { Ui } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
 import {
@@ -16,7 +16,7 @@ const panelClassName =
   'bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-sm relative shadow-xl'
 
 export const errorDialogView = (
-  errorDialog: typeof Ui.Dialog.Model.Type,
+  errorDialog: typeof Dialog.Model.Type,
   maybeExportError: Option.Option<string>,
 ): Html => {
   const h = html<Message>()
@@ -24,7 +24,7 @@ export const errorDialogView = (
   return h.submodel({
     slotId: errorDialog.id,
     model: errorDialog,
-    view: Ui.Dialog.view,
+    view: Dialog.view,
     viewInputs: {
       toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
         h.dialog(
@@ -40,14 +40,14 @@ export const errorDialogView = (
                       h.h2(
                         [
                           h.Class('text-lg font-semibold text-red-400 mb-2'),
-                          h.Id(Ui.Dialog.titleId(errorDialog)),
+                          h.Id(Dialog.titleId(errorDialog)),
                         ],
                         ['Export Failed'],
                       ),
                       h.p(
                         [
                           h.Class('text-sm text-gray-400 mb-4'),
-                          h.Id(Ui.Dialog.descriptionId(errorDialog)),
+                          h.Id(Dialog.descriptionId(errorDialog)),
                         ],
                         [error],
                       ),
@@ -72,7 +72,7 @@ export const errorDialogView = (
 }
 
 export const gridSizeConfirmDialogView = (
-  gridSizeConfirmDialog: typeof Ui.Dialog.Model.Type,
+  gridSizeConfirmDialog: typeof Dialog.Model.Type,
   maybePendingGridSize: Option.Option<number>,
 ): Html => {
   const h = html<Message>()
@@ -80,7 +80,7 @@ export const gridSizeConfirmDialogView = (
   return h.submodel({
     slotId: gridSizeConfirmDialog.id,
     model: gridSizeConfirmDialog,
-    view: Ui.Dialog.view,
+    view: Dialog.view,
     viewInputs: {
       toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
         h.dialog(
@@ -96,14 +96,14 @@ export const gridSizeConfirmDialogView = (
                       h.h2(
                         [
                           h.Class('text-lg font-semibold text-gray-100 mb-2'),
-                          h.Id(Ui.Dialog.titleId(gridSizeConfirmDialog)),
+                          h.Id(Dialog.titleId(gridSizeConfirmDialog)),
                         ],
                         [`Change to ${pendingSize}×${pendingSize}?`],
                       ),
                       h.p(
                         [
                           h.Class('text-sm text-gray-400 mb-5'),
-                          h.Id(Ui.Dialog.descriptionId(gridSizeConfirmDialog)),
+                          h.Id(Dialog.descriptionId(gridSizeConfirmDialog)),
                         ],
                         ['This will clear your canvas and reset undo history.'],
                       ),
@@ -119,7 +119,7 @@ export const gridSizeConfirmDialogView = (
                             ],
                             ['Cancel'],
                           ),
-                          Ui.Button.view({
+                          Button.view({
                             onClick: ConfirmedGridSizeChange(),
                             toView: attributes =>
                               h.button(

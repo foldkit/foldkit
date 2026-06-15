@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Input } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 import type { TableOfContentsEntry } from '../../main'
@@ -38,7 +38,7 @@ export const basicDemo = (model: Model) => {
     h.div(
       [h.Class('flex flex-col items-start gap-2 w-full max-w-md')],
       [
-        Ui.Input.view({
+        Input.view({
           id: 'input-basic-demo',
           value: model.inputDemoValue,
           onInput: value => UpdatedInputDemoValue({ value }),
@@ -68,7 +68,7 @@ export const disabledDemo = (_model: Model) => {
   const h = html<Message>()
 
   return [
-    Ui.Input.view<Message>({
+    Input.view<Message>({
       id: 'input-disabled-demo',
       isDisabled: true,
       value: 'Ada Lovelace',

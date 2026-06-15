@@ -289,7 +289,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           'Embed Combobox via the ',
           link(uiSelectionSubmodelsRouter(), 'create<Item>() factory'),
           ' at module scope: ',
-          inlineCode('const CityCombobox = Ui.Combobox.create<City>()'),
+          inlineCode('const CityCombobox = Combobox.create<City>()'),
           '. The factory binds the view, update, and imperative helpers to the same ',
           inlineCode('Item'),
           ' type so the selected value flows through the OutMessage typed end-to-end. Combobox constrains ',

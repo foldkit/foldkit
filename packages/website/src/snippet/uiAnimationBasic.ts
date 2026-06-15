@@ -1,8 +1,9 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Animation } from '@foldkit/ui'
 import { Effect, Match as M, Option } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -10,14 +11,14 @@ import { evo } from 'foldkit/struct'
 // Add a field to your Model for the Animation Submodel. Animation tracks
 // its own visibility and lifecycle state. No need for a separate flag:
 const Model = S.Struct({
-  animation: Ui.Animation.Model,
+  animation: Animation.Model,
   // ...your other fields
 })
 
 // In your init function, initialize the Animation Submodel with a unique id:
 const init = () => [
   {
-    animation: Ui.Animation.init({ id: 'content' }),
+    animation: Animation.init({ id: 'content' }),
     // ...your other fields
   },
   [],
@@ -25,17 +26,17 @@ const init = () => [
 
 // Embed the Animation Message in your parent Message:
 const GotAnimationMessage = m('GotAnimationMessage', {
-  message: Ui.Animation.Message,
+  message: Animation.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
-// Ui.Animation.update. It returns the next Animation Model, any Commands
+// Animation.update. It returns the next Animation Model, any Commands
 // to forward, and an optional OutMessage. The OutMessage signals lifecycle
 // events Animation can't handle on its own. Most importantly, it tells you
 // when a leave animation has started so you can provide the Command that
 // listens for animation settlement:
 GotAnimationMessage: ({ message }) => {
-  const [nextAnimation, commands, maybeOutMessage] = Ui.Animation.update(
+  const [nextAnimation, commands, maybeOutMessage] = Animation.update(
     model.animation,
     message,
   )
@@ -60,7 +61,7 @@ GotAnimationMessage: ({ message }) => {
           // Animation.update. Use it unless you need a custom strategy.
           StartedLeaveAnimating: () => [
             Command.mapMessage(
-              Ui.Animation.defaultLeaveCommand(nextAnimation),
+              Animation.defaultLeaveCommand(nextAnimation),
               message => GotAnimationMessage({ message }),
             ),
           ],
@@ -81,7 +82,7 @@ GotAnimationMessage: ({ message }) => {
   ]
 }
 
-// Inside your view function, toggle visibility by dispatching Ui.Animation.Showed()
+// Inside your view function, toggle visibility by dispatching Animation.Showed()
 // or Hid() wrapped in your parent Message. model.animation.isShowing is your
 // source of truth for whether content is currently visible. The Animation
 // view wraps your content. Data attributes drive the CSS transitions or
@@ -97,8 +98,8 @@ const view = () => {
           h.OnClick(
             GotAnimationMessage({
               message: model.animation.isShowing
-                ? Ui.Animation.Hid()
-                : Ui.Animation.Showed(),
+                ? Animation.Hid()
+                : Animation.Showed(),
             }),
           ),
         ],
@@ -107,7 +108,7 @@ const view = () => {
       h.submodel({
         slotId: 'content',
         model: model.animation,
-        view: Ui.Animation.view,
+        view: Animation.view,
         viewInputs: {
           animateSize: true,
           className:

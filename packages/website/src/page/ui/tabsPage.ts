@@ -159,7 +159,7 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'tabs',
     type: 'ReadonlyArray<Value>',
     description:
-      'The list of tab values, in display order. When the tabs component is declared via `Ui.Tabs.create<MyUnion>()`, `Value` is your union type and each `TabInfo.value` is typed as `MyUnion`.',
+      'The list of tab values, in display order. When the tabs component is declared via `Tabs.create<MyUnion>()`, `Value` is your union type and each `TabInfo.value` is typed as `MyUnion`.',
   },
   {
     name: 'ariaLabel',
@@ -212,7 +212,7 @@ const tabInfoProps: ReadonlyArray<PropEntry> = [
     name: 'value',
     type: 'Value',
     description:
-      'The tab value. Typed as your `Value` union when the tabs component is declared via `Ui.Tabs.create<Value>()`.',
+      'The tab value. Typed as your `Value` union when the tabs component is declared via `Tabs.create<Value>()`.',
   },
   {
     name: 'index',
@@ -315,7 +315,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         ),
         para(
           'Declare the tabs component once at module scope with ',
-          inlineCode('Ui.Tabs.create<Value>()'),
+          inlineCode('Tabs.create<Value>()'),
           ' to lift the tab type through ',
           inlineCode('view'),
           ', ',

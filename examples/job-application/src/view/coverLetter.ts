@@ -1,5 +1,6 @@
+import { Textarea } from '@foldkit/ui'
 import clsx from 'clsx'
-import { Submodel, Ui } from 'foldkit'
+import { Submodel } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
 import { CoverLetter } from '../step'
@@ -17,7 +18,7 @@ export const coverLetterView = Submodel.defineView<
   const isOverLimit = remaining < 0
   const isWarning = !isOverLimit && remaining <= WARNING_THRESHOLD_CHARS
 
-  return Ui.Textarea.view({
+  return Textarea.view({
     id: 'cover-letter',
     value: model.content,
     onInput: value => CoverLetter.UpdatedContent({ value }),

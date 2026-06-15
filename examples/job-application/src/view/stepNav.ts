@@ -1,6 +1,6 @@
+import { Menu } from '@foldkit/ui'
 import clsx from 'clsx'
 import { Equal, HashSet, Match, Number, flow } from 'effect'
-import { Ui } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
 import { Step } from '../domain'
@@ -8,7 +8,7 @@ import type { Message } from '../message'
 import { type Model } from '../model'
 import { chevronDown } from './icon'
 
-const StepMenu = Ui.Menu.create<Step.Step>()
+const StepMenu = Menu.create<Step.Step>()
 
 type StepStatus = 'Current' | 'Completed' | 'Upcoming'
 
@@ -157,7 +157,7 @@ const stepMenuTrigger = (currentStep: Step.Step): Html => {
 export const stepMenu = (
   model: Model,
   stepsWithErrors: HashSet.HashSet<Step.Step>,
-  toParentMessage: (message: Ui.Menu.Message) => Message,
+  toParentMessage: (message: Menu.Message) => Message,
 ): Html => {
   const h = html<Message>()
 

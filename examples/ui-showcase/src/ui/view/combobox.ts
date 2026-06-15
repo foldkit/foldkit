@@ -1,8 +1,9 @@
+import { Combobox } from '@foldkit/ui'
+import type { AnchorConfig } from '@foldkit/ui/combobox'
 import clsx from 'clsx'
 import { Array } from 'effect'
-import { Submodel, Ui } from 'foldkit'
+import { Submodel } from 'foldkit'
 import { Html, childAttributes, html } from 'foldkit/html'
-import type { AnchorConfig } from 'foldkit/ui/combobox'
 
 import * as Icon from '../../icon'
 import {
@@ -23,8 +24,8 @@ type City =
   | 'Wellington'
   | 'Zurich'
 
-export const CityCombobox = Ui.Combobox.create<City>()
-export const CityMultiCombobox = Ui.Combobox.Multi.create<City>()
+export const CityCombobox = Combobox.create<City>()
+export const CityMultiCombobox = Combobox.Multi.create<City>()
 
 const CITIES: ReadonlyArray<City> = [
   'Johannesburg',
@@ -74,7 +75,7 @@ export const comboboxInputs = (
   inputValue: string,
   anchor: AnchorConfig = COMBOBOX_ANCHOR,
   wrapperClass: string = wrapperClassName,
-): Ui.Combobox.ViewInputs<City> => {
+): Combobox.ViewInputs<City> => {
   const h = html<UiMessage>()
   const filteredCities = filterCities(inputValue)
 

@@ -1,8 +1,9 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Combobox } from '@foldkit/ui'
 import { Array, Effect, Match as M, Option } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { childAttributes, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -10,13 +11,13 @@ import { evo } from 'foldkit/struct'
 type City = 'Johannesburg' | 'Kyiv' | 'Oxford' | 'Wellington'
 
 // Declare a typed Combobox once at module scope:
-const CityCombobox = Ui.Combobox.create<City>()
+const CityCombobox = Combobox.create<City>()
 
 // Add a field to your Model for the Combobox Submodel, plus a field for
 // the selected value your app actually cares about:
 const Model = S.Struct({
   maybeCity: S.Option(S.String),
-  combobox: Ui.Combobox.Model,
+  combobox: Combobox.Model,
   // ...your other fields
 })
 
@@ -24,7 +25,7 @@ const Model = S.Struct({
 const init = () => [
   {
     maybeCity: Option.none(),
-    combobox: Ui.Combobox.init({ id: 'city' }),
+    combobox: Combobox.init({ id: 'city' }),
     // ...your other fields
   },
   [],
@@ -32,7 +33,7 @@ const init = () => [
 
 // Wrap Combobox's Messages so they can flow through your update:
 const GotComboboxMessage = m('GotComboboxMessage', {
-  message: Ui.Combobox.Message,
+  message: Combobox.Message,
 })
 
 // Delegate keyboard navigation, typeahead, and open/close to
@@ -52,7 +53,7 @@ GotComboboxMessage: ({ message }) => {
       evo(model, { combobox: () => nextCombobox }),
       mappedCommands,
     ],
-    onSome: M.type<Ui.Combobox.OutMessage>().pipe(
+    onSome: M.type<Combobox.OutMessage>().pipe(
       M.tagsExhaustive({
         Selected: ({ value }) => [
           evo(model, {

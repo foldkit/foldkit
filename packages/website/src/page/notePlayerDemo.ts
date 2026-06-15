@@ -1,3 +1,4 @@
+import { Button, Input, RadioGroup } from '@foldkit/ui'
 import { clsx } from 'clsx'
 import {
   Array,
@@ -13,7 +14,7 @@ import {
   String as Str,
   pipe,
 } from 'effect'
-import { Command, FieldValidation, Submodel, Ui } from 'foldkit'
+import { Command, FieldValidation, Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -99,7 +100,7 @@ type NoteHighlightPhase = typeof NoteHighlightPhase.Type
 export const Model = S.Struct({
   noteInput: FieldValidation.Field(S.String),
   noteDuration: NoteDuration,
-  durationRadioGroup: Ui.RadioGroup.Model,
+  durationRadioGroup: RadioGroup.Model,
   playbackState: PlaybackState,
   highlightPhase: NoteHighlightPhase,
   generation: S.Number,
@@ -112,7 +113,7 @@ export type Model = typeof Model.Type
 
 const ChangedNoteInput = m('ChangedNoteInput', { value: S.String })
 const GotDurationRadioGroupMessage = m('GotDurationRadioGroupMessage', {
-  message: Ui.RadioGroup.Message,
+  message: RadioGroup.Message,
 })
 const ClickedPlay = m('ClickedPlay')
 const ClickedPause = m('ClickedPause')
@@ -160,7 +161,7 @@ export const init = (): readonly [
   {
     noteInput: validateNoteInput(INITIAL_NOTE_SEQUENCE),
     noteDuration: 'Medium',
-    durationRadioGroup: Ui.RadioGroup.init({
+    durationRadioGroup: RadioGroup.init({
       id: 'note-duration',
       selectedValue: 'Medium',
       orientation: 'Horizontal',
@@ -257,7 +258,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             evo(model, { durationRadioGroup: () => nextRadioGroup }),
             mappedCommands,
           ],
-          onSome: M.type<Ui.RadioGroup.OutMessage<NoteDuration>>().pipe(
+          onSome: M.type<RadioGroup.OutMessage<NoteDuration>>().pipe(
             M.withReturnType<
               readonly [Model, ReadonlyArray<Command.Command<Message>>]
             >(),
@@ -585,7 +586,7 @@ const appPanel = (model: Model): Html => {
 const noteInputView = (model: Model, isInputLocked: boolean): Html => {
   const h = html<Message>()
 
-  return Ui.Input.view<Message>({
+  return Input.view<Message>({
     id: 'note-input',
     value: model.noteInput.value,
     onInput: value => ChangedNoteInput({ value }),
@@ -652,7 +653,7 @@ const noteInputView = (model: Model, isInputLocked: boolean): Html => {
 
 const noteDurations: ReadonlyArray<NoteDuration> = ['Short', 'Medium', 'Long']
 
-const NoteDurationRadioGroup = Ui.RadioGroup.create<NoteDuration>()
+const NoteDurationRadioGroup = RadioGroup.create<NoteDuration>()
 
 const durationSelectorView = (model: Model, isInputLocked: boolean): Html => {
   const h = html<Message>()
@@ -709,7 +710,7 @@ const playbackControlView = (model: Model, canPlay: boolean): Html => {
     [h.Class('flex gap-2')],
     [
       isPlaying
-        ? Ui.Button.view<Message>({
+        ? Button.view<Message>({
             onClick: ClickedPause(),
             toView: attributes =>
               h.button(
@@ -723,7 +724,7 @@ const playbackControlView = (model: Model, canPlay: boolean): Html => {
                 [Icon.pause('w-4 h-4'), 'Pause'],
               ),
           })
-        : Ui.Button.view<Message>({
+        : Button.view<Message>({
             onClick: ClickedPlay(),
             isDisabled: !canPlay,
             toView: attributes =>
@@ -746,7 +747,7 @@ const playbackControlView = (model: Model, canPlay: boolean): Html => {
                 [Icon.play('w-4 h-4'), 'Play'],
               ),
           }),
-      Ui.Button.view<Message>({
+      Button.view<Message>({
         onClick: ClickedStop(),
         isDisabled: !isActive,
         toView: attributes =>

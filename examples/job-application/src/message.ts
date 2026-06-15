@@ -1,5 +1,5 @@
+import { Menu } from '@foldkit/ui'
 import { Schema as S } from 'effect'
-import { Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 
 import { Step } from './domain'
@@ -31,7 +31,7 @@ export const GotAttachmentsMessage = m('GotAttachmentsMessage', {
   message: Attachments.Message,
 })
 export const GotStepMenuMessage = m('GotStepMenuMessage', {
-  message: Ui.Menu.Message,
+  message: Menu.Message,
 })
 
 // NAVIGATION

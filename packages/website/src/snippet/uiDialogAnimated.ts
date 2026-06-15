@@ -1,35 +1,36 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Command, Ui } from 'foldkit'
+import { Dialog } from '@foldkit/ui'
+import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // Add a field to your Model for the Dialog Submodel:
 const Model = S.Struct({
-  dialog: Ui.Dialog.Model,
+  dialog: Dialog.Model,
   // ...your other fields
 })
 
 // In your init function, set isAnimated: true to coordinate CSS transitions:
 const init = () => [
   {
-    dialog: Ui.Dialog.init({ id: 'confirm', isAnimated: true }),
+    dialog: Dialog.init({ id: 'confirm', isAnimated: true }),
     // ...your other fields
   },
   [],
 ]
 
 // Embed the Dialog Message in your parent Message and delegate to
-// Ui.Dialog.update (open from a trigger with a fact and Ui.Dialog.open, as in
+// Dialog.update (open from a trigger with a fact and Dialog.open, as in
 // the basic Dialog example):
 const GotDialogMessage = m('GotDialogMessage', {
-  message: Ui.Dialog.Message,
+  message: Dialog.Message,
 })
 
 GotDialogMessage: ({ message }) => {
-  const [nextDialog, dialogCommands] = Ui.Dialog.update(model.dialog, message)
+  const [nextDialog, dialogCommands] = Dialog.update(model.dialog, message)
   return [
     evo(model, { dialog: () => nextDialog }),
     Command.mapMessages(dialogCommands, message =>
@@ -46,7 +47,7 @@ const view = (model: Model) => {
   return h.submodel({
     slotId: model.dialog.id,
     model: model.dialog,
-    view: Ui.Dialog.view,
+    view: Dialog.view,
     viewInputs: {
       toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
         h.dialog(
@@ -74,7 +75,7 @@ const view = (model: Model) => {
                   ],
                   [
                     h.h2(
-                      [h.Id(Ui.Dialog.titleId(model.dialog))],
+                      [h.Id(Dialog.titleId(model.dialog))],
                       ['Confirm Action'],
                     ),
                     h.p([], ['Are you sure you want to proceed?']),

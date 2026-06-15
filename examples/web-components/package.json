@@ -14,6 +14,8 @@
     "@tailwindcss/vite": "^4.2.4",
     "clsx": "^2.1.1",
     "effect": "4.0.0-beta.78",
+    "@foldkit/devtools": "workspace:*",
+    "@foldkit/ui": "workspace:*",
     "foldkit": "workspace:*",
     "tailwindcss": "^4.2.4",
     "vanilla-colorful": "^0.7.2"

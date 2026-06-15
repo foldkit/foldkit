@@ -69,10 +69,11 @@ export const __requireDispatch = requireDispatch
 
 /**
  * The `id` of the DOM element that hosts the Foldkit DevTools shadow root.
- * Lives here (not in `devTools/`) because the `OnBlur` handler below uses it
+ * Defined here (not in `devTools/`) because the `OnBlur` handler below uses it
  * to suppress blur Messages whose `relatedTarget` is this host (i.e. when
- * focus crosses into the DevTools UI). The DevTools overlay imports this
- * constant when creating the host element, so the two stay in sync.
+ * focus crosses into the DevTools UI). Surfaced publicly through
+ * `foldkit/devtools-host` (not `foldkit/html`); the DevTools overlay imports it
+ * from there when creating the host element, so the two stay in sync.
  */
 export const DEVTOOLS_HOST_ID = 'foldkit-devtools'
 

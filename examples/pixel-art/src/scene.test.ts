@@ -1,5 +1,6 @@
+import { Dialog, Listbox, RadioGroup, Switch } from '@foldkit/ui'
 import { Option } from 'effect'
-import { Scene, Ui } from 'foldkit'
+import { Scene } from 'foldkit'
 import { describe, test } from 'vitest'
 
 import { ExportPng, SaveCanvas } from './command'
@@ -28,28 +29,28 @@ const createTestModel = (): Model => ({
   mirrorMode: 'None',
   isDrawing: false,
   maybeHoveredCell: Option.none(),
-  errorDialog: Ui.Dialog.init({ id: 'export-error-dialog' }),
+  errorDialog: Dialog.init({ id: 'export-error-dialog' }),
   maybeExportError: Option.none(),
   paletteThemeIndex: 0,
-  gridSizeConfirmDialog: Ui.Dialog.init({ id: 'grid-size-confirm-dialog' }),
+  gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
   maybePendingGridSize: Option.none(),
-  toolRadioGroup: Ui.RadioGroup.init({
+  toolRadioGroup: RadioGroup.init({
     id: 'tool-picker',
     selectedValue: 'Brush',
   }),
-  gridSizeRadioGroup: Ui.RadioGroup.init({
+  gridSizeRadioGroup: RadioGroup.init({
     id: 'grid-size-picker',
     selectedValue: '4',
     orientation: 'Horizontal',
   }),
-  paletteRadioGroup: Ui.RadioGroup.init({
+  paletteRadioGroup: RadioGroup.init({
     id: 'palette-picker',
     selectedValue: '0',
     orientation: 'Horizontal',
   }),
-  mirrorHorizontalSwitch: Ui.Switch.init({ id: 'mirror-horizontal' }),
-  mirrorVerticalSwitch: Ui.Switch.init({ id: 'mirror-vertical' }),
-  themeListbox: Ui.Listbox.init({ id: 'theme-picker', selectedItem: '0' }),
+  mirrorHorizontalSwitch: Switch.init({ id: 'mirror-horizontal' }),
+  mirrorVerticalSwitch: Switch.init({ id: 'mirror-vertical' }),
+  themeListbox: Listbox.init({ id: 'theme-picker', selectedItem: '0' }),
 })
 
 const createPaintedModel = (): Model => ({
@@ -61,15 +62,14 @@ const createPaintedModel = (): Model => ({
   ),
 })
 
-const errorDialogMessageToMessage = (message: Ui.Dialog.Message): Message =>
+const errorDialogMessageToMessage = (message: Dialog.Message): Message =>
   GotErrorDialogMessage({ message })
 
-const confirmDialogMessageToMessage = (message: Ui.Dialog.Message): Message =>
+const confirmDialogMessageToMessage = (message: Dialog.Message): Message =>
   GotGridSizeConfirmDialogMessage({ message })
 
-const toolRadioGroupMessageToMessage = (
-  message: Ui.RadioGroup.Message,
-): Message => GotToolRadioGroupMessage({ message })
+const toolRadioGroupMessageToMessage = (message: RadioGroup.Message): Message =>
+  GotToolRadioGroupMessage({ message })
 
 describe('export workflow', () => {
   test('clicking Export PNG produces ExportPng Command', () => {
@@ -93,8 +93,8 @@ describe('export workflow', () => {
         FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
       Scene.Command.resolve(
-        Ui.Dialog.ShowDialog,
-        Ui.Dialog.CompletedShowDialog(),
+        Dialog.ShowDialog,
+        Dialog.CompletedShowDialog(),
         errorDialogMessageToMessage,
       ),
       Scene.expect(Scene.text('Export Failed')).toExist(),
@@ -113,15 +113,15 @@ describe('export workflow', () => {
         FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
       Scene.Command.resolve(
-        Ui.Dialog.ShowDialog,
-        Ui.Dialog.CompletedShowDialog(),
+        Dialog.ShowDialog,
+        Dialog.CompletedShowDialog(),
         errorDialogMessageToMessage,
       ),
       Scene.expect(Scene.text('Export Failed')).toExist(),
       Scene.click(Scene.role('button', { name: 'Dismiss' })),
       Scene.Command.resolve(
-        Ui.Dialog.CloseDialog,
-        Ui.Dialog.CompletedCloseDialog(),
+        Dialog.CloseDialog,
+        Dialog.CompletedCloseDialog(),
         errorDialogMessageToMessage,
       ),
       Scene.expect(Scene.text('Export Failed')).toBeAbsent(),
@@ -173,8 +173,8 @@ describe('toolbar', () => {
       Scene.with(createTestModel()),
       Scene.click(Scene.role('radio', { name: /^Fill/ })),
       Scene.Command.resolve(
-        Ui.RadioGroup.FocusOption,
-        Ui.RadioGroup.CompletedFocusOption(),
+        RadioGroup.FocusOption,
+        RadioGroup.CompletedFocusOption(),
         toolRadioGroupMessageToMessage,
       ),
       Scene.expect(
@@ -251,13 +251,13 @@ describe('grid size change', () => {
       Scene.with(createPaintedModel()),
       Scene.click(Scene.role('radio', { name: '8' })),
       Scene.Command.resolve(
-        Ui.RadioGroup.FocusOption,
-        Ui.RadioGroup.CompletedFocusOption(),
+        RadioGroup.FocusOption,
+        RadioGroup.CompletedFocusOption(),
         radioMessage => GotGridSizeRadioGroupMessage({ message: radioMessage }),
       ),
       Scene.Command.resolve(
-        Ui.Dialog.ShowDialog,
-        Ui.Dialog.CompletedShowDialog(),
+        Dialog.ShowDialog,
+        Dialog.CompletedShowDialog(),
         confirmDialogMessageToMessage,
       ),
       Scene.expect(Scene.text('Change to 8\u00d78?')).toExist(),
@@ -275,7 +275,7 @@ describe('grid size change', () => {
     const modelWithPendingResize: Model = {
       ...createTestModel(),
       maybePendingGridSize: Option.some(8),
-      gridSizeConfirmDialog: Ui.Dialog.init({
+      gridSizeConfirmDialog: Dialog.init({
         id: 'grid-size-confirm-dialog',
         isOpen: true,
       }),
@@ -288,8 +288,8 @@ describe('grid size change', () => {
       Scene.expect(Scene.text('Change to 8\u00d78?')).toExist(),
       Scene.click(Scene.role('button', { name: 'Clear and Resize' })),
       Scene.Command.resolve(
-        Ui.Dialog.CloseDialog,
-        Ui.Dialog.CompletedCloseDialog(),
+        Dialog.CloseDialog,
+        Dialog.CompletedCloseDialog(),
         confirmDialogMessageToMessage,
       ),
       Scene.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
@@ -301,7 +301,7 @@ describe('grid size change', () => {
     const modelWithPendingResize: Model = {
       ...createTestModel(),
       maybePendingGridSize: Option.some(8),
-      gridSizeConfirmDialog: Ui.Dialog.init({
+      gridSizeConfirmDialog: Dialog.init({
         id: 'grid-size-confirm-dialog',
         isOpen: true,
       }),
@@ -313,8 +313,8 @@ describe('grid size change', () => {
       Scene.expect(Scene.text('Change to 8\u00d78?')).toExist(),
       Scene.click(Scene.role('button', { name: 'Cancel' })),
       Scene.Command.resolve(
-        Ui.Dialog.CloseDialog,
-        Ui.Dialog.CompletedCloseDialog(),
+        Dialog.CloseDialog,
+        Dialog.CompletedCloseDialog(),
         confirmDialogMessageToMessage,
       ),
       Scene.expect(Scene.text('Change to 8\u00d78?')).toBeAbsent(),

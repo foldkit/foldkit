@@ -1,5 +1,6 @@
+import { Listbox } from '@foldkit/ui'
 import { Array, Option } from 'effect'
-import { Submodel, Ui } from 'foldkit'
+import { Submodel } from 'foldkit'
 import { Html, childAttributes, html } from 'foldkit/html'
 
 import * as Icon from '../../icon'
@@ -37,9 +38,9 @@ type Character = Readonly<{
   lastName: string
 }>
 
-export const ItemListbox = Ui.Listbox.create<ListboxItem>()
-export const ItemMultiListbox = Ui.Listbox.Multi.create<ListboxItem>()
-export const CharacterListbox = Ui.Listbox.create<Character>()
+export const ItemListbox = Listbox.create<ListboxItem>()
+export const ItemMultiListbox = Listbox.Multi.create<ListboxItem>()
+export const CharacterListbox = Listbox.create<Character>()
 
 const characterName = (character: Character): string =>
   `${character.firstName} ${character.lastName}`

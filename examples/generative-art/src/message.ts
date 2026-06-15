@@ -1,5 +1,5 @@
+import { Slider } from '@foldkit/ui'
 import { Schema as S } from 'effect'
-import { Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 
 const spawnedParticleFields = {
@@ -35,10 +35,10 @@ export const MovedPointer = m('MovedPointer', {
 export const ClickedTogglePlay = m('ClickedTogglePlay')
 export const ClickedReset = m('ClickedReset')
 export const GotFlowStrengthSliderMessage = m('GotFlowStrengthSliderMessage', {
-  message: Ui.Slider.Message,
+  message: Slider.Message,
 })
 export const GotNoiseScaleSliderMessage = m('GotNoiseScaleSliderMessage', {
-  message: Ui.Slider.Message,
+  message: Slider.Message,
 })
 
 export const Message = S.Union([

@@ -15,11 +15,16 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/foldkit/src/customElement',
   ),
+  'foldkit/devtools-host': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/devTools/host',
+  ),
   'foldkit/dom': path.resolve(dirname, '../../packages/foldkit/src/dom'),
   'foldkit/fieldValidation': path.resolve(
     dirname,
     '../../packages/foldkit/src/fieldValidation',
   ),
+  'foldkit/file': path.resolve(dirname, '../../packages/foldkit/src/file'),
   'foldkit/html': path.resolve(dirname, '../../packages/foldkit/src/html'),
   'foldkit/managedResource': path.resolve(
     dirname,
@@ -29,6 +34,7 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/foldkit/src/message',
   ),
+  'foldkit/mount': path.resolve(dirname, '../../packages/foldkit/src/mount'),
   'foldkit/navigation': path.resolve(
     dirname,
     '../../packages/foldkit/src/navigation',
@@ -39,37 +45,129 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/foldkit/src/runtime',
   ),
+  'foldkit/scene': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/test/scene',
+  ),
   'foldkit/schema': path.resolve(dirname, '../../packages/foldkit/src/schema'),
+  'foldkit/story': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/test/story',
+  ),
   'foldkit/struct': path.resolve(dirname, '../../packages/foldkit/src/struct'),
+  'foldkit/submodel': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/submodel/public',
+  ),
   'foldkit/subscription': path.resolve(
     dirname,
-    '../../packages/foldkit/src/subscription',
+    '../../packages/foldkit/src/subscription/public',
   ),
   'foldkit/test/vitest': path.resolve(
     dirname,
     '../../packages/foldkit/src/test/vitest',
   ),
-  'foldkit/ui/dialog': path.resolve(
-    dirname,
-    '../../packages/foldkit/src/ui/dialog',
-  ),
-  'foldkit/ui/disclosure': path.resolve(
-    dirname,
-    '../../packages/foldkit/src/ui/disclosure',
-  ),
-  'foldkit/ui/listbox': path.resolve(
-    dirname,
-    '../../packages/foldkit/src/ui/listbox',
-  ),
-  'foldkit/ui/menu': path.resolve(
-    dirname,
-    '../../packages/foldkit/src/ui/menu',
-  ),
-  'foldkit/ui/tabs': path.resolve(
-    dirname,
-    '../../packages/foldkit/src/ui/tabs',
-  ),
-  'foldkit/ui': path.resolve(dirname, '../../packages/foldkit/src/ui'),
   'foldkit/url': path.resolve(dirname, '../../packages/foldkit/src/url'),
+  '@foldkit/ui/animation': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/animation/public',
+  ),
+  '@foldkit/ui/button': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/button/public',
+  ),
+  '@foldkit/ui/calendar': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/calendar/public',
+  ),
+  '@foldkit/ui/checkbox': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/checkbox/public',
+  ),
+  '@foldkit/ui/combobox': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/combobox/public',
+  ),
+  '@foldkit/ui/datePicker': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/datePicker/public',
+  ),
+  '@foldkit/ui/dialog': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/dialog/public',
+  ),
+  '@foldkit/ui/disclosure': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/disclosure/public',
+  ),
+  '@foldkit/ui/dragAndDrop': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/dragAndDrop/public',
+  ),
+  '@foldkit/ui/fieldset': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/fieldset/public',
+  ),
+  '@foldkit/ui/fileDrop': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/fileDrop/public',
+  ),
+  '@foldkit/ui/input': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/input/public',
+  ),
+  '@foldkit/ui/listbox': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/listbox/public',
+  ),
+  '@foldkit/ui/menu': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/menu/public',
+  ),
+  '@foldkit/ui/popover': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/popover/public',
+  ),
+  '@foldkit/ui/radioGroup': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/radioGroup/public',
+  ),
+  '@foldkit/ui/select': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/select/public',
+  ),
+  '@foldkit/ui/slider': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/slider/public',
+  ),
+  '@foldkit/ui/switch': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/switch/public',
+  ),
+  '@foldkit/ui/tabs': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/tabs/public',
+  ),
+  '@foldkit/ui/textarea': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/textarea/public',
+  ),
+  '@foldkit/ui/toast': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/toast/public',
+  ),
+  '@foldkit/ui/tooltip': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/tooltip/public',
+  ),
+  '@foldkit/ui/virtualList': path.resolve(
+    dirname,
+    '../../packages/foldkit-ui/src/virtualList/public',
+  ),
+  '@foldkit/ui': path.resolve(dirname, '../../packages/foldkit-ui/src/index'),
+  '@foldkit/devtools': path.resolve(
+    dirname,
+    '../../packages/foldkit-devtools/src/index',
+  ),
   foldkit: path.resolve(dirname, '../../packages/foldkit/src/index'),
 })

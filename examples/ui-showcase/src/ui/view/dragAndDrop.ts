@@ -1,6 +1,7 @@
+import { DragAndDrop } from '@foldkit/ui'
 import clsx from 'clsx'
 import { Array, Option, pipe } from 'effect'
-import { Submodel, Ui } from 'foldkit'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { GotDragAndDropDemoMessage, type UiMessage } from '../message'
@@ -28,10 +29,10 @@ const cardView = (
   card: DemoCard,
   index: number,
   containerId: string,
-  dragAndDropModel: Ui.DragAndDrop.Model,
+  dragAndDropModel: DragAndDrop.Model,
 ): Html => {
   const h = html<UiMessage>()
-  const maybeItemId = Ui.DragAndDrop.maybeDraggedItemId(dragAndDropModel)
+  const maybeItemId = DragAndDrop.maybeDraggedItemId(dragAndDropModel)
   const isBeingDragged = Option.exists(maybeItemId, id => id === card.id)
 
   const isKeyboardDragged =
@@ -48,14 +49,14 @@ const cardView = (
           'ring-2 ring-accent-500': isKeyboardDragged,
         }),
       ),
-      ...Ui.DragAndDrop.draggable<UiMessage>({
+      ...DragAndDrop.draggable<UiMessage>({
         model: dragAndDropModel,
         toParentMessage: message => GotDragAndDropDemoMessage({ message }),
         itemId: card.id,
         containerId,
         index,
       }),
-      ...Ui.DragAndDrop.sortable<UiMessage>(card.id),
+      ...DragAndDrop.sortable<UiMessage>(card.id),
     ],
     [card.label],
   )
@@ -73,13 +74,13 @@ const dropPlaceholder = (): Html => {
 
 const renderColumn = (
   column: DemoColumn,
-  dragAndDropModel: Ui.DragAndDrop.Model,
+  dragAndDropModel: DragAndDrop.Model,
   children: ReadonlyArray<Html>,
 ): Html => {
   const h = html<UiMessage>()
-  const maybeTarget = Ui.DragAndDrop.maybeDropTarget(dragAndDropModel)
+  const maybeTarget = DragAndDrop.maybeDropTarget(dragAndDropModel)
   const isDropTarget =
-    Ui.DragAndDrop.isDragging(dragAndDropModel) &&
+    DragAndDrop.isDragging(dragAndDropModel) &&
     Option.exists(maybeTarget, ({ containerId }) => containerId === column.id)
 
   return h.keyed('div')(
@@ -104,7 +105,7 @@ const renderColumn = (
                 : 'border-transparent',
             ),
           ),
-          ...Ui.DragAndDrop.droppable<UiMessage>(column.id, column.label),
+          ...DragAndDrop.droppable<UiMessage>(column.id, column.label),
         ],
         [...children],
       ),
@@ -115,11 +116,11 @@ const renderColumn = (
 const columnView = (
   columns: ReadonlyArray<DemoColumn>,
   column: DemoColumn,
-  dragAndDropModel: Ui.DragAndDrop.Model,
+  dragAndDropModel: DragAndDrop.Model,
 ): Html => {
-  const maybeItemId = Ui.DragAndDrop.maybeDraggedItemId(dragAndDropModel)
-  const maybeTarget = Ui.DragAndDrop.maybeDropTarget(dragAndDropModel)
-  const isDragging = Ui.DragAndDrop.isDragging(dragAndDropModel)
+  const maybeItemId = DragAndDrop.maybeDraggedItemId(dragAndDropModel)
+  const maybeTarget = DragAndDrop.maybeDropTarget(dragAndDropModel)
+  const isDragging = DragAndDrop.isDragging(dragAndDropModel)
   const isPointerDragging = dragAndDropModel.dragState._tag === 'Dragging'
 
   const isTargetColumn =
@@ -166,13 +167,13 @@ const columnView = (
 
 const ghostView = (
   columns: ReadonlyArray<DemoColumn>,
-  dragAndDropModel: Ui.DragAndDrop.Model,
+  dragAndDropModel: DragAndDrop.Model,
 ): Html => {
   const h = html()
-  const maybeItemId = Ui.DragAndDrop.maybeDraggedItemId(dragAndDropModel)
+  const maybeItemId = DragAndDrop.maybeDraggedItemId(dragAndDropModel)
 
   return pipe(
-    Ui.DragAndDrop.ghostStyle(dragAndDropModel),
+    DragAndDrop.ghostStyle(dragAndDropModel),
     Option.flatMap(ghostStyle =>
       Option.map(findDraggedCard(columns, maybeItemId), card => ({
         ghostStyle,

@@ -1,3 +1,4 @@
+import { overlay } from '@foldkit/devtools'
 import { Layer } from 'effect'
 import { Runtime } from 'foldkit'
 
@@ -49,6 +50,7 @@ const application = Runtime.makeApplication<
     devTracerLayer,
   ),
   devTools: {
+    overlay,
     show: 'Always',
     mode: { development: 'TimeTravel', production: 'Inspect' },
     banner:

@@ -1,3 +1,4 @@
+import { overlay } from '@foldkit/devtools'
 import { Option } from 'effect'
 import { Runtime } from 'foldkit'
 
@@ -21,6 +22,7 @@ const application = Runtime.makeApplication({
   },
   container: document.getElementById('root'),
   devTools: {
+    overlay,
     Message,
   },
 })

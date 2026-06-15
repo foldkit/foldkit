@@ -351,7 +351,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           ' and ',
           inlineCode('update'),
           ' behind ',
-          inlineCode('Ui.Menu.create<Item>()'),
+          inlineCode('Menu.create<Item>()'),
           ' at module scope. The factory threads your item union through both, so ',
           inlineCode('Selected({ value, index })'),
           ' carries the picked value directly. Menu closes automatically after selection.',

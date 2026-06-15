@@ -1,6 +1,6 @@
+import { Button, DragAndDrop, Input } from '@foldkit/ui'
 import clsx from 'clsx'
 import { Array, Equal, Option, flow, pipe } from 'effect'
-import { Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { ADD_CARD_INPUT_ID } from '../constant'
@@ -33,7 +33,7 @@ const addCardForm = (
       'idle',
       [],
       [
-        Ui.Button.view<Message>({
+        Button.view<Message>({
           onClick: toParentMessage(ClickedAddCard({ columnId })),
           toView: attributes =>
             h.button(
@@ -64,7 +64,7 @@ const addCardForm = (
             [h.For(ADD_CARD_INPUT_ID), h.Class('sr-only')],
             ['New card title'],
           ),
-          Ui.Input.view<Message>({
+          Input.view<Message>({
             id: ADD_CARD_INPUT_ID,
             onInput: value => toParentMessage(ChangedNewCardTitle({ value })),
             value: model.newCardTitle,
@@ -86,7 +86,7 @@ const addCardForm = (
           h.div(
             [h.Class('flex gap-2 justify-end')],
             [
-              Ui.Button.view<Message>({
+              Button.view<Message>({
                 onClick: toParentMessage(CancelledNewCard()),
                 toView: attributes =>
                   h.button(
@@ -99,7 +99,7 @@ const addCardForm = (
                     ['Cancel'],
                   ),
               }),
-              Ui.Button.view<Message>({
+              Button.view<Message>({
                 type: 'submit',
                 toView: attributes =>
                   h.button(
@@ -160,14 +160,14 @@ const previewCardElements = (
   column: Column.Column,
   toParentMessage: (message: Message) => Message,
 ): ReadonlyArray<Html> => {
-  if (!Ui.DragAndDrop.isDragging(model.dragAndDrop)) {
+  if (!DragAndDrop.isDragging(model.dragAndDrop)) {
     return defaultCardElements(model, column, toParentMessage)
   }
 
-  return Option.match(Ui.DragAndDrop.maybeDraggedItemId(model.dragAndDrop), {
+  return Option.match(DragAndDrop.maybeDraggedItemId(model.dragAndDrop), {
     onNone: () => defaultCardElements(model, column, toParentMessage),
     onSome: draggedId => {
-      const maybeTarget = Ui.DragAndDrop.maybeDropTarget(model.dragAndDrop)
+      const maybeTarget = DragAndDrop.maybeDropTarget(model.dragAndDrop)
       const visibleCards = Array.filter(
         column.cards,
         ({ id }) => id !== draggedId,
@@ -219,11 +219,9 @@ export const columnView = (
 ): Html => {
   const h = html<Message>()
 
-  const maybeCurrentDropTarget = Ui.DragAndDrop.maybeDropTarget(
-    model.dragAndDrop,
-  )
+  const maybeCurrentDropTarget = DragAndDrop.maybeDropTarget(model.dragAndDrop)
   const isDropTarget =
-    Ui.DragAndDrop.isDragging(model.dragAndDrop) &&
+    DragAndDrop.isDragging(model.dragAndDrop) &&
     Option.exists(
       maybeCurrentDropTarget,
       target => target.containerId === column.id,
@@ -266,7 +264,7 @@ export const columnView = (
       h.ul(
         [
           h.Class('flex flex-col gap-2 flex-1 overflow-y-auto min-h-0'),
-          ...Ui.DragAndDrop.droppable<Message>(column.id, column.name),
+          ...DragAndDrop.droppable<Message>(column.id, column.name),
         ],
         previewCardElements(model, column, toParentMessage),
       ),

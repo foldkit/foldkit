@@ -1,6 +1,6 @@
-import { Ui } from 'foldkit'
+import { Popover } from '@foldkit/ui'
+import type { AnchorConfig } from '@foldkit/ui/popover'
 import { type Html, html } from 'foldkit/html'
-import type { AnchorConfig } from 'foldkit/ui/popover'
 
 import type { TableOfContentsEntry } from '../../main'
 import {
@@ -87,8 +87,8 @@ const panelContent = (): Html => {
 }
 
 const popoverDemo = (
-  popoverModel: Ui.Popover.Model,
-  toMessage: (message: Ui.Popover.Message) => Message,
+  popoverModel: Popover.Model,
+  toMessage: (message: Popover.Message) => Message,
   panelClassNameValue: string,
 ): Html => {
   const h = html<Message>()
@@ -96,7 +96,7 @@ const popoverDemo = (
   return h.submodel({
     slotId: popoverModel.id,
     model: popoverModel,
-    view: Ui.Popover.view,
+    view: Popover.view,
     viewInputs: {
       anchor: POPOVER_ANCHOR,
       toView: ({ button, panel, backdrop, isVisible }) =>
@@ -123,7 +123,7 @@ const popoverDemo = (
   })
 }
 
-export const basicDemo = (popoverModel: Ui.Popover.Model) => {
+export const basicDemo = (popoverModel: Popover.Model) => {
   const h = html<Message>()
 
   return [
@@ -140,7 +140,7 @@ export const basicDemo = (popoverModel: Ui.Popover.Model) => {
   ]
 }
 
-export const animatedDemo = (popoverModel: Ui.Popover.Model) => {
+export const animatedDemo = (popoverModel: Popover.Model) => {
   const h = html<Message>()
 
   return [
@@ -157,13 +157,13 @@ export const animatedDemo = (popoverModel: Ui.Popover.Model) => {
   ]
 }
 
-const nestedChildPopover = (childPopoverModel: Ui.Popover.Model): Html => {
+const nestedChildPopover = (childPopoverModel: Popover.Model): Html => {
   const h = html<Message>()
 
   return h.submodel({
     slotId: childPopoverModel.id,
     model: childPopoverModel,
-    view: Ui.Popover.view,
+    view: Popover.view,
     viewInputs: {
       anchor: NESTED_POPOVER_ANCHOR,
       toView: ({ button, panel, backdrop, isVisible }) =>
@@ -206,8 +206,8 @@ const nestedChildPopover = (childPopoverModel: Ui.Popover.Model): Html => {
 }
 
 export const nestedDemo = (
-  parentPopoverModel: Ui.Popover.Model,
-  childPopoverModel: Ui.Popover.Model,
+  parentPopoverModel: Popover.Model,
+  childPopoverModel: Popover.Model,
 ) => {
   const h = html<Message>()
 
@@ -218,7 +218,7 @@ export const nestedDemo = (
         h.submodel({
           slotId: parentPopoverModel.id,
           model: parentPopoverModel,
-          view: Ui.Popover.view,
+          view: Popover.view,
           viewInputs: {
             anchor: POPOVER_ANCHOR,
             focusSelector: nestedChildButtonSelector,

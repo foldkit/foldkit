@@ -1,24 +1,24 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Checkbox } from '@foldkit/ui'
 import { Array } from 'effect'
-import { Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // Add multiple Checkbox Submodels to your Model for the parent and children:
 const Model = S.Struct({
-  optionA: Ui.Checkbox.Model,
-  optionB: Ui.Checkbox.Model,
+  optionA: Checkbox.Model,
+  optionB: Checkbox.Model,
   // ...your other fields
 })
 
 // In your init function, initialize each Submodel:
 const init = () => [
   {
-    optionA: Ui.Checkbox.init({ id: 'option-a' }),
-    optionB: Ui.Checkbox.init({ id: 'option-b' }),
+    optionA: Checkbox.init({ id: 'option-a' }),
+    optionB: Checkbox.init({ id: 'option-b' }),
     // ...your other fields
   },
   [],
@@ -26,17 +26,17 @@ const init = () => [
 
 // Embed each child's Message, plus a Message for the "Select All" parent:
 const GotSelectAllMessage = m('GotSelectAllMessage', {
-  message: Ui.Checkbox.Message,
+  message: Checkbox.Message,
 })
 const GotOptionAMessage = m('GotOptionAMessage', {
-  message: Ui.Checkbox.Message,
+  message: Checkbox.Message,
 })
 const GotOptionBMessage = m('GotOptionBMessage', {
-  message: Ui.Checkbox.Message,
+  message: Checkbox.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), toggling
-// "Select All" routes each child through Ui.Checkbox.setChecked so the
+// "Select All" routes each child through Checkbox.setChecked so the
 // update goes through the Submodel rather than mutating its fields directly:
 GotSelectAllMessage: () => {
   const isAllChecked = Array.every(
@@ -45,8 +45,8 @@ GotSelectAllMessage: () => {
   )
   const nextChecked = !isAllChecked
 
-  const [nextOptionA] = Ui.Checkbox.setChecked(model.optionA, nextChecked)
-  const [nextOptionB] = Ui.Checkbox.setChecked(model.optionB, nextChecked)
+  const [nextOptionA] = Checkbox.setChecked(model.optionA, nextChecked)
+  const [nextOptionB] = Checkbox.setChecked(model.optionB, nextChecked)
 
   return [
     evo(model, {
@@ -70,7 +70,7 @@ const view = () => {
   return h.submodel({
     slotId: 'select-all',
     model: { id: 'select-all', isChecked: isAllChecked },
-    view: Ui.Checkbox.view,
+    view: Checkbox.view,
     viewInputs: {
       isIndeterminate,
       toView: attributes =>

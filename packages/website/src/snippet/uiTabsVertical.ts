@@ -1,16 +1,16 @@
 // Pseudocode walkthrough using the same Model, init, Message, and update
 // as the basic tabs; only the view config changes to set orientation and
 // use flex + flex-col for layout.
-import { Ui } from 'foldkit'
+import { Tabs } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
 const GotTabsMessage = m('GotTabsMessage', {
-  message: Ui.Tabs.Message,
+  message: Tabs.Message,
 })
 
 type Framework = 'Foldkit' | 'React' | 'Elm'
-const FrameworkTabs = Ui.Tabs.create<Framework>()
+const FrameworkTabs = Tabs.create<Framework>()
 const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']
 
 const descriptions: Record<Framework, string> = {

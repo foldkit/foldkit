@@ -1,3 +1,4 @@
+import { Button, Input } from '@foldkit/ui'
 import { clsx } from 'clsx'
 import {
   Array,
@@ -8,7 +9,7 @@ import {
   Schema as S,
   pipe,
 } from 'effect'
-import { Command, Submodel, Ui } from 'foldkit'
+import { Command, Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -375,7 +376,7 @@ const viewAndControlsView = (model: Model): Html => {
           ),
         ],
       ),
-      Ui.Button.view<Message>({
+      Button.view<Message>({
         onClick: ClickedDemoIncrement(),
         toView: attributes =>
           h.button(
@@ -388,7 +389,7 @@ const viewAndControlsView = (model: Model): Html => {
             ['Add 1'],
           ),
       }),
-      Ui.Input.view<Message>({
+      Input.view<Message>({
         id: 'demo-reset-duration',
         value: String(model.resetDuration),
         onInput: value =>
@@ -419,7 +420,7 @@ const viewAndControlsView = (model: Model): Html => {
                     h.Min(String(MIN_RESET_DURATION)),
                     h.Max(String(MAX_RESET_DURATION)),
                   ]),
-                  Ui.Button.view<Message>({
+                  Button.view<Message>({
                     onClick: ChangedDemoResetDuration({
                       seconds: N.clamp(model.resetDuration - 1, {
                         minimum: MIN_RESET_DURATION,
@@ -441,7 +442,7 @@ const viewAndControlsView = (model: Model): Html => {
                         ['−'],
                       ),
                   }),
-                  Ui.Button.view<Message>({
+                  Button.view<Message>({
                     onClick: ChangedDemoResetDuration({
                       seconds: N.clamp(model.resetDuration + 1, {
                         minimum: MIN_RESET_DURATION,
@@ -468,7 +469,7 @@ const viewAndControlsView = (model: Model): Html => {
             ],
           ),
       }),
-      Ui.Button.view<Message>({
+      Button.view<Message>({
         onClick: ClickedDemoReset(),
         isDisabled: model.isResetting,
         toView: attributes =>

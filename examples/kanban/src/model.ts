@@ -1,5 +1,5 @@
+import { DragAndDrop } from '@foldkit/ui'
 import { Schema as S } from 'effect'
-import { Ui } from 'foldkit'
 
 import { Column } from './domain'
 
@@ -11,7 +11,7 @@ export type SavedBoard = typeof SavedBoard.Type
 
 export const Model = S.Struct({
   columns: S.Array(Column.Column),
-  dragAndDrop: Ui.DragAndDrop.Model,
+  dragAndDrop: DragAndDrop.Model,
   maybeNewCardColumnId: S.Option(S.String),
   newCardTitle: S.String,
   announcement: S.String,

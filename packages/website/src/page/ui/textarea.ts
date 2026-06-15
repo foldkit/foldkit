@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Textarea } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 import type { TableOfContentsEntry } from '../../main'
@@ -38,7 +38,7 @@ export const basicDemo = (model: Model) => {
     h.div(
       [h.Class('flex flex-col items-start gap-2 w-full max-w-md')],
       [
-        Ui.Textarea.view({
+        Textarea.view({
           id: 'textarea-basic-demo',
           value: model.textareaDemoValue,
           onInput: value => UpdatedTextareaDemoValue({ value }),
@@ -72,7 +72,7 @@ export const disabledDemo = (_model: Model) => {
   const h = html<Message>()
 
   return [
-    Ui.Textarea.view<Message>({
+    Textarea.view<Message>({
       id: 'textarea-disabled-demo',
       isDisabled: true,
       value:

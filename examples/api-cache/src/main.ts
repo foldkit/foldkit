@@ -1,3 +1,4 @@
+import { Button, Tabs } from '@foldkit/ui'
 import {
   Array,
   Clock,
@@ -10,7 +11,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Command, Runtime, Subscription, Ui } from 'foldkit'
+import { Command, Runtime, Subscription } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -77,10 +78,10 @@ type Tab = typeof Tab.Type
 
 const tabValues: ReadonlyArray<Tab> = Tab.literals
 
-export const AppTabs = Ui.Tabs.create<Tab>()
+export const AppTabs = Tabs.create<Tab>()
 
 export const Model = S.Struct({
-  tabs: Ui.Tabs.Model,
+  tabs: Tabs.Model,
   activeTab: Tab,
   posts: PostsData.Union,
   postDetailById: S.HashMap(S.String, PostDetailData.Union),
@@ -91,7 +92,7 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const GotTabsMessage = m('GotTabsMessage', { message: Ui.Tabs.Message })
+export const GotTabsMessage = m('GotTabsMessage', { message: Tabs.Message })
 export const ClickedPost = m('ClickedPost', { postId: S.String })
 export const ClickedBackToPosts = m('ClickedBackToPosts')
 export const ClickedInvalidatePosts = m('ClickedInvalidatePosts')
@@ -212,7 +213,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
         return Option.match(maybeOutMessage, {
           onNone: () => [tabsModel, mappedCommands],
-          onSome: M.type<Ui.Tabs.OutMessage<Tab>>().pipe(
+          onSome: M.type<Tabs.OutMessage<Tab>>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
               Selected: ({ value }) => {
@@ -315,7 +316,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 export const init: Runtime.ApplicationInit<Model, Message> = () => [
   {
-    tabs: Ui.Tabs.init({ id: TABS_ID }),
+    tabs: Tabs.init({ id: TABS_ID }),
     activeTab: 'Posts',
     posts: PostsData.Loading(),
     postDetailById: HashMap.empty(),
@@ -521,7 +522,7 @@ const postsListView = (model: Model): Html => {
         [h.Class('flex items-center justify-between')],
         [
           h.h2([h.Class('text-xl font-bold text-slate-800')], ['Posts']),
-          Ui.Button.view({
+          Button.view({
             onClick: ClickedInvalidatePosts(),
             isDisabled: isFetchInFlight,
             toView: attributes =>
@@ -585,7 +586,7 @@ const postListItems = (
         post.id,
         [],
         [
-          Ui.Button.view({
+          Button.view({
             onClick: ClickedPost({ postId: post.id }),
             toView: attributes =>
               h.button(
@@ -639,7 +640,7 @@ const postDetailView = (model: Model, postId: string): Html => {
   return h.div(
     [h.Class('flex flex-col gap-4')],
     [
-      Ui.Button.view({
+      Button.view({
         onClick: ClickedBackToPosts(),
         toView: attributes =>
           h.button(
@@ -705,7 +706,7 @@ const statsTabView = (model: Model): Html => {
         [h.Class('flex items-center justify-between')],
         [
           h.h2([h.Class('text-xl font-bold text-slate-800')], ['Stats']),
-          Ui.Button.view({
+          Button.view({
             onClick: ClickedRefreshStats(),
             isDisabled: isFetchInFlight,
             toView: attributes =>
@@ -805,7 +806,7 @@ const errorPanel = (error: string, retryMessage: Message): Html => {
     ],
     [
       h.p([], [error]),
-      Ui.Button.view({
+      Button.view({
         onClick: retryMessage,
         toView: attributes =>
           h.button(

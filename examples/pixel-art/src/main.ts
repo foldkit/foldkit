@@ -1,7 +1,8 @@
 import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { Dialog, Listbox, RadioGroup, Switch } from '@foldkit/ui'
 import { Effect, Option, Schema as S } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
-import { Runtime, Ui } from 'foldkit'
+import { Runtime } from 'foldkit'
 
 import {
   DEFAULT_COLOR_INDEX,
@@ -59,19 +60,19 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => [
     mirrorMode: 'None',
     isDrawing: false,
     maybeHoveredCell: Option.none(),
-    errorDialog: Ui.Dialog.init({ id: 'export-error-dialog' }),
+    errorDialog: Dialog.init({ id: 'export-error-dialog' }),
     maybeExportError: Option.none(),
     paletteThemeIndex: Option.match(flags.maybeSavedCanvas, {
       onNone: () => DEFAULT_PALETTE_THEME_INDEX,
       onSome: ({ paletteThemeIndex }) => paletteThemeIndex,
     }),
-    gridSizeConfirmDialog: Ui.Dialog.init({ id: 'grid-size-confirm-dialog' }),
+    gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
     maybePendingGridSize: Option.none(),
-    toolRadioGroup: Ui.RadioGroup.init({
+    toolRadioGroup: RadioGroup.init({
       id: 'tool-picker',
       selectedValue: 'Brush',
     }),
-    gridSizeRadioGroup: Ui.RadioGroup.init({
+    gridSizeRadioGroup: RadioGroup.init({
       id: 'grid-size-picker',
       selectedValue: Option.match(flags.maybeSavedCanvas, {
         onNone: () => DEFAULT_GRID_SIZE.toString(),
@@ -79,7 +80,7 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => [
       }),
       orientation: 'Horizontal',
     }),
-    paletteRadioGroup: Ui.RadioGroup.init({
+    paletteRadioGroup: RadioGroup.init({
       id: 'palette-picker',
       selectedValue: Option.match(flags.maybeSavedCanvas, {
         onNone: () => DEFAULT_COLOR_INDEX.toString(),
@@ -87,9 +88,9 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => [
       }),
       orientation: 'Horizontal',
     }),
-    mirrorHorizontalSwitch: Ui.Switch.init({ id: 'mirror-horizontal' }),
-    mirrorVerticalSwitch: Ui.Switch.init({ id: 'mirror-vertical' }),
-    themeListbox: Ui.Listbox.init({
+    mirrorHorizontalSwitch: Switch.init({ id: 'mirror-horizontal' }),
+    mirrorVerticalSwitch: Switch.init({ id: 'mirror-vertical' }),
+    themeListbox: Listbox.init({
       id: 'theme-picker',
       selectedItem: Option.match(flags.maybeSavedCanvas, {
         onNone: () => DEFAULT_PALETTE_THEME_INDEX.toString(),

@@ -88,7 +88,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       pageTitle('core/devtools', 'DevTools'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Foldkit includes a built-in DevTools overlay that displays every Message flowing through your app and lets you inspect the Model, Message, Commands, and Mounts at any point in time. It renders inside a shadow DOM so it won’t interfere with your styles or layout.',
+        'Foldkit has a DevTools overlay that displays every Message flowing through your app and lets you inspect the Model, Message, Commands, and Mounts at any point in time. It renders inside a shadow DOM so it won’t interfere with your styles or layout.',
       ),
       para(
         'You can see it in action right now. Look for the tab on the bottom right edge of this page.',
@@ -117,11 +117,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' page for setup.',
       ),
       para(
-        'DevTools are enabled by default in development. Pass a ',
+        'DevTools are enabled by default in development. Recording and the MCP bridge live in the core runtime, so a ',
         inlineCode('devTools'),
-        ' object to ',
+        ' object on ',
         inlineCode('makeApplication'),
-        ' to configure behavior:',
+        ' is enough for the MCP integration. The in-browser overlay ships separately in ',
+        inlineCode('@foldkit/devtools'),
+        ': install it and pass its ',
+        inlineCode('overlay'),
+        ' to mount the panel.',
       ),
       highlightedCodeBlock(
         h.div(

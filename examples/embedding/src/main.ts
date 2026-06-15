@@ -1,3 +1,4 @@
+import { overlay } from '@foldkit/devtools'
 import { Duration, Effect, Match as M, Schema as S, Stream } from 'effect'
 import { Command, Port, Runtime, Subscription } from 'foldkit'
 import { Html, html } from 'foldkit/html'
@@ -140,5 +141,8 @@ export const makeElement = (container: HTMLElement, flags: Flags) =>
     subscriptions,
     ports,
     container,
-    devTools: { Message },
+    devTools: {
+      overlay,
+      Message,
+    },
   })

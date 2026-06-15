@@ -1,5 +1,20 @@
+import {
+  Animation,
+  Calendar,
+  Checkbox,
+  DatePicker,
+  Dialog,
+  Disclosure,
+  DragAndDrop,
+  FileDrop,
+  Popover,
+  Slider,
+  Switch,
+  Tooltip,
+  VirtualList,
+} from '@foldkit/ui'
 import { Array, Match as M, Number, Option, pipe } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { CityCombobox, CityMultiCombobox } from './combobox'
@@ -107,24 +122,26 @@ export type UpdateReturn = readonly [
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const delegateToAnimationDemo = (
-  animationModel: Ui.Animation.Model,
-  message: Ui.Animation.Message,
-): readonly [Ui.Animation.Model, ReadonlyArray<Command.Command<Message>>] => {
-  const [nextAnimation, animationCommands, maybeOutMessage] =
-    Ui.Animation.update(animationModel, message)
+  animationModel: Animation.Model,
+  message: Animation.Message,
+): readonly [Animation.Model, ReadonlyArray<Command.Command<Message>>] => {
+  const [nextAnimation, animationCommands, maybeOutMessage] = Animation.update(
+    animationModel,
+    message,
+  )
 
-  const toMessage = (animationMessage: Ui.Animation.Message): Message =>
+  const toMessage = (animationMessage: Animation.Message): Message =>
     GotAnimationDemoMessage({ message: animationMessage })
 
   const mappedCommands = Command.mapMessages(animationCommands, toMessage)
 
   const additionalCommands = Option.match(maybeOutMessage, {
     onNone: () => [],
-    onSome: M.type<Ui.Animation.OutMessage>().pipe(
+    onSome: M.type<Animation.OutMessage>().pipe(
       M.tagsExhaustive({
         StartedLeaveAnimating: () => [
           Command.mapMessage(
-            Ui.Animation.defaultLeaveCommand(nextAnimation),
+            Animation.defaultLeaveCommand(nextAnimation),
             toMessage,
           ),
         ],
@@ -167,7 +184,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       GotFieldsetCheckboxDemoMessage: ({ message }) => {
         const [nextFieldsetCheckboxDemo, fieldsetCheckboxCommands] =
-          Ui.Checkbox.update(model.fieldsetCheckboxDemo, message)
+          Checkbox.update(model.fieldsetCheckboxDemo, message)
 
         return [
           evo(model, {
@@ -187,8 +204,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotCalendarBasicDemoMessage: ({ message }) => {
-        const [nextCalendarBasicDemo, calendarBasicCommands] =
-          Ui.Calendar.update(model.calendarBasicDemo, message)
+        const [nextCalendarBasicDemo, calendarBasicCommands] = Calendar.update(
+          model.calendarBasicDemo,
+          message,
+        )
 
         return [
           evo(model, {
@@ -202,7 +221,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       GotDatePickerBasicDemoMessage: ({ message }) => {
         const [nextDatePickerBasicDemo, datePickerBasicCommands] =
-          Ui.DatePicker.update(model.datePickerBasicDemo, message)
+          DatePicker.update(model.datePickerBasicDemo, message)
 
         return [
           evo(model, {
@@ -215,8 +234,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotCheckboxBasicDemoMessage: ({ message }) => {
-        const [nextCheckboxBasicDemo, checkboxBasicCommands] =
-          Ui.Checkbox.update(model.checkboxBasicDemo, message)
+        const [nextCheckboxBasicDemo, checkboxBasicCommands] = Checkbox.update(
+          model.checkboxBasicDemo,
+          message,
+        )
 
         return [
           evo(model, {
@@ -234,11 +255,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           model.checkboxOptionBDemo.isChecked
         const nextChecked = !isAllChecked
 
-        const [nextOptionA] = Ui.Checkbox.setChecked(
+        const [nextOptionA] = Checkbox.setChecked(
           model.checkboxOptionADemo,
           nextChecked,
         )
-        const [nextOptionB] = Ui.Checkbox.setChecked(
+        const [nextOptionB] = Checkbox.setChecked(
           model.checkboxOptionBDemo,
           nextChecked,
         )
@@ -253,7 +274,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotCheckboxOptionADemoMessage: ({ message }) => {
-        const [nextOptionA, optionACommands] = Ui.Checkbox.update(
+        const [nextOptionA, optionACommands] = Checkbox.update(
           model.checkboxOptionADemo,
           message,
         )
@@ -269,7 +290,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotCheckboxOptionBDemoMessage: ({ message }) => {
-        const [nextOptionB, optionBCommands] = Ui.Checkbox.update(
+        const [nextOptionB, optionBCommands] = Checkbox.update(
           model.checkboxOptionBDemo,
           message,
         )
@@ -343,7 +364,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotDialogDemoMessage: ({ message }) => {
-        const [nextDialogDemo, dialogCommands] = Ui.Dialog.update(
+        const [nextDialogDemo, dialogCommands] = Dialog.update(
           model.dialogDemo,
           message,
         )
@@ -359,8 +380,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotDialogAnimatedDemoMessage: ({ message }) => {
-        const [nextDialogAnimatedDemo, dialogAnimatedCommands] =
-          Ui.Dialog.update(model.dialogAnimatedDemo, message)
+        const [nextDialogAnimatedDemo, dialogAnimatedCommands] = Dialog.update(
+          model.dialogAnimatedDemo,
+          message,
+        )
 
         return [
           evo(model, {
@@ -373,7 +396,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotOverlayDialogDemoMessage: ({ message }) => {
-        const [nextOverlayDialogDemo, overlayDialogCommands] = Ui.Dialog.update(
+        const [nextOverlayDialogDemo, overlayDialogCommands] = Dialog.update(
           model.overlayDialogDemo,
           message,
         )
@@ -404,7 +427,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       GotNestedDialogParentDemoMessage: ({ message }) => {
         const [nextNestedDialogParentDemo, nestedDialogParentCommands] =
-          Ui.Dialog.update(model.nestedDialogParentDemo, message)
+          Dialog.update(model.nestedDialogParentDemo, message)
 
         return [
           evo(model, {
@@ -418,7 +441,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       GotNestedDialogChildDemoMessage: ({ message }) => {
         const [nextNestedDialogChildDemo, nestedDialogChildCommands] =
-          Ui.Dialog.update(model.nestedDialogChildDemo, message)
+          Dialog.update(model.nestedDialogChildDemo, message)
 
         return [
           evo(model, {
@@ -432,7 +455,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       ClickedDeleteProject: () => {
         const [nextNestedDialogChildDemo, nestedDialogChildCommands] =
-          Ui.Dialog.open(model.nestedDialogChildDemo)
+          Dialog.open(model.nestedDialogChildDemo)
 
         return [
           evo(model, {
@@ -445,9 +468,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       ClickedOpenDialog: () => {
-        const [nextDialogDemo, dialogCommands] = Ui.Dialog.open(
-          model.dialogDemo,
-        )
+        const [nextDialogDemo, dialogCommands] = Dialog.open(model.dialogDemo)
 
         return [
           evo(model, { dialogDemo: () => nextDialogDemo }),
@@ -458,7 +479,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       ClickedOpenAnimatedDialog: () => {
-        const [nextDialogAnimatedDemo, dialogAnimatedCommands] = Ui.Dialog.open(
+        const [nextDialogAnimatedDemo, dialogAnimatedCommands] = Dialog.open(
           model.dialogAnimatedDemo,
         )
 
@@ -471,7 +492,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       ClickedEditFilters: () => {
-        const [nextOverlayDialogDemo, overlayDialogCommands] = Ui.Dialog.open(
+        const [nextOverlayDialogDemo, overlayDialogCommands] = Dialog.open(
           model.overlayDialogDemo,
         )
 
@@ -485,7 +506,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       ClickedOpenProjectSettings: () => {
         const [nextNestedDialogParentDemo, nestedDialogParentCommands] =
-          Ui.Dialog.open(model.nestedDialogParentDemo)
+          Dialog.open(model.nestedDialogParentDemo)
 
         return [
           evo(model, {
@@ -498,7 +519,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotDisclosureDemoMessage: ({ message }) => {
-        const [nextDisclosureDemo, disclosureCommands] = Ui.Disclosure.update(
+        const [nextDisclosureDemo, disclosureCommands] = Disclosure.update(
           model.disclosureDemo,
           message,
         )
@@ -590,7 +611,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotPopoverBasicDemoMessage: ({ message }) => {
-        const [nextPopoverBasicDemo, popoverBasicCommands] = Ui.Popover.update(
+        const [nextPopoverBasicDemo, popoverBasicCommands] = Popover.update(
           model.popoverBasicDemo,
           message,
         )
@@ -607,7 +628,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       GotPopoverAnimatedDemoMessage: ({ message }) => {
         const [nextPopoverAnimatedDemo, popoverAnimatedCommands] =
-          Ui.Popover.update(model.popoverAnimatedDemo, message)
+          Popover.update(model.popoverAnimatedDemo, message)
 
         return [
           evo(model, {
@@ -621,7 +642,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       GotPopoverNestedParentDemoMessage: ({ message }) => {
         const [nextPopoverNestedParentDemo, popoverNestedParentCommands] =
-          Ui.Popover.update(model.popoverNestedParentDemo, message)
+          Popover.update(model.popoverNestedParentDemo, message)
 
         return [
           evo(model, {
@@ -635,7 +656,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       GotPopoverNestedChildDemoMessage: ({ message }) => {
         const [nextPopoverNestedChildDemo, popoverNestedChildCommands] =
-          Ui.Popover.update(model.popoverNestedChildDemo, message)
+          Popover.update(model.popoverNestedChildDemo, message)
 
         return [
           evo(model, {
@@ -676,7 +697,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotSliderRatingDemoMessage: ({ message }) => {
-        const [nextSliderRatingDemo, sliderRatingCommands] = Ui.Slider.update(
+        const [nextSliderRatingDemo, sliderRatingCommands] = Slider.update(
           model.sliderRatingDemo,
           message,
         )
@@ -692,7 +713,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotSliderVolumeDemoMessage: ({ message }) => {
-        const [nextSliderVolumeDemo, sliderVolumeCommands] = Ui.Slider.update(
+        const [nextSliderVolumeDemo, sliderVolumeCommands] = Slider.update(
           model.sliderVolumeDemo,
           message,
         )
@@ -708,7 +729,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotSwitchDemoMessage: ({ message }) => {
-        const [nextSwitchDemo, switchCommands] = Ui.Switch.update(
+        const [nextSwitchDemo, switchCommands] = Switch.update(
           model.switchDemo,
           message,
         )
@@ -754,7 +775,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotTooltipDemoMessage: ({ message }) => {
-        const [nextTooltipDemo, tooltipCommands] = Ui.Tooltip.update(
+        const [nextTooltipDemo, tooltipCommands] = Tooltip.update(
           model.tooltipDemo,
           message,
         )
@@ -895,13 +916,13 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotFileDropBasicDemoMessage: ({ message }) => {
-        const [nextFileDrop, commands, maybeOutMessage] = Ui.FileDrop.update(
+        const [nextFileDrop, commands, maybeOutMessage] = FileDrop.update(
           model.fileDropBasicDemo,
           message,
         )
         const nextFiles = Option.match(maybeOutMessage, {
           onNone: () => model.fileDropBasicDemoFiles,
-          onSome: M.type<Ui.FileDrop.OutMessage>().pipe(
+          onSome: M.type<FileDrop.OutMessage>().pipe(
             M.tagsExhaustive({
               ReceivedFiles: ({ files }) => [
                 ...model.fileDropBasicDemoFiles,
@@ -932,7 +953,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       GotDragAndDropDemoMessage: ({ message }) => {
         const [nextDragAndDrop, dragAndDropCommands, maybeOutMessage] =
-          Ui.DragAndDrop.update(model.dragAndDropDemo, message)
+          DragAndDrop.update(model.dragAndDropDemo, message)
 
         const nextColumns = pipe(
           maybeOutMessage,
@@ -969,8 +990,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotVirtualListDemoMessage: ({ message }) => {
-        const [nextVirtualListDemo, virtualListCommands] =
-          Ui.VirtualList.update(model.virtualListDemo, message)
+        const [nextVirtualListDemo, virtualListCommands] = VirtualList.update(
+          model.virtualListDemo,
+          message,
+        )
 
         return [
           evo(model, { virtualListDemo: () => nextVirtualListDemo }),
@@ -982,7 +1005,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       ClickedVirtualListScrollToMiddle: () => {
         const [nextVirtualListDemo, virtualListCommands] =
-          Ui.VirtualList.scrollToIndex(
+          VirtualList.scrollToIndex(
             model.virtualListDemo,
             Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
           )
@@ -997,7 +1020,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       GotVirtualListVariableDemoMessage: ({ message }) => {
         const [nextVirtualListVariableDemo, virtualListCommands] =
-          Ui.VirtualList.update(model.virtualListVariableDemo, message)
+          VirtualList.update(model.virtualListVariableDemo, message)
 
         return [
           evo(model, {
@@ -1011,7 +1034,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       ClickedVirtualListVariableScrollToMiddle: () => {
         const [nextVirtualListVariableDemo, virtualListCommands] =
-          Ui.VirtualList.scrollToIndexVariable(
+          VirtualList.scrollToIndexVariable(
             model.virtualListVariableDemo,
             variableActivities,
             variableRowHeightPx,

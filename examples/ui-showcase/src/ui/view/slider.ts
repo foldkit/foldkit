@@ -1,4 +1,5 @@
-import { Submodel, Ui } from 'foldkit'
+import { Slider } from '@foldkit/ui'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import {
@@ -43,7 +44,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
           h.submodel({
             slotId: model.sliderRatingDemo.id,
             model: model.sliderRatingDemo,
-            view: Ui.Slider.view,
+            view: Slider.view,
             viewInputs: {
               formatValue: value => `${value} of 10`,
               toView: attributes =>
@@ -92,7 +93,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
           h.submodel({
             slotId: model.sliderVolumeDemo.id,
             model: model.sliderVolumeDemo,
-            view: Ui.Slider.view,
+            view: Slider.view,
             viewInputs: {
               formatValue: value => `${Math.round(value * 100)} percent`,
               toView: attributes =>

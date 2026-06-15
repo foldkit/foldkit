@@ -1,5 +1,6 @@
+import { DragAndDrop } from '@foldkit/ui'
 import { Option } from 'effect'
-import { Scene, Ui } from 'foldkit'
+import { Scene } from 'foldkit'
 import { describe, test } from 'vitest'
 
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
@@ -37,7 +38,7 @@ const testColumns: ReadonlyArray<Column> = [
 
 const testModel: Model = {
   columns: testColumns,
-  dragAndDrop: Ui.DragAndDrop.init({ id: 'kanban' }),
+  dragAndDrop: DragAndDrop.init({ id: 'kanban' }),
   maybeNewCardColumnId: Option.none(),
   newCardTitle: '',
   announcement: '',

@@ -1,5 +1,6 @@
+import { Checkbox, Listbox } from '@foldkit/ui'
 import { Match as M, Option, Schema as S } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import {
   Field,
   NotValidated,
@@ -37,13 +38,13 @@ export const Model = S.Struct({
   degree: Field(S.String),
   fieldOfStudy: Field(S.String),
   graduationYear: S.String,
-  graduationYearListbox: Ui.Listbox.Model,
-  isCurrentlyEnrolled: Ui.Checkbox.Model,
+  graduationYearListbox: Listbox.Model,
+  isCurrentlyEnrolled: Checkbox.Model,
   gpa: S.String,
 })
 export type Model = typeof Model.Type
 
-const GraduationYearListbox = Ui.Listbox.create<string>()
+const GraduationYearListbox = Listbox.create<string>()
 
 // MESSAGE
 
@@ -54,11 +55,11 @@ export const UpdatedFieldOfStudy = m('UpdatedFieldOfStudy', {
 })
 export const GotGraduationYearListboxMessage = m(
   'GotGraduationYearListboxMessage',
-  { message: Ui.Listbox.Message },
+  { message: Listbox.Message },
 )
 export const GotIsCurrentlyEnrolledMessage = m(
   'GotIsCurrentlyEnrolledMessage',
-  { message: Ui.Checkbox.Message },
+  { message: Checkbox.Message },
 )
 export const UpdatedGpa = m('UpdatedGpa', { value: S.String })
 export const ClickedRemoveSelf = m('ClickedRemoveSelf')
@@ -91,10 +92,10 @@ export const init = (entryId: string): Model => ({
   degree: NotValidated({ value: '' }),
   fieldOfStudy: NotValidated({ value: '' }),
   graduationYear: '',
-  graduationYearListbox: Ui.Listbox.init({
+  graduationYearListbox: Listbox.init({
     id: `${entryId}-graduation-year`,
   }),
-  isCurrentlyEnrolled: Ui.Checkbox.init({ id: `${entryId}-enrolled` }),
+  isCurrentlyEnrolled: Checkbox.init({ id: `${entryId}-enrolled` }),
   gpa: '',
 })
 
@@ -107,7 +108,7 @@ type UpdateReturn = readonly [
 ]
 
 const mapGraduationYearListboxCommands = (
-  commands: ReadonlyArray<Command.Command<Ui.Listbox.Message>>,
+  commands: ReadonlyArray<Command.Command<Listbox.Message>>,
 ): ReadonlyArray<Command.Command<Message>> =>
   Command.mapMessages(commands, message =>
     GotGraduationYearListboxMessage({ message }),
@@ -149,7 +150,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             mappedCommands,
             Option.none(),
           ],
-          onSome: M.type<Ui.Listbox.OutMessage>().pipe(
+          onSome: M.type<Listbox.OutMessage>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
               Selected: ({ value }) => [
@@ -166,7 +167,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotIsCurrentlyEnrolledMessage: ({ message: checkboxMessage }) => {
-        const [nextCheckbox] = Ui.Checkbox.update(
+        const [nextCheckbox] = Checkbox.update(
           model.isCurrentlyEnrolled,
           checkboxMessage,
         )

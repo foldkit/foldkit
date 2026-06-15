@@ -1,5 +1,6 @@
+import { DragAndDrop } from '@foldkit/ui'
 import { Option } from 'effect'
-import { Story, Ui } from 'foldkit'
+import { Story } from 'foldkit'
 import { generateKeyBetween } from 'fractional-indexing'
 import { describe, expect, test } from 'vitest'
 
@@ -59,7 +60,7 @@ const testColumns: ReadonlyArray<Column.Column> = [
 
 const emptyModel: Model = {
   columns: testColumns,
-  dragAndDrop: Ui.DragAndDrop.init({ id: 'kanban' }),
+  dragAndDrop: DragAndDrop.init({ id: 'kanban' }),
   maybeNewCardColumnId: Option.none(),
   newCardTitle: '',
   announcement: '',
@@ -162,7 +163,7 @@ describe('update', () => {
         Story.with(emptyModel),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.PressedDraggable({
+            message: DragAndDrop.PressedDraggable({
               itemId: firstCardId,
               containerId: 'todo',
               index: 0,
@@ -173,7 +174,7 @@ describe('update', () => {
         ),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.MovedPointer({
+            message: DragAndDrop.MovedPointer({
               screenX: 100,
               screenY: 200,
               clientX: 100,
@@ -184,7 +185,7 @@ describe('update', () => {
         ),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.ReleasedPointer(),
+            message: DragAndDrop.ReleasedPointer(),
           }),
         ),
         Story.Command.resolve(SaveBoard, CompletedSaveBoard()),
@@ -203,7 +204,7 @@ describe('update', () => {
         Story.with(emptyModel),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.PressedDraggable({
+            message: DragAndDrop.PressedDraggable({
               itemId: cardId,
               containerId: 'todo',
               index: 0,
@@ -214,7 +215,7 @@ describe('update', () => {
         ),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.MovedPointer({
+            message: DragAndDrop.MovedPointer({
               screenX: 300,
               screenY: 100,
               clientX: 300,
@@ -228,7 +229,7 @@ describe('update', () => {
         ),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.ReleasedPointer(),
+            message: DragAndDrop.ReleasedPointer(),
           }),
         ),
         Story.Command.resolve(SaveBoard, CompletedSaveBoard()),
@@ -252,7 +253,7 @@ describe('update', () => {
         Story.with(emptyModel),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.ActivatedKeyboardDrag({
+            message: DragAndDrop.ActivatedKeyboardDrag({
               itemId: firstCardId,
               containerId: 'todo',
               index: 0,
@@ -261,7 +262,7 @@ describe('update', () => {
         ),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.ResolvedKeyboardMove({
+            message: DragAndDrop.ResolvedKeyboardMove({
               targetContainerId: 'todo',
               targetIndex: 2,
             }),
@@ -269,12 +270,12 @@ describe('update', () => {
         ),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.ConfirmedKeyboardDrop(),
+            message: DragAndDrop.ConfirmedKeyboardDrop(),
           }),
         ),
         Story.Command.resolve(
-          Ui.DragAndDrop.FocusItem,
-          Ui.DragAndDrop.CompletedFocusItem(),
+          DragAndDrop.FocusItem,
+          DragAndDrop.CompletedFocusItem(),
           message => GotDragAndDropMessage({ message }),
         ),
         Story.Command.resolve(SaveBoard, CompletedSaveBoard()),
@@ -293,7 +294,7 @@ describe('update', () => {
         Story.with(emptyModel),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.ActivatedKeyboardDrag({
+            message: DragAndDrop.ActivatedKeyboardDrag({
               itemId: cardId,
               containerId: 'todo',
               index: 0,
@@ -302,7 +303,7 @@ describe('update', () => {
         ),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.ResolvedKeyboardMove({
+            message: DragAndDrop.ResolvedKeyboardMove({
               targetContainerId: 'in-progress',
               targetIndex: 0,
             }),
@@ -310,12 +311,12 @@ describe('update', () => {
         ),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.ConfirmedKeyboardDrop(),
+            message: DragAndDrop.ConfirmedKeyboardDrop(),
           }),
         ),
         Story.Command.resolve(
-          Ui.DragAndDrop.FocusItem,
-          Ui.DragAndDrop.CompletedFocusItem(),
+          DragAndDrop.FocusItem,
+          DragAndDrop.CompletedFocusItem(),
           message => GotDragAndDropMessage({ message }),
         ),
         Story.Command.resolve(SaveBoard, CompletedSaveBoard()),
@@ -338,7 +339,7 @@ describe('update', () => {
         Story.with(emptyModel),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.ActivatedKeyboardDrag({
+            message: DragAndDrop.ActivatedKeyboardDrag({
               itemId: emptyModel.columns[0]!.cards[0]!.id,
               containerId: 'todo',
               index: 0,
@@ -347,12 +348,12 @@ describe('update', () => {
         ),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.CancelledDrag(),
+            message: DragAndDrop.CancelledDrag(),
           }),
         ),
         Story.Command.resolve(
-          Ui.DragAndDrop.FocusItem,
-          Ui.DragAndDrop.CompletedFocusItem(),
+          DragAndDrop.FocusItem,
+          DragAndDrop.CompletedFocusItem(),
           message => GotDragAndDropMessage({ message }),
         ),
         Story.model(model => {
@@ -367,7 +368,7 @@ describe('update', () => {
         Story.with(emptyModel),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.PressedDraggable({
+            message: DragAndDrop.PressedDraggable({
               itemId: emptyModel.columns[0]!.cards[0]!.id,
               containerId: 'todo',
               index: 0,
@@ -378,7 +379,7 @@ describe('update', () => {
         ),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.MovedPointer({
+            message: DragAndDrop.MovedPointer({
               screenX: 100,
               screenY: 200,
               clientX: 100,
@@ -389,7 +390,7 @@ describe('update', () => {
         ),
         Story.message(
           GotDragAndDropMessage({
-            message: Ui.DragAndDrop.CancelledDrag(),
+            message: DragAndDrop.CancelledDrag(),
           }),
         ),
         Story.model(model => {

@@ -1,5 +1,6 @@
+import { Tabs } from '@foldkit/ui'
 import { HashMap, Option } from 'effect'
-import { Story, Ui } from 'foldkit'
+import { Story } from 'foldkit'
 import { expect, test } from 'vitest'
 
 import {
@@ -40,16 +41,16 @@ const postDetailTag = (model: Model, postId: string): string =>
   )
 
 const selectedPostsTab = GotTabsMessage({
-  message: Ui.Tabs.SelectedTab({ index: 0, value: 'Posts' }),
+  message: Tabs.SelectedTab({ index: 0, value: 'Posts' }),
 })
 
 const selectedStatsTab = GotTabsMessage({
-  message: Ui.Tabs.SelectedTab({ index: 1, value: 'Stats' }),
+  message: Tabs.SelectedTab({ index: 1, value: 'Stats' }),
 })
 
 const resolveFocusTab = Story.Command.resolve(
-  Ui.Tabs.FocusTab,
-  Ui.Tabs.CompletedFocusTab(),
+  Tabs.FocusTab,
+  Tabs.CompletedFocusTab(),
   message => GotTabsMessage({ message }),
 )
 

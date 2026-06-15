@@ -1,6 +1,6 @@
+import { Input, Select, Textarea } from '@foldkit/ui'
 import clsx from 'clsx'
 import { Match as M } from 'effect'
-import { Ui } from 'foldkit'
 import { type Field } from 'foldkit/fieldValidation'
 import { type Html, html } from 'foldkit/html'
 
@@ -26,7 +26,7 @@ export const inputField = <ParentMessage>(
 ): Html => {
   const h = html<ParentMessage>()
 
-  return Ui.Input.view({
+  return Input.view({
     id: config.id,
     value: config.field.value,
     onInput: config.onInput,
@@ -101,7 +101,7 @@ export const textareaField = <ParentMessage>(
 ): Html => {
   const h = html<ParentMessage>()
 
-  return Ui.Textarea.view({
+  return Textarea.view({
     id: config.id,
     value: config.value,
     onInput: config.onInput,
@@ -146,7 +146,7 @@ export const selectField = <ParentMessage>(
 ): Html => {
   const h = html<ParentMessage>()
 
-  return Ui.Select.view({
+  return Select.view({
     id: config.id,
     value: config.value,
     onChange: config.onChange,

@@ -1,5 +1,6 @@
+import { Menu } from '@foldkit/ui'
 import { Match as M } from 'effect'
-import { Submodel, Ui } from 'foldkit'
+import { Submodel } from 'foldkit'
 import { Html, childAttributes, html } from 'foldkit/html'
 
 import * as Icon from '../../icon'
@@ -33,7 +34,7 @@ const ICON_SIZE = 'w-4 h-4'
 
 type MenuItem = 'Edit' | 'Duplicate' | 'Archive' | 'Move' | 'Delete'
 
-const ActionMenu = Ui.Menu.create<MenuItem>()
+const ActionMenu = Menu.create<MenuItem>()
 
 const MENU_ITEMS: ReadonlyArray<MenuItem> = [
   'Edit',
@@ -61,7 +62,7 @@ const itemGroupKey = (item: MenuItem): string =>
     M.orElse(() => 'Actions'),
   )
 
-const groupToHeading = (groupKey: string): Ui.Menu.GroupHeading | undefined => {
+const groupToHeading = (groupKey: string): Menu.GroupHeading | undefined => {
   const h = html()
 
   return M.value(groupKey).pipe(

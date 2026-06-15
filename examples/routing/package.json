@@ -12,6 +12,8 @@
     "@effect/platform-browser": "4.0.0-beta.78",
     "@tailwindcss/vite": "^4.2.4",
     "effect": "4.0.0-beta.78",
+    "@foldkit/devtools": "workspace:*",
+    "@foldkit/ui": "workspace:*",
     "foldkit": "workspace:*",
     "tailwindcss": "^4.2.4"
   },

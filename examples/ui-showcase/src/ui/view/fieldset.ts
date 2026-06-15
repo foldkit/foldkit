@@ -1,4 +1,5 @@
-import { Submodel, Ui } from 'foldkit'
+import { Checkbox, Fieldset, Input, Textarea } from '@foldkit/ui'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import {
@@ -46,7 +47,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Basic'],
       ),
-      Ui.Fieldset.view<UiMessage>({
+      Fieldset.view<UiMessage>({
         id: 'fieldset-basic-demo',
         toView: attributes =>
           h.fieldset(
@@ -66,7 +67,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
               h.div(
                 [h.Class('mt-4 flex flex-col gap-4')],
                 [
-                  Ui.Input.view<UiMessage>({
+                  Input.view<UiMessage>({
                     id: 'fieldset-name-input',
                     value: model.fieldsetInputValue,
                     onInput: value => UpdatedFieldsetInputValue({ value }),
@@ -93,7 +94,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                         ],
                       ),
                   }),
-                  Ui.Textarea.view<UiMessage>({
+                  Textarea.view<UiMessage>({
                     id: 'fieldset-bio-textarea',
                     value: model.fieldsetTextareaValue,
                     onInput: value => UpdatedFieldsetTextareaValue({ value }),
@@ -130,7 +131,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                   h.submodel({
                     slotId: 'fieldset-checkbox-demo',
                     model: model.fieldsetCheckboxDemo,
-                    view: Ui.Checkbox.view,
+                    view: Checkbox.view,
                     viewInputs: {
                       toView: checkboxAttributes =>
                         h.div(
@@ -182,7 +183,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
-      Ui.Fieldset.view<UiMessage>({
+      Fieldset.view<UiMessage>({
         id: 'fieldset-disabled-demo',
         isDisabled: true,
         toView: attributes =>
@@ -203,7 +204,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
               h.div(
                 [h.Class('mt-4 flex flex-col gap-4')],
                 [
-                  Ui.Input.view<UiMessage>({
+                  Input.view<UiMessage>({
                     id: 'fieldset-disabled-name-input',
                     isDisabled: true,
                     value: 'Ada Lovelace',
@@ -222,7 +223,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                         ],
                       ),
                   }),
-                  Ui.Textarea.view<UiMessage>({
+                  Textarea.view<UiMessage>({
                     id: 'fieldset-disabled-bio-textarea',
                     isDisabled: true,
                     value:
@@ -255,7 +256,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                       id: 'fieldset-disabled-checkbox',
                       isChecked: true,
                     },
-                    view: Ui.Checkbox.view,
+                    view: Checkbox.view,
                     viewInputs: {
                       isDisabled: true,
                       toView: checkboxAttributes =>

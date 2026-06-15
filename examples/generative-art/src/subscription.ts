@@ -1,4 +1,5 @@
-import { Subscription, Ui } from 'foldkit'
+import { Slider } from '@foldkit/ui'
+import { Subscription } from 'foldkit'
 
 import {
   GotFlowStrengthSliderMessage,
@@ -9,16 +10,16 @@ import type { Message } from './message'
 import type { Model } from './model'
 
 const flowStrengthSliderSubscriptions = Subscription.lift({
-  flowStrengthSliderPointer: Ui.Slider.subscriptions.dragPointer,
-  flowStrengthSliderEscape: Ui.Slider.subscriptions.dragEscape,
+  flowStrengthSliderPointer: Slider.subscriptions.dragPointer,
+  flowStrengthSliderEscape: Slider.subscriptions.dragEscape,
 })<Model, Message>({
   toChildModel: model => model.flowStrengthSlider,
   toParentMessage: message => GotFlowStrengthSliderMessage({ message }),
 })
 
 const noiseScaleSliderSubscriptions = Subscription.lift({
-  noiseScaleSliderPointer: Ui.Slider.subscriptions.dragPointer,
-  noiseScaleSliderEscape: Ui.Slider.subscriptions.dragEscape,
+  noiseScaleSliderPointer: Slider.subscriptions.dragPointer,
+  noiseScaleSliderEscape: Slider.subscriptions.dragEscape,
 })<Model, Message>({
   toChildModel: model => model.noiseScaleSlider,
   toParentMessage: message => GotNoiseScaleSliderMessage({ message }),

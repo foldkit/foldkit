@@ -12,12 +12,12 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => [
     mirrorMode: 'None',
     isDrawing: false,
     maybeHoveredCell: Option.none(),
-    toolRadioGroup: Ui.RadioGroup.init({
+    toolRadioGroup: RadioGroup.init({
       id: 'tool-picker',
       selectedValue: 'Brush',
     }),
-    errorDialog: Ui.Dialog.init({ id: 'export-error-dialog' }),
-    themeListbox: Ui.Listbox.init({ id: 'theme-picker', selectedItem: '0' }),
+    errorDialog: Dialog.init({ id: 'export-error-dialog' }),
+    themeListbox: Listbox.init({ id: 'theme-picker', selectedItem: '0' }),
     // remaining fields elided for brevity
   },
   [],

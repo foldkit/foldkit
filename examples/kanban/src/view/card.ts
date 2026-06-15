@@ -1,6 +1,6 @@
+import { DragAndDrop } from '@foldkit/ui'
 import clsx from 'clsx'
 import { Option, String } from 'effect'
-import { Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { Card } from '../domain'
@@ -27,12 +27,12 @@ export const cardView = (
   card: Card.Card,
   columnId: string,
   index: number,
-  toParentMessage: (message: Ui.DragAndDrop.Message) => Message,
+  toParentMessage: (message: DragAndDrop.Message) => Message,
 ): Html => {
   const h = html<Message>()
 
   const isThisCardBeingDragged = Option.exists(
-    Ui.DragAndDrop.maybeDraggedItemId(model.dragAndDrop),
+    DragAndDrop.maybeDraggedItemId(model.dragAndDrop),
     id => id === card.id,
   )
   const isPointerDragged =
@@ -53,7 +53,7 @@ export const cardView = (
             !isPointerDragged && !isKeyboardDragged,
         }),
       ),
-      ...Ui.DragAndDrop.draggable({
+      ...DragAndDrop.draggable({
         model: model.dragAndDrop,
         toParentMessage,
         itemId: card.id,

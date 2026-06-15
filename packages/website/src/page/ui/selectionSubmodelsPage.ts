@@ -132,7 +132,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       tableOfContentsEntryToHeader(createFactoryHeader),
       para(
         'A call to ',
-        inlineCode('Ui.Listbox.create<Plan>()'),
+        inlineCode('Listbox.create<Plan>()'),
         ' returns an object whose entry points are all bound to ',
         inlineCode('Plan'),
         ': ',
@@ -196,9 +196,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'Without the factory, the view and update would each carry their own ',
         inlineCode('Item'),
         ' type parameter. Nothing would stop a consumer from writing ',
-        inlineCode('view: Ui.Listbox.view<Plan>()'),
+        inlineCode('view: Listbox.view<Plan>()'),
         ' next to ',
-        inlineCode('Ui.Listbox.update<Color>(...)'),
+        inlineCode('Listbox.update<Color>(...)'),
         '. Two different type arguments at the same call site. The selected item would arrive in the OutMessage typed as one and the update would believe it was the other, and TypeScript would have no way to flag the mismatch.',
       ),
       para(
@@ -227,7 +227,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       tableOfContentsEntryToHeader(listboxHeader),
       para(
-        inlineCode('Ui.Listbox.create<Item, Value?>()'),
+        inlineCode('Listbox.create<Item, Value?>()'),
         ' takes two type parameters. ',
         inlineCode('Item'),
         ' is the shape of the items the consumer supplies. ',
@@ -245,7 +245,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         '.',
       ),
       para(
-        inlineCode('Ui.Listbox.Multi.create<Item, Value?>()'),
+        inlineCode('Listbox.Multi.create<Item, Value?>()'),
         ' is the multi-select variant. Same type-parameter shape; the ',
         inlineCode('Selected'),
         ' OutMessage gains a ',
@@ -254,7 +254,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       tableOfContentsEntryToHeader(comboboxHeader),
       para(
-        inlineCode('Ui.Combobox.create<Item>()'),
+        inlineCode('Combobox.create<Item>()'),
         ' takes one type parameter and constrains ',
         inlineCode('Item extends string'),
         '. Combobox items are typed strings (a literal union, a branded string type, or plain ',
@@ -262,7 +262,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ').',
       ),
       para(
-        inlineCode('Ui.Combobox.Multi.create<Item>()'),
+        inlineCode('Combobox.Multi.create<Item>()'),
         ' is the multi-select variant. Same type-parameter shape; the ',
         inlineCode('Selected'),
         ' OutMessage gains a ',
@@ -271,7 +271,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       tableOfContentsEntryToHeader(radioGroupHeader),
       para(
-        inlineCode('Ui.RadioGroup.create<Value>()'),
+        inlineCode('RadioGroup.create<Value>()'),
         ' takes one type parameter, ',
         inlineCode('Value extends string'),
         '. The view accepts ',
@@ -286,7 +286,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       tableOfContentsEntryToHeader(tabsHeader),
       para(
-        inlineCode('Ui.Tabs.create<Value>()'),
+        inlineCode('Tabs.create<Value>()'),
         ' takes one type parameter, ',
         inlineCode('Value extends string'),
         '. The view accepts ',
@@ -303,7 +303,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       tableOfContentsEntryToHeader(menuHeader),
       para(
-        inlineCode('Ui.Menu.create<Item>()'),
+        inlineCode('Menu.create<Item>()'),
         ' takes one type parameter, ',
         inlineCode('Item extends string'),
         '. The view accepts ',

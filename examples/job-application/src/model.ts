@@ -1,5 +1,5 @@
+import { Menu } from '@foldkit/ui'
 import { Schema as S } from 'effect'
-import { Ui } from 'foldkit'
 import { ts } from 'foldkit/schema'
 
 import { Step } from './domain'
@@ -39,6 +39,6 @@ export const Model = S.Struct({
   attachments: Attachments.Model,
   isPreviewVisible: S.Boolean,
   submission: Submission,
-  stepMenu: Ui.Menu.Model,
+  stepMenu: Menu.Model,
 })
 export type Model = typeof Model.Type

@@ -1,5 +1,6 @@
+import { Dialog, Listbox, RadioGroup, Switch } from '@foldkit/ui'
 import { Equal, Option } from 'effect'
-import { Story, Ui } from 'foldkit'
+import { Story } from 'foldkit'
 import { describe, expect, test } from 'vitest'
 
 import { ExportPng, SaveCanvas } from './command'
@@ -41,28 +42,28 @@ const emptyModel: Model = {
   mirrorMode: 'None' as const,
   isDrawing: false,
   maybeHoveredCell: Option.none(),
-  errorDialog: Ui.Dialog.init({ id: 'export-error-dialog' }),
+  errorDialog: Dialog.init({ id: 'export-error-dialog' }),
   maybeExportError: Option.none(),
   paletteThemeIndex: 0,
-  gridSizeConfirmDialog: Ui.Dialog.init({ id: 'grid-size-confirm-dialog' }),
+  gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
   maybePendingGridSize: Option.none(),
-  toolRadioGroup: Ui.RadioGroup.init({
+  toolRadioGroup: RadioGroup.init({
     id: 'tool-picker',
     selectedValue: 'Brush',
   }),
-  gridSizeRadioGroup: Ui.RadioGroup.init({
+  gridSizeRadioGroup: RadioGroup.init({
     id: 'grid-size-picker',
     selectedValue: '4',
     orientation: 'Horizontal',
   }),
-  paletteRadioGroup: Ui.RadioGroup.init({
+  paletteRadioGroup: RadioGroup.init({
     id: 'palette-picker',
     selectedValue: '0',
     orientation: 'Horizontal',
   }),
-  mirrorHorizontalSwitch: Ui.Switch.init({ id: 'mirror-horizontal' }),
-  mirrorVerticalSwitch: Ui.Switch.init({ id: 'mirror-vertical' }),
-  themeListbox: Ui.Listbox.init({ id: 'theme-picker', selectedItem: '0' }),
+  mirrorHorizontalSwitch: Switch.init({ id: 'mirror-horizontal' }),
+  mirrorVerticalSwitch: Switch.init({ id: 'mirror-vertical' }),
+  themeListbox: Listbox.init({ id: 'theme-picker', selectedItem: '0' }),
 }
 
 describe('brush tool', () => {
@@ -196,8 +197,8 @@ describe('undo and redo', () => {
       Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.message(SelectedColor({ colorIndex: 1 })),
       Story.Command.resolve(
-        Ui.RadioGroup.FocusOption,
-        Ui.RadioGroup.CompletedFocusOption(),
+        RadioGroup.FocusOption,
+        RadioGroup.CompletedFocusOption(),
         radioMessage => GotPaletteRadioGroupMessage({ message: radioMessage }),
       ),
       Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
@@ -277,8 +278,8 @@ describe('fill tool', () => {
       Story.with(emptyModel),
       Story.message(SelectedTool({ tool: 'Fill' })),
       Story.Command.resolve(
-        Ui.RadioGroup.FocusOption,
-        Ui.RadioGroup.CompletedFocusOption(),
+        RadioGroup.FocusOption,
+        RadioGroup.CompletedFocusOption(),
         radioMessage => GotToolRadioGroupMessage({ message: radioMessage }),
       ),
       Story.message(PressedCell({ x: 0, y: 0 })),
@@ -307,8 +308,8 @@ describe('fill tool', () => {
       Story.with(modelWithBarrier),
       Story.message(SelectedTool({ tool: 'Fill' })),
       Story.Command.resolve(
-        Ui.RadioGroup.FocusOption,
-        Ui.RadioGroup.CompletedFocusOption(),
+        RadioGroup.FocusOption,
+        RadioGroup.CompletedFocusOption(),
         radioMessage => GotToolRadioGroupMessage({ message: radioMessage }),
       ),
       Story.message(PressedCell({ x: 0, y: 0 })),
@@ -330,8 +331,8 @@ describe('grid size', () => {
       Story.with(emptyModel),
       Story.message(SelectedGridSize({ size: 8 })),
       Story.Command.resolve(
-        Ui.RadioGroup.FocusOption,
-        Ui.RadioGroup.CompletedFocusOption(),
+        RadioGroup.FocusOption,
+        RadioGroup.CompletedFocusOption(),
         radioMessage => GotGridSizeRadioGroupMessage({ message: radioMessage }),
       ),
       Story.model(model => {
@@ -358,8 +359,8 @@ describe('grid size', () => {
       Story.with(paintedModel),
       Story.message(SelectedGridSize({ size: 8 })),
       Story.Command.resolve(
-        Ui.Dialog.ShowDialog,
-        Ui.Dialog.CompletedShowDialog(),
+        Dialog.ShowDialog,
+        Dialog.CompletedShowDialog(),
         dialogMessage =>
           GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
       ),
@@ -375,7 +376,7 @@ describe('grid size', () => {
     const modelWithPending: Model = {
       ...emptyModel,
       maybePendingGridSize: Option.some(8),
-      gridSizeConfirmDialog: Ui.Dialog.init({
+      gridSizeConfirmDialog: Dialog.init({
         id: 'grid-size-confirm-dialog',
         isOpen: true,
       }),
@@ -387,8 +388,8 @@ describe('grid size', () => {
       Story.with(modelWithPending),
       Story.message(ConfirmedGridSizeChange()),
       Story.Command.resolve(
-        Ui.Dialog.CloseDialog,
-        Ui.Dialog.CompletedCloseDialog(),
+        Dialog.CloseDialog,
+        Dialog.CompletedCloseDialog(),
         dialogMessage =>
           GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
       ),
@@ -494,8 +495,8 @@ describe('eraser tool', () => {
       }),
       Story.message(SelectedTool({ tool: 'Eraser' })),
       Story.Command.resolve(
-        Ui.RadioGroup.FocusOption,
-        Ui.RadioGroup.CompletedFocusOption(),
+        RadioGroup.FocusOption,
+        RadioGroup.CompletedFocusOption(),
         radioMessage => GotToolRadioGroupMessage({ message: radioMessage }),
       ),
       Story.message(PressedCell({ x: 0, y: 0 })),
@@ -518,8 +519,8 @@ describe('export failure', () => {
         FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
       Story.Command.resolve(
-        Ui.Dialog.ShowDialog,
-        Ui.Dialog.CompletedShowDialog(),
+        Dialog.ShowDialog,
+        Dialog.CompletedShowDialog(),
         dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
       ),
       Story.model(model => {
@@ -539,16 +540,16 @@ describe('export failure', () => {
         FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
       Story.Command.resolve(
-        Ui.Dialog.ShowDialog,
-        Ui.Dialog.CompletedShowDialog(),
+        Dialog.ShowDialog,
+        Dialog.CompletedShowDialog(),
         dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
       ),
       Story.message(
-        GotErrorDialogMessage({ message: Ui.Dialog.RequestedClose() }),
+        GotErrorDialogMessage({ message: Dialog.RequestedClose() }),
       ),
       Story.Command.resolve(
-        Ui.Dialog.CloseDialog,
-        Ui.Dialog.CompletedCloseDialog(),
+        Dialog.CloseDialog,
+        Dialog.CompletedCloseDialog(),
         dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
       ),
       Story.model(model => {

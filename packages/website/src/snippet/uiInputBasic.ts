@@ -1,12 +1,12 @@
 // Pseudocode — Input is view-only. The value lives in your own Model as a
 // string. Replace model.name and UpdatedName with your own field and Message.
-import { Ui } from 'foldkit'
+import { Input } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 const view = (model: Model) => {
   const h = html<Message>()
 
-  return Ui.Input.view({
+  return Input.view({
     id: 'full-name',
     value: model.name, // your Model field
     onInput: value => UpdatedName({ value }), // your Message

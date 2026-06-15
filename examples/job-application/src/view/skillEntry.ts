@@ -1,12 +1,13 @@
+import { RadioGroup } from '@foldkit/ui'
 import clsx from 'clsx'
-import { Submodel, Ui } from 'foldkit'
+import { Submodel } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
 import { ProficiencyLevel } from '../domain'
 import { Skills } from '../step'
 import { inputField } from './field'
 
-const ProficiencyRadioGroup = Ui.RadioGroup.create<string>()
+const ProficiencyRadioGroup = RadioGroup.create<string>()
 
 export const skillEntryView = Submodel.defineView<
   Skills.Entry.Model,

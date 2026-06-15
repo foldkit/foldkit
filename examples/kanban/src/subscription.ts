@@ -1,14 +1,15 @@
-import { Subscription, Ui } from 'foldkit'
+import { DragAndDrop } from '@foldkit/ui'
+import { Subscription } from 'foldkit'
 
 import { GotDragAndDropMessage } from './message'
 import type { Message } from './message'
 import type { Model } from './model'
 
 export const subscriptions = Subscription.lift({
-  dragPointer: Ui.DragAndDrop.subscriptions.documentPointer,
-  dragEscape: Ui.DragAndDrop.subscriptions.documentEscape,
-  dragKeyboard: Ui.DragAndDrop.subscriptions.documentKeyboard,
-  autoScroll: Ui.DragAndDrop.subscriptions.autoScroll,
+  dragPointer: DragAndDrop.subscriptions.documentPointer,
+  dragEscape: DragAndDrop.subscriptions.documentEscape,
+  dragKeyboard: DragAndDrop.subscriptions.documentKeyboard,
+  autoScroll: DragAndDrop.subscriptions.autoScroll,
 })<Model, Message>({
   toChildModel: model => model.dragAndDrop,
   toParentMessage: message => GotDragAndDropMessage({ message }),

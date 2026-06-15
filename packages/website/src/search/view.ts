@@ -1,6 +1,7 @@
+import { Dialog } from '@foldkit/ui'
 import { clsx } from 'clsx'
 import { Array, Match as M, Option, String, pipe } from 'effect'
-import { Submodel, Ui } from 'foldkit'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { Icon } from '../icon'
@@ -282,7 +283,7 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
       h.submodel({
         slotId: model.dialog.id,
         model: model.dialog,
-        view: Ui.Dialog.view,
+        view: Dialog.view,
         viewInputs: {
           toView: ({ dialog, backdrop, panel, isVisible }) =>
             h.dialog(

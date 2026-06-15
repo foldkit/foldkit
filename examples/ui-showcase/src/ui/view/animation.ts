@@ -1,4 +1,5 @@
-import { Submodel, Ui } from 'foldkit'
+import { Animation } from '@foldkit/ui'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import {
@@ -36,7 +37,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
           h.submodel({
             slotId: model.animationDemo.id,
             model: model.animationDemo,
-            view: Ui.Animation.view,
+            view: Animation.view,
             viewInputs: {
               className: contentClassName,
               animateSize: true,

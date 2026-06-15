@@ -1,22 +1,23 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Disclosure } from '@foldkit/ui'
 import { Match as M, Option } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // Add a field to your Model for the Disclosure Submodel:
 const Model = S.Struct({
-  disclosure: Ui.Disclosure.Model,
+  disclosure: Disclosure.Model,
   // ...your other fields
 })
 
 // In your init function, initialize the Disclosure Submodel with a unique id:
 const init = () => [
   {
-    disclosure: Ui.Disclosure.init({ id: 'faq-1' }),
+    disclosure: Disclosure.init({ id: 'faq-1' }),
     // ...your other fields
   },
   [],
@@ -24,15 +25,15 @@ const init = () => [
 
 // Embed the Disclosure Message in your parent Message:
 const GotDisclosureMessage = m('GotDisclosureMessage', {
-  message: Ui.Disclosure.Message,
+  message: Disclosure.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
-// Ui.Disclosure.update. The OutMessage's `ToggledOpenState` fires on each
+// Disclosure.update. The OutMessage's `ToggledOpenState` fires on each
 // open / close transition with the new `isOpen`. Useful for analytics
 // or coordinated UI changes.
 GotDisclosureMessage: ({ message }) => {
-  const [nextDisclosure, commands, maybeOutMessage] = Ui.Disclosure.update(
+  const [nextDisclosure, commands, maybeOutMessage] = Disclosure.update(
     model.disclosure,
     message,
   )
@@ -45,7 +46,7 @@ GotDisclosureMessage: ({ message }) => {
       evo(model, { disclosure: () => nextDisclosure }),
       mappedCommands,
     ],
-    onSome: M.type<Ui.Disclosure.OutMessage>().pipe(
+    onSome: M.type<Disclosure.OutMessage>().pipe(
       M.tagsExhaustive({
         ToggledOpenState: ({ isOpen }) => [
           // The child has emitted `ToggledOpenState`. The body commits
@@ -68,7 +69,7 @@ const view = (model: Model) => {
   return h.submodel({
     slotId: 'faq-1',
     model: model.disclosure,
-    view: Ui.Disclosure.view,
+    view: Disclosure.view,
     viewInputs: {
       toView: attributes =>
         h.div(

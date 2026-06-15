@@ -1,7 +1,7 @@
+import { Listbox } from '@foldkit/ui'
+import type { AnchorConfig } from '@foldkit/ui/listbox'
 import { Array, Option } from 'effect'
-import { Ui } from 'foldkit'
 import { childAttributes, html } from 'foldkit/html'
-import type { AnchorConfig } from 'foldkit/ui/listbox'
 
 import { Icon } from '../../icon'
 import type { TableOfContentsEntry } from '../../main'
@@ -66,9 +66,9 @@ type Character = Readonly<{
   lastName: string
 }>
 
-export const ItemListbox = Ui.Listbox.create<ListboxItem>()
-export const ItemMultiListbox = Ui.Listbox.Multi.create<ListboxItem>()
-export const CharacterListbox = Ui.Listbox.create<Character>()
+export const ItemListbox = Listbox.create<ListboxItem>()
+export const ItemMultiListbox = Listbox.Multi.create<ListboxItem>()
+export const CharacterListbox = Listbox.create<Character>()
 
 const characterName = (character: Character): string =>
   `${character.firstName} ${character.lastName}`
@@ -113,7 +113,7 @@ const LISTBOX_ANCHOR: AnchorConfig = {
 
 // VIEW
 
-export const basicDemo = (listboxModel: Ui.Listbox.Model) => {
+export const basicDemo = (listboxModel: Listbox.Model) => {
   const h = html<Message>()
 
   const buttonLabel = Option.getOrElse(
@@ -160,7 +160,7 @@ export const basicDemo = (listboxModel: Ui.Listbox.Model) => {
   ]
 }
 
-export const multiSelectDemo = (listboxModel: Ui.Listbox.Multi.Model) => {
+export const multiSelectDemo = (listboxModel: Listbox.Multi.Model) => {
   const h = html<Message>()
 
   const { selectedItems } = listboxModel
@@ -209,7 +209,7 @@ export const multiSelectDemo = (listboxModel: Ui.Listbox.Multi.Model) => {
   ]
 }
 
-export const groupedDemo = (listboxModel: Ui.Listbox.Model) => {
+export const groupedDemo = (listboxModel: Listbox.Model) => {
   const h = html<Message>()
 
   const buttonLabel = Option.getOrElse(

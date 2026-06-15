@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Switch } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 import type { TableOfContentsEntry } from '../../main'
@@ -26,7 +26,7 @@ const descriptionClassName = 'text-sm text-gray-500 dark:text-gray-400'
 
 // VIEW
 
-export const switchDemo = (switchModel: Ui.Switch.Model) => {
+export const switchDemo = (switchModel: Switch.Model) => {
   const h = html<Message>()
 
   const knob = (isChecked: boolean) =>
@@ -43,7 +43,7 @@ export const switchDemo = (switchModel: Ui.Switch.Model) => {
     h.submodel({
       slotId: 'switch-demo',
       model: switchModel,
-      view: Ui.Switch.view,
+      view: Switch.view,
       viewInputs: {
         toView: attributes =>
           h.div(

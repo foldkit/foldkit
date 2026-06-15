@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Disclosure } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 import { Icon } from '../../icon'
@@ -23,7 +23,7 @@ const panelClassName =
 
 // VIEW
 
-export const disclosureDemo = (disclosureModel: Ui.Disclosure.Model) => {
+export const disclosureDemo = (disclosureModel: Disclosure.Model) => {
   const h = html<Message>()
 
   const chevron = (isOpen: boolean) =>
@@ -43,7 +43,7 @@ export const disclosureDemo = (disclosureModel: Ui.Disclosure.Model) => {
         h.submodel({
           slotId: 'disclosure-demo',
           model: disclosureModel,
-          view: Ui.Disclosure.view,
+          view: Disclosure.view,
           viewInputs: {
             toView: attributes =>
               h.div(

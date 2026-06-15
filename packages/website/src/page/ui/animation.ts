@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Animation } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 import type { TableOfContentsEntry } from '../../main'
@@ -22,12 +22,12 @@ const contentClassName =
 
 // VIEW
 
-export const animationDemo = (animationModel: Ui.Animation.Model) => {
+export const animationDemo = (animationModel: Animation.Model) => {
   const h = html<Message>()
 
   const toggleMessage = animationModel.isShowing
-    ? Ui.Animation.Hid()
-    : Ui.Animation.Showed()
+    ? Animation.Hid()
+    : Animation.Showed()
 
   return [
     h.div(
@@ -43,7 +43,7 @@ export const animationDemo = (animationModel: Ui.Animation.Model) => {
         h.submodel({
           slotId: animationModel.id,
           model: animationModel,
-          view: Ui.Animation.view,
+          view: Animation.view,
           viewInputs: {
             className: contentClassName,
             animateSize: true,

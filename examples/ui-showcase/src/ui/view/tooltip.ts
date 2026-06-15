@@ -1,6 +1,7 @@
-import { Submodel, Ui } from 'foldkit'
+import { Tooltip } from '@foldkit/ui'
+import type { AnchorConfig } from '@foldkit/ui/tooltip'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
-import type { AnchorConfig } from 'foldkit/ui/tooltip'
 
 import {
   GotTooltipBasicDemoMessage,
@@ -41,7 +42,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
           h.submodel({
             slotId: model.tooltipBasicDemo.id,
             model: model.tooltipBasicDemo,
-            view: Ui.Tooltip.view,
+            view: Tooltip.view,
             viewInputs: {
               anchor: TOOLTIP_ANCHOR,
               toView: ({ trigger, panel, isVisible }) =>
@@ -78,7 +79,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
           h.submodel({
             slotId: model.tooltipNoDelayDemo.id,
             model: model.tooltipNoDelayDemo,
-            view: Ui.Tooltip.view,
+            view: Tooltip.view,
             viewInputs: {
               anchor: TOOLTIP_ANCHOR,
               toView: ({ trigger, panel, isVisible }) =>

@@ -1,15 +1,16 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Calendar as UiCalendar } from '@foldkit/ui'
 import { Effect, Match as M, Option } from 'effect'
-import { Calendar, Command, Ui } from 'foldkit'
+import { Calendar, Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // Add a field to your Model for the Calendar Submodel:
 const Model = S.Struct({
-  calendarDemo: Ui.Calendar.Model,
+  calendarDemo: UiCalendar.Model,
   // ...your other fields
 })
 
@@ -24,10 +25,10 @@ const flags = Effect.gen(function* () {
   return { today /* ...your other flags */ }
 })
 
-// In your init function, pass the flags-resolved today into Calendar.init:
+// In your init function, pass the flags-resolved today into UiCalendar.init:
 const init = (flags: Flags) => [
   {
-    calendarDemo: Ui.Calendar.init({
+    calendarDemo: UiCalendar.init({
       id: 'calendar-demo',
       today: flags.today,
     }),
@@ -39,17 +40,17 @@ const init = (flags: Flags) => [
 // Embed the Calendar Message in your parent Message for navigation and
 // keyboard routing:
 const GotCalendarMessage = m('GotCalendarMessage', {
-  message: Ui.Calendar.Message,
+  message: UiCalendar.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate
-// navigation, focus, and picker-mode transitions to Calendar.update.
+// navigation, focus, and picker-mode transitions to UiCalendar.update.
 // Its third tuple element is `Option<OutMessage>`. When the user
 // commits a date (click, Enter, or Space) it carries `SelectedDate({ date })`.
 // `ChangedViewMonth` fires when navigation shifts the visible month
 // without selecting a date.
 GotCalendarMessage: ({ message }) => {
-  const [nextCalendar, commands, maybeOutMessage] = Ui.Calendar.update(
+  const [nextCalendar, commands, maybeOutMessage] = UiCalendar.update(
     model.calendarDemo,
     message,
   )
@@ -62,7 +63,7 @@ GotCalendarMessage: ({ message }) => {
       evo(model, { calendarDemo: () => nextCalendar }),
       mappedCommands,
     ],
-    onSome: M.type<Ui.Calendar.OutMessage>().pipe(
+    onSome: M.type<UiCalendar.OutMessage>().pipe(
       M.tagsExhaustive({
         SelectedDate: ({ date }) => [
           // The child has emitted `SelectedDate`. The body commits
@@ -100,7 +101,7 @@ const view = () => {
   return h.submodel({
     slotId: model.calendarDemo.id,
     model: model.calendarDemo,
-    view: Ui.Calendar.view,
+    view: UiCalendar.view,
     viewInputs: {
       toView: attributes =>
         M.value(attributes).pipe(

@@ -1,0 +1,62 @@
+{
+  "name": "@foldkit/devtools",
+  "version": "0.111.1",
+  "description": "In-browser DevTools overlay for Foldkit applications",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rimraf dist *.tsbuildinfo",
+    "build": "pnpm run clean && node scripts/inline-css.js && tsc -b tsconfig.build.json",
+    "watch": "node scripts/inline-css.js && tsc -b tsconfig.build.json --watch",
+    "lint": "eslint src",
+    "typecheck": "node scripts/inline-css.js && tsc -b tsconfig.build.json --noEmit"
+  },
+  "peerDependencies": {
+    "@effect/platform-browser": "4.0.0-beta.78",
+    "@foldkit/ui": "workspace:^0",
+    "effect": "4.0.0-beta.78",
+    "foldkit": "workspace:^0"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1"
+  },
+  "devDependencies": {
+    "@effect/platform-browser": "4.0.0-beta.78",
+    "@foldkit/ui": "workspace:*",
+    "effect": "4.0.0-beta.78",
+    "foldkit": "workspace:*",
+    "rimraf": "^6.1.3",
+    "typescript": "^6.0.3"
+  },
+  "keywords": [
+    "foldkit",
+    "devtools",
+    "time-travel",
+    "debugging"
+  ],
+  "author": "Devin Jameson",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/foldkit/foldkit.git",
+    "directory": "packages/foldkit-devtools"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

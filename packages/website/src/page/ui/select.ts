@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Select } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 import { Icon } from '../../icon'
@@ -44,7 +44,7 @@ export const basicDemo = (model: Model) => {
     h.div(
       [h.Class('flex flex-col items-start gap-2 w-full max-w-md')],
       [
-        Ui.Select.view({
+        Select.view({
           id: 'select-basic-demo',
           value: model.selectDemoValue,
           onChange: value => UpdatedSelectDemoValue({ value }),
@@ -90,7 +90,7 @@ export const disabledDemo = (_model: Model) => {
   const h = html<Message>()
 
   return [
-    Ui.Select.view<Message>({
+    Select.view<Message>({
       id: 'select-disabled-demo',
       isDisabled: true,
       value: 'us',

@@ -1,8 +1,9 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Toast as UiToast } from '@foldkit/ui'
 import { Match as M, Option, Schema as S } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -18,7 +19,7 @@ const ToastPayload = S.Struct({
 // Bind a Toast module to your payload schema. The factory returns Model,
 // Message, OutMessage, update, view, show/dismiss/dismissAll, and the
 // DismissedToast OutMessage variant:
-export const Toast = Ui.Toast.make(ToastPayload)
+export const Toast = UiToast.make(ToastPayload)
 
 // Add Toast.Model to your app Model. Track anything you want to lift from
 // a toast's lifecycle alongside it. Here, the last dismissed bodyText so

@@ -1,12 +1,12 @@
 // Pseudocode — Select is view-only. Disabled selects display a fixed value
 // and ignore onChange events.
-import { Ui } from 'foldkit'
+import { Select } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 const view = () => {
   const h = html<Message>()
 
-  return Ui.Select.view({
+  return Select.view({
     id: 'country-disabled',
     isDisabled: true,
     value: 'us',

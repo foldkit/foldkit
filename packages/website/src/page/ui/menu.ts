@@ -1,7 +1,7 @@
+import { Menu } from '@foldkit/ui'
+import type { AnchorConfig } from '@foldkit/ui/menu'
 import { Match as M } from 'effect'
-import { Ui } from 'foldkit'
 import { Html, childAttributes, html } from 'foldkit/html'
-import type { AnchorConfig } from 'foldkit/ui/menu'
 
 import { Icon } from '../../icon'
 import type { TableOfContentsEntry } from '../../main'
@@ -56,7 +56,7 @@ const ICON_SIZE = 'w-4 h-4'
 
 type MenuItem = 'Edit' | 'Duplicate' | 'Archive' | 'Move' | 'Delete'
 
-export const DemoMenu = Ui.Menu.create<MenuItem>()
+export const DemoMenu = Menu.create<MenuItem>()
 
 const MENU_ITEMS: ReadonlyArray<MenuItem> = [
   'Edit',
@@ -128,7 +128,7 @@ const menuViewConfig = (itemsClassName: string) => {
   }
 }
 
-export const basicDemo = (menuModel: Ui.Menu.Model) => {
+export const basicDemo = (menuModel: Menu.Model) => {
   const h = html<Message>()
 
   return [
@@ -147,7 +147,7 @@ export const basicDemo = (menuModel: Ui.Menu.Model) => {
   ]
 }
 
-export const animatedDemo = (menuModel: Ui.Menu.Model) => {
+export const animatedDemo = (menuModel: Menu.Model) => {
   const h = html<Message>()
 
   return [

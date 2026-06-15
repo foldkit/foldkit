@@ -1,5 +1,5 @@
+import { DragAndDrop } from '@foldkit/ui'
 import { Array, Option, pipe } from 'effect'
-import { Ui } from 'foldkit'
 import { type Document, html } from 'foldkit/html'
 
 import { Message } from '../message'
@@ -10,7 +10,7 @@ import { columnView } from './column'
 const findDraggedCard = (model: Model) =>
   pipe(
     model.dragAndDrop,
-    Ui.DragAndDrop.maybeDraggedItemId,
+    DragAndDrop.maybeDraggedItemId,
     Option.flatMap(cardId =>
       pipe(
         model.columns,
@@ -24,7 +24,7 @@ const ghostElement = (model: Model) => {
   const h = html<Message>()
 
   return pipe(
-    Ui.DragAndDrop.ghostStyle(model.dragAndDrop),
+    DragAndDrop.ghostStyle(model.dragAndDrop),
     Option.flatMap(ghostStyle =>
       Option.map(findDraggedCard(model), card => ({ ghostStyle, card })),
     ),

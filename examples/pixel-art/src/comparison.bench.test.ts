@@ -3,8 +3,8 @@
  *
  * Run: pnpm --filter pixel-art-example exec vitest run src/comparison.bench.ts
  */
+import { Dialog, Listbox, RadioGroup, Switch } from '@foldkit/ui'
 import { Option } from 'effect'
-import { Ui } from 'foldkit'
 import { test } from 'vitest'
 
 import { createEmptyGrid as createReactGrid } from '../../../comparisons/pixel-art-react/src/grid'
@@ -35,28 +35,28 @@ const foldkitModel: Model = {
   mirrorMode: 'None' as const,
   isDrawing: false,
   maybeHoveredCell: Option.none(),
-  errorDialog: Ui.Dialog.init({ id: 'error-dialog' }),
+  errorDialog: Dialog.init({ id: 'error-dialog' }),
   maybeExportError: Option.none(),
   paletteThemeIndex: 0,
-  gridSizeConfirmDialog: Ui.Dialog.init({ id: 'confirm-dialog' }),
+  gridSizeConfirmDialog: Dialog.init({ id: 'confirm-dialog' }),
   maybePendingGridSize: Option.none(),
-  toolRadioGroup: Ui.RadioGroup.init({
+  toolRadioGroup: RadioGroup.init({
     id: 'tools',
     selectedValue: 'Brush',
   }),
-  gridSizeRadioGroup: Ui.RadioGroup.init({
+  gridSizeRadioGroup: RadioGroup.init({
     id: 'sizes',
     selectedValue: String(GRID_SIZE),
     orientation: 'Horizontal',
   }),
-  paletteRadioGroup: Ui.RadioGroup.init({
+  paletteRadioGroup: RadioGroup.init({
     id: 'palette',
     selectedValue: '0',
     orientation: 'Horizontal',
   }),
-  mirrorHorizontalSwitch: Ui.Switch.init({ id: 'mirror-h' }),
-  mirrorVerticalSwitch: Ui.Switch.init({ id: 'mirror-v' }),
-  themeListbox: Ui.Listbox.init({ id: 'themes', selectedItem: '0' }),
+  mirrorHorizontalSwitch: Switch.init({ id: 'mirror-h' }),
+  mirrorVerticalSwitch: Switch.init({ id: 'mirror-v' }),
+  themeListbox: Listbox.init({ id: 'themes', selectedItem: '0' }),
 }
 
 const reactState: State = {

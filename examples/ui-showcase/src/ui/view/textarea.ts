@@ -1,4 +1,5 @@
-import { Submodel, Ui } from 'foldkit'
+import { Textarea } from '@foldkit/ui'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { type UiMessage, UpdatedTextareaDemoValue } from '../message'
@@ -26,7 +27,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       h.div(
         [h.Class('flex flex-col items-start gap-2 max-w-sm')],
         [
-          Ui.Textarea.view<UiMessage>({
+          Textarea.view<UiMessage>({
             id: 'textarea-basic-demo',
             value: model.textareaDemoValue,
             onInput: value => UpdatedTextareaDemoValue({ value }),
@@ -58,7 +59,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
-      Ui.Textarea.view<UiMessage>({
+      Textarea.view<UiMessage>({
         id: 'textarea-disabled-demo',
         isDisabled: true,
         value:

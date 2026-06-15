@@ -1,5 +1,6 @@
+import { Switch } from '@foldkit/ui'
 import clsx from 'clsx'
-import { Submodel, Ui } from 'foldkit'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { GotSwitchDemoMessage, type UiMessage } from '../message'
@@ -44,7 +45,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
           h.submodel({
             slotId: 'switch-demo',
             model: model.switchDemo,
-            view: Ui.Switch.view,
+            view: Switch.view,
             viewInputs: {
               toView: attributes =>
                 h.div(

@@ -1,22 +1,23 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Menu } from '@foldkit/ui'
 import { Effect, Match as M, Option } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // Add a field to your Model for the Menu Submodel:
 const Model = S.Struct({
-  menu: Ui.Menu.Model,
+  menu: Menu.Model,
   // ...your other fields
 })
 
 // In your init function, initialize the Menu Submodel with a unique id:
 const init = () => [
   {
-    menu: Ui.Menu.init({ id: 'actions' }),
+    menu: Menu.init({ id: 'actions' }),
     // ...your other fields
   },
   [],
@@ -24,7 +25,7 @@ const init = () => [
 
 // Embed the Menu Message in your parent Message:
 const GotMenuMessage = m('GotMenuMessage', {
-  message: Ui.Menu.Message,
+  message: Menu.Message,
 })
 
 type Action = 'Edit' | 'Duplicate' | 'Archive' | 'Delete'
@@ -36,7 +37,7 @@ const actions: ReadonlyArray<Action> = [
 ]
 
 // Pair view and update behind a single Item-typed factory at module scope:
-const ActionMenu = Ui.Menu.create<Action>()
+const ActionMenu = Menu.create<Action>()
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
 // ActionMenu.update. The OutMessage's `Selected` carries the picked item
@@ -52,7 +53,7 @@ GotMenuMessage: ({ message }) => {
 
   return Option.match(maybeOutMessage, {
     onNone: () => [evo(model, { menu: () => nextMenu }), mappedCommands],
-    onSome: M.type<Ui.Menu.OutMessage<Action>>().pipe(
+    onSome: M.type<Menu.OutMessage<Action>>().pipe(
       M.tagsExhaustive({
         Selected: ({ value }) => {
           // The child has emitted `Selected`. The body commits the

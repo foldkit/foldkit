@@ -149,7 +149,7 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'options',
     type: 'ReadonlyArray<Value>',
     description:
-      'The list of option values, in display order. When the radio group is declared via `Ui.RadioGroup.create<MyUnion>()`, `Value` is your union type and each `OptionInfo.value` is typed as `MyUnion`.',
+      'The list of option values, in display order. When the radio group is declared via `RadioGroup.create<MyUnion>()`, `Value` is your union type and each `OptionInfo.value` is typed as `MyUnion`.',
   },
   {
     name: 'ariaLabel',
@@ -219,7 +219,7 @@ const optionInfoProps: ReadonlyArray<PropEntry> = [
     name: 'value',
     type: 'Value',
     description:
-      'The option value. Typed as your `Value` union when the radio group is declared via `Ui.RadioGroup.create<Value>()`.',
+      'The option value. Typed as your `Value` union when the radio group is declared via `RadioGroup.create<Value>()`.',
   },
   {
     name: 'index',
@@ -340,7 +340,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         ),
         para(
           'Declare the radio group once at module scope with ',
-          inlineCode('Ui.RadioGroup.create<Value>()'),
+          inlineCode('RadioGroup.create<Value>()'),
           ' to lift the option type through ',
           inlineCode('view'),
           ', ',

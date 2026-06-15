@@ -1,5 +1,6 @@
+import { Dialog } from '@foldkit/ui'
 import { Match as M, Number, String } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import {
@@ -24,7 +25,7 @@ export type UpdateReturn = readonly [
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const openSearchDialog = (model: Model): UpdateReturn => {
-  const [nextDialog, dialogCommands] = Ui.Dialog.open(model.dialog)
+  const [nextDialog, dialogCommands] = Dialog.open(model.dialog)
 
   return [
     evo(model, { dialog: () => nextDialog }),
@@ -98,7 +99,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       PressedSearchShortcut: () => openSearchDialog(model),
 
       GotSearchDialogMessage: ({ message }) => {
-        const [nextDialog, dialogCommands] = Ui.Dialog.update(
+        const [nextDialog, dialogCommands] = Dialog.update(
           model.dialog,
           message,
         )
@@ -163,7 +164,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   )
 
 export const informRouteChanged = (model: Model): UpdateReturn => {
-  const [closedDialog, closeCommands] = Ui.Dialog.close(model.dialog)
+  const [closedDialog, closeCommands] = Dialog.close(model.dialog)
   const [clearedModel] = update(model, ClearedSearchQuery())
   return [
     evo(clearedModel, { dialog: () => closedDialog }),

@@ -1,5 +1,6 @@
+import { Dialog, Listbox, RadioGroup, Switch } from '@foldkit/ui'
 import { Array, Match as M, Option, Schema as S } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { ExportPng, saveCanvas } from './command'
@@ -173,7 +174,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           M.when('Both', () => 'Vertical' as const),
           M.exhaustive,
         )
-        const [nextMirrorHorizontalSwitch] = Ui.Switch.setChecked(
+        const [nextMirrorHorizontalSwitch] = Switch.setChecked(
           model.mirrorHorizontalSwitch,
           !model.mirrorHorizontalSwitch.isChecked,
         )
@@ -194,7 +195,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           M.when('Both', () => 'Horizontal' as const),
           M.exhaustive,
         )
-        const [nextMirrorVerticalSwitch] = Ui.Switch.setChecked(
+        const [nextMirrorVerticalSwitch] = Switch.setChecked(
           model.mirrorVerticalSwitch,
           !model.mirrorVerticalSwitch.isChecked,
         )
@@ -303,7 +304,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       CompletedSaveCanvas: () => [model, []],
 
       FailedExportPng: ({ error }) => {
-        const [nextErrorDialog, errorDialogCommands] = Ui.Dialog.open(
+        const [nextErrorDialog, errorDialogCommands] = Dialog.open(
           model.errorDialog,
         )
 
@@ -320,7 +321,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       GotErrorDialogMessage: ({ message }) => {
         const [nextErrorDialog, errorDialogCommands, maybeOutMessage] =
-          Ui.Dialog.update(model.errorDialog, message)
+          Dialog.update(model.errorDialog, message)
         const mappedCommands = Command.mapMessages(
           errorDialogCommands,
           dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
@@ -330,7 +331,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             evo(model, { errorDialog: () => nextErrorDialog }),
             mappedCommands,
           ],
-          onSome: M.type<Ui.Dialog.OutMessage>().pipe(
+          onSome: M.type<Dialog.OutMessage>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
               Opened: () => [
@@ -360,7 +361,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             evo(model, { toolRadioGroup: () => nextToolRadioGroup }),
             mappedCommands,
           ],
-          onSome: M.type<Ui.RadioGroup.OutMessage<Tool>>().pipe(
+          onSome: M.type<RadioGroup.OutMessage<Tool>>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
               Selected: ({ value }) => [
@@ -388,7 +389,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             evo(model, { gridSizeRadioGroup: () => nextGridSizeRadioGroup }),
             mappedCommands,
           ],
-          onSome: M.type<Ui.RadioGroup.OutMessage>().pipe(
+          onSome: M.type<RadioGroup.OutMessage>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
               Selected: ({ value }) => {
@@ -422,7 +423,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             evo(model, { paletteRadioGroup: () => nextPaletteRadioGroup }),
             mappedCommands,
           ],
-          onSome: M.type<Ui.RadioGroup.OutMessage>().pipe(
+          onSome: M.type<RadioGroup.OutMessage>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
               Selected: ({ value }) =>
@@ -453,7 +454,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotMirrorHorizontalSwitchMessage: ({ message }) => {
-        const [nextSwitch, switchCommands] = Ui.Switch.update(
+        const [nextSwitch, switchCommands] = Switch.update(
           model.mirrorHorizontalSwitch,
           message,
         )
@@ -479,7 +480,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotMirrorVerticalSwitchMessage: ({ message }) => {
-        const [nextSwitch, switchCommands] = Ui.Switch.update(
+        const [nextSwitch, switchCommands] = Switch.update(
           model.mirrorVerticalSwitch,
           message,
         )
@@ -516,7 +517,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             evo(model, { themeListbox: () => nextThemeListbox }),
             mappedCommands,
           ],
-          onSome: M.type<Ui.Listbox.OutMessage>().pipe(
+          onSome: M.type<Listbox.OutMessage>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
               Selected: ({ value }) => {
@@ -547,7 +548,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         Option.match(model.maybePendingGridSize, {
           onNone: () => [model, []],
           onSome: pendingSize => {
-            const [nextDialog, dialogCommands] = Ui.Dialog.close(
+            const [nextDialog, dialogCommands] = Dialog.close(
               model.gridSizeConfirmDialog,
             )
             const mappedDialogCommands = Command.mapMessages(
@@ -567,7 +568,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         }),
 
       GotGridSizeConfirmDialogMessage: ({ message }) => {
-        const [nextDialog, dialogCommands, maybeOutMessage] = Ui.Dialog.update(
+        const [nextDialog, dialogCommands, maybeOutMessage] = Dialog.update(
           model.gridSizeConfirmDialog,
           message,
         )
@@ -581,7 +582,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             evo(model, { gridSizeConfirmDialog: () => nextDialog }),
             mappedCommands,
           ],
-          onSome: M.type<Ui.Dialog.OutMessage>().pipe(
+          onSome: M.type<Dialog.OutMessage>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
               Opened: () => [
@@ -636,9 +637,7 @@ const requestGridSizeChange = (model: Model, size: number): UpdateReturn => {
     return applyGridSizeChange(model, size)
   }
 
-  const [nextDialog, dialogCommands] = Ui.Dialog.open(
-    model.gridSizeConfirmDialog,
-  )
+  const [nextDialog, dialogCommands] = Dialog.open(model.gridSizeConfirmDialog)
   return [
     evo(model, {
       maybePendingGridSize: () => Option.some(size),

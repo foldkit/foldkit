@@ -1,4 +1,5 @@
-import { Submodel, Ui } from 'foldkit'
+import { Button } from '@foldkit/ui'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { ClickedButtonDemo, type UiMessage } from '../message'
@@ -22,7 +23,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       h.div(
         [h.Class('flex flex-col items-start gap-2')],
         [
-          Ui.Button.view<UiMessage>({
+          Button.view<UiMessage>({
             onClick: ClickedButtonDemo(),
             toView: attributes =>
               h.button(
@@ -43,7 +44,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
-      Ui.Button.view<UiMessage>({
+      Button.view<UiMessage>({
         isDisabled: true,
         toView: attributes =>
           h.button(

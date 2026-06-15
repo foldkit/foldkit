@@ -1,6 +1,6 @@
-import { Ui } from 'foldkit'
+import { Tooltip } from '@foldkit/ui'
+import type { AnchorConfig } from '@foldkit/ui/tooltip'
 import { html } from 'foldkit/html'
-import type { AnchorConfig } from 'foldkit/ui/tooltip'
 
 import { GotTooltipDemoMessage, type Message } from './message'
 
@@ -22,7 +22,7 @@ const TOOLTIP_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-export const demo = (tooltipModel: Ui.Tooltip.Model) => {
+export const demo = (tooltipModel: Tooltip.Model) => {
   const h = html<Message>()
 
   return [
@@ -32,7 +32,7 @@ export const demo = (tooltipModel: Ui.Tooltip.Model) => {
         h.submodel({
           slotId: tooltipModel.id,
           model: tooltipModel,
-          view: Ui.Tooltip.view,
+          view: Tooltip.view,
           viewInputs: {
             anchor: TOOLTIP_ANCHOR,
             toView: ({ trigger, panel, isVisible }) =>

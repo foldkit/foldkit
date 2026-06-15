@@ -1,4 +1,5 @@
-import { Submodel, Ui } from 'foldkit'
+import { Popover } from '@foldkit/ui'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import {
@@ -46,8 +47,8 @@ const popoverPanelContent = (): Html => {
 
 const popoverDemo = (
   id: string,
-  popoverModel: Ui.Popover.Model,
-  toParentMessage: (message: Ui.Popover.Message) => UiMessage,
+  popoverModel: Popover.Model,
+  toParentMessage: (message: Popover.Message) => UiMessage,
   panelClassNameValue: string,
 ): Html => {
   const h = html<UiMessage>()
@@ -55,7 +56,7 @@ const popoverDemo = (
   return h.submodel({
     slotId: id,
     model: popoverModel,
-    view: Ui.Popover.view,
+    view: Popover.view,
     viewInputs: {
       anchor: POPOVER_ANCHOR,
       toView: ({ button, panel, backdrop, isVisible }) =>
@@ -90,13 +91,13 @@ const NESTED_POPOVER_ANCHOR = {
 
 const nestedChildButtonSelector = '#popover-nested-child-demo-button'
 
-const nestedChildPopover = (childPopoverModel: Ui.Popover.Model): Html => {
+const nestedChildPopover = (childPopoverModel: Popover.Model): Html => {
   const h = html<UiMessage>()
 
   return h.submodel({
     slotId: childPopoverModel.id,
     model: childPopoverModel,
-    view: Ui.Popover.view,
+    view: Popover.view,
     viewInputs: {
       anchor: NESTED_POPOVER_ANCHOR,
       toView: ({ button, panel, backdrop, isVisible }) =>
@@ -135,8 +136,8 @@ const nestedChildPopover = (childPopoverModel: Ui.Popover.Model): Html => {
 }
 
 const nestedDemo = (
-  parentPopoverModel: Ui.Popover.Model,
-  childPopoverModel: Ui.Popover.Model,
+  parentPopoverModel: Popover.Model,
+  childPopoverModel: Popover.Model,
 ): Html => {
   const h = html<UiMessage>()
 
@@ -146,7 +147,7 @@ const nestedDemo = (
       h.submodel({
         slotId: parentPopoverModel.id,
         model: parentPopoverModel,
-        view: Ui.Popover.view,
+        view: Popover.view,
         viewInputs: {
           anchor: POPOVER_ANCHOR,
           focusSelector: nestedChildButtonSelector,

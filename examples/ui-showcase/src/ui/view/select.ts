@@ -1,4 +1,5 @@
-import { Submodel, Ui } from 'foldkit'
+import { Select } from '@foldkit/ui'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import * as Icon from '../../icon'
@@ -32,7 +33,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       h.div(
         [h.Class('flex flex-col items-start gap-2 max-w-sm')],
         [
-          Ui.Select.view<UiMessage>({
+          Select.view<UiMessage>({
             id: 'select-basic-demo',
             value: model.selectDemoValue,
             onChange: value => UpdatedSelectDemoValue({ value }),
@@ -76,7 +77,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
-      Ui.Select.view<UiMessage>({
+      Select.view<UiMessage>({
         id: 'select-disabled-demo',
         isDisabled: true,
         value: 'us',

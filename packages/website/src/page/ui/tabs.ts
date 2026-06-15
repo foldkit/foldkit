@@ -1,5 +1,5 @@
+import { Tabs } from '@foldkit/ui'
 import { Match as M } from 'effect'
-import { Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 
 import type { TableOfContentsEntry } from '../../main'
@@ -35,7 +35,7 @@ type DemoTab = 'Foldkit' | 'React' | 'Elm'
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']
 
-export const DemoTabs = Ui.Tabs.create<DemoTab>()
+export const DemoTabs = Tabs.create<DemoTab>()
 
 const buttonClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-t-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 mb-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-cream data-[selected]:dark:bg-gray-900 data-[selected]:text-gray-900 data-[selected]:dark:text-white data-[selected]:border-b-0'
@@ -51,7 +51,7 @@ const verticalPanelClassName =
 
 // VIEW
 
-export const horizontalDemo = (tabsModel: Ui.Tabs.Model) => {
+export const horizontalDemo = (tabsModel: Tabs.Model) => {
   const h = html<Message>()
 
   const foldkitPanel = h.div(
@@ -165,7 +165,7 @@ export const horizontalDemo = (tabsModel: Ui.Tabs.Model) => {
   ]
 }
 
-export const verticalDemo = (tabsModel: Ui.Tabs.Model) => {
+export const verticalDemo = (tabsModel: Tabs.Model) => {
   const h = html<Message>()
 
   const foldkitPanel = h.div(

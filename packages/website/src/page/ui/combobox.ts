@@ -1,8 +1,8 @@
+import { Combobox } from '@foldkit/ui'
+import type { AnchorConfig } from '@foldkit/ui/combobox'
 import { clsx } from 'clsx'
 import { Array } from 'effect'
-import { Ui } from 'foldkit'
 import { childAttributes, html } from 'foldkit/html'
-import type { AnchorConfig } from 'foldkit/ui/combobox'
 
 import { Icon } from '../../icon'
 import type { TableOfContentsEntry } from '../../main'
@@ -58,8 +58,8 @@ type City =
   | 'Wellington'
   | 'Zurich'
 
-export const CityCombobox = Ui.Combobox.create<City>()
-export const CityMultiCombobox = Ui.Combobox.Multi.create<City>()
+export const CityCombobox = Combobox.create<City>()
+export const CityMultiCombobox = Combobox.Multi.create<City>()
 
 const CITIES: ReadonlyArray<City> = [
   'Johannesburg',
@@ -104,7 +104,7 @@ export const comboboxViewInputs = (
   inputValue: string,
   anchor: AnchorConfig = COMBOBOX_ANCHOR,
   wrapperClass: string = wrapperClassName,
-): Ui.Combobox.ViewInputs<City> => {
+): Combobox.ViewInputs<City> => {
   const h = html<Message>()
   const filteredCities = filterCities(inputValue)
 
@@ -143,7 +143,7 @@ export const comboboxViewInputs = (
 
 // VIEW
 
-export const comboboxDemo = (comboboxModel: Ui.Combobox.Model) => {
+export const comboboxDemo = (comboboxModel: Combobox.Model) => {
   const h = html<Message>()
 
   return [
@@ -162,7 +162,7 @@ export const comboboxDemo = (comboboxModel: Ui.Combobox.Model) => {
   ]
 }
 
-export const nullableDemo = (comboboxNullableModel: Ui.Combobox.Model) => {
+export const nullableDemo = (comboboxNullableModel: Combobox.Model) => {
   const h = html<Message>()
 
   return [
@@ -183,7 +183,7 @@ export const nullableDemo = (comboboxNullableModel: Ui.Combobox.Model) => {
 }
 
 export const selectOnFocusDemo = (
-  comboboxSelectOnFocusModel: Ui.Combobox.Model,
+  comboboxSelectOnFocusModel: Combobox.Model,
 ) => {
   const h = html<Message>()
 
@@ -214,7 +214,7 @@ const tagClassName =
 
 const emptyTagClassName = 'text-sm py-0.5 text-gray-400 dark:text-gray-500'
 
-export const multiDemo = (comboboxMultiModel: Ui.Combobox.Multi.Model) => {
+export const multiDemo = (comboboxMultiModel: Combobox.Multi.Model) => {
   const h = html<Message>()
 
   return [

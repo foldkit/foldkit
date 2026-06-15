@@ -1,0 +1,104 @@
+import { describe, it } from '@effect/vitest'
+import * as Story from 'foldkit/story'
+import { expect } from 'vitest'
+
+import {
+  Closed,
+  CompletedFocusButton,
+  FocusButton,
+  Toggled,
+  init,
+  reflectOpenState,
+  update,
+} from './index.js'
+
+describe('Disclosure', () => {
+  describe('init', () => {
+    it('defaults isOpen to false', () => {
+      expect(init({ id: 'test' })).toStrictEqual({
+        id: 'test',
+        isOpen: false,
+      })
+    })
+
+    it('accepts a custom isOpen', () => {
+      expect(init({ id: 'test', isOpen: true })).toStrictEqual({
+        id: 'test',
+        isOpen: true,
+      })
+    })
+  })
+
+  describe('update', () => {
+    it('opens when closed on Toggled', () => {
+      Story.story(
+        update,
+        Story.with(init({ id: 'test' })),
+        Story.message(Toggled()),
+        Story.model(model => {
+          expect(model.isOpen).toBe(true)
+        }),
+      )
+    })
+
+    it('closes when open on Toggled', () => {
+      Story.story(
+        update,
+        Story.with(init({ id: 'test', isOpen: true })),
+        Story.message(Toggled()),
+        Story.Command.resolve(FocusButton, CompletedFocusButton()),
+        Story.model(model => {
+          expect(model.isOpen).toBe(false)
+        }),
+      )
+    })
+
+    it('closes when open on Closed', () => {
+      Story.story(
+        update,
+        Story.with(init({ id: 'test', isOpen: true })),
+        Story.message(Closed()),
+        Story.Command.resolve(FocusButton, CompletedFocusButton()),
+        Story.model(model => {
+          expect(model.isOpen).toBe(false)
+        }),
+      )
+    })
+
+    it('is a no-op when already closed on Closed', () => {
+      const originalModel = init({ id: 'test' })
+      Story.story(
+        update,
+        Story.with(originalModel),
+        Story.message(Closed()),
+        Story.model(model => {
+          expect(model).toStrictEqual(originalModel)
+        }),
+      )
+    })
+
+    it('returns model unchanged on CompletedFocusButton', () => {
+      const originalModel = init({ id: 'test' })
+      Story.story(
+        update,
+        Story.with(originalModel),
+        Story.message(CompletedFocusButton()),
+        Story.model(model => {
+          expect(model).toBe(originalModel)
+        }),
+      )
+    })
+  })
+
+  describe('reflectOpenState', () => {
+    it('reflects open state onto the model without emitting', () => {
+      expect(reflectOpenState(init({ id: 'test' }), true).isOpen).toBe(true)
+    })
+
+    it('reflects closed state without running the focus command', () => {
+      expect(
+        reflectOpenState(init({ id: 'test', isOpen: true }), false).isOpen,
+      ).toBe(false)
+    })
+  })
+})

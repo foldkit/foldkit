@@ -1,5 +1,5 @@
+import { VirtualList } from '@foldkit/ui'
 import { Array, Match as M, Option, pipe } from 'effect'
-import { Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 
 import type { TableOfContentsEntry } from '../../main'
@@ -157,7 +157,7 @@ const buttonClassName =
 const headerClassName =
   'flex items-end justify-between text-sm text-gray-600 dark:text-gray-400'
 
-export const virtualListDemo = (model: Ui.VirtualList.Model) => {
+export const virtualListDemo = (model: VirtualList.Model) => {
   const h = html<Message>()
 
   return [
@@ -180,7 +180,7 @@ export const virtualListDemo = (model: Ui.VirtualList.Model) => {
         h.submodel({
           slotId: model.id,
           model,
-          view: Ui.VirtualList.view<Activity>(),
+          view: VirtualList.view<Activity>(),
           viewInputs: {
             items: sampleActivities,
             itemToKey: row => String(row.id),
@@ -283,7 +283,7 @@ const variableSummaryBodyClassName =
 const variableArtifactClassName =
   'mt-1 inline-flex w-fit rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 font-mono text-[10px] text-gray-600 dark:text-gray-300'
 
-export const virtualListVariableDemo = (model: Ui.VirtualList.Model) => {
+export const virtualListVariableDemo = (model: VirtualList.Model) => {
   const h = html<Message>()
 
   const variableTallRow = (row: Activity, summary: Summary) =>
@@ -357,7 +357,7 @@ export const virtualListVariableDemo = (model: Ui.VirtualList.Model) => {
         h.submodel({
           slotId: model.id,
           model,
-          view: Ui.VirtualList.view<Activity>(),
+          view: VirtualList.view<Activity>(),
           viewInputs: {
             items: variableActivities,
             itemToKey: row => String(row.id),

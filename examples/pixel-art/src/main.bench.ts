@@ -1,5 +1,5 @@
+import { Dialog, Listbox, RadioGroup, Switch } from '@foldkit/ui'
 import { Option } from 'effect'
-import { Ui } from 'foldkit'
 import { bench, describe } from 'vitest'
 
 import { createEmptyGrid } from './grid'
@@ -25,28 +25,28 @@ const initialModel: Model = {
   mirrorMode: 'None' as const,
   isDrawing: false,
   maybeHoveredCell: Option.none(),
-  errorDialog: Ui.Dialog.init({ id: 'export-error-dialog' }),
+  errorDialog: Dialog.init({ id: 'export-error-dialog' }),
   maybeExportError: Option.none(),
   paletteThemeIndex: 0,
-  gridSizeConfirmDialog: Ui.Dialog.init({ id: 'grid-size-confirm-dialog' }),
+  gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
   maybePendingGridSize: Option.none(),
-  toolRadioGroup: Ui.RadioGroup.init({
+  toolRadioGroup: RadioGroup.init({
     id: 'tool-picker',
     selectedValue: 'Brush',
   }),
-  gridSizeRadioGroup: Ui.RadioGroup.init({
+  gridSizeRadioGroup: RadioGroup.init({
     id: 'grid-size-picker',
     selectedValue: String(GRID_SIZE),
     orientation: 'Horizontal',
   }),
-  paletteRadioGroup: Ui.RadioGroup.init({
+  paletteRadioGroup: RadioGroup.init({
     id: 'palette-picker',
     selectedValue: '0',
     orientation: 'Horizontal',
   }),
-  mirrorHorizontalSwitch: Ui.Switch.init({ id: 'mirror-horizontal' }),
-  mirrorVerticalSwitch: Ui.Switch.init({ id: 'mirror-vertical' }),
-  themeListbox: Ui.Listbox.init({ id: 'theme-picker', selectedItem: '0' }),
+  mirrorHorizontalSwitch: Switch.init({ id: 'mirror-horizontal' }),
+  mirrorVerticalSwitch: Switch.init({ id: 'mirror-vertical' }),
+  themeListbox: Listbox.init({ id: 'theme-picker', selectedItem: '0' }),
 }
 
 const dispatch = (

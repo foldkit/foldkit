@@ -1,5 +1,6 @@
+import { Disclosure } from '@foldkit/ui'
 import { Option, Record } from 'effect'
-import { Submodel, Ui } from 'foldkit'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { Icon } from '../../icon'
@@ -156,7 +157,7 @@ const faqItem = (
       h.submodel({
         slotId: disclosure.id,
         model: disclosure,
-        view: Ui.Disclosure.view,
+        view: Disclosure.view,
         viewInputs: {
           toView: attributes =>
             h.div(
@@ -445,7 +446,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           [
             para(
               link(uiOverviewRouter(), 'Foldkit UI'),
-              ' is a built-in set of headless, accessible components: Disclosure, Combobox, Listbox, Menu, Popover, and more. Each one follows The Elm Architecture with its own Model, Message, and update, and integrates into your app via the Submodels pattern. You provide the markup and styling; Foldkit UI provides the accessibility attributes, keyboard navigation, and state management.',
+              ' is a first-party set of headless, accessible components: Disclosure, Combobox, Listbox, Menu, Popover, and more. Each one follows The Elm Architecture with its own Model, Message, and update, and integrates into your app via the Submodels pattern. You provide the markup and styling; Foldkit UI provides the accessibility attributes, keyboard navigation, and state management.',
             ),
           ],
           model,

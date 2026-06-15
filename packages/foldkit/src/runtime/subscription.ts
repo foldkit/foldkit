@@ -55,7 +55,7 @@ type Entry<Model, Message, Dependencies, Services = never> =
  *   Stream can still read the latest dependencies via the second
  *   `readDependencies` argument. Use this when the Stream needs mid-flight
  *   access to data that changes often but shouldn't trigger restarts
- *   (Foldkit UI's `Ui.DragAndDrop.autoScroll` reading the latest pointer
+ *   (Foldkit UI's `DragAndDrop.autoScroll` reading the latest pointer
  *   `clientY` each rAF tick is the canonical example).
  *
  * `dependenciesSchema` must be a `Schema.Struct` so every dependency is

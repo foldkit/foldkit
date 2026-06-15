@@ -1,5 +1,21 @@
+import {
+  Animation,
+  Calendar,
+  Checkbox,
+  DatePicker,
+  Dialog,
+  Disclosure,
+  DragAndDrop,
+  FileDrop,
+  Menu,
+  Popover,
+  Slider,
+  Switch,
+  Tooltip,
+  VirtualList,
+} from '@foldkit/ui'
 import { Array, Match as M, Number, Option, pipe } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import {
@@ -104,27 +120,29 @@ export type UiUpdateReturn = [
 ]
 const withUpdateReturn = M.withReturnType<UiUpdateReturn>()
 
-const DemoMenu = Ui.Menu.create<string>()
+const DemoMenu = Menu.create<string>()
 
 const delegateToAnimationDemo = (
-  animationModel: Ui.Animation.Model,
-  message: Ui.Animation.Message,
-): readonly [Ui.Animation.Model, ReadonlyArray<Command.Command<UiMessage>>] => {
-  const [nextAnimation, animationCommands, maybeOutMessage] =
-    Ui.Animation.update(animationModel, message)
+  animationModel: Animation.Model,
+  message: Animation.Message,
+): readonly [Animation.Model, ReadonlyArray<Command.Command<UiMessage>>] => {
+  const [nextAnimation, animationCommands, maybeOutMessage] = Animation.update(
+    animationModel,
+    message,
+  )
 
-  const toMessage = (animationMessage: Ui.Animation.Message): UiMessage =>
+  const toMessage = (animationMessage: Animation.Message): UiMessage =>
     GotAnimationDemoMessage({ message: animationMessage })
 
   const mappedCommands = Command.mapMessages(animationCommands, toMessage)
 
   const additionalCommands = Option.match(maybeOutMessage, {
     onNone: () => [],
-    onSome: M.type<Ui.Animation.OutMessage>().pipe(
+    onSome: M.type<Animation.OutMessage>().pipe(
       M.tagsExhaustive({
         StartedLeaveAnimating: () => [
           Command.mapMessage(
-            Ui.Animation.defaultLeaveCommand(nextAnimation),
+            Animation.defaultLeaveCommand(nextAnimation),
             toMessage,
           ),
         ],
@@ -141,7 +159,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
     withUpdateReturn,
     M.tagsExhaustive({
       ClickedOpenMobileMenu: () => {
-        const [nextMobileMenuDialog, mobileMenuDialogCommands] = Ui.Dialog.open(
+        const [nextMobileMenuDialog, mobileMenuDialogCommands] = Dialog.open(
           model.mobileMenuDialog,
         )
 
@@ -156,8 +174,10 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotMobileMenuDialogMessage: ({ message }) => {
-        const [nextMobileMenuDialog, mobileMenuDialogCommands] =
-          Ui.Dialog.update(model.mobileMenuDialog, message)
+        const [nextMobileMenuDialog, mobileMenuDialogCommands] = Dialog.update(
+          model.mobileMenuDialog,
+          message,
+        )
 
         return [
           evo(model, {
@@ -196,7 +216,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
       GotFieldsetCheckboxDemoMessage: ({ message }) => {
         const [nextFieldsetCheckboxDemo, fieldsetCheckboxCommands] =
-          Ui.Checkbox.update(model.fieldsetCheckboxDemo, message)
+          Checkbox.update(model.fieldsetCheckboxDemo, message)
 
         return [
           evo(model, {
@@ -216,8 +236,10 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       ],
 
       GotCheckboxBasicDemoMessage: ({ message }) => {
-        const [nextCheckboxBasicDemo, checkboxBasicCommands] =
-          Ui.Checkbox.update(model.checkboxBasicDemo, message)
+        const [nextCheckboxBasicDemo, checkboxBasicCommands] = Checkbox.update(
+          model.checkboxBasicDemo,
+          message,
+        )
 
         return [
           evo(model, {
@@ -235,11 +257,11 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           model.checkboxOptionBDemo.isChecked
         const nextChecked = !isAllChecked
 
-        const [nextOptionA] = Ui.Checkbox.setChecked(
+        const [nextOptionA] = Checkbox.setChecked(
           model.checkboxOptionADemo,
           nextChecked,
         )
-        const [nextOptionB] = Ui.Checkbox.setChecked(
+        const [nextOptionB] = Checkbox.setChecked(
           model.checkboxOptionBDemo,
           nextChecked,
         )
@@ -254,7 +276,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotCheckboxOptionADemoMessage: ({ message }) => {
-        const [nextOptionA, optionACommands] = Ui.Checkbox.update(
+        const [nextOptionA, optionACommands] = Checkbox.update(
           model.checkboxOptionADemo,
           message,
         )
@@ -270,7 +292,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotCheckboxOptionBDemoMessage: ({ message }) => {
-        const [nextOptionB, optionBCommands] = Ui.Checkbox.update(
+        const [nextOptionB, optionBCommands] = Checkbox.update(
           model.checkboxOptionBDemo,
           message,
         )
@@ -344,7 +366,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotDialogDemoMessage: ({ message }) => {
-        const [nextDialogDemo, dialogCommands] = Ui.Dialog.update(
+        const [nextDialogDemo, dialogCommands] = Dialog.update(
           model.dialogDemo,
           message,
         )
@@ -360,8 +382,10 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotDialogAnimatedDemoMessage: ({ message }) => {
-        const [nextDialogAnimatedDemo, dialogAnimatedCommands] =
-          Ui.Dialog.update(model.dialogAnimatedDemo, message)
+        const [nextDialogAnimatedDemo, dialogAnimatedCommands] = Dialog.update(
+          model.dialogAnimatedDemo,
+          message,
+        )
 
         return [
           evo(model, {
@@ -374,7 +398,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotOverlayDialogDemoMessage: ({ message }) => {
-        const [nextOverlayDialogDemo, overlayDialogCommands] = Ui.Dialog.update(
+        const [nextOverlayDialogDemo, overlayDialogCommands] = Dialog.update(
           model.overlayDialogDemo,
           message,
         )
@@ -405,7 +429,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
       GotNestedDialogParentDemoMessage: ({ message }) => {
         const [nextNestedDialogParentDemo, nestedDialogParentCommands] =
-          Ui.Dialog.update(model.nestedDialogParentDemo, message)
+          Dialog.update(model.nestedDialogParentDemo, message)
 
         return [
           evo(model, {
@@ -419,7 +443,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
       GotNestedDialogChildDemoMessage: ({ message }) => {
         const [nextNestedDialogChildDemo, nestedDialogChildCommands] =
-          Ui.Dialog.update(model.nestedDialogChildDemo, message)
+          Dialog.update(model.nestedDialogChildDemo, message)
 
         return [
           evo(model, {
@@ -433,7 +457,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
       ClickedDeleteProject: () => {
         const [nextNestedDialogChildDemo, nestedDialogChildCommands] =
-          Ui.Dialog.open(model.nestedDialogChildDemo)
+          Dialog.open(model.nestedDialogChildDemo)
 
         return [
           evo(model, {
@@ -446,9 +470,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       ClickedOpenDialog: () => {
-        const [nextDialogDemo, dialogCommands] = Ui.Dialog.open(
-          model.dialogDemo,
-        )
+        const [nextDialogDemo, dialogCommands] = Dialog.open(model.dialogDemo)
 
         return [
           evo(model, { dialogDemo: () => nextDialogDemo }),
@@ -459,7 +481,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       ClickedOpenAnimatedDialog: () => {
-        const [nextDialogAnimatedDemo, dialogAnimatedCommands] = Ui.Dialog.open(
+        const [nextDialogAnimatedDemo, dialogAnimatedCommands] = Dialog.open(
           model.dialogAnimatedDemo,
         )
 
@@ -472,7 +494,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       ClickedEditFilters: () => {
-        const [nextOverlayDialogDemo, overlayDialogCommands] = Ui.Dialog.open(
+        const [nextOverlayDialogDemo, overlayDialogCommands] = Dialog.open(
           model.overlayDialogDemo,
         )
 
@@ -486,7 +508,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
       ClickedOpenProjectSettings: () => {
         const [nextNestedDialogParentDemo, nestedDialogParentCommands] =
-          Ui.Dialog.open(model.nestedDialogParentDemo)
+          Dialog.open(model.nestedDialogParentDemo)
 
         return [
           evo(model, {
@@ -499,7 +521,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotDisclosureDemoMessage: ({ message }) => {
-        const [nextDisclosureDemo, disclosureCommands] = Ui.Disclosure.update(
+        const [nextDisclosureDemo, disclosureCommands] = Disclosure.update(
           model.disclosureDemo,
           message,
         )
@@ -515,8 +537,10 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotCalendarBasicDemoMessage: ({ message }) => {
-        const [nextCalendarBasicDemo, calendarBasicCommands] =
-          Ui.Calendar.update(model.calendarBasicDemo, message)
+        const [nextCalendarBasicDemo, calendarBasicCommands] = Calendar.update(
+          model.calendarBasicDemo,
+          message,
+        )
 
         return [
           evo(model, {
@@ -530,7 +554,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
       GotDatePickerBasicDemoMessage: ({ message }) => {
         const [nextDatePickerBasicDemo, datePickerBasicCommands] =
-          Ui.DatePicker.update(model.datePickerBasicDemo, message)
+          DatePicker.update(model.datePickerBasicDemo, message)
 
         return [
           evo(model, {
@@ -544,7 +568,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
       GotDragAndDropDemoMessage: ({ message }) => {
         const [nextDragAndDrop, dragAndDropCommands, maybeOutMessage] =
-          Ui.DragAndDrop.update(model.dragAndDropDemo, message)
+          DragAndDrop.update(model.dragAndDropDemo, message)
 
         const nextColumns = pipe(
           maybeOutMessage,
@@ -586,11 +610,11 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
       GotFileDropBasicDemoMessage: ({ message }) => {
         const [nextFileDrop, fileDropCommands, maybeOutMessage] =
-          Ui.FileDrop.update(model.fileDropBasicDemo, message)
+          FileDrop.update(model.fileDropBasicDemo, message)
 
         const nextFiles = Option.match(maybeOutMessage, {
           onNone: () => model.fileDropBasicDemoFiles,
-          onSome: M.type<Ui.FileDrop.OutMessage>().pipe(
+          onSome: M.type<FileDrop.OutMessage>().pipe(
             M.tagsExhaustive({
               ReceivedFiles: ({ files }) => [
                 ...model.fileDropBasicDemoFiles,
@@ -697,7 +721,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotPopoverBasicDemoMessage: ({ message }) => {
-        const [nextPopoverBasicDemo, popoverBasicCommands] = Ui.Popover.update(
+        const [nextPopoverBasicDemo, popoverBasicCommands] = Popover.update(
           model.popoverBasicDemo,
           message,
         )
@@ -714,7 +738,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
       GotPopoverAnimatedDemoMessage: ({ message }) => {
         const [nextPopoverAnimatedDemo, popoverAnimatedCommands] =
-          Ui.Popover.update(model.popoverAnimatedDemo, message)
+          Popover.update(model.popoverAnimatedDemo, message)
 
         return [
           evo(model, {
@@ -728,7 +752,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
       GotPopoverNestedParentDemoMessage: ({ message }) => {
         const [nextPopoverNestedParentDemo, popoverNestedParentCommands] =
-          Ui.Popover.update(model.popoverNestedParentDemo, message)
+          Popover.update(model.popoverNestedParentDemo, message)
 
         return [
           evo(model, {
@@ -742,7 +766,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
       GotPopoverNestedChildDemoMessage: ({ message }) => {
         const [nextPopoverNestedChildDemo, popoverNestedChildCommands] =
-          Ui.Popover.update(model.popoverNestedChildDemo, message)
+          Popover.update(model.popoverNestedChildDemo, message)
 
         return [
           evo(model, {
@@ -783,7 +807,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotSliderRatingDemoMessage: ({ message }) => {
-        const [nextSliderRatingDemo, sliderRatingCommands] = Ui.Slider.update(
+        const [nextSliderRatingDemo, sliderRatingCommands] = Slider.update(
           model.sliderRatingDemo,
           message,
         )
@@ -799,7 +823,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotSliderVolumeDemoMessage: ({ message }) => {
-        const [nextSliderVolumeDemo, sliderVolumeCommands] = Ui.Slider.update(
+        const [nextSliderVolumeDemo, sliderVolumeCommands] = Slider.update(
           model.sliderVolumeDemo,
           message,
         )
@@ -815,7 +839,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotSwitchDemoMessage: ({ message }) => {
-        const [nextSwitchDemo, switchCommands] = Ui.Switch.update(
+        const [nextSwitchDemo, switchCommands] = Switch.update(
           model.switchDemo,
           message,
         )
@@ -980,7 +1004,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotTooltipBasicDemoMessage: ({ message }) => {
-        const [nextTooltipBasicDemo, tooltipBasicCommands] = Ui.Tooltip.update(
+        const [nextTooltipBasicDemo, tooltipBasicCommands] = Tooltip.update(
           model.tooltipBasicDemo,
           message,
         )
@@ -996,8 +1020,10 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotTooltipNoDelayDemoMessage: ({ message }) => {
-        const [nextTooltipNoDelayDemo, tooltipNoDelayCommands] =
-          Ui.Tooltip.update(model.tooltipNoDelayDemo, message)
+        const [nextTooltipNoDelayDemo, tooltipNoDelayCommands] = Tooltip.update(
+          model.tooltipNoDelayDemo,
+          message,
+        )
 
         return [
           evo(model, {
@@ -1025,7 +1051,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
         const nextShowing = !model.isAnimationDemoShowing
         const [nextAnimationDemo, commands] = delegateToAnimationDemo(
           model.animationDemo,
-          nextShowing ? Ui.Animation.Showed() : Ui.Animation.Hid(),
+          nextShowing ? Animation.Showed() : Animation.Hid(),
         )
 
         return [
@@ -1038,8 +1064,10 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotVirtualListDemoMessage: ({ message }) => {
-        const [nextVirtualListDemo, virtualListCommands] =
-          Ui.VirtualList.update(model.virtualListDemo, message)
+        const [nextVirtualListDemo, virtualListCommands] = VirtualList.update(
+          model.virtualListDemo,
+          message,
+        )
 
         return [
           evo(model, { virtualListDemo: () => nextVirtualListDemo }),
@@ -1051,7 +1079,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
       ClickedVirtualListScrollToMiddle: () => {
         const [nextVirtualListDemo, virtualListCommands] =
-          Ui.VirtualList.scrollToIndex(
+          VirtualList.scrollToIndex(
             model.virtualListDemo,
             Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
           )
@@ -1066,7 +1094,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
       GotVirtualListVariableDemoMessage: ({ message }) => {
         const [nextVirtualListVariableDemo, virtualListCommands] =
-          Ui.VirtualList.update(model.virtualListVariableDemo, message)
+          VirtualList.update(model.virtualListVariableDemo, message)
 
         return [
           evo(model, {
@@ -1080,7 +1108,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
       ClickedVirtualListVariableScrollToMiddle: () => {
         const [nextVirtualListVariableDemo, virtualListCommands] =
-          Ui.VirtualList.scrollToIndexVariable(
+          VirtualList.scrollToIndexVariable(
             model.virtualListVariableDemo,
             variableActivities,
             variableRowHeightPx,

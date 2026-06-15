@@ -1,5 +1,5 @@
+import { Dialog, Disclosure, Menu, Tabs } from '@foldkit/ui'
 import { Schema as S } from 'effect'
-import { Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { UrlRequest } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
@@ -61,7 +61,7 @@ export const FailedFetchGitHubStars = m('FailedFetchGitHubStars', {
   error: S.String,
 })
 export const GotMobileMenuDialogMessage = m('GotMobileMenuDialogMessage', {
-  message: Ui.Dialog.Message,
+  message: Dialog.Message,
 })
 export const ClickedOpenMobileMenu = m('ClickedOpenMobileMenu')
 export const ToggledMobileTableOfContents = m('ToggledMobileTableOfContents', {
@@ -88,10 +88,10 @@ export const ChangedViewportWidth = m('ChangedViewportWidth', {
 })
 export const ToggledAiHeading = m('ToggledAiHeading')
 export const GotDemoTabsMessage = m('GotDemoTabsMessage', {
-  message: Ui.Tabs.Message,
+  message: Tabs.Message,
 })
 export const GotPlaygroundMenuMessage = m('GotPlaygroundMenuMessage', {
-  message: Ui.Menu.Message,
+  message: Menu.Message,
 })
 export const GotPlaygroundMessage = m('GotPlaygroundMessage', {
   message: Page.Playground.Message,
@@ -112,46 +112,46 @@ export const GotUiPageMessage = m('GotUiPageMessage', {
   message: Page.UiPages.Message,
 })
 export const GotGetStartedGroupMessage = m('GotGetStartedGroupMessage', {
-  message: Ui.Disclosure.Message,
+  message: Disclosure.Message,
 })
 export const GotCoreConceptsGroupMessage = m('GotCoreConceptsGroupMessage', {
-  message: Ui.Disclosure.Message,
+  message: Disclosure.Message,
 })
 export const GotForReactDevelopersGroupMessage = m(
   'GotForReactDevelopersGroupMessage',
   {
-    message: Ui.Disclosure.Message,
+    message: Disclosure.Message,
   },
 )
 export const GotForElmDevelopersGroupMessage = m(
   'GotForElmDevelopersGroupMessage',
   {
-    message: Ui.Disclosure.Message,
+    message: Disclosure.Message,
   },
 )
 export const GotFaqGroupMessage = m('GotFaqGroupMessage', {
-  message: Ui.Disclosure.Message,
+  message: Disclosure.Message,
 })
 export const GotTestingGroupMessage = m('GotTestingGroupMessage', {
-  message: Ui.Disclosure.Message,
+  message: Disclosure.Message,
 })
 export const GotBestPracticesGroupMessage = m('GotBestPracticesGroupMessage', {
-  message: Ui.Disclosure.Message,
+  message: Disclosure.Message,
 })
 export const GotPatternsGroupMessage = m('GotPatternsGroupMessage', {
-  message: Ui.Disclosure.Message,
+  message: Disclosure.Message,
 })
 export const GotFoldkitUiGroupMessage = m('GotFoldkitUiGroupMessage', {
-  message: Ui.Disclosure.Message,
+  message: Disclosure.Message,
 })
 export const GotAiGroupMessage = m('GotAiGroupMessage', {
-  message: Ui.Disclosure.Message,
+  message: Disclosure.Message,
 })
 export const GotExamplesGroupMessage = m('GotExamplesGroupMessage', {
-  message: Ui.Disclosure.Message,
+  message: Disclosure.Message,
 })
 export const GotApiReferenceGroupMessage = m('GotApiReferenceGroupMessage', {
-  message: Ui.Disclosure.Message,
+  message: Disclosure.Message,
 })
 export const GotExampleDetailMessage = m('GotExampleDetailMessage', {
   message: Page.Example.ExampleDetail.Message,
@@ -162,7 +162,7 @@ export const GotSearchMessage = m('GotSearchMessage', {
 export const GotSubmodelMapMessagesDisclosureMessage = m(
   'GotSubmodelMapMessagesDisclosureMessage',
   {
-    message: Ui.Disclosure.Message,
+    message: Disclosure.Message,
   },
 )
 

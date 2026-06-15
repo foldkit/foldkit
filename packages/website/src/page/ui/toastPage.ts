@@ -264,7 +264,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           'Toast is parameterized on a user-provided payload schema. The component owns only lifecycle and a11y fields: id, variant (drives ARIA role), transition, dismiss timer, hover state. Everything else lives in your payload and is rendered by your ',
           inlineCode('entryToView'),
           ' callback. ',
-          inlineCode('Ui.Toast.make(PayloadSchema)'),
+          inlineCode('Toast.make(PayloadSchema)'),
           ' returns a module with ',
           inlineCode('Model'),
           ', ',

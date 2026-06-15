@@ -1,5 +1,24 @@
+import {
+  Animation,
+  Calendar,
+  Checkbox,
+  Combobox,
+  DatePicker,
+  Dialog,
+  Disclosure,
+  DragAndDrop,
+  FileDrop,
+  Listbox,
+  Menu,
+  Popover,
+  RadioGroup,
+  Slider,
+  Switch,
+  Tabs,
+  Tooltip,
+  VirtualList,
+} from '@foldkit/ui'
 import { Schema as S } from 'effect'
-import { Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 
 import { Toast } from './toastModule'
@@ -20,79 +39,79 @@ export const UpdatedFieldsetTextareaValue = m('UpdatedFieldsetTextareaValue', {
 export const GotFieldsetCheckboxDemoMessage = m(
   'GotFieldsetCheckboxDemoMessage',
   {
-    message: Ui.Checkbox.Message,
+    message: Checkbox.Message,
   },
 )
 export const GotCalendarBasicDemoMessage = m('GotCalendarBasicDemoMessage', {
-  message: Ui.Calendar.Message,
+  message: Calendar.Message,
 })
 export const GotDatePickerBasicDemoMessage = m(
   'GotDatePickerBasicDemoMessage',
   {
-    message: Ui.DatePicker.Message,
+    message: DatePicker.Message,
   },
 )
 export const GotCheckboxBasicDemoMessage = m('GotCheckboxBasicDemoMessage', {
-  message: Ui.Checkbox.Message,
+  message: Checkbox.Message,
 })
 export const GotCheckboxAllDemoMessage = m('GotCheckboxAllDemoMessage', {
-  message: Ui.Checkbox.Message,
+  message: Checkbox.Message,
 })
 export const GotCheckboxOptionADemoMessage = m(
   'GotCheckboxOptionADemoMessage',
   {
-    message: Ui.Checkbox.Message,
+    message: Checkbox.Message,
   },
 )
 export const GotCheckboxOptionBDemoMessage = m(
   'GotCheckboxOptionBDemoMessage',
   {
-    message: Ui.Checkbox.Message,
+    message: Checkbox.Message,
   },
 )
 export const GotComboboxDemoMessage = m('GotComboboxDemoMessage', {
-  message: Ui.Combobox.Message,
+  message: Combobox.Message,
 })
 export const GotComboboxNullableDemoMessage = m(
   'GotComboboxNullableDemoMessage',
   {
-    message: Ui.Combobox.Message,
+    message: Combobox.Message,
   },
 )
 export const GotComboboxMultiDemoMessage = m('GotComboboxMultiDemoMessage', {
-  message: Ui.Combobox.Message,
+  message: Combobox.Message,
 })
 export const GotComboboxSelectOnFocusDemoMessage = m(
   'GotComboboxSelectOnFocusDemoMessage',
   {
-    message: Ui.Combobox.Message,
+    message: Combobox.Message,
   },
 )
 export const GotDialogDemoMessage = m('GotDialogDemoMessage', {
-  message: Ui.Dialog.Message,
+  message: Dialog.Message,
 })
 export const GotDialogAnimatedDemoMessage = m('GotDialogAnimatedDemoMessage', {
-  message: Ui.Dialog.Message,
+  message: Dialog.Message,
 })
 export const GotOverlayDialogDemoMessage = m('GotOverlayDialogDemoMessage', {
-  message: Ui.Dialog.Message,
+  message: Dialog.Message,
 })
 export const GotOverlayComboboxDemoMessage = m(
   'GotOverlayComboboxDemoMessage',
   {
-    message: Ui.Combobox.Message,
+    message: Combobox.Message,
   },
 )
 export const GotNestedDialogParentDemoMessage = m(
   'GotNestedDialogParentDemoMessage',
   {
-    message: Ui.Dialog.Message,
+    message: Dialog.Message,
   },
 )
 export const GotNestedDialogChildDemoMessage = m(
   'GotNestedDialogChildDemoMessage',
   {
-    message: Ui.Dialog.Message,
+    message: Dialog.Message,
   },
 )
 export const ClickedDeleteProject = m('ClickedDeleteProject')
@@ -101,79 +120,79 @@ export const ClickedOpenAnimatedDialog = m('ClickedOpenAnimatedDialog')
 export const ClickedEditFilters = m('ClickedEditFilters')
 export const ClickedOpenProjectSettings = m('ClickedOpenProjectSettings')
 export const GotDisclosureDemoMessage = m('GotDisclosureDemoMessage', {
-  message: Ui.Disclosure.Message,
+  message: Disclosure.Message,
 })
 export const GotListboxDemoMessage = m('GotListboxDemoMessage', {
-  message: Ui.Listbox.Message,
+  message: Listbox.Message,
 })
 export const GotListboxMultiDemoMessage = m('GotListboxMultiDemoMessage', {
-  message: Ui.Listbox.Message,
+  message: Listbox.Message,
 })
 export const GotListboxGroupedDemoMessage = m('GotListboxGroupedDemoMessage', {
-  message: Ui.Listbox.Message,
+  message: Listbox.Message,
 })
 export const GotMenuBasicDemoMessage = m('GotMenuBasicDemoMessage', {
-  message: Ui.Menu.Message,
+  message: Menu.Message,
 })
 export const GotMenuAnimatedDemoMessage = m('GotMenuAnimatedDemoMessage', {
-  message: Ui.Menu.Message,
+  message: Menu.Message,
 })
 export const GotPopoverBasicDemoMessage = m('GotPopoverBasicDemoMessage', {
-  message: Ui.Popover.Message,
+  message: Popover.Message,
 })
 export const GotPopoverAnimatedDemoMessage = m(
   'GotPopoverAnimatedDemoMessage',
   {
-    message: Ui.Popover.Message,
+    message: Popover.Message,
   },
 )
 export const GotPopoverNestedParentDemoMessage = m(
   'GotPopoverNestedParentDemoMessage',
   {
-    message: Ui.Popover.Message,
+    message: Popover.Message,
   },
 )
 export const GotPopoverNestedChildDemoMessage = m(
   'GotPopoverNestedChildDemoMessage',
   {
-    message: Ui.Popover.Message,
+    message: Popover.Message,
   },
 )
 export const GotVerticalRadioGroupDemoMessage = m(
   'GotVerticalRadioGroupDemoMessage',
   {
-    message: Ui.RadioGroup.Message,
+    message: RadioGroup.Message,
   },
 )
 export const GotHorizontalRadioGroupDemoMessage = m(
   'GotHorizontalRadioGroupDemoMessage',
   {
-    message: Ui.RadioGroup.Message,
+    message: RadioGroup.Message,
   },
 )
 export const GotSliderRatingDemoMessage = m('GotSliderRatingDemoMessage', {
-  message: Ui.Slider.Message,
+  message: Slider.Message,
 })
 export const GotSliderVolumeDemoMessage = m('GotSliderVolumeDemoMessage', {
-  message: Ui.Slider.Message,
+  message: Slider.Message,
 })
 export const GotSwitchDemoMessage = m('GotSwitchDemoMessage', {
-  message: Ui.Switch.Message,
+  message: Switch.Message,
 })
 export const UpdatedSelectDemoValue = m('UpdatedSelectDemoValue', {
   value: S.String,
 })
 export const GotHorizontalTabsDemoMessage = m('GotHorizontalTabsDemoMessage', {
-  message: Ui.Tabs.Message,
+  message: Tabs.Message,
 })
 export const GotVerticalTabsDemoMessage = m('GotVerticalTabsDemoMessage', {
-  message: Ui.Tabs.Message,
+  message: Tabs.Message,
 })
 export const GotDragAndDropDemoMessage = m('GotDragAndDropDemoMessage', {
-  message: Ui.DragAndDrop.Message,
+  message: DragAndDrop.Message,
 })
 export const GotFileDropBasicDemoMessage = m('GotFileDropBasicDemoMessage', {
-  message: Ui.FileDrop.Message,
+  message: FileDrop.Message,
 })
 export const ClickedRemoveFileDropDemoFile = m(
   'ClickedRemoveFileDropDemoFile',
@@ -190,13 +209,13 @@ export const ClickedShowErrorToast = m('ClickedShowErrorToast')
 export const ClickedShowStickyToast = m('ClickedShowStickyToast')
 export const ClickedDismissAllToasts = m('ClickedDismissAllToasts')
 export const GotTooltipDemoMessage = m('GotTooltipDemoMessage', {
-  message: Ui.Tooltip.Message,
+  message: Tooltip.Message,
 })
 export const GotAnimationDemoMessage = m('GotAnimationDemoMessage', {
-  message: Ui.Animation.Message,
+  message: Animation.Message,
 })
 export const GotVirtualListDemoMessage = m('GotVirtualListDemoMessage', {
-  message: Ui.VirtualList.Message,
+  message: VirtualList.Message,
 })
 export const ClickedVirtualListScrollToMiddle = m(
   'ClickedVirtualListScrollToMiddle',
@@ -204,7 +223,7 @@ export const ClickedVirtualListScrollToMiddle = m(
 export const GotVirtualListVariableDemoMessage = m(
   'GotVirtualListVariableDemoMessage',
   {
-    message: Ui.VirtualList.Message,
+    message: VirtualList.Message,
   },
 )
 export const ClickedVirtualListVariableScrollToMiddle = m(

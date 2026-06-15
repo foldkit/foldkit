@@ -1,3 +1,4 @@
+import { Input, Textarea } from '@foldkit/ui'
 import clsx from 'clsx'
 import {
   Array,
@@ -8,7 +9,7 @@ import {
   Random,
   Schema as S,
 } from 'effect'
-import { Command, Runtime, Ui } from 'foldkit'
+import { Command, Runtime } from 'foldkit'
 import {
   Field,
   Invalid,
@@ -355,7 +356,7 @@ const inputFieldView = (
 ): Html => {
   const h = html<Message>()
 
-  return Ui.Input.view({
+  return Input.view({
     id,
     value: field.value,
     onInput: onUpdate,
@@ -387,7 +388,7 @@ const textareaFieldView = (
 ): Html => {
   const h = html<Message>()
 
-  return Ui.Textarea.view({
+  return Textarea.view({
     id,
     value: field.value,
     onInput: onUpdate,

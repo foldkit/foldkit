@@ -1,7 +1,8 @@
+import { Input } from '@foldkit/ui'
 import '@shoelace-style/shoelace/dist/components/qr-code/qr-code.js'
 import { clsx } from 'clsx'
 import { Match as M, Schema as S } from 'effect'
-import { Command, CustomElement, Runtime, Ui } from 'foldkit'
+import { Command, CustomElement, Runtime } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -210,7 +211,7 @@ const controlsView = (model: Model): Html => {
 const contentFieldView = (model: Model): Html => {
   const h = html<Message>()
 
-  return Ui.Input.view({
+  return Input.view({
     id: 'qr-content',
     value: model.content,
     onInput: value => UpdatedContent({ value }),

@@ -1,3 +1,4 @@
+import { overlay } from '@foldkit/devtools'
 import { Runtime } from 'foldkit'
 
 import {
@@ -27,6 +28,7 @@ const application = Runtime.makeApplication({
     onUrlChange: url => ChangedUrl({ url }),
   },
   devTools: {
+    overlay,
     Message,
   },
 })

@@ -1,4 +1,5 @@
-import { Submodel, Ui } from 'foldkit'
+import { Combobox, Dialog } from '@foldkit/ui'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import {
@@ -60,8 +61,8 @@ const OVERLAY_COMBOBOX_ANCHOR = {
 }
 
 const dialogPanel = (
-  dialogModel: Ui.Dialog.Model,
-  closeButton: Ui.Dialog.RenderInfo['closeButton'],
+  dialogModel: Dialog.Model,
+  closeButton: Dialog.RenderInfo['closeButton'],
 ): Html => {
   const h = html<UiMessage>()
 
@@ -69,7 +70,7 @@ const dialogPanel = (
     [],
     [
       h.h2(
-        [h.Class(titleClassName), h.Id(Ui.Dialog.titleId(dialogModel))],
+        [h.Class(titleClassName), h.Id(Dialog.titleId(dialogModel))],
         ['Confirm Action'],
       ),
       h.p(
@@ -96,8 +97,8 @@ const dialogPanel = (
 }
 
 const overlayDemo = (
-  dialogModel: Ui.Dialog.Model,
-  comboboxModel: Ui.Combobox.Model,
+  dialogModel: Dialog.Model,
+  comboboxModel: Combobox.Model,
 ): Html => {
   const h = html<UiMessage>()
 
@@ -116,7 +117,7 @@ const overlayDemo = (
       h.submodel({
         slotId: dialogModel.id,
         model: dialogModel,
-        view: Ui.Dialog.view,
+        view: Dialog.view,
         viewInputs: {
           toView: ({ dialog, backdrop, panel, isVisible }) =>
             h.dialog(
@@ -130,7 +131,7 @@ const overlayDemo = (
                         h.h2(
                           [
                             h.Class(titleClassName),
-                            h.Id(Ui.Dialog.titleId(dialogModel)),
+                            h.Id(Dialog.titleId(dialogModel)),
                           ],
                           ['Edit filters'],
                         ),
@@ -165,8 +166,8 @@ const overlayDemo = (
 }
 
 const nestedDemo = (
-  parentDialogModel: Ui.Dialog.Model,
-  childDialogModel: Ui.Dialog.Model,
+  parentDialogModel: Dialog.Model,
+  childDialogModel: Dialog.Model,
 ): Html => {
   const h = html<UiMessage>()
 
@@ -188,7 +189,7 @@ const nestedDemo = (
       h.submodel({
         slotId: parentDialogModel.id,
         model: parentDialogModel,
-        view: Ui.Dialog.view,
+        view: Dialog.view,
         viewInputs: {
           toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
             h.dialog(
@@ -202,7 +203,7 @@ const nestedDemo = (
                         h.h2(
                           [
                             h.Class(titleClassName),
-                            h.Id(Ui.Dialog.titleId(parentDialogModel)),
+                            h.Id(Dialog.titleId(parentDialogModel)),
                           ],
                           ['Project settings'],
                         ),
@@ -240,7 +241,7 @@ const nestedDemo = (
       h.submodel({
         slotId: childDialogModel.id,
         model: childDialogModel,
-        view: Ui.Dialog.view,
+        view: Dialog.view,
         viewInputs: {
           toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
             h.dialog(
@@ -254,7 +255,7 @@ const nestedDemo = (
                         h.h2(
                           [
                             h.Class(titleClassName),
-                            h.Id(Ui.Dialog.titleId(childDialogModel)),
+                            h.Id(Dialog.titleId(childDialogModel)),
                           ],
                           ['Delete project?'],
                         ),
@@ -314,7 +315,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       h.submodel({
         slotId: model.dialogDemo.id,
         model: model.dialogDemo,
-        view: Ui.Dialog.view,
+        view: Dialog.view,
         viewInputs: {
           toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
             h.dialog(
@@ -349,7 +350,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       h.submodel({
         slotId: model.dialogAnimatedDemo.id,
         model: model.dialogAnimatedDemo,
-        view: Ui.Dialog.view,
+        view: Dialog.view,
         viewInputs: {
           toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
             h.dialog(

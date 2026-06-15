@@ -1,5 +1,6 @@
+import { Checkbox, DatePicker } from '@foldkit/ui'
 import { Match as M, Option, Schema as S } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { CalendarDate } from 'foldkit/calendar'
 import {
   Field,
@@ -31,9 +32,9 @@ export const Model = S.Struct({
   id: S.String,
   company: Field(S.String),
   title: Field(S.String),
-  startDate: Ui.DatePicker.Model,
-  endDate: Ui.DatePicker.Model,
-  isCurrentlyEmployed: Ui.Checkbox.Model,
+  startDate: DatePicker.Model,
+  endDate: DatePicker.Model,
+  isCurrentlyEmployed: Checkbox.Model,
   description: S.String,
 })
 export type Model = typeof Model.Type
@@ -43,14 +44,14 @@ export type Model = typeof Model.Type
 export const UpdatedCompany = m('UpdatedCompany', { value: S.String })
 export const UpdatedTitle = m('UpdatedTitle', { value: S.String })
 export const GotStartDateMessage = m('GotStartDateMessage', {
-  message: Ui.DatePicker.Message,
+  message: DatePicker.Message,
 })
 export const GotEndDateMessage = m('GotEndDateMessage', {
-  message: Ui.DatePicker.Message,
+  message: DatePicker.Message,
 })
 export const GotIsCurrentlyEmployedMessage = m(
   'GotIsCurrentlyEmployedMessage',
-  { message: Ui.Checkbox.Message },
+  { message: Checkbox.Message },
 )
 export const UpdatedDescription = m('UpdatedDescription', {
   value: S.String,
@@ -83,9 +84,9 @@ export const init = (entryId: string, today: CalendarDate): Model => ({
   id: entryId,
   company: NotValidated({ value: '' }),
   title: NotValidated({ value: '' }),
-  startDate: Ui.DatePicker.init({ id: `${entryId}-start`, today }),
-  endDate: Ui.DatePicker.init({ id: `${entryId}-end`, today }),
-  isCurrentlyEmployed: Ui.Checkbox.init({ id: `${entryId}-current` }),
+  startDate: DatePicker.init({ id: `${entryId}-start`, today }),
+  endDate: DatePicker.init({ id: `${entryId}-end`, today }),
+  isCurrentlyEmployed: Checkbox.init({ id: `${entryId}-current` }),
   description: '',
 })
 
@@ -114,7 +115,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotStartDateMessage: ({ message: dateMessage }) => {
-        const [nextStartDate, commands, maybeOutMessage] = Ui.DatePicker.update(
+        const [nextStartDate, commands, maybeOutMessage] = DatePicker.update(
           model.startDate,
           dateMessage,
         )
@@ -127,7 +128,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             mappedCommands,
             Option.none(),
           ],
-          onSome: M.type<Ui.DatePicker.OutMessage>().pipe(
+          onSome: M.type<DatePicker.OutMessage>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
               ChangedViewMonth: () => [
@@ -138,7 +139,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               SelectedDate: ({ date }) => [
                 evo(model, {
                   startDate: () => nextStartDate,
-                  endDate: Ui.DatePicker.reflectMinDate(Option.some(date)),
+                  endDate: DatePicker.reflectMinDate(Option.some(date)),
                 }),
                 mappedCommands,
                 Option.none(),
@@ -149,7 +150,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotEndDateMessage: ({ message: dateMessage }) => {
-        const [nextEndDate, commands, maybeOutMessage] = Ui.DatePicker.update(
+        const [nextEndDate, commands, maybeOutMessage] = DatePicker.update(
           model.endDate,
           dateMessage,
         )
@@ -162,7 +163,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             mappedCommands,
             Option.none(),
           ],
-          onSome: M.type<Ui.DatePicker.OutMessage>().pipe(
+          onSome: M.type<DatePicker.OutMessage>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
               ChangedViewMonth: () => [
@@ -173,7 +174,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               SelectedDate: ({ date }) => [
                 evo(model, {
                   endDate: () => nextEndDate,
-                  startDate: Ui.DatePicker.reflectMaxDate(Option.some(date)),
+                  startDate: DatePicker.reflectMaxDate(Option.some(date)),
                 }),
                 mappedCommands,
                 Option.none(),
@@ -184,7 +185,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotIsCurrentlyEmployedMessage: ({ message: checkboxMessage }) => {
-        const [nextCheckbox] = Ui.Checkbox.update(
+        const [nextCheckbox] = Checkbox.update(
           model.isCurrentlyEmployed,
           checkboxMessage,
         )

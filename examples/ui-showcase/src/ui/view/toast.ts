@@ -1,7 +1,7 @@
+import type { EntryHandlers, Variant } from '@foldkit/ui/toast'
 import { Match as M, Option } from 'effect'
 import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
-import type { EntryHandlers, Variant } from 'foldkit/ui/toast'
 
 import * as Icon from '../../icon'
 import {

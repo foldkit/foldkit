@@ -1,20 +1,21 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Listbox } from '@foldkit/ui'
 import { Array, Effect, Match as M, Option } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // Declare a typed multi-select Listbox once at module scope:
-const PeopleListbox = Ui.Listbox.Multi.create<string>()
+const PeopleListbox = Listbox.Multi.create<string>()
 
 // Add a field to your Model for the Listbox.Multi Submodel, plus a field
 // for the selected values your app actually cares about:
 const Model = S.Struct({
   selectedPeople: S.Array(S.String),
-  listboxMulti: Ui.Listbox.Multi.Model,
+  listboxMulti: Listbox.Multi.Model,
   // ...your other fields
 })
 
@@ -22,7 +23,7 @@ const Model = S.Struct({
 const init = () => [
   {
     selectedPeople: [],
-    listboxMulti: Ui.Listbox.Multi.init({ id: 'people' }),
+    listboxMulti: Listbox.Multi.init({ id: 'people' }),
     // ...your other fields
   },
   [],
@@ -30,7 +31,7 @@ const init = () => [
 
 // Wrap Listbox's Messages so they can flow through your update:
 const GotListboxMultiMessage = m('GotListboxMultiMessage', {
-  message: Ui.Listbox.Message,
+  message: Listbox.Message,
 })
 
 // Delegate keyboard navigation, typeahead, and open/close to
@@ -51,7 +52,7 @@ GotListboxMultiMessage: ({ message }) => {
       evo(model, { listboxMulti: () => nextListbox }),
       mappedCommands,
     ],
-    onSome: M.type<Ui.Listbox.OutMessage>().pipe(
+    onSome: M.type<Listbox.OutMessage>().pipe(
       M.tagsExhaustive({
         Selected: ({ value, wasAdded }) => [
           evo(model, {

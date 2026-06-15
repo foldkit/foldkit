@@ -1,5 +1,6 @@
+import { Listbox } from '@foldkit/ui'
 import { Option } from 'effect'
-import { Scene, Ui } from 'foldkit'
+import { Scene } from 'foldkit'
 import { describe, test } from 'vitest'
 
 import {
@@ -18,8 +19,8 @@ const browseModel: Model = {
     diet: Option.none(),
     period: Option.none(),
   }),
-  dietListbox: Ui.Listbox.init({ id: 'diet-filter', selectedItem: '' }),
-  periodListbox: Ui.Listbox.init({ id: 'period-filter', selectedItem: '' }),
+  dietListbox: Listbox.init({ id: 'diet-filter', selectedItem: '' }),
+  periodListbox: Listbox.init({ id: 'period-filter', selectedItem: '' }),
 }
 
 describe('view', () => {

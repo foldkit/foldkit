@@ -1,5 +1,5 @@
+import { Dialog, Listbox, RadioGroup, Switch } from '@foldkit/ui'
 import { Schema as S } from 'effect'
-import { Ui } from 'foldkit'
 
 export const Model = S.Struct({
   grid: Grid,
@@ -11,15 +11,15 @@ export const Model = S.Struct({
   mirrorMode: MirrorMode,
   isDrawing: S.Boolean,
   maybeHoveredCell: S.Option(Position),
-  errorDialog: Ui.Dialog.Model,
+  errorDialog: Dialog.Model,
   maybeExportError: S.Option(S.String),
   paletteThemeIndex: S.Number,
-  gridSizeConfirmDialog: Ui.Dialog.Model,
+  gridSizeConfirmDialog: Dialog.Model,
   maybePendingGridSize: S.Option(S.Number),
-  toolRadioGroup: Ui.RadioGroup.Model,
-  gridSizeRadioGroup: Ui.RadioGroup.Model,
-  paletteRadioGroup: Ui.RadioGroup.Model,
-  mirrorHorizontalSwitch: Ui.Switch.Model,
-  mirrorVerticalSwitch: Ui.Switch.Model,
-  themeListbox: Ui.Listbox.Model,
+  toolRadioGroup: RadioGroup.Model,
+  gridSizeRadioGroup: RadioGroup.Model,
+  paletteRadioGroup: RadioGroup.Model,
+  mirrorHorizontalSwitch: Switch.Model,
+  mirrorVerticalSwitch: Switch.Model,
+  themeListbox: Listbox.Model,
 })

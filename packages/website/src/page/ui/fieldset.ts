@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Checkbox, Fieldset, Input, Textarea } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 import type { TableOfContentsEntry } from '../../main'
@@ -58,7 +58,7 @@ export const basicDemo = (model: Model) => {
   const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
 
   return [
-    Ui.Fieldset.view<Message>({
+    Fieldset.view<Message>({
       id: 'fieldset-basic-demo',
       toView: attributes =>
         h.fieldset(
@@ -78,7 +78,7 @@ export const basicDemo = (model: Model) => {
             h.div(
               [h.Class('mt-4 flex flex-col gap-4')],
               [
-                Ui.Input.view({
+                Input.view({
                   id: 'fieldset-name-input',
                   value: model.fieldsetInputValue,
                   onInput: value => UpdatedFieldsetInputValue({ value }),
@@ -105,7 +105,7 @@ export const basicDemo = (model: Model) => {
                       ],
                     ),
                 }),
-                Ui.Textarea.view({
+                Textarea.view({
                   id: 'fieldset-bio-textarea',
                   value: model.fieldsetTextareaValue,
                   onInput: value => UpdatedFieldsetTextareaValue({ value }),
@@ -142,7 +142,7 @@ export const basicDemo = (model: Model) => {
                 h.submodel({
                   slotId: 'fieldset-checkbox-demo',
                   model: model.fieldsetCheckboxDemo,
-                  view: Ui.Checkbox.view,
+                  view: Checkbox.view,
                   viewInputs: {
                     toView: checkboxAttributes =>
                       h.div(
@@ -198,7 +198,7 @@ export const disabledDemo = (_model: Model) => {
   const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
 
   return [
-    Ui.Fieldset.view<Message>({
+    Fieldset.view<Message>({
       id: 'fieldset-disabled-demo',
       isDisabled: true,
       toView: attributes =>
@@ -219,7 +219,7 @@ export const disabledDemo = (_model: Model) => {
             h.div(
               [h.Class('mt-4 flex flex-col gap-4')],
               [
-                Ui.Input.view<Message>({
+                Input.view<Message>({
                   id: 'fieldset-disabled-name-input',
                   isDisabled: true,
                   value: 'Ada Lovelace',
@@ -238,7 +238,7 @@ export const disabledDemo = (_model: Model) => {
                       ],
                     ),
                 }),
-                Ui.Textarea.view<Message>({
+                Textarea.view<Message>({
                   id: 'fieldset-disabled-bio-textarea',
                   isDisabled: true,
                   value:
@@ -271,7 +271,7 @@ export const disabledDemo = (_model: Model) => {
                     id: 'fieldset-disabled-checkbox',
                     isChecked: true,
                   },
-                  view: Ui.Checkbox.view,
+                  view: Checkbox.view,
                   viewInputs: {
                     isDisabled: true,
                     toView: checkboxAttributes =>

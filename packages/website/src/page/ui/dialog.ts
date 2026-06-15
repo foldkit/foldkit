@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Combobox, Dialog } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 import type { TableOfContentsEntry } from '../../main'
@@ -95,7 +95,7 @@ const OVERLAY_COMBOBOX_ANCHOR = {
 
 // VIEW
 
-export const dialogDemo = (dialogModel: Ui.Dialog.Model) => {
+export const dialogDemo = (dialogModel: Dialog.Model) => {
   const h = html<Message>()
 
   return [
@@ -111,7 +111,7 @@ export const dialogDemo = (dialogModel: Ui.Dialog.Model) => {
     h.submodel({
       slotId: dialogModel.id,
       model: dialogModel,
-      view: Ui.Dialog.view,
+      view: Dialog.view,
       viewInputs: {
         toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
           h.dialog(
@@ -128,7 +128,7 @@ export const dialogDemo = (dialogModel: Ui.Dialog.Model) => {
                           h.h2(
                             [
                               h.Class(titleClassName),
-                              h.Id(Ui.Dialog.titleId(dialogModel)),
+                              h.Id(Dialog.titleId(dialogModel)),
                             ],
                             ['Confirm Action'],
                           ),
@@ -171,8 +171,8 @@ export const dialogDemo = (dialogModel: Ui.Dialog.Model) => {
 }
 
 export const overlayDialogDemo = (
-  dialogModel: Ui.Dialog.Model,
-  comboboxModel: Ui.Combobox.Model,
+  dialogModel: Dialog.Model,
+  comboboxModel: Combobox.Model,
 ) => {
   const h = html<Message>()
 
@@ -189,7 +189,7 @@ export const overlayDialogDemo = (
     h.submodel({
       slotId: dialogModel.id,
       model: dialogModel,
-      view: Ui.Dialog.view,
+      view: Dialog.view,
       viewInputs: {
         toView: ({ dialog, backdrop, panel, isVisible }) =>
           h.dialog(
@@ -206,7 +206,7 @@ export const overlayDialogDemo = (
                           h.h2(
                             [
                               h.Class(titleClassName),
-                              h.Id(Ui.Dialog.titleId(dialogModel)),
+                              h.Id(Dialog.titleId(dialogModel)),
                             ],
                             ['Edit filters'],
                           ),
@@ -242,8 +242,8 @@ export const overlayDialogDemo = (
 }
 
 export const nestedDialogDemo = (
-  parentDialogModel: Ui.Dialog.Model,
-  childDialogModel: Ui.Dialog.Model,
+  parentDialogModel: Dialog.Model,
+  childDialogModel: Dialog.Model,
 ) => {
   const h = html<Message>()
 
@@ -260,7 +260,7 @@ export const nestedDialogDemo = (
     h.submodel({
       slotId: parentDialogModel.id,
       model: parentDialogModel,
-      view: Ui.Dialog.view,
+      view: Dialog.view,
       viewInputs: {
         toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
           h.dialog(
@@ -277,7 +277,7 @@ export const nestedDialogDemo = (
                           h.h2(
                             [
                               h.Class(titleClassName),
-                              h.Id(Ui.Dialog.titleId(parentDialogModel)),
+                              h.Id(Dialog.titleId(parentDialogModel)),
                             ],
                             ['Project settings'],
                           ),
@@ -319,7 +319,7 @@ export const nestedDialogDemo = (
     h.submodel({
       slotId: childDialogModel.id,
       model: childDialogModel,
-      view: Ui.Dialog.view,
+      view: Dialog.view,
       viewInputs: {
         toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
           h.dialog(
@@ -336,7 +336,7 @@ export const nestedDialogDemo = (
                           h.h2(
                             [
                               h.Class(titleClassName),
-                              h.Id(Ui.Dialog.titleId(childDialogModel)),
+                              h.Id(Dialog.titleId(childDialogModel)),
                             ],
                             ['Delete project?'],
                           ),
@@ -378,7 +378,7 @@ export const nestedDialogDemo = (
   ]
 }
 
-export const dialogAnimatedDemo = (dialogModel: Ui.Dialog.Model) => {
+export const dialogAnimatedDemo = (dialogModel: Dialog.Model) => {
   const h = html<Message>()
 
   return [
@@ -394,7 +394,7 @@ export const dialogAnimatedDemo = (dialogModel: Ui.Dialog.Model) => {
     h.submodel({
       slotId: dialogModel.id,
       model: dialogModel,
-      view: Ui.Dialog.view,
+      view: Dialog.view,
       viewInputs: {
         toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
           h.dialog(
@@ -411,7 +411,7 @@ export const dialogAnimatedDemo = (dialogModel: Ui.Dialog.Model) => {
                           h.h2(
                             [
                               h.Class(titleClassName),
-                              h.Id(Ui.Dialog.titleId(dialogModel)),
+                              h.Id(Dialog.titleId(dialogModel)),
                             ],
                             ['Confirm Action'],
                           ),

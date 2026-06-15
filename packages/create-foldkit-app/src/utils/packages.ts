@@ -34,12 +34,26 @@ const PackageJson = Schema.Struct({
   ),
 })
 
+// NOTE: foldkit workspace packages an example may depend on that aren't
+// already installed at `latest` by the hardcoded commands below. They ship
+// from the same monorepo, so pin them to `latest` like `foldkit` itself.
+const PASS_THROUGH_WORKSPACE_PACKAGES = new Set([
+  '@foldkit/ui',
+  '@foldkit/devtools',
+])
+
 const formatDeps = (deps: Record<string, string>): ReadonlyArray<string> =>
   pipe(
     deps,
     Record.toEntries,
-    Array.filter(([_, version]) => !version.includes('workspace:')),
-    Array.map(([name, version]) => `${name}@${version}`),
+    Array.filter(
+      ([name, version]) =>
+        !version.includes('workspace:') ||
+        PASS_THROUGH_WORKSPACE_PACKAGES.has(name),
+    ),
+    Array.map(([name, version]) =>
+      version.includes('workspace:') ? `${name}@latest` : `${name}@${version}`,
+    ),
   )
 
 const fetchExampleDeps = (example: string) =>

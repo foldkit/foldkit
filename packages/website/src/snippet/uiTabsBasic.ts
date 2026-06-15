@@ -1,22 +1,23 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Tabs } from '@foldkit/ui'
 import { Match as M, Option } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // Add a field to your Model for the Tabs Submodel:
 const Model = S.Struct({
-  tabs: Ui.Tabs.Model,
+  tabs: Tabs.Model,
   // ...your other fields
 })
 
 // In your init function, initialize the Tabs Submodel with a unique id:
 const init = () => [
   {
-    tabs: Ui.Tabs.init({ id: 'framework-tabs' }),
+    tabs: Tabs.init({ id: 'framework-tabs' }),
     // ...your other fields
   },
   [],
@@ -24,14 +25,14 @@ const init = () => [
 
 // Embed the Tabs Message in your parent Message:
 const GotTabsMessage = m('GotTabsMessage', {
-  message: Ui.Tabs.Message,
+  message: Tabs.Message,
 })
 
 // Declare a typed Tabs factory once at module scope. The Value generic
 // types tab.value in toView so the consumer can switch on it without
 // casting:
 type Framework = 'Foldkit' | 'React' | 'Elm'
-const FrameworkTabs = Ui.Tabs.create<Framework>()
+const FrameworkTabs = Tabs.create<Framework>()
 
 const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']
 
@@ -56,7 +57,7 @@ GotTabsMessage: ({ message }) => {
 
   return Option.match(maybeOutMessage, {
     onNone: () => [evo(model, { tabs: () => nextTabs }), mappedCommands],
-    onSome: M.type<Ui.Tabs.OutMessage<Framework>>().pipe(
+    onSome: M.type<Tabs.OutMessage<Framework>>().pipe(
       M.tagsExhaustive({
         Selected: ({ value, index }) => [
           // The child has emitted `Selected`. The body commits the

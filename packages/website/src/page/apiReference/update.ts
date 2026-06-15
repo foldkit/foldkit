@@ -1,5 +1,6 @@
+import { Disclosure } from '@foldkit/ui'
 import { Array, Match as M, Option, Record, pipe } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { LoadApiData } from './command'
@@ -34,7 +35,7 @@ const disclosuresForApiData = (apiData: ApiData): Disclosures =>
         ),
         Array.map(apiFunction => {
           const id = scopedId('function', module.name, apiFunction.name)
-          return [id, Ui.Disclosure.init({ id })] as const
+          return [id, Disclosure.init({ id })] as const
         }),
       ),
     ),
@@ -74,7 +75,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         Option.match(Record.get(model.disclosures, id), {
           onNone: () => [model, []],
           onSome: disclosure => {
-            const [nextDisclosure, commands] = Ui.Disclosure.update(
+            const [nextDisclosure, commands] = Disclosure.update(
               disclosure,
               message,
             )

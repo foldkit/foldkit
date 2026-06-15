@@ -1,5 +1,5 @@
+import { Dialog, Listbox, RadioGroup, Switch } from '@foldkit/ui'
 import { Schema as S } from 'effect'
-import { Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 
 import { PaletteIndex, Tool } from './model'
@@ -26,32 +26,32 @@ export const ClickedExport = m('ClickedExport')
 export const SucceededExportPng = m('SucceededExportPng')
 export const FailedExportPng = m('FailedExportPng', { error: S.String })
 export const GotErrorDialogMessage = m('GotErrorDialogMessage', {
-  message: Ui.Dialog.Message,
+  message: Dialog.Message,
 })
 export const ConfirmedGridSizeChange = m('ConfirmedGridSizeChange')
 export const GotGridSizeConfirmDialogMessage = m(
   'GotGridSizeConfirmDialogMessage',
-  { message: Ui.Dialog.Message },
+  { message: Dialog.Message },
 )
 export const GotToolRadioGroupMessage = m('GotToolRadioGroupMessage', {
-  message: Ui.RadioGroup.Message,
+  message: RadioGroup.Message,
 })
 export const GotGridSizeRadioGroupMessage = m('GotGridSizeRadioGroupMessage', {
-  message: Ui.RadioGroup.Message,
+  message: RadioGroup.Message,
 })
 export const GotPaletteRadioGroupMessage = m('GotPaletteRadioGroupMessage', {
-  message: Ui.RadioGroup.Message,
+  message: RadioGroup.Message,
 })
 export const GotMirrorHorizontalSwitchMessage = m(
   'GotMirrorHorizontalSwitchMessage',
-  { message: Ui.Switch.Message },
+  { message: Switch.Message },
 )
 export const GotMirrorVerticalSwitchMessage = m(
   'GotMirrorVerticalSwitchMessage',
-  { message: Ui.Switch.Message },
+  { message: Switch.Message },
 )
 export const GotThemeListboxMessage = m('GotThemeListboxMessage', {
-  message: Ui.Listbox.Message,
+  message: Listbox.Message,
 })
 export const CompletedSaveCanvas = m('CompletedSaveCanvas')
 

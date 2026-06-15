@@ -1,5 +1,6 @@
+import { DatePicker, Listbox } from '@foldkit/ui'
 import { Equal, Option } from 'effect'
-import { Submodel, Ui } from 'foldkit'
+import { Submodel } from 'foldkit'
 import { Valid } from 'foldkit/fieldValidation'
 import { type Html, childAttributes, html } from 'foldkit/html'
 
@@ -15,7 +16,7 @@ import {
 import { inputField } from './field'
 import { chevronDown } from './icon'
 
-const PronounsListbox = Ui.Listbox.create<string>()
+const PronounsListbox = Listbox.create<string>()
 
 export const personalInfoView = Submodel.defineView<
   PersonalInfo.Model,
@@ -170,7 +171,7 @@ export const personalInfoView = Submodel.defineView<
   )
 })
 
-const availableDatePickerView = (model: Ui.DatePicker.Model): Html => {
+const availableDatePickerView = (model: DatePicker.Model): Html => {
   const h = html<PersonalInfo.Message>()
 
   return h.div(
@@ -183,7 +184,7 @@ const availableDatePickerView = (model: Ui.DatePicker.Model): Html => {
       h.submodel({
         slotId: model.id,
         model,
-        view: Ui.DatePicker.view,
+        view: DatePicker.view,
         viewInputs: {
           anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
           triggerContent: maybeDate => triggerContent(maybeDate, 'Pick a date'),

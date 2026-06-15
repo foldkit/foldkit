@@ -303,7 +303,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           'Embed Listbox via the ',
           link(uiSelectionSubmodelsRouter(), 'create<Item, Value?>() factory'),
           ' at module scope: ',
-          inlineCode('const PlansListbox = Ui.Listbox.create<Plan>()'),
+          inlineCode('const PlansListbox = Listbox.create<Plan>()'),
           '. The factory binds the view, update, and imperative helpers to the same ',
           inlineCode('Item'),
           ' type so the selected value flows through the OutMessage typed end-to-end.',

@@ -95,6 +95,10 @@
       "types": "./dist/struct/public.d.ts",
       "import": "./dist/struct/public.js"
     },
+    "./submodel": {
+      "types": "./dist/submodel/public.d.ts",
+      "import": "./dist/submodel/public.js"
+    },
     "./subscription": {
       "types": "./dist/subscription/public.d.ts",
       "import": "./dist/subscription/public.js"
@@ -107,94 +111,6 @@
       "types": "./dist/test/vitest.d.ts",
       "import": "./dist/test/vitest.js"
     },
-    "./ui": {
-      "types": "./dist/ui/index.d.ts",
-      "import": "./dist/ui/index.js"
-    },
-    "./ui/animation": {
-      "types": "./dist/ui/animation/public.d.ts",
-      "import": "./dist/ui/animation/public.js"
-    },
-    "./ui/button": {
-      "types": "./dist/ui/button/public.d.ts",
-      "import": "./dist/ui/button/public.js"
-    },
-    "./ui/calendar": {
-      "types": "./dist/ui/calendar/public.d.ts",
-      "import": "./dist/ui/calendar/public.js"
-    },
-    "./ui/checkbox": {
-      "types": "./dist/ui/checkbox/public.d.ts",
-      "import": "./dist/ui/checkbox/public.js"
-    },
-    "./ui/dialog": {
-      "types": "./dist/ui/dialog/public.d.ts",
-      "import": "./dist/ui/dialog/public.js"
-    },
-    "./ui/disclosure": {
-      "types": "./dist/ui/disclosure/public.d.ts",
-      "import": "./dist/ui/disclosure/public.js"
-    },
-    "./ui/fieldset": {
-      "types": "./dist/ui/fieldset/public.d.ts",
-      "import": "./dist/ui/fieldset/public.js"
-    },
-    "./ui/input": {
-      "types": "./dist/ui/input/public.d.ts",
-      "import": "./dist/ui/input/public.js"
-    },
-    "./ui/listbox": {
-      "types": "./dist/ui/listbox/public.d.ts",
-      "import": "./dist/ui/listbox/public.js"
-    },
-    "./ui/combobox": {
-      "types": "./dist/ui/combobox/public.d.ts",
-      "import": "./dist/ui/combobox/public.js"
-    },
-    "./ui/menu": {
-      "types": "./dist/ui/menu/public.d.ts",
-      "import": "./dist/ui/menu/public.js"
-    },
-    "./ui/popover": {
-      "types": "./dist/ui/popover/public.d.ts",
-      "import": "./dist/ui/popover/public.js"
-    },
-    "./ui/radioGroup": {
-      "types": "./dist/ui/radioGroup/public.d.ts",
-      "import": "./dist/ui/radioGroup/public.js"
-    },
-    "./ui/select": {
-      "types": "./dist/ui/select/public.d.ts",
-      "import": "./dist/ui/select/public.js"
-    },
-    "./ui/slider": {
-      "types": "./dist/ui/slider/public.d.ts",
-      "import": "./dist/ui/slider/public.js"
-    },
-    "./ui/switch": {
-      "types": "./dist/ui/switch/public.d.ts",
-      "import": "./dist/ui/switch/public.js"
-    },
-    "./ui/textarea": {
-      "types": "./dist/ui/textarea/public.d.ts",
-      "import": "./dist/ui/textarea/public.js"
-    },
-    "./ui/tabs": {
-      "types": "./dist/ui/tabs/public.d.ts",
-      "import": "./dist/ui/tabs/public.js"
-    },
-    "./ui/toast": {
-      "types": "./dist/ui/toast/public.d.ts",
-      "import": "./dist/ui/toast/public.js"
-    },
-    "./ui/tooltip": {
-      "types": "./dist/ui/tooltip/public.d.ts",
-      "import": "./dist/ui/tooltip/public.js"
-    },
-    "./ui/virtualList": {
-      "types": "./dist/ui/virtualList/public.d.ts",
-      "import": "./dist/ui/virtualList/public.js"
-    },
     "./url": {
       "types": "./dist/url/public.d.ts",
       "import": "./dist/url/public.js"
@@ -202,6 +118,10 @@
     "./devtools-protocol": {
       "types": "./dist/devTools/public.d.ts",
       "import": "./dist/devTools/public.js"
+    },
+    "./devtools-host": {
+      "types": "./dist/devTools/host.d.ts",
+      "import": "./dist/devTools/host.js"
     }
   },
   "sideEffects": false,
@@ -210,10 +130,10 @@
   ],
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
-    "build": "pnpm run clean && node scripts/inline-css.js && tsc -b tsconfig.build.json",
-    "watch": "node scripts/inline-css.js && tsc -b tsconfig.build.json --watch",
+    "build": "pnpm run clean && tsc -b tsconfig.build.json",
+    "watch": "tsc -b tsconfig.build.json --watch",
     "lint": "eslint src",
-    "typecheck": "node scripts/inline-css.js && tsc -b tsconfig.build.json --noEmit",
+    "typecheck": "tsc -b tsconfig.build.json --noEmit",
     "test": "vitest run",
     "docs": "typedoc"
   },
@@ -246,7 +166,6 @@
     "directory": "packages/foldkit"
   },
   "dependencies": {
-    "@floating-ui/dom": "^1.7.6",
     "clsx": "^2.1.1",
     "snabbdom": "^3.6.3"
   },

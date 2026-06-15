@@ -1,22 +1,23 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Popover } from '@foldkit/ui'
 import { Match as M, Option } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // Add a field to your Model for the Popover Submodel:
 const Model = S.Struct({
-  popover: Ui.Popover.Model,
+  popover: Popover.Model,
   // ...your other fields
 })
 
 // In your init function, initialize the Popover Submodel with a unique id:
 const init = () => [
   {
-    popover: Ui.Popover.init({ id: 'info' }),
+    popover: Popover.init({ id: 'info' }),
     // ...your other fields
   },
   [],
@@ -24,15 +25,15 @@ const init = () => [
 
 // Embed the Popover Message in your parent Message:
 const GotPopoverMessage = m('GotPopoverMessage', {
-  message: Ui.Popover.Message,
+  message: Popover.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
-// Ui.Popover.update. The OutMessages `Opened` and `Closed` mark the
+// Popover.update. The OutMessages `Opened` and `Closed` mark the
 // visibility transitions. Fire analytics, coordinate with other UI,
 // or clear ephemeral state on close.
 GotPopoverMessage: ({ message }) => {
-  const [nextPopover, commands, maybeOutMessage] = Ui.Popover.update(
+  const [nextPopover, commands, maybeOutMessage] = Popover.update(
     model.popover,
     message,
   )
@@ -42,7 +43,7 @@ GotPopoverMessage: ({ message }) => {
 
   return Option.match(maybeOutMessage, {
     onNone: () => [evo(model, { popover: () => nextPopover }), mappedCommands],
-    onSome: M.type<Ui.Popover.OutMessage>().pipe(
+    onSome: M.type<Popover.OutMessage>().pipe(
       M.tagsExhaustive({
         Opened: () => [
           // The child has emitted `Opened`. The body commits the
@@ -74,7 +75,7 @@ const view = () => {
   return h.submodel({
     slotId: 'info',
     model: model.popover,
-    view: Ui.Popover.view,
+    view: Popover.view,
     viewInputs: {
       anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
       toView: ({ button, panel, backdrop, isVisible }) =>

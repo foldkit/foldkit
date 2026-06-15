@@ -1,15 +1,16 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Command, Ui } from 'foldkit'
+import { Popover } from '@foldkit/ui'
+import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // Add one Popover Submodel field for each level:
 const Model = S.Struct({
-  accountPopover: Ui.Popover.Model,
-  accountDetailsPopover: Ui.Popover.Model,
+  accountPopover: Popover.Model,
+  accountDetailsPopover: Popover.Model,
   // ...your other fields
 })
 
@@ -17,11 +18,11 @@ const Model = S.Struct({
 // instead of staying on the panel:
 const init = () => [
   {
-    accountPopover: Ui.Popover.init({
+    accountPopover: Popover.init({
       id: 'account-popover',
       contentFocus: true,
     }),
-    accountDetailsPopover: Ui.Popover.init({ id: 'account-details-popover' }),
+    accountDetailsPopover: Popover.init({ id: 'account-details-popover' }),
     // ...your other fields
   },
   [],
@@ -29,17 +30,17 @@ const init = () => [
 
 // Embed each Popover Message in your parent Message:
 const GotAccountPopoverMessage = m('GotAccountPopoverMessage', {
-  message: Ui.Popover.Message,
+  message: Popover.Message,
 })
 
 const GotAccountDetailsPopoverMessage = m('GotAccountDetailsPopoverMessage', {
-  message: Ui.Popover.Message,
+  message: Popover.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate each
 // Popover to its own Model field:
 GotAccountPopoverMessage: ({ message }) => {
-  const [nextAccountPopover, commands] = Ui.Popover.update(
+  const [nextAccountPopover, commands] = Popover.update(
     model.accountPopover,
     message,
   )
@@ -53,7 +54,7 @@ GotAccountPopoverMessage: ({ message }) => {
 }
 
 GotAccountDetailsPopoverMessage: ({ message }) => {
-  const [nextAccountDetailsPopover, commands] = Ui.Popover.update(
+  const [nextAccountDetailsPopover, commands] = Popover.update(
     model.accountDetailsPopover,
     message,
   )
@@ -75,7 +76,7 @@ const view = () => {
   const detailsPopover = h.submodel({
     slotId: 'account-details-popover',
     model: model.accountDetailsPopover,
-    view: Ui.Popover.view,
+    view: Popover.view,
     viewInputs: {
       anchor: { placement: 'right-start', gap: 8, padding: 8 },
       toView: ({ button, panel, backdrop, isVisible }) =>
@@ -115,7 +116,7 @@ const view = () => {
   return h.submodel({
     slotId: 'account-popover',
     model: model.accountPopover,
-    view: Ui.Popover.view,
+    view: Popover.view,
     viewInputs: {
       anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
       focusSelector: '#account-details-popover-button',

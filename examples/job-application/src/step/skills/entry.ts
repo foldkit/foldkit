@@ -1,5 +1,6 @@
+import { RadioGroup } from '@foldkit/ui'
 import { Match as M, Option, Schema as S } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import {
   Field,
   NotValidated,
@@ -21,12 +22,12 @@ const validateName = validate(nameRules)
 
 // MODEL
 
-const ProficiencyRadioGroup = Ui.RadioGroup.create<string>()
+const ProficiencyRadioGroup = RadioGroup.create<string>()
 
 export const Model = S.Struct({
   id: S.String,
   name: Field(S.String),
-  proficiency: Ui.RadioGroup.Model,
+  proficiency: RadioGroup.Model,
 })
 export type Model = typeof Model.Type
 
@@ -34,7 +35,7 @@ export type Model = typeof Model.Type
 
 export const UpdatedName = m('UpdatedName', { value: S.String })
 export const GotProficiencyMessage = m('GotProficiencyMessage', {
-  message: Ui.RadioGroup.Message,
+  message: RadioGroup.Message,
 })
 export const ClickedRemoveSelf = m('ClickedRemoveSelf')
 
@@ -59,7 +60,7 @@ export type Removed = typeof Removed.Type
 export const init = (entryId: string): Model => ({
   id: entryId,
   name: NotValidated({ value: '' }),
-  proficiency: Ui.RadioGroup.init({
+  proficiency: RadioGroup.init({
     id: `${entryId}-proficiency`,
     selectedValue: 'Intermediate',
     orientation: 'Horizontal',

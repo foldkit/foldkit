@@ -2,7 +2,7 @@
 // example: same Model, init, Message, update, subscription wiring. The
 // difference is in the view and in how `scrollToIndex` is called. Fit the
 // excerpts into your own definitions.
-import { Ui } from 'foldkit'
+import { VirtualList } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 // Model and init are unchanged from the basic example. Pass any
@@ -11,7 +11,7 @@ import { html } from 'foldkit/html'
 // fallback for any item the variable callback doesn't cover:
 const init = () => [
   {
-    activityList: Ui.VirtualList.init({
+    activityList: VirtualList.init({
       id: 'activity-list',
       rowHeightPx: 56,
     }),
@@ -31,7 +31,7 @@ const view = () => {
   return h.submodel({
     slotId: 'activity-list',
     model: model.activityList,
-    view: Ui.VirtualList.view<Activity>(),
+    view: VirtualList.view<Activity>(),
     viewInputs: {
       items: model.activities,
       itemToKey: activity => String(activity.id),
@@ -84,7 +84,7 @@ const view = () => {
 // `view` so the math agrees:
 const itemToRowHeightPx = (activity, index) => (activity.hasSummary ? 104 : 56)
 
-const [nextList, commands] = Ui.VirtualList.scrollToIndexVariable(
+const [nextList, commands] = VirtualList.scrollToIndexVariable(
   model.activityList,
   model.activities,
   itemToRowHeightPx,

@@ -1,5 +1,6 @@
+import { Slider } from '@foldkit/ui'
 import { Array, Option } from 'effect'
-import { Story, Ui } from 'foldkit'
+import { Story } from 'foldkit'
 import { describe, expect, test } from 'vitest'
 
 import { SpawnAmbientParticle } from './command'
@@ -28,14 +29,14 @@ const initialModel: Model = {
   elapsedSeconds: 0,
   maybeMousePosition: Option.none(),
   isRunning: true,
-  flowStrengthSlider: Ui.Slider.init({
+  flowStrengthSlider: Slider.init({
     id: 'flow-strength-slider',
     min: FLOW_STRENGTH_MIN,
     max: FLOW_STRENGTH_MAX,
     step: 0.05,
     initialValue: 1.4,
   }),
-  noiseScaleSlider: Ui.Slider.init({
+  noiseScaleSlider: Slider.init({
     id: 'noise-scale-slider',
     min: NOISE_SCALE_MIN_DIVISOR,
     max: NOISE_SCALE_MAX_DIVISOR,

@@ -1,8 +1,9 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Listbox } from '@foldkit/ui'
 import { Effect, Match as M, Option } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { childAttributes, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -18,13 +19,13 @@ const characterName = (character: Character): string =>
 // Declare the Listbox once at module scope, typed for the source item
 // (`Character`). `view`'s `items` are typed as `ReadonlyArray<Character>`;
 // the OutMessage carries the string returned by `itemToValue`:
-const CharacterListbox = Ui.Listbox.create<Character>()
+const CharacterListbox = Listbox.create<Character>()
 
 // Add a field to your Model for the Listbox Submodel, plus a field for
 // the selected value your app actually cares about:
 const Model = S.Struct({
   maybeCharacter: S.Option(S.String),
-  listbox: Ui.Listbox.Model,
+  listbox: Listbox.Model,
   // ...your other fields
 })
 
@@ -32,7 +33,7 @@ const Model = S.Struct({
 const init = () => [
   {
     maybeCharacter: Option.none(),
-    listbox: Ui.Listbox.init({ id: 'character' }),
+    listbox: Listbox.init({ id: 'character' }),
     // ...your other fields
   },
   [],
@@ -40,7 +41,7 @@ const init = () => [
 
 // Wrap Listbox's Messages so they can flow through your update:
 const GotListboxMessage = m('GotListboxMessage', {
-  message: Ui.Listbox.Message,
+  message: Listbox.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate
@@ -59,7 +60,7 @@ GotListboxMessage: ({ message }) => {
 
   return Option.match(maybeOutMessage, {
     onNone: () => [evo(model, { listbox: () => nextListbox }), mappedCommands],
-    onSome: M.type<Ui.Listbox.OutMessage>().pipe(
+    onSome: M.type<Listbox.OutMessage>().pipe(
       M.tagsExhaustive({
         Selected: ({ value }) => [
           evo(model, {

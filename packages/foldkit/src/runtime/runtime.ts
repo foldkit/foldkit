@@ -18,6 +18,7 @@ import {
   Ref,
   Scheduler,
   Schema,
+  Scope,
   Stream,
   SubscriptionRef,
   pipe,
@@ -25,7 +26,6 @@ import {
 import { h } from 'snabbdom'
 
 import type { Command } from '../command/index.js'
-import { createOverlay } from '../devTools/overlay.js'
 import {
   type CommandRecord,
   type DevToolsStore,
@@ -115,6 +115,22 @@ export type DevToolsModeConfig =
   | Readonly<{ development: DevToolsMode; production: DevToolsMode }>
 
 /**
+ * Factory that mounts the in-browser DevTools overlay against a recording
+ * store. The runtime keeps the store and the WebSocket bridge (so external
+ * tooling like the DevTools MCP server works without an overlay); the visual
+ * overlay is injected so it can live in `@foldkit/devtools` and pull in
+ * `@foldkit/ui` without coupling the core runtime to either.
+ *
+ * Pass `overlay` from `@foldkit/devtools` as `DevToolsConfig.overlay`.
+ */
+export type DevToolsOverlay = (
+  store: DevToolsStore,
+  position: DevToolsPosition,
+  mode: DevToolsMode,
+  maybeBanner: Option.Option<string>,
+) => Effect.Effect<void, never, Scope.Scope>
+
+/**
  * DevTools configuration.
  *
  * Pass `false` to disable DevTools entirely.
@@ -123,6 +139,7 @@ export type DevToolsModeConfig =
  * - `position`: Where the badge and panel appear. Defaults to `'BottomRight'`.
  * - `mode`: `'TimeTravel'` (default) enables full time-travel debugging. `'Inspect'` allows browsing state snapshots without pausing the app. Pass `{ development, production }` to use different modes per environment. Useful when DevTools is shown in production (`show: 'Always'`) and you want `'TimeTravel'` only in local development.
  * - `banner`: Optional text shown as a banner at the top of the panel.
+ * - `overlay`: The in-browser overlay factory from `@foldkit/devtools`. Without it, DevTools still records history and serves the WebSocket bridge (so the DevTools MCP server works), but no visual overlay is mounted. Pass `DevTools.overlay` to show the panel.
  * - `excludeFromHistory`: Message `_tag` values whose dispatches should not be recorded in DevTools history. The Messages still drive `update` and the runtime as usual; they just don't appear in the history panel and don't pay the per-Message diff cost. Use for high-frequency Messages (animation frames, pointer moves, scroll events) that would flood history without adding insight.
  * - `maxEntries`: Maximum number of recorded Messages retained in history before the oldest is evicted. Defaults to 100. Clamped to the range 20-500: smaller values keep the panel snappy under high message rates, larger values give you more scroll-back. Each retained entry stores a full Model snapshot, so memory cost scales linearly with both `maxEntries` and your Model size.
  */
@@ -133,6 +150,7 @@ export type DevToolsConfig =
       position?: DevToolsPosition
       mode?: DevToolsModeConfig
       banner?: string
+      overlay?: DevToolsOverlay
       excludeFromHistory?: ReadonlyArray<string>
       maxEntries?: number
       /**
@@ -1595,11 +1613,13 @@ const makeRuntime = <
             position: config.position ?? DEFAULT_DEV_TOOLS_POSITION,
             mode: resolveDevToolsMode(config.mode ?? DEFAULT_DEV_TOOLS_MODE),
             maybeBanner: Option.fromNullishOr(config.banner),
+            maybeOverlay: Option.fromNullishOr(config.overlay),
           })),
         )
 
         if (Option.isSome(resolvedDevTools)) {
-          const { position, mode, maybeBanner } = resolvedDevTools.value
+          const { position, mode, maybeBanner, maybeOverlay } =
+            resolvedDevTools.value
           // NOTE: when excludeFromHistory is active, the runtime drops
           // excluded Messages from the recorded history. Replay walks the
           // recorded entries forward from the nearest keyframe. With
@@ -1654,7 +1674,11 @@ const makeRuntime = <
           // The init render runs below; capture the events it produces. We
           // record init AFTER that render so the buffer reflects the mounts
           // that fired on the first paint.
-          yield* createOverlay(devToolsStore, position, mode, maybeBanner)
+          yield* Option.match(maybeOverlay, {
+            onNone: () => Effect.void,
+            onSome: overlay =>
+              overlay(devToolsStore, position, mode, maybeBanner),
+          })
 
           if (import.meta.hot) {
             const maybeMessageSchema =

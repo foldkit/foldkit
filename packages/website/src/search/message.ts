@@ -1,5 +1,5 @@
+import { Dialog } from '@foldkit/ui'
 import { Schema as S } from 'effect'
-import { Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 
 export const SearchResult = S.Struct({
@@ -21,7 +21,7 @@ export const SelectedSearchResult = m('SelectedSearchResult', {
   url: S.String,
 })
 export const GotSearchDialogMessage = m('GotSearchDialogMessage', {
-  message: Ui.Dialog.Message,
+  message: Dialog.Message,
 })
 export const ClickedOpenSearch = m('ClickedOpenSearch')
 export const PressedSearchShortcut = m('PressedSearchShortcut')

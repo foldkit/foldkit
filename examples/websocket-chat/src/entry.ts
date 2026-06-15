@@ -1,3 +1,4 @@
+import { overlay } from '@foldkit/devtools'
 import { Runtime } from 'foldkit'
 
 import {
@@ -19,6 +20,7 @@ const application = Runtime.makeApplication({
   managedResources,
   container: document.getElementById('root'),
   devTools: {
+    overlay,
     Message,
   },
 })

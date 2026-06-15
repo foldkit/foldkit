@@ -1,8 +1,9 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Listbox } from '@foldkit/ui'
 import { Effect, Match as M, Option } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -12,13 +13,13 @@ type Plan = 'Free' | 'Pro' | 'Enterprise'
 // Declare a typed Listbox once at module scope. `view` and `update` are
 // bound to `Plan`: `items` is typed as `ReadonlyArray<Plan>` and the
 // OutMessage carries `value: Plan`.
-const PlanListbox = Ui.Listbox.create<Plan>()
+const PlanListbox = Listbox.create<Plan>()
 
 // Add a field to your Model for the Listbox Submodel, plus a field for
 // the selected value your app actually cares about:
 const Model = S.Struct({
   maybePlan: S.Option(S.String),
-  listbox: Ui.Listbox.Model,
+  listbox: Listbox.Model,
   // ...your other fields
 })
 
@@ -26,7 +27,7 @@ const Model = S.Struct({
 const init = () => [
   {
     maybePlan: Option.none(),
-    listbox: Ui.Listbox.init({ id: 'plan' }),
+    listbox: Listbox.init({ id: 'plan' }),
     // ...your other fields
   },
   [],
@@ -34,7 +35,7 @@ const init = () => [
 
 // Wrap Listbox's Messages so they can flow through your update:
 const GotListboxMessage = m('GotListboxMessage', {
-  message: Ui.Listbox.Message,
+  message: Listbox.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate keyboard
@@ -52,7 +53,7 @@ GotListboxMessage: ({ message }) => {
 
   return Option.match(maybeOutMessage, {
     onNone: () => [evo(model, { listbox: () => nextListbox }), mappedCommands],
-    onSome: M.type<Ui.Listbox.OutMessage<Plan>>().pipe(
+    onSome: M.type<Listbox.OutMessage<Plan>>().pipe(
       M.tagsExhaustive({
         Selected: ({ value }) => [
           evo(model, {

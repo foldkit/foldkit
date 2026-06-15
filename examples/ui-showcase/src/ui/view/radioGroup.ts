@@ -1,4 +1,5 @@
-import { Submodel, Ui } from 'foldkit'
+import { RadioGroup } from '@foldkit/ui'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import {
@@ -12,7 +13,7 @@ type Plan = 'Startup' | 'Business' | 'Enterprise'
 
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 
-export const PlanRadioGroup = Ui.RadioGroup.create<Plan>()
+export const PlanRadioGroup = RadioGroup.create<Plan>()
 
 const planDescriptions: Record<Plan, string> = {
   Startup: '12GB / 6 CPUs. Perfect for small projects',

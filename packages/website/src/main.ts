@@ -1,4 +1,5 @@
 import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { Dialog, Disclosure, Menu, Tabs } from '@foldkit/ui'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
 import {
@@ -28,7 +29,6 @@ import {
   ManagedResource,
   Runtime,
   Subscription,
-  Ui,
 } from 'foldkit'
 import { type Document, html } from 'foldkit/html'
 import { load, pushUrl } from 'foldkit/navigation'
@@ -240,32 +240,32 @@ export const Model = S.Struct({
   emailSubscriptionStatus: EmailSubscriptionStatus,
   githubStars: GitHubStarsRemoteData.Union,
   currentYear: S.Number,
-  mobileMenuDialog: Ui.Dialog.Model,
+  mobileMenuDialog: Dialog.Model,
   isMobileTableOfContentsOpen: S.Boolean,
   activeSection: S.Option(S.String),
   isLandingHeaderVisible: S.Boolean,
   isNarrowViewport: S.Boolean,
   isChromium: S.Boolean,
   playground: S.Option(Page.Playground.Model),
-  getStartedGroup: Ui.Disclosure.Model,
-  coreConceptsGroup: Ui.Disclosure.Model,
-  forReactDevelopersGroup: Ui.Disclosure.Model,
-  forElmDevelopersGroup: Ui.Disclosure.Model,
-  faqGroup: Ui.Disclosure.Model,
-  testingGroup: Ui.Disclosure.Model,
-  bestPracticesGroup: Ui.Disclosure.Model,
-  patternsGroup: Ui.Disclosure.Model,
-  foldkitUiGroup: Ui.Disclosure.Model,
-  aiGroup: Ui.Disclosure.Model,
-  examplesGroup: Ui.Disclosure.Model,
-  apiReferenceGroup: Ui.Disclosure.Model,
-  submodelMapMessagesDisclosure: Ui.Disclosure.Model,
+  getStartedGroup: Disclosure.Model,
+  coreConceptsGroup: Disclosure.Model,
+  forReactDevelopersGroup: Disclosure.Model,
+  forElmDevelopersGroup: Disclosure.Model,
+  faqGroup: Disclosure.Model,
+  testingGroup: Disclosure.Model,
+  bestPracticesGroup: Disclosure.Model,
+  patternsGroup: Disclosure.Model,
+  foldkitUiGroup: Disclosure.Model,
+  aiGroup: Disclosure.Model,
+  examplesGroup: Disclosure.Model,
+  apiReferenceGroup: Disclosure.Model,
+  submodelMapMessagesDisclosure: Disclosure.Model,
   aiHeadingToggleCount: S.Number,
   themePreference: ThemePreference,
   systemTheme: ResolvedTheme,
   resolvedTheme: ResolvedTheme,
-  demoTabs: Ui.Tabs.Model,
-  playgroundMenu: Ui.Menu.Model,
+  demoTabs: Tabs.Model,
+  playgroundMenu: Menu.Model,
   asyncCounterDemo: Page.AsyncCounterDemo.Model,
   notePlayerDemo: Page.NotePlayerDemo.Model,
   uiPages: Page.UiPages.Model,
@@ -277,7 +277,7 @@ export const Model = S.Struct({
 
 export type Model = typeof Model.Type
 
-const PlaygroundMenu = Ui.Menu.create<ExampleSlug>()
+const PlaygroundMenu = Menu.create<ExampleSlug>()
 
 // INIT
 
@@ -321,11 +321,11 @@ export const init: Runtime.RoutingApplicationInit<
   const { systemTheme } = flags
   const resolvedTheme = resolveTheme(themePreference, systemTheme)
 
-  const demoTabs = Ui.Tabs.init({
+  const demoTabs = Tabs.init({
     id: 'demo-tabs',
   })
 
-  const playgroundMenu = Ui.Menu.init({
+  const playgroundMenu = Menu.init({
     id: 'playground-menu',
     isAnimated: true,
   })
@@ -390,7 +390,7 @@ export const init: Runtime.RoutingApplicationInit<
       emailSubscriptionStatus: 'Idle',
       githubStars: GitHubStarsRemoteData.Loading(),
       currentYear: flags.currentYear,
-      mobileMenuDialog: Ui.Dialog.init({ id: 'mobile-menu' }),
+      mobileMenuDialog: Dialog.init({ id: 'mobile-menu' }),
       isMobileTableOfContentsOpen: false,
       activeSection: Option.none(),
       aiHeadingToggleCount: 0,
@@ -402,7 +402,7 @@ export const init: Runtime.RoutingApplicationInit<
         Option.liftPredicate(isPlaygroundRoute),
         Option.map(({ exampleSlug }) => Page.Playground.init(exampleSlug)),
       ),
-      getStartedGroup: Ui.Disclosure.init({
+      getStartedGroup: Disclosure.init({
         id: 'get-started-group',
         isOpen: isGroupOpenOnBoot(
           flags.maybeSidebarState,
@@ -410,7 +410,7 @@ export const init: Runtime.RoutingApplicationInit<
           'getStarted',
         ),
       }),
-      coreConceptsGroup: Ui.Disclosure.init({
+      coreConceptsGroup: Disclosure.init({
         id: 'core-concepts-group',
         isOpen: isGroupOpenOnBoot(
           flags.maybeSidebarState,
@@ -418,7 +418,7 @@ export const init: Runtime.RoutingApplicationInit<
           'coreConcepts',
         ),
       }),
-      forReactDevelopersGroup: Ui.Disclosure.init({
+      forReactDevelopersGroup: Disclosure.init({
         id: 'for-react-developers-group',
         isOpen: isGroupOpenOnBoot(
           flags.maybeSidebarState,
@@ -426,7 +426,7 @@ export const init: Runtime.RoutingApplicationInit<
           'forReactDevelopers',
         ),
       }),
-      forElmDevelopersGroup: Ui.Disclosure.init({
+      forElmDevelopersGroup: Disclosure.init({
         id: 'for-elm-developers-group',
         isOpen: isGroupOpenOnBoot(
           flags.maybeSidebarState,
@@ -434,7 +434,7 @@ export const init: Runtime.RoutingApplicationInit<
           'forElmDevelopers',
         ),
       }),
-      faqGroup: Ui.Disclosure.init({
+      faqGroup: Disclosure.init({
         id: 'faq-group',
         isOpen: isGroupOpenOnBoot(
           flags.maybeSidebarState,
@@ -442,7 +442,7 @@ export const init: Runtime.RoutingApplicationInit<
           'faq',
         ),
       }),
-      testingGroup: Ui.Disclosure.init({
+      testingGroup: Disclosure.init({
         id: 'testing-group',
         isOpen: isGroupOpenOnBoot(
           flags.maybeSidebarState,
@@ -450,7 +450,7 @@ export const init: Runtime.RoutingApplicationInit<
           'testing',
         ),
       }),
-      bestPracticesGroup: Ui.Disclosure.init({
+      bestPracticesGroup: Disclosure.init({
         id: 'best-practices-group',
         isOpen: isGroupOpenOnBoot(
           flags.maybeSidebarState,
@@ -458,7 +458,7 @@ export const init: Runtime.RoutingApplicationInit<
           'bestPractices',
         ),
       }),
-      patternsGroup: Ui.Disclosure.init({
+      patternsGroup: Disclosure.init({
         id: 'patterns-group',
         isOpen: isGroupOpenOnBoot(
           flags.maybeSidebarState,
@@ -466,7 +466,7 @@ export const init: Runtime.RoutingApplicationInit<
           'patterns',
         ),
       }),
-      foldkitUiGroup: Ui.Disclosure.init({
+      foldkitUiGroup: Disclosure.init({
         id: 'foldkit-ui-group',
         isOpen: isGroupOpenOnBoot(
           flags.maybeSidebarState,
@@ -474,7 +474,7 @@ export const init: Runtime.RoutingApplicationInit<
           'foldkitUi',
         ),
       }),
-      aiGroup: Ui.Disclosure.init({
+      aiGroup: Disclosure.init({
         id: 'ai-group',
         isOpen: isGroupOpenOnBoot(
           flags.maybeSidebarState,
@@ -482,7 +482,7 @@ export const init: Runtime.RoutingApplicationInit<
           'ai',
         ),
       }),
-      examplesGroup: Ui.Disclosure.init({
+      examplesGroup: Disclosure.init({
         id: 'examples-group',
         isOpen: isGroupOpenOnBoot(
           flags.maybeSidebarState,
@@ -490,7 +490,7 @@ export const init: Runtime.RoutingApplicationInit<
           'examples',
         ),
       }),
-      apiReferenceGroup: Ui.Disclosure.init({
+      apiReferenceGroup: Disclosure.init({
         id: 'api-reference-group',
         isOpen: isGroupOpenOnBoot(
           flags.maybeSidebarState,
@@ -498,7 +498,7 @@ export const init: Runtime.RoutingApplicationInit<
           'apiReference',
         ),
       }),
-      submodelMapMessagesDisclosure: Ui.Disclosure.init({
+      submodelMapMessagesDisclosure: Disclosure.init({
         id: 'submodel-map-messages-disclosure',
         isOpen: false,
       }),
@@ -538,17 +538,17 @@ export const init: Runtime.RoutingApplicationInit<
 // UPDATE
 
 const handleSidebarGroup = (
-  prev: Ui.Disclosure.Model,
-  message: Ui.Disclosure.Message,
-  toModel: (next: Ui.Disclosure.Model) => Model,
-  toParentMessage: (message: Ui.Disclosure.Message) => Message,
+  prev: Disclosure.Model,
+  message: Disclosure.Message,
+  toModel: (next: Disclosure.Model) => Model,
+  toParentMessage: (message: Disclosure.Message) => Message,
 ): readonly [
   Model,
   ReadonlyArray<
     Command.Command<Message, never, AppResources | AppManagedResources>
   >,
 ] => {
-  const [next, commands] = Ui.Disclosure.update(prev, message)
+  const [next, commands] = Disclosure.update(prev, message)
   const nextModel = toModel(next)
   return [
     nextModel,
@@ -625,11 +625,11 @@ export const update = (
         )
         const expandIfActive =
           (key: GroupKey) =>
-          (group: Ui.Disclosure.Model): Ui.Disclosure.Model =>
+          (group: Disclosure.Model): Disclosure.Model =>
             Option.exists(maybeNextActiveSectionKey, Equal.equals(key))
-              ? Ui.Disclosure.reflectOpenState(group, true)
+              ? Disclosure.reflectOpenState(group, true)
               : group
-        const [closedMobileMenu, closeMobileMenuCommands] = Ui.Dialog.close(
+        const [closedMobileMenu, closeMobileMenuCommands] = Dialog.close(
           model.mobileMenuDialog,
         )
         const [nextSearch, searchResetCommands] = Search.informRouteChanged(
@@ -791,7 +791,7 @@ export const update = (
       ],
 
       ClickedOpenMobileMenu: () => {
-        const [nextMobileMenuDialog, mobileMenuDialogCommands] = Ui.Dialog.open(
+        const [nextMobileMenuDialog, mobileMenuDialogCommands] = Dialog.open(
           model.mobileMenuDialog,
         )
 
@@ -806,8 +806,10 @@ export const update = (
       },
 
       GotMobileMenuDialogMessage: ({ message }) => {
-        const [nextMobileMenuDialog, mobileMenuDialogCommands] =
-          Ui.Dialog.update(model.mobileMenuDialog, message)
+        const [nextMobileMenuDialog, mobileMenuDialogCommands] = Dialog.update(
+          model.mobileMenuDialog,
+          message,
+        )
 
         return [
           evo(model, {
@@ -903,7 +905,7 @@ export const update = (
             evo(model, { playgroundMenu: () => nextMenu }),
             mappedCommands,
           ],
-          onSome: M.type<Ui.Menu.OutMessage<ExampleSlug>>().pipe(
+          onSome: M.type<Menu.OutMessage<ExampleSlug>>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
               // NOTE: `LoadExternal` (not `NavigateInternal`).
@@ -1103,7 +1105,7 @@ export const update = (
         ),
 
       GotSubmodelMapMessagesDisclosureMessage: ({ message }) => {
-        const [next, commands] = Ui.Disclosure.update(
+        const [next, commands] = Disclosure.update(
           model.submodelMapMessagesDisclosure,
           message,
         )

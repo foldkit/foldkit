@@ -1,6 +1,6 @@
+import { Menu, Tabs } from '@foldkit/ui'
 import { clsx } from 'clsx'
 import { Match as M, Option } from 'effect'
-import { Ui } from 'foldkit'
 import { Html, childAttributes, createLazy, html } from 'foldkit/html'
 
 import { maybeStarCount } from '../githubStars'
@@ -25,7 +25,7 @@ import { coreArchitectureRouter, homeRouter } from '../route'
 import { betaTag, emailSignupContentView, skipNavLink } from './shared'
 import { themeSelector } from './themeSelector'
 
-const PlaygroundMenu = Ui.Menu.create<ExampleSlug>()
+const PlaygroundMenu = Menu.create<ExampleSlug>()
 
 const PagefindBody = html<Message>().DataAttribute('pagefind-body', '')
 
@@ -121,7 +121,7 @@ type DemoTab = 'Architecture' | 'Note Player'
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Architecture', 'Note Player']
 
-export const DemoTabs = Ui.Tabs.create<DemoTab>()
+export const DemoTabs = Tabs.create<DemoTab>()
 
 const demoTabButtonClassName =
   'px-3 py-2 text-sm font-normal cursor-pointer transition border border-gray-300 dark:border-gray-800 bg-cream dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-t-lg lg:rounded-t-none lg:rounded-l-lg lg:border-r-0 mb-[-1px] lg:mb-0 lg:mr-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-cream data-[selected]:dark:bg-gray-900 data-[selected]:text-gray-900 data-[selected]:dark:text-white data-[selected]:border-b-0 lg:data-[selected]:border-b lg:data-[selected]:border-r-0'
@@ -225,7 +225,7 @@ const playgroundItemContent = (meta: ExampleMeta): Html => {
 }
 
 const playgroundMenuView = (
-  menuModel: Ui.Menu.Model,
+  menuModel: Menu.Model,
   slugs: ReadonlyArray<ExampleSlug>,
 ): Html => {
   const h = html<Message>()

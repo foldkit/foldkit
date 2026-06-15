@@ -1,6 +1,6 @@
+import { Dialog, Disclosure } from '@foldkit/ui'
 import { clsx } from 'clsx'
 import { Array, Equal, Option, pipe } from 'effect'
-import { Ui } from 'foldkit'
 import { Html, createLazy, html } from 'foldkit/html'
 import apiModuleIndex from 'virtual:api-module-index'
 
@@ -37,8 +37,8 @@ import { betaTag, iconLink } from './shared'
 const sidebarGroup = (config: {
   readonly id: string
   readonly label: string
-  readonly model: Ui.Disclosure.Model
-  readonly toParentMessage: (message: Ui.Disclosure.Message) => Message
+  readonly model: Disclosure.Model
+  readonly toParentMessage: (message: Disclosure.Message) => Message
   readonly children: Html
   readonly isLocked: boolean
 }): Html => {
@@ -63,7 +63,7 @@ const sidebarGroup = (config: {
       h.submodel({
         slotId: config.id,
         model: config.model,
-        view: Ui.Disclosure.view,
+        view: Disclosure.view,
         viewInputs: {
           isDisabled: config.isLocked,
           toView: attributes =>
@@ -109,25 +109,25 @@ const sidebarGroup = (config: {
 }
 
 type DisclosureBinding = Readonly<{
-  model: Ui.Disclosure.Model
-  toParentMessage: (message: Ui.Disclosure.Message) => Message
+  model: Disclosure.Model
+  toParentMessage: (message: Disclosure.Message) => Message
 }>
 
 const computeNavLinks = (
   idPrefix: string,
   route: Model['route'],
-  getStartedGroup: Ui.Disclosure.Model,
-  coreConceptsGroup: Ui.Disclosure.Model,
-  forReactDevelopersGroup: Ui.Disclosure.Model,
-  forElmDevelopersGroup: Ui.Disclosure.Model,
-  faqGroup: Ui.Disclosure.Model,
-  testingGroup: Ui.Disclosure.Model,
-  bestPracticesGroup: Ui.Disclosure.Model,
-  patternsGroup: Ui.Disclosure.Model,
-  examplesGroup: Ui.Disclosure.Model,
-  foldkitUiGroup: Ui.Disclosure.Model,
-  aiGroup: Ui.Disclosure.Model,
-  apiReferenceGroup: Ui.Disclosure.Model,
+  getStartedGroup: Disclosure.Model,
+  coreConceptsGroup: Disclosure.Model,
+  forReactDevelopersGroup: Disclosure.Model,
+  forElmDevelopersGroup: Disclosure.Model,
+  faqGroup: Disclosure.Model,
+  testingGroup: Disclosure.Model,
+  bestPracticesGroup: Disclosure.Model,
+  patternsGroup: Disclosure.Model,
+  examplesGroup: Disclosure.Model,
+  foldkitUiGroup: Disclosure.Model,
+  aiGroup: Disclosure.Model,
+  apiReferenceGroup: Disclosure.Model,
 ): Html => {
   const h = html<Message>()
 
@@ -341,7 +341,7 @@ export const sidebarView = (model: Model): Html => {
   )
 
   const mobileMenuContent = (
-    closeButton: Ui.Dialog.RenderInfo['closeButton'],
+    closeButton: Dialog.RenderInfo['closeButton'],
   ): Html =>
     h.div(
       [h.Class('flex flex-col h-full')],
@@ -411,7 +411,7 @@ export const sidebarView = (model: Model): Html => {
   const mobileMenu = h.submodel({
     slotId: model.mobileMenuDialog.id,
     model: model.mobileMenuDialog,
-    view: Ui.Dialog.view,
+    view: Dialog.view,
     viewInputs: {
       toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
         h.dialog(

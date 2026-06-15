@@ -1,5 +1,6 @@
+import { DragAndDrop } from '@foldkit/ui'
 import { Array, Match as M, Option, String, pipe } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
@@ -39,7 +40,7 @@ const findColumnName = (
 
 const announceKeyboardDrag = (
   model: Model,
-  nextDragAndDrop: Ui.DragAndDrop.Model,
+  nextDragAndDrop: DragAndDrop.Model,
 ): string =>
   M.value(nextDragAndDrop.dragState).pipe(
     M.withReturnType<string>(),
@@ -74,7 +75,7 @@ const announceKeyboardDrag = (
 
 const screenReaderTextForDrop = (
   model: Model,
-  outMessage: Ui.DragAndDrop.OutMessage,
+  outMessage: DragAndDrop.OutMessage,
 ): string =>
   M.value(outMessage).pipe(
     M.withReturnType<string>(),
@@ -85,7 +86,7 @@ const screenReaderTextForDrop = (
         return `Dropped ${title} in position ${toIndex + 1} of ${columnName}.`
       },
       Cancelled: () =>
-        Option.match(Ui.DragAndDrop.maybeDraggedItemId(model.dragAndDrop), {
+        Option.match(DragAndDrop.maybeDraggedItemId(model.dragAndDrop), {
           onNone: () => 'Drag cancelled.',
           onSome: id => {
             const title = findCardTitle(model.columns, id)
@@ -101,7 +102,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     M.tagsExhaustive({
       GotDragAndDropMessage: ({ message: dragMessage }) => {
         const [nextDragAndDrop, dragCommands, maybeOutMessage] =
-          Ui.DragAndDrop.update(model.dragAndDrop, dragMessage)
+          DragAndDrop.update(model.dragAndDrop, dragMessage)
 
         const mappedCommands = Command.mapMessages(
           dragCommands,

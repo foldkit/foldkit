@@ -1,8 +1,9 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { RadioGroup } from '@foldkit/ui'
 import { Effect, Match as M, Option } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -11,13 +12,13 @@ type Plan = 'Startup' | 'Business' | 'Enterprise'
 
 // Declare a typed RadioGroup once at module scope. `view` and `update`
 // are bound to the same value type:
-const PlanRadioGroup = Ui.RadioGroup.create<Plan>()
+const PlanRadioGroup = RadioGroup.create<Plan>()
 
 // Add a field to your Model for the RadioGroup Submodel, plus a field
 // for the selected plan your app actually cares about:
 const Model = S.Struct({
   maybePlan: S.Option(S.String),
-  radioGroup: Ui.RadioGroup.Model,
+  radioGroup: RadioGroup.Model,
   // ...your other fields
 })
 
@@ -25,7 +26,7 @@ const Model = S.Struct({
 const init = () => [
   {
     maybePlan: Option.none(),
-    radioGroup: Ui.RadioGroup.init({ id: 'plan' }),
+    radioGroup: RadioGroup.init({ id: 'plan' }),
     // ...your other fields
   },
   [],
@@ -33,7 +34,7 @@ const init = () => [
 
 // Embed the RadioGroup Message in your parent Message:
 const GotRadioGroupMessage = m('GotRadioGroupMessage', {
-  message: Ui.RadioGroup.Message,
+  message: RadioGroup.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
@@ -53,7 +54,7 @@ GotRadioGroupMessage: ({ message }) => {
       evo(model, { radioGroup: () => nextRadioGroup }),
       mappedCommands,
     ],
-    onSome: M.type<Ui.RadioGroup.OutMessage<Plan>>().pipe(
+    onSome: M.type<RadioGroup.OutMessage<Plan>>().pipe(
       M.tagsExhaustive({
         Selected: ({ value }) => [
           evo(model, {

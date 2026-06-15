@@ -1,5 +1,6 @@
+import { Button, Slider } from '@foldkit/ui'
 import { Array, Option, pipe } from 'effect'
-import { Canvas, Ui } from 'foldkit'
+import { Canvas } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 
 import {
@@ -293,15 +294,15 @@ const playPauseLabel = (isRunning: boolean): string =>
 
 const slider = (
   label: string,
-  sliderModel: Ui.Slider.Model,
-  toParentMessage: (message: Ui.Slider.Message) => Message,
+  sliderModel: Slider.Model,
+  toParentMessage: (message: Slider.Message) => Message,
 ): Html => {
   const h = html<Message>()
 
   return h.submodel({
     slotId: sliderModel.id,
     model: sliderModel,
-    view: Ui.Slider.view,
+    view: Slider.view,
     viewInputs: {
       formatValue: value => value.toFixed(2),
       toView: attributes =>
@@ -348,7 +349,7 @@ const slider = (
 
 const controlButton = (label: string, onClick: Message): Html => {
   const h = html<Message>()
-  return Ui.Button.view<Message>({
+  return Button.view<Message>({
     onClick,
     toView: attributes =>
       h.button([...attributes.button, h.Class(buttonClass)], [label]),

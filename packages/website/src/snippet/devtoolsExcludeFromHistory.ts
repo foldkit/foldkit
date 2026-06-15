@@ -1,3 +1,4 @@
+import { overlay } from '@foldkit/devtools'
 import { Runtime } from 'foldkit'
 
 const application = Runtime.makeApplication({
@@ -8,6 +9,7 @@ const application = Runtime.makeApplication({
   subscriptions,
   container: document.getElementById('root'),
   devTools: {
+    overlay,
     excludeFromHistory: ['TickedFrame', 'MovedPointer'],
   },
 })

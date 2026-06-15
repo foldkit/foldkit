@@ -1,3 +1,4 @@
+import { Button, Input } from '@foldkit/ui'
 import {
   Array,
   Duration,
@@ -8,7 +9,7 @@ import {
   String,
   pipe,
 } from 'effect'
-import { Command, Submodel, Ui } from 'foldkit'
+import { Command, Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { pushUrl } from 'foldkit/navigation'
@@ -288,7 +289,7 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
           h.form(
             [h.OnSubmit(SubmittedSearch()), h.Class('flex gap-2')],
             [
-              Ui.Input.view({
+              Input.view({
                 id: 'people-search',
                 type: 'search',
                 value: model.searchInput,
@@ -313,7 +314,7 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
                     ],
                   ),
               }),
-              Ui.Button.view<Message>({
+              Button.view<Message>({
                 type: 'submit',
                 toView: ({ button }) =>
                   h.button(

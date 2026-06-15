@@ -16,29 +16,29 @@ const ClickedExport = m('ClickedExport')
 const SucceededExportPng = m('SucceededExportPng')
 const FailedExportPng = m('FailedExportPng', { error: S.String })
 const GotErrorDialogMessage = m('GotErrorDialogMessage', {
-  message: Ui.Dialog.Message,
+  message: Dialog.Message,
 })
 const ConfirmedGridSizeChange = m('ConfirmedGridSizeChange')
 const GotGridSizeConfirmDialogMessage = m('GotGridSizeConfirmDialogMessage', {
-  message: Ui.Dialog.Message,
+  message: Dialog.Message,
 })
 const GotToolRadioGroupMessage = m('GotToolRadioGroupMessage', {
-  message: Ui.RadioGroup.Message,
+  message: RadioGroup.Message,
 })
 const GotGridSizeRadioGroupMessage = m('GotGridSizeRadioGroupMessage', {
-  message: Ui.RadioGroup.Message,
+  message: RadioGroup.Message,
 })
 const GotPaletteRadioGroupMessage = m('GotPaletteRadioGroupMessage', {
-  message: Ui.RadioGroup.Message,
+  message: RadioGroup.Message,
 })
 const GotMirrorHorizontalSwitchMessage = m('GotMirrorHorizontalSwitchMessage', {
-  message: Ui.Switch.Message,
+  message: Switch.Message,
 })
 const GotMirrorVerticalSwitchMessage = m('GotMirrorVerticalSwitchMessage', {
-  message: Ui.Switch.Message,
+  message: Switch.Message,
 })
 const GotThemeListboxMessage = m('GotThemeListboxMessage', {
-  message: Ui.Listbox.Message,
+  message: Listbox.Message,
 })
 const CompletedSaveCanvas = m('CompletedSaveCanvas')
 

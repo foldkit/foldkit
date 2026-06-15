@@ -1,8 +1,9 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, view, and subscription definitions.
+import { VirtualList } from '@foldkit/ui'
 import { Effect, Schema as S } from 'effect'
-import { Command, Subscription, Ui } from 'foldkit'
+import { Command, Subscription } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -11,7 +12,7 @@ import { evo } from 'foldkit/struct'
 // stay in your domain Model (your own `activities`, `messages`, `rows`,
 // whatever you call them); only scroll and measurement state live here:
 const Model = S.Struct({
-  activityList: Ui.VirtualList.Model,
+  activityList: VirtualList.Model,
   // ...your other fields, including the items array you want to render
 })
 
@@ -19,7 +20,7 @@ const Model = S.Struct({
 // pixels. All rows share this height:
 const init = () => [
   {
-    activityList: Ui.VirtualList.init({
+    activityList: VirtualList.init({
       id: 'activity-list',
       rowHeightPx: 56,
     }),
@@ -30,16 +31,13 @@ const init = () => [
 
 // Embed the VirtualList Message in your parent Message:
 const GotActivityListMessage = m('GotActivityListMessage', {
-  message: Ui.VirtualList.Message,
+  message: VirtualList.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
 // VirtualList.update:
 GotActivityListMessage: ({ message }) => {
-  const [nextList, commands] = Ui.VirtualList.update(
-    model.activityList,
-    message,
-  )
+  const [nextList, commands] = VirtualList.update(model.activityList, message)
 
   return [
     evo(model, { activityList: () => nextList }),
@@ -53,7 +51,7 @@ GotActivityListMessage: ({ message }) => {
 // subscriptions. This powers scroll tracking and container resize
 // observation:
 const activityListSubscriptions = Subscription.lift({
-  activityListEvents: Ui.VirtualList.subscriptions.containerEvents,
+  activityListEvents: VirtualList.subscriptions.containerEvents,
 })<Model, Message>({
   toChildModel: model => model.activityList,
   toParentMessage: message => GotActivityListMessage({ message }),
@@ -76,7 +74,7 @@ const view = (model: Model) => {
   return h.submodel({
     slotId: 'activity-list',
     model: model.activityList,
-    view: Ui.VirtualList.view<Activity>(),
+    view: VirtualList.view<Activity>(),
     viewInputs: {
       items: model.activities,
       itemToKey: activity => String(activity.id),
@@ -109,7 +107,4 @@ const view = (model: Model) => {
 // Programmatic scrolling. Returns [Model, Commands] in the same shape as
 // update. Stale completions are version-cancelled, so rapid successive
 // calls do not fight each other:
-const [nextList, commands] = Ui.VirtualList.scrollToIndex(
-  model.activityList,
-  500,
-)
+const [nextList, commands] = VirtualList.scrollToIndex(model.activityList, 500)

@@ -1,5 +1,6 @@
+import { Menu } from '@foldkit/ui'
 import { Array, Match as M, Option, pipe } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { SubmitApplication } from './command'
@@ -24,7 +25,7 @@ import {
   WorkHistory,
 } from './step'
 
-const StepMenu = Ui.Menu.create<Step.Step>()
+const StepMenu = Menu.create<Step.Step>()
 
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
@@ -135,7 +136,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             Model,
             ReadonlyArray<Command.Command<Message>>,
           ] => [evo(model, { stepMenu: () => nextStepMenu }), mappedCommands],
-          onSome: M.type<Ui.Menu.OutMessage<Step.Step>>().pipe(
+          onSome: M.type<Menu.OutMessage<Step.Step>>().pipe(
             M.withReturnType<
               readonly [Model, ReadonlyArray<Command.Command<Message>>]
             >(),

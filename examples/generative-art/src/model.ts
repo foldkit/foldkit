@@ -1,5 +1,5 @@
+import { Slider } from '@foldkit/ui'
 import { Schema as S } from 'effect'
-import { Ui } from 'foldkit'
 
 export const Point = S.Struct({ x: S.Number, y: S.Number })
 export type Point = typeof Point.Type
@@ -24,7 +24,7 @@ export const Model = S.Struct({
   elapsedSeconds: S.Number,
   maybeMousePosition: S.Option(Point),
   isRunning: S.Boolean,
-  flowStrengthSlider: Ui.Slider.Model,
-  noiseScaleSlider: Ui.Slider.Model,
+  flowStrengthSlider: Slider.Model,
+  noiseScaleSlider: Slider.Model,
 })
 export type Model = typeof Model.Type

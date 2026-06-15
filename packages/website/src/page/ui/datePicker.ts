@@ -1,7 +1,7 @@
+import { DatePicker } from '@foldkit/ui'
+import type { AnchorConfig } from '@foldkit/ui/popover'
 import { Match as M, Option } from 'effect'
-import { Ui } from 'foldkit'
 import { html } from 'foldkit/html'
-import type { AnchorConfig } from 'foldkit/ui/popover'
 
 import { Icon } from '../../icon'
 import { GotDatePickerBasicDemoMessage, type Message } from './message'
@@ -96,7 +96,7 @@ export const basicDemo = (model: Model) => {
     h.submodel({
       slotId: model.datePickerBasicDemo.id,
       model: model.datePickerBasicDemo,
-      view: Ui.DatePicker.view,
+      view: DatePicker.view,
       viewInputs: {
         anchor: DATE_PICKER_ANCHOR,
         triggerContent,

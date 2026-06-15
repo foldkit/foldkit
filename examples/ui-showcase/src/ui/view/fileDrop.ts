@@ -1,5 +1,6 @@
+import { FileDrop } from '@foldkit/ui'
 import { Array, Match as M, Number } from 'effect'
-import { File, Submodel, Ui } from 'foldkit'
+import { File, Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import {
@@ -55,7 +56,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
           h.submodel({
             slotId: model.fileDropBasicDemo.id,
             model: model.fileDropBasicDemo,
-            view: Ui.FileDrop.view,
+            view: FileDrop.view,
             viewInputs: {
               multiple: true,
               toView: attributes =>

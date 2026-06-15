@@ -1,22 +1,23 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Switch } from '@foldkit/ui'
 import { Match as M, Option } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // Add a field to your Model for the Switch Submodel:
 const Model = S.Struct({
-  switchDemo: Ui.Switch.Model,
+  switchDemo: Switch.Model,
   // ...your other fields
 })
 
 // In your init function, initialize the Switch Submodel with a unique id:
 const init = () => [
   {
-    switchDemo: Ui.Switch.init({ id: 'notifications' }),
+    switchDemo: Switch.init({ id: 'notifications' }),
     // ...your other fields
   },
   [],
@@ -24,15 +25,15 @@ const init = () => [
 
 // Embed the Switch Message in your parent Message:
 const GotSwitchMessage = m('GotSwitchMessage', {
-  message: Ui.Switch.Message,
+  message: Switch.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
-// Ui.Switch.update. The OutMessage's `ToggledChecked` carries the new
+// Switch.update. The OutMessage's `ToggledChecked` carries the new
 // `isChecked` value. Use it to save a preference, sync to a backend,
 // or trigger a side effect at the toggle moment.
 GotSwitchMessage: ({ message }) => {
-  const [nextSwitch, commands, maybeOutMessage] = Ui.Switch.update(
+  const [nextSwitch, commands, maybeOutMessage] = Switch.update(
     model.switchDemo,
     message,
   )
@@ -45,7 +46,7 @@ GotSwitchMessage: ({ message }) => {
       evo(model, { switchDemo: () => nextSwitch }),
       mappedCommands,
     ],
-    onSome: M.type<Ui.Switch.OutMessage>().pipe(
+    onSome: M.type<Switch.OutMessage>().pipe(
       M.tagsExhaustive({
         ToggledChecked: ({ isChecked }) => {
           // The child has emitted `ToggledChecked`. The body commits
@@ -67,7 +68,7 @@ const view = () => {
   return h.submodel({
     slotId: 'switch-demo',
     model: model.switchDemo,
-    view: Ui.Switch.view,
+    view: Switch.view,
     viewInputs: {
       toView: attributes =>
         h.div(

@@ -1,22 +1,23 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Tooltip } from '@foldkit/ui'
 import { Match as M, Option } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // Add a field to your Model for the Tooltip Submodel:
 const Model = S.Struct({
-  tooltip: Ui.Tooltip.Model,
+  tooltip: Tooltip.Model,
   // ...your other fields
 })
 
 // In your init function, initialize the Tooltip Submodel with a unique id:
 const init = () => [
   {
-    tooltip: Ui.Tooltip.init({ id: 'save-button' }),
+    tooltip: Tooltip.init({ id: 'save-button' }),
     // ...your other fields
   },
   [],
@@ -24,15 +25,15 @@ const init = () => [
 
 // Embed the Tooltip Message in your parent Message:
 const GotTooltipMessage = m('GotTooltipMessage', {
-  message: Ui.Tooltip.Message,
+  message: Tooltip.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
-// Ui.Tooltip.update. The OutMessages `Shown` and `Hidden` mark the
+// Tooltip.update. The OutMessages `Shown` and `Hidden` mark the
 // visibility transitions. Fire analytics or coordinate with the rest
 // of your UI from the parent.
 GotTooltipMessage: ({ message }) => {
-  const [nextTooltip, commands, maybeOutMessage] = Ui.Tooltip.update(
+  const [nextTooltip, commands, maybeOutMessage] = Tooltip.update(
     model.tooltip,
     message,
   )
@@ -42,7 +43,7 @@ GotTooltipMessage: ({ message }) => {
 
   return Option.match(maybeOutMessage, {
     onNone: () => [evo(model, { tooltip: () => nextTooltip }), mappedCommands],
-    onSome: M.type<Ui.Tooltip.OutMessage>().pipe(
+    onSome: M.type<Tooltip.OutMessage>().pipe(
       M.tagsExhaustive({
         Shown: () => [
           // The child has emitted `Shown`. The body commits the
@@ -74,7 +75,7 @@ const view = () => {
   return h.submodel({
     slotId: 'save-button',
     model: model.tooltip,
-    view: Ui.Tooltip.view,
+    view: Tooltip.view,
     viewInputs: {
       anchor: { placement: 'top', gap: 6, padding: 8 },
       toView: ({ trigger, panel, isVisible }) =>

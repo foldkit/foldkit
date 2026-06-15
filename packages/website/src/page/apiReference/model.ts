@@ -1,5 +1,5 @@
+import { Disclosure } from '@foldkit/ui'
 import { Schema as S } from 'effect'
-import { Disclosure } from 'foldkit/ui'
 
 import { makeRemoteData } from '../../makeRemoteData'
 import { ParsedApiReference } from './domain'

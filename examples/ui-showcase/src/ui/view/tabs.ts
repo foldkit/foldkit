@@ -1,5 +1,6 @@
+import { Tabs } from '@foldkit/ui'
 import { Array, Match as M } from 'effect'
-import { Submodel, Ui } from 'foldkit'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import {
@@ -13,7 +14,7 @@ type DemoTab = 'Foldkit' | 'React' | 'Elm'
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']
 
-export const DemoTabs = Ui.Tabs.create<DemoTab>()
+export const DemoTabs = Tabs.create<DemoTab>()
 
 const horizontalButtonClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-t-lg border border-gray-200 bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-50 mb-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-white data-[selected]:text-gray-900 data-[selected]:border-b-0'

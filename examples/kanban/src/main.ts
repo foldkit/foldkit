@@ -1,7 +1,8 @@
 import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { DragAndDrop } from '@foldkit/ui'
 import { Effect, Option, Schema as S } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
-import { Runtime, Ui } from 'foldkit'
+import { Runtime } from 'foldkit'
 
 import { DEFAULT_COLUMNS, STORAGE_KEY } from './constant'
 import { Message } from './message'
@@ -42,7 +43,7 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => {
   return [
     {
       columns,
-      dragAndDrop: Ui.DragAndDrop.init({ id: 'kanban' }),
+      dragAndDrop: DragAndDrop.init({ id: 'kanban' }),
       maybeNewCardColumnId: Option.none(),
       newCardTitle: '',
       announcement: '',

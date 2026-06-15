@@ -1,7 +1,7 @@
 // Pseudocode walkthrough using the same Model, Messages, and update as
 // the basic menu; only init and view change. Each labeled block below is
 // an excerpt.
-import { Ui } from 'foldkit'
+import { Menu } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
@@ -11,7 +11,7 @@ import { m } from 'foldkit/message'
 // In your init function, set isAnimated: true to coordinate CSS transitions:
 const init = () => [
   {
-    menu: Ui.Menu.init({ id: 'actions', isAnimated: true }),
+    menu: Menu.init({ id: 'actions', isAnimated: true }),
     // ...your other fields
   },
   [],
@@ -19,11 +19,11 @@ const init = () => [
 
 // Embed the Menu Message in your parent Message:
 const GotMenuMessage = m('GotMenuMessage', {
-  message: Ui.Menu.Message,
+  message: Menu.Message,
 })
 
 // Pair view and update behind a single Item-typed factory at module scope:
-const ActionMenu = Ui.Menu.create<Action>()
+const ActionMenu = Menu.create<Action>()
 
 // Inside your view function, use data-[closed] for enter/leave transitions:
 const view = () => {

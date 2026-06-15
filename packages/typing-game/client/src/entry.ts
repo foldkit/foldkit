@@ -1,3 +1,4 @@
+import { overlay } from '@foldkit/devtools'
 import { Runtime } from 'foldkit'
 
 import { init } from './init'
@@ -17,6 +18,7 @@ const application = Runtime.makeApplication({
   resources: RoomsClientLive,
   container: document.getElementById('root'),
   devTools: {
+    overlay,
     Message,
     mode: 'TimeTravel',
   },

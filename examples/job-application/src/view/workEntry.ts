@@ -1,4 +1,5 @@
-import { Submodel, Ui } from 'foldkit'
+import { Checkbox, DatePicker } from '@foldkit/ui'
+import { Submodel } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
 import { WorkHistory } from '../step'
@@ -32,7 +33,7 @@ export const workEntryView = Submodel.defineView<
       h.submodel({
         slotId: model.startDate.id,
         model: model.startDate,
-        view: Ui.DatePicker.view,
+        view: DatePicker.view,
         viewInputs: {
           anchor: ANCHOR,
           triggerContent: maybeDate =>
@@ -59,7 +60,7 @@ export const workEntryView = Submodel.defineView<
       h.submodel({
         slotId: model.endDate.id,
         model: model.endDate,
-        view: Ui.DatePicker.view,
+        view: DatePicker.view,
         viewInputs: {
           anchor: ANCHOR,
           triggerContent: maybeDate =>
@@ -105,7 +106,7 @@ export const workEntryView = Submodel.defineView<
       h.submodel({
         slotId: `${model.id}-currently-employed`,
         model: model.isCurrentlyEmployed,
-        view: Ui.Checkbox.view,
+        view: Checkbox.view,
         viewInputs: {
           toView: attributes =>
             h.div(

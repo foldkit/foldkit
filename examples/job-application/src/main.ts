@@ -1,6 +1,7 @@
 import { BrowserCrypto } from '@effect/platform-browser'
+import { Menu } from '@foldkit/ui'
 import { Crypto, Effect, Schema as S } from 'effect'
-import { Calendar, Runtime, Ui } from 'foldkit'
+import { Calendar, Runtime } from 'foldkit'
 
 import { Message } from './message'
 import { Model, NotSubmitted } from './model'
@@ -57,7 +58,7 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = ({
     attachments: Attachments.init(),
     isPreviewVisible: false,
     submission: NotSubmitted(),
-    stepMenu: Ui.Menu.init({ id: 'step-menu' }),
+    stepMenu: Menu.init({ id: 'step-menu' }),
   },
   [],
 ]

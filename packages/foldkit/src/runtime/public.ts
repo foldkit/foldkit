@@ -27,4 +27,6 @@ export type {
   DevToolsConfig,
   DevToolsMode,
   DevToolsModeConfig,
+  DevToolsOverlay,
+  DevToolsPosition,
 } from './runtime.js'

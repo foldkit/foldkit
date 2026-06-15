@@ -1,3 +1,4 @@
+import { Tabs } from '@foldkit/ui'
 import type { FileSystemTree, WebContainer } from '@webcontainer/api'
 import { clsx } from 'clsx'
 import {
@@ -15,7 +16,7 @@ import {
   String as String_,
   pipe,
 } from 'effect'
-import { Command, ManagedResource, Mount, Submodel, Ui } from 'foldkit'
+import { Command, ManagedResource, Mount, Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -50,7 +51,7 @@ export const Model = S.Struct({
   slug: S.String,
   state: PlaygroundState,
   files: S.Record(S.String, S.String),
-  fileTabs: Ui.Tabs.Model,
+  fileTabs: Tabs.Model,
   // NOTE: Paths edited before the WebContainer finished booting. Writes
   // dispatched at that time fail with `ResourceNotAvailable`, so we
   // accumulate the paths here and flush them once `BootedPlayground`
@@ -73,7 +74,7 @@ export const FailedBootPlayground = m('FailedBootPlayground', {
 })
 export const ReleasedPlayground = m('ReleasedPlayground')
 export const GotFileTabsMessage = m('GotFileTabsMessage', {
-  message: Ui.Tabs.Message,
+  message: Tabs.Message,
 })
 export const EditedPlaygroundFile = m('EditedPlaygroundFile', {
   path: S.String,
@@ -142,7 +143,7 @@ export const init = (slug: string): Model => {
     slug,
     state: PlaygroundStateBooting(),
     files,
-    fileTabs: Ui.Tabs.init({
+    fileTabs: Tabs.init({
       id: FILE_TABS_ID,
       activeIndex: initialActiveIndex(files),
     }),
@@ -898,7 +899,7 @@ const responsiveEditorView = (model: Model): Html => {
   )
 }
 
-const PlaygroundFileTabs = Ui.Tabs.create<string>()
+const PlaygroundFileTabs = Tabs.create<string>()
 
 const editorLayoutView = (model: Model): Html => {
   const h = html<Message>()

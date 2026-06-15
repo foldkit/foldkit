@@ -1,5 +1,3 @@
-import { Schema as S } from 'effect'
-import { File } from 'foldkit'
 import {
   Animation,
   Calendar,
@@ -19,7 +17,9 @@ import {
   Tabs,
   Tooltip,
   VirtualList,
-} from 'foldkit/ui'
+} from '@foldkit/ui'
+import { Schema as S } from 'effect'
+import { File } from 'foldkit'
 
 import { Toast } from './toast'
 

@@ -1,6 +1,7 @@
+import { FileDrop } from '@foldkit/ui'
 import clsx from 'clsx'
 import { Array, Match as M, Number, Option } from 'effect'
-import { File, Submodel, Ui } from 'foldkit'
+import { File, Submodel } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
 import { Attachments } from '../step'
@@ -121,7 +122,7 @@ export const attachmentsView = Submodel.defineView<
           h.submodel({
             slotId: resumeDrop.id,
             model: resumeDrop,
-            view: Ui.FileDrop.view,
+            view: FileDrop.view,
             viewInputs: {
               accept: ['application/pdf', '.doc', '.docx'],
               toView: attributes =>
@@ -162,7 +163,7 @@ export const attachmentsView = Submodel.defineView<
       h.submodel({
         slotId: additionalFilesDrop.id,
         model: additionalFilesDrop,
-        view: Ui.FileDrop.view,
+        view: FileDrop.view,
         viewInputs: {
           multiple: true,
           toView: attributes =>

@@ -1,15 +1,16 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { FileDrop } from '@foldkit/ui'
 import { Effect, Match as M, Option } from 'effect'
-import { Command, File, Ui } from 'foldkit'
+import { Command, File } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // Add the FileDrop Submodel to your Model, plus a list of accepted files:
 const Model = S.Struct({
-  uploader: Ui.FileDrop.Model,
+  uploader: FileDrop.Model,
   uploadedFiles: S.Array(File.File),
   // ...your other fields
 })
@@ -17,7 +18,7 @@ const Model = S.Struct({
 // Initialize both fields:
 const init = () => [
   {
-    uploader: Ui.FileDrop.init({ id: 'uploader' }),
+    uploader: FileDrop.init({ id: 'uploader' }),
     uploadedFiles: [],
     // ...your other fields
   },
@@ -26,21 +27,21 @@ const init = () => [
 
 // Embed FileDrop's Message in your parent Message:
 const GotFileDropMessage = m('GotFileDropMessage', {
-  message: Ui.FileDrop.Message,
+  message: FileDrop.Message,
 })
 
 // Inside your update function's M.tagsExhaustive({...}), delegate to
 // FileDrop.update and pattern-match on the OutMessage it emits when files
 // arrive (via drop or input change):
 GotFileDropMessage: ({ message }) => {
-  const [nextUploader, commands, maybeOutMessage] = Ui.FileDrop.update(
+  const [nextUploader, commands, maybeOutMessage] = FileDrop.update(
     model.uploader,
     message,
   )
 
   const nextFiles = Option.match(maybeOutMessage, {
     onNone: () => model.uploadedFiles,
-    onSome: M.type<Ui.FileDrop.OutMessage>().pipe(
+    onSome: M.type<FileDrop.OutMessage>().pipe(
       M.tagsExhaustive({
         ReceivedFiles: ({ files }) => [...model.uploadedFiles, ...files],
         // Fires when something is dropped but no files came through (e.g.
@@ -69,7 +70,7 @@ const view = (model: Model) => {
   return h.submodel({
     slotId: 'uploader',
     model: model.uploader,
-    view: Ui.FileDrop.view,
+    view: FileDrop.view,
     viewInputs: {
       multiple: true,
       accept: ['application/pdf', '.doc', '.docx'],

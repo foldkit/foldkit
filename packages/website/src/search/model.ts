@@ -1,5 +1,5 @@
+import { Dialog } from '@foldkit/ui'
 import { Match as M, Schema as S } from 'effect'
-import { Ui } from 'foldkit'
 import { ts } from 'foldkit/schema'
 
 import { SearchResult } from './message'
@@ -23,7 +23,7 @@ export const resultsFromState = (
   )
 
 export const Model = S.Struct({
-  dialog: Ui.Dialog.Model,
+  dialog: Dialog.Model,
   query: S.String,
   searchState: SearchState,
   activeResultIndex: S.Number,

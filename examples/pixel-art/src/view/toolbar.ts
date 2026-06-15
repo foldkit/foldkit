@@ -1,6 +1,6 @@
+import { Button, Listbox, RadioGroup, Switch } from '@foldkit/ui'
 import clsx from 'clsx'
 import { Array } from 'effect'
-import { Ui } from 'foldkit'
 import { type Html, childAttributes, html } from 'foldkit/html'
 
 import { EMPTY_COLOR, GRID_SIZE_STRINGS } from '../constant'
@@ -19,10 +19,10 @@ import { PALETTE_THEMES, type PaletteTheme } from '../palette'
 
 const TOOLS: ReadonlyArray<Tool> = ['Brush', 'Fill', 'Eraser']
 
-export const ToolRadioGroup = Ui.RadioGroup.create<Tool>()
-export const GridSizeRadioGroup = Ui.RadioGroup.create<string>()
-export const PaletteRadioGroup = Ui.RadioGroup.create<string>()
-export const ThemeListbox = Ui.Listbox.create<string>()
+export const ToolRadioGroup = RadioGroup.create<Tool>()
+export const GridSizeRadioGroup = RadioGroup.create<string>()
+export const PaletteRadioGroup = RadioGroup.create<string>()
+export const ThemeListbox = Listbox.create<string>()
 
 const TOOL_SHORTCUTS: Record<Tool, string> = {
   Brush: 'B',
@@ -32,7 +32,7 @@ const TOOL_SHORTCUTS: Record<Tool, string> = {
 
 export const THEME_INDEX_STRINGS = Array.makeBy(PALETTE_THEMES.length, String)
 
-export const THEME_LISTBOX_ANCHOR: Ui.Listbox.AnchorConfig = {
+export const THEME_LISTBOX_ANCHOR: Listbox.AnchorConfig = {
   placement: 'bottom-start',
   gap: 4,
   padding: 8,
@@ -109,13 +109,13 @@ export const toolPanelView = (
   mirrorMode: MirrorMode,
   selectedColorIndex: PaletteIndex,
   isCanvasEmpty: boolean,
-  toolRadioGroup: typeof Ui.RadioGroup.Model.Type,
-  gridSizeRadioGroup: typeof Ui.RadioGroup.Model.Type,
-  paletteRadioGroup: typeof Ui.RadioGroup.Model.Type,
-  mirrorHorizontalSwitch: typeof Ui.Switch.Model.Type,
-  mirrorVerticalSwitch: typeof Ui.Switch.Model.Type,
+  toolRadioGroup: typeof RadioGroup.Model.Type,
+  gridSizeRadioGroup: typeof RadioGroup.Model.Type,
+  paletteRadioGroup: typeof RadioGroup.Model.Type,
+  mirrorHorizontalSwitch: typeof Switch.Model.Type,
+  mirrorVerticalSwitch: typeof Switch.Model.Type,
   theme: PaletteTheme,
-  themeListbox: typeof Ui.Listbox.Model.Type,
+  themeListbox: typeof Listbox.Model.Type,
 ): Html => {
   const h = html<Message>()
 
@@ -141,7 +141,7 @@ export const toolPanelView = (
 }
 
 const toolSectionView = (
-  toolRadioGroup: typeof Ui.RadioGroup.Model.Type,
+  toolRadioGroup: typeof RadioGroup.Model.Type,
 ): Html => {
   const h = html<Message>()
 
@@ -194,8 +194,8 @@ const toolSectionView = (
 
 const mirrorSectionView = (
   mirrorMode: MirrorMode,
-  mirrorHorizontalSwitch: typeof Ui.Switch.Model.Type,
-  mirrorVerticalSwitch: typeof Ui.Switch.Model.Type,
+  mirrorHorizontalSwitch: typeof Switch.Model.Type,
+  mirrorVerticalSwitch: typeof Switch.Model.Type,
 ): Html => {
   const h = html<Message>()
 
@@ -213,7 +213,7 @@ const mirrorSectionView = (
           h.submodel({
             slotId: mirrorHorizontalSwitch.id,
             model: mirrorHorizontalSwitch,
-            view: Ui.Switch.view,
+            view: Switch.view,
             viewInputs: {
               toView: attributes =>
                 h.div(
@@ -248,7 +248,7 @@ const mirrorSectionView = (
           h.submodel({
             slotId: mirrorVerticalSwitch.id,
             model: mirrorVerticalSwitch,
-            view: Ui.Switch.view,
+            view: Switch.view,
             viewInputs: {
               toView: attributes =>
                 h.div(
@@ -287,7 +287,7 @@ const mirrorSectionView = (
 }
 
 const sizeSectionView = (
-  gridSizeRadioGroup: typeof Ui.RadioGroup.Model.Type,
+  gridSizeRadioGroup: typeof RadioGroup.Model.Type,
 ): Html => {
   const h = html<Message>()
 
@@ -334,9 +334,9 @@ const sizeSectionView = (
 
 const paletteSectionView = (
   selectedColorIndex: PaletteIndex,
-  paletteRadioGroup: typeof Ui.RadioGroup.Model.Type,
+  paletteRadioGroup: typeof RadioGroup.Model.Type,
   theme: PaletteTheme,
-  themeListbox: typeof Ui.Listbox.Model.Type,
+  themeListbox: typeof Listbox.Model.Type,
 ): Html => {
   const h = html<Message>()
 
@@ -394,7 +394,7 @@ const paletteSectionView = (
 }
 
 const themeListboxView = (
-  themeListbox: typeof Ui.Listbox.Model.Type,
+  themeListbox: typeof Listbox.Model.Type,
   theme: PaletteTheme,
 ): Html => {
   const h = html<Message>()
@@ -449,7 +449,7 @@ const themeListboxView = (
 const clearCanvasView = (isCanvasEmpty: boolean): Html => {
   const h = html<Message>()
 
-  return Ui.Button.view({
+  return Button.view({
     onClick: ClickedClear(),
     isDisabled: isCanvasEmpty,
     toView: attributes =>

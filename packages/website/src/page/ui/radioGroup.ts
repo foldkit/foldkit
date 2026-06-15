@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { RadioGroup } from '@foldkit/ui'
 import { html } from 'foldkit/html'
 
 import type { TableOfContentsEntry } from '../../main'
@@ -28,7 +28,7 @@ type Plan = 'Startup' | 'Business' | 'Enterprise'
 
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 
-export const PlanRadioGroup = Ui.RadioGroup.create<Plan>()
+export const PlanRadioGroup = RadioGroup.create<Plan>()
 
 const planDescriptions: Record<Plan, string> = {
   Startup: '12GB / 6 CPUs. Perfect for small projects',
@@ -61,7 +61,7 @@ const priceClassName =
 
 // VIEW
 
-export const verticalDemo = (radioGroupModel: Ui.RadioGroup.Model) => {
+export const verticalDemo = (radioGroupModel: RadioGroup.Model) => {
   const h = html<Message>()
 
   const checkIcon = h.svg(
@@ -140,7 +140,7 @@ export const verticalDemo = (radioGroupModel: Ui.RadioGroup.Model) => {
   ]
 }
 
-export const horizontalDemo = (radioGroupModel: Ui.RadioGroup.Model) => {
+export const horizontalDemo = (radioGroupModel: RadioGroup.Model) => {
   const h = html<Message>()
 
   const checkIcon = h.svg(

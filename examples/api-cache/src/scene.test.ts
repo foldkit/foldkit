@@ -1,4 +1,5 @@
-import { Scene, Ui } from 'foldkit'
+import { Tabs } from '@foldkit/ui'
+import { Scene } from 'foldkit'
 import { describe, test } from 'vitest'
 
 import {
@@ -21,8 +22,8 @@ import {
 } from './main.fixtures'
 
 const resolveFocusTab = Scene.Command.resolve(
-  Ui.Tabs.FocusTab,
-  Ui.Tabs.CompletedFocusTab(),
+  Tabs.FocusTab,
+  Tabs.CompletedFocusTab(),
   message => GotTabsMessage({ message }),
 )
 
