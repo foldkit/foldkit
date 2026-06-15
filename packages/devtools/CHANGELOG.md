@@ -1,5 +1,12 @@
 # @foldkit/devtools
 
+## 0.112.3
+
+### Patch Changes
+
+- 63c8b51: Author the overlay styles as a committed source module rather than generating
+  them from CSS at build time. The compiled output is unchanged.
+
 ## 0.112.2
 
 ## 0.112.1
