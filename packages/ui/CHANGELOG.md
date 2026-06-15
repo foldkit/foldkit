@@ -1,5 +1,7 @@
 # @foldkit/ui
 
+## 0.112.1
+
 ## 0.112.0
 
 ### Minor Changes
