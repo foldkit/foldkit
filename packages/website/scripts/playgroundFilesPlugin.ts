@@ -47,6 +47,13 @@ const EXCLUDED_DIRECTORIES = new Set(['node_modules', 'dist'])
 
 const RUNTIME_DEV_DEPENDENCIES = new Set(['@foldkit/vite-plugin', 'vite'])
 
+// NOTE: vite 8 bundles rolldown, whose wasm binding crashes in the WebContainer
+// ("RangeError: Invalid atomic access index" out of @emnapi's atomics). Pin the
+// playground to vite 7 (esbuild + rollup), which the WebContainer runs. The
+// examples themselves stay on vite 8; this override only affects the in-browser
+// preview.
+const WEBCONTAINER_VITE_VERSION = '^7'
+
 const STANDALONE_VITE_CONFIG = `import { foldkit } from '@foldkit/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
@@ -111,6 +118,13 @@ const filterToRuntimeDevDependencies = (
   return entries.length === 0 ? undefined : Object.fromEntries(entries)
 }
 
+const pinWebContainerVite = (
+  devDependencies: DependencySpec | undefined,
+): DependencySpec | undefined =>
+  devDependencies !== undefined && 'vite' in devDependencies
+    ? { ...devDependencies, vite: WEBCONTAINER_VITE_VERSION }
+    : devDependencies
+
 const transformPackageJson = (
   raw: string,
   versions: Readonly<Record<string, string>>,
@@ -120,9 +134,11 @@ const transformPackageJson = (
   const transformed = {
     ...packageJson,
     dependencies: rewriteDependencyMap(packageJson.dependencies, rewrite),
-    devDependencies: rewriteDependencyMap(
-      filterToRuntimeDevDependencies(packageJson.devDependencies),
-      rewrite,
+    devDependencies: pinWebContainerVite(
+      rewriteDependencyMap(
+        filterToRuntimeDevDependencies(packageJson.devDependencies),
+        rewrite,
+      ),
     ),
   }
   return JSON.stringify(transformed, null, 2) + '\n'

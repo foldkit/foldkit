@@ -238,21 +238,64 @@ export const managedResources = ManagedResource.make<Model, Message>()(
           yield* Effect.tryPromise(() =>
             container.mount(fileSystemTreeFromFiles(fileEntry.files)),
           )
+          // NOTE: --force, not --legacy-peer-deps. The playground pins vite 7
+          // (vite 8's rolldown wasm binding crashes in the WebContainer), which
+          // conflicts with @foldkit/vite-plugin's `vite: ^8` peer. --force
+          // overrides that while still auto-installing peers; --legacy-peer-deps
+          // would skip peer install and drop @foldkit/ui, which the overlay
+          // imports.
           const install = yield* Effect.tryPromise(() =>
-            container.spawn('npm', ['install']),
+            container.spawn('npm', ['install', '--force']),
+          )
+          let installOutput = ''
+          void install.output.pipeTo(
+            new WritableStream({
+              write: data => {
+                installOutput += data
+              },
+            }),
           )
           const installExitCode = yield* Effect.tryPromise(() => install.exit)
           if (installExitCode !== 0) {
             return yield* Effect.fail(
-              new Error(`npm install exited with code ${installExitCode}`),
+              new Error(
+                `npm install exited with code ${installExitCode}:\n${installOutput}`,
+              ),
             )
           }
-          yield* Effect.tryPromise(() => container.spawn('npm', ['run', 'dev']))
-          const previewUrl = yield* Effect.callback<string>(
+          const dev = yield* Effect.tryPromise(() =>
+            container.spawn('npm', ['run', 'dev']),
+          )
+          let devOutput = ''
+          void dev.output.pipeTo(
+            new WritableStream({
+              write: data => {
+                devOutput += data
+              },
+            }),
+          )
+          const previewUrl = yield* Effect.callback<string, Error>(
             (resume, signal) => {
-              const unsubscribe = container.on('server-ready', (_port, url) => {
-                resume(Effect.succeed(url))
-              })
+              let settled = false
+              const settle = (effect: Effect.Effect<string, Error>): void => {
+                if (settled) {
+                  return
+                }
+                settled = true
+                resume(effect)
+              }
+              const unsubscribe = container.on('server-ready', (_port, url) =>
+                settle(Effect.succeed(url)),
+              )
+              void dev.exit.then(code =>
+                settle(
+                  Effect.fail(
+                    new Error(
+                      `npm run dev exited with code ${code} before the dev server was ready:\n${devOutput}`,
+                    ),
+                  ),
+                ),
+              )
               signal.addEventListener('abort', unsubscribe)
             },
           )
