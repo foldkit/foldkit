@@ -66,7 +66,7 @@
     "ts-patch": "^3.3.0",
     "tstyche": "^7.1.0",
     "typescript": "^6.0.2",
-    "vite": "^7.3.2",
+    "vite": "^7.3.5",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "4.1.4",
     "vitest-websocket-mock": "^0.5.0",
