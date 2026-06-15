@@ -9,14 +9,20 @@ import { exampleSlugs } from '../src/page/example/meta'
 const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url))
 const WEBSITE_ROOT = resolve(SCRIPT_DIRECTORY, '..')
 const EXAMPLES_DIRECTORY = resolve(WEBSITE_ROOT, '../../examples')
-const FOLDKIT_PACKAGE_JSON_PATH = resolve(
-  WEBSITE_ROOT,
-  '../foldkit/package.json',
-)
-const VITE_PLUGIN_PACKAGE_JSON_PATH = resolve(
-  WEBSITE_ROOT,
-  '../vite-plugin-foldkit/package.json',
-)
+// NOTE: Workspace packages whose `workspace:*` specs in example package.json files
+// are rewritten to the published version range before the playground installs
+// them in the WebContainer. Every Foldkit package an example can depend on
+// must be listed here, or its `workspace:*` spec leaks into the npm install
+// and the install fails.
+const WORKSPACE_PACKAGE_JSON_PATHS: Readonly<Record<string, string>> = {
+  foldkit: resolve(WEBSITE_ROOT, '../foldkit/package.json'),
+  '@foldkit/ui': resolve(WEBSITE_ROOT, '../ui/package.json'),
+  '@foldkit/devtools': resolve(WEBSITE_ROOT, '../devtools/package.json'),
+  '@foldkit/vite-plugin': resolve(
+    WEBSITE_ROOT,
+    '../vite-plugin-foldkit/package.json',
+  ),
+}
 const TS_CONFIG_BASE_PATH = resolve(WEBSITE_ROOT, '../../tsconfig.base.json')
 
 const VIRTUAL_MODULE_ID = 'virtual:playground-files'
@@ -69,18 +75,13 @@ type TsConfig = Readonly<{
 }>
 
 const rewriteWorkspaceSpec =
-  (foldkitVersion: string, vitePluginVersion: string) =>
+  (versions: Readonly<Record<string, string>>) =>
   (name: string, specifier: string): string => {
     if (specifier !== 'workspace:*') {
       return specifier
     }
-    if (name === 'foldkit') {
-      return `^${foldkitVersion}`
-    }
-    if (name === '@foldkit/vite-plugin') {
-      return `^${vitePluginVersion}`
-    }
-    return specifier
+    const version = versions[name]
+    return version === undefined ? specifier : `^${version}`
   }
 
 const rewriteDependencyMap = (
@@ -112,11 +113,10 @@ const filterToRuntimeDevDependencies = (
 
 const transformPackageJson = (
   raw: string,
-  foldkitVersion: string,
-  vitePluginVersion: string,
+  versions: Readonly<Record<string, string>>,
 ): string => {
   const packageJson: PackageJson = JSON.parse(raw)
-  const rewrite = rewriteWorkspaceSpec(foldkitVersion, vitePluginVersion)
+  const rewrite = rewriteWorkspaceSpec(versions)
   const transformed = {
     ...packageJson,
     dependencies: rewriteDependencyMap(packageJson.dependencies, rewrite),
@@ -200,8 +200,7 @@ const collectFiles = async (
 
 const buildExampleFileMap = async (
   slug: string,
-  foldkitVersion: string,
-  vitePluginVersion: string,
+  versions: Readonly<Record<string, string>>,
   baseCompilerOptions: Readonly<Record<string, unknown>>,
   baseExclude: ReadonlyArray<string>,
 ): Promise<Record<string, string>> => {
@@ -210,10 +209,7 @@ const buildExampleFileMap = async (
 
   const transformedEntries = rawFiles.map(([path, contents]) => {
     if (path === 'package.json') {
-      return [
-        path,
-        transformPackageJson(contents, foldkitVersion, vitePluginVersion),
-      ] as const
+      return [path, transformPackageJson(contents, versions)] as const
     }
     if (path === 'tsconfig.json') {
       return [
@@ -246,12 +242,17 @@ export const playgroundFilesPlugin = (): Plugin => ({
       return undefined
     }
 
-    const foldkitPackageJson: { version: string } = JSON.parse(
-      await readFile(FOLDKIT_PACKAGE_JSON_PATH, 'utf-8'),
+    const versionEntries = await Promise.all(
+      Object.entries(WORKSPACE_PACKAGE_JSON_PATHS).map(
+        async ([name, packageJsonPath]) => {
+          const packageJson: { version: string } = JSON.parse(
+            await readFile(packageJsonPath, 'utf-8'),
+          )
+          return [name, packageJson.version] as const
+        },
+      ),
     )
-    const vitePluginPackageJson: { version: string } = JSON.parse(
-      await readFile(VITE_PLUGIN_PACKAGE_JSON_PATH, 'utf-8'),
-    )
+    const versions = Object.fromEntries(versionEntries)
     const tsConfigBase: TsConfig = JSON.parse(
       await readFile(TS_CONFIG_BASE_PATH, 'utf-8'),
     )
@@ -263,8 +264,7 @@ export const playgroundFilesPlugin = (): Plugin => ({
       exampleSlugs.map(async slug => {
         const files = await buildExampleFileMap(
           slug,
-          foldkitPackageJson.version,
-          vitePluginPackageJson.version,
+          versions,
           baseCompilerOptions,
           baseExclude,
         )

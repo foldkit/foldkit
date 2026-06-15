@@ -7,6 +7,8 @@ on:
     paths:
       - 'packages/website/**'
       - 'packages/foldkit/**'
+      - 'packages/ui/**'
+      - 'packages/devtools/**'
       - 'packages/vite-plugin-foldkit/**'
       - 'examples/**'
       - 'scripts/**'
@@ -36,7 +38,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build core packages
-        run: pnpm --filter foldkit --filter @foldkit/vite-plugin... build
+        run: pnpm --filter foldkit --filter @foldkit/ui --filter @foldkit/devtools --filter @foldkit/vite-plugin... build
 
       - name: Build examples
         run: pnpm build:examples
