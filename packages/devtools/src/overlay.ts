@@ -895,8 +895,9 @@ const makeView = (
   const tagLabelView = (tag: string): Html =>
     h.span([h.Key('tag'), h.Class('json-tag')], [tag])
 
-  const diffDotView: Html = h.span([h.Key('diffdot'), h.Class('diff-dot')], [])
-  const inlineDiffDotView: Html = h.span([h.Class('diff-dot-inline')], [])
+  const diffDotView = (): Html =>
+    h.span([h.Key('diffdot'), h.Class('diff-dot')], [])
+  const inlineDiffDotView = (): Html => h.span([h.Class('diff-dot-inline')], [])
 
   type FlatNode = Readonly<{
     value: unknown
@@ -1019,7 +1020,7 @@ const makeView = (
           indent,
         ],
         [
-          ...(hasDiffDot ? [diffDotView] : []),
+          ...(hasDiffDot ? [diffDotView()] : []),
           ...(String_.isNonEmpty(key) ? [keyView(key)] : []),
           leafValueView(value),
         ],
@@ -1046,7 +1047,7 @@ const makeView = (
       ],
       [
         ...(isRoot ? [] : [arrowView(isExpanded)]),
-        ...(!isRoot && hasDiffDot ? [diffDotView] : []),
+        ...(!isRoot && hasDiffDot ? [diffDotView()] : []),
         ...(String_.isNonEmpty(key) ? [keyView(key)] : []),
         ...(String_.isNonEmpty(tag) ? [tagLabelView(tag)] : []),
         h.span([h.Key('value'), h.Class('json-preview')], [preview]),
@@ -1132,14 +1133,15 @@ const makeView = (
     )
   }
 
-  const emptyInspectorView: Html = h.div(
-    [
-      h.Class(
-        'flex-1 flex items-center justify-center text-dt-muted text-2xs font-mono min-w-0',
-      ),
-    ],
-    ['Click a message to inspect'],
-  )
+  const emptyInspectorView = (): Html =>
+    h.div(
+      [
+        h.Class(
+          'flex-1 flex items-center justify-center text-dt-muted text-2xs font-mono min-w-0',
+        ),
+      ],
+      ['Click a message to inspect'],
+    )
 
   const noMessageView: Html = h.div(
     [
@@ -1545,7 +1547,7 @@ const makeView = (
                       ],
                       [
                         Option.match(model.maybeInspectedModel, {
-                          onNone: () => emptyInspectorView,
+                          onNone: () => emptyInspectorView(),
                           onSome: inspectedModel =>
                             inspectorTabContent(
                               model,
@@ -1634,46 +1636,52 @@ const makeView = (
 
   const CHECK_ICON = 'M4.5 12.75l6 6 9-13.5'
 
-  const checkIconView: Html = h.svg(
-    [
-      h.AriaHidden(true),
-      h.Class('dt-filter-check shrink-0'),
-      h.Xmlns('http://www.w3.org/2000/svg'),
-      h.Fill('none'),
-      h.ViewBox('0 0 24 24'),
-      h.StrokeWidth('2'),
-      h.Stroke('currentColor'),
-    ],
-    [
-      h.path(
-        [h.D(CHECK_ICON), h.StrokeLinecap('round'), h.StrokeLinejoin('round')],
-        [],
-      ),
-    ],
-  )
+  const checkIconView = (): Html =>
+    h.svg(
+      [
+        h.AriaHidden(true),
+        h.Class('dt-filter-check shrink-0'),
+        h.Xmlns('http://www.w3.org/2000/svg'),
+        h.Fill('none'),
+        h.ViewBox('0 0 24 24'),
+        h.StrokeWidth('2'),
+        h.Stroke('currentColor'),
+      ],
+      [
+        h.path(
+          [
+            h.D(CHECK_ICON),
+            h.StrokeLinecap('round'),
+            h.StrokeLinejoin('round'),
+          ],
+          [],
+        ),
+      ],
+    )
 
   const filterItemLabel = (item: string): string =>
     String_.isNonEmpty(item) ? submodelLabel(item) : 'All Messages'
 
   const ARROW_UP = 'M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18'
 
-  const arrowUpIconView: Html = h.svg(
-    [
-      h.AriaHidden(true),
-      h.Class('dt-scroll-pill-icon shrink-0'),
-      h.Xmlns('http://www.w3.org/2000/svg'),
-      h.Fill('none'),
-      h.ViewBox('0 0 24 24'),
-      h.StrokeWidth('2'),
-      h.Stroke('currentColor'),
-    ],
-    [
-      h.path(
-        [h.D(ARROW_UP), h.StrokeLinecap('round'), h.StrokeLinejoin('round')],
-        [],
-      ),
-    ],
-  )
+  const arrowUpIconView = (): Html =>
+    h.svg(
+      [
+        h.AriaHidden(true),
+        h.Class('dt-scroll-pill-icon shrink-0'),
+        h.Xmlns('http://www.w3.org/2000/svg'),
+        h.Fill('none'),
+        h.ViewBox('0 0 24 24'),
+        h.StrokeWidth('2'),
+        h.Stroke('currentColor'),
+      ],
+      [
+        h.path(
+          [h.D(ARROW_UP), h.StrokeLinecap('round'), h.StrokeLinejoin('round')],
+          [],
+        ),
+      ],
+    )
 
   const scrollToTopPillView: Html = h.button(
     [
@@ -1682,7 +1690,7 @@ const makeView = (
       h.OnClick(ClickedScrollToTopPill()),
     ],
     [
-      arrowUpIconView,
+      arrowUpIconView(),
       h.span([h.Class('dt-scroll-pill-text')], ['Jump to top']),
     ],
   )
@@ -1703,7 +1711,7 @@ const makeView = (
           className: 'dt-filter-item',
           content: h.div(
             [h.Class('flex items-center gap-2')],
-            [checkIconView, h.span([], [filterItemLabel(item)])],
+            [checkIconView(), h.span([], [filterItemLabel(item)])],
           ),
         }),
         buttonContent: h.span(
@@ -1821,7 +1829,7 @@ const makeView = (
           mode === 'TimeTravel',
           h.span(
             [h.Class('pause-column')],
-            isPausedHere ? [pauseIconView] : [],
+            isPausedHere ? [pauseIconView()] : [],
           ),
         ).pipe(Option.toArray),
         h.span([h.Class('dot-column')], []),
@@ -1830,27 +1838,28 @@ const makeView = (
       ],
     )
 
-  const pauseIconView: Html = h.svg(
-    [
-      h.AriaHidden(true),
-      h.Class('dt-pause-icon'),
-      h.Xmlns('http://www.w3.org/2000/svg'),
-      h.Fill('none'),
-      h.ViewBox('0 0 24 24'),
-      h.StrokeWidth('2.5'),
-      h.Stroke('currentColor'),
-    ],
-    [
-      h.path(
-        [
-          h.StrokeLinecap('round'),
-          h.StrokeLinejoin('round'),
-          h.D('M5.75 3v18M18.25 3v18'),
-        ],
-        [],
-      ),
-    ],
-  )
+  const pauseIconView = (): Html =>
+    h.svg(
+      [
+        h.AriaHidden(true),
+        h.Class('dt-pause-icon'),
+        h.Xmlns('http://www.w3.org/2000/svg'),
+        h.Fill('none'),
+        h.ViewBox('0 0 24 24'),
+        h.StrokeWidth('2.5'),
+        h.Stroke('currentColor'),
+      ],
+      [
+        h.path(
+          [
+            h.StrokeLinecap('round'),
+            h.StrokeLinejoin('round'),
+            h.D('M5.75 3v18M18.25 3v18'),
+          ],
+          [],
+        ),
+      ],
+    )
 
   const messageRowView = (
     tag: string,
@@ -1871,12 +1880,12 @@ const makeView = (
           mode === 'TimeTravel',
           h.span(
             [h.Class('pause-column')],
-            isPausedHere ? [pauseIconView] : [],
+            isPausedHere ? [pauseIconView()] : [],
           ),
         ).pipe(Option.toArray),
         h.span(
           [h.Class('dot-column')],
-          isModelChanged ? [inlineDiffDotView] : [],
+          isModelChanged ? [inlineDiffDotView()] : [],
         ),
         h.span([h.Class(indexClass)], [String(absoluteIndex + 1)]),
         h.span([h.Class('text-base text-dt font-mono flex-1 truncate')], [tag]),
