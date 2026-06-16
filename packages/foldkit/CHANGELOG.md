@@ -1,5 +1,22 @@
 # foldkit
 
+## 0.113.0
+
+### Minor Changes
+
+- fcc7a94: Bump Effect to `4.0.0-beta.83` (from `4.0.0-beta.78`). Foldkit's peer dependencies now require `effect@4.0.0-beta.83` and `@effect/platform-browser@4.0.0-beta.83`.
+
+  Consumers should align their Effect packages to `4.0.0-beta.83` exactly during the v4 beta window:
+
+  ```bash
+  pnpm add effect@4.0.0-beta.83 @effect/platform-browser@4.0.0-beta.83
+  pnpm add -D @effect/vitest@4.0.0-beta.83
+  ```
+
+### Patch Changes
+
+- 757e22d: Reword the slow view warning to lead with `createLazy` memoization. Caching derived data on the model in `update` is now framed as the fallback for when memoization cannot cover the cost, rather than the first suggestion.
+
 ## 0.112.5
 
 ## 0.112.4

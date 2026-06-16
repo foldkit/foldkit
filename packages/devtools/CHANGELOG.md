@@ -1,5 +1,24 @@
 # @foldkit/devtools
 
+## 0.113.0
+
+### Minor Changes
+
+- fcc7a94: Bump Effect to `4.0.0-beta.83` (from `4.0.0-beta.78`). Foldkit's peer dependencies now require `effect@4.0.0-beta.83` and `@effect/platform-browser@4.0.0-beta.83`.
+
+  Consumers should align their Effect packages to `4.0.0-beta.83` exactly during the v4 beta window:
+
+  ```bash
+  pnpm add effect@4.0.0-beta.83 @effect/platform-browser@4.0.0-beta.83
+  pnpm add -D @effect/vitest@4.0.0-beta.83
+  ```
+
+### Patch Changes
+
+- 32fd9cb: Drop the unused `@effect/platform-browser` peer dependency from `@foldkit/ui`
+  and `@foldkit/devtools`. Neither package imports it, and consumers still
+  receive it transitively through `foldkit`, which does use it.
+
 ## 0.112.5
 
 ## 0.112.4
