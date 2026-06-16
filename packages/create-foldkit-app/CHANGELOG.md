@@ -1,5 +1,20 @@
 # create-foldkit-app
 
+## 0.16.0
+
+### Minor Changes
+
+- fcc7a94: Bump bundled Effect dependencies to `4.0.0-beta.83`. No user-facing changes. Newly scaffolded apps will get the updated pins from the example sources.
+
+  The CLI dependencies now pin `effect`, `@effect/platform-node`, and `@effect/platform-node-shared` to `4.0.0-beta.83` exactly during the v4 beta window.
+
+### Patch Changes
+
+- 32768e5: Raise the declared minimum Node version to 22.22.2. The bundled effect
+  dependency pulls in ini, which requires Node ^22.22.2, ^24.15.0, or >=26.0.0,
+  so the previous >=22.19.0 declaration understated the real requirement and
+  surfaced an EBADENGINE warning when installing on Node 22.19.0.
+
 ## 0.15.3
 
 ### Patch Changes
