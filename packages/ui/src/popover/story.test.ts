@@ -9,21 +9,13 @@ import {
   BlurredPanel,
   CompletedFocusButton,
   CompletedFocusPanel,
-  CompletedInertOthers,
-  CompletedLockScroll,
-  CompletedRestoreInert,
-  CompletedUnlockScroll,
   DetectMovementOrAnimationEnd,
   FocusButton,
   GotAnimationMessage,
   IgnoredMouseClick,
-  InertOthers,
-  LockScroll,
   PressedPointerOnButton,
   RequestedClose,
   RequestedOpen,
-  RestoreInert,
-  UnlockScroll,
   init,
   update,
 } from './index.js'
@@ -563,72 +555,27 @@ describe('Popover', () => {
     })
   })
 
-  describe('modal commands', () => {
-    const withClosedModal = Story.with(init({ id: 'test', isModal: true }))
-
-    const withOpenModal = flow(
-      withClosedModal,
-      Story.message(RequestedOpen()),
-      Story.Command.resolveAll(
-        [LockScroll, CompletedLockScroll()],
-        [InertOthers, CompletedInertOthers()],
-      ),
-    )
-
-    it('emits lockScroll and inertOthers commands on RequestedOpen when isModal is true', () => {
+  describe('modal mode', () => {
+    // Scroll lock and inert now live in the ApplyModalEffects panel Mount, so
+    // update emits the same commands regardless of isModal. The Mount's
+    // engagement is covered in scene.test.ts.
+    it('emits no modal effect commands on RequestedOpen when isModal is true', () => {
       Story.story(
         update,
-        withClosedModal,
+        Story.with(init({ id: 'test', isModal: true })),
         Story.message(RequestedOpen()),
-        Story.Command.resolveAll(
-          [LockScroll, CompletedLockScroll()],
-          [InertOthers, CompletedInertOthers()],
-        ),
+        Story.Command.expectNone(),
         Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),
       )
     })
 
-    it('emits unlockScroll and restoreInert commands on RequestedClose when isModal is true', () => {
+    it('emits only FocusButton on RequestedClose when isModal is true', () => {
       Story.story(
         update,
-        withOpenModal,
-        Story.message(RequestedClose()),
-        Story.Command.resolveAll(
-          [FocusButton, CompletedFocusButton()],
-          [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedRestoreInert()],
-        ),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
-
-    it('emits unlockScroll and restoreInert commands when the panel blurs in modal mode', () => {
-      Story.story(
-        update,
-        withOpenModal,
-        Story.message(BlurredPanel()),
-        Story.Command.resolveAll(
-          [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedRestoreInert()],
-        ),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
-
-    it('does not emit modal commands when isModal is false', () => {
-      Story.story(
-        update,
-        withClosed,
+        Story.with(init({ id: 'test', isModal: true })),
         Story.message(RequestedOpen()),
-        Story.model(model => {
-          expect(model.isOpen).toBe(true)
-        }),
         Story.message(RequestedClose()),
         Story.Command.resolve(FocusButton, CompletedFocusButton()),
         Story.model(model => {

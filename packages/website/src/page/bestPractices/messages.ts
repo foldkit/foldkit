@@ -152,9 +152,9 @@ export const view = (): Html => {
         ' → ',
         inlineCode('CompletedFocusItems'),
         ', ',
-        inlineCode('CompletedLockScroll'),
+        inlineCode('CompletedAnchorMenu'),
         ', ',
-        inlineCode('CompletedInertOthers'),
+        inlineCode('CompletedPortalMenuBackdrop'),
         '. Every line tells you what happened in your application.',
       ),
       para(

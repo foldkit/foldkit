@@ -1,4 +1,4 @@
-import { Array, Effect, Equal, Match as M, Option, Schema as S } from 'effect'
+import { Effect, Equal, Match as M, Option, Schema as S } from 'effect'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 import {
@@ -61,19 +61,11 @@ export const PressedPointerOnButton = m('PressedPointerOnButton', {
 export const CompletedFocusPanel = m('CompletedFocusPanel')
 /** Sent when the focus-button command completes after closing. */
 export const CompletedFocusButton = m('CompletedFocusButton')
-/** Sent when the scroll lock command completes. */
-export const CompletedLockScroll = m('CompletedLockScroll')
-/** Sent when the scroll unlock command completes. */
-export const CompletedUnlockScroll = m('CompletedUnlockScroll')
-/** Sent when the inert-others command completes. */
-export const CompletedInertOthers = m('CompletedInertOthers')
-/** Sent when the restore-inert command completes. */
-export const CompletedRestoreInert = m('CompletedRestoreInert')
 /** Sent when a mouse click on the button is ignored because pointer-down already handled the toggle. */
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
-/** Sent when the popover panel mounts and Floating UI has positioned it. Update no-ops; the side effect is the act of positioning, surfaced for DevTools observability. */
+/** Sent when the popover panel mounts and the AnchorPopover Mount has positioned it (and, when modal, locked scroll and inerted the background). Update no-ops; the side effects are surfaced for DevTools observability. */
 export const CompletedAnchorPopover = m('CompletedAnchorPopover')
 /** Sent when the popover backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
 export const CompletedPortalPopoverBackdrop = m(
@@ -93,10 +85,6 @@ export const Message: S.Union<
     typeof PressedPointerOnButton,
     typeof CompletedFocusPanel,
     typeof CompletedFocusButton,
-    typeof CompletedLockScroll,
-    typeof CompletedUnlockScroll,
-    typeof CompletedInertOthers,
-    typeof CompletedRestoreInert,
     typeof IgnoredMouseClick,
     typeof SuppressedSpaceScroll,
     typeof CompletedAnchorPopover,
@@ -110,10 +98,6 @@ export const Message: S.Union<
   PressedPointerOnButton,
   CompletedFocusPanel,
   CompletedFocusButton,
-  CompletedLockScroll,
-  CompletedUnlockScroll,
-  CompletedInertOthers,
-  CompletedRestoreInert,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
   CompletedAnchorPopover,
@@ -185,32 +169,6 @@ type UpdateReturn = readonly [
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-/** Prevents page scrolling while the popover is open in modal mode. */
-export const LockScroll = Command.define(
-  'LockScroll',
-  CompletedLockScroll,
-)(Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())))
-/** Re-enables page scrolling after the popover closes. */
-export const UnlockScroll = Command.define(
-  'UnlockScroll',
-  CompletedUnlockScroll,
-)(Dom.unlockScroll.pipe(Effect.as(CompletedUnlockScroll())))
-/** Marks all elements outside the popover as inert for modal behavior. */
-export const InertOthers = Command.define(
-  'InertOthers',
-  { id: S.String },
-  CompletedInertOthers,
-)(({ id }) =>
-  Dom.inertOthers(id, [buttonSelector(id), panelSelector(id)]).pipe(
-    Effect.as(CompletedInertOthers()),
-  ),
-)
-/** Removes the inert attribute from elements outside the popover. */
-export const RestoreInert = Command.define(
-  'RestoreInert',
-  { id: S.String },
-  CompletedRestoreInert,
-)(({ id }) => Dom.restoreInert(id).pipe(Effect.as(CompletedRestoreInert())))
 /** Moves focus to the popover panel after opening. */
 export const FocusPanel = Command.define(
   'FocusPanel',
@@ -283,30 +241,13 @@ const delegateToAnimation = (
 
 /** Processes a popover message and returns the next model, commands, and optional OutMessage. */
 export const update = (model: Model, message: Message): UpdateReturn => {
-  const maybeLockScroll = OptionExt.when(model.isModal, LockScroll())
-  const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockScroll())
-  const maybeInertOthers = OptionExt.when(
-    model.isModal,
-    InertOthers({ id: model.id }),
-  )
-  const maybeRestoreInert = OptionExt.when(
-    model.isModal,
-    RestoreInert({ id: model.id }),
-  )
-
   const focusButton = FocusButton({ id: model.id })
 
-  const openCommands = Array.getSomes([maybeLockScroll, maybeInertOthers])
+  const openCommands: ReadonlyArray<Command.Command<Message>> = []
 
-  const closeWithFocusCommands = [
-    focusButton,
-    ...Array.getSomes([maybeUnlockScroll, maybeRestoreInert]),
-  ]
+  const closeWithFocusCommands = [focusButton]
 
-  const closeWithoutFocusCommands = Array.getSomes([
-    maybeUnlockScroll,
-    maybeRestoreInert,
-  ])
+  const closeWithoutFocusCommands: ReadonlyArray<Command.Command<Message>> = []
 
   const openPopover = (baseModel: Model): UpdateReturn => {
     if (model.isAnimated) {
@@ -400,10 +341,6 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 
       CompletedFocusPanel: () => [model, [], Option.none()],
       CompletedFocusButton: () => [model, [], Option.none()],
-      CompletedLockScroll: () => [model, [], Option.none()],
-      CompletedUnlockScroll: () => [model, [], Option.none()],
-      CompletedInertOthers: () => [model, [], Option.none()],
-      CompletedRestoreInert: () => [model, [], Option.none()],
       IgnoredMouseClick: () => [
         evo(model, { maybeLastButtonPointerType: () => Option.none() }),
         [],
@@ -416,19 +353,26 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   )
 }
 
-/** The anchor-positioning Mount this Popover renders on its panel. Exposed so
- *  Scene tests can call `Scene.Mount.resolve(AnchorPopover, CompletedAnchorPopover())`
+/** The panel Mount this Popover renders. Positions the panel against the button
+ *  via Floating UI for the panel's lifetime. When `isModal` is true it also locks
+ *  page scroll and inerts the background, releasing both when the panel unmounts.
+ *  Tying the modal effects to the panel's lifetime rather than to an explicit
+ *  close Message means a route change that removes the popover without closing it
+ *  still releases the lock and inert, so neither can strand. Exposed so Scene
+ *  tests can call `Scene.Mount.resolve(AnchorPopover, CompletedAnchorPopover())`
  *  to acknowledge the mount produced by the rendered panel. */
 export const AnchorPopover = Mount.define(
   'AnchorPopover',
   {
+    id: S.String,
     buttonId: S.String,
     anchor: AnchorConfig,
+    isModal: S.Boolean,
     focusSelector: S.optional(S.String),
   },
   CompletedAnchorPopover,
 )(
-  ({ buttonId, anchor, focusSelector }) =>
+  ({ id, buttonId, anchor, isModal, focusSelector }) =>
     element =>
       Effect.gen(function* () {
         yield* Effect.acquireRelease(
@@ -443,6 +387,15 @@ export const AnchorPopover = Mount.define(
           ),
           cleanup => Effect.sync(cleanup),
         )
+        if (isModal) {
+          yield* Effect.acquireRelease(
+            Effect.andThen(
+              Dom.lockScroll,
+              Dom.inertOthers(id, [buttonSelector(id), panelSelector(id)]),
+            ),
+            () => Effect.andThen(Dom.unlockScroll, Dom.restoreInert(id)),
+          )
+        }
         return CompletedAnchorPopover()
       }),
 )
@@ -510,6 +463,7 @@ export const view = defineView<Model, Message, ViewInputs>(
     const {
       id,
       isOpen,
+      isModal,
       contentFocus,
       animation: { transitionState },
       maybeLastButtonPointerType,
@@ -615,8 +569,10 @@ export const view = defineView<Model, Message, ViewInputs>(
       h.Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
       h.OnMount(
         AnchorPopover({
+          id,
           buttonId: `${id}-button`,
           anchor,
+          isModal,
           ...(focusSelector !== undefined && { focusSelector }),
         }),
       ),

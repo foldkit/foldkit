@@ -1,4 +1,4 @@
-import { Array, Function, Option, Schema as S, pipe } from 'effect'
+import { Function, Option, Schema as S } from 'effect'
 import type * as Command from 'foldkit/command'
 import { evo } from 'foldkit/struct'
 import type { Reflect, View as SubmodelView } from 'foldkit/submodel'
@@ -88,10 +88,7 @@ export const update = makeUpdate<Model>({
 
     return [
       nextModel,
-      pipe(
-        Array.getSomes([context.maybeUnlockScroll, context.maybeRestoreInert]),
-        Array.prepend(context.focusInput),
-      ),
+      [context.focusInput],
       Option.some(SharedSelected({ value: item, wasAdded: !nullableDeselect })),
     ]
   },

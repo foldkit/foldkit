@@ -116,14 +116,6 @@ export const MovedPointerOverItem = m('MovedPointerOverItem', {
 export const CompletedFocusItems = m('CompletedFocusItems')
 /** Sent when the focus-button command completes after closing or selecting. */
 export const CompletedFocusButton = m('CompletedFocusButton')
-/** Sent when the scroll lock command completes. */
-export const CompletedLockScroll = m('CompletedLockScroll')
-/** Sent when the scroll unlock command completes. */
-export const CompletedUnlockScroll = m('CompletedUnlockScroll')
-/** Sent when the inert-others command completes. */
-export const CompletedInertOthers = m('CompletedInertOthers')
-/** Sent when the restore-inert command completes. */
-export const CompletedRestoreInert = m('CompletedRestoreInert')
 /** Sent when the scroll-into-view command completes after keyboard activation. */
 export const CompletedScrollIntoView = m('CompletedScrollIntoView')
 /** Sent when the programmatic click command completes. */
@@ -132,7 +124,7 @@ export const CompletedClickItem = m('CompletedClickItem')
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
-/** Sent when the menu items panel mounts and Floating UI has positioned it. Update no-ops; the side effect is the act of positioning, surfaced for DevTools observability. */
+/** Sent when the menu items panel mounts and the AnchorMenu Mount has positioned it (and, when modal, locked scroll and inerted the background). Update no-ops; the side effects are surfaced for DevTools observability. */
 export const CompletedAnchorMenu = m('CompletedAnchorMenu')
 /** Sent when the menu backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
 export const CompletedPortalMenuBackdrop = m('CompletedPortalMenuBackdrop')
@@ -170,10 +162,6 @@ export const Message: S.Union<
     typeof ClearedSearch,
     typeof CompletedFocusItems,
     typeof CompletedFocusButton,
-    typeof CompletedLockScroll,
-    typeof CompletedUnlockScroll,
-    typeof CompletedInertOthers,
-    typeof CompletedRestoreInert,
     typeof CompletedScrollIntoView,
     typeof CompletedClickItem,
     typeof IgnoredMouseClick,
@@ -197,10 +185,6 @@ export const Message: S.Union<
   ClearedSearch,
   CompletedFocusItems,
   CompletedFocusButton,
-  CompletedLockScroll,
-  CompletedUnlockScroll,
-  CompletedInertOthers,
-  CompletedRestoreInert,
   CompletedScrollIntoView,
   CompletedClickItem,
   IgnoredMouseClick,
@@ -306,32 +290,6 @@ type UpdateReturn = readonly [
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-/** Prevents page scrolling while the menu is open. */
-export const LockScroll = Command.define(
-  'LockScroll',
-  CompletedLockScroll,
-)(Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())))
-/** Re-enables page scrolling after the menu closes. */
-export const UnlockScroll = Command.define(
-  'UnlockScroll',
-  CompletedUnlockScroll,
-)(Dom.unlockScroll.pipe(Effect.as(CompletedUnlockScroll())))
-/** Marks all elements outside the menu as inert for modal behavior. */
-export const InertOthers = Command.define(
-  'InertOthers',
-  { id: S.String },
-  CompletedInertOthers,
-)(({ id }) =>
-  Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]).pipe(
-    Effect.as(CompletedInertOthers()),
-  ),
-)
-/** Removes the inert attribute from elements outside the menu. */
-export const RestoreInert = Command.define(
-  'RestoreInert',
-  { id: S.String },
-  CompletedRestoreInert,
-)(({ id }) => Dom.restoreInert(id).pipe(Effect.as(CompletedRestoreInert())))
 /** Moves focus to the menu items container after opening. */
 export const FocusItems = Command.define(
   'FocusItems',
@@ -436,34 +394,11 @@ const delegateToAnimation = (
 
 /** Processes a menu message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn => {
-  const maybeLockScroll = OptionExt.when(model.isModal, LockScroll())
+  const openCommands = [FocusItems({ id: model.id })]
 
-  const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockScroll())
+  const closeWithFocusCommands = [FocusButton({ id: model.id })]
 
-  const maybeInertOthers = OptionExt.when(
-    model.isModal,
-    InertOthers({ id: model.id }),
-  )
-
-  const maybeRestoreInert = OptionExt.when(
-    model.isModal,
-    RestoreInert({ id: model.id }),
-  )
-
-  const openCommands = [
-    ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
-    FocusItems({ id: model.id }),
-  ]
-
-  const closeWithFocusCommands = [
-    FocusButton({ id: model.id }),
-    ...Array.getSomes([maybeUnlockScroll, maybeRestoreInert]),
-  ]
-
-  const closeWithoutFocusCommands = Array.getSomes([
-    maybeUnlockScroll,
-    maybeRestoreInert,
-  ])
+  const closeWithoutFocusCommands: ReadonlyArray<Command.Command<Message>> = []
 
   const openMenu = (baseModel: Model): UpdateReturn => {
     if (model.isAnimated) {
@@ -504,10 +439,6 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     M.tag(
       'CompletedFocusItems',
       'CompletedFocusButton',
-      'CompletedLockScroll',
-      'CompletedUnlockScroll',
-      'CompletedInertOthers',
-      'CompletedRestoreInert',
       'CompletedScrollIntoView',
       'CompletedClickItem',
       'SuppressedSpaceScroll',
@@ -717,23 +648,41 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   )
 }
 
-/** The anchor-positioning Mount this Menu renders on its panel. The panel is
- *  always anchored to the button via Floating UI and portaled to the document
- *  body (opt out of portaling with `anchor.portal: false`), so it escapes
- *  ancestor stacking contexts and overflow clipping. Exposed so Scene tests
- *  can call `Scene.Mount.resolve(AnchorMenu, CompletedAnchorMenu())`. */
+/** The panel Mount this Menu renders. The panel is always anchored to the button
+ *  via Floating UI and portaled to the document body (opt out of portaling with
+ *  `anchor.portal: false`), so it escapes ancestor stacking contexts and overflow
+ *  clipping. When `isModal` is true it also locks page scroll and inerts the
+ *  background for the panel's lifetime, releasing both when the panel unmounts.
+ *  Tying the modal effects to the panel's lifetime rather than to an explicit
+ *  close Message means a route change that removes the menu without closing it
+ *  still releases the lock and inert, so neither can strand. Exposed so Scene
+ *  tests can call `Scene.Mount.resolve(AnchorMenu, CompletedAnchorMenu())`. */
 export const AnchorMenu = Mount.define(
   'AnchorMenu',
-  { buttonId: S.String, anchor: AnchorConfig },
+  {
+    id: S.String,
+    buttonId: S.String,
+    anchor: AnchorConfig,
+    isModal: S.Boolean,
+  },
   CompletedAnchorMenu,
 )(
-  ({ buttonId, anchor }) =>
+  ({ id, buttonId, anchor, isModal }) =>
     element =>
       Effect.gen(function* () {
         yield* Effect.acquireRelease(
           Effect.sync(() => anchorSetup({ buttonId, anchor })(element)),
           cleanup => Effect.sync(cleanup),
         )
+        if (isModal) {
+          yield* Effect.acquireRelease(
+            Effect.andThen(
+              Dom.lockScroll,
+              Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]),
+            ),
+            () => Effect.andThen(Dom.unlockScroll, Dom.restoreInert(id)),
+          )
+        }
         return CompletedAnchorMenu()
       }),
 )
@@ -843,6 +792,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
     const {
       id,
       isOpen,
+      isModal,
       animation: { transitionState },
       maybeActiveItemIndex,
       searchQuery,
@@ -1078,7 +1028,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
 
     const anchorAttributes = [
       h.Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
-      h.OnMount(AnchorMenu({ buttonId: `${id}-button`, anchor })),
+      h.OnMount(AnchorMenu({ id, buttonId: `${id}-button`, anchor, isModal })),
     ]
 
     const itemsContainerAttributes = [

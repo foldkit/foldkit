@@ -15,27 +15,19 @@ import {
   CompletedAnchorCombobox,
   CompletedClickItem,
   CompletedFocusInput,
-  CompletedInertOthers,
-  CompletedLockScroll,
   CompletedPortalComboboxBackdrop,
-  CompletedRestoreInert,
   CompletedScrollIntoView,
-  CompletedUnlockScroll,
   DeactivatedItem,
   DetectMovementOrAnimationEnd,
   FocusInput,
   GotAnimationMessage,
-  InertOthers,
-  LockScroll,
   MovedPointerOverItem,
   Opened,
   PortalComboboxBackdrop,
   PressedToggleButton,
   RequestedItemClick,
-  RestoreInert,
   ScrollIntoView,
   SelectedItem,
-  UnlockScroll,
   UpdatedInputValue,
 } from './shared.js'
 import { create, init, update } from './single.js'
@@ -922,88 +914,27 @@ describe('Combobox', () => {
     })
   })
 
-  describe('modal commands', () => {
-    const withClosedModal = Story.with(init({ id: 'test', isModal: true }))
-
-    const withOpenModal = flow(
-      withClosedModal,
-      Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-      Story.Command.resolveAll(
-        [LockScroll, CompletedLockScroll()],
-        [InertOthers, CompletedInertOthers()],
-      ),
-    )
-
-    it('emits lockScroll and inertOthers commands on Opened when isModal is true', () => {
+  describe('modal mode', () => {
+    // Scroll lock and inert now live in the AnchorCombobox panel Mount, so
+    // update emits the same focus commands regardless of isModal. The Mount's
+    // engagement is covered by the view scene tests.
+    it('emits no modal effect commands on Opened when isModal is true', () => {
       Story.story(
         update,
-        withClosedModal,
+        Story.with(init({ id: 'test', isModal: true })),
         Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-        Story.Command.resolveAll(
-          [LockScroll, CompletedLockScroll()],
-          [InertOthers, CompletedInertOthers()],
-        ),
+        Story.Command.expectNone(),
         Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),
       )
     })
 
-    it('emits unlockScroll and restoreInert commands on Closed when isModal is true', () => {
+    it('emits only FocusInput on Closed when isModal is true', () => {
       Story.story(
         update,
-        withOpenModal,
-        Story.message(Closed()),
-        Story.Command.resolveAll(
-          [FocusInput, CompletedFocusInput()],
-          [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedRestoreInert()],
-        ),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
-
-    it('emits unlockScroll and restoreInert commands when the input blurs in modal mode', () => {
-      Story.story(
-        update,
-        withOpenModal,
-        Story.message(BlurredInput()),
-        Story.Command.resolveAll(
-          [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedRestoreInert()],
-        ),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
-
-    it('emits unlockScroll and restoreInert commands on SelectedItem when isModal is true', () => {
-      Story.story(
-        update,
-        withOpenModal,
-        Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-        Story.Command.resolveAll(
-          [FocusInput, CompletedFocusInput()],
-          [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedRestoreInert()],
-        ),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
-
-    it('does not emit modal commands when isModal is false', () => {
-      Story.story(
-        update,
-        withClosed,
+        Story.with(init({ id: 'test', isModal: true })),
         Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-        Story.model(model => {
-          expect(model.isOpen).toBe(true)
-        }),
         Story.message(Closed()),
         Story.Command.resolve(FocusInput, CompletedFocusInput()),
         Story.model(model => {

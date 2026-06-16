@@ -8,6 +8,7 @@ import {
   html,
 } from 'foldkit/html'
 import { m } from 'foldkit/message'
+import * as Mount from 'foldkit/mount'
 import { evo } from 'foldkit/struct'
 import { defineView } from 'foldkit/submodel'
 
@@ -51,6 +52,8 @@ export const RequestedClose = m('RequestedClose')
 export const CompletedShowDialog = m('CompletedShowDialog')
 /** Sent when the close-dialog command completes. */
 export const CompletedCloseDialog = m('CompletedCloseDialog')
+/** Sent when the scroll-lock Mount engages on the rendered panel. */
+export const CompletedLockScroll = m('CompletedLockScroll')
 /** Wraps an Animation submodel message for delegation. */
 export const GotAnimationMessage = m('GotAnimationMessage', {
   message: AnimationMessage,
@@ -63,6 +66,7 @@ export const Message: S.Union<
     typeof RequestedClose,
     typeof CompletedShowDialog,
     typeof CompletedCloseDialog,
+    typeof CompletedLockScroll,
     typeof GotAnimationMessage,
   ]
 > = S.Union([
@@ -70,6 +74,7 @@ export const Message: S.Union<
   RequestedClose,
   CompletedShowDialog,
   CompletedCloseDialog,
+  CompletedLockScroll,
   GotAnimationMessage,
 ])
 
@@ -77,6 +82,7 @@ export type RequestedOpen = typeof RequestedOpen.Type
 export type RequestedClose = typeof RequestedClose.Type
 export type CompletedShowDialog = typeof CompletedShowDialog.Type
 export type CompletedCloseDialog = typeof CompletedCloseDialog.Type
+export type CompletedLockScroll = typeof CompletedLockScroll.Type
 
 export type Message = typeof Message.Type
 
@@ -134,38 +140,47 @@ type UpdateReturn = readonly [
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-/** Locks page scroll and opens the native dialog element with `show()`. */
+/** Opens the native dialog element with `showModal()`. Page scroll is locked
+ *  separately by the `LockScroll` Mount for as long as the panel is rendered. */
 export const ShowDialog = Command.define(
   'ShowDialog',
   { id: S.String, maybeFocusSelector: S.Option(S.String) },
   CompletedShowDialog,
 )(({ id, maybeFocusSelector }) =>
-  Dom.lockScroll.pipe(
-    Effect.andThen(() =>
-      Dom.showModal(
-        dialogSelector(id),
-        Option.match(maybeFocusSelector, {
-          onNone: () => undefined,
-          onSome: focusSelector => ({ focusSelector }),
-        }),
-      ),
-    ),
-    Effect.ignore,
-    Effect.as(CompletedShowDialog()),
-  ),
+  Dom.showModal(
+    dialogSelector(id),
+    Option.match(maybeFocusSelector, {
+      onNone: () => undefined,
+      onSome: focusSelector => ({ focusSelector }),
+    }),
+  ).pipe(Effect.ignore, Effect.as(CompletedShowDialog())),
 )
 
-/** Calls `close()` on the native dialog element and unlocks page scroll. */
+/** Calls `close()` on the native dialog element. Page scroll is unlocked
+ *  separately when the `LockScroll` Mount's panel unmounts. */
 export const CloseDialog = Command.define(
   'CloseDialog',
   { id: S.String },
   CompletedCloseDialog,
 )(({ id }) =>
   Dom.closeModal(dialogSelector(id)).pipe(
-    Effect.andThen(() => Dom.unlockScroll),
     Effect.ignore,
     Effect.as(CompletedCloseDialog()),
   ),
+)
+
+/** Locks page scroll for as long as the dialog panel is in the DOM. The lock
+ *  engages when the panel mounts and releases when it unmounts for any reason,
+ *  including a route change that removes the dialog without an explicit close,
+ *  so page scroll can never strand. */
+export const LockScroll = Mount.define(
+  'LockScroll',
+  CompletedLockScroll,
+)(() =>
+  Effect.gen(function* () {
+    yield* Effect.acquireRelease(Dom.lockScroll, () => Dom.unlockScroll)
+    return CompletedLockScroll()
+  }),
 )
 
 const wrapAnimationMessage = (message: AnimationMessage): Message =>
@@ -284,6 +299,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       CompletedShowDialog: () => [model, [], Option.none()],
       CompletedCloseDialog: () => [model, [], Option.none()],
+      CompletedLockScroll: () => [model, [], Option.none()],
     }),
   )
 
@@ -402,7 +418,11 @@ export const view = defineView<Model, Message, ViewInputs>(
       ...(isLeaving ? [] : [h.OnClick(RequestedClose())]),
     ]
 
-    const panelAttributes = [h.Id(`${id}-panel`), ...animationAttributes]
+    const panelAttributes = [
+      h.Id(`${id}-panel`),
+      ...animationAttributes,
+      h.OnMount(LockScroll()),
+    ]
 
     const closeButtonAttributes = isLeaving ? [] : [h.OnClick(RequestedClose())]
 

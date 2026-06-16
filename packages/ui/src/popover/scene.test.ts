@@ -54,6 +54,10 @@ const backdrop = Scene.selector('[key="test-backdrop"]')
 
 const closedModel = init({ id: 'test' })
 const [openModel] = update(init({ id: 'test' }), RequestedOpen())
+const [openModalModel] = update(
+  init({ id: 'test', isModal: true }),
+  RequestedOpen(),
+)
 const [openContentFocusModel] = update(
   init({ id: 'test', contentFocus: true }),
   RequestedOpen(),
@@ -138,6 +142,16 @@ describe('Popover', () => {
         Scene.expect(panel).toHaveStyle('visibility', 'hidden'),
         Scene.expect(panel).toHaveHook('insert'),
         Scene.expect(panel).toHaveHook('destroy'),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
+      )
+    })
+
+    it('renders the panel and its anchor Mount when isModal is true', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.with(openModalModel),
+        Scene.expect(panel).toExist(),
         acknowledgeAnchor,
         acknowledgeBackdrop,
       )

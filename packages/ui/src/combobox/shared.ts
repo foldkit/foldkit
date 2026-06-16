@@ -123,21 +123,13 @@ export const MovedPointerOverItem = m('MovedPointerOverItem', {
 export const RequestedItemClick = m('RequestedItemClick', {
   index: S.Number,
 })
-/** Sent when the scroll lock command completes. */
-export const CompletedLockScroll = m('CompletedLockScroll')
-/** Sent when the scroll unlock command completes. */
-export const CompletedUnlockScroll = m('CompletedUnlockScroll')
-/** Sent when the inert-others command completes. */
-export const CompletedInertOthers = m('CompletedInertOthers')
-/** Sent when the restore-inert command completes. */
-export const CompletedRestoreInert = m('CompletedRestoreInert')
 /** Sent when the focus-input command completes. */
 export const CompletedFocusInput = m('CompletedFocusInput')
 /** Sent when the scroll-into-view command completes after keyboard activation. */
 export const CompletedScrollIntoView = m('CompletedScrollIntoView')
 /** Sent when the programmatic item click command completes. */
 export const CompletedClickItem = m('CompletedClickItem')
-/** Sent when the items panel mounts and Floating UI has positioned it. Update no-ops; surfaces the positioning side effect for DevTools. */
+/** Sent when the items panel mounts and the AnchorCombobox Mount has positioned it (and, when modal, locked scroll and inerted the background). Update no-ops; surfaces the side effects for DevTools. */
 export const CompletedAnchorCombobox = m('CompletedAnchorCombobox')
 /** Sent when the items panel mounts and the capture-phase pointerdown listener is attached (with or without anchor). Update no-ops; surfaces the listener-attach side effect for DevTools. */
 export const CompletedAttachComboboxPreventBlur = m(
@@ -173,10 +165,6 @@ export const Message: S.Union<
     typeof SelectedItem,
     typeof MovedPointerOverItem,
     typeof RequestedItemClick,
-    typeof CompletedLockScroll,
-    typeof CompletedUnlockScroll,
-    typeof CompletedInertOthers,
-    typeof CompletedRestoreInert,
     typeof CompletedFocusInput,
     typeof CompletedScrollIntoView,
     typeof CompletedClickItem,
@@ -197,10 +185,6 @@ export const Message: S.Union<
   SelectedItem,
   MovedPointerOverItem,
   RequestedItemClick,
-  CompletedLockScroll,
-  CompletedUnlockScroll,
-  CompletedInertOthers,
-  CompletedRestoreInert,
   CompletedFocusInput,
   CompletedScrollIntoView,
   CompletedClickItem,
@@ -221,10 +205,6 @@ export type DeactivatedItem = typeof DeactivatedItem.Type
 export type SelectedItem = typeof SelectedItem.Type
 export type MovedPointerOverItem = typeof MovedPointerOverItem.Type
 export type RequestedItemClick = typeof RequestedItemClick.Type
-export type CompletedLockScroll = typeof CompletedLockScroll.Type
-export type CompletedUnlockScroll = typeof CompletedUnlockScroll.Type
-export type CompletedInertOthers = typeof CompletedInertOthers.Type
-export type CompletedRestoreInert = typeof CompletedRestoreInert.Type
 export type CompletedFocusInput = typeof CompletedFocusInput.Type
 export type CompletedScrollIntoView = typeof CompletedScrollIntoView.Type
 export type CompletedClickItem = typeof CompletedClickItem.Type
@@ -282,39 +262,11 @@ export const closedBaseModel = <Model extends BaseModel>(model: Model): Model =>
 
 // UPDATE FACTORY
 
-/** Context passed to the `handleSelectedItem` handler with commands for focus management and modal cleanup. */
+/** Context passed to the `handleSelectedItem` handler with the focus command for after selection. */
 export type SelectedItemContext = Readonly<{
   focusInput: Command.Command<Message>
-  maybeUnlockScroll: Option.Option<Command.Command<Message>>
-  maybeRestoreInert: Option.Option<Command.Command<Message>>
 }>
 
-/** Prevents page scrolling while the combobox popup is open in modal mode. */
-export const LockScroll = Command.define(
-  'LockScroll',
-  CompletedLockScroll,
-)(Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())))
-/** Re-enables page scrolling after the combobox popup closes. */
-export const UnlockScroll = Command.define(
-  'UnlockScroll',
-  CompletedUnlockScroll,
-)(Dom.unlockScroll.pipe(Effect.as(CompletedUnlockScroll())))
-/** Marks all elements outside the combobox as inert for modal behavior. */
-export const InertOthers = Command.define(
-  'InertOthers',
-  { id: S.String },
-  CompletedInertOthers,
-)(({ id }) =>
-  Dom.inertOthers(id, [inputWrapperSelector(id), itemsSelector(id)]).pipe(
-    Effect.as(CompletedInertOthers()),
-  ),
-)
-/** Removes the inert attribute from elements outside the combobox. */
-export const RestoreInert = Command.define(
-  'RestoreInert',
-  { id: S.String },
-  CompletedRestoreInert,
-)(({ id }) => Dom.restoreInert(id).pipe(Effect.as(CompletedRestoreInert())))
 /** Moves focus to the combobox input after selection or close. */
 export const FocusInput = Command.define(
   'FocusInput',
@@ -429,17 +381,6 @@ export const makeUpdate = <Model extends BaseModel>(
   const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
   const internalUpdate = (model: Model, message: Message): UpdateReturn => {
-    const maybeLockScroll = OptionExt.when(model.isModal, LockScroll())
-    const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockScroll())
-    const maybeInertOthers = OptionExt.when(
-      model.isModal,
-      InertOthers({ id: model.id }),
-    )
-    const maybeRestoreInert = OptionExt.when(
-      model.isModal,
-      RestoreInert({ id: model.id }),
-    )
-
     const focusInput = FocusInput({ id: model.id })
 
     const openCombobox = (baseModel: Model): UpdateReturn => {
@@ -450,17 +391,14 @@ export const makeUpdate = <Model extends BaseModel>(
         )
         return [
           constrainedEvo(nextModel, { isOpen: () => true }),
-          [
-            ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
-            ...animationCommands,
-          ],
+          animationCommands,
           Option.none(),
         ]
       }
 
       return [
         constrainedEvo(baseModel, { isOpen: () => true }),
-        Array.getSomes([maybeLockScroll, maybeInertOthers]),
+        [],
         Option.none(),
       ]
     }
@@ -486,10 +424,6 @@ export const makeUpdate = <Model extends BaseModel>(
     return M.value(message).pipe(
       withUpdateReturn,
       M.tag(
-        'CompletedLockScroll',
-        'CompletedUnlockScroll',
-        'CompletedInertOthers',
-        'CompletedRestoreInert',
         'CompletedFocusInput',
         'CompletedScrollIntoView',
         'CompletedClickItem',
@@ -583,8 +517,6 @@ export const makeUpdate = <Model extends BaseModel>(
           const [nextModel, commands, maybeOutMessage] =
             handlers.handleSelectedItem(model, item, displayText, {
               focusInput,
-              maybeUnlockScroll,
-              maybeRestoreInert,
             })
 
           if (model.isOpen && !nextModel.isOpen && model.isAnimated) {
@@ -656,20 +588,29 @@ export const makeUpdate = <Model extends BaseModel>(
   return internalUpdate
 }
 
-/** The anchor-positioning Mount this Combobox renders on its items panel.
- *  The panel is always anchored to the input wrapper via Floating UI and
- *  portaled to the document body (opt out of portaling with
- *  `anchor.portal: false`), so it escapes ancestor stacking contexts and
- *  overflow clipping. The Mount also installs the `pointerdown`-cancelling
- *  capture listener that prevents input blur on item presses. Exposed so
- *  Scene tests can call
+/** The items-panel Mount this Combobox renders. The panel is always anchored
+ *  to the input wrapper via Floating UI and portaled to the document body (opt
+ *  out of portaling with `anchor.portal: false`), so it escapes ancestor
+ *  stacking contexts and overflow clipping. The Mount also installs the
+ *  `pointerdown`-cancelling capture listener that prevents input blur on item
+ *  presses. When `isModal` is true it additionally locks page scroll and inerts
+ *  the background for the panel's lifetime, releasing both when the panel
+ *  unmounts. Tying the modal effects to the panel's lifetime rather than to an
+ *  explicit close Message means a route change that removes the combobox without
+ *  closing it still releases the lock and inert, so neither can strand. Exposed
+ *  so Scene tests can call
  *  `Scene.Mount.resolve(AnchorCombobox, CompletedAnchorCombobox())`. */
 export const AnchorCombobox = Mount.define(
   'AnchorCombobox',
-  { buttonId: S.String, anchor: AnchorConfig },
+  {
+    id: S.String,
+    buttonId: S.String,
+    anchor: AnchorConfig,
+    isModal: S.Boolean,
+  },
   CompletedAnchorCombobox,
 )(
-  ({ buttonId, anchor }) =>
+  ({ id, buttonId, anchor, isModal }) =>
     element =>
       Effect.gen(function* () {
         yield* Effect.acquireRelease(
@@ -694,6 +635,18 @@ export const AnchorCombobox = Mount.define(
           }),
           cleanup => Effect.sync(cleanup),
         )
+        if (isModal) {
+          yield* Effect.acquireRelease(
+            Effect.andThen(
+              Dom.lockScroll,
+              Dom.inertOthers(id, [
+                inputWrapperSelector(id),
+                itemsSelector(id),
+              ]),
+            ),
+            () => Effect.andThen(Dom.unlockScroll, Dom.restoreInert(id)),
+          )
+        }
         return CompletedAnchorCombobox()
       }),
 )
@@ -847,6 +800,7 @@ export const makeView = <Model extends BaseModel>(
       const {
         id,
         isOpen,
+        isModal,
         immediate,
         animation: { transitionState },
         maybeActiveItemIndex,
@@ -1072,8 +1026,10 @@ export const makeView = <Model extends BaseModel>(
         }),
         h.OnMount(
           AnchorCombobox({
+            id,
             buttonId: `${id}-input-wrapper`,
             anchor,
+            isModal,
           }),
         ),
       ]

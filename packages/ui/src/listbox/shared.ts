@@ -132,14 +132,6 @@ export const MovedPointerOverItem = m('MovedPointerOverItem', {
   screenX: S.Number,
   screenY: S.Number,
 })
-/** Sent when the scroll lock command completes. */
-export const CompletedLockScroll = m('CompletedLockScroll')
-/** Sent when the scroll unlock command completes. */
-export const CompletedUnlockScroll = m('CompletedUnlockScroll')
-/** Sent when the inert-others command completes. */
-export const CompletedInertOthers = m('CompletedInertOthers')
-/** Sent when the restore-inert command completes. */
-export const CompletedRestoreInert = m('CompletedRestoreInert')
 /** Sent when the focus-button command completes after closing. */
 export const CompletedFocusButton = m('CompletedFocusButton')
 /** Sent when the focus-items command completes after opening. */
@@ -152,7 +144,7 @@ export const CompletedClickItem = m('CompletedClickItem')
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
-/** Sent when the listbox items panel mounts and Floating UI has positioned it. Update no-ops; surfaces the positioning side effect for DevTools. */
+/** Sent when the listbox items panel mounts and the AnchorListbox Mount has positioned it (and, when modal, locked scroll and inerted the background). Update no-ops; surfaces the side effects for DevTools. */
 export const CompletedAnchorListbox = m('CompletedAnchorListbox')
 /** Sent when the listbox backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
 export const CompletedPortalListboxBackdrop = m(
@@ -181,10 +173,6 @@ export const Message: S.Union<
     typeof RequestedItemClick,
     typeof Searched,
     typeof ClearedSearch,
-    typeof CompletedLockScroll,
-    typeof CompletedUnlockScroll,
-    typeof CompletedInertOthers,
-    typeof CompletedRestoreInert,
     typeof CompletedFocusButton,
     typeof CompletedFocusItems,
     typeof CompletedScrollIntoView,
@@ -207,10 +195,6 @@ export const Message: S.Union<
   RequestedItemClick,
   Searched,
   ClearedSearch,
-  CompletedLockScroll,
-  CompletedUnlockScroll,
-  CompletedInertOthers,
-  CompletedRestoreInert,
   CompletedFocusButton,
   CompletedFocusItems,
   CompletedScrollIntoView,
@@ -311,32 +295,6 @@ type SelectedItemContext<Model extends BaseModel> = Readonly<{
   ]
 }>
 
-/** Prevents page scrolling while the listbox is open in modal mode. */
-export const LockScroll = Command.define(
-  'LockScroll',
-  CompletedLockScroll,
-)(Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())))
-/** Re-enables page scrolling after the listbox closes. */
-export const UnlockScroll = Command.define(
-  'UnlockScroll',
-  CompletedUnlockScroll,
-)(Dom.unlockScroll.pipe(Effect.as(CompletedUnlockScroll())))
-/** Marks all elements outside the listbox as inert for modal behavior. */
-export const InertOthers = Command.define(
-  'InertOthers',
-  { id: S.String },
-  CompletedInertOthers,
-)(({ id }) =>
-  Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]).pipe(
-    Effect.as(CompletedInertOthers()),
-  ),
-)
-/** Removes the inert attribute from elements outside the listbox. */
-export const RestoreInert = Command.define(
-  'RestoreInert',
-  { id: S.String },
-  CompletedRestoreInert,
-)(({ id }) => Dom.restoreInert(id).pipe(Effect.as(CompletedRestoreInert())))
 /** Moves focus back to the listbox button after closing. */
 export const FocusButton = Command.define(
   'FocusButton',
@@ -499,42 +457,19 @@ export const makeUpdate = <Model extends BaseModel>(
   }
 
   const internalUpdate = (model: Model, message: Message): UpdateReturn => {
-    const maybeLockScroll = OptionExt.when(model.isModal, LockScroll())
-    const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockScroll())
-    const maybeInertOthers = OptionExt.when(
-      model.isModal,
-      InertOthers({ id: model.id }),
-    )
-    const maybeRestoreInert = OptionExt.when(
-      model.isModal,
-      RestoreInert({ id: model.id }),
-    )
-
     const focusButton = FocusButton({ id: model.id })
     const focusItems = FocusItems({ id: model.id })
 
-    const openCommands = [
-      ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
-      focusItems,
-    ]
+    const openCommands = [focusItems]
 
-    const closeWithFocusCommands = [
-      focusButton,
-      ...Array.getSomes([maybeUnlockScroll, maybeRestoreInert]),
-    ]
+    const closeWithFocusCommands = [focusButton]
 
-    const closeWithoutFocusCommands = Array.getSomes([
-      maybeUnlockScroll,
-      maybeRestoreInert,
-    ])
+    const closeWithoutFocusCommands: ReadonlyArray<Command.Command<Message>> =
+      []
 
     return M.value(message).pipe(
       withUpdateReturn,
       M.tag(
-        'CompletedLockScroll',
-        'CompletedUnlockScroll',
-        'CompletedInertOthers',
-        'CompletedRestoreInert',
         'CompletedFocusButton',
         'CompletedFocusItems',
         'CompletedScrollIntoView',
@@ -721,24 +656,42 @@ export const makeUpdate = <Model extends BaseModel>(
   return internalUpdate
 }
 
-/** The anchor-positioning Mount this Listbox renders on its items panel.
- *  The panel is always anchored to the button via Floating UI and portaled
- *  to the document body (opt out of portaling with `anchor.portal: false`),
- *  so it escapes ancestor stacking contexts and overflow clipping. Exposed
- *  so Scene tests can call
+/** The items-panel Mount this Listbox renders. The panel is always anchored to
+ *  the button via Floating UI and portaled to the document body (opt out of
+ *  portaling with `anchor.portal: false`), so it escapes ancestor stacking
+ *  contexts and overflow clipping. When `isModal` is true it also locks page
+ *  scroll and inerts the background for the panel's lifetime, releasing both
+ *  when the panel unmounts. Tying the modal effects to the panel's lifetime
+ *  rather than to an explicit close Message means a route change that removes
+ *  the listbox without closing it still releases the lock and inert, so neither
+ *  can strand. Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AnchorListbox, CompletedAnchorListbox())`. */
 export const AnchorListbox = Mount.define(
   'AnchorListbox',
-  { buttonId: S.String, anchor: AnchorConfig },
+  {
+    id: S.String,
+    buttonId: S.String,
+    anchor: AnchorConfig,
+    isModal: S.Boolean,
+  },
   CompletedAnchorListbox,
 )(
-  ({ buttonId, anchor }) =>
+  ({ id, buttonId, anchor, isModal }) =>
     element =>
       Effect.gen(function* () {
         yield* Effect.acquireRelease(
           Effect.sync(() => anchorSetup({ buttonId, anchor })(element)),
           cleanup => Effect.sync(cleanup),
         )
+        if (isModal) {
+          yield* Effect.acquireRelease(
+            Effect.andThen(
+              Dom.lockScroll,
+              Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]),
+            ),
+            () => Effect.andThen(Dom.unlockScroll, Dom.restoreInert(id)),
+          )
+        }
         return CompletedAnchorListbox()
       }),
 )
@@ -849,6 +802,7 @@ export const makeView = <Model extends BaseModel>(
       const {
         id,
         isOpen,
+        isModal,
         orientation,
         animation: { transitionState },
         maybeActiveItemIndex,
@@ -1105,7 +1059,9 @@ export const makeView = <Model extends BaseModel>(
           margin: '0',
           visibility: 'hidden',
         }),
-        h.OnMount(AnchorListbox({ buttonId: `${id}-button`, anchor })),
+        h.OnMount(
+          AnchorListbox({ id, buttonId: `${id}-button`, anchor, isModal }),
+        ),
       ]
 
       const itemsContainerAttributes = [

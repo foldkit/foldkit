@@ -17,12 +17,8 @@ import {
   CompletedClickItem,
   CompletedFocusButton,
   CompletedFocusItems,
-  CompletedInertOthers,
-  CompletedLockScroll,
   CompletedPortalListboxBackdrop,
-  CompletedRestoreInert,
   CompletedScrollIntoView,
-  CompletedUnlockScroll,
   DeactivatedItem,
   DelayClearSearch,
   DetectMovementOrAnimationEnd,
@@ -30,19 +26,15 @@ import {
   FocusItems,
   GotAnimationMessage,
   IgnoredMouseClick,
-  InertOthers,
-  LockScroll,
   MovedPointerOverItem,
   Opened,
   PortalListboxBackdrop,
   PressedPointerOnButton,
   RequestedItemClick,
-  RestoreInert,
   ScrollIntoView,
   Searched,
   SelectedItem,
   SuppressedSpaceScroll,
-  UnlockScroll,
 } from './shared.js'
 import { create, init, update } from './single.js'
 import type { Model, ViewInputs } from './single.js'
@@ -778,11 +770,11 @@ describe('Listbox', () => {
     })
 
     describe('completed and view-dispatched messages', () => {
-      it('returns model unchanged for CompletedLockScroll', () => {
+      it('returns model unchanged for CompletedAnchorListbox', () => {
         Story.story(
           update,
           withOpen,
-          Story.message(CompletedLockScroll()),
+          Story.message(CompletedAnchorListbox()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
@@ -1169,91 +1161,28 @@ describe('Listbox', () => {
     })
   })
 
-  describe('modal commands', () => {
-    const withClosedModal = Story.with(init({ id: 'test', isModal: true }))
-
-    const withOpenModal = flow(
-      withClosedModal,
-      Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-      Story.Command.resolveAll(
-        [FocusItems, CompletedFocusItems()],
-        [LockScroll, CompletedLockScroll()],
-        [InertOthers, CompletedInertOthers()],
-      ),
-    )
-
-    it('emits lockScroll and inertOthers commands on Opened when isModal is true', () => {
+  describe('modal mode', () => {
+    // Scroll lock and inert now live in the AnchorListbox panel Mount, so update
+    // emits the same focus commands regardless of isModal. The Mount's
+    // engagement is covered by the view scene tests.
+    it('emits only FocusItems on Opened when isModal is true', () => {
       Story.story(
         update,
-        withClosedModal,
-        Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-        Story.Command.resolveAll(
-          [FocusItems, CompletedFocusItems()],
-          [LockScroll, CompletedLockScroll()],
-          [InertOthers, CompletedInertOthers()],
-        ),
-        Story.model(model => {
-          expect(model.isOpen).toBe(true)
-        }),
-      )
-    })
-
-    it('emits unlockScroll and restoreInert commands on Closed when isModal is true', () => {
-      Story.story(
-        update,
-        withOpenModal,
-        Story.message(Closed()),
-        Story.Command.resolveAll(
-          [FocusButton, CompletedFocusButton()],
-          [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedRestoreInert()],
-        ),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
-
-    it('emits unlockScroll and restoreInert commands when the items container blurs in modal mode', () => {
-      Story.story(
-        update,
-        withOpenModal,
-        Story.message(BlurredItems()),
-        Story.Command.resolveAll(
-          [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedRestoreInert()],
-        ),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
-
-    it('emits unlockScroll and restoreInert commands on SelectedItem when isModal is true', () => {
-      Story.story(
-        update,
-        withOpenModal,
-        Story.message(SelectedItem({ item: 'apple' })),
-        Story.Command.resolveAll(
-          [FocusButton, CompletedFocusButton()],
-          [UnlockScroll, CompletedUnlockScroll()],
-          [RestoreInert, CompletedRestoreInert()],
-        ),
-        Story.model(model => {
-          expect(model.isOpen).toBe(false)
-        }),
-      )
-    })
-
-    it('does not emit modal commands when isModal is false', () => {
-      Story.story(
-        update,
-        withClosed,
+        Story.with(init({ id: 'test', isModal: true })),
         Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
         Story.Command.resolve(FocusItems, CompletedFocusItems()),
         Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),
+      )
+    })
+
+    it('emits only FocusButton on Closed when isModal is true', () => {
+      Story.story(
+        update,
+        Story.with(init({ id: 'test', isModal: true })),
+        Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+        Story.Command.resolve(FocusItems, CompletedFocusItems()),
         Story.message(Closed()),
         Story.Command.resolve(FocusButton, CompletedFocusButton()),
         Story.model(model => {
