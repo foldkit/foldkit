@@ -22,6 +22,7 @@ export {
   ClickItem,
   DelayClearSearch,
   DetectMovementOrAnimationEnd,
+  subscriptions,
 } from './shared.js'
 
 export type {

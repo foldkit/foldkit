@@ -1,9 +1,14 @@
 import { Subscription } from 'foldkit'
 
-import { DragAndDrop, Slider, VirtualList } from '@foldkit/ui'
+import { Dialog, DragAndDrop, Slider, VirtualList } from '@foldkit/ui'
 
 import {
+  GotDialogAnimatedDemoMessage,
+  GotDialogDemoMessage,
   GotDragAndDropDemoMessage,
+  GotNestedDialogChildDemoMessage,
+  GotNestedDialogParentDemoMessage,
+  GotOverlayDialogDemoMessage,
   GotSliderRatingDemoMessage,
   GotSliderVolumeDemoMessage,
   GotVirtualListDemoMessage,
@@ -11,6 +16,41 @@ import {
   type Message,
 } from './message'
 import type { Model } from './model'
+
+const dialogDemoSubscriptions = Subscription.lift({
+  dialogDemoLockScroll: Dialog.subscriptions.lockScroll,
+})<Model, Message>({
+  toChildModel: model => model.dialogDemo,
+  toParentMessage: message => GotDialogDemoMessage({ message }),
+})
+
+const dialogAnimatedDemoSubscriptions = Subscription.lift({
+  dialogAnimatedDemoLockScroll: Dialog.subscriptions.lockScroll,
+})<Model, Message>({
+  toChildModel: model => model.dialogAnimatedDemo,
+  toParentMessage: message => GotDialogAnimatedDemoMessage({ message }),
+})
+
+const overlayDialogDemoSubscriptions = Subscription.lift({
+  overlayDialogDemoLockScroll: Dialog.subscriptions.lockScroll,
+})<Model, Message>({
+  toChildModel: model => model.overlayDialogDemo,
+  toParentMessage: message => GotOverlayDialogDemoMessage({ message }),
+})
+
+const nestedDialogParentDemoSubscriptions = Subscription.lift({
+  nestedDialogParentDemoLockScroll: Dialog.subscriptions.lockScroll,
+})<Model, Message>({
+  toChildModel: model => model.nestedDialogParentDemo,
+  toParentMessage: message => GotNestedDialogParentDemoMessage({ message }),
+})
+
+const nestedDialogChildDemoSubscriptions = Subscription.lift({
+  nestedDialogChildDemoLockScroll: Dialog.subscriptions.lockScroll,
+})<Model, Message>({
+  toChildModel: model => model.nestedDialogChildDemo,
+  toParentMessage: message => GotNestedDialogChildDemoMessage({ message }),
+})
 
 const dragAndDropSubscriptions = Subscription.lift({
   dragPointer: DragAndDrop.subscriptions.documentPointer,
@@ -53,6 +93,11 @@ const virtualListVariableDemoSubscriptions = Subscription.lift({
 })
 
 export const subscriptions = Subscription.aggregate<Model, Message>()(
+  dialogDemoSubscriptions,
+  dialogAnimatedDemoSubscriptions,
+  overlayDialogDemoSubscriptions,
+  nestedDialogParentDemoSubscriptions,
+  nestedDialogChildDemoSubscriptions,
   dragAndDropSubscriptions,
   sliderRatingSubscriptions,
   sliderVolumeSubscriptions,

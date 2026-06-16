@@ -21,6 +21,7 @@ export {
   ScrollIntoView,
   ClickItem,
   DetectMovementOrAnimationEnd,
+  subscriptions,
 } from './shared.js'
 
 export type {

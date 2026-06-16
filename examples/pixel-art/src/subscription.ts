@@ -1,10 +1,14 @@
 import { Effect, Option, Schema as S, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
+import { Dialog } from '@foldkit/ui'
+
 import type { Message } from './message'
 import {
   ClickedRedo,
   ClickedUndo,
+  GotErrorDialogMessage,
+  GotGridSizeConfirmDialogMessage,
   ReleasedMouse,
   SelectedTool,
 } from './message'
@@ -40,7 +44,7 @@ export const handleKeyboardEvent = (
     return Option.none()
   })
 
-export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+const appSubscriptions = Subscription.make<Model, Message>()(entry => ({
   keyboard: Subscription.persistent(
     Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
       Stream.mapEffect(handleKeyboardEvent),
@@ -63,3 +67,23 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   ),
 }))
+
+const errorDialogSubscriptions = Subscription.lift({
+  errorDialogLockScroll: Dialog.subscriptions.lockScroll,
+})<Model, Message>({
+  toChildModel: model => model.errorDialog,
+  toParentMessage: message => GotErrorDialogMessage({ message }),
+})
+
+const gridSizeConfirmDialogSubscriptions = Subscription.lift({
+  gridSizeConfirmDialogLockScroll: Dialog.subscriptions.lockScroll,
+})<Model, Message>({
+  toChildModel: model => model.gridSizeConfirmDialog,
+  toParentMessage: message => GotGridSizeConfirmDialogMessage({ message }),
+})
+
+export const subscriptions = Subscription.aggregate<Model, Message>()(
+  appSubscriptions,
+  errorDialogSubscriptions,
+  gridSizeConfirmDialogSubscriptions,
+)

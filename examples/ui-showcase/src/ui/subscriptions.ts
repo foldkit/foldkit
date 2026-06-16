@@ -1,9 +1,15 @@
 import { Subscription } from 'foldkit'
 
-import { DragAndDrop, Slider, VirtualList } from '@foldkit/ui'
+import { Dialog, DragAndDrop, Slider, VirtualList } from '@foldkit/ui'
 
 import {
+  GotDialogAnimatedDemoMessage,
+  GotDialogDemoMessage,
   GotDragAndDropDemoMessage,
+  GotMobileMenuDialogMessage,
+  GotNestedDialogChildDemoMessage,
+  GotNestedDialogParentDemoMessage,
+  GotOverlayDialogDemoMessage,
   GotSliderRatingDemoMessage,
   GotSliderVolumeDemoMessage,
   GotVirtualListDemoMessage,
@@ -11,6 +17,48 @@ import {
   type UiMessage,
 } from './message'
 import type { UiModel } from './model'
+
+const mobileMenuDialogSubscriptions = Subscription.lift({
+  mobileMenuDialogLockScroll: Dialog.subscriptions.lockScroll,
+})<UiModel, UiMessage>({
+  toChildModel: model => model.mobileMenuDialog,
+  toParentMessage: message => GotMobileMenuDialogMessage({ message }),
+})
+
+const dialogDemoSubscriptions = Subscription.lift({
+  dialogDemoLockScroll: Dialog.subscriptions.lockScroll,
+})<UiModel, UiMessage>({
+  toChildModel: model => model.dialogDemo,
+  toParentMessage: message => GotDialogDemoMessage({ message }),
+})
+
+const dialogAnimatedDemoSubscriptions = Subscription.lift({
+  dialogAnimatedDemoLockScroll: Dialog.subscriptions.lockScroll,
+})<UiModel, UiMessage>({
+  toChildModel: model => model.dialogAnimatedDemo,
+  toParentMessage: message => GotDialogAnimatedDemoMessage({ message }),
+})
+
+const overlayDialogDemoSubscriptions = Subscription.lift({
+  overlayDialogDemoLockScroll: Dialog.subscriptions.lockScroll,
+})<UiModel, UiMessage>({
+  toChildModel: model => model.overlayDialogDemo,
+  toParentMessage: message => GotOverlayDialogDemoMessage({ message }),
+})
+
+const nestedDialogParentDemoSubscriptions = Subscription.lift({
+  nestedDialogParentDemoLockScroll: Dialog.subscriptions.lockScroll,
+})<UiModel, UiMessage>({
+  toChildModel: model => model.nestedDialogParentDemo,
+  toParentMessage: message => GotNestedDialogParentDemoMessage({ message }),
+})
+
+const nestedDialogChildDemoSubscriptions = Subscription.lift({
+  nestedDialogChildDemoLockScroll: Dialog.subscriptions.lockScroll,
+})<UiModel, UiMessage>({
+  toChildModel: model => model.nestedDialogChildDemo,
+  toParentMessage: message => GotNestedDialogChildDemoMessage({ message }),
+})
 
 const dragAndDropSubscriptions = Subscription.lift({
   dragPointer: DragAndDrop.subscriptions.documentPointer,
@@ -53,6 +101,12 @@ const virtualListVariableDemoSubscriptions = Subscription.lift({
 })
 
 export const subscriptions = Subscription.aggregate<UiModel, UiMessage>()(
+  mobileMenuDialogSubscriptions,
+  dialogDemoSubscriptions,
+  dialogAnimatedDemoSubscriptions,
+  overlayDialogDemoSubscriptions,
+  nestedDialogParentDemoSubscriptions,
+  nestedDialogChildDemoSubscriptions,
   dragAndDropSubscriptions,
   sliderRatingSubscriptions,
   sliderVolumeSubscriptions,

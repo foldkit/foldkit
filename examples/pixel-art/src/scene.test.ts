@@ -98,11 +98,6 @@ describe('export workflow', () => {
         Dialog.CompletedShowDialog(),
         errorDialogMessageToMessage,
       ),
-      Scene.Mount.resolve(
-        Dialog.LockScroll,
-        Dialog.CompletedLockScroll(),
-        errorDialogMessageToMessage,
-      ),
       Scene.expect(Scene.text('Export Failed')).toExist(),
       Scene.expect(Scene.text('Canvas 2D context not available')).toExist(),
       Scene.expect(Scene.role('button', { name: 'Dismiss' })).toExist(),
@@ -123,11 +118,6 @@ describe('export workflow', () => {
         Dialog.CompletedShowDialog(),
         errorDialogMessageToMessage,
       ),
-      Scene.Mount.resolve(
-        Dialog.LockScroll,
-        Dialog.CompletedLockScroll(),
-        errorDialogMessageToMessage,
-      ),
       Scene.expect(Scene.text('Export Failed')).toExist(),
       Scene.click(Scene.role('button', { name: 'Dismiss' })),
       Scene.Command.resolve(
@@ -135,7 +125,6 @@ describe('export workflow', () => {
         Dialog.CompletedCloseDialog(),
         errorDialogMessageToMessage,
       ),
-      Scene.Mount.expectEnded(Dialog.LockScroll),
       Scene.expect(Scene.text('Export Failed')).toBeAbsent(),
     )
   })
@@ -272,11 +261,6 @@ describe('grid size change', () => {
         Dialog.CompletedShowDialog(),
         confirmDialogMessageToMessage,
       ),
-      Scene.Mount.resolve(
-        Dialog.LockScroll,
-        Dialog.CompletedLockScroll(),
-        confirmDialogMessageToMessage,
-      ),
       Scene.expect(Scene.text('Change to 8\u00d78?')).toExist(),
       Scene.expect(
         Scene.text('This will clear your canvas and reset undo history.'),
@@ -303,11 +287,6 @@ describe('grid size change', () => {
       { update, view },
       Scene.with(modelWithPendingResize),
       Scene.expect(Scene.text('Change to 8\u00d78?')).toExist(),
-      Scene.Mount.resolve(
-        Dialog.LockScroll,
-        Dialog.CompletedLockScroll(),
-        confirmDialogMessageToMessage,
-      ),
       Scene.click(Scene.role('button', { name: 'Clear and Resize' })),
       Scene.Command.resolve(
         Dialog.CloseDialog,
@@ -315,7 +294,6 @@ describe('grid size change', () => {
         confirmDialogMessageToMessage,
       ),
       Scene.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Scene.Mount.expectEnded(Dialog.LockScroll),
       Scene.expect(Scene.text('Change to 8\u00d78?')).toBeAbsent(),
     )
   })
@@ -334,18 +312,12 @@ describe('grid size change', () => {
       { update, view },
       Scene.with(modelWithPendingResize),
       Scene.expect(Scene.text('Change to 8\u00d78?')).toExist(),
-      Scene.Mount.resolve(
-        Dialog.LockScroll,
-        Dialog.CompletedLockScroll(),
-        confirmDialogMessageToMessage,
-      ),
       Scene.click(Scene.role('button', { name: 'Cancel' })),
       Scene.Command.resolve(
         Dialog.CloseDialog,
         Dialog.CompletedCloseDialog(),
         confirmDialogMessageToMessage,
       ),
-      Scene.Mount.expectEnded(Dialog.LockScroll),
       Scene.expect(Scene.text('Change to 8\u00d78?')).toBeAbsent(),
     )
   })

@@ -1,4 +1,4 @@
-import { Effect, Match as M, Option, Schema as S } from 'effect'
+import { Effect, Match as M, Option, Schema as S, Stream } from 'effect'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 import {
@@ -8,9 +8,9 @@ import {
   html,
 } from 'foldkit/html'
 import { m } from 'foldkit/message'
-import * as Mount from 'foldkit/mount'
 import { evo } from 'foldkit/struct'
 import { defineView } from 'foldkit/submodel'
+import * as Subscription from 'foldkit/subscription'
 
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → dialog → animation.
@@ -52,8 +52,6 @@ export const RequestedClose = m('RequestedClose')
 export const CompletedShowDialog = m('CompletedShowDialog')
 /** Sent when the close-dialog command completes. */
 export const CompletedCloseDialog = m('CompletedCloseDialog')
-/** Sent when the scroll-lock Mount engages on the rendered panel. */
-export const CompletedLockScroll = m('CompletedLockScroll')
 /** Wraps an Animation submodel message for delegation. */
 export const GotAnimationMessage = m('GotAnimationMessage', {
   message: AnimationMessage,
@@ -66,7 +64,6 @@ export const Message: S.Union<
     typeof RequestedClose,
     typeof CompletedShowDialog,
     typeof CompletedCloseDialog,
-    typeof CompletedLockScroll,
     typeof GotAnimationMessage,
   ]
 > = S.Union([
@@ -74,7 +71,6 @@ export const Message: S.Union<
   RequestedClose,
   CompletedShowDialog,
   CompletedCloseDialog,
-  CompletedLockScroll,
   GotAnimationMessage,
 ])
 
@@ -82,7 +78,6 @@ export type RequestedOpen = typeof RequestedOpen.Type
 export type RequestedClose = typeof RequestedClose.Type
 export type CompletedShowDialog = typeof CompletedShowDialog.Type
 export type CompletedCloseDialog = typeof CompletedCloseDialog.Type
-export type CompletedLockScroll = typeof CompletedLockScroll.Type
 
 export type Message = typeof Message.Type
 
@@ -141,7 +136,7 @@ type UpdateReturn = readonly [
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 /** Opens the native dialog element with `showModal()`. Page scroll is locked
- *  separately by the `LockScroll` Mount for as long as the panel is rendered. */
+ *  separately by the scroll-lock Subscription while the dialog is visible. */
 export const ShowDialog = Command.define(
   'ShowDialog',
   { id: S.String, maybeFocusSelector: S.Option(S.String) },
@@ -157,7 +152,8 @@ export const ShowDialog = Command.define(
 )
 
 /** Calls `close()` on the native dialog element. Page scroll is unlocked
- *  separately when the `LockScroll` Mount's panel unmounts. */
+ *  separately by the scroll-lock Subscription when the dialog stops being
+ *  visible. */
 export const CloseDialog = Command.define(
   'CloseDialog',
   { id: S.String },
@@ -167,20 +163,6 @@ export const CloseDialog = Command.define(
     Effect.ignore,
     Effect.as(CompletedCloseDialog()),
   ),
-)
-
-/** Locks page scroll for as long as the dialog panel is in the DOM. The lock
- *  engages when the panel mounts and releases when it unmounts for any reason,
- *  including a route change that removes the dialog without an explicit close,
- *  so page scroll can never strand. */
-export const LockScroll = Mount.define(
-  'LockScroll',
-  CompletedLockScroll,
-)(() =>
-  Effect.gen(function* () {
-    yield* Effect.acquireRelease(Dom.lockScroll, () => Dom.unlockScroll)
-    return CompletedLockScroll()
-  }),
 )
 
 const wrapAnimationMessage = (message: AnimationMessage): Message =>
@@ -299,7 +281,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       CompletedShowDialog: () => [model, [], Option.none()],
       CompletedCloseDialog: () => [model, [], Option.none()],
-      CompletedLockScroll: () => [model, [], Option.none()],
     }),
   )
 
@@ -418,11 +399,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       ...(isLeaving ? [] : [h.OnClick(RequestedClose())]),
     ]
 
-    const panelAttributes = [
-      h.Id(`${id}-panel`),
-      ...animationAttributes,
-      h.OnMount(LockScroll()),
-    ]
+    const panelAttributes = [h.Id(`${id}-panel`), ...animationAttributes]
 
     const closeButtonAttributes = isLeaving ? [] : [h.OnClick(RequestedClose())]
 
@@ -435,3 +412,36 @@ export const view = defineView<Model, Message, ViewInputs>(
     })
   },
 )
+
+// SUBSCRIPTION
+
+/** Page scroll lock, held while the dialog is visible (open, or animating out).
+ *  Gated on Model state, so the lock releases when the dialog closes or its
+ *  Model is removed (for example a route change that drops the submodel), never
+ *  on the dialog element leaving the DOM. Wire this into the app's subscriptions
+ *  with `Subscription.lift`. */
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  lockScroll: entry(
+    { isLocked: S.Boolean },
+    {
+      modelToDependencies: model => {
+        const { transitionState } = model.animation
+        return {
+          isLocked:
+            model.isOpen ||
+            transitionState === 'LeaveStart' ||
+            transitionState === 'LeaveAnimating',
+        }
+      },
+      dependenciesToStream: ({ isLocked }) =>
+        Stream.when(
+          Stream.callback<never>(() =>
+            Effect.acquireRelease(Dom.lockScroll, () => Dom.unlockScroll).pipe(
+              Effect.flatMap(() => Effect.never),
+            ),
+          ),
+          Effect.sync(() => isLocked),
+        ),
+    },
+  ),
+}))

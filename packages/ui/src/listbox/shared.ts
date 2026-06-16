@@ -7,6 +7,7 @@ import {
   Predicate,
   Schema as S,
   String as Str,
+  Stream,
   pipe,
 } from 'effect'
 import * as Command from 'foldkit/command'
@@ -16,6 +17,7 @@ import { m } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
 import { makeConstrainedEvo } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
+import * as Subscription from 'foldkit/subscription'
 
 import { AnchorConfig, anchorSetup, portalToBody } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
@@ -144,7 +146,7 @@ export const CompletedClickItem = m('CompletedClickItem')
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
-/** Sent when the listbox items panel mounts and the AnchorListbox Mount has positioned it (and, when modal, locked scroll and inerted the background). Update no-ops; surfaces the side effects for DevTools. */
+/** Sent when the listbox items panel mounts and the AnchorListbox Mount has positioned it. Update no-ops; surfaces the positioning side effect for DevTools. */
 export const CompletedAnchorListbox = m('CompletedAnchorListbox')
 /** Sent when the listbox backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
 export const CompletedPortalListboxBackdrop = m(
@@ -656,42 +658,24 @@ export const makeUpdate = <Model extends BaseModel>(
   return internalUpdate
 }
 
-/** The items-panel Mount this Listbox renders. The panel is always anchored to
- *  the button via Floating UI and portaled to the document body (opt out of
- *  portaling with `anchor.portal: false`), so it escapes ancestor stacking
- *  contexts and overflow clipping. When `isModal` is true it also locks page
- *  scroll and inerts the background for the panel's lifetime, releasing both
- *  when the panel unmounts. Tying the modal effects to the panel's lifetime
- *  rather than to an explicit close Message means a route change that removes
- *  the listbox without closing it still releases the lock and inert, so neither
- *  can strand. Exposed so Scene tests can call
+/** The anchor-positioning Mount this Listbox renders on its items panel.
+ *  The panel is always anchored to the button via Floating UI and portaled
+ *  to the document body (opt out of portaling with `anchor.portal: false`),
+ *  so it escapes ancestor stacking contexts and overflow clipping. Exposed
+ *  so Scene tests can call
  *  `Scene.Mount.resolve(AnchorListbox, CompletedAnchorListbox())`. */
 export const AnchorListbox = Mount.define(
   'AnchorListbox',
-  {
-    id: S.String,
-    buttonId: S.String,
-    anchor: AnchorConfig,
-    isModal: S.Boolean,
-  },
+  { buttonId: S.String, anchor: AnchorConfig },
   CompletedAnchorListbox,
 )(
-  ({ id, buttonId, anchor, isModal }) =>
+  ({ buttonId, anchor }) =>
     element =>
       Effect.gen(function* () {
         yield* Effect.acquireRelease(
           Effect.sync(() => anchorSetup({ buttonId, anchor })(element)),
           cleanup => Effect.sync(cleanup),
         )
-        if (isModal) {
-          yield* Effect.acquireRelease(
-            Effect.andThen(
-              Dom.lockScroll,
-              Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]),
-            ),
-            () => Effect.andThen(Dom.unlockScroll, Dom.restoreInert(id)),
-          )
-        }
         return CompletedAnchorListbox()
       }),
 )
@@ -802,7 +786,6 @@ export const makeView = <Model extends BaseModel>(
       const {
         id,
         isOpen,
-        isModal,
         orientation,
         animation: { transitionState },
         maybeActiveItemIndex,
@@ -1059,9 +1042,7 @@ export const makeView = <Model extends BaseModel>(
           margin: '0',
           visibility: 'hidden',
         }),
-        h.OnMount(
-          AnchorListbox({ id, buttonId: `${id}-button`, anchor, isModal }),
-        ),
+        h.OnMount(AnchorListbox({ buttonId: `${id}-button`, anchor })),
       ]
 
       const itemsContainerAttributes = [
@@ -1297,3 +1278,39 @@ export const makeView = <Model extends BaseModel>(
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     impl as unknown as SubmodelView<Model, Message, BaseViewInputs<Item, Value>>
 }
+
+// SUBSCRIPTION
+
+/** Page scroll lock and background inert, held while the listbox is open in modal
+ *  mode (`isModal`). Gated on Model state, so both release when the listbox closes
+ *  or its Model is removed (for example a route change that drops the submodel),
+ *  never on the panel element leaving the DOM. A no-op while `isModal` is false.
+ *  Wire this into the app's subscriptions with `Subscription.lift`. */
+export const subscriptions = Subscription.make<BaseModel, Message>()(entry => ({
+  modalEffects: entry(
+    { id: S.String, isActive: S.Boolean },
+    {
+      modelToDependencies: model => {
+        const { transitionState } = model.animation
+        const isVisible =
+          model.isOpen ||
+          transitionState === 'LeaveStart' ||
+          transitionState === 'LeaveAnimating'
+        return { id: model.id, isActive: model.isModal && isVisible }
+      },
+      dependenciesToStream: ({ id, isActive }) =>
+        Stream.when(
+          Stream.callback<never>(() =>
+            Effect.acquireRelease(
+              Effect.andThen(
+                Dom.lockScroll,
+                Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]),
+              ),
+              () => Effect.andThen(Dom.unlockScroll, Dom.restoreInert(id)),
+            ).pipe(Effect.flatMap(() => Effect.never)),
+          ),
+          Effect.sync(() => isActive),
+        ),
+    },
+  ),
+}))

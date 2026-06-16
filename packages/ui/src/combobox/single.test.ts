@@ -915,8 +915,8 @@ describe('Combobox', () => {
   })
 
   describe('modal mode', () => {
-    // Scroll lock and inert are engaged by the AnchorCombobox panel Mount, not by
-    // update, so update's command output here does not depend on isModal.
+    // Scroll lock and inert are engaged by the modal-effects Subscription, not
+    // by update, so update's command output here does not depend on isModal.
     it('emits no modal effect commands on Opened when isModal is true', () => {
       Story.story(
         update,

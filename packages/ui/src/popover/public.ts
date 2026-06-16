@@ -21,6 +21,7 @@ export {
   FocusPanel,
   FocusButton,
   DetectMovementOrAnimationEnd,
+  subscriptions,
 } from './index.js'
 
 export type {

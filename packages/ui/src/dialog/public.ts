@@ -15,11 +15,10 @@ export {
   RequestedClose,
   CompletedShowDialog,
   CompletedCloseDialog,
-  CompletedLockScroll,
   GotAnimationMessage,
   ShowDialog,
   CloseDialog,
-  LockScroll,
+  subscriptions,
 } from './index.js'
 
 export type { InitConfig, ViewInputs, RenderInfo } from './index.js'

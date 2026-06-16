@@ -1,4 +1,4 @@
-import { Effect, Equal, Match as M, Option, Schema as S } from 'effect'
+import { Effect, Equal, Match as M, Option, Schema as S, Stream } from 'effect'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 import {
@@ -11,6 +11,7 @@ import { m } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
 import { evo } from 'foldkit/struct'
 import { defineView } from 'foldkit/submodel'
+import * as Subscription from 'foldkit/subscription'
 
 import { AnchorConfig, anchorSetup, portalToBody } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
@@ -65,7 +66,7 @@ export const CompletedFocusButton = m('CompletedFocusButton')
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
-/** Sent when the popover panel mounts and the AnchorPopover Mount has positioned it (and, when modal, locked scroll and inerted the background). Update no-ops; the side effects are surfaced for DevTools observability. */
+/** Sent when the popover panel mounts and the AnchorPopover Mount has positioned it. Update no-ops; the side effect is the act of positioning, surfaced for DevTools observability. */
 export const CompletedAnchorPopover = m('CompletedAnchorPopover')
 /** Sent when the popover backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
 export const CompletedPortalPopoverBackdrop = m(
@@ -353,26 +354,19 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   )
 }
 
-/** The panel Mount this Popover renders. Positions the panel against the button
- *  via Floating UI for the panel's lifetime. When `isModal` is true it also locks
- *  page scroll and inerts the background, releasing both when the panel unmounts.
- *  Tying the modal effects to the panel's lifetime rather than to an explicit
- *  close Message means a route change that removes the popover without closing it
- *  still releases the lock and inert, so neither can strand. Exposed so Scene
- *  tests can call `Scene.Mount.resolve(AnchorPopover, CompletedAnchorPopover())`
+/** The anchor-positioning Mount this Popover renders on its panel. Exposed so
+ *  Scene tests can call `Scene.Mount.resolve(AnchorPopover, CompletedAnchorPopover())`
  *  to acknowledge the mount produced by the rendered panel. */
 export const AnchorPopover = Mount.define(
   'AnchorPopover',
   {
-    id: S.String,
     buttonId: S.String,
     anchor: AnchorConfig,
-    isModal: S.Boolean,
     focusSelector: S.optional(S.String),
   },
   CompletedAnchorPopover,
 )(
-  ({ id, buttonId, anchor, isModal, focusSelector }) =>
+  ({ buttonId, anchor, focusSelector }) =>
     element =>
       Effect.gen(function* () {
         yield* Effect.acquireRelease(
@@ -387,15 +381,6 @@ export const AnchorPopover = Mount.define(
           ),
           cleanup => Effect.sync(cleanup),
         )
-        if (isModal) {
-          yield* Effect.acquireRelease(
-            Effect.andThen(
-              Dom.lockScroll,
-              Dom.inertOthers(id, [buttonSelector(id), panelSelector(id)]),
-            ),
-            () => Effect.andThen(Dom.unlockScroll, Dom.restoreInert(id)),
-          )
-        }
         return CompletedAnchorPopover()
       }),
 )
@@ -463,7 +448,6 @@ export const view = defineView<Model, Message, ViewInputs>(
     const {
       id,
       isOpen,
-      isModal,
       contentFocus,
       animation: { transitionState },
       maybeLastButtonPointerType,
@@ -569,10 +553,8 @@ export const view = defineView<Model, Message, ViewInputs>(
       h.Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
       h.OnMount(
         AnchorPopover({
-          id,
           buttonId: `${id}-button`,
           anchor,
-          isModal,
           ...(focusSelector !== undefined && { focusSelector }),
         }),
       ),
@@ -598,3 +580,39 @@ export const view = defineView<Model, Message, ViewInputs>(
     })
   },
 )
+
+// SUBSCRIPTION
+
+/** Page scroll lock and background inert, held while the popover is open in modal
+ *  mode (`isModal`). Gated on Model state, so both release when the popover closes
+ *  or its Model is removed (for example a route change that drops the submodel),
+ *  never on the panel element leaving the DOM. A no-op while `isModal` is false.
+ *  Wire this into the app's subscriptions with `Subscription.lift`. */
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  modalEffects: entry(
+    { id: S.String, isActive: S.Boolean },
+    {
+      modelToDependencies: model => {
+        const { transitionState } = model.animation
+        const isVisible =
+          model.isOpen ||
+          transitionState === 'LeaveStart' ||
+          transitionState === 'LeaveAnimating'
+        return { id: model.id, isActive: model.isModal && isVisible }
+      },
+      dependenciesToStream: ({ id, isActive }) =>
+        Stream.when(
+          Stream.callback<never>(() =>
+            Effect.acquireRelease(
+              Effect.andThen(
+                Dom.lockScroll,
+                Dom.inertOthers(id, [buttonSelector(id), panelSelector(id)]),
+              ),
+              () => Effect.andThen(Dom.unlockScroll, Dom.restoreInert(id)),
+            ).pipe(Effect.flatMap(() => Effect.never)),
+          ),
+          Effect.sync(() => isActive),
+        ),
+    },
+  ),
+}))

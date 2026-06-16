@@ -22,6 +22,7 @@ export {
   ClickItem,
   DelayClearSearch,
   DetectMovementOrAnimationEnd,
+  subscriptions,
 } from './index.js'
 
 export type {

@@ -1162,8 +1162,8 @@ describe('Listbox', () => {
   })
 
   describe('modal mode', () => {
-    // Scroll lock and inert are engaged by the AnchorListbox panel Mount, not by
-    // update, so update's command output here does not depend on isModal.
+    // Scroll lock and inert are engaged by the modal-effects Subscription, not
+    // by update, so update's command output here does not depend on isModal.
     it('emits only FocusItems on Opened when isModal is true', () => {
       Story.story(
         update,

@@ -1,14 +1,7 @@
 import * as Scene from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { CompletedLockScroll, LockScroll } from '../../dialog/index.js'
-import {
-  GotDialogMessage,
-  initialModel,
-  update,
-  view,
-  viewWithDialog,
-} from './disabledButton.js'
+import { initialModel, update, view, viewWithDialog } from './disabledButton.js'
 
 describe('disabled button cleanup', () => {
   describe('plain button (no dialog)', () => {
@@ -39,10 +32,6 @@ describe('disabled button cleanup', () => {
         { update, view: viewWithDialog },
         Scene.with(initialModel),
         Scene.expect(Scene.text('Submit')).toBeDisabled(),
-        Scene.Mount.resolve(
-          LockScroll,
-          GotDialogMessage({ message: CompletedLockScroll() }),
-        ),
         Scene.click(Scene.text('Toggle')),
         Scene.expect(Scene.text('Submit')).not.toBeDisabled(),
         Scene.click(Scene.text('Submit')),

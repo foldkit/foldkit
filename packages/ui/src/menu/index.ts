@@ -7,6 +7,7 @@ import {
   Predicate,
   Schema as S,
   String as Str,
+  Stream,
   pipe,
 } from 'effect'
 import * as Command from 'foldkit/command'
@@ -16,6 +17,7 @@ import { m } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
 import { evo } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
+import * as Subscription from 'foldkit/subscription'
 
 import { AnchorConfig, anchorSetup, portalToBody } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
@@ -124,7 +126,7 @@ export const CompletedClickItem = m('CompletedClickItem')
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
-/** Sent when the menu items panel mounts and the AnchorMenu Mount has positioned it (and, when modal, locked scroll and inerted the background). Update no-ops; the side effects are surfaced for DevTools observability. */
+/** Sent when the menu items panel mounts and the AnchorMenu Mount has positioned it. Update no-ops; the side effect is the act of positioning, surfaced for DevTools observability. */
 export const CompletedAnchorMenu = m('CompletedAnchorMenu')
 /** Sent when the menu backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
 export const CompletedPortalMenuBackdrop = m('CompletedPortalMenuBackdrop')
@@ -648,41 +650,23 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   )
 }
 
-/** The panel Mount this Menu renders. The panel is always anchored to the button
- *  via Floating UI and portaled to the document body (opt out of portaling with
- *  `anchor.portal: false`), so it escapes ancestor stacking contexts and overflow
- *  clipping. When `isModal` is true it also locks page scroll and inerts the
- *  background for the panel's lifetime, releasing both when the panel unmounts.
- *  Tying the modal effects to the panel's lifetime rather than to an explicit
- *  close Message means a route change that removes the menu without closing it
- *  still releases the lock and inert, so neither can strand. Exposed so Scene
- *  tests can call `Scene.Mount.resolve(AnchorMenu, CompletedAnchorMenu())`. */
+/** The anchor-positioning Mount this Menu renders on its panel. The panel is
+ *  always anchored to the button via Floating UI and portaled to the document
+ *  body (opt out of portaling with `anchor.portal: false`), so it escapes
+ *  ancestor stacking contexts and overflow clipping. Exposed so Scene tests
+ *  can call `Scene.Mount.resolve(AnchorMenu, CompletedAnchorMenu())`. */
 export const AnchorMenu = Mount.define(
   'AnchorMenu',
-  {
-    id: S.String,
-    buttonId: S.String,
-    anchor: AnchorConfig,
-    isModal: S.Boolean,
-  },
+  { buttonId: S.String, anchor: AnchorConfig },
   CompletedAnchorMenu,
 )(
-  ({ id, buttonId, anchor, isModal }) =>
+  ({ buttonId, anchor }) =>
     element =>
       Effect.gen(function* () {
         yield* Effect.acquireRelease(
           Effect.sync(() => anchorSetup({ buttonId, anchor })(element)),
           cleanup => Effect.sync(cleanup),
         )
-        if (isModal) {
-          yield* Effect.acquireRelease(
-            Effect.andThen(
-              Dom.lockScroll,
-              Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]),
-            ),
-            () => Effect.andThen(Dom.unlockScroll, Dom.restoreInert(id)),
-          )
-        }
         return CompletedAnchorMenu()
       }),
 )
@@ -792,7 +776,6 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
     const {
       id,
       isOpen,
-      isModal,
       animation: { transitionState },
       maybeActiveItemIndex,
       searchQuery,
@@ -1028,7 +1011,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
 
     const anchorAttributes = [
       h.Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
-      h.OnMount(AnchorMenu({ id, buttonId: `${id}-button`, anchor, isModal })),
+      h.OnMount(AnchorMenu({ buttonId: `${id}-button`, anchor })),
     ]
 
     const itemsContainerAttributes = [
@@ -1291,3 +1274,39 @@ export const create = <Item extends string = string>(): Readonly<{
     close: model => cast(close(model)),
   }
 }
+
+// SUBSCRIPTION
+
+/** Page scroll lock and background inert, held while the menu is open in modal
+ *  mode (`isModal`). Gated on Model state, so both release when the menu closes
+ *  or its Model is removed (for example a route change that drops the submodel),
+ *  never on the panel element leaving the DOM. A no-op while `isModal` is false.
+ *  Wire this into the app's subscriptions with `Subscription.lift`. */
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  modalEffects: entry(
+    { id: S.String, isActive: S.Boolean },
+    {
+      modelToDependencies: model => {
+        const { transitionState } = model.animation
+        const isVisible =
+          model.isOpen ||
+          transitionState === 'LeaveStart' ||
+          transitionState === 'LeaveAnimating'
+        return { id: model.id, isActive: model.isModal && isVisible }
+      },
+      dependenciesToStream: ({ id, isActive }) =>
+        Stream.when(
+          Stream.callback<never>(() =>
+            Effect.acquireRelease(
+              Effect.andThen(
+                Dom.lockScroll,
+                Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]),
+              ),
+              () => Effect.andThen(Dom.unlockScroll, Dom.restoreInert(id)),
+            ).pipe(Effect.flatMap(() => Effect.never)),
+          ),
+          Effect.sync(() => isActive),
+        ),
+    },
+  ),
+}))
