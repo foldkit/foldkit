@@ -121,17 +121,17 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "@effect/platform-browser": "4.0.0-beta.78",
-    "effect": "4.0.0-beta.78",
+    "@effect/platform-browser": "4.0.0-beta.83",
+    "effect": "4.0.0-beta.83",
     "foldkit": "workspace:^0"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.7.6"
   },
   "devDependencies": {
-    "@effect/platform-browser": "4.0.0-beta.78",
-    "@effect/vitest": "4.0.0-beta.78",
-    "effect": "4.0.0-beta.78",
+    "@effect/platform-browser": "4.0.0-beta.83",
+    "@effect/vitest": "4.0.0-beta.83",
+    "effect": "4.0.0-beta.83",
     "foldkit": "workspace:*",
     "happy-dom": "^20.10.4",
     "rimraf": "^6.1.3",
