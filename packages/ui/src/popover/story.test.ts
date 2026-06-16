@@ -556,9 +556,8 @@ describe('Popover', () => {
   })
 
   describe('modal mode', () => {
-    // Scroll lock and inert now live in the ApplyModalEffects panel Mount, so
-    // update emits the same commands regardless of isModal. The Mount's
-    // engagement is covered in scene.test.ts.
+    // Scroll lock and inert are engaged by the AnchorPopover panel Mount, not by
+    // update, so update's command output here does not depend on isModal.
     it('emits no modal effect commands on RequestedOpen when isModal is true', () => {
       Story.story(
         update,

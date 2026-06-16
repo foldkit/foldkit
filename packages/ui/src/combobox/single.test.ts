@@ -915,9 +915,8 @@ describe('Combobox', () => {
   })
 
   describe('modal mode', () => {
-    // Scroll lock and inert now live in the AnchorCombobox panel Mount, so
-    // update emits the same focus commands regardless of isModal. The Mount's
-    // engagement is covered by the view scene tests.
+    // Scroll lock and inert are engaged by the AnchorCombobox panel Mount, not by
+    // update, so update's command output here does not depend on isModal.
     it('emits no modal effect commands on Opened when isModal is true', () => {
       Story.story(
         update,

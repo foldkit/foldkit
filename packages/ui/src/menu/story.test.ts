@@ -1252,9 +1252,8 @@ describe('Menu', () => {
   })
 
   describe('modal mode', () => {
-    // Scroll lock and inert now live in the AnchorMenu panel Mount, so update
-    // emits the same focus commands regardless of isModal. The Mount's
-    // engagement is covered in scene.test.ts.
+    // Scroll lock and inert are engaged by the AnchorMenu panel Mount, not by
+    // update, so update's command output here does not depend on isModal.
     it('emits only FocusItems on Opened when isModal is true', () => {
       Story.story(
         update,
