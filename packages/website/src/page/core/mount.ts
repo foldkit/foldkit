@@ -18,7 +18,7 @@ import {
   coreViewRouter,
   testingSceneRouter,
 } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -205,11 +205,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.mountPortalToBodyHighlighted),
+            h.InnerHTML(Snippet.mountPortalToBodyHighlighted),
           ],
           [],
         ),
-        Snippets.mountPortalToBodyRaw,
+        Snippet.mountPortalToBodyRaw,
         'Copy portal-to-body example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -353,11 +353,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.mountThirdPartyChartHighlighted),
+            h.InnerHTML(Snippet.mountThirdPartyChartHighlighted),
           ],
           [],
         ),
-        Snippets.mountThirdPartyChartRaw,
+        Snippet.mountThirdPartyChartRaw,
         'Copy OnMount example to clipboard',
         copiedSnippets,
         'mb-8',

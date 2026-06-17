@@ -16,7 +16,7 @@ import {
   uiRadioGroupRouter,
   uiTabsRouter,
 } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -121,10 +121,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para('A Listbox over a literal-union ', inlineCode('Plan'), ' type:'),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.uiListboxBasicHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.uiListboxBasicHighlighted)],
           [],
         ),
-        Snippets.uiListboxBasicRaw,
+        Snippet.uiListboxBasicRaw,
         'Copy typed Listbox to clipboard',
         copiedSnippets,
         'mb-8',

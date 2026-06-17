@@ -10,7 +10,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import { coreArchitectureRouter } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -75,10 +75,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.counterViewHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.counterViewHighlighted)],
           [],
         ),
-        Snippets.counterViewRaw,
+        Snippet.counterViewRaw,
         'Copy view example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -99,10 +99,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.htmlHelpersHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.htmlHelpersHighlighted)],
           [],
         ),
-        Snippets.htmlHelpersRaw,
+        Snippet.htmlHelpersRaw,
         'Copy HTML helpers example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -129,10 +129,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.eventHandlingHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.eventHandlingHighlighted)],
           [],
         ),
-        Snippets.eventHandlingRaw,
+        Snippet.eventHandlingRaw,
         'Copy event handling example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -150,11 +150,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.eventHandlingComplexHighlighted),
+            h.InnerHTML(Snippet.eventHandlingComplexHighlighted),
           ],
           [],
         ),
-        Snippets.eventHandlingComplexRaw,
+        Snippet.eventHandlingComplexRaw,
         'Copy complex handler example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -223,11 +223,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.eventHandlerSideEffectsHighlighted),
+            h.InnerHTML(Snippet.eventHandlerSideEffectsHighlighted),
           ],
           [],
         ),
-        Snippets.eventHandlerSideEffectsRaw,
+        Snippet.eventHandlerSideEffectsRaw,
         'Copy event handler side effects example to clipboard',
         copiedSnippets,
         'mb-8',

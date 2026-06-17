@@ -11,7 +11,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -76,10 +76,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.resourcesHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.resourcesHighlighted)],
           [],
         ),
-        Snippets.resourcesRaw,
+        Snippet.resourcesRaw,
         'Copy resources example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -165,11 +165,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.resourcesPerCommandHttpHighlighted),
+            h.InnerHTML(Snippet.resourcesPerCommandHttpHighlighted),
           ],
           [],
         ),
-        Snippets.resourcesPerCommandHttpRaw,
+        Snippet.resourcesPerCommandHttpRaw,
         'Copy per-Command HTTP helper to clipboard',
         copiedSnippets,
         'mb-8',
@@ -188,11 +188,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.resourcesMultipleHighlighted),
+            h.InnerHTML(Snippet.resourcesMultipleHighlighted),
           ],
           [],
         ),
-        Snippets.resourcesMultipleRaw,
+        Snippet.resourcesMultipleRaw,
         'Copy multiple resources example to clipboard',
         copiedSnippets,
         'mb-8',

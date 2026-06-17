@@ -13,7 +13,7 @@ import {
   warningCallout,
 } from '../../prose'
 import { bestPracticesImmutabilityRouter } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -79,10 +79,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.createLazyHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.createLazyHighlighted)],
           [],
         ),
-        Snippets.createLazyRaw,
+        Snippet.createLazyRaw,
         'Copy createLazy example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -110,13 +110,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.createKeyedLazyHighlighted),
-          ],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.createKeyedLazyHighlighted)],
           [],
         ),
-        Snippets.createKeyedLazyRaw,
+        Snippet.createKeyedLazyRaw,
         'Copy createKeyedLazy example to clipboard',
         copiedSnippets,
         'mb-8',

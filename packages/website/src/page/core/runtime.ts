@@ -9,7 +9,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import { routingAndNavigationRouter } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -92,11 +92,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.runMakeApplicationHighlighted),
+            h.InnerHTML(Snippet.runMakeApplicationHighlighted),
           ],
           [],
         ),
-        Snippets.runMakeApplicationRaw,
+        Snippet.runMakeApplicationRaw,
         'Copy makeApplication without routing example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -111,11 +111,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.runMakeApplicationRoutingHighlighted),
+            h.InnerHTML(Snippet.runMakeApplicationRoutingHighlighted),
           ],
           [],
         ),
-        Snippets.runMakeApplicationRoutingRaw,
+        Snippet.runMakeApplicationRoutingRaw,
         'Copy makeApplication with routing example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -182,10 +182,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.runMakeElementHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.runMakeElementHighlighted)],
           [],
         ),
-        Snippets.runMakeElementRaw,
+        Snippet.runMakeElementRaw,
         'Copy makeElement example to clipboard',
         copiedSnippets,
         'mb-8',

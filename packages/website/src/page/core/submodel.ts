@@ -24,7 +24,7 @@ import {
   uiCalendarRouter,
   uiOverviewRouter,
 } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import { type PropEntry, propTable } from '../../view/docTable'
 
@@ -401,11 +401,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelChildModuleHighlighted),
+            h.InnerHTML(Snippet.submodelChildModuleHighlighted),
           ],
           [],
         ),
-        Snippets.submodelChildModuleRaw,
+        Snippet.submodelChildModuleRaw,
         'Copy Submodel to clipboard',
         copiedSnippets,
         'mb-8',
@@ -423,11 +423,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelParentModelHighlighted),
+            h.InnerHTML(Snippet.submodelParentModelHighlighted),
           ],
           [],
         ),
-        Snippets.submodelParentModelRaw,
+        Snippet.submodelParentModelRaw,
         'Copy parent model to clipboard',
         copiedSnippets,
         'mb-8',
@@ -442,11 +442,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelDirectEvoAntipatternHighlighted),
+            h.InnerHTML(Snippet.submodelDirectEvoAntipatternHighlighted),
           ],
           [],
         ),
-        Snippets.submodelDirectEvoAntipatternRaw,
+        Snippet.submodelDirectEvoAntipatternRaw,
         'Copy antipattern to clipboard',
         copiedSnippets,
         'mb-8',
@@ -470,11 +470,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelDelegateViaHelperHighlighted),
+            h.InnerHTML(Snippet.submodelDelegateViaHelperHighlighted),
           ],
           [],
         ),
-        Snippets.submodelDelegateViaHelperRaw,
+        Snippet.submodelDelegateViaHelperRaw,
         'Copy helper delegation to clipboard',
         copiedSnippets,
         'mb-8',
@@ -533,11 +533,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelWrapperMessageHighlighted),
+            h.InnerHTML(Snippet.submodelWrapperMessageHighlighted),
           ],
           [],
         ),
-        Snippets.submodelWrapperMessageRaw,
+        Snippet.submodelWrapperMessageRaw,
         'Copy wrapper message to clipboard',
         copiedSnippets,
         'mb-8',
@@ -563,11 +563,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelUpdateDelegationHighlighted),
+            h.InnerHTML(Snippet.submodelUpdateDelegationHighlighted),
           ],
           [],
         ),
-        Snippets.submodelUpdateDelegationRaw,
+        Snippet.submodelUpdateDelegationRaw,
         'Copy update delegation to clipboard',
         copiedSnippets,
         'mb-8',
@@ -627,12 +627,12 @@ export const view = (
                                 [
                                   h.Class('text-sm'),
                                   h.InnerHTML(
-                                    Snippets.commandMapMessagesUnderHoodHighlighted,
+                                    Snippet.commandMapMessagesUnderHoodHighlighted,
                                   ),
                                 ],
                                 [],
                               ),
-                              Snippets.commandMapMessagesUnderHoodRaw,
+                              Snippet.commandMapMessagesUnderHoodRaw,
                               'Copy snippet to clipboard',
                               copiedSnippets,
                               'mb-4',
@@ -689,11 +689,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelChildViewHighlighted),
+            h.InnerHTML(Snippet.submodelChildViewHighlighted),
           ],
           [],
         ),
-        Snippets.submodelChildViewRaw,
+        Snippet.submodelChildViewRaw,
         'Copy child view to clipboard',
         copiedSnippets,
         'mb-8',
@@ -740,11 +740,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelParentViewHighlighted),
+            h.InnerHTML(Snippet.submodelParentViewHighlighted),
           ],
           [],
         ),
-        Snippets.submodelParentViewRaw,
+        Snippet.submodelParentViewRaw,
         'Copy parent view to clipboard',
         copiedSnippets,
         'mb-8',
@@ -775,11 +775,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelChildViewInputsHighlighted),
+            h.InnerHTML(Snippet.submodelChildViewInputsHighlighted),
           ],
           [],
         ),
-        Snippets.submodelChildViewInputsRaw,
+        Snippet.submodelChildViewInputsRaw,
         'Copy child view with view inputs to clipboard',
         copiedSnippets,
         'mb-8',
@@ -795,11 +795,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelParentViewInputsHighlighted),
+            h.InnerHTML(Snippet.submodelParentViewInputsHighlighted),
           ],
           [],
         ),
-        Snippets.submodelParentViewInputsRaw,
+        Snippet.submodelParentViewInputsRaw,
         'Copy parent view with view inputs to clipboard',
         copiedSnippets,
         'mb-8',
@@ -892,11 +892,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelMultipleInstancesHighlighted),
+            h.InnerHTML(Snippet.submodelMultipleInstancesHighlighted),
           ],
           [],
         ),
-        Snippets.submodelMultipleInstancesRaw,
+        Snippet.submodelMultipleInstancesRaw,
         'Copy multiple instances snippet to clipboard',
         copiedSnippets,
         'mb-4',
@@ -984,11 +984,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelParentStateInViewHighlighted),
+            h.InnerHTML(Snippet.submodelParentStateInViewHighlighted),
           ],
           [],
         ),
-        Snippets.submodelParentStateInViewRaw,
+        Snippet.submodelParentStateInViewRaw,
         'Copy snippet to clipboard',
         copiedSnippets,
         'mb-4',
@@ -1012,11 +1012,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelParentStateInUpdateHighlighted),
+            h.InnerHTML(Snippet.submodelParentStateInUpdateHighlighted),
           ],
           [],
         ),
-        Snippets.submodelParentStateInUpdateRaw,
+        Snippet.submodelParentStateInUpdateRaw,
         'Copy snippet to clipboard',
         copiedSnippets,
         'mb-4',
@@ -1075,11 +1075,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.outMessageDefinitionHighlighted),
+            h.InnerHTML(Snippet.outMessageDefinitionHighlighted),
           ],
           [],
         ),
-        Snippets.outMessageDefinitionRaw,
+        Snippet.outMessageDefinitionRaw,
         'Copy OutMessage definition to clipboard',
         copiedSnippets,
         'mb-8',
@@ -1098,11 +1098,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.outMessageChildUpdateHighlighted),
+            h.InnerHTML(Snippet.outMessageChildUpdateHighlighted),
           ],
           [],
         ),
-        Snippets.outMessageChildUpdateRaw,
+        Snippet.outMessageChildUpdateRaw,
         'Copy child update to clipboard',
         copiedSnippets,
         'mb-8',
@@ -1134,11 +1134,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.outMessageParentHandleHighlighted),
+            h.InnerHTML(Snippet.outMessageParentHandleHighlighted),
           ],
           [],
         ),
-        Snippets.outMessageParentHandleRaw,
+        Snippet.outMessageParentHandleRaw,
         'Copy parent handling to clipboard',
         copiedSnippets,
         'mb-8',
@@ -1183,11 +1183,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelReflectExternalStateHighlighted),
+            h.InnerHTML(Snippet.submodelReflectExternalStateHighlighted),
           ],
           [],
         ),
-        Snippets.submodelReflectExternalStateRaw,
+        Snippet.submodelReflectExternalStateRaw,
         'Copy reflect handler to clipboard',
         copiedSnippets,
         'mb-8',
@@ -1301,11 +1301,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelChildAttributesPublishHighlighted),
+            h.InnerHTML(Snippet.submodelChildAttributesPublishHighlighted),
           ],
           [],
         ),
-        Snippets.submodelChildAttributesPublishRaw,
+        Snippet.submodelChildAttributesPublishRaw,
         'Copy snippet to clipboard',
         copiedSnippets,
         'mb-4',
@@ -1319,11 +1319,11 @@ export const view = (
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.submodelChildAttributesConsumeHighlighted),
+            h.InnerHTML(Snippet.submodelChildAttributesConsumeHighlighted),
           ],
           [],
         ),
-        Snippets.submodelChildAttributesConsumeRaw,
+        Snippet.submodelChildAttributesConsumeRaw,
         'Copy snippet to clipboard',
         copiedSnippets,
         'mb-4',

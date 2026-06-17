@@ -10,7 +10,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import { aiMcpRouter } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -129,10 +129,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.devtoolsBasicHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.devtoolsBasicHighlighted)],
           [],
         ),
-        Snippets.devtoolsBasicRaw,
+        Snippet.devtoolsBasicRaw,
         'Configuring DevTools',
         copiedSnippets,
         'mb-8',
@@ -186,13 +186,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.devtoolsInspectHighlighted),
-          ],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.devtoolsInspectHighlighted)],
           [],
         ),
-        Snippets.devtoolsInspectRaw,
+        Snippet.devtoolsInspectRaw,
         'TimeTravel locally, Inspect in production',
         copiedSnippets,
         'mb-8',
@@ -226,11 +223,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.devtoolsExcludeFromHistoryHighlighted),
+            h.InnerHTML(Snippet.devtoolsExcludeFromHistoryHighlighted),
           ],
           [],
         ),
-        Snippets.devtoolsExcludeFromHistoryRaw,
+        Snippet.devtoolsExcludeFromHistoryRaw,
         'Excluding high-frequency Messages from history',
         copiedSnippets,
         'mb-8',
@@ -253,11 +250,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.devtoolsMaxEntriesHighlighted),
+            h.InnerHTML(Snippet.devtoolsMaxEntriesHighlighted),
           ],
           [],
         ),
-        Snippets.devtoolsMaxEntriesRaw,
+        Snippet.devtoolsMaxEntriesRaw,
         'Raising the DevTools history cap',
         copiedSnippets,
         'mb-8',

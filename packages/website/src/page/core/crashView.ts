@@ -10,7 +10,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import { exampleDetailRouter } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -64,13 +64,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.crashViewCustomHighlighted),
-          ],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.crashViewCustomHighlighted)],
           [],
         ),
-        Snippets.crashViewCustomRaw,
+        Snippet.crashViewCustomRaw,
         'Custom crash view example',
         copiedSnippets,
         'mb-8',
@@ -120,10 +117,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.crashReportHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.crashReportHighlighted)],
           [],
         ),
-        Snippets.crashReportRaw,
+        Snippet.crashReportRaw,
         'Crash reporting example',
         copiedSnippets,
         'mb-8',

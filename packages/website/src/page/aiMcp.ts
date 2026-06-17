@@ -14,7 +14,7 @@ import {
   coreDevToolsRouter,
   gettingStartedRouter,
 } from '../route'
-import * as Snippets from '../snippet'
+import * as Snippet from '../snippet'
 import {
   type CopiedSnippets,
   codeBlock,
@@ -329,13 +329,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.aiMcpViteConfigHighlighted),
-          ],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.aiMcpViteConfigHighlighted)],
           [],
         ),
-        Snippets.aiMcpViteConfigRaw,
+        Snippet.aiMcpViteConfigRaw,
         'Copy Vite config snippet',
         copiedSnippets,
         'mb-4',
@@ -351,11 +348,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.aiMcpApplicationConfigHighlighted),
+            h.InnerHTML(Snippet.aiMcpApplicationConfigHighlighted),
           ],
           [],
         ),
-        Snippets.aiMcpApplicationConfigRaw,
+        Snippet.aiMcpApplicationConfigRaw,
         'Copy application config snippet',
         copiedSnippets,
         'mb-4',

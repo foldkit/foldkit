@@ -11,7 +11,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../prose'
 import { apiModuleRouter, exampleDetailRouter } from '../route'
-import * as Snippets from '../snippet'
+import * as Snippet from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 
@@ -119,11 +119,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.fieldValidationMakeRulesHighlighted),
+            h.InnerHTML(Snippet.fieldValidationMakeRulesHighlighted),
           ],
           [],
         ),
-        Snippets.fieldValidationMakeRulesRaw,
+        Snippet.fieldValidationMakeRulesRaw,
         'Copy makeRules example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -202,11 +202,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.fieldValidationConditionalHighlighted),
+            h.InnerHTML(Snippet.fieldValidationConditionalHighlighted),
           ],
           [],
         ),
-        Snippets.fieldValidationConditionalRaw,
+        Snippet.fieldValidationConditionalRaw,
         'Copy conditional rules example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -226,11 +226,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.fieldValidationApplyHighlighted),
+            h.InnerHTML(Snippet.fieldValidationApplyHighlighted),
           ],
           [],
         ),
-        Snippets.fieldValidationApplyRaw,
+        Snippet.fieldValidationApplyRaw,
         'Copy validate example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -265,11 +265,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.fieldValidationViewHighlighted),
+            h.InnerHTML(Snippet.fieldValidationViewHighlighted),
           ],
           [],
         ),
-        Snippets.fieldValidationViewRaw,
+        Snippet.fieldValidationViewRaw,
         'Copy validation view example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -294,11 +294,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.fieldValidationAsyncHighlighted),
+            h.InnerHTML(Snippet.fieldValidationAsyncHighlighted),
           ],
           [],
         ),
-        Snippets.fieldValidationAsyncRaw,
+        Snippet.fieldValidationAsyncRaw,
         'Copy async validation example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -321,11 +321,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.fieldValidationCustomRuleHighlighted),
+            h.InnerHTML(Snippet.fieldValidationCustomRuleHighlighted),
           ],
           [],
         ),
-        Snippets.fieldValidationCustomRuleRaw,
+        Snippet.fieldValidationCustomRuleRaw,
         'Copy custom rule example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -346,11 +346,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.fieldValidationCrossFieldHighlighted),
+            h.InnerHTML(Snippet.fieldValidationCrossFieldHighlighted),
           ],
           [],
         ),
-        Snippets.fieldValidationCrossFieldRaw,
+        Snippet.fieldValidationCrossFieldRaw,
         'Copy cross-field validation example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -439,11 +439,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.fieldValidationSchemaHighlighted),
+            h.InnerHTML(Snippet.fieldValidationSchemaHighlighted),
           ],
           [],
         ),
-        Snippets.fieldValidationSchemaRaw,
+        Snippet.fieldValidationSchemaRaw,
         'Copy schema rule example to clipboard',
         copiedSnippets,
         'mb-8',

@@ -22,7 +22,7 @@ import {
   testingStoryRouter,
   uiOverviewRouter,
 } from '../route'
-import * as Snippets from '../snippet'
+import * as Snippet from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 
@@ -405,11 +405,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitMessageHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitMessageHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitMessageRaw,
+        Snippet.comparisonFoldkitMessageRaw,
         'Copy Foldkit messages',
         copiedSnippets,
         'mb-4',
@@ -439,11 +439,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonReactActionHighlighted),
+            h.InnerHTML(Snippet.comparisonReactActionHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonReactActionRaw,
+        Snippet.comparisonReactActionRaw,
         'Copy React actions',
         copiedSnippets,
         'mb-4',
@@ -491,11 +491,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonReactAppHighlighted),
+            h.InnerHTML(Snippet.comparisonReactAppHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonReactAppRaw,
+        Snippet.comparisonReactAppRaw,
         'Copy React App',
         copiedSnippets,
         'mb-4',
@@ -543,11 +543,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitProgramHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitProgramHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitProgramRaw,
+        Snippet.comparisonFoldkitProgramRaw,
         'Copy Foldkit program',
         copiedSnippets,
         'mb-6',
@@ -582,11 +582,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitModelHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitModelHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitModelRaw,
+        Snippet.comparisonFoldkitModelRaw,
         'Copy Foldkit model',
         copiedSnippets,
         'mb-4',
@@ -614,11 +614,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonReactStateHighlighted),
+            h.InnerHTML(Snippet.comparisonReactStateHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonReactStateRaw,
+        Snippet.comparisonReactStateRaw,
         'Copy React state',
         copiedSnippets,
         'mb-6',
@@ -650,11 +650,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitUpdateHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitUpdateHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitUpdateRaw,
+        Snippet.comparisonFoldkitUpdateRaw,
         'Copy Foldkit update',
         copiedSnippets,
         'mb-4',
@@ -675,11 +675,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonReactReducerHighlighted),
+            h.InnerHTML(Snippet.comparisonReactReducerHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonReactReducerRaw,
+        Snippet.comparisonReactReducerRaw,
         'Copy React reducer',
         copiedSnippets,
         'mb-6',
@@ -708,11 +708,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitCommandHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitCommandHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitCommandRaw,
+        Snippet.comparisonFoldkitCommandRaw,
         'Copy Foldkit command',
         copiedSnippets,
         'mb-4',
@@ -743,11 +743,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonReactUseEffectHighlighted),
+            h.InnerHTML(Snippet.comparisonReactUseEffectHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonReactUseEffectRaw,
+        Snippet.comparisonReactUseEffectRaw,
         'Copy React useEffect',
         copiedSnippets,
         'mb-6',
@@ -817,11 +817,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitTestHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitTestHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitTestRaw,
+        Snippet.comparisonFoldkitTestRaw,
         'Copy Foldkit test',
         copiedSnippets,
         'mb-4',
@@ -834,11 +834,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonReactTestHighlighted),
+            h.InnerHTML(Snippet.comparisonReactTestHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonReactTestRaw,
+        Snippet.comparisonReactTestRaw,
         'Copy React test',
         copiedSnippets,
         'mb-4',
@@ -857,11 +857,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonReactSideEffectTestHighlighted),
+            h.InnerHTML(Snippet.comparisonReactSideEffectTestHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonReactSideEffectTestRaw,
+        Snippet.comparisonReactSideEffectTestRaw,
         'Copy React side-effect test',
         copiedSnippets,
         'mb-6',
@@ -946,11 +946,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitSceneTestHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitSceneTestHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitSceneTestRaw,
+        Snippet.comparisonFoldkitSceneTestRaw,
         'Copy Foldkit scene test',
         copiedSnippets,
         'mb-4',
@@ -976,11 +976,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonReactSceneTestHighlighted),
+            h.InnerHTML(Snippet.comparisonReactSceneTestHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonReactSceneTestRaw,
+        Snippet.comparisonReactSceneTestRaw,
         'Copy React interaction test',
         copiedSnippets,
         'mb-4',
@@ -1082,11 +1082,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitSubscriptionHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitSubscriptionHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitSubscriptionRaw,
+        Snippet.comparisonFoldkitSubscriptionRaw,
         'Copy Foldkit subscription',
         copiedSnippets,
         'mb-4',
@@ -1109,11 +1109,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonReactHooksHighlighted),
+            h.InnerHTML(Snippet.comparisonReactHooksHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonReactHooksRaw,
+        Snippet.comparisonReactHooksRaw,
         'Copy React hooks',
         copiedSnippets,
         'mb-6',
@@ -1169,11 +1169,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitMemoizationHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitMemoizationHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitMemoizationRaw,
+        Snippet.comparisonFoldkitMemoizationRaw,
         'Copy Foldkit memoization',
         copiedSnippets,
         'mb-4',
@@ -1202,11 +1202,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonReactMemoizationHighlighted),
+            h.InnerHTML(Snippet.comparisonReactMemoizationHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonReactMemoizationRaw,
+        Snippet.comparisonReactMemoizationRaw,
         'Copy React memoization',
         copiedSnippets,
         'mb-4',
@@ -1232,11 +1232,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitCellViewHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitCellViewHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitCellViewRaw,
+        Snippet.comparisonFoldkitCellViewRaw,
         'Copy Foldkit cell view',
         copiedSnippets,
         'mb-4',
@@ -1256,11 +1256,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonReactCellViewHighlighted),
+            h.InnerHTML(Snippet.comparisonReactCellViewHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonReactCellViewRaw,
+        Snippet.comparisonReactCellViewRaw,
         'Copy React cell view',
         copiedSnippets,
         'mb-4',

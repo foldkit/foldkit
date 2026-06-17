@@ -9,7 +9,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import { coreArchitectureRouter } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -46,10 +46,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.counterHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.counterHighlighted)],
           [],
         ),
-        Snippets.counterRaw,
+        Snippet.counterRaw,
         'Copy counter main.ts to clipboard',
         copiedSnippets,
         'mb-8',
@@ -64,10 +64,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.counterEntryHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.counterEntryHighlighted)],
           [],
         ),
-        Snippets.counterEntryRaw,
+        Snippet.counterEntryRaw,
         'Copy counter entry.ts to clipboard',
         copiedSnippets,
         'mb-8',

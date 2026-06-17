@@ -9,7 +9,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../prose'
-import * as Snippets from '../snippet'
+import * as Snippet from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 
@@ -219,10 +219,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.sceneLocatorsHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.sceneLocatorsHighlighted)],
           [],
         ),
-        Snippets.sceneLocatorsRaw,
+        Snippet.sceneLocatorsRaw,
         'Copy locator examples to clipboard',
         copiedSnippets,
         'mb-8',
@@ -286,10 +286,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.sceneRoleHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.sceneRoleHighlighted)],
           [],
         ),
-        Snippets.sceneRoleRaw,
+        Snippet.sceneRoleRaw,
         'Copy Scene.role examples to clipboard',
         copiedSnippets,
         'mb-8',
@@ -343,10 +343,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.sceneScopingHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.sceneScopingHighlighted)],
           [],
         ),
-        Snippets.sceneScopingRaw,
+        Snippet.sceneScopingRaw,
         'Copy scoping examples to clipboard',
         copiedSnippets,
         'mb-8',
@@ -375,13 +375,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.sceneMultiMatchHighlighted),
-          ],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.sceneMultiMatchHighlighted)],
           [],
         ),
-        Snippets.sceneMultiMatchRaw,
+        Snippet.sceneMultiMatchRaw,
         'Copy multi-match examples to clipboard',
         copiedSnippets,
         'mb-8',
@@ -415,11 +412,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.sceneInteractionsHighlighted),
+            h.InnerHTML(Snippet.sceneInteractionsHighlighted),
           ],
           [],
         ),
-        Snippets.sceneInteractionsRaw,
+        Snippet.sceneInteractionsRaw,
         'Copy interaction examples to clipboard',
         copiedSnippets,
         'mb-8',
@@ -503,13 +500,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.sceneAssertionsHighlighted),
-          ],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.sceneAssertionsHighlighted)],
           [],
         ),
-        Snippets.sceneAssertionsRaw,
+        Snippet.sceneAssertionsRaw,
         'Copy assertion examples to clipboard',
         copiedSnippets,
         'mb-8',
@@ -613,11 +607,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.sceneCommandAssertionsHighlighted),
+            h.InnerHTML(Snippet.sceneCommandAssertionsHighlighted),
           ],
           [],
         ),
-        Snippets.sceneCommandAssertionsRaw,
+        Snippet.sceneCommandAssertionsRaw,
         'Copy command assertions example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -694,11 +688,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.sceneMountAssertionsHighlighted),
+            h.InnerHTML(Snippet.sceneMountAssertionsHighlighted),
           ],
           [],
         ),
-        Snippets.sceneMountAssertionsRaw,
+        Snippet.sceneMountAssertionsRaw,
         'Copy mount assertions example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -761,11 +755,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.sceneWeatherFlowHighlighted),
+            h.InnerHTML(Snippet.sceneWeatherFlowHighlighted),
           ],
           [],
         ),
-        Snippets.sceneWeatherFlowRaw,
+        Snippet.sceneWeatherFlowRaw,
         'Copy Scene weather example to clipboard',
         copiedSnippets,
         'mb-8',

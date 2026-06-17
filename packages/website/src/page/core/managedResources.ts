@@ -10,7 +10,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import { patternsSubscriptionOrganizationRouter } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -74,11 +74,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.managedResourcesHighlighted),
+            h.InnerHTML(Snippet.managedResourcesHighlighted),
           ],
           [],
         ),
-        Snippets.managedResourcesRaw,
+        Snippet.managedResourcesRaw,
         'Copy Managed Resources example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -117,11 +117,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.managedResourcesCommandHighlighted),
+            h.InnerHTML(Snippet.managedResourcesCommandHighlighted),
           ],
           [],
         ),
-        Snippets.managedResourcesCommandRaw,
+        Snippet.managedResourcesCommandRaw,
         'Copy Managed Resource command example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -174,11 +174,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.managedResourcesLiftHighlighted),
+            h.InnerHTML(Snippet.managedResourcesLiftHighlighted),
           ],
           [],
         ),
-        Snippets.managedResourcesLiftRaw,
+        Snippet.managedResourcesLiftRaw,
         'Copy Managed Resources composition example to clipboard',
         copiedSnippets,
         'mb-8',

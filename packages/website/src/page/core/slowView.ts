@@ -9,7 +9,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import { coreViewMemoizationRouter } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -71,11 +71,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.slowViewThresholdHighlighted),
+            h.InnerHTML(Snippet.slowViewThresholdHighlighted),
           ],
           [],
         ),
-        Snippets.slowViewThresholdRaw,
+        Snippet.slowViewThresholdRaw,
         'Custom slow view threshold',
         copiedSnippets,
         'mb-8',

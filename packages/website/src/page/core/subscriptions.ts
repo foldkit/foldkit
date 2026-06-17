@@ -17,7 +17,7 @@ import {
   patternsSubscriptionOrganizationRouter,
   uiDragAndDropRouter,
 } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -195,11 +195,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.counterAutoCountHighlighted),
+            h.InnerHTML(Snippet.counterAutoCountHighlighted),
           ],
           [],
         ),
-        Snippets.counterAutoCountRaw,
+        Snippet.counterAutoCountRaw,
         'Copy subscription example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -285,11 +285,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.subscriptionAnimationFrameHighlighted),
+            h.InnerHTML(Snippet.subscriptionAnimationFrameHighlighted),
           ],
           [],
         ),
-        Snippets.subscriptionAnimationFrameRaw,
+        Snippet.subscriptionAnimationFrameRaw,
         'Copy animation frame example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -333,11 +333,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.subscriptionEquivalenceHighlighted),
+            h.InnerHTML(Snippet.subscriptionEquivalenceHighlighted),
           ],
           [],
         ),
-        Snippets.subscriptionEquivalenceRaw,
+        Snippet.subscriptionEquivalenceRaw,
         'Copy advanced subscription example to clipboard',
         copiedSnippets,
         'mb-8',

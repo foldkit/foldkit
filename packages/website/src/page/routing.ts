@@ -16,7 +16,7 @@ import {
   exampleDetailRouter,
   patternsInformingSubmodelsRouter,
 } from '../route'
-import * as Snippets from '../snippet'
+import * as Snippet from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
 const biparserHeader: TableOfContentsEntry = {
@@ -145,11 +145,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.routingDefineRoutesHighlighted),
+            h.InnerHTML(Snippet.routingDefineRoutesHighlighted),
           ],
           [],
         ),
-        Snippets.routingDefineRoutesRaw,
+        Snippet.routingDefineRoutesRaw,
         'Copy route definitions to clipboard',
         copiedSnippets,
         'mb-8',
@@ -192,11 +192,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.routingBuildRoutersHighlighted),
+            h.InnerHTML(Snippet.routingBuildRoutersHighlighted),
           ],
           [],
         ),
-        Snippets.routingBuildRoutersRaw,
+        Snippet.routingBuildRoutersRaw,
         'Copy router definitions to clipboard',
         copiedSnippets,
         'mb-8',
@@ -253,10 +253,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.routingParsingHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.routingParsingHighlighted)],
           [],
         ),
-        Snippets.routingParsingRaw,
+        Snippet.routingParsingRaw,
         'Copy URL parsing example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -280,13 +280,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.routingBuildingHighlighted),
-          ],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.routingBuildingHighlighted)],
           [],
         ),
-        Snippets.routingBuildingRaw,
+        Snippet.routingBuildingRaw,
         'Copy URL building example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -308,11 +305,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.routingQueryParamsHighlighted),
+            h.InnerHTML(Snippet.routingQueryParamsHighlighted),
           ],
           [],
         ),
-        Snippets.routingQueryParamsRaw,
+        Snippet.routingQueryParamsRaw,
         'Copy query parameters example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -348,10 +345,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.routingRestHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.routingRestHighlighted)],
           [],
         ),
-        Snippets.routingRestRaw,
+        Snippet.routingRestRaw,
         'Copy rest segments example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -404,10 +401,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.routingKeyedHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.routingKeyedHighlighted)],
           [],
         ),
-        Snippets.routingKeyedRaw,
+        Snippet.routingKeyedRaw,
         'Copy keyed route example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -425,11 +422,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.navigationCommandsHighlighted),
+            h.InnerHTML(Snippet.navigationCommandsHighlighted),
           ],
           [],
         ),
-        Snippets.navigationCommandsRaw,
+        Snippet.navigationCommandsRaw,
         'Copy navigation commands to clipboard',
         copiedSnippets,
         'mb-8',
@@ -489,11 +486,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.navigationHandleUrlRequestHighlighted),
+            h.InnerHTML(Snippet.navigationHandleUrlRequestHighlighted),
           ],
           [],
         ),
-        Snippets.navigationHandleUrlRequestRaw,
+        Snippet.navigationHandleUrlRequestRaw,
         'Copy URL request handling to clipboard',
         copiedSnippets,
         'mb-8',
@@ -527,13 +524,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.routingColdLoadHighlighted),
-          ],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.routingColdLoadHighlighted)],
           [],
         ),
-        Snippets.routingColdLoadRaw,
+        Snippet.routingColdLoadRaw,
         'Copy cold load example to clipboard',
         copiedSnippets,
         'mb-8',

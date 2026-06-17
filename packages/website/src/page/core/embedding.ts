@@ -9,7 +9,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import { exampleDetailRouter } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -130,10 +130,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.embeddingPortsHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.embeddingPortsHighlighted)],
           [],
         ),
-        Snippets.embeddingPortsRaw,
+        Snippet.embeddingPortsRaw,
         'Copy port declaration example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -162,11 +162,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.embeddingInboundSubscriptionHighlighted),
+            h.InnerHTML(Snippet.embeddingInboundSubscriptionHighlighted),
           ],
           [],
         ),
-        Snippets.embeddingInboundSubscriptionRaw,
+        Snippet.embeddingInboundSubscriptionRaw,
         'Copy inbound Subscription example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -191,11 +191,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.embeddingOutboundCommandHighlighted),
+            h.InnerHTML(Snippet.embeddingOutboundCommandHighlighted),
           ],
           [],
         ),
-        Snippets.embeddingOutboundCommandRaw,
+        Snippet.embeddingOutboundCommandRaw,
         'Copy outbound Command example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -222,10 +222,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.embeddingHostHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.embeddingHostHighlighted)],
           [],
         ),
-        Snippets.embeddingHostRaw,
+        Snippet.embeddingHostRaw,
         'Copy host wiring example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -267,11 +267,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.embeddingReactHostHighlighted),
+            h.InnerHTML(Snippet.embeddingReactHostHighlighted),
           ],
           [],
         ),
-        Snippets.embeddingReactHostRaw,
+        Snippet.embeddingReactHostRaw,
         'Copy React host example to clipboard',
         copiedSnippets,
         'mb-8',

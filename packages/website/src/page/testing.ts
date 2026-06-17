@@ -14,7 +14,7 @@ import {
   testingSceneRouter,
   testingStoryRouter,
 } from '../route'
-import * as Snippets from '../snippet'
+import * as Snippet from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -105,11 +105,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.counterCommandsTestHighlighted),
+            h.InnerHTML(Snippet.counterCommandsTestHighlighted),
           ],
           [],
         ),
-        Snippets.counterCommandsTestRaw,
+        Snippet.counterCommandsTestRaw,
         'Copy Story example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -144,11 +144,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.sceneWeatherFlowHighlighted),
+            h.InnerHTML(Snippet.sceneWeatherFlowHighlighted),
           ],
           [],
         ),
-        Snippets.sceneWeatherFlowRaw,
+        Snippet.sceneWeatherFlowRaw,
         'Copy Scene example to clipboard',
         copiedSnippets,
         'mb-8',

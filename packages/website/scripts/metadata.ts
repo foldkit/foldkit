@@ -80,6 +80,11 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Moving from React to a principled architecture? Foldkit replaces hooks, useEffect, and component state with The Elm Architecture: one Model, one update function, explicit effects. Built on Effect-TS.',
     'Docs',
   ),
+  ComingFromTanStackQuery: docs(
+    'Coming from TanStack Query',
+    'Coming from TanStack Query? Foldkit has no useQuery. Caching, background refetch, deduplication, and out-of-order response handling are not features here, they are ordinary Model state and a pure update function. Includes the latest-request-wins pattern for response races.',
+    'Docs',
+  ),
   ReactComparison: docs(
     'Foldkit vs React: Side by Side',
     'A side-by-side comparison of the same pixel art editor built in both Foldkit and React. Covers state management, side effects, testing, performance, and architectural tradeoffs.',

@@ -9,7 +9,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import { coreSubmodelRouter } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const initHeader: TableOfContentsEntry = {
@@ -52,10 +52,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.initSimpleHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.initSimpleHighlighted)],
           [],
         ),
-        Snippets.initSimpleRaw,
+        Snippet.initSimpleRaw,
         'Copy init example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -72,13 +72,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.flagsDefinitionHighlighted),
-          ],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.flagsDefinitionHighlighted)],
           [],
         ),
-        Snippets.flagsDefinitionRaw,
+        Snippet.flagsDefinitionRaw,
         'Copy flags definition to clipboard',
         copiedSnippets,
         'mb-8',
@@ -88,10 +85,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.initWithFlagsHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.initWithFlagsHighlighted)],
           [],
         ),
-        Snippets.initWithFlagsRaw,
+        Snippet.initWithFlagsRaw,
         'Copy init with flags to clipboard',
         copiedSnippets,
         'mb-8',

@@ -10,7 +10,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../prose'
 import { apiModuleRouter, coreViewRouter } from '../route'
-import * as Snippets from '../snippet'
+import * as Snippet from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
 const familiarityHeader: TableOfContentsEntry = {
@@ -121,11 +121,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonJsxButtonHighlighted),
+            h.InnerHTML(Snippet.comparisonJsxButtonHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonJsxButtonRaw,
+        Snippet.comparisonJsxButtonRaw,
         'Copy JSX button',
         copiedSnippets,
         'mb-4',
@@ -135,11 +135,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonDslButtonHighlighted),
+            h.InnerHTML(Snippet.comparisonDslButtonHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonDslButtonRaw,
+        Snippet.comparisonDslButtonRaw,
         'Copy DSL button',
         copiedSnippets,
         'mb-6',
@@ -157,11 +157,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonJsxInputHighlighted),
+            h.InnerHTML(Snippet.comparisonJsxInputHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonJsxInputRaw,
+        Snippet.comparisonJsxInputRaw,
         'Copy JSX input',
         copiedSnippets,
         'mb-4',
@@ -171,11 +171,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonDslInputHighlighted),
+            h.InnerHTML(Snippet.comparisonDslInputHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonDslInputRaw,
+        Snippet.comparisonDslInputRaw,
         'Copy DSL input',
         copiedSnippets,
         'mb-6',
@@ -214,11 +214,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonJsxConditionalHighlighted),
+            h.InnerHTML(Snippet.comparisonJsxConditionalHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonJsxConditionalRaw,
+        Snippet.comparisonJsxConditionalRaw,
         'Copy JSX conditional',
         copiedSnippets,
         'mb-4',
@@ -228,11 +228,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonDslConditionalHighlighted),
+            h.InnerHTML(Snippet.comparisonDslConditionalHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonDslConditionalRaw,
+        Snippet.comparisonDslConditionalRaw,
         'Copy DSL conditional',
         copiedSnippets,
         'mb-6',

@@ -11,7 +11,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../prose'
 import { coreSubmodelRouter, exampleDetailRouter } from '../route'
-import * as Snippets from '../snippet'
+import * as Snippet from '../snippet'
 import {
   type CopiedSnippets,
   codeBlock,
@@ -92,7 +92,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ', a consistent file layout helps you navigate the codebase. Each page or feature becomes a folder:',
       ),
       codeBlock(
-        Snippets.fileLayoutRaw,
+        Snippet.fileLayoutRaw,
         'Copy file layout to clipboard',
         copiedSnippets,
         'mb-8',
@@ -117,10 +117,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.domainModuleHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.domainModuleHighlighted)],
           [],
         ),
-        Snippets.domainModuleRaw,
+        Snippet.domainModuleRaw,
         'Copy domain module to clipboard',
         copiedSnippets,
         'mb-8',
@@ -140,10 +140,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.indexReexportsHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.indexReexportsHighlighted)],
           [],
         ),
-        Snippets.indexReexportsRaw,
+        Snippet.indexReexportsRaw,
         'Copy index re-exports to clipboard',
         copiedSnippets,
         'mb-8',
@@ -151,10 +151,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para('Then import and use the namespace:'),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.indexUsageHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.indexUsageHighlighted)],
           [],
         ),
-        Snippets.indexUsageRaw,
+        Snippet.indexUsageRaw,
         'Copy namespace usage to clipboard',
         copiedSnippets,
         'mb-8',

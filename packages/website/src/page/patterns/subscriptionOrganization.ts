@@ -9,7 +9,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import { coreSubmodelRouter, coreSubscriptionsRouter } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -314,11 +314,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.subscriptionOrganizationChildHighlighted),
+            h.InnerHTML(Snippet.subscriptionOrganizationChildHighlighted),
           ],
           [],
         ),
-        Snippets.subscriptionOrganizationChildRaw,
+        Snippet.subscriptionOrganizationChildRaw,
         'Copy leaf Submodel Subscription file to clipboard',
         copiedSnippets,
         'mb-8',
@@ -337,11 +337,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.subscriptionOrganizationComposingHighlighted),
+            h.InnerHTML(Snippet.subscriptionOrganizationComposingHighlighted),
           ],
           [],
         ),
-        Snippets.subscriptionOrganizationComposingRaw,
+        Snippet.subscriptionOrganizationComposingRaw,
         'Copy composing Submodel Subscription file to clipboard',
         copiedSnippets,
         'mb-8',
@@ -360,11 +360,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.subscriptionOrganizationRootHighlighted),
+            h.InnerHTML(Snippet.subscriptionOrganizationRootHighlighted),
           ],
           [],
         ),
-        Snippets.subscriptionOrganizationRootRaw,
+        Snippet.subscriptionOrganizationRootRaw,
         'Copy root Subscription file to clipboard',
         copiedSnippets,
         'mb-8',

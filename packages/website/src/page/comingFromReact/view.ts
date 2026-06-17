@@ -26,7 +26,7 @@ import {
   testingStoryRouter,
   uiOverviewRouter,
 } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import { comparisonTable } from '../../view/table'
 import { FAQ_IDS } from './faq'
@@ -212,10 +212,10 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         para('A counter in React:'),
         highlightedCodeBlock(
           h.div(
-            [h.Class('text-sm'), h.InnerHTML(Snippets.reactCounterHighlighted)],
+            [h.Class('text-sm'), h.InnerHTML(Snippet.reactCounterHighlighted)],
             [],
           ),
-          Snippets.reactCounterRaw,
+          Snippet.reactCounterRaw,
           'Copy React counter',
           copiedSnippets,
           'mb-4',
@@ -225,11 +225,11 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           h.div(
             [
               h.Class('text-sm'),
-              h.InnerHTML(Snippets.foldkitCounterHighlighted),
+              h.InnerHTML(Snippet.foldkitCounterHighlighted),
             ],
             [],
           ),
-          Snippets.foldkitCounterRaw,
+          Snippet.foldkitCounterRaw,
           'Copy Foldkit counter',
           copiedSnippets,
           'mb-6',
@@ -250,11 +250,11 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           h.div(
             [
               h.Class('text-sm'),
-              h.InnerHTML(Snippets.reactCounterResetHighlighted),
+              h.InnerHTML(Snippet.reactCounterResetHighlighted),
             ],
             [],
           ),
-          Snippets.reactCounterResetRaw,
+          Snippet.reactCounterResetRaw,
           'Copy React counter with auto-play',
           copiedSnippets,
           'mb-4',
@@ -267,11 +267,11 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           h.div(
             [
               h.Class('text-sm'),
-              h.InnerHTML(Snippets.foldkitCounterResetHighlighted),
+              h.InnerHTML(Snippet.foldkitCounterResetHighlighted),
             ],
             [],
           ),
-          Snippets.foldkitCounterResetRaw,
+          Snippet.foldkitCounterResetRaw,
           'Copy Foldkit counter with auto-play',
           copiedSnippets,
           'mb-6',
@@ -298,11 +298,11 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           h.div(
             [
               h.Class('text-sm'),
-              h.InnerHTML(Snippets.reactCounterAutoPlayHighlighted),
+              h.InnerHTML(Snippet.reactCounterAutoPlayHighlighted),
             ],
             [],
           ),
-          Snippets.reactCounterAutoPlayRaw,
+          Snippet.reactCounterAutoPlayRaw,
           'Copy React counter with step size',
           copiedSnippets,
           'mb-4',
@@ -315,11 +315,11 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           h.div(
             [
               h.Class('text-sm'),
-              h.InnerHTML(Snippets.foldkitCounterAutoPlayHighlighted),
+              h.InnerHTML(Snippet.foldkitCounterAutoPlayHighlighted),
             ],
             [],
           ),
-          Snippets.foldkitCounterAutoPlayRaw,
+          Snippet.foldkitCounterAutoPlayRaw,
           'Copy Foldkit counter with step size',
           copiedSnippets,
           'mb-6',
@@ -380,11 +380,11 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
               h.div(
                 [
                   h.Class('text-sm'),
-                  h.InnerHTML(Snippets.multipleInstancesHighlighted),
+                  h.InnerHTML(Snippet.multipleInstancesHighlighted),
                 ],
                 [],
               ),
-              Snippets.multipleInstancesRaw,
+              Snippet.multipleInstancesRaw,
               'Copy Model example',
               copiedSnippets,
               'mb-4',

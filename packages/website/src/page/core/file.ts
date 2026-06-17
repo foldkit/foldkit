@@ -7,7 +7,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -99,11 +99,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.fileMetadataAndReadHighlighted),
+            h.InnerHTML(Snippet.fileMetadataAndReadHighlighted),
           ],
           [],
         ),
-        Snippets.fileMetadataAndReadRaw,
+        Snippet.fileMetadataAndReadRaw,
         'Copy file metadata and read example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -136,10 +136,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.fileSelectHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.fileSelectHighlighted)],
           [],
         ),
-        Snippets.fileSelectRaw,
+        Snippet.fileSelectRaw,
         'Copy file select example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -164,13 +164,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.uiFileDropBasicHighlighted),
-          ],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.uiFileDropBasicHighlighted)],
           [],
         ),
-        Snippets.uiFileDropBasicRaw,
+        Snippet.uiFileDropBasicRaw,
         'Copy FileDrop example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -200,10 +197,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.fileSceneTestHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.fileSceneTestHighlighted)],
           [],
         ),
-        Snippets.fileSceneTestRaw,
+        Snippet.fileSceneTestRaw,
         'Copy file scene test example to clipboard',
         copiedSnippets,
         'mb-8',

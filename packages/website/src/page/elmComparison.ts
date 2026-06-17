@@ -21,7 +21,7 @@ import {
   testingStoryRouter,
   uiOverviewRouter,
 } from '../route'
-import * as Snippets from '../snippet'
+import * as Snippet from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 
@@ -338,11 +338,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonElmMsgHighlighted),
+            h.InnerHTML(Snippet.comparisonElmMsgHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonElmMsgRaw,
+        Snippet.comparisonElmMsgRaw,
         'Copy Elm Msg',
         copiedSnippets,
         'mb-4',
@@ -355,11 +355,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitMessageHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitMessageHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitMessageRaw,
+        Snippet.comparisonFoldkitMessageRaw,
         'Copy Foldkit messages',
         copiedSnippets,
         'mb-4',
@@ -402,11 +402,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonElmUpdateHighlighted),
+            h.InnerHTML(Snippet.comparisonElmUpdateHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonElmUpdateRaw,
+        Snippet.comparisonElmUpdateRaw,
         'Copy Elm update',
         copiedSnippets,
         'mb-4',
@@ -416,11 +416,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitUpdateHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitUpdateHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitUpdateRaw,
+        Snippet.comparisonFoldkitUpdateRaw,
         'Copy Foldkit update',
         copiedSnippets,
         'mb-4',
@@ -463,11 +463,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonElmModelHighlighted),
+            h.InnerHTML(Snippet.comparisonElmModelHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonElmModelRaw,
+        Snippet.comparisonElmModelRaw,
         'Copy Elm model',
         copiedSnippets,
         'mb-4',
@@ -484,11 +484,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitModelHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitModelHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitModelRaw,
+        Snippet.comparisonFoldkitModelRaw,
         'Copy Foldkit model',
         copiedSnippets,
         'mb-4',
@@ -506,11 +506,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonElmPortsHighlighted),
+            h.InnerHTML(Snippet.comparisonElmPortsHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonElmPortsRaw,
+        Snippet.comparisonElmPortsRaw,
         'Copy Elm ports',
         copiedSnippets,
         'mb-4',
@@ -524,11 +524,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonElmPortsJsHighlighted),
+            h.InnerHTML(Snippet.comparisonElmPortsJsHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonElmPortsJsRaw,
+        Snippet.comparisonElmPortsJsRaw,
         'Copy port JavaScript',
         copiedSnippets,
         'mb-4',
@@ -549,11 +549,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitCommandHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitCommandHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitCommandRaw,
+        Snippet.comparisonFoldkitCommandRaw,
         'Copy Foldkit commands',
         copiedSnippets,
         'mb-4',
@@ -577,11 +577,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonElmFlagsHighlighted),
+            h.InnerHTML(Snippet.comparisonElmFlagsHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonElmFlagsRaw,
+        Snippet.comparisonElmFlagsRaw,
         'Copy Elm flags',
         copiedSnippets,
         'mb-4',
@@ -596,11 +596,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitFlagsHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitFlagsHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitFlagsRaw,
+        Snippet.comparisonFoldkitFlagsRaw,
         'Copy Foldkit flags',
         copiedSnippets,
         'mb-4',
@@ -622,11 +622,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonElmSubscriptionsHighlighted),
+            h.InnerHTML(Snippet.comparisonElmSubscriptionsHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonElmSubscriptionsRaw,
+        Snippet.comparisonElmSubscriptionsRaw,
         'Copy Elm subscriptions',
         copiedSnippets,
         'mb-4',
@@ -636,11 +636,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitSubscriptionHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitSubscriptionHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitSubscriptionRaw,
+        Snippet.comparisonFoldkitSubscriptionRaw,
         'Copy Foldkit subscriptions',
         copiedSnippets,
         'mb-4',
@@ -668,11 +668,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonElmLazyHighlighted),
+            h.InnerHTML(Snippet.comparisonElmLazyHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonElmLazyRaw,
+        Snippet.comparisonElmLazyRaw,
         'Copy Elm lazy views',
         copiedSnippets,
         'mb-4',
@@ -682,11 +682,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitMemoizationHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitMemoizationHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitMemoizationRaw,
+        Snippet.comparisonFoldkitMemoizationRaw,
         'Copy Foldkit memoization',
         copiedSnippets,
         'mb-4',
@@ -715,11 +715,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonElmCellViewHighlighted),
+            h.InnerHTML(Snippet.comparisonElmCellViewHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonElmCellViewRaw,
+        Snippet.comparisonElmCellViewRaw,
         'Copy Elm cell view',
         copiedSnippets,
         'mb-4',
@@ -728,11 +728,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitCellViewHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitCellViewHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitCellViewRaw,
+        Snippet.comparisonFoldkitCellViewRaw,
         'Copy Foldkit cell view',
         copiedSnippets,
         'mb-4',
@@ -788,11 +788,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonElmTestHighlighted),
+            h.InnerHTML(Snippet.comparisonElmTestHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonElmTestRaw,
+        Snippet.comparisonElmTestRaw,
         'Copy Elm test',
         copiedSnippets,
         'mb-4',
@@ -818,11 +818,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.comparisonFoldkitTestHighlighted),
+            h.InnerHTML(Snippet.comparisonFoldkitTestHighlighted),
           ],
           [],
         ),
-        Snippets.comparisonFoldkitTestRaw,
+        Snippet.comparisonFoldkitTestRaw,
         'Copy Foldkit test',
         copiedSnippets,
         'mb-4',

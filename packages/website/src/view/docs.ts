@@ -315,6 +315,7 @@ const searchWeight = (tag: string): string =>
       'FieldValidation',
       'ProjectOrganization',
       'ComingFromReact',
+      'ComingFromTanStackQuery',
       'ReactComparison',
       'ElmComparison',
       'WhyNoJsx',
@@ -417,6 +418,13 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
             toParentMessage: message => GotComingFromReactMessage({ message }),
           }),
           Page.ComingFromReact.tableOfContents,
+        ),
+      ComingFromTanStackQuery: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.ComingFromTanStackQuery.view, [
+            model.copiedSnippets,
+          ]),
+          Page.ComingFromTanStackQuery.tableOfContents,
         ),
       ReactComparison: () =>
         withTableOfContents(

@@ -34,7 +34,7 @@ import {
   typingTerminalRouter,
   uiOverviewRouter,
 } from '../route'
-import * as Snippets from '../snippet'
+import * as Snippet from '../snippet'
 import {
   type CopiedSnippets,
   codeBlock,
@@ -716,13 +716,10 @@ const testingSection = (copiedSnippets: CopiedSnippets): Html => {
           ),
           highlightedCodeBlock(
             h.div(
-              [
-                h.Class('text-sm'),
-                h.InnerHTML(Snippets.landingTestHighlighted),
-              ],
+              [h.Class('text-sm'), h.InnerHTML(Snippet.landingTestHighlighted)],
               [],
             ),
-            Snippets.landingTestRaw,
+            Snippet.landingTestRaw,
             'Copy test example to clipboard',
             copiedSnippets,
             '',

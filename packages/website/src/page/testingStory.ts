@@ -11,7 +11,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../prose'
 import { coreCommandsRouter } from '../route'
-import * as Snippets from '../snippet'
+import * as Snippet from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
 const whyHeader: TableOfContentsEntry = {
@@ -101,10 +101,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.testingApiHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.testingApiHighlighted)],
           [],
         ),
-        Snippets.testingApiRaw,
+        Snippet.testingApiRaw,
         'Copy API reference to clipboard',
         copiedSnippets,
         'mb-8',
@@ -138,11 +138,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.counterCommandsTestHighlighted),
+            h.InnerHTML(Snippet.counterCommandsTestHighlighted),
           ],
           [],
         ),
-        Snippets.counterCommandsTestRaw,
+        Snippet.counterCommandsTestRaw,
         'Copy simple test example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -168,11 +168,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.testingWeatherFlowHighlighted),
+            h.InnerHTML(Snippet.testingWeatherFlowHighlighted),
           ],
           [],
         ),
-        Snippets.testingWeatherFlowRaw,
+        Snippet.testingWeatherFlowRaw,
         'Copy multi-step test example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -218,11 +218,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.testingCommandEffectHighlighted),
+            h.InnerHTML(Snippet.testingCommandEffectHighlighted),
           ],
           [],
         ),
-        Snippets.testingCommandEffectRaw,
+        Snippet.testingCommandEffectRaw,
         'Copy Command Effect test example to clipboard',
         copiedSnippets,
         'mb-8',

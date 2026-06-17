@@ -10,7 +10,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import { coreArchitectureRouter, coreSubmodelRouter } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -49,13 +49,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para('The counter has three Messages:'),
       highlightedCodeBlock(
         h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.counterMessagesHighlighted),
-          ],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.counterMessagesHighlighted)],
           [],
         ),
-        Snippets.counterMessagesRaw,
+        Snippet.counterMessagesRaw,
         'Copy messages example to clipboard',
         copiedSnippets,
         'mb-8',

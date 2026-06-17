@@ -18,7 +18,7 @@ import {
   coreSubscriptionsRouter,
   testingRouter,
 } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -271,20 +271,20 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.viewPureBadHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.viewPureBadHighlighted)],
           [],
         ),
-        Snippets.viewPureBadRaw,
+        Snippet.viewPureBadRaw,
         'Copy bad view example to clipboard',
         copiedSnippets,
         'mb-4',
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.viewPureGoodHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.viewPureGoodHighlighted)],
           [],
         ),
-        Snippets.viewPureGoodRaw,
+        Snippet.viewPureGoodRaw,
         'Copy good view example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -310,20 +310,20 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.updatePureBadHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.updatePureBadHighlighted)],
           [],
         ),
-        Snippets.updatePureBadRaw,
+        Snippet.updatePureBadRaw,
         'Copy bad update example to clipboard',
         copiedSnippets,
         'mb-4',
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.updatePureGoodHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.updatePureGoodHighlighted)],
           [],
         ),
-        Snippets.updatePureGoodRaw,
+        Snippet.updatePureGoodRaw,
         'Copy good update example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -344,10 +344,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       tableOfContentsEntryToHeader(dontComputeInUpdateHeader),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.pureUpdateBadHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.pureUpdateBadHighlighted)],
           [],
         ),
-        Snippets.pureUpdateBadRaw,
+        Snippet.pureUpdateBadRaw,
         'Copy bad example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -358,10 +358,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.pureUpdateGoodHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.pureUpdateGoodHighlighted)],
           [],
         ),
-        Snippets.pureUpdateGoodRaw,
+        Snippet.pureUpdateGoodRaw,
         'Copy good example to clipboard',
         copiedSnippets,
         'mb-8',

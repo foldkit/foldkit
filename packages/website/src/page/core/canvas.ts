@@ -13,7 +13,7 @@ import {
   coreSubscriptionsRouter,
   exampleDetailRouter,
 } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -152,10 +152,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippets.canvasBasicHighlighted)],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.canvasBasicHighlighted)],
           [],
         ),
-        Snippets.canvasBasicRaw,
+        Snippet.canvasBasicRaw,
         'Copy Canvas example to clipboard',
         copiedSnippets,
         'mb-8',

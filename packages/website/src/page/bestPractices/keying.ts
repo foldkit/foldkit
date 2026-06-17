@@ -12,7 +12,7 @@ import {
   tableOfContentsEntryToHeader,
   warningCallout,
 } from '../../prose'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const keyingHeader: TableOfContentsEntry = {
@@ -89,11 +89,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.keyingBranchingViewsHighlighted),
+            h.InnerHTML(Snippet.keyingBranchingViewsHighlighted),
           ],
           [],
         ),
-        Snippets.keyingBranchingViewsRaw,
+        Snippet.keyingBranchingViewsRaw,
         'Copy branching views keying example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -111,13 +111,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.keyingListItemsHighlighted),
-          ],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.keyingListItemsHighlighted)],
           [],
         ),
-        Snippets.keyingListItemsRaw,
+        Snippet.keyingListItemsRaw,
         'Copy list items keying example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -135,11 +132,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.keyingConditionalInsertsHighlighted),
+            h.InnerHTML(Snippet.keyingConditionalInsertsHighlighted),
           ],
           [],
         ),
-        Snippets.keyingConditionalInsertsRaw,
+        Snippet.keyingConditionalInsertsRaw,
         'Copy conditional inserts keying example to clipboard',
         copiedSnippets,
         'mb-8',

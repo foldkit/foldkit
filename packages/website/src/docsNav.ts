@@ -10,6 +10,7 @@ import {
   bestPracticesMessagesRouter,
   bestPracticesSideEffectsRouter,
   comingFromReactRouter,
+  comingFromTanStackQueryRouter,
   coreArchitectureRouter,
   coreCanvasRouter,
   coreCommandsRouter,
@@ -310,6 +311,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'ComingFromReact',
           href: comingFromReactRouter(),
           label: 'Coming from React',
+        },
+        {
+          _tag: 'ComingFromTanStackQuery',
+          href: comingFromTanStackQueryRouter(),
+          label: 'Coming from TanStack Query',
         },
         {
           _tag: 'ReactComparison',

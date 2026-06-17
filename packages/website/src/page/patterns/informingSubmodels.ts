@@ -17,7 +17,7 @@ import {
   exampleDetailRouter,
   routingAndNavigationRouter,
 } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -117,11 +117,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.informingSubmodelsChildHighlighted),
+            h.InnerHTML(Snippet.informingSubmodelsChildHighlighted),
           ],
           [],
         ),
-        Snippets.informingSubmodelsChildRaw,
+        Snippet.informingSubmodelsChildRaw,
         'Copy child code to clipboard',
         copiedSnippets,
         'mb-8',
@@ -157,11 +157,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.informingSubmodelsParentHighlighted),
+            h.InnerHTML(Snippet.informingSubmodelsParentHighlighted),
           ],
           [],
         ),
-        Snippets.informingSubmodelsParentRaw,
+        Snippet.informingSubmodelsParentRaw,
         'Copy parent code to clipboard',
         copiedSnippets,
         'mb-8',

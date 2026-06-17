@@ -10,7 +10,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import { coreMountRouter, exampleDetailRouter } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -97,11 +97,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.customElementDefineHighlighted),
+            h.InnerHTML(Snippet.customElementDefineHighlighted),
           ],
           [],
         ),
-        Snippets.customElementDefineRaw,
+        Snippet.customElementDefineRaw,
         'Copy CustomElement.define example to clipboard',
         copiedSnippets,
         'mb-8',

@@ -14,7 +14,7 @@ import {
   coreMountRouter,
   testingRouter,
 } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -90,13 +90,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.counterCommandsHighlighted),
-          ],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.counterCommandsHighlighted)],
           [],
         ),
-        Snippets.counterCommandsRaw,
+        Snippet.counterCommandsRaw,
         'Copy commands example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -157,11 +154,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.counterCommandsTestHighlighted),
+            h.InnerHTML(Snippet.counterCommandsTestHighlighted),
           ],
           [],
         ),
-        Snippets.counterCommandsTestRaw,
+        Snippet.counterCommandsTestRaw,
         'Copy test example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -194,11 +191,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.counterHttpCommandHighlighted),
+            h.InnerHTML(Snippet.counterHttpCommandHighlighted),
           ],
           [],
         ),
-        Snippets.counterHttpCommandRaw,
+        Snippet.counterHttpCommandRaw,
         'Copy HTTP command example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -232,13 +229,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       highlightedCodeBlock(
         h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.commandWithArgsHighlighted),
-          ],
+          [h.Class('text-sm'), h.InnerHTML(Snippet.commandWithArgsHighlighted)],
           [],
         ),
-        Snippets.commandWithArgsRaw,
+        Snippet.commandWithArgsRaw,
         'Copy command with args example to clipboard',
         copiedSnippets,
         'mb-8',

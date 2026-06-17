@@ -18,6 +18,7 @@ export const WhyNoJsxRoute = r('WhyNoJsx')
 export const WhatAboutSsrRoute = r('WhatAboutSsr')
 export const PerformanceRoute = r('Performance')
 export const ComingFromReactRoute = r('ComingFromReact')
+export const ComingFromTanStackQueryRoute = r('ComingFromTanStackQuery')
 export const ReactComparisonRoute = r('ReactComparison')
 export const ElmComparisonRoute = r('ElmComparison')
 export const GettingStartedRoute = r('GettingStarted')
@@ -115,6 +116,7 @@ export const DocsRoute = S.Union([
   WhatAboutSsrRoute,
   PerformanceRoute,
   ComingFromReactRoute,
+  ComingFromTanStackQueryRoute,
   ReactComparisonRoute,
   ElmComparisonRoute,
   GettingStartedRoute,
@@ -242,6 +244,10 @@ export const performanceRouter = faq('performance', PerformanceRoute)
 export const comingFromReactRouter = react(
   'coming-from-react',
   ComingFromReactRoute,
+)
+export const comingFromTanStackQueryRouter = react(
+  'coming-from-tanstack-query',
+  ComingFromTanStackQueryRoute,
 )
 export const reactComparisonRouter = react(
   'foldkit-vs-react-side-by-side',
@@ -407,7 +413,11 @@ const getStartedParser = oneOf(manifestoRouter, gettingStartedRouter)
 
 const faqParser = oneOf(whyNoJsxRouter, whatAboutSsrRouter, performanceRouter)
 
-const reactParser = oneOf(comingFromReactRouter, reactComparisonRouter)
+const reactParser = oneOf(
+  comingFromReactRouter,
+  comingFromTanStackQueryRouter,
+  reactComparisonRouter,
+)
 
 const elmParser = elmComparisonRouter
 
