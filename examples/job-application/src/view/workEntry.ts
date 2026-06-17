@@ -1,7 +1,7 @@
 import { Submodel } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
-import { Checkbox, DatePicker } from '@foldkit/ui'
+import { Button, Checkbox, DatePicker } from '@foldkit/ui'
 
 import { WorkHistory } from '../step'
 import {
@@ -154,16 +154,19 @@ export const workEntryView = Submodel.defineView<
       h.div(
         [h.Class('flex justify-end')],
         [
-          h.button(
-            [
-              h.Type('button'),
-              h.OnClick(WorkHistory.Entry.ClickedRemoveSelf()),
-              h.Class(
-                'text-sm text-gray-400 hover:text-red-500 transition cursor-pointer',
+          Button.view<WorkHistory.Entry.Message>({
+            onClick: WorkHistory.Entry.ClickedRemoveSelf(),
+            toView: attributes =>
+              h.button(
+                [
+                  ...attributes.button,
+                  h.Class(
+                    'text-sm text-gray-400 hover:text-red-500 transition cursor-pointer',
+                  ),
+                ],
+                ['Remove position'],
               ),
-            ],
-            ['Remove position'],
-          ),
+          }),
         ],
       ),
     ],

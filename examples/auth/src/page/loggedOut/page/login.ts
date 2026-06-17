@@ -23,6 +23,8 @@ import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
+import { Button, Input } from '@foldkit/ui'
+
 import { Session } from '../../../domain/session'
 import { homeRouter } from '../../../route'
 
@@ -141,6 +143,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       SubmittedForm: () => {
+        if (model.isSubmitting) {
+          return [model, [], Option.none()]
+        }
+
         if (!isFormValid(model)) {
           return [model, [], Option.none()]
         }
@@ -205,49 +211,58 @@ const fieldView = (
     fieldToBorderClass(field),
   )
 
-  return h.div(
-    [],
-    [
+  return Input.view<Message>({
+    id,
+    type,
+    value: field.value,
+    placeholder,
+    onInput: onUpdate,
+    isInvalid: field._tag === 'Invalid',
+    toView: attributes =>
       h.div(
-        [h.Class('flex items-center gap-2 mb-1')],
+        [],
         [
-          h.label(
-            [h.For(id), h.Class('block text-sm font-medium text-gray-700')],
-            [labelText],
+          h.div(
+            [h.Class('flex items-center gap-2 mb-1')],
+            [
+              h.label(
+                [
+                  ...attributes.label,
+                  h.Class('block text-sm font-medium text-gray-700'),
+                ],
+                [labelText],
+              ),
+              M.value(field).pipe(
+                M.tagsExhaustive({
+                  NotValidated: () => h.empty,
+                  Validating: () =>
+                    h.span([h.Class('text-blue-600 text-sm')], ['...']),
+                  Valid: () =>
+                    h.span([h.Class('text-green-600 text-sm')], ['✓']),
+                  Invalid: () => h.empty,
+                }),
+              ),
+            ],
           ),
+          h.input([...attributes.input, h.Class(inputClass)]),
           M.value(field).pipe(
             M.tagsExhaustive({
               NotValidated: () => h.empty,
-              Validating: () =>
-                h.span([h.Class('text-blue-600 text-sm')], ['...']),
-              Valid: () => h.span([h.Class('text-green-600 text-sm')], ['✓']),
-              Invalid: () => h.empty,
+              Validating: () => h.empty,
+              Valid: () => h.empty,
+              Invalid: ({ errors }) =>
+                h.div(
+                  [
+                    ...attributes.description,
+                    h.Class('text-red-600 text-sm mt-1'),
+                  ],
+                  [Array.headNonEmpty(errors)],
+                ),
             }),
           ),
         ],
       ),
-      h.input([
-        h.Id(id),
-        h.Type(type),
-        h.Value(field.value),
-        h.Placeholder(placeholder),
-        h.Class(inputClass),
-        h.OnInput(onUpdate),
-      ]),
-      M.value(field).pipe(
-        M.tagsExhaustive({
-          NotValidated: () => h.empty,
-          Validating: () => h.empty,
-          Valid: () => h.empty,
-          Invalid: ({ errors }) =>
-            h.div(
-              [h.Class('text-red-600 text-sm mt-1')],
-              [Array.headNonEmpty(errors)],
-            ),
-        }),
-      ),
-    ],
-  )
+  })
 }
 
 export const view = Submodel.defineView<Model, Message>((model): Html => {
@@ -293,21 +308,25 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
                 'password',
                 'Enter your password',
               ),
-              h.button(
-                [
-                  h.Type('submit'),
-                  h.Disabled(!canSubmit),
-                  h.Class(
-                    clsx(
-                      'w-full py-3 font-medium rounded-lg transition',
-                      canSubmit
-                        ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed',
-                    ),
+              Button.view<Message>({
+                type: 'submit',
+                isDisabled: !canSubmit,
+                toView: attributes =>
+                  h.button(
+                    [
+                      ...attributes.button,
+                      h.Class(
+                        clsx(
+                          'w-full py-3 font-medium rounded-lg transition',
+                          canSubmit
+                            ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed',
+                        ),
+                      ),
+                    ],
+                    [model.isSubmitting ? 'Signing in...' : 'Sign In'],
                   ),
-                ],
-                [model.isSubmitting ? 'Signing in...' : 'Sign In'],
-              ),
+              }),
             ],
           ),
           h.div(

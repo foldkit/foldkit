@@ -25,7 +25,7 @@ import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 
-import { Input, Textarea } from '@foldkit/ui'
+import { Button, Input, Textarea } from '@foldkit/ui'
 
 const nameRules = makeRules({
   rules: [Rule.minLength(2, 'Name must be at least 2 characters')],
@@ -215,6 +215,10 @@ export const update = (
       ],
 
       ClickedFormSubmit: () => {
+        if (model.submission._tag === 'Submitting') {
+          return [model, []]
+        }
+
         if (!isFormValid(model)) {
           return [model, []]
         }
@@ -451,25 +455,29 @@ export const view = (model: Model): Document => {
                 value => UpdatedMessage({ value }),
               ),
 
-              h.button(
-                [
-                  h.Type('submit'),
-                  h.Disabled(!canSubmit),
-                  h.Class(
-                    clsx(
-                      'w-full py-2 px-4 rounded-md transition',
-                      canSubmit
-                        ? 'bg-blue-500 text-white hover:bg-blue-600'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed',
-                    ),
+              Button.view<Message>({
+                type: 'submit',
+                isDisabled: !canSubmit,
+                toView: attributes =>
+                  h.button(
+                    [
+                      ...attributes.button,
+                      h.Class(
+                        clsx(
+                          'w-full py-2 px-4 rounded-md transition',
+                          canSubmit
+                            ? 'bg-blue-500 text-white hover:bg-blue-600'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed',
+                        ),
+                      ),
+                    ],
+                    [
+                      model.submission._tag === 'Submitting'
+                        ? 'Joining...'
+                        : 'Join Waitlist',
+                    ],
                   ),
-                ],
-                [
-                  model.submission._tag === 'Submitting'
-                    ? 'Joining...'
-                    : 'Join Waitlist',
-                ],
-              ),
+              }),
             ],
           ),
 

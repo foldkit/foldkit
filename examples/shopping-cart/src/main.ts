@@ -39,9 +39,11 @@ export const ChangedUrl = m('ChangedUrl', { url: Url })
 export const GotProductsMessage = m('GotProductsMessage', {
   message: Products.Message,
 })
-export const ClickedQuantityChange = m('ClickedQuantityChange', {
+export const ClickedIncrementQuantity = m('ClickedIncrementQuantity', {
   itemId: S.String,
-  quantity: S.Number,
+})
+export const ClickedDecrementQuantity = m('ClickedDecrementQuantity', {
+  itemId: S.String,
 })
 export const ClickedRemoveCartItem = m('ClickedRemoveCartItem', {
   itemId: S.String,
@@ -58,7 +60,8 @@ export const Message = S.Union([
   ClickedLink,
   ChangedUrl,
   GotProductsMessage,
-  ClickedQuantityChange,
+  ClickedIncrementQuantity,
+  ClickedDecrementQuantity,
   ClickedRemoveCartItem,
   ClickedClearCart,
   UpdatedDeliveryInstructions,
@@ -152,10 +155,17 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 }),
                 mappedCommands,
               ],
-              ChangedQuantity: ({ itemId, quantity }) => [
+              IncrementedQuantity: ({ itemId }) => [
                 evo(model, {
                   productsPage: () => nextProductsModel,
-                  cart: Cart.changeQuantity(itemId, quantity),
+                  cart: Cart.incrementQuantity(itemId),
+                }),
+                mappedCommands,
+              ],
+              DecrementedQuantity: ({ itemId }) => [
+                evo(model, {
+                  productsPage: () => nextProductsModel,
+                  cart: Cart.decrementQuantity(itemId),
                 }),
                 mappedCommands,
               ],
@@ -164,9 +174,16 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         })
       },
 
-      ClickedQuantityChange: ({ itemId, quantity }) => [
+      ClickedIncrementQuantity: ({ itemId }) => [
         evo(model, {
-          cart: Cart.changeQuantity(itemId, quantity),
+          cart: Cart.incrementQuantity(itemId),
+        }),
+        [],
+      ],
+
+      ClickedDecrementQuantity: ({ itemId }) => [
+        evo(model, {
+          cart: Cart.decrementQuantity(itemId),
         }),
         [],
       ],

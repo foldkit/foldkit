@@ -3,6 +3,8 @@ import { Command, Runtime } from 'foldkit'
 import { Document, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
+import { Button } from '@foldkit/ui'
+
 // MODEL
 
 export const Model = Schema.Null
@@ -38,15 +40,19 @@ export const view = (_model: Model): Document => {
     body: h.div(
       [h.Class('min-h-screen bg-white flex items-center justify-center')],
       [
-        h.button(
-          [
-            h.OnClick(ClickedCrash()),
-            h.Class(
-              'bg-red-600 text-white text-lg font-semibold hover:bg-red-700 px-6 py-3 rounded transition cursor-pointer',
+        Button.view<Message>({
+          onClick: ClickedCrash(),
+          toView: attributes =>
+            h.button(
+              [
+                ...attributes.button,
+                h.Class(
+                  'bg-red-600 text-white text-lg font-semibold hover:bg-red-700 px-6 py-3 rounded transition cursor-pointer',
+                ),
+              ],
+              ['Crash'],
             ),
-          ],
-          ['Crash'],
-        ),
+        }),
       ],
     ),
   }
@@ -79,15 +85,19 @@ export const crashView = ({
               [h.Class('text-gray-700 mb-6 leading-relaxed')],
               [error.message],
             ),
-            h.button(
-              [
-                h.Class(
-                  'bg-red-600 text-white border-none px-6 py-2.5 rounded-md text-sm font-medium cursor-pointer hover:bg-red-700 transition',
+            Button.view<never>({
+              toView: attributes =>
+                h.button(
+                  [
+                    ...attributes.button,
+                    h.Class(
+                      'bg-red-600 text-white border-none px-6 py-2.5 rounded-md text-sm font-medium cursor-pointer hover:bg-red-700 transition',
+                    ),
+                    h.Attribute('onclick', 'location.reload()'),
+                  ],
+                  ['Reload'],
                 ),
-                h.Attribute('onclick', 'location.reload()'),
-              ],
-              ['Reload'],
-            ),
+            }),
           ],
         ),
       ],

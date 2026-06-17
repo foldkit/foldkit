@@ -3,7 +3,7 @@ import { Array, Match as M, Number, Option } from 'effect'
 import { File, Submodel } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
-import { FileDrop } from '@foldkit/ui'
+import { Button, FileDrop } from '@foldkit/ui'
 
 import { Attachments } from '../step'
 
@@ -56,16 +56,19 @@ const resumeView = (resume: File.File): Html => {
           ),
         ],
       ),
-      h.button(
-        [
-          h.Type('button'),
-          h.OnClick(Attachments.RemovedResume()),
-          h.Class(
-            'text-sm text-gray-400 hover:text-red-500 transition cursor-pointer',
+      Button.view<Attachments.Message>({
+        onClick: Attachments.RemovedResume(),
+        toView: attributes =>
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(
+                'text-sm text-gray-400 hover:text-red-500 transition cursor-pointer',
+              ),
+            ],
+            ['Remove'],
           ),
-        ],
-        ['Remove'],
-      ),
+      }),
     ],
   )
 }
@@ -92,16 +95,19 @@ const additionalFileView = (file: File.File, fileIndex: number): Html => {
           ),
         ],
       ),
-      h.button(
-        [
-          h.Type('button'),
-          h.OnClick(Attachments.RemovedAdditionalFile({ fileIndex })),
-          h.Class(
-            'text-xs text-gray-400 hover:text-red-500 transition cursor-pointer',
+      Button.view<Attachments.Message>({
+        onClick: Attachments.RemovedAdditionalFile({ fileIndex }),
+        toView: attributes =>
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(
+                'text-xs text-gray-400 hover:text-red-500 transition cursor-pointer',
+              ),
+            ],
+            ['Remove'],
           ),
-        ],
-        ['Remove'],
-      ),
+      }),
     ],
   )
 }

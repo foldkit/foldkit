@@ -2,6 +2,8 @@ import { Match as M, Option } from 'effect'
 import { File } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
+import { Button } from '@foldkit/ui'
+
 import type { Message } from '../message'
 import type { Model } from '../model'
 import * as Education from '../step/education'
@@ -253,15 +255,19 @@ const submissionSection = (
           [h.Class('pt-4 space-y-2')],
           [
             ...(isSubmittable ? [] : [blockedNotice()]),
-            h.keyed('button')(
-              'submit',
-              [
-                h.Type('button'),
-                ...(isSubmittable ? [h.OnClick(onSubmit)] : [h.Disabled(true)]),
-                h.Class(submitButtonClass(isSubmittable)),
-              ],
-              ['Submit Application'],
-            ),
+            Button.view<Message>({
+              onClick: onSubmit,
+              isDisabled: !isSubmittable,
+              toView: attributes =>
+                h.keyed('button')(
+                  'submit',
+                  [
+                    ...attributes.button,
+                    h.Class(submitButtonClass(isSubmittable)),
+                  ],
+                  ['Submit Application'],
+                ),
+            }),
           ],
         ),
       Submitting: () =>
@@ -269,15 +275,18 @@ const submissionSection = (
           'submit-pending',
           [h.Class('pt-4')],
           [
-            h.button(
-              [
-                h.Type('button'),
-                h.Class(
-                  'w-full rounded-lg bg-indigo-400 px-4 py-3 text-sm font-semibold text-white cursor-wait',
+            Button.view<Message>({
+              toView: attributes =>
+                h.button(
+                  [
+                    ...attributes.button,
+                    h.Class(
+                      'w-full rounded-lg bg-indigo-400 px-4 py-3 text-sm font-semibold text-white cursor-wait',
+                    ),
+                  ],
+                  ['Submitting...'],
                 ),
-              ],
-              ['Submitting...'],
-            ),
+            }),
           ],
         ),
       SubmitSuccess: () =>
@@ -316,15 +325,19 @@ const submissionSection = (
               [error],
             ),
             ...(isSubmittable ? [] : [blockedNotice()]),
-            h.keyed('button')(
-              'submit',
-              [
-                h.Type('button'),
-                ...(isSubmittable ? [h.OnClick(onSubmit)] : [h.Disabled(true)]),
-                h.Class(submitButtonClass(isSubmittable)),
-              ],
-              ['Try Again'],
-            ),
+            Button.view<Message>({
+              onClick: onSubmit,
+              isDisabled: !isSubmittable,
+              toView: attributes =>
+                h.keyed('button')(
+                  'submit',
+                  [
+                    ...attributes.button,
+                    h.Class(submitButtonClass(isSubmittable)),
+                  ],
+                  ['Try Again'],
+                ),
+            }),
           ],
         ),
     }),

@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { Submodel } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
-import { RadioGroup } from '@foldkit/ui'
+import { Button, RadioGroup } from '@foldkit/ui'
 
 import { ProficiencyLevel } from '../domain'
 import { Skills } from '../step'
@@ -77,16 +77,19 @@ export const skillEntryView = Submodel.defineView<
       h.div(
         [h.Class('flex justify-end')],
         [
-          h.button(
-            [
-              h.Type('button'),
-              h.OnClick(Skills.Entry.ClickedRemoveSelf()),
-              h.Class(
-                'text-sm text-gray-400 hover:text-red-500 transition cursor-pointer',
+          Button.view<Skills.Entry.Message>({
+            onClick: Skills.Entry.ClickedRemoveSelf(),
+            toView: attributes =>
+              h.button(
+                [
+                  ...attributes.button,
+                  h.Class(
+                    'text-sm text-gray-400 hover:text-red-500 transition cursor-pointer',
+                  ),
+                ],
+                ['Remove skill'],
               ),
-            ],
-            ['Remove skill'],
-          ),
+          }),
         ],
       ),
     ],

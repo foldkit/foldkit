@@ -16,6 +16,8 @@ import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 
+import { Button, Input } from '@foldkit/ui'
+
 const WS_URL = 'wss://ws.postman-echo.com/raw'
 const CONNECTION_TIMEOUT_MS = 5000
 
@@ -538,15 +540,19 @@ const connectButtonView = (): Html => {
   return h.div(
     [h.Class('p-6 border-t border-gray-200 flex items-center justify-center')],
     [
-      h.button(
-        [
-          h.OnClick(ClickedConnect()),
-          h.Class(
-            'bg-blue-500 hover:bg-blue-600 text-white font-semibold px-8 py-3 rounded-lg transition',
+      Button.view<Message>({
+        onClick: ClickedConnect(),
+        toView: attributes =>
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(
+                'bg-blue-500 hover:bg-blue-600 text-white font-semibold px-8 py-3 rounded-lg transition',
+              ),
+            ],
+            ['Connect to Chat'],
           ),
-        ],
-        ['Connect to Chat'],
-      ),
+      }),
     ],
   )
 }
@@ -569,25 +575,33 @@ const messageInputView = (messageInput: string): Html => {
       h.div(
         [h.Class('flex gap-3')],
         [
-          h.input([
-            h.Type('text'),
-            h.Value(messageInput),
-            h.Placeholder('Type a message...'),
-            h.OnInput(value => UpdatedMessageInput({ value })),
-            h.Class(
-              'flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
-            ),
-          ]),
-          h.button(
-            [
-              h.Type('submit'),
-              h.Disabled(String.isEmpty(messageInput.trim())),
-              h.Class(
-                'bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-lg transition',
+          Input.view<Message>({
+            id: 'message',
+            value: messageInput,
+            placeholder: 'Type a message...',
+            onInput: value => UpdatedMessageInput({ value }),
+            toView: attributes =>
+              h.input([
+                ...attributes.input,
+                h.Class(
+                  'flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
+                ),
+              ]),
+          }),
+          Button.view<Message>({
+            type: 'submit',
+            isDisabled: String.isEmpty(messageInput.trim()),
+            toView: attributes =>
+              h.button(
+                [
+                  ...attributes.button,
+                  h.Class(
+                    'bg-blue-500 hover:bg-blue-600 data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-lg transition',
+                  ),
+                ],
+                ['Send'],
               ),
-            ],
-            ['Send'],
-          ),
+          }),
         ],
       ),
     ],
@@ -610,15 +624,19 @@ const errorView = (error: string): Html => {
           h.p([h.Class('text-red-600 text-sm')], [error]),
         ],
       ),
-      h.button(
-        [
-          h.OnClick(ClickedConnect()),
-          h.Class(
-            'w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg transition',
+      Button.view<Message>({
+        onClick: ClickedConnect(),
+        toView: attributes =>
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(
+                'w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg transition',
+              ),
+            ],
+            ['Try Again'],
           ),
-        ],
-        ['Try Again'],
-      ),
+      }),
     ],
   )
 }

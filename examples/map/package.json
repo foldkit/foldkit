@@ -11,7 +11,9 @@
   "dependencies": {
     "@effect/platform-browser": "4.0.0-beta.83",
     "@foldkit/devtools": "workspace:*",
+    "@foldkit/ui": "workspace:*",
     "@tailwindcss/vite": "^4.3.1",
+    "clsx": "^2.1.1",
     "effect": "4.0.0-beta.83",
     "foldkit": "workspace:*",
     "maplibre-gl": "^5.24.0",

@@ -6,7 +6,7 @@ import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 import 'vanilla-colorful/hex-color-picker.js'
 
-import { Input } from '@foldkit/ui'
+import { Button, Input } from '@foldkit/ui'
 import '@shoelace-style/shoelace/dist/components/qr-code/qr-code.js'
 
 // MODEL
@@ -300,17 +300,22 @@ const swatchRow = (
   return h.div(
     [h.Class('flex flex-wrap gap-1.5 max-w-[10rem]')],
     PRESET_COLORS.map(color =>
-      h.button(
-        [
-          h.Type('button'),
-          h.OnClick(onChange(color)),
-          h.Title(color),
-          h.AriaLabel(`Use ${color}`),
-          h.Class(swatchClass(color.toLowerCase() === active.toLowerCase())),
-          h.Style({ backgroundColor: color }),
-        ],
-        [],
-      ),
+      Button.view<Message>({
+        onClick: onChange(color),
+        toView: attributes =>
+          h.button(
+            [
+              ...attributes.button,
+              h.Title(color),
+              h.AriaLabel(`Use ${color}`),
+              h.Class(
+                swatchClass(color.toLowerCase() === active.toLowerCase()),
+              ),
+              h.Style({ backgroundColor: color }),
+            ],
+            [],
+          ),
+      }),
     ),
   )
 }

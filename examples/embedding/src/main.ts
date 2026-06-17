@@ -5,6 +5,7 @@ import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { overlay } from '@foldkit/devtools'
+import { Button } from '@foldkit/ui'
 
 // MODEL
 
@@ -116,15 +117,19 @@ export const view = (model: Model): Html => {
         [h.Class('text-sm text-gray-600')],
         [`Ticking up by ${model.step} every second`],
       ),
-      h.button(
-        [
-          h.Class(
-            'cursor-pointer rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500',
+      Button.view<Message>({
+        onClick: ClickedAdvance(),
+        toView: attributes =>
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(
+                'cursor-pointer rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500',
+              ),
+            ],
+            [`Advance by ${model.step}`],
           ),
-          h.OnClick(ClickedAdvance()),
-        ],
-        [`Advance by ${model.step}`],
-      ),
+      }),
     ],
   )
 }

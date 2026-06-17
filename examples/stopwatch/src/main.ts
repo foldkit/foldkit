@@ -14,6 +14,8 @@ import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
+import { Button } from '@foldkit/ui'
+
 const TICK_INTERVAL_MS = 10
 
 // MODEL
@@ -196,13 +198,17 @@ export const view = (model: Model): Document => {
             h.div(
               [h.Class('flex')],
               [
-                h.button(
-                  [
-                    h.OnClick(ClickedReset()),
-                    h.Class(buttonStyle + ' bg-gray-500 hover:bg-gray-600'),
-                  ],
-                  ['Reset'],
-                ),
+                Button.view<Message>({
+                  onClick: ClickedReset(),
+                  toView: attributes =>
+                    h.button(
+                      [
+                        ...attributes.button,
+                        h.Class(buttonStyle + ' bg-gray-500 hover:bg-gray-600'),
+                      ],
+                      ['Reset'],
+                    ),
+                }),
                 startStopButton(model.isRunning),
               ],
             ),
@@ -217,20 +223,28 @@ const startStopButton = (isRunning: boolean): Html => {
   const h = html<Message>()
 
   return isRunning
-    ? h.button(
-        [
-          h.OnClick(ClickedStop()),
-          h.Class(buttonStyle + ' bg-red-500 hover:bg-red-600'),
-        ],
-        ['Stop'],
-      )
-    : h.button(
-        [
-          h.OnClick(ClickedStart()),
-          h.Class(buttonStyle + ' bg-green-500 hover:bg-green-600'),
-        ],
-        ['Start'],
-      )
+    ? Button.view<Message>({
+        onClick: ClickedStop(),
+        toView: attributes =>
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(buttonStyle + ' bg-red-500 hover:bg-red-600'),
+            ],
+            ['Stop'],
+          ),
+      })
+    : Button.view<Message>({
+        onClick: ClickedStart(),
+        toView: attributes =>
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(buttonStyle + ' bg-green-500 hover:bg-green-600'),
+            ],
+            ['Start'],
+          ),
+      })
 }
 
 // STYLE

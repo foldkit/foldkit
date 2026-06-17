@@ -2,6 +2,8 @@ import { Submodel } from 'foldkit'
 import type { CalendarDate } from 'foldkit/calendar'
 import { type Html, createKeyedLazy, html } from 'foldkit/html'
 
+import { Button } from '@foldkit/ui'
+
 import { Education } from '../step'
 import { educationEntryView } from './educationEntry'
 
@@ -38,16 +40,19 @@ export const educationView = Submodel.defineView<
           lazyEntry(entry.id, entryView, [entry, model.today]),
         ),
       ),
-      h.button(
-        [
-          h.Type('button'),
-          h.OnClick(Education.ClickedAddEntry()),
-          h.Class(
-            'w-full rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 text-sm font-medium text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition cursor-pointer',
+      Button.view<Education.Message>({
+        onClick: Education.ClickedAddEntry(),
+        toView: attributes =>
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(
+                'w-full rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 text-sm font-medium text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition cursor-pointer',
+              ),
+            ],
+            ['+ Add Education'],
           ),
-        ],
-        ['+ Add Education'],
-      ),
+      }),
     ],
   )
 })

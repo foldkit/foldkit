@@ -4,7 +4,7 @@ import { Submodel } from 'foldkit'
 import { type CalendarDate } from 'foldkit/calendar'
 import { type Html, html } from 'foldkit/html'
 
-import { Checkbox, Listbox } from '@foldkit/ui'
+import { Button, Checkbox, Listbox } from '@foldkit/ui'
 
 import { Education } from '../step'
 import { inputField } from './field'
@@ -157,16 +157,19 @@ export const educationEntryView = Submodel.defineView<
       h.div(
         [h.Class('flex justify-end')],
         [
-          h.button(
-            [
-              h.Type('button'),
-              h.OnClick(Education.Entry.ClickedRemoveSelf()),
-              h.Class(
-                'text-sm text-gray-400 hover:text-red-500 transition cursor-pointer',
+          Button.view<Education.Entry.Message>({
+            onClick: Education.Entry.ClickedRemoveSelf(),
+            toView: attributes =>
+              h.button(
+                [
+                  ...attributes.button,
+                  h.Class(
+                    'text-sm text-gray-400 hover:text-red-500 transition cursor-pointer',
+                  ),
+                ],
+                ['Remove education'],
               ),
-            ],
-            ['Remove education'],
-          ),
+          }),
         ],
       ),
     ],

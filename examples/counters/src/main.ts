@@ -4,6 +4,8 @@ import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
+import { Button } from '@foldkit/ui'
+
 import * as Counter from './counter'
 
 // MODEL
@@ -127,15 +129,19 @@ const rowView = (row: Row): Html => {
           }),
         ],
       ),
-      h.button(
-        [
-          h.OnClick(ClickedRemoveRow({ id: row.id })),
-          h.Class(
-            'rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:border-red-300 hover:text-red-600 transition cursor-pointer',
+      Button.view<Message>({
+        onClick: ClickedRemoveRow({ id: row.id }),
+        toView: attributes =>
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(
+                'rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:border-red-300 hover:text-red-600 transition cursor-pointer',
+              ),
+            ],
+            ['Remove'],
           ),
-        ],
-        ['Remove'],
-      ),
+      }),
     ],
   )
 }
@@ -163,15 +169,19 @@ export const view = (model: Model): Document => {
           [h.Class('flex flex-col gap-3 w-full max-w-md')],
           model.rows.map(rowView),
         ),
-        h.button(
-          [
-            h.OnClick(ClickedAddRow()),
-            h.Class(
-              'rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 transition cursor-pointer',
+        Button.view<Message>({
+          onClick: ClickedAddRow(),
+          toView: attributes =>
+            h.button(
+              [
+                ...attributes.button,
+                h.Class(
+                  'rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 transition cursor-pointer',
+                ),
+              ],
+              ['+ Add Counter'],
             ),
-          ],
-          ['+ Add Counter'],
-        ),
+        }),
       ],
     ),
   }

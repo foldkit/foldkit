@@ -1,10 +1,13 @@
-import { Array, Number, Option } from 'effect'
+import { Array, Option } from 'effect'
 import { Html, html } from 'foldkit/html'
+
+import { Button } from '@foldkit/ui'
 
 import { Cart } from '../domain'
 import {
   ClickedClearCart,
-  ClickedQuantityChange,
+  ClickedDecrementQuantity,
+  ClickedIncrementQuantity,
   ClickedRemoveCartItem,
   Message,
 } from '../main'
@@ -76,53 +79,55 @@ export const view = (cart: Cart.Cart): Html => {
                         h.div(
                           [h.Class('flex items-center gap-2')],
                           [
-                            h.button(
-                              [
-                                h.Class(
-                                  'bg-gray-200 hover:bg-gray-300 text-gray-800 w-8 h-8 rounded flex items-center justify-center',
-                                ),
-                                h.OnClick(
-                                  ClickedQuantityChange({
-                                    itemId: cartItem.item.id,
-                                    quantity: Number.decrement(
-                                      cartItem.quantity,
+                            Button.view<Message>({
+                              onClick: ClickedDecrementQuantity({
+                                itemId: cartItem.item.id,
+                              }),
+                              toView: attributes =>
+                                h.button(
+                                  [
+                                    ...attributes.button,
+                                    h.Class(
+                                      'bg-gray-200 hover:bg-gray-300 text-gray-800 w-8 h-8 rounded flex items-center justify-center',
                                     ),
-                                  }),
+                                  ],
+                                  ['-'],
                                 ),
-                              ],
-                              ['-'],
-                            ),
+                            }),
                             h.span(
                               [h.Class('px-3 py-1 font-medium')],
                               [String(cartItem.quantity)],
                             ),
-                            h.button(
-                              [
-                                h.Class(
-                                  'bg-gray-200 hover:bg-gray-300 text-gray-800 w-8 h-8 rounded flex items-center justify-center',
+                            Button.view<Message>({
+                              onClick: ClickedIncrementQuantity({
+                                itemId: cartItem.item.id,
+                              }),
+                              toView: attributes =>
+                                h.button(
+                                  [
+                                    ...attributes.button,
+                                    h.Class(
+                                      'bg-gray-200 hover:bg-gray-300 text-gray-800 w-8 h-8 rounded flex items-center justify-center',
+                                    ),
+                                  ],
+                                  ['+'],
                                 ),
-                                h.OnClick(
-                                  ClickedQuantityChange({
-                                    itemId: cartItem.item.id,
-                                    quantity: cartItem.quantity + 1,
-                                  }),
+                            }),
+                            Button.view<Message>({
+                              onClick: ClickedRemoveCartItem({
+                                itemId: cartItem.item.id,
+                              }),
+                              toView: attributes =>
+                                h.button(
+                                  [
+                                    ...attributes.button,
+                                    h.Class(
+                                      'bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded ml-2',
+                                    ),
+                                  ],
+                                  ['Remove'],
                                 ),
-                              ],
-                              ['+'],
-                            ),
-                            h.button(
-                              [
-                                h.Class(
-                                  'bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded ml-2',
-                                ),
-                                h.OnClick(
-                                  ClickedRemoveCartItem({
-                                    itemId: cartItem.item.id,
-                                  }),
-                                ),
-                              ],
-                              ['Remove'],
-                            ),
+                            }),
                           ],
                         ),
                       ],
@@ -161,15 +166,19 @@ export const view = (cart: Cart.Cart): Html => {
                       ],
                       ['Continue Shopping'],
                     ),
-                    h.button(
-                      [
-                        h.Class(
-                          'bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium',
+                    Button.view<Message>({
+                      onClick: ClickedClearCart(),
+                      toView: attributes =>
+                        h.button(
+                          [
+                            ...attributes.button,
+                            h.Class(
+                              'bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium',
+                            ),
+                          ],
+                          ['Clear Cart'],
                         ),
-                        h.OnClick(ClickedClearCart()),
-                      ],
-                      ['Clear Cart'],
-                    ),
+                    }),
                     h.a(
                       [
                         h.Href(checkoutRouter()),
