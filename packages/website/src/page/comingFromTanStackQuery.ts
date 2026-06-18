@@ -59,55 +59,50 @@ const faqQuestion = (id: string, text: string): Html => {
   return h.h3([h.Id(id), h.Class('text-lg font-bold mt-8 mb-3')], [text])
 }
 
-const conceptTable = (): Html =>
-  comparisonTable(
-    ['TanStack Query', 'Foldkit'],
+const conceptTable: Html = comparisonTable(
+  ['TanStack Query', 'Foldkit'],
+  [
     [
+      [inlineCode('useQuery')],
+      ['A Command plus an async-state field in the Model'],
+    ],
+    [
+      ['Query cache (keyed by query key)'],
+      ['Model state: one field, or a ', inlineCode('HashMap'), ' keyed by id'],
+    ],
+    [
+      [inlineCode('staleTime'), ' / background refetch'],
+      ['A Subscription gated on a Model condition'],
+    ],
+    [
+      ['Request deduplication'],
+      ['Collapse it in ', inlineCode('update'), ' (it is just state)'],
+    ],
+    [
+      ['Out-of-order response handling'],
+      ['A request id in the Model, checked in ', inlineCode('update')],
+    ],
+    [
+      [inlineCode('invalidateQueries')],
+      ['Mark the field stale and return a refetch Command'],
+    ],
+    [
+      [inlineCode('useMutation')],
+      ['A Message and a Command, the same as any other effect'],
+    ],
+    [
+      ['Retries'],
+      ['Effect’s ', inlineCode('retry'), ' / ', inlineCode('Schedule')],
+    ],
+    [
+      ['TanStack Query Devtools'],
       [
-        [inlineCode('useQuery')],
-        ['A Command plus an async-state field in the Model'],
-      ],
-      [
-        ['Query cache (keyed by query key)'],
-        [
-          'Model state: one field, or a ',
-          inlineCode('HashMap'),
-          ' keyed by id',
-        ],
-      ],
-      [
-        [inlineCode('staleTime'), ' / background refetch'],
-        ['A Subscription gated on a Model condition'],
-      ],
-      [
-        ['Request deduplication'],
-        ['Collapse it in ', inlineCode('update'), ' (it is just state)'],
-      ],
-      [
-        ['Out-of-order response handling'],
-        ['A request id in the Model, checked in ', inlineCode('update')],
-      ],
-      [
-        [inlineCode('invalidateQueries')],
-        ['Mark the field stale and return a refetch Command'],
-      ],
-      [
-        [inlineCode('useMutation')],
-        ['A Message and a Command, the same as any other effect'],
-      ],
-      [
-        ['Retries'],
-        ['Effect’s ', inlineCode('retry'), ' / ', inlineCode('Schedule')],
-      ],
-      [
-        ['TanStack Query Devtools'],
-        [
-          link(coreDevToolsRouter(), 'Foldkit DevTools'),
-          ': inspect the Model and step through every Message',
-        ],
+        link(coreDevToolsRouter(), 'Foldkit DevTools'),
+        ': inspect the Model and step through every Message',
       ],
     ],
-  )
+  ],
+)
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
   const h = html<Message>()
@@ -135,7 +130,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       tableOfContentsEntryToHeader(translatingConceptsHeader),
       para('Here is how the TanStack Query model maps onto Foldkit:'),
-      conceptTable(),
+      conceptTable,
       tableOfContentsEntryToHeader(asyncStateHeader),
       para(
         'A query has states: loading, success, error, and often a “refreshing with stale data on screen” state. In Foldkit you model those explicitly as a tagged union and store it in the Model. There is no separate cache. The Model is the cache. A single resource lives in one field; a collection of resources keyed by id lives in a ',

@@ -6,14 +6,14 @@ import { describe, it } from '@effect/vitest'
 
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
-import type { VNode } from '../vdom.js'
+import { type VNode, dedupeSharedVNodes, memoizedVNodes } from '../vdom.js'
 import {
   type BoundaryRegistry,
   beginRender,
   createBoundaryRegistry,
   registerBoundaryWrap,
 } from './boundary.js'
-import { createKeyedLazy } from './lazy.js'
+import { createKeyedLazy, createLazy } from './lazy.js'
 import {
   type DispatchSync,
   clearRuntime,
@@ -25,6 +25,13 @@ import {
   type SubmodelView as SubmodelViewBranded,
   submodel,
 } from './submodel.js'
+
+const asVNode = (child: VNode | string | undefined): VNode => {
+  if (child === undefined || typeof child === 'string') {
+    throw new Error('expected a VNode')
+  }
+  return child
+}
 
 const setUpRuntime = (
   registry: BoundaryRegistry,
@@ -623,6 +630,43 @@ describe('h.submodel', () => {
         message: { _tag: 'ChildClicked', value: 10 },
       },
     ])
+  })
+
+  it('keeps a memoized child view opaque through the boundary wrapper so dedupe preserves its cached subtree', () => {
+    // A child view memoized by createLazy returns the same VNode object each
+    // render. h.submodel re-wraps it in a fresh boundary vnode every render;
+    // withBoundaryCleanup propagates memoizedVNodes membership onto that
+    // wrapper so dedupeSharedVNodes keeps it opaque and never walks into the
+    // cached subtree, which carries the .elm snabbdom recorded on a prior
+    // patch. Without that propagation the wrapper looks like ordinary view
+    // output and dedupe clones the cached child, defeating memoization.
+    const lazy = createLazy()
+    const buildChild = (value: number) =>
+      h('div', {}, [h('span', {}, [`value: ${value}`])])
+    const memoizedChildView = (model: { value: number }) =>
+      lazy(buildChild, [model.value])
+
+    const wrapper = submodel({
+      slotId: 'memoized-child',
+      model: { value: 1 },
+      view: memoizedChildView,
+      toParentMessage: message =>
+        GotChild({ entryId: 'memoized-child', message }),
+    })
+
+    expect(wrapper).not.toBeNull()
+    expect(memoizedVNodes.has(wrapper!)).toBe(true)
+
+    // Simulate a prior patch recording a live DOM node on the cached subtree.
+    const cachedSpan = asVNode(wrapper!.children?.[0])
+    cachedSpan.elm = document.createElement('span')
+
+    const result = dedupeSharedVNodes(h('section', {}, [wrapper!]))
+
+    expect(asVNode(result.children?.[0])).toBe(wrapper)
+    expect(asVNode(asVNode(result.children?.[0]).children?.[0])).toBe(
+      cachedSpan,
+    )
   })
 
   it('nests h.submodel calls made inside a slot callback under the parent boundary', () => {

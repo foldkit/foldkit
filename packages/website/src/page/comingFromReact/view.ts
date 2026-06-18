@@ -82,49 +82,48 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   faqHeader,
 ]
 
-const patternMappingTable = (): Html =>
-  comparisonTable(
-    ['React Ecosystem', 'Foldkit'],
+const patternMappingTable: Html = comparisonTable(
+  ['React Ecosystem', 'Foldkit'],
+  [
+    [[inlineCode('useState')], ['Model (single state tree)']],
+    [[inlineCode('useReducer')], [inlineCode('update'), ' function']],
     [
-      [[inlineCode('useState')], ['Model (single state tree)']],
-      [[inlineCode('useReducer')], [inlineCode('update'), ' function']],
-      [
-        [inlineCode('useEffect'), ' (one-off)'],
-        ['Commands (returned from ', inlineCode('update'), ')'],
-      ],
-      [
-        [inlineCode('useRef'), ' + ', inlineCode('useEffect'), ' (DOM access)'],
-        ['Mount (', inlineCode('OnMount'), ' with paired cleanup)'],
-      ],
-      [
-        [inlineCode('useContext'), ' / Redux / Zustand'],
-        ['Single Model (no prop drilling)'],
-      ],
-      [
-        [inlineCode('useMemo'), ' / ', inlineCode('useCallback')],
-        ['Not needed (no stale closures)'],
-      ],
-      [['Custom hooks'], ['Domain modules with pure functions']],
-      [['JSX'], ['Plain functions from Model to HTML']],
-      [['Component props'], ['Function parameters']],
-      [['Component state'], ['Part of the single Model']],
-      [['Event handlers'], ['Messages dispatched to ', inlineCode('update')]],
-      [['React Router / TanStack Router'], ['Built-in typed routing']],
-      [
-        ['React Hook Form / Formik'],
-        ['Model + Messages + ', inlineCode('foldkit/fieldValidation')],
-      ],
-      [
-        ['Event streams (useEffect / RxJS)'],
-        ['Subscriptions (automatic lifecycle)'],
-      ],
-      [['Headless UI / Radix UI'], ['Foldkit UI (headless, typed components)']],
-      [
-        ['Error boundaries'],
-        ['Typed errors in Effects + ', inlineCode('crash.view')],
-      ],
+      [inlineCode('useEffect'), ' (one-off)'],
+      ['Commands (returned from ', inlineCode('update'), ')'],
     ],
-  )
+    [
+      [inlineCode('useRef'), ' + ', inlineCode('useEffect'), ' (DOM access)'],
+      ['Mount (', inlineCode('OnMount'), ' with paired cleanup)'],
+    ],
+    [
+      [inlineCode('useContext'), ' / Redux / Zustand'],
+      ['Single Model (no prop drilling)'],
+    ],
+    [
+      [inlineCode('useMemo'), ' / ', inlineCode('useCallback')],
+      ['Not needed (no stale closures)'],
+    ],
+    [['Custom hooks'], ['Domain modules with pure functions']],
+    [['JSX'], ['Plain functions from Model to HTML']],
+    [['Component props'], ['Function parameters']],
+    [['Component state'], ['Part of the single Model']],
+    [['Event handlers'], ['Messages dispatched to ', inlineCode('update')]],
+    [['React Router / TanStack Router'], ['Built-in typed routing']],
+    [
+      ['React Hook Form / Formik'],
+      ['Model + Messages + ', inlineCode('foldkit/fieldValidation')],
+    ],
+    [
+      ['Event streams (useEffect / RxJS)'],
+      ['Subscriptions (automatic lifecycle)'],
+    ],
+    [['Headless UI / Radix UI'], ['Foldkit UI (headless, typed components)']],
+    [
+      ['Error boundaries'],
+      ['Typed errors in Effects + ', inlineCode('crash.view')],
+    ],
+  ],
+)
 
 const chevron = (isOpen: boolean): Html => {
   const h = html<Message>()
@@ -351,7 +350,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         ),
         tableOfContentsEntryToHeader(translatingConceptsHeader),
         para('Here’s how React patterns map to Foldkit:'),
-        patternMappingTable(),
+        patternMappingTable,
         infoCallout(
           'If you know Redux...',
           'The Model-View-Update pattern will feel familiar. Think of the Model as your Redux store, Messages as actions, and update as your reducer, but without action creators, selectors, or middleware.',

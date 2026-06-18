@@ -1,6 +1,6 @@
 import { Predicate } from 'effect'
 
-import type { VNode } from '../vdom.js'
+import { type VNode, memoizedVNodes } from '../vdom.js'
 import {
   type BoundaryId,
   beginLazyTracking,
@@ -60,6 +60,11 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
     vnode = fn(...args)
   } finally {
     endLazyTracking(registry)
+  }
+  // NOTE: record the cached vnode so dedupeSharedVNodes keeps it opaque rather
+  // than cloning it as cross-render reuse. See the membership exemption there.
+  if (Predicate.isNotNull(vnode)) {
+    memoizedVNodes.add(vnode)
   }
   onCache({ fn, args, dispatch, vnode, trackedBoundaries })
   return vnode

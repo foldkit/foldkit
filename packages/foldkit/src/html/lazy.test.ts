@@ -6,6 +6,7 @@ import { describe, it } from '@effect/vitest'
 
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
+import { dedupeSharedVNodes, memoizedVNodes } from '../vdom.js'
 import { createKeyedLazy, createLazy } from './lazy.js'
 import {
   type DispatchSync,
@@ -69,6 +70,22 @@ describe('createLazy', () => {
 
     expect(callCount).toBe(1)
     expect(secondVNode).toBe(firstVNode)
+  })
+
+  it('records its result so dedupeSharedVNodes preserves the cached identity', () => {
+    const viewFn = (label: string) => h('div', {}, [label])
+
+    const lazy = createLazy()
+    const vnode = lazy(viewFn, ['hello'])
+
+    expect(vnode).not.toBeNull()
+    expect(memoizedVNodes.has(vnode!)).toBe(true)
+
+    vnode!.elm = document.createElement('div')
+    const tree = h('section', {}, [vnode!])
+    const result = dedupeSharedVNodes(tree)
+
+    expect(result.children?.[0]).toBe(vnode)
   })
 
   it('recomputes when args change by reference', () => {

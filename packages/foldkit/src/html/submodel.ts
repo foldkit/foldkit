@@ -1,6 +1,6 @@
 import { Predicate } from 'effect'
 
-import type { VNode } from '../vdom.js'
+import { type VNode, memoizedVNodes } from '../vdom.js'
 import {
   type BoundaryRegistry,
   type WrapDescriptor,
@@ -285,10 +285,18 @@ const withBoundaryCleanup = (
       previousDestroy(removed)
     }
   }
-  return {
+  const wrapped: VNode = {
     ...vnode,
     data: { ...data, hook: { ...hook, destroy: compositeDestroy } },
   }
+  // NOTE: a memoized child view returns the same vnode by reference each render;
+  // this wrapper is fresh but shares its cached children. Propagate membership
+  // so dedupeSharedVNodes keeps the wrapper opaque instead of cloning that
+  // cached subtree every render.
+  if (memoizedVNodes.has(vnode)) {
+    memoizedVNodes.add(wrapped)
+  }
+  return wrapped
 }
 
 export const submodel = <View extends AnySubmodelView>(
