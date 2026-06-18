@@ -303,8 +303,8 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     ],
   },
   {
-    key: 'forReactDevelopers',
-    label: 'For React Developers',
+    key: 'comparisons',
+    label: 'Comparisons',
     pageGroups: [
       [
         {
@@ -313,27 +313,23 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Coming from React',
         },
         {
-          _tag: 'ComingFromTanStackQuery',
-          href: comingFromTanStackQueryRouter(),
-          label: 'Coming from TanStack Query',
-        },
-        {
           _tag: 'ReactComparison',
           href: reactComparisonRouter(),
           label: 'Foldkit vs React: Side by Side',
         },
       ],
-    ],
-  },
-  {
-    key: 'forElmDevelopers',
-    label: 'For Elm Developers',
-    pageGroups: [
       [
         {
           _tag: 'ElmComparison',
           href: elmComparisonRouter(),
           label: 'Foldkit vs Elm: Side by Side',
+        },
+      ],
+      [
+        {
+          _tag: 'ComingFromTanStackQuery',
+          href: comingFromTanStackQueryRouter(),
+          label: 'Coming from TanStack Query',
         },
       ],
     ],

@@ -12,8 +12,7 @@ export const SidebarStateJsonString = S.fromJsonString(SidebarState)
 export const GroupKey = S.Literals([
   'getStarted',
   'coreConcepts',
-  'forReactDevelopers',
-  'forElmDevelopers',
+  'comparisons',
   'faq',
   'testing',
   'bestPractices',

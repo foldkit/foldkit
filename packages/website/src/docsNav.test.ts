@@ -7,8 +7,10 @@ describe('findActiveSectionKey', () => {
   test.each([
     ['Manifesto', 'getStarted'],
     ['CoreModel', 'coreConcepts'],
-    ['ComingFromReact', 'forReactDevelopers'],
-    ['ElmComparison', 'forElmDevelopers'],
+    ['ComingFromReact', 'comparisons'],
+    ['ReactComparison', 'comparisons'],
+    ['ComingFromTanStackQuery', 'comparisons'],
+    ['ElmComparison', 'comparisons'],
     ['ProjectOrganization', 'patterns'],
     ['WhyNoJsx', 'faq'],
     ['UiButton', 'foldkitUi'],

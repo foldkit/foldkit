@@ -100,7 +100,7 @@ const conceptTable = (): Html =>
         ['Effect’s ', inlineCode('retry'), ' / ', inlineCode('Schedule')],
       ],
       [
-        [inlineCode('ReactQueryDevtools')],
+        ['TanStack Query Devtools'],
         [
           link(coreDevToolsRouter(), 'Foldkit DevTools'),
           ': inspect the Model and step through every Message',
@@ -243,9 +243,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'Because the logic that resolves a race or revalidates a cache is logic your app depends on, and keeping it as state and transitions you own means you can read it, test it, and change it. A hook that does it for you owns that logic instead, and the day your case diverges from its defaults you are reaching for configuration and hoping the knob you need exists. Owning the behavior is not the cost of this approach. It is the point of it.',
       ),
       para(
-        'For the rest of the React mental model (components, hooks, effects, and how they map onto Foldkit) see ',
+        'If you are also coming from React, ',
         link(comingFromReactRouter(), 'Coming from React'),
-        '.',
+        ' covers the rest of the mental model: components, hooks, effects, and how they map onto Foldkit.',
       ),
     ],
   )

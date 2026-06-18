@@ -59,14 +59,13 @@ import {
   GotAsyncCounterDemoMessage,
   GotBestPracticesGroupMessage,
   GotComingFromReactMessage,
+  GotComparisonsGroupMessage,
   GotCoreConceptsGroupMessage,
   GotDemoTabsMessage,
   GotExampleDetailMessage,
   GotExamplesGroupMessage,
   GotFaqGroupMessage,
   GotFoldkitUiGroupMessage,
-  GotForElmDevelopersGroupMessage,
-  GotForReactDevelopersGroupMessage,
   GotGetStartedGroupMessage,
   GotMobileMenuDialogMessage,
   GotNotePlayerDemoMessage,
@@ -250,8 +249,7 @@ export const Model = S.Struct({
   playground: S.Option(Page.Playground.Model),
   getStartedGroup: Disclosure.Model,
   coreConceptsGroup: Disclosure.Model,
-  forReactDevelopersGroup: Disclosure.Model,
-  forElmDevelopersGroup: Disclosure.Model,
+  comparisonsGroup: Disclosure.Model,
   faqGroup: Disclosure.Model,
   testingGroup: Disclosure.Model,
   bestPracticesGroup: Disclosure.Model,
@@ -419,20 +417,12 @@ export const init: Runtime.RoutingApplicationInit<
           'coreConcepts',
         ),
       }),
-      forReactDevelopersGroup: Disclosure.init({
-        id: 'for-react-developers-group',
+      comparisonsGroup: Disclosure.init({
+        id: 'comparisons-group',
         isOpen: isGroupOpenOnBoot(
           flags.maybeSidebarState,
           maybeInitialActiveSectionKey,
-          'forReactDevelopers',
-        ),
-      }),
-      forElmDevelopersGroup: Disclosure.init({
-        id: 'for-elm-developers-group',
-        isOpen: isGroupOpenOnBoot(
-          flags.maybeSidebarState,
-          maybeInitialActiveSectionKey,
-          'forElmDevelopers',
+          'comparisons',
         ),
       }),
       faqGroup: Disclosure.init({
@@ -680,8 +670,7 @@ export const update = (
               isLandingHeaderAlwaysVisible(nextRoute),
             getStartedGroup: expandIfActive('getStarted'),
             coreConceptsGroup: expandIfActive('coreConcepts'),
-            forReactDevelopersGroup: expandIfActive('forReactDevelopers'),
-            forElmDevelopersGroup: expandIfActive('forElmDevelopers'),
+            comparisonsGroup: expandIfActive('comparisons'),
             faqGroup: expandIfActive('faq'),
             testingGroup: expandIfActive('testing'),
             bestPracticesGroup: expandIfActive('bestPractices'),
@@ -1025,20 +1014,12 @@ export const update = (
           message => GotCoreConceptsGroupMessage({ message }),
         ),
 
-      GotForReactDevelopersGroupMessage: ({ message }) =>
+      GotComparisonsGroupMessage: ({ message }) =>
         handleSidebarGroup(
-          model.forReactDevelopersGroup,
+          model.comparisonsGroup,
           message,
-          next => evo(model, { forReactDevelopersGroup: () => next }),
-          message => GotForReactDevelopersGroupMessage({ message }),
-        ),
-
-      GotForElmDevelopersGroupMessage: ({ message }) =>
-        handleSidebarGroup(
-          model.forElmDevelopersGroup,
-          message,
-          next => evo(model, { forElmDevelopersGroup: () => next }),
-          message => GotForElmDevelopersGroupMessage({ message }),
+          next => evo(model, { comparisonsGroup: () => next }),
+          message => GotComparisonsGroupMessage({ message }),
         ),
 
       GotFaqGroupMessage: ({ message }) =>
@@ -1389,8 +1370,7 @@ const modelToSidebarState = (model: Model): SidebarState => ({
   open: {
     getStarted: model.getStartedGroup.isOpen,
     coreConcepts: model.coreConceptsGroup.isOpen,
-    forReactDevelopers: model.forReactDevelopersGroup.isOpen,
-    forElmDevelopers: model.forElmDevelopersGroup.isOpen,
+    comparisons: model.comparisonsGroup.isOpen,
     faq: model.faqGroup.isOpen,
     testing: model.testingGroup.isOpen,
     bestPractices: model.bestPracticesGroup.isOpen,
