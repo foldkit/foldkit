@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "foldkit: Elm-inspired UI framework powered by Effect-TS",
+  "packageManager": "pnpm@11.8.0",
   "scripts": {
     "prepare": "test -z \"$CI\" && simple-git-hooks || true",
     "build": "pnpm -r --if-present build",
@@ -75,24 +76,9 @@
     "commit-msg": "if grep -q 'Co-Authored-By.*[Cc]laude' \"$1\"; then echo '\\n❌ Commit message contains a Claude Co-Authored-By line. Remove it and try again.' && exit 1; fi",
     "pre-push": "exec pnpm pre-push"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@parcel/watcher",
-      "esbuild",
-      "msgpackr-extract",
-      "simple-git-hooks"
-    ],
-    "overrides": {
-      "effect": "4.0.0-beta.83",
-      "@effect/platform-browser": "4.0.0-beta.83",
-      "@effect/platform-node": "4.0.0-beta.83",
-      "@effect/platform-node-shared": "4.0.0-beta.83",
-      "@effect/vitest": "4.0.0-beta.83"
-    }
-  },
   "engines": {
     "node": ">=20.19.0 || >=22.12.0",
-    "pnpm": ">=8"
+    "pnpm": ">=11"
   },
   "keywords": [
     "effect",

@@ -4,3 +4,16 @@ packages:
   - 'examples/*'
   - 'comparisons/*'
   - 'internal/*'
+
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  msgpackr-extract: true
+  simple-git-hooks: true
+
+overrides:
+  effect: 4.0.0-beta.83
+  '@effect/platform-browser': 4.0.0-beta.83
+  '@effect/platform-node': 4.0.0-beta.83
+  '@effect/platform-node-shared': 4.0.0-beta.83
+  '@effect/vitest': 4.0.0-beta.83
