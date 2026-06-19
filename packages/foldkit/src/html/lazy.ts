@@ -1,6 +1,6 @@
 import { Predicate } from 'effect'
 
-import { type VNode, memoizedVNodes } from '../vdom.js'
+import { type VNode, dedupeMemoizedResult, memoizedVNodes } from '../vdom.js'
 import {
   type BoundaryId,
   beginLazyTracking,
@@ -61,13 +61,18 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
   } finally {
     endLazyTracking(registry)
   }
-  // NOTE: record the cached vnode so dedupeSharedVNodes keeps it opaque rather
-  // than cloning it as cross-render reuse. See the membership exemption there.
-  if (Predicate.isNotNull(vnode)) {
-    memoizedVNodes.add(vnode)
+  // NOTE: dedupe the freshly built subtree against the per-render seen set so a
+  // const shared inside this view, or across memoized siblings, is cloned even
+  // though dedupeSharedVNodes leaves memoized subtrees opaque. Record the result
+  // in memoizedVNodes so that top-level pass keeps it opaque on a cache hit.
+  const deduped = Predicate.isNotNull(vnode)
+    ? dedupeMemoizedResult(vnode, registry.dedupeSeen)
+    : null
+  if (Predicate.isNotNull(deduped)) {
+    memoizedVNodes.add(deduped)
   }
-  onCache({ fn, args, dispatch, vnode, trackedBoundaries })
-  return vnode
+  onCache({ fn, args, dispatch, vnode: deduped, trackedBoundaries })
+  return deduped
 }
 
 /** Creates a memoization slot for a view function. On each render, if the

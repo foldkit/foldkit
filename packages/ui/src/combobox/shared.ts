@@ -16,7 +16,7 @@ import * as Mount from 'foldkit/mount'
 import { makeConstrainedEvo } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
-import { AnchorConfig, anchorSetup, portalToBody } from '../anchor.js'
+import { AnchorConfig, anchorSetup, portalToContainingRoot } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → combobox → animation.
 // The barrel (../animation) imports from html, which starts the cycle.
@@ -760,7 +760,7 @@ export const PortalComboboxBackdrop = Mount.define(
 )(element =>
   Effect.gen(function* () {
     yield* Effect.acquireRelease(
-      Effect.sync(() => portalToBody(element)),
+      Effect.sync(() => portalToContainingRoot(element)),
       cleanup => Effect.sync(cleanup),
     )
     return CompletedPortalComboboxBackdrop()

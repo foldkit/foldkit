@@ -304,13 +304,11 @@ ul {
 }
 .dt-filter-items {
   position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
+  width: var(--button-width);
   background-color: var(--dt-bg);
   border-top: 1px solid var(--dt-border);
   border-bottom: 1px solid var(--dt-border);
-  z-index: 10;
+  z-index: 100000;
   max-height: 200px;
   overflow-y: auto;
   outline: none;

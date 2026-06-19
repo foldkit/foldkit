@@ -83,6 +83,10 @@ export type BoundaryRegistry = {
   >
   readonly seenThisRender: Map<BoundaryId, string>
   readonly lazyTrackingStack: Array<Map<BoundaryId, string>>
+  // NOTE: per-render set of VNode objects already placed in the tree, shared
+  // between the top-level dedupe pass and createLazy's own dedupe so a const
+  // reused across memoized results is cloned. Cleared each render.
+  readonly dedupeSeen: Set<object>
 }
 
 export const createBoundaryRegistry = (): BoundaryRegistry => ({
@@ -90,6 +94,7 @@ export const createBoundaryRegistry = (): BoundaryRegistry => ({
   boundaryDispatches: new WeakMap(),
   seenThisRender: new Map(),
   lazyTrackingStack: [],
+  dedupeSeen: new Set(),
 })
 
 const captureCallSite = (): string => {
@@ -294,4 +299,5 @@ export const getOrCreateBoundaryDispatch = (
  *  resurrect the `dispatchAcrossBoundary missing wrap` crash. */
 export const beginRender = (registry: BoundaryRegistry): void => {
   registry.seenThisRender.clear()
+  registry.dedupeSeen.clear()
 }

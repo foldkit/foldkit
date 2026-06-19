@@ -6,7 +6,12 @@ import { describe, it } from '@effect/vitest'
 
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
-import { dedupeSharedVNodes, memoizedVNodes } from '../vdom.js'
+import { type VNode, dedupeSharedVNodes, memoizedVNodes } from '../vdom.js'
+import {
+  type BoundaryRegistry,
+  beginRender,
+  createBoundaryRegistry,
+} from './boundary.js'
 import { createKeyedLazy, createLazy } from './lazy.js'
 import {
   type DispatchSync,
@@ -35,6 +40,123 @@ const noOpContext = Context.make(Dispatch, noOpDispatchService).pipe(
 const pushNoOpRuntime = (): void => {
   setRuntime(noOpDispatchSync, noOpContext)
 }
+
+const asVNode = (child: VNode | string | undefined): VNode => {
+  if (child === undefined || typeof child === 'string') {
+    throw new Error('expected a VNode')
+  }
+  return child
+}
+
+describe('memoized views dedupe shared consts', () => {
+  let registry: BoundaryRegistry
+
+  beforeEach(() => {
+    registry = createBoundaryRegistry()
+    setRuntime(noOpDispatchSync, noOpContext, registry)
+    beginRender(registry)
+  })
+
+  afterEach(() => {
+    clearRuntime()
+  })
+
+  it('clones a const reused at two positions inside one memoized view', () => {
+    const icon = h('span', {}, ['icon'])
+    const view = () => h('div', {}, [icon, icon])
+    const lazy = createLazy()
+
+    const result = lazy(view, [])
+
+    expect(asVNode(result!.children?.[0])).toBe(icon)
+    expect(asVNode(result!.children?.[1])).not.toBe(icon)
+  })
+
+  it('clones a const shared across two memoized slots in one render', () => {
+    const icon = h('span', {}, ['icon'])
+    const rowView = (label: string) =>
+      h('div', {}, [icon, h('span', {}, [label])])
+    const lazyRows = createKeyedLazy()
+
+    const rowA = lazyRows('a', rowView, ['a'])
+    const rowB = lazyRows('b', rowView, ['b'])
+    const tree = dedupeSharedVNodes(
+      h('ul', {}, [rowA!, rowB!]),
+      registry.dedupeSeen,
+    )
+
+    const iconA = asVNode(asVNode(tree.children?.[0]).children?.[0])
+    const iconB = asVNode(asVNode(tree.children?.[1]).children?.[0])
+    expect(iconA).toBe(icon)
+    expect(iconB).not.toBe(icon)
+  })
+
+  it('clones a const that moves to a different memoized slot across renders', () => {
+    const icon = h('span', {}, ['icon'])
+    // A prior render patched the icon, recording its live DOM node on .elm.
+    icon.elm = document.createElement('span')
+    const rowView = (isShown: boolean) => h('div', {}, isShown ? [icon] : [])
+    const lazyRows = createKeyedLazy()
+
+    const rowB = lazyRows('b', rowView, [true])
+
+    const iconInB = asVNode(rowB!.children?.[0])
+    expect(iconInB).not.toBe(icon)
+    expect(iconInB.elm).toBeUndefined()
+  })
+
+  it('keeps a memoized result identical on a cache hit so the short-circuit survives', () => {
+    const view = (label: string) => h('div', {}, [h('span', {}, [label])])
+    const lazy = createLazy()
+
+    const first = lazy(view, ['x'])
+    beginRender(registry)
+    const second = lazy(view, ['x'])
+
+    expect(second).toBe(first)
+    const tree = dedupeSharedVNodes(
+      h('div', {}, [second!]),
+      registry.dedupeSeen,
+    )
+    expect(asVNode(tree.children?.[0])).toBe(first)
+  })
+
+  it('clones a const shared between a memoized view and a plain sibling', () => {
+    const icon = h('span', {}, ['icon'])
+    const memoizedView = () => h('div', {}, [icon])
+    const lazy = createLazy()
+
+    const memoized = lazy(memoizedView, [])
+    const tree = dedupeSharedVNodes(
+      h('section', {}, [memoized!, h('div', {}, [icon])]),
+      registry.dedupeSeen,
+    )
+
+    expect(asVNode(asVNode(tree.children?.[0]).children?.[0])).toBe(icon)
+    expect(asVNode(asVNode(tree.children?.[1]).children?.[0])).not.toBe(icon)
+  })
+
+  it('clones a plain-sibling const even when the memoized view is a cache hit', () => {
+    const icon = h('span', {}, ['icon'])
+    const memoizedView = () => h('div', {}, [icon])
+    const lazy = createLazy()
+
+    lazy(memoizedView, [])
+    // A prior render patched the icon, recording its live DOM node on .elm.
+    icon.elm = document.createElement('span')
+
+    beginRender(registry)
+    const memoized = lazy(memoizedView, [])
+    const tree = dedupeSharedVNodes(
+      h('section', {}, [memoized!, h('div', {}, [icon])]),
+      registry.dedupeSeen,
+    )
+
+    const plainIcon = asVNode(asVNode(tree.children?.[1]).children?.[0])
+    expect(plainIcon).not.toBe(icon)
+    expect(plainIcon.elm).toBeUndefined()
+  })
+})
 
 describe('createLazy', () => {
   beforeEach(() => {

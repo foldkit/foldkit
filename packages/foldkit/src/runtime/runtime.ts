@@ -1600,7 +1600,12 @@ const makeRuntime = <
             const maybeCurrentVNode = yield* Ref.get(maybeCurrentVNodeRef)
 
             const patchedVNode = yield* Effect.sync(() =>
-              patchVNode(maybeCurrentVNode, nextVNode, container),
+              patchVNode(
+                maybeCurrentVNode,
+                nextVNode,
+                container,
+                boundaryRegistry.dedupeSeen,
+              ),
             )
             yield* Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode))
 
@@ -2072,9 +2077,10 @@ export const patchVNode = (
   maybeCurrentVNode: Option.Option<VNode>,
   nextVNode: VNode | null,
   container: HTMLElement,
+  seen?: Set<object>,
 ): VNode => {
   const dedupedVNode = Predicate.isNotNull(nextVNode)
-    ? dedupeSharedVNodes(nextVNode)
+    ? dedupeSharedVNodes(nextVNode, seen)
     : h('!')
 
   return Option.match(maybeCurrentVNode, {
