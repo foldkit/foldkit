@@ -7,8 +7,9 @@ import { products } from './data/products'
 import {
   ChangedUrl,
   ClickedClearCart,
+  ClickedDecrementQuantity,
+  ClickedIncrementQuantity,
   ClickedPlaceOrder,
-  ClickedQuantityChange,
   ClickedRemoveCartItem,
   GotProductsMessage,
   type Model,
@@ -127,16 +128,44 @@ describe('update', () => {
       )
     })
 
-    test('ClickedQuantityChange replaces the quantity for an item', () => {
+    test('ClickedIncrementQuantity raises the quantity for an item', () => {
       Story.story(
         update,
         Story.with({
           ...baseModel,
           cart: [{ item: apple, quantity: 1 }],
         }),
-        Story.message(ClickedQuantityChange({ itemId: '1', quantity: 5 })),
+        Story.message(ClickedIncrementQuantity({ itemId: '1' })),
         Story.model(model => {
-          expect(model.cart[0]?.quantity).toBe(5)
+          expect(model.cart[0]?.quantity).toBe(2)
+        }),
+      )
+    })
+
+    test('ClickedDecrementQuantity lowers the quantity for an item', () => {
+      Story.story(
+        update,
+        Story.with({
+          ...baseModel,
+          cart: [{ item: apple, quantity: 2 }],
+        }),
+        Story.message(ClickedDecrementQuantity({ itemId: '1' })),
+        Story.model(model => {
+          expect(model.cart[0]?.quantity).toBe(1)
+        }),
+      )
+    })
+
+    test('ClickedDecrementQuantity removes the item when it reaches zero', () => {
+      Story.story(
+        update,
+        Story.with({
+          ...baseModel,
+          cart: [{ item: apple, quantity: 1 }],
+        }),
+        Story.message(ClickedDecrementQuantity({ itemId: '1' })),
+        Story.model(model => {
+          expect(model.cart).toHaveLength(0)
         }),
       )
     })

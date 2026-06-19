@@ -5,6 +5,8 @@ import { m } from 'foldkit/message'
 import { replaceUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 
+import { Button, Input } from '@foldkit/ui'
+
 import { Cart, Item } from '../domain'
 import { cartRouter, productsRouter } from '../route'
 
@@ -21,32 +23,42 @@ export type Model = typeof Model.Type
 const CompletedReplaceUrl = m('CompletedReplaceUrl')
 const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
 export const ClickedAddToCart = m('ClickedAddToCart', { item: Item.Item })
-export const ClickedChangeQuantity = m('ClickedChangeQuantity', {
+export const ClickedIncrementQuantity = m('ClickedIncrementQuantity', {
   itemId: S.String,
-  quantity: S.Number,
+})
+export const ClickedDecrementQuantity = m('ClickedDecrementQuantity', {
+  itemId: S.String,
 })
 
 export const Message = S.Union([
   CompletedReplaceUrl,
   ChangedSearchInput,
   ClickedAddToCart,
-  ClickedChangeQuantity,
+  ClickedIncrementQuantity,
+  ClickedDecrementQuantity,
 ])
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
 export const AddedToCart = m('AddedToCart', { item: Item.Item })
-export const ChangedQuantity = m('ChangedQuantity', {
+export const IncrementedQuantity = m('IncrementedQuantity', {
   itemId: S.String,
-  quantity: S.Number,
+})
+export const DecrementedQuantity = m('DecrementedQuantity', {
+  itemId: S.String,
 })
 
-export const OutMessage = S.Union([AddedToCart, ChangedQuantity])
+export const OutMessage = S.Union([
+  AddedToCart,
+  IncrementedQuantity,
+  DecrementedQuantity,
+])
 export type OutMessage = typeof OutMessage.Type
 
 export type AddedToCart = typeof AddedToCart.Type
-export type ChangedQuantity = typeof ChangedQuantity.Type
+export type IncrementedQuantity = typeof IncrementedQuantity.Type
+export type DecrementedQuantity = typeof DecrementedQuantity.Type
 
 // INIT
 
@@ -96,10 +108,16 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         Option.some(AddedToCart({ item })),
       ],
 
-      ClickedChangeQuantity: ({ itemId, quantity }) => [
+      ClickedIncrementQuantity: ({ itemId }) => [
         model,
         [],
-        Option.some(ChangedQuantity({ itemId, quantity })),
+        Option.some(IncrementedQuantity({ itemId })),
+      ],
+
+      ClickedDecrementQuantity: ({ itemId }) => [
+        model,
+        [],
+        Option.some(DecrementedQuantity({ itemId })),
       ],
     }),
   )
@@ -130,14 +148,20 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
             h.search(
               [h.Class('mb-6')],
               [
-                h.input([
-                  h.Value(model.searchText),
-                  h.Placeholder('Search products...'),
-                  h.Class(
-                    'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
-                  ),
-                  h.OnInput((value: string) => ChangedSearchInput({ value })),
-                ]),
+                Input.view<Message>({
+                  id: 'product-search',
+                  value: model.searchText,
+                  placeholder: 'Search products...',
+                  onInput: value => ChangedSearchInput({ value }),
+                  toView: attributes =>
+                    h.input([
+                      ...attributes.input,
+                      h.AriaLabel('Search products'),
+                      h.Class(
+                        'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
+                      ),
+                    ]),
+                }),
               ],
             ),
             h.section(
@@ -165,33 +189,37 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
                       ],
                     ),
                     Cart.itemQuantity(product.id)(cart) === 0
-                      ? h.button(
-                          [
-                            h.Class(
-                              'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium',
+                      ? Button.view<Message>({
+                          onClick: ClickedAddToCart({ item: product }),
+                          toView: attributes =>
+                            h.button(
+                              [
+                                ...attributes.button,
+                                h.Class(
+                                  'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium',
+                                ),
+                              ],
+                              ['Add to Cart'],
                             ),
-                            h.OnClick(ClickedAddToCart({ item: product })),
-                          ],
-                          ['Add to Cart'],
-                        )
+                        })
                       : h.div(
                           [h.Class('flex items-center gap-2')],
                           [
-                            h.button(
-                              [
-                                h.Class(
-                                  'bg-gray-200 hover:bg-gray-300 text-gray-800 w-8 h-8 rounded flex items-center justify-center',
+                            Button.view<Message>({
+                              onClick: ClickedDecrementQuantity({
+                                itemId: product.id,
+                              }),
+                              toView: attributes =>
+                                h.button(
+                                  [
+                                    ...attributes.button,
+                                    h.Class(
+                                      'bg-gray-200 hover:bg-gray-300 text-gray-800 w-8 h-8 rounded flex items-center justify-center',
+                                    ),
+                                  ],
+                                  ['-'],
                                 ),
-                                h.OnClick(
-                                  ClickedChangeQuantity({
-                                    itemId: product.id,
-                                    quantity:
-                                      Cart.itemQuantity(product.id)(cart) - 1,
-                                  }),
-                                ),
-                              ],
-                              ['-'],
-                            ),
+                            }),
                             h.span(
                               [
                                 h.Class(
@@ -200,21 +228,21 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
                               ],
                               [String(Cart.itemQuantity(product.id)(cart))],
                             ),
-                            h.button(
-                              [
-                                h.Class(
-                                  'bg-gray-200 hover:bg-gray-300 text-gray-800 w-8 h-8 rounded flex items-center justify-center',
+                            Button.view<Message>({
+                              onClick: ClickedIncrementQuantity({
+                                itemId: product.id,
+                              }),
+                              toView: attributes =>
+                                h.button(
+                                  [
+                                    ...attributes.button,
+                                    h.Class(
+                                      'bg-gray-200 hover:bg-gray-300 text-gray-800 w-8 h-8 rounded flex items-center justify-center',
+                                    ),
+                                  ],
+                                  ['+'],
                                 ),
-                                h.OnClick(
-                                  ClickedChangeQuantity({
-                                    itemId: product.id,
-                                    quantity:
-                                      Cart.itemQuantity(product.id)(cart) + 1,
-                                  }),
-                                ),
-                              ],
-                              ['+'],
-                            ),
+                            }),
                           ],
                         ),
                   ],

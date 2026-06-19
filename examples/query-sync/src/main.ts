@@ -20,7 +20,7 @@ import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
-import { Listbox } from '@foldkit/ui'
+import { Button, Input, Listbox } from '@foldkit/ui'
 import { AnchorConfig } from '@foldkit/ui/listbox'
 
 import { type Dinosaur, dinosaurs } from './data'
@@ -582,15 +582,18 @@ const sortableColumnHeader = (
   return h.th(
     [h.AriaSort(ariaSortValue(column, fields.sorting))],
     [
-      h.button(
-        [
-          h.Type('button'),
-          h.OnClick(ClickedColumnHeader({ column })),
-          h.AriaLabel(sortAriaLabel(column, fields.sorting)),
-          h.Class(clsx(headerButtonClass, alignment)),
-        ],
-        isRightAligned ? [indicator, label] : [label, indicator],
-      ),
+      Button.view<Message>({
+        onClick: ClickedColumnHeader({ column }),
+        toView: attributes =>
+          h.button(
+            [
+              ...attributes.button,
+              h.AriaLabel(sortAriaLabel(column, fields.sorting)),
+              h.Class(clsx(headerButtonClass, alignment)),
+            ],
+            isRightAligned ? [indicator, label] : [label, indicator],
+          ),
+      }),
     ],
   )
 }
@@ -713,14 +716,19 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
       h.div(
         [h.Class('flex flex-wrap items-start gap-3 mb-6')],
         [
-          h.input([
-            h.Value(Option.getOrElse(fields.search, () => '')),
-            h.Placeholder('Search by name…'),
-            h.OnInput(value => ChangedSearchInput({ value })),
-            h.Class(
-              'flex-1 min-w-48 px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500',
-            ),
-          ]),
+          Input.view<Message>({
+            id: 'dinosaur-search',
+            value: Option.getOrElse(fields.search, () => ''),
+            placeholder: 'Search by name…',
+            onInput: value => ChangedSearchInput({ value }),
+            toView: attributes =>
+              h.input([
+                ...attributes.input,
+                h.Class(
+                  'flex-1 min-w-48 px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500',
+                ),
+              ]),
+          }),
           h.submodel({
             slotId: model.dietListbox.id,
             model: model.dietListbox,

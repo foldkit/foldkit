@@ -1,6 +1,8 @@
 import { Array, Option } from 'effect'
 import { Html, html } from 'foldkit/html'
 
+import { Button, Textarea } from '@foldkit/ui'
+
 import { Cart } from '../domain'
 import {
   ClickedPlaceOrder,
@@ -139,30 +141,36 @@ export const view = (
                 ),
               ],
             ),
-            h.div(
-              [h.Class('mb-6')],
-              [
-                h.h3(
-                  [h.Class('text-lg font-semibold text-gray-800 mb-2')],
-                  ['Delivery Instructions'],
-                ),
-                h.textarea(
+            Textarea.view<Message>({
+              id: 'delivery-instructions',
+              value: deliveryInstructions,
+              placeholder: 'Special delivery instructions (optional)...',
+              onInput: value => UpdatedDeliveryInstructions({ value }),
+              toView: attributes =>
+                h.div(
+                  [h.Class('mb-6')],
                   [
-                    h.Value(deliveryInstructions),
-                    h.Placeholder(
-                      'Special delivery instructions (optional)...',
+                    h.label(
+                      [
+                        ...attributes.label,
+                        h.Class(
+                          'block text-lg font-semibold text-gray-800 mb-2',
+                        ),
+                      ],
+                      ['Delivery Instructions'],
                     ),
-                    h.Class(
-                      'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none',
-                    ),
-                    h.OnInput((value: string) =>
-                      UpdatedDeliveryInstructions({ value }),
+                    h.textarea(
+                      [
+                        ...attributes.textarea,
+                        h.Class(
+                          'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none',
+                        ),
+                      ],
+                      [],
                     ),
                   ],
-                  [],
                 ),
-              ],
-            ),
+            }),
             h.div(
               [h.Class('flex gap-4 justify-center')],
               [
@@ -175,15 +183,19 @@ export const view = (
                   ],
                   ['Back to Cart'],
                 ),
-                h.button(
-                  [
-                    h.Class(
-                      'bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium',
+                Button.view<Message>({
+                  onClick: ClickedPlaceOrder(),
+                  toView: attributes =>
+                    h.button(
+                      [
+                        ...attributes.button,
+                        h.Class(
+                          'bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium',
+                        ),
+                      ],
+                      ['Place Order'],
                     ),
-                    h.OnClick(ClickedPlaceOrder()),
-                  ],
-                  ['Place Order'],
-                ),
+                }),
               ],
             ),
           ],

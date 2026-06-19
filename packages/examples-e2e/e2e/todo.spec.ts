@@ -15,4 +15,17 @@ test.describe('todo example', () => {
     await page.getByRole('button', { name: 'Add' }).click()
     await expect(page.getByText('Write Playwright tests')).toBeVisible()
   })
+
+  test('toggles a todo complete', async ({ page }) => {
+    await page.goto('/')
+    await page
+      .getByPlaceholder('What needs to be done?')
+      .fill('Write Playwright tests')
+    await page.getByRole('button', { name: 'Add' }).click()
+
+    const checkbox = page.getByRole('checkbox')
+    await expect(checkbox).not.toBeChecked()
+    await checkbox.click()
+    await expect(checkbox).toBeChecked()
+  })
 })

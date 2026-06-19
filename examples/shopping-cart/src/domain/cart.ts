@@ -48,6 +48,19 @@ export const changeQuantity = (itemId: string, quantity: number) =>
         }),
       )
 
+export const incrementQuantity = (itemId: string) =>
+  mapCartItem(
+    itemId,
+    evo({
+      quantity: Number.increment,
+    }),
+  )
+
+export const decrementQuantity =
+  (itemId: string) =>
+  (cart: Cart): Cart =>
+    changeQuantity(itemId, itemQuantity(itemId)(cart) - 1)(cart)
+
 export const itemQuantity =
   (itemId: string) =>
   (cart: Cart): number =>

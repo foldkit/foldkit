@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import {
   Array,
   Effect,
@@ -18,6 +19,8 @@ import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 import type { Map as MapInstance } from 'maplibre-gl'
+
+import { Button, Input } from '@foldkit/ui'
 
 import { Location, featuredLocations } from './locations'
 import { getMap, removeMap, setMap } from './mapHost'
@@ -539,17 +542,21 @@ const sidebarView = (model: Model): Html => {
       h.div(
         [h.Class('px-5 py-3 border-b border-slate-200')],
         [
-          h.input([
-            h.Id(SEARCH_INPUT_ID),
-            h.Type('search'),
-            h.Placeholder('Filter locations'),
-            h.AriaLabel('Filter locations'),
-            h.Class(
-              'w-full px-3 py-2 text-sm rounded-md border border-slate-300 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200',
-            ),
-            h.Value(model.searchQuery),
-            h.OnInput(value => UpdatedSearchQuery({ value })),
-          ]),
+          Input.view<Message>({
+            id: SEARCH_INPUT_ID,
+            type: 'search',
+            value: model.searchQuery,
+            placeholder: 'Filter locations',
+            onInput: value => UpdatedSearchQuery({ value }),
+            toView: attributes =>
+              h.input([
+                ...attributes.input,
+                h.AriaLabel('Filter locations'),
+                h.Class(
+                  'w-full px-3 py-2 text-sm rounded-md border border-slate-300 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200',
+                ),
+              ]),
+          }),
         ],
       ),
       h.ul(
@@ -588,25 +595,31 @@ const locationListItemView =
     return h.li(
       [],
       [
-        h.button(
-          [
-            h.Type('button'),
-            h.AriaPressed(isSelected ? 'true' : 'false'),
-            h.OnClick(ClickedLocation({ locationId: location.id })),
-            h.Class(
-              isSelected
-                ? 'w-full text-left px-5 py-3 cursor-pointer bg-slate-100 border-l-2 border-slate-900'
-                : 'w-full text-left px-5 py-3 cursor-pointer hover:bg-slate-100 border-l-2 border-transparent',
+        Button.view<Message>({
+          onClick: ClickedLocation({ locationId: location.id }),
+          toView: attributes =>
+            h.button(
+              [
+                ...attributes.button,
+                h.AriaPressed(isSelected ? 'true' : 'false'),
+                h.Class(
+                  clsx(
+                    'w-full text-left px-5 py-3 cursor-pointer border-l-2',
+                    isSelected
+                      ? 'bg-slate-100 border-slate-900'
+                      : 'hover:bg-slate-100 border-transparent',
+                  ),
+                ),
+              ],
+              [
+                h.div([h.Class('text-sm font-medium')], [location.name]),
+                h.div(
+                  [h.Class('text-xs text-slate-500 mt-0.5')],
+                  [location.region],
+                ),
+              ],
             ),
-          ],
-          [
-            h.div([h.Class('text-sm font-medium')], [location.name]),
-            h.div(
-              [h.Class('text-xs text-slate-500 mt-0.5')],
-              [location.region],
-            ),
-          ],
-        ),
+        }),
       ],
     )
   }
@@ -618,17 +631,20 @@ const footerView = (model: Model): Html => {
   return h.div(
     [h.Class('border-t border-slate-200 px-5 py-3 space-y-2')],
     [
-      h.button(
-        [
-          h.Type('button'),
-          h.OnClick(ClickedFindMe()),
-          h.Disabled(isLocating),
-          h.Class(
-            'w-full px-3 py-2 text-sm font-medium rounded-md bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed',
+      Button.view<Message>({
+        onClick: ClickedFindMe(),
+        isDisabled: isLocating,
+        toView: attributes =>
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(
+                'w-full px-3 py-2 text-sm font-medium rounded-md bg-slate-900 text-white hover:bg-slate-800 data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed',
+              ),
+            ],
+            [isLocating ? 'Locating…' : 'Find my location'],
           ),
-        ],
-        [isLocating ? 'Locating…' : 'Find my location'],
-      ),
+      }),
       Option.match(model.maybeUserLocation, {
         onNone: () => h.empty,
         onSome: ({ lng, lat }) =>
@@ -770,16 +786,19 @@ const geolocateFailedContentView = (reason: string): Html => {
         ['Could not locate you'],
       ),
       h.p([h.Class('text-sm text-slate-600')], [reason]),
-      h.button(
-        [
-          h.Type('button'),
-          h.OnClick(DismissedGeolocate()),
-          h.Class(
-            'mt-4 px-4 py-2 text-sm font-medium rounded-md bg-slate-900 text-white hover:bg-slate-800',
+      Button.view<Message>({
+        onClick: DismissedGeolocate(),
+        toView: attributes =>
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(
+                'mt-4 px-4 py-2 text-sm font-medium rounded-md bg-slate-900 text-white hover:bg-slate-800',
+              ),
+            ],
+            ['Dismiss'],
           ),
-        ],
-        ['Dismiss'],
-      ),
+      }),
     ],
   )
 }

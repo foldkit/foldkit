@@ -10,6 +10,8 @@ import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 
+import { Button, Input } from '@foldkit/ui'
+
 // MODEL
 
 export const WeatherData = S.Struct({
@@ -77,12 +79,17 @@ export const update = (
         [],
       ],
 
-      SubmittedWeatherForm: () => [
-        evo(model, {
-          weather: () => WeatherLoading(),
-        }),
-        [FetchWeather({ zipCode: model.zipCodeInput })],
-      ],
+      SubmittedWeatherForm: () => {
+        if (model.weather._tag === 'WeatherLoading') {
+          return [model, []]
+        }
+        return [
+          evo(model, {
+            weather: () => WeatherLoading(),
+          }),
+          [FetchWeather({ zipCode: model.zipCodeInput })],
+        ]
+      },
 
       SucceededFetchWeather: ({ weather }) => [
         evo(model, {
@@ -265,32 +272,40 @@ export const view = (model: Model): Document => {
             h.OnSubmit(SubmittedWeatherForm()),
           ],
           [
-            h.label([h.For('location'), h.Class('sr-only')], ['Zip code']),
-            h.input([
-              h.Id('location'),
-              h.Class(
-                'w-full px-4 py-2 rounded-lg border-2 border-blue-300 focus:border-blue-500 outline-none',
-              ),
-              h.Autocomplete('off'),
-              h.DataAttribute('1p-ignore', ''),
-              h.Placeholder('Enter a zip code'),
-              h.Value(model.zipCodeInput),
-              h.OnInput(value => UpdatedZipCodeInput({ value })),
-            ]),
-            h.button(
-              [
-                h.Type('submit'),
-                h.Disabled(model.weather._tag === 'WeatherLoading'),
-                h.Class(
-                  'px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:opacity-50',
+            Input.view<Message>({
+              id: 'location',
+              value: model.zipCodeInput,
+              placeholder: 'Enter a zip code',
+              onInput: value => UpdatedZipCodeInput({ value }),
+              toView: attributes =>
+                h.input([
+                  ...attributes.input,
+                  h.Autocomplete('off'),
+                  h.DataAttribute('1p-ignore', ''),
+                  h.AriaLabel('Zip code'),
+                  h.Class(
+                    'w-full px-4 py-2 rounded-lg border-2 border-blue-300 focus:border-blue-500 outline-none',
+                  ),
+                ]),
+            }),
+            Button.view<Message>({
+              type: 'submit',
+              isDisabled: model.weather._tag === 'WeatherLoading',
+              toView: attributes =>
+                h.button(
+                  [
+                    ...attributes.button,
+                    h.Class(
+                      'px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition data-[disabled]:opacity-50',
+                    ),
+                  ],
+                  [
+                    model.weather._tag === 'WeatherLoading'
+                      ? 'Loading...'
+                      : 'Get Weather',
+                  ],
                 ),
-              ],
-              [
-                model.weather._tag === 'WeatherLoading'
-                  ? 'Loading...'
-                  : 'Get Weather',
-              ],
-            ),
+            }),
           ],
         ),
 

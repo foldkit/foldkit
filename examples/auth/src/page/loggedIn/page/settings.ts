@@ -1,5 +1,7 @@
 import { Html, html } from 'foldkit/html'
 
+import { Button } from '@foldkit/ui'
+
 import { Session } from '../../../domain/session'
 import { ClickedLogout, type Message } from '../message'
 
@@ -52,15 +54,19 @@ export const view = (session: Session): Html => {
             [h.Class('text-xl font-semibold text-gray-800 mb-4')],
             ['Actions'],
           ),
-          h.button(
-            [
-              h.OnClick(ClickedLogout()),
-              h.Class(
-                'px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition cursor-pointer',
+          Button.view<Message>({
+            onClick: ClickedLogout(),
+            toView: attributes =>
+              h.button(
+                [
+                  ...attributes.button,
+                  h.Class(
+                    'px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition cursor-pointer',
+                  ),
+                ],
+                ['Sign Out'],
               ),
-            ],
-            ['Sign Out'],
-          ),
+          }),
         ],
       ),
     ],

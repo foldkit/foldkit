@@ -3,6 +3,8 @@ import { Command, Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
+import { Button } from '@foldkit/ui'
+
 // MODEL
 
 export const Model = S.Struct({ count: S.Number })
@@ -46,12 +48,20 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
       ),
     ],
     [
-      h.button([h.OnClick(ClickedDecrement()), h.Class(buttonStyle)], ['-']),
+      Button.view<Message>({
+        onClick: ClickedDecrement(),
+        toView: attributes =>
+          h.button([...attributes.button, h.Class(buttonStyle)], ['-']),
+      }),
       h.span(
         [h.Class('w-12 text-center text-2xl font-mono tabular-nums')],
         [model.count.toString()],
       ),
-      h.button([h.OnClick(ClickedIncrement()), h.Class(buttonStyle)], ['+']),
+      Button.view<Message>({
+        onClick: ClickedIncrement(),
+        toView: attributes =>
+          h.button([...attributes.button, h.Class(buttonStyle)], ['+']),
+      }),
     ],
   )
 })

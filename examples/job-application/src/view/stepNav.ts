@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { Equal, HashSet, Match, Number, flow } from 'effect'
 import { type Html, html } from 'foldkit/html'
 
-import { Menu } from '@foldkit/ui'
+import { Button, Menu } from '@foldkit/ui'
 
 import { Step } from '../domain'
 import type { Message } from '../message'
@@ -107,20 +107,22 @@ export const stepList = (
             step,
             [],
             [
-              h.button(
-                [
-                  h.Type('button'),
-                  ...(status === 'Current' ? [h.AriaCurrent('step')] : []),
-                  ...(clickable
-                    ? [h.OnClick(onSelectedStep(step))]
-                    : [h.AriaDisabled(true)]),
-                  h.Class(stepButtonClass(status, hasErrors)),
-                ],
-                [
-                  stepMarker(status, index, hasErrors),
-                  h.span([], [Step.show(step)]),
-                ],
-              ),
+              Button.view<Message>({
+                onClick: onSelectedStep(step),
+                isDisabled: !clickable,
+                toView: attributes =>
+                  h.button(
+                    [
+                      ...attributes.button,
+                      ...(status === 'Current' ? [h.AriaCurrent('step')] : []),
+                      h.Class(stepButtonClass(status, hasErrors)),
+                    ],
+                    [
+                      stepMarker(status, index, hasErrors),
+                      h.span([], [Step.show(step)]),
+                    ],
+                  ),
+              }),
             ],
           )
         }),

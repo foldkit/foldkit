@@ -13,6 +13,8 @@ import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
+import { Button } from '@foldkit/ui'
+
 // MODEL
 
 const CANVAS_WIDTH = 600
@@ -211,24 +213,32 @@ const controlsView = (model: Model): Html => {
   return h.div(
     [h.Class('flex gap-3 mt-4')],
     [
-      h.button(
-        [
-          h.Class(
-            'min-w-20 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500',
+      Button.view<Message>({
+        onClick: ClickedTogglePlay(),
+        toView: attributes =>
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(
+                'min-w-20 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500',
+              ),
+            ],
+            [model.isRunning ? 'Pause' : 'Play'],
           ),
-          h.OnClick(ClickedTogglePlay()),
-        ],
-        [model.isRunning ? 'Pause' : 'Play'],
-      ),
-      h.button(
-        [
-          h.Class(
-            'min-w-20 px-4 py-2 bg-zinc-700 text-white rounded hover:bg-zinc-600',
+      }),
+      Button.view<Message>({
+        onClick: ClickedClear(),
+        toView: attributes =>
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(
+                'min-w-20 px-4 py-2 bg-zinc-700 text-white rounded hover:bg-zinc-600',
+              ),
+            ],
+            ['Clear'],
           ),
-          h.OnClick(ClickedClear()),
-        ],
-        ['Clear'],
-      ),
+      }),
       h.p(
         [h.Class('px-4 py-2 text-zinc-400 text-sm self-center')],
         [

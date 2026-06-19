@@ -3,6 +3,8 @@ import { Command, Runtime } from 'foldkit'
 import { Document, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
+import { Button } from '@foldkit/ui'
+
 // MODEL
 
 export const Model = S.Struct({ count: S.Number })
@@ -66,18 +68,24 @@ export const view = (model: Model): Document => {
         h.div(
           [h.Class('flex flex-wrap justify-center gap-4')],
           [
-            h.button(
-              [h.OnClick(ClickedDecrement()), h.Class(buttonStyle)],
-              ['-'],
-            ),
-            h.button(
-              [h.OnClick(ClickedReset()), h.Class(buttonStyle)],
-              ['Reset'],
-            ),
-            h.button(
-              [h.OnClick(ClickedIncrement()), h.Class(buttonStyle)],
-              ['+'],
-            ),
+            Button.view<Message>({
+              onClick: ClickedDecrement(),
+              toView: attributes =>
+                h.button([...attributes.button, h.Class(buttonStyle)], ['-']),
+            }),
+            Button.view<Message>({
+              onClick: ClickedReset(),
+              toView: attributes =>
+                h.button(
+                  [...attributes.button, h.Class(buttonStyle)],
+                  ['Reset'],
+                ),
+            }),
+            Button.view<Message>({
+              onClick: ClickedIncrement(),
+              toView: attributes =>
+                h.button([...attributes.button, h.Class(buttonStyle)], ['+']),
+            }),
           ],
         ),
       ],

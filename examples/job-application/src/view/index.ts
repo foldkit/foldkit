@@ -2,6 +2,8 @@ import clsx from 'clsx'
 import { Array, Equal, HashSet, Match as M, Option, pipe } from 'effect'
 import { type Document, type Html, html } from 'foldkit/html'
 
+import { Button } from '@foldkit/ui'
+
 import { Step } from '../domain'
 import {
   ClickedNext,
@@ -120,32 +122,38 @@ const navigationButtons = (model: Model): Html => {
       ...(isFirstStep(model)
         ? [h.empty]
         : [
-            h.keyed('button')(
-              'previous',
-              [
-                h.Type('button'),
-                h.OnClick(ClickedPrevious()),
-                h.Class(
-                  'rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition cursor-pointer',
+            Button.view<Message>({
+              onClick: ClickedPrevious(),
+              toView: attributes =>
+                h.keyed('button')(
+                  'previous',
+                  [
+                    ...attributes.button,
+                    h.Class(
+                      'rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition cursor-pointer',
+                    ),
+                  ],
+                  ['← Previous'],
                 ),
-              ],
-              ['← Previous'],
-            ),
+            }),
           ]),
       ...(isLastStep(model)
         ? []
         : [
-            h.keyed('button')(
-              'next',
-              [
-                h.Type('button'),
-                h.OnClick(ClickedNext()),
-                h.Class(
-                  'rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition cursor-pointer',
+            Button.view<Message>({
+              onClick: ClickedNext(),
+              toView: attributes =>
+                h.keyed('button')(
+                  'next',
+                  [
+                    ...attributes.button,
+                    h.Class(
+                      'rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition cursor-pointer',
+                    ),
+                  ],
+                  ['Next →'],
                 ),
-              ],
-              ['Next →'],
-            ),
+            }),
           ]),
     ],
   )
@@ -253,21 +261,24 @@ const mobilePreviewToggle = (model: Model): Html => {
     'mobile-toggle',
     [h.Class('fixed bottom-4 right-4 xl:hidden')],
     [
-      h.button(
-        [
-          h.Type('button'),
-          h.OnClick(ToggledPreview()),
-          h.Class(
-            clsx(
-              'rounded-full px-4 py-2 text-sm font-medium shadow-lg transition cursor-pointer',
-              model.isPreviewVisible
-                ? 'bg-gray-800 text-white'
-                : 'bg-indigo-600 text-white',
-            ),
+      Button.view<Message>({
+        onClick: ToggledPreview(),
+        toView: attributes =>
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(
+                clsx(
+                  'rounded-full px-4 py-2 text-sm font-medium shadow-lg transition cursor-pointer',
+                  model.isPreviewVisible
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-indigo-600 text-white',
+                ),
+              ),
+            ],
+            [model.isPreviewVisible ? 'Hide Preview' : 'Preview'],
           ),
-        ],
-        [model.isPreviewVisible ? 'Hide Preview' : 'Preview'],
-      ),
+      }),
     ],
   )
 }
