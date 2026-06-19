@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.17.0
+
+### Minor Changes
+
+- 86b2250: Publish the Foldkit oxlint plugin and scaffold new apps with oxlint and the Foldkit-specific lint rules.
+
 ## 0.16.0
 
 ### Minor Changes
