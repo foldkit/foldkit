@@ -42,6 +42,7 @@ export const BestPracticesMessagesRoute = r('BestPracticesMessages')
 export const BestPracticesKeyingRoute = r('BestPracticesKeying')
 export const BestPracticesImmutabilityRoute = r('BestPracticesImmutability')
 export const ProjectOrganizationRoute = r('ProjectOrganization')
+export const ToolingLintingRoute = r('ToolingLinting')
 export const ApiModuleRoute = r('ApiModule', { moduleSlug: S.String })
 
 export const CoreArchitectureRoute = r('CoreArchitecture')
@@ -134,6 +135,7 @@ export const DocsRoute = S.Union([
   BestPracticesKeyingRoute,
   BestPracticesImmutabilityRoute,
   ProjectOrganizationRoute,
+  ToolingLintingRoute,
   ApiModuleRoute,
   CoreArchitectureRoute,
   CoreCounterExampleRoute,
@@ -222,6 +224,7 @@ const react = section('react')
 const elm = section('elm')
 const core = section('core')
 const patterns = section('patterns')
+const tooling = section('tooling')
 const testing = section('testing')
 const bestPractices = section('best-practices')
 const ui = section('ui')
@@ -309,6 +312,10 @@ export const bestPracticesImmutabilityRouter = bestPractices(
 export const projectOrganizationRouter = patterns(
   'project-organization',
   ProjectOrganizationRoute,
+)
+export const toolingLintingRouter = tooling(
+  'oxlint-plugin',
+  ToolingLintingRoute,
 )
 
 export const apiModuleRouter = pipe(
@@ -469,6 +476,8 @@ const patternsParser = oneOf(
   projectOrganizationRouter,
 )
 
+const toolingParser = toolingLintingRouter
+
 const bestPracticesParser = oneOf(
   bestPracticesSideEffectsRouter,
   bestPracticesMessagesRouter,
@@ -515,6 +524,7 @@ const docsParser = oneOf(
   elmParser,
   coreParser,
   patternsParser,
+  toolingParser,
   bestPracticesParser,
   testingParser,
   examplesParser,

@@ -7,7 +7,7 @@ import {
   SubmitForm,
   SubmittedForm,
   UpdatedEmail,
-  UpdatedMessage,
+  UpdatedMessageText,
   UpdatedName,
   ValidateEmail,
   ValidatedEmail,
@@ -137,15 +137,15 @@ describe('update', () => {
     })
   })
 
-  describe('message field', () => {
-    test('UpdatedMessage stores the value as Valid', () => {
+  describe('message text field', () => {
+    test('UpdatedMessageText stores the value as Valid', () => {
       Story.story(
         update,
         Story.with(initialModel),
-        Story.message(UpdatedMessage({ value: 'Hello there.' })),
+        Story.message(UpdatedMessageText({ value: 'Hello there.' })),
         Story.model(model => {
-          expect(model.message._tag).toBe('Valid')
-          expect(model.message.value).toBe('Hello there.')
+          expect(model.messageText._tag).toBe('Valid')
+          expect(model.messageText.value).toBe('Hello there.')
         }),
       )
     })
@@ -179,13 +179,13 @@ describe('update', () => {
             success: true,
             name: 'Alice',
             email: 'alice@example.com',
-            message: '',
+            messageText: '',
           }),
         ),
         Story.model(model => {
           expect(model.submission._tag).toBe('SubmitSuccess')
           if (model.submission._tag === 'SubmitSuccess') {
-            expect(model.submission.message).toContain('Alice')
+            expect(model.submission.confirmationText).toContain('Alice')
           }
         }),
       )
@@ -202,7 +202,7 @@ describe('update', () => {
             success: false,
             name: 'Alice',
             email: 'alice@example.com',
-            message: '',
+            messageText: '',
           }),
         ),
         Story.model(model => {

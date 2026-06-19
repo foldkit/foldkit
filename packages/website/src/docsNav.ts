@@ -52,6 +52,7 @@ import {
   testingRouter,
   testingSceneRouter,
   testingStoryRouter,
+  toolingLintingRouter,
   typingTerminalRouter,
   uiAnimationRouter,
   uiButtonRouter,
@@ -353,6 +354,19 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'PatternsSubscriptionOrganization',
           href: patternsSubscriptionOrganizationRouter(),
           label: 'Subscription Organization',
+        },
+      ],
+    ],
+  },
+  {
+    key: 'tooling',
+    label: 'Tooling',
+    pageGroups: [
+      [
+        {
+          _tag: 'ToolingLinting',
+          href: toolingLintingRouter(),
+          label: 'Oxlint Plugin',
         },
       ],
     ],

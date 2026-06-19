@@ -42,6 +42,17 @@ const PASS_THROUGH_WORKSPACE_PACKAGES = new Set([
   '@foldkit/devtools',
 ])
 
+const TEMPLATE_DEV_DEPENDENCIES = [
+  '@foldkit/vite-plugin',
+  '@foldkit/devtools-mcp',
+  '@foldkit/oxlint-plugin',
+  '@trivago/prettier-plugin-sort-imports',
+  'happy-dom',
+  'oxlint',
+  'prettier',
+  'vitest',
+]
+
 const formatDeps = (deps: Record<string, string>): ReadonlyArray<string> =>
   pipe(
     deps,
@@ -121,10 +132,7 @@ export const installDependencies = (
       packageManager,
       [
         ...installDevArgs,
-        '@foldkit/vite-plugin',
-        '@foldkit/devtools-mcp',
-        'vitest',
-        'happy-dom',
+        ...TEMPLATE_DEV_DEPENDENCIES,
         ...exampleDeps.devDependencies,
       ],
       projectPath,

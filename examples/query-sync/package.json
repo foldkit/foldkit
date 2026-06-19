@@ -19,12 +19,8 @@
     "tailwindcss": "^4.3.1"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@foldkit/vite-plugin": "workspace:*",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
-    "@typescript-eslint/eslint-plugin": "^8.61.1",
-    "@typescript-eslint/parser": "^8.61.1",
-    "eslint": "^10.5.0",
     "happy-dom": "^20.10.4",
     "prettier": "^3.8.4",
     "typescript": "^6.0.3",

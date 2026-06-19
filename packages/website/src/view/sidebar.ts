@@ -28,6 +28,7 @@ import {
   GotMobileMenuDialogMessage,
   GotPatternsGroupMessage,
   GotTestingGroupMessage,
+  GotToolingGroupMessage,
   type Message,
 } from '../message'
 import { ExampleDetailRoute, apiModuleRouter, homeRouter } from '../route'
@@ -123,6 +124,7 @@ const computeNavLinks = (
   testingGroup: Disclosure.Model,
   bestPracticesGroup: Disclosure.Model,
   patternsGroup: Disclosure.Model,
+  toolingGroup: Disclosure.Model,
   examplesGroup: Disclosure.Model,
   foldkitUiGroup: Disclosure.Model,
   aiGroup: Disclosure.Model,
@@ -174,6 +176,10 @@ const computeNavLinks = (
     patterns: {
       model: patternsGroup,
       toParentMessage: message => GotPatternsGroupMessage({ message }),
+    },
+    tooling: {
+      model: toolingGroup,
+      toParentMessage: message => GotToolingGroupMessage({ message }),
     },
     examples: {
       model: examplesGroup,
@@ -292,6 +298,7 @@ export const sidebarView = (model: Model): Html => {
     model.testingGroup,
     model.bestPracticesGroup,
     model.patternsGroup,
+    model.toolingGroup,
     model.examplesGroup,
     model.foldkitUiGroup,
     model.aiGroup,
@@ -307,6 +314,7 @@ export const sidebarView = (model: Model): Html => {
     model.testingGroup,
     model.bestPracticesGroup,
     model.patternsGroup,
+    model.toolingGroup,
     model.examplesGroup,
     model.foldkitUiGroup,
     model.aiGroup,

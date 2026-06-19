@@ -44,6 +44,7 @@ pnpm install --frozen-lockfile
 prerequisite_packages=(
   'foldkit:packages/foldkit'
   '@foldkit/vite-plugin:packages/vite-plugin-foldkit'
+  '@foldkit/oxlint-plugin:packages/oxlint-plugin-foldkit'
   '@typing-game/shared:packages/typing-game/shared'
 )
 

@@ -25,6 +25,9 @@
     "rimraf": "^6.1.3",
     "typescript": "^6.0.3"
   },
+  "devDependencies": {
+    "@types/node": "^25.9.3"
+  },
   "keywords": [
     "create-foldkit-app",
     "foldkit",

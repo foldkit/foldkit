@@ -34,6 +34,9 @@ const ui = (title: string, description: string): PageMetadata =>
 const pattern = (title: string, description: string): PageMetadata =>
   docs(title, description, 'Patterns')
 
+const tooling = (title: string, description: string): PageMetadata =>
+  docs(title, description, 'Tooling')
+
 type StaticRouteTag = Exclude<
   AppRoute['_tag'],
   'ApiModule' | 'ExampleDetail' | 'Playground'
@@ -154,6 +157,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Project Organization',
     'How to structure a Foldkit project for maintainability.',
     'Docs',
+  ),
+  ToolingLinting: tooling(
+    'Oxlint Plugin',
+    'Use the Foldkit oxlint plugin to enforce Foldkit-specific naming and message conventions, with examples for each custom rule.',
   ),
   CoreArchitecture: core(
     'Architecture',

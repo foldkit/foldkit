@@ -9,6 +9,6 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier -w .",
     "test": "vitest run",
-    "lint": "eslint ."
+    "lint": "oxlint"
   }
 }

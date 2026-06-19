@@ -50,6 +50,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             BestPracticesImmutability: () =>
               Page.BestPractices.Immutability.tableOfContents,
             ProjectOrganization: () => Page.ProjectOrganization.tableOfContents,
+            ToolingLinting: () => Page.ToolingLinting.tableOfContents,
             ApiModule: ({ moduleSlug }) =>
               M.value(model.apiReference.apiData).pipe(
                 M.tag('Ok', ({ data }) =>

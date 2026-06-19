@@ -139,7 +139,7 @@ describe('view', () => {
           success: true,
           name: 'Alice',
           email: 'alice@example.com',
-          message: '',
+          messageText: '',
         }),
       ),
       Scene.expect(Scene.role('status')).toContainText(
@@ -167,7 +167,7 @@ describe('view', () => {
           success: false,
           name: 'Alice',
           email: 'alice@example.com',
-          message: '',
+          messageText: '',
         }),
       ),
       Scene.expect(Scene.role('alert')).toContainText(

@@ -1,0 +1,65 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript"],
+  "jsPlugins": [
+    {
+      "name": "foldkit",
+      "specifier": "./packages/oxlint-plugin-foldkit/dist/index.js"
+    }
+  ],
+  "categories": {
+    "correctness": "off"
+  },
+  "rules": {
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_"
+      }
+    ],
+    "typescript/no-explicit-any": "error",
+    "typescript/consistent-type-assertions": [
+      "error",
+      { "assertionStyle": "never" }
+    ],
+    "foldkit/no-noop-message": "error",
+    "foldkit/got-submodel-message-name": "error",
+    "foldkit/message-binding-matches-tag": "error",
+    "foldkit/got-prefix-requires-submodel-payload": "error",
+    "foldkit/no-empty-object-tagged-call": "error",
+    "foldkit/prefer-callable-message-constructor": "error",
+    "foldkit/command-binding-matches-name": "error"
+  },
+  "overrides": [
+    {
+      "files": ["packages/foldkit/src/**/*.ts"],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "dist/",
+    "node_modules/",
+    "repos/",
+    "comparisons/",
+    "internal/",
+    "scripts/",
+    "packages/create-foldkit-app/",
+    "packages/devtools-mcp/",
+    "packages/oxlint-plugin-foldkit/",
+    "packages/typing-game/shared/",
+    "packages/vite-plugin-foldkit/",
+    "**/*.d.ts",
+    "**/vite.config.ts",
+    "**/*.config.js",
+    "**/*.config.mjs",
+    "packages/website/public/example-apps-embed/",
+    "packages/website/playwright-report/",
+    "packages/website/test-results/",
+    "packages/website/src/snippet/"
+  ]
+}

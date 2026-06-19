@@ -40,7 +40,7 @@ const emailRules = makeRules({
 
 const NotSubmitted = ts('NotSubmitted')
 const Submitting = ts('Submitting')
-const SubmitSuccess = ts('SubmitSuccess', { message: S.String })
+const SubmitSuccess = ts('SubmitSuccess', { confirmationText: S.String })
 const SubmitError = ts('SubmitError', { error: S.String })
 
 const Submission = S.Union([
@@ -60,7 +60,7 @@ export const Model = S.Struct({
   name: Field(S.String),
   email: Field(S.String),
   emailValidationId: S.Number,
-  message: Field(S.String),
+  messageText: Field(S.String),
   submission: Submission,
 })
 export type Model = typeof Model.Type
@@ -73,20 +73,20 @@ export const ValidatedEmail = m('ValidatedEmail', {
   validationId: S.Number,
   field: Field(S.String),
 })
-export const UpdatedMessage = m('UpdatedMessage', { value: S.String })
+export const UpdatedMessageText = m('UpdatedMessageText', { value: S.String })
 export const ClickedFormSubmit = m('ClickedFormSubmit')
 export const SubmittedForm = m('SubmittedForm', {
   success: S.Boolean,
   name: S.String,
   email: S.String,
-  message: S.String,
+  messageText: S.String,
 })
 
 export const Message = S.Union([
   UpdatedName,
   UpdatedEmail,
   ValidatedEmail,
-  UpdatedMessage,
+  UpdatedMessageText,
   ClickedFormSubmit,
   SubmittedForm,
 ])
@@ -98,7 +98,7 @@ export const initialModel: Model = {
   name: NotValidated({ value: '' }),
   email: NotValidated({ value: '' }),
   emailValidationId: 0,
-  message: NotValidated({ value: '' }),
+  messageText: NotValidated({ value: '' }),
   submission: NotSubmitted(),
 }
 
@@ -207,9 +207,9 @@ export const update = (
         }
       },
 
-      UpdatedMessage: ({ value }) => [
+      UpdatedMessageText: ({ value }) => [
         evo(model, {
-          message: () => Valid({ value }),
+          messageText: () => Valid({ value }),
         }),
         [],
       ],
@@ -231,7 +231,7 @@ export const update = (
             SubmitForm({
               name: model.name.value,
               email: model.email.value,
-              message: model.message.value,
+              messageText: model.messageText.value,
             }),
           ],
         ]
@@ -243,7 +243,7 @@ export const update = (
             evo(model, {
               submission: () =>
                 SubmitSuccess({
-                  message: `Welcome to the waitlist, ${name}! We'll be in touch soon.`,
+                  confirmationText: `Welcome to the waitlist, ${name}! We'll be in touch soon.`,
                 }),
             }),
             [],
@@ -270,9 +270,9 @@ const FAKE_API_DELAY_MS = 500
 
 export const SubmitForm = Command.define(
   'SubmitForm',
-  { name: S.String, email: S.String, message: S.String },
+  { name: S.String, email: S.String, messageText: S.String },
   SubmittedForm,
-)(({ name, email, message }) =>
+)(({ name, email, messageText }) =>
   Effect.gen(function* () {
     yield* Effect.sleep(`${FAKE_API_DELAY_MS} millis`)
 
@@ -282,7 +282,7 @@ export const SubmitForm = Command.define(
       success,
       name,
       email,
-      message,
+      messageText,
     })
   }),
 )
@@ -451,8 +451,8 @@ export const view = (model: Model): Document => {
               textareaFieldView(
                 'message',
                 "Anything you'd like to share with us?",
-                model.message,
-                value => UpdatedMessage({ value }),
+                model.messageText,
+                value => UpdatedMessageText({ value }),
               ),
 
               Button.view<Message>({
@@ -485,7 +485,7 @@ export const view = (model: Model): Document => {
             M.tagsExhaustive({
               NotSubmitted: () => h.empty,
               Submitting: () => h.empty,
-              SubmitSuccess: ({ message }) =>
+              SubmitSuccess: ({ confirmationText }) =>
                 h.div(
                   [
                     h.Role('status'),
@@ -493,7 +493,7 @@ export const view = (model: Model): Document => {
                       'mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg',
                     ),
                   ],
-                  [message],
+                  [confirmationText],
                 ),
               SubmitError: ({ error }) =>
                 h.div(

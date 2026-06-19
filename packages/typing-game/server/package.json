@@ -7,8 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "build": "tsc",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@effect/platform-node": "4.0.0-beta.83",
@@ -16,12 +15,7 @@
     "effect": "4.0.0-beta.83"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@types/node": "^25.9.3",
-    "@typescript-eslint/eslint-plugin": "^8.61.1",
-    "@typescript-eslint/parser": "^8.61.1",
-    "eslint": "^10.5.0",
-    "eslint-plugin-unused-imports": "^4.4.1",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   }

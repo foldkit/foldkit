@@ -30,6 +30,16 @@ declare module '*.elm?highlighted' {
   export default html
 }
 
+declare module '*.json?raw' {
+  const content: string
+  export default content
+}
+
+declare module '*.json?highlighted' {
+  const html: string
+  export default html
+}
+
 declare module 'virtual:api-highlights' {
   const highlights: Record<string, string>
   export default highlights

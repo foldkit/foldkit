@@ -1,0 +1,51 @@
+{
+  "name": "@foldkit/oxlint-plugin",
+  "version": "0.0.0",
+  "description": "Oxlint rules for Foldkit applications",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "clean": "rimraf dist *.tsbuildinfo",
+    "build": "pnpm run clean && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "effect-oxlint": "^0.3.2"
+  },
+  "devDependencies": {
+    "effect": "4.0.0-beta.83",
+    "esbuild": "^0.28.1",
+    "rimraf": "^6.1.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "foldkit",
+    "oxlint",
+    "lint",
+    "effect"
+  ],
+  "author": "Devin Jameson",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/foldkit/foldkit.git",
+    "directory": "packages/oxlint-plugin-foldkit"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20.19.0 || >=22.12.0"
+  }
+}

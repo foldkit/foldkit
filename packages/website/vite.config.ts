@@ -45,6 +45,9 @@ const highlightLanguage = (filePath: string): string => {
   if (filePath.endsWith('.elm')) {
     return 'elm'
   }
+  if (filePath.endsWith('.json')) {
+    return 'json'
+  }
   return 'typescript'
 }
 

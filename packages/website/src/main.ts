@@ -75,6 +75,7 @@ import {
   GotSearchMessage,
   GotSubmodelMapMessagesDisclosureMessage,
   GotTestingGroupMessage,
+  GotToolingGroupMessage,
   GotUiPageMessage,
   HidCopiedIndicator,
   Message,
@@ -254,6 +255,7 @@ export const Model = S.Struct({
   testingGroup: Disclosure.Model,
   bestPracticesGroup: Disclosure.Model,
   patternsGroup: Disclosure.Model,
+  toolingGroup: Disclosure.Model,
   foldkitUiGroup: Disclosure.Model,
   aiGroup: Disclosure.Model,
   examplesGroup: Disclosure.Model,
@@ -455,6 +457,14 @@ export const init: Runtime.RoutingApplicationInit<
           flags.maybeSidebarState,
           maybeInitialActiveSectionKey,
           'patterns',
+        ),
+      }),
+      toolingGroup: Disclosure.init({
+        id: 'tooling-group',
+        isOpen: isGroupOpenOnBoot(
+          flags.maybeSidebarState,
+          maybeInitialActiveSectionKey,
+          'tooling',
         ),
       }),
       foldkitUiGroup: Disclosure.init({
@@ -675,6 +685,7 @@ export const update = (
             testingGroup: expandIfActive('testing'),
             bestPracticesGroup: expandIfActive('bestPractices'),
             patternsGroup: expandIfActive('patterns'),
+            toolingGroup: expandIfActive('tooling'),
             foldkitUiGroup: expandIfActive('foldkitUi'),
             aiGroup: expandIfActive('ai'),
             examplesGroup: expandIfActive('examples'),
@@ -1054,6 +1065,14 @@ export const update = (
           message => GotPatternsGroupMessage({ message }),
         ),
 
+      GotToolingGroupMessage: ({ message }) =>
+        handleSidebarGroup(
+          model.toolingGroup,
+          message,
+          next => evo(model, { toolingGroup: () => next }),
+          message => GotToolingGroupMessage({ message }),
+        ),
+
       GotFoldkitUiGroupMessage: ({ message }) =>
         handleSidebarGroup(
           model.foldkitUiGroup,
@@ -1375,6 +1394,7 @@ const modelToSidebarState = (model: Model): SidebarState => ({
     testing: model.testingGroup.isOpen,
     bestPractices: model.bestPracticesGroup.isOpen,
     patterns: model.patternsGroup.isOpen,
+    tooling: model.toolingGroup.isOpen,
     foldkitUi: model.foldkitUiGroup.isOpen,
     ai: model.aiGroup.isOpen,
     examples: model.examplesGroup.isOpen,

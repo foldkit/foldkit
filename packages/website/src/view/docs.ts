@@ -308,6 +308,7 @@ const searchWeight = (tag: string): string =>
     M.whenOr(
       S.startsWith('Patterns'),
       S.startsWith('BestPractices'),
+      S.startsWith('Tooling'),
       () => '7',
     ),
     M.whenOr(
@@ -519,6 +520,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
             model.copiedSnippets,
           ]),
           Page.ProjectOrganization.tableOfContents,
+        ),
+      ToolingLinting: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.ToolingLinting.view, [model.copiedSnippets]),
+          Page.ToolingLinting.tableOfContents,
         ),
       ApiModule: ({ moduleSlug }) =>
         M.value(model.apiReference.apiData).pipe(

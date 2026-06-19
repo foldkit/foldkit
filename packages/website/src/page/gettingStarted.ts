@@ -17,6 +17,7 @@ import {
   coreArchitectureRouter,
   elmComparisonRouter,
   examplesRouter,
+  toolingLintingRouter,
 } from '../route'
 import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
@@ -110,10 +111,19 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
             ['Vite configuration with Foldkit HMR plugin'],
           ],
           [[inlineCode('tsconfig.json')], ['TypeScript configuration']],
-          [[inlineCode('eslint.config.mjs')], ['ESLint configuration']],
+          [[inlineCode('.oxlintrc.json')], ['Oxlint configuration']],
           [[inlineCode('.prettierrc')], ['Prettier configuration']],
           [[inlineCode('AGENTS.md')], ['AI coding assistant conventions']],
         ],
+      ),
+      para(
+        'The generated project includes ',
+        inlineCode('pnpm lint'),
+        ' and ',
+        inlineCode('pnpm format'),
+        '. See ',
+        link(toolingLintingRouter(), 'Oxlint Plugin'),
+        ' for the Foldkit-specific oxlint rules.',
       ),
       para(
         inlineCode('src/main.ts'),

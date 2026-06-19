@@ -19,8 +19,10 @@ const collectTsFiles = (dir: string): ReadonlyArray<string> => {
   return out
 }
 
-const isCapitalized = (name: string): boolean =>
-  name.length > 0 && name[0] === name[0].toUpperCase()
+const isCapitalized = (name: string): boolean => {
+  const first = name.charAt(0)
+  return first !== '' && first === first.toUpperCase()
+}
 
 const extractEffectNamespacesFromSource = (
   source: string,
@@ -64,8 +66,16 @@ const extractListFromPlugin = (source: string): ReadonlySet<string> => {
   }
 
   const items = new Set<string>()
-  for (const m of match[1].matchAll(/'effect\/(\w+)'/g)) {
-    items.add(m[1])
+  const listSource = match[1]
+  if (listSource === undefined) {
+    throw new Error(`Could not read ${LIST_NAME} entries in ${PLUGIN_FILE}`)
+  }
+
+  for (const m of listSource.matchAll(/'effect\/(\w+)'/g)) {
+    const namespace = m[1]
+    if (namespace !== undefined) {
+      items.add(namespace)
+    }
   }
   return items
 }

@@ -17,6 +17,7 @@ export const GroupKey = S.Literals([
   'testing',
   'bestPractices',
   'patterns',
+  'tooling',
   'foldkitUi',
   'ai',
   'examples',
