@@ -1,5 +1,19 @@
 # @foldkit/devtools
 
+## 0.114.1
+
+### Patch Changes
+
+- d2bed68: Fix the submodel message filter dropdown, which rendered incorrectly inside the
+  overlay's shadow root: it was invisible, then full-width and mispositioned, then
+  layered behind the message list. The panel now anchors below its button at the
+  button's width and sits above the overlay.
+- 4f637ea: Render the overlay's shared icons (pause, diff dots, filter check, scroll-to-top
+  arrow) and the empty-inspector placeholder from plain `VNode` constants again.
+  The per-call factory workaround these used is no longer needed now that the
+  runtime clones a reused `VNode` before patching, so a shared constant can sit at
+  more than one position safely. No visible behavior change.
+
 ## 0.114.0
 
 ### Patch Changes
