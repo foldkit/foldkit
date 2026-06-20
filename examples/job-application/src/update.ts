@@ -2,7 +2,7 @@ import { Array, Match as M, Option, pipe } from 'effect'
 import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import { Menu } from '@foldkit/ui'
+import { Menu, Tabs } from '@foldkit/ui'
 
 import { SubmitApplication } from './command'
 import { Step } from './domain'
@@ -13,6 +13,7 @@ import {
   GotPersonalInfoMessage,
   GotSkillsMessage,
   GotStepMenuMessage,
+  GotStepTabsMessage,
   GotWorkHistoryMessage,
   type Message,
 } from './message'
@@ -27,18 +28,25 @@ import {
 } from './step'
 
 const StepMenu = Menu.create<Step.Step>()
+const StepTabs = Tabs.create<Step.Step>()
+
+const isApplicationComplete = (model: Model): boolean =>
+  PersonalInfo.isComplete(model.personalInfo) &&
+  WorkHistory.isComplete(model.workHistory) &&
+  Education.isComplete(model.education) &&
+  Skills.isComplete(model.skills)
 
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-const nextStep = (current: Step.Step): Step.Step =>
+const toNextStep = (current: Step.Step): Step.Step =>
   pipe(
     Step.all,
     Array.get(Step.indexOf(current) + 1),
     Option.getOrElse(() => current),
   )
 
-const previousStep = (current: Step.Step): Step.Step =>
+const toPreviousStep = (current: Step.Step): Step.Step =>
   pipe(
     Step.all,
     Array.get(Step.indexOf(current) - 1),
@@ -133,18 +141,45 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           GotStepMenuMessage({ message }),
         )
         return Option.match(maybeOutMessage, {
-          onNone: (): readonly [
-            Model,
-            ReadonlyArray<Command.Command<Message>>,
-          ] => [evo(model, { stepMenu: () => nextStepMenu }), mappedCommands],
+          onNone: () => [
+            evo(model, { stepMenu: () => nextStepMenu }),
+            mappedCommands,
+          ],
           onSome: M.type<Menu.OutMessage<Step.Step>>().pipe(
-            M.withReturnType<
-              readonly [Model, ReadonlyArray<Command.Command<Message>>]
-            >(),
+            withUpdateReturn,
             M.tagsExhaustive({
               Selected: ({ value }) => [
                 evo(model, {
                   stepMenu: () => nextStepMenu,
+                  currentStep: () => value,
+                  stepTabs: StepTabs.reflectSelectedTab(value, Step.all),
+                }),
+                mappedCommands,
+              ],
+            }),
+          ),
+        })
+      },
+
+      GotStepTabsMessage: ({ message: tabsMessage }) => {
+        const [nextStepTabs, commands, maybeOutMessage] = StepTabs.update(
+          model.stepTabs,
+          tabsMessage,
+        )
+        const mappedCommands = Command.mapMessages(commands, message =>
+          GotStepTabsMessage({ message }),
+        )
+        return Option.match(maybeOutMessage, {
+          onNone: () => [
+            evo(model, { stepTabs: () => nextStepTabs }),
+            mappedCommands,
+          ],
+          onSome: M.type<Tabs.OutMessage<Step.Step>>().pipe(
+            withUpdateReturn,
+            M.tagsExhaustive({
+              Selected: ({ value }) => [
+                evo(model, {
+                  stepTabs: () => nextStepTabs,
                   currentStep: () => value,
                 }),
                 mappedCommands,
@@ -155,31 +190,55 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       NavigatedToStep: ({ step }) => [
-        evo(model, { currentStep: () => step }),
+        evo(model, {
+          currentStep: () => step,
+          stepTabs: StepTabs.reflectSelectedTab(step, Step.all),
+        }),
         [],
       ],
 
       ClickedNext: () => [
-        evo(model, { currentStep: () => nextStep(model.currentStep) }),
+        evo(model, {
+          currentStep: toNextStep,
+          stepTabs: StepTabs.reflectSelectedTab(
+            toNextStep(model.currentStep),
+            Step.all,
+          ),
+        }),
         [],
       ],
 
       ClickedPrevious: () => [
         evo(model, {
-          currentStep: () => previousStep(model.currentStep),
+          currentStep: toPreviousStep,
+          stepTabs: StepTabs.reflectSelectedTab(
+            toPreviousStep(model.currentStep),
+            Step.all,
+          ),
         }),
         [],
       ],
-
       ToggledPreview: () => [
         evo(model, { isPreviewVisible: isVisible => !isVisible }),
         [],
       ],
 
-      SubmittedApplication: () => [
-        evo(model, { submission: () => Submitting() }),
-        [SubmitApplication()],
-      ],
+      ClickedSubmit: () => {
+        const revealedModel = evo(model, {
+          personalInfo: PersonalInfo.revealErrors,
+          workHistory: WorkHistory.revealErrors,
+          education: Education.revealErrors,
+          skills: Skills.revealErrors,
+          isSubmitAttempted: () => true,
+        })
+        if (isApplicationComplete(revealedModel)) {
+          return [
+            evo(revealedModel, { submission: () => Submitting() }),
+            [SubmitApplication()],
+          ]
+        }
+        return [revealedModel, []]
+      },
 
       SucceededSubmitApplication: () => [
         evo(model, { submission: () => SubmitSuccess() }),

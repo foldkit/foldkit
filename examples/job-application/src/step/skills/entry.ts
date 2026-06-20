@@ -13,6 +13,8 @@ import { evo } from 'foldkit/struct'
 
 import { RadioGroup } from '@foldkit/ui'
 
+import { revealFieldErrors } from '../validation'
+
 // FIELD VALIDATION
 
 export const nameRules = makeRules({
@@ -110,3 +112,6 @@ export const hasErrors = (entry: Model): boolean => anyInvalid([entry.name])
 
 export const isComplete = (entry: Model): boolean =>
   allValid([[entry.name, nameRules]])
+
+export const revealErrors = (entry: Model): Model =>
+  evo(entry, { name: revealFieldErrors(nameRules) })

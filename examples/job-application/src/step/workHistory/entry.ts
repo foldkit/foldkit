@@ -14,6 +14,8 @@ import { evo } from 'foldkit/struct'
 
 import { Checkbox, DatePicker } from '@foldkit/ui'
 
+import { revealFieldErrors } from '../validation'
+
 // FIELD VALIDATION
 
 export const companyRules = makeRules({
@@ -217,3 +219,9 @@ export const isComplete = (entry: Model): boolean =>
     [entry.company, companyRules],
     [entry.title, titleRules],
   ])
+
+export const revealErrors = (entry: Model): Model =>
+  evo(entry, {
+    company: revealFieldErrors(companyRules),
+    title: revealFieldErrors(titleRules),
+  })

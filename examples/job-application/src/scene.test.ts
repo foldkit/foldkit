@@ -1,8 +1,10 @@
 import { Calendar, Scene } from 'foldkit'
+import { Valid, Validating } from 'foldkit/fieldValidation'
 import { describe, test } from 'vitest'
 
-import { Menu } from '@foldkit/ui'
+import { Menu, Tabs } from '@foldkit/ui'
 
+import { GotStepTabsMessage } from './message'
 import {
   type Model,
   NotSubmitted,
@@ -34,7 +36,49 @@ const initialModel: Model = {
   isPreviewVisible: false,
   submission: NotSubmitted(),
   stepMenu: Menu.init({ id: 'step-menu' }),
+  stepTabs: Tabs.init({ id: 'step-tabs' }),
+  isSubmitAttempted: false,
 }
+
+const completeModel: Model = {
+  ...initialModel,
+  personalInfo: {
+    ...initialModel.personalInfo,
+    firstName: Valid({ value: 'Jane' }),
+    lastName: Valid({ value: 'Doe' }),
+    email: Valid({ value: 'jane@example.com' }),
+  },
+  workHistory: {
+    ...initialModel.workHistory,
+    entries: initialModel.workHistory.entries.map(entry => ({
+      ...entry,
+      company: Valid({ value: 'Foldkit' }),
+      title: Valid({ value: 'Engineer' }),
+    })),
+  },
+  education: {
+    ...initialModel.education,
+    entries: initialModel.education.entries.map(entry => ({
+      ...entry,
+      school: Valid({ value: 'MIT' }),
+      degree: Valid({ value: 'BS' }),
+      fieldOfStudy: Valid({ value: 'CS' }),
+    })),
+  },
+  skills: {
+    ...initialModel.skills,
+    entries: initialModel.skills.entries.map(entry => ({
+      ...entry,
+      name: Valid({ value: 'TypeScript' }),
+    })),
+  },
+}
+
+const resolveFocusTab = Scene.Command.resolve(
+  Tabs.FocusTab,
+  Tabs.CompletedFocusTab(),
+  message => GotStepTabsMessage({ message }),
+)
 
 describe('view', () => {
   test('initial view shows the page heading and the PersonalInfo step', () => {
@@ -54,7 +98,7 @@ describe('view', () => {
       { update, view },
       Scene.with(initialModel),
       Scene.inside(
-        Scene.role('navigation', { name: 'Application steps' }),
+        Scene.role('tablist', { name: 'Application steps' }),
         Scene.expect(Scene.text('Personal Info')).toExist(),
         Scene.expect(Scene.text('Work History')).toExist(),
         Scene.expect(Scene.text('Education')).toExist(),
@@ -63,6 +107,19 @@ describe('view', () => {
         Scene.expect(Scene.text('Attachments')).toExist(),
         Scene.expect(Scene.text('Review')).toExist(),
       ),
+    )
+  })
+
+  test('tabs can jump directly to any step', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(initialModel),
+      Scene.inside(
+        Scene.role('tablist', { name: 'Application steps' }),
+        Scene.click(Scene.role('tab', { name: /Review$/ })),
+      ),
+      resolveFocusTab,
+      Scene.expect(Scene.role('heading', { name: 'Review' })).toExist(),
     )
   })
 
@@ -105,15 +162,73 @@ describe('view', () => {
     )
   })
 
-  test('an incomplete application disables Submit and shows a blocking notice', () => {
+  test('clicking Submit on an incomplete application shows a blocking notice', () => {
     Scene.scene(
       { update, view },
       Scene.with({ ...initialModel, currentStep: 'Review' }),
       Scene.expect(
         Scene.role('button', { name: 'Submit Application' }),
-      ).toBeDisabled(),
+      ).toBeEnabled(),
       Scene.expect(
-        Scene.text('Fix the errors in the highlighted steps', { exact: false }),
+        Scene.text(
+          'Review Personal Info, Work History, Education, Skills before submitting.',
+        ),
+      ).not.toExist(),
+      Scene.click(Scene.role('button', { name: 'Submit Application' })),
+      Scene.expect(
+        Scene.text(
+          'Review Personal Info, Work History, Education, Skills before submitting.',
+        ),
+      ).toExist(),
+    )
+  })
+
+  test('a pending validation notice names the incomplete step', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with({
+        ...completeModel,
+        currentStep: 'Review',
+        personalInfo: {
+          ...completeModel.personalInfo,
+          email: Validating({ value: 'jane@example.com' }),
+        },
+      }),
+      Scene.expect(
+        Scene.role('button', { name: 'Submit Application' }),
+      ).toBeEnabled(),
+      Scene.click(Scene.role('button', { name: 'Submit Application' })),
+      Scene.expect(
+        Scene.text('Review Personal Info before submitting.'),
+      ).toExist(),
+    )
+  })
+
+  test('submit blocking notices include multiple incomplete required steps', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with({
+        ...completeModel,
+        currentStep: 'Review',
+        workHistory: {
+          ...completeModel.workHistory,
+          entries: [],
+        },
+        education: {
+          ...completeModel.education,
+          entries: [],
+        },
+        skills: {
+          ...completeModel.skills,
+          entries: [],
+        },
+      }),
+      Scene.expect(
+        Scene.role('button', { name: 'Submit Application' }),
+      ).toBeEnabled(),
+      Scene.click(Scene.role('button', { name: 'Submit Application' })),
+      Scene.expect(
+        Scene.text('Review Work History, Education, Skills before submitting.'),
       ).toExist(),
     )
   })

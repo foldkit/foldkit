@@ -1,15 +1,17 @@
 import { Schema as S } from 'effect'
 import { m } from 'foldkit/message'
 
-import { Menu } from '@foldkit/ui'
+import { Menu, Tabs } from '@foldkit/ui'
 
 import { Step } from './domain'
-import * as Attachments from './step/attachments'
-import * as CoverLetter from './step/coverLetter'
-import * as Education from './step/education'
-import * as PersonalInfo from './step/personalInfo'
-import * as Skills from './step/skills'
-import * as WorkHistory from './step/workHistory'
+import {
+  Attachments,
+  CoverLetter,
+  Education,
+  PersonalInfo,
+  Skills,
+  WorkHistory,
+} from './step'
 
 // STEP SUBMODELS
 
@@ -34,6 +36,9 @@ export const GotAttachmentsMessage = m('GotAttachmentsMessage', {
 export const GotStepMenuMessage = m('GotStepMenuMessage', {
   message: Menu.Message,
 })
+export const GotStepTabsMessage = m('GotStepTabsMessage', {
+  message: Tabs.Message,
+})
 
 // NAVIGATION
 
@@ -47,7 +52,7 @@ export const ToggledPreview = m('ToggledPreview')
 
 // SUBMISSION
 
-export const SubmittedApplication = m('SubmittedApplication')
+export const ClickedSubmit = m('ClickedSubmit')
 export const SucceededSubmitApplication = m('SucceededSubmitApplication')
 export const FailedSubmitApplication = m('FailedSubmitApplication', {
   error: S.String,
@@ -63,11 +68,12 @@ export const Message = S.Union([
   GotCoverLetterMessage,
   GotAttachmentsMessage,
   GotStepMenuMessage,
+  GotStepTabsMessage,
   NavigatedToStep,
   ClickedNext,
   ClickedPrevious,
   ToggledPreview,
-  SubmittedApplication,
+  ClickedSubmit,
   SucceededSubmitApplication,
   FailedSubmitApplication,
 ])

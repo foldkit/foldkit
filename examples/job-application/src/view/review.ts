@@ -1,15 +1,13 @@
-import { Match as M, Option } from 'effect'
+import { Array, Match as M, Option, pipe } from 'effect'
 import { File } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
-import type { Message } from '../message'
+import { Step } from '../domain'
+import { ClickedSubmit, type Message } from '../message'
 import type { Model } from '../model'
-import * as Education from '../step/education'
-import * as PersonalInfo from '../step/personalInfo'
-import * as Skills from '../step/skills'
-import * as WorkHistory from '../step/workHistory'
+import { Education, PersonalInfo, Skills, WorkHistory } from '../step'
 import { employmentRange, pluralize } from './format'
 
 const reviewSection = (title: string, content: Html): Html => {
@@ -225,25 +223,30 @@ const attachmentsSection = (attachments: Model['attachments']): Html => {
   )
 }
 
-const submitButtonClass = (isEnabled: boolean): string =>
-  isEnabled
-    ? 'w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition cursor-pointer'
-    : 'w-full rounded-lg bg-indigo-300 px-4 py-3 text-sm font-semibold text-white cursor-not-allowed'
+const submitButtonClass =
+  'w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition cursor-pointer'
 
-const blockedNotice = (): Html => {
+const blockedNoticeText = (attentionSteps: ReadonlyArray<Step.Step>): string =>
+  Array.match(attentionSteps, {
+    onEmpty: () => 'Review the required fields before submitting.',
+    onNonEmpty: steps =>
+      `Review ${pipe(steps, Array.map(Step.show), Array.join(', '))} before submitting.`,
+  })
+
+const blockedNotice = (attentionSteps: ReadonlyArray<Step.Step>): Html => {
   const h = html<Message>()
 
   return h.keyed('p')(
     'blocked-notice',
     [h.Class('text-sm text-red-600 text-center')],
-    ['Fix the errors in the highlighted steps before submitting.'],
+    [blockedNoticeText(attentionSteps)],
   )
 }
 
 const submissionSection = (
   submission: Model['submission'],
-  isSubmittable: boolean,
-  onSubmit: Message,
+  shouldShowBlockedNotice: boolean,
+  attentionSteps: ReadonlyArray<Step.Step>,
 ): Html => {
   const h = html<Message>()
 
@@ -254,17 +257,13 @@ const submissionSection = (
           'submit-idle',
           [h.Class('pt-4 space-y-2')],
           [
-            ...(isSubmittable ? [] : [blockedNotice()]),
+            ...(shouldShowBlockedNotice ? [blockedNotice(attentionSteps)] : []),
             Button.view<Message>({
-              onClick: onSubmit,
-              isDisabled: !isSubmittable,
+              onClick: ClickedSubmit(),
               toView: attributes =>
                 h.keyed('button')(
                   'submit',
-                  [
-                    ...attributes.button,
-                    h.Class(submitButtonClass(isSubmittable)),
-                  ],
+                  [...attributes.button, h.Class(submitButtonClass)],
                   ['Submit Application'],
                 ),
             }),
@@ -324,17 +323,13 @@ const submissionSection = (
               ],
               [error],
             ),
-            ...(isSubmittable ? [] : [blockedNotice()]),
+            ...(shouldShowBlockedNotice ? [blockedNotice(attentionSteps)] : []),
             Button.view<Message>({
-              onClick: onSubmit,
-              isDisabled: !isSubmittable,
+              onClick: ClickedSubmit(),
               toView: attributes =>
                 h.keyed('button')(
                   'submit',
-                  [
-                    ...attributes.button,
-                    h.Class(submitButtonClass(isSubmittable)),
-                  ],
+                  [...attributes.button, h.Class(submitButtonClass)],
                   ['Try Again'],
                 ),
             }),
@@ -344,7 +339,10 @@ const submissionSection = (
   )
 }
 
-export const review = (model: Model, onSubmit: Message): Html => {
+export const review = (
+  model: Model,
+  attentionSteps: ReadonlyArray<Step.Step>,
+): Html => {
   const h = html<Message>()
 
   const pronounLabel = Option.match(
@@ -355,6 +353,12 @@ export const review = (model: Model, onSubmit: Message): Html => {
         value === 'Other' ? model.personalInfo.customPronouns : value,
     },
   )
+
+  const isApplicationComplete =
+    PersonalInfo.isComplete(model.personalInfo) &&
+    WorkHistory.isComplete(model.workHistory) &&
+    Education.isComplete(model.education) &&
+    Skills.isComplete(model.skills)
 
   return h.div(
     [h.Class('space-y-4')],
@@ -367,11 +371,8 @@ export const review = (model: Model, onSubmit: Message): Html => {
       attachmentsSection(model.attachments),
       submissionSection(
         model.submission,
-        PersonalInfo.isComplete(model.personalInfo) &&
-          WorkHistory.isComplete(model.workHistory) &&
-          Education.isComplete(model.education) &&
-          Skills.isComplete(model.skills),
-        onSubmit,
+        model.isSubmitAttempted && !isApplicationComplete,
+        attentionSteps,
       ),
     ],
   )
