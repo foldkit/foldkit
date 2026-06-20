@@ -45,7 +45,11 @@ For breaking changes, include a brief migration note in the changeset descriptio
 - Make the subject describe the whole change set, not just one file, one subtask, or the latest edit.
 - Use only literal valid scopes from `AGENTS.md`. Do not invent broad scopes such as `tooling` or `infrastructure`.
 - Use an imperative title.
-- Keep the subject concise. Wrap commit body lines at 80 characters.
+- Keep the subject concise.
+- Include a body when the commit changes behavior, fixes a bug, adds migration or debugging context, or needs rationale that the subject cannot carry. Do not rely on changesets, PR text, or chat context to explain why the change exists.
+- Use the body to explain the problem and why this approach was taken. Avoid merely restating the staged file list.
+- Subject-only commits are acceptable only for trivial mechanical changes where the context is obvious from the subject and diff.
+- Wrap commit body lines at 80 characters.
 - Add `!` after the scope for breaking changes.
 - Do not add co-author lines.
 - Do not mention Codex, Claude, or any AI assistant.
