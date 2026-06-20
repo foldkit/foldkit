@@ -1,0 +1,58 @@
+---
+name: commit-changes
+description: Create a git commit in the Foldkit monorepo with changeset enforcement and formatting. Use when the user asks Codex to commit current changes, make a commit, create a changeset-backed commit, or prepare a local Foldkit commit.
+---
+
+# Commit Changes
+
+Create a single local commit for Foldkit changes. Do not push.
+
+## Workflow
+
+1. Inspect the worktree with `git status --short`, `git diff HEAD`, `git branch --show-current`, and `git log --oneline -10`.
+2. Identify changed files owned by the current task. Do not stage unrelated user changes.
+3. Check whether changed files touch any published package path:
+   - `packages/foldkit/` -> `foldkit`
+   - `packages/ui/` -> `@foldkit/ui`
+   - `packages/devtools/` -> `@foldkit/devtools`
+   - `packages/create-foldkit-app/` -> `create-foldkit-app`
+   - `packages/vite-plugin-foldkit/` -> `@foldkit/vite-plugin`
+   - `packages/devtools-mcp/` -> `@foldkit/devtools-mcp`
+   - `packages/oxlint-plugin-foldkit/` -> `@foldkit/oxlint-plugin`
+4. If a published package changed, inspect `.changeset/*.md` excluding `README.md` and `config.json`. Verify a changeset covers each changed package.
+5. If a changed published package has no covering changeset, create one:
+
+```markdown
+---
+'package-name': patch
+---
+
+Concise description of the change.
+```
+
+Use `patch` for bug fixes, docs, internal refactors, and metadata changes. Use `minor` for new features, non-breaking API additions, and breaking changes while the project is pre-1.0. Do not use `major`.
+
+For breaking changes, include a brief migration note in the changeset description.
+
+6. Run `pnpm format`. Inspect formatting changes and stage only files that belong to the requested commit.
+7. Stage relevant files with `git add`.
+8. Create one Conventional Commit with `git commit`.
+
+## Commit Message Rules
+
+- Use a valid scope from `AGENTS.md`.
+- Inspect the full staged diff before choosing the subject: run `git diff --cached --stat` and `git diff --cached --name-status`. If amending an existing commit message, inspect `git show --stat --name-status HEAD`.
+- Make the subject describe the whole change set, not just one file, one subtask, or the latest edit.
+- Use only literal valid scopes from `AGENTS.md`. Do not invent broad scopes such as `tooling` or `infrastructure`.
+- Use an imperative title.
+- Keep the subject concise. Wrap commit body lines at 80 characters.
+- Add `!` after the scope for breaking changes.
+- Do not add co-author lines.
+- Do not mention Codex, Claude, or any AI assistant.
+
+## Boundaries
+
+- Do not run the release process. Releases are automated.
+- Do not edit changelogs manually.
+- Do not push unless the user explicitly asks.
+- If the worktree contains unrelated changes that make staging ambiguous, stop and ask which files belong in the commit.

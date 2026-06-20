@@ -108,7 +108,9 @@ If a Mount factory doesn't read or write its element, you've misidentified the c
 ## Commits and Releases
 
 - Conventional Commits. Add `!` after the scope for breaking changes (e.g. `refactor(schema)!:`).
-- Valid scopes: package directories (`foldkit`, `create-foldkit-app`, `vite-plugin`, `devtools-mcp`, `website`, `typing-game`, `examples-e2e`), example directory names, tooling (`skills`), infrastructure (`ci`, `release`). Never internal module names.
+- Valid scopes: package directories (`foldkit`, `ui`, `devtools`, `create-foldkit-app`, `vite-plugin`, `devtools-mcp`, `oxlint-plugin`, `website`, `typing-game`, `examples-e2e`), example directory names, `skills`, `ci`, and `release`. Never internal module names.
+- Before choosing or amending a commit subject, inspect the full staged diff or the full commit diff with `git diff --cached --stat` / `git diff --cached --name-status` or `git show --stat --name-status HEAD`. The subject must describe the whole change set, not just one file or the most recent edit.
+- Do not invent broad scopes such as `tooling` or `infrastructure`. Use the literal valid scopes above.
 - Do not co-author or mention Claude in commit messages or release notes.
 - Squash-merge only. `gh pr merge --squash`.
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Commit Changes'
+  short_description: 'Commit Foldkit changes with changesets'
+  default_prompt: 'Use $commit-changes to create a commit for the current Foldkit repo changes.'
