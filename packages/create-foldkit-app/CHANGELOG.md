@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.17.1
+
+### Patch Changes
+
+- 060aebb: Fix pnpm scaffolds to deny the optional `msgpackr-extract` build script so pnpm installs do not fail during project creation.
+
 ## 0.17.0
 
 ### Minor Changes
