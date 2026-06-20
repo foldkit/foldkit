@@ -2,9 +2,7 @@ import { Array, Equal, Option, Order, Record, String, pipe } from 'effect'
 import { type Html, html } from 'foldkit/html'
 
 import type { Model } from '../model'
-import type * as Education from '../step/education'
-import type * as Skills from '../step/skills'
-import type * as WorkHistory from '../step/workHistory'
+import type { Education, Skills, WorkHistory } from '../step'
 import { employmentRange } from './format'
 
 const COVER_LETTER_PREVIEW_MAX_CHARS = 200

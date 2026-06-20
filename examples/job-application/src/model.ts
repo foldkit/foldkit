@@ -1,7 +1,7 @@
 import { Schema as S } from 'effect'
 import { ts } from 'foldkit/schema'
 
-import { Menu } from '@foldkit/ui'
+import { Menu, Tabs } from '@foldkit/ui'
 
 import { Step } from './domain'
 import {
@@ -41,5 +41,7 @@ export const Model = S.Struct({
   isPreviewVisible: S.Boolean,
   submission: Submission,
   stepMenu: Menu.Model,
+  stepTabs: Tabs.Model,
+  isSubmitAttempted: S.Boolean,
 })
 export type Model = typeof Model.Type

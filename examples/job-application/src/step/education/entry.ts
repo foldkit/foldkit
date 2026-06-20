@@ -13,6 +13,8 @@ import { evo } from 'foldkit/struct'
 
 import { Checkbox, Listbox } from '@foldkit/ui'
 
+import { revealFieldErrors } from '../validation'
+
 // FIELD VALIDATION
 
 export const schoolRules = makeRules({
@@ -190,3 +192,10 @@ export const isComplete = (entry: Model): boolean =>
     [entry.degree, degreeRules],
     [entry.fieldOfStudy, fieldOfStudyRules],
   ])
+
+export const revealErrors = (entry: Model): Model =>
+  evo(entry, {
+    school: revealFieldErrors(schoolRules),
+    degree: revealFieldErrors(degreeRules),
+    fieldOfStudy: revealFieldErrors(fieldOfStudyRules),
+  })

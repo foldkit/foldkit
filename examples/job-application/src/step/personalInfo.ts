@@ -25,6 +25,8 @@ import { evo } from 'foldkit/struct'
 
 import { DatePicker, Listbox } from '@foldkit/ui'
 
+import { revealFieldErrors } from './validation'
+
 // MODEL
 
 const PronounsListbox = Listbox.create<string>()
@@ -284,3 +286,12 @@ export const isComplete = (model: Model): boolean =>
     [model.phone, phoneRules],
     [model.portfolioUrl, portfolioUrlRules],
   ])
+
+export const revealErrors = (model: Model): Model =>
+  evo(model, {
+    firstName: revealFieldErrors(firstNameRules),
+    lastName: revealFieldErrors(lastNameRules),
+    email: revealFieldErrors(emailRules),
+    phone: revealFieldErrors(phoneRules),
+    portfolioUrl: revealFieldErrors(portfolioUrlRules),
+  })

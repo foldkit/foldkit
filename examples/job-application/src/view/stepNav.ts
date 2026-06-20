@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { Equal, HashSet, Match, Number, flow } from 'effect'
 import { type Html, html } from 'foldkit/html'
 
-import { Button, Menu } from '@foldkit/ui'
+import { Menu, Tabs } from '@foldkit/ui'
 
 import { Step } from '../domain'
 import type { Message } from '../message'
@@ -24,15 +24,12 @@ const stepToStatus = (step: Step.Step, currentStep: Step.Step): StepStatus =>
     Match.orElse(() => 'Upcoming'),
   )
 
-const isClickable = (status: StepStatus, hasErrors: boolean): boolean =>
-  status !== 'Upcoming' || hasErrors
-
 const stepMarkerGlyph = (
   status: StepStatus,
   index: number,
-  hasErrors: boolean,
+  needsAttention: boolean,
 ): string => {
-  if (hasErrors) {
+  if (needsAttention) {
     return '!'
   } else if (status === 'Completed') {
     return '✓'
@@ -44,7 +41,7 @@ const stepMarkerGlyph = (
 const stepMarker = (
   status: StepStatus,
   index: number,
-  hasErrors: boolean,
+  needsAttention: boolean,
 ): Html => {
   const h = html()
 
@@ -53,7 +50,7 @@ const stepMarker = (
       h.Class(
         clsx(
           'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold',
-          hasErrors
+          needsAttention
             ? 'bg-red-100 text-red-700'
             : Match.value(status).pipe(
                 Match.withReturnType<string>(),
@@ -65,14 +62,14 @@ const stepMarker = (
         ),
       ),
     ],
-    [stepMarkerGlyph(status, index, hasErrors)],
+    [stepMarkerGlyph(status, index, needsAttention)],
   )
 }
 
-const stepButtonClass = (status: StepStatus, hasErrors: boolean): string =>
+const stepButtonClass = (status: StepStatus, needsAttention: boolean): string =>
   clsx(
     'flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition',
-    hasErrors
+    needsAttention
       ? 'text-red-700 hover:bg-red-50 cursor-pointer'
       : Match.value(status).pipe(
           Match.withReturnType<string>(),
@@ -81,52 +78,29 @@ const stepButtonClass = (status: StepStatus, hasErrors: boolean): string =>
             'Completed',
             () => 'text-gray-700 hover:bg-gray-100 cursor-pointer',
           ),
-          Match.when('Upcoming', () => 'text-gray-400 cursor-default'),
+          Match.when(
+            'Upcoming',
+            () => 'text-gray-600 hover:bg-gray-100 cursor-pointer',
+          ),
           Match.exhaustive,
         ),
   )
 
-export const stepList = (
+export const stepTabButton = (
+  tab: Tabs.TabInfo<Step.Step>,
   currentStep: Step.Step,
-  stepsWithErrors: HashSet.HashSet<Step.Step>,
-  onSelectedStep: (step: Step.Step) => Message,
+  stepsNeedingAttention: HashSet.HashSet<Step.Step>,
 ): Html => {
   const h = html<Message>()
+  const status = stepToStatus(tab.value, currentStep)
+  const needsAttention = HashSet.has(stepsNeedingAttention, tab.value)
 
-  return h.nav(
-    [h.AriaLabel('Application steps'), h.Class('space-y-1')],
+  return h.keyed('button')(
+    tab.value,
+    [...tab.tab, h.Class(stepButtonClass(status, needsAttention))],
     [
-      h.ul(
-        [h.Class('space-y-0.5')],
-        Step.all.map((step, index) => {
-          const status = stepToStatus(step, currentStep)
-          const hasErrors = HashSet.has(stepsWithErrors, step)
-          const clickable = isClickable(status, hasErrors)
-
-          return h.keyed('li')(
-            step,
-            [],
-            [
-              Button.view<Message>({
-                onClick: onSelectedStep(step),
-                isDisabled: !clickable,
-                toView: attributes =>
-                  h.button(
-                    [
-                      ...attributes.button,
-                      ...(status === 'Current' ? [h.AriaCurrent('step')] : []),
-                      h.Class(stepButtonClass(status, hasErrors)),
-                    ],
-                    [
-                      stepMarker(status, index, hasErrors),
-                      h.span([], [Step.show(step)]),
-                    ],
-                  ),
-              }),
-            ],
-          )
-        }),
-      ),
+      stepMarker(status, tab.index, needsAttention),
+      h.span([], [Step.show(tab.value)]),
     ],
   )
 }
@@ -159,7 +133,7 @@ const stepMenuTrigger = (currentStep: Step.Step): Html => {
 
 export const stepMenu = (
   model: Model,
-  stepsWithErrors: HashSet.HashSet<Step.Step>,
+  stepsNeedingAttention: HashSet.HashSet<Step.Step>,
   toParentMessage: (message: Menu.Message) => Message,
 ): Html => {
   const h = html<Message>()
@@ -175,39 +149,34 @@ export const stepMenu = (
         'flex items-center w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-gray-300 cursor-pointer',
       itemsClassName:
         'rounded-lg border border-gray-200 bg-white shadow-lg py-1 w-(--button-width)',
-      itemToConfig: (step, { isActive, isDisabled }) => {
+      itemToConfig: (step, { isActive }) => {
         const status = stepToStatus(step, model.currentStep)
-        const hasErrors = HashSet.has(stepsWithErrors, step)
+        const needsAttention = HashSet.has(stepsNeedingAttention, step)
         const index = Step.indexOf(step)
         return {
           className: clsx(
             'flex items-center gap-3 px-4 py-2.5 text-sm',
             isActive && 'bg-gray-50',
-            isDisabled ? 'cursor-not-allowed' : 'cursor-pointer',
-            hasErrors
+            'cursor-pointer',
+            needsAttention
               ? 'text-red-700 font-semibold'
               : Match.value(status).pipe(
                   Match.withReturnType<string>(),
                   Match.when('Current', () => 'text-indigo-700 font-semibold'),
                   Match.when('Completed', () => 'text-gray-700'),
-                  Match.when('Upcoming', () => 'text-gray-400'),
+                  Match.when('Upcoming', () => 'text-gray-600'),
                   Match.exhaustive,
                 ),
           ),
           content: h.div(
             [h.Class('flex items-center gap-3')],
             [
-              stepMarker(status, index, hasErrors),
+              stepMarker(status, index, needsAttention),
               h.span([], [Step.show(step)]),
             ],
           ),
         }
       },
-      isItemDisabled: step =>
-        !isClickable(
-          stepToStatus(step, model.currentStep),
-          HashSet.has(stepsWithErrors, step),
-        ),
       backdropClassName: 'fixed inset-0',
       anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
     },

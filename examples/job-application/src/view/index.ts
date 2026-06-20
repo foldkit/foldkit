@@ -1,8 +1,13 @@
 import clsx from 'clsx'
 import { Array, Equal, HashSet, Match as M, Option, pipe } from 'effect'
-import { type Document, type Html, html } from 'foldkit/html'
+import {
+  type ChildAttribute,
+  type Document,
+  type Html,
+  html,
+} from 'foldkit/html'
 
-import { Button } from '@foldkit/ui'
+import { Button, Tabs } from '@foldkit/ui'
 
 import { Step } from '../domain'
 import {
@@ -14,17 +19,13 @@ import {
   GotPersonalInfoMessage,
   GotSkillsMessage,
   GotStepMenuMessage,
+  GotStepTabsMessage,
   GotWorkHistoryMessage,
   Message,
-  NavigatedToStep,
-  SubmittedApplication,
   ToggledPreview,
 } from '../message'
 import { type Model } from '../model'
-import * as Education from '../step/education'
-import * as PersonalInfo from '../step/personalInfo'
-import * as Skills from '../step/skills'
-import * as WorkHistory from '../step/workHistory'
+import { Education, PersonalInfo, Skills, WorkHistory } from '../step'
 import { attachmentsView } from './attachments'
 import { coverLetterView } from './coverLetter'
 import { educationView } from './education'
@@ -32,8 +33,10 @@ import { personalInfoView } from './personalInfo'
 import { preview } from './preview'
 import { review } from './review'
 import { skillsView } from './skills'
-import { stepList, stepMenu } from './stepNav'
+import { stepMenu, stepTabButton } from './stepNav'
 import { workHistoryView } from './workHistory'
+
+const StepTabs = Tabs.create<Step.Step>()
 
 const stepHasErrors =
   (model: Model) =>
@@ -46,10 +49,30 @@ const stepHasErrors =
       M.orElse(() => false),
     )
 
-const stepsWithErrors = (model: Model): HashSet.HashSet<Step.Step> =>
-  pipe(Step.all, Array.filter(stepHasErrors(model)), HashSet.fromIterable)
+const stepIsComplete =
+  (model: Model) =>
+  (step: Step.Step): boolean =>
+    M.value(step).pipe(
+      M.when('PersonalInfo', () => PersonalInfo.isComplete(model.personalInfo)),
+      M.when('WorkHistory', () => WorkHistory.isComplete(model.workHistory)),
+      M.when('Education', () => Education.isComplete(model.education)),
+      M.when('Skills', () => Skills.isComplete(model.skills)),
+      M.orElse(() => true),
+    )
 
-const stepContent = (model: Model): Html => {
+const stepNeedsAttention =
+  (model: Model) =>
+  (step: Step.Step): boolean =>
+    stepHasErrors(model)(step) ||
+    (model.isSubmitAttempted && !stepIsComplete(model)(step))
+
+const stepsNeedingAttention = (model: Model): ReadonlyArray<Step.Step> =>
+  Array.filter(Step.all, stepNeedsAttention(model))
+
+const stepContent = (
+  model: Model,
+  attentionSteps: ReadonlyArray<Step.Step>,
+): Html => {
   const h = html<Message>()
 
   return M.value(model.currentStep).pipe(
@@ -101,7 +124,7 @@ const stepContent = (model: Model): Html => {
         toParentMessage: message => GotAttachmentsMessage({ message }),
       }),
     ),
-    M.when('Review', () => review(model, SubmittedApplication())),
+    M.when('Review', () => review(model, attentionSteps)),
     M.exhaustive,
   )
 }
@@ -177,12 +200,16 @@ const pageHeader = (): Html => {
   )
 }
 
-const stepContentPanel = (model: Model): Html => {
+const stepContentPanel = (
+  model: Model,
+  attentionSteps: ReadonlyArray<Step.Step>,
+  panelAttributes: ReadonlyArray<ChildAttribute> = [],
+): Html => {
   const h = html<Message>()
 
   return h.keyed('div')(
     'step-content-panel',
-    [h.Class('flex-1 min-w-0')],
+    [...panelAttributes, h.Class('flex-1 min-w-0')],
     [
       h.keyed('h2')(
         'step-heading',
@@ -192,33 +219,64 @@ const stepContentPanel = (model: Model): Html => {
       h.keyed('div')(
         `step-content-${model.currentStep}`,
         [h.Class('min-h-[400px]')],
-        [stepContent(model)],
+        [stepContent(model, attentionSteps)],
       ),
       ...(model.currentStep !== 'Review' ? [navigationButtons(model)] : []),
     ],
   )
 }
 
-const desktopStepSidebar = (
+const stepTabsLayout = (
   model: Model,
-  errorSteps: HashSet.HashSet<Step.Step>,
+  attentionSteps: ReadonlyArray<Step.Step>,
+  attentionStepSet: HashSet.HashSet<Step.Step>,
 ): Html => {
   const h = html<Message>()
 
-  return h.keyed('div')(
-    'desktop-sidebar',
-    [h.Class('hidden w-60 shrink-0 lg:block')],
-    [
-      h.div(
-        [h.Class('sticky top-8')],
-        [
-          stepList(model.currentStep, errorSteps, step =>
-            NavigatedToStep({ step }),
-          ),
-        ],
-      ),
-    ],
-  )
+  return h.submodel({
+    slotId: model.stepTabs.id,
+    model: model.stepTabs,
+    view: StepTabs.view,
+    viewInputs: {
+      tabs: Step.all,
+      ariaLabel: 'Application steps',
+      orientation: 'Vertical',
+      toView: ({ tablist, tabs, activeIndex }) =>
+        h.div(
+          [h.Class('lg:flex lg:gap-8')],
+          [
+            h.keyed('div')(
+              'desktop-sidebar',
+              [h.Class('hidden w-60 shrink-0 lg:block')],
+              [
+                h.div(
+                  [h.Class('sticky top-8')],
+                  [
+                    h.div(
+                      [...tablist, h.Class('space-y-0.5')],
+                      Array.map(tabs, tab =>
+                        stepTabButton(tab, model.currentStep, attentionStepSet),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            ...pipe(
+              tabs,
+              Array.filter(tab => tab.index === activeIndex),
+              Array.map(tab =>
+                stepContentPanel(model, attentionSteps, tab.panel),
+              ),
+            ),
+            desktopPreviewSidebar(model),
+            mobilePreviewToggle(model),
+            ...(model.isPreviewVisible ? [mobilePreviewOverlay(model)] : []),
+          ],
+        ),
+    },
+    toParentMessage: message => GotStepTabsMessage({ message }),
+  })
 }
 
 const desktopPreviewSidebar = (model: Model): Html => {
@@ -259,7 +317,7 @@ const mobilePreviewToggle = (model: Model): Html => {
 
   return h.keyed('div')(
     'mobile-toggle',
-    [h.Class('fixed bottom-4 right-4 xl:hidden')],
+    [h.Class('fixed top-4 right-4 xl:hidden')],
     [
       Button.view<Message>({
         onClick: ToggledPreview(),
@@ -290,7 +348,7 @@ const mobilePreviewOverlay = (model: Model): Html => {
     'mobile-overlay',
     [
       h.Class(
-        'fixed inset-x-4 bottom-16 top-4 overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-2xl xl:hidden',
+        'fixed inset-x-4 top-16 bottom-4 overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-2xl xl:hidden',
       ),
     ],
     [preview(model)],
@@ -300,7 +358,8 @@ const mobilePreviewOverlay = (model: Model): Html => {
 export const view = (model: Model): Document => {
   const h = html<Message>()
 
-  const errorSteps = stepsWithErrors(model)
+  const attentionSteps = stepsNeedingAttention(model)
+  const attentionStepSet = HashSet.fromIterable(attentionSteps)
   const body = h.div(
     [h.Class('min-h-screen bg-gray-50')],
     [
@@ -311,21 +370,12 @@ export const view = (model: Model): Document => {
           h.div(
             [h.Class('mb-6 lg:hidden')],
             [
-              stepMenu(model, errorSteps, message =>
+              stepMenu(model, attentionStepSet, message =>
                 GotStepMenuMessage({ message }),
               ),
             ],
           ),
-          h.div(
-            [h.Class('lg:flex lg:gap-8')],
-            [
-              desktopStepSidebar(model, errorSteps),
-              stepContentPanel(model),
-              desktopPreviewSidebar(model),
-              mobilePreviewToggle(model),
-              ...(model.isPreviewVisible ? [mobilePreviewOverlay(model)] : []),
-            ],
-          ),
+          stepTabsLayout(model, attentionSteps, attentionStepSet),
         ],
       ),
     ],
