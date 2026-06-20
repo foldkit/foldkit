@@ -4,12 +4,7 @@ import { evo } from 'foldkit/struct'
 
 import { optionWhen } from '../../../optionWhen'
 import { RoomsClient } from '../../../rpc'
-import {
-  CreateRoom,
-  FocusRoomIdInput,
-  FocusUsernameInput,
-  JoinRoom,
-} from '../command'
+import { FocusRoomIdInput, FocusUsernameInput, JoinRoom } from '../command'
 import { Message, type OutMessage } from '../message'
 import { EnterRoomId, EnterUsername, Model, SelectAction } from '../model'
 import { handleKeyPressed } from './handleKeyPressed'
@@ -85,17 +80,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               formError: () => Option.none(),
             }),
             [],
-            Option.none(),
-          ]),
-          M.orElse(() => [model, [], Option.none()]),
-        ),
-
-      ClickedCreateRoom: () =>
-        M.value(model.homeStep).pipe(
-          withUpdateReturn,
-          M.tag('SelectAction', ({ username }) => [
-            model,
-            [CreateRoom({ username })],
             Option.none(),
           ]),
           M.orElse(() => [model, [], Option.none()]),

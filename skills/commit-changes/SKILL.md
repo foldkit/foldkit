@@ -37,6 +37,8 @@ For breaking changes, include a brief migration note in the changeset descriptio
 6. Run `pnpm format`. Inspect formatting changes and stage only files that belong to the requested commit.
 7. Stage relevant files with `git add`.
 8. Create one Conventional Commit with `git commit`.
+9. Verify the final commit message with `git log -1 --format=%B`. If any
+   body line is longer than 80 characters, amend the commit before stopping.
 
 ## Commit Message Rules
 
@@ -49,7 +51,8 @@ For breaking changes, include a brief migration note in the changeset descriptio
 - Include a body when the commit changes behavior, fixes a bug, adds migration or debugging context, or needs rationale that the subject cannot carry. Do not rely on changesets, PR text, or chat context to explain why the change exists.
 - Use the body to explain the problem and why this approach was taken. Avoid merely restating the staged file list.
 - Subject-only commits are acceptable only for trivial mechanical changes where the context is obvious from the subject and diff.
-- Wrap commit body lines at 80 characters.
+- Wrap commit body lines at 80 characters. Do this before committing or
+  amending, and verify it afterward.
 - Add `!` after the scope for breaking changes.
 - Do not add co-author lines.
 - Do not mention Codex, Claude, or any AI assistant.

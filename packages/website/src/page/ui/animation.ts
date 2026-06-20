@@ -2,16 +2,7 @@ import { html } from 'foldkit/html'
 
 import { Animation } from '@foldkit/ui'
 
-import type { TableOfContentsEntry } from '../../main'
 import { GotAnimationDemoMessage, type Message } from './message'
-
-// TABLE OF CONTENTS
-
-export const animationHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'animation',
-  text: 'Animation',
-}
 
 // DEMO CONTENT
 

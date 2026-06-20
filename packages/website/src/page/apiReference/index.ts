@@ -9,17 +9,10 @@ import {
 export * from './domain'
 export { ApiData, ApiDataRemoteData, Model } from './model'
 export type { Disclosures } from './model'
-export {
-  FailedLoadApiData,
-  GotDisclosureMessage,
-  Message,
-  SucceededLoadApiData,
-} from './message'
-export { LoadApiData } from './command'
+export { Message } from './message'
 export { boot, init } from './init'
 export { informRouteChanged, update } from './update'
 export { failureView, skeletonView, view } from './view'
-export type { TypeDocJson } from './typedoc'
 
 const modulesBySlug = (
   modules: ReadonlyArray<ApiModule>,

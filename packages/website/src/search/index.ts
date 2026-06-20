@@ -1,17 +1,11 @@
-export { Idle, Model, resultsFromState } from './model'
+export { Idle, Model } from './model'
 export {
   Message,
   GotSearchDialogMessage,
   ClickedOpenSearch,
   PressedSearchShortcut,
 } from './message'
-export {
-  FetchSearchResults,
-  KEYBOARD_WARMUP_INPUT_ID,
-  NavigateToResult,
-  PagefindService,
-  ScrollToResult,
-} from './command'
+export { KEYBOARD_WARMUP_INPUT_ID, PagefindService } from './command'
 export { init } from './init'
 export { informRouteChanged, update } from './update'
 export { view } from './view'

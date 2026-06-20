@@ -131,11 +131,6 @@ export const update = (
         return [model, []]
       },
 
-      RequestedStartGame: ({ playerId }) => [
-        model,
-        [StartGame({ roomId: context.roomId, playerId })],
-      ],
-
       LoadedSession: ({ maybeSession }) => {
         const maybeFocus = optionWhen(
           Option.isNone(maybeSession) && model.roomRemoteData._tag === 'Ok',

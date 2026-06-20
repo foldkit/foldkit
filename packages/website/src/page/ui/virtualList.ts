@@ -3,7 +3,6 @@ import { html } from 'foldkit/html'
 
 import { VirtualList } from '@foldkit/ui'
 
-import type { TableOfContentsEntry } from '../../main'
 import {
   ClickedVirtualListScrollToMiddle,
   ClickedVirtualListVariableScrollToMiddle,
@@ -11,14 +10,6 @@ import {
   GotVirtualListVariableDemoMessage,
   type Message,
 } from './message'
-
-// TABLE OF CONTENTS
-
-export const virtualListHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'virtual-list',
-  text: 'VirtualList',
-}
 
 // SAMPLE DATA
 

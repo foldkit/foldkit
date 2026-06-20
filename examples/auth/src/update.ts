@@ -97,15 +97,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         )
       },
 
-      LoadedSession: ({ session }) =>
-        M.value(session).pipe(
-          withUpdateReturn,
-          M.tagsExhaustive({
-            Some: ({ value }) => [LoggedIn.init(DashboardRoute(), value), []],
-            None: () => [model, []],
-          }),
-        ),
-
       FailedSaveSession: ({ error }) => [
         model,
         [LogError({ entries: ['Failed to save session:', error] })],

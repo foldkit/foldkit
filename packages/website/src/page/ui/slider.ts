@@ -2,20 +2,11 @@ import { html } from 'foldkit/html'
 
 import { Slider } from '@foldkit/ui'
 
-import type { TableOfContentsEntry } from '../../main'
 import {
   GotSliderRatingDemoMessage,
   GotSliderVolumeDemoMessage,
   type Message,
 } from './message'
-
-// TABLE OF CONTENTS
-
-export const sliderHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'slider',
-  text: 'Slider',
-}
 
 // SHARED STYLES
 

@@ -58,6 +58,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Check dead code
+        run: pnpm check:dead-code
+
       - name: Check circular dependencies
         run: pnpm check:circular-deps
 

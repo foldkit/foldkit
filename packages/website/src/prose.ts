@@ -106,14 +106,6 @@ export const subPara = (...content: ReadonlyArray<string | Html>): Html => {
   )
 }
 
-export const paragraphs = (
-  ...contents: ReadonlyArray<string>
-): ReadonlyArray<Html> => {
-  const h = html<Message>()
-
-  return Array.map(contents, text => h.p([h.Class('mb-4')], [text]))
-}
-
 export const tableOfContentsEntryToHeader = (
   entry: TableOfContentsEntry,
 ): Html => heading(entry.level, entry.id, entry.text)

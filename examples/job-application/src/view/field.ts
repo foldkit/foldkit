@@ -3,7 +3,7 @@ import { Match as M } from 'effect'
 import { type Field } from 'foldkit/fieldValidation'
 import { type Html, html } from 'foldkit/html'
 
-import { Input, Select, Textarea } from '@foldkit/ui'
+import { Input, Textarea } from '@foldkit/ui'
 
 const borderClass = (field: Field<string>): string =>
   M.value(field).pipe(
@@ -129,59 +129,6 @@ export const textareaField = <ParentMessage>(
               ),
             ],
             [],
-          ),
-        ],
-      ),
-  })
-}
-
-export const selectField = <ParentMessage>(
-  config: Readonly<{
-    id: string
-    label: string
-    value: string
-    onChange: (value: string) => ParentMessage
-    options: ReadonlyArray<Readonly<{ value: string; label: string }>>
-    placeholder?: string
-  }>,
-): Html => {
-  const h = html<ParentMessage>()
-
-  return Select.view({
-    id: config.id,
-    value: config.value,
-    onChange: config.onChange,
-    toView: attributes =>
-      h.div(
-        [h.Class('space-y-1')],
-        [
-          h.label(
-            [
-              ...attributes.label,
-              h.Class('block text-sm font-medium text-gray-700'),
-            ],
-            [config.label],
-          ),
-          h.select(
-            [
-              ...attributes.select,
-              h.Class(
-                'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500',
-              ),
-            ],
-            [
-              ...(config.placeholder
-                ? [
-                    h.option(
-                      [h.Value(''), h.Disabled(true)],
-                      [config.placeholder],
-                    ),
-                  ]
-                : []),
-              ...config.options.map(({ value, label: optionLabel }) =>
-                h.option([h.Value(value)], [optionLabel]),
-              ),
-            ],
           ),
         ],
       ),

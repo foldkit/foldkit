@@ -41,7 +41,6 @@ export const Model = S.Struct({
   graduationYear: S.String,
   graduationYearListbox: Listbox.Model,
   isCurrentlyEnrolled: Checkbox.Model,
-  gpa: S.String,
 })
 export type Model = typeof Model.Type
 
@@ -62,7 +61,6 @@ export const GotIsCurrentlyEnrolledMessage = m(
   'GotIsCurrentlyEnrolledMessage',
   { message: Checkbox.Message },
 )
-export const UpdatedGpa = m('UpdatedGpa', { value: S.String })
 export const ClickedRemoveSelf = m('ClickedRemoveSelf')
 
 export const Message = S.Union([
@@ -71,7 +69,6 @@ export const Message = S.Union([
   UpdatedFieldOfStudy,
   GotGraduationYearListboxMessage,
   GotIsCurrentlyEnrolledMessage,
-  UpdatedGpa,
   ClickedRemoveSelf,
 ])
 export type Message = typeof Message.Type
@@ -97,7 +94,6 @@ export const init = (entryId: string): Model => ({
     id: `${entryId}-graduation-year`,
   }),
   isCurrentlyEnrolled: Checkbox.init({ id: `${entryId}-enrolled` }),
-  gpa: '',
 })
 
 // UPDATE
@@ -178,12 +174,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           Option.none(),
         ]
       },
-
-      UpdatedGpa: ({ value }) => [
-        evo(model, { gpa: () => value }),
-        [],
-        Option.none(),
-      ],
 
       ClickedRemoveSelf: () => [model, [], Option.some(Removed())],
     }),

@@ -34,7 +34,6 @@ export const NOISE_SPATIAL_SCALE = 0.0028
 export const NOISE_TIME_SCALE = 0.085
 export const NOISE_DRIFT_X = 12
 export const NOISE_DRIFT_Y = 7
-export const FLOW_TURBULENCE_TURNS = 1.6
 export const FLOW_OCTAVES = 3
 export const FLOW_PERSISTENCE = 0.5
 export const FLOW_LACUNARITY = 2.0
@@ -55,7 +54,6 @@ export const HEAD_LIGHTNESS_PERCENT = 92
 export const HEAD_ALPHA = 0.95
 
 export const BACKGROUND_COLOR_TOP = '#04030a'
-export const BACKGROUND_COLOR_BOTTOM = '#0a0419'
 export const VIGNETTE_ALPHA = 0.55
 
 export const SETTLE_BAND_PX = 80

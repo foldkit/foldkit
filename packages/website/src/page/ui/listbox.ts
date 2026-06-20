@@ -15,12 +15,6 @@ import {
 
 // TABLE OF CONTENTS
 
-export const listboxHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'listbox',
-  text: 'Listbox',
-}
-
 export const singleSelectHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'single-select-listbox',

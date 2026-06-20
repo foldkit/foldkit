@@ -21,12 +21,6 @@ import {
 
 // TABLE OF CONTENTS
 
-export const dialogHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'dialog',
-  text: 'Dialog',
-}
-
 export const basicHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'dialog-basic',

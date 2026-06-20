@@ -12,12 +12,6 @@ import {
 
 // TABLE OF CONTENTS
 
-export const tabsHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'tabs',
-  text: 'Tabs',
-}
-
 export const horizontalHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'horizontal',

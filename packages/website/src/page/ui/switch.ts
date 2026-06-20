@@ -2,16 +2,7 @@ import { html } from 'foldkit/html'
 
 import { Switch } from '@foldkit/ui'
 
-import type { TableOfContentsEntry } from '../../main'
 import { GotSwitchDemoMessage, type Message } from './message'
-
-// TABLE OF CONTENTS
-
-export const switchHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'switch',
-  text: 'Switch',
-}
 
 // DEMO CONTENT
 

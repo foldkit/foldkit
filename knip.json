@@ -1,0 +1,59 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.{ts,js,sh}"],
+      "project": ["scripts/**"]
+    },
+    "packages/foldkit": {
+      "entry": [
+        "src/index.ts",
+        "src/html/public.ts",
+        "src/devTools/public.ts",
+        "src/devTools/host.ts",
+        "src/runtime/hmrProtocolPublic.ts",
+        "src/scene/public.ts",
+        "src/story/public.ts",
+        "src/test/public.ts",
+        "src/test/apps/**/*.ts"
+      ]
+    },
+    "packages/devtools": {
+      "entry": ["src/index.ts"]
+    },
+    "packages/examples-e2e": {
+      "entry": ["page.ts", "e2e/**/*.spec.ts"],
+      "ignoreFiles": ["playwright.config.ts"],
+      "playwright": false
+    },
+    "packages/create-foldkit-app": {
+      "ignore": ["templates/**"],
+      "ignoreDependencies": ["@effect/platform-node-shared"]
+    },
+    "packages/website": {
+      "entry": ["src/main.ts"],
+      "ignore": ["src/snippet/**", "public/**"]
+    },
+    "examples/*": {
+      "entry": ["src/main.ts"],
+      "ignoreDependencies": [
+        "@trivago/prettier-plugin-sort-imports",
+        "prettier",
+        "tailwindcss"
+      ]
+    },
+    "comparisons/*": {
+      "ignoreDependencies": ["tailwindcss"]
+    },
+    "internal/lustre-benchmark": {
+      "entry": ["src/main.ts", "src/entry.optimised.ts"]
+    },
+    "internal/performance-harness": {
+      "entry": ["src/main.ts"],
+      "ignoreDependencies": ["tailwindcss"]
+    }
+  },
+  "ignore": ["**/*.css", "packages/website/public/**"],
+  "ignoreDependencies": ["@foldkit/oxlint-plugin", "tailwindcss", "madge"],
+  "ignoreBinaries": ["typecheck", "vercel"]
+}

@@ -14,12 +14,6 @@ import {
 
 // TABLE OF CONTENTS
 
-export const menuHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'menu',
-  text: 'Menu',
-}
-
 export const basicHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'basic-menu',
