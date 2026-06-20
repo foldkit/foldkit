@@ -19,83 +19,109 @@ import {
 } from 'effect/unstable/http'
 import { fileURLToPath } from 'node:url'
 
+type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun'
+
 const GITHUB_API_BASE_URL =
   'https://api.github.com/repos/foldkit/foldkit/contents/examples'
 
-const getBaseFiles = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem
+type FilePath = string
+type FileContent = string
+type FileContentByPath = Record<FilePath, FileContent>
+
+const getTemplateRoot = Effect.gen(function* () {
   const path = yield* Path.Path
 
   const currentDir = path.dirname(fileURLToPath(import.meta.url))
-  const templatesDir = path.resolve(currentDir, '..', '..', 'templates', 'base')
-
-  type FilePath = string
-  type FileContent = string
-  type FileContentByPath = Record<FilePath, FileContent>
-
-  const fileContentByPath = yield* Ref.make<FileContentByPath>({})
-
-  const processEntry =
-    (dir: string) =>
-    (entry: string): Effect.Effect<void, PlatformError.PlatformError> =>
-      Effect.gen(function* () {
-        const fullPath = path.join(dir, entry)
-        const stat = yield* fs.stat(fullPath)
-
-        yield* Match.value(stat.type).pipe(
-          Match.when('Directory', () => processDirectory(fullPath)),
-          Match.when('File', () =>
-            Effect.gen(function* () {
-              const content = yield* fs.readFileString(fullPath)
-              const relativePath = path.relative(templatesDir, fullPath)
-
-              yield* Ref.update(fileContentByPath, files => ({
-                ...files,
-                [relativePath]: content,
-              }))
-            }),
-          ),
-          Match.orElse(() => Effect.void),
-        )
-      })
-
-  const processDirectory = (
-    dir: string,
-  ): Effect.Effect<void, PlatformError.PlatformError> =>
-    Effect.gen(function* () {
-      const entries = yield* fs.readDirectory(dir)
-      yield* Effect.forEach(entries, processEntry(dir), {
-        concurrency: 'unbounded',
-      })
-    })
-
-  yield* processDirectory(templatesDir)
-
-  return yield* Ref.get(fileContentByPath)
+  return path.resolve(currentDir, '..', '..', 'templates')
 })
 
-export const createProject = (
-  name: string,
-  projectPath: string,
-  example: string,
-) =>
-  Effect.gen(function* () {
-    yield* createBaseFiles(projectPath)
-    yield* modifyBaseFiles(projectPath, name)
-    yield* createExampleFiles(projectPath, example)
-  })
-
-const createBaseFiles = (projectPath: string) =>
+const getTemplateFiles = (templateDir: string) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
 
-    yield* fs.makeDirectory(projectPath, { recursive: true })
+    const fileContentByPath = yield* Ref.make<FileContentByPath>({})
 
-    const baseFiles = yield* getBaseFiles
+    const processEntry =
+      (dir: string) =>
+      (entry: string): Effect.Effect<void, PlatformError.PlatformError> =>
+        Effect.gen(function* () {
+          const fullPath = path.join(dir, entry)
+          const stat = yield* fs.stat(fullPath)
+
+          yield* Match.value(stat.type).pipe(
+            Match.when('Directory', () => processDirectory(fullPath)),
+            Match.when('File', () =>
+              Effect.gen(function* () {
+                const content = yield* fs.readFileString(fullPath)
+                const relativePath = path.relative(templateDir, fullPath)
+
+                yield* Ref.update(fileContentByPath, files => ({
+                  ...files,
+                  [relativePath]: content,
+                }))
+              }),
+            ),
+            Match.orElse(() => Effect.void),
+          )
+        })
+
+    const processDirectory = (
+      dir: string,
+    ): Effect.Effect<void, PlatformError.PlatformError> =>
+      Effect.gen(function* () {
+        const entries = yield* fs.readDirectory(dir)
+        yield* Effect.forEach(entries, processEntry(dir), {
+          concurrency: 'unbounded',
+        })
+      })
+
+    yield* processDirectory(templateDir)
+
+    return yield* Ref.get(fileContentByPath)
+  })
+
+const getBaseFiles = Effect.gen(function* () {
+  const path = yield* Path.Path
+
+  const templateRoot = yield* getTemplateRoot
+  return yield* getTemplateFiles(path.join(templateRoot, 'base'))
+})
+
+const getPackageManagerFiles = (packageManager: PackageManager) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    const path = yield* Path.Path
+
+    const templateRoot = yield* getTemplateRoot
+    const templateDir = path.join(
+      templateRoot,
+      'package-managers',
+      packageManager,
+    )
+    const isTemplateDirectoryPresent = yield* fs.exists(templateDir)
+
+    if (isTemplateDirectoryPresent) {
+      return yield* getTemplateFiles(templateDir)
+    } else {
+      return {}
+    }
+  })
+
+const createFiles = (
+  projectPath: string,
+  files: FileContentByPath,
+): Effect.Effect<
+  void,
+  PlatformError.PlatformError,
+  FileSystem.FileSystem | Path.Path
+> =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    const path = yield* Path.Path
 
     yield* pipe(
-      baseFiles,
+      files,
       Record.toEntries,
       Effect.forEach(
         ([filePath, content]) =>
@@ -115,6 +141,38 @@ const createBaseFiles = (projectPath: string) =>
     )
   })
 
+const createBaseFiles = (projectPath: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+
+    yield* fs.makeDirectory(projectPath, { recursive: true })
+
+    const baseFiles = yield* getBaseFiles
+    yield* createFiles(projectPath, baseFiles)
+  })
+
+const createPackageManagerFiles = (
+  projectPath: string,
+  packageManager: PackageManager,
+) =>
+  Effect.gen(function* () {
+    const packageManagerFiles = yield* getPackageManagerFiles(packageManager)
+    yield* createFiles(projectPath, packageManagerFiles)
+  })
+
+export const createProject = (
+  name: string,
+  projectPath: string,
+  example: string,
+  packageManager: PackageManager,
+) =>
+  Effect.gen(function* () {
+    yield* createBaseFiles(projectPath)
+    yield* modifyBaseFiles(projectPath, name)
+    yield* createPackageManagerFiles(projectPath, packageManager)
+    yield* createExampleFiles(projectPath, example)
+  })
+
 const modifyBaseFiles = (projectPath: string, name: string) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
@@ -122,12 +180,9 @@ const modifyBaseFiles = (projectPath: string, name: string) =>
 
     const packageJsonPath = path.join(projectPath, 'package.json')
 
-    return yield* fs.readFileString(packageJsonPath).pipe(
-      Effect.map(String.replace('my-foldkit-app', name)),
-      Effect.flatMap(updatedContent =>
-        fs.writeFileString(packageJsonPath, updatedContent),
-      ),
-    )
+    const content = yield* fs.readFileString(packageJsonPath)
+    const updatedContent = String.replace('my-foldkit-app', name)(content)
+    yield* fs.writeFileString(packageJsonPath, updatedContent)
   })
 
 const GitHubFileEntry = Schema.Struct({

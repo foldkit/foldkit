@@ -92,12 +92,17 @@ const validateProject = (
     }
   })
 
-const setupProject = (name: string, projectPath: string, example: Example) =>
+const setupProject = (
+  name: string,
+  projectPath: string,
+  example: Example,
+  packageManager: PackageManager,
+) =>
   Effect.gen(function* () {
     yield* Console.log(chalk.blue('🚀 Creating your Foldkit app...'))
     yield* Console.log('')
 
-    yield* createProject(name, projectPath, example)
+    yield* createProject(name, projectPath, example, packageManager)
 
     yield* Console.log(chalk.green(`✅ Created project`))
     yield* Console.log('')
@@ -190,7 +195,7 @@ export const create = (input: CreateInput) =>
     const projectPath = path.resolve(name)
 
     yield* validateProject(name, projectPath, packageManager)
-    yield* setupProject(name, projectPath, example)
+    yield* setupProject(name, projectPath, example, packageManager)
     yield* installProjectDependencies(projectPath, packageManager, example)
     yield* displaySuccessMessage(name, packageManager)
 

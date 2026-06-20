@@ -15,6 +15,18 @@ import { join } from 'node:path'
 const PACKAGE_DIR = 'packages/create-foldkit-app'
 const OXLINT_PLUGIN_DIR = 'packages/oxlint-plugin-foldkit'
 const TEMPLATE_DIR = join(PACKAGE_DIR, 'templates/base')
+const PACKAGE_MANAGER_TEMPLATE_DIR = join(
+  PACKAGE_DIR,
+  'templates/package-managers',
+)
+const PNPM_WORKSPACE_POLICY_PATH = join(
+  PACKAGE_MANAGER_TEMPLATE_DIR,
+  'pnpm',
+  'pnpm-workspace.yaml',
+)
+const PNPM_WORKSPACE_POLICY = `allowBuilds:
+  msgpackr-extract: false
+`
 const LINT_SMOKE_SOURCE = `const Command = {
   define: (name: string) => () => ({ name }),
 }
@@ -174,6 +186,22 @@ const assertTemplateTooling = (): void => {
   )
 }
 
+const assertPnpmWorkspacePolicy = (): void => {
+  log('Checking pnpm scaffold build policy...')
+  assertSmoke(
+    !existsSync(join(TEMPLATE_DIR, 'pnpm-workspace.yaml')),
+    'base template must not include pnpm-workspace.yaml because non-pnpm scaffolds should not get pnpm config',
+  )
+  assertSmoke(
+    existsSync(PNPM_WORKSPACE_POLICY_PATH),
+    'pnpm package manager template must include pnpm-workspace.yaml',
+  )
+  assertSmoke(
+    readFileSync(PNPM_WORKSPACE_POLICY_PATH, 'utf-8') === PNPM_WORKSPACE_POLICY,
+    'pnpm package manager template must deny msgpackr-extract builds through allowBuilds',
+  )
+}
+
 const readDirectory = (dir: string): ReadonlyArray<string> => {
   try {
     return readdirSync(dir)
@@ -319,6 +347,7 @@ const main = (): void => {
   const tarballPaths: Array<string> = []
   try {
     assertTemplateTooling()
+    assertPnpmWorkspacePolicy()
     runRequired(
       'Building create-foldkit-app...',
       'pnpm',
