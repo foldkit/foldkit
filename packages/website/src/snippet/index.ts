@@ -36,6 +36,8 @@ export { default as managedResourcesCommandRaw } from './managedResourcesCommand
 export { default as managedResourcesCommandHighlighted } from './managedResourcesCommand.ts?highlighted'
 export { default as managedResourcesLiftRaw } from './managedResourcesLift.ts?raw'
 export { default as managedResourcesLiftHighlighted } from './managedResourcesLift.ts?highlighted'
+export { default as managedResourcesLayerRaw } from './managedResourcesLayer.ts?raw'
+export { default as managedResourcesLayerHighlighted } from './managedResourcesLayer.ts?highlighted'
 export { default as routingDefineRoutesRaw } from './routingDefineRoutes.ts?raw'
 export { default as routingDefineRoutesHighlighted } from './routingDefineRoutes.ts?highlighted'
 export { default as routingBuildRoutersRaw } from './routingBuildRouters.ts?raw'

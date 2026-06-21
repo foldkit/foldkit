@@ -1,4 +1,4 @@
-import { type Effect, Option, Record, type Schema } from 'effect'
+import { type Effect, Option, Record, type Schema, type Scope } from 'effect'
 
 import type { ManagedResource } from '../managedResource/index.js'
 
@@ -7,7 +7,7 @@ export type ManagedResourceConfig<Model, Message> = {
   readonly schema: Schema.Schema<any>
   readonly resource: ManagedResource<any>
   readonly modelToMaybeRequirements: (model: Model) => any
-  readonly acquire: (params: any) => Effect.Effect<any, unknown>
+  readonly acquire: (params: any) => Effect.Effect<any, unknown, Scope.Scope>
   readonly release: (value: any) => Effect.Effect<void>
   readonly onAcquired: (value: any) => Message
   readonly onReleased: () => Message
@@ -54,7 +54,7 @@ export type Entry<Model, Message, Requirements, Value, Service = unknown> = {
   readonly modelToMaybeRequirements: (model: Model) => Requirements
   readonly acquire: (
     params: AcquireParams<Requirements>,
-  ) => Effect.Effect<Value, unknown>
+  ) => Effect.Effect<Value, unknown, Scope.Scope>
   readonly release: (value: Value) => Effect.Effect<void>
   readonly onAcquired: (value: Value) => Message
   readonly onReleased: () => Message
@@ -91,7 +91,7 @@ export type EntryBuilder<Model, Message> = <
     ) => Schema.Schema.Type<RequirementsSchema>
     readonly acquire: (
       params: AcquireParams<Schema.Schema.Type<RequirementsSchema>>,
-    ) => Effect.Effect<Value, unknown>
+    ) => Effect.Effect<Value, unknown, Scope.Scope>
     readonly release: (value: Value) => Effect.Effect<void>
     readonly onAcquired: (value: Value) => Message
     readonly onReleased: () => Message
@@ -146,8 +146,17 @@ export type EntryBuilder<Model, Message> = <
  * - `acquire` — Creates the resource from the unwrapped params. The returned
  *   Effect should fail when acquisition fails: errors in the error channel
  *   flow to `onAcquireError` as a message instead of crashing the runtime.
+ *   `acquire` runs with the resource-lifetime `Scope.Scope` in its context, so
+ *   it can build an Effect `Layer` with `Layer.build` or register finalizers
+ *   with `Effect.addFinalizer` whose teardown is tied to the resource. Those
+ *   finalizers run when the resource is released or re-acquired, after the
+ *   explicit `release` callback (scope finalizers run in last-in-first-out
+ *   order, and the runtime registers `release` after `acquire` completes). A
+ *   `Layer`-built resource therefore needs only `release: () => Effect.void`:
+ *   the `Layer` finalizers run automatically when the scope closes.
  * - `release` — Tears down the resource. Errors thrown here are silently
- *   swallowed: release must not block cleanup.
+ *   swallowed: release must not block cleanup. Resources that register their
+ *   teardown as scope finalizers in `acquire` leave this as `() => Effect.void`.
  * - `onAcquired` — Message dispatched when `acquire` succeeds.
  * - `onAcquireError` — Message dispatched when `acquire` fails.
  * - `onReleased` — Message dispatched after `release` completes.

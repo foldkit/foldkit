@@ -38,6 +38,7 @@
     "generative-art-example",
     "web-components-example",
     "embedding-example",
+    "managed-resource-layer-example",
     "pixel-art-react-comparison",
     "@foldkit/performance-harness",
     "@foldkit/examples-e2e",

@@ -25,6 +25,12 @@ const accessingManagedResourcesHeader: TableOfContentsEntry = {
   text: 'Accessing Managed Resources in Commands',
 }
 
+const buildingLayerHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'building-a-layer-in-acquire',
+  text: 'Building a Layer in acquire',
+}
+
 const composingSubmodelsHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'composing-child-submodels',
@@ -34,6 +40,7 @@ const composingSubmodelsHeader: TableOfContentsEntry = {
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   accessingManagedResourcesHeader,
+  buildingLayerHeader,
   composingSubmodelsHeader,
 ]
 
@@ -136,6 +143,48 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' has been received), the ',
         inlineCode('catchTag'),
         ' is a safety net that never fires. But if your model logic has a bug, you get a graceful error message instead of a crash.',
+      ),
+      tableOfContentsEntryToHeader(buildingLayerHeader),
+      para(
+        'When a resource’s setup and teardown are already packaged as an Effect ',
+        inlineCode('Layer'),
+        ', you do not have to unpack it by hand. ',
+        inlineCode('acquire'),
+        ' runs with the resource-lifetime ',
+        inlineCode('Scope'),
+        ' in its context, the same scope the runtime closes on release or re-acquire. So ',
+        inlineCode('Layer.build'),
+        ' registers the Layer’s finalizers on it, and you map the built context down to the bare service value.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.managedResourcesLayerHighlighted),
+          ],
+          [],
+        ),
+        Snippet.managedResourcesLayerRaw,
+        'Copy Layer-backed Managed Resource example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'The resource tag holds the bare service value, so Commands read it through ',
+        inlineCode('.get'),
+        ' with no wrapper to destructure. Any finalizer registered during ',
+        inlineCode('acquire'),
+        ', whether through ',
+        inlineCode('Layer.build'),
+        ' or ',
+        inlineCode('Effect.addFinalizer'),
+        ', tears down with the resource, so ',
+        inlineCode('release'),
+        ' is simply ',
+        inlineCode('() => Effect.void'),
+        '. The explicit ',
+        inlineCode('release'),
+        ' callback still runs first, then the scope finalizers, matching the last-in-first-out order Effect uses for any scope.',
       ),
       tableOfContentsEntryToHeader(composingSubmodelsHeader),
       para(
