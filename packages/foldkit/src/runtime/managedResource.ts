@@ -40,19 +40,23 @@ type AcquireParams<Requirements> =
  * `never`, so application code cannot manually construct one: it must go
  * through a constructor.
  *
+ * The `Value` parameter is the type the resource holds while active: what
+ * `acquire` produces, what `release` and `onAcquired` receive, and what the
+ * tag's `.get` yields to commands. It is inferred from the `resource` tag.
+ *
  * The `Service` parameter carries the resource tag's identity so `make`,
  * `lift`, and `aggregate` can union the services a record requires. Read the
  * union off a finished record with `ManagedResource.ServicesOf`.
  */
-export type Entry<Model, Message, Requirements, Service = unknown> = {
+export type Entry<Model, Message, Requirements, Value, Service = unknown> = {
   readonly schema: Schema.Schema<Requirements>
-  readonly resource: ManagedResource<any, Service>
+  readonly resource: ManagedResource<Value, Service>
   readonly modelToMaybeRequirements: (model: Model) => Requirements
   readonly acquire: (
     params: AcquireParams<Requirements>,
-  ) => Effect.Effect<any, unknown>
-  readonly release: (value: any) => Effect.Effect<void>
-  readonly onAcquired: (value: any) => Message
+  ) => Effect.Effect<Value, unknown>
+  readonly release: (value: Value) => Effect.Effect<void>
+  readonly onAcquired: (value: Value) => Message
   readonly onReleased: () => Message
   readonly onAcquireError: (error: unknown) => Message
 } & EntryBrand
@@ -76,23 +80,30 @@ export type ServicesOf<Resources> = {
  */
 export type EntryBuilder<Model, Message> = <
   RequirementsSchema extends Schema.Schema<any>,
+  Value,
   Service,
 >(
   schema: RequirementsSchema,
   config: {
-    readonly resource: ManagedResource<any, Service>
+    readonly resource: ManagedResource<Value, Service>
     readonly modelToMaybeRequirements: (
       model: Model,
     ) => Schema.Schema.Type<RequirementsSchema>
     readonly acquire: (
       params: AcquireParams<Schema.Schema.Type<RequirementsSchema>>,
-    ) => Effect.Effect<any, unknown>
-    readonly release: (value: any) => Effect.Effect<void>
-    readonly onAcquired: (value: any) => Message
+    ) => Effect.Effect<Value, unknown>
+    readonly release: (value: Value) => Effect.Effect<void>
+    readonly onAcquired: (value: Value) => Message
     readonly onReleased: () => Message
     readonly onAcquireError: (error: unknown) => Message
   },
-) => Entry<Model, Message, Schema.Schema.Type<RequirementsSchema>, Service>
+) => Entry<
+  Model,
+  Message,
+  Schema.Schema.Type<RequirementsSchema>,
+  Value,
+  Service
+>
 
 /**
  * Declares a Managed Resources record. The Model and Message generics are
@@ -174,7 +185,7 @@ export type EntryBuilder<Model, Message> = <
  */
 export const make =
   <Model, Message>() =>
-  <Entries extends Record<string, Entry<Model, Message, any, any>>>(
+  <Entries extends Record<string, Entry<Model, Message, any, any, any>>>(
     build: (entry: EntryBuilder<Model, Message>) => Entries,
   ): Entries => {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -189,12 +200,18 @@ export const make =
   }
 
 type ChildModelOf<Resources> =
-  Resources[keyof Resources] extends Entry<infer ChildModel, any, any, any>
+  Resources[keyof Resources] extends Entry<infer ChildModel, any, any, any, any>
     ? ChildModel
     : never
 
 type ChildMessageOf<Resources> =
-  Resources[keyof Resources] extends Entry<any, infer ChildMessage, any, any>
+  Resources[keyof Resources] extends Entry<
+    any,
+    infer ChildMessage,
+    any,
+    any,
+    any
+  >
     ? ChildMessage
     : never
 
@@ -211,7 +228,12 @@ type ChildMessageOf<Resources> =
  * each lifted entry's requirements must be `S.Option`-wrapped.
  */
 export const lift =
-  <Resources extends Record<string, Entry<any, any, Option.Option<any>, any>>>(
+  <
+    Resources extends Record<
+      string,
+      Entry<any, any, Option.Option<any>, any, any>
+    >,
+  >(
     resources: Resources,
   ) =>
   <ParentModel, ParentMessage>(config: {
@@ -226,9 +248,10 @@ export const lift =
       any,
       any,
       infer Requirements,
+      infer Value,
       infer Service
     >
-      ? Entry<ParentModel, ParentMessage, Requirements, Service>
+      ? Entry<ParentModel, ParentMessage, Requirements, Value, Service>
       : never
   } =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -263,12 +286,12 @@ export const aggregate =
   <Model, Message>() =>
   <
     Records extends ReadonlyArray<
-      Record<string, Entry<Model, Message, any, any>>
+      Record<string, Entry<Model, Message, any, any, any>>
     >,
   >(
     ...records: Records
   ): MergeRecords<Records> => {
-    const result: Record<string, Entry<Model, Message, any, any>> = {}
+    const result: Record<string, Entry<Model, Message, any, any, any>> = {}
     for (const record of records) {
       for (const key of Object.keys(record)) {
         if (Object.hasOwn(result, key)) {
@@ -277,7 +300,7 @@ export const aggregate =
           )
         }
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-        result[key] = record[key] as Entry<Model, Message, any, any>
+        result[key] = record[key] as Entry<Model, Message, any, any, any>
       }
     }
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
