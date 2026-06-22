@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.17.2
+
+### Patch Changes
+
+- 51c7406: Add the slow warnings, map, and managed resource layer examples to the scaffoldable example choices.
+
 ## 0.17.1
 
 ### Patch Changes

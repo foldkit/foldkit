@@ -1,5 +1,11 @@
 # @foldkit/vite-plugin
 
+## 0.9.1
+
+### Patch Changes
+
+- 1457f17: Clarify the DevTools MCP port-in-use error by reminding users that changing `devToolsMcpPort` requires setting `FOLDKIT_DEVTOOLS_MCP_PORT` to the same value for the MCP server.
+
 ## 0.9.0
 
 ### Minor Changes
