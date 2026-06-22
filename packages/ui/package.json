@@ -1,6 +1,6 @@
 {
   "name": "@foldkit/ui",
-  "version": "0.114.1",
+  "version": "0.115.0",
   "description": "Headless, accessible UI components for Foldkit",
   "type": "module",
   "main": "./dist/index.js",
