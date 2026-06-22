@@ -193,11 +193,6 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Commands',
         },
         {
-          _tag: 'CoreMount',
-          href: coreMountRouter(),
-          label: 'Mount',
-        },
-        {
           _tag: 'CoreSubscriptions',
           href: coreSubscriptionsRouter(),
           label: 'Subscriptions',
@@ -217,20 +212,28 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           href: coreRuntimeRouter(),
           label: 'Runtime',
         },
-      ],
-      [
+        {
+          _tag: 'CoreEmbedding',
+          href: coreEmbeddingRouter(),
+          label: 'Embedding',
+        },
         {
           _tag: 'RoutingAndNavigation',
           href: routingAndNavigationRouter(),
           label: 'Routing & Navigation',
         },
-        {
-          _tag: 'FieldValidation',
-          href: fieldValidationRouter(),
-          label: 'Field Validation',
-        },
       ],
       [
+        {
+          _tag: 'CoreMount',
+          href: coreMountRouter(),
+          label: 'Mount',
+        },
+        {
+          _tag: 'CoreCustomElement',
+          href: coreCustomElementRouter(),
+          label: 'CustomElement',
+        },
         {
           _tag: 'CoreDom',
           href: coreDomRouter(),
@@ -242,11 +245,6 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Render',
         },
         {
-          _tag: 'CoreCustomElement',
-          href: coreCustomElementRouter(),
-          label: 'CustomElement',
-        },
-        {
           _tag: 'CoreCanvas',
           href: coreCanvasRouter(),
           label: 'Canvas',
@@ -255,6 +253,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'CoreFile',
           href: coreFileRouter(),
           label: 'File',
+        },
+        {
+          _tag: 'FieldValidation',
+          href: fieldValidationRouter(),
+          label: 'Field Validation',
         },
       ],
       [
@@ -271,11 +274,6 @@ export const docsSections: ReadonlyArray<DocsSection> = [
       ],
       [
         {
-          _tag: 'CoreDevTools',
-          href: coreDevToolsRouter(),
-          label: 'DevTools',
-        },
-        {
           _tag: 'CoreCrashView',
           href: coreCrashViewRouter(),
           label: 'Crash View',
@@ -286,19 +284,21 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Slow Warnings',
         },
         {
-          _tag: 'CoreFreezeModel',
-          href: coreFreezeModelRouter(),
-          label: 'Freeze Model',
-        },
-        {
           _tag: 'CoreViewMemoization',
           href: coreViewMemoizationRouter(),
           label: 'View Memoization',
         },
         {
-          _tag: 'CoreEmbedding',
-          href: coreEmbeddingRouter(),
-          label: 'Embedding',
+          _tag: 'CoreFreezeModel',
+          href: coreFreezeModelRouter(),
+          label: 'Freeze Model',
+        },
+      ],
+      [
+        {
+          _tag: 'CoreDevTools',
+          href: coreDevToolsRouter(),
+          label: 'DevTools',
         },
       ],
     ],
