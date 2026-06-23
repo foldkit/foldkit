@@ -35,7 +35,6 @@
       "ignore": ["src/snippet/**", "public/**"]
     },
     "examples/*": {
-      "entry": ["src/main.ts"],
       "ignoreDependencies": [
         "@trivago/prettier-plugin-sort-imports",
         "prettier",
