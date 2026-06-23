@@ -205,7 +205,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 - **[Job Application](https://foldkit.dev/example-apps/job-application)**: Multi-step form with cross-field validation, file uploads, and per-step error indicators
 - **[Weather](https://foldkit.dev/example-apps/weather)**: HTTP requests with async state handling
 - **[API Cache](https://foldkit.dev/example-apps/api-cache)**: Query caching with stale-while-revalidate, request deduplication, and interval refetching
-- **[Adoption Observatory](https://foldkit.dev/example-apps/adoption-observatory)**: Live public GitHub and npm telemetry rendered through an ECharts Mount adapter
+- **[Charting](https://foldkit.dev/example-apps/charting)**: Live public GitHub and npm telemetry rendered through an ECharts Mount adapter
 - **[Routing](https://foldkit.dev/example-apps/routing)**: URL routing with parser combinators
 - **[Query Sync](https://foldkit.dev/example-apps/query-sync)**: URL query parameter sync with filtering and sorting
 - **[Snake](https://foldkit.dev/example-apps/snake)**: Classic game built with Subscriptions

@@ -41,7 +41,7 @@
         "tailwindcss"
       ]
     },
-    "examples/adoption-observatory": {
+    "examples/charting": {
       "entry": [],
       "ignoreDependencies": [
         "@trivago/prettier-plugin-sort-imports",

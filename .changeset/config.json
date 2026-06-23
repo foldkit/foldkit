@@ -44,6 +44,6 @@
     "@foldkit/performance-harness",
     "@foldkit/examples-e2e",
     "@foldkit/lustre-benchmark",
-    "adoption-observatory-example"
+    "charting-example"
   ]
 }

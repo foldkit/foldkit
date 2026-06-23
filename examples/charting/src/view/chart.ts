@@ -12,7 +12,7 @@ import { FailedMountChart, SucceededMountChart } from '../message'
 import type { Model } from '../model'
 import { formatInteger } from './format'
 
-export const CHART_HOST_ID = 'adoption-observatory-chart'
+export const CHART_HOST_ID = 'charting-chart'
 
 export const MountChart = Mount.define(
   'MountChart',

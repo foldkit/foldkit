@@ -48,7 +48,7 @@ type NpmApiShape = Readonly<{
 }>
 
 export class NpmApi extends Context.Service<NpmApi, NpmApiShape>()(
-  'adoption-observatory/NpmApi',
+  'charting/NpmApi',
 ) {}
 
 export const NpmApiLive: Layer.Layer<NpmApi, never, HttpClient.HttpClient> =

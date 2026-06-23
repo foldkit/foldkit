@@ -96,7 +96,7 @@ type GitHubApiShape = Readonly<{
 }>
 
 export class GitHubApi extends Context.Service<GitHubApi, GitHubApiShape>()(
-  'adoption-observatory/GitHubApi',
+  'charting/GitHubApi',
 ) {}
 
 class GitHubStatsPending extends Data.TaggedError('GitHubStatsPending') {}

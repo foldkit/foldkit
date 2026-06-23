@@ -114,7 +114,7 @@ const mockTelemetryApis = async (page: PlaywrightPage) => {
   )
 }
 
-test.describe('adoption observatory example', () => {
+test.describe('charting example', () => {
   test('loads cleanly', async ({ page }) => {
     await mockTelemetryApis(page)
     await Page.assertLoadedCleanly(page)

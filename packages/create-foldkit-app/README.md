@@ -30,7 +30,7 @@ The CLI prompts you for a project name, starter example, and package manager. Pa
 | `job-application`        | Multi-step form with async validation, file uploads, and per-step error indicators                     |
 | `weather`                | HTTP requests with async state handling                                                                |
 | `api-cache`              | Query caching in the Model with stale-while-revalidate, request deduplication, and interval refetching |
-| `adoption-observatory`   | Live GitHub and npm telemetry rendered through an ECharts Mount adapter                                |
+| `charting`               | Live GitHub and npm telemetry rendered through an ECharts Mount adapter                                |
 | `routing`                | URL routing with parser combinators and route parameters                                               |
 | `query-sync`             | URL-driven filtering, sorting, and search with query parameters                                        |
 | `snake`                  | Classic game built with Subscriptions                                                                  |
