@@ -538,6 +538,8 @@ export const init: Runtime.RoutingApplicationInit<
 
 // UPDATE
 
+const isPathnameEqual = (a: Url, b: Url): boolean => a.pathname === b.pathname
+
 const handleSidebarGroup = (
   prev: Disclosure.Model,
   message: Disclosure.Message,
@@ -659,6 +661,10 @@ export const update = (
           ),
           M.orElse(() => [model.exampleDetail, []]),
         )
+        const maybeScrollSidebar = Option.liftPredicate(
+          ScrollSidebarActiveLinkIntoView(),
+          () => !isPathnameEqual(model.url, url),
+        )
 
         return [
           evo(model, {
@@ -708,6 +714,7 @@ export const update = (
               onNone: () => [ScrollToTop()],
               onSome: hash => [ScrollToAnchor({ hash })],
             }),
+            ...Option.toArray(maybeScrollSidebar),
           ],
         ]
       },
@@ -1266,9 +1273,8 @@ const ScrollSidebarActiveLinkIntoView = Command.define(
   'ScrollSidebarActiveLinkIntoView',
   CompletedScrollSidebarActiveLinkIntoView,
 )(
-  Dom.scrollIntoViewAfterPaint(
+  Dom.scrollIntoViewIfNotVisible(
     `#${DOCS_SIDEBAR_NAV_ID} [aria-current="page"]`,
-    { block: 'center' },
   ).pipe(Effect.ignore, Effect.as(CompletedScrollSidebarActiveLinkIntoView())),
 )
 

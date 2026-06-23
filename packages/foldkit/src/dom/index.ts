@@ -6,6 +6,7 @@ export {
   focus,
   scrollIntoView,
   scrollIntoViewAfterPaint,
+  scrollIntoViewIfNotVisible,
   showModal,
 } from './dom.js'
 export type { FocusDirection } from './dom.js'
