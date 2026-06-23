@@ -319,6 +319,60 @@ export const scrollIntoViewAfterPaint = (
     element.scrollIntoView({ block: options?.block ?? 'nearest' })
   })
 
+const findScrollParent = (element: HTMLElement): Option.Option<HTMLElement> => {
+  let candidate = element.parentElement
+  while (candidate !== null) {
+    const { overflowY } = getComputedStyle(candidate)
+    if (overflowY === 'scroll' || overflowY === 'auto') {
+      return Option.some(candidate)
+    }
+    candidate = candidate.parentElement
+  }
+  return Option.none()
+}
+
+/**
+ * Like `scrollIntoViewAfterPaint`, but skips the scroll if the element is
+ * already fully visible within its scroll container.
+ *
+ * Use this when the element may already be on screen and scrolling it would
+ * be disruptive: for example, scrolling an active sidebar link into view on
+ * navigation when the link is already on screen.
+ *
+ * Defaults to `{ block: 'center' }`; pass a different `block` when the
+ * target should land at a specific position when it does need to scroll.
+ *
+ * Fails with `ElementNotFound` if the selector does not match an `HTMLElement`.
+ *
+ * @example
+ * ```typescript
+ * Dom.scrollIntoViewIfNotVisible('#active-nav-link')
+ * Dom.scrollIntoViewIfNotVisible('#active-nav-link', { block: 'nearest' })
+ * ```
+ */
+export const scrollIntoViewIfNotVisible = (
+  selector: string,
+  options?: Readonly<{ block?: ScrollLogicalPosition }>,
+): Effect.Effect<void, ElementNotFound> =>
+  Effect.gen(function* () {
+    yield* afterPaint
+    const element = yield* queryHTMLElement(selector)
+    Option.match(findScrollParent(element), {
+      onNone: () =>
+        element.scrollIntoView({ block: options?.block ?? 'center' }),
+      onSome: scrollParent => {
+        const parentRect = scrollParent.getBoundingClientRect()
+        const elementRect = element.getBoundingClientRect()
+        const isFullyVisible =
+          elementRect.top >= parentRect.top &&
+          elementRect.bottom <= parentRect.bottom
+        if (!isFullyVisible) {
+          element.scrollIntoView({ block: options?.block ?? 'center' })
+        }
+      },
+    })
+  })
+
 /** Direction for focus advancement: forward or backward in tab order. */
 export type FocusDirection = 'Next' | 'Previous'
 
