@@ -1,6 +1,5 @@
 import { Match as M, Option } from 'effect'
 
-import { slugToModuleName } from '../src/page/apiReference/domain'
 import { findBySlug } from '../src/page/example/meta'
 import { type AppRoute } from '../src/route'
 
@@ -11,6 +10,8 @@ export type PageMetadata = Readonly<{
   description: string
   section: string
 }>
+
+export type ApiModuleNameResolver = (slug: string) => string
 
 const SITE_DESCRIPTION =
   'A TypeScript frontend framework built on Effect-TS, using The Elm Architecture (TEA). Single state tree, pure update functions, explicit side effects, and type-safe routing. An alternative to React for teams that value correctness.'
@@ -393,11 +394,14 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   },
 }
 
-export const routeToMetadata = (route: AppRoute): PageMetadata =>
+export const routeToMetadata = (
+  route: AppRoute,
+  resolveApiModuleName: ApiModuleNameResolver,
+): PageMetadata =>
   M.value(route).pipe(
     M.withReturnType<PageMetadata>(),
     M.tag('ApiModule', ({ moduleSlug }) => {
-      const moduleName = slugToModuleName(moduleSlug)
+      const moduleName = resolveApiModuleName(moduleSlug)
       return docs(
         moduleName,
         `API documentation for the ${moduleName} module.`,

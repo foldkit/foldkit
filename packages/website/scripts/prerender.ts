@@ -6,6 +6,7 @@ import {
   Effect,
   Match as M,
   Option,
+  Record,
   Schema as S,
   String as Str,
   Stream,
@@ -20,8 +21,10 @@ import { type Browser, chromium } from 'playwright'
 import { NodeRuntime, NodeServices } from '@effect/platform-node'
 
 import {
+  type ApiModule,
   moduleNameToSlug,
   parseTypedocJson,
+  slugToModuleName,
 } from '../src/page/apiReference/domain'
 import { TypeDocJson } from '../src/page/apiReference/typedoc'
 import { exampleSlugs } from '../src/page/example/meta'
@@ -204,7 +207,7 @@ import {
   shouldExportMarkdown,
   urlPathToMarkdownPath,
 } from './markdown'
-import { routeToMetadata } from './metadata'
+import { type ApiModuleNameResolver, routeToMetadata } from './metadata'
 import { generateOgImages, injectMetaTags } from './og-image'
 
 // ROUTES
@@ -534,13 +537,11 @@ const captureRoutePage = (browser: Browser, url: string, route: AppRoute) =>
 
 const ApiDocJson = S.fromJsonString(TypeDocJson)
 
-const readApiModuleSlugs = Effect.gen(function* () {
+const readApiModules = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem
   const raw = yield* fs.readFileString(API_JSON_PATH)
   const apiDoc = yield* S.decodeUnknownEffect(ApiDocJson)(raw)
-  return Array.map(parseTypedocJson(apiDoc).modules, ({ name }) =>
-    moduleNameToSlug(name),
-  )
+  return parseTypedocJson(apiDoc).modules
 })
 
 type PrerenderResult = Readonly<{
@@ -549,8 +550,28 @@ type PrerenderResult = Readonly<{
   markdown: string
 }>
 
+const buildApiModuleNameResolver = (
+  modules: ReadonlyArray<ApiModule>,
+): ApiModuleNameResolver => {
+  const nameBySlug = Record.fromIterableWith(modules, ({ name }) => [
+    moduleNameToSlug(name),
+    name,
+  ])
+  return slug =>
+    pipe(
+      nameBySlug,
+      Record.get(slug),
+      Option.getOrElse(() => slugToModuleName(slug)),
+    )
+}
+
 const prerenderRoute =
-  (browser: Browser, baseHtml: string) => (route: AppRoute) =>
+  (
+    browser: Browser,
+    baseHtml: string,
+    resolveApiModuleName: ApiModuleNameResolver,
+  ) =>
+  (route: AppRoute) =>
     Effect.gen(function* () {
       const urlPath = routeToUrlPath(route)
       const outputPath = routeToOutputPath(route)
@@ -559,7 +580,12 @@ const prerenderRoute =
 
       const captured = yield* captureRoutePage(browser, url, route)
       const injectedHtml = injectHtml(baseHtml, captured.html)
-      const outputHtml = injectMetaTags(injectedHtml, route, urlPath)
+      const outputHtml = injectMetaTags(
+        injectedHtml,
+        route,
+        urlPath,
+        resolveApiModuleName,
+      )
 
       const fs = yield* FileSystem.FileSystem
       yield* fs.makeDirectory(dirname(outputFilePath), {
@@ -632,20 +658,21 @@ ${entries}
 
 // PROGRAM
 
-const resultToIndexEntry = (result: PrerenderResult): LlmsIndexEntry => ({
-  urlPath: result.urlPath,
-  metadata: routeToMetadata(result.route),
-})
+const resultToIndexEntry =
+  (resolveApiModuleName: ApiModuleNameResolver) =>
+  (result: PrerenderResult): LlmsIndexEntry => ({
+    urlPath: result.urlPath,
+    metadata: routeToMetadata(result.route, resolveApiModuleName),
+  })
 
-const resultToFullEntry = (
-  result: PrerenderResult,
-  orderIndex: number,
-): LlmsFullEntry => ({
-  urlPath: result.urlPath,
-  metadata: routeToMetadata(result.route),
-  markdown: result.markdown,
-  orderIndex,
-})
+const resultToFullEntry =
+  (resolveApiModuleName: ApiModuleNameResolver) =>
+  (result: PrerenderResult, orderIndex: number): LlmsFullEntry => ({
+    urlPath: result.urlPath,
+    metadata: routeToMetadata(result.route, resolveApiModuleName),
+    markdown: result.markdown,
+    orderIndex,
+  })
 
 const program = Effect.scoped(
   Effect.gen(function* () {
@@ -654,10 +681,19 @@ const program = Effect.scoped(
     yield* previewServerResource
     const browser = yield* playwrightBrowserResource
 
-    const apiModuleSlugs = yield* readApiModuleSlugs
+    const apiModules = yield* readApiModules
+    const apiModuleSlugs = Array.map(apiModules, ({ name }) =>
+      moduleNameToSlug(name),
+    )
+    const resolveApiModuleName = buildApiModuleNameResolver(apiModules)
     const routes = enumerateRoutes(apiModuleSlugs)
 
-    yield* generateOgImages(routes, routeToUrlPath, DIST_DIR)
+    yield* generateOgImages(
+      routes,
+      routeToUrlPath,
+      DIST_DIR,
+      resolveApiModuleName,
+    )
 
     const fs = yield* FileSystem.FileSystem
     const baseHtml = yield* fs.readFileString(resolve(DIST_DIR, 'index.html'))
@@ -672,7 +708,7 @@ const program = Effect.scoped(
 
     const results = yield* Effect.forEach(
       routes,
-      prerenderRoute(browser, baseHtml),
+      prerenderRoute(browser, baseHtml, resolveApiModuleName),
       { concurrency: 4 },
     )
 
@@ -688,8 +724,14 @@ const program = Effect.scoped(
       buildSitemap(routes, lastModification),
     )
 
-    const indexEntries = Array.map(markdownResults, resultToIndexEntry)
-    const fullEntries = Array.map(markdownResults, resultToFullEntry)
+    const indexEntries = Array.map(
+      markdownResults,
+      resultToIndexEntry(resolveApiModuleName),
+    )
+    const fullEntries = Array.map(
+      markdownResults,
+      resultToFullEntry(resolveApiModuleName),
+    )
 
     yield* fs.writeFileString(
       resolve(DIST_DIR, 'llms.txt'),
