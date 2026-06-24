@@ -36,7 +36,12 @@ import { Dialog, Disclosure, Menu, Tabs } from '@foldkit/ui'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
 
-import { DOCS_SIDEBAR_NAV_ID, allPages, findActiveSectionKey } from './docsNav'
+import {
+  DOCS_SIDEBAR_NAV_ID,
+  MOBILE_MENU_NAV_ID,
+  allPages,
+  findActiveSectionKey,
+} from './docsNav'
 import { GitHubStarsRemoteData } from './githubStars'
 import {
   CompletedApplyTheme,
@@ -46,6 +51,7 @@ import {
   CompletedNavigateInternal,
   CompletedSaveSidebarState,
   CompletedSaveThemePreference,
+  CompletedScrollMobileMenuActiveLinkIntoView,
   CompletedScrollSidebarActiveLinkIntoView,
   CompletedScrollToAnchor,
   CompletedScrollToTop,
@@ -807,9 +813,12 @@ export const update = (
           evo(model, {
             mobileMenuDialog: () => nextMobileMenuDialog,
           }),
-          Command.mapMessages(mobileMenuDialogCommands, message =>
-            GotMobileMenuDialogMessage({ message }),
-          ),
+          [
+            ...Command.mapMessages(mobileMenuDialogCommands, message =>
+              GotMobileMenuDialogMessage({ message }),
+            ),
+            ScrollMobileMenuActiveLinkIntoView(),
+          ],
         ]
       },
 
@@ -1178,6 +1187,7 @@ export const update = (
       'CompletedScrollToTop',
       'CompletedScrollToAnchor',
       'CompletedScrollSidebarActiveLinkIntoView',
+      'CompletedScrollMobileMenuActiveLinkIntoView',
       'CompletedApplyTheme',
       'CompletedSaveThemePreference',
       'CompletedSaveSidebarState',
@@ -1276,6 +1286,18 @@ const ScrollSidebarActiveLinkIntoView = Command.define(
   Dom.scrollIntoViewIfNotVisible(
     `#${DOCS_SIDEBAR_NAV_ID} [aria-current="page"]`,
   ).pipe(Effect.ignore, Effect.as(CompletedScrollSidebarActiveLinkIntoView())),
+)
+
+const ScrollMobileMenuActiveLinkIntoView = Command.define(
+  'ScrollMobileMenuActiveLinkIntoView',
+  CompletedScrollMobileMenuActiveLinkIntoView,
+)(
+  Dom.scrollIntoViewIfNotVisible(
+    `#${MOBILE_MENU_NAV_ID} [aria-current="page"]`,
+  ).pipe(
+    Effect.ignore,
+    Effect.as(CompletedScrollMobileMenuActiveLinkIntoView()),
+  ),
 )
 
 const ApplyTheme = Command.define(

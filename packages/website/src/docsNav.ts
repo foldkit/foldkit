@@ -87,6 +87,8 @@ import { type GroupKey } from './sidebarStorage'
 
 export const DOCS_SIDEBAR_NAV_ID = 'docs-sidebar-nav'
 
+export const MOBILE_MENU_NAV_ID = 'mobile-menu-nav'
+
 // NAV PAGE
 
 export type NavPage = Readonly<{
