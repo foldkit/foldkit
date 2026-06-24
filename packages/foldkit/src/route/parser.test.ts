@@ -6,6 +6,7 @@ import { describe, it } from '@effect/vitest'
 import { Url } from '../url/index.js'
 import { r } from './index.js'
 import {
+  __isSingleSegment,
   int,
   literal,
   mapTo,
@@ -14,6 +15,7 @@ import {
   query,
   rest,
   root,
+  schemaSegment,
   slash,
   string,
 } from './parser.js'
@@ -129,6 +131,93 @@ describe('int', () => {
       expect(state.segments).toStrictEqual(['42'])
     }),
   )
+})
+
+describe('schemaSegment', () => {
+  const UserId = S.String.pipe(S.brand('UserId'))
+  const PostId = S.FiniteFromString.pipe(S.brand('PostId'))
+  const Direction = S.Literals(['Horizontal', 'Vertical'])
+
+  it.effect('captures a segment decoded through the schema', () =>
+    Effect.gen(function* () {
+      const [value, remaining] = yield* schemaSegment('userId', UserId).parse([
+        'abc',
+        'next',
+      ])
+      expect(value).toStrictEqual({ userId: 'abc' })
+      expect(remaining).toStrictEqual(['next'])
+    }),
+  )
+
+  it.effect('decodes a string-literal union segment', () =>
+    Effect.gen(function* () {
+      const [value] = yield* schemaSegment('direction', Direction).parse([
+        'Horizontal',
+      ])
+      expect(value).toStrictEqual({ direction: 'Horizontal' })
+    }),
+  )
+
+  it.effect('rejects a segment the schema refuses', () =>
+    Effect.gen(function* () {
+      const error = yield* Effect.flip(
+        schemaSegment('postId', PostId).parse(['abc']),
+      )
+      expect(error._tag).toBe('ParseError')
+      expect(error.actual).toBe('abc')
+    }),
+  )
+
+  it.effect('fails on empty segments', () =>
+    Effect.gen(function* () {
+      const error = yield* Effect.flip(
+        schemaSegment('userId', UserId).parse([]),
+      )
+      expect(error._tag).toBe('ParseError')
+      expect(error.actual).toBe('end of path')
+    }),
+  )
+
+  it.effect(
+    'prints by encoding the decoded value back through the schema',
+    () =>
+      Effect.gen(function* () {
+        const [value] = yield* schemaSegment('postId', PostId).parse(['42'])
+        const state = yield* schemaSegment('postId', PostId).print(value, {
+          segments: ['posts'],
+          queryParams: new URLSearchParams(),
+        })
+        expect(state.segments).toStrictEqual(['posts', '42'])
+      }),
+  )
+
+  it.effect('parse then build round-trips a branded id', () =>
+    Effect.gen(function* () {
+      const Route = r('Route', { userId: UserId })
+      const router = pipe(
+        literal('users'),
+        slash(schemaSegment('userId', UserId)),
+        mapTo(Route),
+      )
+      const [parsed] = yield* router.parse(['users', 'abc'])
+      expect(parsed).toStrictEqual({ _tag: 'Route', userId: 'abc' })
+      expect(router({ userId: parsed.userId })).toBe('/users/abc')
+    }),
+  )
+
+  it('treats a value that is exactly one path segment as single', () => {
+    expect(__isSingleSegment('abc')).toBe(true)
+    expect(__isSingleSegment('Horizontal')).toBe(true)
+    expect(__isSingleSegment('a b')).toBe(true)
+  })
+
+  it('rejects an encoded value that would not survive the path round-trip', () => {
+    expect(__isSingleSegment('a/b')).toBe(false)
+    expect(__isSingleSegment('')).toBe(false)
+    expect(__isSingleSegment('a/')).toBe(false)
+    expect(__isSingleSegment('/a')).toBe(false)
+    expect(__isSingleSegment('a//b')).toBe(false)
+  })
 })
 
 describe('root', () => {

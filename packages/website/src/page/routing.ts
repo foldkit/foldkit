@@ -55,6 +55,12 @@ const queryParametersHeader: TableOfContentsEntry = {
   text: 'Query Parameters',
 }
 
+const schemaSegmentsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'schema-segments',
+  text: 'Schema Segments',
+}
+
 const restSegmentsHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'rest-segments',
@@ -86,6 +92,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   parsingUrlsHeader,
   buildingUrlsHeader,
   queryParametersHeader,
+  schemaSegmentsHeader,
   restSegmentsHeader,
   keyingRouteViewsHeader,
   navigationHeader,
@@ -223,6 +230,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
           ),
           h.li(
             [],
+            [
+              inlineCode("schemaSegment('personId', PersonId)"),
+              ': captures a segment decoded through a Schema',
+            ],
+          ),
+          h.li(
+            [],
             [inlineCode("rest('path')"), ': captures all remaining segments'],
           ),
           h.li(
@@ -333,6 +347,77 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
           exampleDetailRouter({ exampleSlug: 'query-sync' }),
           'Query Sync example',
         ),
+        '.',
+      ),
+      tableOfContentsEntryToHeader(schemaSegmentsHeader),
+      para(
+        inlineCode('int'),
+        ' and ',
+        inlineCode('string'),
+        ' capture a segment as a bare ',
+        inlineCode('number'),
+        ' or ',
+        inlineCode('string'),
+        '. When a segment is really a domain id, ',
+        inlineCode('schemaSegment'),
+        ' decodes it through an ',
+        link(Link.effectSchema, 'Effect Schema'),
+        ' instead, so the route carries the schema’s type. A branded ',
+        inlineCode('PersonId'),
+        ' flows straight into the model, where it can’t be passed anywhere a different id or a bare ',
+        inlineCode('number'),
+        ' is expected.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.routingSchemaSegmentHighlighted),
+          ],
+          [],
+        ),
+        Snippet.routingSchemaSegmentRaw,
+        'Copy schema segments example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'Whether a segment decodes is the route’s match test, and the decoded value is what the route carries when it passes. ',
+        inlineCode('int'),
+        ' already works this way: it claims ',
+        inlineCode('/users/42'),
+        ' but not ',
+        inlineCode('/users/banana'),
+        '. ',
+        inlineCode('schemaSegment'),
+        ' generalizes that to any rule a schema can express, from a UUID pattern to a fixed set of string literals. Refine a ',
+        inlineCode('ProductId'),
+        ' to a UUID and the route matches a real one but declines ',
+        inlineCode('/products/banana'),
+        ', so a malformed id falls through to the next route in ',
+        inlineCode('oneOf'),
+        ' (or to not-found) rather than reaching a component that has to handle it. Refinement and a brand compose, so one segment is both validated and carried as a distinct type.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.routingSchemaSegmentRefinementHighlighted),
+          ],
+          [],
+        ),
+        Snippet.routingSchemaSegmentRefinementRaw,
+        'Copy schema refinement example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'The schema’s encoded form must be a single segment string, and ',
+        inlineCode('schemaSegment'),
+        ' runs it both ways: it decodes when parsing and encodes when building, so the route still round-trips. For values that span several segments use ',
+        inlineCode('rest'),
+        ', and for values in the query string use ',
+        inlineCode('Route.query'),
         '.',
       ),
       tableOfContentsEntryToHeader(restSegmentsHeader),

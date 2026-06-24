@@ -4,6 +4,7 @@ export {
   param,
   string,
   int,
+  schemaSegment,
   root,
   rest,
   oneOf,

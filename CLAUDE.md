@@ -54,7 +54,7 @@ The principles below apply broadly. Calibrate to the right context: library desi
 - Never use sentinel values to signal absence (`-1` from `.indexOf()`, `null`, empty strings, `NaN`). Use `Option`-returning helpers like `String.indexOf`, `Array.findFirst`, `Option.fromNullishOr`.
 - Never use `T[]` syntax. Use `Array<T>` or `ReadonlyArray<T>`.
 - Never use bracket array indexing (`xs[0]`, `xs[xs.length - 1]`). Use `Array.get`, `Array.head`, `Array.last`, or non-empty variants.
-- Use `Array.isEmptyArray` / `Array.isNonEmptyArray`, not `.length === 0` / `.length > 0`. Prefer `Array.match` when handling both cases.
+- Use `Array.isArrayEmpty` / `Array.isArrayNonEmpty`, not `.length === 0` / `.length > 0`. Prefer `Array.match` when handling both cases.
 - Never cast Schema values with `as Type`. Use callable constructors.
 - Capitalize Schema literal strings: `S.Literals(['Horizontal', 'Vertical'])`.
 - Capitalize namespace imports: `import * as Command from './command'`.

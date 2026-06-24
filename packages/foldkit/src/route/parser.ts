@@ -92,6 +92,8 @@ const makeTerminalParser = <A>(parser: Biparser<A>): TerminalParser<A> =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   parser as TerminalParser<A>
 
+const pathToSegments = flow(String.split('/'), Array.filter(String.isNonEmpty))
+
 /**
  * Creates a parser that matches an exact URL path segment.
  *
@@ -215,6 +217,103 @@ export const int = <K extends string>(name: K): Biparser<Record<K, number>> =>
     },
     record => record[name].toString(),
   )
+
+export const __isSingleSegment = (segment: string): boolean =>
+  Array.matchLeft(pathToSegments(segment), {
+    onEmpty: () => false,
+    onNonEmpty: (head, tail) => head === segment && Array.isArrayEmpty(tail),
+  })
+
+const warnIfNotSingleSegment = (
+  name: string,
+  segment: string,
+): Effect.Effect<void> =>
+  Effect.sync(() => {
+    if (import.meta.hot && !__isSingleSegment(segment)) {
+      console.warn(
+        `[foldkit] schemaSegment('${name}') encoded to '${segment}', which is not ` +
+          'a single URL segment. Parsing re-splits the path on slashes and drops ' +
+          'empty pieces, so this value will not round-trip. Encode to one ' +
+          'non-empty, slash-free segment, or use rest for multi-segment values.',
+      )
+    }
+  })
+
+/**
+ * Creates a parser that captures a URL segment and decodes it through an
+ * Effect `Schema`, producing a named field of the schema's decoded type.
+ *
+ * Decodes the raw segment when parsing and encodes the value back when
+ * printing, so branded ids, refined strings, and string-literal unions
+ * round-trip through the route. The decoded type flows straight into the
+ * route value, so a model carries `UserId` rather than a bare `string`.
+ *
+ * The schema's encoded form must be a single URL segment string. For shapes
+ * that span multiple segments or live in the query string, use `rest` or
+ * `query`.
+ *
+ * @example
+ * ```ts
+ * const UserId = S.String.pipe(S.brand('UserId'))
+ * pipe(literal('users'), slash(schemaSegment('userId', UserId)), mapTo(UserRoute))
+ * // parses /users/abc into { _tag: 'UserRoute', userId: UserId.make('abc') }
+ * ```
+ *
+ * @param name - The field name the decoded value is captured under.
+ * @param schema - A codec whose encoded form is a single URL segment string.
+ */
+export const schemaSegment = <K extends string, A, I extends string>(
+  name: K,
+  schema: Schema.Codec<A, I>,
+): Biparser<Record<K, A>> => {
+  const decode = Schema.decodeUnknownEffect(schema)
+  const encode = Schema.encodeEffect(schema)
+
+  return {
+    parse: segments =>
+      Array.matchLeft(segments, {
+        onEmpty: () =>
+          Effect.fail(
+            new ParseError({
+              message: `Expected ${name}`,
+              expected: name,
+              actual: 'end of path',
+              position: 0,
+            }),
+          ),
+        onNonEmpty: (head, tail) =>
+          pipe(
+            head,
+            decode,
+            Effect.mapError(
+              error =>
+                new ParseError({
+                  message: `Invalid ${name}: ${error.message}`,
+                  expected: name,
+                  actual: head,
+                }),
+            ),
+            Effect.map(value => [Record.singleton(name, value), tail]),
+          ),
+      }),
+    print: (value, state) =>
+      pipe(
+        value[name],
+        encode,
+        Effect.mapError(
+          error =>
+            new ParseError({
+              message: `Failed to encode ${name}: ${error.message}`,
+            }),
+        ),
+        Effect.tap(segment => warnIfNotSingleSegment(name, segment)),
+        Effect.map(segment => ({
+          ...state,
+          segments: [...state.segments, segment],
+        })),
+      ),
+  }
+}
 
 /**
  * A parser that matches the root path with no remaining segments.
@@ -526,8 +625,6 @@ export const query =
     }
     return makeTerminalParser(queryParser)
   }
-
-const pathToSegments = flow(String.split('/'), Array.filter(String.isNonEmpty))
 
 const parseUrl =
   <A>(parser: Biparser<A> | TerminalParser<A> | Parser<A>) =>
