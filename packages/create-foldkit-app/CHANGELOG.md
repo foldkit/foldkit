@@ -1,5 +1,12 @@
 # create-foldkit-app
 
+## 0.18.0
+
+### Minor Changes
+
+- 921afa8: Add the charting starter example with ECharts telemetry, website registration,
+  and example app coverage.
+
 ## 0.17.2
 
 ### Patch Changes
