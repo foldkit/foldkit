@@ -7,6 +7,7 @@ import { Dialog, Disclosure } from '@foldkit/ui'
 
 import {
   DOCS_SIDEBAR_NAV_ID,
+  MOBILE_MENU_NAV_ID,
   type NavPage,
   docsSections,
   findActiveSectionKey,
@@ -381,6 +382,7 @@ export const sidebarView = (model: Model): Html => {
         h.nav(
           [
             h.AriaLabel('Documentation'),
+            h.Id(MOBILE_MENU_NAV_ID),
             h.Class('flex-1 overflow-y-auto'),
             h.Tabindex(-1),
             h.Autofocus(true),

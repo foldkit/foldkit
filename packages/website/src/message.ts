@@ -30,6 +30,9 @@ export const CompletedSaveSidebarState = m('CompletedSaveSidebarState')
 export const CompletedScrollSidebarActiveLinkIntoView = m(
   'CompletedScrollSidebarActiveLinkIntoView',
 )
+export const CompletedScrollMobileMenuActiveLinkIntoView = m(
+  'CompletedScrollMobileMenuActiveLinkIntoView',
+)
 export const SucceededCopyLink = m('SucceededCopyLink')
 export const FailedCopyLink = m('FailedCopyLink')
 export const ClickedLink = m('ClickedLink', {
@@ -172,6 +175,7 @@ export const Message = S.Union([
   CompletedSaveThemePreference,
   CompletedSaveSidebarState,
   CompletedScrollSidebarActiveLinkIntoView,
+  CompletedScrollMobileMenuActiveLinkIntoView,
   SucceededCopyLink,
   FailedCopyLink,
   ClickedLink,
