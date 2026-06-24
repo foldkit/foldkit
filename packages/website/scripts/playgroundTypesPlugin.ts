@@ -1,4 +1,4 @@
-import { Array, Record } from 'effect'
+import { Array, Match, Predicate, Record, String, pipe } from 'effect'
 import { existsSync } from 'node:fs'
 import { readFile, readdir } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
@@ -40,12 +40,16 @@ type PackageJson = Readonly<{
   main?: string
 }>
 
-// NOTE: Deliberately only `.d.ts`. `.d.mts` and `.d.cts` are not
-// matched. Today every example dependency ships a `.d.ts` companion, so
-// types resolve fine. If a future ESM-only-typed dep ships only `.d.mts`,
-// it would silently produce no types in the playground; broaden this
-// predicate then.
-const isDeclarationFile = (name: string): boolean => name.endsWith('.d.ts')
+const isDeclarationFile = Predicate.some([
+  String.endsWith('.d.ts'),
+  String.endsWith('.d.mts'),
+  String.endsWith('.d.cts'),
+])
+
+const swapExtension =
+  (from: string, to: string) =>
+  (value: string): string =>
+    value.slice(0, -from.length) + to
 
 const collectFilePaths = async (
   directory: string,
@@ -107,13 +111,14 @@ const resolveTypesEntry = (entry: unknown): string | undefined => {
     return undefined
   }
   if (typeof entry === 'string') {
-    if (entry.endsWith('.d.ts')) {
-      return entry
-    }
-    if (entry.endsWith('.js')) {
-      return entry.slice(0, -'.js'.length) + '.d.ts'
-    }
-    return undefined
+    return pipe(
+      Match.value(entry),
+      Match.when(isDeclarationFile, entry => entry),
+      Match.when(String.endsWith('.js'), swapExtension('.js', '.d.ts')),
+      Match.when(String.endsWith('.mjs'), swapExtension('.mjs', '.d.mts')),
+      Match.when(String.endsWith('.cjs'), swapExtension('.cjs', '.d.cts')),
+      Match.orElse(() => undefined),
+    )
   }
   if (Array.isArray(entry)) {
     for (const candidate of entry) {
@@ -138,14 +143,19 @@ const resolveTypesEntry = (entry: unknown): string | undefined => {
   return undefined
 }
 
-// NOTE: ESM `.js` imports map to `.d.ts` files for type resolution. We
-// emit `.js` here (not `.d.ts` and not extension-less) because Monaco's
-// Bundler resolver only auto-tries extensions for some paths; the `.js`
-// → `.d.ts` mapping is the universally-supported form.
+// NOTE: Declaration file paths must be converted to their runtime
+// counterpart in barrel `import` paths. Monaco's Bundler resolver maps
+// `.js` → `.d.ts`, `.mjs` → `.d.mts`, and `.cjs` → `.d.cts`, so using
+// the runtime extension is the universally-supported form; bare or
+// extension-less paths are not auto-tried for all entry shapes.
 const dtsTargetToJsImport = (relativePath: string): string =>
-  relativePath.endsWith('.d.ts')
-    ? relativePath.slice(0, -'.d.ts'.length) + '.js'
-    : relativePath
+  pipe(
+    Match.value(relativePath),
+    Match.when(String.endsWith('.d.ts'), swapExtension('.d.ts', '.js')),
+    Match.when(String.endsWith('.d.mts'), swapExtension('.d.mts', '.mjs')),
+    Match.when(String.endsWith('.d.cts'), swapExtension('.d.cts', '.cjs')),
+    Match.orElse(relativePath => relativePath),
+  )
 
 const computeRelativeImport = (fromPath: string, toPath: string): string => {
   const fromDirectory = dirname(fromPath)
@@ -162,7 +172,34 @@ const collectPackageTypes = async (
     resolve(packageRoot, 'package.json'),
     'utf-8',
   )
-  const packageJson: PackageJson = JSON.parse(packageJsonRaw)
+  // Widen the `exports` type to accommodate packages that use the bare-string
+  // shorthand (e.g. `"exports": "./src/index.js"` per the Node.js spec).
+  const rawPackageJson = JSON.parse(packageJsonRaw) as Omit<
+    PackageJson,
+    'exports'
+  > & {
+    exports?: PackageJson['exports'] | string
+  }
+  // NOTE: The Node.js spec allows `exports` to be a bare string, shorthand
+  // for `{ ".": "<value>" }`. Normalize it so the rest of the function can
+  // assume an object map uniformly.
+  const packageJson: PackageJson = {
+    ...(rawPackageJson.exports !== undefined
+      ? {
+          exports:
+            typeof rawPackageJson.exports === 'string'
+              ? { '.': rawPackageJson.exports }
+              : rawPackageJson.exports,
+        }
+      : {}),
+    ...(rawPackageJson.types !== undefined
+      ? { types: rawPackageJson.types }
+      : {}),
+    ...(rawPackageJson.typings !== undefined
+      ? { typings: rawPackageJson.typings }
+      : {}),
+    ...(rawPackageJson.main !== undefined ? { main: rawPackageJson.main } : {}),
+  }
 
   const collectedPaths: ReadonlyArray<ReadonlyArray<string>> =
     await Promise.all(
@@ -186,7 +223,7 @@ const collectPackageTypes = async (
     }),
   )
 
-  const barrelEntries: ReadonlyArray<readonly [string, string]> =
+  const exportBarrelEntries: ReadonlyArray<readonly [string, string]> =
     Object.entries(packageJson.exports ?? {}).flatMap(([subpath, entry]) => {
       const target = resolveTypesEntry(entry)
       if (target === undefined) {
@@ -202,11 +239,12 @@ const collectPackageTypes = async (
         )
         const matchedFiles = distFilePaths.filter(
           filePath =>
-            dirname(filePath) === targetDirectory && filePath.endsWith('.d.ts'),
+            dirname(filePath) === targetDirectory &&
+            isDeclarationFile(filePath),
         )
         return matchedFiles.flatMap(filePath => {
           const baseName = relative(targetDirectory, filePath).replace(
-            /\.d\.ts$/,
+            /\.d\.(m|c)?ts$/,
             '',
           )
           const expandedSubpath = subpath.replace('*', baseName)
@@ -224,6 +262,33 @@ const collectPackageTypes = async (
       const targetPath = `/node_modules/${packageName}/${target.replace(/^\.\//, '')}`
       return [[barrelPath, targetPath]] as const
     })
+
+  // NOTE: Packages that predate `exports` (e.g. `maplibre-gl`) declare
+  // their entry point only through the legacy `types`/`typings` field.
+  // Bundler resolution needs an `index.d.ts` at the package root to
+  // resolve the bare specifier, so synthesize one from `types`/`typings`
+  // when no `.` export already produced a root barrel.
+  const rootBarrelPath = `/node_modules/${packageName}/index.d.ts`
+  const legacyTypesTarget = resolveTypesEntry(
+    packageJson.types ?? packageJson.typings,
+  )
+  const hasRootBarrel = exportBarrelEntries.some(
+    ([barrelPath]) => barrelPath === rootBarrelPath,
+  )
+  const legacyBarrelEntries: ReadonlyArray<readonly [string, string]> =
+    legacyTypesTarget === undefined || hasRootBarrel
+      ? []
+      : [
+          [
+            rootBarrelPath,
+            `/node_modules/${packageName}/${legacyTypesTarget.replace(/^\.\//, '')}`,
+          ],
+        ]
+
+  const barrelEntries: ReadonlyArray<readonly [string, string]> = [
+    ...exportBarrelEntries,
+    ...legacyBarrelEntries,
+  ]
 
   // NOTE: Two cases that `export *` alone doesn't handle:
   //
@@ -244,7 +309,10 @@ const collectPackageTypes = async (
     if (contents === undefined) {
       return false
     }
-    return /(^|\n)\s*export\s+default\b/.test(contents)
+    return (
+      /(^|\n)\s*export\s+default\b/.test(contents) ||
+      /\bexport\s+\{[^}]*\bas\s+default\b/.test(contents)
+    )
   }
   const targetIsExportEquals = (targetPath: string): boolean => {
     const contents = distFileContentsByPath.get(targetPath)
@@ -285,27 +353,48 @@ const collectPackageTypes = async (
   return Record.values(merged)
 }
 
-const installedPackageRoot = (packageName: string): string =>
-  resolve(WEBSITE_ROOT, 'node_modules', packageName)
+// NOTE: pnpm symlinks each example's dependencies and devDependencies into
+// that example's own `node_modules`, pointing into the shared store. We
+// resolve types from there rather than the website's `node_modules` so
+// that example-only deps the website never imports (e.g. `maplibre-gl`)
+// still resolve in the editor. `foldkit` is excluded because its types
+// come from the monorepo source. `typescript` and `happy-dom` are excluded
+// because their lib trees contain hundreds of `.d.ts` files that would
+// bloat the bundle without adding types useful inside the playground.
+// Names are deduped across examples; the first example that declares a
+// dependency wins.
+const EXCLUDED_DEP_NAMES = new Set(['foldkit', 'typescript', 'happy-dom'])
 
-const collectExampleDependencyNames = async (): Promise<
-  ReadonlyArray<string>
+const collectExampleDependencyRoots = async (): Promise<
+  ReadonlyArray<readonly [string, string]>
 > => {
-  const dependencyNames = new Set<string>()
+  const rootByName = new Map<string, string>()
   for (const slug of exampleSlugs) {
-    const packageJsonPath = resolve(REPO_ROOT, 'examples', slug, 'package.json')
+    const exampleRoot = resolve(REPO_ROOT, 'examples', slug)
+    const packageJsonPath = resolve(exampleRoot, 'package.json')
     if (!existsSync(packageJsonPath)) {
       continue
     }
     const packageJsonRaw = await readFile(packageJsonPath, 'utf-8')
     const examplePackageJson: Readonly<{
       dependencies?: Readonly<Record<string, string>>
+      devDependencies?: Readonly<Record<string, string>>
     }> = JSON.parse(packageJsonRaw)
-    for (const name of Object.keys(examplePackageJson.dependencies ?? {})) {
-      dependencyNames.add(name)
+    const allDepNames = [
+      ...Object.keys(examplePackageJson.dependencies ?? {}),
+      ...Object.keys(examplePackageJson.devDependencies ?? {}),
+    ]
+    for (const name of allDepNames) {
+      if (EXCLUDED_DEP_NAMES.has(name) || rootByName.has(name)) {
+        continue
+      }
+      const packageRoot = resolve(exampleRoot, 'node_modules', name)
+      if (existsSync(packageRoot)) {
+        rootByName.set(name, packageRoot)
+      }
     }
   }
-  return Array.fromIterable(dependencyNames)
+  return Array.fromIterable(rootByName)
 }
 
 export const playgroundTypesPlugin = (): Plugin => ({
@@ -322,20 +411,20 @@ export const playgroundTypesPlugin = (): Plugin => ({
     }
 
     // NOTE: Foldkit is a workspace package and is read from the monorepo
-    // source. All other runtime deps come from the installed
-    // `node_modules` tree, which lets us bundle types for whatever
-    // packages the examples currently use without enumerating them.
+    // source. Every other dependency is resolved from the example that
+    // declares it, which lets us bundle types for whatever packages the
+    // examples currently use without enumerating them in the website's
+    // own dependencies.
     const foldkit = await collectPackageTypes(
       resolve(REPO_ROOT, 'packages/foldkit'),
       'foldkit',
     )
 
-    const externalPackageNames = await collectExampleDependencyNames()
+    const externalPackageRoots = await collectExampleDependencyRoots()
     const externalPackages = await Promise.all(
-      externalPackageNames
-        .filter(name => name !== 'foldkit')
-        .filter(name => existsSync(installedPackageRoot(name)))
-        .map(name => collectPackageTypes(installedPackageRoot(name), name)),
+      externalPackageRoots.map(([name, packageRoot]) =>
+        collectPackageTypes(packageRoot, name),
+      ),
     )
 
     const allFiles = Array.flatten([foldkit, ...externalPackages])
