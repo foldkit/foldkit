@@ -338,20 +338,37 @@ const findScrollParent = (element: HTMLElement): Option.Option<HTMLElement> => {
  * Defaults to `{ block: 'center' }`; pass a different `block` when the
  * target should land at a specific position when it does need to scroll.
  *
+ * `when` selects the timing gate. `'Paint'` (the default) waits for
+ * `Render.afterPaint`, so the scroll lands after the target is on screen.
+ * `'Commit'` waits for `Render.afterCommit` instead, so the scroll lands in
+ * the same frame the DOM patch applies, before the browser paints. Use
+ * `'Commit'` when the target is brought into view and scrolled by the same
+ * Message (such as a menu opening), so it appears already scrolled rather
+ * than visibly jumping.
+ *
  * Fails with `ElementNotFound` if the selector does not match an `HTMLElement`.
  *
  * @example
  * ```typescript
  * Dom.scrollIntoViewIfNotVisible('#active-nav-link')
  * Dom.scrollIntoViewIfNotVisible('#active-nav-link', { block: 'nearest' })
+ * Dom.scrollIntoViewIfNotVisible('#active-nav-link', { when: 'Commit' })
  * ```
  */
 export const scrollIntoViewIfNotVisible = (
   selector: string,
-  options?: Readonly<{ block?: ScrollLogicalPosition }>,
+  options?: Readonly<{
+    block?: ScrollLogicalPosition
+    when?: 'Paint' | 'Commit'
+  }>,
 ): Effect.Effect<void, ElementNotFound> =>
   Effect.gen(function* () {
-    yield* afterPaint
+    const when = options?.when ?? 'Paint'
+    yield* M.value(when).pipe(
+      M.when('Paint', () => afterPaint),
+      M.when('Commit', () => afterCommit),
+      M.exhaustive,
+    )
     const element = yield* queryHTMLElement(selector)
     Option.match(findScrollParent(element), {
       onNone: () =>
