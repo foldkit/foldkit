@@ -1288,13 +1288,15 @@ const ScrollSidebarActiveLinkIntoView = Command.define(
   ).pipe(Effect.ignore, Effect.as(CompletedScrollSidebarActiveLinkIntoView())),
 )
 
+const MOBILE_MENU_ACTIVE_LINK = `#${MOBILE_MENU_NAV_ID} [aria-current="page"]`
+
 const ScrollMobileMenuActiveLinkIntoView = Command.define(
   'ScrollMobileMenuActiveLinkIntoView',
   CompletedScrollMobileMenuActiveLinkIntoView,
 )(
-  Dom.scrollIntoViewIfNotVisible(
-    `#${MOBILE_MENU_NAV_ID} [aria-current="page"]`,
-  ).pipe(
+  Dom.scrollIntoViewIfNotVisible(MOBILE_MENU_ACTIVE_LINK, {
+    when: 'Commit',
+  }).pipe(
     Effect.ignore,
     Effect.as(CompletedScrollMobileMenuActiveLinkIntoView()),
   ),
