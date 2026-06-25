@@ -1,5 +1,24 @@
 # foldkit
 
+## 0.118.0
+
+### Minor Changes
+
+- 723f686: Add `schemaSegment` to `foldkit/route`. It captures a URL segment and decodes it
+  through an Effect `Schema`, so the route value carries the schema's decoded type
+  rather than a bare `string` or `number`. Branded ids, refined strings, and
+  string-literal unions round-trip: `schemaSegment` decodes when parsing a URL and
+  encodes when building one. The schema's encoded form must be a single segment
+  string. Use `rest` for values that span multiple segments and `query` for values
+  in the query string.
+- 0924912: Add a `when` option to `Dom.scrollIntoViewIfNotVisible`. It selects the timing
+  gate: `'Paint'` (the default) waits for `Render.afterPaint` and keeps the
+  existing behavior, while `'Commit'` waits for `Render.afterCommit` so the
+  scroll lands in the same frame the DOM patch applies, before the browser
+  paints. Use `'Commit'` when the target is brought into view and scrolled by
+  the same Message, such as a menu opening, so it appears already scrolled
+  rather than visibly jumping.
+
 ## 0.117.0
 
 ### Minor Changes
