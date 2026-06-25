@@ -362,6 +362,7 @@ export const sidebarView = (model: Model): Html => {
                   h.Alt('Foldkit'),
                   h.Width('801'),
                   h.Height('200'),
+                  h.Decoding('sync'),
                   h.Class('h-6 w-auto dark:invert'),
                 ]),
                 betaTag,
