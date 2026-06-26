@@ -475,6 +475,27 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
             ],
           ],
           [
+            [plainCode('Scene.typeContentEditable(target, text)')],
+            [
+              plainCode('OnInput'),
+              ' on a ',
+              plainCode('Contenteditable'),
+              ' host, with the given rendered text',
+            ],
+          ],
+          [
+            [plainCode('Scene.beforeInput(target, inputType, data)')],
+            [
+              plainCode('OnBeforeInput'),
+              ' or ',
+              plainCode('OnBeforeInputPreventDefault'),
+              ', with the given ',
+              plainCode('inputType'),
+              ' and ',
+              plainCode('data'),
+            ],
+          ],
+          [
             [plainCode('Scene.keydown(target, key, modifiers?)')],
             [
               plainCode('OnKeyDown'),

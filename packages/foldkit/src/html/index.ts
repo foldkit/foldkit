@@ -115,6 +115,35 @@ const keyboardModifiers = (event: KeyboardEvent): KeyboardModifiers => ({
   metaKey: event.metaKey,
 })
 
+/** Reads the textual value from an `input`/`change` event target. Form
+ *  controls expose a string `value`; contenteditable hosts do not, so we fall
+ *  back to `innerText` (rendered text) and then `textContent`. This keeps
+ *  `OnInput` working on a contenteditable host without it having to masquerade
+ *  as a form control. */
+const inputEventValue = (target: EventTarget | null): string => {
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const source = target as {
+    value?: unknown
+    innerText?: unknown
+    textContent?: unknown
+  } | null
+  if (typeof source?.value === 'string') {
+    return source.value
+  }
+  if (typeof source?.innerText === 'string') {
+    return source.innerText
+  }
+  if (typeof source?.textContent === 'string') {
+    return source.textContent
+  }
+  return ''
+}
+
+/** Test-only export of {@link inputEventValue}. Lets the unit tests cover the
+ *  value/innerText/textContent precedence directly, without a real `input`
+ *  event. Not part of the public `foldkit/html` surface. */
+export const __inputEventValue = inputEventValue
+
 /** A virtual DOM element. Constructed synchronously by the element factories
  *  returned from {@link html}. The runtime patches a `VNode` (or `null` to
  *  render nothing) into the application container. */
@@ -466,6 +495,15 @@ export type Attribute<Message> = Data.TaggedEnum<{
   OnBlur: { readonly message: Message }
   OnInput: { readonly f: (value: string) => Message }
   OnChange: { readonly f: (value: string) => Message }
+  OnBeforeInput: {
+    readonly f: (inputType: string, data: Option.Option<string>) => Message
+  }
+  OnBeforeInputPreventDefault: {
+    readonly f: (
+      inputType: string,
+      data: Option.Option<string>,
+    ) => Option.Option<Message>
+  }
   OnFileChange: { readonly f: (files: ReadonlyArray<File>) => Message }
   OnSubmit: { readonly message: Message }
   OnReset: { readonly message: Message }
@@ -723,6 +761,8 @@ const {
   OnBlur,
   OnInput,
   OnChange,
+  OnBeforeInput,
+  OnBeforeInputPreventDefault,
   OnFileChange,
   OnSubmit,
   OnReset,
@@ -1277,16 +1317,41 @@ const attributeMatcher: (
       (ctx: BuildContext) =>
         updateDataOn(ctx, {
           input: (event: Event) =>
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            ctx.dispatch(f((event.target as HTMLInputElement).value)),
+            ctx.dispatch(f(inputEventValue(event.target))),
         }),
     OnChange:
       ({ f }) =>
       (ctx: BuildContext) =>
         updateDataOn(ctx, {
           change: (event: Event) =>
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            ctx.dispatch(f((event.target as HTMLInputElement).value)),
+            ctx.dispatch(f(inputEventValue(event.target))),
+        }),
+    OnBeforeInput:
+      ({ f }) =>
+      (ctx: BuildContext) =>
+        updateDataOn(ctx, {
+          beforeinput: (event: InputEvent) =>
+            ctx.dispatch(f(event.inputType, Option.fromNullishOr(event.data))),
+        }),
+    OnBeforeInputPreventDefault:
+      ({ f }) =>
+      (ctx: BuildContext) =>
+        updateDataOn(ctx, {
+          beforeinput: (event: InputEvent) => {
+            const maybeMessage = f(
+              event.inputType,
+              Option.fromNullishOr(event.data),
+            )
+            // NOTE: not every `beforeinput` is cancelable (notably during IME
+            // composition). Owning the edit means both preventing the native
+            // mutation and dispatching; if we cannot prevent it, dispatching
+            // anyway would double-apply the edit, so we let it proceed and
+            // leave reconciliation to OnInput.
+            if (Option.isSome(maybeMessage) && event.cancelable) {
+              event.preventDefault()
+              ctx.dispatch(maybeMessage.value)
+            }
+          },
         }),
     OnFileChange:
       ({ f }) =>
@@ -3073,6 +3138,24 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnChange'
     readonly f: (value: string) => Message
   }
+  OnBeforeInput: (
+    f: (inputType: string, data: Option.Option<string>) => Message,
+  ) => {
+    readonly _tag: 'OnBeforeInput'
+    readonly f: (inputType: string, data: Option.Option<string>) => Message
+  }
+  OnBeforeInputPreventDefault: (
+    f: (
+      inputType: string,
+      data: Option.Option<string>,
+    ) => Option.Option<Message>,
+  ) => {
+    readonly _tag: 'OnBeforeInputPreventDefault'
+    readonly f: (
+      inputType: string,
+      data: Option.Option<string>,
+    ) => Option.Option<Message>
+  }
   OnFileChange: (f: (files: ReadonlyArray<File>) => Message) => {
     readonly _tag: 'OnFileChange'
     readonly f: (files: ReadonlyArray<File>) => Message
@@ -3854,8 +3937,52 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
     OnKeyPress({ f }),
   OnFocus: (message: Message) => OnFocus({ message }),
   OnBlur: (message: Message) => OnBlur({ message }),
+  /**
+   * Input handler. Receives the target's textual value on every `input` event.
+   * Form controls report their `value`; a `Contenteditable` host has no
+   * `value`, so the handler receives the host's rendered text (`innerText`,
+   * falling back to `textContent`) instead.
+   */
   OnInput: (f: (value: string) => Message) => OnInput({ f }),
   OnChange: (f: (value: string) => Message) => OnChange({ f }),
+  /**
+   * Observes `beforeinput` events. The function receives the edit's
+   * `inputType` (e.g. `'insertText'`, `'deleteContentBackward'`,
+   * `'insertFromPaste'`) and its `data` as an `Option` (`None` for edits that
+   * carry no text, such as most deletions). Use
+   * {@link HtmlAttributes.OnBeforeInputPreventDefault} when the handler needs
+   * to cancel the native edit and own the document mutation from `update`.
+   */
+  OnBeforeInput: (
+    f: (inputType: string, data: Option.Option<string>) => Message,
+  ) => OnBeforeInput({ f }),
+  /**
+   * Cancelable `beforeinput` handler. The function receives the edit's
+   * `inputType` and its `data` as an `Option`. Returning `Some` calls
+   * `preventDefault` (so the browser does not apply the edit) and dispatches
+   * the Message, letting `update` own the resulting document mutation.
+   * Returning `None` lets the native edit proceed. This is the editor-grade
+   * path for a `Contenteditable` host: intercept the intent before the DOM
+   * changes, rather than reconciling after.
+   *
+   * Not every `beforeinput` is cancelable. During IME composition the browser
+   * reports the edit as non-cancelable, so `preventDefault` cannot take effect.
+   * In that case the handler's `Some` is ignored and the native edit proceeds;
+   * observe and reconcile those edits through {@link HtmlAttributes.OnInput}.
+   *
+   * @example
+   * h.OnBeforeInputPreventDefault((inputType, data) =>
+   *   inputType === 'insertText'
+   *     ? Option.map(data, value => InsertedText({ value }))
+   *     : Option.none(),
+   * )
+   */
+  OnBeforeInputPreventDefault: (
+    f: (
+      inputType: string,
+      data: Option.Option<string>,
+    ) => Option.Option<Message>,
+  ) => OnBeforeInputPreventDefault({ f }),
   OnFileChange: (f: (files: ReadonlyArray<File>) => Message) =>
     OnFileChange({ f }),
   OnSubmit: (message: Message) => OnSubmit({ message }),

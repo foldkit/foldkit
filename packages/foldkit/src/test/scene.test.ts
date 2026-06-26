@@ -9,6 +9,11 @@ import {
   view as bubblingView,
 } from './apps/bubbling.js'
 import {
+  initialModel as contentEditableInitialModel,
+  update as contentEditableUpdate,
+  view as contentEditableView,
+} from './apps/contentEditableEditor.js'
+import {
   FetchCount,
   FetchCountById,
   SucceededFetchCount,
@@ -3135,5 +3140,48 @@ describe('scene mounts', () => {
         ),
       ),
     ).toThrow(/ScrollList \{"offset":240\}/)
+  })
+})
+
+describe('OnInput on a contenteditable host', () => {
+  test('reads the rendered text and updates the Model through the view', () => {
+    Scene.scene(
+      { update: contentEditableUpdate, view: contentEditableView },
+      Scene.with(contentEditableInitialModel),
+      Scene.typeContentEditable(Scene.testId('editor'), 'Hello, world'),
+      Scene.expect(Scene.testId('editor')).toHaveText('Hello, world'),
+    )
+  })
+
+  test('replaces the rendered text on the next input', () => {
+    Scene.scene(
+      { update: contentEditableUpdate, view: contentEditableView },
+      Scene.with(contentEditableInitialModel),
+      Scene.typeContentEditable(Scene.testId('editor'), 'first'),
+      Scene.typeContentEditable(Scene.testId('editor'), 'second'),
+      Scene.expect(Scene.testId('editor')).toHaveText('second'),
+    )
+  })
+})
+
+describe('OnBeforeInputPreventDefault on a contenteditable host', () => {
+  test('owns insertions through beforeinput', () => {
+    Scene.scene(
+      { update: contentEditableUpdate, view: contentEditableView },
+      Scene.with(contentEditableInitialModel),
+      Scene.beforeInput(Scene.testId('editor'), 'insertText', 'A'),
+      Scene.beforeInput(Scene.testId('editor'), 'insertText', 'B'),
+      Scene.expect(Scene.testId('editor')).toHaveText('AB'),
+    )
+  })
+
+  test('leaves the Model unchanged when the handler returns None', () => {
+    Scene.scene(
+      { update: contentEditableUpdate, view: contentEditableView },
+      Scene.with(contentEditableInitialModel),
+      Scene.beforeInput(Scene.testId('editor'), 'insertText', 'A'),
+      Scene.beforeInput(Scene.testId('editor'), 'deleteContentBackward', null),
+      Scene.expect(Scene.testId('editor')).toHaveText('A'),
+    )
   })
 })
