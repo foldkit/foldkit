@@ -133,7 +133,7 @@
     "build": "pnpm run clean && tsc -b tsconfig.build.json",
     "watch": "tsc -b tsconfig.build.json --watch",
     "typecheck": "tsc -b tsconfig.build.json --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "docs": "typedoc"
   },
   "peerDependencies": {
@@ -143,6 +143,7 @@
   "devDependencies": {
     "@effect/platform-browser": "4.0.0-beta.88",
     "@effect/vitest": "4.0.0-beta.88",
+    "@vitest/coverage-v8": "^4.1.9",
     "effect": "4.0.0-beta.88",
     "happy-dom": "^20.10.4",
     "rimraf": "^6.1.3",
