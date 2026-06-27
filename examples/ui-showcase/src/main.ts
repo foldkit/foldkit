@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Effect, Match as M, Schema as S, pipe } from 'effect'
+import { Array, Effect, Match as M, Option, Schema as S, pipe } from 'effect'
 import {
   Calendar,
   Command,
@@ -15,7 +15,7 @@ import { literal, r } from 'foldkit/route'
 import { evo } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
-import { Dialog } from '@foldkit/ui'
+import { Dialog, Nav } from '@foldkit/ui'
 
 import * as Icon from './icon'
 import { uiInit } from './ui/init'
@@ -343,6 +343,56 @@ const NAV_ITEMS: ReadonlyArray<NavItem> = [
   },
 ]
 
+const NAV_ROUTE_TAGS: ReadonlyArray<string> = Array.map(
+  NAV_ITEMS,
+  navItem => navItem.routeTag,
+)
+
+const navItemHref = (index: number): string =>
+  pipe(
+    NAV_ITEMS,
+    Array.get(index),
+    Option.map(navItem => navItem.href),
+    Option.getOrElse(() => homeRouter()),
+  )
+
+// The showcase navigates between routes, one per component, so its own
+// sidebar is exactly what Ui.Nav is for: a navigation landmark of links that
+// marks the active route with aria-current="page".
+const componentNav = (
+  currentRoute: AppRoute,
+  toView: (render: Nav.RenderInfo) => Html,
+): Html =>
+  Nav.view({
+    items: NAV_ROUTE_TAGS,
+    ariaLabel: 'Components',
+    toHref: (_routeTag, index) => navItemHref(index),
+    isItemCurrent: routeTag => currentRoute._tag === routeTag,
+    toView,
+  })
+
+const navListView = (
+  items: ReadonlyArray<Nav.ItemInfo>,
+  linkClassName: (isActive: boolean) => string,
+): Html => {
+  const h = html<Message>()
+
+  return h.ul(
+    [h.Class('flex flex-col gap-0.5')],
+    Array.map(Array.zip(NAV_ITEMS, items), ([navItem, item]) =>
+      h.li(
+        [],
+        [
+          h.a(
+            [...item.link, h.Class(linkClassName(item.isCurrent))],
+            [navItem.label],
+          ),
+        ],
+      ),
+    ),
+  )
+}
+
 const navLinkClassName = (isActive: boolean): string =>
   clsx(
     'block px-3 py-1.5 rounded-md text-sm transition-colors',
@@ -362,48 +412,33 @@ const mobileNavLinkClassName = (isActive: boolean): string =>
 const sidebarView = (currentRoute: AppRoute): Html => {
   const h = html<Message>()
 
-  return h.nav(
-    [
-      h.Class(
-        'hidden md:flex w-56 shrink-0 border-r border-gray-200 bg-gray-50 p-4 flex-col',
-      ),
-    ],
-    [
-      h.div(
-        [h.Class('mb-6')],
-        [
-          h.a(
-            [h.Href(homeRouter()), h.Class('block')],
-            [
-              h.h1(
-                [h.Class('text-lg font-bold text-gray-900')],
-                ['Foldkit UI'],
-              ),
-            ],
-          ),
-          h.span([h.Class('text-xs text-gray-500')], ['Component Showcase']),
-        ],
-      ),
-      h.ul(
-        [h.Class('flex flex-col gap-0.5')],
-        NAV_ITEMS.map(navItem =>
-          h.li(
-            [],
-            [
-              h.a(
-                [
-                  h.Href(navItem.href),
-                  h.Class(
-                    navLinkClassName(currentRoute._tag === navItem.routeTag),
-                  ),
-                ],
-                [navItem.label],
-              ),
-            ],
-          ),
+  return componentNav(currentRoute, ({ nav, items }) =>
+    h.nav(
+      [
+        ...nav,
+        h.Class(
+          'hidden md:flex w-56 shrink-0 border-r border-gray-200 bg-gray-50 p-4 flex-col',
         ),
-      ),
-    ],
+      ],
+      [
+        h.div(
+          [h.Class('mb-6')],
+          [
+            h.a(
+              [h.Href(homeRouter()), h.Class('block')],
+              [
+                h.h1(
+                  [h.Class('text-lg font-bold text-gray-900')],
+                  ['Foldkit UI'],
+                ),
+              ],
+            ),
+            h.span([h.Class('text-xs text-gray-500')], ['Component Showcase']),
+          ],
+        ),
+        navListView(items, navLinkClassName),
+      ],
+    ),
   )
 }
 
@@ -453,35 +488,16 @@ const mobileMenuContent = (
           ),
         ],
       ),
-      h.nav(
-        [
-          h.Class('flex-1 overflow-y-auto min-h-0 p-4'),
-          h.Tabindex(-1),
-          h.Autofocus(true),
-        ],
-        [
-          h.ul(
-            [h.Class('flex flex-col gap-0.5')],
-            NAV_ITEMS.map(navItem =>
-              h.li(
-                [],
-                [
-                  h.a(
-                    [
-                      h.Href(navItem.href),
-                      h.Class(
-                        mobileNavLinkClassName(
-                          currentRoute._tag === navItem.routeTag,
-                        ),
-                      ),
-                    ],
-                    [navItem.label],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+      componentNav(currentRoute, ({ nav, items }) =>
+        h.nav(
+          [
+            ...nav,
+            h.Class('flex-1 overflow-y-auto min-h-0 p-4'),
+            h.Tabindex(-1),
+            h.Autofocus(true),
+          ],
+          [navListView(items, mobileNavLinkClassName)],
+        ),
       ),
     ],
   )

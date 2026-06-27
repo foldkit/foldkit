@@ -24,6 +24,14 @@ import {
 
 import { Toast } from './toastModule'
 
+export const NavDemoSection = S.Literals([
+  'Home',
+  'Search',
+  'Library',
+  'Profile',
+])
+export type NavDemoSection = typeof NavDemoSection.Type
+
 export const DemoCard = S.Struct({
   id: S.String,
   label: S.String,
@@ -75,6 +83,7 @@ export const Model = S.Struct({
   switchDemo: Switch.Model,
   horizontalTabsDemo: Tabs.Model,
   verticalTabsDemo: Tabs.Model,
+  navDemoSection: NavDemoSection,
   dragAndDropDemo: DragAndDrop.Model,
   dragAndDropDemoColumns: S.Array(DemoColumn),
   fileDropBasicDemo: FileDrop.Model,

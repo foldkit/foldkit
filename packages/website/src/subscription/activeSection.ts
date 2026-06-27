@@ -113,6 +113,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             UiPopover: () => Page.UiPages.PopoverPage.tableOfContents,
             UiDisclosure: () => Page.UiPages.DisclosurePage.tableOfContents,
             UiTabs: () => Page.UiPages.TabsPage.tableOfContents,
+            UiNav: () => Page.UiPages.NavPage.tableOfContents,
             UiFieldset: () => Page.UiPages.FieldsetPage.tableOfContents,
             UiSelect: () => Page.UiPages.SelectPage.tableOfContents,
             UiDragAndDrop: () => Page.UiPages.DragAndDropPage.tableOfContents,

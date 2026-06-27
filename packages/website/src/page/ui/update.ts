@@ -775,6 +775,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
+      ClickedNavDemoSection: ({ section }) => [
+        evo(model, { navDemoSection: () => section }),
+        [],
+      ],
+
       GotTooltipDemoMessage: ({ message }) => {
         const [nextTooltipDemo, tooltipCommands] = Tooltip.update(
           model.tooltipDemo,

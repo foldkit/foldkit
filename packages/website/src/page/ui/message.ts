@@ -22,6 +22,7 @@ import {
   VirtualList,
 } from '@foldkit/ui'
 
+import { NavDemoSection } from './model'
 import { Toast } from './toastModule'
 
 export const ClickedButtonDemo = m('ClickedButtonDemo')
@@ -189,6 +190,9 @@ export const GotHorizontalTabsDemoMessage = m('GotHorizontalTabsDemoMessage', {
 export const GotVerticalTabsDemoMessage = m('GotVerticalTabsDemoMessage', {
   message: Tabs.Message,
 })
+export const ClickedNavDemoSection = m('ClickedNavDemoSection', {
+  section: NavDemoSection,
+})
 export const GotDragAndDropDemoMessage = m('GotDragAndDropDemoMessage', {
   message: DragAndDrop.Message,
 })
@@ -277,6 +281,7 @@ export const Message = S.Union([
   GotSwitchDemoMessage,
   GotHorizontalTabsDemoMessage,
   GotVerticalTabsDemoMessage,
+  ClickedNavDemoSection,
   GotDragAndDropDemoMessage,
   GotFileDropBasicDemoMessage,
   ClickedRemoveFileDropDemoFile,

@@ -68,6 +68,7 @@ import {
   uiInputRouter,
   uiListboxRouter,
   uiMenuRouter,
+  uiNavRouter,
   uiOverviewRouter,
   uiPopoverRouter,
   uiRadioGroupRouter,
@@ -506,6 +507,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'UiTabs',
           href: uiTabsRouter(),
           label: 'Tabs',
+        },
+        {
+          _tag: 'UiNav',
+          href: uiNavRouter(),
+          label: 'Nav',
         },
       ],
       [

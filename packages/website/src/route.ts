@@ -83,6 +83,7 @@ export const UiCalendarRoute = r('UiCalendar')
 export const UiDatePickerRoute = r('UiDatePicker')
 export const UiCheckboxRoute = r('UiCheckbox')
 export const UiTabsRoute = r('UiTabs')
+export const UiNavRoute = r('UiNav')
 export const UiDisclosureRoute = r('UiDisclosure')
 export const UiDialogRoute = r('UiDialog')
 export const UiMenuRoute = r('UiMenu')
@@ -171,6 +172,7 @@ export const DocsRoute = S.Union([
   UiDatePickerRoute,
   UiCheckboxRoute,
   UiTabsRoute,
+  UiNavRoute,
   UiDisclosureRoute,
   UiDialogRoute,
   UiMenuRoute,
@@ -393,6 +395,7 @@ export const uiCalendarRouter = ui('calendar', UiCalendarRoute)
 export const uiDatePickerRouter = ui('date-picker', UiDatePickerRoute)
 export const uiCheckboxRouter = ui('checkbox', UiCheckboxRoute)
 export const uiTabsRouter = ui('tabs', UiTabsRoute)
+export const uiNavRouter = ui('nav', UiNavRoute)
 export const uiDisclosureRouter = ui('disclosure', UiDisclosureRoute)
 export const uiDialogRouter = ui('dialog', UiDialogRoute)
 export const uiMenuRouter = ui('menu', UiMenuRoute)
@@ -496,6 +499,7 @@ const uiParser = oneOf(
   uiDatePickerRouter,
   uiCheckboxRouter,
   uiTabsRouter,
+  uiNavRouter,
   uiDisclosureRouter,
   uiDialogRouter,
   uiMenuRouter,
