@@ -438,7 +438,8 @@ const EVENT_NAMES: Record<string, string> = {
   blur: 'OnBlur',
   mouseenter: 'OnMouseEnter',
   mouseover: 'OnMouseOver',
-  keydown: 'OnKeyDown or OnKeyDownPreventDefault',
+  keydown:
+    'OnKeyDown, OnKeyDownPreventDefault, OnKeyDownSelf, or OnKeyDownSelfPreventDefault',
   pointerdown: 'OnPointerDown',
   pointerup: 'OnPointerUp',
 }
@@ -1555,7 +1556,9 @@ const type_: {
       }),
 )
 
-/** Simulates a keydown event on the element matching the target.
+/** Simulates a keydown event on the element matching the target. The event is
+ *  self-targeted (`target === currentTarget`), so `OnKeyDownSelf` and
+ *  `OnKeyDownSelfPreventDefault` handlers fire.
  *  Dual: `keydown(target, key, modifiers?)` or `keydown(key, modifiers?)` for data-last piping. */
 export const keydown: {
   (
@@ -1597,10 +1600,13 @@ export const keydown: {
       simulation: SceneSimulation<Model, Message, OutMessage>,
     ): SceneSimulation<Model, Message, OutMessage> =>
       invokeAndCapture(simulation, target, 'keydown', handler => {
+        const node = {}
         handler({
           key,
           ...DEFAULT_KEYBOARD_MODIFIERS,
           ...modifiers,
+          target: node,
+          currentTarget: node,
           preventDefault: Function.constVoid,
         })
       }),

@@ -115,6 +115,12 @@ const keyboardModifiers = (event: KeyboardEvent): KeyboardModifiers => ({
   metaKey: event.metaKey,
 })
 
+// NOTE: for keydown the target is the focused element, so a contenteditable
+// host has `target === currentTarget` only when the host itself is typed in,
+// not when a descendant control is. That makes this a meaningful self-test.
+const isSelfEvent = (event: Event): boolean =>
+  event.target === event.currentTarget
+
 /** A virtual DOM element. Constructed synchronously by the element factories
  *  returned from {@link html}. The runtime patches a `VNode` (or `null` to
  *  render nothing) into the application container. */
@@ -450,6 +456,15 @@ export type Attribute<Message> = Data.TaggedEnum<{
       modifiers: KeyboardModifiers,
     ) => Option.Option<Message>
   }
+  OnKeyDownSelf: {
+    readonly f: (key: string, modifiers: KeyboardModifiers) => Message
+  }
+  OnKeyDownSelfPreventDefault: {
+    readonly f: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>
+  }
   OnKeyUp: {
     readonly f: (key: string, modifiers: KeyboardModifiers) => Message
   }
@@ -716,6 +731,8 @@ const {
   OnPointerUp,
   OnKeyDown,
   OnKeyDownPreventDefault,
+  OnKeyDownSelf,
+  OnKeyDownSelfPreventDefault,
   OnKeyUp,
   OnKeyUpPreventDefault,
   OnKeyPress,
@@ -1225,6 +1242,30 @@ const attributeMatcher: (
             if (Option.isSome(maybeMessage)) {
               event.preventDefault()
               ctx.dispatch(maybeMessage.value)
+            }
+          },
+        }),
+    OnKeyDownSelf:
+      ({ f }) =>
+      (ctx: BuildContext) =>
+        updateDataOn(ctx, {
+          keydown: (event: KeyboardEvent) => {
+            if (isSelfEvent(event)) {
+              ctx.dispatch(f(event.key, keyboardModifiers(event)))
+            }
+          },
+        }),
+    OnKeyDownSelfPreventDefault:
+      ({ f }) =>
+      (ctx: BuildContext) =>
+        updateDataOn(ctx, {
+          keydown: (event: KeyboardEvent) => {
+            if (isSelfEvent(event)) {
+              const maybeMessage = f(event.key, keyboardModifiers(event))
+              if (Option.isSome(maybeMessage)) {
+                event.preventDefault()
+                ctx.dispatch(maybeMessage.value)
+              }
             }
           },
         }),
@@ -3040,6 +3081,21 @@ type HtmlAttributes<Message> = {
       modifiers: KeyboardModifiers,
     ) => Option.Option<Message>
   }
+  OnKeyDownSelf: (
+    f: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => {
+    readonly _tag: 'OnKeyDownSelf'
+    readonly f: (key: string, modifiers: KeyboardModifiers) => Message
+  }
+  OnKeyDownSelfPreventDefault: (
+    f: (key: string, modifiers: KeyboardModifiers) => Option.Option<Message>,
+  ) => {
+    readonly _tag: 'OnKeyDownSelfPreventDefault'
+    readonly f: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>
+  }
   OnKeyUp: (f: (key: string, modifiers: KeyboardModifiers) => Message) => {
     readonly _tag: 'OnKeyUp'
     readonly f: (key: string, modifiers: KeyboardModifiers) => Message
@@ -3845,6 +3901,45 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   OnKeyDownPreventDefault: (
     f: (key: string, modifiers: KeyboardModifiers) => Option.Option<Message>,
   ) => OnKeyDownPreventDefault({ f }),
+  /**
+   * Like `OnKeyDown`, but the handler fires only when the keydown targets this
+   * element itself (`event.target === event.currentTarget`) rather than
+   * bubbling up from a descendant. Keys typed in an embedded control are
+   * ignored.
+   *
+   * Use this for a composite widget that owns the keyboard for a region but
+   * embeds interactive children inside it. For a contenteditable host the
+   * focused element is the host itself, so self-typing fires the handler while
+   * typing in an embedded input does not.
+   *
+   * @example
+   * ```typescript
+   * h.OnKeyDownSelf((key, modifiers) => PressedHostKey({ key }))
+   * ```
+   */
+  OnKeyDownSelf: (f: (key: string, modifiers: KeyboardModifiers) => Message) =>
+    OnKeyDownSelf({ f }),
+  /**
+   * Like `OnKeyDownPreventDefault`, but the handler fires only when the keydown
+   * targets this element itself (`event.target === event.currentTarget`)
+   * rather than bubbling up from a descendant. Returning `Some` calls
+   * `preventDefault` and dispatches; returning `None` leaves the key to the
+   * browser. Keys typed in an embedded control bubble through untouched.
+   *
+   * This is the idiomatic home for an editor that owns its keyboard but embeds
+   * interactive children: it intercepts its own keys without classifying a
+   * child's keystrokes as its own input.
+   *
+   * @example
+   * ```typescript
+   * h.OnKeyDownSelfPreventDefault(key =>
+   *   key === 'Enter' ? Option.some(SubmittedEditor()) : Option.none(),
+   * )
+   * ```
+   */
+  OnKeyDownSelfPreventDefault: (
+    f: (key: string, modifiers: KeyboardModifiers) => Option.Option<Message>,
+  ) => OnKeyDownSelfPreventDefault({ f }),
   OnKeyUp: (f: (key: string, modifiers: KeyboardModifiers) => Message) =>
     OnKeyUp({ f }),
   OnKeyUpPreventDefault: (
