@@ -153,12 +153,23 @@ export const reflectOpenState: Reflect<Model, boolean> = Function.dual(
 
 // VIEW
 
+const panelSizeTransition = 'grid-template-rows 200ms ease-out'
+
 /** Attribute groups the disclosure component provides to the consumer's
  *  `toView` callback. The consumer composes the button + panel layout
  *  themselves using these bundles. */
 export type DisclosureAttributes = Readonly<{
   button: ReadonlyArray<ChildAttribute>
   panel: ReadonlyArray<ChildAttribute>
+  /** Wraps panel content in a CSS-grid container that smoothly animates
+   *  height (`grid-template-rows: 0fr → 1fr` with `overflow: hidden`) as
+   *  the disclosure opens and closes. Unlike the bare conditional render,
+   *  the panel stays mounted while collapsed, so the transition has
+   *  something to animate from and to. Spread the `panel` bundle onto the
+   *  element you pass in, and render it unconditionally rather than gating
+   *  on `isOpen`. The collapsed content is marked `aria-hidden`. Mirrors the
+   *  `Ui.Animation` `animateSize` flag. */
+  animatePanel: (content: Html) => Html
 }>
 
 /** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
@@ -216,9 +227,31 @@ export const view = defineView<Model, Message, ViewInputs>(
       ...(isOpen ? [h.DataAttribute('open', '')] : []),
     ]
 
+    const animatePanel = (content: Html): Html =>
+      h.div(
+        [
+          h.Style({
+            display: 'grid',
+            gridTemplateRows: isOpen ? '1fr' : '0fr',
+            transition: panelSizeTransition,
+            overflow: 'hidden',
+          }),
+        ],
+        [
+          h.div(
+            [
+              h.Style({ minHeight: '0px', overflow: 'hidden' }),
+              ...(isOpen ? [] : [h.AriaHidden(true)]),
+            ],
+            [content],
+          ),
+        ],
+      )
+
     return toView({
       button: childAttributes(buttonAttributes),
       panel: childAttributes(panelAttributes),
+      animatePanel,
     })
   },
 )

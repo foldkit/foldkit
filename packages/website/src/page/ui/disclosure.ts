@@ -53,19 +53,19 @@ export const disclosureDemo = (disclosureModel: Disclosure.Model) => {
                       ),
                     ],
                   ),
-                  disclosureModel.isOpen
-                    ? h.div(
-                        [...attributes.panel, h.Class(panelClassName)],
-                        [
-                          h.p(
-                            [h.Class('text-gray-800 dark:text-gray-200')],
-                            [
-                              'Foldkit is an Elm-inspired UI framework powered by Effect. It brings the Model-View-Update architecture to TypeScript with Schema-typed state, explicit side effects via commands, and composable headless UI components.',
-                            ],
-                          ),
-                        ],
-                      )
-                    : h.empty,
+                  attributes.animatePanel(
+                    h.div(
+                      [...attributes.panel, h.Class(panelClassName)],
+                      [
+                        h.p(
+                          [h.Class('text-gray-800 dark:text-gray-200')],
+                          [
+                            'Foldkit is an Elm-inspired UI framework powered by Effect. It brings the Model-View-Update architecture to TypeScript with Schema-typed state, explicit side effects via commands, and composable headless UI components.',
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
           },

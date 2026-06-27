@@ -165,6 +165,12 @@ const disclosureAttributesProps: ReadonlyArray<PropEntry> = [
     description:
       'Spread onto the panel element. Includes the panel id (`${id}-panel`) and a `data-open` attribute when open.',
   },
+  {
+    name: 'animatePanel',
+    type: '(content: Html) => Html',
+    description:
+      'Wraps panel content in a CSS-grid container that animates height as the disclosure opens and closes. Render the panel unconditionally (rather than gating on isOpen) and pass it here; the panel stays mounted while collapsed so the height transition has something to animate. The collapsed content is marked aria-hidden.',
+  },
 ]
 
 const outMessageProps: ReadonlyArray<PropEntry> = [
@@ -267,6 +273,13 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           'Copy disclosure example to clipboard',
           copiedSnippets,
           'mb-8',
+        ),
+        para(
+          'To animate the expand and collapse, render the panel unconditionally and pass it through ',
+          inlineCode('attributes.animatePanel'),
+          ' instead of gating it on ',
+          inlineCode('isOpen'),
+          '. It wraps the content in a CSS-grid container that transitions its height, keeping the panel mounted while collapsed so there is something to animate.',
         ),
         heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
         para(
