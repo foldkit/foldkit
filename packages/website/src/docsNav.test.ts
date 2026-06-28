@@ -9,6 +9,7 @@ describe('findActiveSectionKey', () => {
     ['CoreModel', 'coreConcepts'],
     ['ComingFromReact', 'comparisons'],
     ['ReactComparison', 'comparisons'],
+    ['EffectAtomComparison', 'comparisons'],
     ['ComingFromTanStackQuery', 'comparisons'],
     ['ElmComparison', 'comparisons'],
     ['ProjectOrganization', 'patterns'],
