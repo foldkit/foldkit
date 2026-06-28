@@ -20,6 +20,7 @@ export const PerformanceRoute = r('Performance')
 export const ComingFromReactRoute = r('ComingFromReact')
 export const ComingFromTanStackQueryRoute = r('ComingFromTanStackQuery')
 export const ReactComparisonRoute = r('ReactComparison')
+export const EffectAtomComparisonRoute = r('EffectAtomComparison')
 export const ElmComparisonRoute = r('ElmComparison')
 export const GettingStartedRoute = r('GettingStarted')
 export const RoadmapRoute = r('Roadmap')
@@ -119,6 +120,7 @@ export const DocsRoute = S.Union([
   ComingFromReactRoute,
   ComingFromTanStackQueryRoute,
   ReactComparisonRoute,
+  EffectAtomComparisonRoute,
   ElmComparisonRoute,
   GettingStartedRoute,
   RoadmapRoute,
@@ -256,6 +258,10 @@ export const comingFromTanStackQueryRouter = react(
 export const reactComparisonRouter = react(
   'foldkit-vs-react-side-by-side',
   ReactComparisonRoute,
+)
+export const effectAtomComparisonRouter = react(
+  'foldkit-vs-react-effect-atom',
+  EffectAtomComparisonRoute,
 )
 export const elmComparisonRouter = elm(
   'foldkit-vs-elm-side-by-side',
@@ -428,6 +434,7 @@ const reactParser = oneOf(
   comingFromReactRouter,
   comingFromTanStackQueryRouter,
   reactComparisonRouter,
+  effectAtomComparisonRouter,
 )
 
 const elmParser = elmComparisonRouter

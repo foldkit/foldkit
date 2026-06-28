@@ -37,6 +37,7 @@ import {
   coreUpdateRouter,
   coreViewMemoizationRouter,
   coreViewRouter,
+  effectAtomComparisonRouter,
   elmComparisonRouter,
   exampleDetailRouter,
   examplesRouter,
@@ -325,6 +326,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'ReactComparison',
           href: reactComparisonRouter(),
           label: 'Foldkit vs React: Side by Side',
+        },
+        {
+          _tag: 'EffectAtomComparison',
+          href: effectAtomComparisonRouter(),
+          label: 'Foldkit vs React + Effect Atom',
         },
       ],
       [
