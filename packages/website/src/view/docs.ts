@@ -318,6 +318,7 @@ const searchWeight = (tag: string): string =>
       'ComingFromReact',
       'ComingFromTanStackQuery',
       'ReactComparison',
+      'EffectAtomComparison',
       'ElmComparison',
       'WhyNoJsx',
       'WhatAboutSsr',
@@ -431,6 +432,13 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         withTableOfContents(
           lazyDocsContent(Page.ReactComparison.view, [model.copiedSnippets]),
           Page.ReactComparison.tableOfContents,
+        ),
+      EffectAtomComparison: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.EffectAtomComparison.view, [
+            model.copiedSnippets,
+          ]),
+          Page.EffectAtomComparison.tableOfContents,
         ),
       ElmComparison: () =>
         withTableOfContents(

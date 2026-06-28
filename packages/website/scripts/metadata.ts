@@ -94,6 +94,11 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'A side-by-side comparison of the same pixel art editor built in both Foldkit and React. Covers state management, side effects, testing, performance, and architectural tradeoffs.',
     'Guides',
   ),
+  EffectAtomComparison: docs(
+    'Foldkit vs React + Effect Atom',
+    'Two Effect-native ways to build a frontend, compared. Effect Atom distributes state across reactive cells wired into React; Foldkit centralizes it into one Model changed by one update function. Covers state, async data, side effects, testing with Story and Scene, debugging, scaling, and AI-assisted development.',
+    'Guides',
+  ),
   ElmComparison: docs(
     'Foldkit vs Elm: Side by Side',
     'A side-by-side comparison of the same pixel art editor built in both Foldkit and Elm. Same architecture, different host: ports vs Commands, decoders vs Schema, and what each side gives up.',
