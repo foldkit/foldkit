@@ -22,6 +22,8 @@ import { DismissAfter, makeRuntime } from './update.js'
 export type { InitConfig } from './schema.js'
 export type { ShowInput } from './update.js'
 
+export * as testing from './testing.js'
+
 export {
   Variant,
   Position,
