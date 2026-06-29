@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Effect, Match as M, Schema as S, pipe } from 'effect'
+import { Array, Effect, Match as M, Schema as S, pipe } from 'effect'
 import {
   Calendar,
   Command,
@@ -21,7 +21,12 @@ import * as Icon from './icon'
 import { uiInit } from './ui/init'
 import {
   ClickedOpenMobileMenu,
+  GotDialogAnimatedDemoMessage,
+  GotDialogDemoMessage,
   GotMobileMenuDialogMessage,
+  GotNestedDialogChildDemoMessage,
+  GotNestedDialogParentDemoMessage,
+  GotOverlayDialogDemoMessage,
   UiMessage,
 } from './ui/message'
 import { UiModel } from './ui/model'
@@ -240,6 +245,78 @@ const toUiMessage = (message: typeof UiMessage.Type): Message =>
 const toMobileMenuDialogMessage = (message: Dialog.Message): Message =>
   GotUiMessage({ message: GotMobileMenuDialogMessage({ message }) })
 
+type ClosableDialog = Readonly<{
+  get: (uiModel: UiModel) => Dialog.Model
+  set: (uiModel: UiModel, closed: Dialog.Model) => UiModel
+  toParentMessage: (message: Dialog.Message) => Message
+}>
+
+const CLOSABLE_DIALOGS: ReadonlyArray<ClosableDialog> = [
+  {
+    get: uiModel => uiModel.mobileMenuDialog,
+    set: (uiModel, closed) => evo(uiModel, { mobileMenuDialog: () => closed }),
+    toParentMessage: toMobileMenuDialogMessage,
+  },
+  {
+    get: uiModel => uiModel.dialogDemo,
+    set: (uiModel, closed) => evo(uiModel, { dialogDemo: () => closed }),
+    toParentMessage: message =>
+      GotUiMessage({ message: GotDialogDemoMessage({ message }) }),
+  },
+  {
+    get: uiModel => uiModel.dialogAnimatedDemo,
+    set: (uiModel, closed) =>
+      evo(uiModel, { dialogAnimatedDemo: () => closed }),
+    toParentMessage: message =>
+      GotUiMessage({ message: GotDialogAnimatedDemoMessage({ message }) }),
+  },
+  {
+    get: uiModel => uiModel.overlayDialogDemo,
+    set: (uiModel, closed) => evo(uiModel, { overlayDialogDemo: () => closed }),
+    toParentMessage: message =>
+      GotUiMessage({ message: GotOverlayDialogDemoMessage({ message }) }),
+  },
+  {
+    get: uiModel => uiModel.nestedDialogParentDemo,
+    set: (uiModel, closed) =>
+      evo(uiModel, { nestedDialogParentDemo: () => closed }),
+    toParentMessage: message =>
+      GotUiMessage({ message: GotNestedDialogParentDemoMessage({ message }) }),
+  },
+  {
+    get: uiModel => uiModel.nestedDialogChildDemo,
+    set: (uiModel, closed) =>
+      evo(uiModel, { nestedDialogChildDemo: () => closed }),
+    toParentMessage: message =>
+      GotUiMessage({ message: GotNestedDialogChildDemoMessage({ message }) }),
+  },
+]
+
+type CloseAllDialogsReturn = readonly [
+  UiModel,
+  ReadonlyArray<Command.Command<Message>>,
+]
+
+const closeAllDialogs = (uiModel: UiModel): CloseAllDialogsReturn =>
+  Array.reduce(
+    CLOSABLE_DIALOGS,
+    [uiModel, []],
+    (
+      [accUiModel, accCommands]: CloseAllDialogsReturn,
+      dialog,
+    ): CloseAllDialogsReturn => {
+      const [nextDialog, dialogCommands] = Dialog.close(dialog.get(accUiModel))
+
+      return [
+        dialog.set(accUiModel, nextDialog),
+        [
+          ...accCommands,
+          ...Command.mapMessages(dialogCommands, dialog.toParentMessage),
+        ],
+      ]
+    },
+  )
+
 export const update = (
   model: Model,
   message: Message,
@@ -271,21 +348,16 @@ export const update = (
         ),
 
       ChangedUrl: ({ url }) => {
-        const [closedDialog, closeDialogCommands] = Dialog.close(
-          model.uiModel.mobileMenuDialog,
+        const [closedUiModel, closeDialogCommands] = closeAllDialogs(
+          model.uiModel,
         )
 
         return [
           evo(model, {
             route: () => urlToAppRoute(url),
-            uiModel: uiModel =>
-              evo(uiModel, {
-                mobileMenuDialog: () => closedDialog,
-              }),
+            uiModel: () => closedUiModel,
           }),
-          Command.mapMessages(closeDialogCommands, message =>
-            toMobileMenuDialogMessage(message),
-          ),
+          closeDialogCommands,
         ]
       },
 
