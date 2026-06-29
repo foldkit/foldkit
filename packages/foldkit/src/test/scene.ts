@@ -434,6 +434,7 @@ const EVENT_NAMES: Record<string, string> = {
   submit: 'OnSubmit',
   input: 'OnInput',
   change: 'OnChange',
+  beforeinput: 'OnBeforeInput or OnBeforeInputPreventDefault',
   focus: 'OnFocus',
   blur: 'OnBlur',
   mouseenter: 'OnMouseEnter',
@@ -1552,6 +1553,74 @@ const type_: {
     ): SceneSimulation<Model, Message, OutMessage> =>
       invokeAndCapture(simulation, target, 'input', handler => {
         handler({ target: { value } })
+      }),
+)
+
+/** Simulates typing into a contenteditable host matching the target. A
+ *  contenteditable element has no `value`, so the `input` event reports the
+ *  host's rendered text. Use this to drive `OnInput` on a `Contenteditable`
+ *  element. Dual: `typeContentEditable(target, text)` or
+ *  `typeContentEditable(text)` for data-last piping. */
+export const typeContentEditable: {
+  (
+    target: string | Locator,
+    text: string,
+  ): <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+  (
+    text: string,
+  ): (
+    target: string | Locator,
+  ) => <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+} = dual(
+  2,
+  (target: string | Locator, text: string) =>
+    <Model, Message, OutMessage = undefined>(
+      simulation: SceneSimulation<Model, Message, OutMessage>,
+    ): SceneSimulation<Model, Message, OutMessage> =>
+      invokeAndCapture(simulation, target, 'input', handler => {
+        handler({ target: { innerText: text } })
+      }),
+)
+
+/** Simulates a `beforeinput` event on the element matching the target. Drives
+ *  `OnBeforeInput` and `OnBeforeInputPreventDefault`. Pass the edit's
+ *  `inputType` (e.g. `'insertText'`, `'deleteContentBackward'`) and its `data`
+ *  (the inserted text, or `null` for edits that carry none). Dual:
+ *  `beforeInput(target, inputType, data)` or `beforeInput(inputType, data)` for
+ *  data-last piping. */
+export const beforeInput: {
+  (
+    target: string | Locator,
+    inputType: string,
+    data: string | null,
+  ): <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+  (
+    inputType: string,
+    data: string | null,
+  ): (
+    target: string | Locator,
+  ) => <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+} = dual(
+  3,
+  (target: string | Locator, inputType: string, data: string | null) =>
+    <Model, Message, OutMessage = undefined>(
+      simulation: SceneSimulation<Model, Message, OutMessage>,
+    ): SceneSimulation<Model, Message, OutMessage> =>
+      invokeAndCapture(simulation, target, 'beforeinput', handler => {
+        handler({
+          inputType,
+          data,
+          cancelable: true,
+          preventDefault: Function.constVoid,
+        })
       }),
 )
 

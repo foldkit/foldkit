@@ -219,6 +219,24 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('preventDefault'),
         ' inside the gesture, since the clipboard is only writable there. The cut variant also dispatches a Message so update can remove the cut content from the Model.',
       ),
+      para(
+        inlineCode('OnBeforeInputPreventDefault'),
+        ' is the editor-grade member for a ',
+        inlineCode('Contenteditable'),
+        ' host. It hands your function the edit’s ',
+        inlineCode('inputType'),
+        ' and its ',
+        inlineCode('data'),
+        ' (the inserted text, as an ',
+        inlineCode('Option'),
+        '). Returning ',
+        inlineCode('Some'),
+        ' suppresses the native edit and dispatches, so update owns the document mutation instead of reconciling after the DOM has already changed; ',
+        inlineCode('None'),
+        ' lets the edit proceed. Edits the browser reports as non-cancelable, notably during IME composition, fall through to ',
+        inlineCode('OnInput'),
+        '.',
+      ),
       highlightedCodeBlock(
         h.div(
           [
