@@ -409,7 +409,7 @@ const promiseSection = (): Html => {
               pillarCard(
                 Icon.arrowsPointingOut('w-6 h-6'),
                 'Scales with grace',
-                'The architecture scales without complexity creep. A 50-file app follows the same patterns as a 5-file app. New team members read the code and understand it.',
+                'Complexity grows linearly, not exponentially. A 50-file app follows the same patterns as a 5-file app, so each feature adds structure instead of entangling with what is already there. New team members read the code and understand it.',
               ),
             ],
           ),
@@ -951,7 +951,7 @@ const audienceSection = (): Html => {
                       ),
                       audienceForItem(
                         'Projects with complex state',
-                        'Auth flows, real-time data, multi-step forms. The architecture handles complexity without losing clarity.',
+                        'Auth flows, real-time data, multi-step forms. Each becomes explicit state and transitions, so the hard parts stay readable instead of hiding in effects and refs.',
                       ),
                     ],
                   ),
