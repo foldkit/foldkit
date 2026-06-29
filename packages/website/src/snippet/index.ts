@@ -286,6 +286,8 @@ export { default as subscriptionAnimationFrameRaw } from './subscriptionAnimatio
 export { default as subscriptionAnimationFrameHighlighted } from './subscriptionAnimationFrame.ts?highlighted'
 export { default as subscriptionEquivalenceRaw } from './subscriptionEquivalence.ts?raw'
 export { default as subscriptionEquivalenceHighlighted } from './subscriptionEquivalence.ts?highlighted'
+export { default as subscriptionFromEventRaw } from './subscriptionFromEvent.ts?raw'
+export { default as subscriptionFromEventHighlighted } from './subscriptionFromEvent.ts?highlighted'
 export { default as comparisonFoldkitModelRaw } from './comparisonFoldkitModel.ts?raw'
 export { default as comparisonFoldkitModelHighlighted } from './comparisonFoldkitModel.ts?highlighted'
 export { default as comparisonReactStateRaw } from './comparisonReactState.tsx?raw'
