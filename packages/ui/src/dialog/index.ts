@@ -331,9 +331,16 @@ export type RenderInfo = Readonly<{
   isVisible: boolean
 }>
 
-/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field. */
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
+ *
+ *  - `toView`: builds the rendered tree from the per-element attribute bundles.
+ *  - `hasDescription`: opt-in for the `aria-describedby` reference on the
+ *    `<dialog>` element. Defaults to `false`. Set it to `true` only when the
+ *    panel renders a description element carrying `Dialog.descriptionId(model)`,
+ *    so the reference never dangles. */
 export type ViewInputs = Readonly<{
   toView: (render: RenderInfo) => Html
+  hasDescription?: boolean
 }>
 
 /** Renders a headless dialog component backed by the native `<dialog>`
@@ -347,11 +354,15 @@ export const view = defineView<Model, Message, ViewInputs>(
       isOpen,
       animation: { transitionState },
     } = model
-    const { toView } = viewInputs
+    const { toView, hasDescription = false } = viewInputs
 
     const isLeaving =
       transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
     const isVisible = isOpen || isLeaving
+
+    const describedByAttributes = hasDescription
+      ? [h.AriaDescribedBy(`${id}-description`)]
+      : []
 
     const animationAttributes = M.value(transitionState).pipe(
       M.when('EnterStart', () => [
@@ -378,7 +389,7 @@ export const view = defineView<Model, Message, ViewInputs>(
     const dialogAttributes = [
       h.Id(id),
       h.AriaLabelledBy(`${id}-title`),
-      h.AriaDescribedBy(`${id}-description`),
+      ...describedByAttributes,
       h.OnCancel(RequestedClose()),
       h.Open(isVisible),
       h.Style({

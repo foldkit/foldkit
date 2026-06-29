@@ -21,6 +21,7 @@ export type ViewConfig<ParentMessage> = Readonly<{
   isDisabled?: boolean
   isInvalid?: boolean
   isAutofocus?: boolean
+  hasDescription?: boolean
   name?: string
   type?: string
   placeholder?: string
@@ -43,6 +44,7 @@ export const view = <ParentMessage>(
     isDisabled = false,
     isInvalid = false,
     isAutofocus = false,
+    hasDescription = false,
     name,
     type = 'text',
     placeholder,
@@ -71,10 +73,14 @@ export const view = <ParentMessage>(
     ? [h.Placeholder(placeholder)]
     : []
 
+  const describedByAttributes = hasDescription
+    ? [h.AriaDescribedBy(descriptionId(id))]
+    : []
+
   const allInputAttributes = [
     h.Id(id),
     h.Type(type),
-    h.AriaDescribedBy(descriptionId(id)),
+    ...describedByAttributes,
     ...disabledAttributes,
     ...invalidAttributes,
     ...inputAttributes,

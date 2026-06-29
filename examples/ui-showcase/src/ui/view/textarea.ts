@@ -34,6 +34,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             onInput: value => UpdatedTextareaDemoValue({ value }),
             placeholder: 'Tell us about yourself...',
             rows: 4,
+            hasDescription: true,
             toView: attributes =>
               h.div(
                 [h.Class('flex flex-col gap-1.5 w-full')],
@@ -66,6 +67,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         value:
           "Mathematician and writer, known for work on Charles Babbage's Analytical Engine.",
         rows: 3,
+        hasDescription: true,
         toView: attributes =>
           h.div(
             [h.Class('flex flex-col gap-1.5 max-w-sm')],

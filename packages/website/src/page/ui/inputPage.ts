@@ -137,6 +137,13 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     description: 'Whether the input receives focus when the page loads.',
   },
   {
+    name: 'hasDescription',
+    type: 'boolean',
+    default: 'false',
+    description:
+      'Whether the input references a description element via aria-describedby. Set it to true only when you render the description element, so the reference never dangles.',
+  },
+  {
     name: 'name',
     type: 'string',
     description: 'The form field name for native form submission.',
@@ -325,9 +332,11 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           inlineCode('description'),
           ' group includes an ',
           inlineCode('id'),
-          ' that the input references via ',
+          '. Set ',
+          inlineCode('hasDescription: true'),
+          ' to have the input reference it via ',
           inlineCode('aria-describedby'),
-          '. You can access this description ID directly with ',
+          ', and only when you actually render the description element so the reference never dangles. You can access this description ID directly with ',
           inlineCode('Input.descriptionId(id)'),
           ' if you need to reference it outside the ',
           inlineCode('toView'),

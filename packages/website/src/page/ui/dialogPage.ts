@@ -153,6 +153,13 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     description:
       'Callback that receives the dialog, backdrop, panel, and closeButton attribute bundles plus a derived `isVisible` flag, and returns the composed layout. The consumer MUST render an `h.dialog(...)` element so the framework can open and close it.',
   },
+  {
+    name: 'hasDescription',
+    type: 'boolean',
+    default: 'false',
+    description:
+      'Whether the dialog references a description element via aria-describedby. Set it to true only when the panel renders a description element carrying `Dialog.descriptionId(model)`, so the reference never dangles.',
+  },
 ]
 
 const renderInfoProps: ReadonlyArray<PropEntry> = [
@@ -409,11 +416,15 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           inlineCode('aria-labelledby'),
           ' pointing to the title element (use ',
           inlineCode('Dialog.titleId(model)'),
-          ') and ',
+          '). Set ',
+          inlineCode('hasDescription: true'),
+          ' in ',
+          inlineCode('viewInputs'),
+          ' to add ',
           inlineCode('aria-describedby'),
           ' pointing to a description element (use ',
           inlineCode('Dialog.descriptionId(model)'),
-          '). Focus trapping is handled by the framework.',
+          '), and only when the panel renders that element so the reference never dangles. Focus trapping is handled by the framework.',
         ),
         heading(
           apiReferenceHeader.level,

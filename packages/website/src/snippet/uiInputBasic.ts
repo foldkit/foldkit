@@ -12,6 +12,7 @@ const view = (model: Model) => {
     value: model.name, // your Model field
     onInput: value => UpdatedName({ value }), // your Message
     placeholder: 'Enter your full name',
+    hasDescription: true,
     toView: attributes =>
       h.div(
         [h.Class('flex flex-col gap-1.5')],

@@ -12,6 +12,7 @@ const view = () => {
     isDisabled: true,
     value: 'Known for work on the Analytical Engine.',
     rows: 3,
+    hasDescription: true,
     toView: attributes =>
       h.div(
         [h.Class('flex flex-col gap-1.5')],

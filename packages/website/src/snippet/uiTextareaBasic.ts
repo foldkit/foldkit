@@ -13,6 +13,7 @@ const view = (model: Model) => {
     onInput: value => UpdatedBio({ value }), // your Message
     placeholder: 'Tell us about yourself...',
     rows: 4,
+    hasDescription: true,
     toView: attributes =>
       h.div(
         [h.Class('flex flex-col gap-1.5')],
