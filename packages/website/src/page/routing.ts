@@ -336,6 +336,20 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('S.FiniteFromString'),
         ' automatically parses string query values into numbers.',
       ),
+      warningCallout(
+        'Don’t put Schema.withConstructorDefault on route fields.',
+        'A field that carries ',
+        inlineCode('Schema.withConstructorDefault'),
+        ' becomes optional in the tagged struct’s constructor-input type, and ',
+        inlineCode('Route.mapTo'),
+        ' consumes that constructor-input type on its encode side. It no longer matches the required field that ',
+        inlineCode('Route.query'),
+        ' parses, so the ',
+        inlineCode('Route.query'),
+        ' plus ',
+        inlineCode('Route.mapTo'),
+        ' pipe stops typechecking. Drop the default and the router composes again.',
+      ),
       para(
         'For a complete routing example, see the ',
         link(
