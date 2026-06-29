@@ -265,6 +265,43 @@ ul {
 .dt-header-button:hover {
   color: var(--dt-text);
 }
+.dt-copy-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.dt-copy-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 6px;
+  background: transparent;
+  border: none;
+  color: var(--dt-text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 100ms ease;
+}
+.dt-copy-button:hover {
+  color: var(--dt-text);
+}
+.dt-copy-button[aria-disabled='true'] {
+  cursor: default;
+}
+.dt-copy-button.dt-copy-success,
+.dt-copy-button.dt-copy-success:hover {
+  color: var(--dt-live);
+}
+.dt-copy-button:focus-visible {
+  outline: 1px solid var(--dt-accent);
+  outline-offset: -1px;
+}
+.dt-copy-icon {
+  width: 12px;
+  height: 12px;
+}
 .dt-resume-button:hover {
   opacity: 0.7;
 }
@@ -657,6 +694,16 @@ ul {
   white-space: nowrap;
   line-height: 18px;
   padding-right: 8px;
+}
+.dt-payload-list .tree-row {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  min-width: 0;
+  white-space: normal;
+}
+.dt-payload-list .tree-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .tree-row-expandable:hover {
   background-color: var(--dt-tree-hover);
