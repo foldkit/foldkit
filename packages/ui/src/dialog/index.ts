@@ -155,7 +155,11 @@ type UpdateReturn = readonly [
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-/** Locks page scroll and opens the native dialog element with `show()`. */
+/** Locks page scroll and opens the native dialog element through
+ *  `Dom.showDialog`, which calls `show()` (not native `showModal()`) so other
+ *  high-z-index overlays stay interactive. It layers the dialog with a high
+ *  z-index, traps focus, and dispatches a `cancel` event on Esc. The Dialog
+ *  component supplies its own backdrop. */
 export const ShowDialog = Command.define(
   'ShowDialog',
   { id: S.String, maybeFocusSelector: S.Option(S.String) },
@@ -397,7 +401,9 @@ export type ViewInputs = Readonly<{
 }>
 
 /** Renders a headless dialog component backed by the native `<dialog>`
- *  element opened with `show()`. */
+ *  element. `ShowDialog` opens it through `Dom.showDialog`, which uses `show()`
+ *  (not native `showModal()`) with a high z-index, a focus trap, a
+ *  component-supplied backdrop, and a `cancel` event dispatched on Esc. */
 export const view = defineView<Model, Message, ViewInputs>(
   (model, viewInputs): Html => {
     const h = html<Message>()
