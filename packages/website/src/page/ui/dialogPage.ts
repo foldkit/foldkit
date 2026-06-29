@@ -160,7 +160,7 @@ const renderInfoProps: ReadonlyArray<PropEntry> = [
     name: 'dialog',
     type: 'ReadonlyArray<ChildAttribute>',
     description:
-      'Spread onto an `h.dialog(...)` element. Carries the id, ARIA labelling, `open` prop, positioning style, and the Escape handler that wires to `RequestedClose`.',
+      'Spread onto an `h.dialog(...)` element. Carries the id, ARIA labelling, `open` prop, positioning style, a keydown handler that wires Escape to `RequestedClose`, and a handler that suppresses the native `cancel` event so canceling a file picker opened from inside the dialog leaves it open.',
   },
   {
     name: 'backdrop',

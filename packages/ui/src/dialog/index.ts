@@ -1,4 +1,4 @@
-import { Effect, Match as M, Option, Schema as S } from 'effect'
+import { Effect, Match as M, Option, Schema as S, flow } from 'effect'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 import {
@@ -354,6 +354,8 @@ export const close = (model: Model): UpdateReturn =>
 
 // VIEW
 
+const escapeKey = 'Escape'
+
 /** Returns the ID used for `aria-labelledby` on the dialog. Apply this to your title element. */
 export const titleId = (model: Model): string => `${model.id}-title`
 
@@ -363,10 +365,11 @@ export const descriptionId = (model: Model): string => `${model.id}-description`
 /** Render-time payload published to the consumer's `toView`.
  *
  *  - `dialog`: attributes for the native `<dialog>` element. Carries
- *    the id, ARIA labelling, `open` prop, positioning style, the
- *    `OnCancel` handler that wires Escape to `RequestedClose`, and an
- *    `OnUnmount` backstop that releases framework hygiene (scroll lock,
- *    focus trap, return focus) if the element is removed from the DOM
+ *    the id, ARIA labelling, `open` prop, positioning style, a `keydown`
+ *    handler that wires Escape to `RequestedClose`, a `cancel` handler that
+ *    calls `preventDefault` so the browser's automatic dismiss never fires,
+ *    and an `OnUnmount` backstop that releases framework hygiene (scroll
+ *    lock, focus trap, return focus) if the element is removed from the DOM
  *    while still open, such as navigating away from a route-keyed subtree.
  *    The consumer MUST render an `h.dialog(...)` element so the framework
  *    can open and close it, and so the unmount backstop can fire.
@@ -439,7 +442,17 @@ export const view = defineView<Model, Message, ViewInputs>(
       h.Id(id),
       h.AriaLabelledBy(`${id}-title`),
       h.AriaDescribedBy(`${id}-description`),
-      h.OnCancel(RequestedClose()),
+      // NOTE: Chromium fires the modal `<dialog>`'s `cancel` event when an
+      // inner file picker is dismissed, indistinguishable from a real Esc.
+      // Suppress the native dismiss with `preventDefault` and drive Esc-to-close
+      // from `keydown` instead, so canceling a file picker leaves the dialog open.
+      h.OnCancelPreventDefault(),
+      h.OnKeyDownPreventDefault(
+        flow(
+          Option.liftPredicate(key => key === escapeKey),
+          Option.map(() => RequestedClose()),
+        ),
+      ),
       h.Open(isVisible),
       h.Style({
         width: '100%',
