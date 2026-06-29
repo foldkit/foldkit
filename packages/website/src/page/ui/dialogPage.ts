@@ -12,6 +12,7 @@ import {
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
+  warningCallout,
 } from '../../prose'
 import { uiAnimationRouter } from '../../route'
 import * as Snippet from '../../snippet'
@@ -262,6 +263,24 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           'Check out how Dialog is wired up in a ',
           link(uiShowcaseViewSourceHref('dialog'), 'real Foldkit app'),
           '.',
+        ),
+        para(
+          'A dialog is open or closed because the Model says so. ',
+          inlineCode('Dialog.open'),
+          ' returns a Command that locks page scroll and traps focus; ',
+          inlineCode('Dialog.close'),
+          ' returns a Command that releases both. Routing these effects through Commands keeps DevTools time-travel clean, since replay reconstructs the Model without re-running Commands, so scrubbing the timeline never locks your page.',
+        ),
+        warningCallout(
+          'Close dialogs when you navigate away',
+          'The release runs from the close Command, so the dialog must actually be closed for scroll to unlock. If your view is keyed by route and the dialog Model lives somewhere that persists across routes, such as a top-level UI Submodel, then navigating away unmounts the dialog element without dispatching a close. The release Command never fires and page scroll stays locked.',
+        ),
+        para(
+          'Treat open-state as something that must not outlive the context that renders it. In the handler for your route-change Message (commonly ',
+          inlineCode('ChangedUrl'),
+          '), call ',
+          inlineCode('Dialog.close'),
+          ' on each dialog Model and dispatch the resulting close Commands as you swap the route. Closing an already-closed dialog is a safe no-op, so it is cheap to do unconditionally. Equivalently, co-locate dialog state with the route so navigating discards it. The fix is keeping the Model accurate, not relocating the effect.',
         ),
         heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
         heading(
