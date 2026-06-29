@@ -1,4 +1,8 @@
-import { type DispatchSync, requireDispatch } from './runtimeSingleton.js'
+import {
+  type DispatchSync,
+  requireDispatch,
+  requireUnmountResolver,
+} from './runtimeSingleton.js'
 
 const BRAND = '__childAttribute'
 
@@ -9,6 +13,11 @@ const BRAND = '__childAttribute'
  *  produced these; the runtime routes each handler through the
  *  originating Submodel's wrap chain at event-fire time.
  *
+ *  `resolveUnmount` snapshots the boundary's wrapping chain at the time the
+ *  group was published (child boundary alive) so `OnUnmount` can dispatch a
+ *  root message from a destroy hook that fires after the boundary has been
+ *  torn down.
+ *
  *  Created via {@link childAttributes}. Element constructors accept
  *  `ChildAttribute` alongside `Attribute<Message>` in their attribute
  *  arrays. */
@@ -16,6 +25,7 @@ export type ChildAttribute = Readonly<{
   readonly [BRAND]: true
   readonly attribute: unknown
   readonly dispatch: DispatchSync
+  readonly resolveUnmount: (message: unknown) => () => void
 }>
 
 export const isChildAttribute = (value: unknown): value is ChildAttribute =>
@@ -48,9 +58,11 @@ export const childAttributes = <Attribute>(
   attributes: ReadonlyArray<Attribute>,
 ): ReadonlyArray<ChildAttribute> => {
   const dispatch = requireDispatch()
+  const resolveUnmount = requireUnmountResolver()
   return attributes.map(attribute => ({
     [BRAND]: true,
     attribute,
     dispatch,
+    resolveUnmount,
   }))
 }

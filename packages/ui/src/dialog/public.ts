@@ -15,9 +15,12 @@ export {
   RequestedClose,
   CompletedShowDialog,
   CompletedCloseDialog,
+  Unmounted,
+  CompletedReleaseDialogResources,
   GotAnimationMessage,
   ShowDialog,
   CloseDialog,
+  ReleaseDialogResources,
 } from './index.js'
 
 export type { InitConfig, ViewInputs, RenderInfo } from './index.js'

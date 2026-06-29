@@ -39,8 +39,10 @@ import {
   Document,
   Html,
   __beginRender as beginHtmlRender,
+  __beginReplayRender as beginReplayHtmlRender,
   __clearRuntime as clearHtmlRuntime,
   __createBoundaryRegistry as createHtmlBoundaryRegistry,
+  __endReplayRender as endReplayHtmlRender,
   __setRuntime as setHtmlRuntime,
 } from '../html/index.js'
 import { MountTracker } from '../mount/index.js'
@@ -1809,6 +1811,9 @@ const makeRuntime = <
               renderMode,
               mode => mode === 'Live',
             )
+            if (renderMode === 'Replay') {
+              beginReplayHtmlRender()
+            }
             const maybeLiveSlowView = Option.flatMap(
               maybeLiveRender,
               () => resolvedSlowView,
@@ -1880,6 +1885,7 @@ const makeRuntime = <
               )
             }
           }).pipe(
+            Effect.ensuring(Effect.sync(() => endReplayHtmlRender())),
             Effect.provideService(Dispatch, dispatchService),
             Effect.provideService(MountTracker, mountTracker),
           )

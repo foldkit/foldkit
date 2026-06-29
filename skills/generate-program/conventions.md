@@ -58,7 +58,7 @@ const FailedFetchWeather = m('FailedFetchWeather', { error: S.String })
 
 - Never abbreviate: `signature` not `sig`, `username` not `user`, `message` not `msg`
 - Full names in callbacks: `(tickCount) => tickCount + 1` not `(t) => t + 1`
-- Prefix Option values with `maybe`: `maybeCurrentUser`, `maybeSession`, `maybeError`. **`maybe*` is reserved for `Option<T>` specifically.** Use `nullable*` for native `T | undefined`. A helper named `maybePlaceholder` whose type is `string | undefined` is wrong on both counts: rename to `nullablePlaceholder` or change the type to `Option<string>` (usually the better fix: optional fields at internal API boundaries should be `Option<T>` so the call site reads `Option.some(...)` / `Option.none()`, not bare `undefined`).
+- Prefix Option values with `maybe`: `maybeCurrentUser`, `maybeSession`, `maybeError`. **`maybe*` is reserved for `Option<T>` specifically.** A helper named `maybePlaceholder` whose type is `string | undefined` is wrong: change the type to `Option<string>` (usually the better fix: optional fields at internal API boundaries should be `Option<T>` so the call site reads `Option.some(...)` / `Option.none()`, not bare `undefined`).
 - Boolean fields use `is*`: `isPlaying`, `isVisible`, `isMenuOpen`
 - Command variables named by action: `fetchWeather`, not `fetchWeatherCommand`
 - Command names are verb-first imperatives: `FetchWeather`, `FocusButton`, `LockScroll`, `Tick`

@@ -51,6 +51,17 @@ export const RequestedClose = m('RequestedClose')
 export const CompletedShowDialog = m('CompletedShowDialog')
 /** Sent when the close-dialog command completes. */
 export const CompletedCloseDialog = m('CompletedCloseDialog')
+/** Sent when the native `<dialog>` element is removed from the DOM, the classic
+ *  case being navigation away from a route-keyed subtree that contains the
+ *  dialog. When the dialog still holds framework resources, `update` triggers
+ *  the hygiene-only `ReleaseDialogResources` command and resets the model to a
+ *  clean closed state. Does not emit `Closed` or run any consumer close
+ *  Commands: it is a backstop, not the purposeful close. */
+export const Unmounted = m('Unmounted')
+/** Sent when the release-dialog-resources command completes. */
+export const CompletedReleaseDialogResources = m(
+  'CompletedReleaseDialogResources',
+)
 /** Wraps an Animation submodel message for delegation. */
 export const GotAnimationMessage = m('GotAnimationMessage', {
   message: AnimationMessage,
@@ -63,6 +74,8 @@ export const Message: S.Union<
     typeof RequestedClose,
     typeof CompletedShowDialog,
     typeof CompletedCloseDialog,
+    typeof Unmounted,
+    typeof CompletedReleaseDialogResources,
     typeof GotAnimationMessage,
   ]
 > = S.Union([
@@ -70,6 +83,8 @@ export const Message: S.Union<
   RequestedClose,
   CompletedShowDialog,
   CompletedCloseDialog,
+  Unmounted,
+  CompletedReleaseDialogResources,
   GotAnimationMessage,
 ])
 
@@ -77,6 +92,9 @@ export type RequestedOpen = typeof RequestedOpen.Type
 export type RequestedClose = typeof RequestedClose.Type
 export type CompletedShowDialog = typeof CompletedShowDialog.Type
 export type CompletedCloseDialog = typeof CompletedCloseDialog.Type
+export type Unmounted = typeof Unmounted.Type
+export type CompletedReleaseDialogResources =
+  typeof CompletedReleaseDialogResources.Type
 
 export type Message = typeof Message.Type
 
@@ -103,7 +121,10 @@ export type OutMessage = typeof OutMessage.Type
 
 // INIT
 
-/** Configuration for creating a dialog model with `init`. */
+/** Configuration for creating a dialog model with `init`. The `id` must be
+ *  non-empty and unique within the document: it keys the dialog element, its
+ *  ARIA references, and the framework's per-dialog resource cleanup, so a
+ *  duplicate or empty id breaks cleanup accounting. */
 export type InitConfig = Readonly<{
   id: string
   isOpen?: boolean
@@ -165,6 +186,21 @@ export const CloseDialog = Command.define(
     Effect.andThen(() => Dom.unlockScroll),
     Effect.ignore,
     Effect.as(CompletedCloseDialog()),
+  ),
+)
+
+/** Releases the framework hygiene the dialog holds while open (scroll lock,
+ *  focus trap, return focus, stack entry) when the element unmounts without a
+ *  purposeful close. Idempotent: a no-op if the dialog already released its
+ *  resources through `CloseDialog`. */
+export const ReleaseDialogResources = Command.define(
+  'ReleaseDialogResources',
+  { id: S.String },
+  CompletedReleaseDialogResources,
+)(({ id }) =>
+  Dom.releaseDialogResources(id).pipe(
+    Effect.ignore,
+    Effect.as(CompletedReleaseDialogResources()),
   ),
 )
 
@@ -282,8 +318,29 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       GotAnimationMessage: ({ message: animationMessage }) =>
         delegateToAnimation(model, animationMessage),
 
+      Unmounted: () => {
+        const isHoldingResources =
+          model.isOpen || model.animation.transitionState !== 'Idle'
+
+        if (isHoldingResources) {
+          const nextModel = evo(model, {
+            isOpen: () => false,
+            animation: () => animationInit({ id: `${model.id}-panel` }),
+          })
+
+          return [
+            nextModel,
+            [ReleaseDialogResources({ id: model.id })],
+            Option.none(),
+          ]
+        } else {
+          return [model, [], Option.none()]
+        }
+      },
+
       CompletedShowDialog: () => [model, [], Option.none()],
       CompletedCloseDialog: () => [model, [], Option.none()],
+      CompletedReleaseDialogResources: () => [model, [], Option.none()],
     }),
   )
 
@@ -306,10 +363,13 @@ export const descriptionId = (model: Model): string => `${model.id}-description`
 /** Render-time payload published to the consumer's `toView`.
  *
  *  - `dialog`: attributes for the native `<dialog>` element. Carries
- *    the id, ARIA labelling, `open` prop, positioning style, and the
- *    `OnCancel` handler that wires Escape to `RequestedClose`. The
- *    consumer MUST render an `h.dialog(...)` element so the framework can
- *    open and close it.
+ *    the id, ARIA labelling, `open` prop, positioning style, the
+ *    `OnCancel` handler that wires Escape to `RequestedClose`, and an
+ *    `OnUnmount` backstop that releases framework hygiene (scroll lock,
+ *    focus trap, return focus) if the element is removed from the DOM
+ *    while still open, such as navigating away from a route-keyed subtree.
+ *    The consumer MUST render an `h.dialog(...)` element so the framework
+ *    can open and close it, and so the unmount backstop can fire.
  *  - `backdrop`: attributes for the backdrop element. Includes the
  *    Animation data attributes and the `OnClick` handler that closes
  *    the dialog on outside-click (suppressed while a leave animation
@@ -393,7 +453,9 @@ export const view = defineView<Model, Message, ViewInputs>(
           ? { position: 'fixed', inset: '0', zIndex: '2147483600' }
           : {}),
       }),
-      ...(isVisible ? [h.DataAttribute('open', '')] : []),
+      ...(isVisible
+        ? [h.DataAttribute('open', ''), h.OnUnmount(Unmounted())]
+        : []),
     ]
 
     const backdropAttributes = [

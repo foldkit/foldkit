@@ -1,4 +1,6 @@
 import { Option } from 'effect'
+import { type ChildAttribute, html } from 'foldkit/html'
+import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
 import { expect } from 'vitest'
 
@@ -9,17 +11,46 @@ import {
   CloseDialog,
   Closed,
   CompletedCloseDialog,
+  CompletedReleaseDialogResources,
   CompletedShowDialog,
   GotAnimationMessage,
+  type Message,
+  type Model,
   Opened,
+  ReleaseDialogResources,
   RequestedClose,
   RequestedOpen,
   ShowDialog,
+  Unmounted,
   descriptionId,
   init,
   titleId,
   update,
+  view,
 } from './index.js'
+
+const isOnUnmount = (childAttribute: ChildAttribute): boolean =>
+  typeof childAttribute.attribute === 'object' &&
+  childAttribute.attribute !== null &&
+  '_tag' in childAttribute.attribute &&
+  childAttribute.attribute._tag === 'OnUnmount'
+
+// Renders the dialog view through the Scene harness (which manages the runtime
+// frame) and reports whether the published `dialog` attribute group carries the
+// OnUnmount backstop.
+const dialogHasOnUnmount = (model: Model): boolean => {
+  let hasOnUnmount = false
+  const sceneView = (currentModel: Model) =>
+    view(currentModel, {
+      toView: ({ dialog }) => {
+        hasOnUnmount = dialog.some(isOnUnmount)
+        return html<Message>().dialog([...dialog], [])
+      },
+    })
+
+  Scene.scene({ update, view: sceneView }, Scene.with(model))
+  return hasOnUnmount
+}
 
 const animationToDialogMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })
@@ -221,6 +252,76 @@ describe('Dialog', () => {
         )
       })
     })
+
+    describe('Unmounted', () => {
+      it('resets the model to closed and releases resources without emitting Closed', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', isOpen: true })),
+          Story.message(Unmounted()),
+          Story.expectNoOutMessage(),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
+          }),
+          Story.Command.resolve(
+            ReleaseDialogResources,
+            CompletedReleaseDialogResources(),
+          ),
+        )
+      })
+
+      it('resets an in-flight leave animation to Idle without emitting Closed', () => {
+        const leavingModel = {
+          ...init({ id: 'test', isOpen: true, isAnimated: true }),
+          isOpen: false,
+          animation: {
+            id: 'test-panel',
+            isShowing: false,
+            transitionState: 'LeaveAnimating' as const,
+          },
+        }
+        Story.story(
+          update,
+          Story.with(leavingModel),
+          Story.message(Unmounted()),
+          Story.expectNoOutMessage(),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
+            expect(model.animation.transitionState).toBe('Idle')
+          }),
+          Story.Command.resolve(
+            ReleaseDialogResources,
+            CompletedReleaseDialogResources(),
+          ),
+        )
+      })
+
+      it('is a no-op when the dialog is already closed', () => {
+        const closedModel = init({ id: 'test' })
+        Story.story(
+          update,
+          Story.with(closedModel),
+          Story.message(Unmounted()),
+          Story.expectNoOutMessage(),
+          Story.model(model => {
+            expect(model).toBe(closedModel)
+          }),
+          Story.Command.expectNone(),
+        )
+      })
+
+      it('returns the model unchanged on CompletedReleaseDialogResources', () => {
+        const originalModel = init({ id: 'test' })
+        Story.story(
+          update,
+          Story.with(originalModel),
+          Story.message(CompletedReleaseDialogResources()),
+          Story.model(model => {
+            expect(model).toBe(originalModel)
+          }),
+        )
+      })
+    })
   })
 
   describe('titleId', () => {
@@ -234,6 +335,16 @@ describe('Dialog', () => {
     it('returns the id suffixed with -description', () => {
       const model = init({ id: 'my-dialog' })
       expect(descriptionId(model)).toBe('my-dialog-description')
+    })
+  })
+
+  describe('view OnUnmount gating', () => {
+    it('includes the OnUnmount backstop on the dialog while it is open', () => {
+      expect(dialogHasOnUnmount(init({ id: 'test', isOpen: true }))).toBe(true)
+    })
+
+    it('omits the OnUnmount backstop while the dialog is closed', () => {
+      expect(dialogHasOnUnmount(init({ id: 'test' }))).toBe(false)
     })
   })
 })

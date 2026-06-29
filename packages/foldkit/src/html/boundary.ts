@@ -262,6 +262,47 @@ const dispatchAcrossBoundary = (
   outerDispatch(wrapped)
 }
 
+/** Resolves a message through `boundaryId`'s wrapping chain immediately,
+ *  applying every `toParentMessage` from innermost to outermost against the
+ *  wraps present right now, and returns a thunk that dispatches the fully
+ *  wrapped message via `outerDispatch`. Unlike {@link getOrCreateBoundaryDispatch},
+ *  which defers the chain lookup to fire time, this snapshots the chain at call
+ *  time so the resulting thunk survives the boundary being deregistered.
+ *
+ *  Used by `OnUnmount`: its destroy hook fires during the patch that tears the
+ *  boundary down, after the Submodel's own destroy hook has already removed the
+ *  wrap, so a fire-time lookup would throw. Resolving eagerly while the chain is
+ *  still live and dispatching the precomputed root message at destroy time
+ *  avoids that race. Throws here (at resolve time, boundary alive) if a wrap is
+ *  somehow already missing, surfacing a real corruption rather than misrouting. */
+export const resolveBoundaryDispatchThunk = (
+  registry: BoundaryRegistry,
+  outerDispatch: DispatchSync,
+  boundaryId: BoundaryId,
+  message: unknown,
+): (() => void) => {
+  if (boundaryId === ROOT_BOUNDARY) {
+    return () => outerDispatch(message)
+  }
+  let wrapped = message
+  const parts = splitBoundary(boundaryId)
+  for (let depth = parts.length; depth > 0; depth--) {
+    const ancestorBoundary = parts.slice(0, depth).join(BOUNDARY_SEPARATOR)
+    const descriptor = registry.wraps.get(ancestorBoundary)
+    if (descriptor === undefined) {
+      throw new Error(
+        `Foldkit: resolveBoundaryDispatchThunk missing wrap for ancestor ` +
+          `"${ancestorBoundary}" of boundary "${boundaryId}" while resolving an ` +
+          `OnUnmount message. The Submodel's wrap was absent from the registry ` +
+          `at resolve time, which should not happen during a live render.`,
+      )
+    }
+    wrapped = descriptor.toParentMessage(wrapped)
+  }
+  const rootMessage = wrapped
+  return () => outerDispatch(rootMessage)
+}
+
 export const getOrCreateBoundaryDispatch = (
   registry: BoundaryRegistry,
   outerDispatch: DispatchSync,

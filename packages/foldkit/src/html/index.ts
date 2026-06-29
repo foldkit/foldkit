@@ -30,9 +30,11 @@ import {
 } from './dragZoneTracking.js'
 import {
   type DispatchSync,
+  type UnmountResolver,
   clearRuntime,
   requireDispatch,
   requireRuntimeContext,
+  requireUnmountResolver,
   setRuntime,
 } from './runtimeSingleton.js'
 import { submodel } from './submodel.js'
@@ -362,6 +364,30 @@ type OnMountState = {
 
 const onMountStates = new WeakMap<Element, OnMountState>()
 
+// NOTE: snabbdom `destroy` hooks fire during the patch that removes an element,
+// and the hook on the OLD (being-removed) VNode was built in a prior live
+// render, so it cannot tell a live patch from a DevTools time-travel replay on
+// its own. Mount Effects get this for free because the replayed tree is built
+// with `noOpDispatch`, but the `OnUnmount` destroy hook fires against the prior
+// live tree, so the runtime opens this window during a replay render and
+// `OnUnmount` reads it to skip dispatching a hygiene Message into live history.
+let isReplayRenderActive = false
+
+/** Opens a replay-render window. The runtime calls this immediately before a
+ *  DevTools time-travel render and closes it with {@link __endReplayRender}
+ *  afterward, so any `OnUnmount` destroy hook that fires while the replayed
+ *  tree is patched in skips its dispatch. Without the gate the hook would
+ *  enqueue a hygiene Message into live history during mere inspection of past
+ *  state. */
+export const __beginReplayRender = (): void => {
+  isReplayRenderActive = true
+}
+
+/** Closes the replay-render window opened by {@link __beginReplayRender}. */
+export const __endReplayRender = (): void => {
+  isReplayRenderActive = false
+}
+
 /** Key under which the OnMount attribute stamps a `{ name }` marker on the
  *  snabbdom `VNodeData`. Snabbdom passes unknown data fields through without
  *  rendering them to the DOM, so the marker is invisible at runtime but
@@ -677,6 +703,9 @@ export type Attribute<Message> = Data.TaggedEnum<{
   OnMount: {
     readonly action: MountAction<Message, any>
   }
+  OnUnmount: {
+    readonly message: Message
+  }
 }>
 
 interface AttributeDefinition extends Data.TaggedEnum.WithGenerics<1> {
@@ -927,6 +956,7 @@ const {
   Prop,
   OnCustomEvent,
   OnMount,
+  OnUnmount,
 } = Data.taggedEnum<AttributeDefinition>()
 
 export { Prop, OnCustomEvent }
@@ -939,6 +969,7 @@ type BuildContext = Readonly<{
   data: VNodeData
   postpatchProps: Array<Readonly<{ propName: string; value: unknown }>>
   dispatch: DispatchSync
+  resolveUnmount: UnmountResolver
   getCapturedContext: () => Context.Context<never>
 }>
 
@@ -2239,6 +2270,7 @@ const attributeMatcher: (
             : { name: action.name, args: action.args }
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
         ;(ctx.data as Record<string, unknown>)[FOLDKIT_MOUNT_KEY] = marker
+        const existingDestroy = ctx.data.hook?.destroy
         ctx.data.hook = {
           ...ctx.data.hook,
           insert: vnode => {
@@ -2263,6 +2295,9 @@ const attributeMatcher: (
             }
           },
           destroy: vnode => {
+            if (existingDestroy !== undefined) {
+              existingDestroy(vnode)
+            }
             if (vnode.elm instanceof Element) {
               const state = onMountStates.get(vnode.elm)
               if (state) {
@@ -2270,6 +2305,28 @@ const attributeMatcher: (
                 onMountStates.delete(vnode.elm)
                 notifyEnded()
               }
+            }
+          },
+        }
+      },
+    OnUnmount:
+      ({ message }) =>
+      (ctx: BuildContext) => {
+        // NOTE: resolve the boundary wrapping chain eagerly, while the boundary
+        // is still live this render. The destroy hook fires during the patch
+        // that removes the element, after the Submodel's own destroy hook has
+        // deregistered the wrap, so a fire-time lookup would throw; the
+        // precomputed thunk sidesteps that teardown race.
+        const dispatchUnmount = ctx.resolveUnmount(message)
+        const existingDestroy = ctx.data.hook?.destroy
+        ctx.data.hook = {
+          ...ctx.data.hook,
+          destroy: vnode => {
+            if (existingDestroy !== undefined) {
+              existingDestroy(vnode)
+            }
+            if (!isReplayRenderActive) {
+              dispatchUnmount()
             }
           },
         }
@@ -2306,6 +2363,23 @@ const buildVNodeData = <Message>(
     }
     return cachedCurrentDispatch
   }
+  let cachedUnmountResolver: UnmountResolver | undefined
+  const getCurrentUnmountResolver = (): UnmountResolver => {
+    if (cachedUnmountResolver === undefined) {
+      try {
+        cachedUnmountResolver = requireUnmountResolver()
+      } catch {
+        cachedUnmountResolver = () => () => {
+          throw new Error(
+            'Foldkit: an OnUnmount attribute fired without an active runtime ' +
+              'frame. This typically means an Html element with OnUnmount was ' +
+              'constructed at module top level outside of a view function.',
+          )
+        }
+      }
+    }
+    return cachedUnmountResolver
+  }
   let cachedCapturedContext: Context.Context<never> | undefined
   const getCapturedContext = (): Context.Context<never> => {
     if (cachedCapturedContext === undefined) {
@@ -2340,6 +2414,7 @@ const buildVNodeData = <Message>(
           data,
           postpatchProps,
           dispatch: item.dispatch,
+          resolveUnmount: item.resolveUnmount,
           getCapturedContext,
         }
         boundaryCtxByDispatch.set(item.dispatch, ctx)
@@ -2352,6 +2427,7 @@ const buildVNodeData = <Message>(
           data,
           postpatchProps,
           dispatch: getCurrentDispatch(),
+          resolveUnmount: getCurrentUnmountResolver(),
           getCapturedContext,
         }
       }
@@ -3752,6 +3828,10 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnMount'
     readonly action: MountAction<Message, any>
   }
+  OnUnmount: (message: Message) => {
+    readonly _tag: 'OnUnmount'
+    readonly message: Message
+  }
 }
 
 const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
@@ -4103,6 +4183,41 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   StrokeDasharray: (value: string) => StrokeDasharray({ value }),
   StrokeDashoffset: (value: string) => StrokeDashoffset({ value }),
   OnMount: (action: MountAction<Message, any>) => OnMount({ action }),
+  /**
+   * Dispatches `message` when this element is removed from the DOM by a
+   * structural patch (a key change, a parent re-render that drops it, route
+   * navigation away from the subtree it lives in). The Message is the fact
+   * "this element unmounted"; `update` decides what it means.
+   *
+   * Use this for framework-level hygiene that must run as a backstop when an
+   * element disappears without a purposeful teardown Message flowing through
+   * `update` first. A dialog whose `<dialog>` lives in a route-keyed subtree
+   * is the motivating case: navigating away unmounts it without a close, so
+   * the close Command that would release the scroll lock and focus trap never
+   * runs. An `OnUnmount` Message lets `update` release those resources.
+   *
+   * Works across Submodel boundaries. The destroy hook fires during the patch
+   * that removes the element, after the Submodel's own teardown has
+   * deregistered its boundary wrap, so the wrapping chain is resolved eagerly
+   * at render time into a dispatch that still reaches the parent.
+   *
+   * Replay-safe. The runtime suppresses the dispatch during a DevTools
+   * time-travel render, so scrubbing through history never re-runs the
+   * cleanup. Make the resulting `update` handler idempotent: the element
+   * can unmount after a normal close already released its resources, or while
+   * a leave animation is mid-flight.
+   *
+   * This is a backstop, not the primary teardown path. When the cause is a
+   * Message the user dispatched (clicking a close button, pressing Escape),
+   * handle it directly in `update` and return the teardown Command. Reach for
+   * `OnUnmount` only for the unmount-without-a-Message case.
+   *
+   * @example Release a dialog's scroll lock and focus trap on structural unmount
+   * ```ts
+   * h.dialog([h.OnUnmount(UnmountedWhileOpen())], [...])
+   * ```
+   */
+  OnUnmount: (message: Message) => OnUnmount({ message }),
 })
 
 const buildHtmlFactory = <Message>() => ({

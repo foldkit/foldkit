@@ -10,15 +10,26 @@ import {
 
 import { afterCommit, afterPaint } from '../render/render.js'
 import { ElementNotFound } from './error.js'
+import { unlockScroll } from './scrollLock.js'
 
 const BASE_DIALOG_Z_INDEX = 2147483600
 let openDialogCount = 0
 
-const dialogCleanups = new WeakMap<HTMLDialogElement, () => void>()
+// NOTE: keyed by the dialog's id (string), not by the element object, because
+// the unmount backstop must reclaim these resources after the `<dialog>` has
+// already left the DOM (navigation away from a route-keyed subtree), when no
+// live element is addressable. Membership in this map is the per-dialog "holds
+// hygiene" flag, read-and-deleted to make release exactly-once.
+type DialogHygiene = Readonly<{
+  removeKeydownListener: () => void
+  returnFocus: HTMLElement | undefined
+}>
 
-const dialogReturnFocus = new WeakMap<HTMLDialogElement, HTMLElement>()
+const dialogHygieneById = new Map<string, DialogHygiene>()
 
-let openDialogStack: ReadonlyArray<HTMLDialogElement> = []
+type OpenDialog = Readonly<{ id: string; element: HTMLDialogElement }>
+
+let openDialogStack: ReadonlyArray<OpenDialog> = []
 
 const FOCUSABLE_SELECTOR = Array.join(
   [
@@ -121,24 +132,25 @@ export const showModal = (
       return yield* Effect.fail(new ElementNotFound({ selector }))
     }
 
+    const { id } = element
+
     element.style.position = 'fixed'
     element.style.inset = '0'
     openDialogCount++
     element.style.zIndex = String(BASE_DIALOG_Z_INDEX + openDialogCount)
 
     const previouslyFocused = document.activeElement
-    if (
+    const returnFocus =
       previouslyFocused instanceof HTMLElement &&
       previouslyFocused !== document.body
-    ) {
-      dialogReturnFocus.set(element, previouslyFocused)
-    }
+        ? previouslyFocused
+        : undefined
 
     element.show()
 
     openDialogStack = Array.append(
-      Array.filter(openDialogStack, dialog => dialog !== element),
-      element,
+      Array.filter(openDialogStack, dialog => dialog.element !== element),
+      { id, element },
     )
 
     const handleKeydown = (event: KeyboardEvent): void => {
@@ -148,7 +160,7 @@ export const showModal = (
 
       const isTopmost = Option.exists(
         Array.last(openDialogStack),
-        topmost => topmost === element,
+        topmost => topmost.element === element,
       )
       if (!isTopmost) {
         return
@@ -171,9 +183,11 @@ export const showModal = (
     }
 
     document.addEventListener('keydown', handleKeydown)
-    dialogCleanups.set(element, () =>
-      document.removeEventListener('keydown', handleKeydown),
-    )
+    dialogHygieneById.set(id, {
+      removeKeydownListener: () =>
+        document.removeEventListener('keydown', handleKeydown),
+      returnFocus,
+    })
 
     if (options?.focusSelector) {
       const focusTarget = element.querySelector(options.focusSelector)
@@ -223,26 +237,71 @@ export const closeModal = (
     const element = document.querySelector(selector)
     if (element instanceof HTMLDialogElement) {
       element.close()
-      openDialogStack = Array.filter(
-        openDialogStack,
-        dialog => dialog !== element,
-      )
-      openDialogCount = Math.max(0, openDialogCount - 1)
-      const cleanup = dialogCleanups.get(element)
-      if (cleanup) {
-        cleanup()
-        dialogCleanups.delete(element)
-      }
-
-      const returnFocus = dialogReturnFocus.get(element)
-      dialogReturnFocus.delete(element)
-      if (returnFocus !== undefined && document.contains(returnFocus)) {
-        returnFocus.focus()
-      }
-
+      releaseDialogHygieneById(element.id)
       return Effect.void
     }
     return Effect.fail(new ElementNotFound({ selector }))
+  })
+
+const releaseDialogHygieneById = (id: string): boolean => {
+  const hygiene = dialogHygieneById.get(id)
+  if (hygiene === undefined) {
+    return false
+  }
+
+  openDialogStack = Array.filter(openDialogStack, dialog => dialog.id !== id)
+  openDialogCount = Math.max(0, Number.decrement(openDialogCount))
+  hygiene.removeKeydownListener()
+  dialogHygieneById.delete(id)
+
+  const { returnFocus } = hygiene
+  if (returnFocus !== undefined && document.contains(returnFocus)) {
+    returnFocus.focus()
+  }
+
+  return true
+}
+
+/**
+ * Releases the framework hygiene a dialog holds while open: the focus-trap
+ * keyboard handler, the recorded return focus, the dialog stack entry, the
+ * z-index counter, and one page scroll lock. Use this as a backstop for the
+ * case where a dialog's element is removed from the DOM without a purposeful
+ * close, the classic example being navigation away from a route-keyed subtree
+ * that contains the dialog. The normal close path (`closeModal` plus the
+ * Dialog component's `unlockScroll` Command) already releases these, so this
+ * is the missing teardown when no close Message ever flows through `update`.
+ *
+ * Addressed by the dialog's id, not a selector, because the element is
+ * typically already gone from the DOM by the time this runs (that is the whole
+ * point of the backstop). The hygiene installed by `showModal` is tracked by
+ * id so it can be reclaimed without a live element handle. The id must be
+ * non-empty and unique within the document, since it keys this cleanup
+ * accounting; a duplicate or empty id would release the wrong dialog's hygiene.
+ *
+ * Idempotent and exactly-once. It releases only when the dialog currently
+ * holds hygiene, then clears the per-dialog marker, so calling it after a
+ * normal close, or twice, is a no-op that never under-counts the shared
+ * scroll lock. Carries no application close semantics: the Dialog component
+ * owns the user-facing close (animation, `Closed` OutMessage, consumer
+ * Commands); this only reclaims framework resources.
+ *
+ * Resolves to `true` when it released resources, `false` when there was
+ * nothing to release. Never fails: an id with no held hygiene is a no-op,
+ * since the goal is reclaiming resources that may already be gone.
+ *
+ * @example
+ * ```typescript
+ * Dom.releaseDialogResources('my-dialog')
+ * ```
+ */
+export const releaseDialogResources = (id: string): Effect.Effect<boolean> =>
+  Effect.suspend(() => {
+    const released = releaseDialogHygieneById(id)
+    if (released) {
+      return Effect.as(unlockScroll, true)
+    }
+    return Effect.succeed(false)
   })
 
 /**

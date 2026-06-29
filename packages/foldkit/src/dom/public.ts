@@ -7,6 +7,7 @@ export {
   focus,
   inertOthers,
   lockScroll,
+  releaseDialogResources,
   restoreInert,
   scrollIntoView,
   scrollIntoViewAfterPaint,

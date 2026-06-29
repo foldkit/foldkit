@@ -4,6 +4,7 @@ export {
   clickElement,
   closeModal,
   focus,
+  releaseDialogResources,
   scrollIntoView,
   scrollIntoViewAfterPaint,
   scrollIntoViewIfNotVisible,

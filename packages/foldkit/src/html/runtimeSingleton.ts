@@ -6,6 +6,7 @@ import {
   ROOT_BOUNDARY,
   createBoundaryRegistry,
   getOrCreateBoundaryDispatch,
+  resolveBoundaryDispatchThunk,
 } from './boundary.js'
 
 /** Synchronous message dispatcher provided to view-time element constructors. */
@@ -118,6 +119,34 @@ export const requireDispatch = (): DispatchSync => {
     frame.outerDispatch,
     frame.boundaryId,
   )
+}
+
+/** A function that, given a message, resolves it through the current
+ *  boundary's wrapping chain immediately and returns a thunk that dispatches
+ *  the fully wrapped root message. */
+export type UnmountResolver = (message: unknown) => () => void
+
+/** Returns an {@link UnmountResolver} bound to the current frame's boundary.
+ *  `OnUnmount` calls the resolver at build time (boundary alive) to capture a
+ *  dispatch thunk that survives the boundary being torn down during the same
+ *  patch. Throws when called outside of a runtime frame. */
+export const requireUnmountResolver = (): UnmountResolver => {
+  const frame = stack[stack.length - 1]
+  if (frame === undefined) {
+    throw new Error(
+      'Foldkit: html element constructors must be called inside a runtime-driven ' +
+        'render. The element was built outside a view, or foldkit was loaded as ' +
+        'more than one instance (a bundler split foldkit and @foldkit/ui into ' +
+        'separate copies).',
+    )
+  }
+  return message =>
+    resolveBoundaryDispatchThunk(
+      frame.boundaryRegistry,
+      frame.outerDispatch,
+      frame.boundaryId,
+      message,
+    )
 }
 
 /** Returns the current runtime Effect Context, used by Mount integrations

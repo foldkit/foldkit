@@ -73,7 +73,7 @@ grep -rn " as [A-Z][a-zA-Z]*State\b\| as [A-Z][a-zA-Z]*Message\b" src/
 # Labels without For: should pair with Id on input, or use Ui.Input
 grep -rn "label(\[" src/ | grep -v "For("
 
-# maybe* on non-Option: should be nullable* or Option<T>
+# maybe* on non-Option: should be Option<T>
 grep -rn "maybe[A-Z][a-zA-Z]*: [A-Z][a-zA-Z]* | undefined" src/
 grep -rn "maybe[A-Z][a-zA-Z]*: string\b\|maybe[A-Z][a-zA-Z]*: number\b\|maybe[A-Z][a-zA-Z]*: boolean\b" src/
 
@@ -323,7 +323,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 ## Naming precision
 
 - [ ] Every Option-typed value is prefixed `maybe*`: `maybeCurrentUser`, `maybeFocusUsernameInput`, `maybeOutMessage`, `maybeNewCardColumnId`. No exceptions.
-- [ ] Every native `T | undefined` is prefixed `nullable*`. No `maybe*` for nullable; that's reserved for `Option`. Grep `maybe[A-Z]` against function signatures and variable types; each hit should be `Option<T>`, not `T | undefined`.
+- [ ] No `maybe*` name holds a native `T | undefined`; `maybe*` is reserved for `Option`. Grep `maybe[A-Z]` against function signatures and variable types; each hit should be `Option<T>`, not `T | undefined`.
 - [ ] Internal API boundaries (helper function configs, view builders, domain operations) use `Option<T>` for optional fields, not `T | undefined`. Call sites then read `Option.some(x)` / `Option.none()` instead of `x` / `undefined`. The `T | undefined` form is only acceptable at framework boundaries (React props, vendored library configs, JSON decoding) that already use it.
 - [ ] Boolean fields prefixed `is*`: `isPlaying`, `isDismissed`, `isMenuOpen`.
 - [ ] Command function names are verbs describing the action: `fetchWeather`, `focusButton`, `scrollToItem`. Never `fetchWeatherCommand` or `weatherFetcher`.

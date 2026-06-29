@@ -9,6 +9,7 @@ import {
   focus,
   inertOthers,
   lockScroll,
+  releaseDialogResources,
   restoreInert,
   scrollIntoView,
   scrollIntoViewAfterPaint,
@@ -508,6 +509,189 @@ describe('showModal', () => {
         expect(document.activeElement).toBe(parentButton)
 
         yield* closeModal('#parent')
+        document.body.innerHTML = ''
+      }),
+  )
+})
+
+describe('releaseDialogResources', () => {
+  const makeDialog = (id: string): HTMLDialogElement => {
+    const dialog = document.createElement('dialog')
+    dialog.id = id
+    const button = document.createElement('button')
+    button.textContent = 'ok'
+    dialog.appendChild(button)
+    document.body.appendChild(dialog)
+    return dialog
+  }
+
+  const pressEscape = (): KeyboardEvent => {
+    const event = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true,
+    })
+    document.dispatchEvent(event)
+    return event
+  }
+
+  it.effect('is a no-op when no dialog holds hygiene for the id', () =>
+    Effect.gen(function* () {
+      const released = yield* releaseDialogResources('nonexistent')
+      expect(released).toBe(false)
+    }),
+  )
+
+  it.effect(
+    'releases hygiene by id after the element has been removed from the DOM',
+    () =>
+      Effect.gen(function* () {
+        const trigger = document.createElement('button')
+        trigger.id = 'trigger'
+        document.body.appendChild(trigger)
+        const dialog = makeDialog('solo')
+
+        trigger.focus()
+        yield* lockScroll
+        yield* showModal('#solo')
+        expect(document.documentElement.style.overflow).toBe('hidden')
+
+        // The real unmount scenario: the element is gone before the backstop
+        // runs. A selector-based release would find nothing here.
+        dialog.remove()
+        expect(document.querySelector('#solo')).toBeNull()
+
+        const released = yield* releaseDialogResources('solo')
+
+        expect(released).toBe(true)
+        expect(document.documentElement.style.overflow).toBe('')
+        expect(document.activeElement).toBe(trigger)
+
+        // The keydown focus-trap handler was removed, so Escape no longer
+        // dispatches a cancel against a stale handler.
+        pressEscape()
+
+        document.body.innerHTML = ''
+      }),
+  )
+
+  it.effect(
+    'releases the scroll lock, focus, and keyboard handler exactly once',
+    () =>
+      Effect.gen(function* () {
+        const trigger = document.createElement('button')
+        trigger.id = 'trigger'
+        document.body.appendChild(trigger)
+        makeDialog('solo')
+
+        trigger.focus()
+        yield* lockScroll
+        yield* showModal('#solo')
+        expect(document.documentElement.style.overflow).toBe('hidden')
+
+        const cancelled: Array<string> = []
+        document
+          .querySelector('#solo')
+          ?.addEventListener('cancel', () => cancelled.push('solo'))
+
+        const released = yield* releaseDialogResources('solo')
+
+        expect(released).toBe(true)
+        expect(document.documentElement.style.overflow).toBe('')
+        expect(document.activeElement).toBe(trigger)
+
+        // The keydown focus-trap handler was removed, so Escape no longer
+        // dispatches a cancel.
+        pressEscape()
+        expect(cancelled).toEqual([])
+
+        document.body.innerHTML = ''
+      }),
+  )
+
+  it.effect('is idempotent: a second release does nothing', () =>
+    Effect.gen(function* () {
+      makeDialog('solo')
+      yield* lockScroll
+      yield* showModal('#solo')
+
+      const first = yield* releaseDialogResources('solo')
+      const second = yield* releaseDialogResources('solo')
+
+      expect(first).toBe(true)
+      expect(second).toBe(false)
+      expect(document.documentElement.style.overflow).toBe('')
+
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect('does not release after a normal close already released', () =>
+    Effect.gen(function* () {
+      makeDialog('solo')
+      yield* lockScroll
+      yield* showModal('#solo')
+
+      yield* closeModal('#solo')
+      yield* unlockScroll
+      expect(document.documentElement.style.overflow).toBe('')
+
+      const released = yield* releaseDialogResources('solo')
+      expect(released).toBe(false)
+      expect(document.documentElement.style.overflow).toBe('')
+
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect('does not under-count a scroll lock held by another holder', () =>
+    Effect.gen(function* () {
+      makeDialog('solo')
+      yield* lockScroll
+      yield* showModal('#solo')
+
+      // A second, unrelated holder takes the shared scroll lock.
+      yield* lockScroll
+      expect(document.documentElement.style.overflow).toBe('hidden')
+
+      const released = yield* releaseDialogResources('solo')
+      expect(released).toBe(true)
+
+      // The dialog released its single lock, but the other holder's lock
+      // keeps the page locked.
+      expect(document.documentElement.style.overflow).toBe('hidden')
+
+      yield* unlockScroll
+      expect(document.documentElement.style.overflow).toBe('')
+
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect(
+    'releasing the top of a stack leaves the dialog beneath trapping Escape',
+    () =>
+      Effect.gen(function* () {
+        const parent = makeDialog('parent')
+        makeDialog('child')
+        const cancelled: Array<string> = []
+        parent.addEventListener('cancel', () => cancelled.push('parent'))
+
+        yield* lockScroll
+        yield* showModal('#parent')
+        yield* lockScroll
+        yield* showModal('#child')
+
+        const released = yield* releaseDialogResources('child')
+        expect(released).toBe(true)
+
+        // The parent is now topmost again and still routes Escape to cancel.
+        pressEscape()
+        expect(cancelled).toEqual(['parent'])
+
+        yield* releaseDialogResources('parent')
+        expect(document.documentElement.style.overflow).toBe('')
+
         document.body.innerHTML = ''
       }),
   )
