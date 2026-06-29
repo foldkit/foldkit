@@ -96,6 +96,27 @@ const RESOLVED_API_MODULE_INDEX_ID = '\0' + API_MODULE_INDEX_ID
 const PARSED_API_ID = 'virtual:parsed-api'
 const RESOLVED_PARSED_API_ID = '\0' + PARSED_API_ID
 
+// NOTE: foldkit and @foldkit/ui are documented as separate TypeDoc projects so each
+// package's references resolve correctly (a UI component referencing a core type is an
+// external reference, not an undocumented one). Their outputs are merged here: core's
+// modules stay top-level and the UI project contributes a single `Ui` namespace, so the
+// reference renders `Calendar` alongside `Ui/Calendar`. Type references render by name,
+// so the two projects' independent numeric ids never collide.
+const loadApiTypeDocJson = async (): Promise<TypeDocJson> => {
+  const generatedDir = resolve(__dirname, 'src/generated')
+  const [coreRaw, uiRaw] = await Promise.all([
+    readFile(join(generatedDir, 'api.json'), 'utf-8'),
+    readFile(join(generatedDir, 'api-ui.json'), 'utf-8'),
+  ])
+  const core = JSON.parse(coreRaw)
+  const ui = JSON.parse(uiRaw)
+  const merged = {
+    ...core,
+    children: [...(core.children ?? []), ...(ui.children ?? [])],
+  }
+  return S.decodeUnknownSync(TypeDocJson)(merged)
+}
+
 const formatTypeParam =
   (namedSchemas: NamedSchemas) =>
   (typeParam: TypeDocTypeParam): string => {
@@ -337,9 +358,7 @@ const highlightApiSignaturesPlugin = (): Plugin => ({
       return undefined
     }
 
-    const jsonPath = resolve(__dirname, 'src/generated/api.json')
-    const raw = await readFile(jsonPath, 'utf-8')
-    const json = S.decodeUnknownSync(TypeDocJson)(JSON.parse(raw))
+    const json = await loadApiTypeDocJson()
     const namedSchemas = collectNamedSchemas(json)
     const toEntries = itemToEntries(namedSchemas)
 
@@ -397,9 +416,7 @@ const apiModuleIndexPlugin = (): Plugin => ({
       return undefined
     }
 
-    const jsonPath = resolve(__dirname, 'src/generated/api.json')
-    const raw = await readFile(jsonPath, 'utf-8')
-    const json = S.decodeUnknownSync(TypeDocJson)(JSON.parse(raw))
+    const json = await loadApiTypeDocJson()
 
     const collectNestedNames = (
       prefix: string,
@@ -455,9 +472,7 @@ const parsedApiPlugin = (): Plugin => ({
       return undefined
     }
 
-    const jsonPath = resolve(__dirname, 'src/generated/api.json')
-    const raw = await readFile(jsonPath, 'utf-8')
-    const json = S.decodeUnknownSync(TypeDocJson)(JSON.parse(raw))
+    const json = await loadApiTypeDocJson()
     const parsed = parseTypedocJson(json)
     const encoded = S.encodeSync(ParsedApiReference)(parsed)
 

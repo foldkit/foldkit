@@ -18,6 +18,9 @@
         "src/test/apps/**/*.ts"
       ]
     },
+    "packages/ui": {
+      "entry": ["typedoc-entry.ts", "src/index.ts"]
+    },
     "packages/devtools": {
       "entry": ["src/index.ts"]
     },

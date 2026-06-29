@@ -115,6 +115,7 @@
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
     "build": "pnpm run clean && tsc -b tsconfig.build.json",
+    "docs": "typedoc",
     "watch": "tsc -b tsconfig.build.json --watch",
     "lint": "pnpm --filter @foldkit/oxlint-plugin build && oxlint src",
     "typecheck": "tsc -b tsconfig.build.json --noEmit",
@@ -133,6 +134,7 @@
     "foldkit": "workspace:*",
     "happy-dom": "^20.10.4",
     "rimraf": "^6.1.3",
+    "typedoc": "^0.28.19",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   },
