@@ -182,6 +182,9 @@ const ReceivedInspectedState = m('ReceivedInspectedState', {
   affectedPaths: S.HashSet(S.String),
 })
 const ToggledTreeNode = m('ToggledTreeNode', { path: S.String })
+const ClickedCopyPayload = m('ClickedCopyPayload', { text: S.String })
+const CompletedCopyPayload = m('CompletedCopyPayload')
+const FailedCopyPayload = m('FailedCopyPayload')
 const TickedScrubFrame = m('TickedScrubFrame')
 const GotInspectorTabsMessage = m('GotInspectorTabsMessage', {
   message: S.Unknown,
@@ -218,6 +221,9 @@ const Message = S.Union([
   CrossedMobileBreakpoint,
   ReceivedInspectedState,
   ToggledTreeNode,
+  ClickedCopyPayload,
+  CompletedCopyPayload,
+  FailedCopyPayload,
   TickedScrubFrame,
   GotInspectorTabsMessage,
   ReceivedStoreUpdate,
@@ -342,6 +348,20 @@ const collapsedPreview = (value: unknown): string =>
     M.orElse(() => ''),
   )
 
+const JSON_INDENT = 2
+
+const serializePayload = (value: unknown): string =>
+  JSON.stringify(toInspectableValue(value), null, JSON_INDENT)
+
+const taggedPayload = (
+  name: string,
+  args: Option.Option<Record<string, unknown>>,
+): Record<string, unknown> =>
+  Option.match(args, {
+    onNone: () => ({ _tag: name }),
+    onSome: argsValue => ({ ...argsValue, _tag: name }),
+  })
+
 // UPDATE
 
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
@@ -435,6 +455,18 @@ export const Clear = Command.define(
     yield* store.clear
     return CompletedClear()
   }),
+)
+
+export const CopyPayloadToClipboard = Command.define(
+  'CopyPayloadToClipboard',
+  { text: S.String },
+  CompletedCopyPayload,
+  FailedCopyPayload,
+)(({ text }) =>
+  Effect.tryPromise(() => navigator.clipboard.writeText(text)).pipe(
+    Effect.as(CompletedCopyPayload()),
+    Effect.catch(() => Effect.succeed(FailedCopyPayload())),
+  ),
 )
 
 export const ScrollToTop = Command.define(
@@ -601,6 +633,10 @@ const makeUpdate = (
           }),
           [],
         ],
+        ClickedCopyPayload: ({ text }) => [
+          model,
+          [CopyPayloadToClipboard({ text })],
+        ],
         ReceivedStoreUpdate: ({
           entries,
           initCommands,
@@ -749,6 +785,8 @@ const makeUpdate = (
       M.tag(
         'CompletedResume',
         'CompletedClear',
+        'CompletedCopyPayload',
+        'FailedCopyPayload',
         'LockedScroll',
         'UnlockedScroll',
         'ScrolledToTop',
@@ -921,6 +959,43 @@ const makeView = (
 
   const tagLabelView = (tag: string): Html =>
     h.span([h.Key('tag'), h.Class('json-tag')], [tag])
+
+  const COPY_ICON =
+    'M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184'
+
+  const copyPayloadButtonView = (payload: unknown): Html =>
+    h.button(
+      [
+        h.Key('copy'),
+        h.Class('dt-copy-button shrink-0'),
+        h.AriaLabel('Copy payload as JSON'),
+        h.Title('Copy as JSON'),
+        h.OnClick(ClickedCopyPayload({ text: serializePayload(payload) })),
+      ],
+      [
+        h.svg(
+          [
+            h.AriaHidden(true),
+            h.Class('dt-copy-icon'),
+            h.Xmlns('http://www.w3.org/2000/svg'),
+            h.Fill('none'),
+            h.ViewBox('0 0 24 24'),
+            h.StrokeWidth('1.5'),
+            h.Stroke('currentColor'),
+          ],
+          [
+            h.path(
+              [
+                h.StrokeLinecap('round'),
+                h.StrokeLinejoin('round'),
+                h.D(COPY_ICON),
+              ],
+              [],
+            ),
+          ],
+        ),
+      ],
+    )
 
   const diffDotView: Html = h.span([h.Key('diffdot'), h.Class('diff-dot')], [])
   const inlineDiffDotView: Html = h.span([h.Class('diff-dot-inline')], [])
@@ -1178,20 +1253,36 @@ const makeView = (
       ['init: no Message'],
     )
 
+  const payloadHeaderView = (label: string, payload: unknown): Html =>
+    h.div(
+      [
+        h.Class(
+          'flex items-center justify-between px-2 py-1 border-b text-2xs text-dt-muted font-mono shrink-0',
+        ),
+      ],
+      [h.span([], [label]), copyPayloadButtonView(payload)],
+    )
+
   const modelTabContent = (
     inspectedModel: unknown,
     expandedPaths: HashSet.HashSet<string>,
     changedPaths: HashSet.HashSet<string>,
     affectedPaths: HashSet.HashSet<string>,
   ): Html =>
-    treeView(
-      inspectedModel,
-      'root',
-      expandedPaths,
-      changedPaths,
-      affectedPaths,
-      Option.none(),
-      true,
+    h.div(
+      [h.Class('flex flex-col flex-1 min-h-0 min-w-0')],
+      [
+        payloadHeaderView('Model', inspectedModel),
+        treeView(
+          inspectedModel,
+          'root',
+          expandedPaths,
+          changedPaths,
+          affectedPaths,
+          Option.none(),
+          true,
+        ),
+      ],
     )
 
   const unwrapIfFiltered = (
@@ -1240,10 +1331,10 @@ const makeView = (
             h.div(
               [
                 h.Class(
-                  'px-2 py-1 border-b text-2xs text-dt-muted font-mono shrink-0',
+                  'flex items-center justify-between px-2 py-1 border-b text-2xs text-dt-muted font-mono shrink-0',
                 ),
               ],
-              [timestamp],
+              [h.span([], [timestamp]), copyPayloadButtonView(message)],
             ),
             h.div(
               [h.Class('flex flex-col flex-1 min-h-0 min-w-0 pt-1 pl-1')],
@@ -1301,10 +1392,7 @@ const makeView = (
     index: number,
     expandedPaths: HashSet.HashSet<string>,
   ): ReadonlyArray<FlatNode> => {
-    const taggedValue = Option.match(command.args, {
-      onNone: () => ({ _tag: command.name }),
-      onSome: argsValue => ({ ...argsValue, _tag: command.name }),
-    })
+    const taggedValue = taggedPayload(command.name, command.args)
     const rootPath = `command-${index}`
     const nodes: Array<FlatNode> = []
     flattenTree({
@@ -1355,6 +1443,9 @@ const makeView = (
                     renderFlatNode,
                   ),
                 ),
+                copyPayloadButtonView(
+                  taggedPayload(command.name, command.args),
+                ),
               ],
             ),
           ),
@@ -1392,10 +1483,7 @@ const makeView = (
     index: number,
     expandedPaths: HashSet.HashSet<string>,
   ): ReadonlyArray<FlatNode> => {
-    const taggedValue = Option.match(mount.args, {
-      onNone: () => ({ _tag: mount.name }),
-      onSome: argsValue => ({ ...argsValue, _tag: mount.name }),
-    })
+    const taggedValue = taggedPayload(mount.name, mount.args)
     const rootPath = `mount-${sectionLabel}-${index}`
     const nodes: Array<FlatNode> = []
     flattenTree({
