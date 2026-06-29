@@ -188,6 +188,9 @@ const Message = defineMessageUnion({
     affectedPaths: Schema.HashSet(Schema.String),
   },
   ToggledTreeNode: { path: Schema.String },
+  ClickedCopyPayload: { payload: Schema.Unknown },
+  SucceededCopyPayloadToClipboard: {},
+  FailedCopyPayloadToClipboard: {},
   TickedScrubFrame: {},
   GotInspectorTabsMessage: { message: Tabs.Message },
   ReceivedStoreUpdate: {
@@ -212,6 +215,7 @@ const MOBILE_BREAKPOINT = 767
 const MOBILE_BREAKPOINT_QUERY = `(max-width: ${MOBILE_BREAKPOINT}px)`
 const TREE_INDENT_PX = 12
 const MAX_PREVIEW_KEYS = 3
+const JSON_INDENT = 2
 const ALL_MESSAGES_VALUE = ''
 const DEVTOOLS_STORAGE_KEY = 'foldkit-devtools'
 const NO_COMMANDS: ReadonlyArray<typeof DisplayCommand.Type> = []
@@ -324,6 +328,33 @@ const collapsedPreview = (value: unknown): string =>
     Match.when(Predicate.isObject, objectPreview),
     Match.orElse(() => ''),
   )
+
+const serializePayload = (value: unknown): Effect.Effect<string, Error> =>
+  Effect.try({
+    try: () => {
+      const serialized = JSON.stringify(
+        toInspectableValue(value),
+        null,
+        JSON_INDENT,
+      )
+
+      if (Predicate.isUndefined(serialized)) {
+        throw new Error('Payload cannot be represented as JSON')
+      }
+
+      return serialized
+    },
+    catch: () => new Error('Failed to serialize payload'),
+  })
+
+const taggedPayload = (
+  name: string,
+  args: Option.Option<Record<string, unknown>>,
+): Record<string, unknown> =>
+  Option.match(args, {
+    onNone: () => ({ _tag: name }),
+    onSome: argsValue => ({ ...argsValue, _tag: name }),
+  })
 
 // UPDATE
 
@@ -538,6 +569,27 @@ export const Clear = Command.define('Clear', {
   }),
 })
 
+export const CopyPayloadToClipboard = Command.define('CopyPayloadToClipboard', {
+  args: { payload: Schema.Unknown },
+  messages: [
+    Message.SucceededCopyPayloadToClipboard,
+    Message.FailedCopyPayloadToClipboard,
+  ],
+  execute: ({ payload }) =>
+    serializePayload(payload).pipe(
+      Effect.flatMap(text =>
+        Effect.tryPromise({
+          try: () => navigator.clipboard.writeText(text),
+          catch: () => new Error('Failed to copy payload to clipboard'),
+        }),
+      ),
+      Effect.as(Message.SucceededCopyPayloadToClipboard()),
+      Effect.catch(() =>
+        Effect.succeed(Message.FailedCopyPayloadToClipboard()),
+      ),
+    ),
+})
+
 export const ScrollToTop = Command.define('ScrollToTop', {
   messages: [Message.CompletedScrollToTop],
   execute: Effect.gen(function* () {
@@ -699,6 +751,10 @@ const makeUpdate = (
               : HashSet.add(paths, path),
         }),
       }),
+      ClickedCopyPayload: ({ payload }) => ({
+        model,
+        commands: [CopyPayloadToClipboard({ payload })],
+      }),
       ReceivedStoreUpdate: ({
         entries,
         initCommands,
@@ -787,6 +843,8 @@ const makeUpdate = (
       CompletedLockScroll: () => ({ model }),
       CompletedUnlockScroll: () => ({ model }),
       CompletedScrollToTop: () => ({ model }),
+      SucceededCopyPayloadToClipboard: () => ({ model }),
+      FailedCopyPayloadToClipboard: () => ({ model }),
     })
 }
 
@@ -942,6 +1000,8 @@ const buildOverlayView = (
 
   const CHEVRON_RIGHT = 'M8.25 4.5l7.5 7.5-7.5 7.5'
   const CHEVRON_DOWN = 'M19.5 8.25l-7.5 7.5-7.5-7.5'
+  const COPY_ICON =
+    'M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184'
 
   const arrowView = (isExpanded: boolean): Html =>
     h.svg(
@@ -965,6 +1025,36 @@ const buildOverlayView = (
 
   const tagLabelView = (tag: string): Html =>
     h.span([h.Class('json-tag')], [tag])
+
+  const copyPayloadButtonView = (payload: unknown): Html =>
+    h.button(
+      [
+        h.Class('dt-copy-button shrink-0'),
+        h.AriaLabel('Copy payload as JSON'),
+        h.Title('Copy as JSON'),
+        h.OnClick(Message.ClickedCopyPayload({ payload })),
+      ],
+      [
+        h.svg(
+          [
+            h.AriaHidden(true),
+            h.Class('dt-copy-icon'),
+            h.Xmlns('http://www.w3.org/2000/svg'),
+            h.Fill('none'),
+            h.ViewBox('0 0 24 24'),
+            h.StrokeWidth('1.5'),
+            h.Stroke('currentColor'),
+          ],
+          [
+            h.path([
+              h.StrokeLinecap('round'),
+              h.StrokeLinejoin('round'),
+              h.D(COPY_ICON),
+            ]),
+          ],
+        ),
+      ],
+    )
 
   const previewView = (preview: string): Html =>
     h.span([h.Class('json-preview')], [preview])
@@ -1264,20 +1354,36 @@ const buildOverlayView = (
       ['init: no Message'],
     )
 
+  const payloadHeaderView = (label: string, payload: unknown): Html =>
+    h.div(
+      [
+        h.Class(
+          'flex items-center justify-between px-2 py-1 border-b text-2xs text-dt-muted font-mono shrink-0',
+        ),
+      ],
+      [h.span([], [label]), copyPayloadButtonView(payload)],
+    )
+
   const modelTabContent = (
     inspectedModel: unknown,
     expandedPaths: HashSet.HashSet<string>,
     changedPaths: HashSet.HashSet<string>,
     affectedPaths: HashSet.HashSet<string>,
   ): Html =>
-    treeView(
-      inspectedModel,
-      'root',
-      expandedPaths,
-      changedPaths,
-      affectedPaths,
-      Option.none(),
-      true,
+    h.div(
+      [h.Class('flex flex-col flex-1 min-h-0 min-w-0')],
+      [
+        payloadHeaderView('Model', inspectedModel),
+        treeView(
+          inspectedModel,
+          'root',
+          expandedPaths,
+          changedPaths,
+          affectedPaths,
+          Option.none(),
+          true,
+        ),
+      ],
     )
 
   const unwrapToLeaf = (message: unknown): unknown => {
@@ -1342,10 +1448,10 @@ const buildOverlayView = (
             h.div(
               [
                 h.Class(
-                  'px-2 py-1 border-b text-2xs text-dt-muted font-mono shrink-0',
+                  'flex items-center justify-between px-2 py-1 border-b text-2xs text-dt-muted font-mono shrink-0',
                 ),
               ],
-              [timestamp],
+              [h.span([], [timestamp]), copyPayloadButtonView(message)],
             ),
             h.div(
               [h.Class('flex flex-col flex-1 min-h-0 min-w-0 pt-1 pl-1')],
@@ -1403,10 +1509,7 @@ const buildOverlayView = (
     index: number,
     expandedPaths: HashSet.HashSet<string>,
   ): ReadonlyArray<FlatNode> => {
-    const taggedValue = Option.match(command.args, {
-      onNone: () => ({ _tag: command.name }),
-      onSome: argsValue => ({ ...argsValue, _tag: command.name }),
-    })
+    const taggedValue = taggedPayload(command.name, command.args)
     const rootPath = `command-${index}`
     const nodes: globalThis.Array<FlatNode> = []
     flattenTree({
@@ -1457,6 +1560,9 @@ const buildOverlayView = (
                     renderFlatNode,
                   ),
                 ),
+                copyPayloadButtonView(
+                  taggedPayload(command.name, command.args),
+                ),
               ],
             ),
           ),
@@ -1494,10 +1600,7 @@ const buildOverlayView = (
     index: number,
     expandedPaths: HashSet.HashSet<string>,
   ): ReadonlyArray<FlatNode> => {
-    const taggedValue = Option.match(mount.args, {
-      onNone: () => ({ _tag: mount.name }),
-      onSome: argsValue => ({ ...argsValue, _tag: mount.name }),
-    })
+    const taggedValue = taggedPayload(mount.name, mount.args)
     const rootPath = `mount-${sectionLabel}-${index}`
     const nodes: globalThis.Array<FlatNode> = []
     flattenTree({
