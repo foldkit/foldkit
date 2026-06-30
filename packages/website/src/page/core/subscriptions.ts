@@ -38,6 +38,12 @@ const animationFramesHeader: TableOfContentsEntry = {
   text: 'Animation Frames',
 }
 
+const domEventsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'dom-events',
+  text: 'DOM Events',
+}
+
 const advancedHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'advanced',
@@ -60,6 +66,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   autoCounterHeader,
   animationFramesHeader,
+  domEventsHeader,
   advancedHeader,
   equivalenceHeader,
   readDependenciesHeader,
@@ -313,6 +320,66 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' uses ',
         inlineCode('Subscription.animationFrame'),
         ' for per-frame physics.',
+      ),
+
+      // DOM EVENTS
+
+      tableOfContentsEntryToHeader(domEventsHeader),
+      para(
+        'For DOM events that are not tied to a specific element in your rendered tree (global keyboard shortcuts on ',
+        inlineCode('window'),
+        ', media-query changes, ',
+        inlineCode('document'),
+        ' visibility), ',
+        inlineCode('Subscription.fromEvent'),
+        ' builds the ',
+        inlineCode('addEventListener'),
+        ' and ',
+        inlineCode('removeEventListener'),
+        ' lifecycle for you. It returns a Stream that registers the listener when the scope opens and removes it when the scope closes, so you never hand-roll the ',
+        inlineCode('Effect.acquireRelease'),
+        ' yourself.',
+      ),
+      para(
+        'Because ',
+        inlineCode('fromEvent'),
+        ' is a Stream rather than a complete entry, you gate it the same way as any other Stream. Wrap it in ',
+        inlineCode('Stream.when'),
+        ' inside an ',
+        inlineCode('entry'),
+        ' to bind it to a Model condition, or pass it to ',
+        inlineCode('Subscription.persistent'),
+        ' for a listener that runs for the whole Subscriptions record. Here is a global keyboard shortcut gated on ',
+        inlineCode('isListening'),
+        ':',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.subscriptionFromEventHighlighted),
+          ],
+          [],
+        ),
+        Snippet.subscriptionFromEventRaw,
+        'Copy DOM event subscription example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'The ',
+        inlineCode('toMessage'),
+        ' mapper runs synchronously in the same call stack as the browser’s event dispatch, so calling ',
+        inlineCode('event.preventDefault()'),
+        ' inside it works. Pass the ',
+        inlineCode('target'),
+        ' as a thunk when it may not exist until the scope opens, or directly for always-present globals like ',
+        inlineCode('window'),
+        ' and ',
+        inlineCode('document'),
+        '. For events tied to a specific rendered element, reach for ',
+        link(coreMountRouter(), 'Mount'),
+        ' instead, which hands you the element directly.',
       ),
 
       // ADVANCED

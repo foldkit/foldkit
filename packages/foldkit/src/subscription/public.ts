@@ -9,3 +9,7 @@ export type {
 export { animationFrame } from './animationFrame.js'
 
 export type { AnimationFrameConfig } from './animationFrame.js'
+
+export { fromEvent } from './fromEvent.js'
+
+export type { FromEventConfig } from './fromEvent.js'
