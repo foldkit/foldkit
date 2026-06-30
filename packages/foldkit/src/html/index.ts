@@ -695,6 +695,70 @@ export type Attribute<Message> = Data.TaggedEnum<{
   Opacity: { readonly value: string }
   StrokeDasharray: { readonly value: string }
   StrokeDashoffset: { readonly value: string }
+  Dx: { readonly value: string }
+  Dy: { readonly value: string }
+  Rotate: { readonly value: string }
+  TextAnchor: { readonly value: string }
+  DominantBaseline: { readonly value: string }
+  AlignmentBaseline: { readonly value: string }
+  BaselineShift: { readonly value: string }
+  TextLength: { readonly value: string }
+  LengthAdjust: { readonly value: string }
+  FontFamily: { readonly value: string }
+  FontSize: { readonly value: string }
+  FontWeight: { readonly value: string }
+  FontStyle: { readonly value: string }
+  LetterSpacing: { readonly value: string }
+  WordSpacing: { readonly value: string }
+  TextDecoration: { readonly value: string }
+  WritingMode: { readonly value: string }
+  Rx: { readonly value: string }
+  Ry: { readonly value: string }
+  PathLength: { readonly value: string }
+  FillOpacity: { readonly value: string }
+  StrokeOpacity: { readonly value: string }
+  StrokeMiterlimit: { readonly value: string }
+  PaintOrder: { readonly value: string }
+  VectorEffect: { readonly value: string }
+  Color: { readonly value: string }
+  Visibility: { readonly value: string }
+  Display: { readonly value: string }
+  Overflow: { readonly value: string }
+  PointerEvents: { readonly value: string }
+  Cursor: { readonly value: string }
+  ShapeRendering: { readonly value: string }
+  TextRendering: { readonly value: string }
+  ImageRendering: { readonly value: string }
+  ClipPath: { readonly value: string }
+  Mask: { readonly value: string }
+  Filter: { readonly value: string }
+  ClipPathUnits: { readonly value: string }
+  MaskUnits: { readonly value: string }
+  MaskContentUnits: { readonly value: string }
+  FilterUnits: { readonly value: string }
+  PrimitiveUnits: { readonly value: string }
+  Offset: { readonly value: string }
+  StopColor: { readonly value: string }
+  StopOpacity: { readonly value: string }
+  GradientUnits: { readonly value: string }
+  GradientTransform: { readonly value: string }
+  SpreadMethod: { readonly value: string }
+  Fx: { readonly value: string }
+  Fy: { readonly value: string }
+  Fr: { readonly value: string }
+  PatternUnits: { readonly value: string }
+  PatternContentUnits: { readonly value: string }
+  PatternTransform: { readonly value: string }
+  MarkerStart: { readonly value: string }
+  MarkerMid: { readonly value: string }
+  MarkerEnd: { readonly value: string }
+  MarkerWidth: { readonly value: string }
+  MarkerHeight: { readonly value: string }
+  MarkerUnits: { readonly value: string }
+  RefX: { readonly value: string }
+  RefY: { readonly value: string }
+  Orient: { readonly value: string }
+  PreserveAspectRatio: { readonly value: string }
   Prop: { readonly key: string; readonly value: unknown }
   OnCustomEvent: {
     readonly name: string
@@ -953,6 +1017,70 @@ const {
   Opacity,
   StrokeDasharray,
   StrokeDashoffset,
+  Dx,
+  Dy,
+  Rotate,
+  TextAnchor,
+  DominantBaseline,
+  AlignmentBaseline,
+  BaselineShift,
+  TextLength,
+  LengthAdjust,
+  FontFamily,
+  FontSize,
+  FontWeight,
+  FontStyle,
+  LetterSpacing,
+  WordSpacing,
+  TextDecoration,
+  WritingMode,
+  Rx,
+  Ry,
+  PathLength,
+  FillOpacity,
+  StrokeOpacity,
+  StrokeMiterlimit,
+  PaintOrder,
+  VectorEffect,
+  Color,
+  Visibility,
+  Display,
+  Overflow,
+  PointerEvents,
+  Cursor,
+  ShapeRendering,
+  TextRendering,
+  ImageRendering,
+  ClipPath,
+  Mask,
+  Filter,
+  ClipPathUnits,
+  MaskUnits,
+  MaskContentUnits,
+  FilterUnits,
+  PrimitiveUnits,
+  Offset,
+  StopColor,
+  StopOpacity,
+  GradientUnits,
+  GradientTransform,
+  SpreadMethod,
+  Fx,
+  Fy,
+  Fr,
+  PatternUnits,
+  PatternContentUnits,
+  PatternTransform,
+  MarkerStart,
+  MarkerMid,
+  MarkerEnd,
+  MarkerWidth,
+  MarkerHeight,
+  MarkerUnits,
+  RefX,
+  RefY,
+  Orient,
+  PreserveAspectRatio,
   Prop,
   OnCustomEvent,
   OnMount,
@@ -2239,6 +2367,262 @@ const attributeMatcher: (
       ({ value }) =>
       (ctx: BuildContext) =>
         updateDataAttrs(ctx, { 'stroke-dashoffset': value }),
+    Dx:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { dx: value }),
+    Dy:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { dy: value }),
+    Rotate:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { rotate: value }),
+    TextAnchor:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'text-anchor': value }),
+    DominantBaseline:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'dominant-baseline': value }),
+    AlignmentBaseline:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'alignment-baseline': value }),
+    BaselineShift:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'baseline-shift': value }),
+    TextLength:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { textLength: value }),
+    LengthAdjust:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { lengthAdjust: value }),
+    FontFamily:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'font-family': value }),
+    FontSize:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'font-size': value }),
+    FontWeight:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'font-weight': value }),
+    FontStyle:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'font-style': value }),
+    LetterSpacing:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'letter-spacing': value }),
+    WordSpacing:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'word-spacing': value }),
+    TextDecoration:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'text-decoration': value }),
+    WritingMode:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'writing-mode': value }),
+    Rx:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { rx: value }),
+    Ry:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { ry: value }),
+    PathLength:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { pathLength: value }),
+    FillOpacity:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'fill-opacity': value }),
+    StrokeOpacity:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'stroke-opacity': value }),
+    StrokeMiterlimit:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'stroke-miterlimit': value }),
+    PaintOrder:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'paint-order': value }),
+    VectorEffect:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'vector-effect': value }),
+    Color:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { color: value }),
+    Visibility:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { visibility: value }),
+    Display:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { display: value }),
+    Overflow:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { overflow: value }),
+    PointerEvents:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'pointer-events': value }),
+    Cursor:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { cursor: value }),
+    ShapeRendering:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'shape-rendering': value }),
+    TextRendering:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'text-rendering': value }),
+    ImageRendering:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'image-rendering': value }),
+    ClipPath:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'clip-path': value }),
+    Mask:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { mask: value }),
+    Filter:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { filter: value }),
+    ClipPathUnits:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { clipPathUnits: value }),
+    MaskUnits:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { maskUnits: value }),
+    MaskContentUnits:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { maskContentUnits: value }),
+    FilterUnits:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { filterUnits: value }),
+    PrimitiveUnits:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { primitiveUnits: value }),
+    Offset:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { offset: value }),
+    StopColor:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'stop-color': value }),
+    StopOpacity:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'stop-opacity': value }),
+    GradientUnits:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { gradientUnits: value }),
+    GradientTransform:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { gradientTransform: value }),
+    SpreadMethod:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { spreadMethod: value }),
+    Fx:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { fx: value }),
+    Fy:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { fy: value }),
+    Fr:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { fr: value }),
+    PatternUnits:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { patternUnits: value }),
+    PatternContentUnits:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { patternContentUnits: value }),
+    PatternTransform:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { patternTransform: value }),
+    MarkerStart:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'marker-start': value }),
+    MarkerMid:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'marker-mid': value }),
+    MarkerEnd:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { 'marker-end': value }),
+    MarkerWidth:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { markerWidth: value }),
+    MarkerHeight:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { markerHeight: value }),
+    MarkerUnits:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { markerUnits: value }),
+    RefX:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { refX: value }),
+    RefY:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { refY: value }),
+    Orient:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { orient: value }),
+    PreserveAspectRatio:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { preserveAspectRatio: value }),
     Prop:
       ({ key, value }) =>
       (ctx: BuildContext) =>
@@ -3824,6 +4208,214 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'StrokeDashoffset'
     readonly value: string
   }
+  Dx: (value: string) => { readonly _tag: 'Dx'; readonly value: string }
+  Dy: (value: string) => { readonly _tag: 'Dy'; readonly value: string }
+  Rotate: (value: string) => { readonly _tag: 'Rotate'; readonly value: string }
+  TextAnchor: (value: string) => {
+    readonly _tag: 'TextAnchor'
+    readonly value: string
+  }
+  DominantBaseline: (value: string) => {
+    readonly _tag: 'DominantBaseline'
+    readonly value: string
+  }
+  AlignmentBaseline: (value: string) => {
+    readonly _tag: 'AlignmentBaseline'
+    readonly value: string
+  }
+  BaselineShift: (value: string) => {
+    readonly _tag: 'BaselineShift'
+    readonly value: string
+  }
+  TextLength: (value: string) => {
+    readonly _tag: 'TextLength'
+    readonly value: string
+  }
+  LengthAdjust: (value: string) => {
+    readonly _tag: 'LengthAdjust'
+    readonly value: string
+  }
+  FontFamily: (value: string) => {
+    readonly _tag: 'FontFamily'
+    readonly value: string
+  }
+  FontSize: (value: string) => {
+    readonly _tag: 'FontSize'
+    readonly value: string
+  }
+  FontWeight: (value: string) => {
+    readonly _tag: 'FontWeight'
+    readonly value: string
+  }
+  FontStyle: (value: string) => {
+    readonly _tag: 'FontStyle'
+    readonly value: string
+  }
+  LetterSpacing: (value: string) => {
+    readonly _tag: 'LetterSpacing'
+    readonly value: string
+  }
+  WordSpacing: (value: string) => {
+    readonly _tag: 'WordSpacing'
+    readonly value: string
+  }
+  TextDecoration: (value: string) => {
+    readonly _tag: 'TextDecoration'
+    readonly value: string
+  }
+  WritingMode: (value: string) => {
+    readonly _tag: 'WritingMode'
+    readonly value: string
+  }
+  Rx: (value: string) => { readonly _tag: 'Rx'; readonly value: string }
+  Ry: (value: string) => { readonly _tag: 'Ry'; readonly value: string }
+  PathLength: (value: string) => {
+    readonly _tag: 'PathLength'
+    readonly value: string
+  }
+  FillOpacity: (value: string) => {
+    readonly _tag: 'FillOpacity'
+    readonly value: string
+  }
+  StrokeOpacity: (value: string) => {
+    readonly _tag: 'StrokeOpacity'
+    readonly value: string
+  }
+  StrokeMiterlimit: (value: string) => {
+    readonly _tag: 'StrokeMiterlimit'
+    readonly value: string
+  }
+  PaintOrder: (value: string) => {
+    readonly _tag: 'PaintOrder'
+    readonly value: string
+  }
+  VectorEffect: (value: string) => {
+    readonly _tag: 'VectorEffect'
+    readonly value: string
+  }
+  Color: (value: string) => { readonly _tag: 'Color'; readonly value: string }
+  Visibility: (value: string) => {
+    readonly _tag: 'Visibility'
+    readonly value: string
+  }
+  Display: (value: string) => {
+    readonly _tag: 'Display'
+    readonly value: string
+  }
+  Overflow: (value: string) => {
+    readonly _tag: 'Overflow'
+    readonly value: string
+  }
+  PointerEvents: (value: string) => {
+    readonly _tag: 'PointerEvents'
+    readonly value: string
+  }
+  Cursor: (value: string) => { readonly _tag: 'Cursor'; readonly value: string }
+  ShapeRendering: (value: string) => {
+    readonly _tag: 'ShapeRendering'
+    readonly value: string
+  }
+  TextRendering: (value: string) => {
+    readonly _tag: 'TextRendering'
+    readonly value: string
+  }
+  ImageRendering: (value: string) => {
+    readonly _tag: 'ImageRendering'
+    readonly value: string
+  }
+  ClipPath: (value: string) => {
+    readonly _tag: 'ClipPath'
+    readonly value: string
+  }
+  Mask: (value: string) => { readonly _tag: 'Mask'; readonly value: string }
+  Filter: (value: string) => { readonly _tag: 'Filter'; readonly value: string }
+  ClipPathUnits: (value: string) => {
+    readonly _tag: 'ClipPathUnits'
+    readonly value: string
+  }
+  MaskUnits: (value: string) => {
+    readonly _tag: 'MaskUnits'
+    readonly value: string
+  }
+  MaskContentUnits: (value: string) => {
+    readonly _tag: 'MaskContentUnits'
+    readonly value: string
+  }
+  FilterUnits: (value: string) => {
+    readonly _tag: 'FilterUnits'
+    readonly value: string
+  }
+  PrimitiveUnits: (value: string) => {
+    readonly _tag: 'PrimitiveUnits'
+    readonly value: string
+  }
+  Offset: (value: string) => { readonly _tag: 'Offset'; readonly value: string }
+  StopColor: (value: string) => {
+    readonly _tag: 'StopColor'
+    readonly value: string
+  }
+  StopOpacity: (value: string) => {
+    readonly _tag: 'StopOpacity'
+    readonly value: string
+  }
+  GradientUnits: (value: string) => {
+    readonly _tag: 'GradientUnits'
+    readonly value: string
+  }
+  GradientTransform: (value: string) => {
+    readonly _tag: 'GradientTransform'
+    readonly value: string
+  }
+  SpreadMethod: (value: string) => {
+    readonly _tag: 'SpreadMethod'
+    readonly value: string
+  }
+  Fx: (value: string) => { readonly _tag: 'Fx'; readonly value: string }
+  Fy: (value: string) => { readonly _tag: 'Fy'; readonly value: string }
+  Fr: (value: string) => { readonly _tag: 'Fr'; readonly value: string }
+  PatternUnits: (value: string) => {
+    readonly _tag: 'PatternUnits'
+    readonly value: string
+  }
+  PatternContentUnits: (value: string) => {
+    readonly _tag: 'PatternContentUnits'
+    readonly value: string
+  }
+  PatternTransform: (value: string) => {
+    readonly _tag: 'PatternTransform'
+    readonly value: string
+  }
+  MarkerStart: (value: string) => {
+    readonly _tag: 'MarkerStart'
+    readonly value: string
+  }
+  MarkerMid: (value: string) => {
+    readonly _tag: 'MarkerMid'
+    readonly value: string
+  }
+  MarkerEnd: (value: string) => {
+    readonly _tag: 'MarkerEnd'
+    readonly value: string
+  }
+  MarkerWidth: (value: string) => {
+    readonly _tag: 'MarkerWidth'
+    readonly value: string
+  }
+  MarkerHeight: (value: string) => {
+    readonly _tag: 'MarkerHeight'
+    readonly value: string
+  }
+  MarkerUnits: (value: string) => {
+    readonly _tag: 'MarkerUnits'
+    readonly value: string
+  }
+  RefX: (value: string) => { readonly _tag: 'RefX'; readonly value: string }
+  RefY: (value: string) => { readonly _tag: 'RefY'; readonly value: string }
+  Orient: (value: string) => { readonly _tag: 'Orient'; readonly value: string }
+  PreserveAspectRatio: (value: string) => {
+    readonly _tag: 'PreserveAspectRatio'
+    readonly value: string
+  }
   OnMount: (action: MountAction<Message, any>) => {
     readonly _tag: 'OnMount'
     readonly action: MountAction<Message, any>
@@ -4182,6 +4774,70 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   Opacity: (value: string) => Opacity({ value }),
   StrokeDasharray: (value: string) => StrokeDasharray({ value }),
   StrokeDashoffset: (value: string) => StrokeDashoffset({ value }),
+  Dx: (value: string) => Dx({ value }),
+  Dy: (value: string) => Dy({ value }),
+  Rotate: (value: string) => Rotate({ value }),
+  TextAnchor: (value: string) => TextAnchor({ value }),
+  DominantBaseline: (value: string) => DominantBaseline({ value }),
+  AlignmentBaseline: (value: string) => AlignmentBaseline({ value }),
+  BaselineShift: (value: string) => BaselineShift({ value }),
+  TextLength: (value: string) => TextLength({ value }),
+  LengthAdjust: (value: string) => LengthAdjust({ value }),
+  FontFamily: (value: string) => FontFamily({ value }),
+  FontSize: (value: string) => FontSize({ value }),
+  FontWeight: (value: string) => FontWeight({ value }),
+  FontStyle: (value: string) => FontStyle({ value }),
+  LetterSpacing: (value: string) => LetterSpacing({ value }),
+  WordSpacing: (value: string) => WordSpacing({ value }),
+  TextDecoration: (value: string) => TextDecoration({ value }),
+  WritingMode: (value: string) => WritingMode({ value }),
+  Rx: (value: string) => Rx({ value }),
+  Ry: (value: string) => Ry({ value }),
+  PathLength: (value: string) => PathLength({ value }),
+  FillOpacity: (value: string) => FillOpacity({ value }),
+  StrokeOpacity: (value: string) => StrokeOpacity({ value }),
+  StrokeMiterlimit: (value: string) => StrokeMiterlimit({ value }),
+  PaintOrder: (value: string) => PaintOrder({ value }),
+  VectorEffect: (value: string) => VectorEffect({ value }),
+  Color: (value: string) => Color({ value }),
+  Visibility: (value: string) => Visibility({ value }),
+  Display: (value: string) => Display({ value }),
+  Overflow: (value: string) => Overflow({ value }),
+  PointerEvents: (value: string) => PointerEvents({ value }),
+  Cursor: (value: string) => Cursor({ value }),
+  ShapeRendering: (value: string) => ShapeRendering({ value }),
+  TextRendering: (value: string) => TextRendering({ value }),
+  ImageRendering: (value: string) => ImageRendering({ value }),
+  ClipPath: (value: string) => ClipPath({ value }),
+  Mask: (value: string) => Mask({ value }),
+  Filter: (value: string) => Filter({ value }),
+  ClipPathUnits: (value: string) => ClipPathUnits({ value }),
+  MaskUnits: (value: string) => MaskUnits({ value }),
+  MaskContentUnits: (value: string) => MaskContentUnits({ value }),
+  FilterUnits: (value: string) => FilterUnits({ value }),
+  PrimitiveUnits: (value: string) => PrimitiveUnits({ value }),
+  Offset: (value: string) => Offset({ value }),
+  StopColor: (value: string) => StopColor({ value }),
+  StopOpacity: (value: string) => StopOpacity({ value }),
+  GradientUnits: (value: string) => GradientUnits({ value }),
+  GradientTransform: (value: string) => GradientTransform({ value }),
+  SpreadMethod: (value: string) => SpreadMethod({ value }),
+  Fx: (value: string) => Fx({ value }),
+  Fy: (value: string) => Fy({ value }),
+  Fr: (value: string) => Fr({ value }),
+  PatternUnits: (value: string) => PatternUnits({ value }),
+  PatternContentUnits: (value: string) => PatternContentUnits({ value }),
+  PatternTransform: (value: string) => PatternTransform({ value }),
+  MarkerStart: (value: string) => MarkerStart({ value }),
+  MarkerMid: (value: string) => MarkerMid({ value }),
+  MarkerEnd: (value: string) => MarkerEnd({ value }),
+  MarkerWidth: (value: string) => MarkerWidth({ value }),
+  MarkerHeight: (value: string) => MarkerHeight({ value }),
+  MarkerUnits: (value: string) => MarkerUnits({ value }),
+  RefX: (value: string) => RefX({ value }),
+  RefY: (value: string) => RefY({ value }),
+  Orient: (value: string) => Orient({ value }),
+  PreserveAspectRatio: (value: string) => PreserveAspectRatio({ value }),
   OnMount: (action: MountAction<Message, any>) => OnMount({ action }),
   /**
    * Dispatches `message` when this element is removed from the DOM by a
