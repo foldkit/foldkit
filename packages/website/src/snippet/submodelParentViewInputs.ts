@@ -3,7 +3,7 @@ import { type Document, html } from 'foldkit/html'
 
 import { GotCollapsibleMessage, type Message } from './message'
 import type { Model } from './model'
-import { Collapsible } from './page'
+import * as Collapsible from './page/collapsible'
 
 // The parent passes `viewInputs` alongside model/view/toParentMessage.
 // `summary` and `content` are Html the parent builds; the child slots
