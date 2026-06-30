@@ -285,11 +285,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         para(
           'Use the ',
           inlineCode('data-open'),
-          ' attribute to style the button and panel differently when open. A common pattern is rotating a chevron icon and changing border radius: ',
-          inlineCode('data-[open]:rounded-b-none'),
-          ' on the button, ',
-          inlineCode('rounded-b-lg'),
-          ' on the panel.',
+          ' attribute to style the button and panel differently when open.',
         ),
         dataAttributeTable(dataAttributes),
         heading(

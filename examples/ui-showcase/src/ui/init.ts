@@ -80,7 +80,10 @@ export const uiInit = (
       id: 'nested-dialog-parent-demo',
     }),
     nestedDialogChildDemo: Dialog.init({ id: 'nested-dialog-child-demo' }),
-    disclosureDemo: Disclosure.init({ id: 'disclosure-demo' }),
+    disclosureBasicDemo: Disclosure.init({ id: 'disclosure-basic-demo' }),
+    disclosureAnimatedDemo: Disclosure.init({
+      id: 'disclosure-animated-demo',
+    }),
     dragAndDropDemo: DragAndDrop.init({ id: 'drag-and-drop-demo' }),
     dragAndDropDemoColumns: [
       {

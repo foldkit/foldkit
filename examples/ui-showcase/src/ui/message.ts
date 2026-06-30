@@ -120,9 +120,18 @@ export const ClickedOpenDialog = m('ClickedOpenDialog')
 export const ClickedOpenAnimatedDialog = m('ClickedOpenAnimatedDialog')
 export const ClickedEditFilters = m('ClickedEditFilters')
 export const ClickedOpenProjectSettings = m('ClickedOpenProjectSettings')
-export const GotDisclosureDemoMessage = m('GotDisclosureDemoMessage', {
-  message: Disclosure.Message,
-})
+export const GotDisclosureBasicDemoMessage = m(
+  'GotDisclosureBasicDemoMessage',
+  {
+    message: Disclosure.Message,
+  },
+)
+export const GotDisclosureAnimatedDemoMessage = m(
+  'GotDisclosureAnimatedDemoMessage',
+  {
+    message: Disclosure.Message,
+  },
+)
 export const GotCalendarBasicDemoMessage = m('GotCalendarBasicDemoMessage', {
   message: Calendar.Message,
 })
@@ -271,7 +280,8 @@ export const UiMessage = S.Union([
   ClickedOpenAnimatedDialog,
   ClickedEditFilters,
   ClickedOpenProjectSettings,
-  GotDisclosureDemoMessage,
+  GotDisclosureBasicDemoMessage,
+  GotDisclosureAnimatedDemoMessage,
   GotCalendarBasicDemoMessage,
   GotDatePickerBasicDemoMessage,
   GotDragAndDropDemoMessage,

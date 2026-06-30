@@ -32,7 +32,8 @@ import {
   GotDatePickerBasicDemoMessage,
   GotDialogAnimatedDemoMessage,
   GotDialogDemoMessage,
-  GotDisclosureDemoMessage,
+  GotDisclosureAnimatedDemoMessage,
+  GotDisclosureBasicDemoMessage,
   GotDragAndDropDemoMessage,
   GotFieldsetCheckboxDemoMessage,
   GotFileDropBasicDemoMessage,
@@ -521,18 +522,30 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
         ]
       },
 
-      GotDisclosureDemoMessage: ({ message }) => {
-        const [nextDisclosureDemo, disclosureCommands] = Disclosure.update(
-          model.disclosureDemo,
-          message,
-        )
+      GotDisclosureBasicDemoMessage: ({ message }) => {
+        const [nextDisclosureBasicDemo, disclosureBasicCommands] =
+          Disclosure.update(model.disclosureBasicDemo, message)
 
         return [
           evo(model, {
-            disclosureDemo: () => nextDisclosureDemo,
+            disclosureBasicDemo: () => nextDisclosureBasicDemo,
           }),
-          Command.mapMessages(disclosureCommands, message =>
-            GotDisclosureDemoMessage({ message }),
+          Command.mapMessages(disclosureBasicCommands, message =>
+            GotDisclosureBasicDemoMessage({ message }),
+          ),
+        ]
+      },
+
+      GotDisclosureAnimatedDemoMessage: ({ message }) => {
+        const [nextDisclosureAnimatedDemo, disclosureAnimatedCommands] =
+          Disclosure.update(model.disclosureAnimatedDemo, message)
+
+        return [
+          evo(model, {
+            disclosureAnimatedDemo: () => nextDisclosureAnimatedDemo,
+          }),
+          Command.mapMessages(disclosureAnimatedCommands, message =>
+            GotDisclosureAnimatedDemoMessage({ message }),
           ),
         ]
       },

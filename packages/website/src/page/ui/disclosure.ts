@@ -7,11 +7,14 @@ import { GotDisclosureDemoMessage, type Message } from './message'
 
 // DEMO CONTENT
 
+const containerClassName =
+  'border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden'
+
 const buttonClassName =
-  'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 select-none'
+  'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition text-gray-900 dark:text-white hover:bg-gray-200/50 dark:hover:bg-gray-800 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 select-none'
 
 const panelClassName =
-  'px-4 py-3 border-x border-b border-gray-300 dark:border-gray-700 rounded-b-lg text-gray-800 dark:text-gray-200'
+  'px-4 py-3 border-t border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-200'
 
 // VIEW
 
@@ -39,7 +42,7 @@ export const disclosureDemo = (disclosureModel: Disclosure.Model) => {
           viewInputs: {
             toView: attributes =>
               h.div(
-                [],
+                [h.Class(containerClassName)],
                 [
                   h.button(
                     [...attributes.button, h.Class(buttonClassName)],
