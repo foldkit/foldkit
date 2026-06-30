@@ -30,6 +30,7 @@
     "foldkit/message-binding-matches-tag": "error",
     "foldkit/got-prefix-requires-submodel-payload": "error",
     "foldkit/no-empty-object-tagged-call": "error",
+    "foldkit/no-route-query-constructor-default": "error",
     "foldkit/prefer-callable-message-constructor": "error",
     "foldkit/command-binding-matches-name": "error"
   },

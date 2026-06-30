@@ -90,6 +90,39 @@ const isMemberCall = (
   node.callee.type === 'MemberExpression' &&
   isStaticMember(node.callee, objectName, propertyNames)
 
+const calleePropertyName = (
+  node: ESTree.CallExpression,
+): string | undefined => {
+  const callee = node.callee
+  if (isIdentifier(callee)) {
+    return callee.name
+  }
+  if (
+    callee.type === 'MemberExpression' &&
+    !callee.computed &&
+    isIdentifier(callee.property)
+  ) {
+    return callee.property.name
+  }
+  return undefined
+}
+
+const isWithConstructorDefaultCall = (node: unknown): boolean => {
+  if (
+    typeof node !== 'object' ||
+    node === null ||
+    !('type' in node) ||
+    node.type !== 'CallExpression' ||
+    !('callee' in node)
+  ) {
+    return false
+  }
+  return (
+    calleePropertyName(node as ESTree.CallExpression) ===
+    'withConstructorDefault'
+  )
+}
+
 const hasTagPropertyWithStringLiteral = (
   node: ESTree.ObjectExpression,
 ): boolean =>
@@ -150,6 +183,24 @@ const innerCommandDefineCall = (
   if (callee.type !== 'CallExpression') return undefined
   if (!isMemberCall(callee, 'Command', ['define'])) return undefined
   return callee
+}
+
+const collectWithConstructorDefaultCalls = (
+  node: unknown,
+): ReadonlyArray<ESTree.CallExpression> => {
+  if (typeof node !== 'object' || node === null) {
+    return []
+  }
+  if (Array.isArray(node)) {
+    return node.flatMap(collectWithConstructorDefaultCalls)
+  }
+  const matches = isWithConstructorDefaultCall(node)
+    ? [node as ESTree.CallExpression]
+    : []
+  const nested = Object.entries(node).flatMap(([key, value]) =>
+    key === 'parent' ? [] : collectWithConstructorDefaultCalls(value),
+  )
+  return [...matches, ...nested]
 }
 
 // RULES
@@ -329,6 +380,46 @@ export const noEmptyObjectTaggedCall = Rule.define({
   },
 })
 
+export const noRouteQueryConstructorDefault = Rule.define({
+  name: 'no-route-query-constructor-default',
+  meta: Rule.meta({
+    type: 'problem',
+    description:
+      'Avoid Schema.withConstructorDefault on Route.query fields; it breaks Route.query plus Route.mapTo composition.',
+  }),
+  create: function* () {
+    const ctx = yield* RuleContext
+    return {
+      CallExpression: (node: ESTree.Node) => {
+        if (
+          !isCallExpression(node) ||
+          !isMemberCall(node, 'Route', ['query'])
+        ) {
+          return Effect.void
+        }
+        const offendingCalls = node.arguments.flatMap(
+          collectWithConstructorDefaultCalls,
+        )
+        if (offendingCalls.length === 0) {
+          return Effect.void
+        }
+        return Effect.forEach(
+          offendingCalls,
+          offendingCall =>
+            ctx.report(
+              Diagnostic.make({
+                node: offendingCall,
+                message:
+                  'Schema.withConstructorDefault on a Route.query field makes it optional in the constructor-input type that Route.mapTo encodes, so the Route.query plus Route.mapTo pipe stops typechecking. Drop the default.',
+              }),
+            ),
+          { discard: true },
+        )
+      },
+    }
+  },
+})
+
 export const preferCallableMessageConstructor = Rule.define({
   name: 'prefer-callable-message-constructor',
   meta: Rule.meta({
@@ -420,6 +511,7 @@ export default Plugin.define({
     'message-binding-matches-tag': messageBindingMatchesTag,
     'no-empty-object-tagged-call': noEmptyObjectTaggedCall,
     'no-noop-message': noNoopMessage,
+    'no-route-query-constructor-default': noRouteQueryConstructorDefault,
     'prefer-callable-message-constructor': preferCallableMessageConstructor,
   },
 })
