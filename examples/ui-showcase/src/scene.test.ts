@@ -81,6 +81,16 @@ describe('view', () => {
     })
   })
 
+  test('the Disclosure panel stays mounted while collapsed so it can animate', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(modelForRoute(DisclosureRoute())),
+      Scene.expect(
+        Scene.text('Foldkit is an Elm-inspired UI framework', { exact: false }),
+      ).toExist(),
+    )
+  })
+
   test('the NotFound route renders the 404 panel and a Go Home link', () => {
     Scene.scene(
       { update, view },
