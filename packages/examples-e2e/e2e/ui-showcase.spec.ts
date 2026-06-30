@@ -16,6 +16,23 @@ test.describe('ui-showcase example', () => {
     await expect(page).toHaveURL(/\/button$/)
   })
 
+  test('opens the listbox when its external label is clicked', async ({
+    page,
+  }) => {
+    await page.goto('/')
+    await page
+      .getByRole('link', { name: 'Listbox', exact: true })
+      .first()
+      .click()
+    await expect(page).toHaveURL(/\/listbox$/)
+
+    const trigger = page.locator('#listbox-demo-button')
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+
+    await page.getByText('Family member', { exact: true }).click()
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+  })
+
   test('releases the scroll lock when navigating away from an open dialog', async ({
     page,
   }) => {

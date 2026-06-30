@@ -71,25 +71,22 @@ GotListboxMessage: ({ message }) => {
 const plans: ReadonlyArray<Plan> = ['Free', 'Pro', 'Enterprise']
 
 // Inside your view function, embed the Listbox via h.submodel using
-// `PlanListbox.view`. Associate an external label with the trigger: target
-// the trigger id with `Listbox.buttonId('plan')` from a native `<label for>`
-// for click-to-focus, and pass `ariaLabelledBy` so the trigger has an
-// accessible name.
+// `PlanListbox.view`. Associate a visible label with the trigger via a native
+// `<label for>`: target the trigger id with `Listbox.buttonId('plan')`. The
+// `for` association gives the trigger both its accessible name and
+// click-to-focus, so ariaLabelledBy is not needed here.
 const view = (model: Model) => {
   const h = html<Message>()
-
-  const labelId = 'plan-label'
 
   return h.div(
     [],
     [
-      h.label([h.Id(labelId), h.For(Listbox.buttonId('plan'))], ['Plan']),
+      h.label([h.For(Listbox.buttonId('plan'))], ['Plan']),
       h.submodel({
         slotId: 'plan',
         model: model.listbox,
         view: PlanListbox.view,
         viewInputs: {
-          ariaLabelledBy: labelId,
           // `items` must be ReadonlyArray<Plan>. The factory's <Plan> parameter constrains the shape.
           items: plans,
           buttonContent: h.span(

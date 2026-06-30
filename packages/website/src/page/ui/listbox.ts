@@ -116,15 +116,13 @@ export const basicDemo = (listboxModel: Listbox.Model) => {
     () => 'Select a Bluth',
   )
 
-  const labelId = `${listboxModel.id}-label`
-
   return [
     h.div(
       [h.Class('flex flex-col gap-1.5')],
       [
         h.label(
           [
-            h.Id(labelId),
+            h.For(Listbox.buttonId(listboxModel.id)),
             h.Class('text-sm font-medium text-gray-900 dark:text-white'),
           ],
           ['Family member'],
@@ -137,7 +135,6 @@ export const basicDemo = (listboxModel: Listbox.Model) => {
               model: listboxModel,
               view: ItemListbox.view,
               viewInputs: {
-                ariaLabelledBy: labelId,
                 anchor: LISTBOX_ANCHOR,
                 items: LISTBOX_ITEMS,
                 itemToConfig: item => ({
@@ -182,15 +179,13 @@ export const multiSelectDemo = (listboxModel: Listbox.Multi.Model) => {
       items.length === 1 ? items[0] : `${items.length} selected`,
   })
 
-  const labelId = `${listboxModel.id}-label`
-
   return [
     h.div(
       [h.Class('flex flex-col gap-1.5')],
       [
         h.label(
           [
-            h.Id(labelId),
+            h.For(Listbox.Multi.buttonId(listboxModel.id)),
             h.Class('text-sm font-medium text-gray-900 dark:text-white'),
           ],
           ['Family members'],
@@ -203,7 +198,6 @@ export const multiSelectDemo = (listboxModel: Listbox.Multi.Model) => {
               model: listboxModel,
               view: ItemMultiListbox.view,
               viewInputs: {
-                ariaLabelledBy: labelId,
                 anchor: LISTBOX_ANCHOR,
                 items: LISTBOX_ITEMS,
                 itemToConfig: item => ({
@@ -247,15 +241,13 @@ export const groupedDemo = (listboxModel: Listbox.Model) => {
     () => 'Select a character',
   )
 
-  const labelId = `${listboxModel.id}-label`
-
   return [
     h.div(
       [h.Class('flex flex-col gap-1.5')],
       [
         h.label(
           [
-            h.Id(labelId),
+            h.For(Listbox.buttonId(listboxModel.id)),
             h.Class('text-sm font-medium text-gray-900 dark:text-white'),
           ],
           ['Character'],
@@ -268,7 +260,6 @@ export const groupedDemo = (listboxModel: Listbox.Model) => {
               model: listboxModel,
               view: CharacterListbox.view,
               viewInputs: {
-                ariaLabelledBy: labelId,
                 anchor: LISTBOX_ANCHOR,
                 items: GROUPED_CHARACTERS,
                 itemToValue: characterName,
