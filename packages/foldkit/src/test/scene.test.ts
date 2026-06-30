@@ -9,6 +9,11 @@ import {
   view as bubblingView,
 } from './apps/bubbling.js'
 import {
+  initialModel as captureInitialModel,
+  update as captureUpdate,
+  view as captureView,
+} from './apps/captureAttribute.js'
+import {
   FetchCount,
   FetchCountById,
   SucceededFetchCount,
@@ -3188,6 +3193,21 @@ describe('scene with svg attribute builders', () => {
       Scene.expect(Scene.testId('svg-stop')).toHaveAttr('offset', '0.5'),
       Scene.expect(Scene.testId('svg-marker')).toHaveAttr('orient', 'auto'),
       Scene.expect(Scene.testId('svg-root')).toHaveAttr('color', 'black'),
+    )
+  })
+})
+
+describe('scene with capture attribute builder', () => {
+  const renderCapture = { update: captureUpdate, view: captureView }
+
+  test('Capture renders the capture DOM attribute', () => {
+    Scene.scene(
+      renderCapture,
+      Scene.with(captureInitialModel),
+      Scene.expect(Scene.testId('capture-input')).toHaveAttr(
+        'capture',
+        'environment',
+      ),
     )
   })
 })

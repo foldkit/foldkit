@@ -551,6 +551,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
   Multiple: { readonly value: boolean }
   Type: { readonly value: string }
   Accept: { readonly value: string }
+  Capture: { readonly value: string }
   Autocomplete: { readonly value: string }
   Pattern: { readonly value: string }
   Maxlength: { readonly value: number }
@@ -873,6 +874,7 @@ const {
   Multiple,
   Type,
   Accept,
+  Capture,
   Autocomplete,
   Pattern,
   Maxlength,
@@ -1791,6 +1793,10 @@ const attributeMatcher: (
       ({ value }) =>
       (ctx: BuildContext) =>
         updateDataProps(ctx, { accept: value }),
+    Capture:
+      ({ value }) =>
+      (ctx: BuildContext) =>
+        updateDataAttrs(ctx, { capture: value }),
     Autocomplete:
       ({ value }) =>
       (ctx: BuildContext) =>
@@ -3747,6 +3753,10 @@ type HtmlAttributes<Message> = {
   }
   Type: (value: string) => { readonly _tag: 'Type'; readonly value: string }
   Accept: (value: string) => { readonly _tag: 'Accept'; readonly value: string }
+  Capture: (value: string) => {
+    readonly _tag: 'Capture'
+    readonly value: string
+  }
   Autocomplete: (value: string) => {
     readonly _tag: 'Autocomplete'
     readonly value: string
@@ -4630,6 +4640,7 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   Multiple: (value: boolean) => Multiple({ value }),
   Type: (value: string) => Type({ value }),
   Accept: (value: string) => Accept({ value }),
+  Capture: (value: string) => Capture({ value }),
   Autocomplete: (value: string) => Autocomplete({ value }),
   Pattern: (value: string) => Pattern({ value }),
   Maxlength: (value: number) => Maxlength({ value }),
