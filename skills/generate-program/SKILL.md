@@ -315,7 +315,7 @@ For each Foldkit module you plan to use, read the `.d.ts` at the paths below. Re
 
 # If using async / side effects
 <project>/node_modules/foldkit/dist/command/index.d.ts  # Command.define: result schemas are required
-<project>/node_modules/foldkit/dist/dom/index.d.ts      # focus, advanceFocus, scrollIntoView, showModal, closeModal, clickElement, lockScroll, unlockScroll, inertOthers, restoreInert, detectElementMovement, waitForAnimationSettled. For time/random/uuid/delay use Effect's Clock, Random, Effect.uuid, Effect.sleep + Duration directly.
+<project>/node_modules/foldkit/dist/dom/index.d.ts      # focus, advanceFocus, scrollIntoView, showDialog, closeDialog, clickElement, lockScroll, unlockScroll, inertOthers, restoreInert, detectElementMovement, waitForAnimationSettled. For time/random/uuid/delay use Effect's Clock, Random, Effect.uuid, Effect.sleep + Duration directly.
 
 # If using subscriptions
 <project>/node_modules/foldkit/dist/subscription/index.d.ts # Subscription.make<Model, Message>, Subscription.lift, Subscription.aggregate
@@ -456,7 +456,7 @@ Every message must carry meaning. No `NoOp`.
 - Use `Effect.provide` for services
 - Factory functions named by action: `fetchWeather`, not `fetchWeatherCommand`
 - Fire-and-forget Commands return `Completed*` Messages
-- Use Foldkit's `Dom` module for DOM operations (`Dom.focus`, `Dom.scrollIntoView`, `Dom.showModal`, `Dom.lockScroll`, etc.) and Effect built-ins for everything else (`Clock.currentTimeMillis`, `Random.nextIntBetween`, `Effect.uuid`, `Effect.sleep(Duration.millis(...))`). See DOM and Effect Helpers in [architecture.md](architecture.md)
+- Use Foldkit's `Dom` module for DOM operations (`Dom.focus`, `Dom.scrollIntoView`, `Dom.showDialog`, `Dom.lockScroll`, etc.) and Effect built-ins for everything else (`Clock.currentTimeMillis`, `Random.nextIntBetween`, `Effect.uuid`, `Effect.sleep(Duration.millis(...))`). See DOM and Effect Helpers in [architecture.md](architecture.md)
 - For HTTP requests, use `HttpClient` from `@effect/platform`. See the weather example for the pattern
 
 ### Form Validation

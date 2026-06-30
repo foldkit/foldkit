@@ -5,7 +5,7 @@ import { describe, it } from '@effect/vitest'
 
 import {
   ElementNotFound,
-  closeModal,
+  closeDialog,
   focus,
   inertOthers,
   lockScroll,
@@ -13,7 +13,7 @@ import {
   restoreInert,
   scrollIntoView,
   scrollIntoViewAfterPaint,
-  showModal,
+  showDialog,
   unlockScroll,
 } from './index.js'
 
@@ -354,7 +354,7 @@ describe('restoreInert', () => {
   )
 })
 
-describe('showModal', () => {
+describe('showDialog', () => {
   const makeDialog = (id: string): HTMLDialogElement => {
     const dialog = document.createElement('dialog')
     dialog.id = id
@@ -393,12 +393,12 @@ describe('showModal', () => {
         .querySelector('#solo')
         ?.addEventListener('cancel', () => cancelled.push('solo'))
 
-      yield* showModal('#solo')
+      yield* showDialog('#solo')
       pressEscape()
 
       expect(cancelled).toEqual(['solo'])
 
-      yield* closeModal('#solo')
+      yield* closeDialog('#solo')
       document.body.innerHTML = ''
     }),
   )
@@ -417,17 +417,17 @@ describe('showModal', () => {
           .querySelector('#child')
           ?.addEventListener('cancel', () => cancelled.push('child'))
 
-        yield* showModal('#parent')
-        yield* showModal('#child')
+        yield* showDialog('#parent')
+        yield* showDialog('#child')
 
         pressEscape()
         expect(cancelled).toEqual(['child'])
 
-        yield* closeModal('#child')
+        yield* closeDialog('#child')
         pressEscape()
         expect(cancelled).toEqual(['child', 'parent'])
 
-        yield* closeModal('#parent')
+        yield* closeDialog('#parent')
         document.body.innerHTML = ''
       }),
   )
@@ -440,7 +440,7 @@ describe('showModal', () => {
         .querySelector('#solo')
         ?.addEventListener('cancel', () => cancelled.push('solo'))
 
-      yield* showModal('#solo')
+      yield* showDialog('#solo')
 
       const event = new KeyboardEvent('keydown', {
         key: 'Escape',
@@ -452,7 +452,7 @@ describe('showModal', () => {
 
       expect(cancelled).toEqual([])
 
-      yield* closeModal('#solo')
+      yield* closeDialog('#solo')
       document.body.innerHTML = ''
     }),
   )
@@ -462,8 +462,8 @@ describe('showModal', () => {
       const parent = makeDialog('parent')
       const child = makeDialog('child')
 
-      yield* showModal('#parent')
-      yield* showModal('#child')
+      yield* showDialog('#parent')
+      yield* showDialog('#child')
 
       child.querySelector<HTMLButtonElement>('button')?.focus()
       expect(pressTab().defaultPrevented).toBe(true)
@@ -471,8 +471,8 @@ describe('showModal', () => {
       parent.querySelector<HTMLButtonElement>('button')?.focus()
       expect(pressTab().defaultPrevented).toBe(false)
 
-      yield* closeModal('#child')
-      yield* closeModal('#parent')
+      yield* closeDialog('#child')
+      yield* closeDialog('#parent')
       document.body.innerHTML = ''
     }),
   )
@@ -485,8 +485,8 @@ describe('showModal', () => {
       makeDialog('solo')
 
       trigger.focus()
-      yield* showModal('#solo')
-      yield* closeModal('#solo')
+      yield* showDialog('#solo')
+      yield* closeDialog('#solo')
 
       expect(document.activeElement).toBe(trigger)
       document.body.innerHTML = ''
@@ -501,14 +501,14 @@ describe('showModal', () => {
         makeDialog('child')
         const parentButton = parent.querySelector<HTMLButtonElement>('button')
 
-        yield* showModal('#parent')
+        yield* showDialog('#parent')
         parentButton?.focus()
-        yield* showModal('#child')
-        yield* closeModal('#child')
+        yield* showDialog('#child')
+        yield* closeDialog('#child')
 
         expect(document.activeElement).toBe(parentButton)
 
-        yield* closeModal('#parent')
+        yield* closeDialog('#parent')
         document.body.innerHTML = ''
       }),
   )
@@ -553,7 +553,7 @@ describe('releaseDialogResources', () => {
 
         trigger.focus()
         yield* lockScroll
-        yield* showModal('#solo')
+        yield* showDialog('#solo')
         expect(document.documentElement.style.overflow).toBe('hidden')
 
         // The real unmount scenario: the element is gone before the backstop
@@ -586,7 +586,7 @@ describe('releaseDialogResources', () => {
 
         trigger.focus()
         yield* lockScroll
-        yield* showModal('#solo')
+        yield* showDialog('#solo')
         expect(document.documentElement.style.overflow).toBe('hidden')
 
         const cancelled: Array<string> = []
@@ -613,7 +613,7 @@ describe('releaseDialogResources', () => {
     Effect.gen(function* () {
       makeDialog('solo')
       yield* lockScroll
-      yield* showModal('#solo')
+      yield* showDialog('#solo')
 
       const first = yield* releaseDialogResources('solo')
       const second = yield* releaseDialogResources('solo')
@@ -630,9 +630,9 @@ describe('releaseDialogResources', () => {
     Effect.gen(function* () {
       makeDialog('solo')
       yield* lockScroll
-      yield* showModal('#solo')
+      yield* showDialog('#solo')
 
-      yield* closeModal('#solo')
+      yield* closeDialog('#solo')
       yield* unlockScroll
       expect(document.documentElement.style.overflow).toBe('')
 
@@ -648,7 +648,7 @@ describe('releaseDialogResources', () => {
     Effect.gen(function* () {
       makeDialog('solo')
       yield* lockScroll
-      yield* showModal('#solo')
+      yield* showDialog('#solo')
 
       // A second, unrelated holder takes the shared scroll lock.
       yield* lockScroll
@@ -678,9 +678,9 @@ describe('releaseDialogResources', () => {
         parent.addEventListener('cancel', () => cancelled.push('parent'))
 
         yield* lockScroll
-        yield* showModal('#parent')
+        yield* showDialog('#parent')
         yield* lockScroll
-        yield* showModal('#child')
+        yield* showDialog('#child')
 
         const released = yield* releaseDialogResources('child')
         expect(released).toBe(true)

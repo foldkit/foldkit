@@ -110,16 +110,16 @@ export const focus = (
  *
  * Pass `focusSelector` to focus an element inside the dialog when it opens.
  *
- * Records the element that had focus when the dialog opened so `closeModal`
+ * Records the element that had focus when the dialog opened so `closeDialog`
  * can return focus there, the way `showModal()` would natively.
  *
  * @example
  * ```typescript
- * Dom.showModal('#my-dialog')
- * Dom.showModal('#my-dialog', { focusSelector: '#search-input' })
+ * Dom.showDialog('#my-dialog')
+ * Dom.showDialog('#my-dialog', { focusSelector: '#search-input' })
  * ```
  */
-export const showModal = (
+export const showDialog = (
   selector: string,
   options?: Readonly<{ focusSelector?: string }>,
 ): Effect.Effect<void, ElementNotFound> =>
@@ -220,17 +220,17 @@ const trapFocusWithinDialog = (
 
 /**
  * Closes a dialog element using `.close()`.
- * Cleans up the keyboard handlers installed by `showModal` and restores focus to
+ * Cleans up the keyboard handlers installed by `showDialog` and restores focus to
  * the element that was focused before the dialog opened (the trigger, or the
  * dialog beneath it when closing a stacked dialog).
  * Fails with `ElementNotFound` if the selector does not match an `HTMLDialogElement`.
  *
  * @example
  * ```typescript
- * Dom.closeModal('#my-dialog')
+ * Dom.closeDialog('#my-dialog')
  * ```
  */
-export const closeModal = (
+export const closeDialog = (
   selector: string,
 ): Effect.Effect<void, ElementNotFound> =>
   Effect.suspend(() => {
@@ -268,13 +268,13 @@ const releaseDialogHygieneById = (id: string): boolean => {
  * z-index counter, and one page scroll lock. Use this as a backstop for the
  * case where a dialog's element is removed from the DOM without a purposeful
  * close, the classic example being navigation away from a route-keyed subtree
- * that contains the dialog. The normal close path (`closeModal` plus the
+ * that contains the dialog. The normal close path (`closeDialog` plus the
  * Dialog component's `unlockScroll` Command) already releases these, so this
  * is the missing teardown when no close Message ever flows through `update`.
  *
  * Addressed by the dialog's id, not a selector, because the element is
  * typically already gone from the DOM by the time this runs (that is the whole
- * point of the backstop). The hygiene installed by `showModal` is tracked by
+ * point of the backstop). The hygiene installed by `showDialog` is tracked by
  * id so it can be reclaimed without a live element handle. The id must be
  * non-empty and unique within the document, since it keys this cleanup
  * accounting; a duplicate or empty id would release the wrong dialog's hygiene.

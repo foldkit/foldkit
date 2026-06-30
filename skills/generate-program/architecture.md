@@ -287,8 +287,8 @@ Import as `import { Dom } from 'foldkit'` (or `import * as Dom from 'foldkit/dom
 | `Dom.focus(selector)`              | Focus a DOM element by CSS selector                          |
 | `Dom.advanceFocus(direction)`      | Move focus to the next/previous focusable element            |
 | `Dom.scrollIntoView(selector)`     | Scroll an element into view                                  |
-| `Dom.showModal(selector)`          | Show a `<dialog>` element as a modal                         |
-| `Dom.closeModal(selector)`         | Close a `<dialog>` element                                   |
+| `Dom.showDialog(selector)`         | Open a `<dialog>` element with `show()`                      |
+| `Dom.closeDialog(selector)`        | Close a `<dialog>` element                                   |
 | `Dom.clickElement(selector)`       | Programmatically click an element                            |
 | `Dom.lockScroll` / `unlockScroll`  | Prevent / restore page scroll (e.g. behind modals)           |
 | `Dom.inertOthers` / `restoreInert` | Toggle `inert` on siblings of an element (focus containment) |

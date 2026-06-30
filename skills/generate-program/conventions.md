@@ -455,7 +455,7 @@ import {
 Notes:
 
 - Only import what you actually use in the file. The lint pass catches unused imports.
-- Module-by-module reminders, for example: `Calendar` for `Calendar.CalendarDate`, `Calendar.today.local`, `Calendar.make`, `Calendar.addDays` etc., paired with `Ui.Calendar` or `Ui.DatePicker`. `Dom` for DOM-side-effect helpers (`Dom.focus`, `Dom.scrollIntoView`, `Dom.showModal`, `Dom.closeModal`, `Dom.lockScroll`, `Dom.unlockScroll`, `Dom.waitForAnimationSettled`, etc.). `File` for file upload primitives paired with `Ui.FileDrop`. `foldkit/fieldValidation` for form validation.
+- Module-by-module reminders, for example: `Calendar` for `Calendar.CalendarDate`, `Calendar.today.local`, `Calendar.make`, `Calendar.addDays` etc., paired with `Ui.Calendar` or `Ui.DatePicker`. `Dom` for DOM-side-effect helpers (`Dom.focus`, `Dom.scrollIntoView`, `Dom.showDialog`, `Dom.closeDialog`, `Dom.lockScroll`, `Dom.unlockScroll`, `Dom.waitForAnimationSettled`, etc.). `File` for file upload primitives paired with `Ui.FileDrop`. `foldkit/fieldValidation` for form validation.
 - For time, randomness, UUIDs, or delays, use Effect's built-ins directly rather than reaching for a Foldkit module: `Clock.currentTimeMillis`, `Random.nextIntBetween`, `Effect.uuid`, `Effect.sleep(Duration.millis(...))`.
 - When an Effect module name collides with a global, alias the Effect import with a trailing underscore: `String as String_`, `Array as Array_`, `Number as Number_`.
 - `Match as M` is Effect's Match module. Foldkit re-exports `M.value`, `M.tagsExhaustive`, `M.withReturnType` etc. through Effect's `Match`.

@@ -2,7 +2,7 @@ export {
   ElementNotFound,
   advanceFocus,
   clickElement,
-  closeModal,
+  closeDialog,
   detectElementMovement,
   focus,
   inertOthers,
@@ -12,7 +12,7 @@ export {
   scrollIntoView,
   scrollIntoViewAfterPaint,
   scrollIntoViewIfNotVisible,
-  showModal,
+  showDialog,
   unlockScroll,
   waitForAnimationSettled,
 } from './index.js'

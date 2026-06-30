@@ -2,13 +2,13 @@ export { ElementNotFound } from './error.js'
 export {
   advanceFocus,
   clickElement,
-  closeModal,
+  closeDialog,
   focus,
   releaseDialogResources,
   scrollIntoView,
   scrollIntoViewAfterPaint,
   scrollIntoViewIfNotVisible,
-  showModal,
+  showDialog,
 } from './dom.js'
 export type { FocusDirection } from './dom.js'
 export { detectElementMovement } from './elementMovement.js'

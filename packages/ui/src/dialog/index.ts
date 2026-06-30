@@ -163,7 +163,7 @@ export const ShowDialog = Command.define(
 )(({ id, maybeFocusSelector }) =>
   Dom.lockScroll.pipe(
     Effect.andThen(() =>
-      Dom.showModal(
+      Dom.showDialog(
         dialogSelector(id),
         Option.match(maybeFocusSelector, {
           onNone: () => undefined,
@@ -182,7 +182,7 @@ export const CloseDialog = Command.define(
   { id: S.String },
   CompletedCloseDialog,
 )(({ id }) =>
-  Dom.closeModal(dialogSelector(id)).pipe(
+  Dom.closeDialog(dialogSelector(id)).pipe(
     Effect.andThen(() => Dom.unlockScroll),
     Effect.ignore,
     Effect.as(CompletedCloseDialog()),
