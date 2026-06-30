@@ -80,6 +80,11 @@ import {
   view as resumeView,
 } from './apps/resumeUpload.js'
 import type { Model as ResumeModel } from './apps/resumeUpload.js'
+import {
+  initialModel as svgInitialModel,
+  update as svgUpdate,
+  view as svgView,
+} from './apps/svgAttributes.js'
 import { parseSelector } from './query.js'
 import {
   attr,
@@ -3135,5 +3140,54 @@ describe('scene mounts', () => {
         ),
       ),
     ).toThrow(/ScrollList \{"offset":240\}/)
+  })
+})
+
+describe('scene with svg attribute builders', () => {
+  const renderSvg = { update: svgUpdate, view: svgView }
+
+  test('kebab-case DOM names render with hyphens', () => {
+    Scene.scene(
+      renderSvg,
+      Scene.with(svgInitialModel),
+      Scene.expect(Scene.testId('svg-text')).toHaveAttr(
+        'text-anchor',
+        'middle',
+      ),
+      Scene.expect(Scene.testId('svg-text')).toHaveAttr('font-family', 'serif'),
+      Scene.expect(Scene.testId('svg-stop')).toHaveAttr('stop-color', 'red'),
+      Scene.expect(Scene.testId('svg-rect')).toHaveAttr(
+        'marker-end',
+        'url(#end)',
+      ),
+    )
+  })
+
+  test('camelCase DOM names render verbatim', () => {
+    Scene.scene(
+      renderSvg,
+      Scene.with(svgInitialModel),
+      Scene.expect(Scene.testId('svg-gradient')).toHaveAttr(
+        'gradientUnits',
+        'userSpaceOnUse',
+      ),
+      Scene.expect(Scene.testId('svg-marker')).toHaveAttr('refX', '3'),
+      Scene.expect(Scene.testId('svg-rect')).toHaveAttr('pathLength', '100'),
+      Scene.expect(Scene.testId('svg-root')).toHaveAttr(
+        'preserveAspectRatio',
+        'xMidYMid meet',
+      ),
+    )
+  })
+
+  test('single-word DOM names render verbatim', () => {
+    Scene.scene(
+      renderSvg,
+      Scene.with(svgInitialModel),
+      Scene.expect(Scene.testId('svg-rect')).toHaveAttr('rx', '4'),
+      Scene.expect(Scene.testId('svg-stop')).toHaveAttr('offset', '0.5'),
+      Scene.expect(Scene.testId('svg-marker')).toHaveAttr('orient', 'auto'),
+      Scene.expect(Scene.testId('svg-root')).toHaveAttr('color', 'black'),
+    )
   })
 })
