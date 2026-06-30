@@ -270,6 +270,14 @@ export const LEFT_MOUSE_BUTTON = 0
 // SELECTORS
 
 export const buttonSelector = (id: string): string => idSelector(`${id}-button`)
+
+/** Returns the bare DOM id of the listbox trigger button, derived from the
+ *  listbox's base id. Use this to associate an external label with the
+ *  trigger via a native `<label for={Listbox.buttonId(id)}>` or an
+ *  `aria-labelledby` reference. Mirrors `buttonSelector`, which returns the
+ *  CSS selector form (`#${id}-button`) rather than the bare id. */
+export const buttonId = (id: string): string => `${id}-button`
+
 export const itemsSelector = (id: string): string => idSelector(`${id}-items`)
 export const itemSelector = (id: string, index: number): string =>
   idSelector(`${id}-item-${index}`)
@@ -813,6 +821,8 @@ type BaseViewInputsCommon<Item> = Readonly<{
   form?: string
   isDisabled?: boolean
   isInvalid?: boolean
+  ariaLabel?: string
+  ariaLabelledBy?: string
 }>
 
 /** Per-render view inputs for a Listbox view. The `itemToValue` extractor
@@ -883,6 +893,8 @@ export const makeView = <Model extends BaseModel>(
         form,
         isDisabled,
         isInvalid,
+        ariaLabel,
+        ariaLabelledBy,
       } = viewInputs
 
       const itemToValue =
@@ -1069,12 +1081,25 @@ export const makeView = <Model extends BaseModel>(
           M.orElse(() => Option.none()),
         )
 
+      const resolveButtonLabel = () => {
+        if (Predicate.isNotUndefined(ariaLabel)) {
+          return [h.AriaLabel(ariaLabel)]
+        } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
+          return [h.AriaLabelledBy(ariaLabelledBy)]
+        } else {
+          return []
+        }
+      }
+
+      const buttonLabelAttributes = resolveButtonLabel()
+
       const resolvedButtonAttributes = [
         h.Id(`${id}-button`),
         h.Type('button'),
         h.AriaHasPopup('listbox'),
         h.AriaExpanded(isVisible),
         h.AriaControls(`${id}-items`),
+        ...buttonLabelAttributes,
         ...(isButtonEffectivelyDisabled
           ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
           : [

@@ -1,5 +1,7 @@
 export { init, create, Model } from './single.js'
 
+export { buttonId } from './shared.js'
+
 export {
   Message,
   OutMessage,
