@@ -1,7 +1,7 @@
 import { Schema as S } from 'effect'
 import { m } from 'foldkit/message'
 
-import { Settings } from './page'
+import * as Settings from './page/settings'
 
 export const GotSettingsMessage = m('GotSettingsMessage', {
   message: Settings.Message,

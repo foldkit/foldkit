@@ -3,7 +3,7 @@ import { type Document, html } from 'foldkit/html'
 
 import { GotSettingsMessage, type Message } from './message'
 import type { Model } from './model'
-import { Settings } from './page'
+import * as Settings from './page/settings'
 
 // The parent embeds the child via h.submodel. The slotId is unique within
 // the parent's view, view is the child's exported view function, model is the
