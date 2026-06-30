@@ -1,10 +1,12 @@
 import { Option, flow } from 'effect'
+import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import * as Animation from '../animation/index.js'
+import type { Model, ViewInputs } from './index.js'
 import {
   ActivatedItem,
   BlurredItems,
@@ -38,11 +40,32 @@ import {
   Searched,
   SelectedItem,
   UnlockScroll,
+  buttonId,
+  create,
   groupContiguous,
   init,
   resolveTypeaheadMatch,
   update,
 } from './index.js'
+
+const TestMenu = create<string>()
+
+const sceneView =
+  (
+    overrides: Pick<
+      Partial<ViewInputs<string>>,
+      'ariaLabel' | 'ariaLabelledBy'
+    > = {},
+  ) =>
+  (model: Model) =>
+    TestMenu.view(model, {
+      items: ['Edit', 'Duplicate', 'Delete'],
+      itemToConfig: item => ({ content: item }),
+      buttonContent: 'Actions',
+      ...overrides,
+    })
+
+const button = Scene.selector('#test-button')
 
 const animationToMenuMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })
@@ -1650,6 +1673,54 @@ describe('Menu', () => {
         { key: 'first', items: ['a', 'b'] },
         { key: 'second', items: ['c', 'd'] },
       ])
+    })
+  })
+
+  describe('button labeling', () => {
+    it('no aria-label or aria-labelledby on the button by default', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.with(init({ id: 'test' })),
+        Scene.expect(button).not.toHaveAttr('aria-label'),
+        Scene.expect(button).not.toHaveAttr('aria-labelledby'),
+      )
+    })
+
+    it('applies aria-label to the button when ariaLabel is provided', () => {
+      Scene.scene(
+        { update, view: sceneView({ ariaLabel: 'Actions' }) },
+        Scene.with(init({ id: 'test' })),
+        Scene.expect(button).toHaveAttr('aria-label', 'Actions'),
+        Scene.expect(button).not.toHaveAttr('aria-labelledby'),
+      )
+    })
+
+    it('applies aria-labelledby to the button when ariaLabelledBy is provided', () => {
+      Scene.scene(
+        { update, view: sceneView({ ariaLabelledBy: 'actions-label' }) },
+        Scene.with(init({ id: 'test' })),
+        Scene.expect(button).toHaveAttr('aria-labelledby', 'actions-label'),
+        Scene.expect(button).not.toHaveAttr('aria-label'),
+      )
+    })
+
+    it('prefers aria-label over aria-labelledby when both are provided', () => {
+      Scene.scene(
+        {
+          update,
+          view: sceneView({
+            ariaLabel: 'Actions',
+            ariaLabelledBy: 'actions-label',
+          }),
+        },
+        Scene.with(init({ id: 'test' })),
+        Scene.expect(button).toHaveAttr('aria-label', 'Actions'),
+        Scene.expect(button).not.toHaveAttr('aria-labelledby'),
+      )
+    })
+
+    it('buttonId derives the trigger id from the base id', () => {
+      expect(buttonId('test')).toBe('test-button')
     })
   })
 })

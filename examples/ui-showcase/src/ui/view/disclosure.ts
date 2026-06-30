@@ -72,6 +72,13 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Disclosure']),
 
       subheading('Basic'),
+      h.label(
+        [
+          h.For(Disclosure.buttonId(model.disclosureBasicDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Frequently asked'],
+      ),
       h.submodel({
         slotId: model.disclosureBasicDemo.id,
         model: model.disclosureBasicDemo,
@@ -98,6 +105,13 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       }),
 
       subheading('Animated'),
+      h.label(
+        [
+          h.For(Disclosure.buttonId(model.disclosureAnimatedDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Frequently asked'],
+      ),
       h.submodel({
         slotId: model.disclosureAnimatedDemo.id,
         model: model.disclosureAnimatedDemo,

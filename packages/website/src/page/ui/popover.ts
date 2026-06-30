@@ -123,12 +123,24 @@ export const basicDemo = (popoverModel: Popover.Model) => {
 
   return [
     h.div(
-      [h.Class('relative')],
+      [h.Class('flex flex-col gap-1.5')],
       [
-        popoverDemo(
-          popoverModel,
-          message => GotPopoverBasicDemoMessage({ message }),
-          basicPanelClassName,
+        h.label(
+          [
+            h.For(Popover.buttonId(popoverModel.id)),
+            h.Class('text-sm font-medium text-gray-900 dark:text-white'),
+          ],
+          ['Product menu'],
+        ),
+        h.div(
+          [h.Class('relative')],
+          [
+            popoverDemo(
+              popoverModel,
+              message => GotPopoverBasicDemoMessage({ message }),
+              basicPanelClassName,
+            ),
+          ],
         ),
       ],
     ),
@@ -140,12 +152,24 @@ export const animatedDemo = (popoverModel: Popover.Model) => {
 
   return [
     h.div(
-      [h.Class('relative')],
+      [h.Class('flex flex-col gap-1.5')],
       [
-        popoverDemo(
-          popoverModel,
-          message => GotPopoverAnimatedDemoMessage({ message }),
-          animatedPanelClassName,
+        h.label(
+          [
+            h.For(Popover.buttonId(popoverModel.id)),
+            h.Class('text-sm font-medium text-gray-900 dark:text-white'),
+          ],
+          ['Product menu'],
+        ),
+        h.div(
+          [h.Class('relative')],
+          [
+            popoverDemo(
+              popoverModel,
+              message => GotPopoverAnimatedDemoMessage({ message }),
+              animatedPanelClassName,
+            ),
+          ],
         ),
       ],
     ),
@@ -160,6 +184,7 @@ const nestedChildPopover = (childPopoverModel: Popover.Model): Html => {
     model: childPopoverModel,
     view: Popover.view,
     viewInputs: {
+      ariaLabel: 'Advanced settings',
       anchor: NESTED_POPOVER_ANCHOR,
       toView: ({ button, panel, backdrop, isVisible }) =>
         h.div(
@@ -208,55 +233,70 @@ export const nestedDemo = (
 
   return [
     h.div(
-      [h.Class('relative')],
+      [h.Class('flex flex-col gap-1.5')],
       [
-        h.submodel({
-          slotId: parentPopoverModel.id,
-          model: parentPopoverModel,
-          view: Popover.view,
-          viewInputs: {
-            anchor: POPOVER_ANCHOR,
-            focusSelector: nestedChildButtonSelector,
-            toView: ({ button, panel, backdrop, isVisible }) =>
-              h.div(
-                [h.Class(wrapperClassName)],
-                [
-                  h.button(
-                    [...button, h.Class(triggerClassName)],
-                    [h.span([], ['Account'])],
-                  ),
-                  ...(isVisible
-                    ? [
-                        h.div([...backdrop, h.Class(backdropClassName)], []),
-                        h.div(
-                          [...panel, h.Class(basicPanelClassName)],
-                          [
+        h.label(
+          [
+            h.For(Popover.buttonId(parentPopoverModel.id)),
+            h.Class('text-sm font-medium text-gray-900 dark:text-white'),
+          ],
+          ['Account'],
+        ),
+        h.div(
+          [h.Class('relative')],
+          [
+            h.submodel({
+              slotId: parentPopoverModel.id,
+              model: parentPopoverModel,
+              view: Popover.view,
+              viewInputs: {
+                anchor: POPOVER_ANCHOR,
+                focusSelector: nestedChildButtonSelector,
+                toView: ({ button, panel, backdrop, isVisible }) =>
+                  h.div(
+                    [h.Class(wrapperClassName)],
+                    [
+                      h.button(
+                        [...button, h.Class(triggerClassName)],
+                        [h.span([], ['Account'])],
+                      ),
+                      ...(isVisible
+                        ? [
                             h.div(
-                              [h.Class('flex flex-col gap-4')],
+                              [...backdrop, h.Class(backdropClassName)],
+                              [],
+                            ),
+                            h.div(
+                              [...panel, h.Class(basicPanelClassName)],
                               [
-                                h.p(
+                                h.div(
+                                  [h.Class('flex flex-col gap-4')],
                                   [
-                                    h.Class(
-                                      'text-sm text-gray-600 dark:text-gray-400',
+                                    h.p(
+                                      [
+                                        h.Class(
+                                          'text-sm text-gray-600 dark:text-gray-400',
+                                        ),
+                                      ],
+                                      [
+                                        'Manage account settings without leaving this panel.',
+                                      ],
                                     ),
-                                  ],
-                                  [
-                                    'Manage account settings without leaving this panel.',
+                                    nestedChildPopover(childPopoverModel),
                                   ],
                                 ),
-                                nestedChildPopover(childPopoverModel),
                               ],
                             ),
-                          ],
-                        ),
-                      ]
-                    : []),
-                ],
-              ),
-          },
-          toParentMessage: message =>
-            GotPopoverNestedParentDemoMessage({ message }),
-        }),
+                          ]
+                        : []),
+                    ],
+                  ),
+              },
+              toParentMessage: message =>
+                GotPopoverNestedParentDemoMessage({ message }),
+            }),
+          ],
+        ),
       ],
     ),
   ]

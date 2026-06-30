@@ -1,4 +1,11 @@
-import { Effect, Function, Match as M, Option, Schema as S } from 'effect'
+import {
+  Effect,
+  Function,
+  Match as M,
+  Option,
+  Predicate,
+  Schema as S,
+} from 'effect'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 import {
@@ -69,7 +76,11 @@ export const init = (config: InitConfig): Model => ({
 
 // UPDATE
 
-const buttonId = (id: string): string => `${id}-button`
+/** Returns the bare DOM id of the disclosure toggle button, derived from the
+ *  disclosure's base id. Use this to associate an external label with the
+ *  button via a native `<label for={Disclosure.buttonId(id)}>` or an
+ *  `aria-labelledby` reference. */
+export const buttonId = (id: string): string => `${id}-button`
 
 const buttonSelector = (id: string): string => idSelector(buttonId(id))
 
@@ -183,6 +194,8 @@ export type DisclosureAttributes = Readonly<{
 export type ViewInputs = Readonly<{
   toView: (attributes: DisclosureAttributes) => Html
   isDisabled?: boolean
+  ariaLabel?: string
+  ariaLabelledBy?: string
 }>
 
 /** Renders a headless disclosure component with accessible ARIA
@@ -198,7 +211,7 @@ export const view = defineView<Model, Message, ViewInputs>(
     const h = html<Message>()
 
     const { id, isOpen } = model
-    const { toView, isDisabled = false } = viewInputs
+    const { toView, isDisabled = false, ariaLabel, ariaLabelledBy } = viewInputs
 
     const handleKeyDown = (key: string): Option.Option<Toggled> =>
       M.value(key).pipe(
@@ -210,10 +223,23 @@ export const view = defineView<Model, Message, ViewInputs>(
       ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
       : []
 
+    const resolveButtonLabel = () => {
+      if (Predicate.isNotUndefined(ariaLabel)) {
+        return [h.AriaLabel(ariaLabel)]
+      } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
+        return [h.AriaLabelledBy(ariaLabelledBy)]
+      } else {
+        return []
+      }
+    }
+
+    const buttonLabelAttributes = resolveButtonLabel()
+
     const buttonAttributes = [
       h.Id(buttonId(id)),
       h.AriaExpanded(isOpen),
       h.AriaControls(panelId(id)),
+      ...buttonLabelAttributes,
       h.Tabindex(0),
       ...(isOpen ? [h.DataAttribute('open', '')] : []),
       ...disabledAttributes,

@@ -150,6 +150,18 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     description:
       'When true, the button is not clickable, gets `aria-disabled` and a `data-disabled` attribute.',
   },
+  {
+    name: 'ariaLabel',
+    type: 'string',
+    description:
+      'Accessible name for the toggle button. Use for an icon-only trigger with no visible label. Applied as aria-label, and takes precedence over ariaLabelledBy.',
+  },
+  {
+    name: 'ariaLabelledBy',
+    type: 'string',
+    description:
+      'Id of an external element that labels the toggle button, applied as aria-labelledby. Pair with a visible label element.',
+  },
 ]
 
 const disclosureAttributesProps: ReadonlyArray<PropEntry> = [
@@ -305,6 +317,30 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           ' and ',
           inlineCode('aria-controls'),
           ' linking to the panel. When the disclosure closes, focus is returned to the toggle button automatically.',
+        ),
+        para(
+          'Give the toggle an accessible name when its content is not self-describing. For a visible label, wire a native ',
+          inlineCode('<label for>'),
+          ' that targets the toggle id with ',
+          inlineCode('Disclosure.buttonId(id)'),
+          ' rather than hardcoding the ',
+          inlineCode('-button'),
+          ' convention. The ',
+          inlineCode('for'),
+          ' association makes the toggle properly labeled: assistive technology announces it by the visible label text, and clicking the label opens the disclosure. That is why it is the recommended pattern.',
+        ),
+        para(
+          'Two ViewInputs cover the cases a ',
+          inlineCode('<label for>'),
+          ' does not. Pass ',
+          inlineCode('ariaLabel'),
+          ' for an icon-only toggle with no visible label, or ',
+          inlineCode('ariaLabelledBy'),
+          ' when the element that names the toggle is not a ',
+          inlineCode('<label>'),
+          ' you can point ',
+          inlineCode('for'),
+          ' at.',
         ),
         heading(
           apiReferenceHeader.level,

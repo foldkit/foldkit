@@ -120,6 +120,13 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Basic'],
       ),
+      h.label(
+        [
+          h.For(Menu.buttonId(model.menuBasicDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Row actions'],
+      ),
       h.div(
         [h.Class('relative')],
         [
@@ -127,7 +134,9 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             slotId: model.menuBasicDemo.id,
             model: model.menuBasicDemo,
             view: ActionMenu.view,
-            viewInputs: menuViewConfig(basicItemsClassName),
+            viewInputs: {
+              ...menuViewConfig(basicItemsClassName),
+            },
             toParentMessage: message => GotMenuBasicDemoMessage({ message }),
           }),
         ],
@@ -137,6 +146,13 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Animated'],
       ),
+      h.label(
+        [
+          h.For(Menu.buttonId(model.menuAnimatedDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Row actions'],
+      ),
       h.div(
         [h.Class('relative')],
         [
@@ -144,7 +160,9 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             slotId: model.menuAnimatedDemo.id,
             model: model.menuAnimatedDemo,
             view: ActionMenu.view,
-            viewInputs: menuViewConfig(animatedItemsClassName),
+            viewInputs: {
+              ...menuViewConfig(animatedItemsClassName),
+            },
             toParentMessage: message => GotMenuAnimatedDemoMessage({ message }),
           }),
         ],

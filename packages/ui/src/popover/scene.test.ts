@@ -1,5 +1,6 @@
 import { html } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
+import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
@@ -10,6 +11,7 @@ import {
   CompletedPortalPopoverBackdrop,
   PortalPopoverBackdrop,
   RequestedOpen,
+  buttonId,
   init,
   update,
   view,
@@ -173,6 +175,54 @@ describe('Popover', () => {
           acknowledgeAnchor,
           acknowledgeBackdrop,
         )
+      })
+    })
+
+    describe('button labeling', () => {
+      it('no aria-label or aria-labelledby on the button by default', () => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.with(closedModel),
+          Scene.expect(button).not.toHaveAttr('aria-label'),
+          Scene.expect(button).not.toHaveAttr('aria-labelledby'),
+        )
+      })
+
+      it('applies aria-label to the button when ariaLabel is provided', () => {
+        Scene.scene(
+          { update, view: sceneView({ ariaLabel: 'Options' }) },
+          Scene.with(closedModel),
+          Scene.expect(button).toHaveAttr('aria-label', 'Options'),
+          Scene.expect(button).not.toHaveAttr('aria-labelledby'),
+        )
+      })
+
+      it('applies aria-labelledby to the button when ariaLabelledBy is provided', () => {
+        Scene.scene(
+          { update, view: sceneView({ ariaLabelledBy: 'options-label' }) },
+          Scene.with(closedModel),
+          Scene.expect(button).toHaveAttr('aria-labelledby', 'options-label'),
+          Scene.expect(button).not.toHaveAttr('aria-label'),
+        )
+      })
+
+      it('prefers aria-label over aria-labelledby when both are provided', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              ariaLabel: 'Options',
+              ariaLabelledBy: 'options-label',
+            }),
+          },
+          Scene.with(closedModel),
+          Scene.expect(button).toHaveAttr('aria-label', 'Options'),
+          Scene.expect(button).not.toHaveAttr('aria-labelledby'),
+        )
+      })
+
+      it('buttonId derives the trigger id from the base id', () => {
+        expect(buttonId('test')).toBe('test-button')
       })
     })
   })

@@ -2,13 +2,21 @@ import { Match as M, Option } from 'effect'
 import * as Calendar from 'foldkit/calendar'
 import { html } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
+import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import * as UiCalendar from '../calendar/index.js'
 import * as Popover from '../popover/public.js'
 import type { Message, Model, ViewInputs } from './index.js'
-import { GotPopoverMessage, Opened, init, update, view } from './index.js'
+import {
+  GotPopoverMessage,
+  Opened,
+  init,
+  triggerId,
+  update,
+  view,
+} from './index.js'
 
 const acknowledgeAnchorPopover = Scene.Mount.resolve(
   Popover.AnchorPopover,
@@ -276,6 +284,54 @@ describe('DatePicker', () => {
         Scene.with(seeded),
         Scene.expect(hiddenInput).toHaveValue('2026-01-09'),
       )
+    })
+  })
+
+  describe('trigger labeling', () => {
+    it('no aria-label or aria-labelledby on the trigger by default', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.with(closedModel),
+        Scene.expect(trigger).not.toHaveAttr('aria-label'),
+        Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
+      )
+    })
+
+    it('applies aria-label to the trigger when ariaLabel is provided', () => {
+      Scene.scene(
+        { update, view: sceneView({ ariaLabel: 'Due date' }) },
+        Scene.with(closedModel),
+        Scene.expect(trigger).toHaveAttr('aria-label', 'Due date'),
+        Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
+      )
+    })
+
+    it('applies aria-labelledby to the trigger when ariaLabelledBy is provided', () => {
+      Scene.scene(
+        { update, view: sceneView({ ariaLabelledBy: 'due-label' }) },
+        Scene.with(closedModel),
+        Scene.expect(trigger).toHaveAttr('aria-labelledby', 'due-label'),
+        Scene.expect(trigger).not.toHaveAttr('aria-label'),
+      )
+    })
+
+    it('prefers aria-label over aria-labelledby when both are provided', () => {
+      Scene.scene(
+        {
+          update,
+          view: sceneView({
+            ariaLabel: 'Due date',
+            ariaLabelledBy: 'due-label',
+          }),
+        },
+        Scene.with(closedModel),
+        Scene.expect(trigger).toHaveAttr('aria-label', 'Due date'),
+        Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
+      )
+    })
+
+    it('triggerId derives the trigger id from the base id', () => {
+      expect(triggerId('picker')).toBe('picker-popover-button')
     })
   })
 })

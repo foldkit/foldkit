@@ -157,6 +157,18 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     description:
       'Disables the trigger. Hover, focus, and keyboard events are ignored and the tooltip will not open.',
   },
+  {
+    name: 'ariaLabel',
+    type: 'string',
+    description:
+      'Accessible name for the trigger button. Use for an icon-only trigger with no visible label. Applied as aria-label, and takes precedence over ariaLabelledBy.',
+  },
+  {
+    name: 'ariaLabelledBy',
+    type: 'string',
+    description:
+      'Id of an external element that labels the trigger button, applied as aria-labelledby. Pair with a visible label element.',
+  },
 ]
 
 const renderInfoProps: ReadonlyArray<PropEntry> = [
@@ -302,6 +314,30 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           ' and the trigger is linked via ',
           inlineCode('aria-describedby'),
           '. Focus is never moved into the tooltip, so assistive technology announces the panel contents as a description of the trigger.',
+        ),
+        para(
+          'The tooltip describes the trigger but does not name it, so give the trigger an accessible name. For a visible label, wire a native ',
+          inlineCode('<label for>'),
+          ' that targets the trigger id with ',
+          inlineCode('Tooltip.triggerId(id)'),
+          ' rather than hardcoding the ',
+          inlineCode('-trigger'),
+          ' convention. The ',
+          inlineCode('for'),
+          ' association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label focuses the trigger. That is why it is the recommended pattern.',
+        ),
+        para(
+          'Two ViewInputs cover the cases a ',
+          inlineCode('<label for>'),
+          ' does not. Pass ',
+          inlineCode('ariaLabel'),
+          ' for an icon-only trigger with no visible label, or ',
+          inlineCode('ariaLabelledBy'),
+          ' when the element that names the trigger is not a ',
+          inlineCode('<label>'),
+          ' you can point ',
+          inlineCode('for'),
+          ' at.',
         ),
         heading(
           apiReferenceHeader.level,

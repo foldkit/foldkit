@@ -33,8 +33,15 @@ export const disclosureDemo = (disclosureModel: Disclosure.Model) => {
 
   return [
     h.div(
-      [h.Class('w-full max-w-lg')],
+      [h.Class('flex w-full max-w-lg flex-col gap-1.5')],
       [
+        h.label(
+          [
+            h.For(Disclosure.buttonId('disclosure-demo')),
+            h.Class('text-sm font-medium text-gray-900 dark:text-white'),
+          ],
+          ['Frequently asked'],
+        ),
         h.submodel({
           slotId: 'disclosure-demo',
           model: disclosureModel,

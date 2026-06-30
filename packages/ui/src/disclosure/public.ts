@@ -5,6 +5,7 @@ export {
   close,
   reflectOpenState,
   view,
+  buttonId,
   Model,
   Message,
   OutMessage,

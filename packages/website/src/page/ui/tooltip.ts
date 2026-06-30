@@ -28,35 +28,47 @@ export const demo = (tooltipModel: Tooltip.Model) => {
 
   return [
     h.div(
-      [h.Class('relative')],
+      [h.Class('flex flex-col gap-1.5')],
       [
-        h.submodel({
-          slotId: tooltipModel.id,
-          model: tooltipModel,
-          view: Tooltip.view,
-          viewInputs: {
-            anchor: TOOLTIP_ANCHOR,
-            toView: ({ trigger, panel, isVisible }) =>
-              h.div(
-                [h.Class(wrapperClassName)],
-                [
-                  h.button(
-                    [...trigger, h.Class(triggerClassName)],
-                    [h.span([], ['Hover or focus me'])],
+        h.label(
+          [
+            h.For(Tooltip.triggerId(tooltipModel.id)),
+            h.Class('text-sm font-medium text-gray-900 dark:text-white'),
+          ],
+          ['Tooltip trigger'],
+        ),
+        h.div(
+          [h.Class('relative')],
+          [
+            h.submodel({
+              slotId: tooltipModel.id,
+              model: tooltipModel,
+              view: Tooltip.view,
+              viewInputs: {
+                anchor: TOOLTIP_ANCHOR,
+                toView: ({ trigger, panel, isVisible }) =>
+                  h.div(
+                    [h.Class(wrapperClassName)],
+                    [
+                      h.button(
+                        [...trigger, h.Class(triggerClassName)],
+                        [h.span([], ['Hover or focus me'])],
+                      ),
+                      ...(isVisible
+                        ? [
+                            h.div(
+                              [...panel, h.Class(panelClassName)],
+                              [h.span([], ['This is a tooltip'])],
+                            ),
+                          ]
+                        : []),
+                    ],
                   ),
-                  ...(isVisible
-                    ? [
-                        h.div(
-                          [...panel, h.Class(panelClassName)],
-                          [h.span([], ['This is a tooltip'])],
-                        ),
-                      ]
-                    : []),
-                ],
-              ),
-          },
-          toParentMessage: message => GotTooltipDemoMessage({ message }),
-        }),
+              },
+              toParentMessage: message => GotTooltipDemoMessage({ message }),
+            }),
+          ],
+        ),
       ],
     ),
   ]

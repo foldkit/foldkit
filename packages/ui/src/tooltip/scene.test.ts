@@ -1,5 +1,6 @@
 import { html, submodel } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
+import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
@@ -9,6 +10,7 @@ import {
   CompletedAnchorTooltip,
   FocusedTrigger,
   init,
+  triggerId,
   update,
   view,
 } from './index.js'
@@ -19,7 +21,13 @@ const acknowledgeAnchor = Scene.Mount.resolve(
 )
 
 const sceneView =
-  (overrides: { isDisabled?: boolean } = {}) =>
+  (
+    overrides: {
+      isDisabled?: boolean
+      ariaLabel?: string
+      ariaLabelledBy?: string
+    } = {},
+  ) =>
   (model: Model) => {
     const h = html<Message>()
 
@@ -30,6 +38,8 @@ const sceneView =
       viewInputs: {
         anchor: { placement: 'top' },
         isDisabled: overrides.isDisabled,
+        ariaLabel: overrides.ariaLabel,
+        ariaLabelledBy: overrides.ariaLabelledBy,
         toView: ({ trigger, panel, isVisible }) =>
           h.div(
             [],
@@ -111,6 +121,54 @@ describe('Tooltip', () => {
         Scene.expect(trigger).not.toHaveHandler('mouseenter'),
         Scene.expect(trigger).not.toHaveHandler('focus'),
       )
+    })
+  })
+
+  describe('trigger labeling', () => {
+    it('no aria-label or aria-labelledby on the trigger by default', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.with(hiddenModel),
+        Scene.expect(trigger).not.toHaveAttr('aria-label'),
+        Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
+      )
+    })
+
+    it('applies aria-label to the trigger when ariaLabel is provided', () => {
+      Scene.scene(
+        { update, view: sceneView({ ariaLabel: 'More info' }) },
+        Scene.with(hiddenModel),
+        Scene.expect(trigger).toHaveAttr('aria-label', 'More info'),
+        Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
+      )
+    })
+
+    it('applies aria-labelledby to the trigger when ariaLabelledBy is provided', () => {
+      Scene.scene(
+        { update, view: sceneView({ ariaLabelledBy: 'info-label' }) },
+        Scene.with(hiddenModel),
+        Scene.expect(trigger).toHaveAttr('aria-labelledby', 'info-label'),
+        Scene.expect(trigger).not.toHaveAttr('aria-label'),
+      )
+    })
+
+    it('prefers aria-label over aria-labelledby when both are provided', () => {
+      Scene.scene(
+        {
+          update,
+          view: sceneView({
+            ariaLabel: 'More info',
+            ariaLabelledBy: 'info-label',
+          }),
+        },
+        Scene.with(hiddenModel),
+        Scene.expect(trigger).toHaveAttr('aria-label', 'More info'),
+        Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
+      )
+    })
+
+    it('triggerId derives the trigger id from the base id', () => {
+      expect(triggerId('test')).toBe('test-trigger')
     })
   })
 })

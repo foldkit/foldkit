@@ -254,6 +254,18 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     type: 'ReadonlyArray<ChildAttribute> | undefined',
     description: 'Extra attributes spread onto the outer Menu root element.',
   },
+  {
+    name: 'ariaLabel',
+    type: 'string',
+    description:
+      'Accessible name for the trigger button. Use for an icon-only trigger with no visible label. Applied as aria-label, and takes precedence over ariaLabelledBy.',
+  },
+  {
+    name: 'ariaLabelledBy',
+    type: 'string',
+    description:
+      'Id of an external element that labels the trigger button, applied as aria-labelledby. Pair with a visible label element.',
+  },
 ]
 
 const outMessageProps: ReadonlyArray<PropEntry> = [
@@ -444,6 +456,30 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           '. Each item receives ',
           inlineCode('role="menuitem"'),
           '.',
+        ),
+        para(
+          'Give the trigger an accessible name. For a visible label, wire a native ',
+          inlineCode('<label for>'),
+          ' that targets the trigger id with ',
+          inlineCode('Menu.buttonId(id)'),
+          ' rather than hardcoding the ',
+          inlineCode('-button'),
+          ' convention. The ',
+          inlineCode('for'),
+          ' association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label opens the menu. That is why it is the recommended pattern.',
+        ),
+        para(
+          'Two ViewInputs cover the cases a ',
+          inlineCode('<label for>'),
+          ' does not. Pass ',
+          inlineCode('ariaLabel'),
+          ' for an icon-only trigger with no visible label, or ',
+          inlineCode('ariaLabelledBy'),
+          ' when the element that names the trigger is not a ',
+          inlineCode('<label>'),
+          ' you can point ',
+          inlineCode('for'),
+          ' at.',
         ),
         heading(
           apiReferenceHeader.level,

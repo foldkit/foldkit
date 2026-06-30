@@ -63,7 +63,12 @@ GotDisclosureMessage: ({ message }) => {
   })
 }
 
-// Inside your view function, embed the disclosure via h.submodel:
+// Inside your view function, embed the disclosure via h.submodel. The toggle
+// text below names the button. When the toggle is icon-only, give it a name
+// with `ariaLabel`, or point `ariaLabelledBy` at a visible label element
+// (target the toggle id with `Disclosure.buttonId('faq-1')` for a native
+// `<label for>`). Either attribute is only emitted when provided, so the
+// toggle never carries a dangling `aria-labelledby`.
 const view = (model: Model) => {
   const h = html<Message>()
 
@@ -72,6 +77,7 @@ const view = (model: Model) => {
     model: model.disclosure,
     view: Disclosure.view,
     viewInputs: {
+      // ariaLabel: 'What is Foldkit?',
       toView: attributes =>
         h.div(
           [],

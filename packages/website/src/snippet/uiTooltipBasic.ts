@@ -69,7 +69,11 @@ GotTooltipMessage: ({ message }) => {
   })
 }
 
-// Inside your view function, embed the tooltip via h.submodel:
+// Inside your view function, embed the tooltip via h.submodel. The tooltip
+// describes the trigger but does not name it, so give an icon-only trigger
+// an accessible name with `ariaLabel`. (Point `ariaLabelledBy` at a visible
+// label element instead when one exists.) The attribute is only emitted when
+// provided, so the trigger never carries a dangling `aria-labelledby`.
 const view = () => {
   const h = html<Message>()
 
@@ -78,6 +82,7 @@ const view = () => {
     model: model.tooltip,
     view: Tooltip.view,
     viewInputs: {
+      ariaLabel: 'Save',
       anchor: { placement: 'top', gap: 6, padding: 8 },
       toView: ({ trigger, panel, isVisible }) =>
         h.div(
@@ -88,7 +93,8 @@ const view = () => {
                 ...trigger,
                 h.Class('rounded-lg border px-3 py-2 cursor-pointer'),
               ],
-              [h.span([], ['Save'])],
+              // Icon-only content; `ariaLabel` above supplies the name.
+              [h.span([h.AriaHidden(true)], ['💾'])],
             ),
             ...(isVisible
               ? [

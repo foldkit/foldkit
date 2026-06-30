@@ -1,4 +1,4 @@
-import { Function, Match as M, Option, Schema as S } from 'effect'
+import { Function, Match as M, Option, Predicate, Schema as S } from 'effect'
 import * as Calendar from 'foldkit/calendar'
 import type { CalendarDate } from 'foldkit/calendar'
 import * as Command from 'foldkit/command'
@@ -395,6 +395,15 @@ export const reflectDisabledDaysOfWeek: Reflect<
     }),
 )
 
+// SELECTORS
+
+/** Returns the bare DOM id of the date picker trigger button, derived from
+ *  the date picker's base id. The trigger is the embedded Popover's button,
+ *  so the id is suffixed `-popover-button`. Use this to associate an external
+ *  label with the trigger via a native `<label for={DatePicker.triggerId(id)}>`
+ *  or an `aria-labelledby` reference. */
+export const triggerId = (id: string): string => `${id}-popover-button`
+
 // VIEW
 
 const encodeIsoDate = S.encodeSync(Calendar.CalendarDateFromIsoString)
@@ -423,6 +432,8 @@ export type ViewInputs = Readonly<{
   attributes?: ReadonlyArray<ChildAttribute>
   triggerClassName?: string
   triggerAttributes?: ReadonlyArray<ChildAttribute>
+  ariaLabel?: string
+  ariaLabelledBy?: string
   panelClassName?: string
   panelAttributes?: ReadonlyArray<ChildAttribute>
   backdropClassName?: string
@@ -448,11 +459,25 @@ export const view = defineView<Model, Message, ViewInputs>(
       attributes = [],
       triggerClassName,
       triggerAttributes = [],
+      ariaLabel,
+      ariaLabelledBy,
       panelClassName,
       panelAttributes = [],
       backdropClassName,
       backdropAttributes = [],
     } = viewInputs
+
+    const resolveTriggerLabel = () => {
+      if (Predicate.isNotUndefined(ariaLabel)) {
+        return [h.AriaLabel(ariaLabel)]
+      } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
+        return [h.AriaLabelledBy(ariaLabelledBy)]
+      } else {
+        return []
+      }
+    }
+
+    const triggerLabelAttributes = resolveTriggerLabel()
 
     const calendarVNode = h.submodel({
       slotId: model.calendar.id,
@@ -477,6 +502,7 @@ export const view = defineView<Model, Message, ViewInputs>(
               h.button(
                 [
                   ...button,
+                  ...triggerLabelAttributes,
                   ...(triggerClassName !== undefined
                     ? [h.Class(triggerClassName)]
                     : []),

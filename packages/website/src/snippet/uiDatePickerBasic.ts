@@ -98,207 +98,238 @@ GotDatePickerMessage: ({ message }) => {
 // Inside your view function, embed the DatePicker via h.submodel. The
 // `toCalendarView` callback receives a discriminated `CalendarAttributes`
 // whose variant matches the calendar's current `viewMode`. Pattern-match
-// on `_tag` to render the day grid, the months grid, or the years grid:
+// on `_tag` to render the day grid, the months grid, or the years grid.
+//
+// The trigger is a form field, so give it an accessible name. Pass
+// `ariaLabelledBy` with the id of a visible label element, and render that
+// label targeting the trigger id with
+// `DatePicker.triggerId('date-picker-demo')` for a native `<label for>`. The
+// attribute is only emitted when provided, so the trigger never carries a
+// dangling `aria-labelledby`.
 const view = () => {
   const h = html<Message>()
 
-  return h.submodel({
-    slotId: 'date-picker-demo',
-    model: model.datePickerDemo,
-    view: DatePicker.view,
-    viewInputs: {
-      anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-      triggerContent: maybeDate =>
-        Option.match(maybeDate, {
-          onNone: () => h.span([], ['Pick a date']),
-          onSome: date =>
-            h.span([], [`${date.year}-${date.month}-${date.day}`]),
-        }),
-      toCalendarView: attributes =>
-        M.value(attributes).pipe(
-          M.tagsExhaustive({
-            Days: days =>
-              h.div(
-                [...days.root, h.Class('flex flex-col gap-3 p-4')],
-                [
+  const labelId = 'date-picker-label'
+
+  return h.div(
+    [h.Class('flex flex-col gap-1.5')],
+    [
+      h.label(
+        [h.Id(labelId), h.For(DatePicker.triggerId('date-picker-demo'))],
+        ['Date'],
+      ),
+      h.submodel({
+        slotId: 'date-picker-demo',
+        model: model.datePickerDemo,
+        view: DatePicker.view,
+        viewInputs: {
+          ariaLabelledBy: labelId,
+          anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+          triggerContent: maybeDate =>
+            Option.match(maybeDate, {
+              onNone: () => h.span([], ['Pick a date']),
+              onSome: date =>
+                h.span([], [`${date.year}-${date.month}-${date.day}`]),
+            }),
+          toCalendarView: attributes =>
+            M.value(attributes).pipe(
+              M.tagsExhaustive({
+                Days: days =>
                   h.div(
-                    [h.Class('flex items-center justify-between')],
-                    [
-                      h.button(
-                        [...days.previousMonthButton, h.Class('rounded px-2')],
-                        ['‹'],
-                      ),
-                      h.button(
-                        [
-                          h.Id(days.heading.id),
-                          ...days.headingButton,
-                          h.Class(
-                            'inline-flex items-center gap-2 rounded px-2 text-sm font-semibold',
-                          ),
-                        ],
-                        [days.heading.text, ' ▾'],
-                      ),
-                      h.button(
-                        [...days.nextMonthButton, h.Class('rounded px-2')],
-                        ['›'],
-                      ),
-                    ],
-                  ),
-                  h.div(
-                    [...days.grid, h.Class('flex flex-col gap-1 outline-none')],
+                    [...days.root, h.Class('flex flex-col gap-3 p-4')],
                     [
                       h.div(
-                        [...days.headerRow, h.Class('grid grid-cols-7 gap-1')],
-                        days.columnHeaders.map(header =>
+                        [h.Class('flex items-center justify-between')],
+                        [
+                          h.button(
+                            [
+                              ...days.previousMonthButton,
+                              h.Class('rounded px-2'),
+                            ],
+                            ['‹'],
+                          ),
+                          h.button(
+                            [
+                              h.Id(days.heading.id),
+                              ...days.headingButton,
+                              h.Class(
+                                'inline-flex items-center gap-2 rounded px-2 text-sm font-semibold',
+                              ),
+                            ],
+                            [days.heading.text, ' ▾'],
+                          ),
+                          h.button(
+                            [...days.nextMonthButton, h.Class('rounded px-2')],
+                            ['›'],
+                          ),
+                        ],
+                      ),
+                      h.div(
+                        [
+                          ...days.grid,
+                          h.Class('flex flex-col gap-1 outline-none'),
+                        ],
+                        [
                           h.div(
                             [
-                              ...header.attributes,
-                              h.Class('text-center text-xs uppercase'),
+                              ...days.headerRow,
+                              h.Class('grid grid-cols-7 gap-1'),
                             ],
-                            [header.name],
-                          ),
-                        ),
-                      ),
-                      ...days.weeks.map(week =>
-                        h.div(
-                          [
-                            ...week.attributes,
-                            h.Class('grid grid-cols-7 gap-1'),
-                          ],
-                          week.cells.map(cell =>
-                            h.div(
-                              [
-                                ...cell.cellAttributes,
-                                h.Class(
-                                  'group flex items-center justify-center',
-                                ),
-                              ],
-                              [
-                                h.button(
-                                  [
-                                    ...cell.buttonAttributes,
-                                    h.Class(
-                                      'h-9 w-9 rounded-full text-sm group-data-[today]:ring-1 group-data-[selected]:bg-accent-600 group-data-[selected]:text-white group-data-[outside-month]:text-gray-400 group-data-[disabled]:opacity-40',
-                                    ),
-                                  ],
-                                  [cell.label],
-                                ),
-                              ],
+                            days.columnHeaders.map(header =>
+                              h.div(
+                                [
+                                  ...header.attributes,
+                                  h.Class('text-center text-xs uppercase'),
+                                ],
+                                [header.name],
+                              ),
                             ),
                           ),
+                          ...days.weeks.map(week =>
+                            h.div(
+                              [
+                                ...week.attributes,
+                                h.Class('grid grid-cols-7 gap-1'),
+                              ],
+                              week.cells.map(cell =>
+                                h.div(
+                                  [
+                                    ...cell.cellAttributes,
+                                    h.Class(
+                                      'group flex items-center justify-center',
+                                    ),
+                                  ],
+                                  [
+                                    h.button(
+                                      [
+                                        ...cell.buttonAttributes,
+                                        h.Class(
+                                          'h-9 w-9 rounded-full text-sm group-data-[today]:ring-1 group-data-[selected]:bg-accent-600 group-data-[selected]:text-white group-data-[outside-month]:text-gray-400 group-data-[disabled]:opacity-40',
+                                        ),
+                                      ],
+                                      [cell.label],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                // The months grid renders 12 cells (one per month). Clicking the
+                // heading again drills further into the years grid.
+                Months: months =>
+                  h.div(
+                    [...months.root, h.Class('flex flex-col gap-3 p-4')],
+                    [
+                      h.div(
+                        [h.Class('flex items-center justify-center')],
+                        [
+                          h.button(
+                            [
+                              h.Id(months.heading.id),
+                              ...months.headingButton,
+                              h.Class(
+                                'inline-flex items-center gap-2 rounded px-2 text-sm font-semibold',
+                              ),
+                            ],
+                            [months.heading.text, ' ▾'],
+                          ),
+                        ],
+                      ),
+                      h.div(
+                        [
+                          ...months.grid,
+                          h.Class('grid grid-cols-3 gap-1 outline-none'),
+                        ],
+                        months.cells.map(cell =>
+                          h.div(
+                            [
+                              ...cell.cellAttributes,
+                              h.Class('group flex items-center justify-center'),
+                            ],
+                            [
+                              h.button(
+                                [
+                                  ...cell.buttonAttributes,
+                                  h.Class(
+                                    'h-12 w-full rounded-md text-sm group-data-[selected]:bg-accent-600 group-data-[selected]:text-white group-data-[disabled]:opacity-40',
+                                  ),
+                                ],
+                                [cell.shortLabel],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
-            // The months grid renders 12 cells (one per month). Clicking the
-            // heading again drills further into the years grid.
-            Months: months =>
-              h.div(
-                [...months.root, h.Class('flex flex-col gap-3 p-4')],
-                [
+                // The years grid renders 12 cells (one paged window). Prev/next
+                // page through 12-year windows; clicking a year drills back to
+                // the months grid for that year.
+                Years: years =>
                   h.div(
-                    [h.Class('flex items-center justify-center')],
+                    [...years.root, h.Class('flex flex-col gap-3 p-4')],
                     [
-                      h.button(
-                        [
-                          h.Id(months.heading.id),
-                          ...months.headingButton,
-                          h.Class(
-                            'inline-flex items-center gap-2 rounded px-2 text-sm font-semibold',
-                          ),
-                        ],
-                        [months.heading.text, ' ▾'],
-                      ),
-                    ],
-                  ),
-                  h.div(
-                    [
-                      ...months.grid,
-                      h.Class('grid grid-cols-3 gap-1 outline-none'),
-                    ],
-                    months.cells.map(cell =>
                       h.div(
-                        [
-                          ...cell.cellAttributes,
-                          h.Class('group flex items-center justify-center'),
-                        ],
+                        [h.Class('flex items-center justify-between')],
                         [
                           h.button(
                             [
-                              ...cell.buttonAttributes,
-                              h.Class(
-                                'h-12 w-full rounded-md text-sm group-data-[selected]:bg-accent-600 group-data-[selected]:text-white group-data-[disabled]:opacity-40',
-                              ),
+                              ...years.previousPageButton,
+                              h.Class('rounded px-2'),
                             ],
-                            [cell.shortLabel],
+                            ['‹'],
+                          ),
+                          h.h2(
+                            [
+                              h.Id(years.heading.id),
+                              h.Class('text-sm font-semibold'),
+                            ],
+                            [years.heading.text],
+                          ),
+                          h.button(
+                            [...years.nextPageButton, h.Class('rounded px-2')],
+                            ['›'],
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            // The years grid renders 12 cells (one paged window). Prev/next
-            // page through 12-year windows; clicking a year drills back to
-            // the months grid for that year.
-            Years: years =>
-              h.div(
-                [...years.root, h.Class('flex flex-col gap-3 p-4')],
-                [
-                  h.div(
-                    [h.Class('flex items-center justify-between')],
-                    [
-                      h.button(
-                        [...years.previousPageButton, h.Class('rounded px-2')],
-                        ['‹'],
-                      ),
-                      h.h2(
-                        [
-                          h.Id(years.heading.id),
-                          h.Class('text-sm font-semibold'),
-                        ],
-                        [years.heading.text],
-                      ),
-                      h.button(
-                        [...years.nextPageButton, h.Class('rounded px-2')],
-                        ['›'],
-                      ),
-                    ],
-                  ),
-                  h.div(
-                    [
-                      ...years.grid,
-                      h.Class('grid grid-cols-3 gap-1 outline-none'),
-                    ],
-                    years.cells.map(cell =>
                       h.div(
                         [
-                          ...cell.cellAttributes,
-                          h.Class('group flex items-center justify-center'),
+                          ...years.grid,
+                          h.Class('grid grid-cols-3 gap-1 outline-none'),
                         ],
-                        [
-                          h.button(
+                        years.cells.map(cell =>
+                          h.div(
                             [
-                              ...cell.buttonAttributes,
-                              h.Class(
-                                'h-12 w-full rounded-md text-sm group-data-[selected]:bg-accent-600 group-data-[selected]:text-white group-data-[disabled]:opacity-40',
+                              ...cell.cellAttributes,
+                              h.Class('group flex items-center justify-center'),
+                            ],
+                            [
+                              h.button(
+                                [
+                                  ...cell.buttonAttributes,
+                                  h.Class(
+                                    'h-12 w-full rounded-md text-sm group-data-[selected]:bg-accent-600 group-data-[selected]:text-white group-data-[disabled]:opacity-40',
+                                  ),
+                                ],
+                                [cell.label],
                               ),
                             ],
-                            [cell.label],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-          }),
-        ),
-      // Optional: enable hidden form input for native <form> submission:
-      name: 'appointment-date',
-    },
-    toParentMessage: message => GotDatePickerMessage({ message }),
-  })
+              }),
+            ),
+          // Optional: enable hidden form input for native <form> submission:
+          name: 'appointment-date',
+        },
+        toParentMessage: message => GotDatePickerMessage({ message }),
+      }),
+    ],
+  )
 }

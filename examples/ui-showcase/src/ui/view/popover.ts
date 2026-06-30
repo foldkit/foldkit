@@ -100,6 +100,7 @@ const nestedChildPopover = (childPopoverModel: Popover.Model): Html => {
     model: childPopoverModel,
     view: Popover.view,
     viewInputs: {
+      ariaLabel: 'Advanced settings',
       anchor: NESTED_POPOVER_ANCHOR,
       toView: ({ button, panel, backdrop, isVisible }) =>
         h.div(
@@ -204,6 +205,13 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Basic'],
       ),
+      h.label(
+        [
+          h.For(Popover.buttonId(model.popoverBasicDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Product menu'],
+      ),
       h.div(
         [h.Class('relative')],
         [
@@ -220,6 +228,13 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Animated'],
       ),
+      h.label(
+        [
+          h.For(Popover.buttonId(model.popoverAnimatedDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Product menu'],
+      ),
       h.div(
         [h.Class('relative')],
         [
@@ -235,6 +250,13 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       h.h3(
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Nested'],
+      ),
+      h.label(
+        [
+          h.For(Popover.buttonId(model.popoverNestedParentDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Account'],
       ),
       nestedDemo(model.popoverNestedParentDemo, model.popoverNestedChildDemo),
     ],

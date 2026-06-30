@@ -1,6 +1,7 @@
 export {
   init,
   create,
+  buttonId,
   Model,
   Message,
   OutMessage,
