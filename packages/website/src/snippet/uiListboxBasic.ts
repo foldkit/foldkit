@@ -71,36 +71,48 @@ GotListboxMessage: ({ message }) => {
 const plans: ReadonlyArray<Plan> = ['Free', 'Pro', 'Enterprise']
 
 // Inside your view function, embed the Listbox via h.submodel using
-// `PlanListbox.view`:
+// `PlanListbox.view`. Associate an external label with the trigger: target
+// the trigger id with `Listbox.buttonId('plan')` from a native `<label for>`
+// for click-to-focus, and pass `ariaLabelledBy` so the trigger has an
+// accessible name.
 const view = (model: Model) => {
   const h = html<Message>()
 
-  return h.submodel({
-    slotId: 'plan',
-    model: model.listbox,
-    view: PlanListbox.view,
-    viewInputs: {
-      // `items` must be ReadonlyArray<Plan>. The factory's <Plan> parameter constrains the shape.
-      items: plans,
-      buttonContent: h.span(
-        [],
-        [Option.getOrElse(model.maybePlan, () => 'Select a plan')],
-      ),
-      buttonClassName: 'w-full rounded-lg border px-3 py-2 text-left',
-      itemsClassName: 'rounded-lg border shadow-lg',
-      itemToConfig: (plan, { isSelected, isActive }) => ({
-        className: isActive ? 'bg-blue-100' : '',
-        content: h.div(
-          [h.Class('flex items-center gap-2 px-3 py-2')],
-          [
-            isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
-            h.span([], [plan]),
-          ],
-        ),
+  const labelId = 'plan-label'
+
+  return h.div(
+    [],
+    [
+      h.label([h.Id(labelId), h.For(Listbox.buttonId('plan'))], ['Plan']),
+      h.submodel({
+        slotId: 'plan',
+        model: model.listbox,
+        view: PlanListbox.view,
+        viewInputs: {
+          ariaLabelledBy: labelId,
+          // `items` must be ReadonlyArray<Plan>. The factory's <Plan> parameter constrains the shape.
+          items: plans,
+          buttonContent: h.span(
+            [],
+            [Option.getOrElse(model.maybePlan, () => 'Select a plan')],
+          ),
+          buttonClassName: 'w-full rounded-lg border px-3 py-2 text-left',
+          itemsClassName: 'rounded-lg border shadow-lg',
+          itemToConfig: (plan, { isSelected, isActive }) => ({
+            className: isActive ? 'bg-blue-100' : '',
+            content: h.div(
+              [h.Class('flex items-center gap-2 px-3 py-2')],
+              [
+                isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
+                h.span([], [plan]),
+              ],
+            ),
+          }),
+          backdropClassName: 'fixed inset-0',
+          anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+        },
+        toParentMessage: message => GotListboxMessage({ message }),
       }),
-      backdropClassName: 'fixed inset-0',
-      anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-    },
-    toParentMessage: message => GotListboxMessage({ message }),
-  })
+    ],
+  )
 }

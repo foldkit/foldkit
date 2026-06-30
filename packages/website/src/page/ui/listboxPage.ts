@@ -208,6 +208,18 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     default: 'false',
     description: 'Marks the listbox as invalid for validation styling.',
   },
+  {
+    name: 'ariaLabel',
+    type: 'string',
+    description:
+      'Accessible name for the trigger button. Use for an icon-only trigger with no visible label. Applied as aria-label, and takes precedence over ariaLabelledBy.',
+  },
+  {
+    name: 'ariaLabelledBy',
+    type: 'string',
+    description:
+      'Id of an external element that labels the trigger button, applied as aria-labelledby. Pair with a visible label element.',
+  },
 ]
 
 const outMessageProps: ReadonlyArray<PropEntry> = [
@@ -459,6 +471,19 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           ' with ',
           inlineCode('aria-selected'),
           '.',
+        ),
+        para(
+          'The trigger is a form field, so give it an accessible name. Pass ',
+          inlineCode('ariaLabelledBy'),
+          ' with the id of a visible label element, or ',
+          inlineCode('ariaLabel'),
+          ' for an icon-only trigger. To wire a native ',
+          inlineCode('<label for>'),
+          ' for click-to-focus, target the trigger id with ',
+          inlineCode('Listbox.buttonId(id)'),
+          ' rather than hardcoding the ',
+          inlineCode('-button'),
+          ' convention.',
         ),
         heading(
           apiReferenceHeader.level,
