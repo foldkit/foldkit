@@ -381,6 +381,17 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         link(coreMountRouter(), 'Mount'),
         ' instead, which hands you the element directly.',
       ),
+      para(
+        'When only some events should become Messages, use ',
+        inlineCode('Subscription.fromEventFilterMap'),
+        '. Its ',
+        inlineCode('toMessage'),
+        ' returns ',
+        inlineCode('Option.some(message)'),
+        ' to emit a Message or ',
+        inlineCode('Option.none()'),
+        ' to ignore the event.',
+      ),
 
       // ADVANCED
 
