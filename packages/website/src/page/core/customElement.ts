@@ -146,9 +146,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('OnColorChanged'),
         '. The factory takes a ',
         inlineCode('(detail) => Message'),
-        ' callback. When the element dispatches the CustomEvent, the runtime extracts ',
+        ' callback. When the element dispatches the CustomEvent, the runtime decodes ',
         inlineCode('event.detail'),
-        ', runs your callback, and dispatches the resulting Message just like any other handler.',
+        ' through the declared Schema, and only on success runs your callback and dispatches the resulting Message. A detail that fails to decode (wrong shape, missing field, wrong type) is dropped and no Message is dispatched, so the value your callback receives is always validated against the Schema you declared.',
       ),
       infoCallout(
         'Validation runs at define time',

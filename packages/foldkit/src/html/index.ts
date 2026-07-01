@@ -762,7 +762,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
   Prop: { readonly key: string; readonly value: unknown }
   OnCustomEvent: {
     readonly name: string
-    readonly f: (event: CustomEvent<any>) => Message
+    readonly f: (event: CustomEvent<unknown>) => Option.Option<Message>
   }
   OnMount: {
     readonly action: MountAction<Message, any>
@@ -2633,7 +2633,10 @@ const attributeMatcher: (
         updateDataOn(ctx, {
           [name]: (event: Event) => {
             if (event instanceof CustomEvent) {
-              ctx.dispatch(f(event))
+              const maybeMessage = f(event)
+              if (Option.isSome(maybeMessage)) {
+                ctx.dispatch(maybeMessage.value)
+              }
             }
           },
         }),
