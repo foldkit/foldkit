@@ -1,4 +1,4 @@
-import { Effect, Queue, Schema as S, Stream } from 'effect'
+import { Effect, Option, Schema as S, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
 import type { Model } from '../main'
@@ -15,29 +15,22 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       }),
       dependenciesToStream: ({ isDocsPage }) =>
         Stream.when(
-          Stream.callback<typeof GotSearchMessage.Type>(queue =>
-            Effect.acquireRelease(
-              Effect.sync(() => {
-                const handler = (event: KeyboardEvent) => {
-                  if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
-                    event.preventDefault()
-                    Queue.offerUnsafe(
-                      queue,
-                      GotSearchMessage({
-                        message: PressedSearchShortcut(),
-                      }),
-                    )
-                  }
-                }
-                document.addEventListener('keydown', handler)
-                return handler
-              }),
-              handler =>
-                Effect.sync(() =>
-                  document.removeEventListener('keydown', handler),
-                ),
-            ).pipe(Effect.flatMap(() => Effect.never)),
-          ),
+          Subscription.fromEventFilterMap<
+            KeyboardEvent,
+            typeof GotSearchMessage.Type
+          >({
+            target: document,
+            type: 'keydown',
+            toMessage: event => {
+              if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+                event.preventDefault()
+                return Option.some(
+                  GotSearchMessage({ message: PressedSearchShortcut() }),
+                )
+              }
+              return Option.none()
+            },
+          }),
           Effect.sync(() => isDocsPage),
         ),
     },
