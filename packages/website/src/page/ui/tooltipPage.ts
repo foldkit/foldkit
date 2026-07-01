@@ -249,7 +249,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         pageTitle('ui/tooltip', 'Tooltip'),
         tableOfContentsEntryToHeader(overviewHeader),
         para(
-          'A non-interactive floating label anchored to a trigger. Tooltips appear on hover after a short delay, or immediately on keyboard focus. They hide on pointer-leave, blur, Escape, or left-click of the trigger. Use tooltips for short hints about a control. For rich content or interactive panels, use ',
+          'A non-interactive floating label anchored to a trigger. Tooltips appear on hover after a short delay, or immediately on keyboard focus. They hide on pointer-leave, blur, or Escape. Use tooltips for short hints about a control. Because they rely on hover and keyboard focus, don’t use them for content that must be reachable on touch; for that, or for rich or interactive content, use ',
           inlineCode('Popover'),
           ' instead.',
         ),
