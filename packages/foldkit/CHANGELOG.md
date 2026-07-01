@@ -1,5 +1,66 @@
 # foldkit
 
+## 0.120.0
+
+### Minor Changes
+
+- d17a0e5: Add a first-class way to associate an external label with the `Ui.Listbox`
+  trigger button.
+
+  `ViewInputs` now accepts optional `ariaLabel` and `ariaLabelledBy`. When
+  provided, they are applied to the trigger button, with `ariaLabel` taking
+  precedence. Neither attribute is rendered when omitted, so the trigger never
+  carries a dangling `aria-labelledby`. `Listbox.buttonId(id)` (and
+  `Listbox.Multi.buttonId(id)`) returns the bare id of the trigger button,
+  mirroring the existing `buttonSelector`, so a native
+  `<label for={Listbox.buttonId(id)}>` can drive click-to-focus without
+  hardcoding the internal `-button` convention.
+
+- 4405bd2: Rename `Dom.showModal` to `Dom.showDialog` and `Dom.closeModal` to
+  `Dom.closeDialog`.
+
+  The old names implied native `HTMLDialogElement.showModal()` semantics, but
+  `Dom.showModal` deliberately calls `element.show()` plus a manual focus trap
+  and a high z-index so DevTools and other overlays stay interactive above the
+  dialog. `Dom.closeModal` wraps native `.close()`. The new names drop the
+  misnomer and match the already-`Dialog`-flavored internals and the `Ui.Dialog`
+  Commands.
+
+  Migration: rename `Dom.showModal` to `Dom.showDialog` and `Dom.closeModal` to
+  `Dom.closeDialog` at every call site. Behavior is unchanged.
+
+- 3359556: Add `Subscription.fromEvent` to `foldkit`. It builds a Stream around a DOM
+  event source, registering the listener with `addEventListener` when the
+  Stream's scope opens and removing it when the scope closes. The
+  `addEventListener` call happens inside the acquire Effect and the matching
+  `removeEventListener` is registered only after acquire completes, so the
+  listener never leaks on interruption. Pass the `target` directly for
+  always-present globals like `window` or `document`, or as a thunk when it may
+  not exist until the scope opens. The `toMessage` mapper runs synchronously in
+  the browser's event dispatch, so `event.preventDefault()` works. Wrap the
+  result in `Stream.when` inside a `Subscription.make` entry to gate it on a
+  Model condition, or pass it to `Subscription.persistent` for a record-lifetime
+  listener.
+- b4e0475: Add named attribute builders for a broad set of SVG attributes that previously
+  worked only through `h.Attribute('text-anchor', 'middle')`. You can now write
+  `h.TextAnchor('middle')` and reach for the same named builders across text
+  positioning (`Dx`, `Dy`, `Rotate`, `TextAnchor`, `DominantBaseline`,
+  `AlignmentBaseline`, `BaselineShift`), text metrics and style (`TextLength`,
+  `LengthAdjust`, `FontFamily`, `FontSize`, `FontWeight`, `FontStyle`,
+  `LetterSpacing`, `WordSpacing`, `TextDecoration`, `WritingMode`), geometry
+  (`Rx`, `Ry`, `PathLength`), paint (`FillOpacity`, `StrokeOpacity`,
+  `StrokeMiterlimit`, `PaintOrder`, `VectorEffect`, `Color`), visibility
+  (`Visibility`, `Display`, `Overflow`, `PointerEvents`, `Cursor`), rendering
+  hints (`ShapeRendering`, `TextRendering`, `ImageRendering`), clip, mask, and
+  filter (`ClipPath`, `Mask`, `Filter`, `ClipPathUnits`, `MaskUnits`,
+  `MaskContentUnits`, `FilterUnits`, `PrimitiveUnits`), gradients (`Offset`,
+  `StopColor`, `StopOpacity`, `GradientUnits`, `GradientTransform`,
+  `SpreadMethod`, `Fx`, `Fy`, `Fr`), patterns (`PatternUnits`,
+  `PatternContentUnits`, `PatternTransform`), markers (`MarkerStart`,
+  `MarkerMid`, `MarkerEnd`, `MarkerWidth`, `MarkerHeight`, `MarkerUnits`,
+  `RefX`, `RefY`, `Orient`), and `PreserveAspectRatio`. Any attribute not in this
+  set stays available through `h.Attribute`.
+
 ## 0.119.0
 
 ### Minor Changes

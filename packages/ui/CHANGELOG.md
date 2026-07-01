@@ -1,5 +1,34 @@
 # @foldkit/ui
 
+## 0.120.0
+
+### Minor Changes
+
+- d17a0e5: Add a first-class way to associate an external label with the `Ui.Listbox`
+  trigger button.
+
+  `ViewInputs` now accepts optional `ariaLabel` and `ariaLabelledBy`. When
+  provided, they are applied to the trigger button, with `ariaLabel` taking
+  precedence. Neither attribute is rendered when omitted, so the trigger never
+  carries a dangling `aria-labelledby`. `Listbox.buttonId(id)` (and
+  `Listbox.Multi.buttonId(id)`) returns the bare id of the trigger button,
+  mirroring the existing `buttonSelector`, so a native
+  `<label for={Listbox.buttonId(id)}>` can drive click-to-focus without
+  hardcoding the internal `-button` convention.
+
+- 4405bd2: Rename `Dom.showModal` to `Dom.showDialog` and `Dom.closeModal` to
+  `Dom.closeDialog`.
+
+  The old names implied native `HTMLDialogElement.showModal()` semantics, but
+  `Dom.showModal` deliberately calls `element.show()` plus a manual focus trap
+  and a high z-index so DevTools and other overlays stay interactive above the
+  dialog. `Dom.closeModal` wraps native `.close()`. The new names drop the
+  misnomer and match the already-`Dialog`-flavored internals and the `Ui.Dialog`
+  Commands.
+
+  Migration: rename `Dom.showModal` to `Dom.showDialog` and `Dom.closeModal` to
+  `Dom.closeDialog` at every call site. Behavior is unchanged.
+
 ## 0.119.0
 
 ### Minor Changes
