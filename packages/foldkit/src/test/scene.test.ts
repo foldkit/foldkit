@@ -3,6 +3,16 @@ import { h } from 'snabbdom'
 import type { VNode } from 'snabbdom'
 import { describe, expect, test } from 'vitest'
 
+import { html as attributeHtml } from '../html/index.js'
+import {
+  testId as attributeTestId,
+  update as attributeUpdate,
+  view as attributeView,
+} from './apps/attributes.js'
+import type {
+  Message as AttributeMessage,
+  Model as AttributeModel,
+} from './apps/attributes.js'
 import {
   initialModel as bubblingInitialModel,
   update as bubblingUpdate,
@@ -80,11 +90,6 @@ import {
   view as resumeView,
 } from './apps/resumeUpload.js'
 import type { Model as ResumeModel } from './apps/resumeUpload.js'
-import {
-  initialModel as svgInitialModel,
-  update as svgUpdate,
-  view as svgView,
-} from './apps/svgAttributes.js'
 import { parseSelector } from './query.js'
 import {
   attr,
@@ -3143,51 +3148,1274 @@ describe('scene mounts', () => {
   })
 })
 
-describe('scene with svg attribute builders', () => {
-  const renderSvg = { update: svgUpdate, view: svgView }
+describe('attribute builders map to DOM names', () => {
+  const h = attributeHtml<AttributeMessage>()
 
-  test('kebab-case DOM names render with hyphens', () => {
-    Scene.scene(
-      renderSvg,
-      Scene.with(svgInitialModel),
-      Scene.expect(Scene.testId('svg-text')).toHaveAttr(
-        'text-anchor',
-        'middle',
-      ),
-      Scene.expect(Scene.testId('svg-text')).toHaveAttr('font-family', 'serif'),
-      Scene.expect(Scene.testId('svg-stop')).toHaveAttr('stop-color', 'red'),
-      Scene.expect(Scene.testId('svg-rect')).toHaveAttr(
-        'marker-end',
-        'url(#end)',
-      ),
-    )
-  })
+  type AttributeCase = Readonly<{
+    label: string
+    attribute: AttributeModel['attribute']
+    domName: string
+    value: string
+  }>
 
-  test('camelCase DOM names render verbatim', () => {
-    Scene.scene(
-      renderSvg,
-      Scene.with(svgInitialModel),
-      Scene.expect(Scene.testId('svg-gradient')).toHaveAttr(
-        'gradientUnits',
-        'userSpaceOnUse',
-      ),
-      Scene.expect(Scene.testId('svg-marker')).toHaveAttr('refX', '3'),
-      Scene.expect(Scene.testId('svg-rect')).toHaveAttr('pathLength', '100'),
-      Scene.expect(Scene.testId('svg-root')).toHaveAttr(
-        'preserveAspectRatio',
-        'xMidYMid meet',
-      ),
-    )
-  })
+  const ATTRIBUTE_CASES: ReadonlyArray<AttributeCase> = [
+    // GLOBAL
+    { label: 'Id', attribute: h.Id('main'), domName: 'id', value: 'main' },
+    {
+      label: 'Title',
+      attribute: h.Title('Close'),
+      domName: 'title',
+      value: 'Close',
+    },
+    { label: 'Lang', attribute: h.Lang('en'), domName: 'lang', value: 'en' },
+    { label: 'Dir', attribute: h.Dir('rtl'), domName: 'dir', value: 'rtl' },
+    {
+      label: 'Tabindex',
+      attribute: h.Tabindex(0),
+      domName: 'tabIndex',
+      value: '0',
+    },
+    {
+      label: 'Hidden',
+      attribute: h.Hidden(true),
+      domName: 'hidden',
+      value: 'true',
+    },
+    {
+      label: 'Contenteditable',
+      attribute: h.Contenteditable('true'),
+      domName: 'contenteditable',
+      value: 'true',
+    },
+    {
+      label: 'Draggable',
+      attribute: h.Draggable(true),
+      domName: 'draggable',
+      value: 'true',
+    },
+    {
+      label: 'Accesskey',
+      attribute: h.Accesskey('s'),
+      domName: 'accesskey',
+      value: 's',
+    },
+    {
+      label: 'Translate',
+      attribute: h.Translate('no'),
+      domName: 'translate',
+      value: 'no',
+    },
+    {
+      label: 'Inert',
+      attribute: h.Inert(true),
+      domName: 'inert',
+      value: 'true',
+    },
+    {
+      label: 'Popover',
+      attribute: h.Popover('auto'),
+      domName: 'popover',
+      value: 'auto',
+    },
+    {
+      label: 'Popovertarget',
+      attribute: h.Popovertarget('menu'),
+      domName: 'popovertarget',
+      value: 'menu',
+    },
+    {
+      label: 'Popovertargetaction',
+      attribute: h.Popovertargetaction('show'),
+      domName: 'popovertargetaction',
+      value: 'show',
+    },
+    { label: 'Role', attribute: h.Role('tab'), domName: 'role', value: 'tab' },
 
-  test('single-word DOM names render verbatim', () => {
-    Scene.scene(
-      renderSvg,
-      Scene.with(svgInitialModel),
-      Scene.expect(Scene.testId('svg-rect')).toHaveAttr('rx', '4'),
-      Scene.expect(Scene.testId('svg-stop')).toHaveAttr('offset', '0.5'),
-      Scene.expect(Scene.testId('svg-marker')).toHaveAttr('orient', 'auto'),
-      Scene.expect(Scene.testId('svg-root')).toHaveAttr('color', 'black'),
-    )
-  })
+    // FORM
+    {
+      label: 'Placeholder',
+      attribute: h.Placeholder('Email'),
+      domName: 'placeholder',
+      value: 'Email',
+    },
+    {
+      label: 'Name',
+      attribute: h.Name('email'),
+      domName: 'name',
+      value: 'email',
+    },
+    {
+      label: 'Disabled',
+      attribute: h.Disabled(true),
+      domName: 'disabled',
+      value: 'true',
+    },
+    {
+      label: 'Readonly',
+      attribute: h.Readonly(true),
+      domName: 'readOnly',
+      value: 'true',
+    },
+    {
+      label: 'Required',
+      attribute: h.Required(true),
+      domName: 'required',
+      value: 'true',
+    },
+    {
+      label: 'Autofocus',
+      attribute: h.Autofocus(true),
+      domName: 'autofocus',
+      value: 'true',
+    },
+    {
+      label: 'Spellcheck',
+      attribute: h.Spellcheck(true),
+      domName: 'spellcheck',
+      value: 'true',
+    },
+    {
+      label: 'Autocorrect',
+      attribute: h.Autocorrect('on'),
+      domName: 'autocorrect',
+      value: 'on',
+    },
+    {
+      label: 'Autocapitalize',
+      attribute: h.Autocapitalize('words'),
+      domName: 'autocapitalize',
+      value: 'words',
+    },
+    {
+      label: 'InputMode',
+      attribute: h.InputMode('numeric'),
+      domName: 'inputmode',
+      value: 'numeric',
+    },
+    {
+      label: 'EnterKeyHint',
+      attribute: h.EnterKeyHint('go'),
+      domName: 'enterkeyhint',
+      value: 'go',
+    },
+    {
+      label: 'Multiple',
+      attribute: h.Multiple(true),
+      domName: 'multiple',
+      value: 'true',
+    },
+    {
+      label: 'Type',
+      attribute: h.Type('password'),
+      domName: 'type',
+      value: 'password',
+    },
+    {
+      label: 'Accept',
+      attribute: h.Accept('image/png'),
+      domName: 'accept',
+      value: 'image/png',
+    },
+    {
+      label: 'Autocomplete',
+      attribute: h.Autocomplete('email'),
+      domName: 'autocomplete',
+      value: 'email',
+    },
+    {
+      label: 'Pattern',
+      attribute: h.Pattern('[0-9]+'),
+      domName: 'pattern',
+      value: '[0-9]+',
+    },
+    {
+      label: 'Maxlength',
+      attribute: h.Maxlength(40),
+      domName: 'maxLength',
+      value: '40',
+    },
+    {
+      label: 'Minlength',
+      attribute: h.Minlength(4),
+      domName: 'minLength',
+      value: '4',
+    },
+    { label: 'Size', attribute: h.Size(20), domName: 'size', value: '20' },
+    { label: 'Cols', attribute: h.Cols(80), domName: 'cols', value: '80' },
+    { label: 'Rows', attribute: h.Rows(10), domName: 'rows', value: '10' },
+    { label: 'Max', attribute: h.Max('100'), domName: 'max', value: '100' },
+    { label: 'Min', attribute: h.Min('0'), domName: 'min', value: '0' },
+    { label: 'Step', attribute: h.Step('0.5'), domName: 'step', value: '0.5' },
+    {
+      label: 'For',
+      attribute: h.For('email'),
+      domName: 'htmlFor',
+      value: 'email',
+    },
+    {
+      label: 'Action',
+      attribute: h.Action('/submit'),
+      domName: 'action',
+      value: '/submit',
+    },
+    {
+      label: 'Method',
+      attribute: h.Method('post'),
+      domName: 'method',
+      value: 'post',
+    },
+    {
+      label: 'Enctype',
+      attribute: h.Enctype('multipart/form-data'),
+      domName: 'enctype',
+      value: 'multipart/form-data',
+    },
+    {
+      label: 'Novalidate',
+      attribute: h.Novalidate(true),
+      domName: 'noValidate',
+      value: 'true',
+    },
+    {
+      label: 'Formaction',
+      attribute: h.Formaction('/save'),
+      domName: 'formAction',
+      value: '/save',
+    },
+    {
+      label: 'Formmethod',
+      attribute: h.Formmethod('post'),
+      domName: 'formMethod',
+      value: 'post',
+    },
+    {
+      label: 'Formnovalidate',
+      attribute: h.Formnovalidate(true),
+      domName: 'formNoValidate',
+      value: 'true',
+    },
+    {
+      label: 'Formtarget',
+      attribute: h.Formtarget('_blank'),
+      domName: 'formTarget',
+      value: '_blank',
+    },
+    {
+      label: 'Formenctype',
+      attribute: h.Formenctype('text/plain'),
+      domName: 'formEnctype',
+      value: 'text/plain',
+    },
+    {
+      label: 'Wrap',
+      attribute: h.Wrap('soft'),
+      domName: 'wrap',
+      value: 'soft',
+    },
+    {
+      label: 'List',
+      attribute: h.List('options'),
+      domName: 'list',
+      value: 'options',
+    },
+    {
+      label: 'FormAttr',
+      attribute: h.FormAttr('login'),
+      domName: 'form',
+      value: 'login',
+    },
+    {
+      label: 'LabelAttr',
+      attribute: h.LabelAttr('Group'),
+      domName: 'label',
+      value: 'Group',
+    },
+    {
+      label: 'ContentAttr',
+      attribute: h.ContentAttr('width=device-width'),
+      domName: 'content',
+      value: 'width=device-width',
+    },
+    {
+      label: 'Charset',
+      attribute: h.Charset('utf-8'),
+      domName: 'charset',
+      value: 'utf-8',
+    },
+    {
+      label: 'HttpEquiv',
+      attribute: h.HttpEquiv('refresh'),
+      domName: 'http-equiv',
+      value: 'refresh',
+    },
+    { label: 'High', attribute: h.High(80), domName: 'high', value: '80' },
+    { label: 'Low', attribute: h.Low(20), domName: 'low', value: '20' },
+    {
+      label: 'Optimum',
+      attribute: h.Optimum(50),
+      domName: 'optimum',
+      value: '50',
+    },
+
+    // ANCHOR
+    {
+      label: 'Href',
+      attribute: h.Href('/docs'),
+      domName: 'href',
+      value: '/docs',
+    },
+    {
+      label: 'Target',
+      attribute: h.Target('_blank'),
+      domName: 'target',
+      value: '_blank',
+    },
+    {
+      label: 'Rel',
+      attribute: h.Rel('noopener'),
+      domName: 'rel',
+      value: 'noopener',
+    },
+    {
+      label: 'Download',
+      attribute: h.Download('report.pdf'),
+      domName: 'download',
+      value: 'report.pdf',
+    },
+    {
+      label: 'Hreflang',
+      attribute: h.Hreflang('en'),
+      domName: 'hreflang',
+      value: 'en',
+    },
+    {
+      label: 'Ping',
+      attribute: h.Ping('/track'),
+      domName: 'ping',
+      value: '/track',
+    },
+    {
+      label: 'Referrerpolicy',
+      attribute: h.Referrerpolicy('no-referrer'),
+      domName: 'referrerpolicy',
+      value: 'no-referrer',
+    },
+
+    // MEDIA
+    {
+      label: 'Src',
+      attribute: h.Src('/logo.png'),
+      domName: 'src',
+      value: '/logo.png',
+    },
+    {
+      label: 'Alt',
+      attribute: h.Alt('Logo'),
+      domName: 'alt',
+      value: 'Logo',
+    },
+    {
+      label: 'Srcset',
+      attribute: h.Srcset('/logo-2x.png 2x'),
+      domName: 'srcset',
+      value: '/logo-2x.png 2x',
+    },
+    {
+      label: 'Sizes',
+      attribute: h.Sizes('100vw'),
+      domName: 'sizes',
+      value: '100vw',
+    },
+    {
+      label: 'Loading',
+      attribute: h.Loading('lazy'),
+      domName: 'loading',
+      value: 'lazy',
+    },
+    {
+      label: 'Decoding',
+      attribute: h.Decoding('async'),
+      domName: 'decoding',
+      value: 'async',
+    },
+    {
+      label: 'Fetchpriority',
+      attribute: h.Fetchpriority('high'),
+      domName: 'fetchpriority',
+      value: 'high',
+    },
+    {
+      label: 'Crossorigin',
+      attribute: h.Crossorigin('anonymous'),
+      domName: 'crossorigin',
+      value: 'anonymous',
+    },
+    {
+      label: 'Integrity',
+      attribute: h.Integrity('sha256-abc'),
+      domName: 'integrity',
+      value: 'sha256-abc',
+    },
+    {
+      label: 'Sandbox',
+      attribute: h.Sandbox('allow-scripts'),
+      domName: 'sandbox',
+      value: 'allow-scripts',
+    },
+    {
+      label: 'Allow',
+      attribute: h.Allow('fullscreen'),
+      domName: 'allow',
+      value: 'fullscreen',
+    },
+    {
+      label: 'Srcdoc',
+      attribute: h.Srcdoc('<p>Hi</p>'),
+      domName: 'srcdoc',
+      value: '<p>Hi</p>',
+    },
+    {
+      label: 'Autoplay',
+      attribute: h.Autoplay(true),
+      domName: 'autoplay',
+      value: 'true',
+    },
+    {
+      label: 'Controls',
+      attribute: h.Controls(true),
+      domName: 'controls',
+      value: 'true',
+    },
+    {
+      label: 'Loop',
+      attribute: h.Loop(true),
+      domName: 'loop',
+      value: 'true',
+    },
+    {
+      label: 'Muted',
+      attribute: h.Muted(true),
+      domName: 'muted',
+      value: 'true',
+    },
+    {
+      label: 'Poster',
+      attribute: h.Poster('/poster.png'),
+      domName: 'poster',
+      value: '/poster.png',
+    },
+    {
+      label: 'Preload',
+      attribute: h.Preload('auto'),
+      domName: 'preload',
+      value: 'auto',
+    },
+    {
+      label: 'Playsinline',
+      attribute: h.Playsinline(true),
+      domName: 'playsInline',
+      value: 'true',
+    },
+    {
+      label: 'Usemap',
+      attribute: h.Usemap('#map'),
+      domName: 'usemap',
+      value: '#map',
+    },
+    {
+      label: 'Ismap',
+      attribute: h.Ismap(true),
+      domName: 'isMap',
+      value: 'true',
+    },
+
+    // TABLE
+    {
+      label: 'Colspan',
+      attribute: h.Colspan(2),
+      domName: 'colSpan',
+      value: '2',
+    },
+    {
+      label: 'Rowspan',
+      attribute: h.Rowspan(3),
+      domName: 'rowSpan',
+      value: '3',
+    },
+    {
+      label: 'Scope',
+      attribute: h.Scope('col'),
+      domName: 'scope',
+      value: 'col',
+    },
+    {
+      label: 'Headers',
+      attribute: h.Headers('h1 h2'),
+      domName: 'headers',
+      value: 'h1 h2',
+    },
+    { label: 'Span', attribute: h.Span(2), domName: 'span', value: '2' },
+    { label: 'Start', attribute: h.Start(5), domName: 'start', value: '5' },
+    {
+      label: 'Reversed',
+      attribute: h.Reversed(true),
+      domName: 'reversed',
+      value: 'true',
+    },
+    {
+      label: 'CiteAttr',
+      attribute: h.CiteAttr('/source'),
+      domName: 'cite',
+      value: '/source',
+    },
+    {
+      label: 'Datetime',
+      attribute: h.Datetime('2026-06-30'),
+      domName: 'dateTime',
+      value: '2026-06-30',
+    },
+
+    // ARIA
+    {
+      label: 'AriaLabel',
+      attribute: h.AriaLabel('Close'),
+      domName: 'aria-label',
+      value: 'Close',
+    },
+    {
+      label: 'AriaLabelledBy',
+      attribute: h.AriaLabelledBy('title'),
+      domName: 'aria-labelledby',
+      value: 'title',
+    },
+    {
+      label: 'AriaDescribedBy',
+      attribute: h.AriaDescribedBy('hint'),
+      domName: 'aria-describedby',
+      value: 'hint',
+    },
+    {
+      label: 'AriaHidden',
+      attribute: h.AriaHidden(true),
+      domName: 'aria-hidden',
+      value: 'true',
+    },
+    {
+      label: 'AriaExpanded',
+      attribute: h.AriaExpanded(false),
+      domName: 'aria-expanded',
+      value: 'false',
+    },
+    {
+      label: 'AriaSelected',
+      attribute: h.AriaSelected(true),
+      domName: 'aria-selected',
+      value: 'true',
+    },
+    {
+      label: 'AriaChecked',
+      attribute: h.AriaChecked('mixed'),
+      domName: 'aria-checked',
+      value: 'mixed',
+    },
+    {
+      label: 'AriaDisabled',
+      attribute: h.AriaDisabled(true),
+      domName: 'aria-disabled',
+      value: 'true',
+    },
+    {
+      label: 'AriaRequired',
+      attribute: h.AriaRequired(true),
+      domName: 'aria-required',
+      value: 'true',
+    },
+    {
+      label: 'AriaInvalid',
+      attribute: h.AriaInvalid(true),
+      domName: 'aria-invalid',
+      value: 'true',
+    },
+    {
+      label: 'AriaLive',
+      attribute: h.AriaLive('polite'),
+      domName: 'aria-live',
+      value: 'polite',
+    },
+    {
+      label: 'AriaControls',
+      attribute: h.AriaControls('panel'),
+      domName: 'aria-controls',
+      value: 'panel',
+    },
+    {
+      label: 'AriaCurrent',
+      attribute: h.AriaCurrent('page'),
+      domName: 'aria-current',
+      value: 'page',
+    },
+    {
+      label: 'AriaOrientation',
+      attribute: h.AriaOrientation('vertical'),
+      domName: 'aria-orientation',
+      value: 'vertical',
+    },
+    {
+      label: 'AriaPressed',
+      attribute: h.AriaPressed('true'),
+      domName: 'aria-pressed',
+      value: 'true',
+    },
+    {
+      label: 'AriaHasPopup',
+      attribute: h.AriaHasPopup('menu'),
+      domName: 'aria-haspopup',
+      value: 'menu',
+    },
+    {
+      label: 'AriaActiveDescendant',
+      attribute: h.AriaActiveDescendant('option-1'),
+      domName: 'aria-activedescendant',
+      value: 'option-1',
+    },
+    {
+      label: 'AriaSort',
+      attribute: h.AriaSort('ascending'),
+      domName: 'aria-sort',
+      value: 'ascending',
+    },
+    {
+      label: 'AriaMultiSelectable',
+      attribute: h.AriaMultiSelectable(true),
+      domName: 'aria-multiselectable',
+      value: 'true',
+    },
+    {
+      label: 'AriaModal',
+      attribute: h.AriaModal(true),
+      domName: 'aria-modal',
+      value: 'true',
+    },
+    {
+      label: 'AriaBusy',
+      attribute: h.AriaBusy(true),
+      domName: 'aria-busy',
+      value: 'true',
+    },
+    {
+      label: 'AriaErrorMessage',
+      attribute: h.AriaErrorMessage('err'),
+      domName: 'aria-errormessage',
+      value: 'err',
+    },
+    {
+      label: 'AriaRoleDescription',
+      attribute: h.AriaRoleDescription('slide'),
+      domName: 'aria-roledescription',
+      value: 'slide',
+    },
+    {
+      label: 'AriaAtomic',
+      attribute: h.AriaAtomic(true),
+      domName: 'aria-atomic',
+      value: 'true',
+    },
+    {
+      label: 'AriaAutocomplete',
+      attribute: h.AriaAutocomplete('list'),
+      domName: 'aria-autocomplete',
+      value: 'list',
+    },
+    {
+      label: 'AriaColcount',
+      attribute: h.AriaColcount(3),
+      domName: 'aria-colcount',
+      value: '3',
+    },
+    {
+      label: 'AriaColindex',
+      attribute: h.AriaColindex(2),
+      domName: 'aria-colindex',
+      value: '2',
+    },
+    {
+      label: 'AriaColspan',
+      attribute: h.AriaColspan(2),
+      domName: 'aria-colspan',
+      value: '2',
+    },
+    {
+      label: 'AriaDescription',
+      attribute: h.AriaDescription('A field'),
+      domName: 'aria-description',
+      value: 'A field',
+    },
+    {
+      label: 'AriaDetails',
+      attribute: h.AriaDetails('details-1'),
+      domName: 'aria-details',
+      value: 'details-1',
+    },
+    {
+      label: 'AriaFlowto',
+      attribute: h.AriaFlowto('next'),
+      domName: 'aria-flowto',
+      value: 'next',
+    },
+    {
+      label: 'AriaKeyshortcuts',
+      attribute: h.AriaKeyshortcuts('Control+S'),
+      domName: 'aria-keyshortcuts',
+      value: 'Control+S',
+    },
+    {
+      label: 'AriaLevel',
+      attribute: h.AriaLevel(2),
+      domName: 'aria-level',
+      value: '2',
+    },
+    {
+      label: 'AriaOwns',
+      attribute: h.AriaOwns('child'),
+      domName: 'aria-owns',
+      value: 'child',
+    },
+    {
+      label: 'AriaPlaceholder',
+      attribute: h.AriaPlaceholder('Search'),
+      domName: 'aria-placeholder',
+      value: 'Search',
+    },
+    {
+      label: 'AriaPosinset',
+      attribute: h.AriaPosinset(1),
+      domName: 'aria-posinset',
+      value: '1',
+    },
+    {
+      label: 'AriaReadonly',
+      attribute: h.AriaReadonly(true),
+      domName: 'aria-readonly',
+      value: 'true',
+    },
+    {
+      label: 'AriaRelevant',
+      attribute: h.AriaRelevant('additions'),
+      domName: 'aria-relevant',
+      value: 'additions',
+    },
+    {
+      label: 'AriaRowcount',
+      attribute: h.AriaRowcount(5),
+      domName: 'aria-rowcount',
+      value: '5',
+    },
+    {
+      label: 'AriaRowindex',
+      attribute: h.AriaRowindex(3),
+      domName: 'aria-rowindex',
+      value: '3',
+    },
+    {
+      label: 'AriaRowspan',
+      attribute: h.AriaRowspan(2),
+      domName: 'aria-rowspan',
+      value: '2',
+    },
+    {
+      label: 'AriaSetsize',
+      attribute: h.AriaSetsize(10),
+      domName: 'aria-setsize',
+      value: '10',
+    },
+    {
+      label: 'AriaValuemax',
+      attribute: h.AriaValuemax(100),
+      domName: 'aria-valuemax',
+      value: '100',
+    },
+    {
+      label: 'AriaValuemin',
+      attribute: h.AriaValuemin(0),
+      domName: 'aria-valuemin',
+      value: '0',
+    },
+    {
+      label: 'AriaValuenow',
+      attribute: h.AriaValuenow(42),
+      domName: 'aria-valuenow',
+      value: '42',
+    },
+    {
+      label: 'AriaValuetext',
+      attribute: h.AriaValuetext('42 percent'),
+      domName: 'aria-valuetext',
+      value: '42 percent',
+    },
+
+    // SVG
+    {
+      label: 'ViewBox',
+      attribute: h.ViewBox('0 0 100 100'),
+      domName: 'viewBox',
+      value: '0 0 100 100',
+    },
+    {
+      label: 'Xmlns',
+      attribute: h.Xmlns('http://www.w3.org/2000/svg'),
+      domName: 'xmlns',
+      value: 'http://www.w3.org/2000/svg',
+    },
+    {
+      label: 'Fill',
+      attribute: h.Fill('red'),
+      domName: 'fill',
+      value: 'red',
+    },
+    {
+      label: 'FillRule',
+      attribute: h.FillRule('evenodd'),
+      domName: 'fill-rule',
+      value: 'evenodd',
+    },
+    {
+      label: 'ClipRule',
+      attribute: h.ClipRule('nonzero'),
+      domName: 'clip-rule',
+      value: 'nonzero',
+    },
+    {
+      label: 'Stroke',
+      attribute: h.Stroke('blue'),
+      domName: 'stroke',
+      value: 'blue',
+    },
+    {
+      label: 'StrokeWidth',
+      attribute: h.StrokeWidth('2'),
+      domName: 'stroke-width',
+      value: '2',
+    },
+    {
+      label: 'StrokeLinecap',
+      attribute: h.StrokeLinecap('round'),
+      domName: 'stroke-linecap',
+      value: 'round',
+    },
+    {
+      label: 'StrokeLinejoin',
+      attribute: h.StrokeLinejoin('miter'),
+      domName: 'stroke-linejoin',
+      value: 'miter',
+    },
+    {
+      label: 'D',
+      attribute: h.D('M0 0 L1 1'),
+      domName: 'd',
+      value: 'M0 0 L1 1',
+    },
+    { label: 'Cx', attribute: h.Cx('5'), domName: 'cx', value: '5' },
+    { label: 'Cy', attribute: h.Cy('6'), domName: 'cy', value: '6' },
+    { label: 'R', attribute: h.R('4'), domName: 'r', value: '4' },
+    { label: 'X', attribute: h.X('1'), domName: 'x', value: '1' },
+    { label: 'Y', attribute: h.Y('2'), domName: 'y', value: '2' },
+    {
+      label: 'Width',
+      attribute: h.Width('10'),
+      domName: 'width',
+      value: '10',
+    },
+    {
+      label: 'Height',
+      attribute: h.Height('20'),
+      domName: 'height',
+      value: '20',
+    },
+    { label: 'X1', attribute: h.X1('0'), domName: 'x1', value: '0' },
+    { label: 'Y1', attribute: h.Y1('0'), domName: 'y1', value: '0' },
+    { label: 'X2', attribute: h.X2('10'), domName: 'x2', value: '10' },
+    { label: 'Y2', attribute: h.Y2('10'), domName: 'y2', value: '10' },
+    {
+      label: 'Points',
+      attribute: h.Points('0,0 1,1'),
+      domName: 'points',
+      value: '0,0 1,1',
+    },
+    {
+      label: 'Transform',
+      attribute: h.Transform('rotate(45)'),
+      domName: 'transform',
+      value: 'rotate(45)',
+    },
+    {
+      label: 'Opacity',
+      attribute: h.Opacity('0.5'),
+      domName: 'opacity',
+      value: '0.5',
+    },
+    {
+      label: 'StrokeDasharray',
+      attribute: h.StrokeDasharray('4 2'),
+      domName: 'stroke-dasharray',
+      value: '4 2',
+    },
+    {
+      label: 'StrokeDashoffset',
+      attribute: h.StrokeDashoffset('1'),
+      domName: 'stroke-dashoffset',
+      value: '1',
+    },
+    { label: 'Dx', attribute: h.Dx('1'), domName: 'dx', value: '1' },
+    { label: 'Dy', attribute: h.Dy('2'), domName: 'dy', value: '2' },
+    {
+      label: 'Rotate',
+      attribute: h.Rotate('15'),
+      domName: 'rotate',
+      value: '15',
+    },
+    {
+      label: 'TextAnchor',
+      attribute: h.TextAnchor('middle'),
+      domName: 'text-anchor',
+      value: 'middle',
+    },
+    {
+      label: 'DominantBaseline',
+      attribute: h.DominantBaseline('central'),
+      domName: 'dominant-baseline',
+      value: 'central',
+    },
+    {
+      label: 'AlignmentBaseline',
+      attribute: h.AlignmentBaseline('middle'),
+      domName: 'alignment-baseline',
+      value: 'middle',
+    },
+    {
+      label: 'BaselineShift',
+      attribute: h.BaselineShift('super'),
+      domName: 'baseline-shift',
+      value: 'super',
+    },
+    {
+      label: 'TextLength',
+      attribute: h.TextLength('40'),
+      domName: 'textLength',
+      value: '40',
+    },
+    {
+      label: 'LengthAdjust',
+      attribute: h.LengthAdjust('spacing'),
+      domName: 'lengthAdjust',
+      value: 'spacing',
+    },
+    {
+      label: 'FontFamily',
+      attribute: h.FontFamily('serif'),
+      domName: 'font-family',
+      value: 'serif',
+    },
+    {
+      label: 'FontSize',
+      attribute: h.FontSize('12'),
+      domName: 'font-size',
+      value: '12',
+    },
+    {
+      label: 'FontWeight',
+      attribute: h.FontWeight('bold'),
+      domName: 'font-weight',
+      value: 'bold',
+    },
+    {
+      label: 'FontStyle',
+      attribute: h.FontStyle('italic'),
+      domName: 'font-style',
+      value: 'italic',
+    },
+    {
+      label: 'LetterSpacing',
+      attribute: h.LetterSpacing('1'),
+      domName: 'letter-spacing',
+      value: '1',
+    },
+    {
+      label: 'WordSpacing',
+      attribute: h.WordSpacing('2'),
+      domName: 'word-spacing',
+      value: '2',
+    },
+    {
+      label: 'TextDecoration',
+      attribute: h.TextDecoration('underline'),
+      domName: 'text-decoration',
+      value: 'underline',
+    },
+    {
+      label: 'WritingMode',
+      attribute: h.WritingMode('horizontal-tb'),
+      domName: 'writing-mode',
+      value: 'horizontal-tb',
+    },
+    { label: 'Rx', attribute: h.Rx('4'), domName: 'rx', value: '4' },
+    { label: 'Ry', attribute: h.Ry('4'), domName: 'ry', value: '4' },
+    {
+      label: 'PathLength',
+      attribute: h.PathLength('100'),
+      domName: 'pathLength',
+      value: '100',
+    },
+    {
+      label: 'FillOpacity',
+      attribute: h.FillOpacity('0.5'),
+      domName: 'fill-opacity',
+      value: '0.5',
+    },
+    {
+      label: 'StrokeOpacity',
+      attribute: h.StrokeOpacity('0.8'),
+      domName: 'stroke-opacity',
+      value: '0.8',
+    },
+    {
+      label: 'StrokeMiterlimit',
+      attribute: h.StrokeMiterlimit('2'),
+      domName: 'stroke-miterlimit',
+      value: '2',
+    },
+    {
+      label: 'PaintOrder',
+      attribute: h.PaintOrder('stroke'),
+      domName: 'paint-order',
+      value: 'stroke',
+    },
+    {
+      label: 'VectorEffect',
+      attribute: h.VectorEffect('non-scaling-stroke'),
+      domName: 'vector-effect',
+      value: 'non-scaling-stroke',
+    },
+    {
+      label: 'Color',
+      attribute: h.Color('black'),
+      domName: 'color',
+      value: 'black',
+    },
+    {
+      label: 'Visibility',
+      attribute: h.Visibility('visible'),
+      domName: 'visibility',
+      value: 'visible',
+    },
+    {
+      label: 'Display',
+      attribute: h.Display('inline'),
+      domName: 'display',
+      value: 'inline',
+    },
+    {
+      label: 'Overflow',
+      attribute: h.Overflow('visible'),
+      domName: 'overflow',
+      value: 'visible',
+    },
+    {
+      label: 'PointerEvents',
+      attribute: h.PointerEvents('none'),
+      domName: 'pointer-events',
+      value: 'none',
+    },
+    {
+      label: 'Cursor',
+      attribute: h.Cursor('pointer'),
+      domName: 'cursor',
+      value: 'pointer',
+    },
+    {
+      label: 'ShapeRendering',
+      attribute: h.ShapeRendering('crispEdges'),
+      domName: 'shape-rendering',
+      value: 'crispEdges',
+    },
+    {
+      label: 'TextRendering',
+      attribute: h.TextRendering('optimizeLegibility'),
+      domName: 'text-rendering',
+      value: 'optimizeLegibility',
+    },
+    {
+      label: 'ImageRendering',
+      attribute: h.ImageRendering('pixelated'),
+      domName: 'image-rendering',
+      value: 'pixelated',
+    },
+    {
+      label: 'ClipPath',
+      attribute: h.ClipPath('url(#clip)'),
+      domName: 'clip-path',
+      value: 'url(#clip)',
+    },
+    {
+      label: 'Mask',
+      attribute: h.Mask('url(#mask)'),
+      domName: 'mask',
+      value: 'url(#mask)',
+    },
+    {
+      label: 'Filter',
+      attribute: h.Filter('url(#filter)'),
+      domName: 'filter',
+      value: 'url(#filter)',
+    },
+    {
+      label: 'ClipPathUnits',
+      attribute: h.ClipPathUnits('userSpaceOnUse'),
+      domName: 'clipPathUnits',
+      value: 'userSpaceOnUse',
+    },
+    {
+      label: 'MaskUnits',
+      attribute: h.MaskUnits('userSpaceOnUse'),
+      domName: 'maskUnits',
+      value: 'userSpaceOnUse',
+    },
+    {
+      label: 'MaskContentUnits',
+      attribute: h.MaskContentUnits('userSpaceOnUse'),
+      domName: 'maskContentUnits',
+      value: 'userSpaceOnUse',
+    },
+    {
+      label: 'FilterUnits',
+      attribute: h.FilterUnits('userSpaceOnUse'),
+      domName: 'filterUnits',
+      value: 'userSpaceOnUse',
+    },
+    {
+      label: 'PrimitiveUnits',
+      attribute: h.PrimitiveUnits('userSpaceOnUse'),
+      domName: 'primitiveUnits',
+      value: 'userSpaceOnUse',
+    },
+    {
+      label: 'Offset',
+      attribute: h.Offset('0.5'),
+      domName: 'offset',
+      value: '0.5',
+    },
+    {
+      label: 'StopColor',
+      attribute: h.StopColor('red'),
+      domName: 'stop-color',
+      value: 'red',
+    },
+    {
+      label: 'StopOpacity',
+      attribute: h.StopOpacity('0.9'),
+      domName: 'stop-opacity',
+      value: '0.9',
+    },
+    {
+      label: 'GradientUnits',
+      attribute: h.GradientUnits('userSpaceOnUse'),
+      domName: 'gradientUnits',
+      value: 'userSpaceOnUse',
+    },
+    {
+      label: 'GradientTransform',
+      attribute: h.GradientTransform('rotate(45)'),
+      domName: 'gradientTransform',
+      value: 'rotate(45)',
+    },
+    {
+      label: 'SpreadMethod',
+      attribute: h.SpreadMethod('reflect'),
+      domName: 'spreadMethod',
+      value: 'reflect',
+    },
+    { label: 'Fx', attribute: h.Fx('0.1'), domName: 'fx', value: '0.1' },
+    { label: 'Fy', attribute: h.Fy('0.2'), domName: 'fy', value: '0.2' },
+    { label: 'Fr', attribute: h.Fr('0.3'), domName: 'fr', value: '0.3' },
+    {
+      label: 'PatternUnits',
+      attribute: h.PatternUnits('userSpaceOnUse'),
+      domName: 'patternUnits',
+      value: 'userSpaceOnUse',
+    },
+    {
+      label: 'PatternContentUnits',
+      attribute: h.PatternContentUnits('userSpaceOnUse'),
+      domName: 'patternContentUnits',
+      value: 'userSpaceOnUse',
+    },
+    {
+      label: 'PatternTransform',
+      attribute: h.PatternTransform('scale(2)'),
+      domName: 'patternTransform',
+      value: 'scale(2)',
+    },
+    {
+      label: 'MarkerStart',
+      attribute: h.MarkerStart('url(#start)'),
+      domName: 'marker-start',
+      value: 'url(#start)',
+    },
+    {
+      label: 'MarkerMid',
+      attribute: h.MarkerMid('url(#mid)'),
+      domName: 'marker-mid',
+      value: 'url(#mid)',
+    },
+    {
+      label: 'MarkerEnd',
+      attribute: h.MarkerEnd('url(#end)'),
+      domName: 'marker-end',
+      value: 'url(#end)',
+    },
+    {
+      label: 'MarkerWidth',
+      attribute: h.MarkerWidth('6'),
+      domName: 'markerWidth',
+      value: '6',
+    },
+    {
+      label: 'MarkerHeight',
+      attribute: h.MarkerHeight('6'),
+      domName: 'markerHeight',
+      value: '6',
+    },
+    {
+      label: 'MarkerUnits',
+      attribute: h.MarkerUnits('strokeWidth'),
+      domName: 'markerUnits',
+      value: 'strokeWidth',
+    },
+    { label: 'RefX', attribute: h.RefX('3'), domName: 'refX', value: '3' },
+    { label: 'RefY', attribute: h.RefY('3'), domName: 'refY', value: '3' },
+    {
+      label: 'Orient',
+      attribute: h.Orient('auto'),
+      domName: 'orient',
+      value: 'auto',
+    },
+    {
+      label: 'PreserveAspectRatio',
+      attribute: h.PreserveAspectRatio('xMidYMid meet'),
+      domName: 'preserveAspectRatio',
+      value: 'xMidYMid meet',
+    },
+  ]
+
+  test.each(ATTRIBUTE_CASES)(
+    '$label renders as $domName',
+    ({ attribute, domName, value }) => {
+      const model: AttributeModel = { attribute }
+
+      Scene.scene(
+        { update: attributeUpdate, view: attributeView },
+        Scene.with(model),
+        Scene.expect(Scene.testId(attributeTestId)).toHaveAttr(domName, value),
+      )
+    },
+  )
 })
