@@ -124,7 +124,12 @@ export type OutMessage = typeof OutMessage.Type
 /** Configuration for creating a dialog model with `init`. The `id` must be
  *  non-empty and unique within the document: it keys the dialog element, its
  *  ARIA references, and the framework's per-dialog resource cleanup, so a
- *  duplicate or empty id breaks cleanup accounting. */
+ *  duplicate or empty id breaks cleanup accounting.
+ *
+ *  The dialog derives framework-managed ids from this `id`: `-dialog-title`,
+ *  `-dialog-description`, and `-panel` (the animation panel). Spread
+ *  `RenderInfo`'s `title` / `description` onto your heading and description
+ *  elements rather than constructing those ids yourself. */
 export type InitConfig = Readonly<{
   id: string
   isOpen?: boolean
@@ -358,11 +363,26 @@ export const close = (model: Model): UpdateReturn =>
 
 // VIEW
 
-/** Returns the ID used for `aria-labelledby` on the dialog. Apply this to your title element. */
-export const titleId = (model: Model): string => `${model.id}-title`
+/** Returns the framework-managed id the dialog's `aria-labelledby` points at,
+ *  the `-dialog-title` suffix on `model.id`.
+ *
+ *  The primary path is spreading `RenderInfo`'s `title` onto your heading
+ *  (`h.h2([...title], [...])`), which carries this id for you. Reach for this
+ *  helper only when you need the id as a value outside `toView`: a Command that
+ *  calls `getElementById`, a cross-element `aria-describedby`, or a test. Do not
+ *  hand-roll the id string. */
+export const titleId = (model: Model): string => `${model.id}-dialog-title`
 
-/** Returns the ID used for `aria-describedby` on the dialog. Apply this to your description element. */
-export const descriptionId = (model: Model): string => `${model.id}-description`
+/** Returns the framework-managed id the dialog's `aria-describedby` points at,
+ *  the `-dialog-description` suffix on `model.id`.
+ *
+ *  The primary path is spreading `RenderInfo`'s `description` onto your
+ *  description element (`h.p([...description], [...])`), which carries this id
+ *  for you. Reach for this helper only when you need the id as a value outside
+ *  `toView`: a Command that calls `getElementById`, a cross-element
+ *  `aria-describedby`, or a test. Do not hand-roll the id string. */
+export const descriptionId = (model: Model): string =>
+  `${model.id}-dialog-description`
 
 /** Render-time payload published to the consumer's `toView`.
  *
@@ -380,6 +400,13 @@ export const descriptionId = (model: Model): string => `${model.id}-description`
  *    is in progress).
  *  - `panel`: attributes for the panel element. Includes the panel id
  *    (`${model.id}-panel`) and the Animation data attributes.
+ *  - `title`: attributes for the accessible-name heading. Carries the
+ *    framework-managed id the dialog's `aria-labelledby` points at. Spread
+ *    onto your heading element (`h.h2([...title], [...])`) so labelling
+ *    wires up without hand-rolling the id.
+ *  - `description`: attributes for the description element. Carries the
+ *    framework-managed id the dialog's `aria-describedby` points at. Spread
+ *    onto your description element (`h.p([...description], [...])`).
  *  - `closeButton`: attributes for an in-panel close control such as a Cancel
  *    or dismiss button. Carries the `OnClick` handler that closes the
  *    dialog (suppressed while a leave animation is in progress). Spread
@@ -391,6 +418,8 @@ export type RenderInfo = Readonly<{
   dialog: ReadonlyArray<ChildAttribute>
   backdrop: ReadonlyArray<ChildAttribute>
   panel: ReadonlyArray<ChildAttribute>
+  title: ReadonlyArray<ChildAttribute>
+  description: ReadonlyArray<ChildAttribute>
   closeButton: ReadonlyArray<ChildAttribute>
   isVisible: boolean
 }>
@@ -443,8 +472,8 @@ export const view = defineView<Model, Message, ViewInputs>(
 
     const dialogAttributes = [
       h.Id(id),
-      h.AriaLabelledBy(`${id}-title`),
-      h.AriaDescribedBy(`${id}-description`),
+      h.AriaLabelledBy(titleId(model)),
+      h.AriaDescribedBy(descriptionId(model)),
       h.OnCancel(RequestedClose()),
       h.Open(isVisible),
       h.Style({
@@ -472,12 +501,17 @@ export const view = defineView<Model, Message, ViewInputs>(
 
     const panelAttributes = [h.Id(`${id}-panel`), ...animationAttributes]
 
+    const titleAttributes = [h.Id(titleId(model))]
+    const descriptionAttributes = [h.Id(descriptionId(model))]
+
     const closeButtonAttributes = isLeaving ? [] : [h.OnClick(RequestedClose())]
 
     return toView({
       dialog: childAttributes(dialogAttributes),
       backdrop: childAttributes(backdropAttributes),
       panel: childAttributes(panelAttributes),
+      title: childAttributes(titleAttributes),
+      description: childAttributes(descriptionAttributes),
       closeButton: childAttributes(closeButtonAttributes),
       isVisible,
     })

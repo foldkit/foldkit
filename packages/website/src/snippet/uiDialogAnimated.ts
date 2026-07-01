@@ -50,7 +50,15 @@ const view = (model: Model) => {
     model: model.dialog,
     view: Dialog.view,
     viewInputs: {
-      toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+      toView: ({
+        dialog,
+        backdrop,
+        panel,
+        title,
+        description,
+        closeButton,
+        isVisible,
+      }) =>
         h.dialog(
           [
             ...dialog,
@@ -75,11 +83,11 @@ const view = (model: Model) => {
                     ),
                   ],
                   [
-                    h.h2(
-                      [h.Id(Dialog.titleId(model.dialog))],
-                      ['Confirm Action'],
+                    h.h2([...title], ['Confirm Action']),
+                    h.p(
+                      [...description],
+                      ['Are you sure you want to proceed?'],
                     ),
-                    h.p([], ['Are you sure you want to proceed?']),
                     h.div(
                       [h.Class('flex gap-2 justify-end mt-4')],
                       [

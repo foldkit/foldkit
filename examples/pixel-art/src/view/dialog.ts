@@ -27,7 +27,15 @@ export const errorDialogView = (
     model: errorDialog,
     view: Dialog.view,
     viewInputs: {
-      toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+      toView: ({
+        dialog,
+        backdrop,
+        panel,
+        closeButton,
+        title,
+        description,
+        isVisible,
+      }) =>
         h.dialog(
           [...dialog, h.Class(dialogClassName)],
           isVisible
@@ -40,16 +48,13 @@ export const errorDialogView = (
                     onSome: error => [
                       h.h2(
                         [
+                          ...title,
                           h.Class('text-lg font-semibold text-red-400 mb-2'),
-                          h.Id(Dialog.titleId(errorDialog)),
                         ],
                         ['Export Failed'],
                       ),
                       h.p(
-                        [
-                          h.Class('text-sm text-gray-400 mb-4'),
-                          h.Id(Dialog.descriptionId(errorDialog)),
-                        ],
+                        [...description, h.Class('text-sm text-gray-400 mb-4')],
                         [error],
                       ),
                       h.button(
@@ -83,7 +88,15 @@ export const gridSizeConfirmDialogView = (
     model: gridSizeConfirmDialog,
     view: Dialog.view,
     viewInputs: {
-      toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+      toView: ({
+        dialog,
+        backdrop,
+        panel,
+        closeButton,
+        title,
+        description,
+        isVisible,
+      }) =>
         h.dialog(
           [...dialog, h.Class(dialogClassName)],
           isVisible
@@ -96,16 +109,13 @@ export const gridSizeConfirmDialogView = (
                     onSome: pendingSize => [
                       h.h2(
                         [
+                          ...title,
                           h.Class('text-lg font-semibold text-gray-100 mb-2'),
-                          h.Id(Dialog.titleId(gridSizeConfirmDialog)),
                         ],
                         [`Change to ${pendingSize}×${pendingSize}?`],
                       ),
                       h.p(
-                        [
-                          h.Class('text-sm text-gray-400 mb-5'),
-                          h.Id(Dialog.descriptionId(gridSizeConfirmDialog)),
-                        ],
+                        [...description, h.Class('text-sm text-gray-400 mb-5')],
                         ['This will clear your canvas and reset undo history.'],
                       ),
                       h.div(

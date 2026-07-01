@@ -18,6 +18,7 @@ import {
   type Model,
   Opened,
   ReleaseDialogResources,
+  type RenderInfo,
   RequestedClose,
   RequestedOpen,
   ShowDialog,
@@ -51,6 +52,39 @@ const dialogHasOnUnmount = (model: Model): boolean => {
   Scene.scene({ update, view: sceneView }, Scene.with(model))
   return hasOnUnmount
 }
+
+// Renders the dialog view through the Scene harness and returns the chosen
+// RenderInfo attribute group so a test can inspect what the consumer receives.
+const renderGroup = (
+  model: Model,
+  selectGroup: (render: RenderInfo) => ReadonlyArray<ChildAttribute>,
+): ReadonlyArray<ChildAttribute> => {
+  let captured: ReadonlyArray<ChildAttribute> = []
+  const sceneView = (currentModel: Model) =>
+    view(currentModel, {
+      toView: render => {
+        captured = selectGroup(render)
+        return html<Message>().dialog([...render.dialog], [])
+      },
+    })
+
+  Scene.scene({ update, view: sceneView }, Scene.with(model))
+  return captured
+}
+
+const hasIdAttribute = (
+  group: ReadonlyArray<ChildAttribute>,
+  id: string,
+): boolean =>
+  group.some(
+    childAttribute =>
+      typeof childAttribute.attribute === 'object' &&
+      childAttribute.attribute !== null &&
+      '_tag' in childAttribute.attribute &&
+      childAttribute.attribute._tag === 'Id' &&
+      'value' in childAttribute.attribute &&
+      childAttribute.attribute.value === id,
+  )
 
 const animationToDialogMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })
@@ -325,16 +359,38 @@ describe('Dialog', () => {
   })
 
   describe('titleId', () => {
-    it('returns the id suffixed with -title', () => {
+    it('returns the id suffixed with -dialog-title', () => {
       const model = init({ id: 'my-dialog' })
-      expect(titleId(model)).toBe('my-dialog-title')
+      expect(titleId(model)).toBe('my-dialog-dialog-title')
     })
   })
 
   describe('descriptionId', () => {
-    it('returns the id suffixed with -description', () => {
+    it('returns the id suffixed with -dialog-description', () => {
       const model = init({ id: 'my-dialog' })
-      expect(descriptionId(model)).toBe('my-dialog-description')
+      expect(descriptionId(model)).toBe('my-dialog-dialog-description')
+    })
+  })
+
+  describe('RenderInfo title and description', () => {
+    it('publishes the title id the dialog labels itself by', () => {
+      const model = init({ id: 'my-dialog' })
+      expect(
+        hasIdAttribute(
+          renderGroup(model, render => render.title),
+          titleId(model),
+        ),
+      ).toBe(true)
+    })
+
+    it('publishes the description id the dialog describes itself by', () => {
+      const model = init({ id: 'my-dialog' })
+      expect(
+        hasIdAttribute(
+          renderGroup(model, render => render.description),
+          descriptionId(model),
+        ),
+      ).toBe(true)
     })
   })
 

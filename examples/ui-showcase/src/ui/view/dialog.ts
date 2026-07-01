@@ -62,20 +62,18 @@ const OVERLAY_COMBOBOX_ANCHOR = {
 }
 
 const dialogPanel = (
-  dialogModel: Dialog.Model,
   closeButton: Dialog.RenderInfo['closeButton'],
+  title: Dialog.RenderInfo['title'],
+  description: Dialog.RenderInfo['description'],
 ): Html => {
   const h = html<UiMessage>()
 
   return h.div(
     [],
     [
-      h.h2(
-        [h.Class(titleClassName), h.Id(Dialog.titleId(dialogModel))],
-        ['Confirm Action'],
-      ),
+      h.h2([...title, h.Class(titleClassName)], ['Confirm Action']),
       h.p(
-        [h.Class('text-gray-600 mb-4')],
+        [...description, h.Class('text-gray-600 mb-4')],
         [
           'Are you sure you want to proceed? This action demonstrates the Dialog component with focus trapping, backdrop click, and Escape key handling.',
         ],
@@ -120,7 +118,14 @@ const overlayDemo = (
         model: dialogModel,
         view: Dialog.view,
         viewInputs: {
-          toView: ({ dialog, backdrop, panel, isVisible }) =>
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            title,
+            description,
+            isVisible,
+          }) =>
             h.dialog(
               [...dialog, h.Class(dialogClassName)],
               isVisible
@@ -130,14 +135,11 @@ const overlayDemo = (
                       [...panel, h.Class(panelClassName)],
                       [
                         h.h2(
-                          [
-                            h.Class(titleClassName),
-                            h.Id(Dialog.titleId(dialogModel)),
-                          ],
+                          [...title, h.Class(titleClassName)],
                           ['Edit filters'],
                         ),
                         h.p(
-                          [h.Class('text-gray-600 mb-4')],
+                          [...description, h.Class('text-gray-600 mb-4')],
                           [
                             'With portal: false, the combobox panel stays inside the dialog instead of rendering behind it.',
                           ],
@@ -192,7 +194,15 @@ const nestedDemo = (
         model: parentDialogModel,
         view: Dialog.view,
         viewInputs: {
-          toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            closeButton,
+            title,
+            description,
+            isVisible,
+          }) =>
             h.dialog(
               [...dialog, h.Class(dialogClassName)],
               isVisible
@@ -202,14 +212,11 @@ const nestedDemo = (
                       [...panel, h.Class(settingsPanelClassName)],
                       [
                         h.h2(
-                          [
-                            h.Class(titleClassName),
-                            h.Id(Dialog.titleId(parentDialogModel)),
-                          ],
+                          [...title, h.Class(titleClassName)],
                           ['Project settings'],
                         ),
                         h.p(
-                          [h.Class('text-gray-600 mb-4')],
+                          [...description, h.Class('text-gray-600 mb-4')],
                           [
                             'Deleting the project removes all of its data. The confirmation opens as a second dialog stacked on top of this one.',
                           ],
@@ -244,7 +251,15 @@ const nestedDemo = (
         model: childDialogModel,
         view: Dialog.view,
         viewInputs: {
-          toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            closeButton,
+            title,
+            description,
+            isVisible,
+          }) =>
             h.dialog(
               [...dialog, h.Class(dialogClassName)],
               isVisible
@@ -254,14 +269,11 @@ const nestedDemo = (
                       [...panel, h.Class(confirmPanelClassName)],
                       [
                         h.h2(
-                          [
-                            h.Class(titleClassName),
-                            h.Id(Dialog.titleId(childDialogModel)),
-                          ],
+                          [...title, h.Class(titleClassName)],
                           ['Delete project?'],
                         ),
                         h.p(
-                          [h.Class('text-gray-600 mb-4')],
+                          [...description, h.Class('text-gray-600 mb-4')],
                           [
                             'This permanently deletes the project and cannot be undone. Escape closes this confirmation first, then the settings dialog.',
                           ],
@@ -318,7 +330,15 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         model: model.dialogDemo,
         view: Dialog.view,
         viewInputs: {
-          toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            closeButton,
+            title,
+            description,
+            isVisible,
+          }) =>
             h.dialog(
               [...dialog, h.Class(dialogClassName)],
               isVisible
@@ -326,7 +346,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                     h.div([...backdrop, h.Class(backdropClassName)], []),
                     h.div(
                       [...panel, h.Class(panelClassName)],
-                      [dialogPanel(model.dialogDemo, closeButton)],
+                      [dialogPanel(closeButton, title, description)],
                     ),
                   ]
                 : [],
@@ -353,7 +373,15 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         model: model.dialogAnimatedDemo,
         view: Dialog.view,
         viewInputs: {
-          toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            closeButton,
+            title,
+            description,
+            isVisible,
+          }) =>
             h.dialog(
               [...dialog, h.Class(dialogClassName)],
               isVisible
@@ -364,7 +392,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                     ),
                     h.div(
                       [...panel, h.Class(animatedPanelClassName)],
-                      [dialogPanel(model.dialogAnimatedDemo, closeButton)],
+                      [dialogPanel(closeButton, title, description)],
                     ),
                   ]
                 : [],

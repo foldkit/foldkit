@@ -41,7 +41,7 @@ const view = () => {
     model: model.dialog,
     view: Dialog.view,
     viewInputs: {
-      toView: ({ dialog, backdrop, panel, isVisible }) =>
+      toView: ({ dialog, backdrop, panel, title, isVisible }) =>
         h.dialog(
           [...dialog],
           isVisible
@@ -53,10 +53,7 @@ const view = () => {
                     h.Class('rounded-lg p-6 max-w-md mx-auto shadow-xl'),
                   ],
                   [
-                    h.h2(
-                      [h.Id(Dialog.titleId(model.dialog))],
-                      ['Edit filters'],
-                    ),
+                    h.h2([...title], ['Edit filters']),
                     h.submodel({
                       slotId: model.combobox.id,
                       model: model.combobox,

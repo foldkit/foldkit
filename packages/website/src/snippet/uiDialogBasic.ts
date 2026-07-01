@@ -68,7 +68,15 @@ const view = () => {
         model: model.dialog,
         view: Dialog.view,
         viewInputs: {
-          toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            title,
+            description,
+            closeButton,
+            isVisible,
+          }) =>
             h.dialog(
               [...dialog],
               isVisible
@@ -83,11 +91,11 @@ const view = () => {
                         h.Class('rounded-lg p-6 max-w-md mx-auto shadow-xl'),
                       ],
                       [
-                        h.h2(
-                          [h.Id(Dialog.titleId(model.dialog))],
-                          ['Confirm Action'],
+                        h.h2([...title], ['Confirm Action']),
+                        h.p(
+                          [...description],
+                          ['Are you sure you want to proceed?'],
                         ),
-                        h.p([], ['Are you sure you want to proceed?']),
                         h.button(
                           [
                             ...closeButton,

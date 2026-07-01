@@ -108,7 +108,15 @@ export const dialogDemo = (dialogModel: Dialog.Model) => {
       model: dialogModel,
       view: Dialog.view,
       viewInputs: {
-        toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+        toView: ({
+          dialog,
+          backdrop,
+          panel,
+          title,
+          description,
+          closeButton,
+          isVisible,
+        }) =>
           h.dialog(
             [...dialog, h.Class(dialogClassName)],
             isVisible
@@ -121,14 +129,14 @@ export const dialogDemo = (dialogModel: Dialog.Model) => {
                         [],
                         [
                           h.h2(
-                            [
-                              h.Class(titleClassName),
-                              h.Id(Dialog.titleId(dialogModel)),
-                            ],
+                            [...title, h.Class(titleClassName)],
                             ['Confirm Action'],
                           ),
                           h.p(
-                            [h.Class('text-gray-600 dark:text-gray-300 mb-4')],
+                            [
+                              ...description,
+                              h.Class('text-gray-600 dark:text-gray-300 mb-4'),
+                            ],
                             [
                               'Are you sure you want to proceed? This action demonstrates the Dialog component with focus trapping, backdrop click, and Escape key handling.',
                             ],
@@ -186,7 +194,7 @@ export const overlayDialogDemo = (
       model: dialogModel,
       view: Dialog.view,
       viewInputs: {
-        toView: ({ dialog, backdrop, panel, isVisible }) =>
+        toView: ({ dialog, backdrop, panel, title, description, isVisible }) =>
           h.dialog(
             [...dialog, h.Class(dialogClassName)],
             isVisible
@@ -199,14 +207,14 @@ export const overlayDialogDemo = (
                         [],
                         [
                           h.h2(
-                            [
-                              h.Class(titleClassName),
-                              h.Id(Dialog.titleId(dialogModel)),
-                            ],
+                            [...title, h.Class(titleClassName)],
                             ['Edit filters'],
                           ),
                           h.p(
-                            [h.Class('text-gray-600 dark:text-gray-300 mb-4')],
+                            [
+                              ...description,
+                              h.Class('text-gray-600 dark:text-gray-300 mb-4'),
+                            ],
                             [
                               'With portal: false, the combobox panel stays inside the dialog instead of rendering behind it.',
                             ],
@@ -257,7 +265,15 @@ export const nestedDialogDemo = (
       model: parentDialogModel,
       view: Dialog.view,
       viewInputs: {
-        toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+        toView: ({
+          dialog,
+          backdrop,
+          panel,
+          title,
+          description,
+          closeButton,
+          isVisible,
+        }) =>
           h.dialog(
             [...dialog, h.Class(dialogClassName)],
             isVisible
@@ -270,14 +286,14 @@ export const nestedDialogDemo = (
                         [],
                         [
                           h.h2(
-                            [
-                              h.Class(titleClassName),
-                              h.Id(Dialog.titleId(parentDialogModel)),
-                            ],
+                            [...title, h.Class(titleClassName)],
                             ['Project settings'],
                           ),
                           h.p(
-                            [h.Class('text-gray-600 dark:text-gray-300 mb-4')],
+                            [
+                              ...description,
+                              h.Class('text-gray-600 dark:text-gray-300 mb-4'),
+                            ],
                             [
                               'Deleting the project removes all of its data. The confirmation opens as a second dialog stacked on top of this one.',
                             ],
@@ -316,7 +332,15 @@ export const nestedDialogDemo = (
       model: childDialogModel,
       view: Dialog.view,
       viewInputs: {
-        toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+        toView: ({
+          dialog,
+          backdrop,
+          panel,
+          title,
+          description,
+          closeButton,
+          isVisible,
+        }) =>
           h.dialog(
             [...dialog, h.Class(dialogClassName)],
             isVisible
@@ -329,14 +353,14 @@ export const nestedDialogDemo = (
                         [],
                         [
                           h.h2(
-                            [
-                              h.Class(titleClassName),
-                              h.Id(Dialog.titleId(childDialogModel)),
-                            ],
+                            [...title, h.Class(titleClassName)],
                             ['Delete project?'],
                           ),
                           h.p(
-                            [h.Class('text-gray-600 dark:text-gray-300 mb-4')],
+                            [
+                              ...description,
+                              h.Class('text-gray-600 dark:text-gray-300 mb-4'),
+                            ],
                             [
                               'This permanently deletes the project and cannot be undone. Escape closes this confirmation first, then the settings dialog.',
                             ],
@@ -391,7 +415,15 @@ export const dialogAnimatedDemo = (dialogModel: Dialog.Model) => {
       model: dialogModel,
       view: Dialog.view,
       viewInputs: {
-        toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+        toView: ({
+          dialog,
+          backdrop,
+          panel,
+          title,
+          description,
+          closeButton,
+          isVisible,
+        }) =>
           h.dialog(
             [...dialog, h.Class(dialogClassName)],
             isVisible
@@ -404,14 +436,14 @@ export const dialogAnimatedDemo = (dialogModel: Dialog.Model) => {
                         [],
                         [
                           h.h2(
-                            [
-                              h.Class(titleClassName),
-                              h.Id(Dialog.titleId(dialogModel)),
-                            ],
+                            [...title, h.Class(titleClassName)],
                             ['Confirm Action'],
                           ),
                           h.p(
-                            [h.Class('text-gray-600 dark:text-gray-300 mb-4')],
+                            [
+                              ...description,
+                              h.Class('text-gray-600 dark:text-gray-300 mb-4'),
+                            ],
                             [
                               'This dialog uses CSS transitions coordinated by the TransitionState machine: a fade on the backdrop and a scale-up on the panel. Content stays mounted during exit so both enter and leave transitions play smoothly.',
                             ],

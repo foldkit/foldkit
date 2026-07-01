@@ -79,7 +79,7 @@ const view = () => {
     model: model.confirmDialog,
     view: Dialog.view,
     viewInputs: {
-      toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+      toView: ({ dialog, backdrop, panel, title, closeButton, isVisible }) =>
         h.dialog(
           [...dialog],
           isVisible
@@ -91,10 +91,7 @@ const view = () => {
                     h.Class('rounded-lg p-6 max-w-sm mx-auto shadow-xl'),
                   ],
                   [
-                    h.h2(
-                      [h.Id(Dialog.titleId(model.confirmDialog))],
-                      ['Delete project?'],
-                    ),
+                    h.h2([...title], ['Delete project?']),
                     h.button([...closeButton], ['Cancel']),
                     h.button([h.OnClick(ConfirmedDeleteProject())], ['Delete']),
                   ],
@@ -111,7 +108,7 @@ const view = () => {
     model: model.settingsDialog,
     view: Dialog.view,
     viewInputs: {
-      toView: ({ dialog, backdrop, panel, isVisible }) =>
+      toView: ({ dialog, backdrop, panel, title, isVisible }) =>
         h.dialog(
           [...dialog],
           isVisible
@@ -123,10 +120,7 @@ const view = () => {
                     h.Class('rounded-lg p-6 max-w-lg mx-auto shadow-xl'),
                   ],
                   [
-                    h.h2(
-                      [h.Id(Dialog.titleId(model.settingsDialog))],
-                      ['Project settings'],
-                    ),
+                    h.h2([...title], ['Project settings']),
                     h.button(
                       [h.OnClick(ClickedDeleteProject())],
                       ['Delete project'],

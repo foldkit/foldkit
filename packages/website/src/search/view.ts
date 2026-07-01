@@ -286,7 +286,7 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
         model: model.dialog,
         view: Dialog.view,
         viewInputs: {
-          toView: ({ dialog, backdrop, panel, isVisible }) =>
+          toView: ({ dialog, backdrop, panel, title, isVisible }) =>
             h.dialog(
               [...dialog],
               isVisible
@@ -316,7 +316,7 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
                           ],
                           [
                             h.span(
-                              [h.Id('search-dialog-title'), h.Class('sr-only')],
+                              [...title, h.Class('sr-only')],
                               ['Search documentation'],
                             ),
                             searchInputView(model),

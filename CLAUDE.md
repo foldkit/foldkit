@@ -33,7 +33,7 @@ The principles below apply broadly. Calibrate to the right context: library desi
 - Mount Definitions are verb-first imperatives like Commands: `AnchorPopover`, `PortalPopoverBackdrop`, `SyncSidebarScroll`. Result Messages follow the standard Message convention.
 - Never abbreviate names anywhere, including callback parameters. Write `(tickCount) => tickCount + 1`, not `(t) => t + 1`.
 - Don't suffix Command variables with `Command`. The type already says so.
-- Prefix `Option`-typed values with `maybe`. Prefix `T | undefined` values with `nullable`.
+- Prefix `Option`-typed values with `maybe`. Never prefix `T | undefined` values with `nullable`; name them plainly and let the type carry the optionality.
 - Prefix booleans with `is`.
 - Name functions by their precise effect: `enqueueMessage`, not `addMessage`. A reader should never need to check a type signature to understand what a name refers to.
 

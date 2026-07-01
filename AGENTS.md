@@ -30,7 +30,7 @@ Calibrate to the right context: library design when inside `packages/foldkit/src
 - Never abbreviate names anywhere, including callback parameters. Write `(tickCount) => tickCount + 1`, not `(t) => t + 1`.
 - When computing the next value for a Model field, name the local const `next<FieldName>`. For example, use `nextRoute` for `route`, `nextPeoplePage` for `peoplePage`, and `nextTabs` for `tabs`.
 - Do not suffix Command variables with `Command`. The type already says so.
-- Prefix `Option`-typed values with `maybe`. Prefix `T | undefined` values with `nullable`.
+- Prefix `Option`-typed values with `maybe`. Never prefix `T | undefined` values with `nullable`; name them plainly and let the type carry the optionality.
 - Prefix booleans with `is`.
 - Name functions by their precise effect: `enqueueMessage`, not `addMessage`.
 
