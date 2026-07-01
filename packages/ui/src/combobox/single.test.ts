@@ -37,6 +37,7 @@ import {
   SelectedItem,
   UnlockScroll,
   UpdatedInputValue,
+  inputId,
 } from './shared.js'
 import { create, init, update } from './single.js'
 import type { Model, ViewInputs } from './single.js'
@@ -1418,6 +1419,66 @@ describe('Combobox', () => {
           acknowledgeAnchor,
           acknowledgeBackdrop,
         )
+      })
+    })
+
+    describe('input labeling', () => {
+      it('no aria-label or aria-labelledby on the input by default', () => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.with(closedModel()),
+          Scene.tap(({ html }) => {
+            const input = Scene.find(html, 'input[role="combobox"]')
+            expect(input).not.toHaveAttr('aria-label')
+            expect(input).not.toHaveAttr('aria-labelledby')
+          }),
+        )
+      })
+
+      it('applies aria-label to the input when ariaLabel is provided', () => {
+        Scene.scene(
+          { update, view: sceneView({ ariaLabel: 'Fruit' }) },
+          Scene.with(closedModel()),
+          Scene.tap(({ html }) => {
+            const input = Scene.find(html, 'input[role="combobox"]')
+            expect(input).toHaveAttr('aria-label', 'Fruit')
+            expect(input).not.toHaveAttr('aria-labelledby')
+          }),
+        )
+      })
+
+      it('applies aria-labelledby to the input when ariaLabelledBy is provided', () => {
+        Scene.scene(
+          { update, view: sceneView({ ariaLabelledBy: 'fruit-label' }) },
+          Scene.with(closedModel()),
+          Scene.tap(({ html }) => {
+            const input = Scene.find(html, 'input[role="combobox"]')
+            expect(input).toHaveAttr('aria-labelledby', 'fruit-label')
+            expect(input).not.toHaveAttr('aria-label')
+          }),
+        )
+      })
+
+      it('prefers aria-label over aria-labelledby when both are provided', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              ariaLabel: 'Fruit',
+              ariaLabelledBy: 'fruit-label',
+            }),
+          },
+          Scene.with(closedModel()),
+          Scene.tap(({ html }) => {
+            const input = Scene.find(html, 'input[role="combobox"]')
+            expect(input).toHaveAttr('aria-label', 'Fruit')
+            expect(input).not.toHaveAttr('aria-labelledby')
+          }),
+        )
+      })
+
+      it('inputId derives the input id from the base id', () => {
+        expect(inputId('test')).toBe('test-input')
       })
     })
   })

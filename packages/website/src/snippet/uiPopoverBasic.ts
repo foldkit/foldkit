@@ -69,20 +69,32 @@ GotPopoverMessage: ({ message }) => {
   })
 }
 
-// Inside your view function, embed the popover via h.submodel:
+// Inside your view function, embed the popover via h.submodel. Give the
+// trigger an accessible name: target the trigger id with
+// `Popover.buttonId('info')` from a native `<label for>`, and pass
+// `ariaLabelledBy` so the trigger is named by the label. The attribute is
+// only emitted when provided, so the trigger never carries a dangling
+// `aria-labelledby`.
 const view = () => {
   const h = html<Message>()
+
+  const labelId = 'info-label'
 
   return h.submodel({
     slotId: 'info',
     model: model.popover,
     view: Popover.view,
     viewInputs: {
+      ariaLabelledBy: labelId,
       anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
       toView: ({ button, panel, backdrop, isVisible }) =>
         h.div(
           [h.Class('relative inline-block')],
           [
+            h.label(
+              [h.Id(labelId), h.For(Popover.buttonId('info'))],
+              ['Solutions'],
+            ),
             h.button(
               [
                 ...button,

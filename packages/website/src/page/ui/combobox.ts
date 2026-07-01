@@ -143,15 +143,29 @@ export const comboboxDemo = (comboboxModel: Combobox.Model) => {
 
   return [
     h.div(
-      [h.Class('relative')],
+      [h.Class('flex flex-col gap-1.5')],
       [
-        h.submodel({
-          slotId: comboboxModel.id,
-          model: comboboxModel,
-          view: CityCombobox.view,
-          viewInputs: comboboxViewInputs(comboboxModel.inputValue),
-          toParentMessage: message => GotComboboxDemoMessage({ message }),
-        }),
+        h.label(
+          [
+            h.For(Combobox.inputId(comboboxModel.id)),
+            h.Class('text-sm font-medium text-gray-900 dark:text-white'),
+          ],
+          ['City'],
+        ),
+        h.div(
+          [h.Class('relative')],
+          [
+            h.submodel({
+              slotId: comboboxModel.id,
+              model: comboboxModel,
+              view: CityCombobox.view,
+              viewInputs: {
+                ...comboboxViewInputs(comboboxModel.inputValue),
+              },
+              toParentMessage: message => GotComboboxDemoMessage({ message }),
+            }),
+          ],
+        ),
       ],
     ),
   ]
@@ -162,16 +176,30 @@ export const nullableDemo = (comboboxNullableModel: Combobox.Model) => {
 
   return [
     h.div(
-      [h.Class('relative')],
+      [h.Class('flex flex-col gap-1.5')],
       [
-        h.submodel({
-          slotId: comboboxNullableModel.id,
-          model: comboboxNullableModel,
-          view: CityCombobox.view,
-          viewInputs: comboboxViewInputs(comboboxNullableModel.inputValue),
-          toParentMessage: message =>
-            GotComboboxNullableDemoMessage({ message }),
-        }),
+        h.label(
+          [
+            h.For(Combobox.inputId(comboboxNullableModel.id)),
+            h.Class('text-sm font-medium text-gray-900 dark:text-white'),
+          ],
+          ['City'],
+        ),
+        h.div(
+          [h.Class('relative')],
+          [
+            h.submodel({
+              slotId: comboboxNullableModel.id,
+              model: comboboxNullableModel,
+              view: CityCombobox.view,
+              viewInputs: {
+                ...comboboxViewInputs(comboboxNullableModel.inputValue),
+              },
+              toParentMessage: message =>
+                GotComboboxNullableDemoMessage({ message }),
+            }),
+          ],
+        ),
       ],
     ),
   ]
@@ -189,16 +217,30 @@ export const selectOnFocusDemo = (
       ' to highlight the input text when the combobox receives focus. Typing immediately replaces the current value, making it easy to start a new search without manually clearing the input.',
     ),
     h.div(
-      [h.Class('relative')],
+      [h.Class('flex flex-col gap-1.5')],
       [
-        h.submodel({
-          slotId: comboboxSelectOnFocusModel.id,
-          model: comboboxSelectOnFocusModel,
-          view: CityCombobox.view,
-          viewInputs: comboboxViewInputs(comboboxSelectOnFocusModel.inputValue),
-          toParentMessage: message =>
-            GotComboboxSelectOnFocusDemoMessage({ message }),
-        }),
+        h.label(
+          [
+            h.For(Combobox.inputId(comboboxSelectOnFocusModel.id)),
+            h.Class('text-sm font-medium text-gray-900 dark:text-white'),
+          ],
+          ['City'],
+        ),
+        h.div(
+          [h.Class('relative')],
+          [
+            h.submodel({
+              slotId: comboboxSelectOnFocusModel.id,
+              model: comboboxSelectOnFocusModel,
+              view: CityCombobox.view,
+              viewInputs: {
+                ...comboboxViewInputs(comboboxSelectOnFocusModel.inputValue),
+              },
+              toParentMessage: message =>
+                GotComboboxSelectOnFocusDemoMessage({ message }),
+            }),
+          ],
+        ),
       ],
     ),
   ]
@@ -214,27 +256,42 @@ export const multiDemo = (comboboxMultiModel: Combobox.Multi.Model) => {
 
   return [
     h.div(
-      [h.Class('relative')],
+      [h.Class('flex flex-col gap-1.5')],
       [
-        h.div(
-          [h.Class('flex flex-wrap gap-1.5 mb-2')],
-          Array.match(comboboxMultiModel.selectedItems, {
-            onEmpty: () => [
-              h.span([h.Class(emptyTagClassName)], ['No selection']),
-            ],
-            onNonEmpty: selectedItems =>
-              selectedItems.map(item =>
-                h.span([h.Class(tagClassName)], [item]),
-              ),
-          }),
+        h.label(
+          [
+            h.For(Combobox.inputId(comboboxMultiModel.id)),
+            h.Class('text-sm font-medium text-gray-900 dark:text-white'),
+          ],
+          ['Cities'],
         ),
-        h.submodel({
-          slotId: comboboxMultiModel.id,
-          model: comboboxMultiModel,
-          view: CityMultiCombobox.view,
-          viewInputs: comboboxViewInputs(comboboxMultiModel.inputValue),
-          toParentMessage: message => GotComboboxMultiDemoMessage({ message }),
-        }),
+        h.div(
+          [h.Class('relative')],
+          [
+            h.div(
+              [h.Class('flex flex-wrap gap-1.5 mb-2')],
+              Array.match(comboboxMultiModel.selectedItems, {
+                onEmpty: () => [
+                  h.span([h.Class(emptyTagClassName)], ['No selection']),
+                ],
+                onNonEmpty: selectedItems =>
+                  selectedItems.map(item =>
+                    h.span([h.Class(tagClassName)], [item]),
+                  ),
+              }),
+            ),
+            h.submodel({
+              slotId: comboboxMultiModel.id,
+              model: comboboxMultiModel,
+              view: CityMultiCombobox.view,
+              viewInputs: {
+                ...comboboxViewInputs(comboboxMultiModel.inputValue),
+              },
+              toParentMessage: message =>
+                GotComboboxMultiDemoMessage({ message }),
+            }),
+          ],
+        ),
       ],
     ),
   ]

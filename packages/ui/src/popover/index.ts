@@ -1,4 +1,12 @@
-import { Array, Effect, Equal, Match as M, Option, Schema as S } from 'effect'
+import {
+  Array,
+  Effect,
+  Equal,
+  Match as M,
+  Option,
+  Predicate,
+  Schema as S,
+} from 'effect'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 import {
@@ -177,6 +185,12 @@ const closedModel = (model: Model): Model =>
 
 const buttonSelector = (id: string): string => idSelector(`${id}-button`)
 const panelSelector = (id: string): string => idSelector(`${id}-panel`)
+
+/** Returns the bare DOM id of the popover trigger button, derived from the
+ *  popover's base id. Use this to associate an external label with the
+ *  trigger via a native `<label for={Popover.buttonId(id)}>` or an
+ *  `aria-labelledby` reference. */
+export const buttonId = (id: string): string => `${id}-button`
 
 type UpdateReturn = readonly [
   Model,
@@ -500,6 +514,8 @@ export type ViewInputs = Readonly<{
   toView: (render: RenderInfo) => Html
   isDisabled?: boolean
   focusSelector?: string
+  ariaLabel?: string
+  ariaLabelledBy?: string
 }>
 
 /** Renders a headless popover with a trigger button and a floating panel. */
@@ -514,7 +530,14 @@ export const view = defineView<Model, Message, ViewInputs>(
       animation: { transitionState },
       maybeLastButtonPointerType,
     } = model
-    const { anchor, toView, isDisabled, focusSelector } = viewInputs
+    const {
+      anchor,
+      toView,
+      isDisabled,
+      focusSelector,
+      ariaLabel,
+      ariaLabelledBy,
+    } = viewInputs
 
     const isLeaving =
       transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
@@ -588,11 +611,24 @@ export const view = defineView<Model, Message, ViewInputs>(
         M.orElse(() => Option.none()),
       )
 
+    const resolveButtonLabel = () => {
+      if (Predicate.isNotUndefined(ariaLabel)) {
+        return [h.AriaLabel(ariaLabel)]
+      } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
+        return [h.AriaLabelledBy(ariaLabelledBy)]
+      } else {
+        return []
+      }
+    }
+
+    const buttonLabelAttributes = resolveButtonLabel()
+
     const buttonAttributes = [
       h.Id(`${id}-button`),
       h.Type('button'),
       h.AriaExpanded(isVisible),
       h.AriaControls(`${id}-panel`),
+      ...buttonLabelAttributes,
       ...(isDisabled
         ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
         : [

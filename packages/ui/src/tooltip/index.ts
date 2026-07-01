@@ -6,6 +6,7 @@ import {
   Match as M,
   Number,
   Option,
+  Predicate,
   Schema as S,
 } from 'effect'
 import * as Command from 'foldkit/command'
@@ -111,6 +112,14 @@ export const OutMessage = S.Union([Shown, Hidden])
 export type Shown = typeof Shown.Type
 export type Hidden = typeof Hidden.Type
 export type OutMessage = typeof OutMessage.Type
+
+// SELECTORS
+
+/** Returns the bare DOM id of the tooltip trigger button, derived from the
+ *  tooltip's base id. Use this to associate an external label with the
+ *  trigger via a native `<label for={Tooltip.triggerId(id)}>` or an
+ *  `aria-labelledby` reference. */
+export const triggerId = (id: string): string => `${id}-trigger`
 
 // INIT
 
@@ -356,6 +365,8 @@ export type ViewInputs = Readonly<{
   anchor: AnchorConfig
   toView: (render: RenderInfo) => Html
   isDisabled?: boolean
+  ariaLabel?: string
+  ariaLabelledBy?: string
 }>
 
 /** Renders a headless tooltip with an anchored non-interactive panel.
@@ -367,7 +378,19 @@ export const view = defineView<Model, Message, ViewInputs>(
     const h = html<Message>()
 
     const { id, isOpen } = model
-    const { anchor, toView, isDisabled } = viewInputs
+    const { anchor, toView, isDisabled, ariaLabel, ariaLabelledBy } = viewInputs
+
+    const resolveTriggerLabel = () => {
+      if (Predicate.isNotUndefined(ariaLabel)) {
+        return [h.AriaLabel(ariaLabel)]
+      } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
+        return [h.AriaLabelledBy(ariaLabelledBy)]
+      } else {
+        return []
+      }
+    }
+
+    const triggerLabelAttributes = resolveTriggerLabel()
 
     const handleTriggerKeyDown = (key: string): Option.Option<PressedEscape> =>
       M.value(key).pipe(
@@ -385,6 +408,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       h.Id(`${id}-trigger`),
       h.Type('button'),
       h.AriaDescribedBy(`${id}-panel`),
+      ...triggerLabelAttributes,
       ...(isOpen ? [h.DataAttribute('open', '')] : []),
       ...(isDisabled
         ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]

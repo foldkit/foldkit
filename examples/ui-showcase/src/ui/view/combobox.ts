@@ -125,6 +125,13 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Single-Select'],
       ),
+      h.label(
+        [
+          h.For(Combobox.inputId(model.comboboxDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['City'],
+      ),
       h.div(
         [h.Class('relative')],
         [
@@ -132,7 +139,9 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             slotId: model.comboboxDemo.id,
             model: model.comboboxDemo,
             view: CityCombobox.view,
-            viewInputs: comboboxInputs(model.comboboxDemo.inputValue),
+            viewInputs: {
+              ...comboboxInputs(model.comboboxDemo.inputValue),
+            },
             toParentMessage: message => GotComboboxDemoMessage({ message }),
           }),
         ],
@@ -142,6 +151,13 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Nullable'],
       ),
+      h.label(
+        [
+          h.For(Combobox.inputId(model.comboboxNullableDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['City'],
+      ),
       h.div(
         [h.Class('relative')],
         [
@@ -149,7 +165,9 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             slotId: model.comboboxNullableDemo.id,
             model: model.comboboxNullableDemo,
             view: CityCombobox.view,
-            viewInputs: comboboxInputs(model.comboboxNullableDemo.inputValue),
+            viewInputs: {
+              ...comboboxInputs(model.comboboxNullableDemo.inputValue),
+            },
             toParentMessage: message =>
               GotComboboxNullableDemoMessage({ message }),
           }),
@@ -160,6 +178,13 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Select on Focus'],
       ),
+      h.label(
+        [
+          h.For(Combobox.inputId(model.comboboxSelectOnFocusDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['City'],
+      ),
       h.div(
         [h.Class('relative')],
         [
@@ -167,9 +192,9 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             slotId: model.comboboxSelectOnFocusDemo.id,
             model: model.comboboxSelectOnFocusDemo,
             view: CityCombobox.view,
-            viewInputs: comboboxInputs(
-              model.comboboxSelectOnFocusDemo.inputValue,
-            ),
+            viewInputs: {
+              ...comboboxInputs(model.comboboxSelectOnFocusDemo.inputValue),
+            },
             toParentMessage: message =>
               GotComboboxSelectOnFocusDemoMessage({ message }),
           }),
@@ -179,6 +204,13 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       h.h3(
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Multi-Select'],
+      ),
+      h.label(
+        [
+          h.For(Combobox.inputId(model.comboboxMultiDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Cities'],
       ),
       h.div(
         [h.Class('relative')],
@@ -199,7 +231,9 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             slotId: model.comboboxMultiDemo.id,
             model: model.comboboxMultiDemo,
             view: CityMultiCombobox.view,
-            viewInputs: comboboxInputs(model.comboboxMultiDemo.inputValue),
+            viewInputs: {
+              ...comboboxInputs(model.comboboxMultiDemo.inputValue),
+            },
             toParentMessage: message =>
               GotComboboxMultiDemoMessage({ message }),
           }),

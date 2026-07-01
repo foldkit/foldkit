@@ -212,6 +212,18 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     description:
       'Floating positioning config: placement, gap, offset, padding, and portal. The items panel is always anchored to the input wrapper; when omitted, the panel uses bottom-start placement. Portaled to the document body by default; pass portal: false to keep the panel inside the wrapper.',
   },
+  {
+    name: 'ariaLabel',
+    type: 'string',
+    description:
+      'Accessible name for the input. Use when there is no visible label. Applied as aria-label, and takes precedence over ariaLabelledBy.',
+  },
+  {
+    name: 'ariaLabelledBy',
+    type: 'string',
+    description:
+      'Id of an external element that labels the input, applied as aria-labelledby. Pair with a visible label element.',
+  },
 ]
 
 const outMessageProps: ReadonlyArray<PropEntry> = [
@@ -454,6 +466,30 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           ' with ',
           inlineCode('aria-selected'),
           '.',
+        ),
+        para(
+          'The input is a form field, so give it an accessible name. For a visible label, wire a native ',
+          inlineCode('<label for>'),
+          ' that targets the input id with ',
+          inlineCode('Combobox.inputId(id)'),
+          ' rather than hardcoding the ',
+          inlineCode('-input'),
+          ' convention. The ',
+          inlineCode('for'),
+          ' association makes the input properly labeled: assistive technology announces it by the visible label text, and clicking the label focuses the input. That is why it is the recommended pattern.',
+        ),
+        para(
+          'Two ViewInputs cover the cases a ',
+          inlineCode('<label for>'),
+          ' does not. Pass ',
+          inlineCode('ariaLabel'),
+          ' when there is no visible label, or ',
+          inlineCode('ariaLabelledBy'),
+          ' when the element that names the input is not a ',
+          inlineCode('<label>'),
+          ' you can point ',
+          inlineCode('for'),
+          ' at.',
         ),
         heading(
           apiReferenceHeader.level,

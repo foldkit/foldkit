@@ -294,6 +294,12 @@ const closedModel = (model: Model): Model =>
     maybePointerOrigin: () => Option.none(),
   })
 
+/** Returns the bare DOM id of the menu trigger button, derived from the
+ *  menu's base id. Use this to associate an external label with the trigger
+ *  via a native `<label for={Menu.buttonId(id)}>` or an `aria-labelledby`
+ *  reference. */
+export const buttonId = (id: string): string => `${id}-button`
+
 const buttonSelector = (id: string): string => idSelector(`${id}-button`)
 const itemsSelector = (id: string): string => idSelector(`${id}-items`)
 const itemSelector = (id: string, index: number): string =>
@@ -817,6 +823,8 @@ export type ViewInputs<Item extends string> = Readonly<{
   separatorClassName?: string
   separatorAttributes?: ReadonlyArray<ChildAttribute>
   anchor?: AnchorConfig
+  ariaLabel?: string
+  ariaLabelledBy?: string
 }>
 
 export { groupContiguous, resolveTypeaheadMatch }
@@ -873,6 +881,8 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       separatorClassName,
       separatorAttributes = [],
       anchor = {},
+      ariaLabel,
+      ariaLabelledBy,
     } = viewInputs
 
     const dispatchSelectedItem = (item: string, index: number) =>
@@ -1047,12 +1057,25 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
         ReleasedPointerOnItems({ screenX, screenY, timeStamp }),
       )
 
+    const resolveButtonLabel = () => {
+      if (Predicate.isNotUndefined(ariaLabel)) {
+        return [h.AriaLabel(ariaLabel)]
+      } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
+        return [h.AriaLabelledBy(ariaLabelledBy)]
+      } else {
+        return []
+      }
+    }
+
+    const buttonLabelAttributes = resolveButtonLabel()
+
     const resolvedButtonAttributes = [
       h.Id(`${id}-button`),
       h.Type('button'),
       h.AriaHasPopup('menu'),
       h.AriaExpanded(isVisible),
       h.AriaControls(`${id}-items`),
+      ...buttonLabelAttributes,
       ...(isButtonDisabled
         ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
         : [

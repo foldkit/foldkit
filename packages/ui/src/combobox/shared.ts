@@ -258,6 +258,13 @@ export type OutMessage<Value extends string = string> = Selected<Value>
 
 // SELECTORS
 
+/** Returns the bare DOM id of the combobox input, derived from the
+ *  combobox's base id. Use this to associate an external label with the
+ *  input via a native `<label for={Combobox.inputId(id)}>` or an
+ *  `aria-labelledby` reference. Mirrors `inputSelector`, which returns the
+ *  CSS selector form (`#${id}-input`) rather than the bare id. */
+export const inputId = (id: string): string => `${id}-input`
+
 export const inputSelector = (id: string): string => idSelector(`${id}-input`)
 export const inputWrapperSelector = (id: string): string =>
   idSelector(`${id}-input-wrapper`)
@@ -826,6 +833,8 @@ export type BaseViewInputs<Item extends string> = Readonly<{
   separatorClassName?: string
   separatorAttributes?: ReadonlyArray<ChildAttribute>
   anchor?: AnchorConfig
+  ariaLabel?: string
+  ariaLabelledBy?: string
 }>
 
 // VIEW FACTORY
@@ -885,7 +894,21 @@ export const makeView = <Model extends BaseModel>(
         separatorClassName,
         separatorAttributes = [],
         anchor = {},
+        ariaLabel,
+        ariaLabelledBy,
       } = viewInputs
+
+      const resolveInputLabel = () => {
+        if (Predicate.isNotUndefined(ariaLabel)) {
+          return [h.AriaLabel(ariaLabel)]
+        } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
+          return [h.AriaLabelledBy(ariaLabelledBy)]
+        } else {
+          return []
+        }
+      }
+
+      const inputLabelAttributes = resolveInputLabel()
 
       const isLeaving =
         transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
@@ -1039,6 +1062,7 @@ export const makeView = <Model extends BaseModel>(
         h.AriaControls(`${id}-items`),
         h.Attribute('aria-autocomplete', 'list'),
         h.Attribute('aria-haspopup', 'listbox'),
+        ...inputLabelAttributes,
         h.Autocomplete('off'),
         h.Value(model.inputValue),
         ...maybeActiveDescendant,

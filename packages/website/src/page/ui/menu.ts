@@ -128,15 +128,29 @@ export const basicDemo = (menuModel: Menu.Model) => {
 
   return [
     h.div(
-      [h.Class('relative')],
+      [h.Class('flex flex-col gap-1.5')],
       [
-        h.submodel({
-          slotId: menuModel.id,
-          model: menuModel,
-          view: DemoMenu.view,
-          viewInputs: menuViewConfig(basicItemsClassName),
-          toParentMessage: message => GotMenuBasicDemoMessage({ message }),
-        }),
+        h.label(
+          [
+            h.For(Menu.buttonId(menuModel.id)),
+            h.Class('text-sm font-medium text-gray-900 dark:text-white'),
+          ],
+          ['Row actions'],
+        ),
+        h.div(
+          [h.Class('relative')],
+          [
+            h.submodel({
+              slotId: menuModel.id,
+              model: menuModel,
+              view: DemoMenu.view,
+              viewInputs: {
+                ...menuViewConfig(basicItemsClassName),
+              },
+              toParentMessage: message => GotMenuBasicDemoMessage({ message }),
+            }),
+          ],
+        ),
       ],
     ),
   ]
@@ -147,15 +161,30 @@ export const animatedDemo = (menuModel: Menu.Model) => {
 
   return [
     h.div(
-      [h.Class('relative')],
+      [h.Class('flex flex-col gap-1.5')],
       [
-        h.submodel({
-          slotId: menuModel.id,
-          model: menuModel,
-          view: DemoMenu.view,
-          viewInputs: menuViewConfig(animatedItemsClassName),
-          toParentMessage: message => GotMenuAnimatedDemoMessage({ message }),
-        }),
+        h.label(
+          [
+            h.For(Menu.buttonId(menuModel.id)),
+            h.Class('text-sm font-medium text-gray-900 dark:text-white'),
+          ],
+          ['Row actions'],
+        ),
+        h.div(
+          [h.Class('relative')],
+          [
+            h.submodel({
+              slotId: menuModel.id,
+              model: menuModel,
+              view: DemoMenu.view,
+              viewInputs: {
+                ...menuViewConfig(animatedItemsClassName),
+              },
+              toParentMessage: message =>
+                GotMenuAnimatedDemoMessage({ message }),
+            }),
+          ],
+        ),
       ],
     ),
   ]

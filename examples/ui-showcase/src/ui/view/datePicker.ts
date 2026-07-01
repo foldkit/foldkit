@@ -95,6 +95,13 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
     [],
     [
       h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Date Picker']),
+      h.label(
+        [
+          h.For(DatePicker.triggerId(model.datePickerBasicDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Due date'],
+      ),
       h.submodel({
         slotId: model.datePickerBasicDemo.id,
         model: model.datePickerBasicDemo,

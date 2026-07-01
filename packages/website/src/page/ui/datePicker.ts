@@ -94,187 +94,203 @@ export const basicDemo = (model: Model) => {
     )
 
   return [
-    h.submodel({
-      slotId: model.datePickerBasicDemo.id,
-      model: model.datePickerBasicDemo,
-      view: DatePicker.view,
-      viewInputs: {
-        anchor: DATE_PICKER_ANCHOR,
-        triggerContent,
-        triggerClassName,
-        panelClassName,
-        backdropClassName,
-        className: wrapperClassName,
-        toCalendarView: attributes =>
-          M.value(attributes).pipe(
-            M.tagsExhaustive({
-              Days: days =>
-                h.div(
-                  [...days.root, h.Class(calendarWrapperClassName)],
-                  [
+    h.div(
+      [h.Class('flex flex-col gap-1.5')],
+      [
+        h.label(
+          [
+            h.For(DatePicker.triggerId(model.datePickerBasicDemo.id)),
+            h.Class('text-sm font-medium text-gray-900 dark:text-white'),
+          ],
+          ['Due date'],
+        ),
+        h.submodel({
+          slotId: model.datePickerBasicDemo.id,
+          model: model.datePickerBasicDemo,
+          view: DatePicker.view,
+          viewInputs: {
+            anchor: DATE_PICKER_ANCHOR,
+            triggerContent,
+            triggerClassName,
+            panelClassName,
+            backdropClassName,
+            className: wrapperClassName,
+            toCalendarView: attributes =>
+              M.value(attributes).pipe(
+                M.tagsExhaustive({
+                  Days: days =>
                     h.div(
-                      [h.Class(headerClassName)],
-                      [
-                        h.button(
-                          [
-                            ...days.previousMonthButton,
-                            h.Class(navButtonClassName),
-                          ],
-                          [Icon.chevronLeft('w-5 h-5')],
-                        ),
-                        h.button(
-                          [
-                            h.Id(days.heading.id),
-                            ...days.headingButton,
-                            h.Class(headingButtonClassName),
-                          ],
-                          [days.heading.text, Icon.chevronDown('w-3 h-3')],
-                        ),
-                        h.button(
-                          [
-                            ...days.nextMonthButton,
-                            h.Class(navButtonClassName),
-                          ],
-                          [Icon.chevronRight('w-5 h-5')],
-                        ),
-                      ],
-                    ),
-                    h.div(
-                      [...days.grid, h.Class(gridClassName)],
+                      [...days.root, h.Class(calendarWrapperClassName)],
                       [
                         h.div(
-                          [...days.headerRow, h.Class(headerRowClassName)],
-                          days.columnHeaders.map(header =>
-                            h.div(
+                          [h.Class(headerClassName)],
+                          [
+                            h.button(
                               [
-                                ...header.attributes,
-                                h.Class(columnHeaderClassName),
+                                ...days.previousMonthButton,
+                                h.Class(navButtonClassName),
                               ],
-                              [header.name],
+                              [Icon.chevronLeft('w-5 h-5')],
                             ),
-                          ),
+                            h.button(
+                              [
+                                h.Id(days.heading.id),
+                                ...days.headingButton,
+                                h.Class(headingButtonClassName),
+                              ],
+                              [days.heading.text, Icon.chevronDown('w-3 h-3')],
+                            ),
+                            h.button(
+                              [
+                                ...days.nextMonthButton,
+                                h.Class(navButtonClassName),
+                              ],
+                              [Icon.chevronRight('w-5 h-5')],
+                            ),
+                          ],
                         ),
-                        ...days.weeks.map(week =>
-                          h.div(
-                            [...week.attributes, h.Class(weekRowClassName)],
-                            week.cells.map(cell =>
-                              h.div(
-                                [
-                                  ...cell.cellAttributes,
-                                  h.Class(cellClassName),
-                                ],
-                                [
-                                  h.button(
-                                    [
-                                      ...cell.buttonAttributes,
-                                      h.Class(dayButtonClassName),
-                                    ],
-                                    [cell.label],
-                                  ),
-                                ],
+                        h.div(
+                          [...days.grid, h.Class(gridClassName)],
+                          [
+                            h.div(
+                              [...days.headerRow, h.Class(headerRowClassName)],
+                              days.columnHeaders.map(header =>
+                                h.div(
+                                  [
+                                    ...header.attributes,
+                                    h.Class(columnHeaderClassName),
+                                  ],
+                                  [header.name],
+                                ),
                               ),
                             ),
+                            ...days.weeks.map(week =>
+                              h.div(
+                                [...week.attributes, h.Class(weekRowClassName)],
+                                week.cells.map(cell =>
+                                  h.div(
+                                    [
+                                      ...cell.cellAttributes,
+                                      h.Class(cellClassName),
+                                    ],
+                                    [
+                                      h.button(
+                                        [
+                                          ...cell.buttonAttributes,
+                                          h.Class(dayButtonClassName),
+                                        ],
+                                        [cell.label],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  Months: months =>
+                    h.div(
+                      [...months.root, h.Class(calendarWrapperClassName)],
+                      [
+                        h.div(
+                          [h.Class(`${headerClassName} justify-center`)],
+                          [
+                            h.button(
+                              [
+                                h.Id(months.heading.id),
+                                ...months.headingButton,
+                                h.Class(headingButtonClassName),
+                              ],
+                              [
+                                months.heading.text,
+                                Icon.chevronDown('w-3 h-3'),
+                              ],
+                            ),
+                          ],
+                        ),
+                        h.div(
+                          [...months.grid, h.Class(monthYearGridClassName)],
+                          months.cells.map(cell =>
+                            h.div(
+                              [
+                                ...cell.cellAttributes,
+                                h.Class(monthYearCellClassName),
+                              ],
+                              [
+                                h.button(
+                                  [
+                                    ...cell.buttonAttributes,
+                                    h.Class(monthYearButtonClassName),
+                                  ],
+                                  [cell.shortLabel],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-              Months: months =>
-                h.div(
-                  [...months.root, h.Class(calendarWrapperClassName)],
-                  [
+                  Years: years =>
                     h.div(
-                      [h.Class(`${headerClassName} justify-center`)],
+                      [...years.root, h.Class(calendarWrapperClassName)],
                       [
-                        h.button(
-                          [
-                            h.Id(months.heading.id),
-                            ...months.headingButton,
-                            h.Class(headingButtonClassName),
-                          ],
-                          [months.heading.text, Icon.chevronDown('w-3 h-3')],
-                        ),
-                      ],
-                    ),
-                    h.div(
-                      [...months.grid, h.Class(monthYearGridClassName)],
-                      months.cells.map(cell =>
                         h.div(
-                          [
-                            ...cell.cellAttributes,
-                            h.Class(monthYearCellClassName),
-                          ],
+                          [h.Class(headerClassName)],
                           [
                             h.button(
                               [
-                                ...cell.buttonAttributes,
-                                h.Class(monthYearButtonClassName),
+                                ...years.previousPageButton,
+                                h.Class(navButtonClassName),
                               ],
-                              [cell.shortLabel],
+                              [Icon.chevronLeft('w-5 h-5')],
+                            ),
+                            h.h2(
+                              [
+                                h.Id(years.heading.id),
+                                h.Class(headingTextClassName),
+                              ],
+                              [years.heading.text],
+                            ),
+                            h.button(
+                              [
+                                ...years.nextPageButton,
+                                h.Class(navButtonClassName),
+                              ],
+                              [Icon.chevronRight('w-5 h-5')],
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              Years: years =>
-                h.div(
-                  [...years.root, h.Class(calendarWrapperClassName)],
-                  [
-                    h.div(
-                      [h.Class(headerClassName)],
-                      [
-                        h.button(
-                          [
-                            ...years.previousPageButton,
-                            h.Class(navButtonClassName),
-                          ],
-                          [Icon.chevronLeft('w-5 h-5')],
-                        ),
-                        h.h2(
-                          [
-                            h.Id(years.heading.id),
-                            h.Class(headingTextClassName),
-                          ],
-                          [years.heading.text],
-                        ),
-                        h.button(
-                          [
-                            ...years.nextPageButton,
-                            h.Class(navButtonClassName),
-                          ],
-                          [Icon.chevronRight('w-5 h-5')],
+                        h.div(
+                          [...years.grid, h.Class(monthYearGridClassName)],
+                          years.cells.map(cell =>
+                            h.div(
+                              [
+                                ...cell.cellAttributes,
+                                h.Class(monthYearCellClassName),
+                              ],
+                              [
+                                h.button(
+                                  [
+                                    ...cell.buttonAttributes,
+                                    h.Class(monthYearButtonClassName),
+                                  ],
+                                  [cell.label],
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    h.div(
-                      [...years.grid, h.Class(monthYearGridClassName)],
-                      years.cells.map(cell =>
-                        h.div(
-                          [
-                            ...cell.cellAttributes,
-                            h.Class(monthYearCellClassName),
-                          ],
-                          [
-                            h.button(
-                              [
-                                ...cell.buttonAttributes,
-                                h.Class(monthYearButtonClassName),
-                              ],
-                              [cell.label],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-            }),
-          ),
-      },
-      toParentMessage: message => GotDatePickerBasicDemoMessage({ message }),
-    }),
+                }),
+              ),
+          },
+          toParentMessage: message =>
+            GotDatePickerBasicDemoMessage({ message }),
+        }),
+      ],
+    ),
   ]
 }

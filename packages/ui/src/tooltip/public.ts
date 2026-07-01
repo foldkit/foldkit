@@ -2,6 +2,7 @@ export {
   init,
   update,
   view,
+  triggerId,
   reflectShowDelay,
   Model,
   Message,

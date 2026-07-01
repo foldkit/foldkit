@@ -83,38 +83,51 @@ const filteredCities =
         city.toLowerCase().includes(model.combobox.inputValue.toLowerCase()),
       )
 
-// Inside your view function, embed the Combobox via h.submodel:
+// Inside your view function, embed the Combobox via h.submodel. Give the
+// input an accessible name: target the input id with `Combobox.inputId('city')`
+// from a native `<label for>`, and pass `ariaLabelledBy` so the input is named
+// by the label. The attribute is only emitted when provided, so the input
+// never carries a dangling `aria-labelledby`.
 const view = () => {
   const h = html<Message>()
 
-  return h.submodel({
-    slotId: 'city',
-    model: model.combobox,
-    view: CityCombobox.view,
-    viewInputs: {
-      items: filteredCities,
-      itemToValue: city => city,
-      itemToDisplayText: city => city,
-      itemToConfig: (city, { isSelected }) => ({
-        className: 'px-3 py-2 cursor-pointer data-[active]:bg-blue-100',
-        content: h.div(
-          [h.Class('flex items-center gap-2')],
-          [
-            isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
-            h.span([], [city]),
-          ],
-        ),
+  const labelId = 'city-label'
+
+  return h.div(
+    [h.Class('flex flex-col gap-1.5')],
+    [
+      h.label([h.Id(labelId), h.For(Combobox.inputId('city'))], ['City']),
+      h.submodel({
+        slotId: 'city',
+        model: model.combobox,
+        view: CityCombobox.view,
+        viewInputs: {
+          ariaLabelledBy: labelId,
+          items: filteredCities,
+          itemToValue: city => city,
+          itemToDisplayText: city => city,
+          itemToConfig: (city, { isSelected }) => ({
+            className: 'px-3 py-2 cursor-pointer data-[active]:bg-blue-100',
+            content: h.div(
+              [h.Class('flex items-center gap-2')],
+              [
+                isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
+                h.span([], [city]),
+              ],
+            ),
+          }),
+          inputAttributes: childAttributes([
+            h.Class('w-full rounded-lg border px-3 py-2'),
+            h.Placeholder('Search cities...'),
+          ]),
+          itemsAttributes: childAttributes([
+            h.Class('rounded-lg border shadow-lg'),
+          ]),
+          backdropAttributes: childAttributes([h.Class('fixed inset-0')]),
+          anchor: { placement: 'bottom-start', gap: 8, padding: 8 },
+        },
+        toParentMessage: message => GotComboboxMessage({ message }),
       }),
-      inputAttributes: childAttributes([
-        h.Class('w-full rounded-lg border px-3 py-2'),
-        h.Placeholder('Search cities...'),
-      ]),
-      itemsAttributes: childAttributes([
-        h.Class('rounded-lg border shadow-lg'),
-      ]),
-      backdropAttributes: childAttributes([h.Class('fixed inset-0')]),
-      anchor: { placement: 'bottom-start', gap: 8, padding: 8 },
-    },
-    toParentMessage: message => GotComboboxMessage({ message }),
-  })
+    ],
+  )
 }

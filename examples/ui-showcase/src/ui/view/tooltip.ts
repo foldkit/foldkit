@@ -37,6 +37,13 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Basic'],
       ),
+      h.label(
+        [
+          h.For(Tooltip.triggerId(model.tooltipBasicDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Tooltip trigger'],
+      ),
       h.div(
         [h.Class('relative')],
         [
@@ -73,6 +80,13 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       h.h3(
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['No delay'],
+      ),
+      h.label(
+        [
+          h.For(Tooltip.triggerId(model.tooltipNoDelayDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Tooltip trigger'],
       ),
       h.div(
         [h.Class('relative')],

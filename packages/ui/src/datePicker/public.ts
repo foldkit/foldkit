@@ -2,6 +2,7 @@ export {
   init,
   update,
   view,
+  triggerId,
   open,
   close,
   selectDate,

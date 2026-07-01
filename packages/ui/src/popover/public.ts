@@ -4,6 +4,7 @@ export {
   open,
   close,
   view,
+  buttonId,
   Model,
   Message,
   OutMessage,
