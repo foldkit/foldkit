@@ -47,6 +47,7 @@ import type { DevToolsMode, DevToolsPosition } from 'foldkit/runtime'
 import { evo } from 'foldkit/struct'
 import * as Subscription from 'foldkit/subscription'
 
+import * as Checkbox from '@foldkit/ui/checkbox'
 import * as Listbox from '@foldkit/ui/listbox'
 import * as Slider from '@foldkit/ui/slider'
 import * as Tabs from '@foldkit/ui/tabs'
@@ -81,6 +82,7 @@ const DisplayEntry = S.Struct({
 
 const INSPECTOR_TABS_ID = 'dt-inspector'
 const SUBMODEL_FILTER_ID = 'dt-submodel-filter'
+const FLATTEN_CHECKBOX_ID = 'dt-flatten-checkbox'
 const SCRUBBER_SLIDER_ID = 'dt-scrubber'
 
 const InspectorTabsModel = S.Struct({
@@ -130,6 +132,7 @@ const Model = S.Struct({
   maybeInspectedMessage: S.Option(UnknownByReference),
   submodelTags: S.Array(S.String),
   maybeSubmodelFilter: S.Option(S.String),
+  isFlattened: S.Boolean,
   submodelFilterListbox: Listbox.Model,
   expandedPaths: S.HashSet(S.String),
   changedPaths: S.HashSet(S.String),
@@ -150,6 +153,7 @@ type Model = typeof Model.Type
 
 const Flags = S.Struct({
   isMobile: S.Boolean,
+  isFlattened: S.Boolean,
   entries: S.Array(DisplayEntry),
   initCommands: S.Array(DisplayCommand),
   initMountStarts: S.Array(DisplayMount),
@@ -161,6 +165,8 @@ const Flags = S.Struct({
 // MESSAGE
 
 const ClickedToggle = m('ClickedToggle')
+const ToggledFlatten = m('ToggledFlatten')
+const CompletedPersistFlatten = m('CompletedPersistFlatten')
 const ClickedRow = m('ClickedRow', { index: S.Number })
 const ClickedResume = m('ClickedResume')
 const ClickedClear = m('ClickedClear')
@@ -204,6 +210,8 @@ const GotScrubberSliderMessage = m('GotScrubberSliderMessage', {
 
 const Message = S.Union([
   ClickedToggle,
+  ToggledFlatten,
+  CompletedPersistFlatten,
   ClickedRow,
   ClickedResume,
   ClickedClear,
@@ -234,6 +242,8 @@ const MOBILE_BREAKPOINT_QUERY = `(max-width: ${MOBILE_BREAKPOINT}px)`
 const TREE_INDENT_PX = 12
 const MAX_PREVIEW_KEYS = 3
 const ALL_MESSAGES_VALUE = ''
+const FLATTEN_STORAGE_KEY = 'foldkit-devtools-flatten'
+const FLATTEN_STORAGE_ON = 'true'
 const NO_COMMANDS: ReadonlyArray<typeof DisplayCommand.Type> = []
 const NO_MOUNTS: ReadonlyArray<typeof DisplayMount.Type> = []
 
@@ -365,6 +375,26 @@ export const UnlockScroll = Command.define(
   UnlockedScroll,
 )(unlockScroll.pipe(Effect.as(UnlockedScroll())))
 
+const readPersistedFlatten: Effect.Effect<boolean> = Effect.try(
+  () => window.localStorage.getItem(FLATTEN_STORAGE_KEY) === FLATTEN_STORAGE_ON,
+).pipe(Effect.catch(() => Effect.succeed(false)))
+
+export const PersistFlatten = Command.define(
+  'PersistFlatten',
+  { isFlattened: S.Boolean },
+  CompletedPersistFlatten,
+)(({ isFlattened }) =>
+  Effect.try(() =>
+    window.localStorage.setItem(
+      FLATTEN_STORAGE_KEY,
+      isFlattened ? FLATTEN_STORAGE_ON : '',
+    ),
+  ).pipe(
+    Effect.catch(() => Effect.void),
+    Effect.as(CompletedPersistFlatten()),
+  ),
+)
+
 const buildInspectionFromModel = (index: number, model: unknown) =>
   Effect.gen(function* () {
     const store = yield* StoreService
@@ -490,6 +520,14 @@ const makeUpdate = (
             ),
           ]
         },
+        ToggledFlatten: () => {
+          const nextIsFlattened = !model.isFlattened
+          return [
+            evo(model, { isFlattened: () => nextIsFlattened }),
+            [PersistFlatten({ isFlattened: nextIsFlattened })],
+          ]
+        },
+        CompletedPersistFlatten: () => [model, []],
         CrossedMobileBreakpoint: ({ isMobile }) => [
           evo(model, { isMobile: () => isMobile }),
           OptionExt.when(model.isOpen, toggleScrollLock(isMobile)).pipe(
@@ -1194,6 +1232,19 @@ const makeView = (
       true,
     )
 
+  const unwrapToLeaf = (message: unknown): unknown => {
+    let current = message
+    while (isTagged(current) && GOT_MESSAGE_PATTERN.test(current._tag)) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const inner = (current as Record<string, unknown>)?.['message']
+      if (inner === undefined) {
+        break
+      }
+      current = inner
+    }
+    return current
+  }
+
   const unwrapIfFiltered = (
     message: unknown,
     maybeSubmodelFilter: Option.Option<string>,
@@ -1226,13 +1277,16 @@ const makeView = (
   const messageTabContent = (
     maybeInspectedMessage: Option.Option<unknown>,
     maybeSubmodelFilter: Option.Option<string>,
+    isFlattened: boolean,
     expandedPaths: HashSet.HashSet<string>,
     timestamp: string,
   ): Html =>
     Option.match(maybeInspectedMessage, {
       onNone: noMessageView,
       onSome: rawMessage => {
-        const message = unwrapIfFiltered(rawMessage, maybeSubmodelFilter)
+        const message = isFlattened
+          ? unwrapToLeaf(rawMessage)
+          : unwrapIfFiltered(rawMessage, maybeSubmodelFilter)
 
         return h.div(
           [h.Class('flex flex-col flex-1 min-h-0 min-w-0')],
@@ -1502,6 +1556,7 @@ const makeView = (
         lazyTabContent('Message', messageTabContent, [
           model.maybeInspectedMessage,
           model.maybeSubmodelFilter,
+          model.isFlattened,
           model.expandedPaths,
           inspectedTimestamp(model),
         ]),
@@ -1773,6 +1828,51 @@ const makeView = (
     })
   }
 
+  const flattenCheckIconView: Html = h.svg(
+    [
+      h.AriaHidden(true),
+      h.Class('dt-flatten-check shrink-0'),
+      h.Xmlns('http://www.w3.org/2000/svg'),
+      h.Fill('none'),
+      h.ViewBox('0 0 24 24'),
+      h.StrokeWidth('3'),
+      h.Stroke('currentColor'),
+    ],
+    [
+      h.path(
+        [h.D(CHECK_ICON), h.StrokeLinecap('round'), h.StrokeLinejoin('round')],
+        [],
+      ),
+    ],
+  )
+
+  const flattenCheckboxView = (model: Model): Html =>
+    h.submodel({
+      slotId: 'flatten-checkbox',
+      model: Checkbox.init({
+        id: FLATTEN_CHECKBOX_ID,
+        isChecked: model.isFlattened,
+      }),
+      view: Checkbox.view,
+      viewInputs: {
+        toView: attributes =>
+          h.div(
+            [h.Class('dt-flatten-wrapper')],
+            [
+              h.div(
+                [...attributes.checkbox, h.Class('dt-flatten-box')],
+                model.isFlattened ? [flattenCheckIconView] : [],
+              ),
+              h.label(
+                [...attributes.label, h.Class('dt-flatten-label')],
+                ['Flatten to leaf message'],
+              ),
+            ],
+          ),
+      },
+      toParentMessage: () => ToggledFlatten(),
+    })
+
   const headerView = (model: Model): Html => {
     const { status, maybeAction } = M.value(mode).pipe(
       M.withReturnType<
@@ -1928,6 +2028,7 @@ const makeView = (
     isPaused: boolean,
     pausedAtIndex: number,
     maybeFilterTag: Option.Option<string>,
+    isFlattened: boolean,
   ): Html => {
     const baseTimestamp = pipe(
       entries,
@@ -1940,6 +2041,27 @@ const makeView = (
 
     const isInitSelected = selectedIndex === INIT_INDEX
     const isFiltered = Option.isSome(maybeFilterTag)
+
+    const leafOrTag = (entry: typeof DisplayEntry.Type): string =>
+      Option.getOrElse(entry.maybeLeafTag, () => entry.tag)
+
+    const displayTagFor = (entry: typeof DisplayEntry.Type): string => {
+      if (isFlattened) {
+        return leafOrTag(entry)
+      }
+      if (Option.isNone(maybeFilterTag)) {
+        return entry.tag
+      }
+      return pipe(
+        entry.submodelPath,
+        Array_.findFirstIndex(Equal.equals(maybeFilterTag.value)),
+        Option.flatMap(filterIndex =>
+          Array_.get(entry.submodelPath, Number_.increment(filterIndex)),
+        ),
+        Option.orElse(() => entry.maybeLeafTag),
+        Option.getOrElse(() => entry.tag),
+      )
+    }
 
     const indexedEntries: ReadonlyArray<
       Readonly<{
@@ -1964,17 +2086,7 @@ const makeView = (
       Array_.map(({ entry, absoluteIndex }) => {
         const isSelected = selectedIndex === absoluteIndex
         const isPausedHere = isPaused && pausedAtIndex === absoluteIndex
-        const displayTag = isFiltered
-          ? pipe(
-              entry.submodelPath,
-              Array_.findFirstIndex(Equal.equals(maybeFilterTag.value)),
-              Option.flatMap(filterIndex =>
-                Array_.get(entry.submodelPath, Number_.increment(filterIndex)),
-              ),
-              Option.orElse(() => entry.maybeLeafTag),
-              Option.getOrElse(() => entry.tag),
-            )
-          : entry.tag
+        const displayTag = displayTagFor(entry)
 
         return lazyMessageRow(String(absoluteIndex), messageRowView, [
           displayTag,
@@ -2016,6 +2128,7 @@ const makeView = (
       model.isPaused,
       model.pausedAtIndex,
       model.maybeSubmodelFilter,
+      model.isFlattened,
     ])
   }
 
@@ -2118,7 +2231,10 @@ const makeView = (
               [
                 ...Array_.match(model.submodelTags, {
                   onEmpty: () => [],
-                  onNonEmpty: () => [submodelFilterView(model)],
+                  onNonEmpty: () => [
+                    submodelFilterView(model),
+                    flattenCheckboxView(model),
+                  ],
                 }),
                 ...OptionExt.when(
                   !model.isFollowingTop,
@@ -2212,8 +2328,10 @@ export const createOverlay = (
 
     const flags: Effect.Effect<typeof Flags.Type> = Effect.gen(function* () {
       const storeState = yield* SubscriptionRef.get(store.stateRef)
+      const isFlattened = yield* readPersistedFlatten
       return {
         isMobile: window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches,
+        isFlattened,
         ...toDisplayState(storeState),
       }
     })
