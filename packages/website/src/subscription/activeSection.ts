@@ -37,6 +37,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             ComingFromTanStackQuery: () =>
               Page.ComingFromTanStackQuery.tableOfContents,
             ReactComparison: () => Page.ReactComparison.tableOfContents,
+            EffectAtomComparison: () =>
+              Page.EffectAtomComparison.tableOfContents,
             ElmComparison: () => Page.ElmComparison.tableOfContents,
             RoutingAndNavigation: () => Page.Routing.tableOfContents,
             FieldValidation: () => Page.FieldValidation.tableOfContents,
