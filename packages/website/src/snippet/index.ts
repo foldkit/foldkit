@@ -74,6 +74,8 @@ export { default as lintGotPrefixRequiresSubmodelPayloadRaw } from './lintGotPre
 export { default as lintGotPrefixRequiresSubmodelPayloadHighlighted } from './lintGotPrefixRequiresSubmodelPayload.ts?highlighted'
 export { default as lintNoEmptyObjectTaggedCallRaw } from './lintNoEmptyObjectTaggedCall.ts?raw'
 export { default as lintNoEmptyObjectTaggedCallHighlighted } from './lintNoEmptyObjectTaggedCall.ts?highlighted'
+export { default as lintNoRouteQueryConstructorDefaultRaw } from './lintNoRouteQueryConstructorDefault.ts?raw'
+export { default as lintNoRouteQueryConstructorDefaultHighlighted } from './lintNoRouteQueryConstructorDefault.ts?highlighted'
 export { default as lintPreferCallableMessageConstructorRaw } from './lintPreferCallableMessageConstructor.ts?raw'
 export { default as lintPreferCallableMessageConstructorHighlighted } from './lintPreferCallableMessageConstructor.ts?highlighted'
 export { default as lintCommandBindingMatchesNameRaw } from './lintCommandBindingMatchesName.ts?raw'

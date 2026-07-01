@@ -116,6 +116,17 @@ const foldkitRuleExamples: ReadonlyArray<RuleExample> = [
     raw: Snippet.lintCommandBindingMatchesNameRaw,
     highlighted: Snippet.lintCommandBindingMatchesNameHighlighted,
   },
+  {
+    heading: {
+      level: 'h3',
+      id: 'no-route-query-constructor-default',
+      text: 'foldkit/no-route-query-constructor-default',
+    },
+    description:
+      'Flags Schema.withConstructorDefault on Route.query fields. The default makes the field optional in the constructor-input type that Route.mapTo encodes, so the Route.query plus Route.mapTo pipe stops typechecking. Model the missing parameter with Option instead.',
+    raw: Snippet.lintNoRouteQueryConstructorDefaultRaw,
+    highlighted: Snippet.lintNoRouteQueryConstructorDefaultHighlighted,
+  },
 ]
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
@@ -191,7 +202,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('message'),
         ' payload, matching ',
         inlineCode('m()'),
-        ' tags, no-field Message constructors, and Command names.',
+        ' tags, no-field Message constructors, Command names, and constructor defaults on ',
+        inlineCode('Route.query'),
+        ' fields.',
       ),
       ...foldkitRuleExamples.map(ruleExampleView(copiedSnippets)),
     ],
