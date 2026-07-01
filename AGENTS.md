@@ -110,7 +110,7 @@ If a Mount factory does not read or write its element, re-check the primitive ch
 
 - Use Conventional Commits. Add `!` after the scope for breaking changes, for example `refactor(schema)!:`.
 - Valid scopes: package directories (`foldkit`, `ui`, `devtools`, `create-foldkit-app`, `vite-plugin`, `devtools-mcp`, `oxlint-plugin`, `website`, `typing-game`, `examples-e2e`), example directory names, `skills`, `ci`, and `release`. Never internal module names.
-- The `skills` scope means the Foldkit app/plugin skills (`skills/foldkit`, `skills/generate-program`, `skills/audit-program`) and their shipped packaging. Do not use `skills` for repo-maintenance helper skills such as `skills/commit-changes`; omit the scope if no valid scope fits the whole change.
+- The `skills` scope means the Foldkit app/plugin skills (`skills/foldkit`, `skills/generate-program`, `skills/audit-program`) and their shipped packaging. Do not use `skills` for repo-maintenance helper skills such as `.agents/skills/commit-changes`; omit the scope if no valid scope fits the whole change.
 - Before choosing or amending a commit subject or body, inspect the full
   staged diff or full commit diff with `git diff --cached --stat`,
   `git diff --cached --name-status`, or
@@ -121,7 +121,7 @@ If a Mount factory does not read or write its element, re-check the primitive ch
   when the final diff has drifted. Do this even for small follow-ups.
 - Do not invent broad scopes such as `tooling` or `infrastructure`. Use the literal valid scopes above.
 - Do not co-author or mention AI assistants in commit messages or release notes.
-- Use `skills/commit-changes` when the user asks to create a commit in this repo.
+- Use `.agents/skills/commit-changes` when the user asks to create a commit in this repo.
 - Squash-merge only. Use `gh pr merge --squash` when merging PRs.
 
 ## Editing Rules
