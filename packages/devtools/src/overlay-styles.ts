@@ -346,6 +346,54 @@ ul {
   inset: 0;
   pointer-events: none;
 }
+.dt-flatten-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--dt-border);
+  flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+}
+.dt-flatten-wrapper:hover {
+  background-color: var(--dt-tree-hover);
+}
+.dt-flatten-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--dt-border);
+  border-radius: 3px;
+  color: transparent;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.dt-flatten-box:focus-visible {
+  outline: 1px solid var(--dt-accent);
+  outline-offset: 1px;
+}
+.dt-flatten-box[data-checked] {
+  background-color: var(--dt-accent);
+  border-color: var(--dt-accent);
+  color: var(--dt-bg);
+}
+.dt-flatten-check {
+  width: 10px;
+  height: 10px;
+}
+.dt-flatten-label {
+  color: var(--dt-text-muted);
+  font-family:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 13px;
+  cursor: pointer;
+}
+.dt-flatten-wrapper:hover .dt-flatten-label {
+  color: var(--dt-text);
+}
 .dt-tab-button {
   position: relative;
   background: transparent;
