@@ -132,6 +132,7 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
     verticalTabsDemo: Tabs.init({
       id: 'vertical-tabs-demo',
     }),
+    navDemoSection: 'Home',
     dragAndDropDemo: DragAndDrop.init({
       id: 'drag-and-drop-demo',
     }),

@@ -744,6 +744,17 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           }),
           Page.UiPages.TabsPage.tableOfContents,
         ),
+      UiNav: () =>
+        withTableOfContents(
+          h.submodel({
+            slotId: 'ui-Nav',
+            model: model.uiPages,
+            view: Page.UiPages.NavPage.view,
+            viewInputs: { copiedSnippets: model.copiedSnippets },
+            toParentMessage: toUiPageMessage,
+          }),
+          Page.UiPages.NavPage.tableOfContents,
+        ),
       UiDisclosure: () =>
         withTableOfContents(
           h.submodel({

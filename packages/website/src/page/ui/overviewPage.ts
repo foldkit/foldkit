@@ -20,6 +20,7 @@ import {
   uiInputRouter,
   uiListboxRouter,
   uiMenuRouter,
+  uiNavRouter,
   uiPopoverRouter,
   uiRadioGroupRouter,
   uiSelectRouter,
@@ -202,6 +203,14 @@ const components: ReadonlyArray<ComponentEntry> = [
     category: 'Disclosure',
     description:
       'Tabbed interface with keyboard navigation, Home/End support, and wrapping.',
+  },
+  {
+    name: 'Nav',
+    href: uiNavRouter(),
+    kind: 'Helper',
+    category: 'Navigation',
+    description:
+      'Stateless navigation landmark for between-page links, marking the current route with aria-current="page".',
   },
   {
     name: 'Drag and Drop',
