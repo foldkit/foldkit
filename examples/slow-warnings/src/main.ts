@@ -1,10 +1,8 @@
 import {
   Array,
-  Effect,
   Match as M,
   Number,
   Option,
-  Queue,
   Schema as S,
   Stream,
   pipe,
@@ -250,32 +248,19 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => [
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   slowWarnings: Subscription.persistent(
-    Stream.callback<typeof RecordedSlowWarning.Type>(queue =>
-      Effect.acquireRelease(
-        Effect.sync(() => {
-          const handler = (event: Event) => {
-            if (event instanceof CustomEvent) {
-              pipe(
-                event.detail,
-                S.decodeUnknownOption(SlowWarningReport),
-                Option.match({
-                  onNone: () => undefined,
-                  onSome: report =>
-                    Queue.offerUnsafe(queue, RecordedSlowWarning({ report })),
-                }),
-              )
-            }
-          }
-
-          slowWarningTarget.addEventListener(SLOW_WARNING_EVENT, handler)
-          return handler
-        }),
-        handler =>
-          Effect.sync(() =>
-            slowWarningTarget.removeEventListener(SLOW_WARNING_EVENT, handler),
-          ),
-      ).pipe(Effect.flatMap(() => Effect.never)),
-    ),
+    Subscription.fromEventFilterMap<
+      CustomEvent,
+      typeof RecordedSlowWarning.Type
+    >({
+      target: slowWarningTarget,
+      type: SLOW_WARNING_EVENT,
+      toMessage: event =>
+        pipe(
+          event.detail,
+          S.decodeUnknownOption(SlowWarningReport),
+          Option.map(report => RecordedSlowWarning({ report })),
+        ),
+    }),
   ),
   burnCpuDuringDependencyExtraction: entry(
     {
