@@ -152,6 +152,39 @@ const innerCommandDefineCall = (
   return callee
 }
 
+const isProgram = (node: ESTree.Node): node is ESTree.Program =>
+  node.type === 'Program'
+
+const isVariableDeclaration = (
+  node: unknown,
+): node is ESTree.VariableDeclaration =>
+  typeof node === 'object' &&
+  node !== null &&
+  'type' in node &&
+  node.type === 'VariableDeclaration'
+
+const isMutableDeclaration = (node: ESTree.VariableDeclaration): boolean =>
+  (node.kind === 'let' || node.kind === 'var') && node.declare !== true
+
+// The mutable `let`/`var` declarations at module scope, including any re-exported
+// via `export let`. `declare let` (ambient) is left alone.
+const topLevelMutableDeclarations = (
+  program: ESTree.Program,
+): ReadonlyArray<ESTree.VariableDeclaration> =>
+  program.body.flatMap(statement => {
+    if (isVariableDeclaration(statement)) {
+      return isMutableDeclaration(statement) ? [statement] : []
+    }
+    if (
+      statement.type === 'ExportNamedDeclaration' &&
+      isVariableDeclaration(statement.declaration) &&
+      isMutableDeclaration(statement.declaration)
+    ) {
+      return [statement.declaration]
+    }
+    return []
+  })
+
 // RULES
 
 export const noNoopMessage = Rule.define({
@@ -411,6 +444,35 @@ export const commandBindingMatchesName = Rule.define({
   },
 })
 
+export const noModuleLevelMutableState = Rule.define({
+  name: 'no-module-level-mutable-state',
+  meta: Rule.meta({
+    type: 'suggestion',
+    description:
+      'Keep mutable state in the Model tree; avoid module-scope let/var in Foldkit files.',
+  }),
+  create: function* () {
+    const ctx = yield* RuleContext
+    return {
+      Program: (node: ESTree.Node) => {
+        if (!isProgram(node)) return Effect.void
+        return Effect.forEach(
+          topLevelMutableDeclarations(node),
+          declaration =>
+            ctx.report(
+              Diagnostic.make({
+                node: declaration,
+                message:
+                  'Module-level let/var is hidden state outside the single Model tree. Keep mutable state in the Model, or reach for an explicit runtime primitive.',
+              }),
+            ),
+          { concurrency: 1, discard: true },
+        )
+      },
+    }
+  },
+})
+
 export default Plugin.define({
   name: 'foldkit',
   rules: {
@@ -419,6 +481,7 @@ export default Plugin.define({
     'got-submodel-message-name': gotSubmodelMessageName,
     'message-binding-matches-tag': messageBindingMatchesTag,
     'no-empty-object-tagged-call': noEmptyObjectTaggedCall,
+    'no-module-level-mutable-state': noModuleLevelMutableState,
     'no-noop-message': noNoopMessage,
     'prefer-callable-message-constructor': preferCallableMessageConstructor,
   },

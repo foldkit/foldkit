@@ -7,6 +7,7 @@ import {
   gotSubmodelMessageName,
   messageBindingMatchesTag,
   noEmptyObjectTaggedCall,
+  noModuleLevelMutableState,
   noNoopMessage,
   preferCallableMessageConstructor,
 } from '../src/index.ts'
@@ -57,6 +58,17 @@ const tsAsExpression = (expression: unknown) => ({
   type: 'TSAsExpression',
   expression,
 })
+
+const variableDeclaration = (kind: string, name: string) => ({
+  type: 'VariableDeclaration',
+  kind,
+  declare: false,
+  declarations: [
+    { type: 'VariableDeclarator', id: Testing.id(name), init: null },
+  ],
+})
+
+const program = (body: ReadonlyArray<unknown>) => ({ type: 'Program', body })
 
 describe('@foldkit/oxlint-plugin', () => {
   it('flags generic NoOp Messages', () => {
@@ -264,5 +276,41 @@ describe('@foldkit/oxlint-plugin', () => {
     )
 
     expect(result).toHaveLength(0)
+  })
+
+  it('flags module-level let/var state', () => {
+    const result = Testing.runRule(
+      noModuleLevelMutableState,
+      'Program',
+      program([variableDeclaration('let', 'cache')]),
+    )
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.message).toContain('single Model tree')
+  })
+
+  it('allows module-level const', () => {
+    const result = Testing.runRule(
+      noModuleLevelMutableState,
+      'Program',
+      program([variableDeclaration('const', 'config')]),
+    )
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('flags an exported module-level let', () => {
+    const result = Testing.runRule(
+      noModuleLevelMutableState,
+      'Program',
+      program([
+        {
+          type: 'ExportNamedDeclaration',
+          declaration: variableDeclaration('let', 'counter'),
+        },
+      ]),
+    )
+
+    expect(result).toHaveLength(1)
   })
 })
