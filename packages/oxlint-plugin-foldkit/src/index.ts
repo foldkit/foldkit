@@ -42,6 +42,17 @@ const isVariableDeclarator = (
   node: ESTree.Node,
 ): node is ESTree.VariableDeclarator => node.type === 'VariableDeclarator'
 
+const isVariableDeclaration = (
+  node: unknown,
+): node is ESTree.VariableDeclaration =>
+  typeof node === 'object' &&
+  node !== null &&
+  'type' in node &&
+  node.type === 'VariableDeclaration'
+
+const isProgram = (node: ESTree.Node): node is ESTree.Program =>
+  node.type === 'Program'
+
 const isTSAsExpression = (
   node: ESTree.Node,
 ): node is ESTree.Node & { readonly expression: ESTree.Node } =>
@@ -151,6 +162,23 @@ const innerCommandDefineCall = (
   if (!isMemberCall(callee, 'Command', ['define'])) return undefined
   return callee
 }
+
+const isMutableDeclaration = (node: ESTree.VariableDeclaration): boolean =>
+  (node.kind === 'let' || node.kind === 'var') && node.declare !== true
+
+const topLevelMutableDeclarations = (
+  program: ESTree.Program,
+): ReadonlyArray<ESTree.VariableDeclaration> =>
+  program.body.flatMap(statement => {
+    const declaration =
+      statement.type === 'ExportNamedDeclaration'
+        ? statement.declaration
+        : statement
+    return isVariableDeclaration(declaration) &&
+      isMutableDeclaration(declaration)
+      ? [declaration]
+      : []
+  })
 
 // RULES
 
@@ -411,6 +439,35 @@ export const commandBindingMatchesName = Rule.define({
   },
 })
 
+export const noModuleLevelMutableState = Rule.define({
+  name: 'no-module-level-mutable-state',
+  meta: Rule.meta({
+    type: 'suggestion',
+    description:
+      'Keep state in the Model instead of module-level let/var bindings.',
+  }),
+  create: function* () {
+    const ctx = yield* RuleContext
+    return {
+      Program: (node: ESTree.Node) => {
+        if (!isProgram(node)) return Effect.void
+        return Effect.forEach(
+          topLevelMutableDeclarations(node),
+          declaration =>
+            ctx.report(
+              Diagnostic.make({
+                node: declaration,
+                message:
+                  'Module-level let/var holds state outside the Model. Move the data into the Model, or scope a live handle to a lifecycle primitive like Mount or ManagedResource.',
+              }),
+            ),
+          { discard: true },
+        )
+      },
+    }
+  },
+})
+
 export default Plugin.define({
   name: 'foldkit',
   rules: {
@@ -419,6 +476,7 @@ export default Plugin.define({
     'got-submodel-message-name': gotSubmodelMessageName,
     'message-binding-matches-tag': messageBindingMatchesTag,
     'no-empty-object-tagged-call': noEmptyObjectTaggedCall,
+    'no-module-level-mutable-state': noModuleLevelMutableState,
     'no-noop-message': noNoopMessage,
     'prefer-callable-message-constructor': preferCallableMessageConstructor,
   },

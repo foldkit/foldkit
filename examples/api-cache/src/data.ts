@@ -88,7 +88,7 @@ export const fetchPosts = Effect.gen(function* () {
 
 // NOTE: Module-level mutation simulates a flaky server so the Failure and
 // retry path is reachable from the UI. The Foldkit app itself never mutates.
-let flakyAttemptCount = 0
+const flakyAttempts = { count: 0 }
 
 export const fetchPostDetail = (
   postId: string,
@@ -97,9 +97,9 @@ export const fetchPostDetail = (
     yield* Effect.sleep(SERVER_LATENCY)
 
     if (postId === FLAKY_POST_ID) {
-      flakyAttemptCount += 1
+      flakyAttempts.count += 1
 
-      if (flakyAttemptCount % 2 === 1) {
+      if (flakyAttempts.count % 2 === 1) {
         return yield* Effect.fail(
           'The connection dropped. Retry to fetch this post again.',
         )

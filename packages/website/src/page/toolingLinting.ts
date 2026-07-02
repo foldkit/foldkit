@@ -116,6 +116,17 @@ const foldkitRuleExamples: ReadonlyArray<RuleExample> = [
     raw: Snippet.lintCommandBindingMatchesNameRaw,
     highlighted: Snippet.lintCommandBindingMatchesNameHighlighted,
   },
+  {
+    heading: {
+      level: 'h3',
+      id: 'no-module-level-mutable-state',
+      text: 'foldkit/no-module-level-mutable-state',
+    },
+    description:
+      'Rejects module-level let and var bindings, which hold state outside the Model. Move the data into the Model, or scope a live handle to a lifecycle primitive like Mount or ManagedResource.',
+    raw: Snippet.lintNoModuleLevelMutableStateRaw,
+    highlighted: Snippet.lintNoModuleLevelMutableStateHighlighted,
+  },
 ]
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
@@ -191,7 +202,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('message'),
         ' payload, matching ',
         inlineCode('m()'),
-        ' tags, no-field Message constructors, and Command names.',
+        ' tags, no-field Message constructors, Command names, and module-level mutable state.',
       ),
       ...foldkitRuleExamples.map(ruleExampleView(copiedSnippets)),
     ],

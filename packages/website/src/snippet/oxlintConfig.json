@@ -33,7 +33,8 @@
     "foldkit/got-prefix-requires-submodel-payload": "error",
     "foldkit/no-empty-object-tagged-call": "error",
     "foldkit/prefer-callable-message-constructor": "error",
-    "foldkit/command-binding-matches-name": "error"
+    "foldkit/command-binding-matches-name": "error",
+    "foldkit/no-module-level-mutable-state": "error"
   },
   "ignorePatterns": [
     "dist/",
