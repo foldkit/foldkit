@@ -115,22 +115,22 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
           return
         }
         const canvas = vnode.elm
-        const nullableContext = canvas.getContext('2d')
-        if (Predicate.isNull(nullableContext)) {
+        const context = canvas.getContext('2d')
+        if (Predicate.isNull(context)) {
           return
         }
-        contextStore.set(canvas, nullableContext)
-        paintScene(nullableContext, width, height, shapes)
+        contextStore.set(canvas, context)
+        paintScene(context, width, height, shapes)
       },
       postpatch: (_oldVnode, vnode) => {
         if (!(vnode.elm instanceof HTMLCanvasElement)) {
           return
         }
-        const nullableContext = contextStore.get(vnode.elm)
-        if (nullableContext === undefined) {
+        const context = contextStore.get(vnode.elm)
+        if (context === undefined) {
           return
         }
-        paintScene(nullableContext, width, height, shapes)
+        paintScene(context, width, height, shapes)
       },
       destroy: vnode => {
         if (vnode.elm instanceof HTMLCanvasElement) {
