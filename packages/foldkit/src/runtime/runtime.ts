@@ -2866,13 +2866,13 @@ export function makeApplication<
 }
 
 const toCrashConfig = <Model, Message>(
-  nullableCrash: ElementCrashConfig<Model, Message> | undefined,
+  crash: ElementCrashConfig<Model, Message> | undefined,
 ): CrashConfig<Model, Message> | undefined => {
-  if (Predicate.isUndefined(nullableCrash)) {
+  if (Predicate.isUndefined(crash)) {
     return undefined
   }
 
-  const elementCrashView = nullableCrash.view
+  const elementCrashView = crash.view
 
   return {
     ...(Predicate.isNotUndefined(elementCrashView) && {
@@ -2881,8 +2881,8 @@ const toCrashConfig = <Model, Message>(
         body: elementCrashView(context),
       }),
     }),
-    ...(Predicate.isNotUndefined(nullableCrash.report) && {
-      report: nullableCrash.report,
+    ...(Predicate.isNotUndefined(crash.report) && {
+      report: crash.report,
     }),
   }
 }
@@ -2964,7 +2964,7 @@ export function makeElement<
     body: elementView(model),
   })
 
-  const nullableCrash = toCrashConfig(config.crash)
+  const crash = toCrashConfig(config.crash)
 
   const baseConfig = {
     Model: config.Model,
@@ -2974,7 +2974,7 @@ export function makeElement<
     ports: config.ports,
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
     container,
-    ...(Predicate.isNotUndefined(nullableCrash) && { crash: nullableCrash }),
+    ...(Predicate.isNotUndefined(crash) && { crash }),
     ...(Predicate.isNotUndefined(config.slow) && {
       slow: config.slow,
     }),
@@ -3194,13 +3194,12 @@ const buildPortHandles = <P extends Ports | undefined>(
 export const embed = <P extends Ports | undefined = undefined>(
   program: MakeRuntimeReturn<P>,
 ): EmbedHandle<P> => {
-  const nullableInternals = runtimeInternals.get(program)
-  if (Predicate.isUndefined(nullableInternals)) {
+  const internals = runtimeInternals.get(program)
+  if (Predicate.isUndefined(internals)) {
     throw new Error(
       '[foldkit] embed expects a program created by makeApplication or makeElement.',
     )
   }
-  const internals = nullableInternals
 
   if (internals.isEmbedActive) {
     throw new Error(
