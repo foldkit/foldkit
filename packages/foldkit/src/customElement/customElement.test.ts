@@ -144,12 +144,63 @@ describe('CustomElement.define', () => {
     element.dispatchEvent(
       new CustomEvent('change-rating', { detail: { value: 5 } }),
     )
-    element.dispatchEvent(new CustomEvent('clear-rating'))
+    element.dispatchEvent(new CustomEvent('clear-rating', { detail: {} }))
 
     expect(dispatched).toStrictEqual([
       RatingChanged({ value: 5 }),
       RatingCleared(),
     ])
+  })
+
+  it('decodes a conforming detail through the declared Schema before dispatching', () => {
+    const rating = emojiRating.withMessage<Message>()
+    const { dispatch, dispatched } = createCapturingDispatch()
+
+    const view = () =>
+      rating([
+        rating.OnChangeRating(detail => RatingChanged({ value: detail.value })),
+      ])
+    const element = patchInto(renderView(view, dispatch))
+
+    element.dispatchEvent(
+      new CustomEvent('change-rating', { detail: { value: 5 } }),
+    )
+
+    expect(dispatched).toStrictEqual([RatingChanged({ value: 5 })])
+  })
+
+  it('drops an event whose detail is the wrong type without dispatching', () => {
+    const rating = emojiRating.withMessage<Message>()
+    const { dispatch, dispatched } = createCapturingDispatch()
+
+    const view = () =>
+      rating([
+        rating.OnChangeRating(detail => RatingChanged({ value: detail.value })),
+      ])
+    const element = patchInto(renderView(view, dispatch))
+
+    element.dispatchEvent(
+      new CustomEvent('change-rating', { detail: { value: 'five' } }),
+    )
+
+    expect(dispatched).toStrictEqual([])
+  })
+
+  it('drops an event whose detail is missing a required field without dispatching', () => {
+    const rating = emojiRating.withMessage<Message>()
+    const { dispatch, dispatched } = createCapturingDispatch()
+
+    const view = () =>
+      rating([
+        rating.OnChangeRating(detail => RatingChanged({ value: detail.value })),
+      ])
+    const element = patchInto(renderView(view, dispatch))
+
+    element.dispatchEvent(
+      new CustomEvent('change-rating', { detail: { notValue: 5 } }),
+    )
+
+    expect(dispatched).toStrictEqual([])
   })
 
   it('preserves property updates across renders via the propsModule diff', () => {

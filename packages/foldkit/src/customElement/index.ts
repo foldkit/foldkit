@@ -1,4 +1,4 @@
-import { Array, type Schema, String, pipe } from 'effect'
+import { Array, Option, Schema, String, pipe } from 'effect'
 
 import type { Attribute, Child, Html } from '../html/index.js'
 import {
@@ -33,7 +33,10 @@ type PropertyFactories<
 }
 
 /** @internal */
-type EventFactories<Message, Events extends Record<string, Schema.Top>> = {
+type EventFactories<
+  Message,
+  Events extends Record<string, Schema.Codec<any, any>>,
+> = {
   readonly [K in keyof Events as `On${KebabToPascal<string & K>}`]: EventFactory<
     Message,
     Schema.Schema.Type<Events[K]>
@@ -46,7 +49,7 @@ type EventFactories<Message, Events extends Record<string, Schema.Top>> = {
 export type ElementBuilder<
   Message,
   Properties extends Record<string, Schema.Top>,
-  Events extends Record<string, Schema.Top>,
+  Events extends Record<string, Schema.Codec<any, any>>,
 > = ((
   attributes?: ReadonlyArray<Attribute<Message>>,
   children?: ReadonlyArray<Child>,
@@ -58,7 +61,7 @@ export type ElementBuilder<
 export interface CustomElementConfig<
   Tag extends string,
   Properties extends Record<string, Schema.Top>,
-  Events extends Record<string, Schema.Top>,
+  Events extends Record<string, Schema.Codec<any, any>>,
 > {
   readonly tag: Tag
   readonly properties: Properties
@@ -72,7 +75,7 @@ export interface CustomElementConfig<
 export interface CustomElementSpec<
   Tag extends string,
   Properties extends Record<string, Schema.Top>,
-  Events extends Record<string, Schema.Top>,
+  Events extends Record<string, Schema.Codec<any, any>>,
 > {
   readonly tag: Tag
   readonly properties: Properties
@@ -157,7 +160,7 @@ const eventFactoryName = (eventName: string): string =>
 export const define = <
   Tag extends string,
   Properties extends Record<string, Schema.Top>,
-  Events extends Record<string, Schema.Top>,
+  Events extends Record<string, Schema.Codec<any, any>>,
 >(
   config: CustomElementConfig<Tag, Properties, Events>,
 ): CustomElementSpec<Tag, Properties, Events> => {
@@ -187,13 +190,14 @@ export const define = <
       ): Attribute<Message> => Prop({ key: propertyName, value })
     }
 
-    for (const eventName of eventNames) {
+    for (const [eventName, schema] of Object.entries(config.events)) {
+      const decodeDetail = Schema.decodeUnknownOption(schema)
       builder[eventFactoryName(eventName)] = (
         toMessage: (detail: unknown) => Message,
       ): Attribute<Message> =>
         OnCustomEvent({
           name: eventName,
-          f: event => toMessage(event.detail),
+          f: event => pipe(event.detail, decodeDetail, Option.map(toMessage)),
         })
     }
 
