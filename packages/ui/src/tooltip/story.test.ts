@@ -371,9 +371,7 @@ describe('Tooltip', () => {
         Story.story(
           update,
           withHidden,
-          Story.message(
-            PressedPointerOnTrigger({ pointerType: 'mouse', button: 0 }),
-          ),
+          Story.message(PressedPointerOnTrigger({ pointerType: 'mouse' })),
           Story.Command.expectNone(),
           Story.model(model => {
             expect(model.maybeLastPointerType).toStrictEqual(
@@ -388,9 +386,7 @@ describe('Tooltip', () => {
         Story.story(
           update,
           withHidden,
-          Story.message(
-            PressedPointerOnTrigger({ pointerType: 'mouse', button: 0 }),
-          ),
+          Story.message(PressedPointerOnTrigger({ pointerType: 'mouse' })),
           Story.message(FocusedTrigger()),
           Story.model(model => {
             expect(model.isFocused).toBe(false)
@@ -404,9 +400,7 @@ describe('Tooltip', () => {
         Story.story(
           update,
           withHidden,
-          Story.message(
-            PressedPointerOnTrigger({ pointerType: 'touch', button: 0 }),
-          ),
+          Story.message(PressedPointerOnTrigger({ pointerType: 'touch' })),
           Story.message(FocusedTrigger()),
           Story.model(model => {
             expect(model.isFocused).toBe(true)
@@ -431,9 +425,7 @@ describe('Tooltip', () => {
         Story.story(
           update,
           withHidden,
-          Story.message(
-            PressedPointerOnTrigger({ pointerType: 'mouse', button: 0 }),
-          ),
+          Story.message(PressedPointerOnTrigger({ pointerType: 'mouse' })),
           Story.message(FocusedTrigger()),
           Story.message(BlurredTrigger()),
           Story.model(model => {
@@ -442,84 +434,60 @@ describe('Tooltip', () => {
         )
       })
 
-      it('dismisses an open tooltip on left-click of the trigger and clears focus so leave closes cleanly on next cycle', () => {
+      it('keeps an open tooltip visible when the trigger is pressed', () => {
         Story.story(
           update,
           withHoveredOpen,
-          Story.message(
-            PressedPointerOnTrigger({ pointerType: 'mouse', button: 0 }),
-          ),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-            expect(model.isDismissed).toBe(true)
-            expect(model.isFocused).toBe(false)
-            expect(model.isHovered).toBe(true)
-          }),
-        )
-      })
-
-      it('closes on leave after hover, click, leave, and re-hover', () => {
-        Story.story(
-          update,
-          withHoveredOpen,
-          Story.message(
-            PressedPointerOnTrigger({ pointerType: 'mouse', button: 0 }),
-          ),
-          Story.message(FocusedTrigger()),
-          Story.message(LeftTrigger()),
-          Story.message(EnteredTrigger()),
-          Story.Command.resolve(
-            ShowAfterDelay,
-            ElapsedShowDelay({ version: 4 }),
-          ),
-          Story.model(model => {
-            expect(model.isOpen).toBe(true)
-          }),
-          Story.message(LeftTrigger()),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-            expect(model.isFocused).toBe(false)
-          }),
-        )
-      })
-
-      it('does not dismiss the tooltip on right-click', () => {
-        Story.story(
-          update,
-          withHoveredOpen,
-          Story.message(
-            PressedPointerOnTrigger({ pointerType: 'mouse', button: 2 }),
-          ),
+          Story.message(PressedPointerOnTrigger({ pointerType: 'mouse' })),
+          Story.Command.expectNone(),
+          Story.expectNoOutMessage(),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.isDismissed).toBe(false)
+            expect(model.isHovered).toBe(true)
+            expect(model.maybeLastPointerType).toStrictEqual(
+              Option.some('mouse'),
+            )
           }),
         )
       })
 
-      it('stays dismissed after click until the pointer leaves', () => {
+      it('stays open across the focus that follows a press while hovering', () => {
         Story.story(
           update,
           withHoveredOpen,
-          Story.message(
-            PressedPointerOnTrigger({ pointerType: 'mouse', button: 0 }),
-          ),
-          Story.message(EnteredTrigger()),
-          Story.Command.expectNone(),
+          Story.message(PressedPointerOnTrigger({ pointerType: 'mouse' })),
+          Story.message(FocusedTrigger()),
+          Story.model(model => {
+            expect(model.isOpen).toBe(true)
+            expect(model.isFocused).toBe(false)
+            expect(model.isHovered).toBe(true)
+            expect(model.maybeLastPointerType).toStrictEqual(Option.none())
+          }),
+        )
+      })
+
+      it('still hides on leave after the trigger is pressed while hovering', () => {
+        Story.story(
+          update,
+          withHoveredOpen,
+          Story.message(PressedPointerOnTrigger({ pointerType: 'mouse' })),
+          Story.message(FocusedTrigger()),
+          Story.message(LeftTrigger()),
+          Story.expectOutMessage(Hidden()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
-            expect(model.isDismissed).toBe(true)
+            expect(model.isHovered).toBe(false)
+            expect(model.isFocused).toBe(false)
           }),
         )
       })
 
-      it('re-enables show after leave and re-hover following a click', () => {
+      it('does not dismiss, so a re-hover after leaving still schedules a show', () => {
         Story.story(
           update,
           withHoveredOpen,
-          Story.message(
-            PressedPointerOnTrigger({ pointerType: 'mouse', button: 0 }),
-          ),
+          Story.message(PressedPointerOnTrigger({ pointerType: 'mouse' })),
           Story.message(LeftTrigger()),
           Story.message(EnteredTrigger()),
           Story.Command.expectHas(ShowAfterDelay),

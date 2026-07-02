@@ -26,7 +26,7 @@ import * as OptionExt from '../internal/optionExtensions.js'
 
 // MODEL
 
-/** Schema for the tooltip component's state. `isOpen` is visibility; `isHovered` tracks pointer on trigger; `isFocused` tracks tooltip-affirming focus on the trigger (focus arriving without a preceding mouse press, like keyboard, touch, or pen; mouse-click-induced focus is excluded since it doesn't affirm the user wants the tooltip visible); `isDismissed` suppresses re-opening after the user dismissed the tooltip (via Escape or left-click) until they disengage (leave or blur). `showDelay` is the hover-to-show duration. `maybeLastPointerType` records the most recent pointer type that pressed the trigger, so a mouse-click-induced focus can be distinguished from other focus. */
+/** Schema for the tooltip component's state. `isOpen` is visibility; `isHovered` tracks pointer on trigger; `isFocused` tracks tooltip-affirming focus on the trigger (focus arriving without a preceding mouse press, like keyboard, touch, or pen; mouse-click-induced focus is excluded since it doesn't affirm the user wants the tooltip visible); `isDismissed` suppresses re-opening after the user dismissed the tooltip (via Escape) until they disengage (leave or blur). `showDelay` is the hover-to-show duration. `maybeLastPointerType` records the most recent pointer type that pressed the trigger, so a mouse-click-induced focus can be distinguished from other focus. */
 export const Model = S.Struct({
   id: S.String,
   isOpen: S.Boolean,
@@ -52,10 +52,11 @@ export const FocusedTrigger = m('FocusedTrigger')
 export const BlurredTrigger = m('BlurredTrigger')
 /** Sent when Escape is pressed while the tooltip is visible. */
 export const PressedEscape = m('PressedEscape')
-/** Sent when a pointer presses the trigger. */
+/** Sent when a pointer presses the trigger. Recorded so the focus that
+ *  follows a mouse press can be told apart from focus that affirms the
+ *  tooltip (keyboard, touch, or pen). */
 export const PressedPointerOnTrigger = m('PressedPointerOnTrigger', {
   pointerType: S.String,
-  button: S.Number,
 })
 /** Sent when the show-delay timer fires. */
 export const ElapsedShowDelay = m('ElapsedShowDelay', {
@@ -124,8 +125,6 @@ export const triggerId = (id: string): string => `${id}-trigger`
 // INIT
 
 const DEFAULT_SHOW_DELAY = Duration.millis(500)
-
-const LEFT_MOUSE_BUTTON = 0
 
 /** Configuration for creating a tooltip model with `init`. */
 export type InitConfig = Readonly<{
@@ -272,29 +271,12 @@ const computeUpdate = (model: Model, message: Message): InnerUpdateReturn =>
         [],
       ],
 
-      PressedPointerOnTrigger: ({ pointerType, button }) => {
-        const isLeftClickOnOpen = button === LEFT_MOUSE_BUTTON && model.isOpen
-
-        if (isLeftClickOnOpen) {
-          return [
-            evo(model, {
-              maybeLastPointerType: () => Option.some(pointerType),
-              isOpen: () => false,
-              isFocused: () => false,
-              isDismissed: () => true,
-              pendingShowVersion: Number.increment,
-            }),
-            [],
-          ]
-        }
-
-        return [
-          evo(model, {
-            maybeLastPointerType: () => Option.some(pointerType),
-          }),
-          [],
-        ]
-      },
+      PressedPointerOnTrigger: ({ pointerType }) => [
+        evo(model, {
+          maybeLastPointerType: () => Option.some(pointerType),
+        }),
+        [],
+      ],
 
       ElapsedShowDelay: ({ version }) => {
         if (version !== model.pendingShowVersion) {
@@ -371,8 +353,7 @@ export type ViewInputs = Readonly<{
 
 /** Renders a headless tooltip with an anchored non-interactive panel.
  *  Shows on hover (after delay) or focus (from keyboard, touch, or pen;
- *  mouse-click focus is excluded); hides on leave, blur, Escape, or
- *  left-click of the trigger. */
+ *  mouse-click focus is excluded). Hides on leave, blur, or Escape. */
 export const view = defineView<Model, Message, ViewInputs>(
   (model, viewInputs): Html => {
     const h = html<Message>()
@@ -400,9 +381,8 @@ export const view = defineView<Model, Message, ViewInputs>(
 
     const handleTriggerPointerDown = (
       pointerType: string,
-      button: number,
     ): Option.Option<PressedPointerOnTrigger> =>
-      Option.some(PressedPointerOnTrigger({ pointerType, button }))
+      Option.some(PressedPointerOnTrigger({ pointerType }))
 
     const triggerAttributes = [
       h.Id(`${id}-trigger`),
