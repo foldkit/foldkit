@@ -28,7 +28,7 @@ The principles below apply broadly. Calibrate to the right context: library desi
 ## Naming
 
 - Messages are verb-first, past-tense facts: `SubmittedUsernameForm`, `CreatedRoom`, `PressedKey`. Verb prefixes: `Clicked*`, `Updated*`, `Succeeded*`/`Failed*` (when failure is meaningful), `Completed*` (fire-and-forget Command acks), `Got*` (child Submodel results only).
-- Never `NoOp` messages. Use descriptive facts even for no-ops: `IgnoredMouseClick`, `SuppressedSpaceScroll`. `Completed*` mirrors the Command name verb-first: `LockScroll` produces `CompletedLockScroll`.
+- Never `NoOp` messages: a shared do-nothing Message type breaks DevTools timeline attribution and Story test precision, which is why fire-and-forget acks stay per-Command. Use descriptive facts even for no-ops: `IgnoredMouseClick`, `SuppressedSpaceScroll`. `Completed*` mirrors the Command name verb-first: `LockScroll` produces `CompletedLockScroll`.
 - Commands are verb-first imperatives: `FetchWeather`, `FocusButton`, `LockScroll`.
 - Mount Definitions are verb-first imperatives like Commands: `AnchorPopover`, `PortalPopoverBackdrop`, `SyncSidebarScroll`. Result Messages follow the standard Message convention.
 - Never abbreviate names anywhere, including callback parameters. Write `(tickCount) => tickCount + 1`, not `(t) => t + 1`.

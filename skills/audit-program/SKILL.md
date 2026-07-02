@@ -133,9 +133,11 @@ These are the failure modes that pass typecheck and tests but fall short of the 
 
 10. **Empty-object constructor calls.** No-field tagged structs called with `({})`: `Idle({})`, `Work({})`, `ClickedSubmit({})`. Should be `Idle()`, `Work()`, `ClickedSubmit()`. Both compile; exemplars uniformly use no-arg.
 
-11. **Dead state variants, unused fields, and no-op Commands.** Variants set but never observed by the view or other updates. Fields written but never read. Commands that resolve to Messages whose handlers are `[model, []]` (do nothing).
+11. **Dead state variants, unused fields, and no-op Commands.** Variants set but never observed by the view or other updates. Fields written but never read. Commands whose Effect does no real work and whose result Messages resolve to `[model, []]` handlers.
 
-    The **no-op startup Command** pattern shows up at app boot: `init` returns `[DEFAULT_MODEL, [triggerApplicationStarted]]`, the Command resolves to `ApplicationStarted()`, and the update handler is `ApplicationStarted: () => [model, []]`. The Command does nothing. It's bureaucratic ceremony. Either give the Command real work (load preferences, fetch initial data, focus first input, restore session) or delete the Command and the Message together. A Command whose Message handler is a pure no-op is dead code dressed up as architecture.
+    The **no-op startup Command** pattern shows up at app boot: `init` returns `[DEFAULT_MODEL, [triggerApplicationStarted]]`, the Command resolves to `ApplicationStarted()`, and the update handler is `ApplicationStarted: () => [model, []]`. The Command does nothing. It's bureaucratic ceremony. Either give the Command real work (load preferences, fetch initial data, focus first input, restore session) or delete the Command and the Message together. A Command that does no work and whose Message handler is a pure no-op is dead code dressed up as architecture.
+
+    The `[model, []]` arm alone is NOT the signal: a fire-and-forget Command that does real side-effect work (`LockScroll`, `RenderDiagrams`) correctly resolves to a per-Command `Completed*` ack handled by `[model, []]`. That arm is the convention (it keeps DevTools timeline entries attributable and Story assertions specific), not dead code. The flag is a Command with no real work behind the ack.
 
     The **navigate-before-save** pattern is another instance: if `update` returns BOTH `saveState(...)` AND `navigateInternal(...)` in the same handler, the navigation races the save. A failure surfaced on the old page is unreachable. Idiomatic: emit save only, then navigate in the `Succeeded*` handler. Errors then surface on the page the user is still looking at.
 
