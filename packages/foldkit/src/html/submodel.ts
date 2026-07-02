@@ -131,10 +131,12 @@ type ViewMessageOf<View extends AnySubmodelView> = View extends {
  *    (`(message) => GotEntryMessage({ entryId: entry.id, message })`).
  *
  *  High-level events the parent handles declaratively flow through
- *  each Submodel's `OutMessage`. The parent's `GotChildMessage`
- *  handler unpacks the third tuple element of the child's `update`
- *  return and pattern-matches on `Option<OutMessage>`. See `Menu`,
- *  `Listbox`, etc., for examples. */
+ *  the child's `OutMessage`, for children that declare one. The
+ *  parent's `GotChildMessage` handler unpacks the third tuple element
+ *  of the child's `update` return and pattern-matches on
+ *  `Option<OutMessage>`. See `Menu`, `Listbox`, etc., for examples.
+ *  Children that declare no OutMessage return a two-element
+ *  `[Model, Commands]`; there is no third element to unpack. */
 export type SubmodelConfig<View extends AnySubmodelView> = Readonly<{
   slotId: string
   model: ViewModelOf<View>
