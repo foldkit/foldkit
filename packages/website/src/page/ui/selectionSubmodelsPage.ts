@@ -2,6 +2,7 @@ import { Html, html } from 'foldkit/html'
 
 import { Message, type TableOfContentsEntry } from '../../main'
 import {
+  infoCallout,
   inlineCode,
   link,
   pageTitle,
@@ -156,6 +157,26 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' for Tabs) accept and emit ',
         inlineCode('Plan'),
         ' too. Declare the factory once at module scope and use the same bundle at every site that needs it.',
+      ),
+      infoCallout(
+        'Where to declare it in a split app',
+        'In a single-file page, the factory lives next to the model, update, and view. When a page is split into separate ',
+        inlineCode('update.ts'),
+        ' and ',
+        inlineCode('view/'),
+        ' files, both still need the same factory, since it is the only typed path to ',
+        inlineCode('view'),
+        ', ',
+        inlineCode('update'),
+        ', and ',
+        inlineCode('selectItem'),
+        '. The convention is a ',
+        inlineCode('factories.ts'),
+        ' file at the page root that declares the factory and exports it, so ',
+        inlineCode('update.ts'),
+        ' and the view files import the one shared bundle. Declaring it in ',
+        inlineCode('model.ts'),
+        ' is also reasonable, since the factory parameterizes the same item type the model holds. Pick one and keep it consistent.',
       ),
       para(
         'For the inbound direction, the factory also exposes ',
