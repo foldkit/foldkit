@@ -11,6 +11,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./asyncData": {
+      "types": "./dist/asyncData/public.d.ts",
+      "import": "./dist/asyncData/public.js"
+    },
     "./calendar": {
       "types": "./dist/calendar/public.d.ts",
       "import": "./dist/calendar/public.js"
