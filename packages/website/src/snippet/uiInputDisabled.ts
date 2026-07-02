@@ -11,6 +11,7 @@ const view = () => {
     id: 'email-disabled',
     isDisabled: true,
     value: 'ada@lovelace.dev',
+    hasDescription: true,
     toView: attributes =>
       h.div(
         [h.Class('flex flex-col gap-1.5')],

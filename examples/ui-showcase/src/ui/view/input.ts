@@ -33,6 +33,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             value: model.inputDemoValue,
             onInput: value => UpdatedInputDemoValue({ value }),
             placeholder: 'Enter your full name',
+            hasDescription: true,
             toView: attributes =>
               h.div(
                 [h.Class('flex flex-col gap-1.5 w-full')],
@@ -60,6 +61,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         id: 'input-disabled-demo',
         isDisabled: true,
         value: 'Ada Lovelace',
+        hasDescription: true,
         toView: attributes =>
           h.div(
             [h.Class('flex flex-col gap-1.5 max-w-sm')],

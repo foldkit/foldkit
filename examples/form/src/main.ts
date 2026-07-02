@@ -322,6 +322,16 @@ const statusIndicator = (field: Field<string>): Html => {
   )
 }
 
+const hasDescriptionView = (field: Field<string>): boolean =>
+  M.value(field).pipe(
+    M.tagsExhaustive({
+      NotValidated: () => false,
+      Validating: () => true,
+      Valid: () => false,
+      Invalid: () => true,
+    }),
+  )
+
 const descriptionView = (
   field: Field<string>,
   descriptionAttributes: ReadonlyArray<Attribute<Message>>,
@@ -366,6 +376,7 @@ const inputFieldView = (
     value: field.value,
     onInput: onUpdate,
     isInvalid: field._tag === 'Invalid',
+    hasDescription: hasDescriptionView(field),
     type,
     toView: attributes =>
       h.div(
@@ -398,6 +409,7 @@ const textareaFieldView = (
     value: field.value,
     onInput: onUpdate,
     isInvalid: field._tag === 'Invalid',
+    hasDescription: hasDescriptionView(field),
     toView: attributes =>
       h.div(
         [h.Class('mb-4')],

@@ -218,6 +218,7 @@ const fieldView = (
     placeholder,
     onInput: onUpdate,
     isInvalid: field._tag === 'Invalid',
+    hasDescription: field._tag === 'Invalid',
     toView: attributes =>
       h.div(
         [],
