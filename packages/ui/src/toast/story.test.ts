@@ -1,4 +1,4 @@
-import { Duration, Option, Schema as S } from 'effect'
+import { Duration, Function, Option, Schema as S } from 'effect'
 import * as Story from 'foldkit/story'
 import { expect } from 'vitest'
 
@@ -14,6 +14,7 @@ import {
   HoveredEntry,
   LeftEntry,
   make,
+  testing,
 } from './index.js'
 
 // Test payload: minimal so fixtures are simple. The library is generic; these
@@ -527,6 +528,24 @@ describe('Toast', () => {
             animationToToastMessage(firstEntryId),
           ],
         ),
+        Story.model((next: Model) => {
+          expect(next.entries).toHaveLength(0)
+        }),
+      )
+    })
+
+    it('drains the whole lifecycle in one step via testing.drainEntry', () => {
+      const entry = makeFreshEntry({
+        maybeDuration: Option.some(Duration.millis(100)),
+      })
+      Story.story(
+        Toast.update,
+        withEmpty,
+        Story.message(Toast.Added({ entry })),
+        testing.drainEntry({
+          entryId: firstEntryId,
+          toParentMessage: Function.identity,
+        }),
         Story.model((next: Model) => {
           expect(next.entries).toHaveLength(0)
         }),
