@@ -142,6 +142,12 @@ const handlingInTheParentHeader: TableOfContentsEntry = {
   text: 'Handling in the Parent',
 }
 
+const quietArmsHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'when-most-arms-are-quiet',
+  text: 'When Most Arms Are Quiet',
+}
+
 const reflectingExternalStateHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'reflecting-external-state',
@@ -285,6 +291,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   definingOutMessagesHeader,
   emittingFromTheChildHeader,
   handlingInTheParentHeader,
+  quietArmsHeader,
   reflectingExternalStateHeader,
   childAttributesHeader,
   childAttributesProblemHeader,
@@ -1120,6 +1127,13 @@ export const view = (
         inlineCode('Option.some(SucceededLogin({ sessionId }))'),
         ', the signal the parent needs.',
       ),
+      para(
+        'The 3-tuple is only for children that declare an OutMessage. A child that declares none returns the usual ',
+        inlineCode('[Model, Commands]'),
+        ' 2-tuple, the shape the ',
+        link('#child-submodel', 'Settings child'),
+        ' earlier on this page returns. Don’t add a third element the child can never use. And starting narrow costs nothing later: introducing an OutMessage is necessarily a moment you edit the parent anyway, because the parent must consume the new fact, so the return widens in the same change.',
+      ),
       tableOfContentsEntryToHeader(handlingInTheParentHeader),
       para(
         'The parent uses ',
@@ -1154,6 +1168,36 @@ export const view = (
         ' for a complete implementation: a login module emits ',
         inlineCode('SucceededLogin'),
         ' when authentication completes, and the parent transitions to the logged-in state, saves the session, and updates the URL, all triggered by a single OutMessage.',
+      ),
+      tableOfContentsEntryToHeader(quietArmsHeader),
+      para(
+        'In a real child, the arms that raise an OutMessage are the minority. An update with a dozen Messages might surface one or two facts, and every other arm ends in ',
+        inlineCode('Option.none()'),
+        '. Once the shape is understood, that repetition is noise. Define a local helper that fills in the quiet case:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.outMessageQuietArmsHighlighted),
+          ],
+          [],
+        ),
+        Snippet.outMessageQuietArmsRaw,
+        'Copy quiet arms helper to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'Quiet arms stay one call wide, and the rare arm that returns the bare 3-tuple stands out with exactly the visual weight the emission deserves.',
+      ),
+      para(
+        inlineCode('withoutOutMessage'),
+        ' is deliberately not a Foldkit export. The view side needs the ',
+        inlineCode('Submodel.defineView'),
+        ' brand so ',
+        inlineCode('h.submodel'),
+        ' can type-check the embed site, but the update side has no framework wiring at all: a child’s update is a plain function only the parent calls, and the 3-tuple is a convention between them, not a framework signature. That makes its ergonomics yours to shape. Define the helper next to the update it serves.',
       ),
       tableOfContentsEntryToHeader(reflectingExternalStateHeader),
       para(
