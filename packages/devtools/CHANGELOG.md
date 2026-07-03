@@ -1,5 +1,11 @@
 # @foldkit/devtools
 
+## 0.122.1
+
+### Patch Changes
+
+- ca64832: Typecheck test files. Each package's `typecheck` script now checks the project that includes tests instead of the build project that excludes them. No runtime changes.
+
 ## 0.122.0
 
 ### Minor Changes

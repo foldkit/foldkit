@@ -1,5 +1,17 @@
 # create-foldkit-app
 
+## 0.20.0
+
+### Minor Changes
+
+- 2d23b39: Add `foldkit/no-module-level-mutable-state`, a lint rule that flags module-level `let` and `var` declarations (including `export let`), which hold state outside the Model. Ambient `declare let` declarations are not flagged. Scaffolded projects enable the rule in their generated `.oxlintrc.json`.
+
+  Ported from the purity-boundary rule family in `@mpsuesser/oxlint-plugin-foldkit` by Marc Suesser.
+
+### Patch Changes
+
+- ca64832: Typecheck test files. Each package's `typecheck` script now checks the project that includes tests instead of the build project that excludes them. No runtime changes.
+
 ## 0.19.1
 
 ### Patch Changes

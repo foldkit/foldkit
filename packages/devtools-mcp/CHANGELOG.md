@@ -1,5 +1,11 @@
 # @foldkit/devtools-mcp
 
+## 0.13.1
+
+### Patch Changes
+
+- df7d556: Bundle the published `foldkit-devtools-mcp` bin at build time so `dist/server.js` inlines `effect`, the Foldkit devtools protocol, the MCP SDK, and `ws`. The bin now runs standalone under `npx` with no peer dependency resolution, so `npx @foldkit/devtools-mcp init` works without installing the package as a devDependency.
+
 ## 0.13.0
 
 ### Minor Changes
