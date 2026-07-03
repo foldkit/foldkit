@@ -1,26 +1,22 @@
-import { Effect, Match as M, Schema as S } from 'effect'
+import { Effect, Match as M, Schema as S, pipe } from 'effect'
 import {
   FetchHttpClient,
   HttpClient,
   HttpClientRequest,
 } from 'effect/unstable/http'
-import { Command } from 'foldkit'
+import { AsyncData, Command } from 'foldkit'
 import { m } from 'foldkit/message'
-import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 
-const Result = S.Struct({ id: S.String, title: S.String })
+const SearchResult = S.Struct({ id: S.String, title: S.String })
 
-const ResultsLoading = ts('ResultsLoading')
-const ResultsOk = ts('ResultsOk', { results: S.Array(Result) })
-const ResultsFailure = ts('ResultsFailure', { error: S.String })
-const Results = S.Union([ResultsLoading, ResultsOk, ResultsFailure])
+const SearchResultsData = AsyncData.Schema(S.Array(SearchResult), S.String)
 
 // MODEL
 
 const Model = S.Struct({
   queryInput: S.String,
-  results: Results,
+  searchResults: SearchResultsData.schema,
   latestRequestId: S.Number,
 })
 type Model = typeof Model.Type
@@ -28,16 +24,12 @@ type Model = typeof Model.Type
 // MESSAGE
 
 const ChangedQuery = m('ChangedQuery', { query: S.String })
-const SucceededSearch = m('SucceededSearch', {
+const SettledSearch = m('SettledSearch', {
   requestId: S.Number,
-  results: S.Array(Result),
-})
-const FailedSearch = m('FailedSearch', {
-  requestId: S.Number,
-  error: S.String,
+  result: S.Result(S.Array(SearchResult), S.String),
 })
 
-const Message = S.Union([ChangedQuery, SucceededSearch, FailedSearch])
+const Message = S.Union([ChangedQuery, SettledSearch])
 type Message = typeof Message.Type
 
 // COMMAND
@@ -45,23 +37,22 @@ type Message = typeof Message.Type
 const Search = Command.define(
   'Search',
   { requestId: S.Number, query: S.String },
-  SucceededSearch,
-  FailedSearch,
+  SettledSearch,
 )(({ requestId, query }) =>
-  Effect.gen(function* () {
-    const client = yield* HttpClient.HttpClient
-    const request = HttpClientRequest.get('/api/search').pipe(
-      HttpClientRequest.setUrlParams({ q: query }),
-    )
-    const response = yield* client.execute(request)
-    const results = yield* S.decodeUnknownEffect(S.Array(Result))(
-      yield* response.json,
-    )
-    return SucceededSearch({ requestId, results })
-  }).pipe(
-    Effect.catch(error =>
-      Effect.succeed(FailedSearch({ requestId, error: String(error) })),
-    ),
+  pipe(
+    Effect.gen(function* () {
+      const client = yield* HttpClient.HttpClient
+      const request = HttpClientRequest.get('/api/search').pipe(
+        HttpClientRequest.setUrlParams({ q: query }),
+      )
+      const response = yield* client.execute(request)
+      return yield* S.decodeUnknownEffect(S.Array(SearchResult))(
+        yield* response.json,
+      )
+    }),
+    Effect.mapError(error => String(error)),
+    Effect.result,
+    Effect.map(result => SettledSearch({ requestId, result })),
     Effect.provide(FetchHttpClient.layer),
   ),
 )
@@ -83,25 +74,18 @@ const update = (
         return [
           evo(model, {
             queryInput: () => query,
-            results: () => ResultsLoading(),
+            searchResults: () => SearchResultsData.Loading(),
             latestRequestId: () => requestId,
           }),
           [Search({ requestId, query })],
         ]
       },
 
-      SucceededSearch: ({ requestId, results }) => {
+      SettledSearch: ({ requestId, result }) => {
         if (requestId !== model.latestRequestId) {
           return [model, []]
         }
-        return [evo(model, { results: () => ResultsOk({ results }) }), []]
-      },
-
-      FailedSearch: ({ requestId, error }) => {
-        if (requestId !== model.latestRequestId) {
-          return [model, []]
-        }
-        return [evo(model, { results: () => ResultsFailure({ error }) }), []]
+        return [evo(model, { searchResults: AsyncData.settle(result) }), []]
       },
     }),
   )
