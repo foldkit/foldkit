@@ -13,8 +13,8 @@ export const prependNewNote =
         }),
       onSome: notebookId =>
         evo(model, {
-          notesByNotebook: byNotebook =>
-            HashMap.modify(byNotebook, notebookId, notes =>
+          notesByNotebook: notesByNotebook =>
+            HashMap.modify(notesByNotebook, notebookId, notes =>
               AsyncData.map(notes, noteList => Array.prepend(noteList, note)),
             ),
         }),

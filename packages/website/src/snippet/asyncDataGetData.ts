@@ -5,6 +5,6 @@ export const noteNotebookId = (
   pipe(
     model.noteById,
     HashMap.get(noteId),
-    Option.flatMap(noteData => AsyncData.getData(noteData)),
+    Option.flatMap(noteEntry => AsyncData.getData(noteEntry)),
     Option.flatMap(note => note.maybeNotebookId),
   )
