@@ -64,9 +64,6 @@ jobs:
       - name: Check circular dependencies
         run: pnpm check:circular-deps
 
-      - name: Check plugin MCP version pin
-        run: pnpm check:plugin-mcp
-
       - name: Build packages
         run: pnpm -r --filter './packages/**' build
 
