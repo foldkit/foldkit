@@ -1460,6 +1460,9 @@ importers:
       effect:
         specifier: 4.0.0-beta.88
         version: 4.0.0-beta.88
+      esbuild:
+        specifier: ^0.28.1
+        version: 0.28.1
       foldkit:
         specifier: workspace:*
         version: link:../foldkit

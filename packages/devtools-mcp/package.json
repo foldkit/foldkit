@@ -17,7 +17,8 @@
   },
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
-    "build": "pnpm run clean && tsc -b",
+    "build": "pnpm run clean && tsc -b && pnpm run bundle",
+    "bundle": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=dist/server.js --allow-overwrite --alias:foldkit/devtools-protocol=../foldkit/src/devTools/public.ts --external:bufferutil --external:utf-8-validate --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
     "watch": "tsc -b --watch",
     "typecheck": "tsc -b --noEmit"
   },
@@ -33,6 +34,7 @@
     "@types/node": "^25.9.3",
     "@types/ws": "^8.18.1",
     "effect": "4.0.0-beta.88",
+    "esbuild": "^0.28.1",
     "foldkit": "workspace:*",
     "rimraf": "^6.1.3",
     "typescript": "^6.0.3"
