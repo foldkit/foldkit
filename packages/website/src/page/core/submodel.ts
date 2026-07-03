@@ -142,10 +142,10 @@ const handlingInTheParentHeader: TableOfContentsEntry = {
   text: 'Handling in the Parent',
 }
 
-const quietArmsHeader: TableOfContentsEntry = {
+const armsWithoutAnOutMessageHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'when-most-arms-are-quiet',
-  text: 'When Most Arms Are Quiet',
+  id: 'arms-without-an-out-message',
+  text: 'Arms Without an OutMessage',
 }
 
 const reflectingExternalStateHeader: TableOfContentsEntry = {
@@ -291,7 +291,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   definingOutMessagesHeader,
   emittingFromTheChildHeader,
   handlingInTheParentHeader,
-  quietArmsHeader,
+  armsWithoutAnOutMessageHeader,
   reflectingExternalStateHeader,
   childAttributesHeader,
   childAttributesProblemHeader,
@@ -1128,11 +1128,11 @@ export const view = (
         ', the signal the parent needs.',
       ),
       para(
-        'The 3-tuple is only for children that declare an OutMessage. A child that declares none returns the usual ',
+        'The 3-tuple is only for children that declare an OutMessage. A child that declares none has nothing to put in a third position, so its update returns the usual ',
         inlineCode('[Model, Commands]'),
         ' 2-tuple, the shape the ',
         link('#child-submodel', 'Settings child'),
-        ' earlier on this page returns. Don’t add a third element the child can never use. And starting narrow costs nothing later: introducing an OutMessage is necessarily a moment you edit the parent anyway, because the parent must consume the new fact, so the return widens in the same change.',
+        ' earlier on this page returns. Starting with the 2-tuple costs nothing: if the child later declares an OutMessage, widening the return is a mechanical change, and a parent that has no use for the new fact can keep destructuring just the first two elements.',
       ),
       tableOfContentsEntryToHeader(handlingInTheParentHeader),
       para(
@@ -1169,27 +1169,27 @@ export const view = (
         inlineCode('SucceededLogin'),
         ' when authentication completes, and the parent transitions to the logged-in state, saves the session, and updates the URL, all triggered by a single OutMessage.',
       ),
-      tableOfContentsEntryToHeader(quietArmsHeader),
+      tableOfContentsEntryToHeader(armsWithoutAnOutMessageHeader),
       para(
         'In a real child, the arms that raise an OutMessage are the minority. An update with a dozen Messages might surface one or two facts, and every other arm ends in ',
         inlineCode('Option.none()'),
-        '. Once the shape is understood, that repetition is noise. Define a local helper that fills in the quiet case:',
+        '. Once the shape is understood, that repetition is noise. Define a local helper for the arms that don’t return an OutMessage:',
       ),
       highlightedCodeBlock(
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippet.outMessageQuietArmsHighlighted),
+            h.InnerHTML(Snippet.withoutOutMessageHighlighted),
           ],
           [],
         ),
-        Snippet.outMessageQuietArmsRaw,
-        'Copy quiet arms helper to clipboard',
+        Snippet.withoutOutMessageRaw,
+        'Copy withoutOutMessage helper to clipboard',
         copiedSnippets,
         'mb-8',
       ),
       para(
-        'Quiet arms stay one call wide, and the rare arm that returns the bare 3-tuple stands out with exactly the visual weight the emission deserves.',
+        'Arms that don’t return an OutMessage stay one call wide, and the rare arm that returns the bare 3-tuple stands out with exactly the visual weight the emission deserves.',
       ),
       para(
         inlineCode('withoutOutMessage'),
