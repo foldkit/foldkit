@@ -7,6 +7,45 @@ import {
   RuleContext,
 } from 'effect-oxlint'
 
+import commandDefinePascalConst from './rules/command-define-pascal-const.ts'
+import commandFailedResultRequiresCatch from './rules/command-failed-result-requires-catch.ts'
+import foldkitPrimitivesDeclaredInRoleFiles from './rules/foldkit-primitives-declared-in-role-files.ts'
+import gotWrapperCarriesOnlyRouting from './rules/got-wrapper-carries-only-routing.ts'
+import keyedRequiredForMappedRows from './rules/keyed-required-for-mapped-rows.ts'
+import labelRequiresFor from './rules/label-requires-for.ts'
+import lazyViewStableReferences from './rules/lazy-view-stable-references.ts'
+import managedResourceForStatefulHandles from './rules/managed-resource-for-stateful-handles.ts'
+import mountFactoryMustUseElement from './rules/mount-factory-must-use-element.ts'
+import noArrayIndexViewKeys from './rules/no-array-index-view-keys.ts'
+import noArrayShorthandType from './rules/no-array-shorthand-type.ts'
+import noChangedMessagePrefix from './rules/no-changed-message-prefix.ts'
+import noChildMessageConstructionInRoot from './rules/no-child-message-construction-in-root.ts'
+import noDisablingDevGuardrails from './rules/no-disabling-dev-guardrails.ts'
+import noDuplicateOnmountPerElement from './rules/no-duplicate-onmount-per-element.ts'
+import noExplicitCommandTypeAnnotation from './rules/no-explicit-command-type-annotation.ts'
+import noHandRolledCommandStruct from './rules/no-hand-rolled-command-struct.ts'
+import noHandRolledFormControls from './rules/no-hand-rolled-form-controls.ts'
+import noHardcodedRouteStrings from './rules/no-hardcoded-route-strings.ts'
+import noImpureCallsInPureLayer from './rules/no-impure-calls-in-pure-layer.ts'
+import noRawDomEventAttributes from './rules/no-raw-dom-event-attributes.ts'
+import noSpreadInEvo from './rules/no-spread-in-evo.ts'
+import preferDomHelpersForElementOps from './rules/prefer-dom-helpers-for-element-ops.ts'
+import preferEmptyOverEmptyElement from './rules/prefer-empty-over-empty-element.ts'
+import preferEvoOverModelSpread from './rules/prefer-evo-over-model-spread.ts'
+import preferOptionMatchOverMapGetorelse from './rules/prefer-option-match-over-map-getorelse.ts'
+import preferStoryCommandMatchers from './rules/prefer-story-command-matchers.ts'
+import requireCompletedMirrorsCommand from './rules/require-completed-mirrors-command.ts'
+import requirePastTenseMessageNames from './rules/require-past-tense-message-names.ts'
+import requireRelForExternalLink from './rules/require-rel-for-external-link.ts'
+import requireSucceededFailedPair from './rules/require-succeeded-failed-pair.ts'
+import routeOneofShadowingOrder from './rules/route-oneof-shadowing-order.ts'
+import routeUnionParserRegistration from './rules/route-union-parser-registration.ts'
+import sceneTestsRunFromRoot from './rules/scene-tests-run-from-root.ts'
+import selectionSubmodelFactoryAtModuleScope from './rules/selection-submodel-factory-at-module-scope.ts'
+import subscriptionFileCanonicalShape from './rules/subscription-file-canonical-shape.ts'
+import uiToviewMustSpreadAttributeBundles from './rules/ui-toview-must-spread-attribute-bundles.ts'
+import wrapChildOutputInGotMessage from './rules/wrap-child-output-in-got-message.ts'
+
 // GUARDS
 
 const isIdentifier = (
@@ -471,6 +510,47 @@ export const noModuleLevelMutableState = Rule.define({
 export default Plugin.define({
   name: 'foldkit',
   rules: {
+    'command-define-pascal-const': commandDefinePascalConst,
+    'command-failed-result-requires-catch': commandFailedResultRequiresCatch,
+    'foldkit-primitives-declared-in-role-files':
+      foldkitPrimitivesDeclaredInRoleFiles,
+    'got-wrapper-carries-only-routing': gotWrapperCarriesOnlyRouting,
+    'keyed-required-for-mapped-rows': keyedRequiredForMappedRows,
+    'label-requires-for': labelRequiresFor,
+    'lazy-view-stable-references': lazyViewStableReferences,
+    'managed-resource-for-stateful-handles': managedResourceForStatefulHandles,
+    'mount-factory-must-use-element': mountFactoryMustUseElement,
+    'no-array-index-view-keys': noArrayIndexViewKeys,
+    'no-array-shorthand-type': noArrayShorthandType,
+    'no-changed-message-prefix': noChangedMessagePrefix,
+    'no-child-message-construction-in-root': noChildMessageConstructionInRoot,
+    'no-disabling-dev-guardrails': noDisablingDevGuardrails,
+    'no-duplicate-onmount-per-element': noDuplicateOnmountPerElement,
+    'no-explicit-command-type-annotation': noExplicitCommandTypeAnnotation,
+    'no-hand-rolled-command-struct': noHandRolledCommandStruct,
+    'no-hand-rolled-form-controls': noHandRolledFormControls,
+    'no-hardcoded-route-strings': noHardcodedRouteStrings,
+    'no-impure-calls-in-pure-layer': noImpureCallsInPureLayer,
+    'no-raw-dom-event-attributes': noRawDomEventAttributes,
+    'no-spread-in-evo': noSpreadInEvo,
+    'prefer-dom-helpers-for-element-ops': preferDomHelpersForElementOps,
+    'prefer-empty-over-empty-element': preferEmptyOverEmptyElement,
+    'prefer-evo-over-model-spread': preferEvoOverModelSpread,
+    'prefer-option-match-over-map-getorelse': preferOptionMatchOverMapGetorelse,
+    'prefer-story-command-matchers': preferStoryCommandMatchers,
+    'require-completed-mirrors-command': requireCompletedMirrorsCommand,
+    'require-past-tense-message-names': requirePastTenseMessageNames,
+    'require-rel-for-external-link': requireRelForExternalLink,
+    'require-succeeded-failed-pair': requireSucceededFailedPair,
+    'route-oneof-shadowing-order': routeOneofShadowingOrder,
+    'route-union-parser-registration': routeUnionParserRegistration,
+    'scene-tests-run-from-root': sceneTestsRunFromRoot,
+    'selection-submodel-factory-at-module-scope':
+      selectionSubmodelFactoryAtModuleScope,
+    'subscription-file-canonical-shape': subscriptionFileCanonicalShape,
+    'ui-toview-must-spread-attribute-bundles':
+      uiToviewMustSpreadAttributeBundles,
+    'wrap-child-output-in-got-message': wrapChildOutputInGotMessage,
     'command-binding-matches-name': commandBindingMatchesName,
     'got-prefix-requires-submodel-payload': gotPrefixRequiresSubmodelPayload,
     'got-submodel-message-name': gotSubmodelMessageName,
