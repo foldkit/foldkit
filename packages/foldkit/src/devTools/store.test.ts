@@ -180,10 +180,13 @@ const makeStore = (
       bridge,
       maxEntries === undefined && keyframeInterval === undefined
         ? undefined
-        : { maxEntries, keyframeInterval },
+        : {
+            ...(maxEntries === undefined ? {} : { maxEntries }),
+            ...(keyframeInterval === undefined ? {} : { keyframeInterval }),
+          },
     ),
   )
-  run(store.recordInit(initialModel))
+  run(store.recordInit(initialModel, []))
   return { bridge, store, rendered }
 }
 

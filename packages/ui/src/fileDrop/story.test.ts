@@ -1,3 +1,4 @@
+import { Array } from 'effect'
 import * as Story from 'foldkit/story'
 import { expect } from 'vitest'
 
@@ -83,7 +84,11 @@ describe('FileDrop', () => {
       })
 
       it('carries every dropped file through to the OutMessage', () => {
-        const files = [makeFile('a.pdf'), makeFile('b.pdf'), makeFile('c.pdf')]
+        const files = Array.make(
+          makeFile('a.pdf'),
+          makeFile('b.pdf'),
+          makeFile('c.pdf'),
+        )
         Story.story(
           update,
           withInitial,

@@ -37,9 +37,7 @@ const sceneView =
       model,
       viewInputs: {
         anchor: { placement: 'top' },
-        isDisabled: overrides.isDisabled,
-        ariaLabel: overrides.ariaLabel,
-        ariaLabelledBy: overrides.ariaLabelledBy,
+        ...overrides,
         toView: ({ trigger, panel, isVisible }) =>
           h.div(
             [],

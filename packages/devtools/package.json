@@ -21,7 +21,7 @@
     "build": "pnpm run clean && tsc -b tsconfig.build.json",
     "watch": "tsc -b tsconfig.build.json --watch",
     "lint": "pnpm --filter @foldkit/oxlint-plugin build && oxlint src",
-    "typecheck": "tsc -b tsconfig.build.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {
     "@foldkit/ui": "workspace:^0",

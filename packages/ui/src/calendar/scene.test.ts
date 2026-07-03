@@ -103,21 +103,25 @@ const sceneView =
       ...overrides,
     })
 
-const grid = Scene.getByRole('grid')
-const previousMonthButton = Scene.getByLabel('Previous month')
-const nextMonthButton = Scene.getByLabel('Next month')
-const previousYearsPageButton = Scene.getByLabel('Previous 12 years')
-const nextYearsPageButton = Scene.getByLabel('Next 12 years')
-const monthsHeadingButton = Scene.getByLabel('Switch to month picker')
-const yearsHeadingButton = Scene.getByLabel('Switch to year picker')
+const grid = Scene.role('grid')
+const previousMonthButton = Scene.label('Previous month')
+const nextMonthButton = Scene.label('Next month')
+const previousYearsPageButton = Scene.label('Previous 12 years')
+const nextYearsPageButton = Scene.label('Next 12 years')
+const monthsHeadingButton = Scene.label('Switch to month picker')
+const yearsHeadingButton = Scene.label('Switch to year picker')
+// NOTE: The days heading button's accessible name is its aria-label
+// ("Switch to month picker"), not the visible month text, so
+// Scene.role('button', { name: text }) cannot find it. Scope to the
+// labeled button and match the heading text within it.
 const daysHeadingFor = (text: string) =>
-  Scene.getByText(text, { selector: 'button' })
+  Scene.within(monthsHeadingButton, Scene.text(text))
 const yearsHeadingFor = (text: string) =>
-  Scene.getByText(text, { selector: 'h2' })
-const dayButton = (label: string) => Scene.getByLabel(label)
+  Scene.role('heading', { name: text, level: 2 })
+const dayButton = (label: string) => Scene.label(label)
 const monthButtonForYear = (label: string, year: number) =>
-  Scene.getByLabel(`${label} ${year}`)
-const yearButton = (year: number) => Scene.getByLabel(String(year))
+  Scene.label(`${label} ${year}`)
+const yearButton = (year: number) => Scene.label(String(year))
 const dayCellById = (
   modelId: string,
   year: number,
@@ -282,8 +286,8 @@ describe('Calendar', () => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.with(init({ id: 'test', today })),
-        Scene.expect(Scene.getByLabel('Week of March 29, 2026')).toExist(),
-        Scene.expect(Scene.getByLabel('Week of April 12, 2026')).toExist(),
+        Scene.expect(Scene.label('Week of March 29, 2026')).toExist(),
+        Scene.expect(Scene.label('Week of April 12, 2026')).toExist(),
       )
     })
 
@@ -297,7 +301,7 @@ describe('Calendar', () => {
         Scene.with(init({ id: 'test', today, locale: mondayLocale })),
         // First column header should be Monday's short name
         Scene.expectAll(Scene.all.role('columnheader')).toHaveCount(7),
-        Scene.expect(Scene.getByLabel('Monday')).toExist(),
+        Scene.expect(Scene.label('Monday')).toExist(),
       )
     })
   })

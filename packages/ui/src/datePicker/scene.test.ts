@@ -20,11 +20,13 @@ import {
 
 const acknowledgeAnchorPopover = Scene.Mount.resolve(
   Popover.AnchorPopover,
-  GotPopoverMessage({ message: Popover.CompletedAnchorPopover() }),
+  Popover.CompletedAnchorPopover(),
+  message => GotPopoverMessage({ message }),
 )
 const acknowledgePopoverBackdrop = Scene.Mount.resolve(
   Popover.PortalPopoverBackdrop,
-  GotPopoverMessage({ message: Popover.CompletedPortalPopoverBackdrop() }),
+  Popover.CompletedPortalPopoverBackdrop(),
+  message => GotPopoverMessage({ message }),
 )
 
 const today = Calendar.make(2026, 4, 13)
@@ -140,7 +142,7 @@ const sceneView =
 
 const trigger = Scene.selector('#picker-popover-button')
 const panel = Scene.selector('#picker-popover-panel')
-const grid = Scene.getByRole('grid')
+const grid = Scene.role('grid')
 const hiddenInput = Scene.selector('input[type="hidden"]')
 
 const closedModel = init({ id: 'picker', today })

@@ -1,4 +1,4 @@
-import { Duration, Effect, Ref } from 'effect'
+import { Duration, Effect, Ref, type Scope } from 'effect'
 import { TestClock } from 'effect/testing'
 import { describe, expect, it } from 'vitest'
 
@@ -18,7 +18,7 @@ const setupRecorder = <Model>() =>
     return { callbacks, debounced, flushed }
   })
 
-const runWithTestClock = <A, E>(effect: Effect.Effect<A, E, any>) =>
+const runWithTestClock = <A, E>(effect: Effect.Effect<A, E, Scope.Scope>) =>
   Effect.runPromise(
     effect.pipe(Effect.scoped, Effect.provide(TestClock.layer())),
   )

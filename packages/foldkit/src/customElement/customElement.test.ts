@@ -66,7 +66,7 @@ const createCapturingDispatch = () => {
 
 const renderView = (
   build: () => VNode | null,
-  dispatch: Dispatch['Type'],
+  dispatch: typeof Dispatch.Service,
 ): VNode => {
   const testContext = Context.make(Dispatch, dispatch).pipe(
     Context.add(MountTracker, {

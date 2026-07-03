@@ -41,7 +41,7 @@ const defaultModel = init({
 
 const root = Scene.selector('[data-slider-id="test"]')
 const track = Scene.selector('[data-slider-track-id="test"]')
-const thumb = Scene.getByRole('slider')
+const thumb = Scene.role('slider')
 const hiddenInput = Scene.selector('[type="hidden"]')
 
 describe('Slider', () => {

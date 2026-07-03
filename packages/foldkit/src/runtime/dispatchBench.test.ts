@@ -1,4 +1,4 @@
-import { Effect, Match as M, Schema as S } from 'effect'
+import { Effect, Match as M, Predicate, Schema as S } from 'effect'
 import { describe, it } from 'vitest'
 
 import { Document, __requireDispatch, html } from '../html/index.js'
@@ -19,7 +19,22 @@ import { makeApplication } from './runtime.js'
  * `orderByPriority`.
  */
 
-const isBenchEnabled = process.env['RUN_RUNTIME_BENCH'] === '1'
+// NOTE: reads process.env through globalThis so this browser-typed package
+// never needs node type definitions; under vitest the node process global
+// is always present.
+const readBenchFlag = (): unknown => {
+  const nodeProcess: unknown = Reflect.get(globalThis, 'process')
+  if (!Predicate.hasProperty(nodeProcess, 'env')) {
+    return undefined
+  }
+  const env = nodeProcess.env
+  if (!Predicate.hasProperty(env, 'RUN_RUNTIME_BENCH')) {
+    return undefined
+  }
+  return env.RUN_RUNTIME_BENCH
+}
+
+const isBenchEnabled = readBenchFlag() === '1'
 
 const Model = S.Struct({ count: S.Number })
 type Model = typeof Model.Type

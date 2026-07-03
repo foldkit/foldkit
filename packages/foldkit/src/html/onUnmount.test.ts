@@ -58,7 +58,7 @@ const createCapturingDispatch = () => {
 
 const renderView = (
   buildView: () => VNode | null,
-  dispatch: Dispatch['Type'],
+  dispatch: typeof Dispatch.Service,
 ): VNode => {
   const testContext = Context.make(Dispatch, dispatch).pipe(
     Context.add(MountTracker, {
@@ -329,7 +329,7 @@ const childView = defineView<
 // which is fine for boundary-free elements but would break boundary continuity.
 const renderViewWithRegistry = (
   buildView: () => VNode | null,
-  dispatch: Dispatch['Type'],
+  dispatch: typeof Dispatch.Service,
   registry: BoundaryRegistry,
 ): VNode => {
   const testContext = Context.make(Dispatch, dispatch).pipe(

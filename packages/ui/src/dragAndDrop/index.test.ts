@@ -354,8 +354,10 @@ describe('DragAndDrop', () => {
           const result = ghostStyle(model)
           expect(Option.isSome(result)).toBe(true)
           if (Option.isSome(result)) {
-            expect(result.value.position).toBe('fixed')
-            expect(result.value.transform).toBe('translate3d(110px, 200px, 0)')
+            expect(result.value['position']).toBe('fixed')
+            expect(result.value['transform']).toBe(
+              'translate3d(110px, 200px, 0)',
+            )
             expect(result.value['pointer-events']).toBe('none')
           }
         }),

@@ -1282,7 +1282,7 @@ describe('Listbox', () => {
       (
         overrides: Omit<
           Partial<ViewInputs<string>>,
-          'items' | 'itemToConfig' | 'buttonContent'
+          'items' | 'buttonContent'
         > = {},
       ) =>
       (model: Model) =>

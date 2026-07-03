@@ -1,4 +1,5 @@
 import { Option, flow } from 'effect'
+import { html } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
 import { expect } from 'vitest'
@@ -6,7 +7,7 @@ import { expect } from 'vitest'
 import { describe, it } from '@effect/vitest'
 
 import * as Animation from '../animation/index.js'
-import type { Model, ViewInputs } from './index.js'
+import type { Message, Model, ViewInputs } from './index.js'
 import {
   ActivatedItem,
   BlurredItems,
@@ -57,13 +58,16 @@ const sceneView =
       'ariaLabel' | 'ariaLabelledBy'
     > = {},
   ) =>
-  (model: Model) =>
-    TestMenu.view(model, {
+  (model: Model) => {
+    const h = html<Message>()
+
+    return TestMenu.view(model, {
       items: ['Edit', 'Duplicate', 'Delete'],
-      itemToConfig: item => ({ content: item }),
-      buttonContent: 'Actions',
+      itemToConfig: item => ({ content: h.span([], [item]) }),
+      buttonContent: h.span([], ['Actions']),
       ...overrides,
     })
+  }
 
 const button = Scene.selector('#test-button')
 

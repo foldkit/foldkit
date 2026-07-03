@@ -1489,10 +1489,10 @@ describe('scene', () => {
       Scene.with(initialModel),
       Scene.submit(Scene.role('form')),
       Scene.expect(Scene.role('button')).toHaveText('Signing in...'),
-      Scene.Command.resolve(
-        Authenticate,
-        FailedAuthenticate({ error: 'Invalid credentials' }),
-      ),
+      Scene.Command.resolve<
+        'Authenticate',
+        typeof SucceededAuthenticate.Type | typeof FailedAuthenticate.Type
+      >(Authenticate, FailedAuthenticate({ error: 'Invalid credentials' })),
       Scene.tap(({ html }) => {
         expect(find(html, '[role="alert"]')).toHaveText('Invalid credentials')
         expect(find(html, '.retry')).toExist()
@@ -2959,7 +2959,7 @@ describe('scene mounts', () => {
 
   test('mounts on view returning Document are tracked', () => {
     const documentView = (model: typeof mountInitialModel) => ({
-      head: [],
+      title: 'Mount panel',
       body: mountView(model),
     })
 

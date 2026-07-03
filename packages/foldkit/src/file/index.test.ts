@@ -18,8 +18,10 @@ import {
 const makeTextFile = (contents: string, fileName: string): File =>
   new File([contents], fileName, { type: 'text/plain' })
 
-const makeBinaryFile = (bytes: Uint8Array, fileName: string): File =>
-  new File([bytes], fileName, { type: 'application/octet-stream' })
+const makeBinaryFile = (
+  bytes: Uint8Array<ArrayBuffer>,
+  fileName: string,
+): File => new File([bytes], fileName, { type: 'application/octet-stream' })
 
 const simulateFileSelection = (input: HTMLInputElement, files: Array<File>) => {
   const dataTransfer = new DataTransfer()

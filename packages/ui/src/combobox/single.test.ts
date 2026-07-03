@@ -1032,7 +1032,7 @@ describe('Combobox', () => {
       (
         overrides: Omit<
           Partial<ViewInputs<string>>,
-          'items' | 'itemToConfig' | 'itemToValue' | 'itemToDisplayText'
+          'items' | 'itemToValue' | 'itemToDisplayText'
         > = {},
       ) =>
       (model: Model) =>

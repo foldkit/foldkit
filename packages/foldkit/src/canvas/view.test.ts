@@ -45,7 +45,7 @@ const createCapturingDispatch = () => {
 
 const renderView = (
   build: () => VNode | null,
-  dispatch: Dispatch['Type'],
+  dispatch: typeof Dispatch.Service,
 ): VNode => {
   const testContext = Context.make(Dispatch, dispatch).pipe(
     Context.add(MountTracker, {
@@ -136,8 +136,8 @@ describe('Canvas.view', () => {
       dispatch,
     )
     expect(vnode.sel).toBe('canvas')
-    expect(vnode.data?.props?.width).toBe(400)
-    expect(vnode.data?.props?.height).toBe(300)
+    expect(vnode.data?.props?.['width']).toBe(400)
+    expect(vnode.data?.props?.['height']).toBe(300)
   })
 
   it('paints the scene on insert', () => {

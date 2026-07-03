@@ -28,6 +28,13 @@ const freshState = (): DragZoneState => ({
   pendingEmptyCheck: false,
 })
 
+const asElement = (element: Element | undefined): Element => {
+  if (element === undefined) {
+    throw new Error('expected an Element')
+  }
+  return element
+}
+
 describe('dragZoneTracking', () => {
   describe('processDragEnter', () => {
     it('returns true on first entry from an empty state', () => {
@@ -42,22 +49,22 @@ describe('dragZoneTracking', () => {
       const state = freshState()
 
       processDragEnter(state, zone, zone)
-      expect(processDragEnter(state, zone, children[0])).toBe(false)
-      expect(processDragEnter(state, zone, children[1])).toBe(false)
+      expect(processDragEnter(state, zone, asElement(children[0]))).toBe(false)
+      expect(processDragEnter(state, zone, asElement(children[1]))).toBe(false)
     })
 
     it('returns false when a leave-check microtask is still pending', () => {
       const { zone, children } = makeZoneWithChildren(2)
       const state = freshState()
 
-      processDragEnter(state, zone, children[0])
-      const leaveOutcome = processDragLeave(state, zone, children[0])
+      processDragEnter(state, zone, asElement(children[0]))
+      const leaveOutcome = processDragLeave(state, zone, asElement(children[0]))
       expect(leaveOutcome).toBe('schedule')
 
       // Before the microtask fires, the pointer lands on the sibling child.
       // Without the pendingEmptyCheck guard this would dispatch a spurious
       // second "entered" Message.
-      expect(processDragEnter(state, zone, children[1])).toBe(false)
+      expect(processDragEnter(state, zone, asElement(children[1]))).toBe(false)
     })
   })
 
@@ -66,9 +73,9 @@ describe('dragZoneTracking', () => {
       const { zone, children } = makeZoneWithChildren(2)
       const state = freshState()
 
-      processDragEnter(state, zone, children[0])
-      processDragEnter(state, zone, children[1])
-      expect(processDragLeave(state, zone, children[0])).toBe('done')
+      processDragEnter(state, zone, asElement(children[0]))
+      processDragEnter(state, zone, asElement(children[1]))
+      expect(processDragLeave(state, zone, asElement(children[0]))).toBe('done')
     })
 
     it("returns 'schedule' when the target set becomes empty", () => {
@@ -92,11 +99,11 @@ describe('dragZoneTracking', () => {
       const { zone, children } = makeZoneWithChildren(2)
       const state = freshState()
 
-      processDragEnter(state, zone, children[0])
-      processDragEnter(state, zone, children[1])
+      processDragEnter(state, zone, asElement(children[0]))
+      processDragEnter(state, zone, asElement(children[1]))
 
-      zone.removeChild(children[0])
-      zone.removeChild(children[1])
+      zone.removeChild(asElement(children[0]))
+      zone.removeChild(asElement(children[1]))
 
       // A subsequent dragleave on the zone itself prunes the orphaned
       // children and finds the set empty, even though neither child got a
@@ -124,9 +131,9 @@ describe('dragZoneTracking', () => {
       // the zone: dragleave fires first and schedules a check, then
       // dragenter fires synchronously for the new target, then the
       // microtask runs.
-      processDragEnter(state, zone, children[0])
-      processDragLeave(state, zone, children[0])
-      processDragEnter(state, zone, children[1])
+      processDragEnter(state, zone, asElement(children[0]))
+      processDragLeave(state, zone, asElement(children[0]))
+      processDragEnter(state, zone, asElement(children[1]))
       expect(checkScheduledLeave(state)).toBe(false)
     })
   })
@@ -136,8 +143,8 @@ describe('dragZoneTracking', () => {
       const { zone, children } = makeZoneWithChildren(2)
       const state = getDragZoneState(zone)
 
-      processDragEnter(state, zone, children[0])
-      processDragLeave(state, zone, children[0])
+      processDragEnter(state, zone, asElement(children[0]))
+      processDragLeave(state, zone, asElement(children[0]))
       expect(state.pendingEmptyCheck).toBe(true)
 
       clearDragZoneAfterDrop(zone)
@@ -177,9 +184,9 @@ describe('dragZoneTracking', () => {
         while (pendingChecks.length > 0) pendingChecks.shift()!()
       }
 
-      simulateEnter(children[0])
-      simulateLeave(children[0])
-      simulateEnter(children[1])
+      simulateEnter(asElement(children[0]))
+      simulateLeave(asElement(children[0]))
+      simulateEnter(asElement(children[1]))
       drainMicrotasks()
 
       expect(entered).toBe(1)
@@ -211,10 +218,10 @@ describe('dragZoneTracking', () => {
         while (pendingChecks.length > 0) pendingChecks.shift()!()
       }
 
-      simulateEnter(children[0])
-      simulateLeave(children[0])
-      simulateEnter(children[1])
-      simulateLeave(children[1])
+      simulateEnter(asElement(children[0]))
+      simulateLeave(asElement(children[0]))
+      simulateEnter(asElement(children[1]))
+      simulateLeave(asElement(children[1]))
       drainMicrotasks()
 
       expect(entered).toBe(1)

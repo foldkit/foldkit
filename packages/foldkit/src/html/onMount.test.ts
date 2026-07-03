@@ -44,9 +44,9 @@ const WAIT_FOR_INTERRUPT_PROPAGATION_MS = 50
  *  `Mount.define(...)(factory)` shape (which binds a single factory at
  *  definition time) doesn't fit. The runtime only reads `name`, `args`,
  *  and `f` from a MountAction. */
-const makeMounted = (
-  f: (element: Element) => Stream.Stream<typeof MountedRoot.Type>,
-): MountAction<typeof MountedRoot.Type> => ({ name: 'Mounted', f })
+const makeMounted = <E = never>(
+  f: (element: Element) => Stream.Stream<typeof MountedRoot.Type, E>,
+): MountAction<typeof MountedRoot.Type, E> => ({ name: 'Mounted', f })
 
 /** Helper that builds the canonical one-shot-with-cleanup Stream for a Mount
  *  using `Stream.callback` + `Effect.acquireRelease`. Emits the Message once,
@@ -79,7 +79,7 @@ const createCapturingDispatch = () => {
 
 const renderView = (
   buildView: () => VNode | null,
-  dispatch: Dispatch['Type'],
+  dispatch: typeof Dispatch.Service,
 ): VNode => {
   const testContext = Context.make(Dispatch, dispatch).pipe(
     Context.add(MountTracker, {
@@ -487,7 +487,7 @@ describe('OnMount', () => {
                   Stream.callback<typeof MountedRoot.Type>(queue =>
                     Effect.gen(function* () {
                       yield* Effect.acquireRelease(
-                        Effect.tryPromise(() => acquireGate).pipe(
+                        Effect.promise(() => acquireGate).pipe(
                           Effect.map(() => {
                             acquireCompleted = true
                             Queue.offerUnsafe(queue, MountedRoot())

@@ -14,6 +14,13 @@ import {
   Text,
 } from './shape.js'
 
+const asCallOrder = (order: number | undefined): number => {
+  if (order === undefined) {
+    throw new Error('expected a recorded call order')
+  }
+  return order
+}
+
 type MockContext = Readonly<{
   ctx: CanvasRenderingContext2D
   fillStyle: () => unknown
@@ -340,11 +347,18 @@ describe('paintScene', () => {
     ])
     expect(mock.spies.save).toHaveBeenCalledTimes(2)
     expect(mock.spies.restore).toHaveBeenCalledTimes(2)
-    const [firstSave, secondSave] = mock.spies.save.mock.invocationCallOrder
-    const [firstRestore, secondRestore] =
-      mock.spies.restore.mock.invocationCallOrder
-    const [firstStrokeRect] = mock.spies.strokeRect.mock.invocationCallOrder
-    const [firstFillRect] = mock.spies.fillRect.mock.invocationCallOrder
+    const saveOrders = mock.spies.save.mock.invocationCallOrder
+    const restoreOrders = mock.spies.restore.mock.invocationCallOrder
+    const firstSave = asCallOrder(saveOrders[0])
+    const secondSave = asCallOrder(saveOrders[1])
+    const firstRestore = asCallOrder(restoreOrders[0])
+    const secondRestore = asCallOrder(restoreOrders[1])
+    const firstStrokeRect = asCallOrder(
+      mock.spies.strokeRect.mock.invocationCallOrder[0],
+    )
+    const firstFillRect = asCallOrder(
+      mock.spies.fillRect.mock.invocationCallOrder[0],
+    )
     expect(firstSave).toBeLessThan(firstStrokeRect)
     expect(firstStrokeRect).toBeLessThan(firstRestore)
     expect(firstRestore).toBeLessThan(secondSave)

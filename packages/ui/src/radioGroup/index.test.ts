@@ -41,7 +41,7 @@ describe('RadioGroup', () => {
   describe('update', () => {
     it('sets selectedValue on SelectedOption', () => {
       Story.story(
-        update,
+        update<string>,
         Story.with(init({ id: 'test' })),
         Story.message(SelectedOption({ value: 'startup', index: 0 })),
         Story.Command.resolve(FocusOption, CompletedFocusOption()),
@@ -53,7 +53,7 @@ describe('RadioGroup', () => {
 
     it('replaces selectedValue on subsequent SelectedOption', () => {
       Story.story(
-        update,
+        update<string>,
         Story.with(init({ id: 'test', selectedValue: 'startup' })),
         Story.message(SelectedOption({ value: 'enterprise', index: 2 })),
         Story.Command.resolve(FocusOption, CompletedFocusOption()),
@@ -65,7 +65,7 @@ describe('RadioGroup', () => {
 
     it('preserves other model fields on SelectedOption', () => {
       Story.story(
-        update,
+        update<string>,
         Story.with(
           init({
             id: 'test',
@@ -84,7 +84,7 @@ describe('RadioGroup', () => {
     it('returns same model reference on CompletedFocusOption', () => {
       const originalModel = init({ id: 'test' })
       Story.story(
-        update,
+        update<string>,
         Story.with(originalModel),
         Story.message(CompletedFocusOption()),
         Story.model(model => {
