@@ -231,6 +231,29 @@ ul {
 .dt-header-button:hover {
   color: var(--dt-text);
 }
+.dt-copy-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  background: transparent;
+  border: none;
+  color: var(--dt-text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 100ms ease;
+}
+.dt-copy-button:hover {
+  color: var(--dt-text);
+}
+.dt-copy-button:focus-visible {
+  outline: 1px solid var(--dt-accent);
+  outline-offset: -1px;
+}
+.dt-copy-icon {
+  width: 12px;
+  height: 12px;
+}
 .dt-resume-button:hover {
   opacity: 0.7;
 }
