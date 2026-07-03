@@ -225,6 +225,12 @@ const tools: ReadonlyArray<ToolRowSpec> = [
       'Enqueues a Message into the runtime as if your application produced it. The runtime decodes the payload against your Schema and returns a clean error if it does not match.',
     ],
   },
+  {
+    name: 'foldkit_dispatch_messages',
+    description: [
+      'Enqueues an ordered batch of Messages in one call, first to last. The runtime validates every payload before enqueueing any of them, so one invalid entry rejects the whole batch and nothing is dispatched.',
+    ],
+  },
 ]
 
 const toolRow = ({ name, description }: ToolRowSpec): Html => {
@@ -395,6 +401,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' Schema (variant index first, then a dot-path through the Submodel chain for one variant’s payload shape), construct the matching payload, and pass it to ',
         inlineCode('foldkit_dispatch_message'),
         '; the runtime decodes it and returns a clean error if the shape does not match.',
+        ' To stage state that takes several Messages, ',
+        inlineCode('foldkit_dispatch_messages'),
+        ' enqueues an ordered batch in one call, validating the whole batch before dispatching any of it.',
       ),
       para(
         'When the dev server restarts, the MCP server’s WebSocket client reconnects automatically with exponential backoff. No agent restart required.',

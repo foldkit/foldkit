@@ -193,6 +193,14 @@ export const latestEntryIndex = (state: StoreState): number =>
   })
 
 /**
+ * The absolute index the next recorded entry will land at. `recordMessage`
+ * assigns indices from this formula, so dispatch predictions derived from it
+ * match where entries are actually recorded.
+ */
+export const nextEntryIndex = (state: StoreState): number =>
+  state.startIndex + state.entries.length
+
+/**
  * Options for `createDevToolsStore`.
  *
  * - `maxEntries`: Maximum number of history entries to retain before evicting the oldest segment. Defaults to 100.
@@ -296,7 +304,7 @@ export const createDevToolsStore = (
       isModelChanged: boolean,
     ) =>
       SubscriptionRef.update(stateRef, state => {
-        const absoluteIndex = state.startIndex + state.entries.length
+        const absoluteIndex = nextEntryIndex(state)
 
         const diff = isModelChanged
           ? computeDiff(modelBeforeUpdate, modelAfterUpdate)
