@@ -139,11 +139,9 @@ const handleRoomJoined = (
   roomId: string,
   player: Shared.Player,
 ): UpdateReturn<Model, Message> => {
-  const [nextRoomModel, roomCommands] = Room.update(
-    model.room,
-    Room.Message.SucceededJoinRoom({ player }),
-    { roomId },
-  )
+  const [nextRoomModel, roomCommands] = Room.join(model.room, player, {
+    roomId,
+  })
 
   return [
     evo(model, { room: () => nextRoomModel }),

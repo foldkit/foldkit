@@ -41,21 +41,18 @@ export const subscriptions = Subscription.make<Model, Message, RoomsClient>()(
                 return client.subscribeToRoom({ roomId, playerId }).pipe(
                   Stream.map(({ room, maybePlayerProgress }) =>
                     GotRoomMessage({
-                      message: Room.Message.UpdatedRoom({
-                        room,
-                        maybePlayerProgress,
-                      }),
+                      message: Room.updatedRoom(room, maybePlayerProgress),
                     }),
                   ),
                   Stream.catchCause(cause =>
                     Stream.make(
                       GotRoomMessage({
-                        message: Room.Message.FailedStreamRoom({
-                          error: Option.match(Cause.findErrorOption(cause), {
+                        message: Room.failedStreamRoom(
+                          Option.match(Cause.findErrorOption(cause), {
                             onSome: failure => String(failure),
                             onNone: () => 'Unknown stream error',
                           }),
-                        }),
+                        ),
                       }),
                     ),
                   ),
@@ -107,13 +104,9 @@ export const subscriptions = Subscription.make<Model, Message, RoomsClient>()(
                   return M.value(route).pipe(
                     M.tagsExhaustive({
                       Home: () =>
-                        GotHomeMessage({
-                          message: Home.Message.PressedKey({ key }),
-                        }),
+                        GotHomeMessage({ message: Home.pressedKey(key) }),
                       Room: () =>
-                        GotRoomMessage({
-                          message: Room.Message.PressedKey({ key }),
-                        }),
+                        GotRoomMessage({ message: Room.pressedKey(key) }),
                       NotFound: () => IgnoredKeyPress(),
                     }),
                   )

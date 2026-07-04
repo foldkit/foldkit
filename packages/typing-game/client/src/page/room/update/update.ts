@@ -27,7 +27,7 @@ import {
   TickExitCountdown,
   UpdatePlayerProgress,
 } from '../command'
-import { CompletedNavigateHome, Message } from '../message'
+import { CompletedNavigateHome, Message, SucceededJoinRoom } from '../message'
 import { Model, RoomRemoteData } from '../model'
 import { validateUserTextInput } from '../userGameText'
 import { handleRoomUpdated } from './handleRoomUpdates'
@@ -287,3 +287,10 @@ const handleStartGame = (model: Model, room: Shared.Room) => (): UpdateReturn =>
     },
     onNone: () => [model, []],
   })
+
+/** Applies a successful join for the given player via the Room's own update. */
+export const join = (
+  model: Model,
+  player: Shared.Player,
+  context: Context,
+): UpdateReturn => update(model, SucceededJoinRoom({ player }), context)

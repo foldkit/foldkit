@@ -1,4 +1,4 @@
-import { Schema as S } from 'effect'
+import { Option, Schema as S } from 'effect'
 import { m } from 'foldkit/message'
 
 import * as Shared from '@typing-game/shared'
@@ -72,3 +72,16 @@ export const Message = S.Union([
   SucceededJoinRoom,
 ])
 export type Message = typeof Message.Type
+
+/** Builds the Message for a room snapshot arriving from the room stream. */
+export const updatedRoom = (
+  room: Shared.Room,
+  maybePlayerProgress: Option.Option<Shared.PlayerProgress>,
+): Message => UpdatedRoom({ room, maybePlayerProgress })
+
+/** Builds the Message for a room stream failure. */
+export const failedStreamRoom = (error: string): Message =>
+  FailedStreamRoom({ error })
+
+/** Builds the Message for a key press routed to the Room page. */
+export const pressedKey = (key: string): Message => PressedKey({ key })

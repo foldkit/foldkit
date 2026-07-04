@@ -38,6 +38,9 @@ export const Message = S.Union([
 ])
 export type Message = typeof Message.Type
 
+/** Builds the Message for a key press routed to the Home page. */
+export const pressedKey = (key: string): Message => PressedKey({ key })
+
 // OUT MESSAGE
 
 export const OutMessage = S.Union([SucceededCreateRoom, SucceededJoinRoom])
