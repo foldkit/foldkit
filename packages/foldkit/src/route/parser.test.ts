@@ -14,6 +14,7 @@ import {
   parseUrlWithFallback,
   query,
   rest,
+  restString,
   root,
   schemaSegment,
   slash,
@@ -323,6 +324,124 @@ describe('rest', () => {
       expect(filesRouter({ path: parsed.path })).toBe('/files/documents/taxes')
     }),
   )
+})
+
+describe('restString', () => {
+  const Vault = r('Vault', { path: S.String })
+  const NotFound = r('NotFound', { path: S.String })
+
+  const vaultRouter = pipe(
+    literal('vault'),
+    slash(restString('path')),
+    mapTo(Vault),
+  )
+
+  it.effect('captures all remaining segments as one slash-joined string', () =>
+    Effect.gen(function* () {
+      const [value, remaining] = yield* restString('path').parse([
+        'a',
+        'b',
+        'c.md',
+      ])
+      expect(value).toStrictEqual({ path: 'a/b/c.md' })
+      expect(remaining).toStrictEqual([])
+    }),
+  )
+
+  it.effect('captures a single-segment tail', () =>
+    Effect.gen(function* () {
+      const [value] = yield* restString('path').parse(['notes.md'])
+      expect(value).toStrictEqual({ path: 'notes.md' })
+    }),
+  )
+
+  it.effect('fails on empty segments', () =>
+    Effect.gen(function* () {
+      const error = yield* Effect.flip(restString('path').parse([]))
+      expect(error._tag).toBe('ParseError')
+      expect(error.actual).toBe('end of path')
+    }),
+  )
+
+  it.effect('prints the raw path as a single segment', () =>
+    Effect.gen(function* () {
+      const state = yield* restString('path').print(
+        { path: 'documents/taxes/2024.pdf' },
+        { segments: ['vault'], queryParams: new URLSearchParams() },
+      )
+      expect(state.segments).toStrictEqual([
+        'vault',
+        'documents/taxes/2024.pdf',
+      ])
+    }),
+  )
+
+  it.effect('composes after literals', () =>
+    Effect.gen(function* () {
+      const parser = pipe(literal('vault'), slash(restString('path')))
+      const [value, remaining] = yield* parser.parse(['vault', 'a', 'b.md'])
+      expect(value).toStrictEqual({ path: 'a/b.md' })
+      expect(remaining).toStrictEqual([])
+    }),
+  )
+
+  it.effect('combines with query parameters', () =>
+    Effect.gen(function* () {
+      const parser = pipe(
+        literal('vault'),
+        slash(restString('path')),
+        query(S.Struct({ sort: S.String })),
+      )
+      const [value] = yield* parser.parse(['vault', 'a.md'], 'sort=name')
+      expect(value).toStrictEqual({ path: 'a.md', sort: 'name' })
+    }),
+  )
+
+  it('cannot be extended with slash', () => {
+    // @ts-expect-error slash cannot follow a terminal parser
+    const invalidParser = pipe(restString('path'), slash(literal('x')))
+    expect(invalidParser).toBeDefined()
+  })
+
+  it('builds a URL from restString route data', () => {
+    const url = vaultRouter({
+      path: '20-upgrade/teach/the-elm-architecture.md',
+    })
+    expect(url).toBe('/vault/20-upgrade/teach/the-elm-architecture.md')
+  })
+
+  it.effect('parse then build round-trips a path with slashes and dots', () =>
+    Effect.gen(function* () {
+      const [parsed] = yield* vaultRouter.parse(['vault', 'a', 'b', 'c.md'])
+      expect(vaultRouter({ path: parsed.path })).toBe('/vault/a/b/c.md')
+    }),
+  )
+
+  it('parses a full URL through the router', () => {
+    const parser = oneOf(vaultRouter)
+    const route = parseUrlWithFallback(
+      parser,
+      NotFound,
+    )(makeUrl('/vault/a/b/c.md'))
+    expect(route).toStrictEqual(Vault.make({ path: 'a/b/c.md' }))
+  })
+
+  it('normalizes a trailing slash away', () => {
+    const parser = oneOf(vaultRouter)
+    const route = parseUrlWithFallback(parser, NotFound)(makeUrl('/vault/a/b/'))
+    expect(route).toStrictEqual(Vault.make({ path: 'a/b' }))
+  })
+
+  it('round-trips a percent-encoded tail unchanged', () => {
+    const parser = oneOf(vaultRouter)
+    const encodedPath = 'a%20b/c.md'
+    const route = parseUrlWithFallback(
+      parser,
+      NotFound,
+    )(makeUrl(`/vault/${encodedPath}`))
+    expect(route).toStrictEqual(Vault.make({ path: encodedPath }))
+    expect(vaultRouter({ path: encodedPath })).toBe(`/vault/${encodedPath}`)
+  })
 })
 
 describe('slash', () => {

@@ -7,6 +7,7 @@ export {
   schemaSegment,
   root,
   rest,
+  restString,
   oneOf,
   mapTo,
   slash,
