@@ -1,14 +1,16 @@
-import { Ui } from 'foldkit'
+import { RadioGroup } from '@foldkit/ui'
+
+const sortRadioGroup = RadioGroup.create()
 
 // ❌ Bad
-// Creating the selection factory inside a function gives it a fresh identity on
-// every call, breaking the component's internal state.
-const badInit = () => {
-  const radioGroup = Ui.RadioGroup.create()
-  return radioGroup.init()
+// Re-creating the factory on each update gives it a fresh identity, so its
+// internal selection state never persists.
+const badUpdate = (model: Model, message: Message) => {
+  const radioGroup = RadioGroup.create()
+  return radioGroup.update(model.sort, message)
 }
 
 // ✅ Good
-// Create the factory once at module scope.
-const radioGroup = Ui.RadioGroup.create()
-const goodInit = () => radioGroup.init()
+// Reuse the module-scope factory.
+const goodUpdate = (model: Model, message: Message) =>
+  sortRadioGroup.update(model.sort, message)

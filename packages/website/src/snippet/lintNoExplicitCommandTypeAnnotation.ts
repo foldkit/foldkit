@@ -2,13 +2,13 @@ import { Command } from 'foldkit'
 
 // ❌ Bad
 // The Command type is already carried by Command.define; annotating it is noise.
-const FetchWeather: Command.Command<Message> = Command.define(
-  'FetchWeather',
-  SucceededFetchWeather,
-)(fetchWeatherEffect)
+const SaveDraft: Command.Command<Message> = Command.define(
+  'SaveDraft',
+  SucceededSaveDraft,
+)(saveDraftEffect)
 
 // ✅ Good
-const FetchWeatherFixed = Command.define(
+const FetchWeather = Command.define(
   'FetchWeather',
   SucceededFetchWeather,
 )(fetchWeatherEffect)

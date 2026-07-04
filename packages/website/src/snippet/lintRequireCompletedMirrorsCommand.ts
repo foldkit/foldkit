@@ -1,11 +1,16 @@
 import { Command } from 'foldkit'
 import { m } from 'foldkit/message'
 
-const LockScroll = Command.define('LockScroll', CompletedLock)(lockScrollEffect)
+const FocusInput = Command.define(
+  'FocusInput',
+  CompletedFocusInput,
+)(focusInputEffect)
 
 // ❌ Bad
-// A Completed* acknowledgement should mirror its Command name.
-const CompletedLock = m('CompletedLock')
+// The ack reverses the Command name, so it mirrors no Command and the rule
+// flags this Message, not the Command.define above.
+const CompletedInputFocus = m('CompletedInputFocus')
 
 // ✅ Good
-const CompletedLockScroll = m('CompletedLockScroll')
+// The ack repeats the Command name FocusInput verb-first.
+const CompletedFocusInput = m('CompletedFocusInput')

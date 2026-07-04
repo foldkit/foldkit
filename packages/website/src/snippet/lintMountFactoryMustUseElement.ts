@@ -1,13 +1,18 @@
+import { Effect } from 'effect'
 import { Mount } from 'foldkit'
 
 // ❌ Bad
-// A Mount factory that never touches its element has misidentified its cause:
-// if the element is not read or written, this is not Mount's job.
-const badMount = Mount.define(() => () => {
-  startAnalytics()
-})
+// The factory never reads its element, so Mount is the wrong primitive here.
+const MountAnalytics = Mount.define(
+  'MountAnalytics',
+  {},
+  CompletedMountAnalytics,
+)(() => () => Effect.sync(() => startAnalytics()))
 
 // ✅ Good
-const goodMount = Mount.define(() => element => {
-  observeVisibility(element)
-})
+// The factory reads its element to wire the observer.
+const MountResize = Mount.define(
+  'MountResize',
+  {},
+  CompletedMountResize,
+)(() => element => Effect.sync(() => resizeObserver.observe(element)))

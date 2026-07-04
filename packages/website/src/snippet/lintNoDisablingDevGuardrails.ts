@@ -1,9 +1,10 @@
-import { makeApplication } from 'foldkit'
+import { Runtime } from 'foldkit'
 
 // ❌ Bad
 // Turning off freezeModel silences the dev warning instead of fixing the
 // mutation it caught.
-const badApp = makeApplication({
+const badApp = Runtime.makeApplication({
+  Model,
   init,
   update,
   view,
@@ -12,4 +13,4 @@ const badApp = makeApplication({
 
 // ✅ Good
 // Leave the guardrail on and fix the in-place mutation it flags.
-const goodApp = makeApplication({ init, update, view })
+const goodApp = Runtime.makeApplication({ Model, init, update, view })

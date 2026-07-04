@@ -3,14 +3,15 @@ import { m } from 'foldkit/message'
 
 // ❌ Bad
 // A Got wrapper carries the child Message plus routing context only. Extra
-// payload belongs on the child Message or a dedicated parent Message.
-const GotChildMessage = m('GotChildMessage', {
-  message: Child.Message,
+// payload like timestamp belongs on the child Message or a parent Message.
+const GotSettingsMessage = m('GotSettingsMessage', {
+  message: Settings.Message,
   timestamp: S.Number,
 })
 
 // ✅ Good
-const GotChildMessageFixed = m('GotChildMessage', {
+// message plus routing keys (id, or keys ending in Id) only.
+const GotCounterMessage = m('GotCounterMessage', {
   id: S.String,
-  message: Child.Message,
+  message: Counter.Message,
 })
