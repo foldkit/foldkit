@@ -1,0 +1,67 @@
+# Source of truth for repository labels.
+# Synced to GitHub by .github/workflows/sync-labels.yml (EndBug/label-sync).
+# Two primary axes: Type (what it is) and Status (where it is in the flow),
+# plus a small Track/maturity axis and closing reasons.
+
+# Type
+- name: bug
+  color: d73a4a
+  description: Something is broken
+
+- name: enhancement
+  color: a2eeef
+  description: New feature or concrete improvement
+
+- name: proposal
+  color: 1d76db
+  description: Fleshed-out design pitch awaiting a decision
+
+- name: dx
+  color: c5def5
+  description: Developer-experience friction or papercut
+
+- name: docs
+  color: 0075ca
+  description: Documentation
+  aliases:
+    - documentation
+
+- name: question
+  color: d876e3
+  description: A question or discussion
+
+# Status
+- name: accepted
+  color: 0e8a16
+  description: Triaged and agreed it should happen
+
+- name: needs-info
+  color: fbca04
+  description: Waiting on more information from the reporter
+
+- name: blocked
+  color: b60205
+  description: Blocked on another issue or decision
+
+# Track / maturity
+- name: v2
+  color: 5319e7
+  description: Work toward the v2 release
+
+- name: poc
+  color: d4c5f9
+  description: Proof of concept, exploratory, not meant to merge as-is
+
+# Meta
+- name: good first issue
+  color: 7057ff
+  description: Good for newcomers
+
+# Closing reasons
+- name: duplicate
+  color: cfd3d7
+  description: Duplicate of another issue or PR
+
+- name: wontfix
+  color: ededed
+  description: Will not be worked on
