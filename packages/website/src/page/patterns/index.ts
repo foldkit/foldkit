@@ -1,2 +1,6 @@
+export * as ComposingUpdateSteps from './composingUpdateSteps'
 export * as InformingSubmodels from './informingSubmodels'
+export * as ModelAsCache from './modelAsCache'
+export * as RevalidatingCaches from './revalidatingCaches'
+export * as RouteDrivenLoading from './routeDrivenLoading'
 export * as SubscriptionOrganization from './subscriptionOrganization'

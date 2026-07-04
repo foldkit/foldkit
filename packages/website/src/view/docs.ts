@@ -703,6 +703,34 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           ]),
           Page.Patterns.SubscriptionOrganization.tableOfContents,
         ),
+      PatternsModelAsCache: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.Patterns.ModelAsCache.view, [
+            model.copiedSnippets,
+          ]),
+          Page.Patterns.ModelAsCache.tableOfContents,
+        ),
+      PatternsComposingUpdateSteps: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.Patterns.ComposingUpdateSteps.view, [
+            model.copiedSnippets,
+          ]),
+          Page.Patterns.ComposingUpdateSteps.tableOfContents,
+        ),
+      PatternsRouteDrivenLoading: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.Patterns.RouteDrivenLoading.view, [
+            model.copiedSnippets,
+          ]),
+          Page.Patterns.RouteDrivenLoading.tableOfContents,
+        ),
+      PatternsRevalidatingCaches: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.Patterns.RevalidatingCaches.view, [
+            model.copiedSnippets,
+          ]),
+          Page.Patterns.RevalidatingCaches.tableOfContents,
+        ),
       CoreViewMemoization: () =>
         withTableOfContents(
           lazyDocsContent(Page.Core.ViewMemoization.view, [

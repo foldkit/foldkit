@@ -71,6 +71,35 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' page, that will change.',
       ),
       para(
+        'That pair is the type ',
+        inlineCode('Update.Return<Model, Message>'),
+        '. Rather than spelling it out at every handler, each update module pins its concrete Model and Message once and aliases the result, along with a matching ',
+        inlineCode('M.withReturnType'),
+        ' pin so every handler in that module checks against the same shape. The root update and every Submodel define their own pair:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.updateReturnAliasHighlighted),
+          ],
+          [],
+        ),
+        Snippet.updateReturnAliasRaw,
+        'Copy update return alias code to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'With the aliases in place, the signature reads ',
+        inlineCode('(model: Model, message: Message): UpdateReturn'),
+        ', and the inline ',
+        inlineCode('M.withReturnType'),
+        ' call in the example above becomes the shared ',
+        inlineCode('withUpdateReturn'),
+        '.',
+      ),
+      para(
         'Before we get to side effects, there’s one more piece of the counter to understand: the view function, which turns your Model into what the user sees on screen.',
       ),
     ],

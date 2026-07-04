@@ -115,6 +115,10 @@
       "types": "./dist/test/vitest.d.ts",
       "import": "./dist/test/vitest.js"
     },
+    "./update": {
+      "types": "./dist/update/public.d.ts",
+      "import": "./dist/update/public.js"
+    },
     "./url": {
       "types": "./dist/url/public.d.ts",
       "import": "./dist/url/public.js"

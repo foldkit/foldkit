@@ -95,6 +95,14 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
               Page.Patterns.InformingSubmodels.tableOfContents,
             PatternsSubscriptionOrganization: () =>
               Page.Patterns.SubscriptionOrganization.tableOfContents,
+            PatternsModelAsCache: () =>
+              Page.Patterns.ModelAsCache.tableOfContents,
+            PatternsComposingUpdateSteps: () =>
+              Page.Patterns.ComposingUpdateSteps.tableOfContents,
+            PatternsRouteDrivenLoading: () =>
+              Page.Patterns.RouteDrivenLoading.tableOfContents,
+            PatternsRevalidatingCaches: () =>
+              Page.Patterns.RevalidatingCaches.tableOfContents,
             CoreViewMemoization: () =>
               Page.Core.ViewMemoization.tableOfContents,
             CoreEmbedding: () => Page.Core.Embedding.tableOfContents,

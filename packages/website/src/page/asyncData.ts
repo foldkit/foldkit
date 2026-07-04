@@ -19,6 +19,9 @@ import {
   coreModelRouter,
   exampleDetailRouter,
   fieldValidationRouter,
+  patternsModelAsCacheRouter,
+  patternsRevalidatingCachesRouter,
+  patternsRouteDrivenLoadingRouter,
 } from '../route'
 import * as Snippet from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
@@ -109,7 +112,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
 
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Server data in a Model is never just data or nothing. Between “we have it” and “we do not” sit “we asked and are waiting”, “the ask failed”, “we have last week’s copy and are refetching”, and “the refetch failed but we kept the copy”. A boolean ',
+        'Asynchronously loaded data in a Model is never just data or nothing. Between “we have it” and “we do not” sit “we asked and are waiting”, “the ask failed”, “we have last week’s copy and are refetching”, and “the refetch failed but we kept the copy”. A boolean ',
         inlineCode('isLoading'),
         ' next to a nullable ',
         inlineCode('data'),
@@ -121,7 +124,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('Option'),
         ' or ',
         inlineCode('Result'),
-        ': an ADT plus a namespace of free functions over it. You embed one Schema in your Model, and every read, transform, and transition goes through named combinators that already know the state machine. The module is the noun. It is not a data-fetching engine and not a cache. The keyed cache, the refresher, and route-driven loading stay application patterns.',
+        ': an ADT plus a namespace of free functions over it. You embed one Schema in your Model, and every read, transform, and transition goes through named combinators that already know the state machine. The module is the noun. It is not a data-fetching engine and not a cache. The keyed cache and route-driven loading stay application patterns.',
       ),
       para(
         'Throughout this page, the running example is a Notes app: a ',
@@ -315,11 +318,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'Error types',
         'The error Schema is simplified to ',
         inlineCode('string'),
-        ' here; a real app usually gives each field a domain error Schema, for example a union of a tagged ',
-        inlineCode('NotFound'),
-        ' and ',
-        inlineCode('string'),
-        '.',
+        ' here; the ',
+        link(patternsModelAsCacheRouter(), 'Model as Cache'),
+        ' page shows per-field error types.',
       ),
       para(
         'A single field embeds ',
@@ -624,7 +625,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'mb-8',
       ),
       para(
-        'These two functions are the building blocks of route-driven loading: deciding per cache, on every route change, whether to load, revalidate, or leave the state alone.',
+        'These two functions are the building blocks of ',
+        link(patternsRouteDrivenLoadingRouter(), 'route-driven loading'),
+        ', which is taught in full on its own page.',
       ),
 
       tableOfContentsEntryToHeader(settlingAFetchHeader),
@@ -781,13 +784,34 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' has the generated, exhaustive catalog of every name and its per-state behavior.',
       ),
       para(
+        link(patternsModelAsCacheRouter(), 'The Model as Cache'),
+        ' builds keyed ',
+        inlineCode('S.HashMap(NoteId, ...)'),
+        ' caches on this type, ',
+        link(patternsRouteDrivenLoadingRouter(), 'Route-Driven Loading'),
+        ' uses ',
+        inlineCode('AsyncData.revalidateOrLoad'),
+        ' on route entry, and ',
+        link(
+          patternsRevalidatingCachesRouter(),
+          'Revalidating Caches After a Mutation',
+        ),
+        ' applies ',
+        inlineCode('AsyncData.map'),
+        ' over cached lists, ',
+        inlineCode('AsyncData.revalidate'),
+        ' through the ',
+        inlineCode('Update.refresh'),
+        ' combinator, and ',
+        inlineCode('settle'),
+        ' after a write. ',
         link(comingFromTanStackQueryRouter(), 'Coming from TanStack Query'),
         ' maps the six states onto query status and cached data, and the ',
         link(
           exampleDetailRouter({ exampleSlug: 'api-cache' }),
           'api-cache example',
         ),
-        ' is a full app wiring a keyed cache, a generic refresher, and route-driven loading together on this type.',
+        ' is a full app wiring a keyed cache, revalidation, and settled fetches together.',
       ),
     ],
   )

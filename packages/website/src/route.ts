@@ -76,6 +76,13 @@ export const PatternsInformingSubmodelsRoute = r('PatternsInformingSubmodels')
 export const PatternsSubscriptionOrganizationRoute = r(
   'PatternsSubscriptionOrganization',
 )
+export const PatternsModelAsCacheRoute = r('PatternsModelAsCache')
+export const PatternsComposingUpdateStepsRoute = r(
+  'PatternsComposingUpdateSteps',
+)
+export const PatternsRouteDrivenLoadingRoute = r('PatternsRouteDrivenLoading')
+export const PatternsRevalidatingCachesRoute = r('PatternsRevalidatingCaches')
+
 export const UiOverviewRoute = r('UiOverview')
 export const UiSelectionSubmodelsRoute = r('UiSelectionSubmodels')
 export const UiButtonRoute = r('UiButton')
@@ -165,6 +172,10 @@ export const DocsRoute = S.Union([
   AsyncDataRoute,
   PatternsInformingSubmodelsRoute,
   PatternsSubscriptionOrganizationRoute,
+  PatternsModelAsCacheRoute,
+  PatternsComposingUpdateStepsRoute,
+  PatternsRouteDrivenLoadingRoute,
+  PatternsRevalidatingCachesRoute,
   UiOverviewRoute,
   UiSelectionSubmodelsRoute,
   UiButtonRoute,
@@ -384,6 +395,23 @@ export const patternsSubscriptionOrganizationRouter = patterns(
   'subscription-organization',
   PatternsSubscriptionOrganizationRoute,
 )
+export const patternsModelAsCacheRouter = patterns(
+  'model-as-cache',
+  PatternsModelAsCacheRoute,
+)
+export const patternsComposingUpdateStepsRouter = patterns(
+  'composing-update-steps',
+  PatternsComposingUpdateStepsRoute,
+)
+export const patternsRouteDrivenLoadingRouter = patterns(
+  'route-driven-loading',
+  PatternsRouteDrivenLoadingRoute,
+)
+export const patternsRevalidatingCachesRouter = patterns(
+  'revalidating-caches',
+  PatternsRevalidatingCachesRoute,
+)
+
 export const uiOverviewRouter = ui('overview', UiOverviewRoute)
 export const uiSelectionSubmodelsRouter = ui(
   'selection-submodels',
@@ -478,6 +506,10 @@ const coreParser = oneOf(
 const patternsParser = oneOf(
   patternsInformingSubmodelsRouter,
   patternsSubscriptionOrganizationRouter,
+  patternsModelAsCacheRouter,
+  patternsComposingUpdateStepsRouter,
+  patternsRouteDrivenLoadingRouter,
+  patternsRevalidatingCachesRouter,
   projectOrganizationRouter,
 )
 

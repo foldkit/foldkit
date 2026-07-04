@@ -275,6 +275,22 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Subscription Organization',
     'Canonical layout for subscription wiring across nested submodels.',
   ),
+  PatternsModelAsCache: pattern(
+    'The Model as Cache',
+    'Hold asynchronously loaded data in the Model as keyed AsyncData caches: a single list, a byId HashMap, a per-parent HashMap, and a cross-cutting feed, with no query library.',
+  ),
+  PatternsComposingUpdateSteps: pattern(
+    'Composing Update Steps',
+    'Compose an update out of small step functions with combine, threading the Model through each step and gathering every Command along the way.',
+  ),
+  PatternsRouteDrivenLoading: pattern(
+    'Route-Driven Loading',
+    'Drive data loading from the URL with per-cache step functions that choose load-if-missing or revalidate-on-entry, shared by init and navigation.',
+  ),
+  PatternsRevalidatingCaches: pattern(
+    'Revalidating Caches After a Mutation',
+    'After a mutation, write the changed entity through every cache that holds it, then revalidate exactly the loaded caches with a generic refresher.',
+  ),
   UiOverview: ui(
     'Foldkit UI',
     'Headless, accessible UI components for Foldkit: dialog, menu, tabs, listbox, and more. Built for The Elm Architecture with Effect-TS.',

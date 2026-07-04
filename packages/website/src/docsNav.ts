@@ -43,7 +43,11 @@ import {
   fieldValidationRouter,
   gettingStartedRouter,
   manifestoRouter,
+  patternsComposingUpdateStepsRouter,
   patternsInformingSubmodelsRouter,
+  patternsModelAsCacheRouter,
+  patternsRevalidatingCachesRouter,
+  patternsRouteDrivenLoadingRouter,
   patternsSubscriptionOrganizationRouter,
   performanceRouter,
   projectOrganizationRouter,
@@ -353,6 +357,30 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           href: projectOrganizationRouter(),
           label: 'Project Organization',
         },
+        {
+          _tag: 'PatternsComposingUpdateSteps',
+          href: patternsComposingUpdateStepsRouter(),
+          label: 'Composing Update Steps',
+        },
+      ],
+      [
+        {
+          _tag: 'PatternsModelAsCache',
+          href: patternsModelAsCacheRouter(),
+          label: 'The Model as Cache',
+        },
+        {
+          _tag: 'PatternsRouteDrivenLoading',
+          href: patternsRouteDrivenLoadingRouter(),
+          label: 'Route-Driven Loading',
+        },
+        {
+          _tag: 'PatternsRevalidatingCaches',
+          href: patternsRevalidatingCachesRouter(),
+          label: 'Revalidating Caches',
+        },
+      ],
+      [
         {
           _tag: 'PatternsInformingSubmodels',
           href: patternsInformingSubmodelsRouter(),

@@ -507,6 +507,18 @@ export const getOrElse: {
     Option.getOrElse(getData(self), onEmpty),
 )
 
+/** Collapses a possibly-missing cache entry to an AsyncData: `Some(entry)`
+ *  is the entry, `None` is `Idle`. The keyed-cache read idiom, where a key
+ *  that was never fetched is simply absent and absence means nothing was
+ *  requested yet:
+ *
+ *  ```ts
+ *  const notes = AsyncData.getOrIdle(HashMap.get(model.notesByNotebook, notebookId))
+ *  ``` */
+export const getOrIdle = <A, E>(
+  maybeEntry: Option.Option<AsyncData<A, E>>,
+): AsyncData<A, E> => Option.getOrElse(maybeEntry, () => Idle())
+
 /** Returns `true` only for the `Idle` state. Refinement. */
 export const isIdle = <A, E>(self: AsyncData<A, E>): self is Idle =>
   self._tag === 'Idle'
