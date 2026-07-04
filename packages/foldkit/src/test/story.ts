@@ -1,6 +1,15 @@
-import { Array, Effect, Equal, Option, Predicate, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  Equal,
+  Option,
+  Predicate,
+  Schema as S,
+  pipe,
+} from 'effect'
 
 import type { CommandDefinition } from '../command/index.js'
+import { SerializedCommand } from '../devTools/protocol.js'
 import type {
   AnyCommand,
   BaseInternal,
@@ -388,4 +397,160 @@ export const story: {
 
   const internal = toInternal(result)
   assertAllCommandsResolved(internal.commands)
+}
+
+// SESSION
+
+/** One entry of a captured session: the dispatched Message body, the Commands
+ *  that Message triggered (reusing the devtools `SerializedCommand` shape), and
+ *  the resulting Model snapshot. `message` and `model` stay `Unknown` here so
+ *  the envelope decodes without the app's Schemas; {@link fromSession} decodes
+ *  each against the Model and Message Schemas the caller supplies. */
+export const SessionEntry = S.Struct({
+  message: S.Unknown,
+  commands: S.Array(SerializedCommand),
+  model: S.Unknown,
+})
+/** One entry of a captured session. */
+export type SessionEntry = typeof SessionEntry.Type
+
+/** A captured runtime session: the initial Model plus an ordered log of
+ *  entries. This is the minimal, self-describing artifact a session export
+ *  emits, decodable without the app's Model/Message Schemas (those decode the
+ *  `Unknown` bodies later, in {@link fromSession}). */
+export const SessionArtifact = S.Struct({
+  model: S.Unknown,
+  entries: S.Array(SessionEntry),
+})
+/** A captured runtime session artifact. */
+export type SessionArtifact = typeof SessionArtifact.Type
+
+/** The app Schemas {@link fromSession} needs to decode a session artifact back
+ *  into runnable values: the Model Schema for the init Model and every recorded
+ *  snapshot, and the Message Schema for each dispatched and result Message. */
+export type SessionSchemas<Model, Message> = Readonly<{
+  Model: S.Codec<Model, any>
+  Message: S.Codec<Message, any>
+}>
+
+/** Resolves a pending Command matched by a plain `{ name, args? }` record (the
+ *  shape a serialized session carries) rather than a Definition or Instance.
+ *  Mirrors `Story.Command.resolve`: it guards against an ambiguous match and
+ *  throws with the pending list when nothing matches. */
+const resolveByRecord =
+  (matcher: AnyCommand, resultMessage: unknown) =>
+  <Model, Message, OutMessage>(
+    simulation: StorySimulation<Model, Message, OutMessage>,
+  ): StorySimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+    assertResolveUnambiguous(internal.commands, matcher)
+    /* eslint-disable @typescript-eslint/consistent-type-assertions */
+    const next = resolveByMatcher(
+      internal as BaseInternal<Model, Message, unknown>,
+      matcher,
+      resultMessage as Message,
+    )
+    /* eslint-enable @typescript-eslint/consistent-type-assertions */
+
+    if (Predicate.isUndefined(next)) {
+      throw new Error(
+        `I tried to resolve "${formatMatcher(matcher)}" from the session log but no matching pending Command was found.\n\n` +
+          `Pending Commands:\n${Array.match(internal.commands, {
+            onEmpty: () => '    (none)',
+            onNonEmpty: nonEmpty =>
+              pipe(
+                nonEmpty,
+                Array.map(command => `    ${formatCommand(command)}`),
+                Array.join('\n'),
+              ),
+          })}\n\n` +
+          'This usually means the recorded log is inconsistent: a result Message ' +
+          'appears without the Command that would have produced it.',
+      )
+    }
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return next as StorySimulation<Model, Message, OutMessage>
+  }
+
+/** Builds a Command matcher from a serialized Command: name + args when the
+ *  entry recorded args, name-only otherwise. */
+const matcherFromSerialized = (command: SerializedCommand): AnyCommand =>
+  Option.match(command.args, {
+    onNone: () => ({ name: command.name }),
+    onSome: args => ({ name: command.name, args }),
+  })
+
+/** Lowers a captured session artifact into the steps of a runnable regression
+ *  {@link story}. Decodes the artifact envelope, the init Model, and every
+ *  Message/Model snapshot against the supplied app Schemas (a malformed
+ *  artifact or a Message that does not match the app Schema surfaces as a
+ *  Schema decode error here, before the story runs).
+ *
+ *  Each entry either dispatches its Message as fresh input or, when Commands
+ *  from earlier entries are still pending, resolves the oldest pending Command
+ *  with this entry's Message. That mirrors how a Command's outcome surfaces as
+ *  its own later Message entry in the log, so replay is deterministic even
+ *  though the original effects were not: the log already carries the resolved
+ *  outcomes, exactly what `Story.Command.resolve` consumes. Every entry also
+ *  emits a Model assertion against its recorded snapshot, so the generated
+ *  story fails the moment replay drifts from the capture.
+ *
+ *  Splice the result into {@link story}:
+ *
+ *  ```ts
+ *  Story.story(update, ...Story.fromSession(artifact, { Model, Message }))
+ *  ```
+ */
+export const fromSession = <Model, Message>(
+  artifact: unknown,
+  schemas: SessionSchemas<Model, Message>,
+): ReadonlyArray<StoryStep<Model>> => {
+  const decoded = S.decodeUnknownSync(SessionArtifact)(artifact)
+  const decodeModel = S.decodeUnknownSync(schemas.Model)
+  const decodeMessage = S.decodeUnknownSync(schemas.Message)
+
+  const initModel = decodeModel(decoded.model)
+
+  const steps: Array<StoryStep<Model>> = [with_(initModel)]
+  let pending: ReadonlyArray<SerializedCommand> = []
+
+  for (const entry of decoded.entries) {
+    const entryMessage = decodeMessage(entry.message)
+    const entryModel = decodeModel(entry.model)
+    const messageLabel =
+      Predicate.hasProperty(entryMessage, '_tag') &&
+      typeof entryMessage._tag === 'string'
+        ? entryMessage._tag
+        : 'Message'
+
+    const nextPending = Option.match(Array.head(pending), {
+      onNone: () => {
+        steps.push(message(entryMessage))
+        return pending
+      },
+      onSome: command => {
+        steps.push(
+          resolveByRecord(matcherFromSerialized(command), entryMessage),
+        )
+        return Array.drop(pending, 1)
+      },
+    })
+
+    pending = Array.appendAll(nextPending, entry.commands)
+
+    steps.push(
+      model((currentModel: Model) => {
+        if (!Equal.equals(currentModel, entryModel)) {
+          throw new Error(
+            `Replayed Model diverged from the recorded snapshot after "${messageLabel}":\n\n` +
+              `    expected: ${JSON.stringify(entryModel)}\n` +
+              `    actual:   ${JSON.stringify(currentModel)}`,
+          )
+        }
+      }),
+    )
+  }
+
+  return steps
 }
