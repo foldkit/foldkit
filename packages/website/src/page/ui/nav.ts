@@ -90,7 +90,7 @@ export const basicDemo = (url: Url) => {
 
   return [
     h.div(
-      [h.Class('max-w-md mx-auto')],
+      [h.Class('w-full max-w-lg mx-auto')],
       [
         Nav.view<NavDemoSection>({
           items: demoSections,
