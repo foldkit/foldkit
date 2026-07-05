@@ -20,6 +20,7 @@ import {
   uiInputRouter,
   uiListboxRouter,
   uiMenuRouter,
+  uiNavRouter,
   uiPopoverRouter,
   uiRadioGroupRouter,
   uiSelectRouter,
@@ -204,6 +205,14 @@ const components: ReadonlyArray<ComponentEntry> = [
       'Tabbed interface with keyboard navigation, Home/End support, and wrapping.',
   },
   {
+    name: 'Nav',
+    href: uiNavRouter(),
+    kind: 'Helper',
+    category: 'Navigation',
+    description:
+      'Stateless, URL-driven navigation landmark whose items are links, marking the current destination with aria-current="page".',
+  },
+  {
     name: 'Drag and Drop',
     href: uiDragAndDropRouter(),
     kind: 'Submodel',
@@ -336,7 +345,7 @@ export const view = (): Html => {
         ' (Menu, Listbox, Combobox, Calendar, Disclosure, Dialog, Popover, and most others) manage their own Model, Message, update, and OutMessage. You embed them via h.submodel and handle their events by pattern-matching the OutMessage in your update.',
       ),
       para(
-        'Stateless render helpers (Button, Input, Textarea, Select, Fieldset) are called directly with a ViewConfig and return Html. They bundle ARIA and data attributes onto consumer-rendered DOM. No Model, no Message, no h.submodel wiring. The “Kind” column in the table below marks which is which.',
+        'Stateless render helpers (Button, Input, Textarea, Select, Fieldset, Nav) are called directly with a ViewConfig and return Html. They bundle ARIA and data attributes onto consumer-rendered DOM. No Model, no Message, no h.submodel wiring. The “Kind” column in the table below marks which is which.',
       ),
       heading(
         componentsHeader.level,

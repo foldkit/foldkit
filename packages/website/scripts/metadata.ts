@@ -305,6 +305,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Accessible checkbox with indeterminate state support.',
   ),
   UiTabs: ui('Tabs', 'Accessible tabbed interface with keyboard navigation.'),
+  UiNav: ui(
+    'Nav',
+    'URL-driven navigation between routes with aria-current page semantics.',
+  ),
   UiDisclosure: ui(
     'Disclosure',
     'An accessible show/hide foundation for toggleable content sections.',

@@ -713,6 +713,11 @@ export const update = (
           () => !isPathnameEqual(model.url, url),
         )
 
+        const maybeScrollToTop = Option.liftPredicate(
+          ScrollToTop(),
+          () => !isPathnameEqual(model.url, url),
+        )
+
         const nextAsyncCounterDemo = reflectAsyncCounterDemoPresence(
           model.asyncCounterDemo,
           isAsyncCounterDemoVisible(nextRoute, model.demoTabs),
@@ -769,7 +774,7 @@ export const update = (
               GotExampleDetailMessage({ message }),
             ),
             ...Option.match(url.hash, {
-              onNone: () => [ScrollToTop()],
+              onNone: () => Option.toArray(maybeScrollToTop),
               onSome: hash => [ScrollToAnchor({ hash })],
             }),
             ...Option.toArray(maybeScrollSidebar),
