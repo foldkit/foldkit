@@ -54,7 +54,7 @@ const navClassName =
   'flex gap-1 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900'
 
 const linkClassName =
-  'flex-1 text-center px-4 py-2 text-sm font-normal rounded-lg cursor-pointer transition text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-500/10 dark:hover:bg-gray-400/10 data-[current]:bg-cream data-[current]:dark:bg-gray-800 data-[current]:hover:bg-cream data-[current]:dark:hover:bg-gray-800 data-[current]:text-gray-900 data-[current]:dark:text-white data-[current]:shadow-sm'
+  'flex-1 text-center px-2 sm:px-4 py-2 text-sm font-normal rounded-lg cursor-pointer transition text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-500/10 dark:hover:bg-gray-400/10 data-[current]:bg-cream data-[current]:dark:bg-gray-800 data-[current]:hover:bg-cream data-[current]:dark:hover:bg-gray-800 data-[current]:text-gray-900 data-[current]:dark:text-white data-[current]:shadow-sm'
 
 // VIEW
 
