@@ -769,7 +769,8 @@ export const update = (
               GotExampleDetailMessage({ message }),
             ),
             ...Option.match(url.hash, {
-              onNone: () => [ScrollToTop()],
+              onNone: () =>
+                isPathnameEqual(model.url, url) ? [] : [ScrollToTop()],
               onSome: hash => [ScrollToAnchor({ hash })],
             }),
             ...Option.toArray(maybeScrollSidebar),

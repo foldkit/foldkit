@@ -13,6 +13,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { uiNavRouter } from '../../route'
 import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import {
@@ -306,6 +307,20 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           'Check out how Tabs is wired up in a ',
           link(uiShowcaseViewSourceHref('tabs'), 'real Foldkit app'),
           '.',
+        ),
+        infoCallout(
+          'Navigating between pages?',
+          'Tabs switches content within one page and applies the ',
+          inlineCode('tablist'),
+          '/',
+          inlineCode('tab'),
+          '/',
+          inlineCode('tabpanel'),
+          ' roles. For between-page navigation where each section is its own route and URL, like a bottom tab bar or side nav, reach for ',
+          link(uiNavRouter(), 'Nav'),
+          ', which uses ',
+          inlineCode('aria-current="page"'),
+          ' instead.',
         ),
         heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
         heading(
