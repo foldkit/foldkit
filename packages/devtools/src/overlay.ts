@@ -157,6 +157,7 @@ const Model = S.Struct({
 type Model = typeof Model.Type
 
 const Flags = S.Struct({
+  isOpen: S.Boolean,
   isMobile: S.Boolean,
   isFlattened: S.Boolean,
   entries: S.Array(DisplayEntry),
@@ -174,7 +175,7 @@ const ClickedSettingsToggle = m('ClickedSettingsToggle')
 const GotFlattenSwitchMessage = m('GotFlattenSwitchMessage', {
   message: Switch.Message,
 })
-const CompletedPersistFlatten = m('CompletedPersistFlatten')
+const CompletedPersistDevToolsState = m('CompletedPersistDevToolsState')
 const ClickedRow = m('ClickedRow', { index: S.Number })
 const ClickedResume = m('ClickedResume')
 const ClickedClear = m('ClickedClear')
@@ -220,7 +221,7 @@ const Message = S.Union([
   ClickedToggle,
   ClickedSettingsToggle,
   GotFlattenSwitchMessage,
-  CompletedPersistFlatten,
+  CompletedPersistDevToolsState,
   ClickedRow,
   ClickedResume,
   ClickedClear,
@@ -251,8 +252,7 @@ const MOBILE_BREAKPOINT_QUERY = `(max-width: ${MOBILE_BREAKPOINT}px)`
 const TREE_INDENT_PX = 12
 const MAX_PREVIEW_KEYS = 3
 const ALL_MESSAGES_VALUE = ''
-const FLATTEN_STORAGE_KEY = 'foldkit-devtools-flatten'
-const BooleanJsonString = S.fromJsonString(S.Boolean)
+const DEVTOOLS_STORAGE_KEY = 'foldkit-devtools'
 const NO_COMMANDS: ReadonlyArray<typeof DisplayCommand.Type> = []
 const NO_MOUNTS: ReadonlyArray<typeof DisplayMount.Type> = []
 
@@ -384,29 +384,54 @@ export const UnlockScroll = Command.define(
   UnlockedScroll,
 )(unlockScroll.pipe(Effect.as(UnlockedScroll())))
 
-const readPersistedFlatten: Effect.Effect<boolean> = Effect.gen(function* () {
-  const store = yield* KeyValueStore.KeyValueStore
-  const json = yield* Effect.fromOption(
-    Option.fromNullishOr(yield* store.get(FLATTEN_STORAGE_KEY)),
-  )
-  return yield* S.decodeEffect(BooleanJsonString)(json)
-}).pipe(
-  Effect.catch(() => Effect.succeed(false)),
+const toggleScrollLock = (shouldLock: boolean) =>
+  shouldLock ? LockScroll() : UnlockScroll()
+
+const maybeToggleScrollLock = (isEnabled: boolean, shouldLock: boolean) =>
+  OptionExt.when(isEnabled, toggleScrollLock(shouldLock))
+
+const maybeLockScroll = (isOpen: boolean, isMobile: boolean) =>
+  OptionExt.when(isOpen && isMobile, LockScroll())
+
+const DevToolsPersistedState = S.Struct({
+  isOpen: S.Boolean.pipe(S.withDecodingDefault(Effect.succeed(false))),
+  isFlattened: S.Boolean.pipe(S.withDecodingDefault(Effect.succeed(false))),
+})
+type DevToolsPersistedState = typeof DevToolsPersistedState.Type
+const DevToolsPersistedStateJson = S.fromJsonString(DevToolsPersistedState)
+const DEFAULT_PERSISTED_STATE: DevToolsPersistedState = {
+  isOpen: false,
+  isFlattened: false,
+}
+
+const readPersistedState: Effect.Effect<DevToolsPersistedState> = Effect.gen(
+  function* () {
+    const store = yield* KeyValueStore.KeyValueStore
+    const json = yield* Effect.fromOption(
+      Option.fromNullishOr(yield* store.get(DEVTOOLS_STORAGE_KEY)),
+    )
+    return yield* S.decodeEffect(DevToolsPersistedStateJson)(json)
+  },
+).pipe(
+  Effect.catch(() => Effect.succeed(DEFAULT_PERSISTED_STATE)),
   Effect.provide(BrowserKeyValueStore.layerLocalStorage),
 )
 
-export const PersistFlatten = Command.define(
-  'PersistFlatten',
-  { isFlattened: S.Boolean },
-  CompletedPersistFlatten,
-)(({ isFlattened }) =>
+export const PersistDevToolsState = Command.define(
+  'PersistDevToolsState',
+  { isOpen: S.Boolean, isFlattened: S.Boolean },
+  CompletedPersistDevToolsState,
+)(({ isOpen, isFlattened }) =>
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
-    const json = yield* S.encodeEffect(BooleanJsonString)(isFlattened)
-    yield* store.set(FLATTEN_STORAGE_KEY, json)
-    return CompletedPersistFlatten()
+    const json = yield* S.encodeEffect(DevToolsPersistedStateJson)({
+      isOpen,
+      isFlattened,
+    })
+    yield* store.set(DEVTOOLS_STORAGE_KEY, json)
+    return CompletedPersistDevToolsState()
   }).pipe(
-    Effect.catch(() => Effect.succeed(CompletedPersistFlatten())),
+    Effect.catch(() => Effect.succeed(CompletedPersistDevToolsState())),
     Effect.provide(BrowserKeyValueStore.layerLocalStorage),
   ),
 )
@@ -520,9 +545,6 @@ const makeUpdate = (
   const inspectState = (index: number) =>
     Command.mapEffect(InspectState({ index }), provideContext)
 
-  const toggleScrollLock = (shouldLock: boolean) =>
-    shouldLock ? LockScroll() : UnlockScroll()
-
   return (model: Model, message: Message): UpdateReturn =>
     M.value(message).pipe(
       M.withReturnType<UpdateReturn>(),
@@ -531,9 +553,15 @@ const makeUpdate = (
           const nextIsOpen = !model.isOpen
           return [
             evo(model, { isOpen: () => nextIsOpen }),
-            OptionExt.when(model.isMobile, toggleScrollLock(nextIsOpen)).pipe(
-              Option.toArray,
-            ),
+            [
+              ...Option.toArray(
+                maybeToggleScrollLock(model.isMobile, nextIsOpen),
+              ),
+              PersistDevToolsState({
+                isOpen: nextIsOpen,
+                isFlattened: model.flattenSwitch.isChecked,
+              }),
+            ],
           ]
         },
         ClickedSettingsToggle: () => [
@@ -568,7 +596,10 @@ const makeUpdate = (
                   evo(model, { flattenSwitch: () => nextFlattenSwitch }),
                   [
                     ...mappedCommands,
-                    PersistFlatten({ isFlattened: isChecked }),
+                    PersistDevToolsState({
+                      isOpen: model.isOpen,
+                      isFlattened: isChecked,
+                    }),
                   ],
                 ],
               }),
@@ -577,9 +608,7 @@ const makeUpdate = (
         },
         CrossedMobileBreakpoint: ({ isMobile }) => [
           evo(model, { isMobile: () => isMobile }),
-          OptionExt.when(model.isOpen, toggleScrollLock(isMobile)).pipe(
-            Option.toArray,
-          ),
+          Option.toArray(maybeToggleScrollLock(model.isOpen, isMobile)),
         ],
         ClickedRow: ({ index }) =>
           M.value(mode).pipe(
@@ -832,7 +861,7 @@ const makeUpdate = (
       M.tag(
         'CompletedResume',
         'CompletedClear',
-        'CompletedPersistFlatten',
+        'CompletedPersistDevToolsState',
         'LockedScroll',
         'UnlockedScroll',
         'ScrolledToTop',
@@ -2474,8 +2503,9 @@ export const createOverlay = (
 
     const flags: Effect.Effect<typeof Flags.Type> = Effect.gen(function* () {
       const storeState = yield* SubscriptionRef.get(store.stateRef)
-      const isFlattened = yield* readPersistedFlatten
+      const { isOpen, isFlattened } = yield* readPersistedState
       return {
+        isOpen,
         isMobile: window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches,
         isFlattened,
         ...toDisplayState(storeState),
@@ -2491,7 +2521,6 @@ export const createOverlay = (
 
       return [
         {
-          isOpen: false,
           screen: 'Messages',
           ...displayFlags,
           flattenSwitch: Switch.init({
@@ -2522,7 +2551,7 @@ export const createOverlay = (
             initialValue: initialSliderValue,
           }),
         },
-        [],
+        Option.toArray(maybeLockScroll(flags.isOpen, flags.isMobile)),
       ]
     }
 
