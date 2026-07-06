@@ -249,6 +249,11 @@ describe('types', () => {
     >()
   })
 
+  it('fromOptionOrIdle collapses an Option of AsyncData to the same AsyncData type', () => {
+    const maybeNotes: Option.Option<State> = Option.some(success)
+    expectTypeOf(AsyncData.fromOptionOrIdle(maybeNotes)).toEqualTypeOf<State>()
+  })
+
   it('matchData and matchDataSplit return the union of handler return types', () => {
     const dataResult = AsyncData.matchData(success, {
       onEmpty: () => null,
@@ -543,6 +548,20 @@ describe('getOrElse', () => {
         AsyncData.getOrElse(() => 0),
       ),
     ).toBe(1)
+  })
+})
+
+describe('fromOptionOrIdle', () => {
+  it('returns the entry when the Option holds one', () => {
+    expect(AsyncData.fromOptionOrIdle(Option.some(success))).toBe(success)
+    expect(AsyncData.fromOptionOrIdle(Option.some(stale))).toBe(stale)
+  })
+
+  it('collapses a missing keyed-cache entry to Idle', () => {
+    const cache = HashMap.empty<string, State>()
+    expect(AsyncData.fromOptionOrIdle(HashMap.get(cache, 'notes:1'))).toEqual(
+      AsyncData.Idle(),
+    )
   })
 })
 

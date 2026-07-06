@@ -18,6 +18,7 @@ export {
   getData,
   getError,
   getOrElse,
+  fromOptionOrIdle,
   isIdle,
   isLoading,
   isRefreshing,
