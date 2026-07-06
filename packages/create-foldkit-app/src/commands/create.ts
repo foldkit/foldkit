@@ -1,14 +1,16 @@
 import chalk from 'chalk'
-import { Console, Effect, FileSystem, Match, Option, Path } from 'effect'
+import { Console, Effect, FileSystem, Option, Path } from 'effect'
 import { Prompt } from 'effect/unstable/cli'
 import { spawnSync } from 'node:child_process'
 
 import { type Example, examples } from '../examples.js'
 import { createProject } from '../utils/files.js'
-import { installDependencies } from '../utils/packages.js'
+import {
+  type PackageManager,
+  devCommand,
+  installDependencies,
+} from '../utils/packages.js'
 import { validateProjectName } from '../validateName.js'
-
-type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun'
 
 type CreateInput = Readonly<{
   name: Option.Option<string>
@@ -124,21 +126,12 @@ const installProjectDependencies = (
     yield* Console.log('')
   })
 
-const runDevServerCommand = (packageManager: PackageManager) =>
-  Match.value(packageManager).pipe(
-    Match.when('pnpm', () => 'pnpm dev'),
-    Match.when('npm', () => 'npm run dev'),
-    Match.when('yarn', () => 'yarn dev'),
-    Match.when('bun', () => 'bun dev'),
-    Match.exhaustive,
-  )
-
 const displaySuccessMessage = (name: string, packageManager: PackageManager) =>
   Effect.gen(function* () {
     yield* Console.log(chalk.bold('All systems nominal.'))
     yield* Console.log('')
     yield* Console.log(`  > ${chalk.cyan('cd')} ${name}`)
-    yield* Console.log(`  > ${chalk.cyan(runDevServerCommand(packageManager))}`)
+    yield* Console.log(`  > ${chalk.cyan(devCommand(packageManager))}`)
     yield* Console.log('')
     yield* Console.log(chalk.bold('AI-Assisted Development'))
     yield* Console.log('')

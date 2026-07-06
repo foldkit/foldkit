@@ -13,7 +13,20 @@ import {
 import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
 import { spawn } from 'node:child_process'
 
-type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun'
+export type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun'
+
+export const installCommand = (packageManager: PackageManager): string =>
+  `${packageManager} install`
+
+const DEV_COMMANDS: Record<PackageManager, string> = {
+  pnpm: 'pnpm dev',
+  npm: 'npm run dev',
+  yarn: 'yarn dev',
+  bun: 'bun dev',
+}
+
+export const devCommand = (packageManager: PackageManager): string =>
+  DEV_COMMANDS[packageManager]
 
 const GITHUB_RAW_BASE_URL =
   'https://raw.githubusercontent.com/foldkit/foldkit/main/examples'

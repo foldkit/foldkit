@@ -157,8 +157,8 @@ const assertTemplateTooling = (): void => {
     join(TEMPLATE_DIR, 'package.json'),
   )
   assertSmoke(
-    packageJson.scripts?.lint === 'oxlint',
-    'template package.json must use oxlint for the lint script',
+    packageJson.scripts?.lint === 'oxlint src',
+    'template package.json lint script must be scoped to src (oxlint src)',
   )
   assertSmoke(
     existsSync(join(TEMPLATE_DIR, '.oxlintrc.json')),

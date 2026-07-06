@@ -5,8 +5,8 @@ A Foldkit application built with Effect.
 ## Getting Started
 
 ```bash
-pnpm install
-pnpm dev
+{{installCommand}}
+{{devCommand}}
 ```
 
 ## Learn More
