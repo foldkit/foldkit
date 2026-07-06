@@ -255,7 +255,7 @@ describe('addBfcacheRestoreListener', () => {
   })
 
   // NOTE: A page-owning runtime installs this once and never removes it, so a
-  // second install (HMR re-run) must not stack a second reload onto one
+  // second install (dev reload re-run) must not stack a second reload onto one
   // restore.
   it('registers idempotently across repeated installs', () => {
     const removeFirst = addBfcacheRestoreListener()

@@ -1,6 +1,6 @@
 # @foldkit/vite-plugin
 
-Vite plugin for Foldkit that enables hot module reloading with model preservation.
+Vite plugin for Foldkit that preserves your Model across dev reloads.
 
 ## Installation
 
@@ -43,7 +43,7 @@ The plugin uses Vite's WebSocket connection to communicate between the dev serve
 - **On file change**: The browser sends the current model to the Vite server for preservation
 - **On reload**: The browser requests the preserved model from the server and initializes the Foldkit runtime with it
 
-Model is preserved across hot reloads but cleared on manual browser refreshes, giving you control over when to reset your app.
+Model is preserved across dev reloads but cleared on manual browser refreshes, giving you control over when to reset your app.
 
 ## DevTools MCP relay
 

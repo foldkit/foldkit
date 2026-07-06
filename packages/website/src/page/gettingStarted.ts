@@ -108,7 +108,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
           [[inlineCode('index.html')], ['HTML entry point']],
           [
             [inlineCode('vite.config.ts')],
-            ['Vite configuration with Foldkit HMR plugin'],
+            ['Vite configuration with the Foldkit plugin'],
           ],
           [[inlineCode('tsconfig.json')], ['TypeScript configuration']],
           [[inlineCode('.oxlintrc.json')], ['Oxlint configuration']],

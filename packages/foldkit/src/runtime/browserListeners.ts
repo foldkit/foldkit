@@ -126,7 +126,7 @@ const locationToUrl = (): Url => urlToFoldkitUrl(new URL(window.location.href))
 // NOTE: a stable module-level handler keeps registration idempotent.
 // `addEventListener` discards a duplicate registration (same type, same
 // callback reference, same capture), so a page-owning runtime that
-// re-runs under HMR reuses the single listener instead of stacking
+// re-runs on a dev reload reuses the single listener instead of stacking
 // reloads.
 const reloadOnBfcacheRestore = ({
   persisted: isRestoredFromBfcache,

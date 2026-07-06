@@ -108,7 +108,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         '. Prefer correct, clear code first; performance fixes have a maintenance cost.',
       ),
       para(
-        'Default thresholds are intentionally generous. Crossing them in dev mode is common and often fine in production: HMR overhead, DevTools recording, a JS thread parked under a breakpoint, and slow CI workers all inflate measurements. Validate that the slowness is real by reproducing in a production build before optimizing.',
+        'Default thresholds are intentionally generous. Crossing them in dev mode is common and often fine in production: dev-server overhead, DevTools recording, a JS thread parked under a breakpoint, and slow CI workers all inflate measurements. Validate that the slowness is real by reproducing in a production build before optimizing.',
       ),
       para(
         'When you do optimize, measure before and after. Keep the change only if the profile shows a clear improvement. Otherwise, revert it and look elsewhere.',

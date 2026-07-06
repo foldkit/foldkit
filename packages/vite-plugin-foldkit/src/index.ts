@@ -28,7 +28,7 @@ import {
   PreserveModelMessage,
   RequestModelMessage,
   RestoreModelMessage,
-} from 'foldkit/hmr-protocol'
+} from 'foldkit/model-preservation'
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import type { Plugin, ViteDevServer, WebSocketClient } from 'vite'
@@ -147,7 +147,7 @@ const Event = Data.taggedEnum<Event>()
 
 type PreservedEntry = Readonly<{
   model: unknown
-  isHmrReload: boolean
+  isReloadFlush: boolean
 }>
 
 type State = Readonly<{
@@ -196,18 +196,18 @@ const handlePreserveModelReceived = (state: State, payload: unknown) =>
   Exit.match(S.decodeUnknownExit(PreserveModelMessage)(payload), {
     onFailure: error =>
       Console.warn(
-        '[foldkit:hmr] failed to decode preserve-model payload',
+        '[foldkit:preserve] failed to decode preserve-model payload',
         error,
       ),
-    onSuccess: ({ id, model, isHmrReload }) =>
+    onSuccess: ({ id, model, isReloadFlush }) =>
       Ref.update(state.preservedModels, current => {
         const existingFlag = Option.exists(
           HashMap.get(current, id),
-          ({ isHmrReload }) => isHmrReload,
+          ({ isReloadFlush }) => isReloadFlush,
         )
         const entry: PreservedEntry = {
           model,
-          isHmrReload: isHmrReload === true || existingFlag,
+          isReloadFlush: isReloadFlush === true || existingFlag,
         }
         return HashMap.set(current, id, entry)
       }),
@@ -221,7 +221,7 @@ const handleRequestModelReceived = (
   Exit.match(S.decodeUnknownExit(RequestModelMessage)(payload), {
     onFailure: error =>
       Console.warn(
-        '[foldkit:hmr] failed to decode request-model payload',
+        '[foldkit:preserve] failed to decode request-model payload',
         error,
       ),
     onSuccess: ({ id }) =>
@@ -239,8 +239,8 @@ const handleRequestModelReceived = (
         yield* Option.match(HashMap.get(current, id), {
           onNone: () => sendRestore(undefined),
           onSome: entry => {
-            if (entry.isHmrReload) {
-              const served: PreservedEntry = { ...entry, isHmrReload: false }
+            if (entry.isReloadFlush) {
+              const served: PreservedEntry = { ...entry, isReloadFlush: false }
               return Ref.update(
                 state.preservedModels,
                 HashMap.set(id, served),
@@ -256,7 +256,7 @@ const handleRequestModelReceived = (
 
 const handleHotUpdateFired = (state: State) =>
   Ref.update(state.preservedModels, current =>
-    HashMap.map(current, entry => ({ ...entry, isHmrReload: true })),
+    HashMap.map(current, entry => ({ ...entry, isReloadFlush: true })),
   )
 
 const handleBrowserEventFrameReceived = (
@@ -591,7 +591,7 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Plugin => {
   const events = Effect.runSync(Queue.unbounded<Event>())
 
   return {
-    name: 'foldkit-hmr',
+    name: 'foldkit',
     apply: 'serve',
     config: userConfig => ({
       optimizeDeps: {

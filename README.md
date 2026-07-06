@@ -39,7 +39,7 @@ Every Foldkit application is an [Effect](https://effect.website/) program. Your 
 
 ## Get Started
 
-`create-foldkit-app` is the recommended way to start a new project. It scaffolds a complete setup with Tailwind, TypeScript, ESLint, Prettier, and the Vite plugin for state-preserving HMR — and lets you choose from a set of examples as your starting point.
+`create-foldkit-app` is the recommended way to start a new project. It scaffolds a complete setup with Tailwind, TypeScript, ESLint, Prettier, and the Vite plugin for state-preserving live reload. It also lets you choose from a set of examples as your starting point.
 
 ```bash
 npx create-foldkit-app@latest
@@ -185,7 +185,7 @@ Foldkit is a complete system, not a collection of libraries you stitch together.
 - **Story Testing**: Exercise the update function directly. Send Messages, resolve Commands inline with `Story.Command.resolve` and `Story.Command.resolveAll`, and assert with focused helpers: `Story.model`, `Story.Command.expectHas`, `Story.Command.expectExact`, `Story.Command.expectNone`, and `Story.expectOutMessage`. No mocking libraries, no fake timers.
 - **Scene Testing**: Drive your app the way a user does. Scene renders your real view, then clicks buttons, types into inputs, presses keys, and asserts on what's on screen — with accessible locators and Vitest matchers, no browser required.
 - **Slow Warnings**: Foldkit warns in development when update, view, patch, or Subscription dependency extraction exceeds its default threshold. Configure `slow` on `makeApplication` with `measuredPhases`, `thresholdOverrides`, and `onSlow` to state what is measured, which budgets change, and where warning contexts go.
-- **HMR**: Vite plugin with state-preserving hot module replacement. Change your view, keep your state.
+- **Live Reload**: Vite plugin with state-preserving reloads. Save a file, the page reloads, and your Model is restored. Change your view, keep your state.
 
 ## Correctness You (And Your LLM) Can See
 
