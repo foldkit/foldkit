@@ -6,6 +6,7 @@ import { RoomsClient } from '../../rpc'
 import {
   CompletedFocusRoomIdInput,
   CompletedFocusUsernameInput,
+  FailedCreateRoom,
   FailedJoinRoom,
   SucceededCreateRoom,
   SucceededJoinRoom,
@@ -15,7 +16,7 @@ export const CreateRoom = Command.define(
   'CreateRoom',
   { username: S.String },
   SucceededCreateRoom,
-  FailedJoinRoom,
+  FailedCreateRoom,
 )(({ username }) =>
   Effect.gen(function* () {
     const client = yield* RoomsClient
@@ -23,7 +24,7 @@ export const CreateRoom = Command.define(
     return SucceededCreateRoom({ roomId: room.id, player })
   }).pipe(
     Effect.catch(error =>
-      Effect.succeed(FailedJoinRoom({ error: String(error) })),
+      Effect.succeed(FailedCreateRoom({ error: String(error) })),
     ),
   ),
 )

@@ -11,7 +11,7 @@ import {
   ChangedSearchInput,
   ChangedUrl,
   ClickedColumnHeader,
-  CompletedReplaceUrl,
+  CompletedReplaceFilters,
   GotDietListboxMessage,
   type Model,
   ReplaceFilters,
@@ -84,7 +84,7 @@ describe('update', () => {
         Story.with(browseModel),
         Story.message(ChangedSearchInput({ value: 'rex' })),
         Story.Command.expectHas(ReplaceFilters),
-        Story.Command.resolve(ReplaceFilters, CompletedReplaceUrl()),
+        Story.Command.resolve(ReplaceFilters, CompletedReplaceFilters()),
       )
     })
 
@@ -102,7 +102,7 @@ describe('update', () => {
         }),
         Story.message(ChangedSearchInput({ value: '' })),
         Story.Command.expectHas(ReplaceFilters),
-        Story.Command.resolve(ReplaceFilters, CompletedReplaceUrl()),
+        Story.Command.resolve(ReplaceFilters, CompletedReplaceFilters()),
       )
     })
   })
@@ -114,7 +114,7 @@ describe('update', () => {
         Story.with(browseModel),
         Story.message(ClickedColumnHeader({ column: 'Name' })),
         Story.Command.expectHas(ReplaceFilters),
-        Story.Command.resolve(ReplaceFilters, CompletedReplaceUrl()),
+        Story.Command.resolve(ReplaceFilters, CompletedReplaceFilters()),
       )
     })
   })
@@ -135,7 +135,7 @@ describe('update', () => {
           listboxMessage => GotDietListboxMessage({ message: listboxMessage }),
         ),
         Story.Command.expectHas(ReplaceFilters),
-        Story.Command.resolve(ReplaceFilters, CompletedReplaceUrl()),
+        Story.Command.resolve(ReplaceFilters, CompletedReplaceFilters()),
       )
     })
   })

@@ -156,7 +156,7 @@ export type Model = typeof Model.Type
 
 export const CompletedNavigateInternal = m('CompletedNavigateInternal')
 export const CompletedLoadExternal = m('CompletedLoadExternal')
-export const CompletedReplaceUrl = m('CompletedReplaceUrl')
+export const CompletedReplaceFilters = m('CompletedReplaceFilters')
 export const ClickedLink = m('ClickedLink', { request: UrlRequest })
 export const ChangedUrl = m('ChangedUrl', { url: Url })
 export const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
@@ -173,7 +173,7 @@ export const GotPeriodListboxMessage = m('GotPeriodListboxMessage', {
 export const Message = S.Union([
   CompletedNavigateInternal,
   CompletedLoadExternal,
-  CompletedReplaceUrl,
+  CompletedReplaceFilters,
   ClickedLink,
   ChangedUrl,
   ChangedSearchInput,
@@ -269,9 +269,9 @@ export const ReplaceFilters = Command.define(
     diet: S.Option(Diet),
     period: S.Option(Period),
   },
-  CompletedReplaceUrl,
+  CompletedReplaceFilters,
 )(fields =>
-  replaceUrl(browseRouter(fields)).pipe(Effect.as(CompletedReplaceUrl())),
+  replaceUrl(browseRouter(fields)).pipe(Effect.as(CompletedReplaceFilters())),
 )
 
 const NavigateInternal = Command.define(
@@ -295,7 +295,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     M.tagsExhaustive({
       CompletedNavigateInternal: () => [model, []],
       CompletedLoadExternal: () => [model, []],
-      CompletedReplaceUrl: () => [model, []],
+      CompletedReplaceFilters: () => [model, []],
 
       ClickedLink: ({ request }) =>
         M.value(request).pipe(

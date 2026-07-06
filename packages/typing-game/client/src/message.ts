@@ -8,7 +8,7 @@ import { Home, Room } from './page'
 export const CompletedNavigateInternal = m('CompletedNavigateInternal')
 export const CompletedLoadExternal = m('CompletedLoadExternal')
 export const CompletedNavigateRoom = m('CompletedNavigateRoom')
-export const IgnoredKeyPress = m('IgnoredKeyPress')
+export const PressedKey = m('PressedKey', { key: S.String })
 export const ClickedLink = m('ClickedLink', {
   request: UrlRequest,
 })
@@ -24,7 +24,7 @@ export const Message = S.Union([
   CompletedNavigateInternal,
   CompletedLoadExternal,
   CompletedNavigateRoom,
-  IgnoredKeyPress,
+  PressedKey,
   ClickedLink,
   ChangedUrl,
   GotHomeMessage,

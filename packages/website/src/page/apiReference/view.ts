@@ -665,15 +665,16 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
 )
 
 const skeletonFunctionBlocks: ReadonlyArray<{
+  readonly id: string
   readonly labelWidth: string
   readonly bodyHeight: string
 }> = [
-  { labelWidth: 'w-56', bodyHeight: 'h-24' },
-  { labelWidth: 'w-48', bodyHeight: 'h-20' },
-  { labelWidth: 'w-64', bodyHeight: 'h-28' },
-  { labelWidth: 'w-40', bodyHeight: 'h-16' },
-  { labelWidth: 'w-52', bodyHeight: 'h-24' },
-  { labelWidth: 'w-44', bodyHeight: 'h-20' },
+  { id: 'skeleton-block-0', labelWidth: 'w-56', bodyHeight: 'h-24' },
+  { id: 'skeleton-block-1', labelWidth: 'w-48', bodyHeight: 'h-20' },
+  { id: 'skeleton-block-2', labelWidth: 'w-64', bodyHeight: 'h-28' },
+  { id: 'skeleton-block-3', labelWidth: 'w-40', bodyHeight: 'h-16' },
+  { id: 'skeleton-block-4', labelWidth: 'w-52', bodyHeight: 'h-24' },
+  { id: 'skeleton-block-5', labelWidth: 'w-44', bodyHeight: 'h-20' },
 ]
 
 const skeletonSurfaceClass = 'bg-gray-200 dark:bg-gray-800'
@@ -686,8 +687,9 @@ export const skeletonView = (): Html => {
     [
       h.div([h.Class(`h-10 w-72 mb-10 rounded ${skeletonSurfaceClass}`)], []),
       h.div([h.Class(`h-7 w-36 mb-6 rounded ${skeletonSurfaceClass}`)], []),
-      ...Array.map(skeletonFunctionBlocks, ({ labelWidth, bodyHeight }) =>
-        h.div(
+      ...Array.map(skeletonFunctionBlocks, ({ id, labelWidth, bodyHeight }) =>
+        h.keyed('div')(
+          id,
           [h.Class('mb-8')],
           [
             h.div(

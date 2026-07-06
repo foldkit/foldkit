@@ -37,6 +37,9 @@
       "entry": ["src/main.ts"],
       "ignore": ["src/snippet/**", "public/**"]
     },
+    "packages/oxlint-plugin-foldkit": {
+      "ignore": ["test/integration/fixtures/**"]
+    },
     "examples/*": {
       "ignoreDependencies": [
         "@trivago/prettier-plugin-sort-imports",
