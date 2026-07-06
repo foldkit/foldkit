@@ -684,6 +684,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           lazyDocsContent(Page.Core.FreezeModel.view, []),
           Page.Core.FreezeModel.tableOfContents,
         ),
+      CorePreserveScroll: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.Core.PreserveScroll.view, []),
+          Page.Core.PreserveScroll.tableOfContents,
+        ),
       CoreSubmodel: () =>
         withTableOfContents(
           lazyDocsContent(Page.Core.Submodel.view, [

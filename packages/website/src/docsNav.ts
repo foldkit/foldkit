@@ -28,6 +28,7 @@ import {
   coreMessagesRouter,
   coreModelRouter,
   coreMountRouter,
+  corePreserveScrollRouter,
   coreRenderRouter,
   coreResourcesRouter,
   coreRuntimeRouter,
@@ -302,6 +303,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'CoreFreezeModel',
           href: coreFreezeModelRouter(),
           label: 'Freeze Model',
+        },
+        {
+          _tag: 'CorePreserveScroll',
+          href: corePreserveScrollRouter(),
+          label: 'Preserve Scroll',
         },
       ],
       [

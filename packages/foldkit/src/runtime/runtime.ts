@@ -69,6 +69,10 @@ import {
   RequestModelMessage,
   RestoreModelMessage,
 } from './hmrProtocol.js'
+import {
+  preserveScrollPosition,
+  restorePreservedScrollPosition,
+} from './hmrScroll.js'
 import type {
   ManagedResourceConfig,
   ManagedResources,
@@ -631,6 +635,22 @@ type RuntimeConfig<
    */
   freezeModel?: boolean
   /**
+   * Restores the window scroll position across Vite HMR reloads. Every edit
+   * triggers a full page reload, which resets scroll to the top; this captures
+   * `window.scrollX`/`scrollY` just before the reload and reapplies it once the
+   * restored view has rendered, so editing a page you've scrolled deep into
+   * doesn't bounce you back to the top on every save.
+   *
+   * Defaults to `true`. Activates only when Vite HMR is available and the
+   * runtime owns the document, so production builds and embedded `makeElement`
+   * apps (which do not own the page's scroll) pay nothing. Pass `false` to
+   * disable, for an app that drives its own scroll restoration.
+   *
+   * Scope: only the window scroll offset is preserved. Scroll positions of
+   * nested `overflow` containers are not.
+   */
+  preserveScroll?: boolean
+  /**
    * An Effect Layer providing services shared by every Command and
    * Subscription. The runtime builds the Layer once, the first time it is
    * needed: at startup in an app that declares Subscriptions (their
@@ -691,6 +711,7 @@ type BaseApplicationConfig<
   crash?: CrashConfig<Model, Message>
   slow?: SlowConfig<Model, Message>
   freezeModel?: boolean
+  preserveScroll?: boolean
   resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
   devTools?: DevToolsConfig
@@ -1249,6 +1270,7 @@ const makeRuntime = <
   crash,
   slow,
   freezeModel,
+  preserveScroll,
   resources,
   managedResources,
   devTools,
@@ -1281,6 +1303,9 @@ const makeRuntime = <
   )
 
   const isFreezeModelActive = freezeModel !== false && !!import.meta.hot
+
+  const isPreserveScrollActive =
+    preserveScroll !== false && manageDocument && !!import.meta.hot
 
   const duplicateIdScanner = import.meta.hot
     ? createDuplicateIdScanner()
@@ -1582,6 +1607,18 @@ const makeRuntime = <
               Effect.sync(() => hot.off('vite:beforeFullReload', handler)),
           )
           yield* Effect.addFinalizer(() => preserveScheduler.cancel)
+        }
+
+        if (hot && isPreserveScrollActive) {
+          yield* Effect.acquireRelease(
+            Effect.sync(() => {
+              const handler = (): void => preserveScrollPosition(runtimeId)
+              hot.on('vite:beforeFullReload', handler)
+              return handler
+            }),
+            handler =>
+              Effect.sync(() => hot.off('vite:beforeFullReload', handler)),
+          )
         }
 
         const schedulePreserveModel = (model: Model): Effect.Effect<void> =>
@@ -2123,6 +2160,10 @@ const makeRuntime = <
           // runtime scope and tear down the crash view; the scope must stay
           // open until the runtime is interrupted (dispose, or page unload).
           return yield* Effect.never
+        }
+
+        if (isPreserveScrollActive) {
+          yield* restorePreservedScrollPosition(runtimeId)
         }
 
         const initMountEvents = drainMountEvents()
@@ -2760,6 +2801,9 @@ export function makeApplication<
     }),
     ...(Predicate.isNotUndefined(config.freezeModel) && {
       freezeModel: config.freezeModel,
+    }),
+    ...(Predicate.isNotUndefined(config.preserveScroll) && {
+      preserveScroll: config.preserveScroll,
     }),
     ...(config.resources && { resources: config.resources }),
     ...(config.managedResources && {

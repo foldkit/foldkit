@@ -68,6 +68,7 @@ export const CoreDevToolsRoute = r('CoreDevTools')
 export const CoreCrashViewRoute = r('CoreCrashView')
 export const CoreSlowWarningsRoute = r('CoreSlowWarnings')
 export const CoreFreezeModelRoute = r('CoreFreezeModel')
+export const CorePreserveScrollRoute = r('CorePreserveScroll')
 export const CoreViewMemoizationRoute = r('CoreViewMemoization')
 export const CoreEmbeddingRoute = r('CoreEmbedding')
 export const CoreSubmodelRoute = r('CoreSubmodel')
@@ -162,6 +163,7 @@ export const DocsRoute = S.Union([
   CoreCrashViewRoute,
   CoreSlowWarningsRoute,
   CoreFreezeModelRoute,
+  CorePreserveScrollRoute,
   CoreViewMemoizationRoute,
   CoreEmbeddingRoute,
   CoreSubmodelRoute,
@@ -376,6 +378,10 @@ export const coreSlowWarningsRouter = core(
   CoreSlowWarningsRoute,
 )
 export const coreFreezeModelRouter = core('freeze-model', CoreFreezeModelRoute)
+export const corePreserveScrollRouter = core(
+  'preserve-scroll',
+  CorePreserveScrollRoute,
+)
 export const coreViewMemoizationRouter = core(
   'view-memoization',
   CoreViewMemoizationRoute,
@@ -477,6 +483,7 @@ const coreParser = oneOf(
   coreCrashViewRouter,
   coreSlowWarningsRouter,
   coreFreezeModelRouter,
+  corePreserveScrollRouter,
   coreViewMemoizationRouter,
   coreEmbeddingRouter,
   coreSubmodelRouter,

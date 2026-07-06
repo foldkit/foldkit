@@ -256,6 +256,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Freeze Model',
     'Catch accidental Model mutations at the write site in development.',
   ),
+  CorePreserveScroll: core(
+    'Preserve Scroll',
+    'Keep the window scroll position across Vite HMR reloads in development.',
+  ),
   CoreViewMemoization: core(
     'View Memoization',
     'Optimize rendering performance with memoized views.',
