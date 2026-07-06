@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Command } from '../command/index.js'
 import { html } from '../html/index.js'
 import { m } from '../message/index.js'
+import * as Subscription from '../subscription/subscription.js'
 import {
   type SlowContext,
   type SlowSubscriptionDependenciesContext,
@@ -11,7 +12,6 @@ import {
   __resolveSlowConfig,
   makeElement,
 } from './runtime.js'
-import * as Subscription from './subscription.js'
 
 const ClickedIncrement = m('ClickedIncrement')
 const ClickedKeptModel = m('ClickedKeptModel')

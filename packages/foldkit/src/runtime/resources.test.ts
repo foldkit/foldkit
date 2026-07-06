@@ -12,8 +12,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Command from '../command/index.js'
 import { html } from '../html/index.js'
 import { m } from '../message/index.js'
+import * as Subscription from '../subscription/subscription.js'
 import { makeElement } from './runtime.js'
-import * as Subscription from './subscription.js'
 
 const ClickedReadValue = m('ClickedReadValue')
 const SucceededReadValue = m('SucceededReadValue', { value: S.String })

@@ -1,9 +1,11 @@
+import { Option, Predicate } from 'effect'
 import {
   type VNode,
   attributesModule,
   classModule,
   datasetModule,
   eventListenersModule,
+  h,
   init,
   styleModule,
   toVNode,
@@ -111,4 +113,20 @@ export const dedupeMemoizedResult = (
   }
   const nextChildren = dedupeChildList(root.children, seen)
   return nextChildren === undefined ? root : { ...root, children: nextChildren }
+}
+
+export const __patchVNode = (
+  maybeCurrentVNode: Option.Option<VNode>,
+  nextVNode: VNode | null,
+  container: HTMLElement,
+  seen?: Set<object>,
+): VNode => {
+  const dedupedVNode = Predicate.isNotNull(nextVNode)
+    ? dedupeSharedVNodes(nextVNode, seen)
+    : h('!')
+
+  return Option.match(maybeCurrentVNode, {
+    onNone: () => patch(toVNode(container), dedupedVNode),
+    onSome: currentVNode => patch(currentVNode, dedupedVNode),
+  })
 }

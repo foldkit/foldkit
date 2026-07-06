@@ -1,6 +1,6 @@
 import { Context, Effect, Option, Queue, Schema, Stream } from 'effect'
 
-import { persistent } from '../runtime/subscription.js'
+import { persistent } from '../subscription/subscription.js'
 
 /** Type-level brand for inbound Port values. */
 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
