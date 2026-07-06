@@ -1,5 +1,12 @@
 # create-foldkit-app
 
+## 0.20.1
+
+### Patch Changes
+
+- 82ae73b: Generate the README's Getting Started commands from the selected package manager instead of always showing pnpm.
+- 82ae73b: Scope the generated `lint` script and Vitest config to `src`, and ignore `.claude/worktrees/`. Tooling in a scaffolded project no longer reaches into vendored `repos/` subtrees.
+
 ## 0.20.0
 
 ### Minor Changes

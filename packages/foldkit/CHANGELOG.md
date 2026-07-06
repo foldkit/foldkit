@@ -1,5 +1,21 @@
 # foldkit
 
+## 0.125.0
+
+### Minor Changes
+
+- 7ccca96: Add a `preserveScroll` option to `makeApplication` that retains the window scroll position across Vite HMR reloads. Every edit triggers a full page reload, which resets scroll to the top; Foldkit now captures `window.scrollX`/`scrollY` just before the reload and reapplies it once the restored view has rendered, so editing a page you have scrolled deep into no longer bounces you back to the top on every save.
+
+  Defaults to `true` and, like `freezeModel`, activates only under Vite HMR, so production builds pay nothing. It applies to document-owning apps built with `makeApplication`; embedded `makeElement` apps never touch the host page's scroll. Pass `preserveScroll: false` to opt out. Only the window scroll offset is preserved; nested `overflow` container positions are not. The offset is reapplied as soon as the restored view renders, so a page whose full height settles only after asynchronous layout, such as images without set dimensions or media that loads in below the fold, can land short of a deep offset.
+
+- 7b2850d: Add the `Update` module and supporting cache helpers.
+
+  `foldkit/update` provides `combine`, which folds a list of update steps into one and concatenates their Commands in order, and `refresh`, which revalidates a single AsyncData cache field and emits its load Command only when the entry should transition. It also exports `noOp` and the `Commands`, `Return`, `ReturnWithOutMessage`, `Step`, and `Refreshable` type aliases. `combine` is dual: call it data-first as `combine(model, steps)` to run the steps now, or data-last as `combine(steps)` for a composable `Step`.
+
+  `AsyncData.fromOptionOrIdle` collapses an `Option<AsyncData>` to an `AsyncData`, mapping `None` to `Idle`, for reading a keyed cache where an absent key means nothing was requested yet.
+
+  `Route.isEntering` and the `RouteTransition` type describe a route change and test whether it entered a given route, so navigation and `init` can share one load-on-entry policy.
+
 ## 0.124.0
 
 ## 0.123.0
