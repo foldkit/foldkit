@@ -13,6 +13,7 @@ export {
   query,
   parseUrlWithFallback,
   r,
+  isEntering,
 } from './index.js'
 
 export type {
@@ -22,4 +23,5 @@ export type {
   TerminalParser,
   ExtendableBiparser,
   Parser,
+  RouteTransition,
 } from './index.js'
