@@ -1,5 +1,5 @@
 {
-  "name": "my-foldkit-app",
+  "name": "{{name}}",
   "version": "0.1.0",
   "type": "module",
   "scripts": {
@@ -9,6 +9,6 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier -w .",
     "test": "vitest run",
-    "lint": "oxlint"
+    "lint": "oxlint src"
   }
 }

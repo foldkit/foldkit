@@ -19,7 +19,7 @@ import {
 } from 'effect/unstable/http'
 import { fileURLToPath } from 'node:url'
 
-type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun'
+import { type PackageManager, devCommand, installCommand } from './packages.js'
 
 const GITHUB_API_BASE_URL =
   'https://api.github.com/repos/foldkit/foldkit/contents/examples'
@@ -168,21 +168,43 @@ export const createProject = (
 ) =>
   Effect.gen(function* () {
     yield* createBaseFiles(projectPath)
-    yield* modifyBaseFiles(projectPath, name)
+    yield* modifyBaseFiles(projectPath, name, packageManager)
     yield* createPackageManagerFiles(projectPath, packageManager)
     yield* createExampleFiles(projectPath, example)
   })
 
-const modifyBaseFiles = (projectPath: string, name: string) =>
+export const applyPackageManager = (
+  readme: string,
+  packageManager: PackageManager,
+): string =>
+  pipe(
+    readme,
+    String.replace('{{installCommand}}', installCommand(packageManager)),
+    String.replace('{{devCommand}}', devCommand(packageManager)),
+  )
+
+const modifyBaseFiles = (
+  projectPath: string,
+  name: string,
+  packageManager: PackageManager,
+) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
 
     const packageJsonPath = path.join(projectPath, 'package.json')
+    const packageJson = yield* fs.readFileString(packageJsonPath)
+    yield* fs.writeFileString(
+      packageJsonPath,
+      String.replace('{{name}}', name)(packageJson),
+    )
 
-    const content = yield* fs.readFileString(packageJsonPath)
-    const updatedContent = String.replace('my-foldkit-app', name)(content)
-    yield* fs.writeFileString(packageJsonPath, updatedContent)
+    const readmePath = path.join(projectPath, 'README.md')
+    const readme = yield* fs.readFileString(readmePath)
+    yield* fs.writeFileString(
+      readmePath,
+      applyPackageManager(readme, packageManager),
+    )
   })
 
 const GitHubFileEntry = Schema.Struct({

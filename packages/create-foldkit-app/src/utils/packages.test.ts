@@ -2,7 +2,12 @@ import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { buildUnresolvedDeps, buildUnresolvedDevDeps } from './packages.js'
+import {
+  buildUnresolvedDeps,
+  buildUnresolvedDevDeps,
+  devCommand,
+  installCommand,
+} from './packages.js'
 
 describe('buildUnresolvedDeps', () => {
   it('keeps third-party versions, resolves Foldkit workspace deps to latest, and drops foreign workspace deps', () => {
@@ -46,5 +51,23 @@ describe('buildUnresolvedDevDeps', () => {
       typescript: { _tag: 'Keep', version: '^6.0.3' },
       vite: { _tag: 'Keep', version: '^8.0.16' },
     })
+  })
+})
+
+describe('installCommand', () => {
+  it('installs with the selected package manager', () => {
+    expect(installCommand('pnpm')).toBe('pnpm install')
+    expect(installCommand('npm')).toBe('npm install')
+    expect(installCommand('yarn')).toBe('yarn install')
+    expect(installCommand('bun')).toBe('bun install')
+  })
+})
+
+describe('devCommand', () => {
+  it('runs the dev script, prefixing run only where npm needs it', () => {
+    expect(devCommand('pnpm')).toBe('pnpm dev')
+    expect(devCommand('npm')).toBe('npm run dev')
+    expect(devCommand('yarn')).toBe('yarn dev')
+    expect(devCommand('bun')).toBe('bun dev')
   })
 })
