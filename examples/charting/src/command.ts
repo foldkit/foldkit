@@ -1,6 +1,5 @@
 import { Effect, Layer, Option, Schema as S } from 'effect'
-import { FetchHttpClient, HttpClient } from 'effect/unstable/http'
-import { Command } from 'foldkit'
+import { Command, Http } from 'foldkit'
 
 import { getChart } from './chartHost'
 import { ChartMode, PackageId, Period, Telemetry } from './domain'
@@ -32,11 +31,8 @@ export const FetchTelemetry = Command.define(
         }),
       ),
     ),
-    Effect.provideService(HttpClient.TracerPropagationEnabled, false),
     Effect.provide(
-      Layer.mergeAll(GitHubApiLive, NpmApiLive).pipe(
-        Layer.provide(FetchHttpClient.layer),
-      ),
+      Layer.mergeAll(GitHubApiLive, NpmApiLive).pipe(Layer.provide(Http.layer)),
     ),
   ),
 )

@@ -11,17 +11,14 @@ import {
   Schema as S,
   pipe,
 } from 'effect'
-import {
-  FetchHttpClient,
-  HttpClient,
-  HttpClientRequest,
-} from 'effect/unstable/http'
+import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
 import { KeyValueStore } from 'effect/unstable/persistence'
 import {
   Calendar,
   Command,
   Dom,
   FieldValidation,
+  Http,
   ManagedResource,
   Runtime,
   Subscription,
@@ -1342,8 +1339,7 @@ const SubscribeToNewsletter = Command.define(
     return SucceededSubscribeToNewsletter()
   }).pipe(
     Effect.catch(() => Effect.succeed(FailedSubscribeToNewsletter())),
-    Effect.provideService(HttpClient.TracerPropagationEnabled, false),
-    Effect.provide(FetchHttpClient.layer),
+    Effect.provide(Http.layer),
   ),
 )
 
@@ -1379,8 +1375,7 @@ const FetchGitHubStars = Command.define(
         }),
       ),
     ),
-    Effect.provideService(HttpClient.TracerPropagationEnabled, false),
-    Effect.provide(FetchHttpClient.layer),
+    Effect.provide(Http.layer),
   ),
 )
 

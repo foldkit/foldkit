@@ -1,10 +1,6 @@
 import { Effect, Match as M, Schema as S, pipe } from 'effect'
-import {
-  FetchHttpClient,
-  HttpClient,
-  HttpClientRequest,
-} from 'effect/unstable/http'
-import { AsyncData, Command } from 'foldkit'
+import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
+import { AsyncData, Command, Http } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
@@ -53,7 +49,7 @@ const Search = Command.define(
     Effect.mapError(error => String(error)),
     Effect.result,
     Effect.map(result => SettledSearch({ requestId, result })),
-    Effect.provide(FetchHttpClient.layer),
+    Effect.provide(Http.layer),
   ),
 )
 

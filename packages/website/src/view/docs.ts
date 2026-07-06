@@ -634,6 +634,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           lazyDocsContent(Page.Core.CoreFile.view, [model.copiedSnippets]),
           Page.Core.CoreFile.tableOfContents,
         ),
+      CoreHttp: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.Core.CoreHttp.view, [model.copiedSnippets]),
+          Page.Core.CoreHttp.tableOfContents,
+        ),
       CoreCanvas: () =>
         withTableOfContents(
           lazyDocsContent(Page.Core.CoreCanvas.view, [model.copiedSnippets]),

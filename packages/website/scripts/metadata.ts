@@ -219,6 +219,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'File',
     'Read and select files from the browser using an opaque File type and event attributes for inputs and drop zones.',
   ),
+  CoreHttp: core(
+    'Http',
+    'Provide a Fetch-backed HttpClient to a Command with trace header propagation disabled by default, so browser requests stay CORS-simple instead of triggering preflights.',
+  ),
   CoreCanvas: core(
     'Canvas',
     'Declarative 2D rendering with a Schema-defined Shape AST and pointer events translated to canvas-local coordinates.',

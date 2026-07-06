@@ -30,6 +30,7 @@ export const foldkitAliases = (dirname: string) => ({
   ),
   'foldkit/file': path.resolve(dirname, '../../packages/foldkit/src/file'),
   'foldkit/html': path.resolve(dirname, '../../packages/foldkit/src/html'),
+  'foldkit/http': path.resolve(dirname, '../../packages/foldkit/src/http'),
   'foldkit/managedResource': path.resolve(
     dirname,
     '../../packages/foldkit/src/managedResource',
