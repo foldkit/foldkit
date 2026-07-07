@@ -6,3 +6,4 @@ pnpm-lock.yaml
 playwright-report/
 test-results/
 repos/
+packages/oxlint-plugin-foldkit/test/integration/fixtures/

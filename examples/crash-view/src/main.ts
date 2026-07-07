@@ -93,6 +93,7 @@ export const crashView = ({
                     h.Class(
                       'bg-red-600 text-white border-none px-6 py-2.5 rounded-md text-sm font-medium cursor-pointer hover:bg-red-700 transition',
                     ),
+                    // oxlint-disable-next-line foldkit/no-raw-dom-event-attributes -- the crash view renders outside the dispatch loop, so there is no runtime to route a Message
                     h.Attribute('onclick', 'location.reload()'),
                   ],
                   ['Reload'],

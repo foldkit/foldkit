@@ -19,6 +19,7 @@ export const SucceededJoinRoom = m('SucceededJoinRoom', {
   roomId: S.String,
   player: Shared.Player,
 })
+export const FailedCreateRoom = m('FailedCreateRoom', { error: S.String })
 export const FailedJoinRoom = m('FailedJoinRoom', { error: S.String })
 export const PressedKey = m('PressedKey', { key: S.String })
 
@@ -33,6 +34,7 @@ export const Message = S.Union([
   SubmittedJoinRoomForm,
   SucceededCreateRoom,
   SucceededJoinRoom,
+  FailedCreateRoom,
   FailedJoinRoom,
   PressedKey,
 ])

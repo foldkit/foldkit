@@ -89,6 +89,7 @@ export const canvasView = (model: Model, theme: PaletteTheme): Html => {
                   onNonEmpty: filtered => filtered,
                 }),
               )
+              // oxlint-disable-next-line foldkit/no-array-index-view-keys -- a fixed positional grid; the row index is the stable identity
               return lazyRow(`${y}`, rowView, [
                 row,
                 y,

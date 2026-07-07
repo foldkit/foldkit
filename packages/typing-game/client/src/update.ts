@@ -36,6 +36,47 @@ export type UpdateReturn<Model, Message> = [
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn<Model, Message>>()
 
+const applyRoomResult = (
+  model: Model,
+  [nextRoomModel, roomCommands]: Room.UpdateReturn,
+): UpdateReturn<Model, Message> => [
+  evo(model, { room: () => nextRoomModel }),
+  Command.mapMessages(roomCommands, message => GotRoomMessage({ message })),
+]
+
+const applyHomeResult = (
+  model: Model,
+  [nextHomeModel, homeCommands, maybeOutMessage]: Home.UpdateReturn,
+): UpdateReturn<Model, Message> => {
+  const mappedCommands = Command.mapMessages(homeCommands, message =>
+    GotHomeMessage({ message }),
+  )
+
+  return Option.match(maybeOutMessage, {
+    onNone: () => [evo(model, { home: () => nextHomeModel }), mappedCommands],
+    onSome: outMessage =>
+      M.value(outMessage).pipe(
+        withUpdateReturn,
+        M.tag(
+          'SucceededCreateRoom',
+          'SucceededJoinRoom',
+          ({ roomId, player }) => {
+            const [nextModel, roomCommands] = handleRoomJoined(
+              model,
+              roomId,
+              player,
+            )
+            return [
+              evo(nextModel, { home: () => nextHomeModel }),
+              [...mappedCommands, ...roomCommands],
+            ]
+          },
+        ),
+        M.exhaustive,
+      ),
+  })
+}
+
 export const update = (
   model: Model,
   message: Message,
@@ -62,73 +103,40 @@ export const update = (
         [],
       ],
 
-      GotHomeMessage: ({ message }) => {
-        const [nextHomeModel, homeCommands, maybeOutMessage] = Home.update(
-          model.home,
-          message,
-        )
-
-        const mappedCommands = Command.mapMessages(homeCommands, message =>
-          GotHomeMessage({ message }),
-        )
-
-        return Option.match(maybeOutMessage, {
-          onNone: () => [
-            evo(model, {
-              home: () => nextHomeModel,
-            }),
-            mappedCommands,
-          ],
-          onSome: outMessage =>
-            M.value(outMessage).pipe(
-              withUpdateReturn,
-              M.tag(
-                'SucceededCreateRoom',
-                'SucceededJoinRoom',
-                ({ roomId, player }) => {
-                  const [nextModel, roomCommands] = handleRoomJoined(
-                    model,
-                    roomId,
-                    player,
-                  )
-                  return [
-                    evo(nextModel, { home: () => nextHomeModel }),
-                    [...mappedCommands, ...roomCommands],
-                  ]
-                },
-              ),
-              M.exhaustive,
-            ),
-        })
-      },
+      GotHomeMessage: ({ message }) =>
+        applyHomeResult(model, Home.update(model.home, message)),
 
       GotRoomMessage: ({ message }) =>
         M.value(model.route).pipe(
           withUpdateReturn,
-          M.tag('Room', ({ roomId }) => {
-            const [nextRoomModel, roomCommands] = Room.update(
-              model.room,
-              message,
-              { roomId },
-            )
-
-            return [
-              evo(model, {
-                room: () => nextRoomModel,
-              }),
-              Command.mapMessages(roomCommands, message =>
-                GotRoomMessage({ message }),
-              ),
-            ]
-          }),
+          M.tag('Room', ({ roomId }) =>
+            applyRoomResult(
+              model,
+              Room.update(model.room, message, { roomId }),
+            ),
+          ),
           M.orElse(() => [model, []]),
+        ),
+
+      PressedKey: ({ key }) =>
+        M.value(model.route).pipe(
+          withUpdateReturn,
+          M.tagsExhaustive({
+            Home: () =>
+              applyHomeResult(model, Home.informPressedKey(model.home, key)),
+            Room: ({ roomId }) =>
+              applyRoomResult(
+                model,
+                Room.informPressedKey(model.room, key, { roomId }),
+              ),
+            NotFound: () => [model, []],
+          }),
         ),
     }),
     M.tag(
       'CompletedNavigateInternal',
       'CompletedLoadExternal',
       'CompletedNavigateRoom',
-      'IgnoredKeyPress',
       () => [model, []],
     ),
     M.exhaustive,
@@ -139,11 +147,9 @@ const handleRoomJoined = (
   roomId: string,
   player: Shared.Player,
 ): UpdateReturn<Model, Message> => {
-  const [nextRoomModel, roomCommands] = Room.update(
-    model.room,
-    Room.Message.SucceededJoinRoom({ player }),
-    { roomId },
-  )
+  const [nextRoomModel, roomCommands] = Room.join(model.room, player, {
+    roomId,
+  })
 
   return [
     evo(model, { room: () => nextRoomModel }),

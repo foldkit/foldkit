@@ -1546,6 +1546,9 @@ importers:
         specifier: ^0.3.2
         version: 0.3.2(effect@4.0.0-beta.88)
     devDependencies:
+      '@types/node':
+        specifier: ^25.9.3
+        version: 25.9.3
       effect:
         specifier: 4.0.0-beta.88
         version: 4.0.0-beta.88

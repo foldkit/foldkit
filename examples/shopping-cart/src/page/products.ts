@@ -20,7 +20,7 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-const CompletedReplaceUrl = m('CompletedReplaceUrl')
+const CompletedReplaceSearchUrl = m('CompletedReplaceSearchUrl')
 const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
 export const ClickedAddToCart = m('ClickedAddToCart', { item: Item.Item })
 export const ClickedIncrementQuantity = m('ClickedIncrementQuantity', {
@@ -31,7 +31,7 @@ export const ClickedDecrementQuantity = m('ClickedDecrementQuantity', {
 })
 
 export const Message = S.Union([
-  CompletedReplaceUrl,
+  CompletedReplaceSearchUrl,
   ChangedSearchInput,
   ClickedAddToCart,
   ClickedIncrementQuantity,
@@ -72,8 +72,8 @@ export const init = (products: ReadonlyArray<Item.Item>): Model => ({
 const ReplaceSearchUrl = Command.define(
   'ReplaceSearchUrl',
   { url: S.String },
-  CompletedReplaceUrl,
-)(({ url }) => replaceUrl(url).pipe(Effect.as(CompletedReplaceUrl())))
+  CompletedReplaceSearchUrl,
+)(({ url }) => replaceUrl(url).pipe(Effect.as(CompletedReplaceSearchUrl())))
 
 // UPDATE
 
@@ -88,7 +88,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      CompletedReplaceUrl: () => [model, [], Option.none()],
+      CompletedReplaceSearchUrl: () => [model, [], Option.none()],
 
       ChangedSearchInput: ({ value }) => [
         evo(model, { searchText: () => value }),

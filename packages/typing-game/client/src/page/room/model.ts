@@ -1,4 +1,4 @@
-import { Schema as S } from 'effect'
+import { Match, Option, Schema as S } from 'effect'
 
 import * as Shared from '@typing-game/shared'
 
@@ -22,3 +22,17 @@ export const Model = S.Struct({
   exitCountdownSecondsLeft: S.Number,
 })
 export type Model = typeof Model.Type
+
+export const capturesKeyboard = (model: Model): boolean => {
+  const isRoomPlayable = Match.value(model.roomRemoteData).pipe(
+    Match.tag('Ok', ({ data }) =>
+      Match.value(data.status).pipe(
+        Match.tag('Waiting', 'Finished', () => true),
+        Match.orElse(() => false),
+      ),
+    ),
+    Match.orElse(() => false),
+  )
+
+  return Option.isSome(model.maybeSession) && isRoomPlayable
+}

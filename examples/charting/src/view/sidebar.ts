@@ -88,11 +88,9 @@ export const summaryGridView = (telemetry: Telemetry): Html => {
   return h.div(
     [h.Class('grid grid-cols-2 gap-3')],
     Array.map(summaries, summary =>
-      h.div(
-        [
-          h.Key(summary.id),
-          h.Class('rounded-md border border-zinc-200 bg-white p-3'),
-        ],
+      h.keyed('div')(
+        summary.id,
+        [h.Class('rounded-md border border-zinc-200 bg-white p-3')],
         [
           h.div(
             [h.Class('text-xs font-medium text-zinc-500')],

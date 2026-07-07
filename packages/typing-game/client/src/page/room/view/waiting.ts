@@ -43,7 +43,11 @@ const player = (
       ),
     )
 
-    return h.div([], [h.span([], [player.username]), ...badges])
+    return h.keyed('div')(
+      player.id,
+      [],
+      [h.span([], [player.username]), ...badges],
+    )
   })
 }
 

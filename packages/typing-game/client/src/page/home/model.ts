@@ -44,3 +44,9 @@ export const Model = S.Struct({
   formError: S.Option(S.String),
 })
 export type Model = typeof Model.Type
+
+export const capturesKeyboard = (model: Model): boolean =>
+  Match.value(model.homeStep).pipe(
+    Match.tag('SelectAction', () => true),
+    Match.orElse(() => false),
+  )

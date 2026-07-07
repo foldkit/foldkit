@@ -6,7 +6,9 @@
     "allowImportingTsExtensions": true,
     "noPropertyAccessFromIndexSignature": false,
     "noEmit": true,
-    "rootDir": "."
+    "rootDir": ".",
+    "types": ["node"]
   },
-  "include": ["src", "test"]
+  "include": ["src", "test"],
+  "exclude": ["test/integration/fixtures"]
 }
