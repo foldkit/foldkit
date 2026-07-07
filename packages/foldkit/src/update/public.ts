@@ -1,4 +1,4 @@
-export { noOp, combine, refresh } from './index.js'
+export { combine, refresh } from './index.js'
 
 export type {
   Commands,

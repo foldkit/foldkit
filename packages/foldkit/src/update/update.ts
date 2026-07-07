@@ -51,14 +51,6 @@ export type Step<Model, Message, R = never> = (
   model: Model,
 ) => Return<Model, Message, R>
 
-/** The no-op update step: returns the Model unchanged and asks for no
- *  Commands, so the whole update does nothing. Reach for it where a
- *  branch has nothing to contribute, for example the `onNone` arm of a
- *  lookup or the "nothing moved" case of a conditional step list. */
-export const noOp = <Model>(
-  model: Model,
-): readonly [Model, ReadonlyArray<never>] => [model, []]
-
 /** Composes a list of update steps into one. Each step runs against the
  *  Model the previous step produced, and every step's Commands are
  *  concatenated into a single batch, in step order.
@@ -70,8 +62,8 @@ export const noOp = <Model>(
  *
  *  Steps only ever accumulate Commands; a step cannot cancel or replace
  *  another step's Commands, and no Command runs during the fold. The
- *  runtime runs the batch after update returns. `combine([])` is
- *  {@link noOp}.
+ *  runtime runs the batch after update returns. `combine([])` returns
+ *  `[model, []]`.
  *
  *  ```ts
  *  SucceededUpdateNote: ({ note }) =>
@@ -98,7 +90,7 @@ export const combine: {
     model: Model,
     steps: ReadonlyArray<Step<Model, Message, R>>,
   ): Return<Model, Message, R> => {
-    const seed: Return<Model, Message, R> = noOp(model)
+    const seed: Return<Model, Message, R> = [model, []]
     return Array.reduce(steps, seed, ([currentModel, commands], step) => {
       const [nextModel, nextCommands] = step(currentModel)
       return [nextModel, [...commands, ...nextCommands]]
@@ -128,7 +120,7 @@ export type Refreshable<Model, Message, A, E, R = never> = Readonly<{
  *  cache: read the entry, ask `revalidate` whether it should transition,
  *  and only when it says yes write the transitioned state and emit the
  *  load Command. When `revalidate` returns `None` (a missing entry, or a
- *  state with nothing to revalidate) the step is {@link noOp}: same
+ *  state with nothing to revalidate) the step returns `[model, []]`: same
  *  Model, no Command. That one rule is what makes blanket revalidation
  *  safe, because only the caches that actually hold data reload.
  *
@@ -149,7 +141,7 @@ export const refresh =
       refreshable.read(model),
       Option.flatMap(refreshable.revalidate),
       Option.match({
-        onNone: () => noOp(model),
+        onNone: () => [model, []],
         onSome: next => [refreshable.write(model, next), [refreshable.load]],
       }),
     )

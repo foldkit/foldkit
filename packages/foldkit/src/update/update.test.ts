@@ -12,7 +12,6 @@ import {
   type ReturnWithOutMessage,
   type Step,
   combine,
-  noOp,
   refresh,
 } from './update.js'
 
@@ -56,15 +55,6 @@ const incrementAndEmitLoadNotes: Step<TestModel, TestMessage> = model => [
   { count: model.count + 1 },
   [loadNotes],
 ]
-
-describe('noOp', () => {
-  it('returns the same model reference and no commands', () => {
-    const model: TestModel = { count: 3 }
-    const [nextModel, commands] = noOp(model)
-    expect(nextModel).toBe(model)
-    expect(commands).toEqual([])
-  })
-})
 
 describe('combine', () => {
   it('threads the model through the steps in order', () => {
@@ -284,14 +274,6 @@ describe('types', () => {
     ).toEqualTypeOf<Return<TestModel, TestMessage>>()
   })
 
-  it('noOp widens to a Return of any concrete Message', () => {
-    expectTypeOf(noOp(baseModel)).toEqualTypeOf<
-      readonly [TestModel, ReadonlyArray<never>]
-    >()
-    const asUpdateReturn: Return<TestModel, TestMessage> = noOp(baseModel)
-    expectTypeOf(asUpdateReturn).toEqualTypeOf<Return<TestModel, TestMessage>>()
-  })
-
   it('compiles the app-local withReturnType idiom over a two-variant message union', () => {
     // NOTE: This test is the factory-cut compile proof. Foldkit does not
     // export a Match factory for update returns; applications pin the alias
@@ -306,7 +288,7 @@ describe('types', () => {
         withUpdateReturn,
         M.tagsExhaustive({
           IncrementedCount: () => [{ count: model.count + 1 }, []],
-          CompletedLoad: () => noOp(model),
+          CompletedLoad: () => [model, []],
         }),
       )
 
