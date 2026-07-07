@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Array, Match as M } from 'effect'
+import { Array, Match as M, Option } from 'effect'
 import type { Field } from 'foldkit/fieldValidation'
 import { Html, html } from 'foldkit/html'
 
@@ -37,8 +37,19 @@ export const iconLink = (link: string, ariaLabel: string, icon: Html) => {
   )
 }
 
-export const githubStarBadge = (count: number): Html => {
+// NOTE: The reserved count width and placeholder length track our current star
+// order of magnitude. Bump both to four once we cross a thousand stars.
+const STAR_COUNT_WIDTH = 'w-[3ch]'
+const STAR_COUNT_PLACEHOLDER = '···'
+
+export const githubStarBadge = (maybeCount: Option.Option<number>): Html => {
   const h = html<Message>()
+
+  const countLabel = Option.match(maybeCount, {
+    onNone: () =>
+      h.span([h.Class('animate-pulse opacity-60')], [STAR_COUNT_PLACEHOLDER]),
+    onSome: count => h.span([], [formatStarCount(count)]),
+  })
 
   return h.span(
     [
@@ -49,7 +60,17 @@ export const githubStarBadge = (count: number): Html => {
     ],
     [
       Icon.star('w-3.5 h-3.5'),
-      h.span([h.Class('mt-px')], [formatStarCount(count)]),
+      h.span(
+        [
+          h.Class(
+            clsx(
+              'mt-px inline-flex justify-center tabular-nums',
+              STAR_COUNT_WIDTH,
+            ),
+          ),
+        ],
+        [countLabel],
+      ),
     ],
   )
 }

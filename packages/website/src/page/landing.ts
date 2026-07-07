@@ -129,10 +129,7 @@ const viewOnGitHubButton = (maybeStarCount: Option.Option<number>): Html => {
     [
       Icon.github('w-5 h-5'),
       h.span([h.Class('mr-2')], ['View on GitHub']),
-      ...Option.match(maybeStarCount, {
-        onNone: () => [],
-        onSome: count => [githubStarBadge(count)],
-      }),
+      githubStarBadge(maybeStarCount),
     ],
   )
 }
