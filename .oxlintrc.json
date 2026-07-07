@@ -32,7 +32,11 @@
     "foldkit/no-empty-object-tagged-call": "error",
     "foldkit/prefer-callable-message-constructor": "error",
     "foldkit/command-binding-matches-name": "error",
-    "foldkit/no-module-level-mutable-state": "error"
+    "foldkit/no-module-level-mutable-state": "error",
+    "foldkit/no-switch-on-message-tag": "error",
+    "foldkit/acquire-release-constructs-in-acquire-body": "error",
+    "foldkit/prefer-option-over-nullable-in-model": "error",
+    "foldkit/prefer-command-mapmessage": "error"
   },
   "overrides": [
     {
@@ -64,6 +68,7 @@
         "foldkit/no-hand-rolled-command-struct": "error",
         "foldkit/no-hardcoded-route-strings": "error",
         "foldkit/no-raw-dom-event-attributes": "error",
+        "foldkit/no-route-query-constructor-default": "error",
         "foldkit/no-spread-in-evo": "error",
         "foldkit/require-rel-for-external-link": "error",
         "foldkit/selection-submodel-factory-at-module-scope": "error",
