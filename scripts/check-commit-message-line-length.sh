@@ -25,10 +25,11 @@ while IFS= read -r COMMIT; do
     LINE_NUMBER=$((LINE_NUMBER + 1))
     LENGTH=${#LINE}
 
-    if [ "$LENGTH" -gt "$MAX_LINE_LENGTH" ]; then
+    if [ "$LENGTH" -gt "$MAX_LINE_LENGTH" ] && [[ "${LINE:$MAX_LINE_LENGTH}" =~ [[:space:]] ]]; then
       if [ "$FOUND_LONG_LINE" -eq 0 ]; then
         echo ""
-        echo "Commit messages must not contain lines longer than ${MAX_LINE_LENGTH} characters."
+        echo "Commit message prose must wrap at ${MAX_LINE_LENGTH} characters."
+        echo "Unbreakable lines (URLs, Co-authored-by trailers) are exempt."
       fi
 
       FOUND_LONG_LINE=1
@@ -38,7 +39,10 @@ while IFS= read -r COMMIT; do
       echo "  $LINE"
     fi
   done < <(git log -1 --format=%B "$COMMIT")
-done < <(git rev-list --reverse "$BASE_REF..HEAD")
+# Skip merge commits. Their messages are auto-generated boilerplate, including
+# the "Merge <sha> into <sha>" commit GitHub synthesizes for a pull request
+# merge ref when this check runs in CI.
+done < <(git rev-list --reverse --no-merges "$BASE_REF..HEAD")
 
 if [ "$FOUND_LONG_LINE" -ne 0 ]; then
   echo ""

@@ -37,6 +37,10 @@ jobs:
       - name: Block unresolved Claude comments
         run: pnpm check:no-claude-comments
 
+      - name: Check commit message line length
+        if: github.event_name == 'pull_request'
+        run: pnpm check:commit-message-line-length
+
       - name: Check formatting
         run: pnpm format:check
 
@@ -50,6 +54,10 @@ jobs:
 
       - name: Verify changeset ignore list
         run: pnpm check:changeset-ignore
+
+      - name: Check changeset summaries are unwrapped
+        if: github.event_name == 'pull_request'
+        run: pnpm check:changeset-unwrapped
 
       - name: Check changeset status
         if: github.event_name == 'pull_request'
