@@ -180,7 +180,7 @@ export const view = (): Html => {
             ' can time update, subscriptions, view, and patch work against phase budgets.',
           ],
         ),
-        'HMR Model preservation encodes the Model so state survives hot reloads.',
+        'Model preservation encodes the Model so state survives dev reloads.',
       ),
       para(
         'All of it is gated behind ',

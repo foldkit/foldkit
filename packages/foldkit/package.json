@@ -83,9 +83,9 @@
       "types": "./dist/story/public.d.ts",
       "import": "./dist/story/public.js"
     },
-    "./hmr-protocol": {
-      "types": "./dist/runtime/hmrProtocolPublic.d.ts",
-      "import": "./dist/runtime/hmrProtocolPublic.js"
+    "./model-preservation": {
+      "types": "./dist/runtime/modelPreservationPublic.d.ts",
+      "import": "./dist/runtime/modelPreservationPublic.js"
     },
     "./fieldValidation": {
       "types": "./dist/fieldValidation/public.d.ts",

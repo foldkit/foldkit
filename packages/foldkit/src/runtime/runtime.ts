@@ -64,22 +64,22 @@ import {
 } from './browserListeners.js'
 import { defaultCrashView, noOpDispatch } from './crashUI.js'
 import { deepFreeze } from './deepFreeze.js'
-import {
-  PreserveModelMessage,
-  RequestModelMessage,
-  RestoreModelMessage,
-} from './hmrProtocol.js'
-import {
-  preserveScrollPosition,
-  restorePreservedScrollPosition,
-} from './hmrScroll.js'
 import type {
   ManagedResourceConfig,
   ManagedResources,
 } from './managedResource.js'
 import { type EnvelopedMessage, orderByPriority } from './messagePriority.js'
+import {
+  PreserveModelMessage,
+  RequestModelMessage,
+  RestoreModelMessage,
+} from './modelPreservation.js'
 import { makePreserveScheduler } from './preserveScheduler.js'
 import { makeRenderLoop } from './renderLoop.js'
+import {
+  preserveScrollPosition,
+  restorePreservedScrollPosition,
+} from './scrollPreservation.js'
 import type { Subscriptions } from './subscription.js'
 
 type AnyCommand<T, E = never, R = never> = {
@@ -275,7 +275,7 @@ type ResolvedSlowConfig<Model, Message> = Readonly<{
  * thresholds. Pass `false` to disable warnings entirely. Pass an object to
  * refine those defaults.
  *
- * - `show`: `'Development'` (default) enables warnings only when Vite HMR is active. `'Always'` enables them in every environment.
+ * - `show`: `'Development'` (default) enables warnings only when running under Vite's dev server. `'Always'` enables them in every environment.
  * - `measuredPhases`: Phases to measure. Defaults to every slow warning phase.
  * - `thresholdOverrides`: Per-phase budget overrides. Omitted fields keep defaults; overrides for unmeasured phases are ignored.
  * - `onSlow`: Callback for every measured phase that exceeds its budget. Replaces Foldkit's default `console.warn`; Foldkit will not also warn for tags your callback ignores.
@@ -627,7 +627,7 @@ type RuntimeConfig<
    * write site with a stack trace, rather than silently corrupting state or
    * breaking reference-equality change detection.
    *
-   * Defaults to `true`. Activates only when Vite HMR is available, so production
+   * Defaults to `true`. Activates only when running under Vite's dev server, so production
    * builds pay nothing. Pass `false` to disable.
    *
    * Scope: only the Model is frozen. Messages are short-lived and are not
@@ -635,16 +635,16 @@ type RuntimeConfig<
    */
   freezeModel?: boolean
   /**
-   * Restores the window scroll position across Vite HMR reloads. Every edit
+   * Restores the window scroll position across Vite dev reloads. Every edit
    * triggers a full page reload, which resets scroll to the top; this captures
    * `window.scrollX`/`scrollY` just before the reload and reapplies it once the
    * restored view has rendered, so editing a page you've scrolled deep into
    * doesn't bounce you back to the top on every save.
    *
-   * Defaults to `true`. Activates only when Vite HMR is available and the
-   * runtime owns the document, so production builds and embedded `makeElement`
-   * apps (which do not own the page's scroll) pay nothing. Pass `false` to
-   * disable, for an app that drives its own scroll restoration.
+   * Defaults to `true`. Activates only when running under Vite's dev server
+   * and the runtime owns the document, so production builds and embedded
+   * `makeElement` apps (which do not own the page's scroll) pay nothing. Pass
+   * `false` to disable, for an app that drives its own scroll restoration.
    *
    * Scope: only the window scroll offset is preserved. Scroll positions of
    * nested `overflow` containers are not.
@@ -973,7 +973,7 @@ export type ElementInit<
 export type MakeRuntimeReturn<P extends Ports | undefined = undefined> =
   Readonly<{
     runtimeId: string
-    start: (hmrModel?: unknown) => Effect.Effect<void>
+    start: (preservedModel?: unknown) => Effect.Effect<void>
     ports: P
   }>
 
@@ -1244,7 +1244,7 @@ const validatePorts = (ports: Ports): void => {
 type RuntimeInternals = {
   startWith: (
     maybeConnector: Option.Option<HostConnector>,
-    hmrModel?: unknown,
+    preservedModel?: unknown,
   ) => Effect.Effect<void>
   isEmbedActive: boolean
   maybeActiveFiber: Option.Option<Fiber.Fiber<void>>
@@ -1378,14 +1378,14 @@ const makeRuntime = <
 
   const startWith = (
     maybeConnector: Option.Option<HostConnector>,
-    hmrModel?: unknown,
+    preservedModel?: unknown,
   ): Effect.Effect<void> =>
     Effect.scoped(
       Effect.gen(function* () {
         if (runtimeId === '') {
           return yield* Effect.die(
             new Error(
-              '[foldkit] Runtime container must have an `id` for HMR model preservation. ' +
+              '[foldkit] Runtime container must have an `id` for Model preservation across reloads. ' +
                 'Set `container.id = "app"` (or any unique string) before passing it to makeApplication or makeElement.',
             ),
           )
@@ -1566,23 +1566,23 @@ const makeRuntime = <
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
           Model as Schema.Codec<Model>,
         )
-        const decodeHmrModel = Schema.decodeUnknownExit(ModelJsonCodec)
-        const encodeHmrModel = Schema.encodeUnknownSync(ModelJsonCodec)
+        const decodePreservedModel = Schema.decodeUnknownExit(ModelJsonCodec)
+        const encodePreservedModel = Schema.encodeUnknownSync(ModelJsonCodec)
 
-        // NOTE: keep `encodeHmrModel` off the dispatch hot path. It walks
+        // NOTE: keep `encodePreservedModel` off the dispatch hot path. It walks
         // the entire Model graph (O(modelSize) per call) and blocks input
         // on large Models. The scheduler defers encoding to a quiet window
-        // and the `vite:beforeFullReload` flush covers the HMR boundary.
+        // and the `vite:beforeFullReload` flush covers the reload boundary.
         const PRESERVE_DEBOUNCE = Duration.millis(200)
         const preserveScheduler = yield* makePreserveScheduler<Model>(
           {
             onDebounce: model =>
               Effect.sync(() =>
-                preserveModel(runtimeId, encodeHmrModel(model), false),
+                preserveModel(runtimeId, encodePreservedModel(model), false),
               ),
             onFlush: model =>
               Effect.sync(() =>
-                preserveModel(runtimeId, encodeHmrModel(model), true),
+                preserveModel(runtimeId, encodePreservedModel(model), true),
               ),
           },
           PRESERVE_DEBOUNCE,
@@ -1649,8 +1649,10 @@ const makeRuntime = <
           routingConfig,
         ).pipe(Option.flatMap(() => urlFromString(window.location.href)))
 
-        const [initModelRaw, initCommands] = Predicate.isNotUndefined(hmrModel)
-          ? Exit.match(decodeHmrModel(hmrModel), {
+        const [initModelRaw, initCommands] = Predicate.isNotUndefined(
+          preservedModel,
+        )
+          ? Exit.match(decodePreservedModel(preservedModel), {
               onFailure: () => init(flags, Option.getOrUndefined(currentUrl)),
               onSuccess: (
                 restoredModel: Model,
@@ -2243,7 +2245,7 @@ const makeRuntime = <
         // interrupt finalizer empties the container. A full document
         // navigation (the only way into and out of a cross-origin-isolated
         // page) is what exercises this path. Registration is idempotent, so an
-        // HMR re-run does not stack listeners.
+        // dev reload re-run does not stack listeners.
         if (manageDocument && Option.isNone(maybeConnector)) {
           yield* Effect.sync(() => addBfcacheRestoreListener())
         }
@@ -2521,8 +2523,8 @@ const makeRuntime = <
       }),
     )
 
-  const start = (hmrModel?: unknown): Effect.Effect<void> =>
-    startWith(Option.none(), hmrModel)
+  const start = (preservedModel?: unknown): Effect.Effect<void> =>
+    startWith(Option.none(), preservedModel)
 
   const program: MakeRuntimeReturn<P> = { runtimeId, start, ports }
   runtimeInternals.set(program, {
@@ -3095,13 +3097,13 @@ const decodeRestoreModelMessage = Schema.decodeUnknownExit(RestoreModelMessage)
 const preserveModel = (
   id: string,
   encodedModel: unknown,
-  isHmrReload: boolean,
+  isReloadFlush: boolean,
 ): void => {
   if (import.meta.hot) {
     import.meta.hot.send(
       'foldkit:preserve-model',
       encodePreserveModelMessage(
-        PreserveModelMessage.make({ id, model: encodedModel, isHmrReload }),
+        PreserveModelMessage.make({ id, model: encodedModel, isReloadFlush }),
       ),
     )
   }
@@ -3135,11 +3137,11 @@ const provideBrowserScheduler = <A, E, R>(
 ): Effect.Effect<A, E, R> =>
   Effect.provide(effect, Layer.succeed(Scheduler.Scheduler, browserScheduler))
 
-// NOTE: asks @foldkit/vite-plugin for a model preserved across the last HMR
+// NOTE: asks @foldkit/vite-plugin for a model preserved across the last
 // reload. The plugin only serves a model whose preservation was flushed by a
 // reload, so a host-driven dispose-then-embed remount initializes fresh while
 // a code reload restores state.
-const resolveHmrModel = (runtimeId: string): Effect.Effect<unknown> => {
+const resolvePreservedModel = (runtimeId: string): Effect.Effect<unknown> => {
   const hot = import.meta.hot
   if (!hot) {
     return Effect.succeed(undefined)
@@ -3168,10 +3170,10 @@ const resolveHmrModel = (runtimeId: string): Effect.Effect<unknown> => {
     Effect.timeout(PLUGIN_RESPONSE_TIMEOUT_MS),
     Effect.catchTag('TimeoutError', () => {
       console.warn(
-        '[foldkit] No response from @foldkit/vite-plugin. Add it to your vite.config.ts for HMR model preservation:\n\n' +
+        '[foldkit] No response from @foldkit/vite-plugin. Add it to your vite.config.ts for Model preservation across reloads:\n\n' +
           "  import { foldkit } from '@foldkit/vite-plugin'\n\n" +
           '  export default defineConfig({ plugins: [foldkit()] })\n\n' +
-          'Starting without HMR support.',
+          'Starting without Model preservation.',
       )
       return Effect.succeed(undefined)
     }),
@@ -3179,12 +3181,12 @@ const resolveHmrModel = (runtimeId: string): Effect.Effect<unknown> => {
 }
 
 /** Starts a Foldkit runtime that owns the page for the page's whole lifetime,
- *  with HMR support for development. To start a runtime under a
+ *  with state-preserving live reload for development. To start a runtime under a
  *  host-controlled lifecycle instead, use `embed`. */
 export const run = (program: MakeRuntimeReturn<Ports | undefined>): void => {
   BrowserRuntime.runMain(
     provideBrowserScheduler(
-      Effect.flatMap(resolveHmrModel(program.runtimeId), program.start),
+      Effect.flatMap(resolvePreservedModel(program.runtimeId), program.start),
     ),
   )
 }
@@ -3269,9 +3271,9 @@ export const embed = <P extends Ports | undefined = undefined>(
       onNone: () => Effect.void,
       onSome: previousFiber => Effect.asVoid(Fiber.await(previousFiber)),
     }),
-    Effect.andThen(resolveHmrModel(program.runtimeId)),
-    Effect.flatMap(hmrModel =>
-      internals.startWith(Option.some(connector), hmrModel),
+    Effect.andThen(resolvePreservedModel(program.runtimeId)),
+    Effect.flatMap(preservedModel =>
+      internals.startWith(Option.some(connector), preservedModel),
     ),
   )
 

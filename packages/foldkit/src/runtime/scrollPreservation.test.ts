@@ -6,7 +6,7 @@ import {
   preservedScrollStorageKey,
   restorePreservedScrollPosition,
   takePreservedScrollPosition,
-} from './hmrScroll.js'
+} from './scrollPreservation.js'
 
 const RUNTIME_ID = 'app'
 

@@ -11,7 +11,7 @@
         "src/html/public.ts",
         "src/devTools/public.ts",
         "src/devTools/host.ts",
-        "src/runtime/hmrProtocolPublic.ts",
+        "src/runtime/modelPreservationPublic.ts",
         "src/scene/public.ts",
         "src/story/public.ts",
         "src/test/public.ts",

@@ -1,7 +1,7 @@
 import { Effect, Option, Schema } from 'effect'
 
 /**
- * Window scroll offset persisted across a Vite HMR full reload. Held in
+ * Window scroll offset persisted across a Vite dev full reload. Held in
  * `sessionStorage` as a JSON string so it survives the reload and can be
  * reapplied synchronously at the next init render, before the browser paints.
  */
@@ -18,7 +18,7 @@ const decodePreservedScrollPosition = Schema.decodeUnknownOption(
 /** The `sessionStorage` key a runtime uses for its preserved scroll offset,
  *  scoped by runtime id so multiple runtimes never read each other's value. */
 export const preservedScrollStorageKey = (runtimeId: string): string =>
-  `foldkit:hmr-scroll:${runtimeId}`
+  `foldkit:scroll:${runtimeId}`
 
 /** Captures the current window scroll offset under the runtime's key. Called
  *  from the `vite:beforeFullReload` handler so the offset is stored just
@@ -32,7 +32,7 @@ export const preserveScrollPosition = (runtimeId: string): void => {
   } catch {
     // NOTE: sessionStorage throws when storage is disabled or blocked by a
     // privacy mode. Scroll restoration is a dev-only convenience, so a failure
-    // here must never break the HMR reload this runs inside.
+    // here must never break the dev reload this runs inside.
   }
 }
 

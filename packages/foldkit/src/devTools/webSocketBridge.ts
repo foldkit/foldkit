@@ -110,7 +110,7 @@ const tryDeriveJsonSchemaDocument = (
  * Emits `EventConnected` on startup so the relay tracks this runtime.
  * Listens on the request channel for `RequestFrame`s targeted at this
  * connection's id and replies with the matching `ResponseFrame`. Emits
- * `EventDisconnected` on tab close or HMR module dispose so the relay can
+ * `EventDisconnected` on tab close or module dispose so the relay can
  * remove this runtime from its connected set.
  *
  * `dispatch` enqueues a Message into the runtime's message queue; the bridge
@@ -132,7 +132,7 @@ const tryDeriveJsonSchemaDocument = (
  * tool returns `None` rather than crashing the bridge.
  *
  * Production-safe: callers must check `import.meta.hot` is defined before
- * invoking this. The function assumes a live HMR connection.
+ * invoking this. The function assumes a live Vite dev connection.
  */
 export const startWebSocketBridge = (
   store: DevToolsStore,

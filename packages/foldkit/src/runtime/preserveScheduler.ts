@@ -11,7 +11,7 @@ import { type Duration, Effect, Fiber, Option, Ref, type Scope } from 'effect'
  * as a no-op. Synchronous semantics let the runtime call this from
  * `vite:beforeFullReload` via `Effect.runSync`, with no race against Vite's
  * `location.reload()`. The two-callback split lets the flush path send
- * `isHmrReload: true` while debounced calls send `false`.
+ * `isReloadFlush: true` while debounced calls send `false`.
  *
  * `cancel` drops the pending model and interrupts the in-flight fiber.
  * Forked fibers are tied to the construction scope via `forkIn`, so scope

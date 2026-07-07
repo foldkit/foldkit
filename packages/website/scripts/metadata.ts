@@ -262,7 +262,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CorePreserveScroll: core(
     'Preserve Scroll',
-    'Keep the window scroll position across Vite HMR reloads in development.',
+    'Keep the window scroll position across full page reloads in development.',
   ),
   CoreViewMemoization: core(
     'View Memoization',
