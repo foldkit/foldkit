@@ -134,6 +134,11 @@ export type InitConfig = Readonly<{
   id: string
   isOpen?: boolean
   isAnimated?: boolean
+  /** CSS selector for the element that receives focus when the dialog opens.
+   *  A selector-based override of the `initialFocus` RenderInfo marker, for the
+   *  cases a spread-on marker cannot express: an element whose id you do not
+   *  own, or a descendant selector. Takes precedence over `initialFocus`. With
+   *  neither set, focus falls to the first focusable element. */
   focusSelector?: string
 }>
 
@@ -153,6 +158,14 @@ export const init = (config: InitConfig): Model => ({
 
 const dialogSelector = (id: string): string => idSelector(id)
 
+/** Data attribute the dialog places on the `initialFocus` RenderInfo group and
+ *  focuses on open. */
+export const initialFocusMarkerAttribute = 'foldkit-dialog-initial-focus'
+
+/** Selector for {@link initialFocusMarkerAttribute}, focused against the open
+ *  dialog when no `focusSelector` is configured. */
+export const initialFocusMarkerSelector = `[data-${initialFocusMarkerAttribute}]`
+
 type UpdateReturn = readonly [
   Model,
   ReadonlyArray<Command.Command<Message>>,
@@ -167,19 +180,11 @@ const withUpdateReturn = M.withReturnType<UpdateReturn>()
  *  component supplies its own backdrop. */
 export const ShowDialog = Command.define(
   'ShowDialog',
-  { id: S.String, maybeFocusSelector: S.Option(S.String) },
+  { id: S.String, focusSelector: S.String },
   CompletedShowDialog,
-)(({ id, maybeFocusSelector }) =>
+)(({ id, focusSelector }) =>
   Dom.lockScroll.pipe(
-    Effect.andThen(() =>
-      Dom.showDialog(
-        dialogSelector(id),
-        Option.match(maybeFocusSelector, {
-          onNone: () => undefined,
-          onSome: focusSelector => ({ focusSelector }),
-        }),
-      ),
-    ),
+    Effect.andThen(() => Dom.showDialog(dialogSelector(id), { focusSelector })),
     Effect.ignore,
     Effect.as(CompletedShowDialog()),
   ),
@@ -262,7 +267,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         const maybeShow = Option.liftPredicate(
           ShowDialog({
             id: model.id,
-            maybeFocusSelector: model.maybeFocusSelector,
+            focusSelector: Option.getOrElse(
+              model.maybeFocusSelector,
+              () => initialFocusMarkerSelector,
+            ),
           }),
           () => wasClosed,
         )
@@ -407,6 +415,10 @@ export const descriptionId = (model: Model): string =>
  *  - `description`: attributes for the description element. Carries the
  *    framework-managed id the dialog's `aria-describedby` points at. Spread
  *    onto your description element (`h.p([...description], [...])`).
+ *  - `initialFocus`: attributes for the element that should receive focus when
+ *    the dialog opens. Spread onto that element (`h.input([...initialFocus])`).
+ *    A configured `focusSelector` (see `init`) takes precedence, and focus
+ *    falls back to the default when no element carries the group.
  *  - `closeButton`: attributes for an in-panel close control such as a Cancel
  *    or dismiss button. Carries the `OnClick` handler that closes the
  *    dialog (suppressed while a leave animation is in progress). Spread
@@ -420,6 +432,7 @@ export type RenderInfo = Readonly<{
   panel: ReadonlyArray<ChildAttribute>
   title: ReadonlyArray<ChildAttribute>
   description: ReadonlyArray<ChildAttribute>
+  initialFocus: ReadonlyArray<ChildAttribute>
   closeButton: ReadonlyArray<ChildAttribute>
   isVisible: boolean
 }>
@@ -503,6 +516,9 @@ export const view = defineView<Model, Message, ViewInputs>(
 
     const titleAttributes = [h.Id(titleId(model))]
     const descriptionAttributes = [h.Id(descriptionId(model))]
+    const initialFocusAttributes = [
+      h.DataAttribute(initialFocusMarkerAttribute, ''),
+    ]
 
     const closeButtonAttributes = isLeaving ? [] : [h.OnClick(RequestedClose())]
 
@@ -512,6 +528,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       panel: childAttributes(panelAttributes),
       title: childAttributes(titleAttributes),
       description: childAttributes(descriptionAttributes),
+      initialFocus: childAttributes(initialFocusAttributes),
       closeButton: childAttributes(closeButtonAttributes),
       isVisible,
     })

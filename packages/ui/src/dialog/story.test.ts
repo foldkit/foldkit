@@ -1,4 +1,5 @@
-import { Option } from 'effect'
+import { Effect, Option, Predicate } from 'effect'
+import * as Dom from 'foldkit/dom'
 import { type ChildAttribute, html } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
@@ -25,16 +26,15 @@ import {
   Unmounted,
   descriptionId,
   init,
+  initialFocusMarkerAttribute,
+  initialFocusMarkerSelector,
   titleId,
   update,
   view,
 } from './index.js'
 
 const isOnUnmount = (childAttribute: ChildAttribute): boolean =>
-  typeof childAttribute.attribute === 'object' &&
-  childAttribute.attribute !== null &&
-  '_tag' in childAttribute.attribute &&
-  childAttribute.attribute._tag === 'OnUnmount'
+  Predicate.isTagged(childAttribute.attribute, 'OnUnmount')
 
 // Renders the dialog view through the Scene harness (which manages the runtime
 // frame) and reports whether the published `dialog` attribute group carries the
@@ -77,13 +77,21 @@ const hasIdAttribute = (
   id: string,
 ): boolean =>
   group.some(
-    childAttribute =>
-      typeof childAttribute.attribute === 'object' &&
-      childAttribute.attribute !== null &&
-      '_tag' in childAttribute.attribute &&
-      childAttribute.attribute._tag === 'Id' &&
-      'value' in childAttribute.attribute &&
-      childAttribute.attribute.value === id,
+    ({ attribute }) =>
+      Predicate.isTagged(attribute, 'Id') &&
+      Predicate.hasProperty(attribute, 'value') &&
+      attribute.value === id,
+  )
+
+const hasDataAttribute = (
+  group: ReadonlyArray<ChildAttribute>,
+  key: string,
+): boolean =>
+  group.some(
+    ({ attribute }) =>
+      Predicate.isTagged(attribute, 'DataAttribute') &&
+      Predicate.hasProperty(attribute, 'key') &&
+      attribute.key === key,
   )
 
 const animationToDialogMessage = (message: Animation.Message) =>
@@ -136,6 +144,33 @@ describe('Dialog', () => {
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
+        )
+      })
+
+      it('shows with the initialFocus marker selector when no focusSelector is configured', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test' })),
+          Story.message(RequestedOpen()),
+          Story.Command.resolve(
+            ShowDialog({
+              id: 'test',
+              focusSelector: initialFocusMarkerSelector,
+            }),
+            CompletedShowDialog(),
+          ),
+        )
+      })
+
+      it('shows with the configured focusSelector, which wins over the marker', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', focusSelector: '#search-input' })),
+          Story.message(RequestedOpen()),
+          Story.Command.resolve(
+            ShowDialog({ id: 'test', focusSelector: '#search-input' }),
+            CompletedShowDialog(),
+          ),
         )
       })
 
@@ -392,6 +427,41 @@ describe('Dialog', () => {
         ),
       ).toBe(true)
     })
+  })
+
+  describe('RenderInfo initialFocus', () => {
+    it('publishes the marker the dialog focuses on open', () => {
+      const model = init({ id: 'my-dialog' })
+      expect(
+        hasDataAttribute(
+          renderGroup(model, render => render.initialFocus),
+          initialFocusMarkerAttribute,
+        ),
+      ).toBe(true)
+    })
+
+    it.effect(
+      'focuses the element carrying the marker when the dialog opens',
+      () =>
+        Effect.gen(function* () {
+          const dialog = document.createElement('dialog')
+          dialog.id = 'focus-dialog'
+          const before = document.createElement('input')
+          const marked = document.createElement('input')
+          marked.setAttribute(`data-${initialFocusMarkerAttribute}`, '')
+          dialog.append(before, marked)
+          document.body.appendChild(dialog)
+
+          yield* Dom.showDialog('#focus-dialog', {
+            focusSelector: initialFocusMarkerSelector,
+          })
+
+          expect(document.activeElement).toBe(marked)
+
+          yield* Dom.closeDialog('#focus-dialog')
+          document.body.innerHTML = ''
+        }),
+    )
   })
 
   describe('view OnUnmount gating', () => {

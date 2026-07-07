@@ -131,7 +131,7 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     name: 'focusSelector',
     type: 'string',
     description:
-      'CSS selector for the element to focus when the dialog opens. Defaults to the first focusable element.',
+      'CSS selector for the element that receives focus when the dialog opens. A selector-based override of the `initialFocus` marker, for an element whose id you do not own or a descendant selector. Takes precedence over `initialFocus`; with neither set, focus falls to the first focusable element.',
   },
 ]
 
@@ -185,6 +185,12 @@ const renderInfoProps: ReadonlyArray<PropEntry> = [
     type: 'ReadonlyArray<ChildAttribute>',
     description:
       'Spread onto your description element (`h.p([...description], [...])`). Carries the framework-managed id the dialog’s `aria-describedby` points at, so the association wires up without hand-rolling the id.',
+  },
+  {
+    name: 'initialFocus',
+    type: 'ReadonlyArray<ChildAttribute>',
+    description:
+      'Spread onto the element that should receive focus when the dialog opens (`h.input([...initialFocus])`). A configured `focusSelector` takes precedence; to focus an element whose id you do not own, use `focusSelector`.',
   },
   {
     name: 'closeButton',
