@@ -23,6 +23,7 @@ import {
   coreEmbeddingRouter,
   coreFileRouter,
   coreFreezeModelRouter,
+  coreHttpRouter,
   coreInitAndFlagsRouter,
   coreManagedResourcesRouter,
   coreMessagesRouter,
@@ -259,6 +260,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'CoreFile',
           href: coreFileRouter(),
           label: 'File',
+        },
+        {
+          _tag: 'CoreHttp',
+          href: coreHttpRouter(),
+          label: 'Http',
         },
         {
           _tag: 'FieldValidation',

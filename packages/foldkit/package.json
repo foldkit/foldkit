@@ -39,6 +39,10 @@
       "types": "./dist/html/public.d.ts",
       "import": "./dist/html/public.js"
     },
+    "./http": {
+      "types": "./dist/http/public.d.ts",
+      "import": "./dist/http/public.js"
+    },
     "./managedResource": {
       "types": "./dist/managedResource/public.d.ts",
       "import": "./dist/managedResource/public.js"

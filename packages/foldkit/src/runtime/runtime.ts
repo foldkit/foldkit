@@ -658,20 +658,23 @@ type RuntimeConfig<
    * Command runs. The built services are reused for the application's
    * lifetime and released at runtime teardown.
    *
-   * Put a service here when construction is expensive relative to how often
-   * Commands need it (an RPC client rebuilt on every invocation, for
-   * example), or when every Command must see the same instance (an
-   * AudioContext, an RTCPeerConnection). A Layer that fails to build crashes
-   * the app with the crash view: the runtime provides this Layer to every
-   * Command, so a service that cannot be constructed leaves no Command safe
-   * to run.
+   * Put a service here when it is a genuine app-wide singleton: when
+   * construction is expensive relative to how often Commands need it (an
+   * RPC client rebuilt on every invocation), or when every Command must
+   * share one instance (an AudioContext whose oscillators feed one audio
+   * graph, an RTCPeerConnection). A Layer that fails to build crashes the
+   * app with the crash view: the runtime provides this Layer to every
+   * Command, so a service that cannot be constructed leaves no Command
+   * safe to run.
    *
-   * Provide a service inside the Command's Effect instead when construction
-   * is cheap (`FetchHttpClient.layer`), when different Commands need
-   * different implementations of the same tag (`KeyValueStore` over
-   * localStorage in one Command and sessionStorage in another), or when a
-   * service that can fail to construct should only take down the Commands
-   * that use it.
+   * Provide a service inside the Command's Effect instead when
+   * construction is cheap and stateless (an HTTP client via `foldkit/http`
+   * is a thin `fetch` wrapper), when different Commands want different
+   * implementations of the same tag (`KeyValueStore` over localStorage in
+   * one Command and sessionStorage in another), or when a service that can
+   * fail to construct should only take down the Commands that use it. An
+   * HTTP client can graduate here once many Commands share one configured
+   * client, but it starts per-Command.
    */
   resources?: Layer.Layer<Resources>
   /**

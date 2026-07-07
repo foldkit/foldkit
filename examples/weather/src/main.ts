@@ -1,10 +1,6 @@
 import { Array, Effect, Match as M, Option, Schema as S, String } from 'effect'
-import {
-  FetchHttpClient,
-  HttpClient,
-  HttpClientRequest,
-} from 'effect/unstable/http'
-import { Command, Runtime } from 'foldkit'
+import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
+import { Command, Http, Runtime } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -243,12 +239,7 @@ export const FetchWeather = Command.define(
   { zipCode: S.String },
   SucceededFetchWeather,
   FailedFetchWeather,
-)(({ zipCode }) =>
-  fetchWeatherEffect(zipCode).pipe(
-    Effect.provideService(HttpClient.TracerPropagationEnabled, false),
-    Effect.provide(FetchHttpClient.layer),
-  ),
-)
+)(({ zipCode }) => Effect.provide(fetchWeatherEffect(zipCode), Http.layer))
 
 // VIEW
 

@@ -1,9 +1,6 @@
 import { Effect, Schema as S } from 'effect'
-import { FetchHttpClient, HttpClient } from 'effect/unstable/http'
-import { Command } from 'foldkit'
-
-const withHttp = <A, E>(effect: Effect.Effect<A, E, HttpClient.HttpClient>) =>
-  Effect.provide(effect, FetchHttpClient.layer)
+import { HttpClient } from 'effect/unstable/http'
+import { Command, Http } from 'foldkit'
 
 const FetchWeather = Command.define(
   'FetchWeather',
@@ -19,9 +16,9 @@ const FetchWeather = Command.define(
     )
     return SucceededFetchWeather({ data })
   }).pipe(
-    withHttp,
     Effect.catch(() =>
       Effect.succeed(FailedFetchWeather({ error: 'Request failed' })),
     ),
+    Effect.provide(Http.layer),
   ),
 )
