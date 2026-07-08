@@ -157,11 +157,10 @@ const contentView = (model: Model): Html => {
     [
       lazyToolPanel(toolPanelView, [
         model.mirrorMode,
+        model.tool,
+        model.gridSize,
         model.selectedColorIndex,
         isGridEmpty(model.grid),
-        model.toolRadioGroup,
-        model.gridSizeRadioGroup,
-        model.paletteRadioGroup,
         model.mirrorHorizontalSwitch,
         model.mirrorVerticalSwitch,
         theme,

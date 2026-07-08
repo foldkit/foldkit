@@ -61,12 +61,6 @@ const comboboxHeader: TableOfContentsEntry = {
   text: 'Combobox',
 }
 
-const radioGroupHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'radio-group',
-  text: 'RadioGroup',
-}
-
 const tabsHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'tabs',
@@ -87,7 +81,6 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   factoriesHeader,
   listboxHeader,
   comboboxHeader,
-  radioGroupHeader,
   tabsHeader,
   menuHeader,
 ]
@@ -101,17 +94,17 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       pageTitle('ui/selection-submodels', 'Selection Submodels'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Foldkit UI ships five Submodels for selecting one or more values from a set: ',
+        'Foldkit UI ships four Submodels for selecting one or more values from a set: ',
         link(uiListboxRouter(), 'Listbox'),
         ', ',
         link(uiComboboxRouter(), 'Combobox'),
         ', ',
-        link(uiRadioGroupRouter(), 'RadioGroup'),
-        ', ',
         link(uiTabsRouter(), 'Tabs'),
         ', and ',
         link(uiMenuRouter(), 'Menu'),
-        '. For example, a Listbox of plans, a Combobox of cities, a RadioGroup of pricing tiers, a Tabs of view modes, or a Menu of actions.',
+        '. For example, a Listbox of plans, a Combobox of cities, a Tabs of view modes, or a Menu of actions. ',
+        link(uiRadioGroupRouter(), 'RadioGroup'),
+        ' is a stateless controlled render helper (like Select, Input, and Textarea), not a Submodel, so it is not covered here.',
       ),
       para(
         'Each exposes a ',
@@ -150,8 +143,6 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ', and ',
         inlineCode('close'),
         ' for Listbox and Combobox; ',
-        inlineCode('select'),
-        ' for RadioGroup; ',
         inlineCode('selectTab'),
         ' for Tabs) accept and emit ',
         inlineCode('Plan'),
@@ -160,9 +151,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         'For the inbound direction, the factory also exposes ',
         inlineCode('reflectSelectedItem'),
-        ' (Listbox and Combobox), ',
-        inlineCode('reflectSelectedValue'),
-        ' (RadioGroup), and ',
+        ' (Listbox and Combobox) and ',
         inlineCode('reflectSelectedTab'),
         ' (Tabs), which mirror an external value (a URL parameter, restored storage, a server push) onto the selection without emitting an OutMessage. See ',
         link(
@@ -268,21 +257,6 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' OutMessage gains a ',
         inlineCode('wasAdded: boolean'),
         ' field that tells the parent whether the user selected or deselected the value.',
-      ),
-      tableOfContentsEntryToHeader(radioGroupHeader),
-      para(
-        inlineCode('RadioGroup.create<Value>()'),
-        ' takes one type parameter, ',
-        inlineCode('Value extends string'),
-        '. The view accepts ',
-        inlineCode('ReadonlyArray<string>'),
-        ' as its options (a literal union ',
-        inlineCode('Value'),
-        ' is assignable to ',
-        inlineCode('string'),
-        '), and the OutMessage carries the picked ',
-        inlineCode('value: Value'),
-        '. The single parameter is enough because RadioGroup options are always inline strings; there is no object form.',
       ),
       tableOfContentsEntryToHeader(tabsHeader),
       para(

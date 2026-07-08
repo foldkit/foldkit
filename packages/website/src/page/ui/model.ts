@@ -14,7 +14,6 @@ import {
   Listbox,
   Menu,
   Popover,
-  RadioGroup,
   Slider,
   Switch,
   Tabs,
@@ -23,6 +22,9 @@ import {
 } from '@foldkit/ui'
 
 import { Toast } from './toastModule'
+
+export const Plan = S.Literals(['Startup', 'Business', 'Enterprise'])
+export type Plan = typeof Plan.Type
 
 export const DemoCard = S.Struct({
   id: S.String,
@@ -67,8 +69,8 @@ export const Model = S.Struct({
   popoverAnimatedDemo: Popover.Model,
   popoverNestedParentDemo: Popover.Model,
   popoverNestedChildDemo: Popover.Model,
-  verticalRadioGroupDemo: RadioGroup.Model,
-  horizontalRadioGroupDemo: RadioGroup.Model,
+  verticalRadioGroupDemoValue: S.Option(Plan),
+  horizontalRadioGroupDemoValue: S.Option(Plan),
   selectDemoValue: S.String,
   sliderRatingDemo: Slider.Model,
   sliderVolumeDemo: Slider.Model,

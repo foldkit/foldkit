@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { bench, describe } from 'vitest'
 
-import { Dialog, Listbox, RadioGroup, Switch } from '@foldkit/ui'
+import { Dialog, Listbox, Switch } from '@foldkit/ui'
 
 import { createEmptyGrid } from './grid'
 import {
@@ -31,20 +31,6 @@ const initialModel: Model = {
   paletteThemeIndex: 0,
   gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
   maybePendingGridSize: Option.none(),
-  toolRadioGroup: RadioGroup.init({
-    id: 'tool-picker',
-    selectedValue: 'Brush',
-  }),
-  gridSizeRadioGroup: RadioGroup.init({
-    id: 'grid-size-picker',
-    selectedValue: String(GRID_SIZE),
-    orientation: 'Horizontal',
-  }),
-  paletteRadioGroup: RadioGroup.init({
-    id: 'palette-picker',
-    selectedValue: '0',
-    orientation: 'Horizontal',
-  }),
   mirrorHorizontalSwitch: Switch.init({ id: 'mirror-horizontal' }),
   mirrorVerticalSwitch: Switch.init({ id: 'mirror-vertical' }),
   themeListbox: Listbox.init({ id: 'theme-picker', selectedItem: '0' }),

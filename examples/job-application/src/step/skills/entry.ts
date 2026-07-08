@@ -11,8 +11,7 @@ import {
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { RadioGroup } from '@foldkit/ui'
-
+import { ProficiencyLevel } from '../../domain'
 import { revealFieldErrors } from '../validation'
 
 // FIELD VALIDATION
@@ -25,26 +24,27 @@ const validateName = validate(nameRules)
 
 // MODEL
 
-const ProficiencyRadioGroup = RadioGroup.create<string>()
+export const proficiencyRadioGroupId = (entryId: string): string =>
+  `${entryId}-proficiency`
 
 export const Model = S.Struct({
   id: S.String,
   name: Field(S.String),
-  proficiency: RadioGroup.Model,
+  proficiency: ProficiencyLevel.ProficiencyLevel,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
 export const UpdatedName = m('UpdatedName', { value: S.String })
-export const GotProficiencyMessage = m('GotProficiencyMessage', {
-  message: RadioGroup.Message,
+export const SelectedProficiency = m('SelectedProficiency', {
+  value: ProficiencyLevel.ProficiencyLevel,
 })
 export const ClickedRemoveSelf = m('ClickedRemoveSelf')
 
 export const Message = S.Union([
   UpdatedName,
-  GotProficiencyMessage,
+  SelectedProficiency,
   ClickedRemoveSelf,
 ])
 export type Message = typeof Message.Type
@@ -63,11 +63,7 @@ export type Removed = typeof Removed.Type
 export const init = (entryId: string): Model => ({
   id: entryId,
   name: NotValidated({ value: '' }),
-  proficiency: RadioGroup.init({
-    id: `${entryId}-proficiency`,
-    selectedValue: 'Intermediate',
-    orientation: 'Horizontal',
-  }),
+  proficiency: 'Intermediate',
 })
 
 // UPDATE
@@ -88,19 +84,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         Option.none(),
       ],
 
-      GotProficiencyMessage: ({ message: radioMessage }) => {
-        const [nextProficiency, radioCommands] = ProficiencyRadioGroup.update(
-          model.proficiency,
-          radioMessage,
-        )
-        return [
-          evo(model, { proficiency: () => nextProficiency }),
-          Command.mapMessages(radioCommands, innerMessage =>
-            GotProficiencyMessage({ message: innerMessage }),
-          ),
-          Option.none(),
-        ]
-      },
+      SelectedProficiency: ({ value }) => [
+        evo(model, { proficiency: () => value }),
+        [],
+        Option.none(),
+      ],
 
       ClickedRemoveSelf: () => [model, [], Option.some(Removed())],
     }),

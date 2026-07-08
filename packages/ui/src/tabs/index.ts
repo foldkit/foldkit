@@ -172,10 +172,10 @@ export const selectTab = (
  *  external truth (a deep link, restored storage) onto the active tab.
  *  Contrast with `selectTab`, which represents a user or programmatic
  *  *choice*: it focuses the tab and emits `Selected`. Takes the tab `value`
- *  plus the `options` list (mirroring `RadioGroup.select`) because Tabs
- *  stores the active *index* internally, so the value is resolved to an
- *  index. A value not present in `options` is a no-op. Returns the model
- *  directly because it produces no commands and no OutMessage. */
+ *  plus the `options` list because Tabs stores the active *index*
+ *  internally, so the value is resolved to an index. A value not present in
+ *  `options` is a no-op. Returns the model directly because it produces no
+ *  commands and no OutMessage. */
 export const reflectSelectedTab: Reflect2<
   Model,
   string,

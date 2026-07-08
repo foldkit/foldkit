@@ -28,7 +28,6 @@ const singleSelectComponents: ReadonlyArray<string> = [
   'Combobox',
   'Listbox',
   'Menu',
-  'RadioGroup',
   'Tabs',
 ]
 

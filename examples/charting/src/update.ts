@@ -3,18 +3,8 @@ import { AsyncData, Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { FetchTelemetry, SyncChart } from './command'
-import {
-  GotChartModeRadioGroupMessage,
-  GotPackageIdRadioGroupMessage,
-  GotPeriodRadioGroupMessage,
-  type Message,
-} from './message'
+import { type Message } from './message'
 import { type Model, TelemetryAsyncData } from './model'
-import {
-  ChartModeRadioGroup,
-  PackageIdRadioGroup,
-  PeriodRadioGroup,
-} from './radioGroups'
 
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
@@ -79,33 +69,17 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     withUpdateReturn,
     M.tagsExhaustive({
       SelectedChartMode: ({ chartMode }) =>
-        selectedControl(
-          evo(model, {
-            chartModeRadioGroup: () =>
-              ChartModeRadioGroup.reflectSelectedValue(
-                model.chartModeRadioGroup,
-                Option.some(chartMode),
-              ),
+        selectedControl(model, current =>
+          evo(current, {
+            chartMode: () => chartMode,
           }),
-          current =>
-            evo(current, {
-              chartMode: () => chartMode,
-            }),
         ),
 
       SelectedPeriod: ({ period }) =>
-        selectedControl(
-          evo(model, {
-            periodRadioGroup: () =>
-              PeriodRadioGroup.reflectSelectedValue(
-                model.periodRadioGroup,
-                Option.some(period),
-              ),
+        selectedControl(model, current =>
+          evo(current, {
+            period: () => period,
           }),
-          current =>
-            evo(current, {
-              period: () => period,
-            }),
         ),
 
       ClickedRefresh: () => refetchTelemetry(model),
@@ -188,127 +162,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       SelectedPackage: ({ packageId }) =>
-        selectedControl(
-          evo(model, {
-            packageIdRadioGroup: () =>
-              PackageIdRadioGroup.reflectSelectedValue(
-                model.packageIdRadioGroup,
-                Option.some(packageId),
-              ),
+        selectedControl(model, current =>
+          evo(current, {
+            selectedPackageId: () => packageId,
           }),
-          current =>
-            evo(current, {
-              selectedPackageId: () => packageId,
-            }),
         ),
-
-      GotPackageIdRadioGroupMessage: ({ message: radioGroupMessage }) => {
-        const [nextRadioGroup, radioGroupCommands, maybeOut] =
-          PackageIdRadioGroup.update(
-            model.packageIdRadioGroup,
-            radioGroupMessage,
-          )
-
-        const mappedCommands = Command.mapMessages(
-          radioGroupCommands,
-          message => GotPackageIdRadioGroupMessage({ message }),
-        )
-
-        const nextModel = evo(model, {
-          packageIdRadioGroup: () => nextRadioGroup,
-        })
-
-        return Option.match(maybeOut, {
-          onNone: () => [nextModel, mappedCommands],
-          onSome: ({ value }) => [
-            evo(nextModel, {
-              selectedPackageId: () => value,
-              maybeSelectedDatumId: () => Option.none(),
-            }),
-            [
-              ...mappedCommands,
-              ...syncChart({
-                maybeChartHostId: nextModel.maybeChartHostId,
-                telemetry: nextModel.telemetry,
-                chartMode: nextModel.chartMode,
-                selectedPackageId: value,
-                period: nextModel.period,
-                maybeSelectedDatumId: Option.none(),
-              }),
-            ],
-          ],
-        })
-      },
-
-      GotChartModeRadioGroupMessage: ({ message: radioGroupMessage }) => {
-        const [nextRadioGroup, radioGroupCommands, maybeOut] =
-          ChartModeRadioGroup.update(
-            model.chartModeRadioGroup,
-            radioGroupMessage,
-          )
-
-        const mappedCommands = Command.mapMessages(
-          radioGroupCommands,
-          message => GotChartModeRadioGroupMessage({ message }),
-        )
-
-        const nextModel = evo(model, {
-          chartModeRadioGroup: () => nextRadioGroup,
-        })
-
-        return Option.match(maybeOut, {
-          onNone: () => [nextModel, mappedCommands],
-          onSome: ({ value }) => [
-            evo(nextModel, {
-              chartMode: () => value,
-              maybeSelectedDatumId: () => Option.none(),
-            }),
-            [
-              ...mappedCommands,
-              ...syncChart({
-                maybeChartHostId: nextModel.maybeChartHostId,
-                telemetry: nextModel.telemetry,
-                chartMode: value,
-                selectedPackageId: nextModel.selectedPackageId,
-                period: nextModel.period,
-                maybeSelectedDatumId: Option.none(),
-              }),
-            ],
-          ],
-        })
-      },
-
-      GotPeriodRadioGroupMessage: ({ message: radioGroupMessage }) => {
-        const [nextRadioGroup, radioGroupCommands, maybeOut] =
-          PeriodRadioGroup.update(model.periodRadioGroup, radioGroupMessage)
-
-        const mappedCommands = Command.mapMessages(
-          radioGroupCommands,
-          message => GotPeriodRadioGroupMessage({ message }),
-        )
-
-        const nextModel = evo(model, { periodRadioGroup: () => nextRadioGroup })
-
-        return Option.match(maybeOut, {
-          onNone: () => [nextModel, mappedCommands],
-          onSome: ({ value }) => [
-            evo(nextModel, {
-              period: () => value,
-              maybeSelectedDatumId: () => Option.none(),
-            }),
-            [
-              ...mappedCommands,
-              ...syncChart({
-                maybeChartHostId: nextModel.maybeChartHostId,
-                telemetry: nextModel.telemetry,
-                chartMode: nextModel.chartMode,
-                selectedPackageId: nextModel.selectedPackageId,
-                period: value,
-                maybeSelectedDatumId: Option.none(),
-              }),
-            ],
-          ],
-        })
-      },
     }),
   )

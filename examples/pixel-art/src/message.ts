@@ -1,7 +1,7 @@
 import { Schema as S } from 'effect'
 import { m } from 'foldkit/message'
 
-import { Dialog, Listbox, RadioGroup, Switch } from '@foldkit/ui'
+import { Dialog, Listbox, Switch } from '@foldkit/ui'
 
 import { PaletteIndex, Tool } from './model'
 
@@ -9,9 +9,13 @@ export const PressedCell = m('PressedCell', { x: S.Number, y: S.Number })
 export const EnteredCell = m('EnteredCell', { x: S.Number, y: S.Number })
 export const LeftCanvas = m('LeftCanvas')
 export const ReleasedMouse = m('ReleasedMouse')
-export const SelectedColor = m('SelectedColor', { colorIndex: PaletteIndex })
+export const SelectedColor = m('SelectedColor', {
+  colorIndex: PaletteIndex,
+})
 export const SelectedTool = m('SelectedTool', { tool: Tool })
-export const SelectedGridSize = m('SelectedGridSize', { size: S.Number })
+export const SelectedGridSize = m('SelectedGridSize', {
+  size: S.Number,
+})
 export const ToggledMirrorHorizontal = m('ToggledMirrorHorizontal')
 export const ToggledMirrorVertical = m('ToggledMirrorVertical')
 export const ClickedUndo = m('ClickedUndo')
@@ -34,15 +38,6 @@ export const GotGridSizeConfirmDialogMessage = m(
   'GotGridSizeConfirmDialogMessage',
   { message: Dialog.Message },
 )
-export const GotToolRadioGroupMessage = m('GotToolRadioGroupMessage', {
-  message: RadioGroup.Message,
-})
-export const GotGridSizeRadioGroupMessage = m('GotGridSizeRadioGroupMessage', {
-  message: RadioGroup.Message,
-})
-export const GotPaletteRadioGroupMessage = m('GotPaletteRadioGroupMessage', {
-  message: RadioGroup.Message,
-})
 export const GotMirrorHorizontalSwitchMessage = m(
   'GotMirrorHorizontalSwitchMessage',
   { message: Switch.Message },
@@ -75,9 +70,6 @@ export const Message = S.Union([
   SucceededExportPng,
   FailedExportPng,
   GotErrorDialogMessage,
-  GotToolRadioGroupMessage,
-  GotGridSizeRadioGroupMessage,
-  GotPaletteRadioGroupMessage,
   GotMirrorHorizontalSwitchMessage,
   GotMirrorVerticalSwitchMessage,
   GotThemeListboxMessage,

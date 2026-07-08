@@ -13,7 +13,6 @@ import {
   Listbox,
   Menu,
   Popover,
-  RadioGroup,
   Slider,
   Switch,
   Tabs,
@@ -105,13 +104,8 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
     popoverNestedChildDemo: Popover.init({
       id: 'popover-nested-child-demo',
     }),
-    verticalRadioGroupDemo: RadioGroup.init({
-      id: 'vertical-radio-group-demo',
-    }),
-    horizontalRadioGroupDemo: RadioGroup.init({
-      id: 'horizontal-radio-group-demo',
-      orientation: 'Horizontal',
-    }),
+    verticalRadioGroupDemoValue: Option.none(),
+    horizontalRadioGroupDemoValue: Option.none(),
     selectDemoValue: 'us',
     sliderRatingDemo: Slider.init({
       id: 'slider-rating-demo',

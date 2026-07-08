@@ -1,7 +1,5 @@
 import { Option } from 'effect'
 
-import { RadioGroup } from '@foldkit/ui'
-
 import {
   ContributorSummary,
   DependencyEdge,
@@ -109,21 +107,6 @@ export const loadingModel = Model.make({
   maybeChartHostId: Option.none(),
   maybeChartError: Option.none(),
   maybeSelectedDatumId: Option.none(),
-  chartModeRadioGroup: RadioGroup.init({
-    id: 'chart-mode',
-    selectedValue: 'Adoption',
-    orientation: 'Horizontal',
-  }),
-  packageIdRadioGroup: RadioGroup.init({
-    id: 'package',
-    selectedValue: 'Core',
-    orientation: 'Vertical',
-  }),
-  periodRadioGroup: RadioGroup.init({
-    id: 'period',
-    selectedValue: 'LastSixteenWeeks',
-    orientation: 'Horizontal',
-  }),
 })
 
 export const readyModel = Model.make({
