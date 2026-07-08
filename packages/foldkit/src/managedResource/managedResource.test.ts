@@ -1,8 +1,7 @@
 import { Effect, Option, Schema as S } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import { tag } from '../managedResource/index.js'
-import { aggregate, lift, make } from './managedResource.js'
+import { aggregate, lift, make, tag } from './managedResource.js'
 
 // A child Submodel owns a session resource and mounts/unmounts.
 

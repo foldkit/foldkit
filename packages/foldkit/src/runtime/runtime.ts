@@ -22,7 +22,6 @@ import {
   SubscriptionRef,
   pipe,
 } from 'effect'
-import { h } from 'snabbdom'
 
 import { BrowserRuntime } from '@effect/platform-browser'
 
@@ -45,6 +44,10 @@ import {
   __endReplayRender as endReplayHtmlRender,
   __setRuntime as setHtmlRuntime,
 } from '../html/index.js'
+import type {
+  ManagedResourceConfig,
+  ManagedResources,
+} from '../managedResource/index.js'
 import { MountTracker } from '../mount/index.js'
 import { UrlRequest } from '../navigation/urlRequest.js'
 import {
@@ -56,8 +59,9 @@ import {
   type __PortChannels,
   __makeInboundChannel,
 } from '../port/index.js'
+import type { Subscriptions } from '../subscription/subscription.js'
 import { Url, fromString as urlFromString } from '../url/index.js'
-import { VNode, dedupeSharedVNodes, patch, toVNode } from '../vdom.js'
+import { VNode, __patchVNode } from '../vdom.js'
 import {
   addBfcacheRestoreListener,
   addNavigationEventListeners,
@@ -73,14 +77,9 @@ import {
   preserveScrollPosition,
   restorePreservedScrollPosition,
 } from './hmrScroll.js'
-import type {
-  ManagedResourceConfig,
-  ManagedResources,
-} from './managedResource.js'
 import { type EnvelopedMessage, orderByPriority } from './messagePriority.js'
 import { makePreserveScheduler } from './preserveScheduler.js'
 import { makeRenderLoop } from './renderLoop.js'
-import type { Subscriptions } from './subscription.js'
 
 type AnyCommand<T, E = never, R = never> = {
   readonly name: string
@@ -1712,7 +1711,7 @@ const makeRuntime = <
               onNone: () => Effect.void,
               onSome: currentVNode =>
                 Effect.sync(() => {
-                  const placeholderNode = patchVNode(
+                  const placeholderNode = __patchVNode(
                     Option.some(currentVNode),
                     null,
                     container,
@@ -1995,7 +1994,7 @@ const makeRuntime = <
 
             const [patchedVNode, maybePatchDuration] = yield* Effect.sync(() =>
               measureSlowPhase(maybeLiveSlowPatch, () =>
-                patchVNode(
+                __patchVNode(
                   maybeCurrentVNode,
                   nextVNode,
                   container,
@@ -2533,24 +2532,6 @@ const makeRuntime = <
   return program
 }
 
-// NOTE: exported for `patchVNode.test.ts` to assert the dedupeSharedVNodes
-// wiring; not part of the public surface (`runtime/public.ts` is curated).
-export const patchVNode = (
-  maybeCurrentVNode: Option.Option<VNode>,
-  nextVNode: VNode | null,
-  container: HTMLElement,
-  seen?: Set<object>,
-): VNode => {
-  const dedupedVNode = Predicate.isNotNull(nextVNode)
-    ? dedupeSharedVNodes(nextVNode, seen)
-    : h('!')
-
-  return Option.match(maybeCurrentVNode, {
-    onNone: () => patch(toVNode(container), dedupedVNode),
-    onSome: currentVNode => patch(currentVNode, dedupedVNode),
-  })
-}
-
 const currentLocationUrl = (): string => {
   const { origin, pathname, search } = window.location
   return `${origin}${pathname}${search}`
@@ -2630,7 +2611,7 @@ const renderCrashView = <Model, Message>(
     }
 
     const maybeCurrentVNode = Effect.runSync(Ref.get(maybeCurrentVNodeRef))
-    const patchedVNode = patchVNode(
+    const patchedVNode = __patchVNode(
       maybeCurrentVNode,
       crashDocument.body,
       container,
@@ -2654,7 +2635,7 @@ const renderCrashView = <Model, Message>(
     }
 
     const maybeCurrentVNode = Effect.runSync(Ref.get(maybeCurrentVNodeRef))
-    const patchedVNode = patchVNode(
+    const patchedVNode = __patchVNode(
       maybeCurrentVNode,
       fallbackDocument.body,
       container,

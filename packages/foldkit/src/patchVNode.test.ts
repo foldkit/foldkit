@@ -2,8 +2,7 @@ import { Option } from 'effect'
 import { h } from 'snabbdom'
 import { describe, expect, it } from 'vitest'
 
-import { type VNode } from '../vdom.js'
-import { patchVNode } from './runtime.js'
+import { type VNode, __patchVNode } from './vdom.js'
 
 const spanCountsIn = (root: Node | undefined): ReadonlyArray<number> => {
   if (!(root instanceof Element)) {
@@ -14,9 +13,9 @@ const spanCountsIn = (root: Node | undefined): ReadonlyArray<number> => {
   )
 }
 
-describe('patchVNode', () => {
+describe('__patchVNode', () => {
   // NOTE: guards the dedupeSharedVNodes wiring. The three buttons share ONE
-  // `check` vnode object; without the dedupe pass inside patchVNode, snabbdom
+  // `check` vnode object; without the dedupe pass inside __patchVNode, snabbdom
   // mutates a single `.elm` across all three positions and a hide/show cycle
   // leaves stale spans behind. Removing the call fails the final assertion.
   it('does not accumulate DOM nodes when a vnode value is reused across positions', () => {
@@ -31,13 +30,13 @@ describe('patchVNode', () => {
 
     const container = document.createElement('div')
 
-    let mounted = patchVNode(Option.none(), renderTree(true), container)
+    let mounted = __patchVNode(Option.none(), renderTree(true), container)
     expect(spanCountsIn(mounted.elm)).toEqual([1, 1, 1])
 
-    mounted = patchVNode(Option.some(mounted), renderTree(false), container)
+    mounted = __patchVNode(Option.some(mounted), renderTree(false), container)
     expect(spanCountsIn(mounted.elm)).toEqual([0, 0, 0])
 
-    mounted = patchVNode(Option.some(mounted), renderTree(true), container)
+    mounted = __patchVNode(Option.some(mounted), renderTree(true), container)
     expect(spanCountsIn(mounted.elm)).toEqual([1, 1, 1])
   })
 })

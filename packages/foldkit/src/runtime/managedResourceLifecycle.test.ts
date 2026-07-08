@@ -12,9 +12,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Command from '../command/index.js'
 import { html } from '../html/index.js'
 import * as ManagedResource from '../managedResource/index.js'
+import { make } from '../managedResource/managedResource.js'
 import { m } from '../message/index.js'
 import { evo } from '../struct/index.js'
-import { make } from './managedResource.js'
 import { makeElement } from './runtime.js'
 
 type EngineShape = Readonly<{ id: string }>

@@ -7,8 +7,8 @@ import { m } from '../message/index.js'
 import * as Mount from '../mount/index.js'
 import * as Port from '../port/index.js'
 import { evo } from '../struct/index.js'
+import * as Subscription from '../subscription/subscription.js'
 import { embed, makeApplication, makeElement } from './runtime.js'
-import * as Subscription from './subscription.js'
 
 const ChangedStep = m('ChangedStep', { step: S.Number })
 const ClickedIncrement = m('ClickedIncrement')

@@ -1,10 +1,10 @@
-export { aggregate, lift, make, persistent } from '../runtime/subscription.js'
+export { aggregate, lift, make, persistent } from './subscription.js'
 
 export type {
   EntryWithoutKeepAlive,
   Subscription,
   Subscriptions,
-} from '../runtime/subscription.js'
+} from './subscription.js'
 
 export { animationFrame } from './animationFrame.js'
 
