@@ -4,10 +4,14 @@ import { RadioGroup } from '@foldkit/ui'
 
 import type { TableOfContentsEntry } from '../../main'
 import {
-  GotHorizontalRadioGroupDemoMessage,
-  GotVerticalRadioGroupDemoMessage,
   type Message,
+  SelectedHorizontalPlan,
+  SelectedVerticalPlan,
 } from './message'
+import { type Model, type Plan } from './model'
+
+export const VERTICAL_RADIO_GROUP_ID = 'vertical-radio-group-demo'
+export const HORIZONTAL_RADIO_GROUP_ID = 'horizontal-radio-group-demo'
 
 // TABLE OF CONTENTS
 
@@ -25,11 +29,7 @@ export const horizontalHeader: TableOfContentsEntry = {
 
 // DEMO CONTENT
 
-type Plan = 'Startup' | 'Business' | 'Enterprise'
-
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
-
-export const PlanRadioGroup = RadioGroup.create<Plan>()
 
 const planDescriptions: Record<Plan, string> = {
   Startup: '12GB / 6 CPUs. Perfect for small projects',
@@ -46,12 +46,12 @@ const planPrices: Record<Plan, string> = {
 const verticalGroupClassName = 'flex flex-col gap-3 w-full'
 
 const verticalOptionClassName =
-  'relative flex cursor-pointer rounded-lg border border-gray-200 dark:border-gray-700 p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 data-[checked]:border-accent-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900'
+  'relative flex cursor-pointer rounded-lg border border-gray-200 dark:border-gray-700 p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 data-[checked]:border-accent-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900'
 
 const horizontalGroupClassName = 'flex flex-row gap-3 w-full'
 
 const horizontalOptionClassName =
-  'relative flex flex-1 items-start cursor-pointer rounded-lg border border-gray-200 dark:border-gray-700 p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 data-[checked]:border-accent-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900'
+  'relative flex flex-col flex-1 cursor-pointer rounded-lg border border-gray-200 dark:border-gray-700 p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 data-[checked]:border-accent-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900'
 
 const labelClassName = 'text-sm font-medium text-gray-900 dark:text-white'
 
@@ -62,7 +62,7 @@ const priceClassName =
 
 // VIEW
 
-export const verticalDemo = (radioGroupModel: RadioGroup.Model) => {
+export const verticalDemo = (model: Model) => {
   const h = html<Message>()
 
   const checkIcon = h.svg(
@@ -88,60 +88,57 @@ export const verticalDemo = (radioGroupModel: RadioGroup.Model) => {
   const checkPlaceholder = h.div([h.Class('size-5')], [])
 
   return [
-    h.submodel({
-      slotId: radioGroupModel.id,
-      model: radioGroupModel,
-      view: PlanRadioGroup.view,
-      viewInputs: {
-        options: plans,
-        ariaLabel: 'Server plan',
-        toView: ({ group, options }) =>
-          h.div(
-            [...group, h.Class(verticalGroupClassName)],
-            options.map(option => {
-              const plan = option.value
-              return h.div(
-                [...option.option, h.Class(verticalOptionClassName)],
-                [
-                  h.div(
-                    [h.Class('flex w-full items-center justify-between')],
-                    [
-                      h.div(
-                        [],
-                        [
-                          h.span(
-                            [...option.label, h.Class(labelClassName)],
-                            [plan],
-                          ),
-                          h.p(
-                            [
-                              ...option.description,
-                              h.Class(descriptionClassName),
-                            ],
-                            [planDescriptions[plan]],
-                          ),
-                        ],
-                      ),
-                      h.div(
-                        [h.Class('flex items-center gap-3')],
-                        [
-                          h.span([h.Class(priceClassName)], [planPrices[plan]]),
-                          option.isSelected ? checkIcon : checkPlaceholder,
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              )
-            }),
-          ),
-      },
-      toParentMessage: message => GotVerticalRadioGroupDemoMessage({ message }),
+    RadioGroup.view<Plan, Message>({
+      id: VERTICAL_RADIO_GROUP_ID,
+      selectedValue: model.verticalRadioGroupDemoValue,
+      options: plans,
+      ariaLabel: 'Server plan',
+      onSelect: plan => SelectedVerticalPlan({ plan }),
+      toView: ({ group, options }) =>
+        h.div(
+          [...group, h.Class(verticalGroupClassName)],
+          options.map(option => {
+            const plan = option.value
+            return h.div(
+              [...option.option, h.Class(verticalOptionClassName)],
+              [
+                h.div(
+                  [h.Class('flex w-full items-center justify-between')],
+                  [
+                    h.div(
+                      [],
+                      [
+                        h.span(
+                          [...option.label, h.Class(labelClassName)],
+                          [plan],
+                        ),
+                        h.p(
+                          [
+                            ...option.description,
+                            h.Class(descriptionClassName),
+                          ],
+                          [planDescriptions[plan]],
+                        ),
+                      ],
+                    ),
+                    h.div(
+                      [h.Class('flex items-center gap-3')],
+                      [
+                        h.span([h.Class(priceClassName)], [planPrices[plan]]),
+                        option.isSelected ? checkIcon : checkPlaceholder,
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            )
+          }),
+        ),
     }),
   ]
 }
 
-export const horizontalDemo = (radioGroupModel: RadioGroup.Model) => {
+export const horizontalDemo = (model: Model) => {
   const h = html<Message>()
 
   const checkIcon = h.svg(
@@ -167,55 +164,40 @@ export const horizontalDemo = (radioGroupModel: RadioGroup.Model) => {
   const checkPlaceholder = h.div([h.Class('size-5')], [])
 
   return [
-    h.submodel({
-      slotId: radioGroupModel.id,
-      model: radioGroupModel,
-      view: PlanRadioGroup.view,
-      viewInputs: {
-        options: plans,
-        ariaLabel: 'Server plan',
-        orientation: 'Horizontal',
-        toView: ({ group, options }) =>
-          h.div(
-            [...group, h.Class(horizontalGroupClassName)],
-            options.map(option => {
-              const plan = option.value
-              return h.div(
-                [...option.option, h.Class(horizontalOptionClassName)],
-                [
-                  h.div(
-                    [h.Class('flex w-full items-center justify-between')],
-                    [
-                      h.div(
-                        [],
-                        [
-                          h.span(
-                            [...option.label, h.Class(labelClassName)],
-                            [plan],
-                          ),
-                          h.p(
-                            [
-                              ...option.description,
-                              h.Class(descriptionClassName),
-                            ],
-                            [planDescriptions[plan]],
-                          ),
-                        ],
-                      ),
-                      option.isSelected ? checkIcon : checkPlaceholder,
-                    ],
-                  ),
-                  h.span(
-                    [h.Class(priceClassName + ' mt-2')],
-                    [planPrices[plan]],
-                  ),
-                ],
-              )
-            }),
-          ),
-      },
-      toParentMessage: message =>
-        GotHorizontalRadioGroupDemoMessage({ message }),
+    RadioGroup.view<Plan, Message>({
+      id: HORIZONTAL_RADIO_GROUP_ID,
+      selectedValue: model.horizontalRadioGroupDemoValue,
+      options: plans,
+      ariaLabel: 'Server plan',
+      orientation: 'Horizontal',
+      onSelect: plan => SelectedHorizontalPlan({ plan }),
+      toView: ({ group, options }) =>
+        h.div(
+          [...group, h.Class(horizontalGroupClassName)],
+          options.map(option => {
+            const plan = option.value
+            return h.div(
+              [...option.option, h.Class(horizontalOptionClassName)],
+              [
+                h.div(
+                  [h.Class('flex w-full items-start justify-between gap-2')],
+                  [
+                    h.span([...option.label, h.Class(labelClassName)], [plan]),
+                    h.span([h.Class(priceClassName)], [planPrices[plan]]),
+                  ],
+                ),
+                h.p(
+                  [...option.description, h.Class(descriptionClassName)],
+                  [planDescriptions[plan]],
+                ),
+                h.div(
+                  [h.Class('mt-auto flex justify-end pt-2')],
+                  [option.isSelected ? checkIcon : checkPlaceholder],
+                ),
+              ],
+            )
+          }),
+        ),
     }),
   ]
 }

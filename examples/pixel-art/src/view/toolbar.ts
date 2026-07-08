@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Array } from 'effect'
+import { Array, Option, Schema as S } from 'effect'
 import { type Html, childAttributes, html } from 'foldkit/html'
 
 import { Button, Listbox, RadioGroup, Switch } from '@foldkit/ui'
@@ -7,23 +7,33 @@ import { Button, Listbox, RadioGroup, Switch } from '@foldkit/ui'
 import { EMPTY_COLOR, GRID_SIZE_STRINGS } from '../constant'
 import {
   ClickedClear,
-  GotGridSizeRadioGroupMessage,
   GotMirrorHorizontalSwitchMessage,
   GotMirrorVerticalSwitchMessage,
-  GotPaletteRadioGroupMessage,
   GotThemeListboxMessage,
-  GotToolRadioGroupMessage,
   type Message,
+  SelectedColor,
+  SelectedGridSize,
+  SelectedTool,
 } from '../message'
-import type { MirrorMode, PaletteIndex, Tool } from '../model'
+import { type MirrorMode, PaletteIndex, type Tool } from '../model'
 import { PALETTE_THEMES, type PaletteTheme } from '../palette'
 
 const TOOLS: ReadonlyArray<Tool> = ['Brush', 'Fill', 'Eraser']
 
-export const ToolRadioGroup = RadioGroup.create<Tool>()
-export const GridSizeRadioGroup = RadioGroup.create<string>()
-export const PaletteRadioGroup = RadioGroup.create<string>()
+export const TOOL_RADIO_GROUP_ID = 'tool-picker'
+export const GRID_SIZE_RADIO_GROUP_ID = 'grid-size-picker'
+export const PALETTE_RADIO_GROUP_ID = 'palette-picker'
+
 export const ThemeListbox = Listbox.create<string>()
+
+const paletteIndexFromValue = (
+  value: string,
+  fallback: PaletteIndex,
+): PaletteIndex =>
+  Option.getOrElse(
+    S.decodeUnknownOption(PaletteIndex)(Number(value)),
+    () => fallback,
+  )
 
 const TOOL_SHORTCUTS: Record<Tool, string> = {
   Brush: 'B',
@@ -108,11 +118,10 @@ const chevronDownIcon = (className: string): Html => {
 
 export const toolPanelView = (
   mirrorMode: MirrorMode,
+  tool: Tool,
+  gridSize: number,
   selectedColorIndex: PaletteIndex,
   isCanvasEmpty: boolean,
-  toolRadioGroup: typeof RadioGroup.Model.Type,
-  gridSizeRadioGroup: typeof RadioGroup.Model.Type,
-  paletteRadioGroup: typeof RadioGroup.Model.Type,
   mirrorHorizontalSwitch: typeof Switch.Model.Type,
   mirrorVerticalSwitch: typeof Switch.Model.Type,
   theme: PaletteTheme,
@@ -123,71 +132,61 @@ export const toolPanelView = (
   return h.div(
     [h.Class('w-full md:w-44 flex flex-col gap-5 flex-shrink-0')],
     [
-      toolSectionView(toolRadioGroup),
+      toolSectionView(tool),
       mirrorSectionView(
         mirrorMode,
         mirrorHorizontalSwitch,
         mirrorVerticalSwitch,
       ),
-      sizeSectionView(gridSizeRadioGroup),
-      paletteSectionView(
-        selectedColorIndex,
-        paletteRadioGroup,
-        theme,
-        themeListbox,
-      ),
+      sizeSectionView(gridSize),
+      paletteSectionView(selectedColorIndex, theme, themeListbox),
       clearCanvasView(isCanvasEmpty),
     ],
   )
 }
 
-const toolSectionView = (
-  toolRadioGroup: typeof RadioGroup.Model.Type,
-): Html => {
+const toolSectionView = (selectedTool: Tool): Html => {
   const h = html<Message>()
 
   return h.div(
     [],
     [
       sectionLabel('Tools'),
-      h.submodel({
-        slotId: toolRadioGroup.id,
-        model: toolRadioGroup,
-        view: ToolRadioGroup.view,
-        viewInputs: {
-          options: TOOLS,
-          ariaLabel: 'Drawing tool',
-          toView: ({ group, options }) =>
-            h.div(
-              [...group, h.Class('flex flex-col gap-1.5')],
-              options.map(option => {
-                const tool = option.value
-                return h.button(
-                  [
-                    ...option.option,
-                    h.Class(
-                      clsx(
-                        'flex items-center justify-between px-3 py-1.5 rounded text-sm transition motion-reduce:transition-none w-full cursor-pointer',
-                        {
-                          'bg-indigo-600 text-white': option.isSelected,
-                          'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200':
-                            !option.isSelected,
-                        },
-                      ),
+      RadioGroup.view<Tool, Message>({
+        id: TOOL_RADIO_GROUP_ID,
+        selectedValue: Option.some(selectedTool),
+        options: TOOLS,
+        ariaLabel: 'Drawing tool',
+        onSelect: tool => SelectedTool({ tool }),
+        toView: ({ group, options }) =>
+          h.div(
+            [...group, h.Class('flex flex-col gap-1.5')],
+            options.map(option => {
+              const tool = option.value
+              return h.button(
+                [
+                  ...option.option,
+                  h.Class(
+                    clsx(
+                      'flex items-center justify-between px-3 py-1.5 rounded text-sm transition motion-reduce:transition-none w-full cursor-pointer',
+                      {
+                        'bg-indigo-600 text-white': option.isSelected,
+                        'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200':
+                          !option.isSelected,
+                      },
                     ),
-                  ],
-                  [
-                    h.span([], [tool]),
-                    h.span(
-                      [h.Class('text-xs text-gray-400')],
-                      [TOOL_SHORTCUTS[tool]],
-                    ),
-                  ],
-                )
-              }),
-            ),
-        },
-        toParentMessage: message => GotToolRadioGroupMessage({ message }),
+                  ),
+                ],
+                [
+                  h.span([], [tool]),
+                  h.span(
+                    [h.Class('text-xs text-gray-400')],
+                    [TOOL_SHORTCUTS[tool]],
+                  ),
+                ],
+              )
+            }),
+          ),
       }),
     ],
   )
@@ -287,47 +286,42 @@ const mirrorSectionView = (
   )
 }
 
-const sizeSectionView = (
-  gridSizeRadioGroup: typeof RadioGroup.Model.Type,
-): Html => {
+const sizeSectionView = (gridSize: number): Html => {
   const h = html<Message>()
 
   return h.div(
     [],
     [
       sectionLabel('Grid Size'),
-      h.submodel({
-        slotId: gridSizeRadioGroup.id,
-        model: gridSizeRadioGroup,
-        view: GridSizeRadioGroup.view,
-        viewInputs: {
-          options: GRID_SIZE_STRINGS,
-          ariaLabel: 'Grid size',
-          orientation: 'Horizontal',
-          toView: ({ group, options }) =>
-            h.div(
-              [...group, h.Class('flex gap-1')],
-              options.map(option =>
-                h.button(
-                  [
-                    ...option.option,
-                    h.Class(
-                      clsx(
-                        'flex-1 px-2 py-1.5 rounded text-sm transition motion-reduce:transition-none cursor-pointer',
-                        {
-                          'bg-indigo-600 text-white': option.isSelected,
-                          'bg-gray-800 text-gray-400 hover:text-gray-200':
-                            !option.isSelected,
-                        },
-                      ),
+      RadioGroup.view<string, Message>({
+        id: GRID_SIZE_RADIO_GROUP_ID,
+        selectedValue: Option.some(gridSize.toString()),
+        options: GRID_SIZE_STRINGS,
+        ariaLabel: 'Grid size',
+        orientation: 'Horizontal',
+        onSelect: value => SelectedGridSize({ size: Number(value) }),
+        toView: ({ group, options }) =>
+          h.div(
+            [...group, h.Class('flex gap-1')],
+            options.map(option =>
+              h.button(
+                [
+                  ...option.option,
+                  h.Class(
+                    clsx(
+                      'flex-1 px-2 py-1.5 rounded text-sm transition motion-reduce:transition-none cursor-pointer',
+                      {
+                        'bg-indigo-600 text-white': option.isSelected,
+                        'bg-gray-800 text-gray-400 hover:text-gray-200':
+                          !option.isSelected,
+                      },
                     ),
-                  ],
-                  [option.value],
-                ),
+                  ),
+                ],
+                [option.value],
               ),
             ),
-        },
-        toParentMessage: message => GotGridSizeRadioGroupMessage({ message }),
+          ),
       }),
     ],
   )
@@ -335,7 +329,6 @@ const sizeSectionView = (
 
 const paletteSectionView = (
   selectedColorIndex: PaletteIndex,
-  paletteRadioGroup: typeof RadioGroup.Model.Type,
   theme: PaletteTheme,
   themeListbox: typeof Listbox.Model.Type,
 ): Html => {
@@ -352,42 +345,41 @@ const paletteSectionView = (
         [h.Class('text-xs text-gray-400 font-mono pb-3')],
         [selectedHexColor],
       ),
-      h.submodel({
-        slotId: paletteRadioGroup.id,
-        model: paletteRadioGroup,
-        view: PaletteRadioGroup.view,
-        viewInputs: {
-          options: paletteIndexStrings,
-          ariaLabel: 'Color palette',
-          orientation: 'Horizontal',
-          toView: ({ group, options }) =>
-            h.div(
-              [...group, h.Class('grid grid-cols-4 gap-2.5')],
-              options.map(option => {
-                const hexColor =
-                  theme.colors[Number(option.value)] ?? EMPTY_COLOR
-                return h.button(
-                  [
-                    ...option.option,
-                    h.Class(
-                      clsx(
-                        'aspect-square rounded-sm transition motion-reduce:transition-none cursor-pointer',
-                        {
-                          'ring-2 ring-white ring-offset-2 ring-offset-gray-900':
-                            option.isSelected,
-                          'hover:scale-105 motion-reduce:hover:scale-100':
-                            !option.isSelected,
-                        },
-                      ),
+      RadioGroup.view<string, Message>({
+        id: PALETTE_RADIO_GROUP_ID,
+        selectedValue: Option.some(selectedColorIndex.toString()),
+        options: paletteIndexStrings,
+        ariaLabel: 'Color palette',
+        orientation: 'Horizontal',
+        onSelect: value =>
+          SelectedColor({
+            colorIndex: paletteIndexFromValue(value, selectedColorIndex),
+          }),
+        toView: ({ group, options }) =>
+          h.div(
+            [...group, h.Class('grid grid-cols-4 gap-2.5')],
+            options.map(option => {
+              const hexColor = theme.colors[Number(option.value)] ?? EMPTY_COLOR
+              return h.button(
+                [
+                  ...option.option,
+                  h.Class(
+                    clsx(
+                      'aspect-square rounded-sm transition motion-reduce:transition-none cursor-pointer',
+                      {
+                        'ring-2 ring-white ring-offset-2 ring-offset-gray-900':
+                          option.isSelected,
+                        'hover:scale-105 motion-reduce:hover:scale-100':
+                          !option.isSelected,
+                      },
                     ),
-                    h.Style({ backgroundColor: hexColor }),
-                  ],
-                  [h.span([...option.label, h.Class('sr-only')], [hexColor])],
-                )
-              }),
-            ),
-        },
-        toParentMessage: message => GotPaletteRadioGroupMessage({ message }),
+                  ),
+                  h.Style({ backgroundColor: hexColor }),
+                ],
+                [h.span([...option.label, h.Class('sr-only')], [hexColor])],
+              )
+            }),
+          ),
       }),
       themeListboxView(themeListbox, theme),
     ],

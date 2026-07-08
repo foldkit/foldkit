@@ -1,4 +1,5 @@
 import clsx from 'clsx'
+import { Option } from 'effect'
 import { Submodel } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
@@ -7,8 +8,6 @@ import { Button, RadioGroup } from '@foldkit/ui'
 import { ProficiencyLevel } from '../domain'
 import { Skills } from '../step'
 import { inputField } from './field'
-
-const ProficiencyRadioGroup = RadioGroup.create<string>()
 
 export const skillEntryView = Submodel.defineView<
   Skills.Entry.Model,
@@ -24,39 +23,39 @@ export const skillEntryView = Submodel.defineView<
     placeholder: 'e.g. TypeScript, React, Effect-TS',
   })
 
-  const proficiencyView = h.submodel({
-    slotId: model.proficiency.id,
-    model: model.proficiency,
-    view: ProficiencyRadioGroup.view,
-    viewInputs: {
-      options: ProficiencyLevel.all,
-      orientation: 'Horizontal',
-      ariaLabel: 'Proficiency level',
-      toView: attributes =>
-        h.div(
-          [...attributes.group, h.Class('inline-flex flex-wrap gap-2')],
-          attributes.options.map(option =>
-            h.div(
-              [
-                ...option.option,
-                h.Class(
-                  clsx(
-                    'cursor-pointer rounded-full border px-3 py-1 text-sm transition select-none',
-                    option.isSelected
-                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                      : 'border-gray-300 text-gray-600 hover:border-gray-400',
-                  ),
+  const proficiencyView = RadioGroup.view<
+    ProficiencyLevel.ProficiencyLevel,
+    Skills.Entry.Message
+  >({
+    id: Skills.Entry.proficiencyRadioGroupId(model.id),
+    selectedValue: Option.some(model.proficiency),
+    options: ProficiencyLevel.all,
+    orientation: 'Horizontal',
+    ariaLabel: 'Proficiency level',
+    onSelect: value => Skills.Entry.SelectedProficiency({ value }),
+    toView: attributes =>
+      h.div(
+        [...attributes.group, h.Class('inline-flex flex-wrap gap-2')],
+        attributes.options.map(option =>
+          h.div(
+            [
+              ...option.option,
+              h.Class(
+                clsx(
+                  'cursor-pointer rounded-full border px-3 py-1 text-sm transition select-none',
+                  option.isSelected
+                    ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-300 text-gray-600 hover:border-gray-400',
                 ),
-              ],
-              [
-                h.input([...option.label, h.Class('sr-only')]),
-                h.span([], [option.value]),
-              ],
-            ),
+              ),
+            ],
+            [
+              h.input([...option.label, h.Class('sr-only')]),
+              h.span([], [option.value]),
+            ],
           ),
         ),
-    },
-    toParentMessage: message => Skills.Entry.GotProficiencyMessage({ message }),
+      ),
   })
 
   return h.keyed('div')(

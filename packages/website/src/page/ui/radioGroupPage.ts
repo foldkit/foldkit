@@ -65,12 +65,6 @@ const apiReferenceHeader: TableOfContentsEntry = {
   text: 'API Reference',
 }
 
-const initConfigHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'init-config',
-  text: 'InitConfig',
-}
-
 const viewConfigHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'view-config',
@@ -89,12 +83,6 @@ const optionInfoHeader: TableOfContentsEntry = {
   text: 'OptionInfo',
 }
 
-const outMessageHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'out-message',
-  text: 'OutMessage',
-}
-
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -104,57 +92,49 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   keyboardInteractionHeader,
   accessibilityHeader,
   apiReferenceHeader,
-  initConfigHeader,
   viewConfigHeader,
   renderInfoHeader,
   optionInfoHeader,
-  outMessageHeader,
 ]
 
 // SECTION DATA
 
-const initConfigProps: ReadonlyArray<PropEntry> = [
+const viewConfigProps: ReadonlyArray<PropEntry> = [
   {
     name: 'id',
     type: 'string',
-    description: 'Unique ID for the radio group instance.',
+    description:
+      'Unique ID for the radio group instance. Used to link ARIA attributes and to target focus.',
   },
   {
     name: 'selectedValue',
+    type: 'Option<Value>',
+    description:
+      'The currently-selected value, read from your Model. `Option.none()` renders with nothing selected.',
+  },
+  {
+    name: 'options',
+    type: 'ReadonlyArray<Value>',
+    description:
+      'The list of option values, in display order. `Value` is the first type parameter of `RadioGroup.view<Value, Message>()`, so each `OptionInfo.value` is typed as `Value`.',
+  },
+  {
+    name: 'ariaLabel',
     type: 'string',
-    description: 'Initially selected option value.',
+    description: 'Accessible label for the radio group.',
+  },
+  {
+    name: 'onSelect',
+    type: '(value: Value) => Message',
+    description:
+      'Maps a committed option to a Message in your parent Message type. Your update handler just stores the value. Moving focus onto the newly-selected option is the radio group’s own concern, handled inside its click and keydown handlers.',
   },
   {
     name: 'orientation',
     type: "'Vertical' | 'Horizontal'",
     default: "'Vertical'",
     description:
-      'Layout orientation. Controls which arrow keys navigate between options.',
-  },
-]
-
-const viewConfigProps: ReadonlyArray<PropEntry> = [
-  {
-    name: 'model',
-    type: 'RadioGroup.Model',
-    description: 'The radio group state from your parent Model.',
-  },
-  {
-    name: 'toParentMessage',
-    type: '(childMessage: RadioGroup.Message) => ParentMessage',
-    description:
-      'Wraps RadioGroup Messages in your parent Message type for Submodel delegation.',
-  },
-  {
-    name: 'options',
-    type: 'ReadonlyArray<Value>',
-    description:
-      'The list of option values, in display order. When the radio group is declared via `RadioGroup.create<MyUnion>()`, `Value` is your union type and each `OptionInfo.value` is typed as `MyUnion`.',
-  },
-  {
-    name: 'ariaLabel',
-    type: 'string',
-    description: 'Accessible label for the radio group.',
+      'Layout orientation. Controls arrow key direction and `aria-orientation`.',
   },
   {
     name: 'toView',
@@ -179,18 +159,12 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     description:
       'Form field name. When provided, `RenderInfo.hiddenInput` carries the attributes for a hidden `<input>` holding the selected value (the consumer renders the element).',
   },
-  {
-    name: 'orientation',
-    type: "'Vertical' | 'Horizontal'",
-    description:
-      'Overrides the orientation set at init. Controls arrow key direction and `aria-orientation`.',
-  },
 ]
 
 const renderInfoProps: ReadonlyArray<PropEntry> = [
   {
     name: 'group',
-    type: 'ReadonlyArray<ChildAttribute>',
+    type: 'ReadonlyArray<Attribute<Message>>',
     description:
       'Spread onto the radio group container. Includes `role="radiogroup"`, `aria-orientation`, and `aria-label`.',
   },
@@ -198,7 +172,7 @@ const renderInfoProps: ReadonlyArray<PropEntry> = [
     name: 'options',
     type: 'ReadonlyArray<OptionInfo<Value>>',
     description:
-      'One entry per option in `viewInputs.options`, in the same order. See OptionInfo below.',
+      'One entry per option in `options`, in the same order. See OptionInfo below.',
   },
   {
     name: 'selectedValue',
@@ -208,9 +182,9 @@ const renderInfoProps: ReadonlyArray<PropEntry> = [
   },
   {
     name: 'hiddenInput',
-    type: 'ReadonlyArray<ChildAttribute>',
+    type: 'ReadonlyArray<Attribute<Message>>',
     description:
-      'When `viewInputs.name` is supplied, attributes for a hidden form input carrying the selected value. The consumer renders the `<input>` element. Empty array when `name` is undefined.',
+      'When `name` is supplied, attributes for a hidden form input carrying the selected value. The consumer renders the `<input>` element. Empty array when `name` is undefined.',
   },
 ]
 
@@ -219,7 +193,7 @@ const optionInfoProps: ReadonlyArray<PropEntry> = [
     name: 'value',
     type: 'Value',
     description:
-      'The option value. Typed as your `Value` union when the radio group is declared via `RadioGroup.create<Value>()`.',
+      'The option value. Typed as the `Value` type parameter of `RadioGroup.view<Value, Message>()`.',
   },
   {
     name: 'index',
@@ -245,30 +219,21 @@ const optionInfoProps: ReadonlyArray<PropEntry> = [
   },
   {
     name: 'option',
-    type: 'ReadonlyArray<ChildAttribute>',
+    type: 'ReadonlyArray<Attribute<Message>>',
     description:
       'Spread onto the option element. Includes `role="radio"`, `aria-checked`, `aria-labelledby`, `aria-describedby`, `tabindex`, and click/keyboard handlers.',
   },
   {
     name: 'label',
-    type: 'ReadonlyArray<ChildAttribute>',
+    type: 'ReadonlyArray<Attribute<Message>>',
     description:
       'Spread onto the label element. Includes an id for `aria-labelledby`.',
   },
   {
     name: 'description',
-    type: 'ReadonlyArray<ChildAttribute>',
+    type: 'ReadonlyArray<Attribute<Message>>',
     description:
       'Spread onto a description element. Includes an id for `aria-describedby`.',
-  },
-]
-
-const outMessageProps: ReadonlyArray<PropEntry> = [
-  {
-    name: 'Selected',
-    type: '{ value: Value; index: number }',
-    description:
-      'Emitted when an option is committed via click or keyboard. Pattern-match the third tuple element of RadioGroup.update in your GotRadioGroupMessage handler to lift the value into domain state. Programmatic `RadioGroup.select(model, value, options)` carries the same signal.',
   },
 ]
 
@@ -324,7 +289,13 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         pageTitle('ui/radioGroup', 'Radio Group'),
         tableOfContentsEntryToHeader(overviewHeader),
         para(
-          'A single-selection component with roving tabindex keyboard navigation. Arrow keys simultaneously move focus and select the option. There is no separate focus-then-select step. RadioGroup uses the Submodel pattern and supports both vertical and horizontal orientation.',
+          'A single-selection component with roving tabindex keyboard navigation. Arrow keys simultaneously move focus and select the option. There is no separate focus-then-select step. RadioGroup is a stateless controlled render helper: call it directly with a ViewConfig in your own view; no Model, update, or ',
+          inlineCode('h.submodel'),
+          ' wrapping. Your Model owns the selected value, you pass it in as ',
+          inlineCode('selectedValue'),
+          ', and ',
+          inlineCode('onSelect'),
+          ' dispatches a parent Message when the user commits an option. Both vertical and horizontal orientation are supported.',
         ),
         infoCallout(
           'See it in an app',
@@ -339,23 +310,24 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           RadioGroup.verticalHeader.text,
         ),
         para(
-          'Declare the radio group once at module scope with ',
-          inlineCode('RadioGroup.create<Value>()'),
-          ' to lift the option type through ',
-          inlineCode('view'),
-          ', ',
-          inlineCode('update'),
-          ', and ',
-          inlineCode('select'),
-          ' without casting. Pass the typed ',
+          'Call ',
+          inlineCode('RadioGroup.view<Value, Message>()'),
+          ' directly in your view. Read the current selection from your Model into ',
+          inlineCode('selectedValue'),
+          ', pass the typed ',
           inlineCode('options'),
-          ' array and a ',
+          ' array, and provide an ',
+          inlineCode('onSelect'),
+          ' handler that maps the committed value to a parent Message. The ',
           inlineCode('toView'),
-          ' callback that receives one ',
+          ' callback receives one ',
           inlineCode('OptionInfo<Value>'),
           ' per option (with attribute bundles for the option, label, and description).',
         ),
-        demoContainer(...RadioGroup.verticalDemo(model.verticalRadioGroupDemo)),
+        para(
+          'In your update handler for that Message, just store the value. Moving focus onto the selected option (the roving-tabindex behavior) is handled inside the radio group’s own click and keydown handlers, so it never becomes your update’s concern.',
+        ),
+        demoContainer(...RadioGroup.verticalDemo(model)),
         highlightedCodeBlock(
           h.div(
             [
@@ -377,11 +349,9 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         para(
           'Pass ',
           inlineCode("orientation: 'Horizontal'"),
-          ' to switch to left/right arrow navigation. Set the orientation at init time or override it per render in the view config.',
+          ' in the ViewConfig to switch to left/right arrow navigation.',
         ),
-        demoContainer(
-          ...RadioGroup.horizontalDemo(model.horizontalRadioGroupDemo),
-        ),
+        demoContainer(...RadioGroup.horizontalDemo(model)),
         heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
         para(
           'RadioGroup is headless. The ',
@@ -426,17 +396,6 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           apiReferenceHeader.text,
         ),
         heading(
-          initConfigHeader.level,
-          initConfigHeader.id,
-          initConfigHeader.text,
-        ),
-        para(
-          'Configuration object passed to ',
-          inlineCode('RadioGroup.init()'),
-          '.',
-        ),
-        propTable(initConfigProps),
-        heading(
           viewConfigHeader.level,
           viewConfigHeader.id,
           viewConfigHeader.text,
@@ -469,17 +428,6 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           '. Carries the value, derived state flags, and attribute bundles for the option element, its label, and its description.',
         ),
         propTable(optionInfoProps),
-        heading(
-          outMessageHeader.level,
-          outMessageHeader.id,
-          outMessageHeader.text,
-        ),
-        para(
-          'Messages emitted to the parent through the third element of ',
-          inlineCode('[Model, Commands, Option<OutMessage>]'),
-          '. Pattern-match on the OutMessage in your update handler.',
-        ),
-        propTable(outMessageProps),
       ],
     )
   },

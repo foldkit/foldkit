@@ -1236,8 +1236,6 @@ export const view = (
         ' and ',
         inlineCode('reflectSelectedItems'),
         ' (Listbox, Combobox), ',
-        inlineCode('reflectSelectedValue'),
-        ' (RadioGroup), ',
         inlineCode('reflectSelectedTab'),
         ' (Tabs), ',
         inlineCode('reflectSelectedDate'),

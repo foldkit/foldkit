@@ -38,7 +38,6 @@ import {
   GotDragAndDropDemoMessage,
   GotFieldsetCheckboxDemoMessage,
   GotFileDropBasicDemoMessage,
-  GotHorizontalRadioGroupDemoMessage,
   GotHorizontalTabsDemoMessage,
   GotListboxDemoMessage,
   GotListboxGroupedDemoMessage,
@@ -58,7 +57,6 @@ import {
   GotSwitchDemoMessage,
   GotToastDemoMessage,
   GotTooltipDemoMessage,
-  GotVerticalRadioGroupDemoMessage,
   GotVerticalTabsDemoMessage,
   GotVirtualListDemoMessage,
   GotVirtualListVariableDemoMessage,
@@ -66,7 +64,6 @@ import {
 } from './message'
 import type { Model } from './model'
 import type { DemoCard, DemoColumn } from './model'
-import { PlanRadioGroup } from './radioGroup'
 import { DemoTabs } from './tabs'
 import { Toast } from './toastModule'
 import {
@@ -669,33 +666,19 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      GotVerticalRadioGroupDemoMessage: ({ message }) => {
-        const [nextVerticalRadioGroupDemo, verticalRadioGroupCommands] =
-          PlanRadioGroup.update(model.verticalRadioGroupDemo, message)
+      SelectedVerticalPlan: ({ plan }) => [
+        evo(model, {
+          verticalRadioGroupDemoValue: () => Option.some(plan),
+        }),
+        [],
+      ],
 
-        return [
-          evo(model, {
-            verticalRadioGroupDemo: () => nextVerticalRadioGroupDemo,
-          }),
-          Command.mapMessages(verticalRadioGroupCommands, message =>
-            GotVerticalRadioGroupDemoMessage({ message }),
-          ),
-        ]
-      },
-
-      GotHorizontalRadioGroupDemoMessage: ({ message }) => {
-        const [nextHorizontalRadioGroupDemo, horizontalRadioGroupCommands] =
-          PlanRadioGroup.update(model.horizontalRadioGroupDemo, message)
-
-        return [
-          evo(model, {
-            horizontalRadioGroupDemo: () => nextHorizontalRadioGroupDemo,
-          }),
-          Command.mapMessages(horizontalRadioGroupCommands, message =>
-            GotHorizontalRadioGroupDemoMessage({ message }),
-          ),
-        ]
-      },
+      SelectedHorizontalPlan: ({ plan }) => [
+        evo(model, {
+          horizontalRadioGroupDemoValue: () => Option.some(plan),
+        }),
+        [],
+      ],
 
       GotSliderRatingDemoMessage: ({ message }) => {
         const [nextSliderRatingDemo, sliderRatingCommands] = Slider.update(

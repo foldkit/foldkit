@@ -1,8 +1,6 @@
 import { Schema as S } from 'effect'
 import { m } from 'foldkit/message'
 
-import { RadioGroup } from '@foldkit/ui'
-
 import { ChartMode, PackageId, Period, Telemetry } from './domain'
 
 export const SelectedChartMode = m('SelectedChartMode', {
@@ -11,7 +9,9 @@ export const SelectedChartMode = m('SelectedChartMode', {
 export const SelectedPackage = m('SelectedPackage', {
   packageId: PackageId,
 })
-export const SelectedPeriod = m('SelectedPeriod', { period: Period })
+export const SelectedPeriod = m('SelectedPeriod', {
+  period: Period,
+})
 export const ClickedRefresh = m('ClickedRefresh')
 export const ClickedRetry = m('ClickedRetry')
 export const ClickedChartDatum = m('ClickedChartDatum', {
@@ -29,21 +29,6 @@ export const SucceededMountChart = m('SucceededMountChart', {
 export const FailedMountChart = m('FailedMountChart', { reason: S.String })
 export const CompletedSyncChart = m('CompletedSyncChart')
 export const FailedSyncChart = m('FailedSyncChart', { reason: S.String })
-export const GotChartModeRadioGroupMessage = m(
-  'GotChartModeRadioGroupMessage',
-  {
-    message: RadioGroup.Message,
-  },
-)
-export const GotPackageIdRadioGroupMessage = m(
-  'GotPackageIdRadioGroupMessage',
-  {
-    message: RadioGroup.Message,
-  },
-)
-export const GotPeriodRadioGroupMessage = m('GotPeriodRadioGroupMessage', {
-  message: RadioGroup.Message,
-})
 
 export const Message = S.Union([
   SelectedChartMode,
@@ -58,8 +43,5 @@ export const Message = S.Union([
   FailedMountChart,
   CompletedSyncChart,
   FailedSyncChart,
-  GotChartModeRadioGroupMessage,
-  GotPackageIdRadioGroupMessage,
-  GotPeriodRadioGroupMessage,
 ])
 export type Message = typeof Message.Type

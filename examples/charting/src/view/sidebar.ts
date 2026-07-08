@@ -3,7 +3,12 @@ import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 import { html } from 'foldkit/html'
 
+import { RadioGroup } from '@foldkit/ui'
+
 import {
+  type ChartMode,
+  type PackageId,
+  type Period,
   type Telemetry,
   chartModes,
   findPackageSnapshot,
@@ -15,16 +20,16 @@ import {
   totalDownloads,
 } from '../domain'
 import {
-  GotChartModeRadioGroupMessage,
-  GotPackageIdRadioGroupMessage,
-  GotPeriodRadioGroupMessage,
   type Message,
+  SelectedChartMode,
+  SelectedPackage,
+  SelectedPeriod,
 } from '../message'
 import { type Model } from '../model'
 import {
-  ChartModeRadioGroup,
-  PackageIdRadioGroup,
-  PeriodRadioGroup,
+  CHART_MODE_RADIO_GROUP_ID,
+  PACKAGE_RADIO_GROUP_ID,
+  PERIOD_RADIO_GROUP_ID,
 } from '../radioGroups'
 import { formatCompact, formatFetchedAt, formatInteger } from './format'
 
@@ -131,31 +136,27 @@ export const controlPanelView = (model: Model): Html => {
             [h.Class('mb-1.5 text-xs font-medium text-zinc-500')],
             ['Chart mode'],
           ),
-          h.submodel({
-            slotId: model.chartModeRadioGroup.id,
-            model: model.chartModeRadioGroup,
-            view: ChartModeRadioGroup.view,
-            viewInputs: {
-              options: chartModes,
-              ariaLabel: 'Chart mode',
-              orientation: 'Horizontal',
-              toView: ({ group, options }) =>
-                h.div(
-                  [...group, h.Class(radioGroupClassName)],
-                  Array.map(options, option =>
-                    h.div(
-                      [
-                        ...option.option,
-                        h.Key(option.value),
-                        h.Class(radioOptionClassName(option.isSelected)),
-                      ],
-                      [h.span([...option.label], [option.value])],
-                    ),
+          RadioGroup.view<ChartMode, Message>({
+            id: CHART_MODE_RADIO_GROUP_ID,
+            selectedValue: Option.some(model.chartMode),
+            options: chartModes,
+            ariaLabel: 'Chart mode',
+            orientation: 'Horizontal',
+            onSelect: chartMode => SelectedChartMode({ chartMode }),
+            toView: ({ group, options }) =>
+              h.div(
+                [...group, h.Class(radioGroupClassName)],
+                Array.map(options, option =>
+                  h.div(
+                    [
+                      ...option.option,
+                      h.Key(option.value),
+                      h.Class(radioOptionClassName(option.isSelected)),
+                    ],
+                    [h.span([...option.label], [option.value])],
                   ),
                 ),
-            },
-            toParentMessage: message =>
-              GotChartModeRadioGroupMessage({ message }),
+              ),
           }),
         ],
       ),
@@ -168,31 +169,27 @@ export const controlPanelView = (model: Model): Html => {
                 [h.Class('mb-1.5 text-xs font-medium text-zinc-500')],
                 ['Period'],
               ),
-              h.submodel({
-                slotId: model.periodRadioGroup.id,
-                model: model.periodRadioGroup,
-                view: PeriodRadioGroup.view,
-                viewInputs: {
-                  options: periods,
-                  ariaLabel: 'Period',
-                  orientation: 'Horizontal',
-                  toView: ({ group, options }) =>
-                    h.div(
-                      [...group, h.Class(radioGroupClassName)],
-                      Array.map(options, option =>
-                        h.div(
-                          [
-                            ...option.option,
-                            h.Key(option.value),
-                            h.Class(radioOptionClassName(option.isSelected)),
-                          ],
-                          [periodLabels[option.value]],
-                        ),
+              RadioGroup.view<Period, Message>({
+                id: PERIOD_RADIO_GROUP_ID,
+                selectedValue: Option.some(model.period),
+                options: periods,
+                ariaLabel: 'Period',
+                orientation: 'Horizontal',
+                onSelect: period => SelectedPeriod({ period }),
+                toView: ({ group, options }) =>
+                  h.div(
+                    [...group, h.Class(radioGroupClassName)],
+                    Array.map(options, option =>
+                      h.div(
+                        [
+                          ...option.option,
+                          h.Key(option.value),
+                          h.Class(radioOptionClassName(option.isSelected)),
+                        ],
+                        [periodLabels[option.value]],
                       ),
                     ),
-                },
-                toParentMessage: message =>
-                  GotPeriodRadioGroupMessage({ message }),
+                  ),
               }),
             ],
           )
@@ -211,59 +208,55 @@ export const packagePanelView = (model: Model, telemetry: Telemetry): Html => {
       h.div(
         [h.Class('mt-3')],
         [
-          h.submodel({
-            slotId: model.packageIdRadioGroup.id,
-            model: model.packageIdRadioGroup,
-            view: PackageIdRadioGroup.view,
-            viewInputs: {
-              options: packageIds,
-              ariaLabel: 'Package',
-              orientation: 'Vertical',
-              toView: ({ group, options }) =>
-                h.div(
-                  [...group, h.Class('grid gap-2')],
-                  Array.map(options, option => {
-                    const spec = packageIdToSpec(option.value)
-                    const maybeSnapshot = findPackageSnapshot(
-                      telemetry,
-                      option.value,
-                    )
+          RadioGroup.view<PackageId, Message>({
+            id: PACKAGE_RADIO_GROUP_ID,
+            selectedValue: Option.some(model.selectedPackageId),
+            options: packageIds,
+            ariaLabel: 'Package',
+            orientation: 'Vertical',
+            onSelect: packageId => SelectedPackage({ packageId }),
+            toView: ({ group, options }) =>
+              h.div(
+                [...group, h.Class('grid gap-2')],
+                Array.map(options, option => {
+                  const spec = packageIdToSpec(option.value)
+                  const maybeSnapshot = findPackageSnapshot(
+                    telemetry,
+                    option.value,
+                  )
 
-                    return h.div(
-                      [
-                        ...option.option,
-                        h.Key(option.value),
-                        h.Class(
-                          clsx(
-                            'cursor-pointer min-h-14 rounded-md border px-3 py-2 text-left',
-                            option.isSelected
-                              ? 'border-emerald-600 bg-emerald-50 text-emerald-950'
-                              : 'border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50',
-                          ),
+                  return h.div(
+                    [
+                      ...option.option,
+                      h.Key(option.value),
+                      h.Class(
+                        clsx(
+                          'cursor-pointer min-h-14 rounded-md border px-3 py-2 text-left',
+                          option.isSelected
+                            ? 'border-emerald-600 bg-emerald-50 text-emerald-950'
+                            : 'border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50',
                         ),
-                      ],
-                      [
-                        h.div(
-                          [h.Class('text-sm font-medium')],
-                          [spec.displayName],
-                        ),
-                        h.div(
-                          [h.Class('mt-0.5 text-xs text-zinc-500')],
-                          [
-                            Option.match(maybeSnapshot, {
-                              onNone: () => spec.role,
-                              onSome: snapshot =>
-                                `${formatCompact(snapshot.lastWeekDownloads)} last week, v${snapshot.latestVersion}`,
-                            }),
-                          ],
-                        ),
-                      ],
-                    )
-                  }),
-                ),
-            },
-            toParentMessage: message =>
-              GotPackageIdRadioGroupMessage({ message }),
+                      ),
+                    ],
+                    [
+                      h.div(
+                        [h.Class('text-sm font-medium')],
+                        [spec.displayName],
+                      ),
+                      h.div(
+                        [h.Class('mt-0.5 text-xs text-zinc-500')],
+                        [
+                          Option.match(maybeSnapshot, {
+                            onNone: () => spec.role,
+                            onSome: snapshot =>
+                              `${formatCompact(snapshot.lastWeekDownloads)} last week, v${snapshot.latestVersion}`,
+                          }),
+                        ],
+                      ),
+                    ],
+                  )
+                }),
+              ),
           }),
         ],
       ),

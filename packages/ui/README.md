@@ -41,8 +41,8 @@ const view = () => {
 
 Components come in two shapes:
 
-- **Render helpers** (Button, Input, Textarea, Select, Fieldset) are stateless. Call their `view` directly with a typed config.
-- **Submodels** (Checkbox, Combobox, Dialog, Listbox, Menu, Popover, RadioGroup, and the like) own a Model. Embed them with `h.submodel`, drive them through their `update`, and consume their `OutMessage` in the parent.
+- **Render helpers** (Button, Input, Textarea, Select, RadioGroup, Fieldset) are stateless. Call their `view` directly with a typed config.
+- **Submodels** (Checkbox, Combobox, Dialog, Listbox, Menu, Popover, and the like) own a Model. Embed them with `h.submodel`, drive them through their `update`, and consume their `OutMessage` in the parent.
 
 Every component is also available as a subpath import:
 

@@ -2,7 +2,7 @@ import { Option } from 'effect'
 import { Scene } from 'foldkit'
 import { describe, test } from 'vitest'
 
-import { Dialog, Listbox, RadioGroup, Switch } from '@foldkit/ui'
+import { Dialog, Listbox, Switch } from '@foldkit/ui'
 
 import { ExportPng, SaveCanvas } from './command'
 import { createEmptyGrid } from './grid'
@@ -11,8 +11,6 @@ import {
   FailedExportPng,
   GotErrorDialogMessage,
   GotGridSizeConfirmDialogMessage,
-  GotGridSizeRadioGroupMessage,
-  GotToolRadioGroupMessage,
   type Message,
   SucceededExportPng,
 } from './message'
@@ -35,20 +33,6 @@ const createTestModel = (): Model => ({
   paletteThemeIndex: 0,
   gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
   maybePendingGridSize: Option.none(),
-  toolRadioGroup: RadioGroup.init({
-    id: 'tool-picker',
-    selectedValue: 'Brush',
-  }),
-  gridSizeRadioGroup: RadioGroup.init({
-    id: 'grid-size-picker',
-    selectedValue: '4',
-    orientation: 'Horizontal',
-  }),
-  paletteRadioGroup: RadioGroup.init({
-    id: 'palette-picker',
-    selectedValue: '0',
-    orientation: 'Horizontal',
-  }),
   mirrorHorizontalSwitch: Switch.init({ id: 'mirror-horizontal' }),
   mirrorVerticalSwitch: Switch.init({ id: 'mirror-vertical' }),
   themeListbox: Listbox.init({ id: 'theme-picker', selectedItem: '0' }),
@@ -68,9 +52,6 @@ const errorDialogMessageToMessage = (message: Dialog.Message): Message =>
 
 const confirmDialogMessageToMessage = (message: Dialog.Message): Message =>
   GotGridSizeConfirmDialogMessage({ message })
-
-const toolRadioGroupMessageToMessage = (message: RadioGroup.Message): Message =>
-  GotToolRadioGroupMessage({ message })
 
 describe('export workflow', () => {
   test('clicking Export PNG produces ExportPng Command', () => {
@@ -173,11 +154,6 @@ describe('toolbar', () => {
       { update, view },
       Scene.with(createTestModel()),
       Scene.click(Scene.role('radio', { name: /^Fill/ })),
-      Scene.Command.resolve(
-        RadioGroup.FocusOption,
-        RadioGroup.CompletedFocusOption(),
-        toolRadioGroupMessageToMessage,
-      ),
       Scene.expect(
         Scene.role('radio', { name: /^Fill/, checked: true }),
       ).toExist(),
@@ -251,11 +227,6 @@ describe('grid size change', () => {
       { update, view },
       Scene.with(createPaintedModel()),
       Scene.click(Scene.role('radio', { name: '8' })),
-      Scene.Command.resolve(
-        RadioGroup.FocusOption,
-        RadioGroup.CompletedFocusOption(),
-        radioMessage => GotGridSizeRadioGroupMessage({ message: radioMessage }),
-      ),
       Scene.Command.resolve(
         Dialog.ShowDialog,
         Dialog.CompletedShowDialog(),

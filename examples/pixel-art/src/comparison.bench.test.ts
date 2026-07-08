@@ -6,7 +6,7 @@
 import { Option } from 'effect'
 import { test } from 'vitest'
 
-import { Dialog, Listbox, RadioGroup, Switch } from '@foldkit/ui'
+import { Dialog, Listbox, Switch } from '@foldkit/ui'
 
 import { createEmptyGrid as createReactGrid } from '../../../comparisons/pixel-art-react/src/grid'
 import { reducer } from '../../../comparisons/pixel-art-react/src/reducer'
@@ -41,20 +41,6 @@ const foldkitModel: Model = {
   paletteThemeIndex: 0,
   gridSizeConfirmDialog: Dialog.init({ id: 'confirm-dialog' }),
   maybePendingGridSize: Option.none(),
-  toolRadioGroup: RadioGroup.init({
-    id: 'tools',
-    selectedValue: 'Brush',
-  }),
-  gridSizeRadioGroup: RadioGroup.init({
-    id: 'sizes',
-    selectedValue: String(GRID_SIZE),
-    orientation: 'Horizontal',
-  }),
-  paletteRadioGroup: RadioGroup.init({
-    id: 'palette',
-    selectedValue: '0',
-    orientation: 'Horizontal',
-  }),
   mirrorHorizontalSwitch: Switch.init({ id: 'mirror-h' }),
   mirrorVerticalSwitch: Switch.init({ id: 'mirror-v' }),
   themeListbox: Listbox.init({ id: 'themes', selectedItem: '0' }),

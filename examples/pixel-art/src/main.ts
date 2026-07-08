@@ -3,7 +3,7 @@ import { KeyValueStore } from 'effect/unstable/persistence'
 import { Runtime } from 'foldkit'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { Dialog, Listbox, RadioGroup, Switch } from '@foldkit/ui'
+import { Dialog, Listbox, Switch } from '@foldkit/ui'
 
 import {
   DEFAULT_COLOR_INDEX,
@@ -69,26 +69,6 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => [
     }),
     gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
     maybePendingGridSize: Option.none(),
-    toolRadioGroup: RadioGroup.init({
-      id: 'tool-picker',
-      selectedValue: 'Brush',
-    }),
-    gridSizeRadioGroup: RadioGroup.init({
-      id: 'grid-size-picker',
-      selectedValue: Option.match(flags.maybeSavedCanvas, {
-        onNone: () => DEFAULT_GRID_SIZE.toString(),
-        onSome: ({ gridSize }) => gridSize.toString(),
-      }),
-      orientation: 'Horizontal',
-    }),
-    paletteRadioGroup: RadioGroup.init({
-      id: 'palette-picker',
-      selectedValue: Option.match(flags.maybeSavedCanvas, {
-        onNone: () => DEFAULT_COLOR_INDEX.toString(),
-        onSome: ({ selectedColorIndex }) => selectedColorIndex.toString(),
-      }),
-      orientation: 'Horizontal',
-    }),
     mirrorHorizontalSwitch: Switch.init({ id: 'mirror-horizontal' }),
     mirrorVerticalSwitch: Switch.init({ id: 'mirror-vertical' }),
     themeListbox: Listbox.init({

@@ -1,3 +1,4 @@
+import { Option } from 'effect'
 import { Calendar, Command } from 'foldkit'
 
 import {
@@ -12,7 +13,6 @@ import {
   Listbox,
   Menu,
   Popover,
-  RadioGroup,
   Slider,
   Switch,
   Tabs,
@@ -130,13 +130,8 @@ export const uiInit = (
     popoverNestedChildDemo: Popover.init({
       id: 'popover-nested-child-demo',
     }),
-    verticalRadioGroupDemo: RadioGroup.init({
-      id: 'vertical-radio-group-demo',
-    }),
-    horizontalRadioGroupDemo: RadioGroup.init({
-      id: 'horizontal-radio-group-demo',
-      orientation: 'Horizontal',
-    }),
+    verticalRadioGroupDemoValue: Option.none(),
+    horizontalRadioGroupDemoValue: Option.none(),
     selectDemoValue: 'us',
     sliderRatingDemo: Slider.init({
       id: 'slider-rating-demo',

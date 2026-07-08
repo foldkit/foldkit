@@ -105,7 +105,6 @@ type AudioState = typeof AudioState.Type
 export const Model = S.Struct({
   noteInput: FieldValidation.Field(S.String),
   noteDuration: NoteDuration,
-  durationRadioGroup: RadioGroup.Model,
   playbackState: PlaybackState,
   highlightPhase: NoteHighlightPhase,
   generation: S.Number,
@@ -118,8 +117,8 @@ export type Model = typeof Model.Type
 // MESSAGE
 
 const ChangedNoteInput = m('ChangedNoteInput', { value: S.String })
-const GotDurationRadioGroupMessage = m('GotDurationRadioGroupMessage', {
-  message: RadioGroup.Message,
+const SelectedNoteDuration = m('SelectedNoteDuration', {
+  value: NoteDuration,
 })
 const ClickedPlay = m('ClickedPlay')
 const ClickedPause = m('ClickedPause')
@@ -134,7 +133,7 @@ const ReleasedAudioContext = m('ReleasedAudioContext')
 
 export const Message = S.Union([
   ChangedNoteInput,
-  GotDurationRadioGroupMessage,
+  SelectedNoteDuration,
   ClickedPlay,
   ClickedPause,
   ClickedStop,
@@ -173,11 +172,6 @@ export const init = (): readonly [
   {
     noteInput: validateNoteInput(INITIAL_NOTE_SEQUENCE),
     noteDuration: 'Medium',
-    durationRadioGroup: RadioGroup.init({
-      id: 'note-duration',
-      selectedValue: 'Medium',
-      orientation: 'Horizontal',
-    }),
     playbackState: Idle(),
     highlightPhase: 'Idle',
     generation: 0,
@@ -252,42 +246,13 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      GotDurationRadioGroupMessage: ({ message: radioGroupMessage }) => {
-        const [nextRadioGroup, radioGroupCommands, maybeOutMessage] =
-          NoteDurationRadioGroup.update(
-            model.durationRadioGroup,
-            radioGroupMessage,
-          )
-        const mappedCommands = Command.mapMessages(
-          radioGroupCommands,
-          message => GotDurationRadioGroupMessage({ message }),
-        )
-
-        return Option.match(maybeOutMessage, {
-          onNone: (): readonly [
-            Model,
-            ReadonlyArray<Command.Command<Message>>,
-          ] => [
-            evo(model, { durationRadioGroup: () => nextRadioGroup }),
-            mappedCommands,
-          ],
-          onSome: M.type<RadioGroup.OutMessage<NoteDuration>>().pipe(
-            M.withReturnType<
-              readonly [Model, ReadonlyArray<Command.Command<Message>>]
-            >(),
-            M.tagsExhaustive({
-              Selected: ({ value }) => [
-                evo(model, {
-                  durationRadioGroup: () => nextRadioGroup,
-                  noteDuration: () => value,
-                  messageLog: prependToLog(`SelectedNoteDuration(${value})`),
-                }),
-                mappedCommands,
-              ],
-            }),
-          ),
-        })
-      },
+      SelectedNoteDuration: ({ value }) => [
+        evo(model, {
+          noteDuration: () => value,
+          messageLog: prependToLog(`SelectedNoteDuration(${value})`),
+        }),
+        [],
+      ],
 
       ClickedPlay: () =>
         M.value(model.playbackState).pipe(
@@ -710,7 +675,7 @@ const noteInputView = (model: Model, isInputLocked: boolean): Html => {
 
 const noteDurations: ReadonlyArray<NoteDuration> = ['Short', 'Medium', 'Long']
 
-const NoteDurationRadioGroup = RadioGroup.create<NoteDuration>()
+const NOTE_DURATION_RADIO_GROUP_ID = 'note-duration'
 
 const durationSelectorView = (model: Model, isInputLocked: boolean): Html => {
   const h = html<Message>()
@@ -722,36 +687,34 @@ const durationSelectorView = (model: Model, isInputLocked: boolean): Html => {
         [h.Class('text-xs text-gray-500 dark:text-gray-400')],
         ['Note Length'],
       ),
-      h.submodel({
-        slotId: model.durationRadioGroup.id,
-        model: model.durationRadioGroup,
-        view: NoteDurationRadioGroup.view,
-        viewInputs: {
-          options: noteDurations,
-          ariaLabel: 'Note length',
-          isDisabled: isInputLocked,
-          toView: ({ group, options }) =>
-            h.div(
-              [
-                ...group,
-                h.Class(
-                  'flex rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden',
-                ),
-              ],
-              options.map(option =>
-                h.div(
-                  [
-                    ...option.option,
-                    h.Class(
-                      durationButtonClass(option.isSelected, option.isDisabled),
-                    ),
-                  ],
-                  [option.value],
-                ),
+      RadioGroup.view<NoteDuration, Message>({
+        id: NOTE_DURATION_RADIO_GROUP_ID,
+        selectedValue: Option.some(model.noteDuration),
+        options: noteDurations,
+        ariaLabel: 'Note length',
+        orientation: 'Horizontal',
+        isDisabled: isInputLocked,
+        onSelect: value => SelectedNoteDuration({ value }),
+        toView: ({ group, options }) =>
+          h.div(
+            [
+              ...group,
+              h.Class(
+                'flex rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden',
+              ),
+            ],
+            options.map(option =>
+              h.div(
+                [
+                  ...option.option,
+                  h.Class(
+                    durationButtonClass(option.isSelected, option.isDisabled),
+                  ),
+                ],
+                [option.value],
               ),
             ),
-        },
-        toParentMessage: message => GotDurationRadioGroupMessage({ message }),
+          ),
       }),
     ],
   )

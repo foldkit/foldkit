@@ -2,7 +2,7 @@ import { Equal, Option } from 'effect'
 import { Story } from 'foldkit'
 import { describe, expect, test } from 'vitest'
 
-import { Dialog, Listbox, RadioGroup, Switch } from '@foldkit/ui'
+import { Dialog, Listbox, Switch } from '@foldkit/ui'
 
 import { ExportPng, SaveCanvas } from './command'
 import { createEmptyGrid } from './grid'
@@ -17,9 +17,6 @@ import {
   FailedExportPng,
   GotErrorDialogMessage,
   GotGridSizeConfirmDialogMessage,
-  GotGridSizeRadioGroupMessage,
-  GotPaletteRadioGroupMessage,
-  GotToolRadioGroupMessage,
   LeftCanvas,
   PressedCell,
   ReleasedMouse,
@@ -48,20 +45,6 @@ const emptyModel: Model = {
   paletteThemeIndex: 0,
   gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
   maybePendingGridSize: Option.none(),
-  toolRadioGroup: RadioGroup.init({
-    id: 'tool-picker',
-    selectedValue: 'Brush',
-  }),
-  gridSizeRadioGroup: RadioGroup.init({
-    id: 'grid-size-picker',
-    selectedValue: '4',
-    orientation: 'Horizontal',
-  }),
-  paletteRadioGroup: RadioGroup.init({
-    id: 'palette-picker',
-    selectedValue: '0',
-    orientation: 'Horizontal',
-  }),
   mirrorHorizontalSwitch: Switch.init({ id: 'mirror-horizontal' }),
   mirrorVerticalSwitch: Switch.init({ id: 'mirror-vertical' }),
   themeListbox: Listbox.init({ id: 'theme-picker', selectedItem: '0' }),
@@ -197,11 +180,6 @@ describe('undo and redo', () => {
       Story.message(ReleasedMouse()),
       Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.message(SelectedColor({ colorIndex: 1 })),
-      Story.Command.resolve(
-        RadioGroup.FocusOption,
-        RadioGroup.CompletedFocusOption(),
-        radioMessage => GotPaletteRadioGroupMessage({ message: radioMessage }),
-      ),
       Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.message(PressedCell({ x: 1, y: 1 })),
       Story.message(ReleasedMouse()),
@@ -278,11 +256,6 @@ describe('fill tool', () => {
       update,
       Story.with(emptyModel),
       Story.message(SelectedTool({ tool: 'Fill' })),
-      Story.Command.resolve(
-        RadioGroup.FocusOption,
-        RadioGroup.CompletedFocusOption(),
-        radioMessage => GotToolRadioGroupMessage({ message: radioMessage }),
-      ),
       Story.message(PressedCell({ x: 0, y: 0 })),
       Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
@@ -308,11 +281,6 @@ describe('fill tool', () => {
       update,
       Story.with(modelWithBarrier),
       Story.message(SelectedTool({ tool: 'Fill' })),
-      Story.Command.resolve(
-        RadioGroup.FocusOption,
-        RadioGroup.CompletedFocusOption(),
-        radioMessage => GotToolRadioGroupMessage({ message: radioMessage }),
-      ),
       Story.message(PressedCell({ x: 0, y: 0 })),
       Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
@@ -331,11 +299,6 @@ describe('grid size', () => {
       update,
       Story.with(emptyModel),
       Story.message(SelectedGridSize({ size: 8 })),
-      Story.Command.resolve(
-        RadioGroup.FocusOption,
-        RadioGroup.CompletedFocusOption(),
-        radioMessage => GotGridSizeRadioGroupMessage({ message: radioMessage }),
-      ),
       Story.model(model => {
         expect(model.gridSize).toBe(8)
         expect(model.grid).toHaveLength(8)
@@ -495,11 +458,6 @@ describe('eraser tool', () => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
       }),
       Story.message(SelectedTool({ tool: 'Eraser' })),
-      Story.Command.resolve(
-        RadioGroup.FocusOption,
-        RadioGroup.CompletedFocusOption(),
-        radioMessage => GotToolRadioGroupMessage({ message: radioMessage }),
-      ),
       Story.message(PressedCell({ x: 0, y: 0 })),
       Story.message(ReleasedMouse()),
       Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),

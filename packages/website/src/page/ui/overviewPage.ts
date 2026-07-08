@@ -119,10 +119,10 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Radio Group',
     href: uiRadioGroupRouter(),
-    kind: 'Submodel',
+    kind: 'Helper',
     category: 'Forms',
     description:
-      'Radio options with roving tabindex, keyboard navigation, and per-option label/description linking.',
+      'Controlled radio options with roving tabindex, keyboard navigation, and per-option label/description linking.',
   },
   {
     name: 'Switch',

@@ -226,7 +226,7 @@ const ruleGroups: ReadonlyArray<RuleGroup> = [
       {
         heading: ruleHeading('selection-submodel-factory-at-module-scope'),
         description:
-          'Requires selection component factories, such as Combobox, Listbox, Menu, RadioGroup, and Tabs, to be created at module scope so their identity stays stable across renders.',
+          'Requires selection component factories, such as Combobox, Listbox, Menu, and Tabs, to be created at module scope so their identity stays stable across renders.',
         raw: Snippet.lintSelectionSubmodelFactoryAtModuleScopeRaw,
         highlighted:
           Snippet.lintSelectionSubmodelFactoryAtModuleScopeHighlighted,

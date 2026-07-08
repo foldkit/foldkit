@@ -1,10 +1,10 @@
-import { RadioGroup } from '@foldkit/ui'
+import { Listbox } from '@foldkit/ui'
 import { Message } from './message'
 import { Model } from './model'
 
-const sortRadioGroup = RadioGroup.create()
+const sortListbox = Listbox.create()
 
 // UPDATE
 
 export const update = (model: Model, message: Message) =>
-  sortRadioGroup.update(model.sort, message)
+  sortListbox.update(model.sort, message)
