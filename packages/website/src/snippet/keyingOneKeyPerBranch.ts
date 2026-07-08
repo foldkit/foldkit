@@ -6,7 +6,7 @@ const postsSection = (model: Model): Html => {
   const h = html<Message>()
   const keyedDiv = h.keyed('div')
 
-  return AsyncData.matchDataSplit(model.posts, {
+  return AsyncData.matchDataSplitEmpty(model.posts, {
     onIdle: () => keyedDiv('Idle', [], [promptView()]),
     onLoading: () => keyedDiv('Loading', [], [spinnerView()]),
     onFailure: error => keyedDiv('Failure', [], [errorView(error)]),

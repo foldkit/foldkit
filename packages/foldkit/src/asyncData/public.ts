@@ -10,7 +10,7 @@ export {
   Schema,
   match,
   matchData,
-  matchDataSplit,
+  matchDataSplitEmpty,
   map,
   mapError,
   mapBoth,

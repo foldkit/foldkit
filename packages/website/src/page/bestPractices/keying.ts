@@ -130,7 +130,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'Restructure the view instead, so the branch structure itself carries the identity: collapse the states that render the same scaffold into one branch, and express their differences as keyed conditional inserts inside it. With ',
         link(asyncDataRouter(), 'AsyncData'),
         ' that is ',
-        inlineCode('matchDataSplit'),
+        inlineCode('matchDataSplitEmpty'),
         ': four branches, four keys, and the ',
         inlineCode('Refreshing'),
         ' badge and ',

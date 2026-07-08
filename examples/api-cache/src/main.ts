@@ -484,7 +484,7 @@ const postsListView = (model: Model): Html => {
           'Open a post, go back, and open it again. The second visit renders instantly from the Model. Invalidate marks the list stale and refetches it while the current list stays on screen.',
         ],
       ),
-      AsyncData.matchDataSplit(model.posts, {
+      AsyncData.matchDataSplitEmpty(model.posts, {
         onIdle: () =>
           h.keyed('div')('Idle', [], [loadingPanel('Loading posts...')]),
         onLoading: () =>
@@ -596,7 +596,7 @@ const postDetailView = (model: Model, postId: string): Html => {
             ['Back to posts'],
           ),
       }),
-      AsyncData.matchDataSplit(postDetailData, {
+      AsyncData.matchDataSplitEmpty(postDetailData, {
         onIdle: () =>
           h.keyed('div')('Idle', [], [loadingPanel('Loading post...')]),
         onLoading: () =>
@@ -675,7 +675,7 @@ const statsTabView = (model: Model): Html => {
           'Stats refetch every 5 seconds while this tab is open. The old numbers stay on screen while the new ones load.',
         ],
       ),
-      AsyncData.matchDataSplit(model.stats, {
+      AsyncData.matchDataSplitEmpty(model.stats, {
         onIdle: () =>
           h.keyed('div')('Idle', [], [loadingPanel('Loading stats...')]),
         onLoading: () =>

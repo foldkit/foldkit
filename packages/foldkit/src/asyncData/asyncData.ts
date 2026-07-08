@@ -210,7 +210,7 @@ export const Schema = <A, AI, E, EI>(
  *  })
  *  ```
  */
-// NOTE: match, matchData, matchDataSplit, getData, and getError use
+// NOTE: match, matchData, matchDataSplitEmpty, getData, and getError use
 // refinement chains instead of Match because tagsExhaustive returns
 // Unify<B>, which does not reduce when the handlers return a caller's
 // naked generic in effect 4.0.0-beta.88. Combinators whose handlers
@@ -273,7 +273,7 @@ export const match: {
  *  `onData` spans the data-bearing states (`Success`, `Refreshing`,
  *  `Stale`), `onFailure` receives the `Failure` error, and `onEmpty` covers
  *  `Idle` and `Loading` together. A `Stale` renders through `onData` so its
- *  data stays on screen. Use `matchDataSplit` when `Idle` and `Loading`
+ *  data stays on screen. Use `matchDataSplitEmpty` when `Idle` and `Loading`
  *  render differently, and `match` when the stale error or the `Refreshing`
  *  signal matters. */
 export const matchData: {
@@ -311,11 +311,11 @@ export const matchData: {
   },
 )
 
-/** Like `matchData`, but the two cold states are split: `onIdle` handles
- *  `Idle` and `onLoading` handles `Loading`, for views that render nothing
- *  requested yet differently from a request in flight. `onData` and
- *  `onFailure` behave exactly as in `matchData`. */
-export const matchDataSplit: {
+/** Like `matchData`, but the collapsed `onEmpty` channel is split in two:
+ *  `onIdle` handles `Idle` and `onLoading` handles `Loading`, for views that
+ *  render nothing requested yet differently from a request in flight.
+ *  `onData` and `onFailure` behave exactly as in `matchData`. */
+export const matchDataSplitEmpty: {
   <A, E, B, C = B, D = B, F = B>(handlers: {
     readonly onIdle: Function.LazyArg<B>
     readonly onLoading: Function.LazyArg<C>

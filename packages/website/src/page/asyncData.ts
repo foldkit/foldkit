@@ -425,7 +425,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' through ',
         inlineCode('onData'),
         ' is the point of keeping its data. ',
-        inlineCode('matchDataSplit'),
+        inlineCode('matchDataSplitEmpty'),
         ' is the same collapse with the two cold states split into ',
         inlineCode('onIdle'),
         ' and ',

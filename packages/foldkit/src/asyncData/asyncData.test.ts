@@ -254,7 +254,7 @@ describe('types', () => {
     expectTypeOf(AsyncData.fromOptionOrIdle(maybeNotes)).toEqualTypeOf<State>()
   })
 
-  it('matchData and matchDataSplit return the union of handler return types', () => {
+  it('matchData and matchDataSplitEmpty return the union of handler return types', () => {
     const dataResult = AsyncData.matchData(success, {
       onEmpty: () => null,
       onFailure: error => error.length,
@@ -262,7 +262,7 @@ describe('types', () => {
     })
     expectTypeOf(dataResult).toEqualTypeOf<null | number | boolean>()
 
-    const splitResult = AsyncData.matchDataSplit(success, {
+    const splitResult = AsyncData.matchDataSplitEmpty(success, {
       onIdle: () => null,
       onLoading: () => undefined,
       onFailure: error => error.length,
@@ -374,9 +374,9 @@ describe('matchData', () => {
   })
 })
 
-describe('matchDataSplit', () => {
+describe('matchDataSplitEmpty', () => {
   const describeState = (state: State) =>
-    AsyncData.matchDataSplit(state, {
+    AsyncData.matchDataSplitEmpty(state, {
       onIdle: () => 'idle',
       onLoading: () => 'loading',
       onFailure: error => `failure:${error}`,
@@ -402,7 +402,7 @@ describe('matchDataSplit', () => {
     expect(
       pipe(
         stale,
-        AsyncData.matchDataSplit({
+        AsyncData.matchDataSplitEmpty({
           onIdle: () => 'idle',
           onLoading: () => 'loading',
           onFailure: error => `failure:${error}`,
