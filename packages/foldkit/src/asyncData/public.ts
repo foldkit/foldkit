@@ -32,6 +32,7 @@ export {
   orElse,
   revalidate,
   revalidateOrLoad,
+  loadIfMissing,
   zipWith,
   all,
   settle,

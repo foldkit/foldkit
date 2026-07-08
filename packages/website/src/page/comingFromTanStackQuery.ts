@@ -121,6 +121,13 @@ const conceptTable: Html = comparisonTable(
       ],
     ],
     [
+      [inlineCode('staleTime: Infinity')],
+      [
+        inlineCode('AsyncData.loadIfMissing'),
+        ': fetch on first visit, then keep the cache without revalidating',
+      ],
+    ],
+    [
       ['Request deduplication'],
       [
         inlineCode('AsyncData.revalidateOrLoad'),

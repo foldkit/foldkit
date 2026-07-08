@@ -624,7 +624,34 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'mb-8',
       ),
       para(
-        'These two functions are the building blocks of route-driven loading: deciding per cache, on every route change, whether to load, revalidate, or leave the state alone.',
+        inlineCode('AsyncData.loadIfMissing'),
+        ' is the first-visit load: the cold no-data states (',
+        inlineCode('Idle'),
+        ', ',
+        inlineCode('Failure'),
+        ') start ',
+        inlineCode('Loading'),
+        ', and every other state yields ',
+        inlineCode('None'),
+        ', so loaded data is kept without revalidation and a request in flight is not restarted. It is the load-only counterpart of ',
+        inlineCode('revalidateOrLoad'),
+        ', the state-machine form of “fetch on first visit, keep the cache afterwards”.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.asyncDataLoadIfMissingHighlighted),
+          ],
+          [],
+        ),
+        Snippet.asyncDataLoadIfMissingRaw,
+        'Copy loadIfMissing code to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'These three functions are the building blocks of route-driven loading: deciding per cache, on every route change, whether to load, revalidate, or leave the state alone.',
       ),
 
       tableOfContentsEntryToHeader(settlingAFetchHeader),

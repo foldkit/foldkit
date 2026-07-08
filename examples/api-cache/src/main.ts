@@ -143,20 +143,16 @@ const activateTab = (model: Model, tab: Tab): UpdateReturn => {
   return M.value(tab).pipe(
     M.withReturnType<UpdateReturn>(),
     M.when('Posts', () =>
-      AsyncData.isIdle(modelWithActiveTab.posts)
-        ? [
-            evo(modelWithActiveTab, { posts: () => PostsData.Loading() }),
-            [FetchPosts()],
-          ]
-        : [modelWithActiveTab, []],
+      applyPostsTransition(
+        modelWithActiveTab,
+        AsyncData.loadIfMissing(modelWithActiveTab.posts),
+      ),
     ),
     M.when('Stats', () =>
-      AsyncData.isIdle(modelWithActiveTab.stats)
-        ? [
-            evo(modelWithActiveTab, { stats: () => StatsData.Loading() }),
-            [FetchStats()],
-          ]
-        : [modelWithActiveTab, []],
+      applyStatsTransition(
+        modelWithActiveTab,
+        AsyncData.loadIfMissing(modelWithActiveTab.stats),
+      ),
     ),
     M.exhaustive,
   )

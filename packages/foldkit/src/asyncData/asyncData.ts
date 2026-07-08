@@ -635,6 +635,20 @@ export const revalidate = <A, E>(
     M.option,
   )
 
+/** The first-visit load transition: the cold no-data states (`Idle`,
+ *  `Failure`) start a fresh `Loading`; every other state yields `None`, so
+ *  loaded data is kept without revalidation and a request in flight is not
+ *  restarted. The load-only sibling of `revalidateOrLoad` and `revalidate`,
+ *  and the state-machine form of TanStack Query's `staleTime: Infinity`:
+ *  fetch on first visit, keep the cache afterwards. */
+export const loadIfMissing = <A, E>(
+  self: AsyncData<A, E>,
+): Option.Option<AsyncData<A, E>> =>
+  M.value(self).pipe(
+    M.tag('Idle', 'Failure', () => Loading()),
+    M.option,
+  )
+
 /** Combines two values under the two-tier lattice
  *  `Failure > Loading > Idle > Stale > Refreshing > Success`. If either
  *  input is a no-data state, the highest-ranked such state wins with no

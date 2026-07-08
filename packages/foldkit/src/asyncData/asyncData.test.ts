@@ -733,6 +733,25 @@ describe('revalidate', () => {
   })
 })
 
+describe('loadIfMissing', () => {
+  it('starts Loading from the cold no-data states', () => {
+    expect(getSome(AsyncData.loadIfMissing(idle))).toEqual(AsyncData.Loading())
+    expect(getSome(AsyncData.loadIfMissing(failure))).toEqual(
+      AsyncData.Loading(),
+    )
+  })
+
+  it('yields None for the loaded states, keeping data without revalidation', () => {
+    expect(Option.isNone(AsyncData.loadIfMissing(success))).toBe(true)
+    expect(Option.isNone(AsyncData.loadIfMissing(stale))).toBe(true)
+  })
+
+  it('yields None for already-pending states', () => {
+    expect(Option.isNone(AsyncData.loadIfMissing(loading))).toBe(true)
+    expect(Option.isNone(AsyncData.loadIfMissing(refreshing))).toBe(true)
+  })
+})
+
 describe('zipWith', () => {
   const add = (selfData: number, thatData: number) => selfData + thatData
 
