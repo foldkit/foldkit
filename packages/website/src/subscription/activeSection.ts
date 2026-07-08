@@ -11,7 +11,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Render, Subscription } from 'foldkit'
+import { AsyncData, Render, Subscription } from 'foldkit'
 
 import { type Model } from '../main'
 import { ChangedActiveSection, type Message } from '../message'
@@ -54,8 +54,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             ProjectOrganization: () => Page.ProjectOrganization.tableOfContents,
             ToolingLinting: () => Page.ToolingLinting.tableOfContents,
             ApiModule: ({ moduleSlug }) =>
-              M.value(model.apiReference.apiData).pipe(
-                M.tag('Ok', ({ data }) =>
+              Option.match(AsyncData.getData(model.apiReference.apiData), {
+                onSome: data =>
                   pipe(
                     Page.ApiReference.resolveModule(data.parsedApi, moduleSlug),
                     Option.match({
@@ -63,9 +63,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
                       onSome: Page.ApiReference.toModuleTableOfContents,
                     }),
                   ),
-                ),
-                M.orElse(() => []),
-              ),
+                onNone: () => [],
+              }),
             CoreArchitecture: () => Page.Core.Architecture.tableOfContents,
             CoreCounterExample: () => Page.Core.CounterExample.tableOfContents,
             CoreModel: () => Page.Core.CoreModel.tableOfContents,

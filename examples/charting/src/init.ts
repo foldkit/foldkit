@@ -5,11 +5,11 @@ import { RadioGroup } from '@foldkit/ui'
 
 import { FetchTelemetry } from './command'
 import type { Message } from './message'
-import { Model, TelemetryLoading } from './model'
+import { Model, TelemetryAsyncData } from './model'
 
 export const init: Runtime.ApplicationInit<Model, Message> = () => [
   {
-    telemetry: TelemetryLoading(),
+    telemetry: TelemetryAsyncData.Loading(),
     chartMode: 'Adoption',
     selectedPackageId: 'Core',
     period: 'LastSixteenWeeks',

@@ -1,23 +1,15 @@
-import { Array, Match as M, Option, pipe } from 'effect'
-import { Command } from 'foldkit'
+import { Array, Match as M, Option, Result, pipe } from 'effect'
+import { AsyncData, Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { FetchTelemetry, SyncChart } from './command'
-import type { Telemetry } from './domain'
 import {
   GotChartModeRadioGroupMessage,
   GotPackageIdRadioGroupMessage,
   GotPeriodRadioGroupMessage,
   type Message,
 } from './message'
-import {
-  type Model,
-  TelemetryFailure,
-  TelemetryLoading,
-  TelemetryOk,
-  TelemetryRefreshing,
-  type TelemetryState,
-} from './model'
+import { type Model, TelemetryAsyncData } from './model'
 import {
   ChartModeRadioGroup,
   PackageIdRadioGroup,
@@ -26,17 +18,6 @@ import {
 
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
-
-const telemetryData = (telemetry: TelemetryState): Option.Option<Telemetry> =>
-  M.value(telemetry).pipe(
-    M.tagsExhaustive({
-      TelemetryNotAsked: () => Option.none(),
-      TelemetryLoading: () => Option.none(),
-      TelemetryRefreshing: ({ data }) => Option.some(data),
-      TelemetryFailure: ({ maybeData }) => maybeData,
-      TelemetryOk: ({ data }) => Option.some(data),
-    }),
-  )
 
 const syncChart = (args: {
   maybeChartHostId: Model['maybeChartHostId']
@@ -49,7 +30,7 @@ const syncChart = (args: {
   pipe(
     args.maybeChartHostId,
     Option.flatMap(hostId =>
-      Option.map(telemetryData(args.telemetry), telemetry =>
+      Option.map(AsyncData.getData(args.telemetry), telemetry =>
         SyncChart({
           hostId,
           telemetry,
@@ -64,35 +45,13 @@ const syncChart = (args: {
   )
 
 const refetchTelemetry = (model: Model): UpdateReturn =>
-  M.value(model.telemetry).pipe(
-    withUpdateReturn,
-    M.tagsExhaustive({
-      TelemetryNotAsked: () => [
-        evo(model, {
-          telemetry: () => TelemetryLoading(),
-        }),
-        [FetchTelemetry()],
-      ],
-      TelemetryLoading: () => [model, []],
-      TelemetryRefreshing: () => [model, []],
-      TelemetryFailure: ({ maybeData }) => [
-        evo(model, {
-          telemetry: () =>
-            Option.match(maybeData, {
-              onNone: () => TelemetryLoading(),
-              onSome: data => TelemetryRefreshing({ data }),
-            }),
-        }),
-        [FetchTelemetry()],
-      ],
-      TelemetryOk: ({ data }) => [
-        evo(model, {
-          telemetry: () => TelemetryRefreshing({ data }),
-        }),
-        [FetchTelemetry()],
-      ],
-    }),
-  )
+  Option.match(AsyncData.revalidateOrLoad(model.telemetry), {
+    onNone: () => [model, []],
+    onSome: nextTelemetry => [
+      evo(model, { telemetry: () => nextTelemetry }),
+      [FetchTelemetry()],
+    ],
+  })
 
 const selectedControl = (
   model: Model,
@@ -169,7 +128,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       SucceededFetchTelemetry: ({ telemetry }) => {
         const nextModel = evo(model, {
-          telemetry: () => TelemetryOk({ data: telemetry }),
+          telemetry: () => TelemetryAsyncData.Success({ data: telemetry }),
         })
         return [
           nextModel,
@@ -187,10 +146,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       FailedFetchTelemetry: ({ error }) => [
         evo(model, {
           telemetry: () =>
-            TelemetryFailure({
-              error,
-              maybeData: telemetryData(model.telemetry),
-            }),
+            AsyncData.settle(model.telemetry, Result.fail(error)),
         }),
         [],
       ],

@@ -1,5 +1,5 @@
 import { Array, Match as M, Option, Record, pipe } from 'effect'
-import { Command } from 'foldkit'
+import { AsyncData, Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { Disclosure } from '@foldkit/ui'
@@ -13,7 +13,7 @@ import {
 import { GotDisclosureMessage, type Message, RequestedApiData } from './message'
 import {
   type ApiData,
-  ApiDataRemoteData,
+  ApiDataAsyncData,
   type Disclosures,
   type Model,
 } from './model'
@@ -48,18 +48,17 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     withUpdateReturn,
     M.tagsExhaustive({
       RequestedApiData: () =>
-        M.value(model.apiData).pipe(
-          withUpdateReturn,
-          M.tag('NotAsked', 'Failure', () => [
-            evo(model, { apiData: () => ApiDataRemoteData.Loading() }),
+        Option.match(AsyncData.loadIfMissing(model.apiData), {
+          onNone: () => [model, []],
+          onSome: apiData => [
+            evo(model, { apiData: () => apiData }),
             [LoadApiData()],
-          ]),
-          M.orElse(() => [model, []]),
-        ),
+          ],
+        }),
 
       SucceededLoadApiData: ({ apiData }) => [
         evo(model, {
-          apiData: () => ApiDataRemoteData.Ok({ data: apiData }),
+          apiData: () => ApiDataAsyncData.Success({ data: apiData }),
           disclosures: () => disclosuresForApiData(apiData),
         }),
         [],
@@ -67,7 +66,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       FailedLoadApiData: ({ error }) => [
         evo(model, {
-          apiData: () => ApiDataRemoteData.Failure({ error }),
+          apiData: () => ApiDataAsyncData.Failure({ error }),
         }),
         [],
       ],

@@ -1,4 +1,5 @@
-import { Array, Match as M, Option } from 'effect'
+import { Array, Option } from 'effect'
+import { AsyncData } from 'foldkit'
 import type { Html } from 'foldkit/html'
 import { html } from 'foldkit/html'
 
@@ -12,8 +13,8 @@ import { sidebarView } from './sidebar'
 
 export const headerView = (model: Model): Html => {
   const h = html<Message>()
-  const isRefreshing = model.telemetry._tag === 'TelemetryRefreshing'
-  const isLoading = model.telemetry._tag === 'TelemetryLoading'
+  const isRefreshing = AsyncData.isRefreshing(model.telemetry)
+  const isLoading = AsyncData.isLoading(model.telemetry)
 
   return h.header(
     [
@@ -61,35 +62,35 @@ export const headerView = (model: Model): Html => {
   )
 }
 
-export const telemetryStateView = (model: Model): Html =>
-  M.value(model.telemetry).pipe(
-    M.tagsExhaustive({
-      TelemetryNotAsked: () => loadingView('TelemetryNotAsked'),
-      TelemetryLoading: () => loadingView('TelemetryLoading'),
-      TelemetryRefreshing: ({ data }) =>
-        dashboardShellView(model, data, Option.some('Refreshing public data')),
-      TelemetryFailure: ({ error, maybeData }) =>
-        Option.match(maybeData, {
-          onNone: () => failureView(error),
-          onSome: data => dashboardShellView(model, data, Option.some(error)),
-        }),
-      TelemetryOk: ({ data }) =>
-        dashboardShellView(
-          model,
-          data,
-          Array.match(data.warnings, {
-            onEmpty: () => Option.none(),
-            onNonEmpty: warnings => Option.some(Array.join(warnings, ' ')),
-          }),
-        ),
-    }),
-  )
+const dashboardBanner = (
+  telemetry: Model['telemetry'],
+): Option.Option<string> =>
+  AsyncData.match(telemetry, {
+    onIdle: () => Option.none(),
+    onLoading: () => Option.none(),
+    onRefreshing: () => Option.some('Refreshing public data'),
+    onFailure: () => Option.none(),
+    onStale: ({ error }) => Option.some(error),
+    onSuccess: ({ warnings }) =>
+      Array.match(warnings, {
+        onEmpty: () => Option.none(),
+        onNonEmpty: warnings => Option.some(Array.join(warnings, ' ')),
+      }),
+  })
 
-export const loadingView = (key: string): Html => {
+export const telemetryStateView = (model: Model): Html =>
+  AsyncData.matchData(model.telemetry, {
+    onEmpty: () => loadingView(),
+    onFailure: error => failureView(error),
+    onData: data =>
+      dashboardShellView(model, data, dashboardBanner(model.telemetry)),
+  })
+
+export const loadingView = (): Html => {
   const h = html<Message>()
 
   return h.keyed('section')(
-    key,
+    'TelemetryLoading',
     [
       h.Class(
         'grid flex-1 place-items-center rounded-md border border-zinc-200 bg-white px-6 py-16',

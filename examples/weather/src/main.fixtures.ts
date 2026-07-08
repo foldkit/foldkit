@@ -1,9 +1,9 @@
 import type { Model, WeatherData } from './main'
-import { WeatherInit } from './main'
+import { WeatherAsyncData } from './main'
 
 export const weatherModel: Model = {
   zipCodeInput: '90210',
-  weather: WeatherInit(),
+  weather: WeatherAsyncData.Idle(),
 }
 
 export const weatherData: WeatherData = {

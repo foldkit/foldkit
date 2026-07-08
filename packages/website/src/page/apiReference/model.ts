@@ -1,8 +1,8 @@
 import { Schema as S } from 'effect'
+import { AsyncData } from 'foldkit'
 
 import { Disclosure } from '@foldkit/ui'
 
-import { makeRemoteData } from '../../makeRemoteData'
 import { ParsedApiReference } from './domain'
 
 export const ApiData = S.Struct({
@@ -11,13 +11,14 @@ export const ApiData = S.Struct({
 })
 export type ApiData = typeof ApiData.Type
 
-export const ApiDataRemoteData = makeRemoteData(S.String, ApiData)
+export const ApiDataAsyncData = AsyncData.Schema(ApiData, S.String)
+export type ApiDataAsyncData = typeof ApiDataAsyncData.schema.Type
 
 export const Disclosures = S.Record(S.String, Disclosure.Model)
 export type Disclosures = typeof Disclosures.Type
 
 export const Model = S.Struct({
-  apiData: ApiDataRemoteData.Union,
+  apiData: ApiDataAsyncData.schema,
   disclosures: Disclosures,
 })
 export type Model = typeof Model.Type

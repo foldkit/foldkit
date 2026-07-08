@@ -13,7 +13,7 @@ import {
   SucceededFetchTelemetry,
   SucceededMountChart,
 } from './message'
-import { TelemetryRefreshing } from './model'
+import { TelemetryAsyncData } from './model'
 import { update } from './update'
 
 test('mounting the chart syncs current telemetry into ECharts', () => {
@@ -63,8 +63,8 @@ test('refreshing with data keeps the old dashboard while fetching', () => {
     Story.with(readyModel),
     Story.message(ClickedRefresh()),
     Story.model(model => {
-      expect(model.telemetry._tag).toBe('TelemetryRefreshing')
-      if (model.telemetry._tag === 'TelemetryRefreshing') {
+      expect(model.telemetry._tag).toBe('Refreshing')
+      if (model.telemetry._tag === 'Refreshing') {
         expect(model.telemetry.data.repository.stars).toBe(342)
       }
     }),
@@ -76,19 +76,19 @@ test('refreshing with data keeps the old dashboard while fetching', () => {
   )
 })
 
-test('a failed refresh preserves stale data in the failure state', () => {
+test('a failed refresh preserves stale data in the stale state', () => {
   Story.story(
     update,
     Story.with({
       ...readyModel,
-      telemetry: TelemetryRefreshing({ data: sampleTelemetry }),
+      telemetry: TelemetryAsyncData.Refreshing({ data: sampleTelemetry }),
     }),
     Story.message(FailedFetchTelemetry({ error: 'rate limited' })),
     Story.model(model => {
-      expect(model.telemetry._tag).toBe('TelemetryFailure')
-      if (model.telemetry._tag === 'TelemetryFailure') {
+      expect(model.telemetry._tag).toBe('Stale')
+      if (model.telemetry._tag === 'Stale') {
         expect(model.telemetry.error).toBe('rate limited')
-        expect(model.telemetry.maybeData._tag).toBe('Some')
+        expect(model.telemetry.data.repository.stars).toBe(342)
       }
     }),
   )
@@ -100,10 +100,9 @@ test('failed fetch transitions to failure without stale data when loading', () =
     Story.with(loadingModel),
     Story.message(FailedFetchTelemetry({ error: 'offline' })),
     Story.model(model => {
-      expect(model.telemetry._tag).toBe('TelemetryFailure')
-      if (model.telemetry._tag === 'TelemetryFailure') {
+      expect(model.telemetry._tag).toBe('Failure')
+      if (model.telemetry._tag === 'Failure') {
         expect(model.telemetry.error).toBe('offline')
-        expect(model.telemetry.maybeData._tag).toBe('None')
       }
     }),
   )
@@ -115,7 +114,7 @@ test('successful fetch stores data and syncs when mounted', () => {
     Story.with(readyModel),
     Story.message(SucceededFetchTelemetry({ telemetry: sampleTelemetry })),
     Story.model(model => {
-      expect(model.telemetry._tag).toBe('TelemetryOk')
+      expect(model.telemetry._tag).toBe('Success')
     }),
     Story.Command.expectHas(SyncChart),
     Story.Command.resolve(SyncChart, CompletedSyncChart()),

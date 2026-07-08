@@ -1,8 +1,7 @@
-import { Match, Option, Schema as S } from 'effect'
+import { Option, Schema as S } from 'effect'
+import { AsyncData } from 'foldkit'
 
 import * as Shared from '@typing-game/shared'
-
-import { makeRemoteData } from '../../makeRemoteData'
 
 export const RoomPlayerSession = S.Struct({
   roomId: S.String,
@@ -10,10 +9,11 @@ export const RoomPlayerSession = S.Struct({
 })
 export type RoomPlayerSession = typeof RoomPlayerSession.Type
 
-export const RoomRemoteData = makeRemoteData(S.String, Shared.Room)
+export const RoomAsyncData = AsyncData.Schema(Shared.Room, S.String)
+export type RoomAsyncData = typeof RoomAsyncData.schema.Type
 
 export const Model = S.Struct({
-  roomRemoteData: RoomRemoteData.Union,
+  roomAsyncData: RoomAsyncData.schema,
   maybeSession: S.Option(RoomPlayerSession),
   userGameText: S.String,
   charsTyped: S.Number,
@@ -24,14 +24,9 @@ export const Model = S.Struct({
 export type Model = typeof Model.Type
 
 export const capturesKeyboard = (model: Model): boolean => {
-  const isRoomPlayable = Match.value(model.roomRemoteData).pipe(
-    Match.tag('Ok', ({ data }) =>
-      Match.value(data.status).pipe(
-        Match.tag('Waiting', 'Finished', () => true),
-        Match.orElse(() => false),
-      ),
-    ),
-    Match.orElse(() => false),
+  const isRoomPlayable = Option.exists(
+    AsyncData.getData(model.roomAsyncData),
+    ({ status }) => status._tag === 'Waiting' || status._tag === 'Finished',
   )
 
   return Option.isSome(model.maybeSession) && isRoomPlayable

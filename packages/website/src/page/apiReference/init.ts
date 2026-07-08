@@ -1,14 +1,14 @@
 import { Command } from 'foldkit'
 
 import { type Message, RequestedApiData } from './message'
-import { ApiDataRemoteData, type Model } from './model'
+import { ApiDataAsyncData, type Model } from './model'
 import { update } from './update'
 
 export type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 
 export const init = (): InitReturn => [
   {
-    apiData: ApiDataRemoteData.NotAsked(),
+    apiData: ApiDataAsyncData.Idle(),
     disclosures: {},
   },
   [],

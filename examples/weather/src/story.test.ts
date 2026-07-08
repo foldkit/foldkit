@@ -24,15 +24,15 @@ test('submitting the weather form fetches weather and shows result', () => {
     Story.with(weatherModel),
     Story.message(SubmittedWeatherForm()),
     Story.model(model => {
-      expect(model.weather._tag).toBe('WeatherLoading')
+      expect(model.weather._tag).toBe('Loading')
     }),
     Story.Command.resolve(
       FetchWeather,
       SucceededFetchWeather({ weather: weatherData }),
     ),
     Story.model(model => {
-      expect(model.weather._tag).toBe('WeatherSuccess')
-      if (model.weather._tag === 'WeatherSuccess') {
+      expect(model.weather._tag).toBe('Success')
+      if (model.weather._tag === 'Success') {
         expect(model.weather.data.temperature).toBe(72)
         expect(model.weather.data.locationName).toBe('Beverly Hills')
       }
@@ -50,8 +50,8 @@ test('failed fetch shows failure state', () => {
       FailedFetchWeather({ error: 'Network error' }),
     ),
     Story.model(model => {
-      expect(model.weather._tag).toBe('WeatherFailure')
-      if (model.weather._tag === 'WeatherFailure') {
+      expect(model.weather._tag).toBe('Failure')
+      if (model.weather._tag === 'Failure') {
         expect(model.weather.error).toBe('Network error')
       }
     }),

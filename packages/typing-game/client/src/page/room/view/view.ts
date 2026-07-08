@@ -1,5 +1,5 @@
 import { Match as M, Option } from 'effect'
-import { Submodel } from 'foldkit'
+import { AsyncData, Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import * as Shared from '@typing-game/shared'
@@ -13,7 +13,7 @@ import {
   SubmittedJoinRoomFromPage,
 } from '../message'
 import type { Message } from '../message'
-import { Model, RoomPlayerSession } from '../model'
+import { Model, RoomAsyncData, RoomPlayerSession } from '../model'
 import { findFirstWrongCharIndex } from '../userGameText'
 import { countdown } from './countdown'
 import { finished } from './finished'
@@ -28,10 +28,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
     const { roomId } = viewInputs
     const h = html<Message>()
 
-    const maybeError = M.value(model.roomRemoteData).pipe(
-      M.tag('Error', ({ error }) => error),
-      M.option,
-    )
+    const maybeError = AsyncData.getError(model.roomAsyncData)
 
     const welcomeText = Option.match(model.maybeSession, {
       onNone: () => h.empty,
@@ -61,13 +58,9 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
       [Icon.copy()],
     )
 
-    const isInLeavableState = M.value(model.roomRemoteData).pipe(
-      M.tag(
-        'Ok',
-        ({ data }) =>
-          data.status._tag === 'Waiting' || data.status._tag === 'Finished',
-      ),
-      M.orElse(() => false),
+    const isInLeavableState = Option.exists(
+      AsyncData.getData(model.roomAsyncData),
+      ({ status }) => status._tag === 'Waiting' || status._tag === 'Finished',
     )
 
     const isExitCountingDown = model.exitCountdownSecondsLeft > 0
@@ -104,16 +97,16 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
 )
 
 const contentKey = (
-  roomRemoteData: Model['roomRemoteData'],
+  roomAsyncData: RoomAsyncData,
   maybeSession: Option.Option<RoomPlayerSession>,
 ): string =>
-  M.value(roomRemoteData).pipe(
-    M.tag('Ok', () => (Option.isSome(maybeSession) ? 'game' : 'join')),
-    M.orElse(({ _tag }) => _tag.toLowerCase()),
-  )
+  Option.match(AsyncData.getData(roomAsyncData), {
+    onSome: () => (Option.isSome(maybeSession) ? 'Game' : 'Join'),
+    onNone: () => roomAsyncData._tag,
+  })
 
 const content = ({
-  roomRemoteData,
+  roomAsyncData,
   maybeSession,
   userGameText,
   username,
@@ -121,21 +114,18 @@ const content = ({
   const h = html<Message>()
 
   return h.keyed('div')(
-    contentKey(roomRemoteData, maybeSession),
+    contentKey(roomAsyncData, maybeSession),
     [],
     [
-      M.value(roomRemoteData).pipe(
-        M.tagsExhaustive({
-          Idle: () => h.div([], ['Loading...']),
-          Loading: () => h.div([], ['Loading...']),
-          Error: () => h.empty,
-          Ok: ({ data: room }) =>
-            Option.match(maybeSession, {
-              onNone: () => joinForm(username),
-              onSome: () => gameContent(room, maybeSession, userGameText),
-            }),
-        }),
-      ),
+      AsyncData.matchData(roomAsyncData, {
+        onEmpty: () => h.div([], ['Loading...']),
+        onFailure: () => h.empty,
+        onData: room =>
+          Option.match(maybeSession, {
+            onNone: () => joinForm(username),
+            onSome: () => gameContent(room, maybeSession, userGameText),
+          }),
+      }),
     ],
   )
 }

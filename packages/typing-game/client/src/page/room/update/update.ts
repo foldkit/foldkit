@@ -7,7 +7,7 @@ import {
   String as Str,
   pipe,
 } from 'effect'
-import { Command } from 'foldkit'
+import { AsyncData, Command } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 
@@ -33,7 +33,7 @@ import {
   PressedKey,
   SucceededJoinRoom,
 } from '../message'
-import { Model, RoomRemoteData } from '../model'
+import { Model, RoomAsyncData } from '../model'
 import { validateUserTextInput } from '../userGameText'
 import { handleRoomUpdated } from './handleRoomUpdates'
 
@@ -67,10 +67,7 @@ export const update = (
       PressedKey: handleKeyPressed(model),
 
       ChangedUserText: ({ value }) => {
-        const maybeRoom = M.value(model.roomRemoteData).pipe(
-          M.tag('Ok', ({ data }) => data),
-          M.option,
-        )
+        const maybeRoom = AsyncData.getData(model.roomAsyncData)
 
         const maybeGameText = pipe(
           maybeRoom,
@@ -138,7 +135,8 @@ export const update = (
 
       LoadedSession: ({ maybeSession }) => {
         const maybeFocus = optionWhen(
-          Option.isNone(maybeSession) && model.roomRemoteData._tag === 'Ok',
+          Option.isNone(maybeSession) &&
+            AsyncData.isSuccess(model.roomAsyncData),
           () => FocusRoomPageUsernameInput(),
         )
         return [
@@ -155,7 +153,7 @@ export const update = (
         )
         return [
           evo(model, {
-            roomRemoteData: () => RoomRemoteData.Ok({ data: room }),
+            roomAsyncData: () => RoomAsyncData.Success({ data: room }),
           }),
           Array.fromOption(maybeFocus),
         ]
@@ -163,8 +161,8 @@ export const update = (
 
       FailedFetchRoom: () => [
         evo(model, {
-          roomRemoteData: () =>
-            RoomRemoteData.Error({ error: 'Room not found' }),
+          roomAsyncData: () =>
+            RoomAsyncData.Failure({ error: 'Room not found' }),
         }),
         [],
       ],
@@ -234,18 +232,16 @@ export const update = (
 const handleKeyPressed =
   (model: Model) =>
   ({ key }: { key: string }): UpdateReturn =>
-    M.value(model.roomRemoteData).pipe(
-      withUpdateReturn,
-      M.tag('Ok', ({ data: room }) =>
+    Option.match(AsyncData.getData(model.roomAsyncData), {
+      onNone: () => [model, []],
+      onSome: room =>
         M.value(room.status).pipe(
           withUpdateReturn,
           M.tag('Waiting', () => whenWaiting(model, key, room)),
           M.tag('Finished', () => whenFinished(model, key, room)),
           M.orElse(() => [model, []]),
         ),
-      ),
-      M.orElse(() => [model, []]),
-    )
+    })
 
 const whenWaiting = (
   model: Model,
@@ -276,7 +272,7 @@ const whenFinished = (
 const leaveRoom = (model: Model): UpdateReturn => [
   evo(model, {
     maybeSession: () => Option.none(),
-    roomRemoteData: () => RoomRemoteData.Loading(),
+    roomAsyncData: () => RoomAsyncData.Loading(),
   }),
   [ClearSession(), NavigateHome()],
 ]

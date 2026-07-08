@@ -1,9 +1,8 @@
-import { Match as M, Option, Schema as S } from 'effect'
+import { Option, Schema as S } from 'effect'
+import { AsyncData } from 'foldkit'
 
-import { makeRemoteData } from './makeRemoteData'
-
-export const GitHubStarsRemoteData = makeRemoteData(S.String, S.Number)
-export type GitHubStarsRemoteData = typeof GitHubStarsRemoteData.Union.Type
+export const GitHubStarsAsyncData = AsyncData.Schema(S.Number, S.String)
+export type GitHubStarsAsyncData = typeof GitHubStarsAsyncData.schema.Type
 
 const ABBREVIATION_THRESHOLD = 1000
 
@@ -18,9 +17,5 @@ export const formatStarCount = (count: number): string => {
 }
 
 export const maybeStarCount = (
-  stars: GitHubStarsRemoteData,
-): Option.Option<number> =>
-  M.value(stars).pipe(
-    M.tag('Ok', ({ data }) => data),
-    M.option,
-  )
+  stars: GitHubStarsAsyncData,
+): Option.Option<number> => AsyncData.getData(stars)

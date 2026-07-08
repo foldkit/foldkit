@@ -1,9 +1,8 @@
 import { Array, Effect, Match as M, Option, Schema as S, String } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
-import { Command, Http, Runtime } from 'foldkit'
+import { AsyncData, Command, Http, Runtime } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
-import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 
 import { Button, Input } from '@foldkit/ui'
@@ -21,22 +20,11 @@ export const WeatherData = S.Struct({
 })
 export type WeatherData = typeof WeatherData.Type
 
-export const WeatherInit = ts('WeatherInit')
-export const WeatherLoading = ts('WeatherLoading')
-export const WeatherSuccess = ts('WeatherSuccess', { data: WeatherData })
-export const WeatherFailure = ts('WeatherFailure', { error: S.String })
-
-const WeatherAsyncResult = S.Union([
-  WeatherInit,
-  WeatherLoading,
-  WeatherSuccess,
-  WeatherFailure,
-])
-type WeatherAsyncResult = typeof WeatherAsyncResult.Type
+export const WeatherAsyncData = AsyncData.Schema(WeatherData, S.String)
 
 export const Model = S.Struct({
   zipCodeInput: S.String,
-  weather: WeatherAsyncResult,
+  weather: WeatherAsyncData.schema,
 })
 export type Model = typeof Model.Type
 
@@ -76,12 +64,12 @@ export const update = (
       ],
 
       SubmittedWeatherForm: () => {
-        if (model.weather._tag === 'WeatherLoading') {
+        if (AsyncData.isPending(model.weather)) {
           return [model, []]
         }
         return [
           evo(model, {
-            weather: () => WeatherLoading(),
+            weather: () => WeatherAsyncData.Loading(),
           }),
           [FetchWeather({ zipCode: model.zipCodeInput })],
         ]
@@ -89,14 +77,14 @@ export const update = (
 
       SucceededFetchWeather: ({ weather }) => [
         evo(model, {
-          weather: () => WeatherSuccess({ data: weather }),
+          weather: () => WeatherAsyncData.Success({ data: weather }),
         }),
         [],
       ],
 
       FailedFetchWeather: ({ error }) => [
         evo(model, {
-          weather: () => WeatherFailure({ error }),
+          weather: () => WeatherAsyncData.Failure({ error }),
         }),
         [],
       ],
@@ -108,7 +96,7 @@ export const update = (
 export const init: Runtime.ApplicationInit<Model, Message> = () => [
   {
     zipCodeInput: '',
-    weather: WeatherInit(),
+    weather: WeatherAsyncData.Idle(),
   },
   [],
 ]
@@ -281,7 +269,7 @@ export const view = (model: Model): Document => {
             }),
             Button.view<Message>({
               type: 'submit',
-              isDisabled: model.weather._tag === 'WeatherLoading',
+              isDisabled: AsyncData.isPending(model.weather),
               toView: attributes =>
                 h.button(
                   [
@@ -291,7 +279,7 @@ export const view = (model: Model): Document => {
                     ),
                   ],
                   [
-                    model.weather._tag === 'WeatherLoading'
+                    AsyncData.isPending(model.weather)
                       ? 'Loading...'
                       : 'Get Weather',
                   ],
@@ -300,26 +288,31 @@ export const view = (model: Model): Document => {
           ],
         ),
 
-        M.value(model.weather).pipe(
-          M.tagsExhaustive({
-            WeatherInit: () => h.empty,
-            WeatherLoading: () =>
-              h.div(
-                [h.Class('text-blue-600 font-semibold text-center')],
-                ['Fetching weather...'],
-              ),
-            WeatherFailure: ({ error }) =>
-              h.div(
-                [
-                  h.Class(
-                    'p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg',
-                  ),
-                ],
-                [error],
-              ),
-            WeatherSuccess: ({ data: weather }) => weatherView(weather),
-          }),
-        ),
+        AsyncData.matchDataSplitEmpty(model.weather, {
+          onIdle: () => h.empty,
+          onLoading: () =>
+            h.keyed('div')(
+              'Loading',
+              [h.Class('text-blue-600 font-semibold text-center')],
+              ['Fetching weather...'],
+            ),
+          onFailure: error =>
+            h.keyed('div')(
+              'Failure',
+              [
+                h.Class(
+                  'p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg',
+                ),
+              ],
+              [error],
+            ),
+          onData: weather =>
+            h.keyed('div')(
+              'Success',
+              [h.Class('w-full max-w-md')],
+              [weatherView(weather)],
+            ),
+        }),
       ],
     ),
   }
@@ -329,7 +322,7 @@ const weatherView = (weather: WeatherData): Html => {
   const h = html<Message>()
 
   return h.article(
-    [h.Class('bg-white rounded-xl shadow-lg p-8 max-w-md w-full')],
+    [h.Class('bg-white rounded-xl shadow-lg p-8 w-full')],
     [
       h.h2(
         [h.Class('text-2xl font-bold text-gray-800 mb-3 text-center')],

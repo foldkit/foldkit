@@ -1,4 +1,3 @@
-import { Option } from 'effect'
 import { Scene } from 'foldkit'
 import { describe, test } from 'vitest'
 
@@ -11,7 +10,7 @@ import {
   GotChartModeRadioGroupMessage,
   SucceededMountChart,
 } from './message'
-import { TelemetryFailure, TelemetryRefreshing } from './model'
+import { TelemetryAsyncData } from './model'
 import { update } from './update'
 import { CHART_HOST_ID, MountChart } from './view/chart'
 import { view } from './view/index'
@@ -73,7 +72,7 @@ describe('view', () => {
       { update, view },
       Scene.with({
         ...readyModel,
-        telemetry: TelemetryRefreshing({ data: sampleTelemetry }),
+        telemetry: TelemetryAsyncData.Refreshing({ data: sampleTelemetry }),
       }),
       acknowledgeChartMount,
       acknowledgeChartSync,
@@ -87,10 +86,7 @@ describe('view', () => {
       { update, view },
       Scene.with({
         ...loadingModel,
-        telemetry: TelemetryFailure({
-          error: 'offline',
-          maybeData: Option.none(),
-        }),
+        telemetry: TelemetryAsyncData.Failure({ error: 'offline' }),
       }),
       Scene.expect(Scene.label('Telemetry failed')).toExist(),
       Scene.expect(Scene.role('button', { name: 'Retry' })).toExist(),

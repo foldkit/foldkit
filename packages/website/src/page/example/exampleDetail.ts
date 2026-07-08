@@ -7,7 +7,7 @@ import {
   Schema as S,
   Stream,
 } from 'effect'
-import { Command, Mount, Submodel } from 'foldkit'
+import { AsyncData, Command, Mount, Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -17,7 +17,6 @@ import { Disclosure, Tabs } from '@foldkit/ui'
 import { Icon } from '../../icon'
 import { exampleSourceHref } from '../../link'
 import type { TableOfContentsEntry } from '../../main'
-import { makeRemoteData } from '../../makeRemoteData'
 import { pageTitle, para } from '../../prose'
 import { examplesRouter, playgroundRouter } from '../../route'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
@@ -30,13 +29,16 @@ import {
 
 // MODEL
 
-export const CurrentSourcesRemoteData = makeRemoteData(S.String, ExampleSources)
+export const CurrentSourcesAsyncData = AsyncData.Schema(
+  ExampleSources,
+  S.String,
+)
 
 export const Model = S.Struct({
   sourceFileTabs: Tabs.Model,
   maybeExampleUrl: S.Option(S.String),
   livePreviewDisclosure: Disclosure.Model,
-  currentSources: CurrentSourcesRemoteData.Union,
+  currentSources: CurrentSourcesAsyncData.schema,
 })
 export type Model = typeof Model.Type
 
@@ -145,7 +147,7 @@ export const init = (): readonly [
       id: 'live-preview',
       isOpen: true,
     }),
-    currentSources: CurrentSourcesRemoteData.NotAsked(),
+    currentSources: CurrentSourcesAsyncData.Idle(),
   },
   [],
 ]
@@ -210,21 +212,22 @@ export const update = (
         evo(model, {
           sourceFileTabs: () => Tabs.init({ id: 'source-file-tabs' }),
           maybeExampleUrl: () => Option.none(),
-          currentSources: () => CurrentSourcesRemoteData.Loading(),
+          currentSources: () => CurrentSourcesAsyncData.Loading(),
         }),
         [LoadExampleSources({ slug })],
       ],
 
       SucceededLoadExampleSources: ({ sources }) => [
         evo(model, {
-          currentSources: () => CurrentSourcesRemoteData.Ok({ data: sources }),
+          currentSources: () =>
+            CurrentSourcesAsyncData.Success({ data: sources }),
         }),
         [],
       ],
 
       FailedLoadExampleSources: ({ error }) => [
         evo(model, {
-          currentSources: () => CurrentSourcesRemoteData.Failure({ error }),
+          currentSources: () => CurrentSourcesAsyncData.Failure({ error }),
         }),
         [],
       ],
@@ -662,20 +665,25 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
             h.div(
               [h.Class('mt-6')],
               [
-                M.value(model.currentSources).pipe(
-                  M.withReturnType<Html>(),
-                  M.tag('NotAsked', 'Loading', () => sourcesSkeletonView()),
-                  M.tag('Failure', ({ error }) => sourcesFailureView(error)),
-                  M.tag('Ok', ({ data: sources }) =>
-                    sourceCodeView(
-                      sources.files,
-                      model.sourceFileTabs,
-                      copiedSnippets,
-                      isNarrowViewport,
+                AsyncData.matchData(model.currentSources, {
+                  onEmpty: () =>
+                    h.keyed('div')('Loading', [], [sourcesSkeletonView()]),
+                  onFailure: error =>
+                    h.keyed('div')('Failure', [], [sourcesFailureView(error)]),
+                  onData: sources =>
+                    h.keyed('div')(
+                      'Loaded',
+                      [],
+                      [
+                        sourceCodeView(
+                          sources.files,
+                          model.sourceFileTabs,
+                          copiedSnippets,
+                          isNarrowViewport,
+                        ),
+                      ],
                     ),
-                  ),
-                  M.exhaustive,
-                ),
+                }),
               ],
             ),
           ],

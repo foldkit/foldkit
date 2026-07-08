@@ -7,7 +7,7 @@ import { init } from './init'
 test('seeds loading state and queues a telemetry fetch', () => {
   const [model, commands] = init()
 
-  expect(model.telemetry._tag).toBe('TelemetryLoading')
+  expect(model.telemetry._tag).toBe('Loading')
   expect(
     Array.some(commands, command => command.name === FetchTelemetry.name),
   ).toBe(true)

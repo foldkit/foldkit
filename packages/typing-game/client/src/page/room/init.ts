@@ -5,7 +5,7 @@ import { AppRoute } from '../../route'
 import { RoomsClient } from '../../rpc'
 import { FetchRoom, LoadSession } from './command'
 import { Message } from './message'
-import { Model, RoomRemoteData } from './model'
+import { Model, RoomAsyncData } from './model'
 
 export type InitReturn = [
   Model,
@@ -25,7 +25,7 @@ export const init = (route: AppRoute): InitReturn => {
     )
   return [
     {
-      roomRemoteData: RoomRemoteData.Idle(),
+      roomAsyncData: RoomAsyncData.Idle(),
       maybeSession: Option.none(),
       userGameText: '',
       charsTyped: 0,

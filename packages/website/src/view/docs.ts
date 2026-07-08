@@ -1,5 +1,6 @@
 import { clsx } from 'clsx'
 import { Match as M, Option, String as S } from 'effect'
+import { AsyncData } from 'foldkit'
 import type { Field } from 'foldkit/fieldValidation'
 import { Html, createLazy, html } from 'foldkit/html'
 
@@ -535,12 +536,8 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.ToolingLinting.tableOfContents,
         ),
       ApiModule: ({ moduleSlug }) =>
-        M.value(model.apiReference.apiData).pipe(
-          M.withReturnType<{
-            content: Html
-            tableOfContents: Option.Option<ReadonlyArray<TableOfContentsEntry>>
-          }>(),
-          M.tag('Ok', ({ data }) =>
+        AsyncData.matchData(model.apiReference.apiData, {
+          onData: data =>
             Option.match(
               Page.ApiReference.resolveModule(data.parsedApi, moduleSlug),
               {
@@ -560,16 +557,13 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
                   ),
               },
             ),
-          ),
-          M.tag('Failure', ({ error }) =>
+          onFailure: error =>
             withoutTableOfContents(Page.ApiReference.failureView(error)),
-          ),
-          M.orElse(() =>
+          onEmpty: () =>
             withoutTableOfContents(
               lazyApiReferenceSkeleton(Page.ApiReference.skeletonView, []),
             ),
-          ),
-        ),
+        }),
       CoreArchitecture: () =>
         withTableOfContents(
           Page.Core.Architecture.view(),

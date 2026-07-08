@@ -11,7 +11,7 @@ import {
   WeeklyDownloads,
   WeeklyTelemetry,
 } from './domain'
-import { Model, TelemetryLoading, TelemetryOk } from './model'
+import { Model, TelemetryAsyncData } from './model'
 
 export const sampleTelemetry = Telemetry.make({
   fetchedAt: Date.UTC(2026, 5, 22, 12, 0, 0),
@@ -102,7 +102,7 @@ export const sampleTelemetry = Telemetry.make({
 })
 
 export const loadingModel = Model.make({
-  telemetry: TelemetryLoading(),
+  telemetry: TelemetryAsyncData.Loading(),
   chartMode: 'Adoption',
   selectedPackageId: 'Core',
   period: 'LastSixteenWeeks',
@@ -128,7 +128,7 @@ export const loadingModel = Model.make({
 
 export const readyModel = Model.make({
   ...loadingModel,
-  telemetry: TelemetryOk({ data: sampleTelemetry }),
+  telemetry: TelemetryAsyncData.Success({ data: sampleTelemetry }),
   maybeChartHostId: Option.some('test-chart-host'),
 })
 

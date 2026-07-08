@@ -14,6 +14,7 @@ import {
 import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
 import { KeyValueStore } from 'effect/unstable/persistence'
 import {
+  AsyncData,
   Calendar,
   Command,
   Dom,
@@ -40,7 +41,7 @@ import {
   allPages,
   findActiveSectionKey,
 } from './docsNav'
-import { GitHubStarsRemoteData } from './githubStars'
+import { GitHubStarsAsyncData } from './githubStars'
 import {
   CompletedApplyTheme,
   CompletedInjectAnalytics,
@@ -249,7 +250,7 @@ export const Model = S.Struct({
   copiedSnippets: S.HashSet(S.String),
   emailField: FieldValidation.Field(S.String),
   emailSubscriptionStatus: EmailSubscriptionStatus,
-  githubStars: GitHubStarsRemoteData.Union,
+  githubStars: GitHubStarsAsyncData.schema,
   currentYear: S.Number,
   mobileMenuDialog: Dialog.Model,
   isMobileTableOfContentsOpen: S.Boolean,
@@ -427,7 +428,7 @@ export const init: Runtime.RoutingApplicationInit<
       copiedSnippets: HashSet.empty(),
       emailField: FieldValidation.NotValidated({ value: '' }),
       emailSubscriptionStatus: 'Idle',
-      githubStars: GitHubStarsRemoteData.Loading(),
+      githubStars: GitHubStarsAsyncData.Loading(),
       currentYear: flags.currentYear,
       mobileMenuDialog: Dialog.init({ id: 'mobile-menu' }),
       isMobileTableOfContentsOpen: false,
@@ -846,14 +847,14 @@ export const update = (
 
       SucceededFetchGitHubStars: ({ count }) => [
         evo(model, {
-          githubStars: () => GitHubStarsRemoteData.Ok({ data: count }),
+          githubStars: () => GitHubStarsAsyncData.Success({ data: count }),
         }),
         [],
       ],
 
       FailedFetchGitHubStars: ({ error }) => [
         evo(model, {
-          githubStars: () => GitHubStarsRemoteData.Failure({ error }),
+          githubStars: () => GitHubStarsAsyncData.Failure({ error }),
         }),
         [],
       ],
@@ -1554,11 +1555,11 @@ export const view = (model: Model): Document => {
 const SITE_NAME = 'Foldkit'
 
 const resolveApiModuleName = (
-  apiData: typeof Page.ApiReference.ApiDataRemoteData.Union.Type,
+  apiData: Page.ApiReference.ApiDataAsyncData,
   moduleSlug: string,
 ): string =>
-  M.value(apiData).pipe(
-    M.tag('Ok', ({ data }) =>
+  Option.match(AsyncData.getData(apiData), {
+    onSome: data =>
       Option.match(
         Page.ApiReference.resolveModule(data.parsedApi, moduleSlug),
         {
@@ -1566,13 +1567,12 @@ const resolveApiModuleName = (
           onNone: () => Page.ApiReference.slugToModuleName(moduleSlug),
         },
       ),
-    ),
-    M.orElse(() => Page.ApiReference.slugToModuleName(moduleSlug)),
-  )
+    onNone: () => Page.ApiReference.slugToModuleName(moduleSlug),
+  })
 
 const routeTitle = (
   route: AppRoute,
-  apiData: typeof Page.ApiReference.ApiDataRemoteData.Union.Type,
+  apiData: Page.ApiReference.ApiDataAsyncData,
 ): string =>
   M.value(route).pipe(
     M.tag('Home', () => SITE_NAME),
