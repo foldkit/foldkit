@@ -14,7 +14,7 @@
     "clean": "rimraf dist *.tsbuildinfo",
     "build": "pnpm run clean && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
     "effect-oxlint": "^0.3.2"

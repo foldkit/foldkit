@@ -17,9 +17,9 @@
   ],
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
-    "build": "pnpm run clean && tsc -b",
-    "watch": "tsc -b --watch",
-    "typecheck": "tsc -b --noEmit"
+    "build": "pnpm run clean && tsgo -b",
+    "watch": "tsgo -b --watch",
+    "typecheck": "tsgo -b --noEmit"
   },
   "peerDependencies": {
     "effect": "4.0.0-beta.88",

@@ -13,10 +13,10 @@
   ],
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
-    "build": "pnpm run clean && tsc -b tsconfig.build.json",
+    "build": "pnpm run clean && tsgo -b tsconfig.build.json",
     "format": "prettier -w .",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsgo -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@effect/platform-node": "4.0.0-beta.88",

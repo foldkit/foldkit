@@ -17,10 +17,10 @@
   },
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
-    "build": "pnpm run clean && tsc -b && pnpm run bundle",
+    "build": "pnpm run clean && tsgo -b && pnpm run bundle",
     "bundle": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=dist/server.js --allow-overwrite --alias:foldkit/devtools-protocol=../foldkit/src/devTools/public.ts --external:bufferutil --external:utf-8-validate --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
-    "watch": "tsc -b --watch",
-    "typecheck": "tsc -b --noEmit"
+    "watch": "tsgo -b --watch",
+    "typecheck": "tsgo -b --noEmit"
   },
   "peerDependencies": {
     "effect": "4.0.0-beta.88",

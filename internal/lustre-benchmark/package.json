@@ -9,7 +9,7 @@
     "build:optimised": "BUILD_VARIANT=optimised vite build && mv dist/optimised/index.optimised.html dist/optimised/index.html",
     "dev": "vite",
     "profile": "RUN_LUSTRE_PROFILE=1 vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
     "effect": "4.0.0-beta.88",

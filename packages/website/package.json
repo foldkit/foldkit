@@ -10,7 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "pretypecheck": "pnpm --filter foldkit --filter @foldkit/ui run docs",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "format": "prettier -w .",
     "test": "vitest run",
     "test:e2e": "playwright test",

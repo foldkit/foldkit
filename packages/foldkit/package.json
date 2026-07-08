@@ -142,9 +142,9 @@
   ],
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
-    "build": "pnpm run clean && tsc -b tsconfig.build.json",
-    "watch": "tsc -b tsconfig.build.json --watch",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "pnpm run clean && tsgo -b tsconfig.build.json",
+    "watch": "tsgo -b tsconfig.build.json --watch",
+    "typecheck": "tsgo -p tsconfig.json --noEmit",
     "test": "vitest run --coverage",
     "docs": "typedoc"
   },
