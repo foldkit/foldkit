@@ -14,9 +14,12 @@ export const view = (model: Model): Document => ({
       lazyHeader(headerView, []),
       lazyToolPanel(toolPanelView, [
         model.mirrorMode,
+        model.tool,
+        model.gridSize,
         model.selectedColorIndex,
         isGridEmpty(model.grid),
-        model.toolRadioGroup,
+        theme,
+        model.themeListbox,
       ]),
       canvasView(model, theme),
       lazyHistoryPanel(historyPanelView, [

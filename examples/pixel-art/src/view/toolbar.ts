@@ -7,13 +7,13 @@ import { Button, Listbox, RadioGroup, Switch } from '@foldkit/ui'
 import { EMPTY_COLOR, GRID_SIZE_STRINGS } from '../constant'
 import {
   ClickedClear,
-  GotMirrorHorizontalSwitchMessage,
-  GotMirrorVerticalSwitchMessage,
   GotThemeListboxMessage,
   type Message,
   SelectedColor,
   SelectedGridSize,
   SelectedTool,
+  ToggledMirrorHorizontal,
+  ToggledMirrorVertical,
 } from '../message'
 import { type MirrorMode, PaletteIndex, type Tool } from '../model'
 import { PALETTE_THEMES, type PaletteTheme } from '../palette'
@@ -23,6 +23,8 @@ const TOOLS: ReadonlyArray<Tool> = ['Brush', 'Fill', 'Eraser']
 export const TOOL_RADIO_GROUP_ID = 'tool-picker'
 export const GRID_SIZE_RADIO_GROUP_ID = 'grid-size-picker'
 export const PALETTE_RADIO_GROUP_ID = 'palette-picker'
+export const MIRROR_HORIZONTAL_SWITCH_ID = 'mirror-horizontal'
+export const MIRROR_VERTICAL_SWITCH_ID = 'mirror-vertical'
 
 export const ThemeListbox = Listbox.create<string>()
 
@@ -122,8 +124,6 @@ export const toolPanelView = (
   gridSize: number,
   selectedColorIndex: PaletteIndex,
   isCanvasEmpty: boolean,
-  mirrorHorizontalSwitch: typeof Switch.Model.Type,
-  mirrorVerticalSwitch: typeof Switch.Model.Type,
   theme: PaletteTheme,
   themeListbox: typeof Listbox.Model.Type,
 ): Html => {
@@ -133,11 +133,7 @@ export const toolPanelView = (
     [h.Class('w-full md:w-44 flex flex-col gap-5 flex-shrink-0')],
     [
       toolSectionView(tool),
-      mirrorSectionView(
-        mirrorMode,
-        mirrorHorizontalSwitch,
-        mirrorVerticalSwitch,
-      ),
+      mirrorSectionView(mirrorMode),
       sizeSectionView(gridSize),
       paletteSectionView(selectedColorIndex, theme, themeListbox),
       clearCanvasView(isCanvasEmpty),
@@ -192,11 +188,7 @@ const toolSectionView = (selectedTool: Tool): Html => {
   )
 }
 
-const mirrorSectionView = (
-  mirrorMode: MirrorMode,
-  mirrorHorizontalSwitch: typeof Switch.Model.Type,
-  mirrorVerticalSwitch: typeof Switch.Model.Type,
-): Html => {
+const mirrorSectionView = (mirrorMode: MirrorMode): Html => {
   const h = html<Message>()
 
   const isMirrorHorizontal =
@@ -210,75 +202,61 @@ const mirrorSectionView = (
       h.div(
         [h.Class('flex gap-2')],
         [
-          h.submodel({
-            slotId: mirrorHorizontalSwitch.id,
-            model: mirrorHorizontalSwitch,
-            view: Switch.view,
-            viewInputs: {
-              toView: attributes =>
-                h.div(
-                  [h.Class('flex-1')],
-                  [
-                    h.span(
-                      [...attributes.label, h.Class('sr-only')],
-                      ['Mirror horizontal'],
-                    ),
-                    h.button(
-                      [
-                        ...attributes.button,
-                        h.Class(
-                          clsx(
-                            'w-full px-3 py-1.5 rounded text-sm transition motion-reduce:transition-none cursor-pointer',
-                            {
-                              'bg-indigo-600 text-white': isMirrorHorizontal,
-                              'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200':
-                                !isMirrorHorizontal,
-                            },
-                          ),
+          Switch.view<Message>({
+            id: MIRROR_HORIZONTAL_SWITCH_ID,
+            isChecked: isMirrorHorizontal,
+            onToggle: () => ToggledMirrorHorizontal(),
+            toView: ({ button, label }) =>
+              h.div(
+                [h.Class('flex-1')],
+                [
+                  h.span([...label, h.Class('sr-only')], ['Mirror horizontal']),
+                  h.button(
+                    [
+                      ...button,
+                      h.Class(
+                        clsx(
+                          'w-full px-3 py-1.5 rounded text-sm transition motion-reduce:transition-none cursor-pointer',
+                          {
+                            'bg-indigo-600 text-white': isMirrorHorizontal,
+                            'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200':
+                              !isMirrorHorizontal,
+                          },
                         ),
-                      ],
-                      ['H'],
-                    ),
-                  ],
-                ),
-            },
-            toParentMessage: message =>
-              GotMirrorHorizontalSwitchMessage({ message }),
+                      ),
+                    ],
+                    ['H'],
+                  ),
+                ],
+              ),
           }),
-          h.submodel({
-            slotId: mirrorVerticalSwitch.id,
-            model: mirrorVerticalSwitch,
-            view: Switch.view,
-            viewInputs: {
-              toView: attributes =>
-                h.div(
-                  [h.Class('flex-1')],
-                  [
-                    h.span(
-                      [...attributes.label, h.Class('sr-only')],
-                      ['Mirror vertical'],
-                    ),
-                    h.button(
-                      [
-                        ...attributes.button,
-                        h.Class(
-                          clsx(
-                            'w-full px-3 py-1.5 rounded text-sm transition motion-reduce:transition-none cursor-pointer',
-                            {
-                              'bg-indigo-600 text-white': isMirrorVertical,
-                              'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200':
-                                !isMirrorVertical,
-                            },
-                          ),
+          Switch.view<Message>({
+            id: MIRROR_VERTICAL_SWITCH_ID,
+            isChecked: isMirrorVertical,
+            onToggle: () => ToggledMirrorVertical(),
+            toView: ({ button, label }) =>
+              h.div(
+                [h.Class('flex-1')],
+                [
+                  h.span([...label, h.Class('sr-only')], ['Mirror vertical']),
+                  h.button(
+                    [
+                      ...button,
+                      h.Class(
+                        clsx(
+                          'w-full px-3 py-1.5 rounded text-sm transition motion-reduce:transition-none cursor-pointer',
+                          {
+                            'bg-indigo-600 text-white': isMirrorVertical,
+                            'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200':
+                              !isMirrorVertical,
+                          },
                         ),
-                      ],
-                      ['V'],
-                    ),
-                  ],
-                ),
-            },
-            toParentMessage: message =>
-              GotMirrorVerticalSwitchMessage({ message }),
+                      ),
+                    ],
+                    ['V'],
+                  ),
+                ],
+              ),
           }),
         ],
       ),

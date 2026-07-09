@@ -89,7 +89,7 @@ const workEntryView = (entry: WorkHistory.Entry.Model): Html => {
             [
               employmentRange(
                 start,
-                entry.isCurrentlyEmployed.isChecked,
+                entry.isCurrentlyEmployed,
                 entry.endDate.maybeSelectedDate,
               ),
             ],
@@ -125,7 +125,7 @@ const educationTimelineLine = (
 ): ReadonlyArray<Html> => {
   const h = html()
 
-  if (entry.isCurrentlyEnrolled.isChecked) {
+  if (entry.isCurrentlyEnrolled) {
     return [
       h.p([h.Class('text-xs text-gray-400 mt-0.5')], ['Currently enrolled']),
     ]

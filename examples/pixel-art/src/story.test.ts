@@ -2,7 +2,7 @@ import { Equal, Option } from 'effect'
 import { Story } from 'foldkit'
 import { describe, expect, test } from 'vitest'
 
-import { Dialog, Listbox, Switch } from '@foldkit/ui'
+import { Dialog, Listbox } from '@foldkit/ui'
 
 import { ExportPng, SaveCanvas } from './command'
 import { createEmptyGrid } from './grid'
@@ -44,8 +44,6 @@ const emptyModel: Model = {
   paletteThemeIndex: 0,
   gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
   maybePendingGridSize: Option.none(),
-  mirrorHorizontalSwitch: Switch.init({ id: 'mirror-horizontal' }),
-  mirrorVerticalSwitch: Switch.init({ id: 'mirror-vertical' }),
   themeListbox: Listbox.init({ id: 'theme-picker', selectedItem: '0' }),
 }
 

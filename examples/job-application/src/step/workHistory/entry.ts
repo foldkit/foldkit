@@ -12,7 +12,7 @@ import {
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Checkbox, DatePicker } from '@foldkit/ui'
+import { DatePicker } from '@foldkit/ui'
 
 import { revealFieldErrors } from '../validation'
 
@@ -37,7 +37,7 @@ export const Model = S.Struct({
   title: Field(S.String),
   startDate: DatePicker.Model,
   endDate: DatePicker.Model,
-  isCurrentlyEmployed: Checkbox.Model,
+  isCurrentlyEmployed: S.Boolean,
   description: S.String,
 })
 export type Model = typeof Model.Type
@@ -52,10 +52,9 @@ export const GotStartDateMessage = m('GotStartDateMessage', {
 export const GotEndDateMessage = m('GotEndDateMessage', {
   message: DatePicker.Message,
 })
-export const GotIsCurrentlyEmployedMessage = m(
-  'GotIsCurrentlyEmployedMessage',
-  { message: Checkbox.Message },
-)
+export const ToggledCurrentlyEmployed = m('ToggledCurrentlyEmployed', {
+  isChecked: S.Boolean,
+})
 export const UpdatedDescription = m('UpdatedDescription', {
   value: S.String,
 })
@@ -66,7 +65,7 @@ export const Message = S.Union([
   UpdatedTitle,
   GotStartDateMessage,
   GotEndDateMessage,
-  GotIsCurrentlyEmployedMessage,
+  ToggledCurrentlyEmployed,
   UpdatedDescription,
   ClickedRemoveSelf,
 ])
@@ -89,7 +88,7 @@ export const init = (entryId: string, today: CalendarDate): Model => ({
   title: NotValidated({ value: '' }),
   startDate: DatePicker.init({ id: `${entryId}-start`, today }),
   endDate: DatePicker.init({ id: `${entryId}-end`, today }),
-  isCurrentlyEmployed: Checkbox.init({ id: `${entryId}-current` }),
+  isCurrentlyEmployed: false,
   description: '',
 })
 
@@ -187,17 +186,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         })
       },
 
-      GotIsCurrentlyEmployedMessage: ({ message: checkboxMessage }) => {
-        const [nextCheckbox] = Checkbox.update(
-          model.isCurrentlyEmployed,
-          checkboxMessage,
-        )
-        return [
-          evo(model, { isCurrentlyEmployed: () => nextCheckbox }),
-          [],
-          Option.none(),
-        ]
-      },
+      ToggledCurrentlyEmployed: ({ isChecked }) => [
+        evo(model, { isCurrentlyEmployed: () => isChecked }),
+        [],
+        Option.none(),
+      ],
 
       UpdatedDescription: ({ value }) => [
         evo(model, { description: () => value }),

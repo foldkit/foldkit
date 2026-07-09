@@ -2,7 +2,9 @@ import { html } from 'foldkit/html'
 
 import { Switch } from '@foldkit/ui'
 
-import { GotSwitchDemoMessage, type Message } from './message'
+import { type Message, ToggledSwitchDemo } from './message'
+
+export const SWITCH_DEMO_ID = 'switch-demo'
 
 // DEMO CONTENT
 
@@ -18,50 +20,47 @@ const descriptionClassName = 'text-sm text-gray-500 dark:text-gray-400'
 
 // VIEW
 
-export const switchDemo = (switchModel: Switch.Model) => {
+export const basicDemo = (isSwitchDemoChecked: boolean) => {
   const h = html<Message>()
 
-  const knob = (isChecked: boolean) =>
+  const knob = (isKnobRight: boolean) =>
     h.span(
       [
         h.Class(
-          `pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${isChecked ? 'translate-x-6' : 'translate-x-1'}`,
+          `pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${isKnobRight ? 'translate-x-6' : 'translate-x-1'}`,
         ),
       ],
       [],
     )
 
   return [
-    h.submodel({
-      slotId: 'switch-demo',
-      model: switchModel,
-      view: Switch.view,
-      viewInputs: {
-        toView: attributes =>
-          h.div(
-            [h.Class(wrapperClassName)],
-            [
-              h.button(
-                [...attributes.button, h.Class(buttonClassName)],
-                [knob(switchModel.isChecked)],
-              ),
-              h.div(
-                [],
-                [
-                  h.label(
-                    [...attributes.label, h.Class(labelClassName)],
-                    ['Enable notifications'],
-                  ),
-                  h.p(
-                    [...attributes.description, h.Class(descriptionClassName)],
-                    ['Get notified when something important happens.'],
-                  ),
-                ],
-              ),
-            ],
-          ),
-      },
-      toParentMessage: message => GotSwitchDemoMessage({ message }),
+    Switch.view<Message>({
+      id: SWITCH_DEMO_ID,
+      isChecked: isSwitchDemoChecked,
+      onToggle: isChecked => ToggledSwitchDemo({ isChecked }),
+      toView: attributes =>
+        h.div(
+          [h.Class(wrapperClassName)],
+          [
+            h.button(
+              [...attributes.button, h.Class(buttonClassName)],
+              [knob(isSwitchDemoChecked)],
+            ),
+            h.div(
+              [],
+              [
+                h.label(
+                  [...attributes.label, h.Class(labelClassName)],
+                  ['Enable notifications'],
+                ),
+                h.p(
+                  [...attributes.description, h.Class(descriptionClassName)],
+                  ['Get notified when something important happens.'],
+                ),
+              ],
+            ),
+          ],
+        ),
     }),
   ]
 }

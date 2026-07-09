@@ -22,21 +22,6 @@ const ConfirmedGridSizeChange = m('ConfirmedGridSizeChange')
 const GotGridSizeConfirmDialogMessage = m('GotGridSizeConfirmDialogMessage', {
   message: Dialog.Message,
 })
-const GotToolRadioGroupMessage = m('GotToolRadioGroupMessage', {
-  message: RadioGroup.Message,
-})
-const GotGridSizeRadioGroupMessage = m('GotGridSizeRadioGroupMessage', {
-  message: RadioGroup.Message,
-})
-const GotPaletteRadioGroupMessage = m('GotPaletteRadioGroupMessage', {
-  message: RadioGroup.Message,
-})
-const GotMirrorHorizontalSwitchMessage = m('GotMirrorHorizontalSwitchMessage', {
-  message: Switch.Message,
-})
-const GotMirrorVerticalSwitchMessage = m('GotMirrorVerticalSwitchMessage', {
-  message: Switch.Message,
-})
 const GotThemeListboxMessage = m('GotThemeListboxMessage', {
   message: Listbox.Message,
 })
@@ -63,11 +48,6 @@ const Message = S.Union([
   GotErrorDialogMessage,
   ConfirmedGridSizeChange,
   GotGridSizeConfirmDialogMessage,
-  GotToolRadioGroupMessage,
-  GotGridSizeRadioGroupMessage,
-  GotPaletteRadioGroupMessage,
-  GotMirrorHorizontalSwitchMessage,
-  GotMirrorVerticalSwitchMessage,
   GotThemeListboxMessage,
   CompletedSaveCanvas,
 ])

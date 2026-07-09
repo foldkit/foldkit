@@ -4,10 +4,10 @@ import { Submodel } from 'foldkit'
 import { type CalendarDate } from 'foldkit/calendar'
 import { type Html, html } from 'foldkit/html'
 
-import { Button, Checkbox, Listbox } from '@foldkit/ui'
+import { Button, Listbox } from '@foldkit/ui'
 
 import { Education } from '../step'
-import { inputField } from './field'
+import { checkboxField, inputField } from './field'
 import { chevronDown } from './icon'
 
 const GRADUATION_YEAR_WINDOW_SIZE = 30
@@ -32,7 +32,7 @@ export const educationEntryView = Submodel.defineView<
   const h = html<Education.Entry.Message>()
   const { today } = viewInputs
 
-  const showGraduationYear = !model.isCurrentlyEnrolled.isChecked
+  const showGraduationYear = !model.isCurrentlyEnrolled
 
   const graduationYearField = h.keyed('div')(
     `${model.id}-graduation-year`,
@@ -114,44 +114,12 @@ export const educationEntryView = Submodel.defineView<
         onInput: value => Education.Entry.UpdatedFieldOfStudy({ value }),
         placeholder: 'e.g. Computer Science',
       }),
-      h.submodel({
-        slotId: `${model.id}-currently-enrolled`,
-        model: model.isCurrentlyEnrolled,
-        view: Checkbox.view,
-        viewInputs: {
-          toView: attributes =>
-            h.div(
-              [h.Class('flex items-center gap-2')],
-              [
-                h.div(
-                  [
-                    ...attributes.checkbox,
-                    h.Class(
-                      `flex h-4 w-4 items-center justify-center rounded border transition cursor-pointer ${
-                        model.isCurrentlyEnrolled.isChecked
-                          ? 'border-indigo-600 bg-indigo-600'
-                          : 'border-gray-300'
-                      }`,
-                    ),
-                  ],
-                  [
-                    ...(model.isCurrentlyEnrolled.isChecked
-                      ? [h.span([h.Class('text-white text-xs')], ['✓'])]
-                      : []),
-                  ],
-                ),
-                h.label(
-                  [
-                    ...attributes.label,
-                    h.Class('text-sm text-gray-700 select-none cursor-pointer'),
-                  ],
-                  ['I’m currently enrolled'],
-                ),
-              ],
-            ),
-        },
-        toParentMessage: message =>
-          Education.Entry.GotIsCurrentlyEnrolledMessage({ message }),
+      checkboxField<Education.Entry.Message>({
+        id: `${model.id}-enrolled`,
+        label: 'I’m currently enrolled',
+        isChecked: model.isCurrentlyEnrolled,
+        onToggle: isChecked =>
+          Education.Entry.ToggledCurrentlyEnrolled({ isChecked }),
       }),
       ...(showGraduationYear ? [graduationYearField] : []),
       h.div(

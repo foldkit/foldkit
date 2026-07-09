@@ -6,26 +6,14 @@ import { Disclosure } from '@foldkit/ui'
 
 import * as Icon from '../../icon'
 import {
-  GotDisclosureAnimatedDemoMessage,
-  GotDisclosureBasicDemoMessage,
+  ToggledDisclosureAnimatedDemo,
+  ToggledDisclosureBasicDemo,
   type UiMessage,
 } from '../message'
 import type { UiModel } from '../model'
 
-const basicButtonClassName =
-  'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition border border-gray-300 text-gray-900 hover:bg-gray-200/50 rounded-lg data-[open]:rounded-b-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 select-none'
-
-const basicPanelClassName =
-  'px-4 py-3 border-x border-b border-gray-300 rounded-b-lg text-gray-800'
-
-const animatedContainerClassName =
-  'border border-gray-300 rounded-lg overflow-hidden'
-
-const animatedButtonClassName =
-  'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition text-gray-900 hover:bg-gray-200/50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 select-none'
-
-const animatedPanelClassName =
-  'px-4 py-3 border-t border-gray-300 text-gray-800'
+const DISCLOSURE_BASIC_DEMO_ID = 'disclosure-basic-demo'
+const DISCLOSURE_ANIMATED_DEMO_ID = 'disclosure-animated-demo'
 
 const PANEL_TEXT =
   'Foldkit is an Elm-inspired UI framework powered by Effect. It brings the Model-View-Update architecture to TypeScript with Schema-typed state, explicit side effects via commands, and composable headless UI components.'
@@ -74,68 +62,79 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       subheading('Basic'),
       h.label(
         [
-          h.For(Disclosure.buttonId(model.disclosureBasicDemo.id)),
+          h.For(Disclosure.buttonId(DISCLOSURE_BASIC_DEMO_ID)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['Frequently asked'],
       ),
-      h.submodel({
-        slotId: model.disclosureBasicDemo.id,
-        model: model.disclosureBasicDemo,
-        view: Disclosure.view,
-        viewInputs: {
-          toView: attributes =>
-            h.div(
-              [],
-              [
-                h.button(
-                  [...attributes.button, h.Class(basicButtonClassName)],
-                  [buttonContent(model.disclosureBasicDemo.isOpen)],
-                ),
-                model.disclosureBasicDemo.isOpen
-                  ? h.div(
-                      [...attributes.panel, h.Class(basicPanelClassName)],
-                      [panelText()],
-                    )
-                  : h.empty,
-              ],
-            ),
-        },
-        toParentMessage: message => GotDisclosureBasicDemoMessage({ message }),
+      Disclosure.view<UiMessage>({
+        id: DISCLOSURE_BASIC_DEMO_ID,
+        isOpen: model.isDisclosureBasicDemoOpen,
+        onToggle: isOpen => ToggledDisclosureBasicDemo({ isOpen }),
+        toView: attributes =>
+          h.div(
+            [],
+            [
+              h.button(
+                [
+                  ...attributes.button,
+                  h.Class(
+                    'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition border border-gray-300 text-gray-900 hover:bg-gray-200/50 rounded-lg data-[open]:rounded-b-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 select-none',
+                  ),
+                ],
+                [buttonContent(model.isDisclosureBasicDemoOpen)],
+              ),
+              model.isDisclosureBasicDemoOpen
+                ? h.div(
+                    [
+                      ...attributes.panel,
+                      h.Class(
+                        'px-4 py-3 border-x border-b border-gray-300 rounded-b-lg text-gray-800',
+                      ),
+                    ],
+                    [panelText()],
+                  )
+                : h.empty,
+            ],
+          ),
       }),
 
       subheading('Animated'),
       h.label(
         [
-          h.For(Disclosure.buttonId(model.disclosureAnimatedDemo.id)),
+          h.For(Disclosure.buttonId(DISCLOSURE_ANIMATED_DEMO_ID)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['Frequently asked'],
       ),
-      h.submodel({
-        slotId: model.disclosureAnimatedDemo.id,
-        model: model.disclosureAnimatedDemo,
-        view: Disclosure.view,
-        viewInputs: {
-          toView: attributes =>
-            h.div(
-              [h.Class(animatedContainerClassName)],
-              [
-                h.button(
-                  [...attributes.button, h.Class(animatedButtonClassName)],
-                  [buttonContent(model.disclosureAnimatedDemo.isOpen)],
-                ),
-                attributes.animatePanel(
-                  h.div(
-                    [...attributes.panel, h.Class(animatedPanelClassName)],
-                    [panelText()],
+      Disclosure.view<UiMessage>({
+        id: DISCLOSURE_ANIMATED_DEMO_ID,
+        isOpen: model.isDisclosureAnimatedDemoOpen,
+        onToggle: isOpen => ToggledDisclosureAnimatedDemo({ isOpen }),
+        toView: attributes =>
+          h.div(
+            [h.Class('border border-gray-300 rounded-lg overflow-hidden')],
+            [
+              h.button(
+                [
+                  ...attributes.button,
+                  h.Class(
+                    'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition text-gray-900 hover:bg-gray-200/50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 select-none',
                   ),
+                ],
+                [buttonContent(model.isDisclosureAnimatedDemoOpen)],
+              ),
+              attributes.animatePanel(
+                h.div(
+                  [
+                    ...attributes.panel,
+                    h.Class('px-4 py-3 border-t border-gray-300 text-gray-800'),
+                  ],
+                  [panelText()],
                 ),
-              ],
-            ),
-        },
-        toParentMessage: message =>
-          GotDisclosureAnimatedDemoMessage({ message }),
+              ),
+            ],
+          ),
       }),
     ],
   )

@@ -1,6 +1,6 @@
 import { Schema as S } from 'effect'
 
-import { Dialog, Listbox, Switch } from '@foldkit/ui'
+import { Dialog, Listbox } from '@foldkit/ui'
 
 // CONSTANT
 
@@ -62,8 +62,6 @@ export const Model = S.Struct({
   paletteThemeIndex: S.Number,
   gridSizeConfirmDialog: Dialog.Model,
   maybePendingGridSize: S.Option(S.Number),
-  mirrorHorizontalSwitch: Switch.Model,
-  mirrorVerticalSwitch: Switch.Model,
   themeListbox: Listbox.Model,
 })
 export type Model = typeof Model.Type

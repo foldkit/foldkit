@@ -399,7 +399,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         'In Foldkit, you read the ',
         link(coreMessagesRouter(), 'Message'),
-        ' union alongside the update function. 27 Message declarations, each handled by a case in update. The Model is the only place state lives, and the Message union is the only way to change the Model. So together they form a complete index of every way the app can change state, and exactly what changes for each event.',
+        ' union alongside the update function. 22 Message declarations, each handled by a case in update. The Model is the only place state lives, and the Message union is the only way to change the Model. So together they form a complete index of every way the app can change state, and exactly what changes for each event.',
       ),
       highlightedCodeBlock(
         h.div(
@@ -451,7 +451,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         'The React ',
         inlineCode('Action'),
-        ' type has 19 entries to Foldkit’s 27. That gap isn’t the React developer forgetting things. The two locate the same state changes in different parts of the app.',
+        ' type has 19 entries to Foldkit’s 22. That gap isn’t the React developer forgetting things. The two locate the same state changes in different parts of the app.',
       ),
       para(
         inlineCode('ClickedExport'),
@@ -461,9 +461,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('SucceededExportPng'),
         ' and ',
         inlineCode('CompletedSaveCanvas'),
-        ' are missing: Foldkit Commands return Messages to the update function when they resolve, so the runtime needs a Message for every outcome. React has no equivalent: imperative effects fire and either dispatch on failure or quietly return. And 8 ',
+        ' are missing: Foldkit Commands return Messages to the update function when they resolve, so the runtime needs a Message for every outcome. React has no equivalent: imperative effects fire and either dispatch on failure or quietly return. And 3 ',
         inlineCode('Got*Message'),
-        ' variants are missing because the React version delegates those components (Dialog, RadioGroup, Switch, Listbox) to Headless UI, which keeps their internal state inside its own hooks rather than surfacing deltas as values. The reverse runs for dialog dismissal: React spells out ',
+        ' variants are missing because the React version delegates the Dialog and Listbox to Headless UI, which keeps their internal state inside its own hooks rather than surfacing deltas as values. The reverse runs for dialog dismissal: React spells out ',
         inlineCode('DismissedErrorDialog'),
         ' and ',
         inlineCode('DismissedGridSizeDialog'),
@@ -574,7 +574,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('Option<T>'),
         ' instead of ',
         inlineCode('null'),
-        ', and a Submodel field for every accessible UI component. The ',
+        ', and a Submodel field for each stateful UI component. The ',
         inlineCode('themeListbox'),
         ' field alone exposes the listbox’s internal state: open/closed, transition phase, highlighted item, search query, activation trigger, last pointer position, orientation, selected item. All of that exists in the React app too, but inside Headless UI’s hooks, where your reducer can’t see it.',
       ),
@@ -1123,7 +1123,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         'Foldkit ships ',
         link(uiOverviewRouter(), 'accessible UI components'),
-        ' (Dialog, RadioGroup, Switch, Listbox) that work like everything else in Foldkit: each has a Model, Messages, and an update function. You initialize them in your Model, delegate their Messages in your update, and compose their views. The state is yours. React uses Headless UI, which provides the same accessible patterns through a component API. But the state is theirs.',
+        ' (Dialog, RadioGroup, Switch, Listbox). The stateful ones (Dialog, Listbox) work like everything else in Foldkit: each has a Model, Messages, and an update function. You initialize them in your Model, delegate their Messages in your update, and compose their views. RadioGroup and Switch are controlled render helpers: your Model owns the value directly. Either way the state is yours. React uses Headless UI, which provides the same accessible patterns through a component API. But the state is theirs.',
       ),
       comparisonTable(
         ['', 'Foldkit', 'React + Headless UI'],
@@ -1333,7 +1333,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         'React DevTools shows you the current component tree. ',
         link(coreDevToolsRouter(), 'Foldkit DevTools'),
-        ' shows you the complete history: every Model snapshot, every Message, every Command. And because Submodels live in the Model, that history covers UI component internals too: the Dialog’s transition phase, the Listbox’s active item, the Switch’s checked state. You can scrub backwards through a session and see every interior state the UI passed through. In React, Headless UI’s internals never leave component hooks. They aren’t available as a replayable sequence because they aren’t available as values at all.',
+        ' shows you the complete history: every Model snapshot, every Message, every Command. And because Submodels live in the Model, that history covers UI component internals too: the Dialog’s transition phase, the Listbox’s active item and search query. You can scrub backwards through a session and see every interior state the UI passed through. In React, Headless UI’s internals never leave component hooks. They aren’t available as a replayable sequence because they aren’t available as values at all.',
       ),
 
       tableOfContentsEntryToHeader(testsShareRuntimeHeader),

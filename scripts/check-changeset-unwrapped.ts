@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 const BASE_REF = process.argv[2] ?? 'origin/main'
 const FRONTMATTER_DELIMITER = '---'
@@ -24,13 +24,19 @@ const resolveBaseRef = (): void => {
   }
 }
 
-const changedChangesetFiles = (): ReadonlyArray<string> => {
+const mergeBase = (): string =>
+  execFileSync('git', ['merge-base', BASE_REF, 'HEAD'], {
+    encoding: 'utf8',
+  }).trim()
+
+const committedChangesetFiles = (): ReadonlyArray<string> => {
   const output = execFileSync(
     'git',
     [
       'diff',
       '--diff-filter=AM',
       '--name-only',
+      '--no-relative',
       BASE_REF,
       'HEAD',
       '--',
@@ -42,6 +48,54 @@ const changedChangesetFiles = (): ReadonlyArray<string> => {
     .split('\n')
     .map(line => line.trim())
     .filter(line => line.endsWith('.md') && !line.endsWith('/README.md'))
+}
+
+const changesetsVisibleToChangesetsCli = (): ReadonlyArray<string> => {
+  const output = execFileSync(
+    'git',
+    ['diff', '--name-only', '--diff-filter=d', '--no-relative', mergeBase()],
+    { encoding: 'utf8' },
+  )
+  return output
+    .split('\n')
+    .map(line => line.trim())
+    .filter(
+      line =>
+        /^\.changeset\/[^/]+\.md$/.test(line) &&
+        !line.endsWith('/README.md') &&
+        existsSync(line),
+    )
+}
+
+const failOnChangesetsHiddenFromChangesetsCli = (
+  committedFiles: ReadonlyArray<string>,
+  visibleFiles: ReadonlyArray<string>,
+): void => {
+  const visible = new Set(visibleFiles)
+  const hiddenFiles = committedFiles.filter(file => !visible.has(file))
+
+  if (hiddenFiles.length === 0) {
+    return
+  }
+
+  console.error('')
+  console.error(
+    'Committed changesets differ from the changesets visible to Changesets CLI.',
+  )
+  console.error(
+    '`changeset status --since` compares the merge base to the working tree,',
+  )
+  console.error(
+    'so locally deleted changeset files are ignored even if they exist in HEAD.',
+  )
+  console.error('')
+  console.error('Restore or commit these changeset files before pushing:')
+
+  for (const file of hiddenFiles) {
+    console.error(`  ${file}`)
+  }
+
+  process.exit(1)
 }
 
 const findWrappedParagraphs = (
@@ -107,7 +161,10 @@ const findWrappedParagraphs = (
 
 resolveBaseRef()
 
-const changesetFiles = changedChangesetFiles()
+const committedFiles = committedChangesetFiles()
+const changesetFiles = changesetsVisibleToChangesetsCli()
+
+failOnChangesetsHiddenFromChangesetsCli(committedFiles, changesetFiles)
 
 const violations = changesetFiles.flatMap(file =>
   findWrappedParagraphs(file, readFileSync(file, 'utf8')),

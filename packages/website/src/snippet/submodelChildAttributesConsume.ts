@@ -1,41 +1,51 @@
-import { html, keyed } from 'foldkit/html'
+// main.ts (parent)
+import { Array } from 'effect'
+import { html } from 'foldkit/html'
 
-import { Disclosure } from './disclosure'
-import { GotDisclosureMessage, type Message } from './message'
+import { GotCommandMenuMessage, type Message } from './message'
 import type { Model } from './model'
+import * as CommandMenu from './page/commandMenu'
+
+const MENU_ITEMS: ReadonlyArray<string> = ['Open', 'Rename', 'Archive']
 
 export const view = (model: Model) => {
   const h = html<Message>()
 
   return h.submodel({
-    slotId: 'disclosure',
-    model: model.disclosure,
-    view: Disclosure.view,
-    // Each attribute group published by the child is spread onto the
-    // consumer's own element. Click handlers from the child still route
-    // through the child's dispatcher because the branding rides along
-    // on each attribute.
+    slotId: 'command-menu',
+    model: model.commandMenu,
+    view: CommandMenu.view,
     viewInputs: {
-      toView: attributes =>
+      items: MENU_ITEMS,
+      toView: slot =>
         h.div(
           [],
           [
             h.button(
-              [...attributes.button, h.Class('px-3 py-2 rounded')],
-              ['Toggle'],
+              [...slot.buttonAttributes, h.Class('px-3 py-2 rounded')],
+              ['Actions'],
             ),
-            keyed('div')(
-              model.disclosure.isOpen ? 'open' : 'closed',
-              model.disclosure.isOpen
-                ? h.div(
-                    [...attributes.panel, h.Class('mt-2 p-4 bg-gray-50')],
-                    ['Panel content'],
-                  )
-                : h.empty,
-            ),
+            ...(slot.isOpen
+              ? [
+                  h.keyed('div')(
+                    'menu',
+                    [...slot.menuAttributes, h.Class('mt-2 p-1 bg-gray-50')],
+                    Array.map(slot.items, item =>
+                      h.keyed('div')(
+                        item.id,
+                        [
+                          ...item.attributes,
+                          ...(item.isActive ? [h.Class('bg-blue-50')] : []),
+                        ],
+                        [item.label],
+                      ),
+                    ),
+                  ),
+                ]
+              : []),
           ],
         ),
     },
-    toParentMessage: message => GotDisclosureMessage({ message }),
+    toParentMessage: message => GotCommandMenuMessage({ message }),
   })
 }

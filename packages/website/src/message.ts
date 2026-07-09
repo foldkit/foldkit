@@ -3,10 +3,11 @@ import { m } from 'foldkit/message'
 import { UrlRequest } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
 
-import { Dialog, Disclosure, Menu, Tabs } from '@foldkit/ui'
+import { Dialog, Menu, Tabs } from '@foldkit/ui'
 
 import * as Page from './page'
 import * as Search from './search'
+import { GroupKey } from './sidebarStorage'
 
 // THEME
 
@@ -115,41 +116,9 @@ export const GotApiReferenceMessage = m('GotApiReferenceMessage', {
 export const GotUiPageMessage = m('GotUiPageMessage', {
   message: Page.UiPages.Message,
 })
-export const GotGetStartedGroupMessage = m('GotGetStartedGroupMessage', {
-  message: Disclosure.Message,
-})
-export const GotCoreConceptsGroupMessage = m('GotCoreConceptsGroupMessage', {
-  message: Disclosure.Message,
-})
-export const GotComparisonsGroupMessage = m('GotComparisonsGroupMessage', {
-  message: Disclosure.Message,
-})
-export const GotFaqGroupMessage = m('GotFaqGroupMessage', {
-  message: Disclosure.Message,
-})
-export const GotTestingGroupMessage = m('GotTestingGroupMessage', {
-  message: Disclosure.Message,
-})
-export const GotBestPracticesGroupMessage = m('GotBestPracticesGroupMessage', {
-  message: Disclosure.Message,
-})
-export const GotPatternsGroupMessage = m('GotPatternsGroupMessage', {
-  message: Disclosure.Message,
-})
-export const GotToolingGroupMessage = m('GotToolingGroupMessage', {
-  message: Disclosure.Message,
-})
-export const GotFoldkitUiGroupMessage = m('GotFoldkitUiGroupMessage', {
-  message: Disclosure.Message,
-})
-export const GotAiGroupMessage = m('GotAiGroupMessage', {
-  message: Disclosure.Message,
-})
-export const GotExamplesGroupMessage = m('GotExamplesGroupMessage', {
-  message: Disclosure.Message,
-})
-export const GotApiReferenceGroupMessage = m('GotApiReferenceGroupMessage', {
-  message: Disclosure.Message,
+export const ToggledSidebarGroup = m('ToggledSidebarGroup', {
+  key: GroupKey,
+  isOpen: S.Boolean,
 })
 export const GotExampleDetailMessage = m('GotExampleDetailMessage', {
   message: Page.Example.ExampleDetail.Message,
@@ -157,12 +126,9 @@ export const GotExampleDetailMessage = m('GotExampleDetailMessage', {
 export const GotSearchMessage = m('GotSearchMessage', {
   message: Search.Message,
 })
-export const GotSubmodelMapMessagesDisclosureMessage = m(
-  'GotSubmodelMapMessagesDisclosureMessage',
-  {
-    message: Disclosure.Message,
-  },
-)
+export const ToggledMapMessagesUnderHood = m('ToggledMapMessagesUnderHood', {
+  isOpen: S.Boolean,
+})
 
 export const Message = S.Union([
   CompletedNavigateInternal,
@@ -209,20 +175,9 @@ export const Message = S.Union([
   GotUiPageMessage,
   GotComingFromReactMessage,
   GotApiReferenceMessage,
-  GotGetStartedGroupMessage,
-  GotCoreConceptsGroupMessage,
-  GotComparisonsGroupMessage,
-  GotFaqGroupMessage,
-  GotTestingGroupMessage,
-  GotBestPracticesGroupMessage,
-  GotPatternsGroupMessage,
-  GotToolingGroupMessage,
-  GotFoldkitUiGroupMessage,
-  GotAiGroupMessage,
-  GotExamplesGroupMessage,
-  GotApiReferenceGroupMessage,
+  ToggledSidebarGroup,
   GotExampleDetailMessage,
   GotSearchMessage,
-  GotSubmodelMapMessagesDisclosureMessage,
+  ToggledMapMessagesUnderHood,
 ])
 export type Message = typeof Message.Type

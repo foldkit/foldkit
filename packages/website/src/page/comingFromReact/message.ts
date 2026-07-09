@@ -1,12 +1,10 @@
 import { Schema as S } from 'effect'
 import { m } from 'foldkit/message'
 
-import { Disclosure } from '@foldkit/ui'
-
-export const GotFaqDisclosureMessage = m('GotFaqDisclosureMessage', {
+export const ToggledFaq = m('ToggledFaq', {
   id: S.String,
-  message: Disclosure.Message,
+  isOpen: S.Boolean,
 })
 
-export const Message = S.Union([GotFaqDisclosureMessage])
+export const Message = S.Union([ToggledFaq])
 export type Message = typeof Message.Type

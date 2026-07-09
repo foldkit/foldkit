@@ -25,6 +25,9 @@ export const GroupKey = S.Literals([
 ])
 export type GroupKey = typeof GroupKey.Type
 
+export const SidebarGroups = S.Record(GroupKey, S.Boolean)
+export type SidebarGroups = typeof SidebarGroups.Type
+
 export const DEFAULT_OPEN_GROUPS: ReadonlyArray<GroupKey> = [
   'getStarted',
   'coreConcepts',

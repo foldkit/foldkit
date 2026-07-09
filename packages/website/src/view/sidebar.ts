@@ -17,30 +17,34 @@ import { Icon } from '../icon'
 import { Link } from '../link'
 import { type Model } from '../main'
 import {
-  GotAiGroupMessage,
-  GotApiReferenceGroupMessage,
-  GotBestPracticesGroupMessage,
-  GotComparisonsGroupMessage,
-  GotCoreConceptsGroupMessage,
-  GotExamplesGroupMessage,
-  GotFaqGroupMessage,
-  GotFoldkitUiGroupMessage,
-  GotGetStartedGroupMessage,
   GotMobileMenuDialogMessage,
-  GotPatternsGroupMessage,
-  GotTestingGroupMessage,
-  GotToolingGroupMessage,
   type Message,
+  ToggledSidebarGroup,
 } from '../message'
 import { ExampleDetailRoute, apiModuleRouter, homeRouter } from '../route'
-import { type GroupKey } from '../sidebarStorage'
+import { type GroupKey, type SidebarGroups } from '../sidebarStorage'
 import { betaTag, iconLink } from './shared'
+
+const GROUP_ID: Record<GroupKey, string> = {
+  getStarted: 'get-started-group',
+  coreConcepts: 'core-concepts-group',
+  comparisons: 'comparisons-group',
+  faq: 'faq-group',
+  testing: 'testing-group',
+  bestPractices: 'best-practices-group',
+  patterns: 'patterns-group',
+  tooling: 'tooling-group',
+  foldkitUi: 'foldkit-ui-group',
+  ai: 'ai-group',
+  examples: 'examples-group',
+  apiReference: 'api-reference-group',
+}
 
 const sidebarGroup = (config: {
   readonly id: string
   readonly label: string
-  readonly model: Disclosure.Model
-  readonly toParentMessage: (message: Disclosure.Message) => Message
+  readonly isOpen: boolean
+  readonly onToggle: (isOpen: boolean) => Message
   readonly children: Html
   readonly isLocked: boolean
 }): Html => {
@@ -62,74 +66,55 @@ const sidebarGroup = (config: {
   return h.li(
     [],
     [
-      h.submodel({
-        slotId: config.id,
-        model: config.model,
-        view: Disclosure.view,
-        viewInputs: {
-          isDisabled: config.isLocked,
-          toView: attributes =>
-            h.div(
-              [],
-              [
-                h.button(
-                  [...attributes.button, h.Class(buttonClassName)],
-                  [
-                    h.div(
-                      [h.Class('flex items-center justify-between w-full')],
-                      [
-                        h.span([], [config.label]),
-                        config.isLocked
-                          ? h.empty
-                          : h.span(
-                              [
-                                h.Class(
-                                  clsx({
-                                    'rotate-180': config.model.isOpen,
-                                  }),
-                                ),
-                              ],
-                              [Icon.chevronDown('w-3 h-3')],
-                            ),
-                      ],
-                    ),
-                  ],
-                ),
-                config.model.isOpen
-                  ? h.div(
-                      [...attributes.panel, h.Class('px-4 py-2')],
-                      [config.children],
-                    )
-                  : h.empty,
-              ],
-            ),
-        },
-        toParentMessage: config.toParentMessage,
+      Disclosure.view<Message>({
+        id: config.id,
+        isOpen: config.isOpen,
+        onToggle: config.onToggle,
+        isDisabled: config.isLocked,
+        toView: attributes =>
+          h.div(
+            [],
+            [
+              h.button(
+                [...attributes.button, h.Class(buttonClassName)],
+                [
+                  h.div(
+                    [h.Class('flex items-center justify-between w-full')],
+                    [
+                      h.span([], [config.label]),
+                      config.isLocked
+                        ? h.empty
+                        : h.span(
+                            [
+                              h.Class(
+                                clsx({
+                                  'rotate-180': config.isOpen,
+                                }),
+                              ),
+                            ],
+                            [Icon.chevronDown('w-3 h-3')],
+                          ),
+                    ],
+                  ),
+                ],
+              ),
+              config.isOpen
+                ? h.div(
+                    [...attributes.panel, h.Class('px-4 py-2')],
+                    [config.children],
+                  )
+                : h.empty,
+            ],
+          ),
       }),
     ],
   )
 }
 
-type DisclosureBinding = Readonly<{
-  model: Disclosure.Model
-  toParentMessage: (message: Disclosure.Message) => Message
-}>
-
 const computeNavLinks = (
   idPrefix: string,
   route: Model['route'],
-  getStartedGroup: Disclosure.Model,
-  coreConceptsGroup: Disclosure.Model,
-  comparisonsGroup: Disclosure.Model,
-  faqGroup: Disclosure.Model,
-  testingGroup: Disclosure.Model,
-  bestPracticesGroup: Disclosure.Model,
-  patternsGroup: Disclosure.Model,
-  toolingGroup: Disclosure.Model,
-  examplesGroup: Disclosure.Model,
-  foldkitUiGroup: Disclosure.Model,
-  aiGroup: Disclosure.Model,
-  apiReferenceGroup: Disclosure.Model,
+  sidebarGroups: SidebarGroups,
 ): Html => {
   const h = html<Message>()
 
@@ -148,57 +133,6 @@ const computeNavLinks = (
   )
   const isLocked = (key: GroupKey): boolean =>
     Option.exists(maybeActiveSectionKey, Equal.equals(key))
-
-  const disclosureByKey: Record<GroupKey, DisclosureBinding> = {
-    getStarted: {
-      model: getStartedGroup,
-      toParentMessage: message => GotGetStartedGroupMessage({ message }),
-    },
-    coreConcepts: {
-      model: coreConceptsGroup,
-      toParentMessage: message => GotCoreConceptsGroupMessage({ message }),
-    },
-    comparisons: {
-      model: comparisonsGroup,
-      toParentMessage: message => GotComparisonsGroupMessage({ message }),
-    },
-    faq: {
-      model: faqGroup,
-      toParentMessage: message => GotFaqGroupMessage({ message }),
-    },
-    testing: {
-      model: testingGroup,
-      toParentMessage: message => GotTestingGroupMessage({ message }),
-    },
-    bestPractices: {
-      model: bestPracticesGroup,
-      toParentMessage: message => GotBestPracticesGroupMessage({ message }),
-    },
-    patterns: {
-      model: patternsGroup,
-      toParentMessage: message => GotPatternsGroupMessage({ message }),
-    },
-    tooling: {
-      model: toolingGroup,
-      toParentMessage: message => GotToolingGroupMessage({ message }),
-    },
-    examples: {
-      model: examplesGroup,
-      toParentMessage: message => GotExamplesGroupMessage({ message }),
-    },
-    foldkitUi: {
-      model: foldkitUiGroup,
-      toParentMessage: message => GotFoldkitUiGroupMessage({ message }),
-    },
-    ai: {
-      model: aiGroup,
-      toParentMessage: message => GotAiGroupMessage({ message }),
-    },
-    apiReference: {
-      model: apiReferenceGroup,
-      toParentMessage: message => GotApiReferenceGroupMessage({ message }),
-    },
-  }
 
   const linkClass = (isActive: boolean) =>
     clsx(
@@ -242,12 +176,11 @@ const computeNavLinks = (
     [h.Class('space-y-0.5')],
     [
       ...Array.map(docsSections, section => {
-        const binding = disclosureByKey[section.key]
         return sidebarGroup({
-          id: `${idPrefix}-${binding.model.id}`,
+          id: `${idPrefix}-${GROUP_ID[section.key]}`,
           label: section.label,
-          model: binding.model,
-          toParentMessage: binding.toParentMessage,
+          isOpen: sidebarGroups[section.key],
+          onToggle: isOpen => ToggledSidebarGroup({ key: section.key, isOpen }),
           isLocked: isLocked(section.key),
           children: h.div(
             [h.Class('divide-y divide-gray-200 dark:divide-gray-800')],
@@ -261,10 +194,11 @@ const computeNavLinks = (
         })
       }),
       sidebarGroup({
-        id: `${idPrefix}-${apiReferenceGroup.id}`,
+        id: `${idPrefix}-${GROUP_ID.apiReference}`,
         label: 'API Reference',
-        model: disclosureByKey.apiReference.model,
-        toParentMessage: disclosureByKey.apiReference.toParentMessage,
+        isOpen: sidebarGroups.apiReference,
+        onToggle: isOpen =>
+          ToggledSidebarGroup({ key: 'apiReference', isOpen }),
         isLocked: isLocked('apiReference'),
         children: h.ul(
           [h.Class('space-y-0.5')],
@@ -292,34 +226,12 @@ export const sidebarView = (model: Model): Html => {
   const desktopNavLinks = lazyDesktopNavLinks(computeNavLinks, [
     'desktop',
     model.route,
-    model.getStartedGroup,
-    model.coreConceptsGroup,
-    model.comparisonsGroup,
-    model.faqGroup,
-    model.testingGroup,
-    model.bestPracticesGroup,
-    model.patternsGroup,
-    model.toolingGroup,
-    model.examplesGroup,
-    model.foldkitUiGroup,
-    model.aiGroup,
-    model.apiReferenceGroup,
+    model.sidebarGroups,
   ])
   const mobileNavLinks = lazyMobileNavLinks(computeNavLinks, [
     'mobile',
     model.route,
-    model.getStartedGroup,
-    model.coreConceptsGroup,
-    model.comparisonsGroup,
-    model.faqGroup,
-    model.testingGroup,
-    model.bestPracticesGroup,
-    model.patternsGroup,
-    model.toolingGroup,
-    model.examplesGroup,
-    model.foldkitUiGroup,
-    model.aiGroup,
-    model.apiReferenceGroup,
+    model.sidebarGroups,
   ])
 
   const desktopSidebar = h.aside(

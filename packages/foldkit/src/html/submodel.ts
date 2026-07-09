@@ -36,10 +36,17 @@ const SUBMODEL_MESSAGE_BRAND = '__submodelMessage'
  *
  *  ```ts
  *  export const view = defineView<
- *    Checkbox.Model,
- *    Checkbox.Message,
+ *    CommandMenu.Model,
+ *    CommandMenu.Message,
  *    ViewInputs
- *  >((model, viewInputs) => viewInputs.toView({ checkbox: [...] }))
+ *  >((model, viewInputs) =>
+ *    viewInputs.toView({
+ *      isOpen: model.isOpen,
+ *      buttonAttributes: [...],
+ *      menuAttributes: [...],
+ *      items: menuItemSlots(model, viewInputs.items),
+ *    }),
+ *  )
  *  ```
  *
  *  Required at the `h.submodel` call site so unbranded plain functions

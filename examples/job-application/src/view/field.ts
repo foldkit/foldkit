@@ -3,7 +3,7 @@ import { Match as M } from 'effect'
 import { type Field } from 'foldkit/fieldValidation'
 import { type Html, html } from 'foldkit/html'
 
-import { Input, Textarea } from '@foldkit/ui'
+import { Checkbox, Input, Textarea } from '@foldkit/ui'
 
 const borderClass = (field: Field<string>): string =>
   M.value(field).pipe(
@@ -85,6 +85,53 @@ export const inputField = <ParentMessage>(
                 ),
               ]
             : []),
+        ],
+      ),
+  })
+}
+
+export const checkboxField = <ParentMessage>(
+  config: Readonly<{
+    id: string
+    label: string
+    isChecked: boolean
+    onToggle: (isChecked: boolean) => ParentMessage
+  }>,
+): Html => {
+  const h = html<ParentMessage>()
+
+  return Checkbox.view({
+    id: config.id,
+    isChecked: config.isChecked,
+    onToggle: config.onToggle,
+    toView: attributes =>
+      h.div(
+        [h.Class('flex items-center gap-2')],
+        [
+          h.div(
+            [
+              ...attributes.checkbox,
+              h.Class(
+                `flex h-4 w-4 items-center justify-center rounded border transition cursor-pointer ${
+                  config.isChecked
+                    ? 'border-indigo-600 bg-indigo-600'
+                    : 'border-gray-300'
+                }`,
+              ),
+            ],
+            [
+              ...(config.isChecked
+                ? [h.span([h.Class('text-white text-xs')], ['✓'])]
+                : []),
+            ],
+          ),
+          h.label(
+            [
+              ...attributes.label,
+              h.Class('text-sm text-gray-700 select-none cursor-pointer'),
+            ],
+            [config.label],
+          ),
         ],
       ),
   })

@@ -80,7 +80,7 @@ const workEntryReview = (entry: WorkHistory.Entry.Model): Html => {
             [
               employmentRange(
                 start,
-                entry.isCurrentlyEmployed.isChecked,
+                entry.isCurrentlyEmployed,
                 entry.endDate.maybeSelectedDate,
               ),
             ],
@@ -104,7 +104,7 @@ const workHistorySection = (workHistory: Model['workHistory']): Html => {
 }
 
 const educationTimeline = (entry: Education.Entry.Model): string => {
-  if (entry.isCurrentlyEnrolled.isChecked) {
+  if (entry.isCurrentlyEnrolled) {
     return ' (Currently enrolled)'
   }
   if (entry.graduationYear) {

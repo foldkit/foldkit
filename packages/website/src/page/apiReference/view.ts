@@ -17,7 +17,7 @@ import {
   scopedId,
   sectionId,
 } from './domain'
-import { GotDisclosureMessage, type Message } from './message'
+import { type Message, ToggledSignature } from './message'
 import type { ApiData, Model } from './model'
 
 type Highlights = ApiData['highlights']
@@ -50,7 +50,7 @@ const lazyItem = createKeyedLazy()
 const functionView = (
   moduleName: string,
   apiFunction: ApiFunction,
-  maybeDisclosure: Disclosure.Model | undefined,
+  isSignatureDisclosureOpen: boolean | undefined,
   highlights: Highlights,
 ): Html => {
   const h = html<Message>()
@@ -92,7 +92,7 @@ const functionView = (
           headingLinkButton(id, apiFunction.name),
         ],
       ),
-      signaturesView(id, apiFunction, maybeDisclosure, highlights),
+      signaturesView(id, apiFunction, isSignatureDisclosureOpen, highlights),
     ],
   )
 }
@@ -164,12 +164,12 @@ const disclosurePanelClassName = 'rounded-b-lg overflow-x-auto'
 const signaturesView = (
   key: string,
   apiFunction: ApiFunction,
-  maybeDisclosure: Disclosure.Model | undefined,
+  isSignatureDisclosureOpen: boolean | undefined,
   highlights: Highlights,
 ): Html => {
   const h = html<Message>()
   const maybeHighlighted = Record.get(highlights, key)
-  const isInDisclosure = maybeDisclosure !== undefined
+  const isInDisclosure = isSignatureDisclosureOpen !== undefined
 
   const { wrapperClass, content } = Option.match(maybeHighlighted, {
     onSome: highlighted => ({
@@ -200,40 +200,39 @@ const signaturesView = (
     }),
   })
 
-  return maybeDisclosure !== undefined
-    ? h.submodel({
-        slotId: maybeDisclosure.id,
-        model: maybeDisclosure,
-        view: Disclosure.view,
-        viewInputs: {
-          toView: attributes =>
-            h.div(
-              [],
+  if (isSignatureDisclosureOpen !== undefined) {
+    return Disclosure.view<Message>({
+      id: key,
+      isOpen: isSignatureDisclosureOpen,
+      onToggle: isOpen => ToggledSignature({ id: key, isOpen }),
+      toView: attributes =>
+        h.div(
+          [],
+          [
+            h.button(
+              [...attributes.button, h.Class(disclosureButtonClassName)],
               [
-                h.button(
-                  [...attributes.button, h.Class(disclosureButtonClassName)],
+                h.div(
+                  [h.Class('flex items-center justify-between w-full')],
                   [
-                    h.div(
-                      [h.Class('flex items-center justify-between w-full')],
-                      [
-                        h.span([], ['Show signature']),
-                        chevron(maybeDisclosure.isOpen),
-                      ],
-                    ),
+                    h.span([], ['Show signature']),
+                    chevron(isSignatureDisclosureOpen),
                   ],
                 ),
-                maybeDisclosure.isOpen
-                  ? h.div(
-                      [...attributes.panel, h.Class(disclosurePanelClassName)],
-                      [h.div([h.Class(wrapperClass)], content)],
-                    )
-                  : h.empty,
               ],
             ),
-        },
-        toParentMessage: message => GotDisclosureMessage({ id: key, message }),
-      })
-    : h.div([h.Class(wrapperClass)], content)
+            isSignatureDisclosureOpen
+              ? h.div(
+                  [...attributes.panel, h.Class(disclosurePanelClassName)],
+                  [h.div([h.Class(wrapperClass)], content)],
+                )
+              : h.empty,
+          ],
+        ),
+    })
+  } else {
+    return h.div([h.Class(wrapperClass)], content)
+  }
 }
 
 const parameterDescriptions = (

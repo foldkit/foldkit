@@ -185,7 +185,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 
 - [ ] Foldkit UI components used where interaction matches (Dialog, Tabs, Menu, Combobox, DatePicker, FileDrop, Toast, Tooltip, DragAndDrop, etc.). Never hand-roll accessible widgets
 - [ ] **Form inputs use `Ui.Input.view`, `Ui.Textarea.view`, `Ui.Button`.** Hand-rolled `input`/`textarea`/`button` elements in a form are a fail unless the file has a NOTE comment explaining why the component couldn't be used.
-- [ ] Each UI component has its Model in the app Model, a `Got*` Message, init in init, and delegation in update
+- [ ] Each stateful UI component has its Model in the app Model, a `Got*` Message, init in init, and delegation in update. Stateless render helpers (`Ui.Button`, `Ui.Input`, `Ui.Textarea`, `Ui.RadioGroup`, `Ui.Checkbox`, `Ui.Switch`, `Ui.Disclosure`) are called directly in view and dispatch parent Messages; the controlled ones (`Ui.RadioGroup`, `Ui.Checkbox`, `Ui.Switch`, `Ui.Disclosure`) take the current value in from the parent Model, which stores the new value on toggle
 - [ ] `Ui.Toast` uses `Ui.Toast.make(PayloadSchema)` to bind to a consumer-defined payload type
 - [ ] No custom keyboard navigation or ARIA attributes for patterns covered by Foldkit UI components
 
@@ -204,7 +204,7 @@ The rule: **if the interaction pattern appears in the Ui.\* component table (Pha
 
 **A NOTE is not a free pass.** Before writing one, read the component's `.d.ts` and confirm the concern is real. Common false-justifications to avoid:
 
-- _"Using the Ui component would require a per-row Model instance and duplicate state"_: a stateful component's Model holds UI state (focus, open/closed, typeahead key buffer), not your domain value, so holding it is not duplication. Add the child Model to your Model and embed via `h.submodel({ view: Ui.Checkbox.view, model: model.agree, toParentMessage: message => GotAgreeMessage({ message }) })`, then delegate to `Ui.Checkbox.update` in your `GotAgreeMessage` handler, where the toggle becomes your own domain Message through the OutMessage. That delegation is the wiring cost; for a single control it is small and buys a11y for free.
+- _"Using the Ui component would require a per-row Model instance and duplicate state"_: first check whether the component is stateful. Stateless controlled helpers like `Ui.Checkbox`, `Ui.Switch`, `Ui.Disclosure`, and `Ui.RadioGroup` do not add a child Model. Store the value in the parent Model and pass it to `view` with an `onToggle` or `onSelect` Message. For stateful components, the component Model holds UI state (focus, open/closed, typeahead key buffer), not your domain value, so holding it is not duplication.
 - _"The component needs a toParentMessage and I don't want to wire one"_: that's always the wiring cost. The whole point of Ui components is that you pay it once per use and get a11y for free.
 - _"The interaction is too custom for the component"_: check the `toView` callback signature. It lets you render whatever HTML you want inside the component's attribute-scaffolding. Custom visual = fine, custom a11y = never needed.
 

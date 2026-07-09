@@ -4,7 +4,7 @@ import { Disclosure } from '@foldkit/ui'
 
 import { Icon } from '../../icon'
 import { Message, type TableOfContentsEntry } from '../../main'
-import { GotSubmodelMapMessagesDisclosureMessage } from '../../message'
+import { ToggledMapMessagesUnderHood } from '../../message'
 import {
   bullets,
   infoCallout,
@@ -302,9 +302,11 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiChildAttributeHeader,
 ]
 
+const MAP_MESSAGES_DISCLOSURE_ID = 'submodel-map-messages-disclosure'
+
 export const view = (
   copiedSnippets: CopiedSnippets,
-  mapMessagesDisclosure: Disclosure.Model,
+  isMapMessagesUnderHoodOpen: boolean,
 ): Html => {
   const h = html<Message>()
 
@@ -334,7 +336,7 @@ export const view = (
           [
             h.strong([], ['Encapsulation.']),
             ' The boundary is the point. The Submodel packages behavior (its own state, keyboard handling, accessibility wiring) that the parent should never see inside. Every stateful ',
-            link(uiOverviewRouter(), 'Foldkit UI component'),
+            link(uiOverviewRouter(), 'Foldkit UI Submodel'),
             ' (',
             inlineCode('Dialog'),
             ', ',
@@ -391,7 +393,7 @@ export const view = (
         inlineCode('defineView'),
         ' brand, ',
         inlineCode('h.submodel'),
-        ' embedding) is overhead unless the child genuinely owns its own state machine. Foldkit UI components are Submodels because they have keyboard handling, focus state, dismissal logic, animation lifecycles. A reusable card that takes a title and content as props isn’t a Submodel; it’s a render function.',
+        ' embedding) is overhead unless the child genuinely owns its own state machine. Stateful Foldkit UI components such as Dialog, Menu, and Listbox are Submodels because they have keyboard handling, focus state, dismissal logic, and animation lifecycles. A reusable card that takes a title and content as props isn’t a Submodel; it’s a render function.',
       ),
       tableOfContentsEntryToHeader(childSubmodelHeader),
       para(
@@ -579,90 +581,83 @@ export const view = (
         inlineCode('GotSettingsMessage'),
         '. The helper preserves each Command’s name and args, so DevTools traces still show each Command’s original name.',
       ),
-      h.submodel({
-        slotId: 'submodel-map-messages-disclosure',
-        model: mapMessagesDisclosure,
-        view: Disclosure.view,
-        viewInputs: {
-          toView: attributes =>
-            h.div(
-              [h.Class('mb-8')],
-              [
-                h.button(
-                  [
-                    ...attributes.button,
-                    h.Class(
-                      'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none select-none',
-                    ),
-                  ],
-                  [
-                    h.span(
-                      [],
-                      ['Under the hood: the Command.mapMessages chain'],
-                    ),
-                    h.span(
-                      [
-                        h.Class(
-                          `text-gray-600 dark:text-gray-300 transition-transform ${mapMessagesDisclosure.isOpen ? 'rotate-180' : ''}`,
-                        ),
-                      ],
-                      [Icon.chevronDown('w-4 h-4')],
-                    ),
-                  ],
-                ),
-                mapMessagesDisclosure.isOpen
-                  ? h.div(
-                      [
-                        ...attributes.panel,
-                        h.Class(
-                          'px-4 py-3 border-x border-b border-gray-300 dark:border-gray-700 rounded-b-lg text-gray-800 dark:text-gray-200',
-                        ),
-                      ],
-                      [
-                        h.div(
-                          [h.Class('-mt-8')],
-                          [
-                            highlightedCodeBlock(
-                              h.div(
-                                [
-                                  h.Class('text-sm'),
-                                  h.InnerHTML(
-                                    Snippet.commandMapMessagesUnderHoodHighlighted,
-                                  ),
-                                ],
-                                [],
-                              ),
-                              Snippet.commandMapMessagesUnderHoodRaw,
-                              'Copy snippet to clipboard',
-                              copiedSnippets,
-                              'mb-4',
+      Disclosure.view<Message>({
+        id: MAP_MESSAGES_DISCLOSURE_ID,
+        isOpen: isMapMessagesUnderHoodOpen,
+        onToggle: isOpen => ToggledMapMessagesUnderHood({ isOpen }),
+        toView: attributes =>
+          h.div(
+            [h.Class('mb-8')],
+            [
+              h.button(
+                [
+                  ...attributes.button,
+                  h.Class(
+                    'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none select-none',
+                  ),
+                ],
+                [
+                  h.span([], ['Under the hood: the Command.mapMessages chain']),
+                  h.span(
+                    [
+                      h.Class(
+                        `text-gray-600 dark:text-gray-300 transition-transform ${isMapMessagesUnderHoodOpen ? 'rotate-180' : ''}`,
+                      ),
+                    ],
+                    [Icon.chevronDown('w-4 h-4')],
+                  ),
+                ],
+              ),
+              isMapMessagesUnderHoodOpen
+                ? h.div(
+                    [
+                      ...attributes.panel,
+                      h.Class(
+                        'px-4 py-3 border-x border-b border-gray-300 dark:border-gray-700 rounded-b-lg text-gray-800 dark:text-gray-200',
+                      ),
+                    ],
+                    [
+                      h.div(
+                        [h.Class('-mt-8')],
+                        [
+                          highlightedCodeBlock(
+                            h.div(
+                              [
+                                h.Class('text-sm'),
+                                h.InnerHTML(
+                                  Snippet.commandMapMessagesUnderHoodHighlighted,
+                                ),
+                              ],
+                              [],
                             ),
-                          ],
-                        ),
-                        h.p(
-                          [h.Class('leading-relaxed')],
-                          [
-                            'Two small layers compose into ',
-                            inlineCode('mapMessages'),
-                            '. ',
-                            inlineCode('Array.map'),
-                            ' iterates; ',
-                            inlineCode('mapMessage'),
-                            ' maps each Command’s Effect result through the wrapper (what dispatches in production) and also records the wrapper on the Command. The Command’s ',
-                            inlineCode('name'),
-                            ' and ',
-                            inlineCode('args'),
-                            ' ride through untouched, which is why DevTools traces still attribute each Command to its original Submodel. The recorded wrapper keeps the mapping recoverable, so a Story or Scene test resolves a mapped Command with the child’s raw result and never restates the wrapper by hand.',
-                          ],
-                        ),
-                      ],
-                    )
-                  : h.empty,
-              ],
-            ),
-        },
-        toParentMessage: message =>
-          GotSubmodelMapMessagesDisclosureMessage({ message }),
+                            Snippet.commandMapMessagesUnderHoodRaw,
+                            'Copy snippet to clipboard',
+                            copiedSnippets,
+                            'mb-4',
+                          ),
+                        ],
+                      ),
+                      h.p(
+                        [h.Class('leading-relaxed')],
+                        [
+                          'Two small layers compose into ',
+                          inlineCode('mapMessages'),
+                          '. ',
+                          inlineCode('Array.map'),
+                          ' iterates; ',
+                          inlineCode('mapMessage'),
+                          ' maps each Command’s Effect result through the wrapper (what dispatches in production) and also records the wrapper on the Command. The Command’s ',
+                          inlineCode('name'),
+                          ' and ',
+                          inlineCode('args'),
+                          ' ride through untouched, which is why DevTools traces still attribute each Command to its original Submodel. The recorded wrapper keeps the mapping recoverable, so a Story or Scene test resolves a mapped Command with the child’s raw result and never restates the wrapper by hand.',
+                        ],
+                      ),
+                    ],
+                  )
+                : h.empty,
+            ],
+          ),
       }),
       tableOfContentsEntryToHeader(wiringTheViewHeader),
       para(
@@ -758,7 +753,7 @@ export const view = (
       para(
         'Some Submodels need data from the parent on every render that doesn’t belong in the child’s ',
         inlineCode('model'),
-        '. A Listbox needs the array of items and a callback that renders each one. A Menu needs the items and the trigger button’s content. A collapsible panel needs the summary and the content the parent wants to show. None of this is the child’s state. It’s configuration the parent supplies fresh on every render.',
+        '. A Listbox needs the array of items and a callback that renders each one. A Menu needs the items and the trigger button’s content. None of this is the child’s state. It’s configuration the parent supplies fresh on every render.',
       ),
       para(
         'For these Submodels, ',
@@ -767,7 +762,9 @@ export const view = (
         inlineCode('ViewInputs'),
         '. The view receives ',
         inlineCode('viewInputs'),
-        ' as its second argument:',
+        ' as its second argument. Here’s a ',
+        inlineCode('CommandMenu'),
+        ' Submodel that owns a menu’s open state and selection behavior while the parent supplies the trigger content and the items:',
       ),
       highlightedCodeBlock(
         h.div(
@@ -1223,10 +1220,6 @@ export const view = (
         inlineCode('selectTab'),
         ', ',
         inlineCode('selectDate'),
-        ', ',
-        inlineCode('setChecked'),
-        ', ',
-        inlineCode('toggle'),
         '), and they emit. The ',
         inlineCode('reflect*'),
         ' family is the uniform name for the silent inbound setter: ',
@@ -1238,24 +1231,22 @@ export const view = (
         ' (Tabs), ',
         inlineCode('reflectSelectedDate'),
         ' (Calendar, DatePicker), ',
-        inlineCode('reflectChecked'),
-        ' (Checkbox, Switch), ',
-        inlineCode('reflectOpenState'),
-        ' (Disclosure), ',
         inlineCode('reflectValue'),
         ' and ',
         inlineCode('reflectRange'),
-        ' (Slider). It is a framework convention any Submodel can adopt; the Foldkit UI components are the canonical adopters.',
+        ' (Slider). It is a framework convention any Submodel can adopt; the stateful Foldkit UI components are the canonical adopters.',
       ),
       tableOfContentsEntryToHeader(childAttributesHeader),
       para(
-        'Some Submodels (Disclosure, Tooltip, Dialog, Popover, the selection family) hand the consumer ',
+        'Some Submodels (Tooltip, Dialog, Popover, the selection family) hand the consumer ',
         h.strong([], ['attribute bundles']),
-        ' rather than rendering their own DOM. The consumer spreads those attributes onto their own elements, deciding markup and styling, while the Submodel keeps owning the wiring.',
+        ' rather than rendering their own DOM. The consumer spreads those attributes onto their own elements, deciding markup and styling, while the Submodel keeps owning the wiring. The snippets below evolve the CommandMenu from ',
+        link('#per-render-view-inputs', 'Per-render View Inputs'),
+        ': instead of rendering its own DOM, it publishes attribute bundles plus slot data, and the parent renders the button and the items.',
       ),
       para(
         'The wiring problem this creates: an attribute like ',
-        inlineCode('h.OnClick(Toggled())'),
+        inlineCode('h.OnClick(OpenedMenu())'),
         ' is built inside the Submodel’s view (the Submodel’s own boundary) but ends up on an element inside the consumer’s view (the parent’s boundary). The dispatch needs to route through the Submodel’s ',
         inlineCode('toParentMessage'),
         ', not the parent’s. ',
@@ -1264,21 +1255,21 @@ export const view = (
       ),
       tableOfContentsEntryToHeader(childAttributesProblemHeader),
       para(
-        'A Submodel’s view builds attributes like ',
-        inlineCode('h.OnClick(Toggled())'),
+        'The CommandMenu’s view builds attributes like ',
+        inlineCode('h.OnClick(OpenedMenu())'),
         ', where ',
-        inlineCode('Toggled'),
+        inlineCode('OpenedMenu'),
         ' is the Submodel’s own Message. When the click fires, the dispatch must route through the Submodel’s ',
         inlineCode('toParentMessage'),
         ' wrap so the parent receives ',
-        inlineCode('GotChildMessage({ message: Toggled() })'),
+        inlineCode('GotCommandMenuMessage({ message: OpenedMenu() })'),
         ' and delegates back to the child’s update.',
       ),
       para(
         'But the Submodel doesn’t render its own DOM. It hands attributes to a consumer’s ',
         inlineCode('toView'),
         ' slot, and the consumer composes them into their own elements. The consumer’s slot runs in the parent’s boundary, not the child’s. If the OnClick attribute were processed at the moment the consumer spread it onto a button, the click would dispatch through the parent’s boundary, bypassing the Submodel’s wrap entirely. The parent would receive a raw ',
-        inlineCode('Toggled()'),
+        inlineCode('OpenedMenu()'),
         ' it doesn’t know how to handle.',
       ),
       tableOfContentsEntryToHeader(childAttributesHowItWorksHeader),
@@ -1292,7 +1283,9 @@ export const view = (
         inlineCode('ChildAttribute'),
         ', it uses the carried dispatcher instead of the current one. The handler ends up wired to the Submodel’s boundary even though the element lives in the parent’s view.',
       ),
-      para('In code, the Submodel’s view publishes branded attribute groups:'),
+      para(
+        'In code, the Submodel’s view publishes branded attribute groups plus the slot data the parent should use: open state and item render data.',
+      ),
       highlightedCodeBlock(
         h.div(
           [
@@ -1309,7 +1302,7 @@ export const view = (
       para(
         'And the consumer’s ',
         inlineCode('toView'),
-        ' callback, running in the parent’s boundary, threads those groups onto its own elements:',
+        ' callback, running in the parent’s boundary, uses that child-provided slot payload without reading inside the child Model:',
       ),
       highlightedCodeBlock(
         h.div(
@@ -1328,26 +1321,26 @@ export const view = (
         'When the button is clicked, the ',
         inlineCode('OnClick'),
         ' attribute’s branded dispatcher routes the ',
-        inlineCode('Toggled()'),
+        inlineCode('OpenedMenu()'),
         ' message through the Submodel’s ',
         inlineCode('toParentMessage'),
         ' wrap, producing ',
-        inlineCode('GotDisclosureMessage({ message: Toggled() })'),
+        inlineCode('GotCommandMenuMessage({ message: OpenedMenu() })'),
         ' for the parent. The consumer’s own ',
         inlineCode('h.Class'),
         ' attribute is untouched: it’s a styling attribute with no message wiring.',
       ),
       tableOfContentsEntryToHeader(childAttributesWhenToReachHeader),
       para(
-        'If you’re consuming a Foldkit UI component, you don’t call ',
+        'If you’re consuming a stateful Foldkit UI Submodel, you don’t call ',
         inlineCode('childAttributes'),
-        ' yourself. The component’s view publishes branded attributes; you just spread them.',
+        ' yourself. The Submodel’s view publishes branded attributes; you just spread them.',
       ),
       para(
         'If you’re authoring your own Submodel and publishing attribute bundles to a consumer’s slot callback, every published attribute group must be wrapped in ',
         inlineCode('childAttributes'),
         '. Forgetting this is a quiet bug: handlers can route through the parent’s boundary and the Submodel’s update will never see its own events. Read the published Submodels in ',
-        inlineCode('packages/foldkit/src/ui/'),
+        inlineCode('packages/ui/src/'),
         ' for the canonical pattern.',
       ),
       infoCallout(
@@ -1356,12 +1349,20 @@ export const view = (
         inlineCode('Button'),
         ' and ',
         inlineCode('Input'),
+        ', plus controlled render helpers like ',
+        inlineCode('Checkbox'),
+        ', ',
+        inlineCode('Switch'),
+        ', and ',
+        inlineCode('Disclosure'),
         ' don’t publish via ',
         inlineCode('childAttributes'),
         '. They’re not Submodels; their ',
         inlineCode('onClick'),
         ' or ',
         inlineCode('onInput'),
+        ' or ',
+        inlineCode('onToggle'),
         ' values flow into element constructors in the consumer’s own boundary, which is correct. The boundary wiring only matters when there’s a Submodel boundary to wire through.',
       ),
       tableOfContentsEntryToHeader(testingHeader),

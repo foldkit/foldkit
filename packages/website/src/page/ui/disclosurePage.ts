@@ -65,12 +65,6 @@ const apiReferenceHeader: TableOfContentsEntry = {
   text: 'API Reference',
 }
 
-const initConfigHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'init-config',
-  text: 'InitConfig',
-}
-
 const viewConfigHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'view-config',
@@ -83,18 +77,6 @@ const disclosureAttributesHeader: TableOfContentsEntry = {
   text: 'DisclosureAttributes',
 }
 
-const outMessageHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'out-message',
-  text: 'OutMessage',
-}
-
-const programmaticHelpersHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'programmatic-helpers',
-  text: 'Programmatic Helpers',
-}
-
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -102,46 +84,36 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   keyboardInteractionHeader,
   accessibilityHeader,
   apiReferenceHeader,
-  initConfigHeader,
   viewConfigHeader,
   disclosureAttributesHeader,
-  outMessageHeader,
-  programmaticHelpersHeader,
 ]
 
 // SECTION DATA
 
-const initConfigProps: ReadonlyArray<PropEntry> = [
+const viewConfigProps: ReadonlyArray<PropEntry> = [
   {
     name: 'id',
     type: 'string',
-    description: 'Unique ID for the disclosure instance.',
+    description:
+      'Unique ID for the disclosure instance. Used to derive the button and panel ids for ARIA linking.',
   },
   {
     name: 'isOpen',
     type: 'boolean',
-    default: 'false',
-    description: 'Initial open/closed state.',
-  },
-]
-
-const viewConfigProps: ReadonlyArray<PropEntry> = [
-  {
-    name: 'model',
-    type: 'Disclosure.Model',
-    description: 'The disclosure state from your parent Model.',
-  },
-  {
-    name: 'toParentMessage',
-    type: '(childMessage: Disclosure.Message) => ParentMessage',
     description:
-      'Wraps Disclosure Messages in your parent Message type for Submodel delegation.',
+      'The current open state, read from your Model. `aria-expanded`, the `data-open` marker, and `animatePanel` derive from it.',
+  },
+  {
+    name: 'onToggle',
+    type: '(isOpen: boolean) => Message',
+    description:
+      'Maps the new open state to a Message when the user toggles the disclosure. Your update handler just stores the value.',
   },
   {
     name: 'toView',
     type: '(attributes: DisclosureAttributes) => Html',
     description:
-      'Callback that receives the `button` and `panel` attribute bundles and returns the composed layout. The consumer reads `isOpen` from their parent model when they need to render conditionally on it.',
+      'Callback that receives the `button` and `panel` attribute bundles and returns the composed layout. The consumer reads `isOpen` from their own Model when they need to render conditionally on it.',
   },
   {
     name: 'isDisabled',
@@ -167,13 +139,13 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
 const disclosureAttributesProps: ReadonlyArray<PropEntry> = [
   {
     name: 'button',
-    type: 'ReadonlyArray<ChildAttribute>',
+    type: 'ReadonlyArray<Attribute<Message>>',
     description:
       'Spread onto the toggle button element. Includes `aria-expanded`, `aria-controls`, `tabindex`, and the click + Enter/Space keyboard handlers.',
   },
   {
     name: 'panel',
-    type: 'ReadonlyArray<ChildAttribute>',
+    type: 'ReadonlyArray<Attribute<Message>>',
     description:
       'Spread onto the panel element. Includes the panel id (`${id}-panel`) and a `data-open` attribute when open.',
   },
@@ -182,30 +154,6 @@ const disclosureAttributesProps: ReadonlyArray<PropEntry> = [
     type: '(content: Html) => Html',
     description:
       'Wraps panel content in a CSS-grid container that animates height as the disclosure opens and closes. Render the panel unconditionally (rather than gating on isOpen) and pass it here; the panel stays mounted while collapsed so the height transition has something to animate. The collapsed content is marked aria-hidden.',
-  },
-]
-
-const outMessageProps: ReadonlyArray<PropEntry> = [
-  {
-    name: 'ToggledOpenState',
-    type: '{ isOpen: boolean }',
-    description:
-      'Emitted on each toggle, carrying the new open state. Pattern-match the third tuple element of Disclosure.update in your GotDisclosureMessage handler to react (e.g. analytics, lazy content loading, persisting open state).',
-  },
-]
-
-const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
-  {
-    name: 'toggle',
-    type: '(model: Model) => [Model, Commands, Option<OutMessage>]',
-    description:
-      'Flips the open state as a user-style choice, emitting ToggledOpenState. Use for a programmatic toggle that should behave like a click. To mirror an external open state without emitting, use reflectOpenState.',
-  },
-  {
-    name: 'reflectOpenState',
-    type: '(model: Model, isOpen: boolean) => Model',
-    description:
-      'Reflects an externally-sourced open state onto the model without emitting an OutMessage. Use to mirror external truth (a URL, restored layout state, a sibling field) onto the disclosure. Dual: pass just the boolean for a point-free setter in an evo callback.',
   },
 ]
 
@@ -245,16 +193,13 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         pageTitle('ui/disclosure', 'Disclosure'),
         tableOfContentsEntryToHeader(overviewHeader),
         para(
-          'A toggle for showing and hiding content inline. Disclosure manages its own open/closed state and renders a button + panel pair. Use it for FAQs, accordions, and collapsible sections. For overlaying content in a floating panel, use Dialog or Popover instead.',
-        ),
-        para(
-          'For programmatic control in update functions, use ',
-          inlineCode('Disclosure.toggle(model)'),
-          ' and ',
-          inlineCode('Disclosure.close(model)'),
-          ' which return ',
-          inlineCode('[Model, Commands, Option<OutMessage>]'),
-          ' directly.',
+          'A toggle for showing and hiding content inline. Disclosure is a stateless controlled render helper: call it directly with a ViewConfig in your own view; no Model, update, or ',
+          inlineCode('h.submodel'),
+          ' wrapping. Your Model owns the open value, you pass it in as ',
+          inlineCode('isOpen'),
+          ', and ',
+          inlineCode('onToggle'),
+          ' dispatches a Message when the user toggles it. In your update handler, just store the value. Use it for FAQs, accordions, and collapsible sections. For overlaying content in a floating panel, use Dialog or Popover instead.',
         ),
         infoCallout(
           'See it in an app',
@@ -272,7 +217,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           inlineCode('panel'),
           ' attribute bundles. Spread them onto your own elements; Disclosure manages the ARIA linking and toggle behavior.',
         ),
-        demoContainer(...Disclosure.disclosureDemo(model.disclosureDemo)),
+        demoContainer(...Disclosure.basicDemo(model.isDisclosureDemoOpen)),
         highlightedCodeBlock(
           h.div(
             [
@@ -287,11 +232,11 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           'mb-8',
         ),
         para(
-          'To animate the expand and collapse, render the panel unconditionally and pass it through ',
-          inlineCode('attributes.animatePanel'),
-          ' instead of gating it on ',
+          'The example renders the panel unconditionally and passes it through ',
+          inlineCode('animatePanel'),
+          ', which wraps the content in a CSS-grid container that transitions its height, keeping the panel mounted while collapsed so there is something to animate. To skip the animation, gate the panel on ',
           inlineCode('isOpen'),
-          '. It wraps the content in a CSS-grid container that transitions its height, keeping the panel mounted while collapsed so there is something to animate.',
+          ' with a keyed conditional insert instead.',
         ),
         heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
         para(
@@ -316,7 +261,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           inlineCode('aria-expanded'),
           ' and ',
           inlineCode('aria-controls'),
-          ' linking to the panel. When the disclosure closes, focus is returned to the toggle button automatically.',
+          ' linking to the panel. Toggling is user-driven, so focus stays on the button the user activated; there is no focus Command to handle in update.',
         ),
         para(
           'Give the toggle an accessible name when its content is not self-describing. For a visible label, wire a native ',
@@ -330,7 +275,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           ' association makes the toggle properly labeled: assistive technology announces it by the visible label text, and clicking the label opens the disclosure. That is why it is the recommended pattern.',
         ),
         para(
-          'Two ViewInputs cover the cases a ',
+          'Two ViewConfig fields cover the cases a ',
           inlineCode('<label for>'),
           ' does not. Pass ',
           inlineCode('ariaLabel'),
@@ -347,17 +292,6 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           apiReferenceHeader.id,
           apiReferenceHeader.text,
         ),
-        heading(
-          initConfigHeader.level,
-          initConfigHeader.id,
-          initConfigHeader.text,
-        ),
-        para(
-          'Configuration object passed to ',
-          inlineCode('Disclosure.init()'),
-          '.',
-        ),
-        propTable(initConfigProps),
         heading(
           viewConfigHeader.level,
           viewConfigHeader.id,
@@ -380,26 +314,6 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           ' callback each render.',
         ),
         propTable(disclosureAttributesProps),
-        heading(
-          outMessageHeader.level,
-          outMessageHeader.id,
-          outMessageHeader.text,
-        ),
-        para(
-          'Messages emitted to the parent through the third element of ',
-          inlineCode('[Model, Commands, Option<OutMessage>]'),
-          '. Pattern-match on the OutMessage in your update handler.',
-        ),
-        propTable(outMessageProps),
-        heading(
-          programmaticHelpersHeader.level,
-          programmaticHelpersHeader.id,
-          programmaticHelpersHeader.text,
-        ),
-        para(
-          'Helpers a parent calls in its update without constructing a Disclosure Message.',
-        ),
-        propTable(programmaticHelpersProps),
       ],
     )
   },

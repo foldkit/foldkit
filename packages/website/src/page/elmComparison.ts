@@ -349,7 +349,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       tableOfContentsEntryToHeader(foldkitMessageHeader),
       para(
-        'The Foldkit Message union has 27. Same naming convention, same facts, same role as the total input domain of the update function:',
+        'The Foldkit Message union has 22. Same naming convention, same facts, same role as the total input domain of the update function:',
       ),
       highlightedCodeBlock(
         h.div(
@@ -365,15 +365,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'mb-4',
       ),
       para(
-        'Why 27 against 21? The difference is structural, not stylistic. Foldkit Commands report back: ',
+        'Why 22 against 21? The difference is structural, not stylistic. Foldkit Commands report back: ',
         inlineCode('CompletedSaveCanvas'),
         ' and ',
         inlineCode('SucceededExportPng'),
-        ' exist because every Command resolution returns to update as a Message. In Elm, a fire-and-forget port has no completion Msg unless you wire one through another port. Eight more are ',
+        ' exist because every Command resolution returns to update as a Message. In Elm, a fire-and-forget port has no completion Msg unless you wire one through another port. Three more are ',
         inlineCode('Got*Message'),
         ' variants delegating to ',
         link(uiOverviewRouter(), 'Foldkit UI'),
-        ' Submodels (Dialog, RadioGroup, Switch, Listbox). The Elm version hand-rolls those components, so their events collapse into the app’s own Msg variants, including four Msgs Foldkit doesn’t need: ',
+        ' Submodels (Dialog, Listbox). The Elm version hand-rolls those components, so their events collapse into the app’s own Msg variants, including four Msgs Foldkit doesn’t need: ',
         inlineCode('ToggledThemePicker'),
         ' and ',
         inlineCode('SelectedPaletteTheme'),
@@ -478,7 +478,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('Option'),
         ' where Elm has ',
         inlineCode('Maybe'),
-        ', plus Submodel fields for the UI components:',
+        ', plus Submodel fields for the stateful UI components:',
       ),
       highlightedCodeBlock(
         h.div(
@@ -745,9 +745,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         'Foldkit ships ',
         link(uiOverviewRouter(), 'UI components'),
-        ' that are themselves little Elm Architecture programs: each has a Model, Messages, and an update function, and you compose them as ',
+        '. The stateful ones (the dialogs and the theme listbox here) are themselves little Elm Architecture programs: each has a Model, Messages, and an update function, and you compose them as ',
         link(coreSubmodelRouter(), 'Submodels'),
-        '. Focus management, ARIA, keyboard navigation, and transitions come built in, and their state lives in your Model where DevTools and tests can see it. If you ever wrote nested TEA in Elm (the triple of init/update/view, the ',
+        '. The rest (the radio groups and mirror switches here) are controlled render helpers: your Model owns the value, and the helper bundles the markup, ARIA, and keyboard wiring around it. Focus management, ARIA, keyboard navigation, and transitions come built in, and the state lives in your Model where DevTools and tests can see it. If you ever wrote nested TEA in Elm (the triple of init/update/view, the ',
         inlineCode('Cmd.map'),
         '/',
         inlineCode('Html.map'),
@@ -759,7 +759,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
           [
             ['Dialog, RadioGroup, Switch, Listbox'],
             ['Hand-rolled views + Model fields'],
-            ['Shipped components, composed as Submodels'],
+            [
+              'Shipped: Dialog and Listbox as Submodels, RadioGroup and Switch as controlled helpers',
+            ],
           ],
           [
             ['Accessibility'],
