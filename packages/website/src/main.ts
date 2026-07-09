@@ -264,6 +264,7 @@ export const Model = S.Struct({
   systemTheme: ResolvedTheme,
   resolvedTheme: ResolvedTheme,
   demoTabs: Tabs.Model,
+  activeDemoTab: DemoTab.Tab,
   playgroundMenu: Menu.Model,
   asyncCounterDemo: S.Option(Page.AsyncCounterDemo.Model),
   notePlayerDemo: S.Option(Page.NotePlayerDemo.Model),
@@ -300,9 +301,9 @@ const isGroupOpenOnBoot = (
 
 const isAsyncCounterDemoVisible = (
   route: AppRoute,
-  demoTabs: Tabs.Model,
+  activeDemoTab: DemoTab.Tab,
 ): boolean =>
-  route._tag === 'Home' && DemoTab.isActive('Architecture')(demoTabs)
+  route._tag === 'Home' && DemoTab.isActive('Architecture')(activeDemoTab)
 
 const reflectAsyncCounterDemoPresence = (
   maybeAsyncCounterDemo: Option.Option<Page.AsyncCounterDemo.Model>,
@@ -320,8 +321,9 @@ const reflectAsyncCounterDemoPresence = (
 
 const isNotePlayerDemoVisible = (
   route: AppRoute,
-  demoTabs: Tabs.Model,
-): boolean => route._tag === 'Home' && DemoTab.isActive('Note Player')(demoTabs)
+  activeDemoTab: DemoTab.Tab,
+): boolean =>
+  route._tag === 'Home' && DemoTab.isActive('Note Player')(activeDemoTab)
 
 const reflectNotePlayerDemoPresence = (
   maybeNotePlayerDemo: Option.Option<Page.NotePlayerDemo.Model>,
@@ -355,6 +357,8 @@ export const init: Runtime.RoutingApplicationInit<
     id: 'demo-tabs',
   })
 
+  const activeDemoTab: DemoTab.Tab = 'Architecture'
+
   const playgroundMenu = Menu.init({
     id: 'playground-menu',
     isAnimated: true,
@@ -366,12 +370,12 @@ export const init: Runtime.RoutingApplicationInit<
 
   const asyncCounterDemo = reflectAsyncCounterDemoPresence(
     Option.none(),
-    isAsyncCounterDemoVisible(initialRoute, demoTabs),
+    isAsyncCounterDemoVisible(initialRoute, activeDemoTab),
   )
 
   const notePlayerDemo = reflectNotePlayerDemoPresence(
     Option.none(),
-    isNotePlayerDemoVisible(initialRoute, demoTabs),
+    isNotePlayerDemoVisible(initialRoute, activeDemoTab),
   )
 
   const [apiReference, apiReferenceCommands] = Page.ApiReference.boot()
@@ -494,6 +498,7 @@ export const init: Runtime.RoutingApplicationInit<
       systemTheme,
       resolvedTheme,
       demoTabs,
+      activeDemoTab,
       playgroundMenu,
       asyncCounterDemo,
       notePlayerDemo,
@@ -672,12 +677,12 @@ export const update = (
 
         const nextAsyncCounterDemo = reflectAsyncCounterDemoPresence(
           model.asyncCounterDemo,
-          isAsyncCounterDemoVisible(nextRoute, model.demoTabs),
+          isAsyncCounterDemoVisible(nextRoute, model.activeDemoTab),
         )
 
         const nextNotePlayerDemo = reflectNotePlayerDemoPresence(
           model.notePlayerDemo,
-          isNotePlayerDemoVisible(nextRoute, model.demoTabs),
+          isNotePlayerDemoVisible(nextRoute, model.activeDemoTab),
         )
 
         const nextPlaygroundRoute = pipe(
@@ -900,24 +905,32 @@ export const update = (
       },
 
       GotDemoTabsMessage: ({ message }) => {
-        const [nextDemoTabs, demoTabsCommands] = DemoTab.DemoTabs.update(
-          model.demoTabs,
-          message,
-        )
+        const [nextDemoTabs, demoTabsCommands, maybeOutMessage] =
+          DemoTab.DemoTabs.update(model.demoTabs, message)
+
+        const nextActiveDemoTab = Option.match(maybeOutMessage, {
+          onNone: () => model.activeDemoTab,
+          onSome: M.type<Tabs.OutMessage<DemoTab.Tab>>().pipe(
+            M.tagsExhaustive({
+              Selected: ({ value }) => value,
+            }),
+          ),
+        })
 
         const nextAsyncCounterDemo = reflectAsyncCounterDemoPresence(
           model.asyncCounterDemo,
-          isAsyncCounterDemoVisible(model.route, nextDemoTabs),
+          isAsyncCounterDemoVisible(model.route, nextActiveDemoTab),
         )
 
         const nextNotePlayerDemo = reflectNotePlayerDemoPresence(
           model.notePlayerDemo,
-          isNotePlayerDemoVisible(model.route, nextDemoTabs),
+          isNotePlayerDemoVisible(model.route, nextActiveDemoTab),
         )
 
         return [
           evo(model, {
             demoTabs: () => nextDemoTabs,
+            activeDemoTab: () => nextActiveDemoTab,
             asyncCounterDemo: () => nextAsyncCounterDemo,
             notePlayerDemo: () => nextNotePlayerDemo,
           }),

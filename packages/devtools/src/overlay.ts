@@ -86,20 +86,9 @@ const SUBMODEL_FILTER_ID = 'dt-submodel-filter'
 const FLATTEN_SWITCH_ID = 'dt-flatten-switch'
 const SCRUBBER_SLIDER_ID = 'dt-scrubber'
 
-const InspectorTabsModel = S.Struct({
-  id: S.String,
-  activeIndex: S.Number,
-  focusedIndex: S.Number,
-  activationMode: S.Literals(['Automatic', 'Manual']),
-})
-
-type InspectorTab = 'Model' | 'Message' | 'Commands' | 'Mounts'
-const INSPECTOR_TABS: ReadonlyArray<InspectorTab> = [
-  'Model',
-  'Message',
-  'Commands',
-  'Mounts',
-]
+const InspectorTab = S.Literals(['Model', 'Message', 'Commands', 'Mounts'])
+type InspectorTab = typeof InspectorTab.Type
+const INSPECTOR_TABS: ReadonlyArray<InspectorTab> = InspectorTab.literals
 const InspectorTabs = Tabs.create<InspectorTab>()
 
 /**
@@ -143,7 +132,8 @@ const Model = S.Struct({
   changedPaths: S.HashSet(S.String),
   affectedPaths: S.HashSet(S.String),
   maybePendingScrubIndex: S.Option(S.Number),
-  inspectorTabs: InspectorTabsModel,
+  inspectorTabs: Tabs.Model,
+  activeInspectorTab: InspectorTab,
   // NOTE: empirically, inlining `Slider.Model` here throws
   // "Cannot read properties of undefined (reading 'ast')" when running slider
   // tests, because slider imports html → runtime → overlay, and overlay
@@ -660,13 +650,17 @@ const makeUpdate = (
           [],
         ],
         GotInspectorTabsMessage: ({ message: tabsMessage }) => {
-          const [nextTabsModel, tabsCommands] = InspectorTabs.update(
-            model.inspectorTabs,
-            tabsMessage,
-          )
+          const [nextTabsModel, tabsCommands, maybeOutMessage] =
+            InspectorTabs.update(model.inspectorTabs, tabsMessage)
+
+          const nextModel = Option.match(maybeOutMessage, {
+            onNone: () => model,
+            onSome: ({ value }) =>
+              evo(model, { activeInspectorTab: () => value }),
+          })
 
           return [
-            evo(model, {
+            evo(nextModel, {
               inspectorTabs: () => nextTabsModel,
             }),
             Command.mapMessages(tabsCommands, message =>
@@ -1636,6 +1630,7 @@ const makeView = (
           view: InspectorTabs.view,
           viewInputs: {
             tabs: INSPECTOR_TABS,
+            selectedValue: model.activeInspectorTab,
             ariaLabel: 'Inspector tabs',
             toView: ({ tablist, tabs, activeIndex }) =>
               h.div(
@@ -2506,6 +2501,7 @@ export const createOverlay = (
           affectedPaths: HashSet.empty(),
           maybePendingScrubIndex: Option.none(),
           inspectorTabs: Tabs.init({ id: INSPECTOR_TABS_ID }),
+          activeInspectorTab: 'Model',
           scrubberSlider: Slider.init({
             id: SCRUBBER_SLIDER_ID,
             min: 0,

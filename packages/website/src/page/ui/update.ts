@@ -11,6 +11,7 @@ import {
   FileDrop,
   Popover,
   Slider,
+  Tabs,
   Tooltip,
   VirtualList,
 } from '@foldkit/ui'
@@ -54,7 +55,7 @@ import {
   type Message,
 } from './message'
 import type { Model } from './model'
-import type { DemoCard, DemoColumn } from './model'
+import type { DemoCard, DemoColumn, DemoTab } from './model'
 import { DemoTabs } from './tabs'
 import { Toast } from './toastModule'
 import {
@@ -640,12 +641,25 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotHorizontalTabsDemoMessage: ({ message }) => {
-        const [nextHorizontalTabsDemo, horizontalTabsCommands] =
-          DemoTabs.update(model.horizontalTabsDemo, message)
+        const [
+          nextHorizontalTabsDemo,
+          horizontalTabsCommands,
+          maybeOutMessage,
+        ] = DemoTabs.update(model.horizontalTabsDemo, message)
+
+        const nextHorizontalTabsDemoTab = Option.match(maybeOutMessage, {
+          onNone: () => model.horizontalTabsDemoTab,
+          onSome: M.type<Tabs.OutMessage<DemoTab>>().pipe(
+            M.tagsExhaustive({
+              Selected: ({ value }) => value,
+            }),
+          ),
+        })
 
         return [
           evo(model, {
             horizontalTabsDemo: () => nextHorizontalTabsDemo,
+            horizontalTabsDemoTab: () => nextHorizontalTabsDemoTab,
           }),
           Command.mapMessages(horizontalTabsCommands, message =>
             GotHorizontalTabsDemoMessage({ message }),
@@ -654,14 +668,22 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotVerticalTabsDemoMessage: ({ message }) => {
-        const [nextVerticalTabsDemo, verticalTabsCommands] = DemoTabs.update(
-          model.verticalTabsDemo,
-          message,
-        )
+        const [nextVerticalTabsDemo, verticalTabsCommands, maybeOutMessage] =
+          DemoTabs.update(model.verticalTabsDemo, message)
+
+        const nextVerticalTabsDemoTab = Option.match(maybeOutMessage, {
+          onNone: () => model.verticalTabsDemoTab,
+          onSome: M.type<Tabs.OutMessage<DemoTab>>().pipe(
+            M.tagsExhaustive({
+              Selected: ({ value }) => value,
+            }),
+          ),
+        })
 
         return [
           evo(model, {
             verticalTabsDemo: () => nextVerticalTabsDemo,
+            verticalTabsDemoTab: () => nextVerticalTabsDemoTab,
           }),
           Command.mapMessages(verticalTabsCommands, message =>
             GotVerticalTabsDemoMessage({ message }),

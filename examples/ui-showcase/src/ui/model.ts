@@ -23,6 +23,9 @@ import { Toast } from './toast'
 export const Plan = S.Literals(['Startup', 'Business', 'Enterprise'])
 export type Plan = typeof Plan.Type
 
+export const DemoTab = S.Literals(['Foldkit', 'React', 'Elm'])
+export type DemoTab = typeof DemoTab.Type
+
 export const DemoCard = S.Struct({
   id: S.String,
   label: S.String,
@@ -81,7 +84,9 @@ export const UiModel = S.Struct({
   sliderVolumeDemo: Slider.Model,
   switchDemo: S.Boolean,
   horizontalTabsDemo: Tabs.Model,
+  horizontalTabsDemoValue: DemoTab,
   verticalTabsDemo: Tabs.Model,
+  verticalTabsDemoValue: DemoTab,
   toastDemo: Toast.Model,
   tooltipBasicDemo: Tooltip.Model,
   tooltipNoDelayDemo: Tooltip.Model,

@@ -63,7 +63,6 @@ export const cachedFirstPostModel: Model = {
 
 export const loadedStatsModel: Model = {
   ...loadedPostsModel,
-  tabs: Tabs.init({ id: TABS_ID, activeIndex: 1 }),
   activeTab: 'Stats',
   stats: StatsData.Success({
     data: { stats: fixtureStats, fetchedAt: FETCHED_AT },

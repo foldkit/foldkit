@@ -138,9 +138,11 @@ export const uiInit = (
     }),
     switchDemo: false,
     horizontalTabsDemo: Tabs.init({ id: 'horizontal-tabs-demo' }),
+    horizontalTabsDemoValue: 'Foldkit',
     verticalTabsDemo: Tabs.init({
       id: 'vertical-tabs-demo',
     }),
+    verticalTabsDemoValue: 'Foldkit',
     toastDemo: Toast.init({ id: 'toast-demo' }),
     tooltipBasicDemo: Tooltip.init({ id: 'tooltip-basic-demo' }),
     tooltipNoDelayDemo: Tooltip.init({

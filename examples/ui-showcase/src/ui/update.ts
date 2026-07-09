@@ -769,11 +769,20 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       ],
 
       GotHorizontalTabsDemoMessage: ({ message }) => {
-        const [nextHorizontalTabsDemo, horizontalTabsCommands] =
-          DemoTabs.update(model.horizontalTabsDemo, message)
+        const [
+          nextHorizontalTabsDemo,
+          horizontalTabsCommands,
+          maybeOutMessage,
+        ] = DemoTabs.update(model.horizontalTabsDemo, message)
+
+        const nextModel = Option.match(maybeOutMessage, {
+          onNone: () => model,
+          onSome: ({ value }) =>
+            evo(model, { horizontalTabsDemoValue: () => value }),
+        })
 
         return [
-          evo(model, {
+          evo(nextModel, {
             horizontalTabsDemo: () => nextHorizontalTabsDemo,
           }),
           Command.mapMessages(horizontalTabsCommands, message =>
@@ -783,13 +792,17 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotVerticalTabsDemoMessage: ({ message }) => {
-        const [nextVerticalTabsDemo, verticalTabsCommands] = DemoTabs.update(
-          model.verticalTabsDemo,
-          message,
-        )
+        const [nextVerticalTabsDemo, verticalTabsCommands, maybeOutMessage] =
+          DemoTabs.update(model.verticalTabsDemo, message)
+
+        const nextModel = Option.match(maybeOutMessage, {
+          onNone: () => model,
+          onSome: ({ value }) =>
+            evo(model, { verticalTabsDemoValue: () => value }),
+        })
 
         return [
-          evo(model, {
+          evo(nextModel, {
             verticalTabsDemo: () => nextVerticalTabsDemo,
           }),
           Command.mapMessages(verticalTabsCommands, message =>

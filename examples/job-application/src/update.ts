@@ -152,7 +152,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 evo(model, {
                   stepMenu: () => nextStepMenu,
                   currentStep: () => value,
-                  stepTabs: StepTabs.reflectSelectedTab(value, Step.all),
                 }),
                 mappedCommands,
               ],
@@ -190,34 +189,13 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       NavigatedToStep: ({ step }) => [
-        evo(model, {
-          currentStep: () => step,
-          stepTabs: StepTabs.reflectSelectedTab(step, Step.all),
-        }),
+        evo(model, { currentStep: () => step }),
         [],
       ],
 
-      ClickedNext: () => [
-        evo(model, {
-          currentStep: toNextStep,
-          stepTabs: StepTabs.reflectSelectedTab(
-            toNextStep(model.currentStep),
-            Step.all,
-          ),
-        }),
-        [],
-      ],
+      ClickedNext: () => [evo(model, { currentStep: toNextStep }), []],
 
-      ClickedPrevious: () => [
-        evo(model, {
-          currentStep: toPreviousStep,
-          stepTabs: StepTabs.reflectSelectedTab(
-            toPreviousStep(model.currentStep),
-            Step.all,
-          ),
-        }),
-        [],
-      ],
+      ClickedPrevious: () => [evo(model, { currentStep: toPreviousStep }), []],
       ToggledPreview: () => [
         evo(model, { isPreviewVisible: isVisible => !isVisible }),
         [],

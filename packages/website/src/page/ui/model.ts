@@ -23,6 +23,9 @@ import { Toast } from './toastModule'
 export const Plan = S.Literals(['Startup', 'Business', 'Enterprise'])
 export type Plan = typeof Plan.Type
 
+export const DemoTab = S.Literals(['Foldkit', 'React', 'Elm'])
+export type DemoTab = typeof DemoTab.Type
+
 export const DemoCard = S.Struct({
   id: S.String,
   label: S.String,
@@ -73,7 +76,9 @@ export const Model = S.Struct({
   sliderVolumeDemo: Slider.Model,
   switchDemo: S.Boolean,
   horizontalTabsDemo: Tabs.Model,
+  horizontalTabsDemoTab: DemoTab,
   verticalTabsDemo: Tabs.Model,
+  verticalTabsDemoTab: DemoTab,
   dragAndDropDemo: DragAndDrop.Model,
   dragAndDropDemoColumns: S.Array(DemoColumn),
   fileDropBasicDemo: FileDrop.Model,

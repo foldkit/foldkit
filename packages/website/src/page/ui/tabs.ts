@@ -9,6 +9,7 @@ import {
   GotVerticalTabsDemoMessage,
   type Message,
 } from './message'
+import type { DemoTab } from './model'
 
 // TABLE OF CONTENTS
 
@@ -25,8 +26,6 @@ export const verticalHeader: TableOfContentsEntry = {
 }
 
 // DEMO CONTENT
-
-type DemoTab = 'Foldkit' | 'React' | 'Elm'
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']
 
@@ -46,7 +45,7 @@ const verticalPanelClassName =
 
 // VIEW
 
-export const horizontalDemo = (tabsModel: Tabs.Model) => {
+export const horizontalDemo = (tabsModel: Tabs.Model, selectedTab: DemoTab) => {
   const h = html<Message>()
 
   const foldkitPanel = h.div(
@@ -130,6 +129,7 @@ export const horizontalDemo = (tabsModel: Tabs.Model) => {
       view: DemoTabs.view,
       viewInputs: {
         tabs: demoTabs,
+        selectedValue: selectedTab,
         ariaLabel: 'Framework comparison tabs',
         toView: ({ tablist, tabs, activeIndex }) =>
           h.div(
@@ -160,7 +160,7 @@ export const horizontalDemo = (tabsModel: Tabs.Model) => {
   ]
 }
 
-export const verticalDemo = (tabsModel: Tabs.Model) => {
+export const verticalDemo = (tabsModel: Tabs.Model, selectedTab: DemoTab) => {
   const h = html<Message>()
 
   const foldkitPanel = h.div(
@@ -244,6 +244,7 @@ export const verticalDemo = (tabsModel: Tabs.Model) => {
       view: DemoTabs.view,
       viewInputs: {
         tabs: demoTabs,
+        selectedValue: selectedTab,
         ariaLabel: 'Framework comparison tabs',
         orientation: 'Vertical',
         toView: ({ tablist, tabs, activeIndex }) =>

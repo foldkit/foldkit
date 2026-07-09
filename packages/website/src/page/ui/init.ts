@@ -114,9 +114,11 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
     }),
     switchDemo: false,
     horizontalTabsDemo: Tabs.init({ id: 'horizontal-tabs-demo' }),
+    horizontalTabsDemoTab: 'Foldkit',
     verticalTabsDemo: Tabs.init({
       id: 'vertical-tabs-demo',
     }),
+    verticalTabsDemoTab: 'Foldkit',
     dragAndDropDemo: DragAndDrop.init({
       id: 'drag-and-drop-demo',
     }),

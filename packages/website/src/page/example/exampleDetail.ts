@@ -6,6 +6,7 @@ import {
   Queue,
   Schema as S,
   Stream,
+  pipe,
 } from 'effect'
 import { AsyncData, Command, Mount, Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
@@ -38,6 +39,7 @@ const LIVE_PREVIEW_DISCLOSURE_ID = 'live-preview'
 
 export const Model = S.Struct({
   sourceFileTabs: Tabs.Model,
+  activeSourceFilePath: S.String,
   maybeExampleUrl: S.Option(S.String),
   isLivePreviewOpen: S.Boolean,
   currentSources: CurrentSourcesAsyncData.schema,
@@ -144,6 +146,7 @@ export const init = (): readonly [
 ] => [
   {
     sourceFileTabs: Tabs.init({ id: 'source-file-tabs' }),
+    activeSourceFilePath: '',
     maybeExampleUrl: Option.none(),
     isLivePreviewOpen: true,
     currentSources: CurrentSourcesAsyncData.Idle(),
@@ -179,12 +182,25 @@ export const update = (
     >(),
     M.tagsExhaustive({
       GotSourceFileTabsMessage: ({ message }) => {
-        const [nextTabs, tabsCommands] = SourceFileTabs.update(
+        const [nextTabs, tabsCommands, maybeOutMessage] = SourceFileTabs.update(
           model.sourceFileTabs,
           message,
         )
+
+        const nextActiveSourceFilePath = Option.match(maybeOutMessage, {
+          onNone: () => model.activeSourceFilePath,
+          onSome: M.type<Tabs.OutMessage>().pipe(
+            M.tagsExhaustive({
+              Selected: ({ value }) => value,
+            }),
+          ),
+        })
+
         return [
-          evo(model, { sourceFileTabs: () => nextTabs }),
+          evo(model, {
+            sourceFileTabs: () => nextTabs,
+            activeSourceFilePath: () => nextActiveSourceFilePath,
+          }),
           Command.mapMessages(tabsCommands, message =>
             GotSourceFileTabsMessage({ message }),
           ),
@@ -202,6 +218,7 @@ export const update = (
       RequestedExampleSources: ({ slug }) => [
         evo(model, {
           sourceFileTabs: () => Tabs.init({ id: 'source-file-tabs' }),
+          activeSourceFilePath: () => '',
           maybeExampleUrl: () => Option.none(),
           currentSources: () => CurrentSourcesAsyncData.Loading(),
         }),
@@ -210,6 +227,13 @@ export const update = (
 
       SucceededLoadExampleSources: ({ sources }) => [
         evo(model, {
+          activeSourceFilePath: () =>
+            pipe(
+              sources.files,
+              Array.head,
+              Option.map(file => file.path),
+              Option.getOrElse(() => ''),
+            ),
           currentSources: () =>
             CurrentSourcesAsyncData.Success({ data: sources }),
         }),
@@ -448,6 +472,7 @@ const TAB_BUTTON_INACTIVE =
 const sourceCodeView = (
   files: ReadonlyArray<ExampleSourceFile>,
   tabsModel: Tabs.Model,
+  activeSourceFilePath: string,
   copiedSnippets: CopiedSnippets,
   isNarrowViewport: boolean,
 ): Html => {
@@ -461,6 +486,7 @@ const sourceCodeView = (
     view: SourceFileTabs.view,
     viewInputs: {
       tabs: filePaths,
+      selectedValue: activeSourceFilePath,
       ariaLabel: 'Source files',
       orientation: isNarrowViewport ? 'Horizontal' : 'Vertical',
       toView: ({ tablist, tabs, activeIndex }) =>
@@ -659,6 +685,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
                         sourceCodeView(
                           sources.files,
                           model.sourceFileTabs,
+                          model.activeSourceFilePath,
                           copiedSnippets,
                           isNarrowViewport,
                         ),
