@@ -56,6 +56,7 @@ export const basicDemo = (model: Model) => {
       model: model.calendarBasicDemo,
       view: Calendar.view,
       viewInputs: {
+        maybeSelectedDate: model.calendarBasicDemoSelectedDate,
         toView: attributes =>
           M.value(attributes).pipe(
             M.tagsExhaustive({

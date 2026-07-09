@@ -474,14 +474,23 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       ],
 
       GotCalendarBasicDemoMessage: ({ message }) => {
-        const [nextCalendarBasicDemo, calendarBasicCommands] = Calendar.update(
-          model.calendarBasicDemo,
-          message,
-        )
+        const [nextCalendarBasicDemo, calendarBasicCommands, maybeOutMessage] =
+          Calendar.update(model.calendarBasicDemo, message)
+
+        const nextSelectedDate = Option.match(maybeOutMessage, {
+          onNone: () => model.calendarBasicDemoSelectedDate,
+          onSome: M.type<Calendar.OutMessage>().pipe(
+            M.tagsExhaustive({
+              SelectedDate: ({ date }) => Option.some(date),
+              ChangedViewMonth: () => model.calendarBasicDemoSelectedDate,
+            }),
+          ),
+        })
 
         return [
           evo(model, {
             calendarBasicDemo: () => nextCalendarBasicDemo,
+            calendarBasicDemoSelectedDate: () => nextSelectedDate,
           }),
           Command.mapMessages(calendarBasicCommands, message =>
             GotCalendarBasicDemoMessage({ message }),
@@ -490,12 +499,27 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       },
 
       GotDatePickerBasicDemoMessage: ({ message }) => {
-        const [nextDatePickerBasicDemo, datePickerBasicCommands] =
-          DatePicker.update(model.datePickerBasicDemo, message)
+        const [
+          nextDatePickerBasicDemo,
+          datePickerBasicCommands,
+          maybeOutMessage,
+        ] = DatePicker.update(model.datePickerBasicDemo, message)
+
+        const nextSelectedDate = Option.match(maybeOutMessage, {
+          onNone: () => model.datePickerBasicDemoSelectedDate,
+          onSome: M.type<DatePicker.OutMessage>().pipe(
+            M.tagsExhaustive({
+              SelectedDate: ({ date }) => Option.some(date),
+              ClearedDate: () => Option.none(),
+              ChangedViewMonth: () => model.datePickerBasicDemoSelectedDate,
+            }),
+          ),
+        })
 
         return [
           evo(model, {
             datePickerBasicDemo: () => nextDatePickerBasicDemo,
+            datePickerBasicDemoSelectedDate: () => nextSelectedDate,
           }),
           Command.mapMessages(datePickerBasicCommands, message =>
             GotDatePickerBasicDemoMessage({ message }),

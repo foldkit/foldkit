@@ -55,6 +55,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         model: model.calendarBasicDemo,
         view: Calendar.view,
         viewInputs: {
+          maybeSelectedDate: model.calendarBasicDemoSelectedDate,
           toView: attributes =>
             M.value(attributes).pipe(
               M.tagsExhaustive({

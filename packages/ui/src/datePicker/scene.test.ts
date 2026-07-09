@@ -135,6 +135,7 @@ const sceneView =
   (model: Model) =>
     view(model, {
       anchor: { placement: 'bottom-start' },
+      maybeSelectedDate: Option.none(),
       triggerContent,
       toCalendarView: testToCalendarView,
       ...overrides,
@@ -169,14 +170,13 @@ describe('DatePicker', () => {
     })
 
     it('renders the trigger with the selected date when one is set', () => {
-      const seeded = init({
-        id: 'picker',
-        today,
-        initialSelectedDate: Calendar.make(2026, 4, 20),
-      })
+      const selected = Calendar.make(2026, 4, 20)
       Scene.scene(
-        { update, view: sceneView() },
-        Scene.with(seeded),
+        {
+          update,
+          view: sceneView({ maybeSelectedDate: Option.some(selected) }),
+        },
+        Scene.with(closedModel),
         Scene.expect(trigger).toHaveText('2026-4-20'),
       )
     })
@@ -263,27 +263,31 @@ describe('DatePicker', () => {
     })
 
     it('encodes the selected date as ISO YYYY-MM-DD', () => {
-      const seeded = init({
-        id: 'picker',
-        today,
-        initialSelectedDate: Calendar.make(2026, 4, 5),
-      })
+      const selected = Calendar.make(2026, 4, 5)
       Scene.scene(
-        { update, view: sceneView({ name: 'dob' }) },
-        Scene.with(seeded),
+        {
+          update,
+          view: sceneView({
+            name: 'dob',
+            maybeSelectedDate: Option.some(selected),
+          }),
+        },
+        Scene.with(closedModel),
         Scene.expect(hiddenInput).toHaveValue('2026-04-05'),
       )
     })
 
     it('pads single-digit months and days to two characters', () => {
-      const seeded = init({
-        id: 'picker',
-        today,
-        initialSelectedDate: Calendar.make(2026, 1, 9),
-      })
+      const selected = Calendar.make(2026, 1, 9)
       Scene.scene(
-        { update, view: sceneView({ name: 'dob' }) },
-        Scene.with(seeded),
+        {
+          update,
+          view: sceneView({
+            name: 'dob',
+            maybeSelectedDate: Option.some(selected),
+          }),
+        },
+        Scene.with(closedModel),
         Scene.expect(hiddenInput).toHaveValue('2026-01-09'),
       )
     })

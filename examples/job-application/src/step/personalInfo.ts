@@ -4,10 +4,11 @@ import {
   Effect,
   Match as M,
   Number,
+  Option,
   Schema as S,
 } from 'effect'
 import { Command } from 'foldkit'
-import { type CalendarDate } from 'foldkit/calendar'
+import { CalendarDate } from 'foldkit/calendar'
 import {
   Field,
   Invalid,
@@ -41,6 +42,7 @@ export const Model = S.Struct({
   customPronouns: S.String,
   portfolioUrl: Field(S.String),
   availableDate: DatePicker.Model,
+  maybeAvailableDate: S.Option(CalendarDate),
 })
 export type Model = typeof Model.Type
 
@@ -96,6 +98,7 @@ export const init = (today: CalendarDate): Model => ({
     today,
     minDate: today,
   }),
+  maybeAvailableDate: Option.none(),
 })
 
 // FIELD VALIDATION
@@ -251,12 +254,25 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotAvailableDateMessage: ({ message: dateMessage }) => {
-        const [nextDate, commands] = DatePicker.update(
+        const [nextDate, commands, maybeOutMessage] = DatePicker.update(
           model.availableDate,
           dateMessage,
         )
+        const nextAvailableDate = Option.match(maybeOutMessage, {
+          onNone: () => model.maybeAvailableDate,
+          onSome: M.type<DatePicker.OutMessage>().pipe(
+            M.tagsExhaustive({
+              SelectedDate: ({ date }) => Option.some(date),
+              ClearedDate: () => Option.none(),
+              ChangedViewMonth: () => model.maybeAvailableDate,
+            }),
+          ),
+        })
         return [
-          evo(model, { availableDate: () => nextDate }),
+          evo(model, {
+            availableDate: () => nextDate,
+            maybeAvailableDate: () => nextAvailableDate,
+          }),
           Command.mapMessages(commands, innerMessage =>
             GotAvailableDateMessage({ message: innerMessage }),
           ),

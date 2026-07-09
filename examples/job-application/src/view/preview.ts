@@ -81,7 +81,7 @@ const workEntryView = (entry: WorkHistory.Entry.Model): Html => {
       ...(String.isNonEmpty(entry.company.value)
         ? [h.p([h.Class('text-xs text-gray-600')], [entry.company.value])]
         : []),
-      ...Option.match(entry.startDate.maybeSelectedDate, {
+      ...Option.match(entry.maybeStartDate, {
         onNone: () => [],
         onSome: start => [
           h.p(
@@ -90,7 +90,7 @@ const workEntryView = (entry: WorkHistory.Entry.Model): Html => {
               employmentRange(
                 start,
                 entry.isCurrentlyEmployed,
-                entry.endDate.maybeSelectedDate,
+                entry.maybeEndDate,
               ),
             ],
           ),

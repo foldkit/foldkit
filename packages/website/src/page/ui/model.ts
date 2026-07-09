@@ -1,5 +1,5 @@
 import { Schema as S } from 'effect'
-import { File } from 'foldkit'
+import { File, Calendar as FoldkitCalendar } from 'foldkit'
 
 import {
   Animation,
@@ -45,7 +45,9 @@ export const Model = S.Struct({
   fieldsetTextareaValue: S.String,
   fieldsetCheckboxDemo: S.Boolean,
   calendarBasicDemo: Calendar.Model,
+  calendarBasicDemoSelectedDate: S.Option(FoldkitCalendar.CalendarDate),
   datePickerBasicDemo: DatePicker.Model,
+  datePickerBasicDemoSelectedDate: S.Option(FoldkitCalendar.CalendarDate),
   checkboxBasicDemo: S.Boolean,
   checkboxOptionADemo: S.Boolean,
   checkboxOptionBDemo: S.Boolean,
