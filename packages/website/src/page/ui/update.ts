@@ -604,13 +604,16 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotSliderRatingDemoMessage: ({ message }) => {
-        const [nextSliderRatingDemo, sliderRatingCommands] = Slider.update(
-          model.sliderRatingDemo,
-          message,
-        )
+        const [nextSliderRatingDemo, sliderRatingCommands, maybeOutMessage] =
+          Slider.update(model.sliderRatingDemo, message)
+
+        const nextModel = Option.match(maybeOutMessage, {
+          onNone: () => model,
+          onSome: ({ value }) => evo(model, { sliderRatingValue: () => value }),
+        })
 
         return [
-          evo(model, {
+          evo(nextModel, {
             sliderRatingDemo: () => nextSliderRatingDemo,
           }),
           Command.mapMessages(sliderRatingCommands, message =>
@@ -620,13 +623,16 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotSliderVolumeDemoMessage: ({ message }) => {
-        const [nextSliderVolumeDemo, sliderVolumeCommands] = Slider.update(
-          model.sliderVolumeDemo,
-          message,
-        )
+        const [nextSliderVolumeDemo, sliderVolumeCommands, maybeOutMessage] =
+          Slider.update(model.sliderVolumeDemo, message)
+
+        const nextModel = Option.match(maybeOutMessage, {
+          onNone: () => model,
+          onSome: ({ value }) => evo(model, { sliderVolumeValue: () => value }),
+        })
 
         return [
-          evo(model, {
+          evo(nextModel, {
             sliderVolumeDemo: () => nextSliderVolumeDemo,
           }),
           Command.mapMessages(sliderVolumeCommands, message =>

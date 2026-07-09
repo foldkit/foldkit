@@ -242,8 +242,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           advanceParticle(
             deltaSeconds,
             nextElapsedSeconds,
-            model.flowStrengthSlider.value,
-            model.noiseScaleSlider.value,
+            model.flowStrength,
+            model.noiseScale,
             model.maybeMousePosition,
           ),
         )
@@ -284,12 +284,16 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotFlowStrengthSliderMessage: ({ message }) => {
-        const [nextSlider, sliderCommands] = Slider.update(
+        const [nextSlider, sliderCommands, maybeOutMessage] = Slider.update(
           model.flowStrengthSlider,
           message,
         )
+        const nextModel = Option.match(maybeOutMessage, {
+          onNone: () => model,
+          onSome: ({ value }) => evo(model, { flowStrength: () => value }),
+        })
         return [
-          evo(model, { flowStrengthSlider: () => nextSlider }),
+          evo(nextModel, { flowStrengthSlider: () => nextSlider }),
           Command.mapMessages(sliderCommands, message =>
             GotFlowStrengthSliderMessage({ message }),
           ),
@@ -297,12 +301,16 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotNoiseScaleSliderMessage: ({ message }) => {
-        const [nextSlider, sliderCommands] = Slider.update(
+        const [nextSlider, sliderCommands, maybeOutMessage] = Slider.update(
           model.noiseScaleSlider,
           message,
         )
+        const nextModel = Option.match(maybeOutMessage, {
+          onNone: () => model,
+          onSome: ({ value }) => evo(model, { noiseScale: () => value }),
+        })
         return [
-          evo(model, { noiseScaleSlider: () => nextSlider }),
+          evo(nextModel, { noiseScaleSlider: () => nextSlider }),
           Command.mapMessages(sliderCommands, message =>
             GotNoiseScaleSliderMessage({ message }),
           ),

@@ -143,6 +143,7 @@ const Model = S.Struct({
   // pinned down. Suspend is the conservative fix until the runtime ↔ overlay
   // cycle is broken at the source.
   scrubberSlider: S.suspend((): typeof Slider.Model => Slider.Model),
+  scrubberValue: S.Number,
 })
 type Model = typeof Model.Type
 
@@ -708,6 +709,11 @@ const makeUpdate = (
             filterTag => !Array_.contains(nextSubmodelTags, filterTag),
           )
 
+          const sliderMax = entries.length
+          const targetSliderValue = isPaused
+            ? hostIndexToSliderValue(pausedAtIndex, startIndex)
+            : sliderMax
+
           return [
             evo(model, {
               entries: () => entries,
@@ -727,16 +733,12 @@ const makeUpdate = (
                   : current,
               selectedIndex: current =>
                 shouldFollowSelection ? latestIndex : current,
-              scrubberSlider: current => {
-                const sliderMax = entries.length
-                const targetSliderValue = isPaused
-                  ? hostIndexToSliderValue(pausedAtIndex, startIndex)
-                  : sliderMax
-                return Slider.reflectValue(
-                  Slider.reflectRange(current, { min: 0, max: sliderMax }),
-                  targetSliderValue,
-                )
-              },
+              scrubberSlider: current =>
+                Slider.reflectRange(current, { min: 0, max: sliderMax }),
+              scrubberValue: current =>
+                model.scrubberSlider.dragState._tag === 'Dragging'
+                  ? current
+                  : Slider.snapAndClamp(targetSliderValue, 0, sliderMax, 1),
             }),
             [
               ...(shouldFollowSelection ? [inspectLatest] : []),
@@ -804,9 +806,20 @@ const makeUpdate = (
               ),
           })
 
+          const nextScrubberValue = Option.match(maybeOutMessage, {
+            onNone: () => model.scrubberValue,
+            onSome: outMessage =>
+              M.value(outMessage).pipe(
+                M.tagsExhaustive({
+                  ChangedValue: ({ value }) => value,
+                }),
+              ),
+          })
+
           return [
             evo(model, {
               scrubberSlider: () => nextSlider,
+              scrubberValue: () => nextScrubberValue,
               maybePendingScrubIndex: () => nextMaybePendingScrubIndex,
             }),
             mappedSliderCommands,
@@ -2182,7 +2195,7 @@ const makeView = (
 
   const scrubberPositionLabel = (model: Model): string => {
     const total = String(model.entries.length).padStart(3, '0')
-    const current = String(model.scrubberSlider.value).padStart(3, '0')
+    const current = String(model.scrubberValue).padStart(3, '0')
     return `${current} / ${total}`
   }
 
@@ -2192,6 +2205,7 @@ const makeView = (
       model: model.scrubberSlider,
       view: Slider.view,
       viewInputs: {
+        value: model.scrubberValue,
         ariaLabel: 'Session scrubber',
         getTrackRoot: () => shadow,
         formatValue: value =>
@@ -2507,8 +2521,13 @@ export const createOverlay = (
             min: 0,
             max: sliderMax,
             step: 1,
-            initialValue: initialSliderValue,
           }),
+          scrubberValue: Slider.snapAndClamp(
+            initialSliderValue,
+            0,
+            sliderMax,
+            1,
+          ),
         },
         Option.toArray(maybeLockScroll(flags.isOpen, flags.isMobile)),
       ]

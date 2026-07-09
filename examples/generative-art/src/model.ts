@@ -25,7 +25,9 @@ export const Model = S.Struct({
   elapsedSeconds: S.Number,
   maybeMousePosition: S.Option(Point),
   isRunning: S.Boolean,
+  flowStrength: S.Number,
   flowStrengthSlider: Slider.Model,
+  noiseScale: S.Number,
   noiseScaleSlider: Slider.Model,
 })
 export type Model = typeof Model.Type

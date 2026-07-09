@@ -30,19 +30,19 @@ const initialModel: Model = {
   elapsedSeconds: 0,
   maybeMousePosition: Option.none(),
   isRunning: true,
+  flowStrength: 1.4,
   flowStrengthSlider: Slider.init({
     id: 'flow-strength-slider',
     min: FLOW_STRENGTH_MIN,
     max: FLOW_STRENGTH_MAX,
     step: 0.05,
-    initialValue: 1.4,
   }),
+  noiseScale: 1,
   noiseScaleSlider: Slider.init({
     id: 'noise-scale-slider',
     min: NOISE_SCALE_MIN_DIVISOR,
     max: NOISE_SCALE_MAX_DIVISOR,
     step: 0.05,
-    initialValue: 1,
   }),
 }
 

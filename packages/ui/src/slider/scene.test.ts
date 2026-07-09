@@ -12,6 +12,7 @@ const sceneView =
     const h = html<Message>()
 
     return view(model, {
+      value: 5,
       toView: attributes =>
         h.div(
           [...attributes.root],
@@ -36,7 +37,6 @@ const defaultModel = init({
   min: 0,
   max: 10,
   step: 1,
-  initialValue: 5,
 })
 
 const root = Scene.selector('[data-slider-id="test"]')
@@ -126,7 +126,10 @@ describe('Slider', () => {
 
   describe('state attributes', () => {
     it('marks the root, track, and thumb with data-dragging while Dragging', () => {
-      const [draggingModel] = update(defaultModel, PressedThumb())
+      const [draggingModel] = update(
+        defaultModel,
+        PressedThumb({ originValue: 5 }),
+      )
       Scene.scene(
         { update, view: sceneView() },
         Scene.with(draggingModel),

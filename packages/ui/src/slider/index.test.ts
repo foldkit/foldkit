@@ -12,67 +12,39 @@ import {
   fractionOfValue,
   init,
   reflectRange,
-  reflectValue,
+  snapAndClamp,
   update,
 } from './index.js'
 
-const defaultInit = () =>
-  init({ id: 'test', min: 0, max: 10, step: 1, initialValue: 5 })
+const defaultInit = () => init({ id: 'test', min: 0, max: 10, step: 1 })
 
 describe('Slider', () => {
   describe('init', () => {
-    it('starts in the Idle state with the initial value', () => {
+    it('starts Idle with the configured range', () => {
       const model = defaultInit()
       expect(model.id).toBe('test')
       expect(model.min).toBe(0)
       expect(model.max).toBe(10)
       expect(model.step).toBe(1)
-      expect(model.value).toBe(5)
       expect(model.dragState._tag).toBe('Idle')
     })
+  })
 
-    it('clamps initialValue above max to max', () => {
-      const model = init({
-        id: 'test',
-        min: 0,
-        max: 10,
-        step: 1,
-        initialValue: 99,
-      })
-      expect(model.value).toBe(10)
+  describe('snapAndClamp', () => {
+    it('clamps above max to max', () => {
+      expect(snapAndClamp(99, 0, 10, 1)).toBe(10)
     })
 
-    it('clamps initialValue below min to min', () => {
-      const model = init({
-        id: 'test',
-        min: 0,
-        max: 10,
-        step: 1,
-        initialValue: -5,
-      })
-      expect(model.value).toBe(0)
+    it('clamps below min to min', () => {
+      expect(snapAndClamp(-5, 0, 10, 1)).toBe(0)
     })
 
-    it('snaps initialValue to step', () => {
-      const model = init({
-        id: 'test',
-        min: 0,
-        max: 10,
-        step: 2,
-        initialValue: 3,
-      })
-      expect(model.value).toBe(4)
+    it('snaps to step', () => {
+      expect(snapAndClamp(3, 0, 10, 2)).toBe(4)
     })
 
     it('handles fractional step without floating-point drift', () => {
-      const model = init({
-        id: 'test',
-        min: 0,
-        max: 1,
-        step: 0.1,
-        initialValue: 0.3,
-      })
-      expect(model.value).toBe(0.3)
+      expect(snapAndClamp(0.3, 0, 1, 0.1)).toBe(0.3)
     })
   })
 
@@ -82,11 +54,9 @@ describe('Slider', () => {
         update,
         Story.with(defaultInit()),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'StepIncrement' }),
+          PressedKeyboardNavigation({ direction: 'StepIncrement', value: 5 }),
         ),
-        Story.model(model => {
-          expect(model.value).toBe(6)
-        }),
+        Story.expectOutMessage(ChangedValue({ value: 6 })),
       )
     })
 
@@ -95,155 +65,118 @@ describe('Slider', () => {
         update,
         Story.with(defaultInit()),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'StepDecrement' }),
+          PressedKeyboardNavigation({ direction: 'StepDecrement', value: 5 }),
         ),
-        Story.model(model => {
-          expect(model.value).toBe(4)
-        }),
+        Story.expectOutMessage(ChangedValue({ value: 4 })),
       )
     })
 
     it('increments by 10 steps on PageIncrement', () => {
       Story.story(
         update,
-        Story.with(
-          init({ id: 'test', min: 0, max: 100, step: 1, initialValue: 20 }),
-        ),
+        Story.with(init({ id: 'test', min: 0, max: 100, step: 1 })),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'PageIncrement' }),
+          PressedKeyboardNavigation({ direction: 'PageIncrement', value: 20 }),
         ),
-        Story.model(model => {
-          expect(model.value).toBe(30)
-        }),
+        Story.expectOutMessage(ChangedValue({ value: 30 })),
       )
     })
 
     it('decrements by 10 steps on PageDecrement', () => {
       Story.story(
         update,
-        Story.with(
-          init({ id: 'test', min: 0, max: 100, step: 1, initialValue: 30 }),
-        ),
+        Story.with(init({ id: 'test', min: 0, max: 100, step: 1 })),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'PageDecrement' }),
+          PressedKeyboardNavigation({ direction: 'PageDecrement', value: 30 }),
         ),
-        Story.model(model => {
-          expect(model.value).toBe(20)
-        }),
+        Story.expectOutMessage(ChangedValue({ value: 20 })),
       )
     })
 
     it('jumps to min on Min', () => {
       Story.story(
         update,
-        Story.with(
-          init({ id: 'test', min: 2, max: 20, step: 1, initialValue: 10 }),
+        Story.with(init({ id: 'test', min: 2, max: 20, step: 1 })),
+        Story.message(
+          PressedKeyboardNavigation({ direction: 'Min', value: 10 }),
         ),
-        Story.message(PressedKeyboardNavigation({ direction: 'Min' })),
-        Story.model(model => {
-          expect(model.value).toBe(2)
-        }),
+        Story.expectOutMessage(ChangedValue({ value: 2 })),
       )
     })
 
     it('jumps to max on Max', () => {
       Story.story(
         update,
-        Story.with(
-          init({ id: 'test', min: 0, max: 99, step: 1, initialValue: 10 }),
+        Story.with(init({ id: 'test', min: 0, max: 99, step: 1 })),
+        Story.message(
+          PressedKeyboardNavigation({ direction: 'Max', value: 10 }),
         ),
-        Story.message(PressedKeyboardNavigation({ direction: 'Max' })),
-        Story.model(model => {
-          expect(model.value).toBe(99)
-        }),
+        Story.expectOutMessage(ChangedValue({ value: 99 })),
       )
     })
 
-    it('clamps to max when step increment would overshoot', () => {
+    it('emits no OutMessage when a step increment is clamped to the same value', () => {
       Story.story(
         update,
-        Story.with(
-          init({ id: 'test', min: 0, max: 10, step: 1, initialValue: 10 }),
-        ),
+        Story.with(init({ id: 'test', min: 0, max: 10, step: 1 })),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'StepIncrement' }),
+          PressedKeyboardNavigation({ direction: 'StepIncrement', value: 10 }),
         ),
-        Story.model(model => {
-          expect(model.value).toBe(10)
-        }),
+        Story.expectNoOutMessage(),
       )
     })
 
-    it('clamps to min when step decrement would undershoot', () => {
+    it('emits no OutMessage when a step decrement is clamped to the same value', () => {
       Story.story(
         update,
-        Story.with(
-          init({ id: 'test', min: 0, max: 10, step: 1, initialValue: 0 }),
-        ),
+        Story.with(init({ id: 'test', min: 0, max: 10, step: 1 })),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'StepDecrement' }),
+          PressedKeyboardNavigation({ direction: 'StepDecrement', value: 0 }),
         ),
-        Story.model(model => {
-          expect(model.value).toBe(0)
-        }),
+        Story.expectNoOutMessage(),
       )
     })
 
     it('respects fractional step (0.1)', () => {
       Story.story(
         update,
-        Story.with(
-          init({ id: 'test', min: 0, max: 1, step: 0.1, initialValue: 0.2 }),
-        ),
+        Story.with(init({ id: 'test', min: 0, max: 1, step: 0.1 })),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'StepIncrement' }),
+          PressedKeyboardNavigation({ direction: 'StepIncrement', value: 0.2 }),
         ),
-        Story.model(model => {
-          expect(model.value).toBe(0.3)
-        }),
+        Story.expectOutMessage(ChangedValue({ value: 0.3 })),
       )
     })
   })
 
   describe('thumb press', () => {
-    it('starts a drag without changing the value', () => {
+    it('starts a drag without emitting an OutMessage', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.message(PressedThumb()),
+        Story.message(PressedThumb({ originValue: 5 })),
+        Story.expectNoOutMessage(),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Dragging')
           if (model.dragState._tag === 'Dragging') {
             expect(model.dragState.originValue).toBe(5)
           }
-          expect(model.value).toBe(5)
         }),
-      )
-    })
-
-    it('emits no OutMessage on a value-preserving thumb press', () => {
-      Story.story(
-        update,
-        Story.with(defaultInit()),
-        Story.message(PressedThumb()),
-        Story.expectNoOutMessage(),
       )
     })
 
     it('ignores a bubbled PressedPointer after PressedThumb so the value is not shifted', () => {
       Story.story(
         update,
-        Story.with(
-          init({ id: 'test', min: 0, max: 1, step: 0.05, initialValue: 0.5 }),
-        ),
-        Story.message(PressedThumb()),
-        Story.message(PressedPointer({ value: 0.45 })),
+        Story.with(init({ id: 'test', min: 0, max: 1, step: 0.05 })),
+        Story.message(PressedThumb({ originValue: 0.5 })),
+        Story.message(PressedPointer({ value: 0.45, originValue: 0.5 })),
+        Story.expectNoOutMessage(),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Dragging')
           if (model.dragState._tag === 'Dragging') {
             expect(model.dragState.originValue).toBe(0.5)
           }
-          expect(model.value).toBe(0.5)
         }),
       )
     })
@@ -252,14 +185,13 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.message(PressedPointer({ value: 9 })),
-        Story.message(PressedThumb()),
+        Story.message(PressedPointer({ value: 9, originValue: 5 })),
+        Story.message(PressedThumb({ originValue: 99 })),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Dragging')
           if (model.dragState._tag === 'Dragging') {
             expect(model.dragState.originValue).toBe(5)
           }
-          expect(model.value).toBe(9)
         }),
       )
     })
@@ -270,13 +202,13 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.message(PressedPointer({ value: 7 })),
+        Story.message(PressedPointer({ value: 7, originValue: 5 })),
+        Story.expectOutMessage(ChangedValue({ value: 7 })),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Dragging')
           if (model.dragState._tag === 'Dragging') {
             expect(model.dragState.originValue).toBe(5)
           }
-          expect(model.value).toBe(7)
         }),
       )
     })
@@ -285,14 +217,14 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.message(PressedPointer({ value: 7 })),
-        Story.message(PressedPointer({ value: 8 })),
+        Story.message(PressedPointer({ value: 7, originValue: 5 })),
+        Story.message(PressedPointer({ value: 8, originValue: 7 })),
+        Story.expectNoOutMessage(),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Dragging')
           if (model.dragState._tag === 'Dragging') {
             expect(model.dragState.originValue).toBe(5)
           }
-          expect(model.value).toBe(7)
         }),
       )
     })
@@ -300,13 +232,9 @@ describe('Slider', () => {
     it('snaps PressedPointer value to step', () => {
       Story.story(
         update,
-        Story.with(
-          init({ id: 'test', min: 0, max: 10, step: 2, initialValue: 0 }),
-        ),
-        Story.message(PressedPointer({ value: 4.7 })),
-        Story.model(model => {
-          expect(model.value).toBe(4)
-        }),
+        Story.with(init({ id: 'test', min: 0, max: 10, step: 2 })),
+        Story.message(PressedPointer({ value: 4.7, originValue: 0 })),
+        Story.expectOutMessage(ChangedValue({ value: 4 })),
       )
     })
 
@@ -314,10 +242,10 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.message(PressedPointer({ value: 3 })),
+        Story.message(PressedPointer({ value: 3, originValue: 5 })),
         Story.message(MovedDragPointer({ value: 8 })),
+        Story.expectOutMessage(ChangedValue({ value: 8 })),
         Story.model(model => {
-          expect(model.value).toBe(8)
           expect(model.dragState._tag).toBe('Dragging')
         }),
       )
@@ -329,6 +257,7 @@ describe('Slider', () => {
         update,
         Story.with(originalModel),
         Story.message(MovedDragPointer({ value: 8 })),
+        Story.expectNoOutMessage(),
         Story.model(model => {
           expect(model).toBe(originalModel)
         }),
@@ -339,11 +268,11 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.message(PressedPointer({ value: 3 })),
+        Story.message(PressedPointer({ value: 3, originValue: 5 })),
         Story.message(ReleasedDragPointer()),
+        Story.expectNoOutMessage(),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
-          expect(model.value).toBe(3)
         }),
       )
     })
@@ -364,12 +293,12 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.message(PressedPointer({ value: 9 })),
+        Story.message(PressedPointer({ value: 9, originValue: 5 })),
         Story.message(MovedDragPointer({ value: 2 })),
         Story.message(CancelledDrag()),
+        Story.expectOutMessage(ChangedValue({ value: 5 })),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
-          expect(model.value).toBe(5)
         }),
       )
     })
@@ -378,12 +307,12 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.message(PressedThumb()),
+        Story.message(PressedThumb({ originValue: 5 })),
         Story.message(MovedDragPointer({ value: 9 })),
         Story.message(CancelledDrag()),
+        Story.expectOutMessage(ChangedValue({ value: 5 })),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
-          expect(model.value).toBe(5)
         }),
       )
     })
@@ -404,11 +333,9 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.message(PressedPointer({ value: 5 })),
+        Story.message(PressedPointer({ value: 5, originValue: 5 })),
         Story.message(MovedDragPointer({ value: 42 })),
-        Story.model(model => {
-          expect(model.value).toBe(10)
-        }),
+        Story.expectOutMessage(ChangedValue({ value: 10 })),
       )
     })
 
@@ -416,11 +343,9 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.message(PressedPointer({ value: 5 })),
+        Story.message(PressedPointer({ value: 5, originValue: 5 })),
         Story.message(MovedDragPointer({ value: -4 })),
-        Story.model(model => {
-          expect(model.value).toBe(0)
-        }),
+        Story.expectOutMessage(ChangedValue({ value: 0 })),
       )
     })
   })
@@ -431,22 +356,9 @@ describe('Slider', () => {
         update,
         Story.with(defaultInit()),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'StepIncrement' }),
+          PressedKeyboardNavigation({ direction: 'StepIncrement', value: 5 }),
         ),
         Story.expectOutMessage(ChangedValue({ value: 6 })),
-      )
-    })
-
-    it('emits no OutMessage when StepIncrement is clamped to the same value', () => {
-      Story.story(
-        update,
-        Story.with(
-          init({ id: 'test', min: 0, max: 10, step: 1, initialValue: 10 }),
-        ),
-        Story.message(
-          PressedKeyboardNavigation({ direction: 'StepIncrement' }),
-        ),
-        Story.expectNoOutMessage(),
       )
     })
 
@@ -454,7 +366,7 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.message(PressedPointer({ value: 9 })),
+        Story.message(PressedPointer({ value: 9, originValue: 5 })),
         Story.message(CancelledDrag()),
         Story.expectOutMessage(ChangedValue({ value: 5 })),
       )
@@ -464,17 +376,17 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.message(PressedPointer({ value: 3 })),
+        Story.message(PressedPointer({ value: 3, originValue: 5 })),
         Story.message(ReleasedDragPointer()),
         Story.expectNoOutMessage(),
       )
     })
 
-    it('emits no OutMessage when PressedPointer snaps to current value', () => {
+    it('emits no OutMessage when PressedPointer snaps to the current value', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.message(PressedPointer({ value: 5 })),
+        Story.message(PressedPointer({ value: 5, originValue: 5 })),
         Story.expectNoOutMessage(),
       )
     })
@@ -482,170 +394,51 @@ describe('Slider', () => {
 
   describe('fractionOfValue', () => {
     it('returns 0 at min', () => {
-      const model = init({
-        id: 'test',
-        min: 0,
-        max: 10,
-        step: 1,
-        initialValue: 0,
-      })
-      expect(fractionOfValue(model)).toBe(0)
+      expect(fractionOfValue(0, 0, 10)).toBe(0)
     })
 
     it('returns 1 at max', () => {
-      const model = init({
-        id: 'test',
-        min: 0,
-        max: 10,
-        step: 1,
-        initialValue: 10,
-      })
-      expect(fractionOfValue(model)).toBe(1)
+      expect(fractionOfValue(10, 0, 10)).toBe(1)
     })
 
     it('returns 0.5 at midpoint', () => {
-      const model = init({
-        id: 'test',
-        min: 0,
-        max: 10,
-        step: 1,
-        initialValue: 5,
-      })
-      expect(fractionOfValue(model)).toBe(0.5)
+      expect(fractionOfValue(5, 0, 10)).toBe(0.5)
     })
 
     it('handles a negative-min range', () => {
-      const model = init({
-        id: 'test',
-        min: -10,
-        max: 10,
-        step: 1,
-        initialValue: 0,
-      })
-      expect(fractionOfValue(model)).toBe(0.5)
+      expect(fractionOfValue(0, -10, 10)).toBe(0.5)
     })
 
     it('returns 0 when min equals max', () => {
-      const model = init({
-        id: 'test',
-        min: 5,
-        max: 5,
-        step: 1,
-        initialValue: 5,
-      })
-      expect(fractionOfValue(model)).toBe(0)
+      expect(fractionOfValue(5, 5, 5)).toBe(0)
     })
   })
 
   describe('reflectRange', () => {
     it('updates min and max', () => {
-      const before = init({
-        id: 'test',
-        min: 0,
-        max: 10,
-        step: 1,
-        initialValue: 5,
-      })
+      const before = defaultInit()
       const after = reflectRange(before, { min: 100, max: 200 })
       expect(after.min).toBe(100)
       expect(after.max).toBe(200)
     })
 
-    it('clamps the current value when the new range no longer contains it', () => {
-      const before = init({
-        id: 'test',
-        min: 0,
-        max: 10,
-        step: 1,
-        initialValue: 5,
-      })
-      const narrower = reflectRange(before, { min: 7, max: 10 })
-      expect(narrower.value).toBe(7)
-
-      const higher = reflectRange(before, { min: 0, max: 3 })
-      expect(higher.value).toBe(3)
+    it('supports the data-last form for point-free use in evo', () => {
+      const widen = reflectRange({ min: 0, max: 50 })
+      const after = widen(defaultInit())
+      expect(after.min).toBe(0)
+      expect(after.max).toBe(50)
     })
 
-    it('snaps the clamped value to the current step', () => {
-      const before = init({
-        id: 'test',
-        min: 0,
-        max: 1,
-        step: 0.1,
-        initialValue: 0.4,
-      })
-      const after = reflectRange(before, { min: 0.5, max: 1 })
-      expect(after.value).toBeCloseTo(0.5)
-    })
-
-    it('clamps even while Dragging, since a structural range update must keep the value in bounds', () => {
-      const idle = init({
-        id: 'test',
-        min: 0,
-        max: 10,
-        step: 1,
-        initialValue: 5,
-      })
-      const [draggingModel] = update(idle, PressedThumb())
+    it('updates the range even while Dragging', () => {
+      const [draggingModel] = update(
+        defaultInit(),
+        PressedThumb({ originValue: 5 }),
+      )
       expect(draggingModel.dragState._tag).toBe('Dragging')
 
-      const clamped = reflectRange(draggingModel, { min: 7, max: 10 })
-      expect(clamped.value).toBe(7)
-      expect(clamped.dragState._tag).toBe('Dragging')
-    })
-  })
-
-  describe('reflectValue', () => {
-    it('updates the value while Idle', () => {
-      const before = init({
-        id: 'test',
-        min: 0,
-        max: 10,
-        step: 1,
-        initialValue: 5,
-      })
-      const after = reflectValue(before, 8)
-      expect(after.value).toBe(8)
-    })
-
-    it('snaps the value to the current step', () => {
-      const before = init({
-        id: 'test',
-        min: 0,
-        max: 1,
-        step: 0.1,
-        initialValue: 0.5,
-      })
-      const after = reflectValue(before, 0.47)
-      expect(after.value).toBeCloseTo(0.5)
-    })
-
-    it('clamps the value into the current range', () => {
-      const before = init({
-        id: 'test',
-        min: 0,
-        max: 10,
-        step: 1,
-        initialValue: 5,
-      })
-      expect(reflectValue(before, -3).value).toBe(0)
-      expect(reflectValue(before, 99).value).toBe(10)
-    })
-
-    it('is a no-op while the user is Dragging, since drag state owns the value', () => {
-      const idle = init({
-        id: 'test',
-        min: 0,
-        max: 10,
-        step: 1,
-        initialValue: 5,
-      })
-      const [dragging] = update(idle, PressedThumb())
-      expect(dragging.dragState._tag).toBe('Dragging')
-      expect(dragging.value).toBe(5)
-
-      const after = reflectValue(dragging, 8)
-      expect(after.value).toBe(5)
+      const after = reflectRange(draggingModel, { min: 7, max: 10 })
+      expect(after.min).toBe(7)
+      expect(after.max).toBe(10)
       expect(after.dragState._tag).toBe('Dragging')
     })
   })
