@@ -14,6 +14,7 @@ import {
   HoveredEntry,
   LeftEntry,
   make,
+  test as toastTest,
 } from './index.js'
 
 // Test payload: minimal so fixtures are simple. The library is generic; these
@@ -479,6 +480,21 @@ describe('Toast', () => {
           [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
           [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
         ),
+        Story.model((next: Model) => {
+          expect(next.entries).toHaveLength(0)
+        }),
+      )
+    })
+
+    it('drains the whole lifecycle in one step via test.drainEntry', () => {
+      const entry = makeFreshEntry({
+        maybeDuration: Option.some(Duration.millis(100)),
+      })
+      Story.story(
+        Toast.update,
+        withEmpty,
+        Story.message(Toast.Added({ entry })),
+        toastTest.drainEntry({ entryId: firstEntryId }),
         Story.model((next: Model) => {
           expect(next.entries).toHaveLength(0)
         }),
