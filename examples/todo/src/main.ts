@@ -421,32 +421,26 @@ const nonEditingTodoView = (todo: Todo): Html => {
     `${todo.id}:viewing`,
     [h.Class('flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg group')],
     [
-      h.submodel({
-        slotId: `${todo.id}-checkbox`,
-        model: Checkbox.init({
-          id: `todo-${todo.id}`,
-          isChecked: todo.completed,
-        }),
-        view: Checkbox.view,
-        viewInputs: {
-          toView: attributes =>
-            h.div(
-              [h.Class('flex items-center')],
-              [
-                h.div(
-                  [
-                    ...attributes.checkbox,
-                    h.Class(checkboxBoxClassName(todo.completed)),
-                  ],
-                  todo.completed
-                    ? [h.span([h.Class('text-white text-xs')], ['✓'])]
-                    : [],
-                ),
-                h.span([...attributes.label, h.AriaLabel(todo.text)], []),
-              ],
-            ),
-        },
-        toParentMessage: () => ToggledTodo({ id: todo.id }),
+      Checkbox.view<Message>({
+        id: `todo-${todo.id}`,
+        isChecked: todo.completed,
+        onToggle: () => ToggledTodo({ id: todo.id }),
+        toView: attributes =>
+          h.div(
+            [h.Class('flex items-center')],
+            [
+              h.div(
+                [
+                  ...attributes.checkbox,
+                  h.Class(checkboxBoxClassName(todo.completed)),
+                ],
+                todo.completed
+                  ? [h.span([h.Class('text-white text-xs')], ['✓'])]
+                  : [],
+              ),
+              h.span([...attributes.label, h.AriaLabel(todo.text)], []),
+            ],
+          ),
       }),
       h.span(
         [

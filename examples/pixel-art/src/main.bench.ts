@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { bench, describe } from 'vitest'
 
-import { Dialog, Listbox, Switch } from '@foldkit/ui'
+import { Dialog, Listbox } from '@foldkit/ui'
 
 import { createEmptyGrid } from './grid'
 import {
@@ -31,8 +31,6 @@ const initialModel: Model = {
   paletteThemeIndex: 0,
   gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
   maybePendingGridSize: Option.none(),
-  mirrorHorizontalSwitch: Switch.init({ id: 'mirror-horizontal' }),
-  mirrorVerticalSwitch: Switch.init({ id: 'mirror-vertical' }),
   themeListbox: Listbox.init({ id: 'theme-picker', selectedItem: '0' }),
 }
 

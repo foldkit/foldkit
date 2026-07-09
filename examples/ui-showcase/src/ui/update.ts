@@ -5,16 +5,13 @@ import { evo } from 'foldkit/struct'
 import {
   Animation,
   Calendar,
-  Checkbox,
   DatePicker,
   Dialog,
-  Disclosure,
   DragAndDrop,
   FileDrop,
   Menu,
   Popover,
   Slider,
-  Switch,
   Tooltip,
   VirtualList,
 } from '@foldkit/ui'
@@ -22,9 +19,6 @@ import {
 import {
   GotAnimationDemoMessage,
   GotCalendarBasicDemoMessage,
-  GotCheckboxBasicDemoMessage,
-  GotCheckboxOptionADemoMessage,
-  GotCheckboxOptionBDemoMessage,
   GotComboboxDemoMessage,
   GotComboboxMultiDemoMessage,
   GotComboboxNullableDemoMessage,
@@ -32,10 +26,7 @@ import {
   GotDatePickerBasicDemoMessage,
   GotDialogAnimatedDemoMessage,
   GotDialogDemoMessage,
-  GotDisclosureAnimatedDemoMessage,
-  GotDisclosureBasicDemoMessage,
   GotDragAndDropDemoMessage,
-  GotFieldsetCheckboxDemoMessage,
   GotFileDropBasicDemoMessage,
   GotHorizontalTabsDemoMessage,
   GotListboxDemoMessage,
@@ -54,7 +45,6 @@ import {
   GotPopoverNestedParentDemoMessage,
   GotSliderRatingDemoMessage,
   GotSliderVolumeDemoMessage,
-  GotSwitchDemoMessage,
   GotToastDemoMessage,
   GotTooltipBasicDemoMessage,
   GotTooltipNoDelayDemoMessage,
@@ -213,19 +203,12 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
         [],
       ],
 
-      GotFieldsetCheckboxDemoMessage: ({ message }) => {
-        const [nextFieldsetCheckboxDemo, fieldsetCheckboxCommands] =
-          Checkbox.update(model.fieldsetCheckboxDemo, message)
-
-        return [
-          evo(model, {
-            fieldsetCheckboxDemo: () => nextFieldsetCheckboxDemo,
-          }),
-          Command.mapMessages(fieldsetCheckboxCommands, message =>
-            GotFieldsetCheckboxDemoMessage({ message }),
-          ),
-        ]
-      },
+      ToggledFieldsetCheckbox: ({ isChecked }) => [
+        evo(model, {
+          fieldsetCheckboxDemo: () => isChecked,
+        }),
+        [],
+      ],
 
       ClickedButtonDemo: () => [
         evo(model, {
@@ -234,77 +217,34 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
         [],
       ],
 
-      GotCheckboxBasicDemoMessage: ({ message }) => {
-        const [nextCheckboxBasicDemo, checkboxBasicCommands] = Checkbox.update(
-          model.checkboxBasicDemo,
-          message,
-        )
+      ToggledCheckboxBasicDemo: ({ isChecked }) => [
+        evo(model, {
+          checkboxBasicDemo: () => isChecked,
+        }),
+        [],
+      ],
 
-        return [
-          evo(model, {
-            checkboxBasicDemo: () => nextCheckboxBasicDemo,
-          }),
-          Command.mapMessages(checkboxBasicCommands, message =>
-            GotCheckboxBasicDemoMessage({ message }),
-          ),
-        ]
-      },
+      ToggledCheckboxAllDemo: ({ isChecked }) => [
+        evo(model, {
+          checkboxOptionADemo: () => isChecked,
+          checkboxOptionBDemo: () => isChecked,
+        }),
+        [],
+      ],
 
-      GotCheckboxAllDemoMessage: () => {
-        const isAllChecked =
-          model.checkboxOptionADemo.isChecked &&
-          model.checkboxOptionBDemo.isChecked
-        const nextChecked = !isAllChecked
+      ToggledCheckboxOptionADemo: ({ isChecked }) => [
+        evo(model, {
+          checkboxOptionADemo: () => isChecked,
+        }),
+        [],
+      ],
 
-        const [nextOptionA] = Checkbox.setChecked(
-          model.checkboxOptionADemo,
-          nextChecked,
-        )
-        const [nextOptionB] = Checkbox.setChecked(
-          model.checkboxOptionBDemo,
-          nextChecked,
-        )
-
-        return [
-          evo(model, {
-            checkboxOptionADemo: () => nextOptionA,
-            checkboxOptionBDemo: () => nextOptionB,
-          }),
-          [],
-        ]
-      },
-
-      GotCheckboxOptionADemoMessage: ({ message }) => {
-        const [nextOptionA, optionACommands] = Checkbox.update(
-          model.checkboxOptionADemo,
-          message,
-        )
-
-        return [
-          evo(model, {
-            checkboxOptionADemo: () => nextOptionA,
-          }),
-          Command.mapMessages(optionACommands, message =>
-            GotCheckboxOptionADemoMessage({ message }),
-          ),
-        ]
-      },
-
-      GotCheckboxOptionBDemoMessage: ({ message }) => {
-        const [nextOptionB, optionBCommands] = Checkbox.update(
-          model.checkboxOptionBDemo,
-          message,
-        )
-
-        return [
-          evo(model, {
-            checkboxOptionBDemo: () => nextOptionB,
-          }),
-          Command.mapMessages(optionBCommands, message =>
-            GotCheckboxOptionBDemoMessage({ message }),
-          ),
-        ]
-      },
+      ToggledCheckboxOptionBDemo: ({ isChecked }) => [
+        evo(model, {
+          checkboxOptionBDemo: () => isChecked,
+        }),
+        [],
+      ],
 
       GotComboboxDemoMessage: ({ message }) => {
         const [nextComboboxDemo, comboboxCommands] = CityCombobox.update(
@@ -519,33 +459,19 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
         ]
       },
 
-      GotDisclosureBasicDemoMessage: ({ message }) => {
-        const [nextDisclosureBasicDemo, disclosureBasicCommands] =
-          Disclosure.update(model.disclosureBasicDemo, message)
+      ToggledDisclosureBasicDemo: ({ isOpen }) => [
+        evo(model, {
+          disclosureBasicDemo: () => isOpen,
+        }),
+        [],
+      ],
 
-        return [
-          evo(model, {
-            disclosureBasicDemo: () => nextDisclosureBasicDemo,
-          }),
-          Command.mapMessages(disclosureBasicCommands, message =>
-            GotDisclosureBasicDemoMessage({ message }),
-          ),
-        ]
-      },
-
-      GotDisclosureAnimatedDemoMessage: ({ message }) => {
-        const [nextDisclosureAnimatedDemo, disclosureAnimatedCommands] =
-          Disclosure.update(model.disclosureAnimatedDemo, message)
-
-        return [
-          evo(model, {
-            disclosureAnimatedDemo: () => nextDisclosureAnimatedDemo,
-          }),
-          Command.mapMessages(disclosureAnimatedCommands, message =>
-            GotDisclosureAnimatedDemoMessage({ message }),
-          ),
-        ]
-      },
+      ToggledDisclosureAnimatedDemo: ({ isOpen }) => [
+        evo(model, {
+          disclosureAnimatedDemo: () => isOpen,
+        }),
+        [],
+      ],
 
       GotCalendarBasicDemoMessage: ({ message }) => {
         const [nextCalendarBasicDemo, calendarBasicCommands] = Calendar.update(
@@ -835,21 +761,12 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
         ]
       },
 
-      GotSwitchDemoMessage: ({ message }) => {
-        const [nextSwitchDemo, switchCommands] = Switch.update(
-          model.switchDemo,
-          message,
-        )
-
-        return [
-          evo(model, {
-            switchDemo: () => nextSwitchDemo,
-          }),
-          Command.mapMessages(switchCommands, message =>
-            GotSwitchDemoMessage({ message }),
-          ),
-        ]
-      },
+      ToggledSwitchDemo: ({ isChecked }) => [
+        evo(model, {
+          switchDemo: () => isChecked,
+        }),
+        [],
+      ],
 
       GotHorizontalTabsDemoMessage: ({ message }) => {
         const [nextHorizontalTabsDemo, horizontalTabsCommands] =

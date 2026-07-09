@@ -30,7 +30,7 @@ import { evo } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { Dialog, Disclosure, Menu, Tabs } from '@foldkit/ui'
+import { Dialog, Menu, Tabs } from '@foldkit/ui'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
 
@@ -58,29 +58,16 @@ import {
   FailedCopySnippet,
   FailedFetchGitHubStars,
   FailedSubscribeToNewsletter,
-  GotAiGroupMessage,
-  GotApiReferenceGroupMessage,
   GotApiReferenceMessage,
   GotAsyncCounterDemoMessage,
-  GotBestPracticesGroupMessage,
   GotComingFromReactMessage,
-  GotComparisonsGroupMessage,
-  GotCoreConceptsGroupMessage,
   GotDemoTabsMessage,
   GotExampleDetailMessage,
-  GotExamplesGroupMessage,
-  GotFaqGroupMessage,
-  GotFoldkitUiGroupMessage,
-  GotGetStartedGroupMessage,
   GotMobileMenuDialogMessage,
   GotNotePlayerDemoMessage,
-  GotPatternsGroupMessage,
   GotPlaygroundMenuMessage,
   GotPlaygroundMessage,
   GotSearchMessage,
-  GotSubmodelMapMessagesDisclosureMessage,
-  GotTestingGroupMessage,
-  GotToolingGroupMessage,
   GotUiPageMessage,
   HidCopiedIndicator,
   Message,
@@ -259,19 +246,19 @@ export const Model = S.Struct({
   isNarrowViewport: S.Boolean,
   isChromium: S.Boolean,
   playground: S.Option(Page.Playground.Model),
-  getStartedGroup: Disclosure.Model,
-  coreConceptsGroup: Disclosure.Model,
-  comparisonsGroup: Disclosure.Model,
-  faqGroup: Disclosure.Model,
-  testingGroup: Disclosure.Model,
-  bestPracticesGroup: Disclosure.Model,
-  patternsGroup: Disclosure.Model,
-  toolingGroup: Disclosure.Model,
-  foldkitUiGroup: Disclosure.Model,
-  aiGroup: Disclosure.Model,
-  examplesGroup: Disclosure.Model,
-  apiReferenceGroup: Disclosure.Model,
-  submodelMapMessagesDisclosure: Disclosure.Model,
+  getStartedGroup: S.Boolean,
+  coreConceptsGroup: S.Boolean,
+  comparisonsGroup: S.Boolean,
+  faqGroup: S.Boolean,
+  testingGroup: S.Boolean,
+  bestPracticesGroup: S.Boolean,
+  patternsGroup: S.Boolean,
+  toolingGroup: S.Boolean,
+  foldkitUiGroup: S.Boolean,
+  aiGroup: S.Boolean,
+  examplesGroup: S.Boolean,
+  apiReferenceGroup: S.Boolean,
+  submodelMapMessagesDisclosure: S.Boolean,
   aiHeadingToggleCount: S.Number,
   themePreference: ThemePreference,
   systemTheme: ResolvedTheme,
@@ -442,106 +429,67 @@ export const init: Runtime.RoutingApplicationInit<
         Option.liftPredicate(isPlaygroundRoute),
         Option.map(({ exampleSlug }) => Page.Playground.init(exampleSlug)),
       ),
-      getStartedGroup: Disclosure.init({
-        id: 'get-started-group',
-        isOpen: isGroupOpenOnBoot(
-          flags.maybeSidebarState,
-          maybeInitialActiveSectionKey,
-          'getStarted',
-        ),
-      }),
-      coreConceptsGroup: Disclosure.init({
-        id: 'core-concepts-group',
-        isOpen: isGroupOpenOnBoot(
-          flags.maybeSidebarState,
-          maybeInitialActiveSectionKey,
-          'coreConcepts',
-        ),
-      }),
-      comparisonsGroup: Disclosure.init({
-        id: 'comparisons-group',
-        isOpen: isGroupOpenOnBoot(
-          flags.maybeSidebarState,
-          maybeInitialActiveSectionKey,
-          'comparisons',
-        ),
-      }),
-      faqGroup: Disclosure.init({
-        id: 'faq-group',
-        isOpen: isGroupOpenOnBoot(
-          flags.maybeSidebarState,
-          maybeInitialActiveSectionKey,
-          'faq',
-        ),
-      }),
-      testingGroup: Disclosure.init({
-        id: 'testing-group',
-        isOpen: isGroupOpenOnBoot(
-          flags.maybeSidebarState,
-          maybeInitialActiveSectionKey,
-          'testing',
-        ),
-      }),
-      bestPracticesGroup: Disclosure.init({
-        id: 'best-practices-group',
-        isOpen: isGroupOpenOnBoot(
-          flags.maybeSidebarState,
-          maybeInitialActiveSectionKey,
-          'bestPractices',
-        ),
-      }),
-      patternsGroup: Disclosure.init({
-        id: 'patterns-group',
-        isOpen: isGroupOpenOnBoot(
-          flags.maybeSidebarState,
-          maybeInitialActiveSectionKey,
-          'patterns',
-        ),
-      }),
-      toolingGroup: Disclosure.init({
-        id: 'tooling-group',
-        isOpen: isGroupOpenOnBoot(
-          flags.maybeSidebarState,
-          maybeInitialActiveSectionKey,
-          'tooling',
-        ),
-      }),
-      foldkitUiGroup: Disclosure.init({
-        id: 'foldkit-ui-group',
-        isOpen: isGroupOpenOnBoot(
-          flags.maybeSidebarState,
-          maybeInitialActiveSectionKey,
-          'foldkitUi',
-        ),
-      }),
-      aiGroup: Disclosure.init({
-        id: 'ai-group',
-        isOpen: isGroupOpenOnBoot(
-          flags.maybeSidebarState,
-          maybeInitialActiveSectionKey,
-          'ai',
-        ),
-      }),
-      examplesGroup: Disclosure.init({
-        id: 'examples-group',
-        isOpen: isGroupOpenOnBoot(
-          flags.maybeSidebarState,
-          maybeInitialActiveSectionKey,
-          'examples',
-        ),
-      }),
-      apiReferenceGroup: Disclosure.init({
-        id: 'api-reference-group',
-        isOpen: isGroupOpenOnBoot(
-          flags.maybeSidebarState,
-          maybeInitialActiveSectionKey,
-          'apiReference',
-        ),
-      }),
-      submodelMapMessagesDisclosure: Disclosure.init({
-        id: 'submodel-map-messages-disclosure',
-        isOpen: false,
-      }),
+      getStartedGroup: isGroupOpenOnBoot(
+        flags.maybeSidebarState,
+        maybeInitialActiveSectionKey,
+        'getStarted',
+      ),
+      coreConceptsGroup: isGroupOpenOnBoot(
+        flags.maybeSidebarState,
+        maybeInitialActiveSectionKey,
+        'coreConcepts',
+      ),
+      comparisonsGroup: isGroupOpenOnBoot(
+        flags.maybeSidebarState,
+        maybeInitialActiveSectionKey,
+        'comparisons',
+      ),
+      faqGroup: isGroupOpenOnBoot(
+        flags.maybeSidebarState,
+        maybeInitialActiveSectionKey,
+        'faq',
+      ),
+      testingGroup: isGroupOpenOnBoot(
+        flags.maybeSidebarState,
+        maybeInitialActiveSectionKey,
+        'testing',
+      ),
+      bestPracticesGroup: isGroupOpenOnBoot(
+        flags.maybeSidebarState,
+        maybeInitialActiveSectionKey,
+        'bestPractices',
+      ),
+      patternsGroup: isGroupOpenOnBoot(
+        flags.maybeSidebarState,
+        maybeInitialActiveSectionKey,
+        'patterns',
+      ),
+      toolingGroup: isGroupOpenOnBoot(
+        flags.maybeSidebarState,
+        maybeInitialActiveSectionKey,
+        'tooling',
+      ),
+      foldkitUiGroup: isGroupOpenOnBoot(
+        flags.maybeSidebarState,
+        maybeInitialActiveSectionKey,
+        'foldkitUi',
+      ),
+      aiGroup: isGroupOpenOnBoot(
+        flags.maybeSidebarState,
+        maybeInitialActiveSectionKey,
+        'ai',
+      ),
+      examplesGroup: isGroupOpenOnBoot(
+        flags.maybeSidebarState,
+        maybeInitialActiveSectionKey,
+        'examples',
+      ),
+      apiReferenceGroup: isGroupOpenOnBoot(
+        flags.maybeSidebarState,
+        maybeInitialActiveSectionKey,
+        'apiReference',
+      ),
+      submodelMapMessagesDisclosure: false,
       themePreference,
       systemTheme,
       resolvedTheme,
@@ -577,27 +525,33 @@ export const init: Runtime.RoutingApplicationInit<
 
 const isPathnameEqual = (a: Url, b: Url): boolean => a.pathname === b.pathname
 
-const handleSidebarGroup = (
-  prev: Disclosure.Model,
-  message: Disclosure.Message,
-  toModel: (next: Disclosure.Model) => Model,
-  toParentMessage: (message: Disclosure.Message) => Message,
-): readonly [
-  Model,
-  ReadonlyArray<
-    Command.Command<Message, never, AppResources | AppManagedResources>
-  >,
-] => {
-  const [next, commands] = Disclosure.update(prev, message)
-  const nextModel = toModel(next)
-  return [
-    nextModel,
-    [
-      ...Command.mapMessages(commands, toParentMessage),
-      saveSidebarState(nextModel),
-    ],
-  ]
-}
+const setSidebarGroupOpen = (
+  model: Model,
+  key: GroupKey,
+  isOpen: boolean,
+): Model =>
+  M.value(key).pipe(
+    M.withReturnType<Model>(),
+    M.when('getStarted', () => evo(model, { getStartedGroup: () => isOpen })),
+    M.when('coreConcepts', () =>
+      evo(model, { coreConceptsGroup: () => isOpen }),
+    ),
+    M.when('comparisons', () => evo(model, { comparisonsGroup: () => isOpen })),
+    M.when('faq', () => evo(model, { faqGroup: () => isOpen })),
+    M.when('testing', () => evo(model, { testingGroup: () => isOpen })),
+    M.when('bestPractices', () =>
+      evo(model, { bestPracticesGroup: () => isOpen }),
+    ),
+    M.when('patterns', () => evo(model, { patternsGroup: () => isOpen })),
+    M.when('tooling', () => evo(model, { toolingGroup: () => isOpen })),
+    M.when('foldkitUi', () => evo(model, { foldkitUiGroup: () => isOpen })),
+    M.when('ai', () => evo(model, { aiGroup: () => isOpen })),
+    M.when('examples', () => evo(model, { examplesGroup: () => isOpen })),
+    M.when('apiReference', () =>
+      evo(model, { apiReferenceGroup: () => isOpen }),
+    ),
+    M.exhaustive,
+  )
 
 export const update = (
   model: Model,
@@ -668,10 +622,10 @@ export const update = (
 
         const expandIfActive =
           (key: GroupKey) =>
-          (group: Disclosure.Model): Disclosure.Model =>
+          (isOpen: boolean): boolean =>
             Option.exists(maybeNextActiveSectionKey, Equal.equals(key))
-              ? Disclosure.reflectOpenState(group, true)
-              : group
+              ? true
+              : isOpen
 
         const [closedMobileMenu, closeMobileMenuCommands] = Dialog.close(
           model.mobileMenuDialog,
@@ -1102,114 +1056,15 @@ export const update = (
         ]
       },
 
-      GotGetStartedGroupMessage: ({ message }) =>
-        handleSidebarGroup(
-          model.getStartedGroup,
-          message,
-          next => evo(model, { getStartedGroup: () => next }),
-          message => GotGetStartedGroupMessage({ message }),
-        ),
-
-      GotCoreConceptsGroupMessage: ({ message }) =>
-        handleSidebarGroup(
-          model.coreConceptsGroup,
-          message,
-          next => evo(model, { coreConceptsGroup: () => next }),
-          message => GotCoreConceptsGroupMessage({ message }),
-        ),
-
-      GotComparisonsGroupMessage: ({ message }) =>
-        handleSidebarGroup(
-          model.comparisonsGroup,
-          message,
-          next => evo(model, { comparisonsGroup: () => next }),
-          message => GotComparisonsGroupMessage({ message }),
-        ),
-
-      GotFaqGroupMessage: ({ message }) =>
-        handleSidebarGroup(
-          model.faqGroup,
-          message,
-          next => evo(model, { faqGroup: () => next }),
-          message => GotFaqGroupMessage({ message }),
-        ),
-
-      GotTestingGroupMessage: ({ message }) =>
-        handleSidebarGroup(
-          model.testingGroup,
-          message,
-          next => evo(model, { testingGroup: () => next }),
-          message => GotTestingGroupMessage({ message }),
-        ),
-
-      GotBestPracticesGroupMessage: ({ message }) =>
-        handleSidebarGroup(
-          model.bestPracticesGroup,
-          message,
-          next => evo(model, { bestPracticesGroup: () => next }),
-          message => GotBestPracticesGroupMessage({ message }),
-        ),
-
-      GotPatternsGroupMessage: ({ message }) =>
-        handleSidebarGroup(
-          model.patternsGroup,
-          message,
-          next => evo(model, { patternsGroup: () => next }),
-          message => GotPatternsGroupMessage({ message }),
-        ),
-
-      GotToolingGroupMessage: ({ message }) =>
-        handleSidebarGroup(
-          model.toolingGroup,
-          message,
-          next => evo(model, { toolingGroup: () => next }),
-          message => GotToolingGroupMessage({ message }),
-        ),
-
-      GotFoldkitUiGroupMessage: ({ message }) =>
-        handleSidebarGroup(
-          model.foldkitUiGroup,
-          message,
-          next => evo(model, { foldkitUiGroup: () => next }),
-          message => GotFoldkitUiGroupMessage({ message }),
-        ),
-
-      GotAiGroupMessage: ({ message }) =>
-        handleSidebarGroup(
-          model.aiGroup,
-          message,
-          next => evo(model, { aiGroup: () => next }),
-          message => GotAiGroupMessage({ message }),
-        ),
-
-      GotExamplesGroupMessage: ({ message }) =>
-        handleSidebarGroup(
-          model.examplesGroup,
-          message,
-          next => evo(model, { examplesGroup: () => next }),
-          message => GotExamplesGroupMessage({ message }),
-        ),
-
-      GotApiReferenceGroupMessage: ({ message }) =>
-        handleSidebarGroup(
-          model.apiReferenceGroup,
-          message,
-          next => evo(model, { apiReferenceGroup: () => next }),
-          message => GotApiReferenceGroupMessage({ message }),
-        ),
-
-      GotSubmodelMapMessagesDisclosureMessage: ({ message }) => {
-        const [next, commands] = Disclosure.update(
-          model.submodelMapMessagesDisclosure,
-          message,
-        )
-        return [
-          evo(model, { submodelMapMessagesDisclosure: () => next }),
-          Command.mapMessages(commands, message =>
-            GotSubmodelMapMessagesDisclosureMessage({ message }),
-          ),
-        ]
+      ToggledSidebarGroup: ({ key, isOpen }) => {
+        const nextModel = setSidebarGroupOpen(model, key, isOpen)
+        return [nextModel, [saveSidebarState(nextModel)]]
       },
+
+      ToggledSubmodelMapMessagesDisclosure: ({ isOpen }) => [
+        evo(model, { submodelMapMessagesDisclosure: () => isOpen }),
+        [],
+      ],
 
       GotExampleDetailMessage: ({ message }) => {
         const [nextExampleDetail, exampleDetailCommands] =
@@ -1492,18 +1347,18 @@ const SaveSidebarState = Command.define(
 
 const modelToSidebarState = (model: Model): SidebarState => ({
   open: {
-    getStarted: model.getStartedGroup.isOpen,
-    coreConcepts: model.coreConceptsGroup.isOpen,
-    comparisons: model.comparisonsGroup.isOpen,
-    faq: model.faqGroup.isOpen,
-    testing: model.testingGroup.isOpen,
-    bestPractices: model.bestPracticesGroup.isOpen,
-    patterns: model.patternsGroup.isOpen,
-    tooling: model.toolingGroup.isOpen,
-    foldkitUi: model.foldkitUiGroup.isOpen,
-    ai: model.aiGroup.isOpen,
-    examples: model.examplesGroup.isOpen,
-    apiReference: model.apiReferenceGroup.isOpen,
+    getStarted: model.getStartedGroup,
+    coreConcepts: model.coreConceptsGroup,
+    comparisons: model.comparisonsGroup,
+    faq: model.faqGroup,
+    testing: model.testingGroup,
+    bestPractices: model.bestPracticesGroup,
+    patterns: model.patternsGroup,
+    tooling: model.toolingGroup,
+    foldkitUi: model.foldkitUiGroup,
+    ai: model.aiGroup,
+    examples: model.examplesGroup,
+    apiReference: model.apiReferenceGroup,
   } satisfies Record<GroupKey, boolean>,
 })
 

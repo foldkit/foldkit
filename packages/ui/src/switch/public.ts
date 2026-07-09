@@ -1,19 +1,3 @@
-export {
-  init,
-  update,
-  setChecked,
-  reflectChecked,
-  view,
-  Model,
-  Message,
-  OutMessage,
-  SetChecked,
-  ToggledChecked,
-} from './index.js'
+export { view } from './index.js'
 
-export type {
-  Toggled,
-  InitConfig,
-  ViewInputs,
-  SwitchAttributes,
-} from './index.js'
+export type { ViewConfig, SwitchAttributes } from './index.js'

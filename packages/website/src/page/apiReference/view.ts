@@ -17,7 +17,7 @@ import {
   scopedId,
   sectionId,
 } from './domain'
-import { GotDisclosureMessage, type Message } from './message'
+import { type Message, ToggledSignatureDisclosure } from './message'
 import type { ApiData, Model } from './model'
 
 type Highlights = ApiData['highlights']
@@ -50,7 +50,7 @@ const lazyItem = createKeyedLazy()
 const functionView = (
   moduleName: string,
   apiFunction: ApiFunction,
-  maybeDisclosure: Disclosure.Model | undefined,
+  maybeIsOpen: boolean | undefined,
   highlights: Highlights,
 ): Html => {
   const h = html<Message>()
@@ -92,7 +92,7 @@ const functionView = (
           headingLinkButton(id, apiFunction.name),
         ],
       ),
-      signaturesView(id, apiFunction, maybeDisclosure, highlights),
+      signaturesView(id, apiFunction, maybeIsOpen, highlights),
     ],
   )
 }
@@ -164,12 +164,12 @@ const disclosurePanelClassName = 'rounded-b-lg overflow-x-auto'
 const signaturesView = (
   key: string,
   apiFunction: ApiFunction,
-  maybeDisclosure: Disclosure.Model | undefined,
+  maybeIsOpen: boolean | undefined,
   highlights: Highlights,
 ): Html => {
   const h = html<Message>()
   const maybeHighlighted = Record.get(highlights, key)
-  const isInDisclosure = maybeDisclosure !== undefined
+  const isInDisclosure = maybeIsOpen !== undefined
 
   const { wrapperClass, content } = Option.match(maybeHighlighted, {
     onSome: highlighted => ({
@@ -200,38 +200,32 @@ const signaturesView = (
     }),
   })
 
-  return maybeDisclosure !== undefined
-    ? h.submodel({
-        slotId: maybeDisclosure.id,
-        model: maybeDisclosure,
-        view: Disclosure.view,
-        viewInputs: {
-          toView: attributes =>
-            h.div(
-              [],
-              [
-                h.button(
-                  [...attributes.button, h.Class(disclosureButtonClassName)],
-                  [
-                    h.div(
-                      [h.Class('flex items-center justify-between w-full')],
-                      [
-                        h.span([], ['Show signature']),
-                        chevron(maybeDisclosure.isOpen),
-                      ],
-                    ),
-                  ],
-                ),
-                maybeDisclosure.isOpen
-                  ? h.div(
-                      [...attributes.panel, h.Class(disclosurePanelClassName)],
-                      [h.div([h.Class(wrapperClass)], content)],
-                    )
-                  : h.empty,
-              ],
-            ),
-        },
-        toParentMessage: message => GotDisclosureMessage({ id: key, message }),
+  return maybeIsOpen !== undefined
+    ? Disclosure.view<Message>({
+        id: key,
+        isOpen: maybeIsOpen,
+        onToggle: isOpen => ToggledSignatureDisclosure({ id: key, isOpen }),
+        toView: attributes =>
+          h.div(
+            [],
+            [
+              h.button(
+                [...attributes.button, h.Class(disclosureButtonClassName)],
+                [
+                  h.div(
+                    [h.Class('flex items-center justify-between w-full')],
+                    [h.span([], ['Show signature']), chevron(maybeIsOpen)],
+                  ),
+                ],
+              ),
+              maybeIsOpen
+                ? h.div(
+                    [...attributes.panel, h.Class(disclosurePanelClassName)],
+                    [h.div([h.Class(wrapperClass)], content)],
+                  )
+                : h.empty,
+            ],
+          ),
       })
     : h.div([h.Class(wrapperClass)], content)
 }

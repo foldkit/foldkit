@@ -34,10 +34,12 @@ export const CurrentSourcesAsyncData = AsyncData.Schema(
   S.String,
 )
 
+const LIVE_PREVIEW_DISCLOSURE_ID = 'live-preview'
+
 export const Model = S.Struct({
   sourceFileTabs: Tabs.Model,
   maybeExampleUrl: S.Option(S.String),
-  livePreviewDisclosure: Disclosure.Model,
+  isLivePreviewOpen: S.Boolean,
   currentSources: CurrentSourcesAsyncData.schema,
 })
 export type Model = typeof Model.Type
@@ -48,8 +50,8 @@ const GotSourceFileTabsMessage = m('GotSourceFileTabsMessage', {
   message: Tabs.Message,
 })
 export const ChangedExampleUrl = m('ChangedExampleUrl', { url: S.String })
-const GotLivePreviewDisclosureMessage = m('GotLivePreviewDisclosureMessage', {
-  message: Disclosure.Message,
+const ToggledLivePreviewDisclosure = m('ToggledLivePreviewDisclosure', {
+  isOpen: S.Boolean,
 })
 const RequestedExampleSources = m('RequestedExampleSources', {
   slug: S.String,
@@ -64,7 +66,7 @@ export const FailedLoadExampleSources = m('FailedLoadExampleSources', {
 export const Message = S.Union([
   GotSourceFileTabsMessage,
   ChangedExampleUrl,
-  GotLivePreviewDisclosureMessage,
+  ToggledLivePreviewDisclosure,
   RequestedExampleSources,
   SucceededLoadExampleSources,
   FailedLoadExampleSources,
@@ -143,10 +145,7 @@ export const init = (): readonly [
   {
     sourceFileTabs: Tabs.init({ id: 'source-file-tabs' }),
     maybeExampleUrl: Option.none(),
-    livePreviewDisclosure: Disclosure.init({
-      id: 'live-preview',
-      isOpen: true,
-    }),
+    isLivePreviewOpen: true,
     currentSources: CurrentSourcesAsyncData.Idle(),
   },
   [],
@@ -195,18 +194,10 @@ export const update = (
         evo(model, { maybeExampleUrl: () => Option.some(url) }),
         [],
       ],
-      GotLivePreviewDisclosureMessage: ({ message }) => {
-        const [nextDisclosure, disclosureCommands] = Disclosure.update(
-          model.livePreviewDisclosure,
-          message,
-        )
-        return [
-          evo(model, { livePreviewDisclosure: () => nextDisclosure }),
-          Command.mapMessages(disclosureCommands, message =>
-            GotLivePreviewDisclosureMessage({ message }),
-          ),
-        ]
-      },
+      ToggledLivePreviewDisclosure: ({ isOpen }) => [
+        evo(model, { isLivePreviewOpen: () => isOpen }),
+        [],
+      ],
 
       RequestedExampleSources: ({ slug }) => [
         evo(model, {
@@ -370,84 +361,74 @@ const disclosureChevron = (isOpen: boolean): Html => {
 }
 
 const livePreviewDisclosureView = (
-  disclosureModel: Disclosure.Model,
+  isOpen: boolean,
   meta: ExampleMeta,
   slug: string,
   maybeExampleUrl: Option.Option<string>,
 ): Html => {
   const h = html<Message>()
 
-  return h.submodel({
-    slotId: disclosureModel.id,
-    model: disclosureModel,
-    view: Disclosure.view,
-    viewInputs: {
-      toView: attributes =>
-        h.div(
-          [],
-          [
-            h.button(
-              [...attributes.button, h.Class(DISCLOSURE_BUTTON_CLASS)],
-              [
-                h.div(
-                  [h.Class('flex items-center justify-between w-full')],
-                  [
-                    h.span([], ['Live Preview']),
-                    disclosureChevron(disclosureModel.isOpen),
-                  ],
-                ),
-              ],
-            ),
-            h.div(
-              [
-                ...attributes.panel,
-                h.Class(DISCLOSURE_PANEL_CLASS),
-                h.Hidden(!disclosureModel.isOpen),
-                ...(disclosureModel.isOpen
-                  ? []
-                  : [h.Style({ display: 'none' })]),
-              ],
-              [
-                h.div(
-                  [],
-                  [
-                    h.div(
-                      [
-                        h.Class(
-                          'flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700/50',
-                        ),
-                      ],
-                      [
-                        trafficLightDots(),
-                        h.div(
-                          [
-                            h.Class(
-                              'flex-1 text-xs font-mono text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 rounded px-3 py-1 text-center truncate',
-                            ),
-                          ],
-                          [urlBarContent(meta, maybeExampleUrl)],
-                        ),
-                      ],
-                    ),
-                    h.iframe(
-                      [
-                        h.Src(
-                          `/example-apps-embed/${slug}/index.html?embedded`,
-                        ),
-                        h.Class('w-full bg-white h-[40rem]'),
-                        h.AriaLabel(`${meta.title} example running live`),
-                        h.OnMount(ObserveExampleUrlMessages()),
-                      ],
-                      [],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-    },
-    toParentMessage: message => GotLivePreviewDisclosureMessage({ message }),
+  return Disclosure.view<Message>({
+    id: LIVE_PREVIEW_DISCLOSURE_ID,
+    isOpen,
+    onToggle: isOpen => ToggledLivePreviewDisclosure({ isOpen }),
+    toView: attributes =>
+      h.div(
+        [],
+        [
+          h.button(
+            [...attributes.button, h.Class(DISCLOSURE_BUTTON_CLASS)],
+            [
+              h.div(
+                [h.Class('flex items-center justify-between w-full')],
+                [h.span([], ['Live Preview']), disclosureChevron(isOpen)],
+              ),
+            ],
+          ),
+          h.div(
+            [
+              ...attributes.panel,
+              h.Class(DISCLOSURE_PANEL_CLASS),
+              h.Hidden(!isOpen),
+              ...(isOpen ? [] : [h.Style({ display: 'none' })]),
+            ],
+            [
+              h.div(
+                [],
+                [
+                  h.div(
+                    [
+                      h.Class(
+                        'flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700/50',
+                      ),
+                    ],
+                    [
+                      trafficLightDots(),
+                      h.div(
+                        [
+                          h.Class(
+                            'flex-1 text-xs font-mono text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 rounded px-3 py-1 text-center truncate',
+                          ),
+                        ],
+                        [urlBarContent(meta, maybeExampleUrl)],
+                      ),
+                    ],
+                  ),
+                  h.iframe(
+                    [
+                      h.Src(`/example-apps-embed/${slug}/index.html?embedded`),
+                      h.Class('w-full bg-white h-[40rem]'),
+                      h.AriaLabel(`${meta.title} example running live`),
+                      h.OnMount(ObserveExampleUrlMessages()),
+                    ],
+                    [],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
   })
 }
 
@@ -657,7 +638,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           [
             headerView(meta, isChromium),
             livePreviewDisclosureView(
-              model.livePreviewDisclosure,
+              model.isLivePreviewOpen,
               meta,
               slug,
               model.maybeExampleUrl,

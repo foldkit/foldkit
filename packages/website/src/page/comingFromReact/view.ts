@@ -30,7 +30,7 @@ import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import { comparisonTable } from '../../view/table'
 import { FAQ_IDS } from './faq'
-import { GotFaqDisclosureMessage, type Message } from './message'
+import { type Message, ToggledFaqDisclosure } from './message'
 import type { Model } from './model'
 
 const [
@@ -153,35 +153,32 @@ const faqItem = (
   const h = html<Message>()
 
   return Option.match(Record.get(model, id), {
-    onSome: disclosure =>
-      h.submodel({
-        slotId: disclosure.id,
-        model: disclosure,
-        view: Disclosure.view,
-        viewInputs: {
-          toView: attributes =>
-            h.div(
-              [h.Class('mb-2')],
-              [
-                h.button(
-                  [...attributes.button, h.Class(faqButtonClassName)],
-                  [
-                    h.div(
-                      [h.Class('flex items-center justify-between w-full')],
-                      [h.span([], [question]), chevron(disclosure.isOpen)],
-                    ),
-                  ],
-                ),
-                disclosure.isOpen
-                  ? h.div(
-                      [...attributes.panel, h.Class(faqPanelClassName)],
-                      [h.div([], answerContent)],
-                    )
-                  : h.empty,
-              ],
-            ),
-        },
-        toParentMessage: message => GotFaqDisclosureMessage({ id, message }),
+    onSome: isOpen =>
+      Disclosure.view<Message>({
+        id,
+        isOpen,
+        onToggle: isOpen => ToggledFaqDisclosure({ id, isOpen }),
+        toView: attributes =>
+          h.div(
+            [h.Class('mb-2')],
+            [
+              h.button(
+                [...attributes.button, h.Class(faqButtonClassName)],
+                [
+                  h.div(
+                    [h.Class('flex items-center justify-between w-full')],
+                    [h.span([], [question]), chevron(isOpen)],
+                  ),
+                ],
+              ),
+              isOpen
+                ? h.div(
+                    [...attributes.panel, h.Class(faqPanelClassName)],
+                    [h.div([], answerContent)],
+                  )
+                : h.empty,
+            ],
+          ),
       }),
     onNone: () =>
       h.div([], [h.p([h.Class('font-bold')], [question]), ...answerContent]),
@@ -446,7 +443,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           [
             para(
               link(uiOverviewRouter(), 'Foldkit UI'),
-              ' is a first-party set of headless, accessible components: Disclosure, Combobox, Listbox, Menu, Popover, and more. Each one follows The Elm Architecture with its own Model, Message, and update, and integrates into your app via the Submodels pattern. You provide the markup and styling; Foldkit UI provides the accessibility attributes, keyboard navigation, and state management.',
+              ' is a first-party set of headless, accessible components: Dialog, Combobox, Listbox, Menu, Popover, and more. Each one follows The Elm Architecture with its own Model, Message, and update, and integrates into your app via the Submodels pattern. You provide the markup and styling; Foldkit UI provides the accessibility attributes, keyboard navigation, and state management.',
             ),
           ],
           model,

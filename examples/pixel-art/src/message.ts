@@ -1,7 +1,7 @@
 import { Schema as S } from 'effect'
 import { m } from 'foldkit/message'
 
-import { Dialog, Listbox, Switch } from '@foldkit/ui'
+import { Dialog, Listbox } from '@foldkit/ui'
 
 import { PaletteIndex, Tool } from './model'
 
@@ -38,14 +38,6 @@ export const GotGridSizeConfirmDialogMessage = m(
   'GotGridSizeConfirmDialogMessage',
   { message: Dialog.Message },
 )
-export const GotMirrorHorizontalSwitchMessage = m(
-  'GotMirrorHorizontalSwitchMessage',
-  { message: Switch.Message },
-)
-export const GotMirrorVerticalSwitchMessage = m(
-  'GotMirrorVerticalSwitchMessage',
-  { message: Switch.Message },
-)
 export const GotThemeListboxMessage = m('GotThemeListboxMessage', {
   message: Listbox.Message,
 })
@@ -70,8 +62,6 @@ export const Message = S.Union([
   SucceededExportPng,
   FailedExportPng,
   GotErrorDialogMessage,
-  GotMirrorHorizontalSwitchMessage,
-  GotMirrorVerticalSwitchMessage,
   GotThemeListboxMessage,
   ConfirmedGridSizeChange,
   GotGridSizeConfirmDialogMessage,

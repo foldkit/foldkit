@@ -4,7 +4,7 @@ import { Disclosure } from '@foldkit/ui'
 
 import { Icon } from '../../icon'
 import { Message, type TableOfContentsEntry } from '../../main'
-import { GotSubmodelMapMessagesDisclosureMessage } from '../../message'
+import { ToggledSubmodelMapMessagesDisclosure } from '../../message'
 import {
   bullets,
   infoCallout,
@@ -302,9 +302,11 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiChildAttributeHeader,
 ]
 
+const MAP_MESSAGES_DISCLOSURE_ID = 'submodel-map-messages-disclosure'
+
 export const view = (
   copiedSnippets: CopiedSnippets,
-  mapMessagesDisclosure: Disclosure.Model,
+  isMapMessagesDisclosureOpen: boolean,
 ): Html => {
   const h = html<Message>()
 
@@ -579,92 +581,85 @@ export const view = (
         inlineCode('GotSettingsMessage'),
         '. The helper preserves each Command’s name and args, so DevTools traces still show each Command’s original name.',
       ),
-      h.submodel({
-        slotId: 'submodel-map-messages-disclosure',
-        model: mapMessagesDisclosure,
-        view: Disclosure.view,
-        viewInputs: {
-          toView: attributes =>
-            h.div(
-              [h.Class('mb-8')],
-              [
-                h.button(
-                  [
-                    ...attributes.button,
-                    h.Class(
-                      'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none select-none',
-                    ),
-                  ],
-                  [
-                    h.span(
-                      [],
-                      ['Under the hood: the Command.mapMessages chain'],
-                    ),
-                    h.span(
-                      [
-                        h.Class(
-                          `text-gray-600 dark:text-gray-300 transition-transform ${mapMessagesDisclosure.isOpen ? 'rotate-180' : ''}`,
-                        ),
-                      ],
-                      [Icon.chevronDown('w-4 h-4')],
-                    ),
-                  ],
-                ),
-                mapMessagesDisclosure.isOpen
-                  ? h.div(
-                      [
-                        ...attributes.panel,
-                        h.Class(
-                          'px-4 py-3 border-x border-b border-gray-300 dark:border-gray-700 rounded-b-lg text-gray-800 dark:text-gray-200',
-                        ),
-                      ],
-                      [
-                        h.div(
-                          [h.Class('-mt-8')],
-                          [
-                            highlightedCodeBlock(
-                              h.div(
-                                [
-                                  h.Class('text-sm'),
-                                  h.InnerHTML(
-                                    Snippet.commandMapMessagesUnderHoodHighlighted,
-                                  ),
-                                ],
-                                [],
-                              ),
-                              Snippet.commandMapMessagesUnderHoodRaw,
-                              'Copy snippet to clipboard',
-                              copiedSnippets,
-                              'mb-4',
+      Disclosure.view<Message>({
+        id: MAP_MESSAGES_DISCLOSURE_ID,
+        isOpen: isMapMessagesDisclosureOpen,
+        onToggle: isOpen => ToggledSubmodelMapMessagesDisclosure({ isOpen }),
+        toView: attributes =>
+          h.div(
+            [h.Class('mb-8')],
+            [
+              h.button(
+                [
+                  ...attributes.button,
+                  h.Class(
+                    'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none select-none',
+                  ),
+                ],
+                [
+                  h.span([], ['Under the hood: the Command.mapMessages chain']),
+                  h.span(
+                    [
+                      h.Class(
+                        `text-gray-600 dark:text-gray-300 transition-transform ${isMapMessagesDisclosureOpen ? 'rotate-180' : ''}`,
+                      ),
+                    ],
+                    [Icon.chevronDown('w-4 h-4')],
+                  ),
+                ],
+              ),
+              isMapMessagesDisclosureOpen
+                ? h.div(
+                    [
+                      ...attributes.panel,
+                      h.Class(
+                        'px-4 py-3 border-x border-b border-gray-300 dark:border-gray-700 rounded-b-lg text-gray-800 dark:text-gray-200',
+                      ),
+                    ],
+                    [
+                      h.div(
+                        [h.Class('-mt-8')],
+                        [
+                          highlightedCodeBlock(
+                            h.div(
+                              [
+                                h.Class('text-sm'),
+                                h.InnerHTML(
+                                  Snippet.commandMapMessagesUnderHoodHighlighted,
+                                ),
+                              ],
+                              [],
                             ),
-                          ],
-                        ),
-                        h.p(
-                          [h.Class('leading-relaxed')],
-                          [
-                            'Three small layers compose into ',
-                            inlineCode('mapMessages'),
-                            '. ',
-                            inlineCode('Array.map'),
-                            ' iterates; ',
-                            inlineCode('mapMessage'),
-                            ' rebuilds each Command with its Effect re-typed; ',
-                            inlineCode('mapEffect'),
-                            ' is the actual rebuild (a spread that swaps in the transformed Effect). The Command’s ',
-                            inlineCode('name'),
-                            ' and ',
-                            inlineCode('args'),
-                            ' ride through untouched, which is why DevTools traces still attribute each Command to its original Submodel.',
-                          ],
-                        ),
-                      ],
-                    )
-                  : h.empty,
-              ],
-            ),
-        },
-        toParentMessage: message =>
-          GotSubmodelMapMessagesDisclosureMessage({ message }),
+                            Snippet.commandMapMessagesUnderHoodRaw,
+                            'Copy snippet to clipboard',
+                            copiedSnippets,
+                            'mb-4',
+                          ),
+                        ],
+                      ),
+                      h.p(
+                        [h.Class('leading-relaxed')],
+                        [
+                          'Three small layers compose into ',
+                          inlineCode('mapMessages'),
+                          '. ',
+                          inlineCode('Array.map'),
+                          ' iterates; ',
+                          inlineCode('mapMessage'),
+                          ' rebuilds each Command with its Effect re-typed; ',
+                          inlineCode('mapEffect'),
+                          ' is the actual rebuild (a spread that swaps in the transformed Effect). The Command’s ',
+                          inlineCode('name'),
+                          ' and ',
+                          inlineCode('args'),
+                          ' ride through untouched, which is why DevTools traces still attribute each Command to its original Submodel.',
+                        ],
+                      ),
+                    ],
+                  )
+                : h.empty,
+            ],
+          ),
       }),
       tableOfContentsEntryToHeader(wiringTheViewHeader),
       para(
@@ -1225,10 +1220,6 @@ export const view = (
         inlineCode('selectTab'),
         ', ',
         inlineCode('selectDate'),
-        ', ',
-        inlineCode('setChecked'),
-        ', ',
-        inlineCode('toggle'),
         '), and they emit. The ',
         inlineCode('reflect*'),
         ' family is the uniform name for the silent inbound setter: ',
@@ -1240,10 +1231,6 @@ export const view = (
         ' (Tabs), ',
         inlineCode('reflectSelectedDate'),
         ' (Calendar, DatePicker), ',
-        inlineCode('reflectChecked'),
-        ' (Checkbox, Switch), ',
-        inlineCode('reflectOpenState'),
-        ' (Disclosure), ',
         inlineCode('reflectValue'),
         ' and ',
         inlineCode('reflectRange'),
@@ -1251,7 +1238,7 @@ export const view = (
       ),
       tableOfContentsEntryToHeader(childAttributesHeader),
       para(
-        'Some Submodels (Disclosure, Tooltip, Dialog, Popover, the selection family) hand the consumer ',
+        'Some Submodels (Tooltip, Dialog, Popover, the selection family) hand the consumer ',
         h.strong([], ['attribute bundles']),
         ' rather than rendering their own DOM. The consumer spreads those attributes onto their own elements, deciding markup and styling, while the Submodel keeps owning the wiring.',
       ),
@@ -1334,7 +1321,7 @@ export const view = (
         ' message through the Submodel’s ',
         inlineCode('toParentMessage'),
         ' wrap, producing ',
-        inlineCode('GotDisclosureMessage({ message: Toggled() })'),
+        inlineCode('GotChildMessage({ message: Toggled() })'),
         ' for the parent. The consumer’s own ',
         inlineCode('h.Class'),
         ' attribute is untouched: it’s a styling attribute with no message wiring.',

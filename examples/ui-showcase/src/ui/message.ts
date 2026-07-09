@@ -4,18 +4,15 @@ import { m } from 'foldkit/message'
 import {
   Animation,
   Calendar,
-  Checkbox,
   Combobox,
   DatePicker,
   Dialog,
-  Disclosure,
   DragAndDrop,
   FileDrop,
   Listbox,
   Menu,
   Popover,
   Slider,
-  Switch,
   Tabs,
   Tooltip,
   VirtualList,
@@ -46,30 +43,21 @@ export const UpdatedFieldsetInputValue = m('UpdatedFieldsetInputValue', {
 export const UpdatedFieldsetTextareaValue = m('UpdatedFieldsetTextareaValue', {
   value: S.String,
 })
-export const GotFieldsetCheckboxDemoMessage = m(
-  'GotFieldsetCheckboxDemoMessage',
-  {
-    message: Checkbox.Message,
-  },
-)
-export const GotCheckboxBasicDemoMessage = m('GotCheckboxBasicDemoMessage', {
-  message: Checkbox.Message,
+export const ToggledFieldsetCheckbox = m('ToggledFieldsetCheckbox', {
+  isChecked: S.Boolean,
 })
-export const GotCheckboxAllDemoMessage = m('GotCheckboxAllDemoMessage', {
-  message: Checkbox.Message,
+export const ToggledCheckboxBasicDemo = m('ToggledCheckboxBasicDemo', {
+  isChecked: S.Boolean,
 })
-export const GotCheckboxOptionADemoMessage = m(
-  'GotCheckboxOptionADemoMessage',
-  {
-    message: Checkbox.Message,
-  },
-)
-export const GotCheckboxOptionBDemoMessage = m(
-  'GotCheckboxOptionBDemoMessage',
-  {
-    message: Checkbox.Message,
-  },
-)
+export const ToggledCheckboxAllDemo = m('ToggledCheckboxAllDemo', {
+  isChecked: S.Boolean,
+})
+export const ToggledCheckboxOptionADemo = m('ToggledCheckboxOptionADemo', {
+  isChecked: S.Boolean,
+})
+export const ToggledCheckboxOptionBDemo = m('ToggledCheckboxOptionBDemo', {
+  isChecked: S.Boolean,
+})
 export const GotComboboxDemoMessage = m('GotComboboxDemoMessage', {
   message: Combobox.Message,
 })
@@ -120,16 +108,13 @@ export const ClickedOpenDialog = m('ClickedOpenDialog')
 export const ClickedOpenAnimatedDialog = m('ClickedOpenAnimatedDialog')
 export const ClickedEditFilters = m('ClickedEditFilters')
 export const ClickedOpenProjectSettings = m('ClickedOpenProjectSettings')
-export const GotDisclosureBasicDemoMessage = m(
-  'GotDisclosureBasicDemoMessage',
+export const ToggledDisclosureBasicDemo = m('ToggledDisclosureBasicDemo', {
+  isOpen: S.Boolean,
+})
+export const ToggledDisclosureAnimatedDemo = m(
+  'ToggledDisclosureAnimatedDemo',
   {
-    message: Disclosure.Message,
-  },
-)
-export const GotDisclosureAnimatedDemoMessage = m(
-  'GotDisclosureAnimatedDemoMessage',
-  {
-    message: Disclosure.Message,
+    isOpen: S.Boolean,
   },
 )
 export const GotCalendarBasicDemoMessage = m('GotCalendarBasicDemoMessage', {
@@ -199,8 +184,8 @@ export const GotSliderRatingDemoMessage = m('GotSliderRatingDemoMessage', {
 export const GotSliderVolumeDemoMessage = m('GotSliderVolumeDemoMessage', {
   message: Slider.Message,
 })
-export const GotSwitchDemoMessage = m('GotSwitchDemoMessage', {
-  message: Switch.Message,
+export const ToggledSwitchDemo = m('ToggledSwitchDemo', {
+  isChecked: S.Boolean,
 })
 export const UpdatedSelectDemoValue = m('UpdatedSelectDemoValue', {
   value: S.String,
@@ -254,11 +239,11 @@ export const UiMessage = S.Union([
   UpdatedTextareaDemoValue,
   UpdatedFieldsetInputValue,
   UpdatedFieldsetTextareaValue,
-  GotFieldsetCheckboxDemoMessage,
-  GotCheckboxBasicDemoMessage,
-  GotCheckboxAllDemoMessage,
-  GotCheckboxOptionADemoMessage,
-  GotCheckboxOptionBDemoMessage,
+  ToggledFieldsetCheckbox,
+  ToggledCheckboxBasicDemo,
+  ToggledCheckboxAllDemo,
+  ToggledCheckboxOptionADemo,
+  ToggledCheckboxOptionBDemo,
   GotComboboxDemoMessage,
   GotComboboxNullableDemoMessage,
   GotComboboxMultiDemoMessage,
@@ -274,8 +259,8 @@ export const UiMessage = S.Union([
   ClickedOpenAnimatedDialog,
   ClickedEditFilters,
   ClickedOpenProjectSettings,
-  GotDisclosureBasicDemoMessage,
-  GotDisclosureAnimatedDemoMessage,
+  ToggledDisclosureBasicDemo,
+  ToggledDisclosureAnimatedDemo,
   GotCalendarBasicDemoMessage,
   GotDatePickerBasicDemoMessage,
   GotDragAndDropDemoMessage,
@@ -295,7 +280,7 @@ export const UiMessage = S.Union([
   UpdatedSelectDemoValue,
   GotSliderRatingDemoMessage,
   GotSliderVolumeDemoMessage,
-  GotSwitchDemoMessage,
+  ToggledSwitchDemo,
   GotHorizontalTabsDemoMessage,
   GotVerticalTabsDemoMessage,
   GotToastDemoMessage,

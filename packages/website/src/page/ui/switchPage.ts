@@ -65,12 +65,6 @@ const apiReferenceHeader: TableOfContentsEntry = {
   text: 'API Reference',
 }
 
-const initConfigHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'init-config',
-  text: 'InitConfig',
-}
-
 const viewConfigHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'view-config',
@@ -83,12 +77,6 @@ const switchAttributesHeader: TableOfContentsEntry = {
   text: 'SwitchAttributes',
 }
 
-const outMessageHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'out-message',
-  text: 'OutMessage',
-}
-
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -96,39 +84,30 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   keyboardInteractionHeader,
   accessibilityHeader,
   apiReferenceHeader,
-  initConfigHeader,
   viewConfigHeader,
   switchAttributesHeader,
-  outMessageHeader,
 ]
 
 // SECTION DATA
 
-const initConfigProps: ReadonlyArray<PropEntry> = [
+const viewConfigProps: ReadonlyArray<PropEntry> = [
   {
     name: 'id',
     type: 'string',
-    description: 'Unique ID for the switch instance.',
+    description:
+      'Unique ID for the switch instance. Used to link the label and description via ARIA.',
   },
   {
     name: 'isChecked',
     type: 'boolean',
-    default: 'false',
-    description: 'Initial on/off state.',
-  },
-]
-
-const viewConfigProps: ReadonlyArray<PropEntry> = [
-  {
-    name: 'model',
-    type: 'Switch.Model',
-    description: 'The switch state from your parent Model.',
-  },
-  {
-    name: 'toParentMessage',
-    type: '(childMessage: Switch.Message) => ParentMessage',
     description:
-      'Wraps Switch Messages in your parent Message type for Submodel delegation.',
+      'The current on/off state, read from your Model. `aria-checked` and the `data-checked` marker derive from it.',
+  },
+  {
+    name: 'onToggle',
+    type: '(isChecked: boolean) => Message',
+    description:
+      'Maps the new on/off state to a Message in your parent Message type when the user toggles the switch. Your update handler just stores the value.',
   },
   {
     name: 'toView',
@@ -183,15 +162,6 @@ const switchAttributesProps: ReadonlyArray<PropEntry> = [
   },
 ]
 
-const outMessageProps: ReadonlyArray<PropEntry> = [
-  {
-    name: 'ToggledChecked',
-    type: '{ isChecked: boolean }',
-    description:
-      'Emitted each time the switch toggles. Carries the new checked state. Pattern-match the third tuple element of Switch.update in your GotSwitchMessage handler to lift the toggle into a domain Message (e.g., persisting the setting or dispatching a sync command).',
-  },
-]
-
 const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
   {
     attribute: 'data-checked',
@@ -224,7 +194,11 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         pageTitle('ui/switch', 'Switch'),
         tableOfContentsEntryToHeader(overviewHeader),
         para(
-          'An on/off toggle. Semantically different from Checkbox: Switch represents an immediate action (like a light switch), while Checkbox represents a form value that gets submitted. Switch uses the Submodel pattern with the same wiring as Checkbox.',
+          'An on/off toggle. Semantically different from Checkbox: Switch represents an immediate action (like a light switch), while Checkbox represents a form value that gets submitted. Switch is a stateless controlled render helper with the same wiring as Checkbox: your Model owns the on/off value, you pass it in as ',
+          inlineCode('isChecked'),
+          ', and ',
+          inlineCode('onToggle'),
+          ' dispatches a parent Message when the user toggles it. In your update handler, just store the value.',
         ),
         infoCallout(
           'See it in an app',
@@ -290,17 +264,6 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           apiReferenceHeader.text,
         ),
         heading(
-          initConfigHeader.level,
-          initConfigHeader.id,
-          initConfigHeader.text,
-        ),
-        para(
-          'Configuration object passed to ',
-          inlineCode('Switch.init()'),
-          '.',
-        ),
-        propTable(initConfigProps),
-        heading(
           viewConfigHeader.level,
           viewConfigHeader.id,
           viewConfigHeader.text,
@@ -322,17 +285,6 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           ' callback.',
         ),
         propTable(switchAttributesProps),
-        heading(
-          outMessageHeader.level,
-          outMessageHeader.id,
-          outMessageHeader.text,
-        ),
-        para(
-          'Messages emitted to the parent through the third element of ',
-          inlineCode('[Model, Commands, Option<OutMessage>]'),
-          '. Pattern-match on the OutMessage in your update handler.',
-        ),
-        propTable(outMessageProps),
       ],
     )
   },

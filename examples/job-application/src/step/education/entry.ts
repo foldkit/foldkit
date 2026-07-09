@@ -11,7 +11,7 @@ import {
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Checkbox, Listbox } from '@foldkit/ui'
+import { Listbox } from '@foldkit/ui'
 
 import { revealFieldErrors } from '../validation'
 
@@ -42,7 +42,7 @@ export const Model = S.Struct({
   fieldOfStudy: Field(S.String),
   graduationYear: S.String,
   graduationYearListbox: Listbox.Model,
-  isCurrentlyEnrolled: Checkbox.Model,
+  isCurrentlyEnrolled: S.Boolean,
 })
 export type Model = typeof Model.Type
 
@@ -59,10 +59,9 @@ export const GotGraduationYearListboxMessage = m(
   'GotGraduationYearListboxMessage',
   { message: Listbox.Message },
 )
-export const GotIsCurrentlyEnrolledMessage = m(
-  'GotIsCurrentlyEnrolledMessage',
-  { message: Checkbox.Message },
-)
+export const ToggledCurrentlyEnrolled = m('ToggledCurrentlyEnrolled', {
+  isChecked: S.Boolean,
+})
 export const ClickedRemoveSelf = m('ClickedRemoveSelf')
 
 export const Message = S.Union([
@@ -70,7 +69,7 @@ export const Message = S.Union([
   UpdatedDegree,
   UpdatedFieldOfStudy,
   GotGraduationYearListboxMessage,
-  GotIsCurrentlyEnrolledMessage,
+  ToggledCurrentlyEnrolled,
   ClickedRemoveSelf,
 ])
 export type Message = typeof Message.Type
@@ -95,7 +94,7 @@ export const init = (entryId: string): Model => ({
   graduationYearListbox: Listbox.init({
     id: `${entryId}-graduation-year`,
   }),
-  isCurrentlyEnrolled: Checkbox.init({ id: `${entryId}-enrolled` }),
+  isCurrentlyEnrolled: false,
 })
 
 // UPDATE
@@ -165,17 +164,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         })
       },
 
-      GotIsCurrentlyEnrolledMessage: ({ message: checkboxMessage }) => {
-        const [nextCheckbox] = Checkbox.update(
-          model.isCurrentlyEnrolled,
-          checkboxMessage,
-        )
-        return [
-          evo(model, { isCurrentlyEnrolled: () => nextCheckbox }),
-          [],
-          Option.none(),
-        ]
-      },
+      ToggledCurrentlyEnrolled: ({ isChecked }) => [
+        evo(model, { isCurrentlyEnrolled: () => isChecked }),
+        [],
+        Option.none(),
+      ],
 
       ClickedRemoveSelf: () => [model, [], Option.some(Removed())],
     }),

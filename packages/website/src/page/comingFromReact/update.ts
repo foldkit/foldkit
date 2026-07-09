@@ -1,9 +1,7 @@
-import { Match as M, Option, Record } from 'effect'
+import { Match as M, Record } from 'effect'
 import { Command } from 'foldkit'
 
-import { Disclosure } from '@foldkit/ui'
-
-import { GotFaqDisclosureMessage, type Message } from './message'
+import { type Message } from './message'
 import type { Model } from './model'
 
 export type UpdateReturn = readonly [
@@ -16,22 +14,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      GotFaqDisclosureMessage: ({ id, message }) =>
-        Option.match(Record.get(model, id), {
-          onNone: () => [model, []],
-          onSome: disclosure => {
-            const [nextDisclosure, commands] = Disclosure.update(
-              disclosure,
-              message,
-            )
-
-            return [
-              Record.set(model, id, nextDisclosure),
-              Command.mapMessages(commands, message =>
-                GotFaqDisclosureMessage({ id, message }),
-              ),
-            ]
-          },
-        }),
+      ToggledFaqDisclosure: ({ id, isOpen }) => [
+        Record.set(model, id, isOpen),
+        [],
+      ],
     }),
   )

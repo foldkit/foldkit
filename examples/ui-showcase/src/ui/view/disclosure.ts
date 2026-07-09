@@ -6,11 +6,14 @@ import { Disclosure } from '@foldkit/ui'
 
 import * as Icon from '../../icon'
 import {
-  GotDisclosureAnimatedDemoMessage,
-  GotDisclosureBasicDemoMessage,
+  ToggledDisclosureAnimatedDemo,
+  ToggledDisclosureBasicDemo,
   type UiMessage,
 } from '../message'
 import type { UiModel } from '../model'
+
+const DISCLOSURE_BASIC_DEMO_ID = 'disclosure-basic-demo'
+const DISCLOSURE_ANIMATED_DEMO_ID = 'disclosure-animated-demo'
 
 const basicButtonClassName =
   'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition border border-gray-300 text-gray-900 hover:bg-gray-200/50 rounded-lg data-[open]:rounded-b-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 select-none'
@@ -74,68 +77,61 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
       subheading('Basic'),
       h.label(
         [
-          h.For(Disclosure.buttonId(model.disclosureBasicDemo.id)),
+          h.For(Disclosure.buttonId(DISCLOSURE_BASIC_DEMO_ID)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['Frequently asked'],
       ),
-      h.submodel({
-        slotId: model.disclosureBasicDemo.id,
-        model: model.disclosureBasicDemo,
-        view: Disclosure.view,
-        viewInputs: {
-          toView: attributes =>
-            h.div(
-              [],
-              [
-                h.button(
-                  [...attributes.button, h.Class(basicButtonClassName)],
-                  [buttonContent(model.disclosureBasicDemo.isOpen)],
-                ),
-                model.disclosureBasicDemo.isOpen
-                  ? h.div(
-                      [...attributes.panel, h.Class(basicPanelClassName)],
-                      [panelText()],
-                    )
-                  : h.empty,
-              ],
-            ),
-        },
-        toParentMessage: message => GotDisclosureBasicDemoMessage({ message }),
+      Disclosure.view<UiMessage>({
+        id: DISCLOSURE_BASIC_DEMO_ID,
+        isOpen: model.disclosureBasicDemo,
+        onToggle: isOpen => ToggledDisclosureBasicDemo({ isOpen }),
+        toView: attributes =>
+          h.div(
+            [],
+            [
+              h.button(
+                [...attributes.button, h.Class(basicButtonClassName)],
+                [buttonContent(model.disclosureBasicDemo)],
+              ),
+              model.disclosureBasicDemo
+                ? h.div(
+                    [...attributes.panel, h.Class(basicPanelClassName)],
+                    [panelText()],
+                  )
+                : h.empty,
+            ],
+          ),
       }),
 
       subheading('Animated'),
       h.label(
         [
-          h.For(Disclosure.buttonId(model.disclosureAnimatedDemo.id)),
+          h.For(Disclosure.buttonId(DISCLOSURE_ANIMATED_DEMO_ID)),
           h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
         ],
         ['Frequently asked'],
       ),
-      h.submodel({
-        slotId: model.disclosureAnimatedDemo.id,
-        model: model.disclosureAnimatedDemo,
-        view: Disclosure.view,
-        viewInputs: {
-          toView: attributes =>
-            h.div(
-              [h.Class(animatedContainerClassName)],
-              [
-                h.button(
-                  [...attributes.button, h.Class(animatedButtonClassName)],
-                  [buttonContent(model.disclosureAnimatedDemo.isOpen)],
+      Disclosure.view<UiMessage>({
+        id: DISCLOSURE_ANIMATED_DEMO_ID,
+        isOpen: model.disclosureAnimatedDemo,
+        onToggle: isOpen => ToggledDisclosureAnimatedDemo({ isOpen }),
+        toView: attributes =>
+          h.div(
+            [h.Class(animatedContainerClassName)],
+            [
+              h.button(
+                [...attributes.button, h.Class(animatedButtonClassName)],
+                [buttonContent(model.disclosureAnimatedDemo)],
+              ),
+              attributes.animatePanel(
+                h.div(
+                  [...attributes.panel, h.Class(animatedPanelClassName)],
+                  [panelText()],
                 ),
-                attributes.animatePanel(
-                  h.div(
-                    [...attributes.panel, h.Class(animatedPanelClassName)],
-                    [panelText()],
-                  ),
-                ),
-              ],
-            ),
-        },
-        toParentMessage: message =>
-          GotDisclosureAnimatedDemoMessage({ message }),
+              ),
+            ],
+          ),
       }),
     ],
   )

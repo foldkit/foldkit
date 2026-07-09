@@ -21,7 +21,7 @@ export const workEntryView = Submodel.defineView<
 >((model): Html => {
   const h = html<WorkHistory.Entry.Message>()
 
-  const showEndDate = !model.isCurrentlyEmployed.isChecked
+  const showEndDate = !model.isCurrentlyEmployed
 
   const startDatePicker = h.keyed('div')(
     `${model.id}-start-date`,
@@ -104,44 +104,41 @@ export const workEntryView = Submodel.defineView<
         [h.Class('grid grid-cols-2 gap-3')],
         [startDatePicker, ...(showEndDate ? [endDatePicker] : [])],
       ),
-      h.submodel({
-        slotId: `${model.id}-currently-employed`,
-        model: model.isCurrentlyEmployed,
-        view: Checkbox.view,
-        viewInputs: {
-          toView: attributes =>
-            h.div(
-              [h.Class('flex items-center gap-2')],
-              [
-                h.div(
-                  [
-                    ...attributes.checkbox,
-                    h.Class(
-                      `flex h-4 w-4 items-center justify-center rounded border transition cursor-pointer ${
-                        model.isCurrentlyEmployed.isChecked
-                          ? 'border-indigo-600 bg-indigo-600'
-                          : 'border-gray-300'
-                      }`,
-                    ),
-                  ],
-                  [
-                    ...(model.isCurrentlyEmployed.isChecked
-                      ? [h.span([h.Class('text-white text-xs')], ['✓'])]
-                      : []),
-                  ],
-                ),
-                h.label(
-                  [
-                    ...attributes.label,
-                    h.Class('text-sm text-gray-700 select-none cursor-pointer'),
-                  ],
-                  ['I currently work here'],
-                ),
-              ],
-            ),
-        },
-        toParentMessage: message =>
-          WorkHistory.Entry.GotIsCurrentlyEmployedMessage({ message }),
+      Checkbox.view<WorkHistory.Entry.Message>({
+        id: `${model.id}-current`,
+        isChecked: model.isCurrentlyEmployed,
+        onToggle: isChecked =>
+          WorkHistory.Entry.ToggledCurrentlyEmployed({ isChecked }),
+        toView: attributes =>
+          h.div(
+            [h.Class('flex items-center gap-2')],
+            [
+              h.div(
+                [
+                  ...attributes.checkbox,
+                  h.Class(
+                    `flex h-4 w-4 items-center justify-center rounded border transition cursor-pointer ${
+                      model.isCurrentlyEmployed
+                        ? 'border-indigo-600 bg-indigo-600'
+                        : 'border-gray-300'
+                    }`,
+                  ),
+                ],
+                [
+                  ...(model.isCurrentlyEmployed
+                    ? [h.span([h.Class('text-white text-xs')], ['✓'])]
+                    : []),
+                ],
+              ),
+              h.label(
+                [
+                  ...attributes.label,
+                  h.Class('text-sm text-gray-700 select-none cursor-pointer'),
+                ],
+                ['I currently work here'],
+              ),
+            ],
+          ),
       }),
       textareaField<WorkHistory.Entry.Message>({
         id: `${model.id}-description`,

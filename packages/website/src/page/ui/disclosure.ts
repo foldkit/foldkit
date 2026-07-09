@@ -3,7 +3,9 @@ import { html } from 'foldkit/html'
 import { Disclosure } from '@foldkit/ui'
 
 import { Icon } from '../../icon'
-import { GotDisclosureDemoMessage, type Message } from './message'
+import { type Message, ToggledDisclosureDemo } from './message'
+
+export const DISCLOSURE_DEMO_ID = 'disclosure-demo'
 
 // DEMO CONTENT
 
@@ -18,7 +20,7 @@ const panelClassName =
 
 // VIEW
 
-export const disclosureDemo = (disclosureModel: Disclosure.Model) => {
+export const disclosureDemo = (isOpen: boolean) => {
   const h = html<Message>()
 
   const chevron = (isOpen: boolean) =>
@@ -37,49 +39,43 @@ export const disclosureDemo = (disclosureModel: Disclosure.Model) => {
       [
         h.label(
           [
-            h.For(Disclosure.buttonId('disclosure-demo')),
+            h.For(Disclosure.buttonId(DISCLOSURE_DEMO_ID)),
             h.Class('text-sm font-medium text-gray-900 dark:text-white'),
           ],
           ['Frequently asked'],
         ),
-        h.submodel({
-          slotId: 'disclosure-demo',
-          model: disclosureModel,
-          view: Disclosure.view,
-          viewInputs: {
-            toView: attributes =>
-              h.div(
-                [h.Class(containerClassName)],
-                [
-                  h.button(
-                    [...attributes.button, h.Class(buttonClassName)],
+        Disclosure.view<Message>({
+          id: DISCLOSURE_DEMO_ID,
+          isOpen,
+          onToggle: isOpen => ToggledDisclosureDemo({ isOpen }),
+          toView: attributes =>
+            h.div(
+              [h.Class(containerClassName)],
+              [
+                h.button(
+                  [...attributes.button, h.Class(buttonClassName)],
+                  [
+                    h.div(
+                      [h.Class('flex items-center justify-between w-full')],
+                      [h.span([], ['What is Foldkit?']), chevron(isOpen)],
+                    ),
+                  ],
+                ),
+                attributes.animatePanel(
+                  h.div(
+                    [...attributes.panel, h.Class(panelClassName)],
                     [
-                      h.div(
-                        [h.Class('flex items-center justify-between w-full')],
+                      h.p(
+                        [h.Class('text-gray-800 dark:text-gray-200')],
                         [
-                          h.span([], ['What is Foldkit?']),
-                          chevron(disclosureModel.isOpen),
+                          'Foldkit is an Elm-inspired UI framework powered by Effect. It brings the Model-View-Update architecture to TypeScript with Schema-typed state, explicit side effects via commands, and composable headless UI components.',
                         ],
                       ),
                     ],
                   ),
-                  attributes.animatePanel(
-                    h.div(
-                      [...attributes.panel, h.Class(panelClassName)],
-                      [
-                        h.p(
-                          [h.Class('text-gray-800 dark:text-gray-200')],
-                          [
-                            'Foldkit is an Elm-inspired UI framework powered by Effect. It brings the Model-View-Update architecture to TypeScript with Schema-typed state, explicit side effects via commands, and composable headless UI components.',
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-          },
-          toParentMessage: message => GotDisclosureDemoMessage({ message }),
+                ),
+              ],
+            ),
         }),
       ],
     ),

@@ -65,12 +65,6 @@ const apiReferenceHeader: TableOfContentsEntry = {
   text: 'API Reference',
 }
 
-const initConfigHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'init-config',
-  text: 'InitConfig',
-}
-
 const viewConfigHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'view-config',
@@ -83,24 +77,6 @@ const checkboxAttributesHeader: TableOfContentsEntry = {
   text: 'CheckboxAttributes',
 }
 
-const modelHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'model',
-  text: 'Model',
-}
-
-const outMessageHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'out-message',
-  text: 'OutMessage',
-}
-
-const programmaticHelpersHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'programmatic-helpers',
-  text: 'Programmatic Helpers',
-}
-
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -110,54 +86,30 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   keyboardInteractionHeader,
   accessibilityHeader,
   apiReferenceHeader,
-  initConfigHeader,
-  modelHeader,
   viewConfigHeader,
   checkboxAttributesHeader,
-  outMessageHeader,
-  programmaticHelpersHeader,
 ]
 
 // SECTION DATA
 
-const initConfigProps: ReadonlyArray<PropEntry> = [
-  {
-    name: 'id',
-    type: 'string',
-    description: 'Unique ID for the checkbox instance.',
-  },
-  {
-    name: 'isChecked',
-    type: 'boolean',
-    default: 'false',
-    description: 'Initial checked state.',
-  },
-]
-
-const modelProps: ReadonlyArray<PropEntry> = [
-  {
-    name: 'id',
-    type: 'string',
-    description: 'The checkbox instance ID.',
-  },
-  {
-    name: 'isChecked',
-    type: 'boolean',
-    description: 'Whether the checkbox is currently checked.',
-  },
-]
-
 const viewConfigProps: ReadonlyArray<PropEntry> = [
   {
-    name: 'model',
-    type: 'Checkbox.Model',
-    description: 'The checkbox state from your parent Model.',
+    name: 'id',
+    type: 'string',
+    description:
+      'Unique ID for the checkbox instance. Used to link the label and description via ARIA.',
   },
   {
-    name: 'toParentMessage',
-    type: '(childMessage: Checkbox.Message) => ParentMessage',
+    name: 'isChecked',
+    type: 'boolean',
     description:
-      'Wraps Checkbox Messages in your parent Message type for Submodel delegation.',
+      'The current checked state, read from your Model. `aria-checked` and the `data-checked` marker derive from it.',
+  },
+  {
+    name: 'onToggle',
+    type: '(isChecked: boolean) => Message',
+    description:
+      'Maps the new checked state to a Message in your parent Message type when the user toggles the checkbox. Your update handler just stores the value.',
   },
   {
     name: 'toView',
@@ -219,30 +171,6 @@ const checkboxAttributesProps: ReadonlyArray<PropEntry> = [
   },
 ]
 
-const outMessageProps: ReadonlyArray<PropEntry> = [
-  {
-    name: 'ToggledChecked',
-    type: '{ isChecked: boolean }',
-    description:
-      'Emitted each time the checkbox toggles. Carries the new checked state. Pattern-match the third tuple element of Checkbox.update in your GotCheckboxMessage handler to lift the toggle into a domain Message (e.g., persisting the flag or dispatching a save command).',
-  },
-]
-
-const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
-  {
-    name: 'setChecked',
-    type: '(model: Model, isChecked: boolean) => [Model, Commands, Option<OutMessage>]',
-    description:
-      'Commits a checked state as a user-style choice, emitting ToggledChecked. Use for a programmatic change that should behave like a click. To mirror an external value without emitting, use reflectChecked.',
-  },
-  {
-    name: 'reflectChecked',
-    type: '(model: Model, isChecked: boolean) => Model',
-    description:
-      'Reflects an externally-sourced checked state onto the model without emitting an OutMessage. Use to mirror external truth (saved settings, a server value, a sibling field) onto the checkbox. Dual: pass just the boolean for a point-free setter in an evo callback.',
-  },
-]
-
 const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
   {
     attribute: 'data-checked',
@@ -279,13 +207,13 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         pageTitle('ui/checkbox', 'Checkbox'),
         tableOfContentsEntryToHeader(overviewHeader),
         para(
-          'A stateful toggle with checked, unchecked, and indeterminate states. Checkbox uses the Submodel pattern: initialize with ',
-          inlineCode('Checkbox.init()'),
-          ', store the Model in your parent, delegate Messages via ',
-          inlineCode('Checkbox.update()'),
-          ', and render with ',
-          inlineCode('Checkbox.view()'),
-          '. For an on/off toggle that represents an immediate action (like a light switch), use Switch instead.',
+          'A toggle with checked, unchecked, and indeterminate states. Checkbox is a stateless controlled render helper: call it directly with a ViewConfig in your own view; no Model, update, or ',
+          inlineCode('h.submodel'),
+          ' wrapping. Your Model owns the checked value, you pass it in as ',
+          inlineCode('isChecked'),
+          ', and ',
+          inlineCode('onToggle'),
+          ' dispatches a parent Message when the user toggles it. In your update handler, just store the value. For an on/off toggle that represents an immediate action (like a light switch), use Switch instead.',
         ),
         infoCallout(
           'See it in an app',
@@ -385,22 +313,6 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           apiReferenceHeader.text,
         ),
         heading(
-          initConfigHeader.level,
-          initConfigHeader.id,
-          initConfigHeader.text,
-        ),
-        para(
-          'Configuration object passed to ',
-          inlineCode('Checkbox.init()'),
-          '.',
-        ),
-        propTable(initConfigProps),
-        heading(modelHeader.level, modelHeader.id, modelHeader.text),
-        para(
-          'The checkbox state managed as a Submodel field in your parent Model.',
-        ),
-        propTable(modelProps),
-        heading(
           viewConfigHeader.level,
           viewConfigHeader.id,
           viewConfigHeader.text,
@@ -422,26 +334,6 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           ' callback.',
         ),
         propTable(checkboxAttributesProps),
-        heading(
-          outMessageHeader.level,
-          outMessageHeader.id,
-          outMessageHeader.text,
-        ),
-        para(
-          'Messages emitted to the parent through the third element of ',
-          inlineCode('[Model, Commands, Option<OutMessage>]'),
-          '. Pattern-match on the OutMessage in your update handler.',
-        ),
-        propTable(outMessageProps),
-        heading(
-          programmaticHelpersHeader.level,
-          programmaticHelpersHeader.id,
-          programmaticHelpersHeader.text,
-        ),
-        para(
-          'Helpers a parent calls in its update without constructing a Checkbox Message.',
-        ),
-        propTable(programmaticHelpersProps),
       ],
     )
   },

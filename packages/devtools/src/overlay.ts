@@ -137,7 +137,7 @@ const Model = S.Struct({
   maybeInspectedMessage: S.Option(UnknownByReference),
   submodelTags: S.Array(S.String),
   maybeSubmodelFilter: S.Option(S.String),
-  flattenSwitch: Switch.Model,
+  isFlattened: S.Boolean,
   submodelFilterListbox: Listbox.Model,
   expandedPaths: S.HashSet(S.String),
   changedPaths: S.HashSet(S.String),
@@ -172,9 +172,7 @@ const Flags = S.Struct({
 
 const ClickedToggle = m('ClickedToggle')
 const ClickedSettingsToggle = m('ClickedSettingsToggle')
-const GotFlattenSwitchMessage = m('GotFlattenSwitchMessage', {
-  message: Switch.Message,
-})
+const ToggledFlatten = m('ToggledFlatten', { isFlattened: S.Boolean })
 const CompletedPersistDevToolsState = m('CompletedPersistDevToolsState')
 const ClickedRow = m('ClickedRow', { index: S.Number })
 const ClickedResume = m('ClickedResume')
@@ -220,7 +218,7 @@ const GotScrubberSliderMessage = m('GotScrubberSliderMessage', {
 const Message = S.Union([
   ClickedToggle,
   ClickedSettingsToggle,
-  GotFlattenSwitchMessage,
+  ToggledFlatten,
   CompletedPersistDevToolsState,
   ClickedRow,
   ClickedResume,
@@ -556,7 +554,7 @@ const makeUpdate = (
               ),
               PersistDevToolsState({
                 isOpen: nextIsOpen,
-                isFlattened: model.flattenSwitch.isChecked,
+                isFlattened: model.isFlattened,
               }),
             ],
           ]
@@ -573,36 +571,10 @@ const makeUpdate = (
           }),
           [],
         ],
-        GotFlattenSwitchMessage: ({ message: switchMessage }) => {
-          const [nextFlattenSwitch, switchCommands, maybeOutMessage] =
-            Switch.update(model.flattenSwitch, switchMessage)
-
-          const mappedCommands = Command.mapMessages(switchCommands, message =>
-            GotFlattenSwitchMessage({ message }),
-          )
-
-          return Option.match(maybeOutMessage, {
-            onNone: () => [
-              evo(model, { flattenSwitch: () => nextFlattenSwitch }),
-              mappedCommands,
-            ],
-            onSome: M.type<Switch.OutMessage>().pipe(
-              M.withReturnType<UpdateReturn>(),
-              M.tagsExhaustive({
-                ToggledChecked: ({ isChecked }) => [
-                  evo(model, { flattenSwitch: () => nextFlattenSwitch }),
-                  [
-                    ...mappedCommands,
-                    PersistDevToolsState({
-                      isOpen: model.isOpen,
-                      isFlattened: isChecked,
-                    }),
-                  ],
-                ],
-              }),
-            ),
-          })
-        },
+        ToggledFlatten: ({ isFlattened }) => [
+          evo(model, { isFlattened: () => isFlattened }),
+          [PersistDevToolsState({ isOpen: model.isOpen, isFlattened })],
+        ],
         CrossedMobileBreakpoint: ({ isMobile }) => [
           evo(model, { isMobile: () => isMobile }),
           Option.toArray(maybeToggleScrollLock(model.isOpen, isMobile)),
@@ -1628,7 +1600,7 @@ const makeView = (
         lazyTabContent('Message', messageTabContent, [
           model.maybeInspectedMessage,
           model.maybeSubmodelFilter,
-          model.flattenSwitch.isChecked,
+          model.isFlattened,
           model.expandedPaths,
           inspectedTimestamp(model),
         ]),
@@ -1903,39 +1875,36 @@ const makeView = (
   // SETTINGS
 
   const flattenSwitchView = (model: Model): Html =>
-    h.submodel({
-      slotId: 'flatten-switch',
-      model: model.flattenSwitch,
-      view: Switch.view,
-      viewInputs: {
-        toView: attributes =>
-          h.div(
-            [h.Class('dt-settings-row')],
-            [
-              h.div(
-                [...attributes.button, h.Class('dt-switch')],
-                [h.span([h.Class('dt-switch-thumb')], [])],
-              ),
-              h.div(
-                [h.Class('dt-settings-row-text')],
-                [
-                  h.label(
-                    [...attributes.label, h.Class('dt-settings-row-label')],
-                    ['Flatten to leaf Message'],
-                  ),
-                  h.span(
-                    [
-                      ...attributes.description,
-                      h.Class('dt-settings-row-description'),
-                    ],
-                    ['Label each row with its innermost Message'],
-                  ),
-                ],
-              ),
-            ],
-          ),
-      },
-      toParentMessage: message => GotFlattenSwitchMessage({ message }),
+    Switch.view<Message>({
+      id: FLATTEN_SWITCH_ID,
+      isChecked: model.isFlattened,
+      onToggle: isFlattened => ToggledFlatten({ isFlattened }),
+      toView: attributes =>
+        h.div(
+          [h.Class('dt-settings-row')],
+          [
+            h.div(
+              [...attributes.button, h.Class('dt-switch')],
+              [h.span([h.Class('dt-switch-thumb')], [])],
+            ),
+            h.div(
+              [h.Class('dt-settings-row-text')],
+              [
+                h.label(
+                  [...attributes.label, h.Class('dt-settings-row-label')],
+                  ['Flatten to leaf Message'],
+                ),
+                h.span(
+                  [
+                    ...attributes.description,
+                    h.Class('dt-settings-row-description'),
+                  ],
+                  ['Label each row with its innermost Message'],
+                ),
+              ],
+            ),
+          ],
+        ),
     })
 
   const settingsScreenView = (model: Model): Html =>
@@ -2210,7 +2179,7 @@ const makeView = (
       model.isPaused,
       model.pausedAtIndex,
       model.maybeSubmodelFilter,
-      model.flattenSwitch.isChecked,
+      model.isFlattened,
     ])
   }
 
@@ -2520,10 +2489,7 @@ export const createOverlay = (
         {
           screen: 'Messages',
           ...displayFlags,
-          flattenSwitch: Switch.init({
-            id: FLATTEN_SWITCH_ID,
-            isChecked: isFlattened,
-          }),
+          isFlattened,
           selectedIndex: INIT_INDEX,
           isFollowingLatest: true,
           isFollowingTop: true,

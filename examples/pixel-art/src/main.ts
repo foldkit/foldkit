@@ -3,7 +3,7 @@ import { KeyValueStore } from 'effect/unstable/persistence'
 import { Runtime } from 'foldkit'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { Dialog, Listbox, Switch } from '@foldkit/ui'
+import { Dialog, Listbox } from '@foldkit/ui'
 
 import {
   DEFAULT_COLOR_INDEX,
@@ -69,8 +69,6 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => [
     }),
     gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
     maybePendingGridSize: Option.none(),
-    mirrorHorizontalSwitch: Switch.init({ id: 'mirror-horizontal' }),
-    mirrorVerticalSwitch: Switch.init({ id: 'mirror-vertical' }),
     themeListbox: Listbox.init({
       id: 'theme-picker',
       selectedItem: Option.match(flags.maybeSavedCanvas, {

@@ -32,7 +32,7 @@ export const educationEntryView = Submodel.defineView<
   const h = html<Education.Entry.Message>()
   const { today } = viewInputs
 
-  const showGraduationYear = !model.isCurrentlyEnrolled.isChecked
+  const showGraduationYear = !model.isCurrentlyEnrolled
 
   const graduationYearField = h.keyed('div')(
     `${model.id}-graduation-year`,
@@ -114,44 +114,41 @@ export const educationEntryView = Submodel.defineView<
         onInput: value => Education.Entry.UpdatedFieldOfStudy({ value }),
         placeholder: 'e.g. Computer Science',
       }),
-      h.submodel({
-        slotId: `${model.id}-currently-enrolled`,
-        model: model.isCurrentlyEnrolled,
-        view: Checkbox.view,
-        viewInputs: {
-          toView: attributes =>
-            h.div(
-              [h.Class('flex items-center gap-2')],
-              [
-                h.div(
-                  [
-                    ...attributes.checkbox,
-                    h.Class(
-                      `flex h-4 w-4 items-center justify-center rounded border transition cursor-pointer ${
-                        model.isCurrentlyEnrolled.isChecked
-                          ? 'border-indigo-600 bg-indigo-600'
-                          : 'border-gray-300'
-                      }`,
-                    ),
-                  ],
-                  [
-                    ...(model.isCurrentlyEnrolled.isChecked
-                      ? [h.span([h.Class('text-white text-xs')], ['✓'])]
-                      : []),
-                  ],
-                ),
-                h.label(
-                  [
-                    ...attributes.label,
-                    h.Class('text-sm text-gray-700 select-none cursor-pointer'),
-                  ],
-                  ['I’m currently enrolled'],
-                ),
-              ],
-            ),
-        },
-        toParentMessage: message =>
-          Education.Entry.GotIsCurrentlyEnrolledMessage({ message }),
+      Checkbox.view<Education.Entry.Message>({
+        id: `${model.id}-enrolled`,
+        isChecked: model.isCurrentlyEnrolled,
+        onToggle: isChecked =>
+          Education.Entry.ToggledCurrentlyEnrolled({ isChecked }),
+        toView: attributes =>
+          h.div(
+            [h.Class('flex items-center gap-2')],
+            [
+              h.div(
+                [
+                  ...attributes.checkbox,
+                  h.Class(
+                    `flex h-4 w-4 items-center justify-center rounded border transition cursor-pointer ${
+                      model.isCurrentlyEnrolled
+                        ? 'border-indigo-600 bg-indigo-600'
+                        : 'border-gray-300'
+                    }`,
+                  ),
+                ],
+                [
+                  ...(model.isCurrentlyEnrolled
+                    ? [h.span([h.Class('text-white text-xs')], ['✓'])]
+                    : []),
+                ],
+              ),
+              h.label(
+                [
+                  ...attributes.label,
+                  h.Class('text-sm text-gray-700 select-none cursor-pointer'),
+                ],
+                ['I’m currently enrolled'],
+              ),
+            ],
+          ),
       }),
       ...(showGraduationYear ? [graduationYearField] : []),
       h.div(

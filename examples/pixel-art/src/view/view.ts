@@ -161,8 +161,6 @@ const contentView = (model: Model): Html => {
         model.gridSize,
         model.selectedColorIndex,
         isGridEmpty(model.grid),
-        model.mirrorHorizontalSwitch,
-        model.mirrorVerticalSwitch,
         theme,
         model.themeListbox,
       ]),

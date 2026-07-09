@@ -2,7 +2,7 @@ import { Array, Match as M, Option } from 'effect'
 import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import { Dialog, Listbox, Switch } from '@foldkit/ui'
+import { Dialog, Listbox } from '@foldkit/ui'
 
 import { ExportPng, saveCanvas } from './command'
 import { DEFAULT_COLOR_INDEX } from './constant'
@@ -18,12 +18,10 @@ import {
 import {
   GotErrorDialogMessage,
   GotGridSizeConfirmDialogMessage,
-  GotMirrorHorizontalSwitchMessage,
-  GotMirrorVerticalSwitchMessage,
   GotThemeListboxMessage,
   type Message,
 } from './message'
-import { type MirrorMode, type Model } from './model'
+import { type Model } from './model'
 import { PALETTE_THEMES } from './palette'
 import { ThemeListbox } from './view/toolbar'
 
@@ -132,17 +130,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           M.when('Both', () => 'Vertical' as const),
           M.exhaustive,
         )
-        const [nextMirrorHorizontalSwitch] = Switch.setChecked(
-          model.mirrorHorizontalSwitch,
-          !model.mirrorHorizontalSwitch.isChecked,
-        )
-        return [
-          evo(model, {
-            mirrorMode: () => nextMirrorMode,
-            mirrorHorizontalSwitch: () => nextMirrorHorizontalSwitch,
-          }),
-          [],
-        ]
+        return [evo(model, { mirrorMode: () => nextMirrorMode }), []]
       },
 
       ToggledMirrorVertical: () => {
@@ -153,17 +141,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           M.when('Both', () => 'Horizontal' as const),
           M.exhaustive,
         )
-        const [nextMirrorVerticalSwitch] = Switch.setChecked(
-          model.mirrorVerticalSwitch,
-          !model.mirrorVerticalSwitch.isChecked,
-        )
-        return [
-          evo(model, {
-            mirrorMode: () => nextMirrorMode,
-            mirrorVerticalSwitch: () => nextMirrorVerticalSwitch,
-          }),
-          [],
-        ]
+        return [evo(model, { mirrorMode: () => nextMirrorMode }), []]
       },
 
       ClickedUndo: () =>
@@ -306,58 +284,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             }),
           ),
         })
-      },
-
-      GotMirrorHorizontalSwitchMessage: ({ message }) => {
-        const [nextSwitch, switchCommands] = Switch.update(
-          model.mirrorHorizontalSwitch,
-          message,
-        )
-        const isHorizontal = nextSwitch.isChecked
-        const isVertical = model.mirrorVerticalSwitch.isChecked
-        const nextMirrorMode: MirrorMode =
-          isHorizontal && isVertical
-            ? 'Both'
-            : isHorizontal
-              ? 'Horizontal'
-              : isVertical
-                ? 'Vertical'
-                : 'None'
-        return [
-          evo(model, {
-            mirrorHorizontalSwitch: () => nextSwitch,
-            mirrorMode: () => nextMirrorMode,
-          }),
-          Command.mapMessages(switchCommands, switchMessage =>
-            GotMirrorHorizontalSwitchMessage({ message: switchMessage }),
-          ),
-        ]
-      },
-
-      GotMirrorVerticalSwitchMessage: ({ message }) => {
-        const [nextSwitch, switchCommands] = Switch.update(
-          model.mirrorVerticalSwitch,
-          message,
-        )
-        const isHorizontal = model.mirrorHorizontalSwitch.isChecked
-        const isVertical = nextSwitch.isChecked
-        const nextMirrorMode: MirrorMode =
-          isHorizontal && isVertical
-            ? 'Both'
-            : isHorizontal
-              ? 'Horizontal'
-              : isVertical
-                ? 'Vertical'
-                : 'None'
-        return [
-          evo(model, {
-            mirrorVerticalSwitch: () => nextSwitch,
-            mirrorMode: () => nextMirrorMode,
-          }),
-          Command.mapMessages(switchCommands, switchMessage =>
-            GotMirrorVerticalSwitchMessage({ message: switchMessage }),
-          ),
-        ]
       },
 
       GotThemeListboxMessage: ({ message }) => {

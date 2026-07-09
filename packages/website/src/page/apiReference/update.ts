@@ -2,15 +2,13 @@ import { Array, Match as M, Option, Record, pipe } from 'effect'
 import { AsyncData, Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import { Disclosure } from '@foldkit/ui'
-
 import { LoadApiData } from './command'
 import {
   SIGNATURE_COLLAPSE_THRESHOLD,
   scopedId,
   signaturesLength,
 } from './domain'
-import { GotDisclosureMessage, type Message, RequestedApiData } from './message'
+import { type Message, RequestedApiData } from './message'
 import {
   type ApiData,
   ApiDataAsyncData,
@@ -36,7 +34,7 @@ const disclosuresForApiData = (apiData: ApiData): Disclosures =>
         ),
         Array.map(apiFunction => {
           const id = scopedId('function', module.name, apiFunction.name)
-          return [id, Disclosure.init({ id })] as const
+          return [id, false] as const
         }),
       ),
     ),
@@ -71,26 +69,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
 
-      GotDisclosureMessage: ({ id, message }) =>
-        Option.match(Record.get(model.disclosures, id), {
-          onNone: () => [model, []],
-          onSome: disclosure => {
-            const [nextDisclosure, commands] = Disclosure.update(
-              disclosure,
-              message,
-            )
-
-            return [
-              evo(model, {
-                disclosures: disclosures =>
-                  Record.set(disclosures, id, nextDisclosure),
-              }),
-              Command.mapMessages(commands, message =>
-                GotDisclosureMessage({ id, message }),
-              ),
-            ]
-          },
+      ToggledSignatureDisclosure: ({ id, isOpen }) => [
+        evo(model, {
+          disclosures: disclosures => Record.set(disclosures, id, isOpen),
         }),
+        [],
+      ],
     }),
   )
 

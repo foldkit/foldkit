@@ -103,7 +103,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Checkbox',
     href: uiCheckboxRouter(),
-    kind: 'Submodel',
+    kind: 'Helper',
     category: 'Forms',
     description:
       'Toggle with accessible labeling, keyboard support, indeterminate state, and optional form integration.',
@@ -127,7 +127,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Switch',
     href: uiSwitchRouter(),
-    kind: 'Submodel',
+    kind: 'Helper',
     category: 'Forms',
     description:
       'On/off toggle with accessible labeling, keyboard support, and optional form integration.',
@@ -191,7 +191,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Disclosure',
     href: uiDisclosureRouter(),
-    kind: 'Submodel',
+    kind: 'Helper',
     category: 'Disclosure',
     description:
       'Show/hide toggle for building collapsible sections like FAQs and accordions.',
@@ -342,7 +342,7 @@ export const view = (): Html => {
       para(
         'Stateful ',
         link(coreSubmodelRouter(), 'Submodels'),
-        ' (Menu, Listbox, Combobox, Calendar, Disclosure, Dialog, Popover, and most others) manage their own Model, Message, update, and OutMessage. You embed them via h.submodel and handle their events by pattern-matching the OutMessage in your update.',
+        ' (Menu, Listbox, Combobox, Calendar, Dialog, Popover, and most others) manage their own Model, Message, update, and OutMessage. You embed them via h.submodel and handle their events by pattern-matching the OutMessage in your update.',
       ),
       para(
         'Stateless render helpers (Button, Input, Textarea, Select, Fieldset, Nav) are called directly with a ViewConfig and return Html. They bundle ARIA and data attributes onto consumer-rendered DOM. No Model, no Message, no h.submodel wiring. The “Kind” column in the table below marks which is which.',

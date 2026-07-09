@@ -132,7 +132,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'Names are verb-first imperatives: ',
         inlineCode('FetchWeather'),
         ', ',
-        inlineCode('FocusButton'),
+        inlineCode('FocusItems'),
         ', ',
         inlineCode('LockScroll'),
         '. Messages describe what happened (past tense), Command names are imperatives: instructions to the runtime.',

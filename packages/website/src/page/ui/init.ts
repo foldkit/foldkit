@@ -3,18 +3,15 @@ import { Calendar, Command } from 'foldkit'
 
 import {
   Animation,
-  Checkbox,
   Combobox,
   DatePicker,
   Dialog,
-  Disclosure,
   DragAndDrop,
   FileDrop,
   Listbox,
   Menu,
   Popover,
   Slider,
-  Switch,
   Tabs,
   Tooltip,
   Calendar as UiCalendar,
@@ -34,9 +31,7 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
     textareaDemoValue: '',
     fieldsetInputValue: '',
     fieldsetTextareaValue: '',
-    fieldsetCheckboxDemo: Checkbox.init({
-      id: 'fieldset-checkbox-demo',
-    }),
+    fieldsetCheckboxDemo: false,
     calendarBasicDemo: UiCalendar.init({
       id: 'calendar-basic-demo',
       today,
@@ -49,13 +44,9 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
       minDate: Calendar.subtractYears(today, 1),
       maxDate: Calendar.addYears(today, 1),
     }),
-    checkboxBasicDemo: Checkbox.init({ id: 'checkbox-basic-demo' }),
-    checkboxOptionADemo: Checkbox.init({
-      id: 'checkbox-option-a-demo',
-    }),
-    checkboxOptionBDemo: Checkbox.init({
-      id: 'checkbox-option-b-demo',
-    }),
+    checkboxBasicDemo: false,
+    checkboxOptionADemo: false,
+    checkboxOptionBDemo: false,
     comboboxDemo: Combobox.init({ id: 'combobox-demo' }),
     comboboxNullableDemo: Combobox.init({
       id: 'combobox-nullable-demo',
@@ -79,7 +70,7 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
       id: 'nested-dialog-parent-demo',
     }),
     nestedDialogChildDemo: Dialog.init({ id: 'nested-dialog-child-demo' }),
-    disclosureDemo: Disclosure.init({ id: 'disclosure-demo' }),
+    disclosureDemo: false,
     listboxDemo: Listbox.init({ id: 'listbox-demo' }),
     listboxMultiDemo: Listbox.Multi.init({
       id: 'listbox-multi-demo',
@@ -121,7 +112,7 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
       step: 0.05,
       initialValue: 0.5,
     }),
-    switchDemo: Switch.init({ id: 'switch-demo' }),
+    switchDemo: false,
     horizontalTabsDemo: Tabs.init({ id: 'horizontal-tabs-demo' }),
     verticalTabsDemo: Tabs.init({
       id: 'vertical-tabs-demo',
