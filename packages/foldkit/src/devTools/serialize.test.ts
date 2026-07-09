@@ -92,7 +92,7 @@ describe('toSerializedEntry', () => {
   const baseEntry: HistoryEntry = {
     tag: 'ClickedButton',
     message: { _tag: 'ClickedButton', label: 'Submit' },
-    commands: [{ name: 'SubmitForm' }],
+    commands: [{ name: 'SubmitForm', submodelPath: [] }],
     mountStarts: [],
     mountEnds: [],
     timestamp: 1700000000000,
@@ -108,7 +108,7 @@ describe('toSerializedEntry', () => {
     expect(result.index).toBe(7)
     expect(result.tag).toBe('ClickedButton')
     expect(result.commands).toEqual([
-      { name: 'SubmitForm', args: Option.none() },
+      { name: 'SubmitForm', args: Option.none(), submodelPath: [] },
     ])
     expect(result.timestamp).toBe(1700000000000)
     expect(result.isModelChanged).toBe(true)
@@ -118,14 +118,40 @@ describe('toSerializedEntry', () => {
     const entryWithArgs: HistoryEntry = {
       ...baseEntry,
       commands: [
-        { name: 'FetchWeather', args: { zipCode: '90210' } },
-        { name: 'LockScroll' },
+        { name: 'FetchWeather', args: { zipCode: '90210' }, submodelPath: [] },
+        { name: 'LockScroll', submodelPath: [] },
       ],
     }
     const result = toSerializedEntry(entryWithArgs, 0)
     expect(result.commands).toEqual([
-      { name: 'FetchWeather', args: Option.some({ zipCode: '90210' }) },
-      { name: 'LockScroll', args: Option.none() },
+      {
+        name: 'FetchWeather',
+        args: Option.some({ zipCode: '90210' }),
+        submodelPath: [],
+      },
+      { name: 'LockScroll', args: Option.none(), submodelPath: [] },
+    ])
+  })
+
+  it('serializes a Command submodelPath alongside the name', () => {
+    const entryWithSubmodelCommands: HistoryEntry = {
+      ...baseEntry,
+      commands: [
+        { name: 'SubmitForm', submodelPath: [] },
+        {
+          name: 'FetchWeather',
+          submodelPath: ['GotPanelMessage', 'GotEditorMessage'],
+        },
+      ],
+    }
+    const result = toSerializedEntry(entryWithSubmodelCommands, 0)
+    expect(result.commands).toEqual([
+      { name: 'SubmitForm', args: Option.none(), submodelPath: [] },
+      {
+        name: 'FetchWeather',
+        args: Option.none(),
+        submodelPath: ['GotPanelMessage', 'GotEditorMessage'],
+      },
     ])
   })
 

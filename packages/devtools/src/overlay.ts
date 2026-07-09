@@ -63,6 +63,7 @@ const SubmodelFilterListbox = Listbox.create<string>()
 const DisplayCommand = S.Struct({
   name: S.String,
   args: S.Option(S.Record(S.String, S.Unknown)),
+  submodelPath: S.Array(S.String),
 })
 
 const DisplayMount = S.Struct({
@@ -293,11 +294,24 @@ const computeSubmodelTags = (
     Array_.sort(Order.String),
   )
 
+const SUBMODEL_PATH_SEPARATOR = ' › '
+
+const submodelSegmentLabel = (tag: string): string =>
+  pipe(tag, String_.replace(/^Got/, ''), String_.replace(/Message$/, ''))
+
+const formatSubmodelPath = (submodelPath: ReadonlyArray<string>): string =>
+  pipe(
+    submodelPath,
+    Array_.map(submodelSegmentLabel),
+    Array_.join(SUBMODEL_PATH_SEPARATOR),
+  )
+
 const toDisplayCommand = (
   command: CommandRecord,
 ): typeof DisplayCommand.Type => ({
   name: command.name,
   args: Option.fromNullishOr(command.args),
+  submodelPath: command.submodelPath,
 })
 
 const toDisplayMount = (mount: MountRecord): typeof DisplayMount.Type => ({
@@ -1476,10 +1490,20 @@ const makeView = (
                 h.span([h.Class(indexClass)], [String(index + 1)]),
                 h.div(
                   [h.Class('flex flex-col flex-1 min-w-0')],
-                  Array_.map(
-                    flattenCommand(command, index, expandedPaths),
-                    renderFlatNode,
-                  ),
+                  [
+                    ...OptionExt.when(
+                      Array_.isReadonlyArrayNonEmpty(command.submodelPath),
+                      h.keyed('div')(
+                        'submodel-path',
+                        [h.Class('text-2xs text-dt-muted font-mono truncate')],
+                        [formatSubmodelPath(command.submodelPath)],
+                      ),
+                    ).pipe(Option.toArray),
+                    ...Array_.map(
+                      flattenCommand(command, index, expandedPaths),
+                      renderFlatNode,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1785,8 +1809,7 @@ const makeView = (
       ['Clear history'],
     )
 
-  const submodelLabel = (tag: string): string =>
-    pipe(tag, String_.replace(/^Got/, ''), String_.replace(/Message$/, ''))
+  const submodelLabel = submodelSegmentLabel
 
   const CHECK_ICON = 'M4.5 12.75l6 6 9-13.5'
 
