@@ -132,7 +132,6 @@ describe('update', () => {
         Story.Command.resolve(
           Listbox.FocusButton,
           Listbox.CompletedFocusButton(),
-          listboxMessage => GotDietListboxMessage({ message: listboxMessage }),
         ),
         Story.Command.expectHas(ReplaceFilters),
         Story.Command.resolve(ReplaceFilters, CompletedReplaceFilters()),

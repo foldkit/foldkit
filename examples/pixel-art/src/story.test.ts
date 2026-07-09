@@ -16,7 +16,6 @@ import {
   EnteredCell,
   FailedExportPng,
   GotErrorDialogMessage,
-  GotGridSizeConfirmDialogMessage,
   LeftCanvas,
   PressedCell,
   ReleasedMouse,
@@ -322,12 +321,7 @@ describe('grid size', () => {
       update,
       Story.with(paintedModel),
       Story.message(SelectedGridSize({ size: 8 })),
-      Story.Command.resolve(
-        Dialog.ShowDialog,
-        Dialog.CompletedShowDialog(),
-        dialogMessage =>
-          GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
-      ),
+      Story.Command.resolve(Dialog.ShowDialog, Dialog.CompletedShowDialog()),
       Story.model(model => {
         expect(model.maybePendingGridSize).toEqual(Option.some(8))
         expect(model.gridSizeConfirmDialog.isOpen).toBe(true)
@@ -351,12 +345,7 @@ describe('grid size', () => {
       update,
       Story.with(modelWithPending),
       Story.message(ConfirmedGridSizeChange()),
-      Story.Command.resolve(
-        Dialog.CloseDialog,
-        Dialog.CompletedCloseDialog(),
-        dialogMessage =>
-          GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
-      ),
+      Story.Command.resolve(Dialog.CloseDialog, Dialog.CompletedCloseDialog()),
       Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         expect(model.gridSize).toBe(8)
@@ -477,11 +466,7 @@ describe('export failure', () => {
       Story.message(
         FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Story.Command.resolve(
-        Dialog.ShowDialog,
-        Dialog.CompletedShowDialog(),
-        dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
-      ),
+      Story.Command.resolve(Dialog.ShowDialog, Dialog.CompletedShowDialog()),
       Story.model(model => {
         expect(model.maybeExportError).toEqual(
           Option.some('Canvas 2D context not available'),
@@ -498,19 +483,11 @@ describe('export failure', () => {
       Story.message(
         FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Story.Command.resolve(
-        Dialog.ShowDialog,
-        Dialog.CompletedShowDialog(),
-        dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
-      ),
+      Story.Command.resolve(Dialog.ShowDialog, Dialog.CompletedShowDialog()),
       Story.message(
         GotErrorDialogMessage({ message: Dialog.RequestedClose() }),
       ),
-      Story.Command.resolve(
-        Dialog.CloseDialog,
-        Dialog.CompletedCloseDialog(),
-        dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
-      ),
+      Story.Command.resolve(Dialog.CloseDialog, Dialog.CompletedCloseDialog()),
       Story.model(model => {
         expect(model.maybeExportError).toEqual(Option.none())
         expect(model.errorDialog.isOpen).toBe(false)

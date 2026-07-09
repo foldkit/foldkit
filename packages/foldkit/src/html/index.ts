@@ -32,6 +32,7 @@ import {
   type DispatchSync,
   type UnmountResolver,
   clearRuntime,
+  requireBoundaryMappers,
   requireDispatch,
   requireRuntimeContext,
   requireUnmountResolver,
@@ -395,11 +396,16 @@ export const __endReplayRender = (): void => {
 export const FOLDKIT_MOUNT_KEY = 'foldkitMount' as const
 
 /** Marker stamped on `VNodeData[FOLDKIT_MOUNT_KEY]` for any element with an
- *  `OnMount` attribute. Carries the Mount Definition's name so test
- *  introspection can identify pending mounts. */
+ *  `OnMount` attribute. Carries the Mount Definition's name (and args) so test
+ *  introspection can identify pending mounts. When the mount lives inside a
+ *  Submodel boundary, it also carries that boundary's `toParentMessage` chain
+ *  (innermost first), snapshotted at render time, so `Scene.Mount.resolve` can
+ *  replay the lift the result travels through in production. The chain is read
+ *  only by the Scene harness; production dispatch lifts via `ctx.dispatch`. */
 export type FoldkitMountMarker = Readonly<{
   name: string
   args?: Record<string, unknown>
+  messageMappers?: ReadonlyArray<(message: unknown) => unknown>
 }>
 
 /** Union of all HTML, SVG, and MathML attributes a virtual DOM element can carry.
@@ -1105,6 +1111,7 @@ type BuildContext = Readonly<{
   postpatchProps: Array<Readonly<{ propName: string; value: unknown }>>
   dispatch: DispatchSync
   resolveUnmount: UnmountResolver
+  boundaryMappers: ReadonlyArray<(message: unknown) => unknown>
   getCapturedContext: () => Context.Context<never>
 }>
 
@@ -2672,10 +2679,16 @@ const attributeMatcher: (
         const notifyEnded = Option.isSome(maybeTracker)
           ? () => maybeTracker.value.ended(action.name, action.args)
           : Function.constVoid
-        const marker: FoldkitMountMarker =
+        const markerWithArgs: FoldkitMountMarker =
           action.args === undefined
             ? { name: action.name }
             : { name: action.name, args: action.args }
+        const boundaryLift = ctx.boundaryMappers
+        const marker: FoldkitMountMarker = Array.isReadonlyArrayEmpty(
+          boundaryLift,
+        )
+          ? markerWithArgs
+          : { ...markerWithArgs, messageMappers: boundaryLift }
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
         ;(ctx.data as Record<string, unknown>)[FOLDKIT_MOUNT_KEY] = marker
         const existingDestroy = ctx.data.hook?.destroy
@@ -2823,6 +2836,7 @@ const buildVNodeData = <Message>(
           postpatchProps,
           dispatch: item.dispatch,
           resolveUnmount: item.resolveUnmount,
+          boundaryMappers: item.boundaryMappers,
           getCapturedContext,
         }
         boundaryCtxByDispatch.set(item.dispatch, ctx)
@@ -2836,6 +2850,7 @@ const buildVNodeData = <Message>(
           postpatchProps,
           dispatch: getCurrentDispatch(),
           resolveUnmount: getCurrentUnmountResolver(),
+          boundaryMappers: requireBoundaryMappers(),
           getCapturedContext,
         }
       }

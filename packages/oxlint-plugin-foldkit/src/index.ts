@@ -25,7 +25,7 @@ import { requireRelForExternalLink } from './rules/require-rel-for-external-link
 import { selectionSubmodelFactoryAtModuleScope } from './rules/selection-submodel-factory-at-module-scope.ts'
 import { wrapChildOutputInGotMessage } from './rules/wrap-child-output-in-got-message.ts'
 
-export default Plugin.define({
+const basePlugin = Plugin.define({
   name: 'foldkit',
   specifier: '@foldkit/oxlint-plugin',
   rules: {
@@ -56,3 +56,40 @@ export default Plugin.define({
     'wrap-child-output-in-got-message': wrapChildOutputInGotMessage,
   },
 })
+
+type OverriddenConfig = Plugin.OxlintConfig & {
+  overrides: Array<{
+    files: Array<string>
+    rules: Record<string, Plugin.RuleSeverity>
+  }>
+}
+
+const testFilePatterns = ['**/*.test.ts', '**/*.test.tsx']
+
+// Foldkit rules police application definitions. Tests exercise those
+// definitions rather than write them, so the rules are inert at best and
+// invert at worst (a test may legitimately hardcode a route or hand-roll a
+// Command struct). Scope every foldkit rule off in test files by default; a
+// rule that wants test coverage opts in explicitly.
+const withTestOverride = (config: Plugin.OxlintConfig): OverriddenConfig => ({
+  ...config,
+  overrides: [
+    {
+      files: testFilePatterns,
+      rules: Object.fromEntries(
+        Object.keys(config.rules).map((id): [string, Plugin.RuleSeverity] => [
+          id,
+          'off',
+        ]),
+      ),
+    },
+  ],
+})
+
+export default {
+  ...basePlugin,
+  configs: {
+    recommended: withTestOverride(basePlugin.configs.recommended),
+    all: withTestOverride(basePlugin.configs.all),
+  },
+}

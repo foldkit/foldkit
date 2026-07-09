@@ -303,6 +303,36 @@ export const resolveBoundaryDispatchThunk = (
   return () => outerDispatch(rootMessage)
 }
 
+/** Collects the `toParentMessage` wrapping chain for `boundaryId`, innermost
+ *  ancestor first, against the wraps present right now. Folding the returned
+ *  functions left-to-right over a child message reproduces exactly what
+ *  {@link dispatchAcrossBoundary} dispatches, without dispatching. Returns an
+ *  empty array at the root boundary. Used by `OnMount` to snapshot a
+ *  Submodel-embedded mount's lift eagerly so the Scene test harness can replay
+ *  it when the mount is resolved. Throws when an ancestor wrap is missing
+ *  (boundary alive at call time), matching {@link dispatchAcrossBoundary}. */
+export const boundaryMappers = (
+  registry: BoundaryRegistry,
+  boundaryId: BoundaryId,
+): ReadonlyArray<(message: unknown) => unknown> => {
+  const parts = splitBoundary(boundaryId)
+  const mappers: Array<(message: unknown) => unknown> = []
+  for (let depth = parts.length; depth > 0; depth--) {
+    const ancestorBoundary = parts.slice(0, depth).join(BOUNDARY_SEPARATOR)
+    const descriptor = registry.wraps.get(ancestorBoundary)
+    if (descriptor === undefined) {
+      throw new Error(
+        `Foldkit: boundaryMappers missing wrap for ancestor ` +
+          `"${ancestorBoundary}" of boundary "${boundaryId}" while snapshotting ` +
+          `an OnMount lift. The Submodel's wrap was absent from the registry ` +
+          `during render, which should not happen for a live boundary.`,
+      )
+    }
+    mappers.push(descriptor.toParentMessage)
+  }
+  return mappers
+}
+
 export const getOrCreateBoundaryDispatch = (
   registry: BoundaryRegistry,
   outerDispatch: DispatchSync,

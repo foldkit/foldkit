@@ -45,9 +45,6 @@ import type { Model, ViewInputs } from './single.js'
 const TestCombobox = create<string>()
 const view = TestCombobox.view
 
-const animationToComboboxMessage = (message: Animation.Message) =>
-  GotAnimationMessage({ message })
-
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorCombobox,
   CompletedAnchorCombobox(),
@@ -74,16 +71,8 @@ const withOpenAnimated = flow(
   withClosedAnimated,
   Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
   Story.Command.resolveAll(
-    [
-      Animation.RequestFrame,
-      Animation.AdvancedAnimationFrame(),
-      animationToComboboxMessage,
-    ],
-    [
-      Animation.WaitForAnimationSettled,
-      Animation.EndedAnimation(),
-      animationToComboboxMessage,
-    ],
+    [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+    [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
   ),
 )
 
@@ -664,16 +653,8 @@ describe('Combobox', () => {
             }),
             Story.Command.expectHas(Animation.RequestFrame),
             Story.Command.resolveAll(
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToComboboxMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToComboboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
             ),
           )
         })
@@ -686,7 +667,6 @@ describe('Combobox', () => {
             Story.Command.resolve(
               Animation.RequestFrame,
               Animation.AdvancedAnimationFrame(),
-              animationToComboboxMessage,
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('EnterAnimating')
@@ -694,7 +674,6 @@ describe('Combobox', () => {
             Story.Command.resolveAll([
               Animation.WaitForAnimationSettled,
               Animation.EndedAnimation(),
-              animationToComboboxMessage,
             ]),
           )
         })
@@ -705,16 +684,8 @@ describe('Combobox', () => {
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.Command.resolveAll(
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToComboboxMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToComboboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -735,11 +706,7 @@ describe('Combobox', () => {
             }),
             Story.Command.resolveAll(
               [FocusInput, CompletedFocusInput()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToComboboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
@@ -755,11 +722,7 @@ describe('Combobox', () => {
               expect(model.animation.transitionState).toBe('LeaveStart')
             }),
             Story.Command.resolveAll(
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToComboboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
@@ -778,11 +741,7 @@ describe('Combobox', () => {
             }),
             Story.Command.resolveAll(
               [FocusInput, CompletedFocusInput()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToComboboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
@@ -796,7 +755,6 @@ describe('Combobox', () => {
             Story.Command.resolve(
               Animation.RequestFrame,
               Animation.AdvancedAnimationFrame(),
-              animationToComboboxMessage,
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('LeaveAnimating')
@@ -816,11 +774,7 @@ describe('Combobox', () => {
             Story.message(Closed()),
             Story.Command.resolveAll(
               [FocusInput, CompletedFocusInput()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToComboboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
             Story.model(model => {
@@ -892,16 +846,8 @@ describe('Combobox', () => {
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.Command.resolveAll(
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToComboboxMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToComboboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
             ),
             Story.message(Closed()),
             Story.model(model => {
@@ -910,11 +856,7 @@ describe('Combobox', () => {
             }),
             Story.Command.resolveAll(
               [FocusInput, CompletedFocusInput()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToComboboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )

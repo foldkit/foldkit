@@ -90,13 +90,11 @@ const withInitial = Story.with(initialModel)
 const resolveFocusTab = Story.Command.resolve(
   Tabs.FocusTab,
   Tabs.CompletedFocusTab(),
-  message => GotStepTabsMessage({ message }),
 )
 
 const resolveFocusMenuButton = Story.Command.resolve(
   Menu.FocusButton,
   Menu.CompletedFocusButton(),
-  message => GotStepMenuMessage({ message }),
 )
 
 describe('update', () => {
@@ -261,7 +259,6 @@ describe('update', () => {
             validationId: 1,
             field: Valid({ value: 'jane@example.com' }),
           }),
-          message => GotPersonalInfoMessage({ message }),
         ),
         Story.model(model => {
           expect(model.personalInfo.email._tag).toBe('Valid')

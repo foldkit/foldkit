@@ -9,6 +9,8 @@ coverage
 !/.claude/commands/
 !/.claude/settings.json
 packages/website/src/generated/
+packages/oxlint-plugin-foldkit/recommended.json
+packages/oxlint-plugin-foldkit/all.json
 .playwright-mcp/
 playwright-report/
 test-results/

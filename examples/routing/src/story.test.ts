@@ -48,7 +48,6 @@ const resolveFetch = (searchText: string) =>
       query: searchText,
       people: People.searchPeople(searchText),
     }),
-    message => GotPeopleMessage({ message }),
   )
 
 describe('update', () => {
@@ -238,7 +237,6 @@ describe('update', () => {
         Story.Command.resolve(
           People.PushSearchUrl,
           People.CompletedPushSearchUrl(),
-          message => GotPeopleMessage({ message }),
         ),
       )
     })

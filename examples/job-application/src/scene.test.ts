@@ -4,7 +4,6 @@ import { describe, test } from 'vitest'
 
 import { Menu, Tabs } from '@foldkit/ui'
 
-import { GotStepTabsMessage } from './message'
 import {
   type Model,
   NotSubmitted,
@@ -77,7 +76,6 @@ const completeModel: Model = {
 const resolveFocusTab = Scene.Command.resolve(
   Tabs.FocusTab,
   Tabs.CompletedFocusTab(),
-  message => GotStepTabsMessage({ message }),
 )
 
 describe('view', () => {

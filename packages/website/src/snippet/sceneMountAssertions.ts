@@ -27,10 +27,6 @@ Scene.Mount.expectNone()
 // The scene throws at the end for any unacknowledged unmount.
 Scene.Mount.expectEnded(Popover.AnchorPopover)
 
-// Submodel lift. When the mount lives inside a child component, lift its
-// result Message into the parent's universe (mirrors Scene.Command.resolve).
-Scene.Mount.resolve(
-  Popover.AnchorPopover,
-  Popover.CompletedAnchorPopover(),
-  message => GotPopoverMessage({ message }),
-)
+// When the mount lives inside a child Submodel, resolve replays the
+// Submodel boundary's own lift, so you pass the child's raw result Message.
+Scene.Mount.resolve(Popover.AnchorPopover, Popover.CompletedAnchorPopover())

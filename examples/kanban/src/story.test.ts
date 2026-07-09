@@ -277,7 +277,6 @@ describe('update', () => {
         Story.Command.resolve(
           DragAndDrop.FocusItem,
           DragAndDrop.CompletedFocusItem(),
-          message => GotDragAndDropMessage({ message }),
         ),
         Story.Command.resolve(SaveBoard, CompletedSaveBoard()),
         Story.model(model => {
@@ -318,7 +317,6 @@ describe('update', () => {
         Story.Command.resolve(
           DragAndDrop.FocusItem,
           DragAndDrop.CompletedFocusItem(),
-          message => GotDragAndDropMessage({ message }),
         ),
         Story.Command.resolve(SaveBoard, CompletedSaveBoard()),
         Story.model(model => {
@@ -355,7 +353,6 @@ describe('update', () => {
         Story.Command.resolve(
           DragAndDrop.FocusItem,
           DragAndDrop.CompletedFocusItem(),
-          message => GotDragAndDropMessage({ message }),
         ),
         Story.model(model => {
           expect(model.columns).toStrictEqual(emptyModel.columns)

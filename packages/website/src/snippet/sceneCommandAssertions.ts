@@ -25,10 +25,10 @@ Scene.Command.expectHas(FetchWeather({ zipCode: '90210' }))
 // Negative assertion. Useful before a transition that should produce no Commands.
 Scene.Command.expectNone()
 
-// Submodel lift. When the Command lives in a child component, lift its
-// result Message into the parent's universe (mirrors Scene.Mount.resolve).
+// Submodel Command. When the Command lives in a child component, resolve it
+// with the child's raw result Message. resolve replays the Command's own
+// mapMessages wrapping automatically, so you never restate the lift.
 Scene.Command.resolve(
   Search.FetchSuggestions,
   Search.SucceededFetchSuggestions({ suggestions }),
-  message => GotSearchMessage({ message }),
 )

@@ -77,7 +77,7 @@ type InternalStorySimulation<
       model: Model,
       message: Message,
     ) => UpdateResult<Model, OutMessage>
-    resolvers: ReadonlyArray<ResolverEntry<Message>>
+    resolvers: ReadonlyArray<ResolverEntry>
   }>
 
 const toInternal = <Model, Message, OutMessage>(
@@ -147,45 +147,24 @@ const resolveCommand: {
   ): <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
   ) => StorySimulation<Model, Message, OutMessage>
-  <Name extends string, ResultMessage, ParentMessage>(
-    definition: CommandDefinition<Name, ResultMessage>,
-    resultMessage: ResultMessage,
-    toParentMessage: (message: ResultMessage) => ParentMessage,
-  ): <Model, Message, OutMessage = undefined>(
-    simulation: StorySimulation<Model, Message, OutMessage>,
-  ) => StorySimulation<Model, Message, OutMessage>
   <ResultMessage>(
     instance: AnyCommandInstance<ResultMessage>,
     resultMessage: ResultMessage,
-  ): <Model, Message, OutMessage = undefined>(
-    simulation: StorySimulation<Model, Message, OutMessage>,
-  ) => StorySimulation<Model, Message, OutMessage>
-  <ResultMessage, ParentMessage>(
-    instance: AnyCommandInstance<ResultMessage>,
-    resultMessage: ResultMessage,
-    toParentMessage: (message: ResultMessage) => ParentMessage,
   ): <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
   ) => StorySimulation<Model, Message, OutMessage>
 } =
-  <ResultMessage>(
-    matcher: CommandMatcher,
-    resultMessage: ResultMessage,
-    toParentMessage?: (message: ResultMessage) => unknown,
-  ) =>
+  <ResultMessage>(matcher: CommandMatcher, resultMessage: ResultMessage) =>
   <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
   ): StorySimulation<Model, Message, OutMessage> => {
     /* eslint-disable @typescript-eslint/consistent-type-assertions */
     const internal = toInternal(simulation)
     assertResolveUnambiguous(internal.commands, matcher)
-    const messageForUpdate = (Predicate.isUndefined(toParentMessage)
-      ? resultMessage
-      : toParentMessage(resultMessage)) as unknown as Message
     const next = resolveByMatcher(
       internal as BaseInternal<Model, Message, unknown>,
       matcher,
-      messageForUpdate,
+      resultMessage,
     )
 
     if (Predicate.isUndefined(next)) {

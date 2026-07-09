@@ -213,7 +213,7 @@ type InternalSceneSimulation<
       model: Model,
       message: Message,
     ) => UpdateResult<Model, OutMessage>
-    resolvers: ReadonlyArray<ResolverEntry<Message>>
+    resolvers: ReadonlyArray<ResolverEntry>
     viewFn: (model: Model) => Html | Document
     capturingDispatch: CapturingDispatch
     scope: Option.Option<Locator>
@@ -243,10 +243,14 @@ const collectRenderedSlots = (vnode: VNode): ReadonlyArray<PendingMount> => {
     if (marker !== undefined) {
       const occurrence = counts.get(marker.name) ?? 0
       counts.set(marker.name, occurrence + 1)
-      slots.push(
+      const slotWithArgs: PendingMount =
         marker.args === undefined
           ? { name: marker.name, occurrence }
-          : { name: marker.name, args: marker.args, occurrence },
+          : { name: marker.name, args: marker.args, occurrence }
+      slots.push(
+        marker.messageMappers === undefined
+          ? slotWithArgs
+          : { ...slotWithArgs, messageMappers: marker.messageMappers },
       )
     }
     for (const child of node.children ?? []) {
@@ -638,45 +642,24 @@ const resolveCommand: {
   ): <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ) => SceneSimulation<Model, Message, OutMessage>
-  <Name extends string, ResultMessage, ParentMessage>(
-    definition: CommandDefinition<Name, ResultMessage>,
-    resultMessage: ResultMessage,
-    toParentMessage: (message: ResultMessage) => ParentMessage,
-  ): <Model, Message, OutMessage = undefined>(
-    simulation: SceneSimulation<Model, Message, OutMessage>,
-  ) => SceneSimulation<Model, Message, OutMessage>
   <ResultMessage>(
     instance: SceneCommandInstance<ResultMessage>,
     resultMessage: ResultMessage,
-  ): <Model, Message, OutMessage = undefined>(
-    simulation: SceneSimulation<Model, Message, OutMessage>,
-  ) => SceneSimulation<Model, Message, OutMessage>
-  <ResultMessage, ParentMessage>(
-    instance: SceneCommandInstance<ResultMessage>,
-    resultMessage: ResultMessage,
-    toParentMessage: (message: ResultMessage) => ParentMessage,
   ): <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ) => SceneSimulation<Model, Message, OutMessage>
 } =
-  <ResultMessage>(
-    matcher: CommandMatcher,
-    resultMessage: ResultMessage,
-    toParentMessage?: (message: ResultMessage) => unknown,
-  ) =>
+  <ResultMessage>(matcher: CommandMatcher, resultMessage: ResultMessage) =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ): SceneSimulation<Model, Message, OutMessage> => {
     /* eslint-disable @typescript-eslint/consistent-type-assertions */
     const internal = toInternal(simulation)
     assertResolveUnambiguous(internal.commands, matcher)
-    const messageForUpdate = (Predicate.isUndefined(toParentMessage)
-      ? resultMessage
-      : toParentMessage(resultMessage)) as unknown as Message
     const next = resolveByMatcher(
       internal as BaseInternal<Model, Message, unknown>,
       matcher,
-      messageForUpdate,
+      resultMessage,
     )
 
     if (Predicate.isUndefined(next)) {
@@ -759,8 +742,9 @@ const expectNoCommandsStep =
  *  either a Mount Definition (matches by name) or a Mount instance produced
  *  by calling a Definition (matches by name + structural-equal args). The
  *  first pending mount that matches is resolved. Mirrors `resolve` for
- *  Commands; the optional `toParentMessage` lifter matches `Mount.mapMessage`
- *  when a child Submodel mount is observed in a parent's view. */
+ *  Commands: when the mount lives inside a Submodel, the boundary's own
+ *  `toParentMessage` lift (snapshotted at render time) is applied to
+ *  `resultMessage`, so pass the child's raw lifecycle result Message. */
 const resolveMount: {
   <Name extends string, ResultMessage>(
     matcher: MountDefinition<Name, ResultMessage> | AnyMount,
@@ -768,32 +752,21 @@ const resolveMount: {
   ): <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ) => SceneSimulation<Model, Message, OutMessage>
-  <Name extends string, ResultMessage, ParentMessage>(
-    matcher: MountDefinition<Name, ResultMessage> | AnyMount,
-    resultMessage: ResultMessage,
-    toParentMessage: (message: ResultMessage) => ParentMessage,
-  ): <Model, Message, OutMessage = undefined>(
-    simulation: SceneSimulation<Model, Message, OutMessage>,
-  ) => SceneSimulation<Model, Message, OutMessage>
 } =
   <Name extends string, ResultMessage>(
     matcher: MountDefinition<Name, ResultMessage> | AnyMount,
     resultMessage: ResultMessage,
-    toParentMessage?: (message: ResultMessage) => unknown,
   ) =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ): SceneSimulation<Model, Message, OutMessage> => {
     /* eslint-disable @typescript-eslint/consistent-type-assertions */
     const internal = toInternal(simulation)
-    const messageForUpdate = (Predicate.isUndefined(toParentMessage)
-      ? resultMessage
-      : toParentMessage(resultMessage)) as unknown as Message
     const next = resolveMountByMatcher(
       internal as BaseInternal<Model, Message, unknown>,
       internal.mounts,
       matcher,
-      messageForUpdate,
+      resultMessage,
     )
 
     if (Predicate.isUndefined(next)) {
@@ -840,17 +813,9 @@ const resolveAllMounts =
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ): SceneSimulation<Model, Message, OutMessage> =>
-    Array.reduce(resolvers, simulation, (current, resolver) => {
-      const [matcher, resultMessage] = resolver
-      const lift =
-        resolver.length === 3
-          ? /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            (resolver[2] as (message: unknown) => unknown)
-          : undefined
-      return Predicate.isUndefined(lift)
-        ? resolveMount(matcher, resultMessage)(current)
-        : resolveMount(matcher, resultMessage, lift)(current)
-    })
+    Array.reduce(resolvers, simulation, (current, [matcher, resultMessage]) =>
+      resolveMount(matcher, resultMessage)(current),
+    )
 
 /** Asserts that every given Mount is among the pending Mounts. Accepts Mount
  *  Definitions (match by name) and Mount instances (match by name + args). */

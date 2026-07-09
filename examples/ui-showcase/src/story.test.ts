@@ -5,9 +5,8 @@ import { describe, expect, test } from 'vitest'
 
 import { Dialog } from '@foldkit/ui'
 
-import { ChangedUrl, GotUiMessage, HomeRoute, type Model, update } from './main'
+import { ChangedUrl, HomeRoute, type Model, update } from './main'
 import { uiInit } from './ui/init'
-import { GotMobileMenuDialogMessage } from './ui/message'
 
 const today = Calendar.make(2026, 4, 16)
 const [initialUiModel] = uiInit(today)
@@ -115,10 +114,6 @@ describe('update', () => {
         Story.Command.resolve(
           Dialog.CloseDialog,
           Dialog.CompletedCloseDialog(),
-          dialogMessage =>
-            GotUiMessage({
-              message: GotMobileMenuDialogMessage({ message: dialogMessage }),
-            }),
         ),
         Story.model(model => {
           expect(model.uiModel.mobileMenuDialog.isOpen).toBe(false)

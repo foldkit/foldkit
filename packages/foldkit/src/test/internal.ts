@@ -10,10 +10,17 @@ import { type MountDefinition, MountDefinitionTypeId } from '../mount/index.js'
  *  the runtime captured at construction. Instance matchers (Command values
  *  produced by calling a Definition) are matched against this shape; the
  *  `effect` field on a real Command is irrelevant for matching, so we only
- *  retain `name + args`. */
+ *  retain `name + args`.
+ *
+ *  `messageMappers` is the Command's message-mapping chain (from
+ *  `Command.mapMessage`/`mapMessages`). It rides along on pending Commands so
+ *  `resolve` can apply the parent's wrapping to a substitute result Message
+ *  without the test restating it. Absent on synthetic matchers built for
+ *  formatting; treated as empty then. */
 export type AnyCommand = Readonly<{
   name: string
   args?: Record<string, unknown>
+  messageMappers?: ReadonlyArray<(message: unknown) => unknown>
 }>
 
 /** Pattern for matching a Command in test assertions. A Definition matches
@@ -70,6 +77,7 @@ export type PendingMount = Readonly<{
   name: string
   args?: Record<string, unknown>
   occurrence: number
+  messageMappers?: ReadonlyArray<(message: unknown) => unknown>
 }>
 
 /** A Mount lifecycle event in a test simulation. Carries `name` and
@@ -115,34 +123,36 @@ type UpdateResult<Model, OutMessage> =
   | readonly [Model, ReadonlyArray<AnyCommand>]
   | readonly [Model, ReadonlyArray<AnyCommand>, OutMessage]
 
-/** A Command matcher (Definition or Instance) with the result Message to
- *  resolve a pending Command with. Definition matchers resolve by name; an
- *  Instance matcher resolves only the pending Command whose name AND args
- *  match. */
-export type Resolver<ResultMessage = unknown> =
-  | readonly [CommandMatcher, ResultMessage]
-  | readonly [
-      CommandMatcher,
-      ResultMessage,
-      (message: ResultMessage) => unknown,
-    ]
+/** A Command matcher (Definition or Instance) paired with the raw result
+ *  Message to resolve a pending Command with. Definition matchers resolve by
+ *  name; an Instance matcher resolves only the pending Command whose name AND
+ *  args match. The matched Command's own message-mapping chain is applied to
+ *  the result, so pass the child's raw result Message, not a parent-wrapped
+ *  one. */
+export type Resolver<ResultMessage = unknown> = readonly [
+  CommandMatcher,
+  ResultMessage,
+]
 
-/** A Mount matcher (Definition or Instance) with the result Message to
- *  resolve it with. Mirrors `Resolver` for Commands. The optional third
- *  element lifts a child Mount result into the parent's Message universe
- *  (mirrors `Mount.mapMessage`). */
-export type MountResolver<ResultMessage = unknown> =
-  | readonly [MountMatcher, ResultMessage]
-  | readonly [MountMatcher, ResultMessage, (message: ResultMessage) => unknown]
+/** A Mount matcher (Definition or Instance) paired with the raw result Message
+ *  to resolve it with. Mirrors `Resolver` for Commands. When the mount lives
+ *  inside a Submodel, the boundary's own `toParentMessage` chain (snapshotted at
+ *  render time) is applied to the result, so pass the child's raw result
+ *  Message, not a parent-wrapped one. */
+export type MountResolver<ResultMessage = unknown> = readonly [
+  MountMatcher,
+  ResultMessage,
+]
 
-/** A resolver entry pairs a Command matcher with the Message that should be
- *  fed back through update when a pending Command matches. Stored as a list
- *  (not a name-keyed map) so Instance matchers with the same name but
- *  different args can coexist. Each entry is consumed on its first matching
- *  dispatch. */
-export type ResolverEntry<Message> = Readonly<{
+/** A resolver entry pairs a Command matcher with the raw result Message that
+ *  should be fed back through update when a pending Command matches. The
+ *  matched Command's own message-mapping chain is applied to the result at
+ *  resolve time. Stored as a list (not a name-keyed map) so Instance matchers
+ *  with the same name but different args can coexist. Each entry is consumed on
+ *  its first matching dispatch. */
+export type ResolverEntry = Readonly<{
   matcher: CommandMatcher
-  message: Message
+  resultMessage: unknown
 }>
 
 /** Base shape of an internal simulation — shared between Story and Scene. */
@@ -152,42 +162,69 @@ export type BaseInternal<Model, Message, OutMessage = undefined> = Readonly<{
   commands: ReadonlyArray<AnyCommand>
   outMessage: OutMessage
   updateFn: (model: Model, message: Message) => UpdateResult<Model, OutMessage>
-  resolvers: ReadonlyArray<ResolverEntry<Message>>
+  resolvers: ReadonlyArray<ResolverEntry>
 }>
 
-/** Resolves the first pending Command that matches the given matcher and
- *  feeds its result through update. Returns `undefined` when no pending
- *  Command matches. Definition matchers match by name; Instance matchers
- *  match by name + args. */
+/** Folds a recorded message-mapping chain over `resultMessage`, reproducing the
+ *  wrapping a resolved Command or mounted child's result travels through in
+ *  production: the parent's `Command.mapMessages` for a Command, or the
+ *  Submodel-boundary lift for a mount. A root or scene test can then resolve
+ *  with the child's raw result. An absent chain is the identity. */
+const foldMessageMappers = (
+  messageMappers: ReadonlyArray<(message: unknown) => unknown> | undefined,
+  resultMessage: unknown,
+): unknown =>
+  Array.reduce(messageMappers ?? [], resultMessage, (current, mapper) =>
+    mapper(current),
+  )
+
+/** Resolves the first pending Command that matches the given matcher and feeds
+ *  its result through update, applying the matched Command's own message-mapping
+ *  chain to `resultMessage` first. Returns `undefined` when no pending Command
+ *  matches. Definition matchers match by name; Instance matchers match by
+ *  name + args. */
 export const resolveByMatcher = <Model, Message>(
   internal: BaseInternal<Model, Message, unknown>,
   matcher: CommandMatcher,
-  resolverMessage: Message,
+  resultMessage: unknown,
 ): BaseInternal<Model, Message, unknown> | undefined =>
   pipe(
     internal.commands,
     Array.findFirstIndex(command => commandMatches(matcher, command)),
-    Option.match({
-      onNone: () => undefined,
-      onSome: commandIndex => {
-        const remainingCommands = Array.remove(internal.commands, commandIndex)
-        const [nextModel, newCommands, ...rest] = internal.updateFn(
-          internal.model,
-          resolverMessage,
-        )
-        const outMessage = Array.isReadonlyArrayNonEmpty(rest)
-          ? rest[0]
-          : internal.outMessage
+    Option.flatMap(commandIndex =>
+      pipe(
+        internal.commands,
+        Array.get(commandIndex),
+        Option.map(matchedCommand => {
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          const resolverMessage = foldMessageMappers(
+            matchedCommand.messageMappers,
+            resultMessage,
+          ) as Message
+          const remainingCommands = Array.remove(
+            internal.commands,
+            commandIndex,
+          )
+          const [nextModel, newCommands, ...rest] = internal.updateFn(
+            internal.model,
+            resolverMessage,
+          )
+          const outMessage = Array.matchLeft(rest, {
+            onEmpty: () => internal.outMessage,
+            onNonEmpty: firstOutMessage => firstOutMessage,
+          })
 
-        return {
-          ...internal,
-          model: nextModel,
-          message: resolverMessage,
-          commands: Array.appendAll(remainingCommands, newCommands),
-          outMessage,
-        }
-      },
-    }),
+          return {
+            ...internal,
+            model: nextModel,
+            message: resolverMessage,
+            commands: Array.appendAll(remainingCommands, newCommands),
+            outMessage,
+          }
+        }),
+      ),
+    ),
+    Option.getOrUndefined,
   )
 
 const MAX_CASCADE_DEPTH = 100
@@ -208,16 +245,9 @@ export const resolveAllInternal = <Model, Message, OutMessage>(
   internal: BaseInternal<Model, Message, OutMessage>,
   resolvers: ReadonlyArray<Resolver>,
 ): BaseInternal<Model, Message, OutMessage> => {
-  const newEntries: ReadonlyArray<ResolverEntry<Message>> = Array.map(
+  const newEntries: ReadonlyArray<ResolverEntry> = Array.map(
     resolvers,
-    resolver => {
-      const [matcher, resultMessage] = resolver
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      const message = (
-        resolver.length === 3 ? resolver[2](resultMessage) : resultMessage
-      ) as Message
-      return { matcher, message }
-    },
+    ([matcher, resultMessage]) => ({ matcher, resultMessage }),
   )
 
   const newFingerprints = new Set(
@@ -236,7 +266,7 @@ export const resolveAllInternal = <Model, Message, OutMessage>(
 
   const findNextMatch = (
     state: BaseInternal<Model, Message, unknown>,
-  ): Option.Option<{ entry: ResolverEntry<Message>; resolverIndex: number }> =>
+  ): Option.Option<{ entry: ResolverEntry; resolverIndex: number }> =>
     Array.findFirst(state.commands, command =>
       pipe(
         state.resolvers,
@@ -261,7 +291,7 @@ export const resolveAllInternal = <Model, Message, OutMessage>(
     const next = resolveByMatcher(
       current,
       matched.value.entry.matcher,
-      matched.value.entry.message,
+      matched.value.entry.resultMessage,
     )
 
     if (Predicate.isUndefined(next)) {
@@ -462,14 +492,15 @@ export const formatMountList = (mounts: ReadonlyArray<PendingMount>): string =>
   })
 
 /** Resolves the first pending Mount that matches the given matcher and feeds
- *  its result through update. Returns `undefined` when no pending Mount
+ *  its result through update, folding the matched Mount's Submodel-boundary
+ *  chain over `resultMessage` first. Returns `undefined` when no pending Mount
  *  matches. Definition matchers match by name; Instance matchers match by
  *  name + args. */
 export const resolveMountByMatcher = <Model, Message>(
   internal: BaseInternal<Model, Message, unknown>,
   pendingMounts: ReadonlyArray<PendingMount>,
   matcher: MountMatcher,
-  resolverMessage: Message,
+  resultMessage: unknown,
 ):
   | Readonly<{
       internal: BaseInternal<Model, Message, unknown>
@@ -479,30 +510,39 @@ export const resolveMountByMatcher = <Model, Message>(
   pipe(
     pendingMounts,
     Array.findFirstIndex(mount => mountMatches(matcher, mount)),
-    Option.match({
-      onNone: () => undefined,
-      onSome: index => {
-        const remaining = Array.remove(pendingMounts, index)
-        const [nextModel, newCommands, ...rest] = internal.updateFn(
-          internal.model,
-          resolverMessage,
-        )
-        const outMessage = Array.match(rest, {
-          onEmpty: () => internal.outMessage,
-          onNonEmpty: ([first]) => first,
-        })
-        return {
-          internal: {
-            ...internal,
-            model: nextModel,
-            message: resolverMessage,
-            commands: Array.appendAll(internal.commands, newCommands),
-            outMessage,
-          },
-          pendingMounts: remaining,
-        }
-      },
-    }),
+    Option.flatMap(index =>
+      pipe(
+        pendingMounts,
+        Array.get(index),
+        Option.map(matchedMount => {
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          const resolverMessage = foldMessageMappers(
+            matchedMount.messageMappers,
+            resultMessage,
+          ) as Message
+          const remaining = Array.remove(pendingMounts, index)
+          const [nextModel, newCommands, ...rest] = internal.updateFn(
+            internal.model,
+            resolverMessage,
+          )
+          const outMessage = Array.matchLeft(rest, {
+            onEmpty: () => internal.outMessage,
+            onNonEmpty: firstOutMessage => firstOutMessage,
+          })
+          return {
+            internal: {
+              ...internal,
+              model: nextModel,
+              message: resolverMessage,
+              commands: Array.appendAll(internal.commands, newCommands),
+              outMessage,
+            },
+            pendingMounts: remaining,
+          }
+        }),
+      ),
+    ),
+    Option.getOrUndefined,
   )
 
 /** Throws if any of the given matchers are missing from the pending mount

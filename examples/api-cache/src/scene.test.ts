@@ -7,7 +7,6 @@ import { Tabs } from '@foldkit/ui'
 import {
   FetchPostDetail,
   FetchStats,
-  GotTabsMessage,
   SettledFetchPostDetail,
   SettledFetchStats,
   update,
@@ -25,7 +24,6 @@ import {
 const resolveFocusTab = Scene.Command.resolve(
   Tabs.FocusTab,
   Tabs.CompletedFocusTab(),
-  message => GotTabsMessage({ message }),
 )
 
 describe('view', () => {

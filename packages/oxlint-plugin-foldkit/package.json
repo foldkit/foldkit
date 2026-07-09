@@ -8,11 +8,13 @@
   "exports": {
     ".": {
       "import": "./dist/index.js"
-    }
+    },
+    "./recommended.json": "./recommended.json",
+    "./all.json": "./all.json"
   },
   "scripts": {
-    "clean": "rimraf dist *.tsbuildinfo",
-    "build": "pnpm run clean && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js",
+    "clean": "rimraf dist recommended.json all.json *.tsbuildinfo",
+    "build": "pnpm run clean && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js && node scripts/generate-presets.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -28,7 +30,9 @@
     "vitest": "^4.1.9"
   },
   "files": [
-    "dist"
+    "dist",
+    "recommended.json",
+    "all.json"
   ],
   "keywords": [
     "foldkit",

@@ -119,10 +119,10 @@ export const initialParentModel: ParentModel = {
 export const parentUpdate = (
   parentModel: ParentModel,
   message: ParentMessage,
-): readonly [ParentModel, ReadonlyArray<Command.Command<ChildMessage>>] =>
+): readonly [ParentModel, ReadonlyArray<Command.Command<ParentMessage>>] =>
   M.value(message).pipe(
     M.withReturnType<
-      readonly [ParentModel, ReadonlyArray<Command.Command<ChildMessage>>]
+      readonly [ParentModel, ReadonlyArray<Command.Command<ParentMessage>>]
     >(),
     M.tagsExhaustive({
       GotChildMessage: ({ message: childMessage }) => {
@@ -149,7 +149,10 @@ export const parentUpdate = (
               }),
             ),
         })
-        return [nextParent, commands]
+        const mappedCommands = Command.mapMessages(commands, childMessage =>
+          GotChildMessage({ message: childMessage }),
+        )
+        return [nextParent, mappedCommands]
       },
       CompletedParentReset: () => [parentModel, []],
     }),

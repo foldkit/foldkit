@@ -4,6 +4,7 @@ import {
   type BoundaryId,
   type BoundaryRegistry,
   ROOT_BOUNDARY,
+  boundaryMappers,
   createBoundaryRegistry,
   getOrCreateBoundaryDispatch,
   resolveBoundaryDispatchThunk,
@@ -147,6 +148,22 @@ export const requireUnmountResolver = (): UnmountResolver => {
       frame.boundaryId,
       message,
     )
+}
+
+/** Returns the current frame's Submodel wrapping chain (innermost first), or an
+ *  empty array at the root boundary. `OnMount` calls this at build time to
+ *  snapshot the lift a Submodel-embedded mount's result travels through in
+ *  production (via `ctx.dispatch`), so the Scene test harness can replay it when
+ *  the mount is resolved. Returns `[]` when there is no active frame, mirroring
+ *  the lazy tolerance of static Html built outside a render. */
+export const requireBoundaryMappers = (): ReadonlyArray<
+  (message: unknown) => unknown
+> => {
+  const frame = stack[stack.length - 1]
+  if (frame === undefined) {
+    return []
+  }
+  return boundaryMappers(frame.boundaryRegistry, frame.boundaryId)
 }
 
 /** Returns the current runtime Effect Context, used by Mount integrations

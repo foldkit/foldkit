@@ -71,9 +71,6 @@ const sceneView =
 
 const button = Scene.selector('#test-button')
 
-const animationToMenuMessage = (message: Animation.Message) =>
-  GotAnimationMessage({ message })
-
 const acknowledgeFocusItems = Story.Command.resolve(
   FocusItems,
   CompletedFocusItems(),
@@ -100,16 +97,8 @@ const withOpenAnimated = flow(
   Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
   acknowledgeFocusItems,
   Story.Command.resolveAll(
-    [
-      Animation.RequestFrame,
-      Animation.AdvancedAnimationFrame(),
-      animationToMenuMessage,
-    ],
-    [
-      Animation.WaitForAnimationSettled,
-      Animation.EndedAnimation(),
-      animationToMenuMessage,
-    ],
+    [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+    [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
   ),
 )
 
@@ -949,16 +938,8 @@ describe('Menu', () => {
               expect(model.animation.transitionState).toBe('EnterStart')
             }),
             Story.Command.resolveAll(
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToMenuMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToMenuMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
@@ -973,17 +954,12 @@ describe('Menu', () => {
             Story.Command.resolve(
               Animation.RequestFrame,
               Animation.AdvancedAnimationFrame(),
-              animationToMenuMessage,
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('EnterAnimating')
             }),
             Story.Command.resolveAll(
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToMenuMessage,
-              ],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
@@ -996,16 +972,8 @@ describe('Menu', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.Command.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToMenuMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToMenuMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
             Story.model(model => {
@@ -1027,16 +995,8 @@ describe('Menu', () => {
             }),
             Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToMenuMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToMenuMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
@@ -1052,16 +1012,8 @@ describe('Menu', () => {
               expect(model.animation.transitionState).toBe('LeaveStart')
             }),
             Story.Command.resolveAll(
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToMenuMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToMenuMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
@@ -1078,16 +1030,8 @@ describe('Menu', () => {
             }),
             Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToMenuMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToMenuMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
@@ -1101,18 +1045,13 @@ describe('Menu', () => {
             Story.Command.resolve(
               Animation.RequestFrame,
               Animation.AdvancedAnimationFrame(),
-              animationToMenuMessage,
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('LeaveAnimating')
             }),
             Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToMenuMessage,
-              ],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
@@ -1125,16 +1064,8 @@ describe('Menu', () => {
             Story.message(Closed()),
             Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToMenuMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToMenuMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
             Story.model(model => {
@@ -1208,16 +1139,8 @@ describe('Menu', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.Command.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToMenuMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToMenuMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
             Story.message(Closed()),
@@ -1227,16 +1150,8 @@ describe('Menu', () => {
             }),
             Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToMenuMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToMenuMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
@@ -1249,16 +1164,8 @@ describe('Menu', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.Command.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToMenuMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToMenuMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
             Story.message(Closed()),
@@ -1268,16 +1175,8 @@ describe('Menu', () => {
             }),
             Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToMenuMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToMenuMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )

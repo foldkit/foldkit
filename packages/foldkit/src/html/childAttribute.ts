@@ -1,5 +1,6 @@
 import {
   type DispatchSync,
+  requireBoundaryMappers,
   requireDispatch,
   requireUnmountResolver,
 } from './runtimeSingleton.js'
@@ -16,7 +17,9 @@ const BRAND = '__childAttribute'
  *  `resolveUnmount` snapshots the boundary's wrapping chain at the time the
  *  group was published (child boundary alive) so `OnUnmount` can dispatch a
  *  root message from a destroy hook that fires after the boundary has been
- *  torn down.
+ *  torn down. `boundaryMappers` snapshots the same chain as a pure list of
+ *  `toParentMessage` lifts (innermost first) so `OnMount` can stamp it on the
+ *  mount marker; the Scene test harness folds it to replay the lift.
  *
  *  Created via {@link childAttributes}. Element constructors accept
  *  `ChildAttribute` alongside `Attribute<Message>` in their attribute
@@ -26,6 +29,7 @@ export type ChildAttribute = Readonly<{
   readonly attribute: unknown
   readonly dispatch: DispatchSync
   readonly resolveUnmount: (message: unknown) => () => void
+  readonly boundaryMappers: ReadonlyArray<(message: unknown) => unknown>
 }>
 
 export const isChildAttribute = (value: unknown): value is ChildAttribute =>
@@ -59,10 +63,12 @@ export const childAttributes = <Attribute>(
 ): ReadonlyArray<ChildAttribute> => {
   const dispatch = requireDispatch()
   const resolveUnmount = requireUnmountResolver()
+  const boundaryMappers = requireBoundaryMappers()
   return attributes.map(attribute => ({
     [BRAND]: true,
     attribute,
     dispatch,
     resolveUnmount,
+    boundaryMappers,
   }))
 }

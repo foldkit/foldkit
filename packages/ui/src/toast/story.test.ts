@@ -24,16 +24,10 @@ type TestPayload = typeof TestPayload.Type
 
 const Toast = make(TestPayload)
 
-type Message = typeof Toast.Message.Type
 type Model = typeof Toast.Model.Type
 type Entry = typeof Toast.Entry.Type
 
 const STALE_VERSION = -1
-
-const animationToToastMessage =
-  (entryId: string) =>
-  (message: Animation.Message): Message =>
-    GotAnimationMessage({ entryId, message })
 
 // A post-enter entry: isShowing true, transition Idle. Use this for tests
 // that exercise behavior after the enter animation has settled. Dismissed,
@@ -192,16 +186,8 @@ describe('Toast', () => {
             )
           }),
           Story.Command.resolveAll(
-            [
-              Animation.RequestFrame,
-              Animation.AdvancedAnimationFrame(),
-              animationToToastMessage(firstEntryId),
-            ],
-            [
-              Animation.WaitForAnimationSettled,
-              Animation.EndedAnimation(),
-              animationToToastMessage(firstEntryId),
-            ],
+            [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+            [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
           ),
         )
       })
@@ -350,16 +336,8 @@ describe('Toast', () => {
             )
           }),
           Story.Command.resolveAll(
-            [
-              Animation.RequestFrame,
-              Animation.AdvancedAnimationFrame(),
-              animationToToastMessage(firstEntryId),
-            ],
-            [
-              Animation.WaitForAnimationSettled,
-              Animation.EndedAnimation(),
-              animationToToastMessage(firstEntryId),
-            ],
+            [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+            [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
           ),
           Story.model((next: Model) => {
             expect(next.entries).toHaveLength(0)
@@ -455,25 +433,15 @@ describe('Toast', () => {
             )
           }),
           Story.Command.resolveAll(
-            [
-              Animation.RequestFrame,
-              Animation.AdvancedAnimationFrame(),
-              animationToToastMessage('test-entry-0'),
-            ],
-            [
-              Animation.RequestFrame,
-              Animation.AdvancedAnimationFrame(),
-              animationToToastMessage('test-entry-1'),
-            ],
+            [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+            [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
             [
               Animation.WaitForAnimationSettled({ id: 'test-entry-0' }),
               Animation.EndedAnimation(),
-              animationToToastMessage('test-entry-0'),
             ],
             [
               Animation.WaitForAnimationSettled({ id: 'test-entry-1' }),
               Animation.EndedAnimation(),
-              animationToToastMessage('test-entry-1'),
             ],
           ),
           Story.model((next: Model) => {
@@ -494,16 +462,8 @@ describe('Toast', () => {
         withEmpty,
         Story.message(Toast.Added({ entry })),
         Story.Command.resolveAll(
-          [
-            Animation.RequestFrame,
-            Animation.AdvancedAnimationFrame(),
-            animationToToastMessage(firstEntryId),
-          ],
-          [
-            Animation.WaitForAnimationSettled,
-            Animation.EndedAnimation(),
-            animationToToastMessage(firstEntryId),
-          ],
+          [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+          [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
         ),
         Story.model((next: Model) => {
           expect(next.entries[0]?.animation.transitionState).toBe('Idle')
@@ -516,16 +476,8 @@ describe('Toast', () => {
           expect(next.entries[0]?.animation.transitionState).toBe('LeaveStart')
         }),
         Story.Command.resolveAll(
-          [
-            Animation.RequestFrame,
-            Animation.AdvancedAnimationFrame(),
-            animationToToastMessage(firstEntryId),
-          ],
-          [
-            Animation.WaitForAnimationSettled,
-            Animation.EndedAnimation(),
-            animationToToastMessage(firstEntryId),
-          ],
+          [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+          [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
         ),
         Story.model((next: Model) => {
           expect(next.entries).toHaveLength(0)

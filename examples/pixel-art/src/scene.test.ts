@@ -9,9 +9,6 @@ import { createEmptyGrid } from './grid'
 import {
   CompletedSaveCanvas,
   FailedExportPng,
-  GotErrorDialogMessage,
-  GotGridSizeConfirmDialogMessage,
-  type Message,
   SucceededExportPng,
 } from './message'
 import { type Model, type PaletteIndex } from './model'
@@ -47,12 +44,6 @@ const createPaintedModel = (): Model => ({
   ),
 })
 
-const errorDialogMessageToMessage = (message: Dialog.Message): Message =>
-  GotErrorDialogMessage({ message })
-
-const confirmDialogMessageToMessage = (message: Dialog.Message): Message =>
-  GotGridSizeConfirmDialogMessage({ message })
-
 describe('export workflow', () => {
   test('clicking Export PNG produces ExportPng Command', () => {
     Scene.scene(
@@ -74,11 +65,7 @@ describe('export workflow', () => {
         ExportPng,
         FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Scene.Command.resolve(
-        Dialog.ShowDialog,
-        Dialog.CompletedShowDialog(),
-        errorDialogMessageToMessage,
-      ),
+      Scene.Command.resolve(Dialog.ShowDialog, Dialog.CompletedShowDialog()),
       Scene.expect(Scene.text('Export Failed')).toExist(),
       Scene.expect(Scene.text('Canvas 2D context not available')).toExist(),
       Scene.expect(Scene.role('button', { name: 'Dismiss' })).toExist(),
@@ -94,18 +81,10 @@ describe('export workflow', () => {
         ExportPng,
         FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Scene.Command.resolve(
-        Dialog.ShowDialog,
-        Dialog.CompletedShowDialog(),
-        errorDialogMessageToMessage,
-      ),
+      Scene.Command.resolve(Dialog.ShowDialog, Dialog.CompletedShowDialog()),
       Scene.expect(Scene.text('Export Failed')).toExist(),
       Scene.click(Scene.role('button', { name: 'Dismiss' })),
-      Scene.Command.resolve(
-        Dialog.CloseDialog,
-        Dialog.CompletedCloseDialog(),
-        errorDialogMessageToMessage,
-      ),
+      Scene.Command.resolve(Dialog.CloseDialog, Dialog.CompletedCloseDialog()),
       Scene.expect(Scene.text('Export Failed')).toBeAbsent(),
     )
   })
@@ -227,11 +206,7 @@ describe('grid size change', () => {
       { update, view },
       Scene.with(createPaintedModel()),
       Scene.click(Scene.role('radio', { name: '8' })),
-      Scene.Command.resolve(
-        Dialog.ShowDialog,
-        Dialog.CompletedShowDialog(),
-        confirmDialogMessageToMessage,
-      ),
+      Scene.Command.resolve(Dialog.ShowDialog, Dialog.CompletedShowDialog()),
       Scene.expect(Scene.text('Change to 8\u00d78?')).toExist(),
       Scene.expect(
         Scene.text('This will clear your canvas and reset undo history.'),
@@ -259,11 +234,7 @@ describe('grid size change', () => {
       Scene.with(modelWithPendingResize),
       Scene.expect(Scene.text('Change to 8\u00d78?')).toExist(),
       Scene.click(Scene.role('button', { name: 'Clear and Resize' })),
-      Scene.Command.resolve(
-        Dialog.CloseDialog,
-        Dialog.CompletedCloseDialog(),
-        confirmDialogMessageToMessage,
-      ),
+      Scene.Command.resolve(Dialog.CloseDialog, Dialog.CompletedCloseDialog()),
       Scene.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Scene.expect(Scene.text('Change to 8\u00d78?')).toBeAbsent(),
     )
@@ -284,11 +255,7 @@ describe('grid size change', () => {
       Scene.with(modelWithPendingResize),
       Scene.expect(Scene.text('Change to 8\u00d78?')).toExist(),
       Scene.click(Scene.role('button', { name: 'Cancel' })),
-      Scene.Command.resolve(
-        Dialog.CloseDialog,
-        Dialog.CompletedCloseDialog(),
-        confirmDialogMessageToMessage,
-      ),
+      Scene.Command.resolve(Dialog.CloseDialog, Dialog.CompletedCloseDialog()),
       Scene.expect(Scene.text('Change to 8\u00d78?')).toBeAbsent(),
     )
   })

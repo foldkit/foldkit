@@ -22,6 +22,28 @@ export type Command<T, E = never, R = never> = [T] extends [Schema.Top]
       effect: Effect.Effect<T, E, R>
     }>
 
+/** @internal A single link in a Command's message-mapping chain. Each mapper
+ *  lifts the previous result Message into the next Message space. Typed
+ *  `(message: unknown) => unknown` because the chain is existential: only its
+ *  end type, the Command's declared Message, is visible on {@link Command}. */
+type MessageMapper = (message: unknown) => unknown
+
+/** @internal The runtime shape a constructed Command actually carries: the
+ *  public `name`/`args`/`effect` plus a message-mapping chain recording the
+ *  `mapMessage`/`mapMessages` lifts applied to it. `mapMessage` fuses each lift
+ *  into the `effect` (so production dispatch is unchanged) and also appends it
+ *  here, purely as recoverable metadata: the Story/Scene test layer replays the
+ *  chain over a substitute result so a root test never restates the wrapping.
+ *  The runtime never reads it. Kept off the public {@link Command} type, and
+ *  optional because Commands built by hand (not via {@link define}) carry no
+ *  chain; readers treat its absence as an empty chain. */
+type CommandWithMappers = Readonly<{
+  name: string
+  args?: Record<string, unknown>
+  effect: Effect.Effect<unknown, unknown, unknown>
+  messageMappers?: ReadonlyArray<MessageMapper>
+}>
+
 /** A Command definition for a Command with no declared args. Call as `Definition()` to produce a Command instance. */
 export interface CommandDefinitionNoArgs<
   Name extends string,
@@ -122,6 +144,7 @@ export function define(name: string, ...rest: ReadonlyArray<unknown>): unknown {
         name,
         args,
         effect: effectBuilder(args),
+        messageMappers: [],
       })
       Object.defineProperty(definition, 'name', {
         value: name,
@@ -131,7 +154,7 @@ export function define(name: string, ...rest: ReadonlyArray<unknown>): unknown {
         value: CommandDefinitionTypeId,
       })
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      return definition as CommandDefinitionWithArgs<
+      return definition as unknown as CommandDefinitionWithArgs<
         string,
         any,
         Effect.Effect<any, any, any>
@@ -142,7 +165,7 @@ export function define(name: string, ...rest: ReadonlyArray<unknown>): unknown {
   return (
     effect: Effect.Effect<any, any, any>,
   ): CommandDefinitionNoArgs<string, Effect.Effect<any, any, any>> => {
-    const definition = () => ({ name, effect })
+    const definition = () => ({ name, effect, messageMappers: [] })
     Object.defineProperty(definition, 'name', {
       value: name,
       configurable: true,
@@ -151,14 +174,22 @@ export function define(name: string, ...rest: ReadonlyArray<unknown>): unknown {
       value: CommandDefinitionTypeId,
     })
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    return definition as CommandDefinitionNoArgs<
+    return definition as unknown as CommandDefinitionNoArgs<
       string,
       Effect.Effect<any, any, any>
     >
   }
 }
 
-/** Transforms the Effect inside a Command while preserving its name and args. */
+/** Transforms the Effect inside a Command while preserving its name, args, and
+ *  message-mapping chain. Reach for this to adjust the Effect itself (provide a
+ *  service, add a delay or retry), not to lift the result Message. Never use it
+ *  to transform the result Message, even via
+ *  `Effect.map(childMessage => Parent({ childMessage }))`. That dispatches
+ *  correctly in production but is invisible to `Story`/`Scene` `resolve`, which
+ *  replays only the recorded chain and never runs the Effect, so the test would
+ *  see the child's raw Message instead of the wrapped one. Lift result Messages
+ *  with {@link mapMessage} / {@link mapMessages}, which record the lift. */
 export const mapEffect: {
   <A, E1, R1, B, E2, R2>(
     f: (effect: Effect.Effect<A, E1, R1>) => Effect.Effect<B, E2, R2>,
@@ -207,6 +238,13 @@ export const mapEffect: {
  *  (e.g. an animation leave Command), reach for `mapMessages` when it
  *  returns a list.
  *
+ *  Fuses `f` into the Effect so production dispatch is unchanged, and also
+ *  records `f` on the Command's internal message-mapping chain. The chain is
+ *  recoverable metadata the runtime never reads: `Story.Command.resolve` and
+ *  `Scene.Command.resolve` replay the matched Command's chain over a substitute
+ *  result, so a root test resolves with the child's raw result Message and
+ *  never restates the wrapping by hand.
+ *
  *  Preserves the Command's `name` and `args` so traces still attribute
  *  it to the originating Submodel. When you need to transform the
  *  Effect itself (not just the result Message), reach for
@@ -250,7 +288,20 @@ export const mapMessage: {
     name: string
     args?: Record<string, unknown>
     effect: Effect.Effect<ToMessage, E, R>
-  }> => mapEffect(command, Effect.map(f)),
+  }> => {
+    /* eslint-disable @typescript-eslint/consistent-type-assertions */
+    const withMappers = command as unknown as CommandWithMappers
+    return {
+      ...withMappers,
+      effect: Effect.map(command.effect, f),
+      messageMappers: [...(withMappers.messageMappers ?? []), f],
+    } as unknown as Readonly<{
+      name: string
+      args?: Record<string, unknown>
+      effect: Effect.Effect<ToMessage, E, R>
+    }>
+    /* eslint-enable @typescript-eslint/consistent-type-assertions */
+  },
 )
 
 /** Lifts every Command in a list through `f`, transforming the result
@@ -270,10 +321,13 @@ export const mapMessage: {
  *  }
  *  ```
  *
- *  Preserves each Command's `name` and `args` so traces still attribute
- *  the Command to the originating Submodel. When you need to transform
- *  the Effect itself (not just the result Message), reach for
- *  {@link mapEffect} instead. */
+ *  Fuses `f` into each Command's Effect and also records it on the Command's
+ *  internal message-mapping chain, so production dispatch is unchanged while
+ *  `Story.Command.resolve` / `Scene.Command.resolve` can recover the mapping
+ *  from the matched Command.
+ *  Preserves each Command's `name` and `args` so traces still attribute the
+ *  Command to the originating Submodel. When you need to transform the Effect
+ *  itself (not just the result Message), reach for {@link mapEffect} instead. */
 export const mapMessages: {
   <FromMessage, ToMessage, E = never, R = never>(
     commands: ReadonlyArray<

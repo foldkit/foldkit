@@ -4,6 +4,7 @@ import type { VNode } from 'snabbdom'
 import { describe, expect, test } from 'vitest'
 
 import { html as attributeHtml } from '../html/index.js'
+import { defineView } from '../submodel/public.js'
 import {
   testId as attributeTestId,
   update as attributeUpdate,
@@ -2906,55 +2907,64 @@ describe('scene mounts', () => {
     )
   })
 
-  test('resolveMount accepts a toParentMessage lifter', () => {
+  test('resolveMount replays a Submodel-embedded mount boundary lift', () => {
+    // A mount that lives inside an h.submodel boundary has its result lifted
+    // into the parent's Message space by the boundary at dispatch time (via
+    // ctx.dispatch) in production. resolveMount replays that lift from the
+    // chain snapshotted onto the mount marker, so the test resolves the mount
+    // with the child's raw result and never restates the wrapping.
+    type ChildMessage = typeof CompletedFocusButton.Type
+    type ChildModel = { readonly focused: boolean }
     type ParentMessage = Readonly<{
-      _tag: 'GotPanelMessage'
-      message:
-        | typeof MeasuredPanel.Type
-        | typeof FailedMountSidebar.Type
-        | typeof CompletedFocusButton.Type
-        | typeof MountClickedToggle.Type
-        | typeof MountClickedIncrement.Type
+      _tag: 'GotChildMessage'
+      message: ChildMessage
     }>
+    type ParentModel = { readonly child: ChildModel }
+
+    const childView = defineView<ChildModel, ChildMessage>(() => {
+      const h = attributeHtml<ChildMessage>()
+      return h.button([h.OnMount(FocusButton())], [])
+    })
 
     const seen: Array<ParentMessage> = []
-
     const parentUpdate = (
-      _model: { count: number },
+      model: ParentModel,
       message: ParentMessage,
-    ): readonly [{ count: number }, ReadonlyArray<never>] => {
+    ): readonly [ParentModel, ReadonlyArray<never>] => {
       seen.push(message)
-      return [{ count: 0 }, []]
+      return [model, []]
     }
 
-    const openModel = { ...mountInitialModel, isOpen: true }
-    const parentView = (_model: { count: number }) => mountView(openModel)
+    const parentView = (model: ParentModel) => {
+      const h = attributeHtml<ParentMessage>()
+      return h.div(
+        [],
+        [
+          h.submodel({
+            slotId: 'child',
+            model: model.child,
+            view: childView,
+            toParentMessage: message => ({
+              _tag: 'GotChildMessage' as const,
+              message,
+            }),
+          }),
+        ],
+      )
+    }
 
     Scene.scene(
       { update: parentUpdate, view: parentView },
-      Scene.with({ count: 0 }),
-      Scene.Mount.resolve(FocusButton, CompletedFocusButton(), message => ({
-        _tag: 'GotPanelMessage' as const,
-        message,
-      })),
-      Scene.Mount.resolve(
-        MeasurePanel,
-        MeasuredPanel({ width: 7 }),
-        message => ({
-          _tag: 'GotPanelMessage' as const,
-          message,
-        }),
-      ),
+      Scene.with({ child: { focused: false } }),
+      Scene.Mount.expectHas(FocusButton),
+      Scene.Mount.resolve(FocusButton, CompletedFocusButton()),
     )
 
-    expect(seen).toContainEqual({
-      _tag: 'GotPanelMessage',
-      message: { _tag: 'CompletedFocusButton' },
-    })
-    expect(seen).toContainEqual({
-      _tag: 'GotPanelMessage',
-      message: { _tag: 'MeasuredPanel', width: 7 },
-    })
+    // The child's raw CompletedFocusButton arrived at parent update wrapped as
+    // GotChildMessage by the recovered Submodel-boundary lift.
+    expect(seen).toEqual([
+      { _tag: 'GotChildMessage', message: { _tag: 'CompletedFocusButton' } },
+    ])
   })
 
   test('mounts on view returning Document are tracked', () => {

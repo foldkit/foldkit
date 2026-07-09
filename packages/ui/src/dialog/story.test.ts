@@ -14,7 +14,6 @@ import {
   CompletedCloseDialog,
   CompletedReleaseDialogResources,
   CompletedShowDialog,
-  GotAnimationMessage,
   type Message,
   type Model,
   Opened,
@@ -93,9 +92,6 @@ const hasDataAttribute = (
       Predicate.hasProperty(attribute, 'key') &&
       attribute.key === key,
   )
-
-const animationToDialogMessage = (message: Animation.Message) =>
-  GotAnimationMessage({ message })
 
 describe('Dialog', () => {
   describe('init', () => {
@@ -233,16 +229,8 @@ describe('Dialog', () => {
           Story.Command.expectHas(ShowDialog, Animation.RequestFrame),
           Story.Command.resolveAll(
             [ShowDialog, CompletedShowDialog()],
-            [
-              Animation.RequestFrame,
-              Animation.AdvancedAnimationFrame(),
-              animationToDialogMessage,
-            ],
-            [
-              Animation.WaitForAnimationSettled,
-              Animation.EndedAnimation(),
-              animationToDialogMessage,
-            ],
+            [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+            [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
           ),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
@@ -261,16 +249,8 @@ describe('Dialog', () => {
             expect(model.animation.transitionState).toBe('LeaveStart')
           }),
           Story.Command.resolveAll(
-            [
-              Animation.RequestFrame,
-              Animation.AdvancedAnimationFrame(),
-              animationToDialogMessage,
-            ],
-            [
-              Animation.WaitForAnimationSettled,
-              Animation.EndedAnimation(),
-              animationToDialogMessage,
-            ],
+            [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+            [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
             [CloseDialog, CompletedCloseDialog()],
           ),
           Story.model(model => {

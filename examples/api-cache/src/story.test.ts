@@ -51,7 +51,6 @@ const selectedStatsTab = GotTabsMessage({
 const resolveFocusTab = Story.Command.resolve(
   Tabs.FocusTab,
   Tabs.CompletedFocusTab(),
-  message => GotTabsMessage({ message }),
 )
 
 test('first visit to the Stats tab fetches stats', () => {

@@ -3,16 +3,10 @@ import { Valid } from 'foldkit/fieldValidation'
 import { describe, test } from 'vitest'
 
 import { SaveSession } from './command'
-import {
-  CompletedNavigateInternal,
-  GotLoggedOutMessage,
-  SucceededSaveSession,
-} from './message'
+import { CompletedNavigateInternal, SucceededSaveSession } from './message'
 import { LoggedOut } from './model'
-import { GotLoginMessage } from './page/loggedOut/message'
 import {
   FailedSimulateAuthRequest,
-  Message,
   SimulateAuthRequest,
   SucceededSimulateAuthRequest,
   initModel as initLoginModel,
@@ -20,9 +14,6 @@ import {
 import { LoginRoute } from './route'
 import { RedirectToDashboard, update } from './update'
 import { view } from './view'
-
-const toLoginMessage = (message: Message) =>
-  GotLoggedOutMessage({ message: GotLoginMessage({ message }) })
 
 const initialModel = LoggedOut.init(LoginRoute())
 
@@ -90,7 +81,6 @@ describe('view', () => {
       Scene.Command.resolve(
         SimulateAuthRequest,
         FailedSimulateAuthRequest({ error: '' }),
-        toLoginMessage,
       ),
     )
   })
@@ -104,7 +94,6 @@ describe('view', () => {
       Scene.Command.resolve(
         SimulateAuthRequest,
         FailedSimulateAuthRequest({ error: 'Invalid credentials' }),
-        toLoginMessage,
       ),
       Scene.expect(
         Scene.within(Scene.role('form'), Scene.text('Invalid credentials')),
@@ -122,7 +111,6 @@ describe('view', () => {
       Scene.Command.resolve(
         SimulateAuthRequest,
         SucceededSimulateAuthRequest({ session: aliceSession }),
-        toLoginMessage,
       ),
       Scene.Command.expectExact(SaveSession, RedirectToDashboard),
       Scene.Command.resolveAll(

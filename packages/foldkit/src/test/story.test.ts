@@ -512,8 +512,8 @@ describe('outMessage', () => {
   })
 })
 
-describe('resolve with toParentMessage', () => {
-  test('parent resolves mapped child Commands with toParentMessage', () => {
+describe("resolve applies the Command's own message mapping", () => {
+  test('parent resolves mapped child Commands with the raw result Message', () => {
     Story.story(
       parentUpdate,
       Story.with(initialParentModel),
@@ -522,18 +522,12 @@ describe('resolve with toParentMessage', () => {
         expect(model.child.status).toBe('Submitting')
       }),
       Story.Command.expectHas(SubmitForm),
-      Story.Command.resolve(
-        SubmitForm,
-        SucceededSubmit({ id: 'abc' }),
-        message => GotChildMessage({ message }),
-      ),
+      Story.Command.resolve(SubmitForm, SucceededSubmit({ id: 'abc' })),
       Story.model(model => {
         expect(model.child.status).toBe('Submitted')
         expect(model.savedIds).toEqual(['abc'])
       }),
-      Story.Command.resolve(ResetForm, CompletedReset(), message =>
-        GotChildMessage({ message }),
-      ),
+      Story.Command.resolve(ResetForm, CompletedReset()),
       Story.model(model => {
         expect(model.child.status).toBe('Idle')
         expect(model.savedIds).toEqual(['abc'])
@@ -542,8 +536,8 @@ describe('resolve with toParentMessage', () => {
   })
 })
 
-describe('resolveAll with toParentMessage', () => {
-  test('parent resolves mapped child Commands with per-pair mappers', () => {
+describe("resolveAll applies each Command's own message mapping", () => {
+  test('parent resolves mapped child Commands with the raw result Messages', () => {
     Story.story(
       parentUpdate,
       Story.with(initialParentModel),
@@ -552,12 +546,8 @@ describe('resolveAll with toParentMessage', () => {
         expect(model.child.status).toBe('Submitting')
       }),
       Story.Command.resolveAll(
-        [
-          SubmitForm,
-          SucceededSubmit({ id: 'abc' }),
-          message => GotChildMessage({ message }),
-        ],
-        [ResetForm, CompletedReset(), message => GotChildMessage({ message })],
+        [SubmitForm, SucceededSubmit({ id: 'abc' })],
+        [ResetForm, CompletedReset()],
       ),
       Story.model(model => {
         expect(model.child.status).toBe('Idle')

@@ -51,9 +51,6 @@ import type { Model, ViewInputs } from './single.js'
 const TestListbox = create<string>()
 const view = TestListbox.view
 
-const animationToListboxMessage = (message: Animation.Message) =>
-  GotAnimationMessage({ message })
-
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorListbox,
   CompletedAnchorListbox(),
@@ -84,16 +81,8 @@ const withOpenAnimated = flow(
   Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
   Story.Command.resolveAll(
     [FocusItems, CompletedFocusItems()],
-    [
-      Animation.RequestFrame,
-      Animation.AdvancedAnimationFrame(),
-      animationToListboxMessage,
-    ],
-    [
-      Animation.WaitForAnimationSettled,
-      Animation.EndedAnimation(),
-      animationToListboxMessage,
-    ],
+    [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+    [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
   ),
 )
 
@@ -838,16 +827,8 @@ describe('Listbox', () => {
             }),
             Story.Command.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToListboxMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToListboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
             ),
           )
         })
@@ -860,18 +841,13 @@ describe('Listbox', () => {
             Story.Command.resolve(
               Animation.RequestFrame,
               Animation.AdvancedAnimationFrame(),
-              animationToListboxMessage,
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('EnterAnimating')
             }),
             Story.Command.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToListboxMessage,
-              ],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
             ),
           )
         })
@@ -883,16 +859,8 @@ describe('Listbox', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.Command.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToListboxMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToListboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -913,16 +881,8 @@ describe('Listbox', () => {
             }),
             Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToListboxMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToListboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
@@ -938,16 +898,8 @@ describe('Listbox', () => {
               expect(model.animation.transitionState).toBe('LeaveStart')
             }),
             Story.Command.resolveAll(
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToListboxMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToListboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
@@ -964,16 +916,8 @@ describe('Listbox', () => {
             }),
             Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToListboxMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToListboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
@@ -987,18 +931,13 @@ describe('Listbox', () => {
             Story.Command.resolve(
               Animation.RequestFrame,
               Animation.AdvancedAnimationFrame(),
-              animationToListboxMessage,
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('LeaveAnimating')
             }),
             Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToListboxMessage,
-              ],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
@@ -1011,16 +950,8 @@ describe('Listbox', () => {
             Story.message(Closed()),
             Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToListboxMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToListboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
             Story.model(model => {
@@ -1094,16 +1025,8 @@ describe('Listbox', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.Command.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToListboxMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToListboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
             ),
             Story.message(Closed()),
             Story.model(model => {
@@ -1112,16 +1035,8 @@ describe('Listbox', () => {
             }),
             Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToListboxMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToListboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
@@ -1134,16 +1049,8 @@ describe('Listbox', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.Command.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToListboxMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToListboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
             ),
             Story.message(Closed()),
             Story.model(model => {
@@ -1152,16 +1059,8 @@ describe('Listbox', () => {
             }),
             Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [
-                Animation.RequestFrame,
-                Animation.AdvancedAnimationFrame(),
-                animationToListboxMessage,
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.EndedAnimation(),
-                animationToListboxMessage,
-              ],
+              [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
+              [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )

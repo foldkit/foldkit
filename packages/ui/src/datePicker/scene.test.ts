@@ -9,24 +9,15 @@ import { describe, it } from '@effect/vitest'
 import * as UiCalendar from '../calendar/index.js'
 import * as Popover from '../popover/public.js'
 import type { Message, Model, ViewInputs } from './index.js'
-import {
-  GotPopoverMessage,
-  Opened,
-  init,
-  triggerId,
-  update,
-  view,
-} from './index.js'
+import { Opened, init, triggerId, update, view } from './index.js'
 
 const acknowledgeAnchorPopover = Scene.Mount.resolve(
   Popover.AnchorPopover,
   Popover.CompletedAnchorPopover(),
-  message => GotPopoverMessage({ message }),
 )
 const acknowledgePopoverBackdrop = Scene.Mount.resolve(
   Popover.PortalPopoverBackdrop,
   Popover.CompletedPortalPopoverBackdrop(),
-  message => GotPopoverMessage({ message }),
 )
 
 const today = Calendar.make(2026, 4, 13)

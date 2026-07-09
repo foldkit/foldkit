@@ -624,9 +624,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
             [
               'Resolves the first pending Command with the given name by feeding ',
               plainCode('ResultMessage'),
-              ' through update. Accepts an optional ',
-              plainCode('toParentMessage'),
-              ' lifter for child Submodel Commands.',
+              ' through update. For a child Submodel Command, pass the child’s raw result Message; resolve replays the Command’s own ',
+              plainCode('mapMessages'),
+              ' wrapping automatically.',
             ],
           ],
           [
@@ -705,11 +705,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
             [
               'Resolves the first pending mount with the given name by feeding ',
               plainCode('ResultMessage'),
-              ' through update. Accepts an optional ',
-              plainCode('toParentMessage'),
-              ' lifter, mirroring ',
-              plainCode('Scene.Command.resolve'),
-              '.',
+              ' through update. For a mount inside a child Submodel, resolve replays the boundary lift automatically, so you pass the child’s raw result Message.',
             ],
           ],
           [
