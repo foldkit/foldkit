@@ -234,7 +234,7 @@ export const columnView = (
       h.Role('region'),
       h.AriaLabel(column.name),
       h.Class(
-        clsx('bg-gray-50 rounded-lg p-3 flex flex-col min-h-0 border-2', {
+        clsx('bg-gray-100/80 rounded-2xl p-3 flex flex-col min-h-0 border-2', {
           'border-dashed border-blue-300': isDropTarget,
           'border-transparent': !isDropTarget,
         }),

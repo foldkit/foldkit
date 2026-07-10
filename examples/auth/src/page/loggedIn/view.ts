@@ -12,18 +12,22 @@ import * as Dashboard from './page/dashboard'
 import * as Settings from './page/settings'
 
 const navLinkClassName = (isActive: boolean) =>
-  clsx('hover:bg-blue-600 font-medium px-3 py-1 rounded transition', {
-    'bg-blue-700 bg-opacity-50': isActive,
+  clsx('hover:bg-violet-500 font-medium px-3 py-1.5 rounded-lg', {
+    'bg-violet-800/60': isActive,
   })
 
 const navigationView = (session: Session, currentRouteTag: string): Html => {
   const h = html<Message>()
 
   return h.nav(
-    [h.Class('bg-blue-500 text-white p-4')],
+    [h.Class('bg-violet-700/95 text-white px-4 py-3 shadow-sm backdrop-blur')],
     [
       h.div(
-        [h.Class('max-w-4xl mx-auto flex justify-between items-center')],
+        [
+          h.Class(
+            'max-w-4xl mx-auto flex flex-wrap justify-between items-center gap-3',
+          ),
+        ],
         [
           h.ul(
             [h.Class('flex gap-6 list-none')],

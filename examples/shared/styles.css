@@ -1,0 +1,189 @@
+@theme {
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  --font-mono:
+    'SFMono-Regular', 'Cascadia Code', 'Roboto Mono', ui-monospace, monospace;
+  --color-gray-50: #f7f7f5;
+  --color-gray-100: #efefec;
+  --color-gray-200: #dfdfda;
+  --color-gray-300: #c9c8c0;
+  --color-gray-400: #a4a299;
+  --color-gray-500: #77756d;
+  --color-gray-600: #57554f;
+  --color-gray-700: #403f3a;
+  --color-gray-800: #292825;
+  --color-gray-900: #1d1c1a;
+  --color-gray-950: #11110f;
+  --color-slate-50: #f6f7f8;
+  --color-slate-100: #eceff1;
+  --color-slate-200: #d9dee2;
+  --color-slate-300: #bcc5cb;
+  --color-slate-400: #89969f;
+  --color-slate-500: #65737d;
+  --color-slate-600: #4a5760;
+  --color-slate-700: #374149;
+  --color-slate-800: #242c31;
+  --color-slate-900: #171d21;
+  --color-slate-950: #0c1013;
+  --color-zinc-50: #f8f7f7;
+  --color-zinc-100: #f0eeee;
+  --color-zinc-200: #e2dfdf;
+  --color-zinc-300: #ccc7c7;
+  --color-zinc-400: #a59d9d;
+  --color-zinc-500: #7d7474;
+  --color-zinc-600: #5d5555;
+  --color-zinc-700: #443e3e;
+  --color-zinc-800: #2d2929;
+  --color-zinc-900: #1f1c1c;
+  --color-zinc-950: #121010;
+}
+
+:root {
+  --app-accent: #4f46e5;
+  --app-accent-contrast: #ffffff;
+  --app-glow-strength: 12%;
+  color-scheme: light;
+  text-rendering: optimizeLegibility;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: color-mix(in srgb, currentColor 14%, transparent);
+  }
+
+  html {
+    min-width: 20rem;
+    min-height: 100%;
+    background: #f6f7f8;
+  }
+
+  body {
+    min-height: 100vh;
+    margin: 0;
+    font-family: var(--font-sans);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    color: var(--color-slate-900);
+    background:
+      radial-gradient(
+        circle at 10% 0%,
+        color-mix(
+          in srgb,
+          var(--app-accent) var(--app-glow-strength),
+          transparent
+        ),
+        transparent 34rem
+      ),
+      #f6f7f8;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    color: var(--app-accent-contrast);
+    background: color-mix(in srgb, var(--app-accent) 82%, black);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--app-accent);
+    outline-offset: 3px;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button,
+  [role='button'],
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  [role='button'] {
+    transition-property:
+      color, background-color, border-color, box-shadow, opacity;
+    transition-duration: 160ms;
+    transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  button:not(:disabled):not([data-disabled]),
+  [role='button']:not([aria-disabled='true']):not([data-disabled]) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  button[data-disabled],
+  [role='button'][aria-disabled='true'],
+  [role='button'][data-disabled] {
+    cursor: not-allowed;
+  }
+
+  input:not([type='range']):not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    transition-property: border-color, box-shadow, background-color;
+    transition-duration: 160ms;
+    transition-timing-function: ease-out;
+  }
+
+  input:not([type='range']):not([type='checkbox']):not([type='radio']):focus,
+  select:focus,
+  textarea:focus {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--app-accent) 14%, transparent);
+  }
+
+  input[type='checkbox'],
+  input[type='radio'],
+  input[type='range'] {
+    accent-color: var(--app-accent);
+  }
+
+  a {
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.18em;
+  }
+}
+
+[class~='shadow-sm'] {
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.05),
+    0 6px 18px rgb(15 23 42 / 0.035);
+}
+
+[class~='shadow'],
+[class~='shadow-md'] {
+  box-shadow:
+    0 2px 4px rgb(15 23 42 / 0.05),
+    0 12px 28px rgb(15 23 42 / 0.07);
+}
+
+[class~='shadow-lg'] {
+  box-shadow:
+    0 2px 6px rgb(15 23 42 / 0.05),
+    0 24px 56px rgb(15 23 42 / 0.11);
+}
+
+[class~='shadow-xl'],
+[class~='shadow-2xl'] {
+  box-shadow:
+    0 4px 10px rgb(15 23 42 / 0.07),
+    0 32px 80px rgb(15 23 42 / 0.16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

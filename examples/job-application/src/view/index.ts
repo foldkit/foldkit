@@ -186,10 +186,10 @@ const pageHeader = (): Html => {
   const h = html<Message>()
 
   return h.div(
-    [h.Class('mb-6')],
+    [h.Class('mb-6 pr-28 xl:pr-0')],
     [
       h.h1(
-        [h.Class('text-2xl font-bold text-gray-900')],
+        [h.Class('text-3xl font-semibold tracking-tight text-gray-900')],
         ['Apply to Work on Foldkit'],
       ),
       h.p(
@@ -302,7 +302,7 @@ const desktopPreviewSidebar = (model: Model): Html => {
           h.div(
             [
               h.Class(
-                'rounded-xl border border-gray-200 bg-white p-6 shadow-sm',
+                'rounded-2xl border border-gray-200 bg-white p-6 shadow-sm',
               ),
             ],
             [preview(model)],
@@ -349,7 +349,7 @@ const mobilePreviewOverlay = (model: Model): Html => {
     'mobile-overlay',
     [
       h.Class(
-        'fixed inset-x-4 top-16 bottom-4 overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-2xl xl:hidden',
+        'fixed inset-x-4 top-16 bottom-4 overflow-y-auto rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl xl:hidden',
       ),
     ],
     [preview(model)],
@@ -365,7 +365,7 @@ export const view = (model: Model): Document => {
     [h.Class('min-h-screen bg-gray-50')],
     [
       h.div(
-        [h.Class('mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8')],
+        [h.Class('mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8')],
         [
           pageHeader(),
           h.div(

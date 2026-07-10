@@ -585,13 +585,21 @@ export const view = (model: Model): Document => {
   const completedCount = Array.length(model.todos) - activeCount
 
   const body = h.div(
-    [h.Class('min-h-screen bg-gray-100 py-8')],
+    [h.Class('min-h-screen bg-gray-50 px-4 py-12')],
     [
       h.div(
-        [h.Class('max-w-md mx-auto bg-white rounded-xl shadow-lg p-6')],
+        [
+          h.Class(
+            'max-w-lg mx-auto bg-white rounded-3xl border border-gray-200/80 shadow-xl p-7 sm:p-8',
+          ),
+        ],
         [
           h.h1(
-            [h.Class('text-3xl font-bold text-gray-800 text-center mb-8')],
+            [
+              h.Class(
+                'text-3xl font-semibold tracking-tight text-gray-900 text-center mb-8',
+              ),
+            ],
             ['Todo App'],
           ),
 
@@ -611,7 +619,7 @@ export const view = (model: Model): Document => {
                         ...attributes.input,
                         h.AriaLabel('New todo'),
                         h.Class(
-                          'flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
+                          'flex-1 min-w-0 px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500',
                         ),
                       ]),
                   }),
@@ -622,7 +630,7 @@ export const view = (model: Model): Document => {
                         [
                           ...attributes.button,
                           h.Class(
-                            'px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500',
+                            'px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm',
                           ),
                         ],
                         ['Add'],

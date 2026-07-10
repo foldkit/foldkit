@@ -73,7 +73,9 @@ export const canvasView = (model: Model, theme: PaletteTheme): Html => {
           html<Message>().keyed('div')(
             `canvas-${model.gridSize}`,
             [
-              Class('cursor-crosshair select-none w-full aspect-square'),
+              Class(
+                'cursor-crosshair select-none w-full aspect-square overflow-hidden rounded-xl shadow-2xl ring-1 ring-white/15',
+              ),
               Style({
                 display: 'flex',
                 'flex-direction': 'column',

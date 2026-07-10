@@ -18,7 +18,7 @@ import {
   WeeklyTelemetry,
   packageSpecs,
 } from './domain'
-import type { PackageId, PackageSpec } from './domain'
+import type { PackageId, PackageSpec, StargazerHistory } from './domain'
 import type {
   GitHubCommitActivityResponse,
   GitHubContributorResponse,
@@ -69,7 +69,9 @@ export type RawTelemetry = Readonly<{
   issues: ReadonlyArray<typeof GitHubIssueResponse.Type>
   pullRequests: ReadonlyArray<typeof GitHubPullRequestResponse.Type>
   releases: ReadonlyArray<typeof GitHubReleaseResponse.Type>
-  stargazers: ReadonlyArray<typeof GitHubStargazerResponse.Type>
+  stargazers: GitHubStatResult<
+    ReadonlyArray<typeof GitHubStargazerResponse.Type>
+  >
   commitActivity: GitHubStatResult<
     ReadonlyArray<typeof GitHubCommitActivityResponse.Type>
   >
@@ -373,6 +375,17 @@ export const transformTelemetry = (
   raw: RawTelemetry,
 ): typeof Telemetry.Type => {
   const weekStarts = weekStartsForLastYear(raw.fetchedAt)
+  const stargazerHistory: StargazerHistory = Array.match(
+    raw.stargazers.warnings,
+    {
+      onEmpty: () => 'Available',
+      onNonEmpty: () => 'Unavailable',
+    },
+  )
+  const maybeCompleteStargazers =
+    stargazerHistory === 'Available'
+      ? raw.stargazers.data
+      : Option.none<ReadonlyArray<typeof GitHubStargazerResponse.Type>>()
 
   const packageResults = Array.map(
     raw.packageData,
@@ -395,12 +408,21 @@ export const transformTelemetry = (
       Order.flip,
     ),
   )
-  const cumulativeStars = cumulativeStarsByWeek(
-    raw.repository.stargazers_count,
-    raw.stargazers,
-    weekStarts,
+  const cumulativeStars = pipe(
+    maybeCompleteStargazers,
+    Option.map(stargazers =>
+      cumulativeStarsByWeek(
+        raw.repository.stargazers_count,
+        stargazers,
+        weekStarts,
+      ),
+    ),
+    Option.getOrElse(() => []),
   )
-  const warnings = raw.commitActivity.warnings
+  const warnings = Array.appendAll(
+    raw.commitActivity.warnings,
+    raw.stargazers.warnings,
+  )
 
   return Telemetry.make({
     fetchedAt: raw.fetchedAt,
@@ -414,6 +436,7 @@ export const transformTelemetry = (
       pushedAt: raw.repository.pushed_at,
       defaultBranch: raw.repository.default_branch,
     }),
+    stargazerHistory,
     packages: packageSnapshots,
     weeks: makeWeeklyTelemetry(
       weekStarts,

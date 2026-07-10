@@ -136,7 +136,7 @@ const rowView = (row: Row): Html => {
             [
               ...attributes.button,
               h.Class(
-                'rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:border-red-300 hover:text-red-600 transition cursor-pointer',
+                'rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:border-red-300 hover:text-red-600 cursor-pointer',
               ),
             ],
             ['Remove'],
@@ -154,13 +154,16 @@ export const view = (model: Model): Document => {
     body: h.div(
       [
         h.Class(
-          'min-h-screen bg-white flex flex-col items-center py-12 px-6 gap-6',
+          'min-h-screen bg-gray-50 flex flex-col items-center py-16 px-6 gap-7',
         ),
       ],
       [
-        h.h1([h.Class('text-2xl font-semibold text-gray-900')], ['Counters']),
+        h.h1(
+          [h.Class('text-4xl font-semibold tracking-tight text-gray-900')],
+          ['Counters'],
+        ),
         h.p(
-          [h.Class('text-sm text-gray-500 max-w-md text-center')],
+          [h.Class('text-sm leading-6 text-gray-500 max-w-lg text-center')],
           [
             'Each row is a Counter Submodel. The parent has no awareness of Counter internals; it just embeds the Submodel via h.submodel and routes dispatched messages back to the right row via the GotCounterMessage wrapper.',
           ],

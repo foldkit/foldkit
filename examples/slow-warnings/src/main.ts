@@ -328,7 +328,7 @@ const scenarioCard = ({
   const h = html<Message>()
 
   return h.article(
-    [h.Class(`rounded-lg border p-4 shadow-sm ${phaseAccentClass(phase)}`)],
+    [h.Class(`rounded-2xl border p-5 shadow-sm ${phaseAccentClass(phase)}`)],
     [
       h.div(
         [h.Class('mb-4')],
@@ -361,7 +361,7 @@ const warningView = (warning: SlowWarning): Html => {
     warning.id.toString(),
     [
       h.Class(
-        `rounded-lg border p-4 shadow-sm ${phaseAccentClass(warning.phase)}`,
+        `rounded-2xl border p-5 shadow-sm ${phaseAccentClass(warning.phase)}`,
       ),
     ],
     [
@@ -390,7 +390,7 @@ const warningsView = (warnings: ReadonlyArray<SlowWarning>): Html => {
   const h = html<Message>()
 
   return h.section(
-    [h.Class('rounded-lg border border-zinc-200 bg-white p-4 shadow-sm')],
+    [h.Class('rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm')],
     [
       h.div(
         [h.Class('mb-4 flex flex-wrap items-center justify-between gap-3')],
@@ -477,7 +477,7 @@ const patchSurfaceView = (model: Model): Html => {
   const h = html<Message>()
 
   return h.section(
-    [h.Class('rounded-lg border border-zinc-200 bg-white p-4 shadow-sm')],
+    [h.Class('rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm')],
     [
       h.div(
         [h.Class('mb-4 flex flex-wrap items-center justify-between gap-3')],
@@ -513,13 +513,21 @@ export const view = (model: Model): Document => {
       [h.Class('min-h-screen bg-zinc-50 text-zinc-950')],
       [
         h.header(
-          [h.Class('border-b border-zinc-200 bg-white')],
+          [
+            h.Class(
+              'border-b border-zinc-200 bg-white/90 backdrop-blur shadow-sm',
+            ),
+          ],
           [
             h.div(
               [h.Class('mx-auto max-w-6xl px-5 py-6')],
               [
                 h.h1(
-                  [h.Class('text-3xl font-bold tracking-normal text-zinc-950')],
+                  [
+                    h.Class(
+                      'text-3xl font-semibold tracking-tight text-zinc-950',
+                    ),
+                  ],
                   ['Slow Warnings Lab'],
                 ),
                 h.p(

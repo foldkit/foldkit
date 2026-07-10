@@ -55,37 +55,52 @@ export const view = (model: Model): Document => {
   return {
     title: `Counter: ${model.count}`,
     body: h.div(
-      [
-        h.Class(
-          'min-h-screen bg-white flex flex-col items-center justify-center gap-6 p-6',
-        ),
-      ],
+      [h.Class('min-h-screen bg-gray-50 flex items-center justify-center p-6')],
       [
         h.div(
-          [h.Class('text-6xl font-bold text-gray-800')],
-          [model.count.toString()],
-        ),
-        h.div(
-          [h.Class('flex flex-wrap justify-center gap-4')],
           [
-            Button.view<Message>({
-              onClick: ClickedDecrement(),
-              toView: attributes =>
-                h.button([...attributes.button, h.Class(buttonStyle)], ['-']),
-            }),
-            Button.view<Message>({
-              onClick: ClickedReset(),
-              toView: attributes =>
-                h.button(
-                  [...attributes.button, h.Class(buttonStyle)],
-                  ['Reset'],
+            h.Class(
+              'w-full max-w-sm rounded-3xl border border-gray-200/80 bg-white p-8 shadow-xl flex flex-col items-center gap-8',
+            ),
+          ],
+          [
+            h.div(
+              [
+                h.Class(
+                  'text-7xl font-semibold tracking-tight tabular-nums text-gray-900',
                 ),
-            }),
-            Button.view<Message>({
-              onClick: ClickedIncrement(),
-              toView: attributes =>
-                h.button([...attributes.button, h.Class(buttonStyle)], ['+']),
-            }),
+              ],
+              [model.count.toString()],
+            ),
+            h.div(
+              [h.Class('grid w-full grid-cols-3 gap-3')],
+              [
+                Button.view<Message>({
+                  onClick: ClickedDecrement(),
+                  toView: attributes =>
+                    h.button(
+                      [...attributes.button, h.Class(buttonStyle)],
+                      ['-'],
+                    ),
+                }),
+                Button.view<Message>({
+                  onClick: ClickedReset(),
+                  toView: attributes =>
+                    h.button(
+                      [...attributes.button, h.Class(buttonStyle)],
+                      ['Reset'],
+                    ),
+                }),
+                Button.view<Message>({
+                  onClick: ClickedIncrement(),
+                  toView: attributes =>
+                    h.button(
+                      [...attributes.button, h.Class(buttonStyle)],
+                      ['+'],
+                    ),
+                }),
+              ],
+            ),
           ],
         ),
       ],
@@ -95,4 +110,5 @@ export const view = (model: Model): Document => {
 
 // STYLE
 
-const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
+const buttonStyle =
+  'rounded-xl bg-gray-900 px-4 py-3 font-medium text-white shadow-sm hover:bg-gray-700 cursor-pointer'

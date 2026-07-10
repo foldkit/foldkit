@@ -186,13 +186,21 @@ export const view = (model: Model): Document => {
   return {
     title: `Stopwatch ${formatTime(model.elapsedMs)}`,
     body: h.div(
-      [h.Class('min-h-screen bg-gray-200 flex items-center justify-center')],
+      [h.Class('min-h-screen bg-gray-50 flex items-center justify-center p-6')],
       [
         h.div(
-          [h.Class('bg-white text-center')],
+          [
+            h.Class(
+              'w-full max-w-md overflow-hidden rounded-3xl border border-gray-200/80 bg-white text-center shadow-xl',
+            ),
+          ],
           [
             h.div(
-              [h.Class('text-6xl font-mono font-bold text-gray-800 p-8')],
+              [
+                h.Class(
+                  'text-5xl sm:text-6xl font-mono font-semibold tracking-tight tabular-nums text-gray-900 px-6 py-12',
+                ),
+              ],
               [formatTime(model.elapsedMs)],
             ),
             h.div(
@@ -249,5 +257,4 @@ const startStopButton = (isRunning: boolean): Html => {
 
 // STYLE
 
-const buttonStyle =
-  'px-6 py-4 flex-1 font-semibold text-white transition-colors'
+const buttonStyle = 'px-6 py-4 flex-1 font-semibold text-white cursor-pointer'

@@ -1,4 +1,4 @@
-import { Array, Effect, Layer, Match as M, String } from 'effect'
+import { Array, Effect, Layer, Match as M, Option, String } from 'effect'
 import { HttpClient, HttpClientResponse } from 'effect/unstable/http'
 import { expect, test } from 'vitest'
 
@@ -11,7 +11,9 @@ import {
 import { NpmApiLive } from './npmApi'
 import { fetchRawTelemetry, transformTelemetry } from './telemetry'
 
-test('folds public API responses into a Telemetry value', async () => {
+const fetchTelemetryWithRestrictedStargazerPage = async (
+  restrictedPage: number,
+) => {
   const mockClient = HttpClient.make(request =>
     Effect.sync(() => {
       const body = M.value(request.url).pipe(
@@ -42,9 +44,15 @@ test('folds public API responses into a Telemetry value', async () => {
         M.orElse(() => mockGitHubRepository),
       )
 
+      const isRestrictedStargazerPage =
+        request.url.includes('/stargazers') &&
+        request.url.includes(`page=${restrictedPage}`)
+
       return HttpClientResponse.fromWeb(
         request,
-        new Response(JSON.stringify(body), { status: 200 }),
+        new Response(JSON.stringify(body), {
+          status: isRestrictedStargazerPage ? 401 : 200,
+        }),
       )
     }),
   )
@@ -52,13 +60,43 @@ test('folds public API responses into a Telemetry value', async () => {
   const telemetryLayer = Layer.mergeAll(GitHubApiLive, NpmApiLive).pipe(
     Layer.provide(Layer.succeed(HttpClient.HttpClient, mockClient)),
   )
-  const telemetry = await fetchRawTelemetry.pipe(
-    Effect.map(transformTelemetry),
+  const raw = await fetchRawTelemetry.pipe(
     Effect.provide(telemetryLayer),
     Effect.runPromise,
   )
 
+  return { raw, telemetry: transformTelemetry(raw) }
+}
+
+test('keeps the current star total without charting partial history', async () => {
+  const { raw, telemetry } = await fetchTelemetryWithRestrictedStargazerPage(4)
+
   expect(telemetry.repository.stars).toBe(342)
   expect(telemetry.repository.openIssues).toBe(1)
   expect(Array.length(telemetry.packages)).toBeGreaterThan(0)
+  expect(telemetry.stargazerHistory).toBe('Unavailable')
+  expect(Array.every(telemetry.weeks, week => week.cumulativeStars === 0)).toBe(
+    true,
+  )
+  expect(Option.isSome(raw.stargazers.data)).toBe(true)
+  if (Option.isSome(raw.stargazers.data)) {
+    expect(Array.length(raw.stargazers.data.value)).toBe(3)
+  }
+  expect(telemetry.warnings).toContain(
+    'Some stargazer history is unavailable. The current star total is still shown.',
+  )
+})
+
+test('keeps the current star total when stargazer history is unavailable', async () => {
+  const { raw, telemetry } = await fetchTelemetryWithRestrictedStargazerPage(1)
+
+  expect(telemetry.repository.stars).toBe(342)
+  expect(telemetry.stargazerHistory).toBe('Unavailable')
+  expect(Option.isNone(raw.stargazers.data)).toBe(true)
+  expect(Array.every(telemetry.weeks, week => week.cumulativeStars === 0)).toBe(
+    true,
+  )
+  expect(telemetry.warnings).toContain(
+    'Some stargazer history is unavailable. The current star total is still shown.',
+  )
 })

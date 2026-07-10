@@ -255,7 +255,11 @@ const personListItemView = (person: Person): Html => {
 
   return h.keyed('li')(
     person.id.toString(),
-    [h.Class('border border-gray-200 rounded-lg hover:bg-gray-50')],
+    [
+      h.Class(
+        'border border-gray-200 rounded-xl bg-white hover:bg-blue-50/50 shadow-sm',
+      ),
+    ],
     [
       h.a(
         [h.Href(personRouter({ personId: person.id })), h.Class('block p-4')],
@@ -308,7 +312,7 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
                         ...input,
                         h.Autocomplete('off'),
                         h.Class(
-                          'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
+                          'w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500',
                         ),
                       ]),
                       h.span([...description], []),
@@ -322,7 +326,7 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
                     [
                       ...button,
                       h.Class(
-                        'px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition cursor-pointer',
+                        'px-4 py-3 bg-blue-700 text-white rounded-xl hover:bg-blue-800 shadow-sm cursor-pointer',
                       ),
                     ],
                     ['Search'],
