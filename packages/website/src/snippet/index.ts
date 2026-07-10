@@ -54,6 +54,8 @@ export { default as routingSchemaSegmentRefinementRaw } from './routingSchemaSeg
 export { default as routingSchemaSegmentRefinementHighlighted } from './routingSchemaSegmentRefinement.ts?highlighted'
 export { default as routingRestRaw } from './routingRest.ts?raw'
 export { default as routingRestHighlighted } from './routingRest.ts?highlighted'
+export { default as routingRestStringRaw } from './routingRestString.ts?raw'
+export { default as routingRestStringHighlighted } from './routingRestString.ts?highlighted'
 export { default as routingKeyedRaw } from './routingKeyed.ts?raw'
 export { default as routingKeyedHighlighted } from './routingKeyed.ts?highlighted'
 export { default as routingColdLoadRaw } from './routingColdLoad.ts?raw'
