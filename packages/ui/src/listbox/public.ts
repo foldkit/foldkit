@@ -49,6 +49,8 @@ export type {
   SuppressedSpaceScroll,
   ItemConfig,
   GroupHeading,
+  BaseViewInputsCommon,
+  ItemToValueInput,
 } from './shared.js'
 
 export type { InitConfig, ViewInputs } from './single.js'

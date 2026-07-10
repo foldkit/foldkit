@@ -6,6 +6,7 @@ export {
   Message,
   OutMessage,
   Selected,
+  ClearedSelection,
   SelectedItem,
   CompletedLockScroll,
   CompletedUnlockScroll,
@@ -46,6 +47,7 @@ export type {
   PressedToggleButton,
   ItemConfig,
   GroupHeading,
+  BaseViewInputsCommon,
 } from './shared.js'
 
 export type { InitConfig, ViewInputs } from './single.js'

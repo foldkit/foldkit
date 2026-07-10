@@ -353,6 +353,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           ...Dialog.overlayDialogDemo(
             model.overlayDialogDemo,
             model.overlayComboboxDemo,
+            model.maybeOverlayComboboxDemoSelectedCity,
           ),
         ),
         highlightedCodeBlock(

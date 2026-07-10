@@ -109,16 +109,6 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     description: 'Unique ID for the combobox instance.',
   },
   {
-    name: 'selectedItem',
-    type: 'string',
-    description: 'Initially selected item value (single-select only).',
-  },
-  {
-    name: 'selectedDisplayText',
-    type: 'string',
-    description: 'Initial display text in the input (single-select only).',
-  },
-  {
     name: 'isAnimated',
     type: 'boolean',
     default: 'false',
@@ -135,7 +125,14 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     type: 'boolean',
     default: 'false',
     description:
-      'Allows clearing the selection by clicking the selected item again.',
+      'Allows clearing the selection by clicking the selected item again, or by emptying the input and closing (which emits ClearedSelection).',
+  },
+  {
+    name: 'immediate',
+    type: 'boolean',
+    default: 'false',
+    description:
+      'Emits Selected on every keyboard activation while open, so arrow keys commit as they move instead of waiting for Enter. Combining immediate with nullable is discouraged: a nullable toggle fold would deselect as the arrows pass back over the selected item.',
   },
   {
     name: 'selectInputOnFocus',
@@ -165,6 +162,18 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'The filtered list of items to display. You control the filtering logic based on model.inputValue.',
   },
   {
+    name: 'maybeSelectedValue',
+    type: 'Option<Item>',
+    description:
+      'The selection the parent owns. None when nothing is selected yet. Multi-select takes selectedValues: ReadonlyArray<Item> instead. Drives the isSelected context and aria-selected.',
+  },
+  {
+    name: 'restingInputValue',
+    type: 'string',
+    description:
+      'The text the input returns to when the combobox closes: the selected display text for single-select, an empty string for multi-select.',
+  },
+  {
     name: 'itemToConfig',
     type: '(item, context) => ItemConfig',
     description:
@@ -172,13 +181,13 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
   },
   {
     name: 'itemToValue',
-    type: '(item: Item) => string',
-    description: 'Extracts the string value from an item.',
+    type: '(item: Item, index: number) => Item',
+    description: 'Extracts the value from an item. Required.',
   },
   {
     name: 'itemToDisplayText',
-    type: '(item: Item) => string',
-    description: 'Text shown in the input when an item is selected.',
+    type: '(item: Item, index: number) => string',
+    description: 'Text shown in the input when an item is selected. Required.',
   },
   {
     name: 'inputAttributes',
@@ -229,9 +238,15 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
 const outMessageProps: ReadonlyArray<PropEntry> = [
   {
     name: 'Selected',
-    type: '{ value: Item; wasAdded: boolean }',
+    type: '{ value: Item }',
     description:
-      'Emitted when an item is committed. Single-select comboboxes always emit `wasAdded: true`. Multi-select comboboxes emit `wasAdded: true` when adding to the selection and `wasAdded: false` when toggling off. Pattern-match the third tuple element of CityCombobox.update in your GotComboboxMessage handler to lift the value into domain state.',
+      'Emitted when an item is activated. Carries the neutral fact that the item was activated; the parent owns the selection and decides what it means. Single-select stores the value; multi-select toggles the value in and out of its array. Pattern-match the third tuple element of CityCombobox.update in your GotComboboxMessage handler to fold the value into the selection you own.',
+  },
+  {
+    name: 'ClearedSelection',
+    type: '{}',
+    description:
+      'Emitted when a nullable combobox closes with an empty input, meaning the user cleared it. The parent clears the selection it owns.',
   },
 ]
 
@@ -295,7 +310,17 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         para(
           'A searchable select with input filtering, keyboard navigation, and anchor positioning. Unlike Listbox (which uses a button trigger), Combobox has a text input for searching. You control the filtering logic: read ',
           inlineCode('model.inputValue'),
-          ' and pass the filtered items array.',
+          ' and pass the filtered items array. The parent owns the selection: it passes the chosen value in as ',
+          inlineCode('maybeSelectedValue'),
+          ' (multi-select passes ',
+          inlineCode('selectedValues'),
+          ') along with ',
+          inlineCode('restingInputValue'),
+          ' (the text the input rests at when closed), and folds the ',
+          inlineCode('Selected'),
+          ' and ',
+          inlineCode('ClearedSelection'),
+          ' OutMessages into its own state (single-select stores the value, multi-select toggles the value in its array).',
         ),
         para(
           'Embed Combobox via the ',
@@ -312,14 +337,18 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           'For programmatic control in update functions, use ',
           inlineCode('CityCombobox.open(model)'),
           ', ',
-          inlineCode('CityCombobox.close(model)'),
+          inlineCode('CityCombobox.close(model, restingInputValue)'),
           ', and ',
           inlineCode('CityCombobox.selectItem(model, item, displayText)'),
           '. Each returns ',
           inlineCode('[Model, Commands, Option<OutMessage>]'),
-          ' directly. To mirror an externally-sourced selection without emitting (restoring a draft, a URL), use ',
-          inlineCode('CityCombobox.reflectSelectedItem(model, maybeItem)'),
-          ', which returns the model directly without an OutMessage.',
+          ' directly. Single-select ',
+          inlineCode('close'),
+          ' takes the resting input text (the selected display text, or empty); ',
+          inlineCode('Combobox.Multi'),
+          ' closes with ',
+          inlineCode('close(model)'),
+          ' since the multi-select input always rests empty.',
         ),
         infoCallout(
           'See it in an app',
@@ -346,7 +375,14 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         ),
         h.section(
           [h.AriaLabelledBy(Combobox.singleSelectHeader.id)],
-          [demoContainer(...Combobox.comboboxDemo(model.comboboxDemo))],
+          [
+            demoContainer(
+              ...Combobox.comboboxDemo(
+                model.comboboxDemo,
+                model.maybeComboboxDemoSelectedCity,
+              ),
+            ),
+          ],
         ),
         highlightedCodeBlock(
           h.div(
@@ -369,11 +405,22 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         para(
           'Pass ',
           inlineCode('nullable: true'),
-          ' at init to allow clearing the selection by clicking the selected item again.',
+          ' at init to allow clearing the selection by clicking the selected item again, or by emptying the input and closing. Both paths reach the parent as OutMessages (',
+          inlineCode('Selected'),
+          ' toggles, ',
+          inlineCode('ClearedSelection'),
+          ' clears), so the parent decides what an empty selection looks like.',
         ),
         h.section(
           [h.AriaLabelledBy(Combobox.nullableHeader.id)],
-          [demoContainer(...Combobox.nullableDemo(model.comboboxNullableDemo))],
+          [
+            demoContainer(
+              ...Combobox.nullableDemo(
+                model.comboboxNullableDemo,
+                model.maybeComboboxNullableDemoSelectedCity,
+              ),
+            ),
+          ],
         ),
         heading(
           Combobox.selectOnFocusHeader.level,
@@ -389,7 +436,10 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           [h.AriaLabelledBy(Combobox.selectOnFocusHeader.id)],
           [
             demoContainer(
-              ...Combobox.selectOnFocusDemo(model.comboboxSelectOnFocusDemo),
+              ...Combobox.selectOnFocusDemo(
+                model.comboboxSelectOnFocusDemo,
+                model.maybeComboboxSelectOnFocusDemoSelectedCity,
+              ),
             ),
           ],
         ),
@@ -401,13 +451,20 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         para(
           'Use ',
           inlineCode('Combobox.Multi'),
-          ' for multi-selection. The dropdown stays open on selection and items toggle on/off. Selected items are stored in ',
-          inlineCode('model.selectedItems'),
-          '.',
+          ' for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and folds each ',
+          inlineCode('Selected'),
+          ' OutMessage by toggling the value in its array.',
         ),
         h.section(
           [h.AriaLabelledBy(Combobox.multiHeader.id)],
-          [demoContainer(...Combobox.multiDemo(model.comboboxMultiDemo))],
+          [
+            demoContainer(
+              ...Combobox.multiDemo(
+                model.comboboxMultiDemo,
+                model.comboboxMultiDemoSelectedCities,
+              ),
+            ),
+          ],
         ),
         highlightedCodeBlock(
           h.div(
@@ -528,8 +585,10 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         para(
           'Messages emitted to the parent through the third element of ',
           inlineCode('[Model, Commands, Option<OutMessage>]'),
-          '. Pattern-match on the OutMessage in your update handler. The same shape applies to ',
-          inlineCode('Combobox.Multi.update'),
+          '. Pattern-match on the OutMessage in your update handler. The same shape applies to the update returned by ',
+          inlineCode('Combobox.Multi.create()'),
+          ', as in ',
+          inlineCode('CitiesCombobox.update'),
           '.',
         ),
         propTable(outMessageProps),

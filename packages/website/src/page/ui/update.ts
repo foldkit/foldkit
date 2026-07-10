@@ -5,10 +5,12 @@ import { evo } from 'foldkit/struct'
 import {
   Animation,
   Calendar,
+  Combobox,
   DatePicker,
   Dialog,
   DragAndDrop,
   FileDrop,
+  Listbox,
   Popover,
   Slider,
   Tabs,
@@ -55,7 +57,7 @@ import {
   type Message,
 } from './message'
 import type { Model } from './model'
-import type { DemoCard, DemoColumn, DemoTab } from './model'
+import type { City, DemoCard, DemoColumn, DemoTab, ListboxItem } from './model'
 import { DemoTabs } from './tabs'
 import { Toast } from './toastModule'
 import {
@@ -272,14 +274,27 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotComboboxDemoMessage: ({ message }) => {
-        const [nextComboboxDemo, comboboxCommands] = CityCombobox.update(
-          model.comboboxDemo,
-          message,
+        const [nextComboboxDemo, comboboxCommands, maybeOutMessage] =
+          CityCombobox.update(model.comboboxDemo, message)
+
+        const nextMaybeComboboxDemoSelectedCity = Option.match(
+          maybeOutMessage,
+          {
+            onNone: () => model.maybeComboboxDemoSelectedCity,
+            onSome: M.type<Combobox.OutMessage<City>>().pipe(
+              M.tagsExhaustive({
+                Selected: ({ value }) => Option.some(value),
+                ClearedSelection: () => model.maybeComboboxDemoSelectedCity,
+              }),
+            ),
+          },
         )
 
         return [
           evo(model, {
             comboboxDemo: () => nextComboboxDemo,
+            maybeComboboxDemoSelectedCity: () =>
+              nextMaybeComboboxDemoSelectedCity,
           }),
           Command.mapMessages(comboboxCommands, message =>
             GotComboboxDemoMessage({ message }),
@@ -288,12 +303,36 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotComboboxNullableDemoMessage: ({ message }) => {
-        const [nextComboboxNullableDemo, comboboxNullableCommands] =
-          CityCombobox.update(model.comboboxNullableDemo, message)
+        const [
+          nextComboboxNullableDemo,
+          comboboxNullableCommands,
+          maybeOutMessage,
+        ] = CityCombobox.update(model.comboboxNullableDemo, message)
+
+        const nextMaybeComboboxNullableDemoSelectedCity = Option.match(
+          maybeOutMessage,
+          {
+            onNone: () => model.maybeComboboxNullableDemoSelectedCity,
+            onSome: M.type<Combobox.OutMessage<City>>().pipe(
+              M.tagsExhaustive({
+                Selected: ({ value }) =>
+                  Option.contains(
+                    model.maybeComboboxNullableDemoSelectedCity,
+                    value,
+                  )
+                    ? Option.none()
+                    : Option.some(value),
+                ClearedSelection: () => Option.none(),
+              }),
+            ),
+          },
+        )
 
         return [
           evo(model, {
             comboboxNullableDemo: () => nextComboboxNullableDemo,
+            maybeComboboxNullableDemoSelectedCity: () =>
+              nextMaybeComboboxNullableDemoSelectedCity,
           }),
           Command.mapMessages(comboboxNullableCommands, message =>
             GotComboboxNullableDemoMessage({ message }),
@@ -302,12 +341,36 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotComboboxMultiDemoMessage: ({ message }) => {
-        const [nextComboboxMultiDemo, comboboxMultiCommands] =
+        const [nextComboboxMultiDemo, comboboxMultiCommands, maybeOutMessage] =
           CityMultiCombobox.update(model.comboboxMultiDemo, message)
+
+        const nextComboboxMultiDemoSelectedCities = Option.match(
+          maybeOutMessage,
+          {
+            onNone: () => model.comboboxMultiDemoSelectedCities,
+            onSome: M.type<Combobox.OutMessage<City>>().pipe(
+              M.tagsExhaustive({
+                Selected: ({ value }) =>
+                  Array.contains(model.comboboxMultiDemoSelectedCities, value)
+                    ? Array.filter(
+                        model.comboboxMultiDemoSelectedCities,
+                        city => city !== value,
+                      )
+                    : Array.append(
+                        model.comboboxMultiDemoSelectedCities,
+                        value,
+                      ),
+                ClearedSelection: () => model.comboboxMultiDemoSelectedCities,
+              }),
+            ),
+          },
+        )
 
         return [
           evo(model, {
             comboboxMultiDemo: () => nextComboboxMultiDemo,
+            comboboxMultiDemoSelectedCities: () =>
+              nextComboboxMultiDemoSelectedCities,
           }),
           Command.mapMessages(comboboxMultiCommands, message =>
             GotComboboxMultiDemoMessage({ message }),
@@ -316,12 +379,31 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotComboboxSelectOnFocusDemoMessage: ({ message }) => {
-        const [nextComboboxSelectOnFocusDemo, comboboxSelectOnFocusCommands] =
-          CityCombobox.update(model.comboboxSelectOnFocusDemo, message)
+        const [
+          nextComboboxSelectOnFocusDemo,
+          comboboxSelectOnFocusCommands,
+          maybeOutMessage,
+        ] = CityCombobox.update(model.comboboxSelectOnFocusDemo, message)
+
+        const nextMaybeComboboxSelectOnFocusDemoSelectedCity = Option.match(
+          maybeOutMessage,
+          {
+            onNone: () => model.maybeComboboxSelectOnFocusDemoSelectedCity,
+            onSome: M.type<Combobox.OutMessage<City>>().pipe(
+              M.tagsExhaustive({
+                Selected: ({ value }) => Option.some(value),
+                ClearedSelection: () =>
+                  model.maybeComboboxSelectOnFocusDemoSelectedCity,
+              }),
+            ),
+          },
+        )
 
         return [
           evo(model, {
             comboboxSelectOnFocusDemo: () => nextComboboxSelectOnFocusDemo,
+            maybeComboboxSelectOnFocusDemoSelectedCity: () =>
+              nextMaybeComboboxSelectOnFocusDemoSelectedCity,
           }),
           Command.mapMessages(comboboxSelectOnFocusCommands, message =>
             GotComboboxSelectOnFocusDemoMessage({ message }),
@@ -378,12 +460,31 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotOverlayComboboxDemoMessage: ({ message }) => {
-        const [nextOverlayComboboxDemo, overlayComboboxCommands] =
-          CityCombobox.update(model.overlayComboboxDemo, message)
+        const [
+          nextOverlayComboboxDemo,
+          overlayComboboxCommands,
+          maybeOutMessage,
+        ] = CityCombobox.update(model.overlayComboboxDemo, message)
+
+        const nextMaybeOverlayComboboxDemoSelectedCity = Option.match(
+          maybeOutMessage,
+          {
+            onNone: () => model.maybeOverlayComboboxDemoSelectedCity,
+            onSome: M.type<Combobox.OutMessage<City>>().pipe(
+              M.tagsExhaustive({
+                Selected: ({ value }) => Option.some(value),
+                ClearedSelection: () =>
+                  model.maybeOverlayComboboxDemoSelectedCity,
+              }),
+            ),
+          },
+        )
 
         return [
           evo(model, {
             overlayComboboxDemo: () => nextOverlayComboboxDemo,
+            maybeOverlayComboboxDemoSelectedCity: () =>
+              nextMaybeOverlayComboboxDemoSelectedCity,
           }),
           Command.mapMessages(overlayComboboxCommands, message =>
             GotOverlayComboboxDemoMessage({ message }),
@@ -490,14 +591,23 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotListboxDemoMessage: ({ message }) => {
-        const [nextListboxDemo, listboxCommands] = ItemListbox.update(
-          model.listboxDemo,
-          message,
-        )
+        const [nextListboxDemo, listboxCommands, maybeOutMessage] =
+          ItemListbox.update(model.listboxDemo, message)
+
+        const nextMaybeListboxDemoSelectedItem = Option.match(maybeOutMessage, {
+          onNone: () => model.maybeListboxDemoSelectedItem,
+          onSome: M.type<Listbox.OutMessage<ListboxItem>>().pipe(
+            M.tagsExhaustive({
+              Selected: ({ value }) => Option.some(value),
+            }),
+          ),
+        })
 
         return [
           evo(model, {
             listboxDemo: () => nextListboxDemo,
+            maybeListboxDemoSelectedItem: () =>
+              nextMaybeListboxDemoSelectedItem,
           }),
           Command.mapMessages(listboxCommands, message =>
             GotListboxDemoMessage({ message }),
@@ -506,12 +616,32 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotListboxMultiDemoMessage: ({ message }) => {
-        const [nextListboxMultiDemo, listboxMultiCommands] =
+        const [nextListboxMultiDemo, listboxMultiCommands, maybeOutMessage] =
           ItemMultiListbox.update(model.listboxMultiDemo, message)
+
+        const nextListboxMultiDemoSelectedItems = Option.match(
+          maybeOutMessage,
+          {
+            onNone: () => model.listboxMultiDemoSelectedItems,
+            onSome: M.type<Listbox.OutMessage<ListboxItem>>().pipe(
+              M.tagsExhaustive({
+                Selected: ({ value }) =>
+                  Array.contains(model.listboxMultiDemoSelectedItems, value)
+                    ? Array.filter(
+                        model.listboxMultiDemoSelectedItems,
+                        item => item !== value,
+                      )
+                    : Array.append(model.listboxMultiDemoSelectedItems, value),
+              }),
+            ),
+          },
+        )
 
         return [
           evo(model, {
             listboxMultiDemo: () => nextListboxMultiDemo,
+            listboxMultiDemoSelectedItems: () =>
+              nextListboxMultiDemoSelectedItems,
           }),
           Command.mapMessages(listboxMultiCommands, message =>
             GotListboxMultiDemoMessage({ message }),
@@ -520,12 +650,29 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotListboxGroupedDemoMessage: ({ message }) => {
-        const [nextListboxGroupedDemo, listboxGroupedCommands] =
-          CharacterListbox.update(model.listboxGroupedDemo, message)
+        const [
+          nextListboxGroupedDemo,
+          listboxGroupedCommands,
+          maybeOutMessage,
+        ] = CharacterListbox.update(model.listboxGroupedDemo, message)
+
+        const nextMaybeListboxGroupedDemoSelectedItem = Option.match(
+          maybeOutMessage,
+          {
+            onNone: () => model.maybeListboxGroupedDemoSelectedItem,
+            onSome: M.type<Listbox.OutMessage>().pipe(
+              M.tagsExhaustive({
+                Selected: ({ value }) => Option.some(value),
+              }),
+            ),
+          },
+        )
 
         return [
           evo(model, {
             listboxGroupedDemo: () => nextListboxGroupedDemo,
+            maybeListboxGroupedDemoSelectedItem: () =>
+              nextMaybeListboxGroupedDemoSelectedItem,
           }),
           Command.mapMessages(listboxGroupedCommands, message =>
             GotListboxGroupedDemoMessage({ message }),

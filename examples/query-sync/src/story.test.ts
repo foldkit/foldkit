@@ -26,8 +26,8 @@ const browseModel: Model = {
     diet: Option.none(),
     period: Option.none(),
   }),
-  dietListbox: Listbox.init({ id: 'diet-filter', selectedItem: '' }),
-  periodListbox: Listbox.init({ id: 'period-filter', selectedItem: '' }),
+  dietListbox: Listbox.init({ id: 'diet-filter' }),
+  periodListbox: Listbox.init({ id: 'period-filter' }),
 }
 
 const urlOrThrow = (raw: string) =>

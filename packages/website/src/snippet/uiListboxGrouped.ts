@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Effect, Match as M, Option } from 'effect'
+import { Match as M, Option } from 'effect'
 import { Command } from 'foldkit'
 import { childAttributes, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -96,6 +96,8 @@ const view = (model: Model) => {
     view: CharacterListbox.view,
     viewInputs: {
       items: characters,
+      // The parent owns the selection and passes it in.
+      maybeSelectedValue: model.maybeCharacter,
       itemToValue: characterName,
       // Group contiguous items by a shared key:
       itemGroupKey: character => character.lastName,

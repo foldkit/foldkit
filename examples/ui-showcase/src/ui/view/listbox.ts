@@ -11,17 +11,7 @@ import {
   GotListboxMultiDemoMessage,
   type UiMessage,
 } from '../message'
-import type { UiModel } from '../model'
-
-type ListboxItem =
-  | 'Michael Bluth'
-  | 'Lindsay Funke'
-  | 'Gob Bluth'
-  | 'George Michael'
-  | 'Maeby Funke'
-  | 'Buster Bluth'
-  | 'Tobias Funke'
-  | 'Lucille Bluth'
+import type { ListboxItem, UiModel } from '../model'
 
 const LISTBOX_ITEMS: ReadonlyArray<ListboxItem> = [
   'Michael Bluth',
@@ -89,18 +79,20 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
   const h = html<UiMessage>()
 
   const singleButtonLabel = Option.getOrElse(
-    model.listboxDemo.maybeSelectedItem,
+    model.maybeListboxDemoSelectedItem,
     () => 'Select a Bluth',
   )
 
-  const multiButtonLabel = Array.match(model.listboxMultiDemo.selectedItems, {
+  const multiButtonLabel = Array.match(model.listboxMultiDemoSelectedItems, {
     onEmpty: () => 'Select Bluths',
     onNonEmpty: items =>
-      items.length === 1 ? items[0] : `${items.length} selected`,
+      items.length === 1
+        ? Array.headNonEmpty(items)
+        : `${items.length} selected`,
   })
 
   const groupedButtonLabel = Option.getOrElse(
-    model.listboxGroupedDemo.maybeSelectedItem,
+    model.maybeListboxGroupedDemoSelectedItem,
     () => 'Select a character',
   )
 
@@ -133,6 +125,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                 viewInputs: {
                   anchor: LISTBOX_ANCHOR,
                   items: LISTBOX_ITEMS,
+                  maybeSelectedValue: model.maybeListboxDemoSelectedItem,
                   itemToConfig: item => ({
                     className: itemClassName,
                     content: h.div(
@@ -192,6 +185,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                 viewInputs: {
                   anchor: LISTBOX_ANCHOR,
                   items: LISTBOX_ITEMS,
+                  selectedValues: model.listboxMultiDemoSelectedItems,
                   itemToConfig: item => ({
                     className: itemClassName,
                     content: h.div(
@@ -252,6 +246,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                 viewInputs: {
                   anchor: LISTBOX_ANCHOR,
                   items: GROUPED_CHARACTERS,
+                  maybeSelectedValue: model.maybeListboxGroupedDemoSelectedItem,
                   itemToValue: characterName,
                   itemGroupKey: character => character.lastName,
                   groupToHeading: lastName => ({

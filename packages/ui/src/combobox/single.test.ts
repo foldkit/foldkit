@@ -10,6 +10,7 @@ import {
   ActivatedItem,
   AnchorCombobox,
   BlurredInput,
+  ClearedSelection,
   ClickItem,
   Closed,
   CompletedAnchorCombobox,
@@ -34,6 +35,7 @@ import {
   RequestedItemClick,
   RestoreInert,
   ScrollIntoView,
+  Selected,
   SelectedItem,
   UnlockScroll,
   UpdatedInputValue,
@@ -78,7 +80,7 @@ const withOpenAnimated = flow(
 
 describe('Combobox', () => {
   describe('init', () => {
-    it('defaults to closed with no active item and no selection', () => {
+    it('defaults to closed with no active item and an empty input', () => {
       expect(init({ id: 'test' })).toStrictEqual({
         id: 'test',
         isOpen: false,
@@ -92,8 +94,6 @@ describe('Combobox', () => {
         activationTrigger: 'Keyboard',
         inputValue: '',
         maybeLastPointerPosition: Option.none(),
-        maybeSelectedItem: Option.none(),
-        maybeSelectedDisplayText: Option.none(),
       })
     })
 
@@ -109,28 +109,6 @@ describe('Combobox', () => {
 
     it('accepts isModal option', () => {
       expect(init({ id: 'test', isModal: true }).isModal).toBe(true)
-    })
-
-    it('accepts selectedItem option', () => {
-      const model = init({
-        id: 'test',
-        selectedItem: 'apple',
-        selectedDisplayText: 'Apple',
-      })
-      expect(model.maybeSelectedItem).toStrictEqual(Option.some('apple'))
-      expect(model.maybeSelectedDisplayText).toStrictEqual(Option.some('Apple'))
-    })
-
-    it('defaults maybeSelectedItem to none', () => {
-      expect(init({ id: 'test' }).maybeSelectedItem).toStrictEqual(
-        Option.none(),
-      )
-    })
-
-    it('uses selectedItem as selectedDisplayText when selectedDisplayText is omitted', () => {
-      const model = init({ id: 'test', selectedItem: 'apple' })
-      expect(model.maybeSelectedItem).toStrictEqual(Option.some('apple'))
-      expect(model.maybeSelectedDisplayText).toStrictEqual(Option.some('apple'))
     })
 
     it('accepts nullable option', () => {
@@ -216,17 +194,15 @@ describe('Combobox', () => {
     })
 
     describe('Closed', () => {
-      it('closes and restores input to selected display text', () => {
+      it('closes and restores input to the resting input value', () => {
         Story.story(
           update,
           Story.with({
             ...init({ id: 'test' }),
             isOpen: true,
             inputValue: 'app',
-            maybeSelectedItem: Option.some('apple'),
-            maybeSelectedDisplayText: Option.some('Apple'),
           }),
-          Story.message(Closed()),
+          Story.message(Closed({ restingInputValue: 'Apple' })),
           Story.Command.resolve(FocusInput, CompletedFocusInput()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
@@ -237,7 +213,7 @@ describe('Combobox', () => {
         )
       })
 
-      it('closes with nullable and empty input clears selection', () => {
+      it('emits ClearedSelection when nullable and input is empty', () => {
         Story.story(
           update,
           Story.with({
@@ -245,16 +221,13 @@ describe('Combobox', () => {
             isOpen: true,
             nullable: true,
             inputValue: '',
-            maybeSelectedItem: Option.some('apple'),
-            maybeSelectedDisplayText: Option.some('Apple'),
           }),
-          Story.message(Closed()),
+          Story.message(Closed({ restingInputValue: 'Apple' })),
+          Story.expectOutMessage(ClearedSelection()),
           Story.Command.resolve(FocusInput, CompletedFocusInput()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.inputValue).toBe('')
-            expect(model.maybeSelectedItem).toStrictEqual(Option.none())
-            expect(model.maybeSelectedDisplayText).toStrictEqual(Option.none())
           }),
         )
       })
@@ -263,10 +236,26 @@ describe('Combobox', () => {
         Story.story(
           update,
           withOpen,
-          Story.message(Closed()),
+          Story.message(Closed({ restingInputValue: '' })),
           Story.Command.resolve(FocusInput, CompletedFocusInput()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
+          }),
+        )
+      })
+
+      it('is a no-op when already closed', () => {
+        const closedModel = { ...init({ id: 'test' }), inputValue: 'Apple' }
+
+        Story.story(
+          update,
+          Story.with(closedModel),
+          Story.message(Closed({ restingInputValue: 'Stale' })),
+          Story.expectNoOutMessage(),
+          Story.Command.expectNone(),
+          Story.model(model => {
+            expect(model).toStrictEqual(closedModel)
+            expect(model.inputValue).toBe('Apple')
           }),
         )
       })
@@ -277,7 +266,7 @@ describe('Combobox', () => {
         Story.story(
           update,
           withOpen,
-          Story.message(BlurredInput()),
+          Story.message(BlurredInput({ restingInputValue: '' })),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
@@ -286,18 +275,63 @@ describe('Combobox', () => {
         )
       })
 
-      it('restores input value to the selected display text', () => {
+      it('restores input value to the resting input value', () => {
         Story.story(
           update,
           Story.with({
             ...init({ id: 'test' }),
             isOpen: true,
             inputValue: 'app',
-            maybeSelectedDisplayText: Option.some('Apple'),
           }),
-          Story.message(BlurredInput()),
+          Story.message(BlurredInput({ restingInputValue: 'Apple' })),
           Story.model(model => {
             expect(model.inputValue).toBe('Apple')
+          }),
+        )
+      })
+
+      it('emits ClearedSelection when nullable and input is empty', () => {
+        Story.story(
+          update,
+          Story.with({
+            ...init({ id: 'test' }),
+            isOpen: true,
+            nullable: true,
+            inputValue: '',
+          }),
+          Story.message(BlurredInput({ restingInputValue: 'Apple' })),
+          Story.expectOutMessage(ClearedSelection()),
+          Story.model(model => {
+            expect(model.inputValue).toBe('')
+          }),
+        )
+      })
+
+      it('is a no-op when already closed', () => {
+        const closedModel = { ...init({ id: 'test' }), inputValue: 'Apple' }
+
+        Story.story(
+          update,
+          Story.with(closedModel),
+          Story.message(BlurredInput({ restingInputValue: 'Stale' })),
+          Story.expectNoOutMessage(),
+          Story.Command.expectNone(),
+          Story.model(model => {
+            expect(model).toStrictEqual(closedModel)
+            expect(model.inputValue).toBe('Apple')
+          }),
+        )
+      })
+
+      it('does not emit ClearedSelection when nullable with an empty input and already closed', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', nullable: true })),
+          Story.message(BlurredInput({ restingInputValue: 'Stale' })),
+          Story.expectNoOutMessage(),
+          Story.Command.expectNone(),
+          Story.model(model => {
+            expect(model.inputValue).toBe('')
           }),
         )
       })
@@ -383,7 +417,7 @@ describe('Combobox', () => {
         )
       })
 
-      it('applies immediate selection when maybeImmediateSelection is Some', () => {
+      it('emits Selected and stays open when maybeImmediateSelection is Some', () => {
         Story.story(
           update,
           withOpen,
@@ -393,17 +427,14 @@ describe('Combobox', () => {
               activationTrigger: 'Keyboard',
               maybeImmediateSelection: Option.some({
                 item: 'banana',
-                displayText: 'Banana',
               }),
             }),
           ),
+          Story.expectOutMessage(Selected({ value: 'banana' })),
           Story.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
           Story.model(model => {
-            expect(model.maybeSelectedItem).toStrictEqual(Option.some('banana'))
-            expect(model.maybeSelectedDisplayText).toStrictEqual(
-              Option.some('Banana'),
-            )
             expect(model.isOpen).toBe(true)
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(1))
           }),
         )
       })
@@ -503,17 +534,20 @@ describe('Combobox', () => {
     })
 
     describe('SelectedItem', () => {
-      it('sets selected item and display text, closes', () => {
+      it('closes, sets input to the display text, and emits Selected', () => {
         Story.story(
           update,
           withOpen,
-          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Story.message(
+            SelectedItem({
+              item: 'apple',
+              displayText: 'Apple',
+              wasSelected: false,
+            }),
+          ),
+          Story.expectOutMessage(Selected({ value: 'apple' })),
           Story.Command.resolve(FocusInput, CompletedFocusInput()),
           Story.model(model => {
-            expect(model.maybeSelectedItem).toStrictEqual(Option.some('apple'))
-            expect(model.maybeSelectedDisplayText).toStrictEqual(
-              Option.some('Apple'),
-            )
             expect(model.inputValue).toBe('Apple')
             expect(model.isOpen).toBe(false)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
@@ -521,21 +555,25 @@ describe('Combobox', () => {
         )
       })
 
-      it('clears selection when nullable and already selected', () => {
+      it('resets input and emits Selected when nullable and item was selected', () => {
         Story.story(
           update,
           Story.with({
             ...init({ id: 'test' }),
             isOpen: true,
             nullable: true,
-            maybeSelectedItem: Option.some('apple'),
-            maybeSelectedDisplayText: Option.some('Apple'),
+            inputValue: 'Apple',
           }),
-          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Story.message(
+            SelectedItem({
+              item: 'apple',
+              displayText: 'Apple',
+              wasSelected: true,
+            }),
+          ),
+          Story.expectOutMessage(Selected({ value: 'apple' })),
           Story.Command.resolve(FocusInput, CompletedFocusInput()),
           Story.model(model => {
-            expect(model.maybeSelectedItem).toStrictEqual(Option.none())
-            expect(model.maybeSelectedDisplayText).toStrictEqual(Option.none())
             expect(model.inputValue).toBe('')
             expect(model.isOpen).toBe(false)
           }),
@@ -546,7 +584,13 @@ describe('Combobox', () => {
         Story.story(
           update,
           withOpen,
-          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Story.message(
+            SelectedItem({
+              item: 'apple',
+              displayText: 'Apple',
+              wasSelected: false,
+            }),
+          ),
           Story.Command.resolve(FocusInput, CompletedFocusInput()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
@@ -604,7 +648,7 @@ describe('Combobox', () => {
         Story.story(
           update,
           withClosed,
-          Story.message(PressedToggleButton()),
+          Story.message(PressedToggleButton({ restingInputValue: '' })),
           Story.Command.resolve(FocusInput, CompletedFocusInput()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
@@ -614,14 +658,15 @@ describe('Combobox', () => {
         )
       })
 
-      it('closes when open', () => {
+      it('closes and restores input to the resting input value when open', () => {
         Story.story(
           update,
           withOpen,
-          Story.message(PressedToggleButton()),
+          Story.message(PressedToggleButton({ restingInputValue: 'Apple' })),
           Story.Command.resolve(FocusInput, CompletedFocusInput()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
+            expect(model.inputValue).toBe('Apple')
           }),
         )
       })
@@ -699,7 +744,7 @@ describe('Combobox', () => {
           Story.story(
             update,
             withOpenAnimated,
-            Story.message(Closed()),
+            Story.message(Closed({ restingInputValue: '' })),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
@@ -716,7 +761,7 @@ describe('Combobox', () => {
           Story.story(
             update,
             withOpenAnimated,
-            Story.message(BlurredInput()),
+            Story.message(BlurredInput({ restingInputValue: '' })),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
@@ -733,7 +778,11 @@ describe('Combobox', () => {
             update,
             withOpenAnimated,
             Story.message(
-              SelectedItem({ item: 'apple', displayText: 'Apple' }),
+              SelectedItem({
+                item: 'apple',
+                displayText: 'Apple',
+                wasSelected: false,
+              }),
             ),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
@@ -751,7 +800,7 @@ describe('Combobox', () => {
           Story.story(
             update,
             withOpenAnimated,
-            Story.message(Closed()),
+            Story.message(Closed({ restingInputValue: '' })),
             Story.Command.resolve(
               Animation.RequestFrame,
               Animation.AdvancedAnimationFrame(),
@@ -771,7 +820,7 @@ describe('Combobox', () => {
           Story.story(
             update,
             withOpenAnimated,
-            Story.message(Closed()),
+            Story.message(Closed({ restingInputValue: '' })),
             Story.Command.resolveAll(
               [FocusInput, CompletedFocusInput()],
               [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
@@ -800,7 +849,7 @@ describe('Combobox', () => {
           Story.story(
             update,
             withOpen,
-            Story.message(Closed()),
+            Story.message(Closed({ restingInputValue: '' })),
             Story.Command.resolve(FocusInput, CompletedFocusInput()),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -849,7 +898,7 @@ describe('Combobox', () => {
               [Animation.RequestFrame, Animation.AdvancedAnimationFrame()],
               [Animation.WaitForAnimationSettled, Animation.EndedAnimation()],
             ),
-            Story.message(Closed()),
+            Story.message(Closed({ restingInputValue: '' })),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
@@ -896,7 +945,7 @@ describe('Combobox', () => {
       Story.story(
         update,
         withOpenModal,
-        Story.message(Closed()),
+        Story.message(Closed({ restingInputValue: '' })),
         Story.Command.resolveAll(
           [FocusInput, CompletedFocusInput()],
           [UnlockScroll, CompletedUnlockScroll()],
@@ -912,7 +961,7 @@ describe('Combobox', () => {
       Story.story(
         update,
         withOpenModal,
-        Story.message(BlurredInput()),
+        Story.message(BlurredInput({ restingInputValue: '' })),
         Story.Command.resolveAll(
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedRestoreInert()],
@@ -927,7 +976,13 @@ describe('Combobox', () => {
       Story.story(
         update,
         withOpenModal,
-        Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+        Story.message(
+          SelectedItem({
+            item: 'apple',
+            displayText: 'Apple',
+            wasSelected: false,
+          }),
+        ),
         Story.Command.resolveAll(
           [FocusInput, CompletedFocusInput()],
           [UnlockScroll, CompletedUnlockScroll()],
@@ -947,7 +1002,7 @@ describe('Combobox', () => {
         Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),
-        Story.message(Closed()),
+        Story.message(Closed({ restingInputValue: '' })),
         Story.Command.resolve(FocusInput, CompletedFocusInput()),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
@@ -983,6 +1038,8 @@ describe('Combobox', () => {
           itemToConfig: () => ({ content: null }),
           itemToValue: item => item,
           itemToDisplayText: item => item,
+          maybeSelectedValue: Option.none(),
+          restingInputValue: '',
           ...overrides,
         })
 
@@ -1036,11 +1093,11 @@ describe('Combobox', () => {
 
     it('marks selected item with data-selected', () => {
       Scene.scene(
-        { update, view: sceneView() },
-        Scene.with({
-          ...openModel(),
-          maybeSelectedItem: Option.some('Banana'),
-        }),
+        {
+          update,
+          view: sceneView({ maybeSelectedValue: Option.some('Banana') }),
+        },
+        Scene.with(openModel()),
         Scene.tap(({ html }) => {
           expect(Scene.find(html, '[key="test-item-0"]')).not.toHaveAttr(
             'data-selected',
@@ -1078,11 +1135,14 @@ describe('Combobox', () => {
 
     it('renders hidden inputs when formName set', () => {
       Scene.scene(
-        { update, view: sceneView({ formName: 'fruit' }) },
-        Scene.with({
-          ...closedModel(),
-          maybeSelectedItem: Option.some('Apple'),
-        }),
+        {
+          update,
+          view: sceneView({
+            formName: 'fruit',
+            maybeSelectedValue: Option.some('Apple'),
+          }),
+        },
+        Scene.with(closedModel()),
         Scene.tap(({ html }) => {
           const hiddenInput = Scene.find(html, 'input[type="hidden"]')
           expect(hiddenInput).toExist()
@@ -1121,11 +1181,11 @@ describe('Combobox', () => {
 
     it('selected item has aria-selected="true"', () => {
       Scene.scene(
-        { update, view: sceneView() },
-        Scene.with({
-          ...openModel(),
-          maybeSelectedItem: Option.some('Apple'),
-        }),
+        {
+          update,
+          view: sceneView({ maybeSelectedValue: Option.some('Apple') }),
+        },
+        Scene.with(openModel()),
         Scene.tap(({ html }) => {
           expect(Scene.find(html, '[key="test-item-0"]')).toHaveAttr(
             'aria-selected',
@@ -1139,11 +1199,11 @@ describe('Combobox', () => {
 
     it('non-selected items have aria-selected="false"', () => {
       Scene.scene(
-        { update, view: sceneView() },
-        Scene.with({
-          ...openModel(),
-          maybeSelectedItem: Option.some('Apple'),
-        }),
+        {
+          update,
+          view: sceneView({ maybeSelectedValue: Option.some('Apple') }),
+        },
+        Scene.with(openModel()),
         Scene.tap(({ html }) => {
           expect(Scene.find(html, '[key="test-item-1"]')).toHaveAttr(
             'aria-selected',
@@ -1301,6 +1361,7 @@ describe('Combobox', () => {
           {
             update,
             view: sceneView({
+              maybeSelectedValue: Option.some('Apple'),
               itemToConfig: (
                 _item: string,
                 context: Readonly<{
@@ -1314,10 +1375,7 @@ describe('Combobox', () => {
               },
             }),
           },
-          Scene.with({
-            ...openModel(),
-            maybeSelectedItem: Option.some('Apple'),
-          }),
+          Scene.with(openModel()),
           Scene.tap(() => {
             expect(contexts[0]?.isSelected).toBe(true)
           }),
@@ -1338,6 +1396,7 @@ describe('Combobox', () => {
           {
             update,
             view: sceneView({
+              maybeSelectedValue: Option.some('Apple'),
               itemToConfig: (
                 _item: string,
                 context: Readonly<{
@@ -1351,10 +1410,7 @@ describe('Combobox', () => {
               },
             }),
           },
-          Scene.with({
-            ...openModel(),
-            maybeSelectedItem: Option.some('Apple'),
-          }),
+          Scene.with(openModel()),
           Scene.tap(() => {
             expect(contexts[1]?.isSelected).toBe(false)
           }),
@@ -1422,29 +1478,6 @@ describe('Combobox', () => {
       it('inputId derives the input id from the base id', () => {
         expect(inputId('test')).toBe('test-input')
       })
-    })
-  })
-
-  describe('reflectSelectedItem', () => {
-    it('reflects the selection, display text, and input text together', () => {
-      const next = TestCombobox.reflectSelectedItem(
-        init({ id: 'test' }),
-        Option.some({ item: 'apple', displayText: 'Apple' }),
-      )
-      expect(next.maybeSelectedItem).toStrictEqual(Option.some('apple'))
-      expect(next.maybeSelectedDisplayText).toStrictEqual(Option.some('Apple'))
-      expect(next.inputValue).toBe('Apple')
-    })
-
-    it('clears the selection and input on None', () => {
-      const selected = TestCombobox.reflectSelectedItem(
-        init({ id: 'test' }),
-        Option.some({ item: 'apple', displayText: 'Apple' }),
-      )
-      const cleared = TestCombobox.reflectSelectedItem(selected, Option.none())
-      expect(cleared.maybeSelectedItem).toStrictEqual(Option.none())
-      expect(cleared.maybeSelectedDisplayText).toStrictEqual(Option.none())
-      expect(cleared.inputValue).toBe('')
     })
   })
 })

@@ -1,13 +1,13 @@
-import { Array, Function, Option, Schema as S } from 'effect'
+import { Option, Schema as S } from 'effect'
 import type * as Command from 'foldkit/command'
-import { evo } from 'foldkit/struct'
-import type { Reflect, View as SubmodelView } from 'foldkit/submodel'
+import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
 import {
   type BaseInitConfig,
   BaseModel,
-  type BaseViewInputs,
+  type BaseViewInputsCommon,
   Closed,
+  type ItemToValueInput,
   type Message,
   Opened,
   type OutMessage,
@@ -20,36 +20,26 @@ import {
 
 // MODEL
 
-/** Schema for the listbox component's state, tracking open/closed status, active item, selected item, activation trigger, and typeahead search. */
+/** Schema for the single-select listbox's private interaction state (open/closed status, active item, activation trigger, typeahead search). The selection is owned by the parent and passed in via `ViewInputs.maybeSelectedValue`. */
 export const Model = S.Struct({
   ...BaseModel.fields,
-  maybeSelectedItem: S.Option(S.String),
 })
 
 export type Model = typeof Model.Type
 
 // INIT
 
-/** Configuration for creating a single-select listbox model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). `selectedItem` sets the initial selection (default none). */
-export type InitConfig = BaseInitConfig &
-  Readonly<{
-    selectedItem?: string
-  }>
+/** Configuration for creating a single-select listbox model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). */
+export type InitConfig = BaseInitConfig
 
-/** Creates an initial single-select listbox model from a config. Defaults to closed with no active item and no selection. */
-export const init = (config: InitConfig): Model => ({
-  ...baseInit(config),
-  maybeSelectedItem: Option.fromNullishOr(config.selectedItem),
-})
+/** Creates an initial single-select listbox model from a config. Defaults to closed with no active item. */
+export const init = (config: InitConfig): Model => baseInit(config)
 
 // UPDATE
 
-/** Processes a listbox message and returns the next model, commands, and optional OutMessage. Closes the listbox on selection (single-select behavior); emits a `Selected({ value, wasAdded: true })` OutMessage. */
+/** Processes a listbox message and returns the next model, commands, and optional OutMessage. Closes the listbox on selection (single-select behavior); emits a `Selected({ value })` OutMessage the parent stores as the selection. */
 export const update = makeUpdate<Model>((model, item, context) =>
-  context.closeWithFocus(
-    evo(model, { maybeSelectedItem: () => Option.some(item) }),
-    Option.some(SharedSelected({ value: item, wasAdded: true })),
-  ),
+  context.closeWithFocus(model, Option.some(SharedSelected({ value: item }))),
 )
 
 type UpdateReturn = ReturnType<typeof update>
@@ -63,48 +53,38 @@ export const open = (model: Model): UpdateReturn =>
  *  focus and modal commands. Use this in domain-event handlers to close the listbox. */
 export const close = (model: Model): UpdateReturn => update(model, Closed())
 
-/** Programmatically selects an item in the single-select listbox, closing the listbox and emitting a `Selected({ value, wasAdded: true })` OutMessage. */
+/** Programmatically selects an item in the single-select listbox, closing the listbox and emitting a `Selected({ value })` OutMessage. */
 export const selectItem = (model: Model, item: string): UpdateReturn =>
   update(model, SelectedItem({ item }))
-
-/** Reflects an externally-sourced selection onto the model without
- *  emitting an OutMessage or running the user-selection side effects (no
- *  close, no focus). Use this to mirror external truth (a URL parameter,
- *  restored storage, a server push) onto the listbox's selection.
- *  Contrast with `selectItem`, which represents a user or programmatic
- *  *choice*: it closes the listbox, restores focus, and emits `Selected`.
- *  `reflect` returns the model directly because it produces no commands and
- *  no OutMessage, so a parent reflecting external state cannot
- *  accidentally echo it back out. */
-export const reflectSelectedItem: Reflect<
-  Model,
-  Option.Option<string>
-> = Function.dual(
-  2,
-  (model: Model, maybeItem: Option.Option<string>): Model =>
-    evo(model, { maybeSelectedItem: () => maybeItem }),
-)
 
 // VIEW
 
 /** Per-render view inputs passed to the view via `h.submodel`'s `viewInputs` field. */
-export type ViewInputs<Item, Value extends string = string> = BaseViewInputs<
+export type ViewInputs<
   Item,
-  Value
->
+  Value extends string = string,
+> = BaseViewInputsCommon<Item> &
+  Readonly<{
+    /** The selection the parent owns, passed in fresh on every render.
+     *  `Option` because a single-select listbox may have no selection yet.
+     *  Drives `aria-selected` and `data-selected` on items, which item the
+     *  Listbox highlights when it opens onto a selection, and the hidden
+     *  form input submitted under `name`. */
+    maybeSelectedValue: Option.Option<Value>
+  }> &
+  ItemToValueInput<Item, Value>
 
-const internalView = makeView<Model>({
-  isItemSelected: (model, itemValue) =>
-    Option.exists(
-      model.maybeSelectedItem,
-      selectedItem => selectedItem === itemValue,
-    ),
-  selectedItemIndex: (model, items, itemToValue) =>
-    Option.flatMap(model.maybeSelectedItem, selectedItem =>
-      Array.findFirstIndex(items, item => itemToValue(item) === selectedItem),
-    ),
-  ariaMultiSelectable: false,
-})
+const internalView = makeView<Model>({ ariaMultiSelectable: false })
+
+const arrayBasedView = internalView<unknown, string>()
+
+const singleViewImpl = defineView<Model, Message, ViewInputs<unknown, string>>(
+  (model, { maybeSelectedValue, ...baseInputs }) =>
+    arrayBasedView(model, {
+      ...baseInputs,
+      selectedValues: Option.toArray(maybeSelectedValue),
+    }),
+)
 
 /** Pairs the single-select listbox's `view` and `update` (and programmatic
  *  helpers) behind a single Item-typed entry point. Declaring the listbox
@@ -130,7 +110,7 @@ export const create = <
   Item = string,
   Value extends string = Item extends string ? Item : string,
 >(): Readonly<{
-  view: SubmodelView<Model, Message, BaseViewInputs<Item, Value>>
+  view: SubmodelView<Model, Message, ViewInputs<Item, Value>>
   update: (
     model: Model,
     message: Message,
@@ -161,7 +141,6 @@ export const create = <
     ReadonlyArray<Command.Command<Message>>,
     Option.Option<OutMessage<Value>>,
   ]
-  reflectSelectedItem: Reflect<Model, Option.Option<Value>>
 }> => {
   type UpdateReturn = readonly [
     Model,
@@ -170,17 +149,19 @@ export const create = <
   ]
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const typedUpdate = update as (model: Model, message: Message) => UpdateReturn
+  const view =
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    singleViewImpl as unknown as SubmodelView<
+      Model,
+      Message,
+      ViewInputs<Item, Value>
+    >
   return {
-    view: internalView<Item, Value>(),
+    view,
     update: typedUpdate,
     selectItem: (model, item) => typedUpdate(model, SelectedItem({ item })),
     open: model =>
       typedUpdate(model, Opened({ maybeActiveItemIndex: Option.none() })),
     close: model => typedUpdate(model, Closed()),
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    reflectSelectedItem: reflectSelectedItem as Reflect<
-      Model,
-      Option.Option<Value>
-    >,
   }
 }

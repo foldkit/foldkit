@@ -204,19 +204,12 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (
   url: Url,
 ) => {
   const route = urlToAppRoute(url)
-  const fields = routeToBrowseFields(route)
 
   return [
     {
       route,
-      dietListbox: Listbox.init({
-        id: 'diet-filter',
-        selectedItem: Option.getOrElse(fields.diet, () => ''),
-      }),
-      periodListbox: Listbox.init({
-        id: 'period-filter',
-        selectedItem: Option.getOrElse(fields.period, () => ''),
-      }),
+      dietListbox: Listbox.init({ id: 'diet-filter' }),
+      periodListbox: Listbox.init({ id: 'period-filter' }),
     },
     [],
   ]
@@ -311,20 +304,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       ChangedUrl: ({ url }) => {
         const nextRoute = urlToAppRoute(url)
-        const fields = routeToBrowseFields(nextRoute)
 
-        return [
-          evo(model, {
-            route: () => nextRoute,
-            dietListbox: DietListbox.reflectSelectedItem(
-              Option.orElse(fields.diet, () => Option.some('')),
-            ),
-            periodListbox: PeriodListbox.reflectSelectedItem(
-              Option.orElse(fields.period, () => Option.some('')),
-            ),
-          }),
-          [],
-        ]
+        return [evo(model, { route: () => nextRoute }), []]
       },
 
       ChangedSearchInput: ({ value }) => {
@@ -370,7 +351,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           onSome: M.type<Listbox.OutMessage>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
-              Selected: () => {
+              Selected: ({ value }) => {
                 const fields = routeToBrowseFields(model.route)
                 return [
                   evo(model, { dietListbox: () => nextDietListbox }),
@@ -378,10 +359,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                     ...mappedCommands,
                     ReplaceFilters({
                       ...fields,
-                      diet: selectionToParam(
-                        nextDietListbox.maybeSelectedItem,
-                        Diet,
-                      ),
+                      diet: selectionToParam(Option.some(value), Diet),
                     }),
                   ],
                 ]
@@ -406,7 +384,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           onSome: M.type<Listbox.OutMessage>().pipe(
             M.withReturnType<UpdateReturn>(),
             M.tagsExhaustive({
-              Selected: () => {
+              Selected: ({ value }) => {
                 const fields = routeToBrowseFields(model.route)
                 return [
                   evo(model, { periodListbox: () => nextPeriodListbox }),
@@ -414,10 +392,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                     ...mappedCommands,
                     ReplaceFilters({
                       ...fields,
-                      period: selectionToParam(
-                        nextPeriodListbox.maybeSelectedItem,
-                        Period,
-                      ),
+                      period: selectionToParam(Option.some(value), Period),
                     }),
                   ],
                 ]
@@ -736,13 +711,11 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
             viewInputs: {
               anchor: LISTBOX_ANCHOR,
               items: dietFilterItems,
+              maybeSelectedValue: Option.orElseSome(fields.diet, () => ''),
               itemToConfig: item => filterItemConfig(dietLabel(item)),
               itemToSearchText: dietLabel,
               buttonContent: filterButtonContent(
-                filterButtonLabel(
-                  model.dietListbox.maybeSelectedItem,
-                  'All Diets',
-                ),
+                filterButtonLabel(fields.diet, 'All Diets'),
               ),
               buttonAttributes: childAttributes([
                 h.Class(listboxButtonClassName),
@@ -764,13 +737,11 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
             viewInputs: {
               anchor: LISTBOX_ANCHOR,
               items: periodFilterItems,
+              maybeSelectedValue: Option.orElseSome(fields.period, () => ''),
               itemToConfig: item => filterItemConfig(periodLabel(item)),
               itemToSearchText: periodLabel,
               buttonContent: filterButtonContent(
-                filterButtonLabel(
-                  model.periodListbox.maybeSelectedItem,
-                  'All Periods',
-                ),
+                filterButtonLabel(fields.period, 'All Periods'),
               ),
               buttonAttributes: childAttributes([
                 h.Class(listboxButtonClassName),

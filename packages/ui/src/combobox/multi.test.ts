@@ -11,6 +11,7 @@ import type { Model, ViewInputs } from './multi.js'
 import {
   ActivatedItem,
   AnchorCombobox,
+  ClearedSelection,
   Closed,
   CompletedAnchorCombobox,
   CompletedFocusInput,
@@ -20,6 +21,7 @@ import {
   Opened,
   PortalComboboxBackdrop,
   ScrollIntoView,
+  Selected,
   SelectedItem,
   inputId,
 } from './shared.js'
@@ -45,7 +47,7 @@ const withOpenMulti = flow(
 
 describe('Combobox.Multi', () => {
   describe('init', () => {
-    it('defaults to closed with no active item and no selection', () => {
+    it('defaults to closed with no active item and an empty input', () => {
       expect(init({ id: 'test' })).toStrictEqual({
         id: 'test',
         isOpen: false,
@@ -58,35 +60,25 @@ describe('Combobox.Multi', () => {
         maybeActiveItemIndex: Option.none(),
         activationTrigger: 'Keyboard',
         inputValue: '',
-        selectedItems: [],
         maybeLastPointerPosition: Option.none(),
       })
-    })
-
-    it('accepts selectedItems option', () => {
-      const model = init({
-        id: 'test',
-        selectedItems: ['apple', 'banana'],
-      })
-      expect(model.selectedItems).toStrictEqual(['apple', 'banana'])
-    })
-
-    it('defaults selectedItems to empty', () => {
-      const model = init({ id: 'test' })
-      expect(model.selectedItems).toStrictEqual([])
     })
   })
 
   describe('update', () => {
     describe('SelectedItem (multiple)', () => {
-      it('adds item to selectedItems', () => {
+      it('emits Selected with the item value', () => {
         Story.story(
           update,
           withOpenMulti,
-          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-          Story.model(model => {
-            expect(model.selectedItems).toStrictEqual(['apple'])
-          }),
+          Story.message(
+            SelectedItem({
+              item: 'apple',
+              displayText: 'Apple',
+              wasSelected: false,
+            }),
+          ),
+          Story.expectOutMessage(Selected({ value: 'apple' })),
         )
       })
 
@@ -94,36 +86,62 @@ describe('Combobox.Multi', () => {
         Story.story(
           update,
           withOpenMulti,
-          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Story.message(
+            SelectedItem({
+              item: 'apple',
+              displayText: 'Apple',
+              wasSelected: false,
+            }),
+          ),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
         )
       })
 
-      it('toggles item off when already selected', () => {
+      it('emits Selected again when the same item is activated (parent toggles off)', () => {
         Story.story(
           update,
           withOpenMulti,
-          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-          Story.model(model => {
-            expect(model.selectedItems).toStrictEqual([])
-          }),
+          Story.message(
+            SelectedItem({
+              item: 'apple',
+              displayText: 'Apple',
+              wasSelected: false,
+            }),
+          ),
+          Story.expectOutMessage(Selected({ value: 'apple' })),
+          Story.message(
+            SelectedItem({
+              item: 'apple',
+              displayText: 'Apple',
+              wasSelected: true,
+            }),
+          ),
+          Story.expectOutMessage(Selected({ value: 'apple' })),
         )
       })
 
-      it('accumulates multiple selections', () => {
+      it('emits Selected for each activated item', () => {
         Story.story(
           update,
           withOpenMulti,
-          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
           Story.message(
-            SelectedItem({ item: 'banana', displayText: 'Banana' }),
+            SelectedItem({
+              item: 'apple',
+              displayText: 'Apple',
+              wasSelected: false,
+            }),
           ),
-          Story.model(model => {
-            expect(model.selectedItems).toStrictEqual(['apple', 'banana'])
-          }),
+          Story.expectOutMessage(Selected({ value: 'apple' })),
+          Story.message(
+            SelectedItem({
+              item: 'banana',
+              displayText: 'Banana',
+              wasSelected: false,
+            }),
+          ),
+          Story.expectOutMessage(Selected({ value: 'banana' })),
         )
       })
 
@@ -139,7 +157,13 @@ describe('Combobox.Multi', () => {
             }),
           ),
           Story.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Story.message(
+            SelectedItem({
+              item: 'apple',
+              displayText: 'Apple',
+              wasSelected: false,
+            }),
+          ),
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
@@ -147,25 +171,57 @@ describe('Combobox.Multi', () => {
       })
     })
 
-    describe('handleClose with nullable', () => {
-      it('clears selectedItems when nullable and input empty', () => {
+    describe('Closed', () => {
+      it('resets input to empty regardless of the resting input value', () => {
+        Story.story(
+          update,
+          Story.with({
+            ...init({ id: 'test' }),
+            isOpen: true,
+            inputValue: 'app',
+          }),
+          Story.message(Closed({ restingInputValue: 'Apple' })),
+          Story.Command.resolve(FocusInput, CompletedFocusInput()),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
+            expect(model.inputValue).toBe('')
+          }),
+        )
+      })
+
+      it('emits ClearedSelection when nullable and input is empty', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', nullable: true })),
           Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-          Story.message(Closed()),
+          Story.message(Closed({ restingInputValue: '' })),
+          Story.expectOutMessage(ClearedSelection()),
           Story.Command.resolve(FocusInput, CompletedFocusInput()),
           Story.model(model => {
-            expect(model.selectedItems).toStrictEqual([])
             expect(model.isOpen).toBe(false)
+          }),
+        )
+      })
+
+      it('is a no-op when already closed', () => {
+        const closedModel = { ...init({ id: 'test' }), inputValue: 'app' }
+
+        Story.story(
+          update,
+          Story.with(closedModel),
+          Story.message(Closed({ restingInputValue: 'Stale' })),
+          Story.expectNoOutMessage(),
+          Story.Command.expectNone(),
+          Story.model(model => {
+            expect(model).toStrictEqual(closedModel)
+            expect(model.inputValue).toBe('app')
           }),
         )
       })
     })
 
     describe('handleImmediateActivation', () => {
-      it('toggles item in selectedItems', () => {
+      it('emits Selected on each immediate activation (parent toggles)', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', immediate: true })),
@@ -176,27 +232,24 @@ describe('Combobox.Multi', () => {
               activationTrigger: 'Keyboard',
               maybeImmediateSelection: Option.some({
                 item: 'apple',
-                displayText: 'Apple',
               }),
             }),
           ),
+          Story.expectOutMessage(Selected({ value: 'apple' })),
           Story.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Story.model(model => {
-            expect(model.selectedItems).toStrictEqual(['apple'])
-          }),
           Story.message(
             ActivatedItem({
               index: 0,
               activationTrigger: 'Keyboard',
               maybeImmediateSelection: Option.some({
                 item: 'apple',
-                displayText: 'Apple',
               }),
             }),
           ),
+          Story.expectOutMessage(Selected({ value: 'apple' })),
           Story.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
           Story.model(model => {
-            expect(model.selectedItems).toStrictEqual([])
+            expect(model.isOpen).toBe(true)
           }),
         )
       })
@@ -233,6 +286,8 @@ describe('Combobox.Multi', () => {
           }),
           itemToValue: item => item,
           itemToDisplayText: item => item,
+          selectedValues: [],
+          restingInputValue: '',
           ...overrides,
         })
 
@@ -255,13 +310,12 @@ describe('Combobox.Multi', () => {
 
     describe('multiple data-selected', () => {
       it('multiple items have data-selected', () => {
-        const model = {
-          ...openMultiModel(),
-          selectedItems: ['Apple', 'Banana'],
-        }
         Scene.scene(
-          { update, view: sceneView() },
-          Scene.with(model),
+          {
+            update,
+            view: sceneView({ selectedValues: ['Apple', 'Banana'] }),
+          },
+          Scene.with(openMultiModel()),
           Scene.tap(({ html }) => {
             expect(Scene.find(html, '[key="test-item-0"]')).toHaveAttr(
               'data-selected',
@@ -280,13 +334,15 @@ describe('Combobox.Multi', () => {
 
     describe('form integration', () => {
       it('renders multiple hidden inputs for multi-select', () => {
-        const model = {
-          ...closedModel(),
-          selectedItems: ['Apple', 'Banana'],
-        }
         Scene.scene(
-          { update, view: sceneView({ formName: 'fruit' }) },
-          Scene.with(model),
+          {
+            update,
+            view: sceneView({
+              formName: 'fruit',
+              selectedValues: ['Apple', 'Banana'],
+            }),
+          },
+          Scene.with(closedModel()),
           Scene.tap(({ html }) => {
             const inputs = Scene.findAll(html, 'input[type="hidden"]')
             expect(inputs).toHaveLength(2)
@@ -297,10 +353,9 @@ describe('Combobox.Multi', () => {
       })
 
       it('renders empty hidden input when no items selected', () => {
-        const model = closedModel()
         Scene.scene(
           { update, view: sceneView({ formName: 'fruit' }) },
-          Scene.with(model),
+          Scene.with(closedModel()),
           Scene.tap(({ html }) => {
             const inputs = Scene.findAll(html, 'input[type="hidden"]')
             expect(inputs).toHaveLength(1)
@@ -370,16 +425,6 @@ describe('Combobox.Multi', () => {
       it('inputId derives the input id from the base id', () => {
         expect(inputId('test')).toBe('test-input')
       })
-    })
-  })
-
-  describe('reflectSelectedItems', () => {
-    it('reflects a selection set onto the model without emitting', () => {
-      const next = TestCombobox.reflectSelectedItems(init({ id: 'test' }), [
-        'a',
-        'b',
-      ])
-      expect(next.selectedItems).toStrictEqual(['a', 'b'])
     })
   })
 })

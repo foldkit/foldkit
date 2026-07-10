@@ -119,7 +119,7 @@ GotDatePickerMessage: ({ message }) => {
 // `DatePicker.triggerId('date-picker-demo')` for a native `<label for>`. The
 // attribute is only emitted when provided, so the trigger never carries a
 // dangling `aria-labelledby`.
-const view = () => {
+const view = (model: Model) => {
   const h = html<Message>()
 
   const labelId = 'date-picker-label'

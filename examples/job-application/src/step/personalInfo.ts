@@ -39,6 +39,7 @@ export const Model = S.Struct({
   emailValidationId: S.Number,
   phone: Field(S.String),
   pronouns: Listbox.Model,
+  maybeSelectedPronoun: S.Option(S.String),
   customPronouns: S.String,
   portfolioUrl: Field(S.String),
   availableDate: DatePicker.Model,
@@ -91,6 +92,7 @@ export const init = (today: CalendarDate): Model => ({
   emailValidationId: 0,
   phone: NotValidated({ value: '' }),
   pronouns: Listbox.init({ id: 'pronouns' }),
+  maybeSelectedPronoun: Option.none(),
   customPronouns: '',
   portfolioUrl: NotValidated({ value: '' }),
   availableDate: DatePicker.init({
@@ -229,12 +231,21 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotPronounsMessage: ({ message: listboxMessage }) => {
-        const [nextPronouns, listboxCommands] = PronounsListbox.update(
-          model.pronouns,
-          listboxMessage,
-        )
+        const [nextPronouns, listboxCommands, maybeOutMessage] =
+          PronounsListbox.update(model.pronouns, listboxMessage)
+        const nextMaybeSelectedPronoun = Option.match(maybeOutMessage, {
+          onNone: () => model.maybeSelectedPronoun,
+          onSome: M.type<Listbox.OutMessage>().pipe(
+            M.tagsExhaustive({
+              Selected: ({ value }) => Option.some(value),
+            }),
+          ),
+        })
         return [
-          evo(model, { pronouns: () => nextPronouns }),
+          evo(model, {
+            pronouns: () => nextPronouns,
+            maybeSelectedPronoun: () => nextMaybeSelectedPronoun,
+          }),
           Command.mapMessages(listboxCommands, innerMessage =>
             GotPronounsMessage({ message: innerMessage }),
           ),

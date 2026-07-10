@@ -729,12 +729,6 @@ const makeUpdate = (
               submodelTags: () => nextSubmodelTags,
               maybeSubmodelFilter: current =>
                 isFilterStale ? Option.none() : current,
-              submodelFilterListbox: current =>
-                isFilterStale
-                  ? evo(current, {
-                      maybeSelectedItem: () => Option.some(ALL_MESSAGES_VALUE),
-                    })
-                  : current,
               selectedIndex: current =>
                 shouldFollowSelection ? latestIndex : current,
               scrubberSlider: current =>
@@ -1841,6 +1835,10 @@ const makeView = (
       view: SubmodelFilterListbox.view,
       viewInputs: {
         items: [ALL_MESSAGES_VALUE, ...model.submodelTags],
+        maybeSelectedValue: Option.orElseSome(
+          model.maybeSubmodelFilter,
+          () => ALL_MESSAGES_VALUE,
+        ),
         itemToConfig: item => ({
           className: 'dt-filter-item',
           content: h.div(
@@ -2511,7 +2509,6 @@ export const createOverlay = (
           maybeSubmodelFilter: Option.none(),
           submodelFilterListbox: Listbox.init({
             id: SUBMODEL_FILTER_ID,
-            selectedItem: ALL_MESSAGES_VALUE,
           }),
           maybeInspectedModel: Option.none(),
           maybeInspectedMessage: Option.none(),

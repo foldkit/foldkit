@@ -32,18 +32,19 @@ export const personalInfoView = Submodel.defineView<
     email,
     phone,
     pronouns,
+    maybeSelectedPronoun,
     customPronouns,
     portfolioUrl,
     availableDate,
   } = model
 
   const isOtherSelected = Option.exists(
-    pronouns.maybeSelectedItem,
+    maybeSelectedPronoun,
     Equal.equals('Other'),
   )
 
   const selectedPronounLabel = Option.getOrElse(
-    pronouns.maybeSelectedItem,
+    maybeSelectedPronoun,
     () => 'Select pronouns',
   )
 
@@ -99,6 +100,7 @@ export const personalInfoView = Submodel.defineView<
             viewInputs: {
               anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
               items: PronounOption.all,
+              maybeSelectedValue: maybeSelectedPronoun,
               itemToConfig: (pronoun, { isSelected }) => ({
                 className:
                   'px-3 py-2 text-sm cursor-pointer hover:bg-indigo-50 data-[active]:bg-indigo-50',
@@ -123,9 +125,10 @@ export const personalInfoView = Submodel.defineView<
                   h.span(
                     [
                       h.Class(
-                        Option.isSome(pronouns.maybeSelectedItem)
-                          ? 'text-gray-900'
-                          : 'text-gray-400',
+                        Option.match(maybeSelectedPronoun, {
+                          onNone: () => 'text-gray-400',
+                          onSome: () => 'text-gray-900',
+                        }),
                       ),
                     ],
                     [selectedPronounLabel],

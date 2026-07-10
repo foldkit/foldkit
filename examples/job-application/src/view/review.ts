@@ -107,10 +107,10 @@ const educationTimeline = (entry: Education.Entry.Model): string => {
   if (entry.isCurrentlyEnrolled) {
     return ' (Currently enrolled)'
   }
-  if (entry.graduationYear) {
-    return ` – ${entry.graduationYear}`
-  }
-  return ''
+  return Option.match(entry.maybeGraduationYear, {
+    onNone: () => '',
+    onSome: graduationYear => ` – ${graduationYear}`,
+  })
 }
 
 const educationEntryReview = (entry: Education.Entry.Model): Html => {
@@ -345,14 +345,11 @@ export const review = (
 ): Html => {
   const h = html<Message>()
 
-  const pronounLabel = Option.match(
-    model.personalInfo.pronouns.maybeSelectedItem,
-    {
-      onNone: () => '',
-      onSome: value =>
-        value === 'Other' ? model.personalInfo.customPronouns : value,
-    },
-  )
+  const pronounLabel = Option.match(model.personalInfo.maybeSelectedPronoun, {
+    onNone: () => '',
+    onSome: value =>
+      value === 'Other' ? model.personalInfo.customPronouns : value,
+  })
 
   const isApplicationComplete =
     PersonalInfo.isComplete(model.personalInfo) &&

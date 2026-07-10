@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Array, Effect, Match as M, Option } from 'effect'
+import { Array, Match as M, Option } from 'effect'
 import { Command } from 'foldkit'
 import { childAttributes, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -9,15 +9,17 @@ import { evo } from 'foldkit/struct'
 
 import { Combobox } from '@foldkit/ui'
 
-type City = 'Johannesburg' | 'Kyiv' | 'Oxford' | 'Wellington'
+const City = S.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
+type City = typeof City.Type
 
 // Declare a typed multi-select Combobox once at module scope:
 const CitiesCombobox = Combobox.Multi.create<City>()
 
 // Add a field to your Model for the Combobox.Multi Submodel, plus a field
-// for the selected values your app actually cares about:
+// for the selected values your app actually cares about. Using the `City`
+// Schema keeps the field literal-typed end to end:
 const Model = S.Struct({
-  selectedCities: S.Array(S.String),
+  selectedCities: S.Array(City),
   comboboxMulti: Combobox.Multi.Model,
   // ...your other fields
 })
@@ -38,8 +40,10 @@ const GotComboboxMultiMessage = m('GotComboboxMultiMessage', {
 })
 
 // Delegate keyboard navigation, typeahead, and open/close to
-// CitiesCombobox.update. On toggle, the OutMessage's `Selected` carries
-// the item and `wasAdded`:
+// CitiesCombobox.update. Each `Selected` carries the activated item; the
+// parent owns the selection, so it toggles the value's membership.
+// `ClearedSelection` only fires for nullable comboboxes, so this combobox
+// keeps its selection there and the fold stays exhaustive:
 GotComboboxMultiMessage: ({ message }) => {
   const [nextCombobox, commands, maybeOutMessage] = CitiesCombobox.update(
     model.comboboxMulti,
@@ -54,16 +58,20 @@ GotComboboxMultiMessage: ({ message }) => {
       evo(model, { comboboxMulti: () => nextCombobox }),
       mappedCommands,
     ],
-    onSome: M.type<Combobox.OutMessage>().pipe(
+    onSome: M.type<Combobox.OutMessage<City>>().pipe(
       M.tagsExhaustive({
-        Selected: ({ value, wasAdded }) => [
+        Selected: ({ value }) => [
           evo(model, {
             comboboxMulti: () => nextCombobox,
             selectedCities: () =>
-              wasAdded
-                ? Array.append(model.selectedCities, value)
-                : Array.filter(model.selectedCities, city => city !== value),
+              Array.contains(model.selectedCities, value)
+                ? Array.filter(model.selectedCities, city => city !== value)
+                : Array.append(model.selectedCities, value),
           }),
+          mappedCommands,
+        ],
+        ClearedSelection: () => [
+          evo(model, { comboboxMulti: () => nextCombobox }),
           mappedCommands,
         ],
       }),
@@ -94,7 +102,7 @@ const filteredCities =
 // `<label for>`, and pass `ariaLabelledBy` so the input is named by the label.
 // The attribute is only emitted when provided, so the input never carries a
 // dangling `aria-labelledby`.
-const view = () => {
+const view = (model: Model) => {
   const h = html<Message>()
 
   const labelId = 'cities-multi-label'
@@ -113,6 +121,10 @@ const view = () => {
         viewInputs: {
           ariaLabelledBy: labelId,
           items: filteredCities,
+          // The parent owns the selection; pass it in. The multi-select
+          // input always rests empty on close:
+          selectedValues: model.selectedCities,
+          restingInputValue: '',
           itemToValue: city => city,
           itemToDisplayText: city => city,
           itemToConfig: (city, { isSelected }) => ({

@@ -241,19 +241,17 @@ export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-/** Sent when a single-select listbox commits a selection, or when a multi-select listbox toggles an item. Generic over `Value extends string`: the runtime schema stores `value: string`, but the type-level OutMessage exposes `value: Value` so consumers who supply `items: ReadonlyArray<MyUnion>` receive `value: MyUnion` from `update<MyUnion>` without casting. The cast is fenced inside this module's `update` return, sound because the value was extracted from the items array the consumer supplied. */
+/** Sent when the user activates an item (single-select commit or multi-select toggle). Carries the neutral fact that the item was activated; the parent owns the selection and decides what it means (single-select sets it, multi-select toggles membership). Generic over `Value extends string`: the runtime schema stores `value: string`, but the type-level OutMessage exposes `value: Value` so consumers who supply `items: ReadonlyArray<MyUnion>` receive `value: MyUnion` from `update<MyUnion>` without casting. The cast is fenced inside this module's `update` return, sound because the value was extracted from the items array the consumer supplied. */
 export const Selected = m('Selected', {
   value: S.String,
-  wasAdded: S.Boolean,
 })
 
 export type Selected<Value extends string = string> = Readonly<{
   readonly _tag: 'Selected'
   readonly value: Value
-  readonly wasAdded: boolean
 }>
 
-/** Union of out-messages the listbox component can produce. Single-select listboxes always emit `wasAdded: true`. Multi-select listboxes emit `wasAdded: true` when adding to the selection and `wasAdded: false` when toggling off. */
+/** Union of out-messages the listbox component can produce. The parent folds `Selected` into the selection it owns: single-select stores the value, multi-select toggles the value's membership. */
 export const OutMessage = S.Union([Selected])
 
 /** Generic over `Value extends string` so consumers who create the listbox
@@ -783,10 +781,10 @@ export type GroupHeading = Readonly<{
 
 /** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *
- *  The Listbox emits a `Selected({ value, wasAdded })` OutMessage on
- *  commit (single-select always `wasAdded: true`, multi-select toggles).
- *  Consumers pattern-match this in their `GotListboxMessage` handler. */
-type BaseViewInputsCommon<Item> = Readonly<{
+ *  The Listbox emits a `Selected({ value })` OutMessage on commit.
+ *  Consumers pattern-match this in their `GotListboxMessage` handler:
+ *  single-select stores the value, multi-select toggles its membership. */
+export type BaseViewInputsCommon<Item> = Readonly<{
   items: ReadonlyArray<Item>
   itemToConfig: (
     item: Item,
@@ -825,33 +823,41 @@ type BaseViewInputsCommon<Item> = Readonly<{
   ariaLabelledBy?: string
 }>
 
-/** Per-render view inputs for a Listbox view. The `itemToValue` extractor
- *  is optional when `Item` is itself a string (the default returns the
- *  item unchanged) and required when items are objects, so the OutMessage
- *  payload type can't drift from what the consumer actually emits. */
+/** The `itemToValue` extractor piece of a Listbox's view inputs. The
+ *  extractor is optional when `Item` is itself a string (the default
+ *  returns the item unchanged) and required when items are objects, so the
+ *  OutMessage payload type can't drift from what the consumer actually
+ *  emits. */
+export type ItemToValueInput<Item, Value extends string = string> = [
+  Item,
+] extends [string]
+  ? Readonly<{ itemToValue?: (item: Item) => Value }>
+  : Readonly<{ itemToValue: (item: Item) => Value }>
+
+/** Per-render view inputs for the shared array-based Listbox view. The
+ *  multi-select variant exposes this shape directly; the single-select
+ *  variant swaps `selectedValues` for `maybeSelectedValue` at its public
+ *  seam and adapts to this shape internally. */
 export type BaseViewInputs<
   Item,
   Value extends string = string,
 > = BaseViewInputsCommon<Item> &
-  ([Item] extends [string]
-    ? Readonly<{ itemToValue?: (item: Item) => Value }>
-    : Readonly<{ itemToValue: (item: Item) => Value }>)
+  Readonly<{
+    /** The selection the parent owns, passed in fresh on every render.
+     *  Drives `aria-selected` and `data-selected` on items, which item the
+     *  Listbox highlights when it opens onto a selection, and the hidden
+     *  form inputs submitted under `name`. */
+    selectedValues: ReadonlyArray<Value>
+  }> &
+  ItemToValueInput<Item, Value>
 
 // VIEW FACTORY
 
-type ViewBehavior<Model extends BaseModel> = Readonly<{
-  isItemSelected: (model: Model, itemValue: string) => boolean
-  selectedItemIndex: <Item>(
-    model: Model,
-    items: ReadonlyArray<Item>,
-    itemToValue: (item: Item) => string,
-  ) => Option.Option<number>
+type ViewBehavior = Readonly<{
   ariaMultiSelectable: boolean
 }>
 
-export const makeView = <Model extends BaseModel>(
-  behavior: ViewBehavior<Model>,
-) => {
+export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
   const impl = defineView<Model, Message, BaseViewInputs<unknown, string>>(
     (model, viewInputs) => {
       const h = html<Message>()
@@ -895,10 +901,13 @@ export const makeView = <Model extends BaseModel>(
         isInvalid,
         ariaLabel,
         ariaLabelledBy,
+        selectedValues,
       } = viewInputs
 
       const itemToValue =
         viewInputs.itemToValue ?? ((item: unknown) => String(item))
+      const isValueSelected = (itemValue: string): boolean =>
+        Array.contains(selectedValues, itemValue)
       const itemToSearchText =
         viewInputs.itemToSearchText ?? ((item: unknown) => itemToValue(item))
 
@@ -966,10 +975,15 @@ export const makeView = <Model extends BaseModel>(
         isItemDisabledByIndex,
       )(items.length - 1, -1)
 
-      const selectedItemIndex = behavior.selectedItemIndex(
-        model,
-        items,
-        itemToValue,
+      const selectedItemIndex = pipe(
+        selectedValues,
+        Array.head,
+        Option.flatMap(selectedValue =>
+          Array.findFirstIndex(
+            items,
+            item => itemToValue(item) === selectedValue,
+          ),
+        ),
       )
 
       const handleButtonKeyDown = (key: string): Option.Option<Message> => {
@@ -1160,7 +1174,7 @@ export const makeView = <Model extends BaseModel>(
           activeIndex => activeIndex === index,
         )
         const isDisabledItem = isItemDisabledByIndex(index)
-        const isSelectedItem = behavior.isItemSelected(model, itemToValue(item))
+        const isSelectedItem = isValueSelected(itemToValue(item))
         const itemConfig = itemToConfig(item, {
           isActive: isActiveItem,
           isDisabled: isDisabledItem,
@@ -1321,12 +1335,6 @@ export const makeView = <Model extends BaseModel>(
       ]
 
       const formAttribute = form ? [h.Attribute('form', form)] : []
-
-      const selectedValues = pipe(
-        items,
-        Array.filter(item => behavior.isItemSelected(model, itemToValue(item))),
-        Array.map(itemToValue),
-      )
 
       const hiddenInputs = name
         ? Array.match(selectedValues, {

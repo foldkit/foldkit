@@ -41,7 +41,7 @@ const foldkitModel: Model = {
   paletteThemeIndex: 0,
   gridSizeConfirmDialog: Dialog.init({ id: 'confirm-dialog' }),
   maybePendingGridSize: Option.none(),
-  themeListbox: Listbox.init({ id: 'themes', selectedItem: '0' }),
+  themeListbox: Listbox.init({ id: 'themes' }),
 }
 
 const reactState: State = {

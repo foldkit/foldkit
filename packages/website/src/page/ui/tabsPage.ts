@@ -117,7 +117,7 @@ const outMessageProps: ReadonlyArray<PropEntry> = [
     name: 'Selected',
     type: '{ value: Value; index: number }',
     description:
-      'Emitted when a tab is committed via click or keyboard. Carries both the tab’s value (typed as your `Value` union via `Tabs.create<Value>()`) and its index. Pattern-match the third tuple element of Tabs.update in your GotTabsMessage handler.',
+      'Emitted when a tab is committed via click or keyboard. Carries both the tab’s value (typed as your `Value` union via `Tabs.create<Value>()`) and its index. Pattern-match the third tuple element of FrameworkTabs.update in your GotTabsMessage handler.',
   },
 ]
 
@@ -460,7 +460,11 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           viewConfigHeader.id,
           viewConfigHeader.text,
         ),
-        para('Configuration object passed to ', inlineCode('Tabs.view()'), '.'),
+        para(
+          'Configuration object passed to the view returned by ',
+          inlineCode('Tabs.create<Value>()'),
+          '.',
+        ),
         propTable(viewConfigProps),
         heading(
           renderInfoHeader.level,

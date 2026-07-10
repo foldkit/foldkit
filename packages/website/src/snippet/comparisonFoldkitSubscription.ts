@@ -2,7 +2,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   keyboard: Subscription.persistent(
     Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
       Stream.mapEffect(handleKeyboardEvent),
-      Stream.filterMap(Function.identity),
+      Stream.filter(Option.isSome),
+      Stream.map(option => option.value),
     ),
   ),
 

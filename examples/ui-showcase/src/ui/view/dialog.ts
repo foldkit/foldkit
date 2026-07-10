@@ -1,3 +1,4 @@
+import { Option } from 'effect'
 import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
@@ -17,7 +18,7 @@ import {
   GotOverlayDialogDemoMessage,
   type UiMessage,
 } from '../message'
-import type { UiModel } from '../model'
+import type { City, UiModel } from '../model'
 import { CityCombobox, comboboxInputs } from './combobox'
 
 const triggerClassName =
@@ -98,6 +99,7 @@ const dialogPanel = (
 const overlayDemo = (
   dialogModel: Dialog.Model,
   comboboxModel: Combobox.Model,
+  maybeSelectedCity: Option.Option<City>,
 ): Html => {
   const h = html<UiMessage>()
 
@@ -148,11 +150,18 @@ const overlayDemo = (
                           slotId: comboboxModel.id,
                           model: comboboxModel,
                           view: CityCombobox.view,
-                          viewInputs: comboboxInputs(
-                            comboboxModel.inputValue,
-                            OVERLAY_COMBOBOX_ANCHOR,
-                            'relative w-full',
-                          ),
+                          viewInputs: {
+                            ...comboboxInputs({
+                              inputValue: comboboxModel.inputValue,
+                              restingInputValue: Option.getOrElse(
+                                maybeSelectedCity,
+                                () => '',
+                              ),
+                              anchor: OVERLAY_COMBOBOX_ANCHOR,
+                              wrapperClass: 'relative w-full',
+                            }),
+                            maybeSelectedValue: maybeSelectedCity,
+                          },
                           toParentMessage: message =>
                             GotOverlayComboboxDemoMessage({ message }),
                         }),
@@ -405,7 +414,11 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Field'],
       ),
-      overlayDemo(model.overlayDialogDemo, model.overlayComboboxDemo),
+      overlayDemo(
+        model.overlayDialogDemo,
+        model.overlayComboboxDemo,
+        model.maybeOverlayComboboxDemoSelectedCity,
+      ),
 
       h.h3(
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],

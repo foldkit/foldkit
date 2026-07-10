@@ -162,6 +162,7 @@ const contentView = (model: Model): Html => {
         model.selectedColorIndex,
         isGridEmpty(model.grid),
         theme,
+        model.paletteThemeIndex,
         model.themeListbox,
       ]),
       canvasView(model, theme),

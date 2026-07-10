@@ -1,3 +1,4 @@
+import { Option } from 'effect'
 import { html } from 'foldkit/html'
 
 import { Combobox, Dialog } from '@foldkit/ui'
@@ -18,6 +19,7 @@ import {
   GotOverlayDialogDemoMessage,
   type Message,
 } from './message'
+import type { City } from './model'
 
 // TABLE OF CONTENTS
 
@@ -176,6 +178,7 @@ export const dialogDemo = (dialogModel: Dialog.Model) => {
 export const overlayDialogDemo = (
   dialogModel: Dialog.Model,
   comboboxModel: Combobox.Model,
+  maybeSelectedCity: Option.Option<City>,
 ) => {
   const h = html<Message>()
 
@@ -223,11 +226,18 @@ export const overlayDialogDemo = (
                             slotId: comboboxModel.id,
                             model: comboboxModel,
                             view: CityCombobox.view,
-                            viewInputs: comboboxViewInputs(
-                              comboboxModel.inputValue,
-                              OVERLAY_COMBOBOX_ANCHOR,
-                              'relative w-full',
-                            ),
+                            viewInputs: {
+                              ...comboboxViewInputs({
+                                inputValue: comboboxModel.inputValue,
+                                restingInputValue: Option.getOrElse(
+                                  maybeSelectedCity,
+                                  () => '',
+                                ),
+                                anchor: OVERLAY_COMBOBOX_ANCHOR,
+                                wrapperClass: 'relative w-full',
+                              }),
+                              maybeSelectedValue: maybeSelectedCity,
+                            },
                             toParentMessage: message =>
                               GotOverlayComboboxDemoMessage({ message }),
                           }),

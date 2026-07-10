@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Effect, Match as M, Option } from 'effect'
+import { Match as M, Option } from 'effect'
 import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -9,7 +9,8 @@ import { evo } from 'foldkit/struct'
 
 import { Listbox } from '@foldkit/ui'
 
-type Plan = 'Free' | 'Pro' | 'Enterprise'
+const Plan = S.Literals(['Free', 'Pro', 'Enterprise'])
+type Plan = typeof Plan.Type
 
 // Declare a typed Listbox once at module scope. `view` and `update` are
 // bound to `Plan`: `items` is typed as `ReadonlyArray<Plan>` and the
@@ -17,9 +18,10 @@ type Plan = 'Free' | 'Pro' | 'Enterprise'
 const PlanListbox = Listbox.create<Plan>()
 
 // Add a field to your Model for the Listbox Submodel, plus a field for
-// the selected value your app actually cares about:
+// the selected value your app actually cares about. Using the `Plan`
+// Schema keeps the field literal-typed end to end:
 const Model = S.Struct({
-  maybePlan: S.Option(S.String),
+  maybePlan: S.Option(Plan),
   listbox: Listbox.Model,
   // ...your other fields
 })
@@ -89,6 +91,9 @@ const view = (model: Model) => {
         viewInputs: {
           // `items` must be ReadonlyArray<Plan>. The factory's <Plan> parameter constrains the shape.
           items: plans,
+          // The parent owns the selection and passes it in. Single-select
+          // takes an Option: None when nothing is selected yet.
+          maybeSelectedValue: model.maybePlan,
           buttonContent: h.span(
             [],
             [Option.getOrElse(model.maybePlan, () => 'Select a plan')],

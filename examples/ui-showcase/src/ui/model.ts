@@ -26,6 +26,29 @@ export type Plan = typeof Plan.Type
 export const DemoTab = S.Literals(['Foldkit', 'React', 'Elm'])
 export type DemoTab = typeof DemoTab.Type
 
+export const City = S.Literals([
+  'Johannesburg',
+  'Kyiv',
+  'Oxford',
+  'Plymouth',
+  'Quito',
+  'Wellington',
+  'Zurich',
+])
+export type City = typeof City.Type
+
+export const ListboxItem = S.Literals([
+  'Michael Bluth',
+  'Lindsay Funke',
+  'Gob Bluth',
+  'George Michael',
+  'Maeby Funke',
+  'Buster Bluth',
+  'Tobias Funke',
+  'Lucille Bluth',
+])
+export type ListboxItem = typeof ListboxItem.Type
+
 export const DemoCard = S.Struct({
   id: S.String,
   label: S.String,
@@ -55,13 +78,18 @@ export const UiModel = S.Struct({
   isCheckboxOptionADemoChecked: S.Boolean,
   isCheckboxOptionBDemoChecked: S.Boolean,
   comboboxDemo: Combobox.Model,
+  maybeComboboxDemoSelectedCity: S.Option(City),
   comboboxNullableDemo: Combobox.Model,
+  maybeComboboxNullableDemoSelectedCity: S.Option(City),
   comboboxMultiDemo: Combobox.Multi.Model,
+  comboboxMultiDemoSelectedCities: S.Array(City),
   comboboxSelectOnFocusDemo: Combobox.Model,
+  maybeComboboxSelectOnFocusDemoSelectedCity: S.Option(City),
   dialogDemo: Dialog.Model,
   dialogAnimatedDemo: Dialog.Model,
   overlayDialogDemo: Dialog.Model,
   overlayComboboxDemo: Combobox.Model,
+  maybeOverlayComboboxDemoSelectedCity: S.Option(City),
   nestedDialogParentDemo: Dialog.Model,
   nestedDialogChildDemo: Dialog.Model,
   isDisclosureBasicDemoOpen: S.Boolean,
@@ -71,8 +99,11 @@ export const UiModel = S.Struct({
   fileDropBasicDemo: FileDrop.Model,
   fileDropBasicDemoFiles: S.Array(File.File),
   listboxDemo: Listbox.Model,
+  maybeListboxDemoSelectedItem: S.Option(ListboxItem),
   listboxMultiDemo: Listbox.Multi.Model,
+  listboxMultiDemoSelectedItems: S.Array(ListboxItem),
   listboxGroupedDemo: Listbox.Model,
+  maybeListboxGroupedDemoSelectedItem: S.Option(S.String),
   menuBasicDemo: Menu.Model,
   menuAnimatedDemo: Menu.Model,
   popoverBasicDemo: Popover.Model,

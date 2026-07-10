@@ -4,7 +4,6 @@ import {
   Match as M,
   Option,
   Predicate,
-  Result,
   Schema as S,
   pipe,
 } from 'effect'
@@ -68,6 +67,11 @@ export type BaseInitConfig = Readonly<{
   isAnimated?: boolean
   isModal?: boolean
   nullable?: boolean
+  /** Emits `Selected` on every keyboard activation while open, so arrow keys
+   *  commit as they move instead of waiting for Enter. Combining `immediate`
+   *  with `nullable` is discouraged: a nullable toggle fold would deselect as
+   *  the arrows pass back over the selected item (see issue #693). Default
+   *  `false`. */
   immediate?: boolean
   selectInputOnFocus?: boolean
 }>
@@ -94,24 +98,25 @@ export const baseInit = (config: BaseInitConfig): BaseModel => ({
 export const Opened = m('Opened', {
   maybeActiveItemIndex: S.Option(S.Number),
 })
-/** Sent when the combobox closes via Escape key or backdrop click. */
-export const Closed = m('Closed')
-/** Sent when the combobox input loses focus. */
-export const BlurredInput = m('BlurredInput')
+/** Sent when the combobox closes via Escape key or backdrop click. `restingInputValue` is what the input returns to on close (the parent-owned selection's display text, or empty), computed by the view from `ViewInputs.restingInputValue`. */
+export const Closed = m('Closed', { restingInputValue: S.String })
+/** Sent when the combobox input loses focus. `restingInputValue` is what the input returns to on close (the parent-owned selection's display text, or empty), computed by the view from `ViewInputs.restingInputValue`. */
+export const BlurredInput = m('BlurredInput', {
+  restingInputValue: S.String,
+})
 /** Sent when an item is highlighted via arrow keys or mouse hover. Includes activation trigger and optional immediate selection info. */
 export const ActivatedItem = m('ActivatedItem', {
   index: S.Number,
   activationTrigger: ActivationTrigger,
-  maybeImmediateSelection: S.Option(
-    S.Struct({ item: S.String, displayText: S.String }),
-  ),
+  maybeImmediateSelection: S.Option(S.Struct({ item: S.String })),
 })
 /** Sent when the mouse leaves an enabled item. */
 export const DeactivatedItem = m('DeactivatedItem')
-/** Sent when an item is selected via Enter or click. Includes display text for restoring input value on close. */
+/** Sent when an item is selected via Enter or click. `displayText` is the item's resting input text, and `wasSelected` reports whether the item was already in the parent-owned selection when activated, so nullable deselect logic works without the Model knowing the selection. */
 export const SelectedItem = m('SelectedItem', {
   item: S.String,
   displayText: S.String,
+  wasSelected: S.Boolean,
 })
 /** Sent when the pointer moves over a combobox item. */
 export const MovedPointerOverItem = m('MovedPointerOverItem', {
@@ -159,8 +164,10 @@ export const GotAnimationMessage = m('GotAnimationMessage', {
 export const UpdatedInputValue = m('UpdatedInputValue', {
   value: S.String,
 })
-/** Sent when the optional toggle button is clicked. */
-export const PressedToggleButton = m('PressedToggleButton')
+/** Sent when the optional toggle button is clicked. `restingInputValue` is what the input returns to when the press closes the combobox (the parent-owned selection's display text, or empty), computed by the view from `ViewInputs.restingInputValue`. */
+export const PressedToggleButton = m('PressedToggleButton', {
+  restingInputValue: S.String,
+})
 
 /** Union of all messages the combobox component can produce. */
 export const Message: S.Union<
@@ -235,26 +242,31 @@ export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-/** Sent when a single-select combobox commits a selection, or when a multi-select combobox toggles an item on. The `value` is the string key; consumers that need a richer domain type should look it up from their own state or, in the multi case, branch on `wasAdded` to distinguish add vs remove. */
+/** Sent when the user activates an item. Carries the neutral fact that the item was activated; the parent owns the selection and decides what it means (single-select stores the value, nullable single-select toggles it, multi-select toggles the value's membership). Generic over `Value extends string`: the runtime schema stores `value: string`, but the type-level OutMessage exposes `value: Value` so consumers who supply `items: ReadonlyArray<MyUnion>` receive `value: MyUnion` from the factory's `update` without casting. */
 export const Selected = m('Selected', {
   value: S.String,
-  wasAdded: S.Boolean,
 })
 
 export type Selected<Value extends string = string> = Readonly<{
   readonly _tag: 'Selected'
   readonly value: Value
-  readonly wasAdded: boolean
 }>
 
-/** Union of out-messages the combobox component can produce. Single-select comboboxes always emit `wasAdded: true`. Multi-select comboboxes emit `wasAdded: true` when adding to the selection and `wasAdded: false` when toggling off. */
-export const OutMessage = S.Union([Selected])
+/** Sent when a nullable combobox closes with an empty input, meaning the user cleared it. The parent clears the selection it owns. */
+export const ClearedSelection = m('ClearedSelection')
+
+export type ClearedSelection = typeof ClearedSelection.Type
+
+/** Union of out-messages the combobox component can produce. The parent folds `Selected` into the selection it owns and clears that selection on `ClearedSelection`. */
+export const OutMessage = S.Union([Selected, ClearedSelection])
 
 /** Generic over `Value extends string` so consumers who create the combobox
  *  via `Combobox.create<MyUnion>()` receive `value: MyUnion` in the
  *  `Selected` OutMessage from the factory's `update`, instead of
  *  `value: string`. Defaults to `string`. */
-export type OutMessage<Value extends string = string> = Selected<Value>
+export type OutMessage<Value extends string = string> =
+  | Selected<Value>
+  | ClearedSelection
 
 // SELECTORS
 
@@ -278,7 +290,7 @@ export const itemId = (id: string, index: number): string =>
 
 const constrainedEvo = makeConstrainedEvo<BaseModel>()
 
-/** Resets only shared base fields to their closed state. Does not touch inputValue or selection. Those are variant-specific. */
+/** Resets only shared base fields to their closed state. Does not touch inputValue. That is variant-specific. */
 export const closedBaseModel = <Model extends BaseModel>(model: Model): Model =>
   constrainedEvo(model, {
     isOpen: () => false,
@@ -410,11 +422,15 @@ const delegateToAnimation = <Model extends BaseModel>(
 /** Creates a combobox update function from variant-specific handlers. Shared logic (open, close, activate, transition) is handled internally; only close, selection, and immediate-activation behavior varies by variant. */
 export const makeUpdate = <Model extends BaseModel>(
   handlers: Readonly<{
-    handleClose: (model: Model) => Model
+    handleClose: (
+      model: Model,
+      restingInputValue: string,
+    ) => readonly [Model, Option.Option<OutMessage>]
     handleSelectedItem: (
       model: Model,
       item: string,
       displayText: string,
+      wasSelected: boolean,
       context: SelectedItemContext,
     ) => readonly [
       Model,
@@ -424,8 +440,7 @@ export const makeUpdate = <Model extends BaseModel>(
     handleImmediateActivation: (
       model: Model,
       item: string,
-      displayText: string,
-    ) => Model
+    ) => readonly [Model, Option.Option<OutMessage>]
   }>,
 ) => {
   type UpdateReturn = readonly [
@@ -475,19 +490,26 @@ export const makeUpdate = <Model extends BaseModel>(
     const closeCombobox = (
       baseModel: Model,
       commands: ReadonlyArray<Command.Command<Message>>,
-      maybeOutMessage: Option.Option<OutMessage> = Option.none(),
+      restingInputValue: string,
     ): UpdateReturn => {
-      const closed = handlers.handleClose(baseModel)
+      const [closed, maybeCloseOutMessage] = handlers.handleClose(
+        baseModel,
+        restingInputValue,
+      )
 
       if (model.isAnimated) {
         const [nextModel, animationCommands] = delegateToAnimation(
           closed,
           AnimationHid(),
         )
-        return [nextModel, [...commands, ...animationCommands], maybeOutMessage]
+        return [
+          nextModel,
+          [...commands, ...animationCommands],
+          maybeCloseOutMessage,
+        ]
       }
 
-      return [closed, commands, maybeOutMessage]
+      return [closed, commands, maybeCloseOutMessage]
     }
 
     return M.value(message).pipe(
@@ -520,9 +542,19 @@ export const makeUpdate = <Model extends BaseModel>(
             }),
           ),
 
-        Closed: () => closeCombobox(model, [focusInput]),
+        // NOTE: guard on isOpen so a close-path message baked from a stale
+        // render (a sub-frame blur after a selection already closed the
+        // combobox) cannot rewrite inputValue with an outdated
+        // restingInputValue or re-emit ClearedSelection while closed.
+        Closed: ({ restingInputValue }) =>
+          model.isOpen
+            ? closeCombobox(model, [focusInput], restingInputValue)
+            : [model, [], Option.none()],
 
-        BlurredInput: () => closeCombobox(model, []),
+        BlurredInput: ({ restingInputValue }) =>
+          model.isOpen
+            ? closeCombobox(model, [], restingInputValue)
+            : [model, [], Option.none()],
 
         ActivatedItem: ({
           index,
@@ -534,22 +566,24 @@ export const makeUpdate = <Model extends BaseModel>(
             activationTrigger: () => activationTrigger,
           })
 
-          const nextModel = Option.match(maybeImmediateSelection, {
-            onNone: () => highlightedModel,
-            onSome: ({ item, displayText }) =>
-              handlers.handleImmediateActivation(
-                highlightedModel,
-                item,
-                displayText,
-              ),
-          })
+          const skippedActivation: readonly [Model, Option.Option<OutMessage>] =
+            [highlightedModel, Option.none()]
+
+          const [nextModel, maybeOutMessage] = Option.match(
+            maybeImmediateSelection,
+            {
+              onNone: () => skippedActivation,
+              onSome: ({ item }) =>
+                handlers.handleImmediateActivation(highlightedModel, item),
+            },
+          )
 
           return [
             nextModel,
             activationTrigger === 'Keyboard'
               ? [ScrollIntoView({ id: model.id, index })]
               : [],
-            Option.none(),
+            maybeOutMessage,
           ]
         },
 
@@ -586,9 +620,9 @@ export const makeUpdate = <Model extends BaseModel>(
               ]
             : [model, [], Option.none()],
 
-        SelectedItem: ({ item, displayText }) => {
+        SelectedItem: ({ item, displayText, wasSelected }) => {
           const [nextModel, commands, maybeOutMessage] =
-            handlers.handleSelectedItem(model, item, displayText, {
+            handlers.handleSelectedItem(model, item, displayText, wasSelected, {
               focusInput,
               maybeUnlockScroll,
               maybeRestoreInert,
@@ -638,9 +672,9 @@ export const makeUpdate = <Model extends BaseModel>(
           )
         },
 
-        PressedToggleButton: () => {
+        PressedToggleButton: ({ restingInputValue }) => {
           if (model.isOpen) {
-            return closeCombobox(model, [focusInput])
+            return closeCombobox(model, [focusInput], restingInputValue)
           }
 
           const [nextModel, commands] = openCombobox(
@@ -790,11 +824,16 @@ export type GroupHeading = Readonly<{
 
 /** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *
- *  The Combobox emits a `Selected({ value, wasAdded })` OutMessage on
- *  commit (single-select always `wasAdded: true`, multi-select toggles).
- *  Consumers pattern-match this in their `GotComboboxMessage` handler. */
-export type BaseViewInputs<Item extends string> = Readonly<{
+ *  The Combobox emits a `Selected({ value })` OutMessage on commit.
+ *  Consumers pattern-match this in their `GotComboboxMessage` handler:
+ *  single-select stores the value, multi-select toggles the value's
+ *  membership. `restingInputValue` is the text the input returns to on
+ *  close (the selection's display text for single-select, empty for
+ *  multi-select). Everything here except the selection itself; each
+ *  variant composes its own selection field on top. */
+export type BaseViewInputsCommon<Item extends string> = Readonly<{
   items: ReadonlyArray<Item>
+  restingInputValue: string
   itemToConfig: (
     item: Item,
     context: Readonly<{
@@ -837,18 +876,27 @@ export type BaseViewInputs<Item extends string> = Readonly<{
   ariaLabelledBy?: string
 }>
 
+/** Per-render view inputs for the shared array-based Combobox view. The
+ *  multi-select variant exposes this shape directly; the single-select
+ *  variant swaps `selectedValues` for `maybeSelectedValue` at its public
+ *  seam and adapts to this shape internally. */
+export type BaseViewInputs<Item extends string> = BaseViewInputsCommon<Item> &
+  Readonly<{
+    /** The selection the parent owns, passed in fresh on every render.
+     *  Marks items as selected and drives the hidden form inputs
+     *  submitted under `formName`. */
+    selectedValues: ReadonlyArray<Item>
+  }>
+
 // VIEW FACTORY
 
 /** Variant-specific view behavior injected into the shared combobox view factory. */
-export type ViewBehavior<Model extends BaseModel> = Readonly<{
-  isItemSelected: (model: Model, itemValue: string) => boolean
+export type ViewBehavior = Readonly<{
   ariaMultiSelectable: boolean
 }>
 
-/** Creates a combobox view function from variant-specific behavior. Shared rendering logic (input, items, transitions, keyboard navigation) is handled internally; only selection display varies by variant. */
-export const makeView = <Model extends BaseModel>(
-  behavior: ViewBehavior<Model>,
-) => {
+/** Creates a combobox view function from variant-specific behavior. Shared rendering logic (input, items, transitions, keyboard navigation) is handled internally; only listbox multi-select semantics vary by variant. */
+export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
   const impl = defineView<Model, Message, BaseViewInputs<string>>(
     (model, viewInputs): Html => {
       const h = html<Message>()
@@ -863,6 +911,8 @@ export const makeView = <Model extends BaseModel>(
 
       const {
         items,
+        selectedValues,
+        restingInputValue,
         itemToConfig,
         itemToValue,
         itemToDisplayText,
@@ -909,6 +959,9 @@ export const makeView = <Model extends BaseModel>(
       }
 
       const inputLabelAttributes = resolveInputLabel()
+
+      const isValueSelected = (itemValue: string): boolean =>
+        Array.contains(selectedValues, itemValue)
 
       const isLeaving =
         transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
@@ -968,20 +1021,13 @@ export const makeView = <Model extends BaseModel>(
 
       const resolveImmediateSelection = (
         targetIndex: number,
-      ): Option.Option<{ item: string; displayText: string }> =>
-        OptionExt.when(
-          immediate,
-          pipe(
-            items,
-            Array.get(targetIndex),
-            Option.match({
-              onNone: () => ({ item: '', displayText: '' }),
-              onSome: targetItem => ({
-                item: itemToValue(targetItem, targetIndex),
-                displayText: itemToDisplayText(targetItem, targetIndex),
-              }),
-            }),
-          ),
+      ): Option.Option<{ item: string }> =>
+        pipe(
+          OptionExt.when(immediate, targetIndex),
+          Option.flatMap(index => Array.get(items, index)),
+          Option.map(targetItem => ({
+            item: itemToValue(targetItem, targetIndex),
+          })),
         )
 
       const handleInputKeyDown = (key: string): Option.Option<Message> =>
@@ -1032,7 +1078,7 @@ export const makeView = <Model extends BaseModel>(
             if (!isOpen) {
               return Option.none()
             }
-            return Option.some(Closed())
+            return Option.some(Closed({ restingInputValue }))
           }),
           M.whenOr('Home', 'End', () => {
             if (!isOpen) {
@@ -1072,7 +1118,7 @@ export const makeView = <Model extends BaseModel>(
           : [
               h.OnInput(value => UpdatedInputValue({ value })),
               h.OnKeyDownPreventDefault(handleInputKeyDown),
-              h.OnBlur(BlurredInput()),
+              h.OnBlur(BlurredInput({ restingInputValue })),
               ...(openOnFocus
                 ? [h.OnFocus(Opened({ maybeActiveItemIndex: Option.none() }))]
                 : []),
@@ -1120,10 +1166,7 @@ export const makeView = <Model extends BaseModel>(
           activeIndex => activeIndex === index,
         )
         const isDisabledItem = isDisabledAtIndex(index)
-        const isSelectedItem = behavior.isItemSelected(
-          model,
-          itemToValue(item, index),
-        )
+        const isSelectedItem = isValueSelected(itemToValue(item, index))
         const itemConfig = itemToConfig(item, {
           isActive: isActiveItem,
           isDisabled: isDisabledItem,
@@ -1149,6 +1192,7 @@ export const makeView = <Model extends BaseModel>(
                     SelectedItem({
                       item: itemToValue(item, index),
                       displayText: itemToDisplayText(item, index),
+                      wasSelected: isValueSelected(itemToValue(item, index)),
                     }),
                   ),
                   ...(isActiveItem
@@ -1250,7 +1294,7 @@ export const makeView = <Model extends BaseModel>(
         `${id}-backdrop`,
         [
           h.OnMount(PortalComboboxBackdrop()),
-          ...(isLeaving ? [] : [h.OnClick(Closed())]),
+          ...(isLeaving ? [] : [h.OnClick(Closed({ restingInputValue }))]),
           ...(backdropClassName ? [h.Class(backdropClassName)] : []),
           ...backdropAttributes,
         ],
@@ -1303,7 +1347,7 @@ export const makeView = <Model extends BaseModel>(
                 h.Attribute('aria-haspopup', 'listbox'),
                 ...(isDisabled
                   ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
-                  : [h.OnClick(PressedToggleButton())]),
+                  : [h.OnClick(PressedToggleButton({ restingInputValue }))]),
                 h.OnMount(AttachComboboxPreventBlur()),
                 ...(buttonClassName ? [h.Class(buttonClassName)] : []),
                 ...buttonAttributes,
@@ -1312,17 +1356,6 @@ export const makeView = <Model extends BaseModel>(
             ),
           ]
         : []
-
-      const selectedValues = pipe(
-        items,
-        Array.filterMap((item, index) => {
-          const value = itemToValue(item, index)
-          return Result.fromOption(
-            OptionExt.when(behavior.isItemSelected(model, value), value),
-            () => undefined,
-          )
-        }),
-      )
 
       const hiddenInputs = formName
         ? Array.match(selectedValues, {

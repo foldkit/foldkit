@@ -31,7 +31,7 @@ const initialModel: Model = {
   paletteThemeIndex: 0,
   gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
   maybePendingGridSize: Option.none(),
-  themeListbox: Listbox.init({ id: 'theme-picker', selectedItem: '0' }),
+  themeListbox: Listbox.init({ id: 'theme-picker' }),
 }
 
 const dispatch = (

@@ -50,17 +50,21 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
     isCheckboxOptionADemoChecked: false,
     isCheckboxOptionBDemoChecked: false,
     comboboxDemo: Combobox.init({ id: 'combobox-demo' }),
+    maybeComboboxDemoSelectedCity: Option.none(),
     comboboxNullableDemo: Combobox.init({
       id: 'combobox-nullable-demo',
       nullable: true,
     }),
+    maybeComboboxNullableDemoSelectedCity: Option.none(),
     comboboxMultiDemo: Combobox.Multi.init({
       id: 'combobox-multi-demo',
     }),
+    comboboxMultiDemoSelectedCities: [],
     comboboxSelectOnFocusDemo: Combobox.init({
       id: 'combobox-select-on-focus-demo',
       selectInputOnFocus: true,
     }),
+    maybeComboboxSelectOnFocusDemoSelectedCity: Option.none(),
     dialogDemo: Dialog.init({ id: 'dialog-demo' }),
     dialogAnimatedDemo: Dialog.init({
       id: 'dialog-animated-demo',
@@ -68,18 +72,22 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
     }),
     overlayDialogDemo: Dialog.init({ id: 'overlay-dialog-demo' }),
     overlayComboboxDemo: Combobox.init({ id: 'overlay-combobox-demo' }),
+    maybeOverlayComboboxDemoSelectedCity: Option.none(),
     nestedDialogParentDemo: Dialog.init({
       id: 'nested-dialog-parent-demo',
     }),
     nestedDialogChildDemo: Dialog.init({ id: 'nested-dialog-child-demo' }),
     isDisclosureDemoOpen: false,
     listboxDemo: Listbox.init({ id: 'listbox-demo' }),
+    maybeListboxDemoSelectedItem: Option.none(),
     listboxMultiDemo: Listbox.Multi.init({
       id: 'listbox-multi-demo',
     }),
+    listboxMultiDemoSelectedItems: [],
     listboxGroupedDemo: Listbox.init({
       id: 'listbox-grouped-demo',
     }),
+    maybeListboxGroupedDemoSelectedItem: Option.none(),
     menuBasicDemo: Menu.init({ id: 'menu-basic-demo' }),
     menuAnimatedDemo: Menu.init({
       id: 'menu-animated-demo',

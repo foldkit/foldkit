@@ -576,7 +576,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('null'),
         ', and a Submodel field for each stateful UI component. The ',
         inlineCode('themeListbox'),
-        ' field alone exposes the listbox’s internal state: open/closed, transition phase, highlighted item, search query, activation trigger, last pointer position, orientation, selected item. All of that exists in the React app too, but inside Headless UI’s hooks, where your reducer can’t see it.',
+        ' field alone exposes the listbox’s internal state: open/closed, transition phase, highlighted item, search query, activation trigger, last pointer position, orientation. The selection itself is not in there: the parent Model owns it as ',
+        inlineCode('paletteThemeIndex'),
+        ', passes it into the listbox view as ',
+        inlineCode('maybeSelectedValue'),
+        ', and folds the ',
+        inlineCode('Selected'),
+        ' OutMessage back into it. All of that interaction state exists in the React app too, but inside Headless UI’s hooks, where your reducer can’t see it.',
       ),
       highlightedCodeBlock(
         h.div(
@@ -1123,7 +1129,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         'Foldkit ships ',
         link(uiOverviewRouter(), 'accessible UI components'),
-        ' (Dialog, RadioGroup, Switch, Listbox). The stateful ones (Dialog, Listbox) work like everything else in Foldkit: each has a Model, Messages, and an update function. You initialize them in your Model, delegate their Messages in your update, and compose their views. RadioGroup and Switch are controlled render helpers: your Model owns the value directly. Either way the state is yours. React uses Headless UI, which provides the same accessible patterns through a component API. But the state is theirs.',
+        ' (Dialog, RadioGroup, Switch, Listbox). The stateful ones (Dialog, Listbox) work like everything else in Foldkit: each has a Model, Messages, and an update function. You initialize them in your Model, delegate their Messages in your update, and compose their views. Their Models hold interaction state only. The selection stays with you: the parent Model owns it, passes it into the Listbox view as ',
+        inlineCode('maybeSelectedValue'),
+        ', and folds the ',
+        inlineCode('Selected'),
+        ' OutMessage back into its own state. RadioGroup and Switch are controlled render helpers: your Model owns the value directly. Either way the state is yours. React uses Headless UI, which provides the same accessible patterns through a component API. But the state is theirs.',
       ),
       comparisonTable(
         ['', 'Foldkit', 'React + Headless UI'],

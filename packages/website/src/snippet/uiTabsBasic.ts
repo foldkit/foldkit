@@ -9,8 +9,8 @@ import { evo } from 'foldkit/struct'
 
 import { Tabs } from '@foldkit/ui'
 
-type Framework = 'Foldkit' | 'React' | 'Elm'
 const Framework = S.Literals(['Foldkit', 'React', 'Elm'])
+type Framework = typeof Framework.Type
 
 // Add fields to your Model for the Tabs Submodel and the active tab. The
 // Submodel keeps private keyboard-focus state; the parent owns the active
@@ -86,7 +86,7 @@ GotTabsMessage: ({ message }) => {
 
 // Inside your view function, embed the tabs via h.submodel and pass the
 // parent-owned active tab as selectedValue:
-const view = () => {
+const view = (model: Model) => {
   const h = html<Message>()
 
   return h.submodel({

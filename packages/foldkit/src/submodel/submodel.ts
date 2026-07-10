@@ -13,9 +13,9 @@
  *
  *  ```ts
  *  // data-first
- *  const next = ColorListbox.reflectSelectedItem(model.colors, fromUrl)
+ *  const next = Slider.reflectRange(model.priceSlider, rangeFromUrl)
  *  // data-last, point-free in evo
- *  evo(model, { colors: ColorListbox.reflectSelectedItem(fromUrl) })
+ *  evo(model, { priceSlider: Slider.reflectRange(rangeFromUrl) })
  *  ```
  */
 export type Reflect<Model, Value> = {
