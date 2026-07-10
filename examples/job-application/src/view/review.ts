@@ -72,7 +72,7 @@ const workEntryReview = (entry: WorkHistory.Entry.Model): Html => {
     [h.Class('py-1')],
     [
       h.strong([h.Class('text-sm text-gray-900')], [title]),
-      ...Option.match(entry.startDate.maybeSelectedDate, {
+      ...Option.match(entry.maybeStartDate, {
         onNone: () => [],
         onSome: start => [
           h.p(
@@ -81,7 +81,7 @@ const workEntryReview = (entry: WorkHistory.Entry.Model): Html => {
               employmentRange(
                 start,
                 entry.isCurrentlyEmployed,
-                entry.endDate.maybeSelectedDate,
+                entry.maybeEndDate,
               ),
             ],
           ),

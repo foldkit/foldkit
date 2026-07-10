@@ -371,6 +371,7 @@ export const view = (model: Model): Document => {
               view: AppTabs.view,
               viewInputs: {
                 tabs: tabValues,
+                selectedValue: model.activeTab,
                 ariaLabel: 'API cache sections',
                 toView: ({ tablist, tabs }) =>
                   h.div(

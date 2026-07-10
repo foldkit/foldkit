@@ -242,8 +242,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           advanceParticle(
             deltaSeconds,
             nextElapsedSeconds,
-            model.flowStrengthSlider.value,
-            model.noiseScaleSlider.value,
+            model.flowStrength,
+            model.noiseScale,
             model.maybeMousePosition,
           ),
         )
@@ -284,12 +284,23 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotFlowStrengthSliderMessage: ({ message }) => {
-        const [nextSlider, sliderCommands] = Slider.update(
+        const [nextSlider, sliderCommands, maybeOutMessage] = Slider.update(
           model.flowStrengthSlider,
           message,
         )
+        const nextFlowStrength = Option.match(maybeOutMessage, {
+          onNone: () => model.flowStrength,
+          onSome: M.type<Slider.OutMessage>().pipe(
+            M.tagsExhaustive({
+              ChangedValue: ({ value }) => value,
+            }),
+          ),
+        })
         return [
-          evo(model, { flowStrengthSlider: () => nextSlider }),
+          evo(model, {
+            flowStrengthSlider: () => nextSlider,
+            flowStrength: () => nextFlowStrength,
+          }),
           Command.mapMessages(sliderCommands, message =>
             GotFlowStrengthSliderMessage({ message }),
           ),
@@ -297,12 +308,23 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotNoiseScaleSliderMessage: ({ message }) => {
-        const [nextSlider, sliderCommands] = Slider.update(
+        const [nextSlider, sliderCommands, maybeOutMessage] = Slider.update(
           model.noiseScaleSlider,
           message,
         )
+        const nextNoiseScale = Option.match(maybeOutMessage, {
+          onNone: () => model.noiseScale,
+          onSome: M.type<Slider.OutMessage>().pipe(
+            M.tagsExhaustive({
+              ChangedValue: ({ value }) => value,
+            }),
+          ),
+        })
         return [
-          evo(model, { noiseScaleSlider: () => nextSlider }),
+          evo(model, {
+            noiseScaleSlider: () => nextSlider,
+            noiseScale: () => nextNoiseScale,
+          }),
           Command.mapMessages(sliderCommands, message =>
             GotNoiseScaleSliderMessage({ message }),
           ),

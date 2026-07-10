@@ -107,7 +107,6 @@ describe('update', () => {
         Story.Command.expectNone(),
         Story.model(model => {
           expect(model.currentStep).toBe('WorkHistory')
-          expect(model.stepTabs.activeIndex).toBe(1)
         }),
       )
     })
@@ -119,7 +118,6 @@ describe('update', () => {
         Story.message(ClickedPrevious()),
         Story.model(model => {
           expect(model.currentStep).toBe('WorkHistory')
-          expect(model.stepTabs.activeIndex).toBe(1)
         }),
       )
     })
@@ -131,7 +129,6 @@ describe('update', () => {
         Story.message(ClickedPrevious()),
         Story.model(model => {
           expect(model.currentStep).toBe('PersonalInfo')
-          expect(model.stepTabs.activeIndex).toBe(0)
         }),
       )
     })
@@ -143,7 +140,6 @@ describe('update', () => {
         Story.message(ClickedNext()),
         Story.model(model => {
           expect(model.currentStep).toBe('Review')
-          expect(model.stepTabs.activeIndex).toBe(6)
         }),
       )
     })
@@ -155,7 +151,6 @@ describe('update', () => {
         Story.message(NavigatedToStep({ step: 'Skills' })),
         Story.model(model => {
           expect(model.currentStep).toBe('Skills')
-          expect(model.stepTabs.activeIndex).toBe(3)
         }),
       )
     })
@@ -171,7 +166,6 @@ describe('update', () => {
         ),
         Story.model(model => {
           expect(model.currentStep).toBe('Review')
-          expect(model.stepTabs.activeIndex).toBe(6)
         }),
         resolveFocusTab,
       )

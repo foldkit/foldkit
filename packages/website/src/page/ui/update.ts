@@ -11,6 +11,7 @@ import {
   FileDrop,
   Popover,
   Slider,
+  Tabs,
   Tooltip,
   VirtualList,
 } from '@foldkit/ui'
@@ -54,7 +55,7 @@ import {
   type Message,
 } from './message'
 import type { Model } from './model'
-import type { DemoCard, DemoColumn } from './model'
+import type { DemoCard, DemoColumn, DemoTab } from './model'
 import { DemoTabs } from './tabs'
 import { Toast } from './toastModule'
 import {
@@ -184,14 +185,28 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotCalendarBasicDemoMessage: ({ message }) => {
-        const [nextCalendarBasicDemo, calendarBasicCommands] = Calendar.update(
-          model.calendarBasicDemo,
-          message,
+        const [nextCalendarBasicDemo, calendarBasicCommands, maybeOutMessage] =
+          Calendar.update(model.calendarBasicDemo, message)
+
+        const nextMaybeCalendarBasicDemoSelectedDate = Option.match(
+          maybeOutMessage,
+          {
+            onNone: () => model.maybeCalendarBasicDemoSelectedDate,
+            onSome: M.type<Calendar.OutMessage>().pipe(
+              M.tagsExhaustive({
+                SelectedDate: ({ date }) => Option.some(date),
+                ChangedViewMonth: () =>
+                  model.maybeCalendarBasicDemoSelectedDate,
+              }),
+            ),
+          },
         )
 
         return [
           evo(model, {
             calendarBasicDemo: () => nextCalendarBasicDemo,
+            maybeCalendarBasicDemoSelectedDate: () =>
+              nextMaybeCalendarBasicDemoSelectedDate,
           }),
           Command.mapMessages(calendarBasicCommands, message =>
             GotCalendarBasicDemoMessage({ message }),
@@ -200,12 +215,32 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotDatePickerBasicDemoMessage: ({ message }) => {
-        const [nextDatePickerBasicDemo, datePickerBasicCommands] =
-          DatePicker.update(model.datePickerBasicDemo, message)
+        const [
+          nextDatePickerBasicDemo,
+          datePickerBasicCommands,
+          maybeOutMessage,
+        ] = DatePicker.update(model.datePickerBasicDemo, message)
+
+        const nextMaybeDatePickerBasicDemoSelectedDate = Option.match(
+          maybeOutMessage,
+          {
+            onNone: () => model.maybeDatePickerBasicDemoSelectedDate,
+            onSome: M.type<DatePicker.OutMessage>().pipe(
+              M.tagsExhaustive({
+                SelectedDate: ({ date }) => Option.some(date),
+                ClearedDate: () => Option.none(),
+                ChangedViewMonth: () =>
+                  model.maybeDatePickerBasicDemoSelectedDate,
+              }),
+            ),
+          },
+        )
 
         return [
           evo(model, {
             datePickerBasicDemo: () => nextDatePickerBasicDemo,
+            maybeDatePickerBasicDemoSelectedDate: () =>
+              nextMaybeDatePickerBasicDemoSelectedDate,
           }),
           Command.mapMessages(datePickerBasicCommands, message =>
             GotDatePickerBasicDemoMessage({ message }),
@@ -603,14 +638,22 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotSliderRatingDemoMessage: ({ message }) => {
-        const [nextSliderRatingDemo, sliderRatingCommands] = Slider.update(
-          model.sliderRatingDemo,
-          message,
-        )
+        const [nextSliderRatingDemo, sliderRatingCommands, maybeOutMessage] =
+          Slider.update(model.sliderRatingDemo, message)
+
+        const nextSliderRatingValue = Option.match(maybeOutMessage, {
+          onNone: () => model.sliderRatingValue,
+          onSome: M.type<Slider.OutMessage>().pipe(
+            M.tagsExhaustive({
+              ChangedValue: ({ value }) => value,
+            }),
+          ),
+        })
 
         return [
           evo(model, {
             sliderRatingDemo: () => nextSliderRatingDemo,
+            sliderRatingValue: () => nextSliderRatingValue,
           }),
           Command.mapMessages(sliderRatingCommands, message =>
             GotSliderRatingDemoMessage({ message }),
@@ -619,14 +662,22 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotSliderVolumeDemoMessage: ({ message }) => {
-        const [nextSliderVolumeDemo, sliderVolumeCommands] = Slider.update(
-          model.sliderVolumeDemo,
-          message,
-        )
+        const [nextSliderVolumeDemo, sliderVolumeCommands, maybeOutMessage] =
+          Slider.update(model.sliderVolumeDemo, message)
+
+        const nextSliderVolumeValue = Option.match(maybeOutMessage, {
+          onNone: () => model.sliderVolumeValue,
+          onSome: M.type<Slider.OutMessage>().pipe(
+            M.tagsExhaustive({
+              ChangedValue: ({ value }) => value,
+            }),
+          ),
+        })
 
         return [
           evo(model, {
             sliderVolumeDemo: () => nextSliderVolumeDemo,
+            sliderVolumeValue: () => nextSliderVolumeValue,
           }),
           Command.mapMessages(sliderVolumeCommands, message =>
             GotSliderVolumeDemoMessage({ message }),
@@ -640,12 +691,25 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
 
       GotHorizontalTabsDemoMessage: ({ message }) => {
-        const [nextHorizontalTabsDemo, horizontalTabsCommands] =
-          DemoTabs.update(model.horizontalTabsDemo, message)
+        const [
+          nextHorizontalTabsDemo,
+          horizontalTabsCommands,
+          maybeOutMessage,
+        ] = DemoTabs.update(model.horizontalTabsDemo, message)
+
+        const nextHorizontalTabsDemoTab = Option.match(maybeOutMessage, {
+          onNone: () => model.horizontalTabsDemoTab,
+          onSome: M.type<Tabs.OutMessage<DemoTab>>().pipe(
+            M.tagsExhaustive({
+              Selected: ({ value }) => value,
+            }),
+          ),
+        })
 
         return [
           evo(model, {
             horizontalTabsDemo: () => nextHorizontalTabsDemo,
+            horizontalTabsDemoTab: () => nextHorizontalTabsDemoTab,
           }),
           Command.mapMessages(horizontalTabsCommands, message =>
             GotHorizontalTabsDemoMessage({ message }),
@@ -654,14 +718,22 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotVerticalTabsDemoMessage: ({ message }) => {
-        const [nextVerticalTabsDemo, verticalTabsCommands] = DemoTabs.update(
-          model.verticalTabsDemo,
-          message,
-        )
+        const [nextVerticalTabsDemo, verticalTabsCommands, maybeOutMessage] =
+          DemoTabs.update(model.verticalTabsDemo, message)
+
+        const nextVerticalTabsDemoTab = Option.match(maybeOutMessage, {
+          onNone: () => model.verticalTabsDemoTab,
+          onSome: M.type<Tabs.OutMessage<DemoTab>>().pipe(
+            M.tagsExhaustive({
+              Selected: ({ value }) => value,
+            }),
+          ),
+        })
 
         return [
           evo(model, {
             verticalTabsDemo: () => nextVerticalTabsDemo,
+            verticalTabsDemoTab: () => nextVerticalTabsDemoTab,
           }),
           Command.mapMessages(verticalTabsCommands, message =>
             GotVerticalTabsDemoMessage({ message }),

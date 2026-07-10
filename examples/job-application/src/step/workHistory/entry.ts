@@ -36,7 +36,9 @@ export const Model = S.Struct({
   company: Field(S.String),
   title: Field(S.String),
   startDate: DatePicker.Model,
+  maybeStartDate: S.Option(CalendarDate),
   endDate: DatePicker.Model,
+  maybeEndDate: S.Option(CalendarDate),
   isCurrentlyEmployed: S.Boolean,
   description: S.String,
 })
@@ -87,7 +89,9 @@ export const init = (entryId: string, today: CalendarDate): Model => ({
   company: NotValidated({ value: '' }),
   title: NotValidated({ value: '' }),
   startDate: DatePicker.init({ id: `${entryId}-start`, today }),
+  maybeStartDate: Option.none(),
   endDate: DatePicker.init({ id: `${entryId}-end`, today }),
+  maybeEndDate: Option.none(),
   isCurrentlyEmployed: false,
   description: '',
 })
@@ -141,7 +145,17 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               SelectedDate: ({ date }) => [
                 evo(model, {
                   startDate: () => nextStartDate,
+                  maybeStartDate: () => Option.some(date),
                   endDate: DatePicker.reflectMinDate(Option.some(date)),
+                }),
+                mappedCommands,
+                Option.none(),
+              ],
+              ClearedDate: () => [
+                evo(model, {
+                  startDate: () => nextStartDate,
+                  maybeStartDate: () => Option.none(),
+                  endDate: DatePicker.reflectMinDate(Option.none()),
                 }),
                 mappedCommands,
                 Option.none(),
@@ -176,7 +190,17 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               SelectedDate: ({ date }) => [
                 evo(model, {
                   endDate: () => nextEndDate,
+                  maybeEndDate: () => Option.some(date),
                   startDate: DatePicker.reflectMaxDate(Option.some(date)),
+                }),
+                mappedCommands,
+                Option.none(),
+              ],
+              ClearedDate: () => [
+                evo(model, {
+                  endDate: () => nextEndDate,
+                  maybeEndDate: () => Option.none(),
+                  startDate: DatePicker.reflectMaxDate(Option.none()),
                 }),
                 mappedCommands,
                 Option.none(),

@@ -1,5 +1,6 @@
 import { Equal, Option } from 'effect'
 import { Submodel } from 'foldkit'
+import { type CalendarDate } from 'foldkit/calendar'
 import { Valid } from 'foldkit/fieldValidation'
 import { type Html, childAttributes, html } from 'foldkit/html'
 
@@ -167,12 +168,15 @@ export const personalInfoView = Submodel.defineView<
         onInput: value => PersonalInfo.UpdatedPortfolioUrl({ value }),
         type: 'url',
       }),
-      availableDatePickerView(availableDate),
+      availableDatePickerView(availableDate, model.maybeAvailableDate),
     ],
   )
 })
 
-const availableDatePickerView = (model: DatePicker.Model): Html => {
+const availableDatePickerView = (
+  model: DatePicker.Model,
+  maybeSelectedDate: Option.Option<CalendarDate>,
+): Html => {
   const h = html<PersonalInfo.Message>()
 
   return h.div(
@@ -188,6 +192,7 @@ const availableDatePickerView = (model: DatePicker.Model): Html => {
         view: DatePicker.view,
         viewInputs: {
           anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+          maybeSelectedDate,
           triggerContent: maybeDate => triggerContent(maybeDate, 'Pick a date'),
           triggerClassName,
           panelClassName,

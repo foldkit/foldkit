@@ -22,12 +22,12 @@ import {
   SelectedMonth,
   SelectedYear,
   dropToDays,
+  focusDate,
   init,
   reflectDisabledDates,
   reflectDisabledDaysOfWeek,
   reflectMaxDate,
   reflectMinDate,
-  reflectSelectedDate,
   update,
 } from './index.js'
 
@@ -42,21 +42,19 @@ describe('Calendar', () => {
       expect(model.viewYear).toBe(2026)
       expect(model.viewMonth).toBe(4)
       expect(model.maybeFocusedDate).toStrictEqual(Option.some(today))
-      expect(model.maybeSelectedDate).toStrictEqual(Option.none())
       expect(model.isGridFocused).toBe(false)
     })
 
-    it('sets the view to the month of the initial selected date', () => {
-      const selected = Calendar.make(2026, 8, 22)
+    it('sets the view to the month of the initial view date', () => {
+      const initialViewDate = Calendar.make(2026, 8, 22)
       const model = init({
         id: 'test',
         today,
-        initialSelectedDate: selected,
+        initialViewDate,
       })
       expect(model.viewYear).toBe(2026)
       expect(model.viewMonth).toBe(8)
-      expect(model.maybeFocusedDate).toStrictEqual(Option.some(selected))
-      expect(model.maybeSelectedDate).toStrictEqual(Option.some(selected))
+      expect(model.maybeFocusedDate).toStrictEqual(Option.some(initialViewDate))
     })
 
     it('carries locale, min/max, and disabled configuration', () => {
@@ -84,7 +82,6 @@ describe('Calendar', () => {
           Story.with(init({ id: 'test', today })),
           Story.message(ClickedDay({ date: target })),
           Story.model(model => {
-            expect(model.maybeSelectedDate).toStrictEqual(Option.some(target))
             expect(model.maybeFocusedDate).toStrictEqual(Option.some(target))
           }),
           Story.expectOutMessage(SelectedDate({ date: target })),
@@ -100,7 +97,6 @@ describe('Calendar', () => {
           Story.model(model => {
             expect(model.viewYear).toBe(2026)
             expect(model.viewMonth).toBe(6)
-            expect(model.maybeSelectedDate).toStrictEqual(Option.some(target))
           }),
           Story.expectOutMessage(SelectedDate({ date: target })),
         )
@@ -113,9 +109,6 @@ describe('Calendar', () => {
           update,
           Story.with(init({ id: 'test', today, minDate })),
           Story.message(ClickedDay({ date: target })),
-          Story.model(model => {
-            expect(model.maybeSelectedDate).toStrictEqual(Option.none())
-          }),
           Story.expectNoOutMessage(),
         )
       })
@@ -129,9 +122,6 @@ describe('Calendar', () => {
             init({ id: 'test', today, disabledDaysOfWeek: ['Sunday'] }),
           ),
           Story.message(ClickedDay({ date: target })),
-          Story.model(model => {
-            expect(model.maybeSelectedDate).toStrictEqual(Option.none())
-          }),
           Story.expectNoOutMessage(),
         )
       })
@@ -142,9 +132,6 @@ describe('Calendar', () => {
           update,
           Story.with(init({ id: 'test', today, disabledDates: [target] })),
           Story.message(ClickedDay({ date: target })),
-          Story.model(model => {
-            expect(model.maybeSelectedDate).toStrictEqual(Option.none())
-          }),
           Story.expectNoOutMessage(),
         )
       })
@@ -263,9 +250,6 @@ describe('Calendar', () => {
           update,
           Story.with(init({ id: 'test', today })),
           Story.message(PressedKeyOnGrid({ key: 'Enter', isShift: false })),
-          Story.model(model => {
-            expect(model.maybeSelectedDate).toStrictEqual(Option.some(today))
-          }),
           Story.expectOutMessage(SelectedDate({ date: today })),
         )
       })
@@ -275,9 +259,6 @@ describe('Calendar', () => {
           update,
           Story.with(init({ id: 'test', today })),
           Story.message(PressedKeyOnGrid({ key: ' ', isShift: false })),
-          Story.model(model => {
-            expect(model.maybeSelectedDate).toStrictEqual(Option.some(today))
-          }),
           Story.expectOutMessage(SelectedDate({ date: today })),
         )
       })
@@ -291,7 +272,7 @@ describe('Calendar', () => {
             init({
               id: 'test',
               today,
-              initialSelectedDate: startOfMonth,
+              initialViewDate: startOfMonth,
             }),
           ),
           Story.message(PressedKeyOnGrid({ key: 'ArrowLeft', isShift: false })),
@@ -311,9 +292,6 @@ describe('Calendar', () => {
           update,
           Story.with(init({ id: 'test', today, minDate })),
           Story.message(PressedKeyOnGrid({ key: 'Enter', isShift: false })),
-          Story.model(model => {
-            expect(model.maybeSelectedDate).toStrictEqual(Option.none())
-          }),
           Story.expectNoOutMessage(),
         )
       })
@@ -885,7 +863,7 @@ describe('Calendar', () => {
         )
       })
 
-      it('does not move the focus cursor or selected date', () => {
+      it('does not move the focus cursor', () => {
         const newToday = Calendar.make(2026, 4, 20)
         Story.story(
           update,
@@ -893,7 +871,6 @@ describe('Calendar', () => {
           Story.message(RefreshedToday({ today: newToday })),
           Story.model(model => {
             expect(model.maybeFocusedDate).toStrictEqual(Option.some(today))
-            expect(model.maybeSelectedDate).toStrictEqual(Option.none())
           }),
         )
       })
@@ -1002,18 +979,6 @@ describe('Calendar', () => {
         expect(next.maybeMinDate).toStrictEqual(Option.none())
       })
 
-      it('does not reconcile a previously-selected date below the new min', () => {
-        const selected = Calendar.make(2026, 3, 15)
-        const model = init({
-          id: 'test',
-          today,
-          initialSelectedDate: selected,
-        })
-        const newMin = Calendar.make(2026, 6, 1)
-        const next = reflectMinDate(model, Option.some(newMin))
-        expect(next.maybeSelectedDate).toStrictEqual(Option.some(selected))
-      })
-
       it('causes subsequent ClickedDay on a now-disabled date to be ignored', () => {
         const model = init({ id: 'test', today })
         const newMin = Calendar.make(2026, 6, 1)
@@ -1023,9 +988,7 @@ describe('Calendar', () => {
           update,
           Story.with(withMin),
           Story.message(ClickedDay({ date: belowMin })),
-          Story.model(m => {
-            expect(m.maybeSelectedDate).toStrictEqual(Option.none())
-          }),
+          Story.expectNoOutMessage(),
         )
       })
     })
@@ -1075,9 +1038,7 @@ describe('Calendar', () => {
           update,
           Story.with(withDisabled),
           Story.message(ClickedDay({ date: disabled })),
-          Story.model(m => {
-            expect(m.maybeSelectedDate).toStrictEqual(Option.none())
-          }),
+          Story.expectNoOutMessage(),
         )
       })
     })
@@ -1101,25 +1062,13 @@ describe('Calendar', () => {
     })
   })
 
-  describe('reflectSelectedDate', () => {
-    it('reflects a date and moves the view to its month', () => {
+  describe('focusDate', () => {
+    it('moves the view and cursor to a date without selecting it', () => {
       const date = Calendar.make(2026, 8, 15)
-      const next = reflectSelectedDate(
-        init({ id: 'test', today }),
-        Option.some(date),
-      )
-      expect(next.maybeSelectedDate).toStrictEqual(Option.some(date))
+      const next = focusDate(init({ id: 'test', today }), date)
       expect(next.viewYear).toBe(2026)
       expect(next.viewMonth).toBe(8)
-    })
-
-    it('clears the selection on None', () => {
-      const selected = reflectSelectedDate(
-        init({ id: 'test', today }),
-        Option.some(Calendar.make(2026, 8, 15)),
-      )
-      const cleared = reflectSelectedDate(selected, Option.none())
-      expect(cleared.maybeSelectedDate).toStrictEqual(Option.none())
+      expect(next.maybeFocusedDate).toStrictEqual(Option.some(date))
     })
   })
 })

@@ -14,12 +14,13 @@ import * as Popover from '../popover/index.js'
 
 // MODEL
 
-/** Schema for the date picker component's state. Holds the selected date,
- * the embedded Calendar submodel (the visible grid), and the embedded Popover
- * submodel (the open/close + transition layer). */
+/** Schema for the date picker component's private interaction state. The
+ * selected date is owned by the parent and passed in via
+ * `ViewInputs.maybeSelectedDate`. This holds the embedded Calendar submodel
+ * (the visible grid) and the embedded Popover submodel (the open/close +
+ * transition layer). */
 export const Model = S.Struct({
   id: S.String,
-  maybeSelectedDate: S.Option(Calendar.CalendarDate),
   calendar: UiCalendar.Model,
   popover: Popover.Model,
 })
@@ -79,18 +80,23 @@ export const ChangedViewMonth = m('ChangedViewMonth', {
 })
 
 /** Emitted when the user commits a date selection (propagated from the
- * embedded Calendar). The popover has already closed; the parent reads the
- * committed date and lifts it into domain state. */
+ * embedded Calendar). The popover has already closed; the parent stores the
+ * committed date and passes it back in as `maybeSelectedDate`. */
 export const SelectedDate = m('SelectedDate', {
   date: Calendar.CalendarDate,
 })
 
+/** Emitted when the user clears the selected date. The parent clears its own
+ * value field. */
+export const ClearedDate = m('ClearedDate')
+
 /** Union of out-messages the date picker can produce. */
-export const OutMessage = S.Union([ChangedViewMonth, SelectedDate])
+export const OutMessage = S.Union([ChangedViewMonth, SelectedDate, ClearedDate])
 export type OutMessage = typeof OutMessage.Type
 
 export type ChangedViewMonth = typeof ChangedViewMonth.Type
 export type SelectedDate = typeof SelectedDate.Type
+export type ClearedDate = typeof ClearedDate.Type
 
 // INIT
 
@@ -98,7 +104,7 @@ export type SelectedDate = typeof SelectedDate.Type
 export type InitConfig = Readonly<{
   id: string
   today: CalendarDate
-  initialSelectedDate?: CalendarDate
+  initialViewDate?: CalendarDate
   isAnimated?: boolean
   locale?: Calendar.LocaleConfig
   minDate?: CalendarDate
@@ -107,18 +113,19 @@ export type InitConfig = Readonly<{
   disabledDates?: ReadonlyArray<CalendarDate>
 }>
 
-/** Creates an initial date picker model from a config. The calendar and
- * popover submodels are created with derived ids so their DOM elements stay
- * addressable. The popover is opened in `contentFocus` mode so focus lands on
- * the calendar grid instead of the panel. */
+/** Creates an initial date picker model from a config. The selected date is
+ * owned by the parent; pass its current value as `initialViewDate` to open the
+ * calendar onto that month. The calendar and popover submodels are created
+ * with derived ids so their DOM elements stay addressable. The popover is
+ * opened in `contentFocus` mode so focus lands on the calendar grid instead of
+ * the panel. */
 export const init = (config: InitConfig): Model => ({
   id: config.id,
-  maybeSelectedDate: Option.fromNullishOr(config.initialSelectedDate),
   calendar: UiCalendar.init({
     id: `${config.id}-calendar`,
     today: config.today,
-    ...(config.initialSelectedDate !== undefined && {
-      initialSelectedDate: config.initialSelectedDate,
+    ...(config.initialViewDate !== undefined && {
+      initialViewDate: config.initialViewDate,
     }),
     ...(config.locale !== undefined && { locale: config.locale }),
     ...(config.minDate !== undefined && { minDate: config.minDate }),
@@ -183,7 +190,6 @@ const delegateToCalendar = (
           const [nextPopover, popoverCommands] = Popover.close(model.popover)
           return [
             evo(modelWithCalendar, {
-              maybeSelectedDate: () => Option.some(date),
               popover: () => nextPopover,
             }),
             [
@@ -268,7 +274,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         const [nextPopover, popoverCommands] = Popover.close(model.popover)
         return [
           evo(model, {
-            maybeSelectedDate: () => Option.some(date),
             calendar: () => nextCalendar,
             popover: () => nextPopover,
           }),
@@ -280,14 +285,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      Cleared: () => [
-        evo(model, {
-          maybeSelectedDate: () => Option.none(),
-          calendar: UiCalendar.reflectSelectedDate(Option.none()),
-        }),
-        [],
-        Option.none(),
-      ],
+      Cleared: () => [model, [], Option.some(ClearedDate())],
     }),
   )
 
@@ -305,24 +303,16 @@ export const selectDate = (model: Model, date: CalendarDate): UpdateReturn =>
 /** Programmatically clears the selected date. */
 export const clear = (model: Model): UpdateReturn => update(model, Cleared())
 
-/** Reflects an externally-sourced selected date onto the date picker
- *  without emitting an OutMessage or touching the popover. Sets the
- *  picker's selection and reflects it onto the embedded calendar (moving
- *  the calendar's view to the date), mirroring `selectDate`'s state change
- *  minus the `SelectedDate` announcement and the popover close. Pass
- *  `Option.none()` to clear. Use this to mirror external truth (a URL
- *  parameter, a saved draft) onto the picker. Contrast with `selectDate`,
- *  a user or programmatic *choice* that emits `SelectedDate`. Returns the
- *  model directly because it produces no commands and no OutMessage. */
-export const reflectSelectedDate: Reflect<
-  Model,
-  Option.Option<CalendarDate>
-> = Function.dual(
+/** Moves the embedded calendar's view and cursor to a date without changing
+ *  the selection (which the parent owns). Use it to navigate the picker onto a
+ *  known date, for example after the parent sets its value externally (a URL
+ *  parameter, a saved draft) so opening the picker shows that month. Returns
+ *  the model directly because it produces no commands and no OutMessage. */
+export const focusDate: Reflect<Model, CalendarDate> = Function.dual(
   2,
-  (model: Model, maybeDate: Option.Option<CalendarDate>): Model =>
+  (model: Model, date: CalendarDate): Model =>
     evo(model, {
-      maybeSelectedDate: () => maybeDate,
-      calendar: () => UiCalendar.reflectSelectedDate(model.calendar, maybeDate),
+      calendar: () => UiCalendar.focusDate(model.calendar, date),
     }),
 )
 
@@ -416,6 +406,10 @@ const encodeIsoDate = S.encodeSync(Calendar.CalendarDateFromIsoString)
  *  `DatePicker.update`'s return) to lift the date into domain state. */
 export type ViewInputs = Readonly<{
   anchor: AnchorConfig
+  /** The selected date, read straight from the parent Model. The trigger
+   * content, the calendar's selected-day marker, and the hidden form input all
+   * derive from it. */
+  maybeSelectedDate: Option.Option<CalendarDate>
   /** Renders the trigger button's content (typically the formatted selected
    * date or a placeholder). Receives the current selection. */
   triggerContent: (maybeDate: Option.Option<CalendarDate>) => Html
@@ -451,6 +445,7 @@ export const view = defineView<Model, Message, ViewInputs>(
 
     const {
       anchor,
+      maybeSelectedDate,
       triggerContent,
       toCalendarView,
       isDisabled,
@@ -483,7 +478,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       slotId: model.calendar.id,
       model: model.calendar,
       view: UiCalendar.view,
-      viewInputs: { toView: toCalendarView },
+      viewInputs: { maybeSelectedDate, toView: toCalendarView },
       toParentMessage: message => GotCalendarMessage({ message }),
     })
 
@@ -508,7 +503,7 @@ export const view = defineView<Model, Message, ViewInputs>(
                     : []),
                   ...triggerAttributes,
                 ],
-                [triggerContent(model.maybeSelectedDate)],
+                [triggerContent(maybeSelectedDate)],
               ),
               ...(isVisible
                 ? [
@@ -540,7 +535,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       toParentMessage: message => GotPopoverMessage({ message }),
     })
 
-    const hiddenInputValue = Option.match(model.maybeSelectedDate, {
+    const hiddenInputValue = Option.match(maybeSelectedDate, {
       onNone: () => '',
       onSome: encodeIsoDate,
     })

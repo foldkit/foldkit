@@ -1,7 +1,6 @@
 import {
   Array,
   Effect,
-  Function,
   Match as M,
   Option,
   Schema as S,
@@ -18,11 +17,7 @@ import {
 } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
-import {
-  type Reflect2,
-  type View as SubmodelView,
-  defineView,
-} from 'foldkit/submodel'
+import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
 import { idSelector } from '../internal/selectors.js'
 import { keyToIndex } from '../keyboard.js'
@@ -39,11 +34,14 @@ export type Orientation = typeof Orientation.Type
 export const ActivationMode = S.Literals(['Automatic', 'Manual'])
 export type ActivationMode = typeof ActivationMode.Type
 
-/** Schema for the tabs component's state, tracking active/focused indices and activation mode. */
+/** Schema for the tabs component's private interaction state. The active
+ *  tab is owned by the parent and passed in via `ViewInputs.selectedValue`,
+ *  so it is not stored here. `maybeFocusedIndex` is the roving-tabindex
+ *  cursor: `None` means keyboard focus follows the selected tab, and `Manual`
+ *  activation stores `Some(index)` while focus diverges from the selection. */
 export const Model = S.Struct({
   id: S.String,
-  activeIndex: S.Number,
-  focusedIndex: S.Number,
+  maybeFocusedIndex: S.Option(S.Number),
   activationMode: ActivationMode,
 })
 
@@ -51,7 +49,8 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** Sent when a tab is selected via click or keyboard. Updates both the active and focused indices. */
+/** Sent when a tab is selected via click or keyboard. Commits the tab as the
+ *  new selection and moves focus onto it. */
 export const SelectedTab = m('SelectedTab', {
   index: S.Number,
   value: S.String,
@@ -98,21 +97,17 @@ export type OutMessage<Value extends string = string> = Selected<Value>
 /** Configuration for creating a tabs model with `init`. */
 export type InitConfig = Readonly<{
   id: string
-  activeIndex?: number
   activationMode?: ActivationMode
 }>
 
-/** Creates an initial tabs model from a config. Defaults to first tab and automatic activation. */
-export const init = (config: InitConfig): Model => {
-  const activeIndex = config.activeIndex ?? 0
-
-  return {
-    id: config.id,
-    activeIndex,
-    focusedIndex: activeIndex,
-    activationMode: config.activationMode ?? 'Automatic',
-  }
-}
+/** Creates an initial tabs model from a config. Focus follows the selected
+ *  tab until the user navigates in `Manual` mode, so `maybeFocusedIndex`
+ *  starts `None`. Defaults to automatic activation. */
+export const init = (config: InitConfig): Model => ({
+  id: config.id,
+  maybeFocusedIndex: Option.none(),
+  activationMode: config.activationMode ?? 'Automatic',
+})
 
 // UPDATE
 
@@ -138,61 +133,27 @@ type UpdateReturn = readonly [
   Option.Option<OutMessage>,
 ]
 
-/** Processes a tabs message and returns the next model, commands, and an optional OutMessage. `Selected` fires when a tab is committed via click or keyboard. */
+/** Processes a tabs message and returns the next model, commands, and an
+ *  optional OutMessage. `Selected` fires when a tab is committed via click or
+ *  keyboard; the parent stores the new value and passes it back in as
+ *  `selectedValue`. */
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     M.withReturnType<UpdateReturn>(),
     M.tagsExhaustive({
       SelectedTab: ({ index, value }) => [
-        evo(model, {
-          activeIndex: () => index,
-          focusedIndex: () => index,
-        }),
+        evo(model, { maybeFocusedIndex: () => Option.none() }),
         [FocusTab({ id: model.id, index })],
         Option.some(Selected({ value, index })),
       ],
       FocusedTab: ({ index }) => [
-        evo(model, { focusedIndex: () => index }),
+        evo(model, { maybeFocusedIndex: () => Option.some(index) }),
         [FocusTab({ id: model.id, index })],
         Option.none(),
       ],
       CompletedFocusTab: () => [model, [], Option.none()],
     }),
   )
-
-/** Programmatically selects a tab. Emits a `Selected` OutMessage. */
-export const selectTab = (
-  model: Model,
-  value: string,
-  index: number,
-): UpdateReturn => update(model, SelectedTab({ index, value }))
-
-/** Reflects an externally-sourced active tab onto the model without
- *  emitting an OutMessage or running the focus command. Use this to mirror
- *  external truth (a deep link, restored storage) onto the active tab.
- *  Contrast with `selectTab`, which represents a user or programmatic
- *  *choice*: it focuses the tab and emits `Selected`. Takes the tab `value`
- *  plus the `options` list because Tabs stores the active *index*
- *  internally, so the value is resolved to an index. A value not present in
- *  `options` is a no-op. Returns the model directly because it produces no
- *  commands and no OutMessage. */
-export const reflectSelectedTab: Reflect2<
-  Model,
-  string,
-  ReadonlyArray<string>
-> = Function.dual(
-  3,
-  (model: Model, value: string, options: ReadonlyArray<string>): Model =>
-    pipe(
-      options,
-      Array.findFirstIndex(option => option === value),
-      Option.match({
-        onNone: () => model,
-        onSome: index =>
-          evo(model, { activeIndex: () => index, focusedIndex: () => index }),
-      }),
-    ),
-)
 
 // VIEW
 
@@ -216,9 +177,9 @@ export type TabInfo<Value extends string = string> = Readonly<{
  *  - `tabs`: one entry per tab in `viewInputs.tabs`, in the same order, with
  *    the tab button's attribute bundle, the panel's attribute bundle,
  *    and derived state.
- *  - `activeIndex`: the currently-active tab index, convenient when the
- *    consumer wants to render only the active panel (vs all panels with
- *    `Hidden` for transitions). */
+ *  - `activeIndex`: the index of `viewInputs.selectedValue` within
+ *    `viewInputs.tabs`, convenient when the consumer wants to render only the
+ *    active panel (vs all panels with `Hidden` for transitions). */
 export type RenderInfo<Value extends string = string> = Readonly<{
   tablist: ReadonlyArray<ChildAttribute>
   tabs: ReadonlyArray<TabInfo<Value>>
@@ -229,9 +190,14 @@ export type RenderInfo<Value extends string = string> = Readonly<{
  *  Generic over `Value extends string` so consumers using
  *  `Tabs.create<MyUnion>()` receive `tab.value: MyUnion` in `toView`
  *  and `(value: MyUnion, index) => boolean` in `isTabDisabled`, without
- *  casting. */
+ *  casting.
+ *
+ *  - `selectedValue`: the active tab, read straight from the parent Model.
+ *    `aria-selected`, the `data-selected` marker, and which panel is active
+ *    all derive from it. */
 export type ViewInputs<Value extends string = string> = Readonly<{
   tabs: ReadonlyArray<Value>
+  selectedValue: Value
   ariaLabel: string
   toView: (render: RenderInfo<Value>) => Html
   isTabDisabled?: (value: Value, index: number) => boolean
@@ -242,14 +208,27 @@ const internalView = defineView<Model, Message, ViewInputs>(
   (model, viewInputs): Html => {
     const h = html<Message>()
 
-    const { id, activationMode, focusedIndex, activeIndex } = model
+    const { id, activationMode, maybeFocusedIndex } = model
     const {
       tabs,
+      selectedValue,
       ariaLabel,
       toView,
       isTabDisabled,
       orientation = 'Horizontal',
     } = viewInputs
+
+    const activeIndex = pipe(
+      tabs,
+      Array.findFirstIndex(tab => tab === selectedValue),
+      Option.getOrElse(() => 0),
+    )
+
+    const focusedIndex = pipe(
+      maybeFocusedIndex,
+      Option.filter(index => index < tabs.length),
+      Option.getOrElse(() => activeIndex),
+    )
 
     const isDisabled = (index: number): boolean =>
       !!isTabDisabled &&
@@ -383,18 +362,19 @@ const internalView = defineView<Model, Message, ViewInputs>(
   },
 )
 
-/** Pairs the tabs `view`, `update`, and `selectTab` behind a single
- *  Value-typed entry point. Declare once at module scope so consumers
- *  receive `tab.value: Value` in `toView` without an `as` cast:
+/** Pairs the tabs `view` and `update` behind a single Value-typed entry
+ *  point. Declare once at module scope so consumers receive
+ *  `tab.value: Value` in `toView` and the `Selected` OutMessage without an
+ *  `as` cast:
  *
  *  ```ts
  *  const DemoTabs = Tabs.create<DemoTab>()
  *
- *  // In view:
- *  h.submodel({ view: DemoTabs.view, ... })
+ *  // In view (selectedValue is the parent-owned active tab):
+ *  h.submodel({ view: DemoTabs.view, viewInputs: { selectedValue, ... }, ... })
  *
- *  // In update:
- *  const [next, commands] = DemoTabs.update(model, message)
+ *  // In update, fold the Selected OutMessage into your Model:
+ *  const [next, commands, maybeOutMessage] = DemoTabs.update(model, message)
  *  ```
  *
  *  The internal view stays typed `ReadonlyArray<string>`; consumers can
@@ -410,16 +390,6 @@ export const create = <Value extends string = string>(): Readonly<{
     ReadonlyArray<Command.Command<Message>>,
     Option.Option<OutMessage<Value>>,
   ]
-  selectTab: (
-    model: Model,
-    value: Value,
-    index: number,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
-  reflectSelectedTab: Reflect2<Model, Value, ReadonlyArray<Value>>
 }> => {
   type GenericReturn = readonly [
     Model,
@@ -438,12 +408,5 @@ export const create = <Value extends string = string>(): Readonly<{
       ViewInputs<Value>
     >,
     update: (model, message) => cast(update(model, message)),
-    selectTab: (model, value, index) => cast(selectTab(model, value, index)),
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    reflectSelectedTab: reflectSelectedTab as Reflect2<
-      Model,
-      Value,
-      ReadonlyArray<Value>
-    >,
   }
 }

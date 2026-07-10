@@ -296,6 +296,7 @@ const playPauseLabel = (isRunning: boolean): string =>
 const slider = (
   label: string,
   sliderModel: Slider.Model,
+  value: number,
   toParentMessage: (message: Slider.Message) => Message,
 ): Html => {
   const h = html<Message>()
@@ -305,6 +306,7 @@ const slider = (
     model: sliderModel,
     view: Slider.view,
     viewInputs: {
+      value,
       formatValue: value => value.toFixed(2),
       toView: attributes =>
         h.div(
@@ -317,10 +319,7 @@ const slider = (
                   [...attributes.label, h.Class(sliderLabelClass)],
                   [label],
                 ),
-                h.span(
-                  [h.Class(sliderValueClass)],
-                  [sliderModel.value.toFixed(2)],
-                ),
+                h.span([h.Class(sliderValueClass)], [value.toFixed(2)]),
               ],
             ),
             h.div(
@@ -389,10 +388,13 @@ const controlsView = (model: Model): Html => {
           ),
         ],
       ),
-      slider('Turbulence', model.flowStrengthSlider, message =>
-        GotFlowStrengthSliderMessage({ message }),
+      slider(
+        'Turbulence',
+        model.flowStrengthSlider,
+        model.flowStrength,
+        message => GotFlowStrengthSliderMessage({ message }),
       ),
-      slider('Noise scale', model.noiseScaleSlider, message =>
+      slider('Noise scale', model.noiseScaleSlider, model.noiseScale, message =>
         GotNoiseScaleSliderMessage({ message }),
       ),
     ],

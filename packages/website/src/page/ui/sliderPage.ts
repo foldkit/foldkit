@@ -133,12 +133,6 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     description:
       'Increment between allowed values. Fractional steps are rounded to the step’s decimal precision to avoid floating-point drift.',
   },
-  {
-    name: 'initialValue',
-    type: 'number',
-    description:
-      'Initial value. Clamped to [min, max] and snapped to the nearest step.',
-  },
 ]
 
 const viewConfigProps: ReadonlyArray<PropEntry> = [
@@ -152,6 +146,12 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     type: '(childMessage: Slider.Message) => ParentMessage',
     description:
       'Wraps Slider Messages in your parent Message type for Submodel delegation.',
+  },
+  {
+    name: 'value',
+    type: 'number',
+    description:
+      'The current value, read from your parent Model. The thumb position, aria-valuenow, and filled track derive from it. Fold the ChangedValue OutMessage into this field in your update.',
   },
   {
     name: 'toView',
@@ -326,7 +326,12 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           ' callback controls all markup and styling. The component hands back attribute groups for the root, track, filled track, thumb, label, and an optional hidden input for form submission.',
         ),
         demoContainer(
-          ...Slider.sliderDemo(model.sliderRatingDemo, model.sliderVolumeDemo),
+          ...Slider.sliderDemo(
+            model.sliderRatingDemo,
+            model.sliderRatingValue,
+            model.sliderVolumeDemo,
+            model.sliderVolumeValue,
+          ),
         ),
         highlightedCodeBlock(
           h.div(

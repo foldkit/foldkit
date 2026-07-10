@@ -129,7 +129,7 @@ These are the failure modes that pass typecheck and tests but fall short of the 
 
 8. **Effect module inconsistency.** Mixing `items.map(f)` and `Array.map(items, f)` in the same file. Mixing `Option.match` and `Option.map(...).pipe(Option.getOrElse(...))` for similar code. One file should use one idiom throughout.
 
-9. **Stuttery `evo` setters.** If an `evo` setter only transforms that same field, it should be point-free: `entries: Array.map(revealErrors)`, `count: Number.increment`, `stepTabs: Tabs.reflectSelectedTab(value, options)`. Flag `entries: () => Array.map(model.entries, revealErrors)`, `count: () => Number.increment(model.count)`, or `stepTabs: () => Tabs.reflectSelectedTab(model.stepTabs, value, options)`. Replacement values from Messages, child updates, Commands, or other Model fields still use `() => value`.
+9. **Stuttery `evo` setters.** If an `evo` setter only transforms that same field, it should be point-free: `entries: Array.map(revealErrors)`, `count: Number.increment`, `priceSlider: Slider.reflectRange({ min: minPrice, max: maxPrice })`. Flag `entries: () => Array.map(model.entries, revealErrors)`, `count: () => Number.increment(model.count)`, or `priceSlider: () => Slider.reflectRange(model.priceSlider, { min: minPrice, max: maxPrice })`. Replacement values from Messages, child updates, Commands, or other Model fields still use `() => value`.
 
 10. **Empty-object constructor calls.** No-field tagged structs called with `({})`: `Idle({})`, `Work({})`, `ClickedSubmit({})`. Should be `Idle()`, `Work()`, `ClickedSubmit()`. Both compile; exemplars uniformly use no-arg.
 

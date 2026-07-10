@@ -1,4 +1,4 @@
-import { Match as M } from 'effect'
+import { Match as M, Option } from 'effect'
 import * as Calendar from 'foldkit/calendar'
 import { html } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
@@ -99,6 +99,7 @@ const sceneView =
   (overrides: Omit<Partial<ViewInputs>, 'toView'> = {}) =>
   (model: Model) =>
     view(model, {
+      maybeSelectedDate: Option.none(),
       toView: testToView,
       ...overrides,
     })
@@ -214,14 +215,11 @@ describe('Calendar', () => {
     it('marks the selected cell with aria-selected and data-selected', () => {
       const selected = Calendar.make(2026, 4, 20)
       Scene.scene(
-        { update, view: sceneView() },
-        Scene.with(
-          init({
-            id: 'test',
-            today,
-            initialSelectedDate: selected,
-          }),
-        ),
+        {
+          update,
+          view: sceneView({ maybeSelectedDate: Option.some(selected) }),
+        },
+        Scene.with(init({ id: 'test', today, initialViewDate: selected })),
         Scene.expect(dayCellById('test', 2026, 4, 20)).toHaveAttr(
           'aria-selected',
           'true',
@@ -307,14 +305,14 @@ describe('Calendar', () => {
   })
 
   describe('interactions', () => {
-    it('clicking a day selects it', () => {
+    it('clicking a day moves the focus cursor onto it', () => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.with(init({ id: 'test', today })),
         Scene.click(dayButton('Monday, April 20, 2026')),
-        Scene.expect(dayCellById('test', 2026, 4, 20)).toHaveAttr(
-          'aria-selected',
-          'true',
+        Scene.expect(grid).toHaveAttr(
+          'aria-activedescendant',
+          'test-cell-2026-4-20',
         ),
       )
     })

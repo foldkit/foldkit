@@ -44,7 +44,6 @@ export const Model = S.Struct({
   viewMonth: S.Int.check(S.isBetween({ minimum: 1, maximum: 12 })),
   viewMode: ViewMode,
   maybeFocusedDate: S.Option(Calendar.CalendarDate),
-  maybeSelectedDate: S.Option(Calendar.CalendarDate),
   isGridFocused: S.Boolean,
   locale: Calendar.LocaleConfig,
   maybeMinDate: S.Option(Calendar.CalendarDate),
@@ -150,7 +149,7 @@ export type SelectedDate = typeof SelectedDate.Type
 export type InitConfig = Readonly<{
   id: string
   today: CalendarDate
-  initialSelectedDate?: CalendarDate
+  initialViewDate?: CalendarDate
   locale?: Calendar.LocaleConfig
   minDate?: CalendarDate
   maxDate?: CalendarDate
@@ -158,16 +157,12 @@ export type InitConfig = Readonly<{
   disabledDates?: ReadonlyArray<CalendarDate>
 }>
 
-/** Creates an initial calendar model. The view month defaults to the month
- * of the initial selected date, or today if no date is pre-selected. */
+/** Creates an initial calendar model. The selected date is owned by the
+ * parent and passed in via `ViewInputs.maybeSelectedDate`. The view month
+ * defaults to `initialViewDate` (pass the parent's selected date to open onto
+ * it), or today when omitted. */
 export const init = (config: InitConfig): Model => {
-  const maybeInitialSelectedDate = Option.fromNullishOr(
-    config.initialSelectedDate,
-  )
-  const initialFocus = Option.getOrElse(
-    maybeInitialSelectedDate,
-    () => config.today,
-  )
+  const initialFocus = config.initialViewDate ?? config.today
   return {
     id: config.id,
     today: config.today,
@@ -175,7 +170,6 @@ export const init = (config: InitConfig): Model => {
     viewMonth: initialFocus.month,
     viewMode: 'Days',
     maybeFocusedDate: Option.some(initialFocus),
-    maybeSelectedDate: maybeInitialSelectedDate,
     isGridFocused: false,
     locale: config.locale ?? Calendar.defaultEnglishLocale,
     maybeMinDate: Option.fromNullishOr(config.minDate),
@@ -219,30 +213,18 @@ export const FocusGrid = Command.define(
 export const selectDate = (model: Model, date: CalendarDate): UpdateReturn =>
   update(model, ClickedDay({ date }))
 
-/** Reflects an externally-sourced selected date onto the model without
- *  emitting an OutMessage. When a date is given, sets the selection and
- *  moves the view to the date's month so it stays visible, mirroring
- *  `selectDate`'s state change minus the `SelectedDate` announcement. Pass
- *  `Option.none()` to clear the selection (the view is left where it is).
- *  Use this to mirror external truth (a URL parameter, a saved draft) onto
- *  the calendar. Contrast with `selectDate`, a user or programmatic
- *  *choice* that emits `SelectedDate`. Returns the model directly because
- *  it produces no commands and no OutMessage. */
-export const reflectSelectedDate: Reflect<
-  Model,
-  Option.Option<CalendarDate>
-> = Function.dual(
+/** Moves the calendar's view and cursor to a date without changing the
+ *  selection (which the parent owns). Use it to navigate to a known date, for
+ *  example when opening a date picker onto its current value so the selected
+ *  month is visible. Returns the model directly because it produces no
+ *  commands and no OutMessage. */
+export const focusDate: Reflect<Model, CalendarDate> = Function.dual(
   2,
-  (model: Model, maybeDate: Option.Option<CalendarDate>): Model =>
-    Option.match(maybeDate, {
-      onNone: () => evo(model, { maybeSelectedDate: () => Option.none() }),
-      onSome: date =>
-        evo(model, {
-          maybeSelectedDate: () => Option.some(date),
-          maybeFocusedDate: () => Option.some(date),
-          viewYear: () => date.year,
-          viewMonth: () => date.month,
-        }),
+  (model: Model, date: CalendarDate): Model =>
+    evo(model, {
+      maybeFocusedDate: () => Option.some(date),
+      viewYear: () => date.year,
+      viewMonth: () => date.month,
     }),
 )
 
@@ -420,7 +402,6 @@ const commitSelection = (
   date: CalendarDate,
 ): readonly [Model, Option.Option<OutMessage>] => {
   const nextModel = evo(model, {
-    maybeSelectedDate: () => Option.some(date),
     maybeFocusedDate: () => Option.some(date),
     viewYear: () => date.year,
     viewMonth: () => date.month,
@@ -905,6 +886,9 @@ export type CalendarAttributes =
  *  selection by pattern-matching the OutMessage in their
  *  `GotCalendarMessage` handler. */
 export type ViewInputs = Readonly<{
+  /** The selected date, read straight from the parent Model. The selected-day
+   *  marker derives from it. */
+  maybeSelectedDate: Option.Option<CalendarDate>
   toView: (attributes: CalendarAttributes) => Html
   previousMonthLabel?: string
   nextMonthLabel?: string
@@ -969,11 +953,12 @@ const buildDaysAttributes = (
     viewYear,
     viewMonth,
     maybeFocusedDate,
-    maybeSelectedDate,
     today,
     locale,
     isGridFocused,
   } = model
+
+  const { maybeSelectedDate } = viewInputs
 
   const previousMonthLabel = viewInputs.previousMonthLabel ?? 'Previous month'
   const nextMonthLabel = viewInputs.nextMonthLabel ?? 'Next month'

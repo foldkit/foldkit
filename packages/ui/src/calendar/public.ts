@@ -3,7 +3,7 @@ export {
   update,
   view,
   selectDate,
-  reflectSelectedDate,
+  focusDate,
   reflectMinDate,
   reflectMaxDate,
   reflectDisabledDates,

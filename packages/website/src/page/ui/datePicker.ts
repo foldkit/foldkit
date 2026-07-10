@@ -110,6 +110,7 @@ export const basicDemo = (model: Model) => {
           view: DatePicker.view,
           viewInputs: {
             anchor: DATE_PICKER_ANCHOR,
+            maybeSelectedDate: model.maybeDatePickerBasicDemoSelectedDate,
             triggerContent,
             triggerClassName,
             panelClassName,

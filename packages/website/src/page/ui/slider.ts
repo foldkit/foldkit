@@ -40,7 +40,9 @@ const volumeFormatted = (value: number): string =>
 
 export const sliderDemo = (
   ratingModel: Slider.Model,
+  ratingValue: number,
   volumeModel: Slider.Model,
+  volumeValue: number,
 ) => {
   const h = html<Message>()
 
@@ -53,6 +55,7 @@ export const sliderDemo = (
           model: ratingModel,
           view: Slider.view,
           viewInputs: {
+            value: ratingValue,
             formatValue: value => `${String(value)} of 10`,
             toView: attributes =>
               h.div(
@@ -67,7 +70,7 @@ export const sliderDemo = (
                       ),
                       h.span(
                         [h.Class(valueClassName)],
-                        [ratingFormatted(ratingModel.value)],
+                        [ratingFormatted(ratingValue)],
                       ),
                     ],
                   ),
@@ -99,6 +102,7 @@ export const sliderDemo = (
           model: volumeModel,
           view: Slider.view,
           viewInputs: {
+            value: volumeValue,
             formatValue: value => `${String(Math.round(value * 100))} percent`,
             toView: attributes =>
               h.div(
@@ -113,7 +117,7 @@ export const sliderDemo = (
                       ),
                       h.span(
                         [h.Class(valueClassName)],
-                        [volumeFormatted(volumeModel.value)],
+                        [volumeFormatted(volumeValue)],
                       ),
                     ],
                   ),

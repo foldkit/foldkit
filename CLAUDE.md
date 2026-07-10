@@ -36,6 +36,7 @@ The principles below apply broadly. Calibrate to the right context: library desi
 - Prefix `Option`-typed values with `maybe`. Never prefix `T | undefined` values with `nullable`; name them plainly and let the type carry the optionality.
 - Prefix booleans with `is`.
 - Name functions by their precise effect: `enqueueMessage`, not `addMessage`. A reader should never need to check a type signature to understand what a name refers to.
+- Name a value an update handler constructs before assigning it `next<Field>` (`nextSelectedDate` for `selectedDate`). Threading a destructured payload straight through (`username: () => value`) needs no intermediate.
 
 ## State Modeling
 
@@ -43,6 +44,7 @@ The principles below apply broadly. Calibrate to the right context: library desi
 - Use `Option` for model fields that represent absence. Not `''` or `0` as the "none" state. Form inputs that start as `''` are actual values, not absent.
 - Use `Option` at boundaries where the value will be matched or chained (`Option.match`, `Option.map`, `Option.flatMap`). Simple presence checks don't need it. Don't wrap in `Option` just to check `isSome`.
 - Errors in Commands become Messages via `Effect.catch(() => Effect.succeed(ErrorMessage(...)))`. Side effects should never crash the app.
+- Fold a Submodel OutMessage by matching on it: `Option.match(maybeOutMessage, { onNone: ..., onSome: M.type<X.OutMessage>().pipe(M.tagsExhaustive({ ... })) })`. Always match on the tag, even when the union has one variant, in app code, docs, snippets, and examples alike. Never destructure the OutMessage payload in `onSome` without naming the variant.
 
 ## Code Style
 
