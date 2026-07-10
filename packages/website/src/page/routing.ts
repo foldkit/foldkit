@@ -241,6 +241,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
           ),
           h.li(
             [],
+            [
+              inlineCode("restString('path')"),
+              ': captures all remaining segments as one path string',
+            ],
+          ),
+          h.li(
+            [],
             [inlineCode('slash(...)'), ': chains path segments together'],
           ),
           h.li(
@@ -463,6 +470,37 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' cannot extend it. TypeScript rejects the composition. ',
         inlineCode('query'),
         ' can still follow, since query parameters live after the path.',
+      ),
+      para(
+        'When the path itself is the value, ',
+        inlineCode('restString'),
+        ' captures the same tail as a single string, slashes included, so the route schema declares the field with ',
+        inlineCode('S.String'),
+        '. A repository-relative file path like ',
+        inlineCode('20-upgrade/teach/the-elm-architecture.md'),
+        ' round-trips as one value instead of an array of segments.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.routingRestStringHighlighted),
+          ],
+          [],
+        ),
+        Snippet.routingRestStringRaw,
+        'Copy restString example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'Everything above about ',
+        inlineCode('rest'),
+        ' applies to ',
+        inlineCode('restString'),
+        ' as well: it requires at least one segment, a more specific route under the same prefix must come first in ',
+        inlineCode('oneOf'),
+        ', and nothing can follow it in the path. Building requires a normalized path, non-empty with no leading, trailing, or repeated slashes. Any other value would build a URL that parses back differently, so the build fails instead.',
       ),
       para(
         'The ',

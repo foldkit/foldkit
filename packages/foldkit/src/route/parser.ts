@@ -391,6 +391,82 @@ export const rest = <K extends string>(
   return makeTerminalParser(parser)
 }
 
+const isNormalizedPath = (path: string): boolean =>
+  String.isNonEmpty(path) && Array.join(pathToSegments(path), '/') === path
+
+/**
+ * Creates a parser that captures all remaining URL segments as a single
+ * named string field, preserving the slashes between them.
+ *
+ * Where `rest` yields a `NonEmptyArray` of segments, `restString` rejoins
+ * the tail into one raw path string, so a value that itself contains both
+ * slashes and dots, like a repository-relative file path
+ * `documents/taxes/2024.pdf`, round-trips through the bidirectional router
+ * as `{ path: string }` route data.
+ *
+ * Requires at least one remaining segment. A bare prefix like `/vault`
+ * does not match; give it its own route alongside the restString route.
+ *
+ * A restString route also matches every URL that a more specific route under
+ * the same prefix accepts, so in `oneOf` the specific route must come first.
+ *
+ * Printing requires a normalized path: non-empty, with no leading,
+ * trailing, or repeated slashes. Any other value would build a URL that
+ * parses back differently, so printing fails instead of building it.
+ *
+ * Nothing can follow `restString` in the path, so the result is a
+ * `TerminalParser`. It can still be extended with `query`.
+ *
+ * @example
+ * ```ts
+ * pipe(literal('vault'), slash(restString('path')))
+ * // parses /vault/a/b/c.md   into { path: 'a/b/c.md' }
+ * // builds { path: 'a/b/c.md' } into /vault/a/b/c.md
+ * ```
+ */
+export const restString = <K extends string>(
+  name: K,
+): TerminalParser<Record<K, string>> => {
+  const parser: Biparser<Record<K, string>> = {
+    parse: segments =>
+      Array.match(segments, {
+        onEmpty: () =>
+          Effect.fail(
+            new ParseError({
+              message: `Expected remaining path (${name})`,
+              expected: `remaining path (${name})`,
+              actual: 'end of path',
+              position: 0,
+            }),
+          ),
+        onNonEmpty: remainingSegments =>
+          Effect.succeed([
+            Record.singleton(name, Array.join(remainingSegments, '/')),
+            [],
+          ]),
+      }),
+    print: (value, state) => {
+      const path = value[name]
+
+      if (isNormalizedPath(path)) {
+        return Effect.succeed({
+          ...state,
+          segments: [...state.segments, path],
+        })
+      } else {
+        return Effect.fail(
+          new ParseError({
+            message: `Expected a normalized path for ${name}`,
+            expected: `non-empty path without leading, trailing, or repeated slashes (${name})`,
+            actual: String.isEmpty(path) ? 'empty string' : path,
+          }),
+        )
+      }
+    },
+  }
+  return makeTerminalParser(parser)
+}
+
 /**
  * A parse-only parser with no print/build capabilities.
  *
