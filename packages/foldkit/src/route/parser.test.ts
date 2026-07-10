@@ -376,6 +376,43 @@ describe('restString', () => {
     }),
   )
 
+  it.effect('fails to print an empty path', () =>
+    Effect.gen(function* () {
+      const error = yield* Effect.flip(
+        restString('path').print(
+          { path: '' },
+          { segments: ['vault'], queryParams: new URLSearchParams() },
+        ),
+      )
+      expect(error._tag).toBe('ParseError')
+      expect(error.actual).toBe('empty string')
+    }),
+  )
+
+  it.effect('fails to print a path that would not parse back the same', () =>
+    Effect.gen(function* () {
+      const printPath = (path: string) =>
+        Effect.flip(
+          restString('path').print(
+            { path },
+            { segments: ['vault'], queryParams: new URLSearchParams() },
+          ),
+        )
+
+      const repeatedSlash = yield* printPath('a//b')
+      const leadingSlash = yield* printPath('/a/b')
+      const trailingSlash = yield* printPath('a/b/')
+
+      expect(repeatedSlash._tag).toBe('ParseError')
+      expect(leadingSlash._tag).toBe('ParseError')
+      expect(trailingSlash._tag).toBe('ParseError')
+    }),
+  )
+
+  it('throws when building a URL from a non-normalized path', () => {
+    expect(() => vaultRouter({ path: '/a/b' })).toThrow()
+  })
+
   it.effect('composes after literals', () =>
     Effect.gen(function* () {
       const parser = pipe(literal('vault'), slash(restString('path')))
