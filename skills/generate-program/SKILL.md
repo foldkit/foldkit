@@ -419,7 +419,7 @@ Name messages by category:
 - `Selected*`: choice made from a list
 - `Toggled*`: binary state flip
 
-Every message must carry meaning. No `NoOp`.
+Every message must carry meaning. No shared `NoOp`: one do-nothing Message returned by several Commands collapses the DevTools timeline into indistinguishable rows and funnels unrelated flows through one update arm, so tests stop telling which Command completed. Per-Command `Completed*` acks handled with `[model, []]` are correct and expected for fire-and-forget Commands; that arm is the deliberate record that the fact warrants no state change. When several acks warrant identical handling, group them into one arm: `M.tag('CompletedNavigateInternal', 'CompletedLoadExternal', () => [model, []])`. Facts stay distinct; handling groups.
 
 ### Flags (if the initial Model needs side effects)
 
