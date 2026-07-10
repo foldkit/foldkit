@@ -44,7 +44,7 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
   return h.div(
     [
       h.Class(
-        'flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3',
+        'flex items-center gap-3 rounded-xl border border-gray-200/80 bg-white px-4 py-3 shadow-sm',
       ),
     ],
     [
@@ -67,4 +67,4 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
 })
 
 const buttonStyle =
-  'h-9 w-9 rounded bg-gray-900 text-white text-lg leading-none hover:bg-gray-700 transition cursor-pointer'
+  'h-9 w-9 rounded-lg bg-gray-900 text-white text-lg leading-none hover:bg-gray-700 cursor-pointer shadow-sm'

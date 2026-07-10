@@ -703,7 +703,7 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
     [h.Class('max-w-6xl mx-auto px-4')],
     [
       h.h1(
-        [h.Class('text-3xl font-bold text-gray-800 mb-2')],
+        [h.Class('text-4xl font-semibold tracking-tight text-gray-900 mb-2')],
         ['Dinosaur Explorer'],
       ),
       h.p(
@@ -809,7 +809,11 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
           ),
         onNonEmpty: rows =>
           h.div(
-            [h.Class('overflow-x-auto rounded-lg border border-gray-200')],
+            [
+              h.Class(
+                'overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm',
+              ),
+            ],
             [
               h.table(
                 [h.Class('w-full')],
@@ -906,7 +910,11 @@ export const view = (model: Model): Document => {
     [h.Class('min-h-screen bg-gray-50')],
     [
       h.header(
-        [h.Class('bg-emerald-600 text-white px-6 py-4 mb-8 shadow-sm')],
+        [
+          h.Class(
+            'bg-emerald-700/95 text-white px-6 py-4 mb-10 shadow-sm backdrop-blur',
+          ),
+        ],
         [
           h.div(
             [h.Class('max-w-6xl mx-auto flex items-center gap-3')],

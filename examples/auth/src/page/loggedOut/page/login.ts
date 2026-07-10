@@ -274,10 +274,18 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
     [h.Class('max-w-md mx-auto px-4')],
     [
       h.div(
-        [h.Class('bg-white rounded-xl shadow-lg p-8')],
+        [
+          h.Class(
+            'bg-white rounded-3xl border border-gray-200/80 shadow-xl p-8',
+          ),
+        ],
         [
           h.h1(
-            [h.Class('text-3xl font-bold text-gray-800 text-center mb-8')],
+            [
+              h.Class(
+                'text-3xl font-semibold tracking-tight text-gray-900 text-center mb-8',
+              ),
+            ],
             ['Sign In'],
           ),
           h.div(
@@ -317,9 +325,9 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
                       ...attributes.button,
                       h.Class(
                         clsx(
-                          'w-full py-3 font-medium rounded-lg transition',
+                          'w-full py-3 font-medium rounded-xl shadow-sm',
                           canSubmit
-                            ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer'
+                            ? 'bg-violet-700 text-white hover:bg-violet-800 cursor-pointer'
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed',
                         ),
                       ),

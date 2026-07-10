@@ -107,9 +107,13 @@ export const RepositorySnapshot = S.Struct({
 })
 export type RepositorySnapshot = typeof RepositorySnapshot.Type
 
+export const StargazerHistory = S.Literals(['Available', 'Unavailable'])
+export type StargazerHistory = typeof StargazerHistory.Type
+
 export const Telemetry = S.Struct({
   fetchedAt: S.Number,
   repository: RepositorySnapshot,
+  stargazerHistory: StargazerHistory,
   packages: S.Array(PackageSnapshot),
   weeks: S.Array(WeeklyTelemetry),
   dependencyEdges: S.Array(DependencyEdge),

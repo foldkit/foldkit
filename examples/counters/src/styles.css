@@ -1,1 +1,6 @@
 @import 'tailwindcss';
+@import '../../shared/styles.css';
+
+:root {
+  --app-accent: #e11d48;
+}

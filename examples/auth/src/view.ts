@@ -16,7 +16,7 @@ export const view = (model: Model): Document => {
   return {
     title: title(model),
     body: h.div(
-      [h.Class('min-h-screen bg-gray-100')],
+      [h.Class('min-h-screen bg-gray-50')],
       [
         h.keyed('div')(
           model._tag,

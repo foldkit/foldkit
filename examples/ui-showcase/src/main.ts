@@ -419,7 +419,7 @@ const sidebarView = (currentRoute: AppRoute): Html => {
       [
         ...nav,
         h.Class(
-          'hidden md:flex w-56 shrink-0 border-r border-gray-200 bg-gray-50 p-4 flex-col',
+          'hidden md:flex w-60 shrink-0 border-r border-gray-200 bg-white/80 p-5 flex-col backdrop-blur',
         ),
       ],
       [
@@ -430,7 +430,11 @@ const sidebarView = (currentRoute: AppRoute): Html => {
               [h.Href(homeRouter()), h.Class('block')],
               [
                 h.h1(
-                  [h.Class('text-lg font-bold text-gray-900')],
+                  [
+                    h.Class(
+                      'text-lg font-semibold tracking-tight text-gray-900',
+                    ),
+                  ],
                   ['Foldkit UI'],
                 ),
               ],
@@ -511,7 +515,7 @@ const mobileHeaderView = (model: Model): Html => {
   return h.header(
     [
       h.Class(
-        'md:hidden sticky top-0 z-40 flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3',
+        'md:hidden sticky top-0 z-40 flex items-center justify-between border-b border-gray-200 bg-white/90 px-4 py-3 backdrop-blur shadow-sm',
       ),
     ],
     [
@@ -584,7 +588,11 @@ const homeView = (): Html => {
     [h.Class('max-w-2xl')],
     [
       h.h1(
-        [h.Class('text-2xl md:text-3xl font-bold text-gray-900 mb-4')],
+        [
+          h.Class(
+            'text-3xl md:text-4xl font-semibold tracking-tight text-gray-900 mb-4',
+          ),
+        ],
         ['Foldkit UI Showcase'],
       ),
       h.p(
@@ -680,13 +688,13 @@ export const view = (model: Model): Document => {
   return {
     title: routeTitle(model.route),
     body: h.div(
-      [h.Class('flex flex-col md:flex-row min-h-screen bg-white')],
+      [h.Class('flex flex-col md:flex-row min-h-screen bg-gray-50')],
       [
         mobileHeaderView(model),
         mobileMenuView(model),
         sidebarView(model.route),
         h.main(
-          [h.Class('flex-1 p-4 md:p-8 overflow-auto')],
+          [h.Class('flex-1 p-5 md:p-10 overflow-auto')],
           [h.keyed('div')(model.route._tag, [], [contentView(model)])],
         ),
       ],

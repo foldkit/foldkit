@@ -348,10 +348,10 @@ const formatFetchedAt = (fetchedAt: number): string =>
   new Date(fetchedAt).toLocaleTimeString()
 
 const tabButtonClassName =
-  'px-4 py-2 rounded-lg bg-white text-slate-600 font-semibold hover:bg-slate-50 transition cursor-pointer data-[selected]:bg-indigo-600 data-[selected]:text-white data-[selected]:hover:bg-indigo-600'
+  'px-4 py-2.5 rounded-xl bg-white text-slate-600 font-semibold shadow-sm hover:bg-slate-50 cursor-pointer data-[selected]:bg-indigo-600 data-[selected]:text-white data-[selected]:hover:bg-indigo-600'
 
 const toolbarButtonClassName =
-  'px-3 py-1.5 bg-white text-slate-700 text-sm font-semibold rounded-md shadow hover:bg-slate-50 transition cursor-pointer data-[disabled]:opacity-50 data-[disabled]:cursor-default data-[disabled]:hover:bg-white'
+  'px-3 py-1.5 bg-white text-slate-700 text-sm font-semibold rounded-md shadow hover:bg-slate-50 transition cursor-pointer data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed data-[disabled]:hover:bg-white'
 
 export const view = (model: Model): Document => {
   const h = html<Message>()
@@ -359,10 +359,14 @@ export const view = (model: Model): Document => {
   return {
     title: 'API Cache',
     body: h.div(
-      [h.Class('min-h-screen bg-slate-100 flex justify-center p-6')],
+      [
+        h.Class(
+          'min-h-screen bg-slate-100 flex justify-center px-4 py-10 sm:px-6',
+        ),
+      ],
       [
         h.div(
-          [h.Class('w-full max-w-2xl flex flex-col gap-6')],
+          [h.Class('w-full max-w-3xl flex flex-col gap-7')],
           [
             headerView(),
             h.submodel({
@@ -541,7 +545,7 @@ const postListItems = (
               [
                 ...attributes.button,
                 h.Class(
-                  'w-full text-left bg-white rounded-lg shadow px-4 py-3 hover:bg-slate-50 transition cursor-pointer flex items-center justify-between gap-4',
+                  'w-full text-left bg-white rounded-2xl border border-slate-200/80 shadow-sm px-5 py-4 hover:bg-slate-50 cursor-pointer flex items-center justify-between gap-4',
                 ),
               ],
               [
@@ -632,7 +636,11 @@ const postDetailCard = (detail: PostDetail, fetchedAt: number): Html => {
 
   return h.keyed('article')(
     'detail',
-    [h.Class('bg-white rounded-xl shadow p-6 flex flex-col gap-3')],
+    [
+      h.Class(
+        'bg-white rounded-2xl border border-slate-200/80 shadow p-6 flex flex-col gap-3',
+      ),
+    ],
     [
       h.h2([h.Class('text-2xl font-bold text-slate-900')], [detail.title]),
       h.p([h.Class('text-sm text-slate-500')], [`By ${detail.author}`]),
@@ -750,7 +758,11 @@ const statCard = (label: string, value: string): Html => {
   const h = html<Message>()
 
   return h.div(
-    [h.Class('bg-white rounded-xl shadow p-4 flex flex-col gap-1')],
+    [
+      h.Class(
+        'bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 flex flex-col gap-1',
+      ),
+    ],
     [
       h.div([h.Class('text-sm text-slate-500')], [label]),
       h.div([h.Class('text-2xl font-bold text-slate-900')], [value]),

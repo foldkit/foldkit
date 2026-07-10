@@ -107,7 +107,7 @@ export const view = (model: Model): Document => {
     body: h.div(
       [
         h.Class(
-          'min-h-screen bg-slate-50 text-slate-900 px-6 py-10 flex flex-col items-center',
+          'min-h-screen bg-slate-50 text-slate-900 px-4 py-12 sm:px-6 flex flex-col items-center',
         ),
       ],
       [
@@ -135,7 +135,7 @@ const headerView = (): Html => {
   return h.header(
     [h.Class('flex flex-col gap-2')],
     [
-      h.h1([h.Class('text-3xl font-bold tracking-tight')], ['QR Designer']),
+      h.h1([h.Class('text-4xl font-semibold tracking-tight')], ['QR Designer']),
       h.p(
         [h.Class('text-sm text-slate-600 leading-relaxed')],
         [
@@ -179,7 +179,7 @@ const designerView = (model: Model): Html => {
   return h.div(
     [
       h.Class(
-        'grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 bg-white rounded-xl shadow-sm border border-slate-200 p-6',
+        'grid grid-cols-1 md:grid-cols-[1fr_auto] gap-7 bg-white rounded-3xl shadow-lg border border-slate-200 p-6 sm:p-8',
       ),
     ],
     [controlsView(model), previewView(model)],

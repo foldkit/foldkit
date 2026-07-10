@@ -287,13 +287,17 @@ export const view = (model: Model): Document => {
   return {
     title: 'Managed Resource Layer',
     body: h.div(
-      [h.Class('min-h-screen bg-gray-100 flex items-center justify-center')],
+      [h.Class('min-h-screen bg-gray-50 flex items-center justify-center p-6')],
       [
         h.div(
-          [h.Class('bg-white p-8 rounded-lg shadow flex flex-col gap-5 w-96')],
+          [
+            h.Class(
+              'bg-white p-8 rounded-3xl border border-gray-200/80 shadow-xl flex flex-col gap-5 w-full max-w-96',
+            ),
+          ],
           [
             h.h1(
-              [h.Class('text-xl font-bold text-gray-900')],
+              [h.Class('text-2xl font-semibold tracking-tight text-gray-900')],
               ['Layer-backed Managed Resource'],
             ),
             engineStatusView(model.engine),

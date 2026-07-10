@@ -368,14 +368,14 @@ export const view = (model: Model): Document => {
     body: h.div(
       [
         h.Class(
-          'min-h-screen bg-gradient-to-br from-purple-100 to-blue-100 flex flex-col items-center justify-center p-6',
+          'min-h-screen bg-gradient-to-br from-violet-100 via-purple-50 to-blue-100 flex flex-col items-center justify-center p-4 sm:p-6',
         ),
       ],
       [
         h.div(
           [
             h.Class(
-              'bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col h-[600px]',
+              'bg-white/95 backdrop-blur rounded-3xl border border-white shadow-2xl w-full max-w-2xl flex flex-col h-[min(680px,calc(100vh-2rem))] overflow-hidden',
             ),
           ],
           [
@@ -390,7 +390,11 @@ export const view = (model: Model): Document => {
                   [],
                   [
                     h.div(
-                      [h.Class('text-2xl font-bold text-gray-800')],
+                      [
+                        h.Class(
+                          'text-2xl font-semibold tracking-tight text-gray-900',
+                        ),
+                      ],
                       ['WebSocket Chat'],
                     ),
                     h.div(

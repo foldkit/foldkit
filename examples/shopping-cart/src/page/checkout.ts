@@ -29,7 +29,7 @@ export const view = (
           ['Order placed successfully!'],
         ),
         h.article(
-          [h.Class('bg-green-50 border border-green-200 rounded-lg p-6 mb-6')],
+          [h.Class('bg-green-50 border border-green-200 rounded-2xl p-6 mb-6')],
           [
             h.p(
               [h.Class('text-lg text-gray-700 mb-4')],
@@ -45,7 +45,7 @@ export const view = (
           [
             h.Href(productsRouter({ searchText: Option.none() })),
             h.Class(
-              'bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium inline-block',
+              'bg-orange-700 hover:bg-orange-800 text-white px-6 py-2.5 rounded-xl font-medium inline-block shadow-sm',
             ),
           ],
           ['Continue Shopping'],
@@ -59,7 +59,7 @@ export const view = (
     [
       h.h1([h.Class('text-4xl font-bold text-gray-800 mb-8')], ['Checkout']),
       h.div(
-        [h.Class('bg-white rounded-lg shadow p-6')],
+        [h.Class('bg-white rounded-2xl border border-gray-200/80 shadow p-6')],
         Array.match(cart, {
           onEmpty: () => [
             h.p(
@@ -73,7 +73,7 @@ export const view = (
                   [
                     h.Href(productsRouter({ searchText: Option.none() })),
                     h.Class(
-                      'bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium inline-block',
+                      'bg-orange-700 hover:bg-orange-800 text-white px-6 py-2.5 rounded-xl font-medium inline-block shadow-sm',
                     ),
                   ],
                   ['Start Shopping'],
@@ -163,7 +163,7 @@ export const view = (
                       [
                         ...attributes.textarea,
                         h.Class(
-                          'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none',
+                          'w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 h-24 resize-none',
                         ),
                       ],
                       [],
@@ -178,7 +178,7 @@ export const view = (
                   [
                     h.Href(cartRouter()),
                     h.Class(
-                      'bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium',
+                      'bg-gray-600 hover:bg-gray-700 text-white px-6 py-2.5 rounded-xl font-medium',
                     ),
                   ],
                   ['Back to Cart'],
@@ -190,7 +190,7 @@ export const view = (
                       [
                         ...attributes.button,
                         h.Class(
-                          'bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium',
+                          'bg-green-700 hover:bg-green-800 text-white px-6 py-2.5 rounded-xl font-medium shadow-sm',
                         ),
                       ],
                       ['Place Order'],

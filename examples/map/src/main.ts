@@ -514,7 +514,7 @@ const sidebarView = (model: Model): Html => {
   return h.aside(
     [
       h.Class(
-        'w-80 shrink-0 border-r border-slate-200 bg-white flex flex-col h-full',
+        'w-72 lg:w-80 shrink-0 border-r border-slate-200 bg-white/95 backdrop-blur flex flex-col h-full shadow-lg z-10',
       ),
     ],
     [
@@ -545,7 +545,7 @@ const sidebarView = (model: Model): Html => {
                 ...attributes.input,
                 h.AriaLabel('Filter locations'),
                 h.Class(
-                  'w-full px-3 py-2 text-sm rounded-md border border-slate-300 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200',
+                  'w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 bg-slate-50 outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100',
                 ),
               ]),
           }),
@@ -679,7 +679,7 @@ const mapErrorBannerView = (maybeReason: Option.Option<string>): Html => {
         [
           h.AriaLabel('Map failed to load'),
           h.Class(
-            'absolute top-3 left-1/2 -translate-x-1/2 max-w-md bg-rose-50 border border-rose-200 text-rose-900 rounded-md shadow-sm px-4 py-3 text-sm',
+            'absolute top-3 left-1/2 -translate-x-1/2 max-w-md bg-rose-50 border border-rose-200 text-rose-900 rounded-xl shadow-sm px-4 py-3 text-sm',
           ),
         ],
         [
@@ -699,7 +699,7 @@ const boundsBadgeView = (maybeBounds: Option.Option<Bounds>): Html => {
       h.div(
         [
           h.Class(
-            'absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm rounded-md shadow-sm px-3 py-2 text-xs font-mono text-slate-700 border border-slate-200',
+            'absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm rounded-xl shadow-sm px-3 py-2 text-xs font-mono text-slate-700 border border-slate-200',
           ),
         ],
         [
@@ -748,7 +748,7 @@ const geolocateLocatingContentView = (): Html => {
     'Geolocate()-locating',
     [
       h.Class(
-        'bg-white rounded-lg shadow-lg max-w-sm w-full mx-4 px-6 py-5 text-center',
+        'bg-white rounded-2xl shadow-xl border border-slate-200 max-w-sm w-full mx-4 px-6 py-6 text-center',
       ),
     ],
     [
@@ -769,7 +769,7 @@ const geolocateFailedContentView = (reason: string): Html => {
     'Geolocate()-failed',
     [
       h.Class(
-        'bg-white rounded-lg shadow-lg max-w-sm w-full mx-4 px-6 py-5 text-center',
+        'bg-white rounded-2xl shadow-xl border border-slate-200 max-w-sm w-full mx-4 px-6 py-6 text-center',
       ),
     ],
     [

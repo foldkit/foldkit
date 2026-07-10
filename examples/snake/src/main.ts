@@ -301,7 +301,11 @@ const gridView = (model: Model): Html => {
   const h = html<Message>()
 
   return h.div(
-    [h.Class('inline-block border-2 border-gray-600')],
+    [
+      h.Class(
+        'inline-block overflow-hidden rounded-xl border border-gray-700 shadow-2xl ring-1 ring-white/10',
+      ),
+    ],
     Array.makeBy(GAME.GRID_SIZE, y =>
       h.div(
         [h.Class('flex')],
@@ -343,11 +347,14 @@ export const view = (model: Model): Document => {
     body: h.div(
       [
         h.Class(
-          'flex flex-col items-center justify-center min-h-screen bg-black text-white p-8',
+          'flex flex-col items-center justify-center min-h-screen bg-gray-950 text-white p-6 sm:p-8',
         ),
       ],
       [
-        h.h1([h.Class('text-4xl font-bold mb-4')], ['Snake Game']),
+        h.h1(
+          [h.Class('text-4xl font-semibold tracking-tight mb-4')],
+          ['Snake Game'],
+        ),
         h.div(
           [h.Class('flex gap-8 mb-4')],
           [

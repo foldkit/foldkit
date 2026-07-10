@@ -239,11 +239,14 @@ export const view = (model: Model): Document => {
     body: h.div(
       [
         h.Class(
-          'min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 flex flex-col items-center justify-center gap-6 p-6',
+          'min-h-screen bg-gradient-to-br from-sky-50 via-blue-100 to-indigo-200 flex flex-col items-center justify-center gap-6 p-6',
         ),
       ],
       [
-        h.h1([h.Class('text-4xl font-bold text-blue-900 mb-8')], ['Weather']),
+        h.h1(
+          [h.Class('text-4xl font-semibold tracking-tight text-blue-950 mb-6')],
+          ['Weather'],
+        ),
 
         h.form(
           [
@@ -263,7 +266,7 @@ export const view = (model: Model): Document => {
                   h.DataAttribute('1p-ignore', ''),
                   h.AriaLabel('Zip code'),
                   h.Class(
-                    'w-full px-4 py-2 rounded-lg border-2 border-blue-300 focus:border-blue-500 outline-none',
+                    'w-full px-4 py-3 rounded-xl border border-blue-200 bg-white/90 shadow-sm focus:border-blue-500 outline-none',
                   ),
                 ]),
             }),
@@ -275,7 +278,7 @@ export const view = (model: Model): Document => {
                   [
                     ...attributes.button,
                     h.Class(
-                      'px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition data-[disabled]:opacity-50',
+                      'px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 shadow-sm data-[disabled]:opacity-50',
                     ),
                   ],
                   [
@@ -322,7 +325,11 @@ const weatherView = (weather: WeatherData): Html => {
   const h = html<Message>()
 
   return h.article(
-    [h.Class('bg-white rounded-xl shadow-lg p-8 w-full')],
+    [
+      h.Class(
+        'bg-white/95 backdrop-blur rounded-3xl border border-white/80 shadow-xl p-8 w-full',
+      ),
+    ],
     [
       h.h2(
         [h.Class('text-2xl font-bold text-gray-800 mb-3 text-center')],

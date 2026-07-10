@@ -265,7 +265,10 @@ export const view = (model: Model): Document => {
         ),
       ],
       [
-        h.h1([h.Class('text-4xl font-bold mb-2')], ['Canvas Art']),
+        h.h1(
+          [h.Class('text-4xl font-semibold tracking-tight mb-2')],
+          ['Canvas Art'],
+        ),
         h.p(
           [h.Class('text-zinc-400 mb-6')],
           ['Click the canvas to spawn a ball.'],
@@ -274,7 +277,8 @@ export const view = (model: Model): Document => {
           width: CANVAS_WIDTH,
           height: CANVAS_HEIGHT,
           shapes: sceneShapes(model),
-          className: 'rounded-lg shadow-2xl cursor-crosshair',
+          className:
+            'rounded-2xl border border-white/10 shadow-2xl cursor-crosshair',
           onPointerDown: ({ x, y }) => ClickedCanvas({ x, y }),
         }),
         controlsView(model),

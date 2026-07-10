@@ -97,7 +97,7 @@ export const view = (model: Model): Html => {
   return h.div(
     [
       h.Class(
-        'flex flex-col items-center gap-4 rounded-xl border border-teal-200 bg-teal-50 p-6',
+        'flex flex-col items-center gap-4 rounded-3xl border border-teal-200 bg-teal-50/80 p-7 shadow-lg',
       ),
     ],
     [
@@ -110,7 +110,11 @@ export const view = (model: Model): Html => {
         ['Foldkit widget'],
       ),
       h.div(
-        [h.Class('text-5xl font-bold tabular-nums text-gray-900')],
+        [
+          h.Class(
+            'text-6xl font-semibold tracking-tight tabular-nums text-gray-900',
+          ),
+        ],
         [String(model.count)],
       ),
       h.div(
@@ -124,7 +128,7 @@ export const view = (model: Model): Html => {
             [
               ...attributes.button,
               h.Class(
-                'cursor-pointer rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500',
+                'cursor-pointer rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-600',
               ),
             ],
             [`Advance by ${model.step}`],

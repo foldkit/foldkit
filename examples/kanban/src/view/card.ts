@@ -46,7 +46,7 @@ export const cardView = (
     card.id,
     [
       h.Class(
-        clsx('rounded-lg p-3 border-2 outline-none', {
+        clsx('rounded-xl p-3.5 border-2 outline-none', {
           'bg-gray-100 border-dashed border-gray-300 opacity-50':
             isPointerDragged,
           'bg-white shadow-sm border-blue-400': isKeyboardDragged,
@@ -71,7 +71,7 @@ export const ghostCardView = (card: Card.Card): Html => {
   return h.div(
     [
       h.Class(
-        'rounded-lg bg-white shadow-lg p-3 border border-gray-200 scale-105 rotate-2',
+        'rounded-xl bg-white shadow-lg p-3.5 border border-gray-200 scale-105 rotate-2',
       ),
     ],
     cardContent(card),

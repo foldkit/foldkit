@@ -23,6 +23,7 @@ export const sampleTelemetry = Telemetry.make({
     pushedAt: '2026-06-21T19:20:00Z',
     defaultBranch: 'main',
   }),
+  stargazerHistory: 'Available',
   packages: [
     PackageSnapshot.make({
       id: 'Core',

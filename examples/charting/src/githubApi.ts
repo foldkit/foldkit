@@ -88,7 +88,10 @@ type GitHubApiShape = Readonly<{
   ) => Effect.Effect<ReadonlyArray<typeof GitHubReleaseResponse.Type>, Error>
   fetchStargazers: (
     stargazerCount: number,
-  ) => Effect.Effect<ReadonlyArray<typeof GitHubStargazerResponse.Type>, Error>
+  ) => Effect.Effect<
+    GitHubStatResult<ReadonlyArray<typeof GitHubStargazerResponse.Type>>,
+    never
+  >
   fetchCommitActivity: Effect.Effect<
     GitHubStatResult<ReadonlyArray<typeof GitHubCommitActivityResponse.Type>>,
     never
@@ -249,18 +252,49 @@ export const GitHubApiLive: Layer.Layer<
           MAX_STARGAZER_PAGES,
           Math.ceil(stargazerCount / STARGAZER_PAGE_SIZE),
         )
-        return Effect.forEach(
-          Array.range(1, Math.max(1, pageCount)),
-          page =>
-            fetch_(S.Array(GitHubStargazerResponse))(
-              makeUrl(`${GITHUB_REPOSITORY_API}/stargazers`, {
-                per_page: `${STARGAZER_PAGE_SIZE}`,
-                page: `${page}`,
+        const fetchPage = (page: number) =>
+          fetch_(S.Array(GitHubStargazerResponse))(
+            makeUrl(`${GITHUB_REPOSITORY_API}/stargazers`, {
+              per_page: `${STARGAZER_PAGE_SIZE}`,
+              page: `${page}`,
+            }),
+            { Accept: 'application/vnd.github.star+json' },
+          )
+
+        const fetchFrom = (
+          page: number,
+          accumulated: ReadonlyArray<typeof GitHubStargazerResponse.Type>,
+        ): Effect.Effect<
+          GitHubStatResult<ReadonlyArray<typeof GitHubStargazerResponse.Type>>,
+          never
+        > =>
+          fetchPage(page).pipe(
+            Effect.flatMap(stargazers => {
+              const nextAccumulated = Array.appendAll(accumulated, stargazers)
+
+              if (page < Math.max(1, pageCount)) {
+                return fetchFrom(Number.increment(page), nextAccumulated)
+              }
+
+              return Effect.succeed({
+                data: Option.some(nextAccumulated),
+                warnings: [],
+              })
+            }),
+            Effect.catch(() =>
+              Effect.succeed({
+                data: Array.match(accumulated, {
+                  onEmpty: () => Option.none(),
+                  onNonEmpty: values => Option.some(values),
+                }),
+                warnings: [
+                  'Some stargazer history is unavailable. The current star total is still shown.',
+                ],
               }),
-              { Accept: 'application/vnd.github.star+json' },
             ),
-          { concurrency: 'unbounded' },
-        ).pipe(Effect.map(Array.flatten))
+          )
+
+        return fetchFrom(1, [])
       },
       fetchCommitActivity: fetchStat_(S.Array(GitHubCommitActivityResponse))(
         '/stats/commit_activity',

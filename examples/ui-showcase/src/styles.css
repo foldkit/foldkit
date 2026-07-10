@@ -1,5 +1,10 @@
 @import 'tailwindcss';
+@import '../../shared/styles.css';
 @source "../../../packages/foldkit/src";
+
+:root {
+  --app-accent: #4f46e5;
+}
 
 @layer base {
   [tabindex='-1']:focus {

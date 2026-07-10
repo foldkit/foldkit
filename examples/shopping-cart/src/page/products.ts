@@ -143,7 +143,11 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
       [
         h.h1([h.Class('text-4xl font-bold text-gray-800 mb-8')], ['Products']),
         h.div(
-          [h.Class('bg-white rounded-lg shadow p-6')],
+          [
+            h.Class(
+              'bg-white rounded-2xl border border-gray-200/80 shadow p-6',
+            ),
+          ],
           [
             h.search(
               [h.Class('mb-6')],
@@ -158,7 +162,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
                       ...attributes.input,
                       h.AriaLabel('Search products'),
                       h.Class(
-                        'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
+                        'w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500',
                       ),
                     ]),
                 }),
@@ -171,7 +175,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
                   product.id,
                   [
                     h.Class(
-                      'flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50',
+                      'flex items-center justify-between p-4 border rounded-xl hover:bg-orange-50/50',
                     ),
                   ],
                   [
@@ -196,7 +200,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
                               [
                                 ...attributes.button,
                                 h.Class(
-                                  'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium',
+                                  'bg-orange-700 hover:bg-orange-800 text-white px-4 py-2 rounded-xl font-medium shadow-sm',
                                 ),
                               ],
                               ['Add to Cart'],
@@ -259,7 +263,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
                       [
                         h.Href(cartRouter()),
                         h.Class(
-                          'bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium inline-block',
+                          'bg-green-700 hover:bg-green-800 text-white px-6 py-2.5 rounded-xl font-medium inline-block shadow-sm',
                         ),
                       ],
                       [`Go to Cart (${Cart.totalItems(cart)})`],
