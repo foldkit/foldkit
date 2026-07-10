@@ -38,7 +38,7 @@ The CLI prompts you for a project name, starter example, and package manager. Pa
 | `generative-art`         | Perlin-noise flow field with evolving particle trails, mouse vortex, and high-frequency Messages       |
 | `auth`                   | Authentication with Submodels, OutMessage, and protected routes                                        |
 | `shopping-cart`          | Complex state management with nested Models and routing                                                |
-| `statechart-checkout`    | Experimental statechart checkout with guarded branches and edge Commands                               |
+| `checkout-machine`       | Experimental state machine checkout with guarded branches and edge Commands                            |
 | `pixel-art`              | Pixel editor with undo/redo, UI components, and localStorage persistence                               |
 | `websocket-chat`         | Managed resources with WebSocket integration                                                           |
 | `managed-resource-layer` | Layer-backed ManagedResource lifecycle with an Effect service                                          |

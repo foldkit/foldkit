@@ -39,9 +39,9 @@
       "types": "./dist/experimental/public.d.ts",
       "import": "./dist/experimental/public.js"
     },
-    "./experimental/statechart": {
-      "types": "./dist/experimental/statechart/public.d.ts",
-      "import": "./dist/experimental/statechart/public.js"
+    "./experimental/machine": {
+      "types": "./dist/experimental/machine/public.d.ts",
+      "import": "./dist/experimental/machine/public.js"
     },
     "./html": {
       "types": "./dist/html/public.d.ts",

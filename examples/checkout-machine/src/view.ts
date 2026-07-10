@@ -1485,7 +1485,7 @@ const analysisView = (model: Model): Html => {
 
   return h.section(
     [
-      h.AriaLabel('Statechart inspector'),
+      h.AriaLabel('State machine inspector'),
       h.Class('border border-stone-800 bg-stone-900 text-stone-100'),
     ],
     [
@@ -1507,7 +1507,7 @@ const analysisView = (model: Model): Html => {
               ),
               h.h2(
                 [h.Class('mt-3 font-serif text-2xl')],
-                ['Statechart inspector'],
+                ['State machine inspector'],
               ),
               h.p(
                 [h.Class('mt-2 max-w-2xl text-sm leading-6 text-stone-400')],

@@ -45,7 +45,7 @@
     "dev:example:routing": "pnpm --filter routing-example dev",
     "dev:example:query-sync": "pnpm --filter query-sync-example dev",
     "dev:example:shopping-cart": "pnpm --filter shopping-cart-example dev",
-    "dev:example:statechart-checkout": "pnpm --filter statechart-checkout-example dev",
+    "dev:example:checkout-machine": "pnpm --filter checkout-machine-example dev",
     "dev:example:snake": "pnpm --filter snake-example dev",
     "dev:example:websocket-chat": "pnpm --filter websocket-chat-example dev",
     "dev:example:managed-resource-layer": "pnpm --filter managed-resource-layer-example dev",

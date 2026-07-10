@@ -212,7 +212,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 - **[Map](https://foldkit.dev/example-apps/map)**: Interactive MapLibre GL map demonstrating Mount with a third-party DOM library
 - **[Auth](https://foldkit.dev/example-apps/auth)**: Authentication flow with Submodels and OutMessage
 - **[Shopping Cart](https://foldkit.dev/example-apps/shopping-cart)**: Nested models and complex state
-- **[Statechart Checkout](https://foldkit.dev/example-apps/statechart-checkout)**: Experimental statechart workflow with guarded branches and edge Commands
+- **[Checkout Machine](https://foldkit.dev/example-apps/checkout-machine)**: Experimental state machine checkout with guarded branches and edge Commands
 - **[WebSocket Chat](https://foldkit.dev/example-apps/websocket-chat)**: Managed Resources with WebSocket integration
 - **[Managed Resource Layer](https://foldkit.dev/example-apps/managed-resource-layer)**: Effect Layer-backed ManagedResource lifecycle with scoped acquire and release
 - **[Kanban](https://foldkit.dev/example-apps/kanban)**: Drag-and-drop kanban board with cross-column reordering and keyboard navigation

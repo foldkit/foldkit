@@ -13,7 +13,7 @@ import * as ManagedResource from '../../managedResource/public.js'
 import { m, ts } from '../../schema/index.js'
 import { evo } from '../../struct/index.js'
 import * as Subscription from '../../subscription/public.js'
-import { defineMachine, otherwise, to, when } from './statechart.js'
+import { define, otherwise, to, when } from './machine.js'
 
 // REMOTE DATA
 
@@ -38,7 +38,7 @@ const RemoteDataMessage = S.Union([
 ])
 type RemoteDataMessage = typeof RemoteDataMessage.Type
 
-const remoteDataMachine = defineMachine({
+const remoteDataMachine = define({
   state: RemoteData,
   message: RemoteDataMessage,
 })({
@@ -148,7 +148,7 @@ const LogTransition = Command.define(
   CompletedLogTransition,
 )(() => Effect.succeed(CompletedLogTransition()))
 
-const connectionMachine = defineMachine({
+const connectionMachine = define({
   state: ConnectionState,
   message: ConnectionMessage,
 })({
@@ -331,7 +331,7 @@ const subscriptions = Subscription.make<AppModel, ConnectionMessage>()(
 
 // TYPE-LEVEL GUARANTEES
 
-const narrowingMachine = defineMachine({
+const narrowingMachine = define({
   state: ConnectionState,
   message: ConnectionMessage,
 })({
@@ -359,7 +359,7 @@ const narrowingMachine = defineMachine({
   },
 })
 
-const guardValueMachine = defineMachine({
+const guardValueMachine = define({
   state: ConnectionState,
   message: ConnectionMessage,
 })({
@@ -383,7 +383,7 @@ const guardValueMachine = defineMachine({
   },
 })
 
-const booleanGuardMachine = defineMachine({
+const booleanGuardMachine = define({
   state: ConnectionState,
   message: ConnectionMessage,
 })({
@@ -415,7 +415,7 @@ const booleanGuardMachine = defineMachine({
   },
 })
 
-const wrongVariantMachine = defineMachine({
+const wrongVariantMachine = define({
   state: RemoteData,
   message: RemoteDataMessage,
 })({
@@ -430,7 +430,7 @@ const wrongVariantMachine = defineMachine({
   },
 })
 
-const wrongTargetTagMachine = defineMachine({
+const wrongTargetTagMachine = define({
   state: RemoteData,
   message: RemoteDataMessage,
 })({
@@ -445,7 +445,7 @@ const wrongTargetTagMachine = defineMachine({
   },
 })
 
-const unknownStateTagMachine = defineMachine({
+const unknownStateTagMachine = define({
   state: RemoteData,
   message: RemoteDataMessage,
 })({
@@ -458,7 +458,7 @@ const unknownStateTagMachine = defineMachine({
   },
 })
 
-const unknownMessageTagMachine = defineMachine({
+const unknownMessageTagMachine = define({
   state: RemoteData,
   message: RemoteDataMessage,
 })({
@@ -473,7 +473,7 @@ const unknownMessageTagMachine = defineMachine({
   },
 })
 
-const shadowedGuardMachine = defineMachine({
+const shadowedGuardMachine = define({
   state: RemoteData,
   message: RemoteDataMessage,
 })({
@@ -500,7 +500,7 @@ const PlainActive = S.Struct({ _tag: S.Literal('PlainActive') })
 const PlainState = S.Union([PlainIdle, PlainActive])
 type PlainState = typeof PlainState.Type
 
-const plainTagMachine = defineMachine({
+const plainTagMachine = define({
   state: PlainState,
   message: RemoteDataMessage,
 })({

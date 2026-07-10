@@ -9,7 +9,7 @@
       "entry": [
         "src/index.ts",
         "src/experimental/public.ts",
-        "src/experimental/statechart/public.ts",
+        "src/experimental/machine/public.ts",
         "src/html/public.ts",
         "src/devTools/public.ts",
         "src/devTools/host.ts",
