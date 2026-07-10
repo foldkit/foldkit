@@ -9,6 +9,8 @@ coverage
 !/.claude/commands/
 !/.claude/settings.json
 packages/website/src/generated/
+packages/website/public/fonts/ABCFavorit-Book.woff2
+packages/website/public/fonts/ABCFavorit-Light.woff2
 packages/oxlint-plugin-foldkit/recommended.json
 packages/oxlint-plugin-foldkit/all.json
 .playwright-mcp/

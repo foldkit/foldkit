@@ -41,6 +41,12 @@ jobs:
       - name: Build examples
         run: pnpm build:examples
 
+      - name: Restore licensed website fonts
+        run: bash scripts/restore-website-fonts.sh
+        env:
+          ABC_FAVORIT_BOOK_WOFF2_BASE64: ${{ secrets.ABC_FAVORIT_BOOK_WOFF2_BASE64 }}
+          ABC_FAVORIT_LIGHT_WOFF2_BASE64: ${{ secrets.ABC_FAVORIT_LIGHT_WOFF2_BASE64 }}
+
       - name: Build website
         run: pnpm build:website
 
