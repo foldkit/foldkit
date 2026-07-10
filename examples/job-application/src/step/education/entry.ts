@@ -40,7 +40,7 @@ export const Model = S.Struct({
   school: Field(S.String),
   degree: Field(S.String),
   fieldOfStudy: Field(S.String),
-  graduationYear: S.String,
+  maybeGraduationYear: S.Option(S.String),
   graduationYearListbox: Listbox.Model,
   isCurrentlyEnrolled: S.Boolean,
 })
@@ -90,7 +90,7 @@ export const init = (entryId: string): Model => ({
   school: NotValidated({ value: '' }),
   degree: NotValidated({ value: '' }),
   fieldOfStudy: NotValidated({ value: '' }),
-  graduationYear: '',
+  maybeGraduationYear: Option.none(),
   graduationYearListbox: Listbox.init({
     id: `${entryId}-graduation-year`,
   }),
@@ -153,7 +153,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             M.tagsExhaustive({
               Selected: ({ value }) => [
                 evo(model, {
-                  graduationYear: () => value,
+                  maybeGraduationYear: () => Option.some(value),
                   graduationYearListbox: () => nextListbox,
                 }),
                 mappedCommands,

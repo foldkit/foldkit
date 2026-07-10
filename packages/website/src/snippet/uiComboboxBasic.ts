@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Array, Effect, Match as M, Option } from 'effect'
+import { Array, Match as M, Option } from 'effect'
 import { Command } from 'foldkit'
 import { childAttributes, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -9,15 +9,17 @@ import { evo } from 'foldkit/struct'
 
 import { Combobox } from '@foldkit/ui'
 
-type City = 'Johannesburg' | 'Kyiv' | 'Oxford' | 'Wellington'
+const City = S.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
+type City = typeof City.Type
 
 // Declare a typed Combobox once at module scope:
 const CityCombobox = Combobox.create<City>()
 
 // Add a field to your Model for the Combobox Submodel, plus a field for
-// the selected value your app actually cares about:
+// the selected value your app actually cares about. Using the `City`
+// Schema keeps the field literal-typed end to end:
 const Model = S.Struct({
-  maybeCity: S.Option(S.String),
+  maybeCity: S.Option(City),
   combobox: Combobox.Model,
   // ...your other fields
 })
@@ -38,8 +40,10 @@ const GotComboboxMessage = m('GotComboboxMessage', {
 })
 
 // Delegate keyboard navigation, typeahead, and open/close to
-// CityCombobox.update. The OutMessage's `Selected` carries the chosen
-// item; lift it into your domain state:
+// CityCombobox.update. The OutMessage's `Selected` carries the activated
+// item; fold it into the selection you own. `ClearedSelection` only fires
+// for nullable comboboxes, so this combobox keeps its selection there and
+// the fold stays exhaustive:
 GotComboboxMessage: ({ message }) => {
   const [nextCombobox, commands, maybeOutMessage] = CityCombobox.update(
     model.combobox,
@@ -54,13 +58,17 @@ GotComboboxMessage: ({ message }) => {
       evo(model, { combobox: () => nextCombobox }),
       mappedCommands,
     ],
-    onSome: M.type<Combobox.OutMessage>().pipe(
+    onSome: M.type<Combobox.OutMessage<City>>().pipe(
       M.tagsExhaustive({
         Selected: ({ value }) => [
           evo(model, {
             combobox: () => nextCombobox,
             maybeCity: () => Option.some(value),
           }),
+          mappedCommands,
+        ],
+        ClearedSelection: () => [
+          evo(model, { combobox: () => nextCombobox }),
           mappedCommands,
         ],
       }),
@@ -88,7 +96,7 @@ const filteredCities =
 // from a native `<label for>`, and pass `ariaLabelledBy` so the input is named
 // by the label. The attribute is only emitted when provided, so the input
 // never carries a dangling `aria-labelledby`.
-const view = () => {
+const view = (model: Model) => {
   const h = html<Message>()
 
   const labelId = 'city-label'
@@ -104,6 +112,10 @@ const view = () => {
         viewInputs: {
           ariaLabelledBy: labelId,
           items: filteredCities,
+          // The parent owns the selection; pass it in, plus the text the
+          // input rests at when closed (the selected city, or empty):
+          maybeSelectedValue: model.maybeCity,
+          restingInputValue: Option.getOrElse(model.maybeCity, () => ''),
           itemToValue: city => city,
           itemToDisplayText: city => city,
           itemToConfig: (city, { isSelected }) => ({

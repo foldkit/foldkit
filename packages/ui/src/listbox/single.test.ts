@@ -40,6 +40,7 @@ import {
   RestoreInert,
   ScrollIntoView,
   Searched,
+  Selected,
   SelectedItem,
   SuppressedSpaceScroll,
   UnlockScroll,
@@ -88,7 +89,7 @@ const withOpenAnimated = flow(
 
 describe('Listbox', () => {
   describe('init', () => {
-    it('defaults to closed with no active item and no selection', () => {
+    it('defaults to closed with no active item', () => {
       expect(init({ id: 'test' })).toStrictEqual({
         id: 'test',
         isOpen: false,
@@ -100,7 +101,6 @@ describe('Listbox', () => {
         activationTrigger: 'Keyboard',
         searchQuery: '',
         searchVersion: 0,
-        maybeSelectedItem: Option.none(),
         maybeLastPointerPosition: Option.none(),
         maybeLastButtonPointerType: Option.none(),
       })
@@ -120,16 +120,6 @@ describe('Listbox', () => {
     it('accepts isModal option', () => {
       const model = init({ id: 'test', isModal: true })
       expect(model.isModal).toBe(true)
-    })
-
-    it('accepts selectedItem option', () => {
-      const model = init({ id: 'test', selectedItem: 'apple' })
-      expect(model.maybeSelectedItem).toStrictEqual(Option.some('apple'))
-    })
-
-    it('defaults maybeSelectedItem to none', () => {
-      const model = init({ id: 'test' })
-      expect(model.maybeSelectedItem).toStrictEqual(Option.none())
     })
 
     it('defaults orientation to Vertical', () => {
@@ -513,15 +503,13 @@ describe('Listbox', () => {
     })
 
     describe('SelectedItem', () => {
-      it('stores item value in maybeSelectedItem', () => {
+      it('emits Selected with the item value', () => {
         Story.story(
           update,
           withOpen,
           Story.message(SelectedItem({ item: 'apple' })),
+          Story.expectOutMessage(Selected({ value: 'apple' })),
           Story.Command.resolve(FocusButton, CompletedFocusButton()),
-          Story.model(model => {
-            expect(model.maybeSelectedItem).toStrictEqual(Option.some('apple'))
-          }),
         )
       })
 
@@ -543,54 +531,20 @@ describe('Listbox', () => {
           update,
           withOpen,
           Story.message(SelectedItem({ item: 'apple' })),
+          Story.expectOutMessage(Selected({ value: 'apple' })),
           Story.Command.resolve(FocusButton, CompletedFocusButton()),
-          Story.model(model => {
-            expect(model.maybeSelectedItem).toStrictEqual(Option.some('apple'))
-          }),
         )
       })
 
-      it('selection persists after close', () => {
+      it('emits Selected with the newly chosen value across selections', () => {
         Story.story(
           update,
-          withOpen,
-          Story.message(SelectedItem({ item: 'apple' })),
-          Story.Command.resolve(FocusButton, CompletedFocusButton()),
-          Story.model(model => {
-            expect(model.isOpen).toBe(false)
-            expect(model.maybeSelectedItem).toStrictEqual(Option.some('apple'))
-          }),
-        )
-      })
-
-      it('selection persists across open/close cycles', () => {
-        Story.story(
-          update,
-          Story.with(init({ id: 'test', selectedItem: 'banana' })),
-          Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-          Story.Command.resolve(FocusItems, CompletedFocusItems()),
-          Story.model(model => {
-            expect(model.maybeSelectedItem).toStrictEqual(Option.some('banana'))
-          }),
-          Story.message(Closed()),
-          Story.Command.resolve(FocusButton, CompletedFocusButton()),
-          Story.model(model => {
-            expect(model.maybeSelectedItem).toStrictEqual(Option.some('banana'))
-          }),
-        )
-      })
-
-      it('replaces previous selection with new value', () => {
-        Story.story(
-          update,
-          Story.with(init({ id: 'test', selectedItem: 'apple' })),
+          withClosed,
           Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
           Story.Command.resolve(FocusItems, CompletedFocusItems()),
           Story.message(SelectedItem({ item: 'banana' })),
+          Story.expectOutMessage(Selected({ value: 'banana' })),
           Story.Command.resolve(FocusButton, CompletedFocusButton()),
-          Story.model(model => {
-            expect(model.maybeSelectedItem).toStrictEqual(Option.some('banana'))
-          }),
         )
       })
     })
@@ -1189,6 +1143,7 @@ describe('Listbox', () => {
           items: ['Apple', 'Banana'],
           itemToConfig: () => ({ content: null }),
           buttonContent: null,
+          maybeSelectedValue: Option.none(),
           ...overrides,
         })
 
@@ -1243,13 +1198,12 @@ describe('Listbox', () => {
       })
 
       it('selected item has aria-selected="true"', () => {
-        const model = {
-          ...openModel(),
-          maybeSelectedItem: Option.some('Apple'),
-        }
         Scene.scene(
-          { update, view: sceneView() },
-          Scene.with(model),
+          {
+            update,
+            view: sceneView({ maybeSelectedValue: Option.some('Apple') }),
+          },
+          Scene.with(openModel()),
           Scene.tap(({ html }) => {
             expect(Scene.find(html, '[key="test-item-0"]')).toHaveAttr(
               'aria-selected',
@@ -1262,13 +1216,12 @@ describe('Listbox', () => {
       })
 
       it('non-selected items have aria-selected="false"', () => {
-        const model = {
-          ...openModel(),
-          maybeSelectedItem: Option.some('Apple'),
-        }
         Scene.scene(
-          { update, view: sceneView() },
-          Scene.with(model),
+          {
+            update,
+            view: sceneView({ maybeSelectedValue: Option.some('Apple') }),
+          },
+          Scene.with(openModel()),
           Scene.tap(({ html }) => {
             expect(Scene.find(html, '[key="test-item-1"]')).toHaveAttr(
               'aria-selected',
@@ -1281,13 +1234,12 @@ describe('Listbox', () => {
       })
 
       it('data-selected attribute on selected item', () => {
-        const model = {
-          ...openModel(),
-          maybeSelectedItem: Option.some('Banana'),
-        }
         Scene.scene(
-          { update, view: sceneView() },
-          Scene.with(model),
+          {
+            update,
+            view: sceneView({ maybeSelectedValue: Option.some('Banana') }),
+          },
+          Scene.with(openModel()),
           Scene.tap(({ html }) => {
             expect(Scene.find(html, '[key="test-item-0"]')).not.toHaveAttr(
               'data-selected',
@@ -1331,13 +1283,15 @@ describe('Listbox', () => {
       })
 
       it('hidden input value matches selected item', () => {
-        const model = {
-          ...closedModel(),
-          maybeSelectedItem: Option.some('Apple'),
-        }
         Scene.scene(
-          { update, view: sceneView({ name: 'fruit' }) },
-          Scene.with(model),
+          {
+            update,
+            view: sceneView({
+              name: 'fruit',
+              maybeSelectedValue: Option.some('Apple'),
+            }),
+          },
+          Scene.with(closedModel()),
           Scene.tap(({ html }) => {
             expect(Scene.find(html, 'input[type="hidden"]')).toHaveAttr(
               'value',
@@ -1432,10 +1386,6 @@ describe('Listbox', () => {
 
     describe('item context', () => {
       it('itemToConfig receives isSelected: true for selected item', () => {
-        const model = {
-          ...openModel(),
-          maybeSelectedItem: Option.some('Apple'),
-        }
         const contexts: Array<
           Readonly<{
             isActive: boolean
@@ -1447,6 +1397,7 @@ describe('Listbox', () => {
           {
             update,
             view: sceneView({
+              maybeSelectedValue: Option.some('Apple'),
               itemToConfig: (
                 _item: string,
                 context: Readonly<{
@@ -1460,7 +1411,7 @@ describe('Listbox', () => {
               },
             }),
           },
-          Scene.with(model),
+          Scene.with(openModel()),
           Scene.tap(() => {
             expect(contexts[0]?.isSelected).toBe(true)
           }),
@@ -1470,10 +1421,6 @@ describe('Listbox', () => {
       })
 
       it('itemToConfig receives isSelected: false for non-selected items', () => {
-        const model = {
-          ...openModel(),
-          maybeSelectedItem: Option.some('Apple'),
-        }
         const contexts: Array<
           Readonly<{
             isActive: boolean
@@ -1485,6 +1432,7 @@ describe('Listbox', () => {
           {
             update,
             view: sceneView({
+              maybeSelectedValue: Option.some('Apple'),
               itemToConfig: (
                 _item: string,
                 context: Readonly<{
@@ -1498,7 +1446,7 @@ describe('Listbox', () => {
               },
             }),
           },
-          Scene.with(model),
+          Scene.with(openModel()),
           Scene.tap(() => {
             expect(contexts[1]?.isSelected).toBe(false)
           }),
@@ -1727,6 +1675,7 @@ describe('Listbox', () => {
             itemToValue: person => person.id,
             itemToConfig: () => ({ content: null }),
             buttonContent: null,
+            maybeSelectedValue: Option.none(),
             ...overrides,
           })
 
@@ -1745,10 +1694,12 @@ describe('Listbox', () => {
       })
 
       it('selected item matches by itemToValue', () => {
-        const model = { ...openModel(), maybeSelectedItem: Option.some('2') }
         Scene.scene(
-          { update, view: personSceneView() },
-          Scene.with(model),
+          {
+            update,
+            view: personSceneView({ maybeSelectedValue: Option.some('2') }),
+          },
+          Scene.with(openModel()),
           Scene.tap(({ html }) => {
             expect(Scene.find(html, '[key="test-item-1"]')).toHaveAttr(
               'aria-selected',
@@ -1765,10 +1716,12 @@ describe('Listbox', () => {
       })
 
       it('non-selected item has aria-selected false', () => {
-        const model = { ...openModel(), maybeSelectedItem: Option.some('2') }
         Scene.scene(
-          { update, view: personSceneView() },
-          Scene.with(model),
+          {
+            update,
+            view: personSceneView({ maybeSelectedValue: Option.some('2') }),
+          },
+          Scene.with(openModel()),
           Scene.tap(({ html }) => {
             expect(Scene.find(html, '[key="test-item-0"]')).toHaveAttr(
               'aria-selected',
@@ -1784,10 +1737,15 @@ describe('Listbox', () => {
       })
 
       it('hidden input uses itemToValue for value', () => {
-        const model = { ...closedModel(), maybeSelectedItem: Option.some('1') }
         Scene.scene(
-          { update, view: personSceneView({ name: 'person' }) },
-          Scene.with(model),
+          {
+            update,
+            view: personSceneView({
+              name: 'person',
+              maybeSelectedValue: Option.some('1'),
+            }),
+          },
+          Scene.with(closedModel()),
           Scene.tap(({ html }) => {
             expect(Scene.find(html, 'input[type="hidden"]')).toHaveAttr(
               'value',
@@ -1796,24 +1754,6 @@ describe('Listbox', () => {
           }),
         )
       })
-    })
-  })
-
-  describe('reflectSelectedItem', () => {
-    it('reflects a selection onto maybeSelectedItem without emitting', () => {
-      const next = TestListbox.reflectSelectedItem(
-        init({ id: 'test' }),
-        Option.some('a'),
-      )
-      expect(next.maybeSelectedItem).toStrictEqual(Option.some('a'))
-    })
-
-    it('clears the selection on None', () => {
-      const next = TestListbox.reflectSelectedItem(
-        init({ id: 'test', selectedItem: 'a' }),
-        Option.none(),
-      )
-      expect(next.maybeSelectedItem).toStrictEqual(Option.none())
     })
   })
 })

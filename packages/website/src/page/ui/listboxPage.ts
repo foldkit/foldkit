@@ -108,17 +108,6 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     description: 'Unique ID for the listbox instance.',
   },
   {
-    name: 'selectedItem',
-    type: 'string',
-    description:
-      'Initially selected item value (single-select). For multi-select, use selectedItems.',
-  },
-  {
-    name: 'selectedItems',
-    type: 'ReadonlyArray<string>',
-    description: 'Initially selected item values (multi-select only).',
-  },
-  {
     name: 'isAnimated',
     type: 'boolean',
     default: 'false',
@@ -129,6 +118,13 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     type: 'boolean',
     default: 'false',
     description: 'Locks page scroll and marks other elements inert when open.',
+  },
+  {
+    name: 'orientation',
+    type: "'Vertical' | 'Horizontal'",
+    default: "'Vertical'",
+    description:
+      'Whether items flow vertically or horizontally. Sets aria-orientation and switches keyboard navigation to Arrow Left and Arrow Right when Horizontal.',
   },
 ]
 
@@ -151,6 +147,12 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'The list of items. The generic Item type narrows the value passed to itemToConfig.',
   },
   {
+    name: 'maybeSelectedValue',
+    type: 'Option<Value>',
+    description:
+      'The selection the parent owns. None when nothing is selected yet. Multi-select takes selectedValues: ReadonlyArray<Value> instead. Drives the isSelected context and aria-selected.',
+  },
+  {
     name: 'itemToConfig',
     type: '(item, context) => ItemConfig',
     description:
@@ -164,9 +166,9 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
   },
   {
     name: 'itemToValue',
-    type: '(item: Item) => string',
+    type: '(item: Item) => Value',
     description:
-      'Extracts the string value from an item. Defaults to String(item).',
+      'Extracts the value from an item. Optional when Item is a string, defaulting to the item itself. Required when items are objects.',
   },
   {
     name: 'isItemDisabled',
@@ -225,9 +227,9 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
 const outMessageProps: ReadonlyArray<PropEntry> = [
   {
     name: 'Selected',
-    type: '{ value: Value; wasAdded: boolean }',
+    type: '{ value: Value }',
     description:
-      'Emitted when an item is committed. Single-select listboxes always emit `wasAdded: true`. Multi-select listboxes emit `wasAdded: true` when adding to the selection and `wasAdded: false` when toggling off. Pattern-match the third tuple element of Listbox.update in your GotListboxMessage handler to lift the value into domain state.',
+      'Emitted when an item is activated. Carries the neutral fact that the item was activated; the parent owns the selection and decides what it means. Single-select stores the value; multi-select toggles the value in and out of its array. Pattern-match the third tuple element of PlanListbox.update in your GotListboxMessage handler to fold the value into the selection you own.',
   },
 ]
 
@@ -309,24 +311,30 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         pageTitle('ui/listbox', 'Listbox'),
         tableOfContentsEntryToHeader(overviewHeader),
         para(
-          'A custom select dropdown with persistent selection, keyboard navigation, typeahead search, and anchor positioning. Unlike Menu (which is for actions), Listbox tracks the selected value and reflects it in the button. For a searchable input with filtering, use Combobox instead.',
+          'A custom select dropdown with keyboard navigation, typeahead search, and anchor positioning. Unlike Menu (which is for actions), Listbox is for choosing a value. The parent owns the selection: it passes the chosen value in as ',
+          inlineCode('maybeSelectedValue'),
+          ' (multi-select passes ',
+          inlineCode('selectedValues'),
+          ') and folds the ',
+          inlineCode('Selected'),
+          ' OutMessage into its own state (single-select stores the value, multi-select toggles the value in its array). For a searchable input with filtering, use Combobox instead.',
         ),
         para(
           'Embed Listbox via the ',
           link(uiSelectionSubmodelsRouter(), 'create<Item, Value?>() factory'),
           ' at module scope: ',
-          inlineCode('const PlansListbox = Listbox.create<Plan>()'),
+          inlineCode('const PlanListbox = Listbox.create<Plan>()'),
           '. The factory binds the view, update, and imperative helpers to the same ',
           inlineCode('Item'),
           ' type so the selected value flows through the OutMessage typed end-to-end.',
         ),
         para(
-          'For programmatic control in update functions, use ',
-          inlineCode('Listbox.open(model)'),
+          'For programmatic control in update functions, use the factory instance helpers ',
+          inlineCode('PlanListbox.open(model)'),
           ', ',
-          inlineCode('Listbox.close(model)'),
+          inlineCode('PlanListbox.close(model)'),
           ', and ',
-          inlineCode('Listbox.selectItem(model, item)'),
+          inlineCode('PlanListbox.selectItem(model, item)'),
           '. Each returns ',
           inlineCode('[Model, Commands, Option<OutMessage>]'),
           ' directly.',
@@ -352,7 +360,12 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           inlineCode('isActive'),
           ' for styling the highlighted and selected states.',
         ),
-        demoContainer(...Listbox.basicDemo(model.listboxDemo)),
+        demoContainer(
+          ...Listbox.basicDemo(
+            model.listboxDemo,
+            model.maybeListboxDemoSelectedItem,
+          ),
+        ),
         highlightedCodeBlock(
           h.div(
             [
@@ -374,11 +387,16 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         para(
           'Use ',
           inlineCode('Listbox.Multi'),
-          ' for multi-selection. The dropdown stays open on selection and items toggle on/off. Selected items are stored in ',
-          inlineCode('model.selectedItems'),
-          '.',
+          ' for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and folds each ',
+          inlineCode('Selected'),
+          ' OutMessage by toggling the value in its array.',
         ),
-        demoContainer(...Listbox.multiSelectDemo(model.listboxMultiDemo)),
+        demoContainer(
+          ...Listbox.multiSelectDemo(
+            model.listboxMultiDemo,
+            model.listboxMultiDemoSelectedItems,
+          ),
+        ),
         highlightedCodeBlock(
           h.div(
             [
@@ -404,7 +422,12 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           inlineCode('groupToHeading'),
           ' to render section headers. Groups are separated automatically.',
         ),
-        demoContainer(...Listbox.groupedDemo(model.listboxGroupedDemo)),
+        demoContainer(
+          ...Listbox.groupedDemo(
+            model.listboxGroupedDemo,
+            model.maybeListboxGroupedDemoSelectedItem,
+          ),
+        ),
         highlightedCodeBlock(
           h.div(
             [
@@ -520,10 +543,10 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           viewConfigHeader.text,
         ),
         para(
-          'Configuration object passed to ',
-          inlineCode('Listbox.view()'),
-          '. The same structure is used for ',
-          inlineCode('Listbox.Multi.view()'),
+          'Configuration object passed to the view returned by ',
+          inlineCode('Listbox.create()'),
+          '. The same structure is used for the view returned by ',
+          inlineCode('Listbox.Multi.create()'),
           '.',
         ),
         propTable(viewConfigProps),
@@ -535,8 +558,10 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         para(
           'Messages emitted to the parent through the third element of ',
           inlineCode('[Model, Commands, Option<OutMessage>]'),
-          '. Pattern-match on the OutMessage in your update handler. The same shape applies to ',
-          inlineCode('Listbox.Multi.update'),
+          '. Pattern-match on the OutMessage in your update handler. The same shape applies to the update returned by ',
+          inlineCode('Listbox.Multi.create()'),
+          ', as in ',
+          inlineCode('PeopleListbox.update'),
           '.',
         ),
         propTable(outMessageProps),

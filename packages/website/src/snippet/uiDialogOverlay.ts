@@ -1,15 +1,19 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
+import { Option } from 'effect'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
 import { Combobox, Dialog } from '@foldkit/ui'
 
-// One Model field for the dialog, one for the overlay it contains:
+// One Model field for the dialog, one for the overlay it contains, plus
+// the parent-owned selection (`City` and `CityCombobox` are the
+// `S.Literals` Schema and typed factory from the Combobox example):
 const Model = S.Struct({
   dialog: Dialog.Model,
   combobox: Combobox.Model,
+  maybeCity: S.Option(City),
   // ...your other fields
 })
 
@@ -17,6 +21,7 @@ const init = () => [
   {
     dialog: Dialog.init({ id: 'edit-filters' }),
     combobox: Combobox.init({ id: 'city' }),
+    maybeCity: Option.none(),
     // ...your other fields
   },
   [],
@@ -33,7 +38,7 @@ const GotComboboxMessage = m('GotComboboxMessage', {
 // the overlay's anchor. By default the panel portals to the document body,
 // where the dialog's high stacking order hides it. With portal: false the
 // panel stays inside the dialog and renders above the panel content.
-const view = () => {
+const view = (model: Model) => {
   const h = html<Message>()
 
   return h.submodel({
@@ -60,6 +65,11 @@ const view = () => {
                       view: CityCombobox.view,
                       viewInputs: {
                         // ...items, itemToConfig, itemToValue, etc.
+                        maybeSelectedValue: model.maybeCity,
+                        restingInputValue: Option.getOrElse(
+                          model.maybeCity,
+                          () => '',
+                        ),
                         anchor: { placement: 'bottom-start', portal: false },
                       },
                       toParentMessage: message =>

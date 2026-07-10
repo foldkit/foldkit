@@ -46,9 +46,9 @@ const Message = S.Union([
   SucceededExportPng,
   FailedExportPng,
   GotErrorDialogMessage,
+  GotThemeListboxMessage,
   ConfirmedGridSizeChange,
   GotGridSizeConfirmDialogMessage,
-  GotThemeListboxMessage,
   CompletedSaveCanvas,
 ])
 type Message = typeof Message.Type

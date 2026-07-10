@@ -72,7 +72,7 @@ GotMenuMessage: ({ message }) => {
 // Inside your view function, render the menu via the factory's view. The
 // `buttonContent` below names the trigger. When the trigger is icon-only,
 // give it a name with `ariaLabel`, or point `ariaLabelledBy` at a visible
-// label element (target the trigger id with `Menu.buttonId('menu')` for a
+// label element (target the trigger id with `Menu.buttonId('actions')` for a
 // native `<label for>`). Either attribute is only emitted when provided, so
 // the trigger never carries a dangling `aria-labelledby`.
 const view = () => {

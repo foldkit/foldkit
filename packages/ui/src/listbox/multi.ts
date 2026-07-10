@@ -1,7 +1,6 @@
-import { Array, Function, Option, Schema as S, pipe } from 'effect'
+import { Option, Schema as S } from 'effect'
 import type * as Command from 'foldkit/command'
-import { evo } from 'foldkit/struct'
-import type { Reflect, View as SubmodelView } from 'foldkit/submodel'
+import type { View as SubmodelView } from 'foldkit/submodel'
 
 import {
   type BaseInitConfig,
@@ -20,43 +19,29 @@ import {
 
 // MODEL
 
-/** Schema for the multi-select listbox component's state, tracking open/closed status, active item, selected items, activation trigger, and typeahead search. */
+/** Schema for the multi-select listbox's private interaction state (open/closed status, active item, activation trigger, typeahead search). The selection is owned by the parent and passed in via `ViewInputs.selectedValues`. */
 export const Model = S.Struct({
   ...BaseModel.fields,
-  selectedItems: S.Array(S.String),
 })
 
 export type Model = typeof Model.Type
 
 // INIT
 
-/** Configuration for creating a multi-select listbox model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). `selectedItems` sets the initial selection (default `[]`). */
-export type InitConfig = BaseInitConfig &
-  Readonly<{
-    selectedItems?: ReadonlyArray<string>
-  }>
+/** Configuration for creating a multi-select listbox model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). */
+export type InitConfig = BaseInitConfig
 
-/** Creates an initial multi-select listbox model from a config. Defaults to closed with no active item and no selection. */
-export const init = (config: InitConfig): Model => ({
-  ...baseInit(config),
-  selectedItems: config.selectedItems ?? [],
-})
+/** Creates an initial multi-select listbox model from a config. Defaults to closed with no active item. */
+export const init = (config: InitConfig): Model => baseInit(config)
 
 // UPDATE
 
-/** Processes a listbox message and returns the next model, commands, and optional OutMessage. Stays open on selection and toggles item membership (multi-select behavior); emits a `Selected({ value, wasAdded })` OutMessage indicating whether the value was added or removed. */
-export const update = makeUpdate<Model>((model, item) => {
-  const wasAdded = !Array.contains(model.selectedItems, item)
-  const nextSelectedItems = wasAdded
-    ? Array.append(model.selectedItems, item)
-    : Array.filter(model.selectedItems, selected => selected !== item)
-
-  return [
-    evo(model, { selectedItems: () => nextSelectedItems }),
-    [],
-    Option.some(SharedSelected({ value: item, wasAdded })),
-  ]
-})
+/** Processes a listbox message and returns the next model, commands, and optional OutMessage. Stays open on selection (multi-select behavior); emits a `Selected({ value })` OutMessage the parent folds by toggling the value's membership in the selection it owns. */
+export const update = makeUpdate<Model>((model, item) => [
+  model,
+  [],
+  Option.some(SharedSelected({ value: item })),
+])
 
 type UpdateReturn = ReturnType<typeof update>
 
@@ -69,24 +54,9 @@ export const open = (model: Model): UpdateReturn =>
  *  focus and modal commands. Use this in domain-event handlers to close the listbox. */
 export const close = (model: Model): UpdateReturn => update(model, Closed())
 
-/** Programmatically toggles an item in the multi-select listbox. Emits `Selected({ value, wasAdded })`. */
+/** Programmatically activates an item in the multi-select listbox. Emits `Selected({ value })`; the parent toggles the value's membership. */
 export const selectItem = (model: Model, item: string): UpdateReturn =>
   update(model, SelectedItem({ item }))
-
-/** Reflects an externally-sourced selection set onto the model without
- *  emitting an OutMessage or running selection side effects. Use this to
- *  mirror external truth (URL parameters, restored storage, a server push)
- *  onto the listbox's selected items. Contrast with `selectItem`, which
- *  toggles a single item as a user *choice* and emits `Selected`. Returns
- *  the model directly because it produces no commands and no OutMessage. */
-export const reflectSelectedItems: Reflect<
-  Model,
-  ReadonlyArray<string>
-> = Function.dual(
-  2,
-  (model: Model, items: ReadonlyArray<string>): Model =>
-    evo(model, { selectedItems: () => items }),
-)
 
 // VIEW
 
@@ -96,19 +66,7 @@ export type ViewInputs<Item, Value extends string = string> = BaseViewInputs<
   Value
 >
 
-const internalView = makeView<Model>({
-  isItemSelected: (model, itemValue) =>
-    Array.contains(model.selectedItems, itemValue),
-  selectedItemIndex: (model, items, itemToValue) =>
-    pipe(
-      model.selectedItems,
-      Array.head,
-      Option.flatMap(selectedItem =>
-        Array.findFirstIndex(items, item => itemToValue(item) === selectedItem),
-      ),
-    ),
-  ariaMultiSelectable: true,
-})
+const internalView = makeView<Model>({ ariaMultiSelectable: true })
 
 /** Pairs the multi-select listbox's `view` and `update` (and programmatic
  *  helpers) behind a single Item-typed entry point. Same shape as
@@ -150,7 +108,6 @@ export const create = <
     ReadonlyArray<Command.Command<Message>>,
     Option.Option<OutMessage<Value>>,
   ]
-  reflectSelectedItems: Reflect<Model, ReadonlyArray<Value>>
 }> => {
   type UpdateReturn = readonly [
     Model,
@@ -166,10 +123,5 @@ export const create = <
     open: model =>
       typedUpdate(model, Opened({ maybeActiveItemIndex: Option.none() })),
     close: model => typedUpdate(model, Closed()),
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    reflectSelectedItems: reflectSelectedItems as Reflect<
-      Model,
-      ReadonlyArray<Value>
-    >,
   }
 }

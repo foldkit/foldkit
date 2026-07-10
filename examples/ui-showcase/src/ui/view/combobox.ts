@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Array } from 'effect'
+import { Array, Option } from 'effect'
 import { Submodel } from 'foldkit'
 import { Html, childAttributes, html } from 'foldkit/html'
 
@@ -14,16 +14,7 @@ import {
   GotComboboxSelectOnFocusDemoMessage,
   type UiMessage,
 } from '../message'
-import type { UiModel } from '../model'
-
-type City =
-  | 'Johannesburg'
-  | 'Kyiv'
-  | 'Oxford'
-  | 'Plymouth'
-  | 'Quito'
-  | 'Wellington'
-  | 'Zurich'
+import type { City, UiModel } from '../model'
 
 export const CityCombobox = Combobox.create<City>()
 export const CityMultiCombobox = Combobox.Multi.create<City>()
@@ -72,16 +63,23 @@ const filterCities = (inputValue: string): ReadonlyArray<City> =>
         city.toLowerCase().includes(inputValue.toLowerCase()),
       )
 
-export const comboboxInputs = (
-  inputValue: string,
-  anchor: AnchorConfig = COMBOBOX_ANCHOR,
-  wrapperClass: string = wrapperClassName,
-): Combobox.ViewInputs<City> => {
+export const comboboxInputs = ({
+  inputValue,
+  restingInputValue,
+  anchor = COMBOBOX_ANCHOR,
+  wrapperClass = wrapperClassName,
+}: Readonly<{
+  inputValue: string
+  restingInputValue: string
+  anchor?: AnchorConfig
+  wrapperClass?: string
+}>): Omit<Combobox.ViewInputs<City>, 'maybeSelectedValue'> => {
   const h = html<UiMessage>()
   const filteredCities = filterCities(inputValue)
 
   return {
     items: filteredCities,
+    restingInputValue,
     itemToConfig: (city, context) => ({
       className: itemClassName,
       content: h.div(
@@ -140,7 +138,14 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             model: model.comboboxDemo,
             view: CityCombobox.view,
             viewInputs: {
-              ...comboboxInputs(model.comboboxDemo.inputValue),
+              ...comboboxInputs({
+                inputValue: model.comboboxDemo.inputValue,
+                restingInputValue: Option.getOrElse(
+                  model.maybeComboboxDemoSelectedCity,
+                  () => '',
+                ),
+              }),
+              maybeSelectedValue: model.maybeComboboxDemoSelectedCity,
             },
             toParentMessage: message => GotComboboxDemoMessage({ message }),
           }),
@@ -166,7 +171,14 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             model: model.comboboxNullableDemo,
             view: CityCombobox.view,
             viewInputs: {
-              ...comboboxInputs(model.comboboxNullableDemo.inputValue),
+              ...comboboxInputs({
+                inputValue: model.comboboxNullableDemo.inputValue,
+                restingInputValue: Option.getOrElse(
+                  model.maybeComboboxNullableDemoSelectedCity,
+                  () => '',
+                ),
+              }),
+              maybeSelectedValue: model.maybeComboboxNullableDemoSelectedCity,
             },
             toParentMessage: message =>
               GotComboboxNullableDemoMessage({ message }),
@@ -193,7 +205,15 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             model: model.comboboxSelectOnFocusDemo,
             view: CityCombobox.view,
             viewInputs: {
-              ...comboboxInputs(model.comboboxSelectOnFocusDemo.inputValue),
+              ...comboboxInputs({
+                inputValue: model.comboboxSelectOnFocusDemo.inputValue,
+                restingInputValue: Option.getOrElse(
+                  model.maybeComboboxSelectOnFocusDemoSelectedCity,
+                  () => '',
+                ),
+              }),
+              maybeSelectedValue:
+                model.maybeComboboxSelectOnFocusDemoSelectedCity,
             },
             toParentMessage: message =>
               GotComboboxSelectOnFocusDemoMessage({ message }),
@@ -217,13 +237,13 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         [
           h.div(
             [h.Class('flex flex-wrap gap-1.5 mb-2')],
-            Array.match(model.comboboxMultiDemo.selectedItems, {
+            Array.match(model.comboboxMultiDemoSelectedCities, {
               onEmpty: () => [
                 h.span([h.Class(emptyTagClassName)], ['No selection']),
               ],
-              onNonEmpty: selectedItems =>
-                selectedItems.map(item =>
-                  h.span([h.Class(tagClassName)], [item]),
+              onNonEmpty: selectedCities =>
+                selectedCities.map(city =>
+                  h.span([h.Class(tagClassName)], [city]),
                 ),
             }),
           ),
@@ -232,7 +252,11 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             model: model.comboboxMultiDemo,
             view: CityMultiCombobox.view,
             viewInputs: {
-              ...comboboxInputs(model.comboboxMultiDemo.inputValue),
+              ...comboboxInputs({
+                inputValue: model.comboboxMultiDemo.inputValue,
+                restingInputValue: '',
+              }),
+              selectedValues: model.comboboxMultiDemoSelectedCities,
             },
             toParentMessage: message =>
               GotComboboxMultiDemoMessage({ message }),

@@ -130,15 +130,15 @@ const educationTimelineLine = (
       h.p([h.Class('text-xs text-gray-400 mt-0.5')], ['Currently enrolled']),
     ]
   }
-  if (String.isNonEmpty(entry.graduationYear)) {
-    return [
+  return Option.match(entry.maybeGraduationYear, {
+    onNone: () => [],
+    onSome: graduationYear => [
       h.p(
         [h.Class('text-xs text-gray-400 mt-0.5')],
-        [`Class of ${entry.graduationYear}`],
+        [`Class of ${graduationYear}`],
       ),
-    ]
-  }
-  return []
+    ],
+  })
 }
 
 const educationEntryView = (entry: Education.Entry.Model): Html => {
@@ -256,7 +256,7 @@ export const preview = ({
     email: { value: email },
     phone: { value: phone },
     portfolioUrl: { value: portfolio },
-    pronouns,
+    maybeSelectedPronoun,
     customPronouns,
   },
   workHistory,
@@ -271,7 +271,7 @@ export const preview = ({
       ? `${firstName} ${lastName}`.trim()
       : 'Your Name'
 
-  const pronounLabel = Option.match(pronouns.maybeSelectedItem, {
+  const pronounLabel = Option.match(maybeSelectedPronoun, {
     onNone: () => '',
     onSome: value => (value === 'Other' ? customPronouns : value),
   })

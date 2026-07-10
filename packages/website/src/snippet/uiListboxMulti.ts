@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Array, Effect, Match as M, Option } from 'effect'
+import { Array, Match as M, Option } from 'effect'
 import { Command } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -9,13 +9,17 @@ import { evo } from 'foldkit/struct'
 
 import { Listbox } from '@foldkit/ui'
 
+const Person = S.Literals(['Michael Bluth', 'Lindsay Funke', 'Tobias Funke'])
+type Person = typeof Person.Type
+
 // Declare a typed multi-select Listbox once at module scope:
-const PeopleListbox = Listbox.Multi.create<string>()
+const PeopleListbox = Listbox.Multi.create<Person>()
 
 // Add a field to your Model for the Listbox.Multi Submodel, plus a field
-// for the selected values your app actually cares about:
+// for the selected values your app actually cares about. Using the
+// `Person` Schema keeps the field literal-typed end to end:
 const Model = S.Struct({
-  selectedPeople: S.Array(S.String),
+  selectedPeople: S.Array(Person),
   listboxMulti: Listbox.Multi.Model,
   // ...your other fields
 })
@@ -36,9 +40,9 @@ const GotListboxMultiMessage = m('GotListboxMultiMessage', {
 })
 
 // Delegate keyboard navigation, typeahead, and open/close to
-// PeopleListbox.update. The OutMessage's `Selected` carries the toggled
-// item and `wasAdded: boolean` indicating whether it was added or
-// removed:
+// PeopleListbox.update. The OutMessage's `Selected` carries the activated
+// value. The parent owns the selection and decides what it means: for
+// multi-select, toggle the value in and out of its array:
 GotListboxMultiMessage: ({ message }) => {
   const [nextListbox, commands, maybeOutMessage] = PeopleListbox.update(
     model.listboxMulti,
@@ -53,18 +57,15 @@ GotListboxMultiMessage: ({ message }) => {
       evo(model, { listboxMulti: () => nextListbox }),
       mappedCommands,
     ],
-    onSome: M.type<Listbox.OutMessage>().pipe(
+    onSome: M.type<Listbox.OutMessage<Person>>().pipe(
       M.tagsExhaustive({
-        Selected: ({ value, wasAdded }) => [
+        Selected: ({ value }) => [
           evo(model, {
             listboxMulti: () => nextListbox,
             selectedPeople: () =>
-              wasAdded
-                ? Array.append(model.selectedPeople, value)
-                : Array.filter(
-                    model.selectedPeople,
-                    person => person !== value,
-                  ),
+              Array.contains(model.selectedPeople, value)
+                ? Array.filter(model.selectedPeople, person => person !== value)
+                : Array.append(model.selectedPeople, value),
           }),
           mappedCommands,
         ],
@@ -73,7 +74,11 @@ GotListboxMultiMessage: ({ message }) => {
   })
 }
 
-const people = ['Michael Bluth', 'Lindsay Funke', 'Tobias Funke']
+const people: ReadonlyArray<Person> = [
+  'Michael Bluth',
+  'Lindsay Funke',
+  'Tobias Funke',
+]
 
 // Inside your view function, embed the Listbox via h.submodel. Multi-select
 // stays open on selection so the user can toggle several items:
@@ -86,6 +91,8 @@ const view = (model: Model) => {
     view: PeopleListbox.view,
     viewInputs: {
       items: people,
+      // The parent owns the selection and passes its full array in.
+      selectedValues: model.selectedPeople,
       buttonContent: h.span(
         [],
         [

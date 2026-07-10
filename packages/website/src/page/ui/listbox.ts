@@ -12,6 +12,7 @@ import {
   GotListboxMultiDemoMessage,
   type Message,
 } from './message'
+import type { ListboxItem } from './model'
 
 // TABLE OF CONTENTS
 
@@ -34,16 +35,6 @@ export const groupedHeader: TableOfContentsEntry = {
 }
 
 // DEMO CONTENT
-
-type ListboxItem =
-  | 'Michael Bluth'
-  | 'Lindsay Funke'
-  | 'Gob Bluth'
-  | 'George Michael'
-  | 'Maeby Funke'
-  | 'Buster Bluth'
-  | 'Tobias Funke'
-  | 'Lucille Bluth'
 
 const LISTBOX_ITEMS: ReadonlyArray<ListboxItem> = [
   'Michael Bluth',
@@ -108,11 +99,14 @@ const LISTBOX_ANCHOR: AnchorConfig = {
 
 // VIEW
 
-export const basicDemo = (listboxModel: Listbox.Model) => {
+export const basicDemo = (
+  listboxModel: Listbox.Model,
+  maybeSelectedItem: Option.Option<ListboxItem>,
+) => {
   const h = html<Message>()
 
   const buttonLabel = Option.getOrElse(
-    listboxModel.maybeSelectedItem,
+    maybeSelectedItem,
     () => 'Select a Bluth',
   )
 
@@ -137,6 +131,7 @@ export const basicDemo = (listboxModel: Listbox.Model) => {
               viewInputs: {
                 anchor: LISTBOX_ANCHOR,
                 items: LISTBOX_ITEMS,
+                maybeSelectedValue: maybeSelectedItem,
                 itemToConfig: item => ({
                   className: itemClassName,
                   content: h.div(
@@ -169,14 +164,18 @@ export const basicDemo = (listboxModel: Listbox.Model) => {
   ]
 }
 
-export const multiSelectDemo = (listboxModel: Listbox.Multi.Model) => {
+export const multiSelectDemo = (
+  listboxModel: Listbox.Multi.Model,
+  selectedItems: ReadonlyArray<ListboxItem>,
+) => {
   const h = html<Message>()
 
-  const { selectedItems } = listboxModel
   const buttonLabel = Array.match(selectedItems, {
     onEmpty: () => 'Select Bluths',
     onNonEmpty: items =>
-      items.length === 1 ? items[0] : `${items.length} selected`,
+      items.length === 1
+        ? Array.headNonEmpty(items)
+        : `${items.length} selected`,
   })
 
   return [
@@ -200,6 +199,7 @@ export const multiSelectDemo = (listboxModel: Listbox.Multi.Model) => {
               viewInputs: {
                 anchor: LISTBOX_ANCHOR,
                 items: LISTBOX_ITEMS,
+                selectedValues: selectedItems,
                 itemToConfig: item => ({
                   className: itemClassName,
                   content: h.div(
@@ -233,11 +233,14 @@ export const multiSelectDemo = (listboxModel: Listbox.Multi.Model) => {
   ]
 }
 
-export const groupedDemo = (listboxModel: Listbox.Model) => {
+export const groupedDemo = (
+  listboxModel: Listbox.Model,
+  maybeSelectedItem: Option.Option<string>,
+) => {
   const h = html<Message>()
 
   const buttonLabel = Option.getOrElse(
-    listboxModel.maybeSelectedItem,
+    maybeSelectedItem,
     () => 'Select a character',
   )
 
@@ -262,6 +265,7 @@ export const groupedDemo = (listboxModel: Listbox.Model) => {
               viewInputs: {
                 anchor: LISTBOX_ANCHOR,
                 items: GROUPED_CHARACTERS,
+                maybeSelectedValue: maybeSelectedItem,
                 itemToValue: characterName,
                 itemGroupKey: character => character.lastName,
                 groupToHeading: lastName => ({

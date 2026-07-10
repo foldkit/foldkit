@@ -330,7 +330,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         pageTitle('ui/menu', 'Menu'),
         tableOfContentsEntryToHeader(overviewHeader),
         para(
-          'A dropdown menu for actions, like a macOS context menu. Menu is fire-and-forget: it doesn’t track a selected value (use Listbox for persistent selection). It supports typeahead search, drag-to-select, keyboard navigation, grouped items, and anchor positioning.',
+          'A dropdown menu for actions, like a macOS context menu. Menu is fire-and-forget: each activation is an action, not a choice that persists (use Listbox for selection, where the parent owns the selected value). It supports typeahead search, drag-to-select, keyboard navigation, grouped items, and anchor positioning.',
         ),
         para(
           'For programmatic control in update functions, use the factory’s ',

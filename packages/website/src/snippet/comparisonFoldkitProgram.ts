@@ -13,7 +13,7 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => [
     isDrawing: false,
     maybeHoveredCell: Option.none(),
     errorDialog: Dialog.init({ id: 'export-error-dialog' }),
-    themeListbox: Listbox.init({ id: 'theme-picker', selectedItem: '0' }),
+    themeListbox: Listbox.init({ id: 'theme-picker' }),
     // remaining fields elided for brevity
   },
   [],

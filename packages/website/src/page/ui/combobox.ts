@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Array } from 'effect'
+import { Array, Option } from 'effect'
 import { childAttributes, html } from 'foldkit/html'
 
 import { Combobox } from '@foldkit/ui'
@@ -15,6 +15,7 @@ import {
   GotComboboxSelectOnFocusDemoMessage,
   type Message,
 } from './message'
+import type { City } from './model'
 
 // TABLE OF CONTENTS
 
@@ -43,15 +44,6 @@ export const multiHeader: TableOfContentsEntry = {
 }
 
 // DEMO CONTENT
-
-type City =
-  | 'Johannesburg'
-  | 'Kyiv'
-  | 'Oxford'
-  | 'Plymouth'
-  | 'Quito'
-  | 'Wellington'
-  | 'Zurich'
 
 export const CityCombobox = Combobox.create<City>()
 export const CityMultiCombobox = Combobox.Multi.create<City>()
@@ -95,16 +87,23 @@ const filterCities = (inputValue: string): ReadonlyArray<City> =>
         city.toLowerCase().includes(inputValue.toLowerCase()),
       )
 
-export const comboboxViewInputs = (
-  inputValue: string,
-  anchor: AnchorConfig = COMBOBOX_ANCHOR,
-  wrapperClass: string = wrapperClassName,
-): Combobox.ViewInputs<City> => {
+export const comboboxViewInputs = ({
+  inputValue,
+  restingInputValue,
+  anchor = COMBOBOX_ANCHOR,
+  wrapperClass = wrapperClassName,
+}: Readonly<{
+  inputValue: string
+  restingInputValue: string
+  anchor?: AnchorConfig
+  wrapperClass?: string
+}>): Omit<Combobox.ViewInputs<City>, 'maybeSelectedValue'> => {
   const h = html<Message>()
   const filteredCities = filterCities(inputValue)
 
   return {
     items: filteredCities,
+    restingInputValue,
     itemToConfig: (city, context) => ({
       className: itemClassName,
       content: h.div(
@@ -138,7 +137,10 @@ export const comboboxViewInputs = (
 
 // VIEW
 
-export const comboboxDemo = (comboboxModel: Combobox.Model) => {
+export const comboboxDemo = (
+  comboboxModel: Combobox.Model,
+  maybeSelectedCity: Option.Option<City>,
+) => {
   const h = html<Message>()
 
   return [
@@ -160,7 +162,14 @@ export const comboboxDemo = (comboboxModel: Combobox.Model) => {
               model: comboboxModel,
               view: CityCombobox.view,
               viewInputs: {
-                ...comboboxViewInputs(comboboxModel.inputValue),
+                ...comboboxViewInputs({
+                  inputValue: comboboxModel.inputValue,
+                  restingInputValue: Option.getOrElse(
+                    maybeSelectedCity,
+                    () => '',
+                  ),
+                }),
+                maybeSelectedValue: maybeSelectedCity,
               },
               toParentMessage: message => GotComboboxDemoMessage({ message }),
             }),
@@ -171,7 +180,10 @@ export const comboboxDemo = (comboboxModel: Combobox.Model) => {
   ]
 }
 
-export const nullableDemo = (comboboxNullableModel: Combobox.Model) => {
+export const nullableDemo = (
+  comboboxNullableModel: Combobox.Model,
+  maybeSelectedCity: Option.Option<City>,
+) => {
   const h = html<Message>()
 
   return [
@@ -193,7 +205,14 @@ export const nullableDemo = (comboboxNullableModel: Combobox.Model) => {
               model: comboboxNullableModel,
               view: CityCombobox.view,
               viewInputs: {
-                ...comboboxViewInputs(comboboxNullableModel.inputValue),
+                ...comboboxViewInputs({
+                  inputValue: comboboxNullableModel.inputValue,
+                  restingInputValue: Option.getOrElse(
+                    maybeSelectedCity,
+                    () => '',
+                  ),
+                }),
+                maybeSelectedValue: maybeSelectedCity,
               },
               toParentMessage: message =>
                 GotComboboxNullableDemoMessage({ message }),
@@ -207,6 +226,7 @@ export const nullableDemo = (comboboxNullableModel: Combobox.Model) => {
 
 export const selectOnFocusDemo = (
   comboboxSelectOnFocusModel: Combobox.Model,
+  maybeSelectedCity: Option.Option<City>,
 ) => {
   const h = html<Message>()
 
@@ -234,7 +254,14 @@ export const selectOnFocusDemo = (
               model: comboboxSelectOnFocusModel,
               view: CityCombobox.view,
               viewInputs: {
-                ...comboboxViewInputs(comboboxSelectOnFocusModel.inputValue),
+                ...comboboxViewInputs({
+                  inputValue: comboboxSelectOnFocusModel.inputValue,
+                  restingInputValue: Option.getOrElse(
+                    maybeSelectedCity,
+                    () => '',
+                  ),
+                }),
+                maybeSelectedValue: maybeSelectedCity,
               },
               toParentMessage: message =>
                 GotComboboxSelectOnFocusDemoMessage({ message }),
@@ -251,7 +278,10 @@ const tagClassName =
 
 const emptyTagClassName = 'text-sm py-0.5 text-gray-400 dark:text-gray-500'
 
-export const multiDemo = (comboboxMultiModel: Combobox.Multi.Model) => {
+export const multiDemo = (
+  comboboxMultiModel: Combobox.Multi.Model,
+  selectedCities: ReadonlyArray<City>,
+) => {
   const h = html<Message>()
 
   return [
@@ -270,13 +300,13 @@ export const multiDemo = (comboboxMultiModel: Combobox.Multi.Model) => {
           [
             h.div(
               [h.Class('flex flex-wrap gap-1.5 mb-2')],
-              Array.match(comboboxMultiModel.selectedItems, {
+              Array.match(selectedCities, {
                 onEmpty: () => [
                   h.span([h.Class(emptyTagClassName)], ['No selection']),
                 ],
-                onNonEmpty: selectedItems =>
-                  selectedItems.map(item =>
-                    h.span([h.Class(tagClassName)], [item]),
+                onNonEmpty: nonEmptySelectedCities =>
+                  nonEmptySelectedCities.map(city =>
+                    h.span([h.Class(tagClassName)], [city]),
                   ),
               }),
             ),
@@ -285,7 +315,11 @@ export const multiDemo = (comboboxMultiModel: Combobox.Multi.Model) => {
               model: comboboxMultiModel,
               view: CityMultiCombobox.view,
               viewInputs: {
-                ...comboboxViewInputs(comboboxMultiModel.inputValue),
+                ...comboboxViewInputs({
+                  inputValue: comboboxMultiModel.inputValue,
+                  restingInputValue: '',
+                }),
+                selectedValues: selectedCities,
               },
               toParentMessage: message =>
                 GotComboboxMultiDemoMessage({ message }),

@@ -19,6 +19,7 @@ import {
   Opened,
   PortalListboxBackdrop,
   ScrollIntoView,
+  Selected,
   SelectedItem,
   buttonId,
 } from './shared.js'
@@ -45,7 +46,7 @@ const withOpenMulti = flow(
 
 describe('Listbox.Multi', () => {
   describe('init', () => {
-    it('defaults to closed with no active item and no selection', () => {
+    it('defaults to closed with no active item', () => {
       expect(init({ id: 'test' })).toStrictEqual({
         id: 'test',
         isOpen: false,
@@ -57,36 +58,20 @@ describe('Listbox.Multi', () => {
         activationTrigger: 'Keyboard',
         searchQuery: '',
         searchVersion: 0,
-        selectedItems: [],
         maybeLastPointerPosition: Option.none(),
         maybeLastButtonPointerType: Option.none(),
       })
-    })
-
-    it('accepts selectedItems option', () => {
-      const model = init({
-        id: 'test',
-        selectedItems: ['apple', 'banana'],
-      })
-      expect(model.selectedItems).toStrictEqual(['apple', 'banana'])
-    })
-
-    it('defaults selectedItems to empty', () => {
-      const model = init({ id: 'test' })
-      expect(model.selectedItems).toStrictEqual([])
     })
   })
 
   describe('update', () => {
     describe('SelectedItem (multiple)', () => {
-      it('adds item to selectedItems', () => {
+      it('emits Selected with the item value', () => {
         Story.story(
           update,
           withOpenMulti,
           Story.message(SelectedItem({ item: 'apple' })),
-          Story.model(model => {
-            expect(model.selectedItems).toStrictEqual(['apple'])
-          }),
+          Story.expectOutMessage(Selected({ value: 'apple' })),
         )
       })
 
@@ -101,27 +86,25 @@ describe('Listbox.Multi', () => {
         )
       })
 
-      it('toggles item off when already selected', () => {
+      it('emits Selected again when the same item is activated (parent toggles off)', () => {
         Story.story(
           update,
           withOpenMulti,
           Story.message(SelectedItem({ item: 'apple' })),
+          Story.expectOutMessage(Selected({ value: 'apple' })),
           Story.message(SelectedItem({ item: 'apple' })),
-          Story.model(model => {
-            expect(model.selectedItems).toStrictEqual([])
-          }),
+          Story.expectOutMessage(Selected({ value: 'apple' })),
         )
       })
 
-      it('accumulates multiple selections', () => {
+      it('emits Selected for each activated item', () => {
         Story.story(
           update,
           withOpenMulti,
           Story.message(SelectedItem({ item: 'apple' })),
+          Story.expectOutMessage(Selected({ value: 'apple' })),
           Story.message(SelectedItem({ item: 'banana' })),
-          Story.model(model => {
-            expect(model.selectedItems).toStrictEqual(['apple', 'banana'])
-          }),
+          Story.expectOutMessage(Selected({ value: 'banana' })),
         )
       })
 
@@ -171,6 +154,7 @@ describe('Listbox.Multi', () => {
             content: null,
           }),
           buttonContent: null,
+          selectedValues: [],
           ...overrides,
         })
 
@@ -253,13 +237,12 @@ describe('Listbox.Multi', () => {
 
     describe('multiple data-selected', () => {
       it('multiple items have data-selected', () => {
-        const model = {
-          ...openMultiModel(),
-          selectedItems: ['Apple', 'Banana'],
-        }
         Scene.scene(
-          { update, view: sceneView() },
-          Scene.with(model),
+          {
+            update,
+            view: sceneView({ selectedValues: ['Apple', 'Banana'] }),
+          },
+          Scene.with(openMultiModel()),
           Scene.tap(({ html }) => {
             expect(Scene.find(html, '[key="test-item-0"]')).toHaveAttr(
               'data-selected',
@@ -278,13 +261,15 @@ describe('Listbox.Multi', () => {
 
     describe('form integration', () => {
       it('renders multiple hidden inputs for multi-select', () => {
-        const model = {
-          ...closedModel(),
-          selectedItems: ['Apple', 'Banana'],
-        }
         Scene.scene(
-          { update, view: sceneView({ name: 'fruit' }) },
-          Scene.with(model),
+          {
+            update,
+            view: sceneView({
+              name: 'fruit',
+              selectedValues: ['Apple', 'Banana'],
+            }),
+          },
+          Scene.with(closedModel()),
           Scene.tap(({ html }) => {
             const inputs = Scene.findAll(html, 'input[type="hidden"]')
             expect(inputs).toHaveLength(2)
@@ -307,16 +292,6 @@ describe('Listbox.Multi', () => {
           }),
         )
       })
-    })
-  })
-
-  describe('reflectSelectedItems', () => {
-    it('reflects a selection set onto the model without emitting', () => {
-      const next = TestListbox.reflectSelectedItems(init({ id: 'test' }), [
-        'a',
-        'b',
-      ])
-      expect(next.selectedItems).toStrictEqual(['a', 'b'])
     })
   })
 })

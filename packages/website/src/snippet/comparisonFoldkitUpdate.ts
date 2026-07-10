@@ -39,6 +39,6 @@ export const update = (
             return [nextModel, [saveCanvas(nextModel)]]
           },
         }),
-      // ... 28 more handlers
+      // ... 20 more handlers
     }),
   )

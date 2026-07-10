@@ -125,6 +125,7 @@ export const toolPanelView = (
   selectedColorIndex: PaletteIndex,
   isCanvasEmpty: boolean,
   theme: PaletteTheme,
+  paletteThemeIndex: number,
   themeListbox: typeof Listbox.Model.Type,
 ): Html => {
   const h = html<Message>()
@@ -135,7 +136,12 @@ export const toolPanelView = (
       toolSectionView(tool),
       mirrorSectionView(mirrorMode),
       sizeSectionView(gridSize),
-      paletteSectionView(selectedColorIndex, theme, themeListbox),
+      paletteSectionView(
+        selectedColorIndex,
+        theme,
+        paletteThemeIndex,
+        themeListbox,
+      ),
       clearCanvasView(isCanvasEmpty),
     ],
   )
@@ -308,6 +314,7 @@ const sizeSectionView = (gridSize: number): Html => {
 const paletteSectionView = (
   selectedColorIndex: PaletteIndex,
   theme: PaletteTheme,
+  paletteThemeIndex: number,
   themeListbox: typeof Listbox.Model.Type,
 ): Html => {
   const h = html<Message>()
@@ -359,7 +366,7 @@ const paletteSectionView = (
             }),
           ),
       }),
-      themeListboxView(themeListbox, theme),
+      themeListboxView(themeListbox, theme, paletteThemeIndex),
     ],
   )
 }
@@ -367,6 +374,7 @@ const paletteSectionView = (
 const themeListboxView = (
   themeListbox: typeof Listbox.Model.Type,
   theme: PaletteTheme,
+  paletteThemeIndex: number,
 ): Html => {
   const h = html<Message>()
 
@@ -377,6 +385,7 @@ const themeListboxView = (
     viewInputs: {
       anchor: THEME_LISTBOX_ANCHOR,
       items: THEME_INDEX_STRINGS,
+      maybeSelectedValue: Option.some(paletteThemeIndex.toString()),
       itemToConfig: (indexString, { isSelected }) => {
         const themeName =
           PALETTE_THEMES[Number(indexString)]?.name ?? indexString

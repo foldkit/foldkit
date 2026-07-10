@@ -103,7 +103,7 @@ GotCalendarMessage: ({ message }) => {
 // receives a discriminated `CalendarAttributes` whose variant matches the
 // calendar's current `viewMode`. Pattern-match on `_tag` to render the
 // day grid, the months grid, or the years grid:
-const view = () => {
+const view = (model: Model) => {
   const h = html<Message>()
 
   return h.submodel({

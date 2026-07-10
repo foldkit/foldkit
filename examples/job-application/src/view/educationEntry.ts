@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Array } from 'effect'
+import { Array, Option } from 'effect'
 import { Submodel } from 'foldkit'
 import { type CalendarDate } from 'foldkit/calendar'
 import { type Html, html } from 'foldkit/html'
@@ -48,12 +48,15 @@ export const educationEntryView = Submodel.defineView<
         view: GraduationYearListbox.view,
         viewInputs: {
           items: graduationYears(today),
+          maybeSelectedValue: model.maybeGraduationYear,
           buttonContent: h.div(
             [h.Class('flex w-full items-center justify-between gap-2')],
             [
-              model.graduationYear
-                ? h.span([], [model.graduationYear])
-                : h.span([h.Class('text-gray-400')], ['Select year']),
+              Option.match(model.maybeGraduationYear, {
+                onNone: () =>
+                  h.span([h.Class('text-gray-400')], ['Select year']),
+                onSome: graduationYear => h.span([], [graduationYear]),
+              }),
               h.span([h.Class('text-gray-400 shrink-0')], [chevronDown()]),
             ],
           ),

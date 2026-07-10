@@ -10,7 +10,9 @@ const GotTabsMessage = m('GotTabsMessage', {
   message: Tabs.Message,
 })
 
-type Framework = 'Foldkit' | 'React' | 'Elm'
+const Framework = S.Literals(['Foldkit', 'React', 'Elm'])
+type Framework = typeof Framework.Type
+
 const FrameworkTabs = Tabs.create<Framework>()
 const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']
 
