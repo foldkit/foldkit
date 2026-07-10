@@ -75,6 +75,17 @@ const y = 2</code></pre>
     expect(extractMarkdownFromCurrentDocument(SITE_URL)).toBe('1. one\n2. two')
   })
 
+  it('prefixes labeled code blocks with a bold label line', () => {
+    setBody(`
+      <div data-llm-label="pnpm">
+        <pre><code class="language-bash">pnpm dev</code></pre>
+      </div>
+    `)
+    expect(extractMarkdownFromCurrentDocument(SITE_URL)).toBe(
+      '**pnpm**\n\n```bash\npnpm dev\n```',
+    )
+  })
+
   it('skips elements marked data-llm-ignore', () => {
     setBody(`
       <p>kept paragraph</p>

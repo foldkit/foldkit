@@ -8,7 +8,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
-import { routingAndNavigationRouter } from '../../route'
+import { coreEmbeddingRouter, routingAndNavigationRouter } from '../../route'
 import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -42,12 +42,19 @@ const makeElementHeader: TableOfContentsEntry = {
   text: 'makeElement',
 }
 
+const embedHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'embed',
+  text: 'embed',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   makeApplicationHeader,
   withoutRoutingHeader,
   withRoutingHeader,
   makeElementHeader,
+  embedHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
@@ -189,6 +196,20 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'Copy makeElement example to clipboard',
         copiedSnippets,
         'mb-8',
+      ),
+      tableOfContentsEntryToHeader(embedHeader),
+      para(
+        inlineCode('makeElement'),
+        ' mounts a self-contained app in a container. ',
+        inlineCode('Runtime.embed'),
+        ' goes further for a widget embedded in a host application, whether that host is React or anything else. The host starts the runtime, seeds it with Flags, exchanges values through Schema-typed Ports, and tears it down with ',
+        inlineCode('dispose'),
+        '. The handle is the whole boundary: the host never reads the Model or dispatches Messages.',
+      ),
+      para(
+        'The ',
+        link(coreEmbeddingRouter(), 'Embedding'),
+        ' guide has the full walkthrough.',
       ),
     ],
   )

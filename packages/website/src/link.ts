@@ -1,7 +1,7 @@
 const exampleBase = 'https://github.com/foldkit/foldkit/tree/main/examples'
 
 export const exampleSourceHref = (slug: string): string =>
-  `${exampleBase}/${slug}/src/main.ts`
+  `${exampleBase}/${slug}/src`
 
 export const uiShowcaseViewSourceHref = (slug: string): string =>
   `https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/${slug}.ts`
@@ -53,5 +53,5 @@ export const Link = {
   changelog:
     'https://github.com/foldkit/foldkit/blob/main/packages/foldkit/CHANGELOG.md',
   dragAndDropDocumentStyles:
-    'https://github.com/foldkit/foldkit/blob/main/packages/foldkit/src/ui/dragAndDrop/index.ts#L679-L701',
+    'https://github.com/foldkit/foldkit/blob/main/packages/ui/src/dragAndDrop/index.ts#L663-L689',
 }

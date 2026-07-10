@@ -729,7 +729,9 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       UiOverview: () =>
         withTableOfContents(
-          Page.UiPages.OverviewPage.view(),
+          lazyDocsContent(Page.UiPages.OverviewPage.view, [
+            model.copiedSnippets,
+          ]),
           Page.UiPages.OverviewPage.tableOfContents,
         ),
       UiSelectionSubmodels: () =>

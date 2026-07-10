@@ -1,4 +1,5 @@
 import { Html, html } from 'foldkit/html'
+import { effectVersion } from 'virtual:landing-data'
 
 import { Link } from '../link'
 import type { TableOfContentsEntry } from '../main'
@@ -23,10 +24,17 @@ import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 
 const CREATE_FOLDKIT_APP_COMMAND = 'npx create-foldkit-app@latest'
+const MANUAL_INSTALL_COMMAND = `npm install foldkit effect@${effectVersion} @effect/platform-browser@${effectVersion}`
 const DEV_PNPM = 'pnpm dev'
 const DEV_NPM = 'npm run dev'
 const DEV_YARN = 'yarn dev'
 const DEV_BUN = 'bun dev'
+
+const requirementsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'requirements',
+  text: 'Requirements',
+}
 
 const quickStartHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -41,6 +49,7 @@ const projectStructureHeader: TableOfContentsEntry = {
 }
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
+  requirementsHeader,
   quickStartHeader,
   projectStructureHeader,
 ]
@@ -61,6 +70,29 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         link(coreArchitectureRouter(), 'Architecture'),
         '.',
       ),
+      tableOfContentsEntryToHeader(requirementsHeader),
+      para(
+        inlineCode('create-foldkit-app'),
+        ' requires Node.js 22.22.2 or newer.',
+      ),
+      para(
+        'Foldkit is built on the Effect v4 beta and pins its peer dependencies to an exact version: ',
+        inlineCode(`effect@${effectVersion}`),
+        ' and ',
+        inlineCode(`@effect/platform-browser@${effectVersion}`),
+        '. Stable Effect v3 does not satisfy the pin, so adding Foldkit to a project that already uses Effect v3 will produce peer dependency conflicts, and upgrading Foldkit can require upgrading the Effect beta in lockstep. Projects scaffolded with ',
+        inlineCode('create-foldkit-app'),
+        ' get the correct versions automatically.',
+      ),
+      para(
+        'To add Foldkit to an existing project instead of scaffolding a new one, install it together with its pinned peer dependencies:',
+      ),
+      codeBlock(
+        MANUAL_INSTALL_COMMAND,
+        'Copy manual install command',
+        copiedSnippets,
+        'mb-8',
+      ),
       tableOfContentsEntryToHeader(quickStartHeader),
       para(
         link(Link.createFoldkitApp, 'Create Foldkit app'),
@@ -75,15 +107,27 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'mb-8',
       ),
       para(
-        'Once the project is created, navigate to the project directory and start the dev server:',
+        'Once the project is created, navigate to the project directory and start the dev server. Each command below is the same step for a different package manager, so pick the one you use:',
       ),
       h.div(
         [h.Class('flex gap-2 flex-wrap mb-8')],
         [
-          codeBlock(DEV_PNPM, 'Copy pnpm command', copiedSnippets),
-          codeBlock(DEV_NPM, 'Copy npm command', copiedSnippets),
-          codeBlock(DEV_YARN, 'Copy yarn command', copiedSnippets),
-          codeBlock(DEV_BUN, 'Copy bun command', copiedSnippets),
+          h.div(
+            [h.DataAttribute('llm-label', 'pnpm')],
+            [codeBlock(DEV_PNPM, 'Copy pnpm command', copiedSnippets)],
+          ),
+          h.div(
+            [h.DataAttribute('llm-label', 'npm')],
+            [codeBlock(DEV_NPM, 'Copy npm command', copiedSnippets)],
+          ),
+          h.div(
+            [h.DataAttribute('llm-label', 'yarn')],
+            [codeBlock(DEV_YARN, 'Copy yarn command', copiedSnippets)],
+          ),
+          h.div(
+            [h.DataAttribute('llm-label', 'bun')],
+            [codeBlock(DEV_BUN, 'Copy bun command', copiedSnippets)],
+          ),
         ],
       ),
       infoCallout(

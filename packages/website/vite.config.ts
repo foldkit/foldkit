@@ -718,7 +718,10 @@ const landingDataPlugin = (): Plugin => ({
       await readFile(resolve(__dirname, '../foldkit/package.json'), 'utf-8'),
     )
 
-    return `export const foldkitVersion = ${JSON.stringify(packageJson.version)}`
+    return [
+      `export const foldkitVersion = ${JSON.stringify(packageJson.version)}`,
+      `export const effectVersion = ${JSON.stringify(packageJson.peerDependencies.effect)}`,
+    ].join('\n')
   },
 })
 

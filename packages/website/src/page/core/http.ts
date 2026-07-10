@@ -79,6 +79,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('Http.layer'),
         ' at the edge of its Effect.',
       ),
+      para(
+        'The snippet on this page imports from ',
+        inlineCode('effect/unstable/http'),
+        '. In the Effect v4 beta that Foldkit pins, the ',
+        inlineCode('HttpClient'),
+        ' modules live under the unstable namespace, so that import path is expected and matches what Foldkit projects use.',
+      ),
       tableOfContentsEntryToHeader(propagationHeader),
       para(
         'Effect’s ',

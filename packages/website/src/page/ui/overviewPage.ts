@@ -1,8 +1,8 @@
 import { Array } from 'effect'
 import { Html, html } from 'foldkit/html'
 
-import type { TableOfContentsEntry } from '../../main'
-import { heading, link, pageTitle, para } from '../../prose'
+import { Message, type TableOfContentsEntry } from '../../main'
+import { heading, inlineCode, link, pageTitle, para } from '../../prose'
 import {
   coreSubmodelRouter,
   exampleDetailRouter,
@@ -29,6 +29,9 @@ import {
   uiTabsRouter,
   uiTextareaRouter,
 } from '../../route'
+import { type CopiedSnippets, codeBlock } from '../../view/codeBlock'
+
+const INSTALL_COMMAND = 'npm install @foldkit/ui'
 
 // TABLE OF CONTENTS
 
@@ -36,6 +39,12 @@ const whatIsFoldkitUiHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'what-is-foldkit-ui',
   text: 'What is Foldkit UI?',
+}
+
+const installationHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'installation',
+  text: 'Installation',
 }
 
 const twoCategoriesHeader: TableOfContentsEntry = {
@@ -58,6 +67,7 @@ const showcaseHeader: TableOfContentsEntry = {
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   whatIsFoldkitUiHeader,
+  installationHeader,
   twoCategoriesHeader,
   componentsHeader,
   showcaseHeader,
@@ -262,8 +272,8 @@ const headerCellClassName =
 
 // VIEW
 
-export const view = (): Html => {
-  const h = html()
+export const view = (copiedSnippets: CopiedSnippets): Html => {
+  const h = html<Message>()
 
   const kindBadgeClassName = (kind: ComponentKind): string =>
     kind === 'Submodel'
@@ -330,6 +340,29 @@ export const view = (): Html => {
       ),
       para(
         'Foldkit UI is a set of headless, accessible UI components. Each component is renderless. You provide the markup and styling through a toView callback, and Foldkit UI provides the accessibility attributes, keyboard navigation, and (where applicable) state management.',
+      ),
+      heading(
+        installationHeader.level,
+        installationHeader.id,
+        installationHeader.text,
+      ),
+      para(
+        inlineCode('@foldkit/ui'),
+        ' is a separate package from ',
+        inlineCode('foldkit'),
+        '. Projects scaffolded by ',
+        inlineCode('create-foldkit-app'),
+        ' from an example that uses UI components already include it. Its peer dependencies are ',
+        inlineCode('foldkit'),
+        ' and ',
+        inlineCode('effect'),
+        ', which every Foldkit project already has. Add it to any other project with:',
+      ),
+      codeBlock(
+        INSTALL_COMMAND,
+        'Copy install command to clipboard',
+        copiedSnippets,
+        'mb-8',
       ),
       heading(
         twoCategoriesHeader.level,

@@ -118,7 +118,10 @@ export const extractMarkdownFromCurrentDocument = (siteUrl: string): string => {
     const source = codeElement ?? element
     const text = (source.textContent ?? '').replace(/\n+$/, '')
     const language = detectLanguage(element)
-    return `\`\`\`${language}\n${text}\n\`\`\``
+    const labelCarrier = element.closest('[data-llm-label]')
+    const label = labelCarrier?.getAttribute('data-llm-label') ?? ''
+    const labelPrefix = label.length > 0 ? `**${label}**\n\n` : ''
+    return `${labelPrefix}\`\`\`${language}\n${text}\n\`\`\``
   }
 
   const indentBlock = (text: string, indent: string): string =>

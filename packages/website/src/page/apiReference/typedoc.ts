@@ -4,6 +4,7 @@ export const TypeDocFlags = S.Struct({
   isOptional: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
   isPrivate: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
   isProtected: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
+  isRest: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
   isStatic: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
 })
 
@@ -13,6 +14,7 @@ const defaultFlags: TypeDocFlags = {
   isOptional: false,
   isPrivate: false,
   isProtected: false,
+  isRest: false,
   isStatic: false,
 }
 

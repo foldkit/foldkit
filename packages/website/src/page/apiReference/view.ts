@@ -288,6 +288,7 @@ const parameterView = (parameter: ApiParameter): ReadonlyArray<Html> => {
   const h = html<Message>()
 
   return [
+    ...(parameter.isRest ? [punctuation('...')] : []),
     h.span(
       [h.Class('font-normal text-gray-900 dark:text-gray-200')],
       [parameter.name],

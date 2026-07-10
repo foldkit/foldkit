@@ -36,6 +36,7 @@ export const ApiParameter = S.Struct({
   name: S.String,
   type: S.String,
   isOptional: S.Boolean,
+  isRest: S.Boolean,
   defaultValue: NullableString,
   description: NullableString,
 })
@@ -279,6 +280,7 @@ const parseParameter =
     name: parameter.name,
     type: typeToString(parameter.type, 0, namedSchemas),
     isOptional: parameter.flags.isOptional,
+    isRest: parameter.flags.isRest,
     defaultValue: parameter.defaultValue,
     description: pipe(
       parameter.comment,
