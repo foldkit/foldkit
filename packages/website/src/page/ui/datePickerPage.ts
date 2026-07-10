@@ -132,10 +132,10 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
       'The current calendar date. Typically fetched at the app boundary via Calendar.today.local and threaded through flags.',
   },
   {
-    name: 'initialSelectedDate',
+    name: 'initialViewDate',
     type: 'CalendarDate',
     description:
-      'Pre-selected date. When set, the view starts on the month containing this date.',
+      'Seeds the month the calendar opens onto. When set, the view starts on the month containing this date. The parent owns the selection itself; pass its current value here to open onto that month.',
   },
   {
     name: 'isAnimated',
@@ -182,12 +182,6 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
 const modelProps: ReadonlyArray<PropEntry> = [
   { name: 'id', type: 'string', description: 'The date picker instance ID.' },
   {
-    name: 'maybeSelectedDate',
-    type: 'Option<CalendarDate>',
-    description:
-      'The committed selection. In uncontrolled mode, the date picker manages this automatically when the user picks a date. In controlled mode, the parent owns the value and writes it back via DatePicker.selectDate.',
-  },
-  {
     name: 'calendar',
     type: 'Calendar.Model',
     description:
@@ -206,6 +200,12 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'model',
     type: 'DatePicker.Model',
     description: 'The date picker state from your parent Model.',
+  },
+  {
+    name: 'maybeSelectedDate',
+    type: 'Option<CalendarDate>',
+    description:
+      'The parent-owned selected date. Passed through to the calendar (selected-day marker), the trigger content, and the hidden form input. The picker does not store the selection itself; fold the SelectedDate and ClearedDate OutMessages into this field and pass it back on every render.',
   },
   {
     name: 'toParentMessage',
@@ -284,6 +284,12 @@ const outMessagesProps: ReadonlyArray<PropEntry> = [
       'Emitted when the user commits a date (click / Enter / Space). Pattern-match the third tuple element of DatePicker.update in your GotDatePickerMessage handler to lift the date into domain state.',
   },
   {
+    name: 'ClearedDate',
+    type: '{}',
+    description:
+      'Emitted when the user clears the selected date (via Cleared or DatePicker.clear). The popover stays open. Fold it into the parent-owned selected-date field by setting it to Option.none().',
+  },
+  {
     name: 'ChangedViewMonth',
     type: '{ year: number; month: number }',
     description:
@@ -296,18 +302,19 @@ const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
     name: 'selectDate',
     type: '(model: Model, date: CalendarDate) => [Model, Commands, Option<OutMessage>]',
     description:
-      'Commits the given date and closes the popover, emitting SelectedDate. Use for a programmatic selection equivalent to a user pick. To mirror an external date without emitting (restoring from storage, a URL), use reflectSelectedDate.',
+      'Commits the given date and closes the popover, emitting SelectedDate. Use for a programmatic selection equivalent to a user pick. To move the embedded calendar onto a date without selecting it (opening onto an externally-sourced value), use focusDate.',
   },
   {
-    name: 'reflectSelectedDate',
-    type: '(model: Model, maybeDate: Option<CalendarDate>) => Model',
+    name: 'focusDate',
+    type: '(model: Model, date: CalendarDate) => Model',
     description:
-      'Reflects an externally-sourced selected date onto the picker and its embedded calendar without emitting an OutMessage or touching the popover. Pass Option.none() to clear. Use to mirror external truth (a URL, a saved draft).',
+      'Moves the embedded calendar view and cursor to a date without changing the selection (which the parent owns). Use it to navigate the picker onto a known date, for example after the parent sets its value externally (a URL, a saved draft) so opening the picker shows that month. Returns the model directly: no Command, no OutMessage.',
   },
   {
     name: 'clear',
-    type: '(model: Model) => [Model, Commands]',
-    description: 'Clears the selected date. Does not close the popover.',
+    type: '(model: Model) => [Model, Commands, Option<OutMessage>]',
+    description:
+      'Clears the selected date, emitting ClearedDate so the parent resets its own field. Does not close the popover.',
   },
   {
     name: 'open',
@@ -453,9 +460,17 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           link(`${coreSubmodelRouter()}#surfacing-facts`, 'OutMessage'),
           ' carries ',
           inlineCode('SelectedDate({ date })'),
-          ' when the user commits a date and ',
+          ' when the user commits a date, ',
+          inlineCode('ClearedDate'),
+          ' when the user clears it, and ',
           inlineCode('ChangedViewMonth'),
-          ' when navigation shifts the visible month. Pattern-match the third tuple element of ',
+          ' when navigation shifts the visible month. The parent owns the selected date: store it in your Model, pass it back as ',
+          inlineCode('maybeSelectedDate'),
+          ', and fold ',
+          inlineCode('SelectedDate'),
+          ' and ',
+          inlineCode('ClearedDate'),
+          ' into that field. Pattern-match the third tuple element of ',
           inlineCode('DatePicker.update'),
           ' in your ',
           inlineCode('GotDatePickerMessage'),
@@ -664,8 +679,10 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           'The four ',
           inlineCode('reflect*'),
           ' helpers are how you implement cross-field date validation. Constraints are set at init time and updated via these helpers. They do not live on ViewConfig, because the update function needs them for keyboard-navigation disabled-skipping and commit-time validation. For an end date that must be on or after a start date, call ',
-          inlineCode('reflectMinDate(endDate, startDate.maybeSelectedDate)'),
-          ' in the handler that processes the start date change.',
+          inlineCode('reflectMinDate(endDate, maybeStartDate)'),
+          ' in the handler that processes the start date change, where ',
+          inlineCode('maybeStartDate'),
+          ' is the parent-owned start-date field.',
         ),
         propTable(programmaticHelpersProps),
       ],

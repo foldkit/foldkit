@@ -326,6 +326,7 @@ export const landingView = (model: Model) => {
     view: DemoTab.DemoTabs.view,
     viewInputs: {
       tabs: DemoTab.all,
+      selectedValue: model.activeDemoTab,
       ariaLabel: 'Demo tabs',
       orientation: model.isNarrowViewport ? 'Horizontal' : 'Vertical',
       toView: ({ tablist, tabs, activeIndex }) =>

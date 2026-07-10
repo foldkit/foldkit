@@ -440,7 +440,7 @@ Every message must carry meaning. No `NoOp`.
 - Use `M.value(message).pipe(withUpdateReturn, M.tagsExhaustive({...}))`. Never switch
 - Every case returns `[Model, ReadonlyArray<Command<Message>>]`
 - Use `evo(model, { field: () => newValue })` for immutable updates
-- In `evo`, use point-free field transformers when the update only depends on that field's current value: `items: Array.map(updateItem)`, `count: Number.increment`, `stepTabs: Tabs.reflectSelectedTab(value, steps)`. Use `() => value` for replacement values from Messages, child updates, Commands, or other Model fields.
+- In `evo`, use point-free field transformers when the update only depends on that field's current value: `items: Array.map(updateItem)`, `count: Number.increment`, `priceSlider: Slider.reflectRange({ min: minPrice, max: maxPrice })`. Use `() => value` for replacement values from Messages, child updates, Commands, or other Model fields.
 - Extract complex handlers to separate functions when a case exceeds ~15 lines
 - For Submodels: return `[Model, ReadonlyArray<Command<Message>>, Option.Option<OutMessage>]`
 - See the OutMessage pattern in [architecture.md](architecture.md). Child modules signal to parents via `Option.some(OutMessage)`, parents handle with `Got*` Messages and `M.tagsExhaustive`

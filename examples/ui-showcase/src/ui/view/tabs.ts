@@ -9,9 +9,7 @@ import {
   GotVerticalTabsDemoMessage,
   type UiMessage,
 } from '../message'
-import type { UiModel } from '../model'
-
-type DemoTab = 'Foldkit' | 'React' | 'Elm'
+import { type DemoTab, type UiModel } from '../model'
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']
 
@@ -124,6 +122,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         view: DemoTabs.view,
         viewInputs: {
           tabs: demoTabs,
+          selectedValue: model.horizontalTabsDemoTab,
           ariaLabel: 'Framework comparison tabs',
           toView: ({ tablist, tabs, activeIndex }) =>
             h.div(
@@ -162,6 +161,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         view: DemoTabs.view,
         viewInputs: {
           tabs: demoTabs,
+          selectedValue: model.verticalTabsDemoTab,
           ariaLabel: 'Framework comparison tabs',
           orientation: 'Vertical',
           toView: ({ tablist, tabs, activeIndex }) =>

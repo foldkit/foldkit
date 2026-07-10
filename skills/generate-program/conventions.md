@@ -265,7 +265,7 @@ evo(model, { email: () => value })
 evo(model, { child: () => nextChild })
 ```
 
-This applies to curried component reflect helpers too. If `Tabs.reflectSelectedTab(value, options)` returns a setter for the existing `Tabs.Model`, use it directly in the `stepTabs` field instead of closing over `model.stepTabs`.
+This applies to component reflect helpers too, which are dual: called data-last, `Slider.reflectRange({ min: minPrice, max: maxPrice })` returns a setter for the existing `Slider.Model` (mirroring URL-owned price bounds onto the slider), so use it directly in the `priceSlider` field instead of closing over `model.priceSlider`.
 
 Never mutate the model directly. **Never use spread syntax for updates.** `evo` is the canonical pattern. This applies to nested updates too: `evo(model, { newLinkForm: () => ({ ...model.newLinkForm, title: value }) })` is wrong. Use a nested `evo`: `evo(model, { newLinkForm: () => evo(model.newLinkForm, { title: () => value }) })`. The spread-inside-evo pattern is a common mistake. You're using `evo` at the outer level but bypassing it inside, which loses the invariant that all updates go through one codepath.
 

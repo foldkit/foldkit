@@ -31,6 +31,7 @@ const view = (model: Model) => {
     view: FrameworkTabs.view,
     viewInputs: {
       tabs: frameworks,
+      selectedValue: model.activeFramework,
       ariaLabel: 'Framework comparison',
       orientation: 'Vertical',
       toView: ({ tablist, tabs, activeIndex }) =>

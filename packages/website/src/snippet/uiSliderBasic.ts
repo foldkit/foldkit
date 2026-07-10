@@ -9,22 +9,24 @@ import { evo } from 'foldkit/struct'
 
 import { Slider } from '@foldkit/ui'
 
-// Add a field to your Model for the Slider Submodel:
+// Add two fields to your Model: the value you own, and the Slider Submodel's
+// interaction state:
 const Model = S.Struct({
+  ratingValue: S.Number,
   ratingDemo: Slider.Model,
   // ...your other fields
 })
 
-// In your init function, initialize the Slider Submodel with min / max /
-// step and a unique id:
+// In your init function, seed the value (snapped to the range) and initialize
+// the Slider Submodel with min / max / step and a unique id:
 const init = () => [
   {
+    ratingValue: Slider.snapAndClamp(3, 0, 10, 1),
     ratingDemo: Slider.init({
       id: 'rating',
       min: 0,
       max: 10,
       step: 1,
-      initialValue: 3,
     }),
     // ...your other fields
   },
@@ -56,12 +58,13 @@ GotSliderMessage: ({ message }) => {
     onSome: M.type<Slider.OutMessage>().pipe(
       M.tagsExhaustive({
         ChangedValue: ({ value }) => [
-          // The child has emitted `ChangedValue`. The body commits
-          // the child's next state as usual. In this arm the parent
-          // can also update its own state or dispatch its own
-          // Commands, for example persist the value, validate, or
-          // trigger a downstream Command.
-          evo(model, { ratingDemo: () => nextSlider }),
+          // The child has emitted `ChangedValue`. Store the new value
+          // in the field you own. This arm is also where the parent
+          // can validate, persist, or trigger a downstream Command.
+          evo(model, {
+            ratingValue: () => value,
+            ratingDemo: () => nextSlider,
+          }),
           mappedCommands,
         ],
       }),
@@ -96,6 +99,7 @@ const view = (model: Model) => {
     model: model.ratingDemo,
     view: Slider.view,
     viewInputs: {
+      value: model.ratingValue,
       formatValue: value => `${String(value)} of 10`,
       toView: attributes =>
         h.div(
@@ -110,7 +114,7 @@ const view = (model: Model) => {
                 ),
                 h.span(
                   [h.Class('tabular-nums text-gray-600')],
-                  [`${String(model.ratingDemo.value)} / 10`],
+                  [`${String(model.ratingValue)} / 10`],
                 ),
               ],
             ),

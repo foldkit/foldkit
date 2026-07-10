@@ -47,6 +47,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             model: model.sliderRatingDemo,
             view: Slider.view,
             viewInputs: {
+              value: model.sliderRatingValue,
               formatValue: value => `${value} of 10`,
               toView: attributes =>
                 h.div(
@@ -61,7 +62,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                         ),
                         h.span(
                           [h.Class(valueClassName)],
-                          [ratingFormatted(model.sliderRatingDemo.value)],
+                          [ratingFormatted(model.sliderRatingValue)],
                         ),
                       ],
                     ),
@@ -96,6 +97,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
             model: model.sliderVolumeDemo,
             view: Slider.view,
             viewInputs: {
+              value: model.sliderVolumeValue,
               formatValue: value => `${Math.round(value * 100)} percent`,
               toView: attributes =>
                 h.div(
@@ -110,7 +112,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                         ),
                         h.span(
                           [h.Class(valueClassName)],
-                          [volumeFormatted(model.sliderVolumeDemo.value)],
+                          [volumeFormatted(model.sliderVolumeValue)],
                         ),
                       ],
                     ),

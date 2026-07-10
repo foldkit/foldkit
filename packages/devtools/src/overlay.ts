@@ -86,20 +86,9 @@ const SUBMODEL_FILTER_ID = 'dt-submodel-filter'
 const FLATTEN_SWITCH_ID = 'dt-flatten-switch'
 const SCRUBBER_SLIDER_ID = 'dt-scrubber'
 
-const InspectorTabsModel = S.Struct({
-  id: S.String,
-  activeIndex: S.Number,
-  focusedIndex: S.Number,
-  activationMode: S.Literals(['Automatic', 'Manual']),
-})
-
-type InspectorTab = 'Model' | 'Message' | 'Commands' | 'Mounts'
-const INSPECTOR_TABS: ReadonlyArray<InspectorTab> = [
-  'Model',
-  'Message',
-  'Commands',
-  'Mounts',
-]
+const InspectorTab = S.Literals(['Model', 'Message', 'Commands', 'Mounts'])
+type InspectorTab = typeof InspectorTab.Type
+const INSPECTOR_TABS: ReadonlyArray<InspectorTab> = InspectorTab.literals
 const InspectorTabs = Tabs.create<InspectorTab>()
 
 /**
@@ -143,7 +132,8 @@ const Model = S.Struct({
   changedPaths: S.HashSet(S.String),
   affectedPaths: S.HashSet(S.String),
   maybePendingScrubIndex: S.Option(S.Number),
-  inspectorTabs: InspectorTabsModel,
+  inspectorTabs: Tabs.Model,
+  activeInspectorTab: InspectorTab,
   // NOTE: empirically, inlining `Slider.Model` here throws
   // "Cannot read properties of undefined (reading 'ast')" when running slider
   // tests, because slider imports html → runtime → overlay, and overlay
@@ -153,6 +143,7 @@ const Model = S.Struct({
   // pinned down. Suspend is the conservative fix until the runtime ↔ overlay
   // cycle is broken at the source.
   scrubberSlider: S.suspend((): typeof Slider.Model => Slider.Model),
+  scrubberValue: S.Number,
 })
 type Model = typeof Model.Type
 
@@ -660,14 +651,22 @@ const makeUpdate = (
           [],
         ],
         GotInspectorTabsMessage: ({ message: tabsMessage }) => {
-          const [nextTabsModel, tabsCommands] = InspectorTabs.update(
-            model.inspectorTabs,
-            tabsMessage,
-          )
+          const [nextTabsModel, tabsCommands, maybeOutMessage] =
+            InspectorTabs.update(model.inspectorTabs, tabsMessage)
+
+          const nextActiveInspectorTab = Option.match(maybeOutMessage, {
+            onNone: () => model.activeInspectorTab,
+            onSome: M.type<Tabs.OutMessage<InspectorTab>>().pipe(
+              M.tagsExhaustive({
+                Selected: ({ value }) => value,
+              }),
+            ),
+          })
 
           return [
             evo(model, {
               inspectorTabs: () => nextTabsModel,
+              activeInspectorTab: () => nextActiveInspectorTab,
             }),
             Command.mapMessages(tabsCommands, message =>
               GotInspectorTabsMessage({ message }),
@@ -714,6 +713,11 @@ const makeUpdate = (
             filterTag => !Array_.contains(nextSubmodelTags, filterTag),
           )
 
+          const sliderMax = entries.length
+          const targetSliderValue = isPaused
+            ? hostIndexToSliderValue(pausedAtIndex, startIndex)
+            : sliderMax
+
           return [
             evo(model, {
               entries: () => entries,
@@ -733,16 +737,17 @@ const makeUpdate = (
                   : current,
               selectedIndex: current =>
                 shouldFollowSelection ? latestIndex : current,
-              scrubberSlider: current => {
-                const sliderMax = entries.length
-                const targetSliderValue = isPaused
-                  ? hostIndexToSliderValue(pausedAtIndex, startIndex)
-                  : sliderMax
-                return Slider.reflectValue(
-                  Slider.reflectRange(current, { min: 0, max: sliderMax }),
-                  targetSliderValue,
-                )
-              },
+              scrubberSlider: current =>
+                Slider.reflectRange(current, { min: 0, max: sliderMax }),
+              scrubberValue: current =>
+                M.value(model.scrubberSlider.dragState).pipe(
+                  M.tag('Dragging', () =>
+                    Slider.snapAndClamp(current, 0, sliderMax, 1),
+                  ),
+                  M.orElse(() =>
+                    Slider.snapAndClamp(targetSliderValue, 0, sliderMax, 1),
+                  ),
+                ),
             }),
             [
               ...(shouldFollowSelection ? [inspectLatest] : []),
@@ -799,20 +804,27 @@ const makeUpdate = (
           // than they complete.
           const nextMaybePendingScrubIndex = Option.match(maybeOutMessage, {
             onNone: () => model.maybePendingScrubIndex,
-            onSome: outMessage =>
-              M.value(outMessage).pipe(
-                M.tagsExhaustive({
-                  ChangedValue: ({ value }) =>
-                    Option.some(
-                      sliderValueToHostIndex(value, model.startIndex),
-                    ),
-                }),
-              ),
+            onSome: M.type<Slider.OutMessage>().pipe(
+              M.tagsExhaustive({
+                ChangedValue: ({ value }) =>
+                  Option.some(sliderValueToHostIndex(value, model.startIndex)),
+              }),
+            ),
+          })
+
+          const nextScrubberValue = Option.match(maybeOutMessage, {
+            onNone: () => model.scrubberValue,
+            onSome: M.type<Slider.OutMessage>().pipe(
+              M.tagsExhaustive({
+                ChangedValue: ({ value }) => value,
+              }),
+            ),
           })
 
           return [
             evo(model, {
               scrubberSlider: () => nextSlider,
+              scrubberValue: () => nextScrubberValue,
               maybePendingScrubIndex: () => nextMaybePendingScrubIndex,
             }),
             mappedSliderCommands,
@@ -1636,6 +1648,7 @@ const makeView = (
           view: InspectorTabs.view,
           viewInputs: {
             tabs: INSPECTOR_TABS,
+            selectedValue: model.activeInspectorTab,
             ariaLabel: 'Inspector tabs',
             toView: ({ tablist, tabs, activeIndex }) =>
               h.div(
@@ -2187,7 +2200,7 @@ const makeView = (
 
   const scrubberPositionLabel = (model: Model): string => {
     const total = String(model.entries.length).padStart(3, '0')
-    const current = String(model.scrubberSlider.value).padStart(3, '0')
+    const current = String(model.scrubberValue).padStart(3, '0')
     return `${current} / ${total}`
   }
 
@@ -2197,6 +2210,7 @@ const makeView = (
       model: model.scrubberSlider,
       view: Slider.view,
       viewInputs: {
+        value: model.scrubberValue,
         ariaLabel: 'Session scrubber',
         getTrackRoot: () => shadow,
         formatValue: value =>
@@ -2506,13 +2520,19 @@ export const createOverlay = (
           affectedPaths: HashSet.empty(),
           maybePendingScrubIndex: Option.none(),
           inspectorTabs: Tabs.init({ id: INSPECTOR_TABS_ID }),
+          activeInspectorTab: 'Model',
           scrubberSlider: Slider.init({
             id: SCRUBBER_SLIDER_ID,
             min: 0,
             max: sliderMax,
             step: 1,
-            initialValue: initialSliderValue,
           }),
+          scrubberValue: Slider.snapAndClamp(
+            initialSliderValue,
+            0,
+            sliderMax,
+            1,
+          ),
         },
         Option.toArray(maybeLockScroll(flags.isOpen, flags.isMobile)),
       ]

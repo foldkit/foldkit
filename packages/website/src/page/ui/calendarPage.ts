@@ -131,10 +131,10 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
       'The current calendar date. Typically fetched at the app boundary via Calendar.today.local and threaded through flags.',
   },
   {
-    name: 'initialSelectedDate',
+    name: 'initialViewDate',
     type: 'CalendarDate',
     description:
-      'Pre-selected date. When set, the view starts on the month containing this date.',
+      'Seeds the month the calendar opens onto. When set, the view starts on the month containing this date. The parent owns the selection itself; pass your initial selected date here to open onto it.',
   },
   {
     name: 'locale',
@@ -196,12 +196,6 @@ const modelProps: ReadonlyArray<PropEntry> = [
       'The keyboard cursor position, referenced by aria-activedescendant on the grid.',
   },
   {
-    name: 'maybeSelectedDate',
-    type: 'Option<CalendarDate>',
-    description:
-      'The committed selection. Distinct from maybeFocusedDate. Arrow keys never change selection.',
-  },
-  {
     name: 'isGridFocused',
     type: 'boolean',
     description:
@@ -239,6 +233,12 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'model',
     type: 'Calendar.Model',
     description: 'The calendar state from your parent Model.',
+  },
+  {
+    name: 'maybeSelectedDate',
+    type: 'Option<CalendarDate>',
+    description:
+      'The parent-owned selected date. The calendar reads it to render the selected-day marker; it does not store the selection itself. Fold the SelectedDate OutMessage into this field and pass it back on every render.',
   },
   {
     name: 'toParentMessage',
@@ -378,13 +378,13 @@ const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
     name: 'selectDate',
     type: '(model: Model, date: CalendarDate) => [Model, Commands, Option<OutMessage>]',
     description:
-      'Commits the given date and moves the cursor onto it, emitting SelectedDate. Use for a programmatic selection that should behave like a user pick. To mirror an external date without emitting (restoring from storage, a URL), use reflectSelectedDate.',
+      'Commits the given date and moves the cursor onto it, emitting SelectedDate. Use for a programmatic selection that should behave like a user pick. To move the view to a date without selecting it (opening onto an externally-sourced value), use focusDate.',
   },
   {
-    name: 'reflectSelectedDate',
-    type: '(model: Model, maybeDate: Option<CalendarDate>) => Model',
+    name: 'focusDate',
+    type: '(model: Model, date: CalendarDate) => Model',
     description:
-      'Reflects an externally-sourced selected date onto the model without emitting an OutMessage, moving the view to the date so it stays visible. Pass Option.none() to clear. Use to mirror external truth (a URL, a saved draft) onto the calendar.',
+      'Moves the view and cursor to a date without changing the selection (which the parent owns). Use it to navigate to a known date, for example when the parent sets its value externally (a URL, a saved draft) so opening the calendar shows that month. Returns the model directly: no Command, no OutMessage.',
   },
   {
     name: 'FocusGrid',
@@ -512,7 +512,11 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           inlineCode('Calendar.view()'),
           '. The update function returns ',
           inlineCode('[Model, Commands, Option<OutMessage>]'),
-          '. The OutMessage lets the parent handle meaningful events, for example date selection or month changes.',
+          '. The parent owns the selected date: store it in your Model, pass it back as ',
+          inlineCode('maybeSelectedDate'),
+          ', and fold the ',
+          inlineCode('SelectedDate'),
+          ' OutMessage into that field. The OutMessage lets the parent handle meaningful events, for example date selection or month changes.',
         ),
         infoCallout(
           'See it in an app',
@@ -650,10 +654,10 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           'The four ',
           inlineCode('reflect*'),
           ' helpers are how you implement cross-field date validation. Constraints are set at init time and updated via these helpers. They do not live on ViewConfig, because the update function needs them for keyboard-navigation disabled-skipping and commit-time validation. For an end date that must be on or after a start date, call ',
-          inlineCode(
-            'reflectMinDate(endCalendar, startCalendar.maybeSelectedDate)',
-          ),
-          ' in the handler that processes the start date change.',
+          inlineCode('reflectMinDate(endCalendar, maybeStartDate)'),
+          ' in the handler that processes the start date change, where ',
+          inlineCode('maybeStartDate'),
+          ' is the parent-owned start-date field.',
         ),
         propTable(programmaticHelpersProps),
       ],

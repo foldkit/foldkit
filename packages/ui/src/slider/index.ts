@@ -29,11 +29,13 @@ const Dragging = ts('Dragging', { originValue: S.Number })
 
 const DragState = S.Union([Idle, Dragging])
 
-/** Schema for the slider component's state. Tracks the current value, the
- *  range (min/max/step), and the active drag phase. */
+/** Schema for the slider component's private interaction state. The current
+ *  value is owned by the parent and passed in via `ViewInputs.value`, so it is
+ *  not stored here. `min`/`max`/`step` are configuration the drag subscription
+ *  reads to map pointer positions into values. `dragState` tracks the active
+ *  drag phase and captures the pre-drag value so Escape can restore it. */
 export const Model = S.Struct({
   id: S.String,
-  value: S.Number,
   min: S.Number,
   max: S.Number,
   step: S.Number,
@@ -44,12 +46,17 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** The user pressed the thumb. Starts a drag without changing the value. */
-export const PressedThumb = m('PressedThumb')
+/** The user pressed the thumb. Starts a drag without changing the value. The
+ *  view supplies `originValue`, the current value, so Escape can restore it. */
+export const PressedThumb = m('PressedThumb', { originValue: S.Number })
 /** The user pressed the track. Starts a drag and snaps the value to the
  *  cursor position. Ignored while already dragging, which absorbs the bubble
- *  from a thumb press so the value is not shifted. */
-export const PressedPointer = m('PressedPointer', { value: S.Number })
+ *  from a thumb press so the value is not shifted. `originValue` is the current
+ *  value the drag restores to on Escape. */
+export const PressedPointer = m('PressedPointer', {
+  value: S.Number,
+  originValue: S.Number,
+})
 /** The pointer moved during a drag, producing a new snapped value from the
  *  cursor position within the track. */
 export const MovedDragPointer = m('MovedDragPointer', { value: S.Number })
@@ -57,7 +64,8 @@ export const MovedDragPointer = m('MovedDragPointer', { value: S.Number })
 export const ReleasedDragPointer = m('ReleasedDragPointer')
 /** Escape was pressed during a drag. Restores the value from the drag origin. */
 export const CancelledDrag = m('CancelledDrag')
-/** The user pressed a keyboard navigation key on the focused thumb. */
+/** The user pressed a keyboard navigation key on the focused thumb. The view
+ *  supplies `value`, the current value, to compute the next one from. */
 export const PressedKeyboardNavigation = m('PressedKeyboardNavigation', {
   direction: S.Literals([
     'StepDecrement',
@@ -67,6 +75,7 @@ export const PressedKeyboardNavigation = m('PressedKeyboardNavigation', {
     'Min',
     'Max',
   ]),
+  value: S.Number,
 })
 
 /** Union of all messages the slider component can produce. */
@@ -116,14 +125,12 @@ export type InitConfig = Readonly<{
   min: number
   max: number
   step: number
-  initialValue: number
 }>
 
-/** Creates an initial slider model from a config. The initial value is
- *  snapped to the step and clamped into range. */
+/** Creates an initial slider model from a config. The value lives in the
+ *  parent Model; initialize it there and snap it with {@link snapAndClamp}. */
 export const init = (config: InitConfig): Model => ({
   id: config.id,
-  value: snapAndClamp(config.initialValue, config.min, config.max, config.step),
   min: config.min,
   max: config.max,
   step: config.step,
@@ -152,7 +159,10 @@ const roundToStepPrecision = (value: number, step: number): number => {
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(Math.max(value, min), max)
 
-const snapAndClamp = (
+/** Snaps a value to the nearest step and clamps it into `[min, max]`. Exported
+ *  so a parent can conform the value it owns to the slider's range, for example
+ *  when seeding the initial value or reacting to an external update. */
+export const snapAndClamp = (
   value: number,
   min: number,
   max: number,
@@ -164,47 +174,40 @@ const snapAndClamp = (
 
 /** Computes the fraction (0–1) of a value between min and max. Returns 0 when
  *  the range has zero width. */
-export const fractionOfValue = (model: Model): number => {
-  const range = model.max - model.min
+export const fractionOfValue = (
+  value: number,
+  min: number,
+  max: number,
+): number => {
+  const range = max - min
   if (range <= 0) {
     return 0
   } else {
-    return clamp((model.value - model.min) / range, 0, 1)
+    return clamp((value - min) / range, 0, 1)
   }
 }
 
 const PAGE_STEP_MULTIPLIER = 10
 
 const nextValueForDirection = (
-  model: Model,
+  value: number,
+  min: number,
+  max: number,
+  step: number,
   direction: (typeof PressedKeyboardNavigation.Type)['direction'],
 ): number =>
   M.value(direction).pipe(
     M.withReturnType<number>(),
-    M.when('StepIncrement', () =>
-      snapAndClamp(model.value + model.step, model.min, model.max, model.step),
-    ),
-    M.when('StepDecrement', () =>
-      snapAndClamp(model.value - model.step, model.min, model.max, model.step),
-    ),
+    M.when('StepIncrement', () => snapAndClamp(value + step, min, max, step)),
+    M.when('StepDecrement', () => snapAndClamp(value - step, min, max, step)),
     M.when('PageIncrement', () =>
-      snapAndClamp(
-        model.value + model.step * PAGE_STEP_MULTIPLIER,
-        model.min,
-        model.max,
-        model.step,
-      ),
+      snapAndClamp(value + step * PAGE_STEP_MULTIPLIER, min, max, step),
     ),
     M.when('PageDecrement', () =>
-      snapAndClamp(
-        model.value - model.step * PAGE_STEP_MULTIPLIER,
-        model.min,
-        model.max,
-        model.step,
-      ),
+      snapAndClamp(value - step * PAGE_STEP_MULTIPLIER, min, max, step),
     ),
-    M.when('Min', () => model.min),
-    M.when('Max', () => model.max),
+    M.when('Min', () => min),
+    M.when('Max', () => max),
     M.exhaustive,
   )
 
@@ -217,36 +220,28 @@ type UpdateReturn = readonly [
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-const withValue = (
-  model: Model,
+const changedValueOption = (
+  currentValue: number,
   nextValue: number,
-  commands: ReadonlyArray<Command<Message>>,
-): UpdateReturn => {
-  if (nextValue === model.value) {
-    return [model, commands, Option.none()]
-  } else {
-    return [
-      evo(model, { value: () => nextValue }),
-      commands,
-      Option.some(ChangedValue({ value: nextValue })),
-    ]
-  }
-}
+): Option.Option<OutMessage> =>
+  nextValue === currentValue
+    ? Option.none()
+    : Option.some(ChangedValue({ value: nextValue }))
 
 /** Processes a slider message and returns the next model, commands, and an
- *  optional out-message for the parent. */
+ *  optional out-message for the parent. The value lives in the parent Model:
+ *  the view supplies the current value on the messages that need it, and value
+ *  changes surface as `ChangedValue` rather than mutating this Model. */
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      PressedThumb: () =>
+      PressedThumb: ({ originValue }) =>
         M.value(model.dragState).pipe(
           withUpdateReturn,
           M.tag('Dragging', () => [model, [], Option.none()]),
           M.orElse(() => [
-            evo(model, {
-              dragState: () => Dragging({ originValue: model.value }),
-            }),
+            evo(model, { dragState: () => Dragging({ originValue }) }),
             [],
             Option.none(),
           ]),
@@ -258,7 +253,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       // from the thumb's current position. Fine-grained sliders (e.g. step
       // 0.05) see a visible jump without this guard, because the cursor sits
       // off-center on a non-zero-width thumb.
-      PressedPointer: ({ value }) =>
+      PressedPointer: ({ value, originValue }) =>
         M.value(model.dragState).pipe(
           withUpdateReturn,
           M.tag('Dragging', () => [model, [], Option.none()]),
@@ -269,17 +264,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               model.max,
               model.step,
             )
-            const [modelWithValue, commands, maybeOutMessage] = withValue(
-              model,
-              snapped,
-              [],
-            )
             return [
-              evo(modelWithValue, {
-                dragState: () => Dragging({ originValue: model.value }),
-              }),
-              commands,
-              maybeOutMessage,
+              evo(model, { dragState: () => Dragging({ originValue }) }),
+              [],
+              changedValueOption(originValue, snapped),
             ]
           }),
         ),
@@ -287,13 +275,15 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       MovedDragPointer: ({ value }) =>
         M.value(model.dragState).pipe(
           withUpdateReturn,
-          M.tag('Dragging', () =>
-            withValue(
-              model,
-              snapAndClamp(value, model.min, model.max, model.step),
-              [],
+          M.tag('Dragging', () => [
+            model,
+            [],
+            Option.some(
+              ChangedValue({
+                value: snapAndClamp(value, model.min, model.max, model.step),
+              }),
             ),
-          ),
+          ]),
           M.orElse(() => [model, [], Option.none()]),
         ),
 
@@ -311,25 +301,35 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       CancelledDrag: () =>
         M.value(model.dragState).pipe(
           withUpdateReturn,
-          M.tag('Dragging', ({ originValue }) => {
-            const restored: Model = evo(model, {
-              dragState: () => Idle(),
-            })
-            return withValue(restored, originValue, [])
-          }),
+          M.tag('Dragging', ({ originValue }) => [
+            evo(model, { dragState: () => Idle() }),
+            [],
+            Option.some(ChangedValue({ value: originValue })),
+          ]),
           M.orElse(() => [model, [], Option.none()]),
         ),
 
-      PressedKeyboardNavigation: ({ direction }) =>
-        withValue(model, nextValueForDirection(model, direction), []),
+      PressedKeyboardNavigation: ({ direction, value }) => [
+        model,
+        [],
+        changedValueOption(
+          value,
+          nextValueForDirection(
+            value,
+            model.min,
+            model.max,
+            model.step,
+            direction,
+          ),
+        ),
+      ],
     }),
   )
 
-/** Reflects an externally-driven range onto the slider. Snaps and clamps the
- *  current value into the new range. Use this when min/max derive from
- *  external state (e.g. a bounded buffer whose first/last index shifts over
- *  time). Unlike `reflectValue`, this runs even while the user is Dragging: a
- *  structural range change cannot leave the value out of bounds. */
+/** Reflects an externally-driven range onto the slider. Use this when min/max
+ *  derive from external state (e.g. a bounded buffer whose first/last index
+ *  shifts over time). The parent owns the value, so conform it to the new range
+ *  in the same update with {@link snapAndClamp}. */
 export const reflectRange: Reflect<
   Model,
   Readonly<{ min: number; max: number }>
@@ -339,26 +339,7 @@ export const reflectRange: Reflect<
     evo(model, {
       min: () => range.min,
       max: () => range.max,
-      value: current => snapAndClamp(current, range.min, range.max, model.step),
     }),
-)
-
-/** Reflects an externally-driven value onto the slider, snapped and clamped
- *  into range; a no-op while the user is dragging, since drag state owns the
- *  value. Does not emit `ChangedValue`; use when the value is being driven by
- *  external state rather than user input. */
-export const reflectValue: Reflect<Model, number> = Function.dual(
-  2,
-  (model: Model, value: number): Model =>
-    M.value(model.dragState).pipe(
-      M.withReturnType<Model>(),
-      M.tag('Dragging', () => model),
-      M.orElse(() =>
-        evo(model, {
-          value: () => snapAndClamp(value, model.min, model.max, model.step),
-        }),
-      ),
-    ),
 )
 
 // SUBSCRIPTION
@@ -536,6 +517,9 @@ export type SliderAttributes = Readonly<{
 
 /** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field. */
 export type ViewInputs = Readonly<{
+  /** The current value, read straight from the parent Model. The thumb
+   *  position, `aria-valuenow`, and the filled track all derive from it. */
+  value: number
   toView: (attributes: SliderAttributes) => Html
   ariaLabel?: string
   ariaLabelledBy?: string
@@ -559,24 +543,26 @@ export const view = defineView<Model, Message, ViewInputs>(
     const h = html<Message>()
 
     const {
+      value,
       formatValue,
       isDisabled = false,
       name,
       getTrackRoot = () => document,
     } = viewInputs
-    const { id, value, min, max } = model
+    const { id, min, max } = model
     const isDragging = model.dragState._tag === 'Dragging'
-    const fraction = fractionOfValue(model)
+    const fraction = fractionOfValue(value, min, max)
 
     const handleKeyDown = (key: string): Option.Option<Message> =>
       Option.map(keyToDirection(key), direction =>
-        PressedKeyboardNavigation({ direction }),
+        PressedKeyboardNavigation({ direction, value }),
       )
 
     const pointerAtClientX = (clientX: number): Option.Option<Message> =>
       Option.map(trackElement(id, getTrackRoot()), element =>
         PressedPointer({
           value: valueFromClientX(clientX, element, min, max),
+          originValue: value,
         }),
       )
 
@@ -601,7 +587,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       pipe(
         button,
         Option.liftPredicate(Equal.equals(LEFT_MOUSE_BUTTON)),
-        Option.map(() => PressedThumb()),
+        Option.map(() => PressedThumb({ originValue: value })),
       )
 
     const stateAttributes = [

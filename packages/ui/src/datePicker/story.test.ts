@@ -10,6 +10,7 @@ import * as Popover from '../popover/index.js'
 import {
   ChangedViewMonth,
   Cleared,
+  ClearedDate,
   Closed,
   GotCalendarMessage,
   GotPopoverMessage,
@@ -18,13 +19,13 @@ import {
   SelectedDate,
   clear,
   close,
+  focusDate,
   init,
   open,
   reflectDisabledDates,
   reflectDisabledDaysOfWeek,
   reflectMaxDate,
   reflectMinDate,
-  reflectSelectedDate,
   selectDate,
   update,
 } from './index.js'
@@ -37,27 +38,22 @@ const withOpen = flow(withClosed, Story.message(Opened()))
 
 describe('DatePicker', () => {
   describe('init', () => {
-    it('defaults to no selected date and closed popover with contentFocus enabled', () => {
+    it('defaults to a closed popover with contentFocus enabled', () => {
       const model = init({ id: 'picker', today })
       expect(model.id).toBe('picker')
-      expect(model.maybeSelectedDate).toStrictEqual(Option.none())
       expect(model.popover.isOpen).toBe(false)
       expect(model.popover.contentFocus).toBe(true)
       expect(model.popover.id).toBe('picker-popover')
       expect(model.calendar.id).toBe('picker-calendar')
     })
 
-    it('seeds the selection from initialSelectedDate', () => {
-      const selected = Calendar.make(2026, 5, 2)
+    it('seeds the calendar view month from initialViewDate', () => {
+      const initialViewDate = Calendar.make(2026, 5, 2)
       const model = init({
         id: 'picker',
         today,
-        initialSelectedDate: selected,
+        initialViewDate,
       })
-      expect(model.maybeSelectedDate).toStrictEqual(Option.some(selected))
-      expect(model.calendar.maybeSelectedDate).toStrictEqual(
-        Option.some(selected),
-      )
       expect(model.calendar.viewMonth).toBe(5)
     })
 
@@ -241,10 +237,6 @@ describe('DatePicker', () => {
             Popover.CompletedFocusButton(),
           ),
           Story.model(model => {
-            expect(model.maybeSelectedDate).toStrictEqual(Option.some(target))
-            expect(model.calendar.maybeSelectedDate).toStrictEqual(
-              Option.some(target),
-            )
             expect(model.calendar.maybeFocusedDate).toStrictEqual(
               Option.some(target),
             )
@@ -272,11 +264,11 @@ describe('DatePicker', () => {
     })
 
     describe('Cleared', () => {
-      it('clears the selected date without closing the popover', () => {
+      it('emits ClearedDate without closing the popover', () => {
         const seeded = init({
           id: 'picker',
           today,
-          initialSelectedDate: Calendar.make(2026, 4, 20),
+          initialViewDate: Calendar.make(2026, 4, 20),
         })
         Story.story(
           update,
@@ -284,10 +276,9 @@ describe('DatePicker', () => {
           Story.message(Cleared()),
           Story.Command.expectNone(),
           Story.model(model => {
-            expect(model.maybeSelectedDate).toStrictEqual(Option.none())
             expect(model.popover.isOpen).toBe(true)
           }),
-          Story.expectNoOutMessage(),
+          Story.expectOutMessage(ClearedDate()),
         )
       })
     })
@@ -368,22 +359,20 @@ describe('DatePicker', () => {
       const target = Calendar.make(2026, 4, 20)
       const [openedModel] = open(init({ id: 'picker', today }))
       const [nextModel, , maybeOutMessage] = selectDate(openedModel, target)
-      expect(nextModel.maybeSelectedDate).toStrictEqual(Option.some(target))
       expect(nextModel.popover.isOpen).toBe(false)
       expect(maybeOutMessage).toStrictEqual(
         Option.some(SelectedDate({ date: target })),
       )
     })
 
-    it('clear(model) clears the selected date', () => {
+    it('clear(model) emits ClearedDate', () => {
       const seeded = init({
         id: 'picker',
         today,
-        initialSelectedDate: Calendar.make(2026, 4, 20),
+        initialViewDate: Calendar.make(2026, 4, 20),
       })
-      const [nextModel] = clear(seeded)
-      expect(nextModel.maybeSelectedDate).toStrictEqual(Option.none())
-      expect(nextModel.calendar.maybeSelectedDate).toStrictEqual(Option.none())
+      const [, , maybeOutMessage] = clear(seeded)
+      expect(maybeOutMessage).toStrictEqual(Option.some(ClearedDate()))
     })
 
     it('reflectMinDate(model, minDate) forwards to the embedded calendar', () => {
@@ -425,43 +414,15 @@ describe('DatePicker', () => {
         'Sunday',
       ])
     })
-
-    it('reflectMinDate does not reconcile a previously-selected date below the new min', () => {
-      const selected = Calendar.make(2026, 3, 15)
-      const model = init({
-        id: 'picker',
-        today,
-        initialSelectedDate: selected,
-      })
-      const newMin = Calendar.make(2026, 6, 1)
-      const next = reflectMinDate(model, Option.some(newMin))
-      expect(next.maybeSelectedDate).toStrictEqual(Option.some(selected))
-      expect(next.calendar.maybeSelectedDate).toStrictEqual(
-        Option.some(selected),
-      )
-    })
   })
 
-  describe('reflectSelectedDate', () => {
-    it('reflects a date onto the picker and its embedded calendar', () => {
+  describe('focusDate', () => {
+    it('moves the embedded calendar view and cursor to a date', () => {
       const date = Calendar.make(2026, 8, 15)
-      const next = reflectSelectedDate(
-        init({ id: 'picker', today }),
-        Option.some(date),
-      )
-      expect(next.maybeSelectedDate).toStrictEqual(Option.some(date))
-      expect(next.calendar.maybeSelectedDate).toStrictEqual(Option.some(date))
-    })
-
-    it('clears the selection on None', () => {
-      const date = Calendar.make(2026, 8, 15)
-      const selectedModel = reflectSelectedDate(
-        init({ id: 'picker', today }),
-        Option.some(date),
-      )
-      const cleared = reflectSelectedDate(selectedModel, Option.none())
-      expect(cleared.maybeSelectedDate).toStrictEqual(Option.none())
-      expect(cleared.calendar.maybeSelectedDate).toStrictEqual(Option.none())
+      const next = focusDate(init({ id: 'picker', today }), date)
+      expect(next.calendar.viewYear).toBe(2026)
+      expect(next.calendar.viewMonth).toBe(8)
+      expect(next.calendar.maybeFocusedDate).toStrictEqual(Option.some(date))
     })
   })
 })

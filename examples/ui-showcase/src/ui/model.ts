@@ -1,5 +1,5 @@
 import { Schema as S } from 'effect'
-import { File } from 'foldkit'
+import { File, Calendar as FoldkitCalendar } from 'foldkit'
 
 import {
   Animation,
@@ -23,6 +23,9 @@ import { Toast } from './toast'
 export const Plan = S.Literals(['Startup', 'Business', 'Enterprise'])
 export type Plan = typeof Plan.Type
 
+export const DemoTab = S.Literals(['Foldkit', 'React', 'Elm'])
+export type DemoTab = typeof DemoTab.Type
+
 export const DemoCard = S.Struct({
   id: S.String,
   label: S.String,
@@ -45,7 +48,9 @@ export const UiModel = S.Struct({
   fieldsetTextareaValue: S.String,
   isFieldsetCheckboxDemoChecked: S.Boolean,
   calendarBasicDemo: Calendar.Model,
+  maybeCalendarBasicDemoSelectedDate: S.Option(FoldkitCalendar.CalendarDate),
   datePickerBasicDemo: DatePicker.Model,
+  maybeDatePickerBasicDemoSelectedDate: S.Option(FoldkitCalendar.CalendarDate),
   isCheckboxBasicDemoChecked: S.Boolean,
   isCheckboxOptionADemoChecked: S.Boolean,
   isCheckboxOptionBDemoChecked: S.Boolean,
@@ -78,10 +83,14 @@ export const UiModel = S.Struct({
   horizontalRadioGroupDemoValue: S.Option(Plan),
   selectDemoValue: S.String,
   sliderRatingDemo: Slider.Model,
+  sliderRatingValue: S.Number,
   sliderVolumeDemo: Slider.Model,
+  sliderVolumeValue: S.Number,
   isSwitchDemoChecked: S.Boolean,
   horizontalTabsDemo: Tabs.Model,
+  horizontalTabsDemoTab: DemoTab,
   verticalTabsDemo: Tabs.Model,
+  verticalTabsDemoTab: DemoTab,
   toastDemo: Toast.Model,
   tooltipBasicDemo: Tooltip.Model,
   tooltipNoDelayDemo: Tooltip.Model,

@@ -239,6 +239,7 @@ const stepTabsLayout = (
     view: StepTabs.view,
     viewInputs: {
       tabs: Step.all,
+      selectedValue: model.currentStep,
       ariaLabel: 'Application steps',
       orientation: 'Vertical',
       toView: ({ tablist, tabs, activeIndex }) =>

@@ -62,7 +62,7 @@ Calibrate to the right context: library design when inside `packages/foldkit/src
 - Prefer explicit `if` / `else` when both branches return. Early return reads as "A is exceptional, B is the default"; reserve it for true guards.
 - Use `Readonly<{ ... }>` over per-property `readonly` for inline object types.
 - Do not add type annotations or `as const` to callbacks whose return type is constrained by the outer API.
-- When using `evo`, pass field transformers point-free when the update depends only on that field's current value. Prefer `entries: Array.map(f)`, `currentStep: toNextStep`, and `stepTabs: Tabs.reflectSelectedTab(value, options)` over closures that re-read the same field from the surrounding Model. Use `() => value` when replacing a field with a Message payload, child update result, Command result, or a value derived from another field.
+- When using `evo`, pass field transformers point-free when the update depends only on that field's current value. Prefer `entries: Array.map(f)`, `currentStep: toNextStep`, and `priceSlider: Slider.reflectRange(range)` over closures that re-read the same field from the surrounding Model. Use `() => value` when replacing a field with a Message payload, child update result, Command result, or a value derived from another field.
 - `Effect.acquireRelease` registers the release only after the acquire body completes. Construct the resource inside the acquire Effect, never before it.
 
 ## Comments

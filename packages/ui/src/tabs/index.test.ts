@@ -1,3 +1,4 @@
+import { Option } from 'effect'
 import * as Story from 'foldkit/story'
 import { expect } from 'vitest'
 
@@ -12,7 +13,6 @@ import {
   findFirstEnabledIndex,
   init,
   keyToIndex,
-  reflectSelectedTab,
   update,
   wrapIndex,
 } from './index.js'
@@ -26,20 +26,10 @@ const disabledAt =
 
 describe('Tabs', () => {
   describe('init', () => {
-    it('defaults activeIndex to 0 and automatic activation', () => {
+    it('defaults to automatic activation with focus following the selection', () => {
       expect(init({ id: 'test' })).toStrictEqual({
         id: 'test',
-        activeIndex: 0,
-        focusedIndex: 0,
-        activationMode: 'Automatic',
-      })
-    })
-
-    it('accepts a custom activeIndex', () => {
-      expect(init({ id: 'test', activeIndex: 2 })).toStrictEqual({
-        id: 'test',
-        activeIndex: 2,
-        focusedIndex: 2,
+        maybeFocusedIndex: Option.none(),
         activationMode: 'Automatic',
       })
     })
@@ -47,20 +37,14 @@ describe('Tabs', () => {
     it('accepts a custom activationMode', () => {
       expect(init({ id: 'test', activationMode: 'Manual' })).toStrictEqual({
         id: 'test',
-        activeIndex: 0,
-        focusedIndex: 0,
+        maybeFocusedIndex: Option.none(),
         activationMode: 'Manual',
       })
-    })
-
-    it('syncs focusedIndex with activeIndex', () => {
-      const model = init({ id: 'test', activeIndex: 3 })
-      expect(model.focusedIndex).toBe(3)
     })
   })
 
   describe('update', () => {
-    it('sets activeIndex and focusedIndex on SelectedTab and emits Selected', () => {
+    it('clears focus divergence on SelectedTab and emits Selected', () => {
       Story.story(
         update,
         Story.with(init({ id: 'test' })),
@@ -68,71 +52,51 @@ describe('Tabs', () => {
         Story.expectOutMessage(Selected({ value: 'tab-3', index: 3 })),
         Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
-          expect(model.activeIndex).toBe(3)
-          expect(model.focusedIndex).toBe(3)
+          expect(model.maybeFocusedIndex).toStrictEqual(Option.none())
         }),
       )
     })
 
-    it('replaces activeIndex on subsequent SelectedTab and emits Selected', () => {
+    it('emits Selected with the committed value on a subsequent SelectedTab', () => {
       Story.story(
         update,
-        Story.with(init({ id: 'test', activeIndex: 1 })),
+        Story.with({
+          ...init({ id: 'test' }),
+          maybeFocusedIndex: Option.some(1),
+        }),
         Story.message(SelectedTab({ index: 0, value: 'tab-0' })),
         Story.expectOutMessage(Selected({ value: 'tab-0', index: 0 })),
         Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
-          expect(model.activeIndex).toBe(0)
-          expect(model.focusedIndex).toBe(0)
+          expect(model.maybeFocusedIndex).toStrictEqual(Option.none())
         }),
       )
     })
 
-    it('updates only focusedIndex on FocusedTab', () => {
+    it('sets focus divergence on FocusedTab without an OutMessage', () => {
       Story.story(
         update,
         Story.with(init({ id: 'test', activationMode: 'Manual' })),
         Story.message(FocusedTab({ index: 2 })),
         Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
-          expect(model.activeIndex).toBe(0)
-          expect(model.focusedIndex).toBe(2)
+          expect(model.maybeFocusedIndex).toStrictEqual(Option.some(2))
         }),
       )
     })
 
-    it('does not change activeIndex on FocusedTab', () => {
-      Story.story(
-        update,
-        Story.with(
-          init({
-            id: 'test',
-            activeIndex: 1,
-            activationMode: 'Manual',
-          }),
-        ),
-        Story.message(FocusedTab({ index: 3 })),
-        Story.Command.resolve(FocusTab, CompletedFocusTab()),
-        Story.model(model => {
-          expect(model.activeIndex).toBe(1)
-          expect(model.focusedIndex).toBe(3)
-        }),
-      )
-    })
-
-    it('SelectedTab updates both indices in manual mode and emits Selected', () => {
+    it('SelectedTab in manual mode emits Selected and clears divergence', () => {
       Story.story(
         update,
         Story.with({
           ...init({ id: 'test', activationMode: 'Manual' }),
-          focusedIndex: 2,
+          maybeFocusedIndex: Option.some(2),
         }),
         Story.message(SelectedTab({ index: 2, value: 'tab-2' })),
         Story.expectOutMessage(Selected({ value: 'tab-2', index: 2 })),
         Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
-          expect(model.activeIndex).toBe(2)
-          expect(model.focusedIndex).toBe(2)
+          expect(model.maybeFocusedIndex).toStrictEqual(Option.none())
         }),
       )
     })
@@ -252,30 +216,6 @@ describe('Tabs', () => {
     it('skips disabled tabs during arrow navigation', () => {
       const resolve = keyToIndex('ArrowRight', 'ArrowLeft', 5, 0, disabledAt(1))
       expect(resolve('ArrowRight')).toBe(2)
-    })
-  })
-
-  describe('reflectSelectedTab', () => {
-    it('reflects a tab value onto the active and focused index', () => {
-      const next = reflectSelectedTab(init({ id: 'test' }), 'b', [
-        'a',
-        'b',
-        'c',
-      ])
-      expect(next.activeIndex).toBe(1)
-      expect(next.focusedIndex).toBe(1)
-    })
-
-    it('is a no-op when the value is not in options', () => {
-      const model = init({ id: 'test' })
-      expect(reflectSelectedTab(model, 'z', ['a', 'b', 'c'])).toBe(model)
-    })
-
-    it('supports the data-last form for point-free use in evo', () => {
-      const reflectToB = reflectSelectedTab('b', ['a', 'b', 'c'])
-      const next = reflectToB(init({ id: 'test' }))
-      expect(next.activeIndex).toBe(1)
-      expect(next.focusedIndex).toBe(1)
     })
   })
 })

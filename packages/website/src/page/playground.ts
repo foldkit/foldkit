@@ -2,7 +2,6 @@ import { clsx } from 'clsx'
 import {
   Array,
   Effect,
-  Equal,
   Fiber,
   Match as M,
   Option,
@@ -53,6 +52,7 @@ export const Model = S.Struct({
   state: PlaygroundState,
   files: S.Record(S.String, S.String),
   fileTabs: Tabs.Model,
+  activeFilePath: S.String,
   // NOTE: Paths edited before the WebContainer finished booting. Writes
   // dispatched at that time fail with `ResourceNotAvailable`, so we
   // accumulate the paths here and flush them once `BootedPlayground`
@@ -122,19 +122,13 @@ const sortedPaths = (
   files: Readonly<Record<string, string>>,
 ): ReadonlyArray<string> => pipe(files, Record.keys, Array.sort(Order.String))
 
-const initialActiveIndex = (
-  files: Readonly<Record<string, string>>,
-): number => {
-  const paths = sortedPaths(files)
-  return pipe(
+const initialActiveFile = (files: Readonly<Record<string, string>>): string =>
+  pipe(
     PREFERRED_INITIAL_FILES,
     Array.findFirst(preferred => Record.has(files, preferred)),
-    Option.flatMap(preferred =>
-      Array.findFirstIndex(paths, Equal.equals(preferred)),
-    ),
-    Option.getOrElse(() => 0),
+    Option.orElse(() => Array.head(sortedPaths(files))),
+    Option.getOrElse(() => ''),
   )
-}
 
 const FILE_TABS_ID = 'playground-files'
 
@@ -144,10 +138,8 @@ export const init = (slug: string): Model => {
     slug,
     state: PlaygroundStateBooting(),
     files,
-    fileTabs: Tabs.init({
-      id: FILE_TABS_ID,
-      activeIndex: initialActiveIndex(files),
-    }),
+    fileTabs: Tabs.init({ id: FILE_TABS_ID }),
+    activeFilePath: initialActiveFile(files),
     dirtyPaths: [],
     lastWriteError: Option.none(),
   }
@@ -654,12 +646,23 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
       GotFileTabsMessage: ({ message: tabsMessage }) => {
-        const [nextTabs, tabsCommands] = PlaygroundFileTabs.update(
-          model.fileTabs,
-          tabsMessage,
-        )
+        const [nextTabs, tabsCommands, maybeOutMessage] =
+          PlaygroundFileTabs.update(model.fileTabs, tabsMessage)
+
+        const nextActiveFilePath = Option.match(maybeOutMessage, {
+          onNone: () => model.activeFilePath,
+          onSome: M.type<Tabs.OutMessage>().pipe(
+            M.tagsExhaustive({
+              Selected: ({ value }) => value,
+            }),
+          ),
+        })
+
         return [
-          evo(model, { fileTabs: () => nextTabs }),
+          evo(model, {
+            fileTabs: () => nextTabs,
+            activeFilePath: () => nextActiveFilePath,
+          }),
           Command.mapMessages(tabsCommands, message =>
             GotFileTabsMessage({ message }),
           ),
@@ -955,6 +958,7 @@ const editorLayoutView = (model: Model): Html => {
             view: PlaygroundFileTabs.view,
             viewInputs: {
               tabs: paths,
+              selectedValue: model.activeFilePath,
               ariaLabel: 'Playground files',
               orientation: 'Vertical',
               toView: ({ tablist, tabs, activeIndex }) =>

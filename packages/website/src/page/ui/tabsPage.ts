@@ -130,12 +130,6 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     description: 'Unique ID for the tabs instance.',
   },
   {
-    name: 'activeIndex',
-    type: 'number',
-    default: '0',
-    description: 'Initially active tab index.',
-  },
-  {
     name: 'activationMode',
     type: "'Automatic' | 'Manual'",
     default: "'Automatic'",
@@ -161,6 +155,12 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     type: 'ReadonlyArray<Value>',
     description:
       'The list of tab values, in display order. When the tabs component is declared via `Tabs.create<MyUnion>()`, `Value` is your union type and each `TabInfo.value` is typed as `MyUnion`.',
+  },
+  {
+    name: 'selectedValue',
+    type: 'Value',
+    description:
+      'The active tab, owned by the parent Model and passed back in on each render. `aria-selected`, the `data-selected` marker, the active panel, and `RenderInfo.activeIndex` all derive from it. Update it by folding the `Selected` OutMessage in your `GotTabsMessage` handler.',
   },
   {
     name: 'ariaLabel',
@@ -302,6 +302,15 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         para(
           'Tab panel navigation with roving tabindex keyboard support, horizontal and vertical orientation, and automatic or manual activation modes. Tabs renders a tab list with buttons and corresponding panels. Only the active panel is visible.',
         ),
+        para(
+          'Tabs is a Submodel that keeps its own keyboard-focus state, but the parent owns the active tab. Store the active value in your Model, pass it in as ',
+          inlineCode('selectedValue'),
+          ', and fold the ',
+          inlineCode('Selected'),
+          ' OutMessage back into that field in your ',
+          inlineCode('GotTabsMessage'),
+          ' handler.',
+        ),
         infoCallout(
           'See it in an app',
           'Check out how Tabs is wired up in a ',
@@ -333,10 +342,8 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           inlineCode('Tabs.create<Value>()'),
           ' to lift the tab type through ',
           inlineCode('view'),
-          ', ',
+          ' and ',
           inlineCode('update'),
-          ', and ',
-          inlineCode('selectTab'),
           ' without casting. Pass the typed ',
           inlineCode('tabs'),
           ' array and a ',
@@ -345,7 +352,12 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           inlineCode('TabInfo<Value>'),
           ' per tab (with attribute bundles for the tab button and its panel).',
         ),
-        demoContainer(...Tabs.horizontalDemo(model.horizontalTabsDemo)),
+        demoContainer(
+          ...Tabs.horizontalDemo(
+            model.horizontalTabsDemo,
+            model.horizontalTabsDemoTab,
+          ),
+        ),
         highlightedCodeBlock(
           h.div(
             [h.Class('text-sm'), h.InnerHTML(Snippet.uiTabsBasicHighlighted)],
@@ -366,7 +378,12 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           inlineCode("orientation: 'Vertical'"),
           ' to switch to up/down arrow navigation.',
         ),
-        demoContainer(...Tabs.verticalDemo(model.verticalTabsDemo)),
+        demoContainer(
+          ...Tabs.verticalDemo(
+            model.verticalTabsDemo,
+            model.verticalTabsDemoTab,
+          ),
+        ),
         highlightedCodeBlock(
           h.div(
             [

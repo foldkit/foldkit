@@ -37,6 +37,7 @@ export const workEntryView = Submodel.defineView<
         view: DatePicker.view,
         viewInputs: {
           anchor: ANCHOR,
+          maybeSelectedDate: model.maybeStartDate,
           triggerContent: maybeDate =>
             triggerContent(maybeDate, 'Select start date'),
           toCalendarView: calendarView,
@@ -64,6 +65,7 @@ export const workEntryView = Submodel.defineView<
         view: DatePicker.view,
         viewInputs: {
           anchor: ANCHOR,
+          maybeSelectedDate: model.maybeEndDate,
           triggerContent: maybeDate =>
             triggerContent(maybeDate, 'Select end date'),
           toCalendarView: calendarView,

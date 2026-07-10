@@ -108,6 +108,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         view: DatePicker.view,
         viewInputs: {
           anchor: DATE_PICKER_ANCHOR,
+          maybeSelectedDate: model.maybeDatePickerBasicDemoSelectedDate,
           triggerContent: maybeDate => triggerContent(maybeDate),
           triggerClassName,
           panelClassName,

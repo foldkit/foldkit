@@ -9,9 +9,12 @@ import { evo } from 'foldkit/struct'
 
 import { DatePicker } from '@foldkit/ui'
 
-// Add a field to your Model for the DatePicker Submodel:
+// Add a field to your Model for the DatePicker Submodel, plus a field the
+// parent owns for the selected date. The picker no longer stores the
+// selection; the parent holds it and passes it back in as `maybeSelectedDate`.
 const Model = S.Struct({
   datePickerDemo: DatePicker.Model,
+  maybeSelectedDate: S.Option(Calendar.CalendarDate),
   // ...your other fields
 })
 
@@ -36,6 +39,7 @@ const init = (flags: Flags) => [
       minDate: flags.today,
       maxDate: Calendar.addMonths(flags.today, 3),
     }),
+    maybeSelectedDate: Option.none(),
     // ...your other fields
   },
   [],
@@ -51,8 +55,9 @@ const GotDatePickerMessage = m('GotDatePickerMessage', {
 // navigation, focus, and popover messages to DatePicker.update. The
 // OutMessage's `SelectedDate` carries the committed date. The popover
 // has already closed by the time it fires; lift the date into your
-// domain state. `ChangedViewMonth` fires when calendar navigation shifts
-// the visible month without selecting a date.
+// domain state and pass it back as `maybeSelectedDate`. `ClearedDate`
+// fires when the user clears the selection. `ChangedViewMonth` fires when
+// calendar navigation shifts the visible month without selecting a date.
 GotDatePickerMessage: ({ message }) => {
   const [nextDatePicker, commands, maybeOutMessage] = DatePicker.update(
     model.datePickerDemo,
@@ -71,13 +76,21 @@ GotDatePickerMessage: ({ message }) => {
       M.tagsExhaustive({
         SelectedDate: ({ date }) => [
           // The child has emitted `SelectedDate`. The body commits
-          // the child's next state as usual. In this arm the parent
-          // can also update its own state or dispatch its own
-          // Commands, for example lift the date into its own field,
-          // validate, or trigger a downstream API call.
+          // the child's next state as usual. This is where the parent
+          // lifts the committed date into its own field, which is then
+          // passed back to the picker as `maybeSelectedDate`, so the
+          // parent stays the single source of truth for the selection.
           evo(model, {
-            datePickerDemo: () =>
-              nextDatePicker /*, pickedDate: () => Option.some(date) */,
+            datePickerDemo: () => nextDatePicker,
+            maybeSelectedDate: () => Option.some(date),
+          }),
+          mappedCommands,
+        ],
+        ClearedDate: () => [
+          // The user cleared the selection. Reset the parent's field.
+          evo(model, {
+            datePickerDemo: () => nextDatePicker,
+            maybeSelectedDate: () => Option.none(),
           }),
           mappedCommands,
         ],
@@ -125,6 +138,9 @@ const view = () => {
         viewInputs: {
           ariaLabelledBy: labelId,
           anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+          // The parent-owned selection. The trigger content, the calendar's
+          // selected-day marker, and the hidden form input all derive from it.
+          maybeSelectedDate: model.maybeSelectedDate,
           triggerContent: maybeDate =>
             Option.match(maybeDate, {
               onNone: () => h.span([], ['Pick a date']),

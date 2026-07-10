@@ -9,9 +9,12 @@ import { evo } from 'foldkit/struct'
 
 import { Calendar as UiCalendar } from '@foldkit/ui'
 
-// Add a field to your Model for the Calendar Submodel:
+// Add a field to your Model for the Calendar Submodel, plus a field the
+// parent owns for the selected date. The calendar no longer stores the
+// selection; the parent holds it and passes it back in as `maybeSelectedDate`.
 const Model = S.Struct({
   calendarDemo: UiCalendar.Model,
+  maybeSelectedDate: S.Option(Calendar.CalendarDate),
   // ...your other fields
 })
 
@@ -26,13 +29,17 @@ const flags = Effect.gen(function* () {
   return { today /* ...your other flags */ }
 })
 
-// In your init function, pass the flags-resolved today into UiCalendar.init:
+// In your init function, pass the flags-resolved today into UiCalendar.init.
+// `initialViewDate` seeds the month the calendar opens onto (pass your
+// initial selection to open on it). The parent owns the selection itself:
 const init = (flags: Flags) => [
   {
     calendarDemo: UiCalendar.init({
       id: 'calendar-demo',
       today: flags.today,
+      initialViewDate: flags.today,
     }),
+    maybeSelectedDate: Option.none(),
     // ...your other fields
   },
   [],
@@ -68,13 +75,13 @@ GotCalendarMessage: ({ message }) => {
       M.tagsExhaustive({
         SelectedDate: ({ date }) => [
           // The child has emitted `SelectedDate`. The body commits
-          // the child's next state as usual. In this arm the parent
-          // can also update its own state or dispatch its own
-          // Commands, for example lift the date into its own field,
-          // validate, or trigger a downstream API call.
+          // the child's next state as usual. This is where the parent
+          // lifts the committed date into its own field. That field is
+          // then passed back to the calendar as `maybeSelectedDate`, so
+          // the parent stays the single source of truth for the selection.
           evo(model, {
-            calendarDemo: () =>
-              nextCalendar /*, pickedDate: () => Option.some(date) */,
+            calendarDemo: () => nextCalendar,
+            maybeSelectedDate: () => Option.some(date),
           }),
           mappedCommands,
         ],
@@ -104,6 +111,8 @@ const view = () => {
     model: model.calendarDemo,
     view: UiCalendar.view,
     viewInputs: {
+      // The parent-owned selection. The selected-day marker derives from it.
+      maybeSelectedDate: model.maybeSelectedDate,
       toView: attributes =>
         M.value(attributes).pipe(
           M.tagsExhaustive({
