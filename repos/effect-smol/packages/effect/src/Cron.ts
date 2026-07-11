@@ -110,6 +110,8 @@ export interface Cron extends Pipeable, Equal.Equal, Inspectable {
   readonly months: ReadonlySet<number>
   readonly weekdays: ReadonlySet<number>
   /** @internal */
+  readonly and: boolean
+  /** @internal */
   readonly first: {
     readonly second: number
     readonly minute: number
@@ -167,6 +169,7 @@ const CronProto = {
   [Hash.symbol](this: Cron): number {
     return pipe(
       Hash.hash(this.tz),
+      Hash.combine(Hash.hash(this.and)),
       Hash.combine(Hash.array(Arr.fromIterable(this.seconds))),
       Hash.combine(Hash.array(Arr.fromIterable(this.minutes))),
       Hash.combine(Hash.array(Arr.fromIterable(this.hours))),
@@ -252,7 +255,9 @@ export const isCron = (u: unknown): u is Cron => hasProperty(u, TypeId)
  *
  * Constructs a cron schedule by specifying which seconds, minutes, hours,
  * days, months, and weekdays the schedule should match. Empty arrays mean
- * "match all" for that time unit.
+ * "match all" for that time unit. When both days and weekdays are restricted,
+ * the default matches either field; set `and: true` to require both fields to
+ * match.
  *
  * **Example** (Creating schedules from constraints)
  *
@@ -354,6 +359,7 @@ export const make = (values: {
   readonly days: Iterable<number>
   readonly months: Iterable<number>
   readonly weekdays: Iterable<number>
+  readonly and?: boolean | undefined
   readonly tz?: DateTime.TimeZone | undefined
 }): Cron => {
   const o: Mutable<Cron> = Object.create(CronProto)
@@ -363,6 +369,7 @@ export const make = (values: {
   o.days = new Set(Arr.sort(values.days, N.Order))
   o.months = new Set(Arr.sort(values.months, N.Order))
   o.weekdays = new Set(Arr.sort(values.weekdays, N.Order))
+  o.and = values.and === true
   o.tz = Option.fromUndefinedOr(values.tz)
 
   const seconds = Array.from(o.seconds)
@@ -563,7 +570,7 @@ export const isCronParseError = (u: unknown): u is CronParseError => hasProperty
  * @since 2.0.0
  */
 export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Result<Cron, CronParseError> => {
-  const segments = cron.split(" ").filter(String.isNonEmpty)
+  const segments = cron.trim().split(/\s+/).filter(String.isNonEmpty)
   if (segments.length !== 5 && segments.length !== 6) {
     return Result.fail(new CronParseError({ message: `Invalid number of segments in cron expression`, input: cron }))
   }
@@ -588,7 +595,18 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Res
     days: parseSegment(days, dayOptions),
     months: parseSegment(months, monthOptions),
     weekdays: parseSegment(weekdays, weekdayOptions)
-  }).pipe(Result.map(make))
+  }).pipe(Result.map(({ tz, seconds, minutes, hours, days, months, weekdays }) =>
+    make({
+      tz,
+      seconds: seconds.values,
+      minutes: minutes.values,
+      hours: hours.values,
+      days: days.values,
+      months: months.values,
+      weekdays: weekdays.values,
+      and: (days.wildcard || weekdays.wildcard) && days.values.size !== 0 && weekdays.values.size !== 0
+    })
+  ))
 }
 
 /**
@@ -680,6 +698,11 @@ export const match = (cron: Cron, date: DateTime.DateTime.Input): boolean => {
 
   if (cron.days.size === 0 && cron.weekdays.size === 0) {
     return true
+  }
+
+  if (cron.and) {
+    return (cron.days.size === 0 || cron.days.has(parts.day)) &&
+      (cron.weekdays.size === 0 || cron.weekdays.has(parts.weekDay))
   }
 
   if (cron.weekdays.size === 0) {
@@ -843,46 +866,59 @@ const stepCron = (cron: Cron, now: DateTime.DateTime.Input | undefined, directio
       }
 
       if (cron.weekdays.size !== 0 || cron.days.size !== 0) {
-        let a: number = reverse ? -Infinity : Infinity
-        let b: number = reverse ? -Infinity : Infinity
-
-        if (cron.weekdays.size !== 0) {
-          const currentWeekday = current.getUTCDay()
-          const nextWeekday = table.weekday[currentWeekday]
-          if (nextWeekday === undefined) {
-            a = reverse ?
-              currentWeekday - 7 + boundary.weekday :
-              7 - currentWeekday + boundary.weekday
-          } else {
-            a = nextWeekday - currentWeekday
+        if (cron.and) {
+          const matchesDay = cron.days.size === 0 || cron.days.has(current.getUTCDate())
+          const matchesWeekday = cron.weekdays.size === 0 || cron.weekdays.has(current.getUTCDay())
+          if (!matchesDay || !matchesWeekday) {
+            current.setUTCDate(current.getUTCDate() + tick)
+            current.setUTCHours(boundary.hour, boundary.minute, boundary.second)
+            adjustDst(current)
+            continue
           }
-        }
+        } else {
+          let a: number = reverse ? -Infinity : Infinity
+          let b: number = reverse ? -Infinity : Infinity
 
-        if (cron.days.size !== 0 && a !== 0) {
-          const currentDay = current.getUTCDate()
-          const nextDay = table.day[currentDay]
-          if (nextDay === undefined) {
-            if (reverse) {
-              const prevMonthDays = daysInMonth(new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), 0)))
-              b = -(currentDay + (prevMonthDays - boundary.day))
+          if (cron.weekdays.size !== 0) {
+            const currentWeekday = current.getUTCDay()
+            const nextWeekday = table.weekday[currentWeekday]
+            if (nextWeekday === undefined) {
+              a = reverse ?
+                currentWeekday - 7 + boundary.weekday :
+                7 - currentWeekday + boundary.weekday
             } else {
-              b = daysInMonth(current) - currentDay + boundary.day
+              a = nextWeekday - currentWeekday
             }
-          } else if (!reverse && nextDay > daysInMonth(current)) {
-            // The next matching day does not exist in the current month. Setting it
-            // directly would overflow and skip earlier matching days next month.
-            b = daysInMonth(current) - currentDay + boundary.day
-          } else {
-            b = nextDay - currentDay
           }
-        }
 
-        const addDays = reverse ? Math.max(a, b) : Math.min(a, b)
-        if (addDays !== 0) {
-          current.setUTCDate(current.getUTCDate() + addDays)
-          current.setUTCHours(boundary.hour, boundary.minute, boundary.second)
-          adjustDst(current)
-          continue
+          if (cron.days.size !== 0 && a !== 0) {
+            const currentDay = current.getUTCDate()
+            const nextDay = table.day[currentDay]
+            if (nextDay === undefined) {
+              if (reverse) {
+                const prevMonthDays = daysInMonth(
+                  new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), 0))
+                )
+                b = -(currentDay + (prevMonthDays - boundary.day))
+              } else {
+                b = daysInMonth(current) - currentDay + boundary.day
+              }
+            } else if (!reverse && nextDay > daysInMonth(current)) {
+              // The next matching day does not exist in the current month. Setting it
+              // directly would overflow and skip earlier matching days next month.
+              b = daysInMonth(current) - currentDay + boundary.day
+            } else {
+              b = nextDay - currentDay
+            }
+          }
+
+          const addDays = reverse ? Math.max(a, b) : Math.min(a, b)
+          if (addDays !== 0) {
+            current.setUTCDate(current.getUTCDate() + addDays)
+            current.setUTCHours(boundary.hour, boundary.minute, boundary.second)
+            adjustDst(current)
+            continue
+          }
         }
       }
 
@@ -890,11 +926,11 @@ const stepCron = (cron: Cron, now: DateTime.DateTime.Input | undefined, directio
         const currentMonth = current.getUTCMonth() + 1
         const nextMonth = table.month[currentMonth]
         const clampBoundaryDay = (targetMonthIndex: number): number => {
-          if (cron.days.size !== 0) {
+          if (cron.days.size !== 0 && cron.weekdays.size === 0) {
             return boundary.day
           }
           const maxDayInMonth = daysInMonth(new Date(Date.UTC(current.getUTCFullYear(), targetMonthIndex + 1, 0)))
-          return Math.min(boundary.day, maxDayInMonth)
+          return reverse ? maxDayInMonth : 1
         }
         if (nextMonth === undefined) {
           current.setUTCFullYear(current.getUTCFullYear() + tick)
@@ -1004,6 +1040,7 @@ export const sequence = function*(cron: Cron, now?: DateTime.DateTime.Input): It
  * @since 2.0.0
  */
 export const Equivalence: Equ.Equivalence<Cron> = Equ.make((self, that) =>
+  self.and === that.and &&
   restrictionsEquals(self.seconds, that.seconds) &&
   restrictionsEquals(self.minutes, that.minutes) &&
   restrictionsEquals(self.hours, that.hours) &&
@@ -1068,6 +1105,12 @@ interface SegmentOptions {
   min: number
   max: number
   aliases?: Record<string, number> | undefined
+  normalize?: ((value: number) => number) | undefined
+}
+
+interface ParsedSegment {
+  readonly values: Set<number>
+  readonly wildcard: boolean
 }
 
 const secondOptions: SegmentOptions = {
@@ -1111,7 +1154,8 @@ const monthOptions: SegmentOptions = {
 
 const weekdayOptions: SegmentOptions = {
   min: 0,
-  max: 6,
+  max: 7,
+  normalize: (value) => value === 7 ? 0 : value,
   aliases: {
     sun: 0,
     mon: 1,
@@ -1126,17 +1170,21 @@ const weekdayOptions: SegmentOptions = {
 const parseSegment = (
   input: string,
   options: SegmentOptions
-): Result.Result<ReadonlySet<number>, CronParseError> => {
-  const capacity = options.max - options.min + 1
+): Result.Result<ParsedSegment, CronParseError> => {
   const values = new Set<number>()
   const fields = input.split(",")
-
-  for (const field of fields) {
-    const [raw, step] = splitStep(field)
-    if (raw === "*" && step === undefined) {
-      return Result.succeed(new Set())
+  const first = splitStep(fields[0]!)
+  const wildcard = first[0] === "*"
+  const normalize = options.normalize ?? ((value: number) => value)
+  const add = wildcard && (first[1] === undefined || first[1] === 1) ?
+    constVoid :
+    (value: number) => {
+      values.add(normalize(value))
     }
 
+  for (let index = 0; index < fields.length; index++) {
+    const field = fields[index]!
+    const [raw, step] = index === 0 ? first : splitStep(field)
     if (step !== undefined) {
       if (!Number.isInteger(step)) {
         return Result.fail(new CronParseError({ message: `Expected step value to be a positive integer`, input }))
@@ -1150,8 +1198,11 @@ const parseSegment = (
     }
 
     if (raw === "*") {
+      if (index === 0 && (step === undefined || step === 1)) {
+        continue
+      }
       for (let i = options.min; i <= options.max; i += step ?? 1) {
-        values.add(i)
+        add(i)
       }
     } else {
       const [left, right] = splitRange(raw, options.aliases)
@@ -1165,7 +1216,9 @@ const parseSegment = (
       }
 
       if (right === undefined) {
-        values.add(left)
+        for (let i = left; i <= (step === undefined ? left : options.max); i += step ?? 1) {
+          add(i)
+        }
       } else {
         if (!Number.isInteger(right)) {
           return Result.fail(new CronParseError({ message: `Expected a positive integer`, input }))
@@ -1180,23 +1233,20 @@ const parseSegment = (
         }
 
         for (let i = left; i <= right; i += step ?? 1) {
-          values.add(i)
+          add(i)
         }
       }
     }
-
-    if (values.size >= capacity) {
-      return Result.succeed(new Set())
-    }
   }
 
-  return Result.succeed(values)
+  return Result.succeed({ values, wildcard })
 }
 
 const splitStep = (input: string): [string, number | undefined] => {
   const separator = input.indexOf("/")
   if (separator !== -1) {
-    return [input.slice(0, separator), Number(input.slice(separator + 1))]
+    const step = input.slice(separator + 1)
+    return [input.slice(0, separator), decimalRegex.test(step) ? Number(step) : NaN]
   }
 
   return [input, undefined]
@@ -1212,5 +1262,7 @@ const splitRange = (input: string, aliases?: Record<string, number>): [number, n
 }
 
 function aliasOrValue(field: string, aliases?: Record<string, number>): number {
-  return aliases?.[field.toLocaleLowerCase()] ?? Number(field)
+  return aliases?.[field.toLocaleLowerCase()] ?? (decimalRegex.test(field) ? Number(field) : NaN)
 }
+
+const decimalRegex = /^\d+$/

@@ -1,5 +1,126 @@
 # effect
 
+## 4.0.0-beta.97
+
+## 4.0.0-beta.96
+
+### Patch Changes
+
+- [#2563](https://github.com/Effect-TS/effect-smol/pull/2563) [`1503f45`](https://github.com/Effect-TS/effect-smol/commit/1503f45cb5bb2a74f4705252ec505a1f0ade7e62) Thanks @tim-smart! - update dependencies
+
+- [#2566](https://github.com/Effect-TS/effect-smol/pull/2566) [`57fe793`](https://github.com/Effect-TS/effect-smol/commit/57fe79316ffbc380b30626a168981fb26ae97459) Thanks @tim-smart! - change rpc ids to string | number
+
+- [#2561](https://github.com/Effect-TS/effect-smol/pull/2561) [`0c2f78f`](https://github.com/Effect-TS/effect-smol/commit/0c2f78f695ec474e1ff5474da183577975e418f5) Thanks @tim-smart! - Remove `Schedule.elapsed`.
+
+- [#2561](https://github.com/Effect-TS/effect-smol/pull/2561) [`0c2f78f`](https://github.com/Effect-TS/effect-smol/commit/0c2f78f695ec474e1ff5474da183577975e418f5) Thanks @tim-smart! - Remove `Schedule.tapInput` and `Schedule.tapOutput`. Use `Schedule.tap` instead.
+
+- [#2561](https://github.com/Effect-TS/effect-smol/pull/2561) [`0c2f78f`](https://github.com/Effect-TS/effect-smol/commit/0c2f78f695ec474e1ff5474da183577975e418f5) Thanks @tim-smart! - Update `Schedule.addDelay` and `Schedule.modifyDelay` to receive full schedule metadata instead of separate output and delay arguments.
+
+- [#2562](https://github.com/Effect-TS/effect-smol/pull/2562) [`97f29df`](https://github.com/Effect-TS/effect-smol/commit/97f29df457f7ffd07cfb4b379315c12c086af805) Thanks @tim-smart! - use Sets to track atom relationships
+
+## 4.0.0-beta.95
+
+### Patch Changes
+
+- [#2542](https://github.com/Effect-TS/effect-smol/pull/2542) [`a482442`](https://github.com/Effect-TS/effect-smol/commit/a482442abdeb490e9652b854ec3495e4aa7273e7) Thanks @IGassmann! - Add `Schema.DateFromMillis` and `SchemaTransformation.dateFromMillis` for decoding millisecond timestamps into `Date` values.
+
+- [#2559](https://github.com/Effect-TS/effect-smol/pull/2559) [`fbefa85`](https://github.com/Effect-TS/effect-smol/commit/fbefa850fab2f0a302c20614496aeaaa2a8b5590) Thanks @tim-smart! - fix activity retry policy
+
+- [#2547](https://github.com/Effect-TS/effect-smol/pull/2547) [`0b4a32f`](https://github.com/Effect-TS/effect-smol/commit/0b4a32f4260f0d8500942a133001b0d349328102) Thanks @fubhy! - Allow cron fields like `5/15` to expand from the starting value through the field maximum.
+
+- [#2557](https://github.com/Effect-TS/effect-smol/pull/2557) [`18a49e1`](https://github.com/Effect-TS/effect-smol/commit/18a49e1786679456258002ff9397faf02f678c2d) Thanks @fubhy! - Fix `Schedule.cron` when the test clock is adjusted to infinity.
+
+- [#2560](https://github.com/Effect-TS/effect-smol/pull/2560) [`266cb90`](https://github.com/Effect-TS/effect-smol/commit/266cb90bb2c17aabc40563c32db334f09ba3d74b) Thanks @gcanti! - Treat empty strings as missing values in built-in `ConfigProvider`s by default.
+
+  `ConfigProvider.fromEnv`, `ConfigProvider.fromDotEnvContents`, `ConfigProvider.fromDotEnv`, `ConfigProvider.fromUnknown`, and `ConfigProvider.fromDir` now treat literal empty strings as absent values when loaded as values, allowing `Config.withDefault` and `Config.option` to recover. Container discovery still reflects the source structure. Pass `preserveEmptyStrings: true` to restore the previous behavior.
+
+  `ConfigProvider.fromDotEnv({ expandVariables: true })` now expands variables consistently with `ConfigProvider.fromDotEnvContents`.
+
+- [#2554](https://github.com/Effect-TS/effect-smol/pull/2554) [`912f095`](https://github.com/Effect-TS/effect-smol/commit/912f095a34572bbd3cedf6edb27878443e3e4a95) Thanks @tim-smart! - Add Schedule.upTo options for limiting schedules by duration and/or recurrence count.
+
+- [#2556](https://github.com/Effect-TS/effect-smol/pull/2556) [`a6718f9`](https://github.com/Effect-TS/effect-smol/commit/a6718f9e00a15ca903b0732da46116cbf3d6aca7) Thanks @fubhy! - Fix cron parsing and scheduling edge cases for whitespace, Sunday `7`, strict numeric tokens, explicit full day ranges, and month-constrained day-of-month / weekday matching.
+
+- [#2551](https://github.com/Effect-TS/effect-smol/pull/2551) [`bef5154`](https://github.com/Effect-TS/effect-smol/commit/bef51540a243aa2f872a00c01d0cd58b7a769baa) Thanks @tim-smart! - Remove the `Schedule.both` APIs and add `Schedule.max` for combining schedules by their slowest delay.
+
+- [#2553](https://github.com/Effect-TS/effect-smol/pull/2553) [`18e0564`](https://github.com/Effect-TS/effect-smol/commit/18e0564bd0f8ebbdfcaf1e2c21529948e9e4a81d) Thanks @tim-smart! - Remove some Schedule APIs: `collectInputs`, `collectOutputs`, `collectWhile`, `delays`, `reduce`, `satisfiesErrorType`, `satisfiesInputType`, `satisfiesOutputType`, `satisfiesServicesType`, and `unfold`.
+
+- [#2558](https://github.com/Effect-TS/effect-smol/pull/2558) [`fb50f14`](https://github.com/Effect-TS/effect-smol/commit/fb50f14fc3657c1973785aa5b72ecf0b0d28e0b2) Thanks @tim-smart! - Remove the Schedule.either APIs and add Schedule.min for fastest-duration schedule composition.
+
+## 4.0.0-beta.94
+
+### Patch Changes
+
+- [#2538](https://github.com/Effect-TS/effect-smol/pull/2538) [`95a0e9b`](https://github.com/Effect-TS/effect-smol/commit/95a0e9bb62797af0e81c9998773405f248f218c5) Thanks @tim-smart! - fork memo map on nested builds
+
+- [#2545](https://github.com/Effect-TS/effect-smol/pull/2545) [`a0a3490`](https://github.com/Effect-TS/effect-smol/commit/a0a3490bbce765f199d8e077aceac504f0462e63) Thanks @marbemac! - Use registration context for cluster entities
+
+- [#2524](https://github.com/Effect-TS/effect-smol/pull/2524) [`f11ce73`](https://github.com/Effect-TS/effect-smol/commit/f11ce73af60823754dc24194f4ffc561b9ea1c2d) Thanks @gcanti! - Fix `HttpApi.make` so it stores the API identifier and starts with an empty `groups` object instead of a `Map`. This makes empty APIs match the shape they have after groups are added.
+
+- [#2546](https://github.com/Effect-TS/effect-smol/pull/2546) [`ff30b6e`](https://github.com/Effect-TS/effect-smol/commit/ff30b6e7c2c63ffc56a4c5818d6d86b01b5ad528) Thanks @tim-smart! - Fix ClusterWorkflowEngine partial workflow clients colliding with full workflow clients.
+
+- [#2523](https://github.com/Effect-TS/effect-smol/pull/2523) [`1caab3c`](https://github.com/Effect-TS/effect-smol/commit/1caab3cc30f626efbf15e59d74f539a487e5c85c) Thanks @rajzik! - Add glob to filesystem
+
+- [#2541](https://github.com/Effect-TS/effect-smol/pull/2541) [`aa80c47`](https://github.com/Effect-TS/effect-smol/commit/aa80c4775a04db87553e5568764cab7e32a72814) Thanks @tim-smart! - add LayerRef module
+
+- [#2539](https://github.com/Effect-TS/effect-smol/pull/2539) [`c2ae4fc`](https://github.com/Effect-TS/effect-smol/commit/c2ae4fce2f03a4cd1861c2b1179da7df656e662d) Thanks @gcanti! - Schema: add `Schema.Decoder` and `Schema.Encoder`, and accept simpler schema types in APIs that only decode, only encode, or only need the basic schema shape, closes [#2536](https://github.com/Effect-TS/effect-smol/issues/2536)
+
+- [#2545](https://github.com/Effect-TS/effect-smol/pull/2545) [`a0a3490`](https://github.com/Effect-TS/effect-smol/commit/a0a3490bbce765f199d8e077aceac504f0462e63) Thanks @marbemac! - add Effect.setContext for fully replacing the fiber context
+
+## 4.0.0-beta.93
+
+### Patch Changes
+
+- [#2512](https://github.com/Effect-TS/effect-smol/pull/2512) [`00652fe`](https://github.com/Effect-TS/effect-smol/commit/00652fe95c18f87208e91343eb8bf218faa2f677) Thanks @gcanti! - Preserve content schema identifiers when emitting JSON Schema for `Schema.fromJsonString`.
+
+  This keeps user-defined identifiers attached to the decoded JSON payload while giving the generated JSON string wrapper its own derived name, avoiding client codegen outputs where the payload type is renamed behind the transport wrapper.
+
+- [#2492](https://github.com/Effect-TS/effect-smol/pull/2492) [`6c58167`](https://github.com/Effect-TS/effect-smol/commit/6c5816746eaf91d2a3c7c899c5720809fa230ae3) Thanks @maxprilutskiy! - Map HttpApi json defects to SchemaError
+
+- [#2519](https://github.com/Effect-TS/effect-smol/pull/2519) [`2bc5415`](https://github.com/Effect-TS/effect-smol/commit/2bc541501a7ef89e542d7cb98e96beb53cd205cc) Thanks @tim-smart! - Fix structural equality for request-style values when structural hashes collide.
+
+- [#2507](https://github.com/Effect-TS/effect-smol/pull/2507) [`e11cccc`](https://github.com/Effect-TS/effect-smol/commit/e11cccc7d5fe631abccc7d6e3bd296938de0fa2e) Thanks @tim-smart! - ensure handler errors don't cause httpapi security middleware to fallback
+
+- [#2518](https://github.com/Effect-TS/effect-smol/pull/2518) [`ba7e77e`](https://github.com/Effect-TS/effect-smol/commit/ba7e77e046b8641a3a4e9750bb88ca4a1d063d3f) Thanks @tim-smart! - Move `UrlParams.makeUrl` to `Url.make` and return `Url.UrlError` for URL construction failures.
+
+- [#2505](https://github.com/Effect-TS/effect-smol/pull/2505) [`5713ee7`](https://github.com/Effect-TS/effect-smol/commit/5713ee7edbc3054efde407b2286bbfd45bbc6e1c) Thanks @KhraksMamtsov! - accept UrlParams.Input in some UrlParams apis
+
+## 4.0.0-beta.92
+
+### Patch Changes
+
+- [#2501](https://github.com/Effect-TS/effect-smol/pull/2501) [`affdc13`](https://github.com/Effect-TS/effect-smol/commit/affdc139045cc325dce321a84a580fdc1b2da7b9) Thanks @gcanti! - Fix excess property handling in schema-backed class constructors, closes [#2499](https://github.com/Effect-TS/effect-smol/issues/2499).
+
+## 4.0.0-beta.91
+
+### Patch Changes
+
+- [#2498](https://github.com/Effect-TS/effect-smol/pull/2498) [`b135b25`](https://github.com/Effect-TS/effect-smol/commit/b135b2517fca9e7839734ace3699a7dfa75b9075) Thanks @gcanti! - Fix `Schedule.andThenResult` to emit `self` outputs as `Failure` and `other` outputs as `Success`, closes [#2497](https://github.com/Effect-TS/effect-smol/issues/2497).
+
+- [#2488](https://github.com/Effect-TS/effect-smol/pull/2488) [`aaa21a3`](https://github.com/Effect-TS/effect-smol/commit/aaa21a369a171c600db294f2a4f640583043e150) Thanks @fubhy! - Fix `String.camelCase` and `String.pascalCase` handling of numeric word segments, and add `String.configCase` for configuration key casing.
+
+- [#2485](https://github.com/Effect-TS/effect-smol/pull/2485) [`3475ee6`](https://github.com/Effect-TS/effect-smol/commit/3475ee6c2bda6b05c6d7a12ce30c8bb840b5b1a6) Thanks @tim-smart! - fix RequestResolver interruption
+
+## 4.0.0-beta.90
+
+### Patch Changes
+
+- [#2483](https://github.com/Effect-TS/effect-smol/pull/2483) [`d237fdf`](https://github.com/Effect-TS/effect-smol/commit/d237fdf726481f76eb52a6196e111b24122bc3d5) Thanks @tim-smart! - Fix `Config.schema` so missing array values are treated as missing data, allowing `Config.withDefault` to apply.
+
+## 4.0.0-beta.89
+
+### Patch Changes
+
+- [#2475](https://github.com/Effect-TS/effect-smol/pull/2475) [`b7d46ab`](https://github.com/Effect-TS/effect-smol/commit/b7d46ab7e1a29d8711817bab583c9febf48a0dad) Thanks @tim-smart! - Update `Schema.Void` to model ignored `void` return values.
+
+  Runtime parsing now accepts any present value and discards it as `undefined`.
+  This matches TypeScript `void` return values, where callers do not observe the
+  returned value. Use `Schema.Undefined` when the input must be exactly
+  `undefined`.
+
+- [#2479](https://github.com/Effect-TS/effect-smol/pull/2479) [`7777e15`](https://github.com/Effect-TS/effect-smol/commit/7777e1540fd3680dd8346723cffec812b9384669) Thanks @tim-smart! - Add custom error callbacks to Effect.fromOption.
+
+- [#2480](https://github.com/Effect-TS/effect-smol/pull/2480) [`5376197`](https://github.com/Effect-TS/effect-smol/commit/5376197ca8e50358a41b1fd3cec27bd1ec680ec6) Thanks @tim-smart! - render causes in OtlpTracer exception events
+
 ## 4.0.0-beta.88
 
 ### Patch Changes

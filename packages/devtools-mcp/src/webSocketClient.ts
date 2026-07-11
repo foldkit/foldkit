@@ -66,8 +66,8 @@ const generateRequestId = (): string =>
   `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
 
 const reconnectSchedule = Schedule.exponential(INITIAL_RECONNECT_DELAY).pipe(
-  Schedule.modifyDelay((_output, delay) =>
-    Effect.succeed(Duration.min(delay, MAX_RECONNECT_DELAY)),
+  Schedule.modifyDelay(({ duration }) =>
+    Effect.succeed(Duration.min(duration, MAX_RECONNECT_DELAY)),
   ),
 )
 

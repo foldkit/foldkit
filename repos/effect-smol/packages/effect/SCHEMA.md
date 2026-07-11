@@ -3309,10 +3309,17 @@ Strict mode ensures that decoding and encoding fully match. You can disable it b
 ```ts
 import { Schema, SchemaTransformation } from "effect"
 
-const From = Schema.String
+const From = Schema.Struct({
+  a: Schema.Literals(["a", "b"]),
+  b: Schema.Number
+})
 
-const To = Schema.Number
+const To = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Literals([1, 2])
+})
 
+// Neither From.Type nor To.Encoded extends the other.
 const schema = From.pipe(Schema.decodeTo(To, SchemaTransformation.passthrough({ strict: false })))
 ```
 

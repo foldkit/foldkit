@@ -636,10 +636,10 @@ export const urlBuilder = <Api extends HttpApi.Any>(api: Api, options?: {
       const makeUrl = compilePath(endpoint.path)
       const encodeParams = endpoint.params === undefined
         ? undefined
-        : Schema.encodeSync(endpoint.params as Schema.Codec<unknown, unknown>)
+        : Schema.encodeSync(endpoint.params as unknown as Schema.ConstraintEncoder<unknown>)
       const encodeQuery = endpoint.query === undefined
         ? undefined
-        : Schema.encodeSync(endpoint.query as Schema.Codec<unknown, unknown>)
+        : Schema.encodeSync(endpoint.query as unknown as Schema.ConstraintEncoder<unknown>)
 
       const endpointBuilder = (request?: {
         readonly params?: unknown

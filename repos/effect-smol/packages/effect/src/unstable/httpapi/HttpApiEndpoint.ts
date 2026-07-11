@@ -1037,8 +1037,8 @@ function makeProto<
  * @since 4.0.0
  */
 export type ParamsConstraint =
-  | Record<string, Schema.Codec<unknown, string | undefined, unknown, unknown>>
-  | Schema.Codec<unknown, Record<string, string | undefined>, unknown, unknown>
+  | Record<string, Schema.Encoder<string | undefined, unknown>>
+  | Schema.Encoder<Record<string, string | undefined>, unknown>
 
 /**
  * Constraint for header schemas: each header must encode to `string | undefined`,
@@ -1048,8 +1048,8 @@ export type ParamsConstraint =
  * @since 4.0.0
  */
 export type HeadersConstraint =
-  | Record<string, Schema.Codec<unknown, string | undefined, unknown, unknown>>
-  | Schema.Codec<unknown, Record<string, string | undefined>, unknown, unknown>
+  | Record<string, Schema.Encoder<string | undefined, unknown>>
+  | Schema.Encoder<Record<string, string | undefined>, unknown>
 
 /**
  * Constraint for query schemas: each field must encode to `string`, an array of
@@ -1059,8 +1059,8 @@ export type HeadersConstraint =
  * @since 4.0.0
  */
 export type QueryConstraint =
-  | Record<string, Schema.Codec<unknown, string | ReadonlyArray<string> | undefined, unknown, unknown>>
-  | Schema.Codec<unknown, string | ReadonlyArray<string> | undefined, unknown, unknown>
+  | Record<string, Schema.Encoder<string | ReadonlyArray<string> | undefined, unknown>>
+  | Schema.Encoder<string | ReadonlyArray<string> | undefined, unknown>
 
 /**
  * Payload schema depends on the HTTP method:
@@ -1075,7 +1075,7 @@ export type QueryConstraint =
  */
 export type PayloadConstraint<Method extends HttpMethod> = Method extends HttpMethod.NoBody ? Record<
     string,
-    Schema.Codec<unknown, string | ReadonlyArray<string> | undefined, unknown, unknown>
+    Schema.Encoder<string | ReadonlyArray<string> | undefined, unknown>
   > :
   Schema.Top | ReadonlyArray<Schema.Top>
 

@@ -52,7 +52,6 @@
   },
   "scripts": {
     "build": "tsc -b tsconfig.json && pnpm babel",
-    "build:tsgo": "tsgo -b tsconfig.json && pnpm babel",
     "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
@@ -65,8 +64,8 @@
     "typescript": ">=5.0.0 <7.0.0"
   },
   "devDependencies": {
-    "@types/node": "^25.7.0",
+    "@types/node": "^26.1.1",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.10"
   }
 }

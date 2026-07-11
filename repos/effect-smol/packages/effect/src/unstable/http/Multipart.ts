@@ -333,8 +333,8 @@ export const SingleFileSchema: Schema.decodeTo<PersistedFileSchema, Schema.$Arra
  * @category schemas
  * @since 4.0.0
  */
-export const schemaPersisted = <A, I extends Partial<Persisted>, RD, RE>(
-  schema: Schema.Codec<A, I, RD, RE>
+export const schemaPersisted = <A, I extends Partial<Persisted>, RD>(
+  schema: Schema.ConstraintCodec<A, I, RD, unknown>
 ): (input: unknown, options?: ParseOptions) => Effect.Effect<A, Schema.SchemaError, RD> =>
   Schema.decodeUnknownEffect(schema)
 
@@ -349,7 +349,7 @@ export const schemaPersisted = <A, I extends Partial<Persisted>, RD, RE>(
  * @category schemas
  * @since 4.0.0
  */
-export const schemaJson = <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE>, options?: ParseOptions | undefined): {
+export const schemaJson = <A, RD>(schema: Schema.ConstraintDecoder<A, RD>, options?: ParseOptions | undefined): {
   (
     field: string
   ): (persisted: Persisted) => Effect.Effect<A, Schema.SchemaError, RD>

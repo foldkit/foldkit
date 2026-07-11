@@ -1722,17 +1722,17 @@ export const withMetavar: {
  */
 export const withSchema: {
   <A, B>(
-    schema: Schema.Codec<B, A, Environment, Environment>
+    schema: Schema.ConstraintCodec<B, A, Environment, unknown>
   ): <Kind extends ParamKind>(
     self: Param<Kind, A>
   ) => Param<Kind, B>
   <Kind extends ParamKind, A, B>(
     self: Param<Kind, A>,
-    schema: Schema.Codec<B, A, Environment, Environment>
+    schema: Schema.ConstraintCodec<B, A, Environment, unknown>
   ): Param<Kind, B>
 } = dual(2, <Kind extends ParamKind, A, B>(
   self: Param<Kind, A>,
-  schema: Schema.Codec<B, A>
+  schema: Schema.ConstraintCodec<B, A, Environment, unknown>
 ) => {
   const decodeParam = Schema.decodeUnknownEffect(schema)
   return mapEffect(self, (value) =>

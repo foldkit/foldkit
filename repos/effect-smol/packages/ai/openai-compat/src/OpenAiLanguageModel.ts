@@ -941,7 +941,6 @@ const prepareMessages = Effect.fnUntraced(
                   type: "function_call",
                   name: toolName,
                   call_id: part.id,
-                  // @effect-diagnostics-next-line preferSchemaOverJson:off
                   arguments: JSON.stringify(part.params),
                   ...(Predicate.isNotNull(id) ? { id } : {}),
                   ...(Predicate.isNotNull(status) ? { status } : {})
@@ -987,7 +986,6 @@ const prepareMessages = Effect.fnUntraced(
             messages.push({
               type: "function_call_output",
               call_id: part.id,
-              // @effect-diagnostics-next-line preferSchemaOverJson:off
               output: typeof part.result === "string" ? part.result : JSON.stringify(part.result),
               ...(Predicate.isNotNull(status) ? { status } : {})
             })

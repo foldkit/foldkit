@@ -531,6 +531,8 @@ const recur: (
   function*(ast, provider, path) {
     switch (ast._tag) {
       case "Objects": {
+        const stat = yield* provider.load(path)
+        if (stat === undefined && path.length > 0) return undefined
         const out: Record<string, Schema.StringTree> = {}
         for (const ps of ast.propertySignatures) {
           const name = ps.name
@@ -540,7 +542,6 @@ const recur: (
           }
         }
         if (ast.indexSignatures.length > 0) {
-          const stat = yield* provider.load(path)
           if (stat && stat._tag === "Record") {
             for (const is of ast.indexSignatures) {
               const matches = SchemaParser._is(is.parameter)
@@ -557,6 +558,7 @@ const recur: (
       }
       case "Arrays": {
         const stat = yield* provider.load(path)
+        if (stat === undefined) return undefined
         if (stat && stat._tag === "Value") return stat.value === "" ? [] : stat.value.split(",")
         if (stat && stat._tag === "Array" && stat.value !== undefined) {
           return stat.value === "" ? [] : stat.value.split(",")
@@ -637,7 +639,7 @@ const recur: (
  * @category schemas
  * @since 4.0.0
  */
-export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigProvider.Path): Config<T> {
+export function schema<T>(codec: Schema.ConstraintCodec<T, unknown>, path?: string | ConfigProvider.Path): Config<T> {
   const codecStringTree = Schema.toCodecStringTree(codec)
   const decodeUnknownEffect = SchemaParser.decodeUnknownEffect(codecStringTree)
   const codecStringTreeEncoded = SchemaAST.toEncoded(codecStringTree.ast)

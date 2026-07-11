@@ -1,6 +1,6 @@
 {
   "name": "@effect/ai-openai",
-  "version": "4.0.0-beta.88",
+  "version": "4.0.0-beta.97",
   "type": "module",
   "license": "MIT",
   "description": "An OpenAI provider integration for Effect AI SDK",
@@ -52,7 +52,6 @@
   "scripts": {
     "codegen": "effect-utils codegen",
     "build": "tsc -b tsconfig.json && pnpm babel",
-    "build:tsgo": "tsgo -b tsconfig.json && pnpm babel",
     "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",

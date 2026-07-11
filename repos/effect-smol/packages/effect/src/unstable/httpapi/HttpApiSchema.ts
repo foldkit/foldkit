@@ -325,7 +325,7 @@ export interface StreamSse<
  * @since 4.0.0
  */
 export interface SseEventFromData<Data extends Schema.Constraint> extends
-  Schema.Codec<
+  Schema.ConstraintCodec<
     {
       readonly id: string | undefined
       readonly event: string

@@ -105,9 +105,9 @@ const makePrimitive = <A>(
     parse
   })
 
-const makeSchemaPrimitive = <T, E>(
+const makeSchemaPrimitive = <T>(
   tag: string,
-  schema: Schema.Codec<T, E, Environment, Environment>
+  schema: Schema.ConstraintDecoder<T, Environment>
 ): Primitive<T> => {
   const toCodecStringTree = Schema.toCodecStringTree(schema)
   const decode = Schema.decodeUnknownEffect(toCodecStringTree)

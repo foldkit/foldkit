@@ -40,7 +40,7 @@ import * as HttpClientResponse from "./HttpClientResponse.ts"
 import * as HttpIncomingMessage from "./HttpIncomingMessage.ts"
 import * as HttpMethod from "./HttpMethod.ts"
 import * as TraceContext from "./HttpTraceContext.ts"
-import * as UrlParams from "./UrlParams.ts"
+import * as Url from "./Url.ts"
 
 const TypeId = "~effect/http/HttpClient"
 
@@ -637,7 +637,7 @@ export const make = (
       Effect.withFiber((fiber) => {
         const scopedController = scopedRequests.get(request)
         const controller = scopedController ?? new AbortController()
-        const urlResult = UrlParams.makeUrl(request.url, request.urlParams, Option.getOrUndefined(request.hash))
+        const urlResult = Url.make(request.url, request.urlParams, Option.getOrUndefined(request.hash))
         if (Result.isFailure(urlResult)) {
           return Effect.fail(
             new Error.HttpClientError({

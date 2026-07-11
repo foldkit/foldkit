@@ -310,7 +310,9 @@ export const causeSquash = <E>(self: Cause.Cause<E>): unknown => {
 }
 
 /** @internal */
-export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
+export const causePrettyErrors = <E>(self: Cause.Cause<E>, options?: {
+  readonly includeCauseInStack?: boolean | undefined
+}): Array<Error> => {
   const errors: Array<Error> = []
   const interrupts: Array<Cause.Interrupt> = []
   if (self.reasons.length === 0) return errors
@@ -326,7 +328,8 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
     errors.push(
       causePrettyError(
         failure._tag === "Die" ? failure.defect : failure.error as any,
-        failure.annotations
+        failure.annotations,
+        options
       )
     )
   }
@@ -337,7 +340,7 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
     const error = new globalThis.Error("All fibers interrupted without error", { cause })
     error.name = "InterruptError"
     error.stack = `${error.name}: ${error.message}`
-    errors.push(causePrettyError(error, interrupts[0].annotations))
+    errors.push(causePrettyError(error, interrupts[0].annotations, options))
   }
 
   setStackTraceLimit(prevStackLimit)
@@ -347,7 +350,10 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
 /** @internal */
 export const causePrettyError = (
   original: Record<string, unknown> | Error,
-  annotations?: ReadonlyMap<string, unknown>
+  annotations?: ReadonlyMap<string, unknown>,
+  options?: {
+    readonly includeCauseInStack?: boolean | undefined
+  }
 ): Error => {
   const kind = typeof original
   let error: Error
@@ -363,6 +369,9 @@ export const causePrettyError = (
     } else {
       const stack = `${error.name}: ${error.message}`
       error.stack = annotations ? addStackAnnotations(stack, annotations) : stack
+    }
+    if (options?.includeCauseInStack) {
+      error.stack = renderPrettyError(error)!
     }
     for (const key of Object.keys(original)) {
       if (!(key in error)) {
@@ -459,10 +468,10 @@ const currentStackTrace = (frame: StackFrame): string => {
 
 /** @internal */
 export const causePretty = <E>(cause: Cause.Cause<E>): string =>
-  causePrettyErrors<E>(cause).map((e) =>
-    e.cause ? `${e.stack} {\n${renderErrorCause(e.cause as Error, "  ")}\n}` : e.stack
-  )
-    .join("\n")
+  causePrettyErrors<E>(cause).map(renderPrettyError).join("\n")
+
+const renderPrettyError = (e: Error): string | undefined =>
+  e.cause ? `${e.stack} {\n${renderErrorCause(e.cause as Error, "  ")}\n}` : e.stack
 
 const renderErrorCause = (cause: Error, prefix: string) => {
   const lines = cause.stack!.split("\n")
@@ -892,10 +901,18 @@ export const suspend: <A, E, R>(
 })
 
 /** @internal */
-export const fromOption: <A>(option: Option.Option<A>) => Effect.Effect<A, Cause.NoSuchElementError> = Option.match({
-  onNone: () => fail(new NoSuchElementError("Effect.fromOption: Option.none")),
-  onSome: succeed
-})
+export const fromOption: <Arg extends Option.Option<unknown> | LazyArg<unknown>, E = Cause.NoSuchElementError>(
+  arg: Arg,
+  ...rest: [Arg] extends [Option.Option<unknown>] ? [onNone?: LazyArg<E>] : []
+) => [Arg] extends [Option.Option<infer A>] ? Effect.Effect<A, E>
+  : [Arg] extends [LazyArg<infer E>] ? <A>(option: Option.Option<A>) => Effect.Effect<A, E>
+  : never = dual(
+    (args) => args.length >= 2 || Option.isOption(args[0]),
+    <A, E>(option: Option.Option<A>, onNone?: LazyArg<E>): Effect.Effect<A, Cause.NoSuchElementError | E> =>
+      Option.isNone(option)
+        ? fail(onNone ? onNone() : new NoSuchElementError("Effect.fromOption: Option.none"))
+        : succeed(option.value)
+  )
 
 /** @internal */
 export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect.Effect<A, E> = Result.match({
@@ -2063,6 +2080,25 @@ const getContext = withFiber((fiber) => succeed(fiber.context))
 export const contextWith = <R, A, E, R2>(
   f: (context: Context.Context<R>) => Effect.Effect<A, E, R2>
 ): Effect.Effect<A, E, R | R2> => withFiber((fiber) => f(fiber.context as Context.Context<R>))
+
+/** @internal */
+export const setContext: {
+  <R>(
+    context: Context.Context<R>
+  ): <A, E>(
+    self: Effect.Effect<A, E, R>
+  ) => Effect.Effect<A, E>
+  <A, E, R>(
+    self: Effect.Effect<A, E, R>,
+    context: Context.Context<R>
+  ): Effect.Effect<A, E>
+} = dual(
+  2,
+  <A, E, R>(
+    self: Effect.Effect<A, E, R>,
+    context: Context.Context<R>
+  ): Effect.Effect<A, E> => updateContext(self, constant(context))
+)
 
 /** @internal */
 export const provideContext: {

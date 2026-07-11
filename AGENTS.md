@@ -102,7 +102,7 @@ If a Mount factory does not read or write its element, re-check the primitive ch
 
 ## Reference Repos
 
-`repos/` holds vendored snapshots pulled in as git subtrees, pinned to the version we use. Read directly when API signatures or behavior matter. Treat these as read-only. Never import from `repos/` in package or example source.
+`repos/` holds vendored snapshots pulled in as git subtrees, each pinned to the `effect@<version>` release tag that matches `package.json`, not a moving branch, so the reference source always matches what installs and compiles. Re-pin whenever the `effect` dependency is bumped. Read directly when API signatures or behavior matter. Treat these as read-only. Never import from `repos/` in package or example source.
 
 - `repos/effect-smol/`: Effect-TS source. Reference for Effect, Schema, Stream, Match, and Result questions.
 

@@ -5,11 +5,11 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  effect: 4.0.0-beta.88
-  '@effect/platform-browser': 4.0.0-beta.88
-  '@effect/platform-node': 4.0.0-beta.88
-  '@effect/platform-node-shared': 4.0.0-beta.88
-  '@effect/vitest': 4.0.0-beta.88
+  effect: 4.0.0-beta.97
+  '@effect/platform-browser': 4.0.0-beta.97
+  '@effect/platform-node': 4.0.0-beta.97
+  '@effect/platform-node-shared': 4.0.0-beta.97
+  '@effect/vitest': 4.0.0-beta.97
 
 importers:
 
@@ -101,8 +101,8 @@ importers:
   examples/api-cache:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -113,8 +113,8 @@ importers:
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -147,8 +147,8 @@ importers:
   examples/auth:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -162,8 +162,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -196,8 +196,8 @@ importers:
   examples/canvas-art:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -208,8 +208,8 @@ importers:
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -242,8 +242,8 @@ importers:
   examples/charting:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -260,8 +260,8 @@ importers:
         specifier: ^6.1.0
         version: 6.1.0
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -294,8 +294,8 @@ importers:
   examples/checkout-machine:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -309,8 +309,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -343,8 +343,8 @@ importers:
   examples/counter:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -355,8 +355,8 @@ importers:
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -389,8 +389,8 @@ importers:
   examples/counters:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -401,8 +401,8 @@ importers:
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -435,8 +435,8 @@ importers:
   examples/crash-view:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -447,8 +447,8 @@ importers:
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -481,8 +481,8 @@ importers:
   examples/embedding:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -493,8 +493,8 @@ importers:
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -527,8 +527,8 @@ importers:
   examples/form:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -542,8 +542,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -576,8 +576,8 @@ importers:
   examples/generative-art:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -588,8 +588,8 @@ importers:
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -622,8 +622,8 @@ importers:
   examples/job-application:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -637,8 +637,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -671,8 +671,8 @@ importers:
   examples/kanban:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -686,8 +686,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -723,8 +723,8 @@ importers:
   examples/managed-resource-layer:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -735,8 +735,8 @@ importers:
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -769,8 +769,8 @@ importers:
   examples/map:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -784,8 +784,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -821,8 +821,8 @@ importers:
   examples/pixel-art:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -836,8 +836,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -870,8 +870,8 @@ importers:
   examples/query-sync:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -885,8 +885,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -919,8 +919,8 @@ importers:
   examples/routing:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -931,8 +931,8 @@ importers:
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -965,8 +965,8 @@ importers:
   examples/shopping-cart:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -977,8 +977,8 @@ importers:
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1011,8 +1011,8 @@ importers:
   examples/slow-warnings:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -1020,8 +1020,8 @@ importers:
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1054,8 +1054,8 @@ importers:
   examples/snake:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -1063,8 +1063,8 @@ importers:
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1097,8 +1097,8 @@ importers:
   examples/stopwatch:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -1109,8 +1109,8 @@ importers:
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1143,8 +1143,8 @@ importers:
   examples/todo:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -1158,8 +1158,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1192,8 +1192,8 @@ importers:
   examples/ui-showcase:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -1207,8 +1207,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1241,8 +1241,8 @@ importers:
   examples/weather:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -1253,8 +1253,8 @@ importers:
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1287,8 +1287,8 @@ importers:
   examples/web-components:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -1305,8 +1305,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1342,8 +1342,8 @@ importers:
   examples/websocket-chat:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -1354,8 +1354,8 @@ importers:
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1388,8 +1388,8 @@ importers:
   internal/lustre-benchmark:
     dependencies:
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1413,14 +1413,14 @@ importers:
   internal/performance-harness:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@tailwindcss/vite':
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1441,17 +1441,17 @@ importers:
   packages/create-foldkit-app:
     dependencies:
       '@effect/platform-node':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)(ioredis@5.10.1)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)(ioredis@5.10.1)
       '@effect/platform-node-shared':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       chalk:
         specifier: ^5.6.2
         version: 5.6.2
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       rimraf:
         specifier: ^6.1.3
         version: 6.1.3
@@ -1460,8 +1460,8 @@ importers:
         version: 6.0.3
     devDependencies:
       '@effect/vitest':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)(vitest@4.1.9)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)(vitest@4.1.9)
       '@types/node':
         specifier: ^25.9.3
         version: 25.9.3
@@ -1476,14 +1476,14 @@ importers:
         version: 2.1.1
     devDependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../ui
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../foldkit
@@ -1510,8 +1510,8 @@ importers:
         specifier: ^8.18.1
         version: 8.18.1
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       esbuild:
         specifier: ^0.28.1
         version: 0.28.1
@@ -1562,17 +1562,17 @@ importers:
         version: 3.6.3
     devDependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@effect/vitest':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)(vitest@4.1.9)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)(vitest@4.1.9)
       '@vitest/coverage-v8':
         specifier: ^4.1.9
         version: 4.1.9(vitest@4.1.9)
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       happy-dom:
         specifier: ^20.10.4
         version: 20.10.4
@@ -1593,14 +1593,14 @@ importers:
     dependencies:
       effect-oxlint:
         specifier: ^0.3.2
-        version: 0.3.2(effect@4.0.0-beta.88)
+        version: 0.3.2(effect@4.0.0-beta.97)
     devDependencies:
       '@types/node':
         specifier: ^25.9.3
         version: 25.9.3
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       esbuild:
         specifier: ^0.28.1
         version: 0.28.1
@@ -1617,8 +1617,8 @@ importers:
   packages/typing-game/client:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../devtools
@@ -1632,8 +1632,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../foldkit
@@ -1666,14 +1666,14 @@ importers:
   packages/typing-game/server:
     dependencies:
       '@effect/platform-node':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)(ioredis@5.10.1)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)(ioredis@5.10.1)
       '@typing-game/shared':
         specifier: workspace:*
         version: link:../shared
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
     devDependencies:
       '@types/node':
         specifier: ^25.9.3
@@ -1688,8 +1688,8 @@ importers:
   packages/typing-game/shared:
     dependencies:
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
     devDependencies:
       typescript:
         specifier: ^6.0.3
@@ -1702,11 +1702,11 @@ importers:
         version: 1.7.6
     devDependencies:
       '@effect/vitest':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)(vitest@4.1.9)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)(vitest@4.1.9)
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../foldkit
@@ -1736,8 +1736,8 @@ importers:
         specifier: ^8.18.1
         version: 8.18.1
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../foldkit
@@ -1754,8 +1754,8 @@ importers:
   packages/website:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../devtools
@@ -1778,8 +1778,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../foldkit
@@ -1797,8 +1797,8 @@ importers:
         version: 4.3.1
     devDependencies:
       '@effect/platform-node':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)(ioredis@5.10.1)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)(ioredis@5.10.1)
       '@foldkit/vite-plugin':
         specifier: workspace:*
         version: link:../vite-plugin-foldkit
@@ -2014,28 +2014,28 @@ packages:
     resolution: {integrity: sha512-Xc3VhU02wqZ1HvHRJUwL09HkZSTvidqY5Ya0NXBSYOxAp+Ln9dcJr9fySI+CkONzP3PekQo9WdzCv0PGER/mOA==}
     engines: {node: '>=14.17.0'}
 
-  '@effect/platform-browser@4.0.0-beta.88':
-    resolution: {integrity: sha512-SwJ9KJ4g8dk1XDscxCy1NYJl4AJYqvxwQx43g4LV9OwipUisjdqKUZLrFo3PY3Rfkh2FCGpis55mrAXNklaKdg==}
+  '@effect/platform-browser@4.0.0-beta.97':
+    resolution: {integrity: sha512-CPF5Wk+OIR4/D6cvI1QEigL/f6cASTv5v8zBn7d2130KB3DFFsSgqplxaZB56vASb4WFBkQ1l8z+dbtosx5RxA==}
     peerDependencies:
-      effect: 4.0.0-beta.88
+      effect: 4.0.0-beta.97
 
-  '@effect/platform-node-shared@4.0.0-beta.88':
-    resolution: {integrity: sha512-kkYDsnYCFFXCT9uaZQ/3hdc4fjzt0E68MImXrcHCmneX0xWCRo26m5F+iX6ryQ/lDMuhqu5lIUxIKhqhookTOw==}
+  '@effect/platform-node-shared@4.0.0-beta.97':
+    resolution: {integrity: sha512-sAlygOlDLLERk7fC24f7Aa4G3wkEbGyyMEileHTHU2fThiPYSGMqNRK1LLnNr17m2+JR7BHbycwXkJkM18BAQw==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      effect: 4.0.0-beta.88
+      effect: 4.0.0-beta.97
 
-  '@effect/platform-node@4.0.0-beta.88':
-    resolution: {integrity: sha512-k05jVJ8uYFm5VNfFFndM0kePKz9+RNW1r4ofiTMRadWzH6YqlJcuAU7Gj6RXCg2cKV+Ad/CsDqBD6QTi44ZKow==}
+  '@effect/platform-node@4.0.0-beta.97':
+    resolution: {integrity: sha512-Vd40VLh+Y08Bs37KWtbe9AgO2+t3RKZKGX9YC6ZKAcswu4tXR3CwSI7V2MN+GgS+ez/GLmqH1WrzDDlaIAxKPA==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      effect: 4.0.0-beta.88
+      effect: 4.0.0-beta.97
       ioredis: ^5.7.0
 
-  '@effect/vitest@4.0.0-beta.88':
-    resolution: {integrity: sha512-UHZBQCsJJTB0nJOxAa5wfV3x53WYIOLL/BbZvd1NSNbh9/noGucXviyou1HovmFQVj+/vkeYqJ/nABzP42MClQ==}
+  '@effect/vitest@4.0.0-beta.97':
+    resolution: {integrity: sha512-1dH6LBWSZyqnTV7ZO+yIpPGPf/xd7RtFfvQ4ZpTy9elzFN+wr1YBFpHSCr8+BfXOml6b8g9Mtj5eDy1qjbizUA==}
     peerDependencies:
-      effect: 4.0.0-beta.88
+      effect: 4.0.0-beta.97
       vitest: ^3.0.0 || ^4.0.0
 
   '@emnapi/core@1.10.0':
@@ -3926,10 +3926,10 @@ packages:
   effect-oxlint@0.3.2:
     resolution: {integrity: sha512-IBCRRtcwP9LQVxHNnA6n7LBcrIFnBcCsUyUWo1fHBJqBUQ/Tj2DcDgiPhf0DnE5ClhJYtXMAKh6Fc/EuaG49hQ==}
     peerDependencies:
-      effect: 4.0.0-beta.88
+      effect: 4.0.0-beta.97
 
-  effect@4.0.0-beta.88:
-    resolution: {integrity: sha512-ml7Xr2BhU12RnNk5xX0lPqHv5pIXg7E161ooGlYncFd17Z5NKXL26DnfvwZsNBxYLS0ToGVMhb4Em7Z0A4dTDA==}
+  effect@4.0.0-beta.97:
+    resolution: {integrity: sha512-pK03HpQVxGZOWdwDAy/iwvV8u3KYcUf2mOWyWqaut2zau8V2u6ejWP7b4BELjyUIiZWW1fl/s/VJpgZUcTjThg==}
 
   emoji-regex-xs@2.0.1:
     resolution: {integrity: sha512-1QFuh8l7LqUcKe24LsPUNzjrzJQ7pgRwp1QMcZ5MX6mFplk2zQ08NVCM84++1cveaUUYtcCYHmeFEuNg16sU4g==}
@@ -4077,8 +4077,8 @@ packages:
   extendable-error@0.1.7:
     resolution: {integrity: sha512-UOiS2in6/Q0FK0R0q6UY9vYpQ21mr/Qn1KOnte7vsACuNJf514WvCCUHSRCPcgjPT2bAhNIJdlE6bVap1GKmeg==}
 
-  fast-check@4.8.0:
-    resolution: {integrity: sha512-GOJ158CUMnN6cSahsv4+ExARvIDuzzinFjkp0E9WtiBa5zcVeLozVkWaE4IzFcc+Y48Wp1EDlUZsXRyAztQcSg==}
+  fast-check@4.9.0:
+    resolution: {integrity: sha512-7ms6T7SybUev/PQITciI0yLM2pOSFy5zpG8Ty7tQofcVaQUvrMXp6CBwqF6fThLCLOrfBtuHAtwq6Yu4XPCllg==}
     engines: {node: '>=12.17.0'}
 
   fast-deep-equal@3.1.3:
@@ -4741,8 +4741,8 @@ packages:
   msgpackr@2.0.4:
     resolution: {integrity: sha512-o1C5KRmuRt+apqMr1HuGSqWStZoRBUpEsCsl15uM9VdAF1qHLtvMOU2En747EnTyEl6c4pzPewRMFF31s1CNbA==}
 
-  multipasta@0.2.7:
-    resolution: {integrity: sha512-KPA58d68KgGil15oDqXjkUBEBYc00XvbPj5/X+dyzeo/lWm9Nc25pQRlf1D+gv4OpK7NM0J1odrbu9JNNGvynA==}
+  multipasta@0.2.8:
+    resolution: {integrity: sha512-ZPWuMKyv0cSO29f7hozp+k6+crZbQijV8ipMvxNxRf2SwtYGTX1ZX89Kd20VV4H9Znonx+EQn+iy1wGQsJ+b+Q==}
 
   murmurhash-js@1.0.0:
     resolution: {integrity: sha512-TvmkNhkv8yct0SVBSy+o8wYzXjE4Zz3PCesbfs8HiCXXdcTuocApFv11UWlNFWKYsP2okqrhb7JNlSm9InBhIw==}
@@ -5385,8 +5385,8 @@ packages:
     resolution: {integrity: sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA==}
     engines: {node: '>=0.6'}
 
-  toml@4.1.1:
-    resolution: {integrity: sha512-EBJnVBr3dTXdA89WVFoAIPUqkBjxPMwRqsfuo1r240tKFHXv3zgca4+NJib/h6TyvGF7vOawz0jGuryJCdNHrw==}
+  toml@4.1.2:
+    resolution: {integrity: sha512-m0vXfHODcw3gk+KONAOlVQ5yNHc3yS3B1ybM3HS1vqDoS0RWTDDVBVVTYi8hH0k+2OM1vmo9fb1WX9EVqjqfHA==}
     engines: {node: '>=20'}
 
   tough-cookie@6.0.1:
@@ -5464,8 +5464,8 @@ packages:
     resolution: {integrity: sha512-cRZYrTDwWznlnRiPjggAGxZXanty6M8RV1ff8Wm4LWXBp7/IG8v5DnOm74DtUBp9OONpK75YlPnIjQqX0dBDtA==}
     engines: {node: '>=20.18.1'}
 
-  undici@8.5.0:
-    resolution: {integrity: sha512-xamtWoB1EshgjpmlXd7GGm2VfdDtw1+rD8uhry8pSNW3If6S8E0m2T2+orSKeZXEn/aPJMviCpDBA65WJt8zhg==}
+  undici@8.7.0:
+    resolution: {integrity: sha512-N7iQtfyLhIMOFgQubvmLV26svHpO0bqKnAiWotTQCVKCmWrcGbBotPuW1x+xwYZ2VHdSTVUfPQQnlEt1/LouTQ==}
     engines: {node: '>=22.19.0'}
 
   unicode-trie@2.0.0:
@@ -5505,8 +5505,8 @@ packages:
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
-  uuid@14.0.0:
-    resolution: {integrity: sha512-Qo+uWgilfSmAhXCMav1uYFynlQO7fMFiMVZsQqZRMIXp0O7rR7qjkj+cPvBHLgBqi960QCoo/PH2/6ZtVqKvrg==}
+  uuid@14.0.1:
+    resolution: {integrity: sha512-6ZxzVpzDXDa3bJWaHilVayA+BH/1zmxCJoVgvmqJnid/gPoKHxUrS/aC/T6LGQtNHT+XHG9fXPJB4d+IrU30Ew==}
     hasBin: true
 
   vanilla-colorful@0.7.2:
@@ -5954,34 +5954,34 @@ snapshots:
 
   '@discoveryjs/json-ext@1.1.0': {}
 
-  '@effect/platform-browser@4.0.0-beta.88(effect@4.0.0-beta.88)':
+  '@effect/platform-browser@4.0.0-beta.97(effect@4.0.0-beta.97)':
     dependencies:
-      effect: 4.0.0-beta.88
-      multipasta: 0.2.7
+      effect: 4.0.0-beta.97
+      multipasta: 0.2.8
 
-  '@effect/platform-node-shared@4.0.0-beta.88(effect@4.0.0-beta.88)':
+  '@effect/platform-node-shared@4.0.0-beta.97(effect@4.0.0-beta.97)':
     dependencies:
       '@types/ws': 8.18.1
-      effect: 4.0.0-beta.88
+      effect: 4.0.0-beta.97
       ws: 8.21.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@effect/platform-node@4.0.0-beta.88(effect@4.0.0-beta.88)(ioredis@5.10.1)':
+  '@effect/platform-node@4.0.0-beta.97(effect@4.0.0-beta.97)(ioredis@5.10.1)':
     dependencies:
-      '@effect/platform-node-shared': 4.0.0-beta.88(effect@4.0.0-beta.88)
-      effect: 4.0.0-beta.88
+      '@effect/platform-node-shared': 4.0.0-beta.97(effect@4.0.0-beta.97)
+      effect: 4.0.0-beta.97
       ioredis: 5.10.1
       mime: 4.1.0
-      undici: 8.5.0
+      undici: 8.7.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@effect/vitest@4.0.0-beta.88(effect@4.0.0-beta.88)(vitest@4.1.9)':
+  '@effect/vitest@4.0.0-beta.97(effect@4.0.0-beta.97)(vitest@4.1.9)':
     dependencies:
-      effect: 4.0.0-beta.88
+      effect: 4.0.0-beta.97
       vitest: 4.1.9(@types/node@25.9.3)(@vitest/coverage-v8@4.1.9)(happy-dom@20.10.4)(jsdom@29.1.1)(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
 
   '@emnapi/core@1.10.0':
@@ -7564,22 +7564,22 @@ snapshots:
 
   ee-first@1.1.1: {}
 
-  effect-oxlint@0.3.2(effect@4.0.0-beta.88):
+  effect-oxlint@0.3.2(effect@4.0.0-beta.97):
     dependencies:
       '@oxlint/plugins': 1.70.0
-      effect: 4.0.0-beta.88
+      effect: 4.0.0-beta.97
 
-  effect@4.0.0-beta.88:
+  effect@4.0.0-beta.97:
     dependencies:
       '@standard-schema/spec': 1.1.0
-      fast-check: 4.8.0
+      fast-check: 4.9.0
       find-my-way-ts: 0.1.6
       ini: 7.0.0
       kubernetes-types: 1.30.0
       msgpackr: 2.0.4
-      multipasta: 0.2.7
-      toml: 4.1.1
-      uuid: 14.0.0
+      multipasta: 0.2.8
+      toml: 4.1.2
+      uuid: 14.0.1
       yaml: 2.9.0
 
   emoji-regex-xs@2.0.1: {}
@@ -7782,7 +7782,7 @@ snapshots:
 
   extendable-error@0.1.7: {}
 
-  fast-check@4.8.0:
+  fast-check@4.9.0:
     dependencies:
       pure-rand: 8.4.0
 
@@ -8475,7 +8475,7 @@ snapshots:
     optionalDependencies:
       msgpackr-extract: 3.0.4
 
-  multipasta@0.2.7: {}
+  multipasta@0.2.8: {}
 
   murmurhash-js@1.0.0: {}
 
@@ -9179,7 +9179,7 @@ snapshots:
 
   toidentifier@1.0.1: {}
 
-  toml@4.1.1: {}
+  toml@4.1.2: {}
 
   tough-cookie@6.0.1:
     dependencies:
@@ -9253,7 +9253,7 @@ snapshots:
 
   undici@7.28.0: {}
 
-  undici@8.5.0: {}
+  undici@8.7.0: {}
 
   unicode-trie@2.0.0:
     dependencies:
@@ -9297,7 +9297,7 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  uuid@14.0.0: {}
+  uuid@14.0.1: {}
 
   vanilla-colorful@0.7.2: {}
 

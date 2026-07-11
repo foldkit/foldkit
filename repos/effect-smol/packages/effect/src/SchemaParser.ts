@@ -170,8 +170,8 @@ export function make<S extends Schema.Constraint>(schema: S) {
  * @category Asserting
  * @since 3.10.0
  */
-export function is<T>(schema: Schema.Schema<T>): <I>(input: I) => input is I & T {
-  return _is<T>(schema.ast)
+export function is<S extends Schema.Constraint>(schema: S): <I>(input: I) => input is I & S["Type"] {
+  return _is<S["Type"]>(schema.ast)
 }
 
 /** @internal */

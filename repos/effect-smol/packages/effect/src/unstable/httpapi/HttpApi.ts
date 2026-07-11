@@ -186,9 +186,7 @@ const makeProto = <Id extends string, Groups extends HttpApiGroup.Any>(
 ): HttpApi<Id, Groups> => {
   function HttpApi() {}
   Object.setPrototypeOf(HttpApi, Proto)
-  HttpApi.groups = options.groups
-  HttpApi.annotations = options.annotations
-  return HttpApi as any
+  return Object.assign(HttpApi, options) as any
 }
 
 /**
@@ -206,7 +204,7 @@ const makeProto = <Id extends string, Groups extends HttpApiGroup.Any>(
 export const make = <const Id extends string>(identifier: Id): HttpApi<Id, never> =>
   makeProto({
     identifier,
-    groups: new Map() as any,
+    groups: {},
     annotations: Context.empty()
   })
 

@@ -213,8 +213,8 @@ export const Schema = <A, AI, E, EI>(
 // NOTE: match, matchData, matchDataSplitEmpty, getData, and getError use
 // refinement chains instead of Match because tagsExhaustive returns
 // Unify<B>, which does not reduce when the handlers return a caller's
-// naked generic in effect 4.0.0-beta.88. Combinators whose handlers
-// return concrete AsyncData shapes use Match as usual.
+// naked generic. Combinators whose handlers return concrete AsyncData
+// shapes use Match as usual.
 export const match: {
   <A, E, B, C = B, D = B, F = B, G = B, H = B>(
     handlers: Readonly<{

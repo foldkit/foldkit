@@ -42,16 +42,10 @@ import * as InternalUtilities from "./internal/utilities.ts"
 /**
  * Known Anthropic Claude model identifiers exposed by the generated Anthropic schema.
  *
- * **Details**
- *
- * The Anthropic language model constructors accept `Model` values and custom
- * string model ids, so this type is best used for autocomplete and type checking
- * of known Claude ids.
- *
  * @category models
  * @since 4.0.0
  */
-export type Model = typeof Generated.Model.Type
+export type Model = (typeof Generated.Model)["members"][1]["Encoded"]
 
 // =============================================================================
 // Configuration

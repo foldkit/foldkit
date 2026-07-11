@@ -1954,6 +1954,28 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await encoding.succeed(new Date("2021-01-01T00:00:00.000Z"), "2021-01-01T00:00:00.000Z")
     })
 
+    it("DateFromMillis", async () => {
+      const schema = Schema.DateFromMillis
+      const asserts = new TestSchema.Asserts(schema)
+      if (verifyGeneration) {
+        asserts.arbitrary().verifyGeneration()
+      }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(0, new Date(0))
+      assertTrue(Schema.decodeSync(schema)(NaN) instanceof Date)
+      assertTrue(Schema.decodeSync(schema)(Infinity) instanceof Date)
+      assertTrue(Schema.decodeSync(schema)(-Infinity) instanceof Date)
+      await decoding.fail(null, `Expected number, got null`)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(new Date(0), 0)
+      strictEqual(Schema.encodeSync(schema)(new Date("invalid")), NaN)
+      strictEqual(Schema.encodeSync(schema)(new Date(NaN)), NaN)
+      strictEqual(Schema.encodeSync(schema)(new Date(Infinity)), NaN)
+      strictEqual(Schema.encodeSync(schema)(new Date(-Infinity)), NaN)
+    })
+
     it("FiniteFromString", async () => {
       const schema = Schema.FiniteFromString
       const asserts = new TestSchema.Asserts(schema)
@@ -6270,6 +6292,42 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
     })
 
+    it("constructor ignores excess properties by default", () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.String
+      }) {}
+
+      const instance = new A({ a: "a", extra: "extra" } as any)
+
+      strictEqual(instance.a, "a")
+      assertFalse("extra" in instance)
+    })
+
+    it("constructor preserves excess properties when requested", () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.String
+      }) {}
+
+      const instance = new A({ a: "a", extra: "extra" } as any, {
+        parseOptions: { onExcessProperty: "preserve" }
+      })
+
+      strictEqual(instance.a, "a")
+      strictEqual((instance as any).extra, "extra")
+    })
+
+    it("constructor rejects excess properties when requested", () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.String
+      }) {}
+
+      throws(() =>
+        new A({ a: "a", extra: "extra" } as any, {
+          parseOptions: { onExcessProperty: "error" }
+        })
+      )
+    })
+
     it("annotate", async () => {
       class A extends Schema.Class<A>("A")({
         a: Schema.String
@@ -6317,6 +6375,60 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
         const decoding = asserts.decoding()
         await decoding.succeed({ a: "a", b: 2 }, new B({ a: "a", b: 2 }))
+      })
+
+      it("constructor preserves subclass fields while ignoring excess properties by default", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String
+        }) {}
+        class B extends A.extend<B>("B")({
+          b: Schema.Number
+        }) {}
+
+        const instance = new B({ a: "a", b: 2, extra: "extra" } as any)
+
+        strictEqual(instance.a, "a")
+        strictEqual(instance.b, 2)
+        assertFalse("extra" in instance)
+      })
+
+      it("constructor preserves subclass fields and excess properties when requested", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String
+        }) {}
+        class B extends A.extend<B>("B")({
+          b: Schema.Number
+        }) {}
+
+        const instance = new B({ a: "a", b: 2, extra: "extra" } as any, {
+          parseOptions: { onExcessProperty: "preserve" }
+        })
+
+        strictEqual(instance.a, "a")
+        strictEqual(instance.b, 2)
+        strictEqual((instance as any).extra, "extra")
+      })
+
+      it("constructor does not treat subclass fields as excess properties", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String
+        }) {}
+        class B extends A.extend<B>("B")({
+          b: Schema.Number
+        }) {}
+
+        const instance = new B({ a: "a", b: 2 }, {
+          parseOptions: { onExcessProperty: "error" }
+        })
+
+        strictEqual(instance.a, "a")
+        strictEqual(instance.b, 2)
+
+        throws(() =>
+          new B({ a: "a", b: 2, extra: "extra" } as any, {
+            parseOptions: { onExcessProperty: "error" }
+          })
+        )
       })
 
       it("Struct argument", async () => {
@@ -6393,6 +6505,18 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await encoding.succeed(new A({ a: "a" }), { _tag: "A", a: "a" })
     })
 
+    it("constructor ignores excess properties by default", () => {
+      class A extends Schema.TaggedClass<A>()("A", {
+        a: Schema.String
+      }) {}
+
+      const instance = new A({ a: "a", extra: "extra" } as any)
+
+      strictEqual(instance._tag, "A")
+      strictEqual(instance.a, "a")
+      assertFalse("extra" in instance)
+    })
+
     it("Struct argument", async () => {
       class A extends Schema.TaggedClass<A>()(
         "A",
@@ -6415,6 +6539,36 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   at ["_tag"]`
       )
       await decoding.fail({ _tag: "A", a: "" }, `Expected "a" being longer than 0, got {"_tag":"A","a":""}`)
+    })
+
+    it("extended constructor does not treat subclass fields as excess properties", () => {
+      class A extends Schema.TaggedClass<A>()("A", {
+        a: Schema.String
+      }) {}
+      class B extends A.extend<B>("B")({
+        b: Schema.Number
+      }) {}
+
+      const instance = new B({ a: "a", b: 2, extra: "extra" } as any)
+
+      strictEqual(instance._tag, "A")
+      strictEqual(instance.a, "a")
+      strictEqual(instance.b, 2)
+      assertFalse("extra" in instance)
+
+      const strictInstance = new B({ a: "a", b: 2 }, {
+        parseOptions: { onExcessProperty: "error" }
+      })
+
+      strictEqual(strictInstance._tag, "A")
+      strictEqual(strictInstance.a, "a")
+      strictEqual(strictInstance.b, 2)
+
+      throws(() =>
+        new B({ a: "a", b: 2, extra: "extra" } as any, {
+          parseOptions: { onExcessProperty: "error" }
+        })
+      )
     })
   })
 
@@ -6441,6 +6595,37 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const make = asserts.make()
       await make.succeed(new E({ id: 1 }))
       await make.succeed({ id: 1 }, new E({ id: 1 }))
+    })
+
+    it("constructor ignores excess properties by default", () => {
+      class E extends Schema.ErrorClass<E>("E")({
+        message: Schema.String,
+        cause: Schema.optionalKey(Schema.Unknown),
+        code: Schema.Number
+      }) {}
+      const cause = new Error("cause")
+
+      const err = new E({ message: "boom", cause, code: 1, extra: "extra" } as any)
+
+      strictEqual(err.message, "boom")
+      strictEqual(err.cause, cause)
+      strictEqual(err.code, 1)
+      assertFalse("extra" in err)
+    })
+
+    it("constructor preserves excess properties when requested", () => {
+      class E extends Schema.ErrorClass<E>("E")({
+        message: Schema.String,
+        code: Schema.Number
+      }) {}
+
+      const err = new E({ message: "boom", code: 1, extra: "extra" } as any, {
+        parseOptions: { onExcessProperty: "preserve" }
+      })
+
+      strictEqual(err.message, "boom")
+      strictEqual(err.code, 1)
+      strictEqual((err as any).extra, "extra")
     })
 
     it("Struct argument", async () => {
@@ -6500,6 +6685,37 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed({ a: "a", b: 2 }, new B({ a: "a", b: 2 }))
     })
 
+    it("extended constructor ignores excess properties by default", () => {
+      class A extends Schema.ErrorClass<A>("A")({
+        message: Schema.String
+      }) {}
+      class B extends A.extend<B>("B")({
+        code: Schema.Number
+      }) {}
+
+      const err = new B({ message: "boom", code: 1, extra: "extra" } as any)
+
+      strictEqual(err.message, "boom")
+      strictEqual(err.code, 1)
+      assertFalse("extra" in err)
+    })
+
+    it("extended constructor does not treat subclass fields as excess properties", () => {
+      class A extends Schema.ErrorClass<A>("A")({
+        message: Schema.String
+      }) {}
+      class B extends A.extend<B>("B")({
+        code: Schema.Number
+      }) {}
+
+      const err = new B({ message: "boom", code: 1 }, {
+        parseOptions: { onExcessProperty: "error" }
+      })
+
+      strictEqual(err.message, "boom")
+      strictEqual(err.code, 1)
+    })
+
     it("`toString` to match native `Error` output format", async () => {
       class E extends Schema.ErrorClass<E>("E")({
         message: Schema.String
@@ -6537,6 +6753,18 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const encoding = asserts.encoding()
       await encoding.succeed(new E({ id: 1 }), { _tag: "E", id: 1 })
+    })
+
+    it("constructor ignores excess properties by default", () => {
+      class E extends Schema.TaggedErrorClass<E>()("E", {
+        id: Schema.Number
+      }) {}
+
+      const err = new E({ id: 1, extra: "extra" } as any)
+
+      strictEqual(err._tag, "E")
+      strictEqual(err.id, 1)
+      assertFalse("extra" in err)
     })
 
     it("Struct argument", async () => {
@@ -6608,6 +6836,39 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       strictEqual(instance._tag, "A")
       assertTrue(instance instanceof A)
       assertTrue(instance instanceof B)
+    })
+
+    it("extended constructor ignores excess properties by default", () => {
+      class A extends Schema.TaggedErrorClass<A>()("A", {
+        a: Schema.String
+      }) {}
+      class B extends A.extend<B>("B")({
+        b: Schema.Number
+      }) {}
+
+      const instance = new B({ a: "a", b: 2, extra: "extra" } as any)
+
+      strictEqual(instance._tag, "A")
+      strictEqual(instance.a, "a")
+      strictEqual(instance.b, 2)
+      assertFalse("extra" in instance)
+    })
+
+    it("extended constructor does not treat subclass fields as excess properties", () => {
+      class A extends Schema.TaggedErrorClass<A>()("A", {
+        a: Schema.String
+      }) {}
+      class B extends A.extend<B>("B")({
+        b: Schema.Number
+      }) {}
+
+      const instance = new B({ a: "a", b: 2 }, {
+        parseOptions: { onExcessProperty: "error" }
+      })
+
+      strictEqual(instance._tag, "A")
+      strictEqual(instance.a, "a")
+      strictEqual(instance.b, 2)
     })
   })
 

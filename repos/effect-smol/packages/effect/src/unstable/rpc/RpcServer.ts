@@ -537,7 +537,7 @@ export const make: <Rpcs extends Rpc.Any>(
             schemas.encodeDefect,
             schemas.collector,
             Effect.provideContext(schemas.encodeChunk(response.values), schemas.context),
-            (values) => ({ _tag: "Chunk", requestId: String(response.requestId), values })
+            (values) => ({ _tag: "Chunk", requestId: response.requestId, values })
           )
         }
         case "Exit": {
@@ -550,7 +550,7 @@ export const make: <Rpcs extends Rpc.Any>(
             schemas.encodeDefect,
             schemas.collector,
             Effect.provideContext(schemas.encodeExit(response.exit), schemas.context),
-            (exit) => ({ _tag: "Exit", requestId: String(response.requestId), exit })
+            (exit) => ({ _tag: "Exit", requestId: response.requestId, exit })
           )
         }
         case "Defect": {
@@ -647,7 +647,7 @@ export const make: <Rpcs extends Rpc.Any>(
       Effect.flatMap(encodeDefect(defect), (encodedDefect) =>
         send(client.id, {
           _tag: "Exit",
-          requestId: String(requestId),
+          requestId,
           exit: {
             _tag: "Failure",
             cause: [{
@@ -685,7 +685,7 @@ export const make: <Rpcs extends Rpc.Any>(
         const tag = Predicate.hasProperty(request, "tag") ? (request.tag as string) : ""
         let requestId: RequestId
         switch (typeof request.id) {
-          case "bigint":
+          case "number":
           case "string": {
             requestId = RequestId(request.id)
             break
@@ -1036,7 +1036,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
       if (queue.state._tag === "Done") return Effect.void
       return Effect.forEach(
         requestIds,
-        (requestId) => writeRequest(id, { _tag: "Interrupt", requestId: String(requestId) }),
+        (requestId) => writeRequest(id, { _tag: "Interrupt", requestId }),
         { discard: true }
       )
     })

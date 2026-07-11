@@ -111,6 +111,98 @@ describe("AnthropicLanguageModel", () => {
         assert.strictEqual(toolCall.name, "GlobTool")
         assert.deepStrictEqual(toolCall.params, toolParams)
       }))
+
+    // `Model` is an open enum in Anthropic's spec (`anyOf: [{ type: string }, ...consts]`), and it is
+    // $ref'd by response schemas. Responses must therefore decode for model ids that are newer than the
+    // generated literals, and the id must survive decoding unchanged.
+    it.effect("decodes responses for a model id that is not a known literal", () =>
+      Effect.gen(function*() {
+        const layer = AnthropicClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+          Layer.provide(Layer.succeed(
+            HttpClient.HttpClient,
+            makeHttpClient((request) =>
+              Effect.succeed(sseResponse(request, [
+                {
+                  type: "message_start",
+                  message: {
+                    id: "msg_test_1",
+                    type: "message",
+                    role: "assistant",
+                    model: "claude-not-a-known-model-id",
+                    content: [],
+                    stop_reason: null,
+                    stop_sequence: null,
+                    usage: {
+                      cache_creation: null,
+                      cache_creation_input_tokens: null,
+                      cache_read_input_tokens: null,
+                      inference_geo: null,
+                      input_tokens: 10,
+                      output_tokens: 0,
+                      service_tier: null
+                    }
+                  }
+                },
+                {
+                  type: "content_block_start",
+                  index: 0,
+                  content_block: { type: "text", text: "" }
+                },
+                {
+                  type: "content_block_delta",
+                  index: 0,
+                  delta: { type: "text_delta", text: "Hello" }
+                },
+                {
+                  type: "content_block_stop",
+                  index: 0
+                },
+                {
+                  type: "message_delta",
+                  delta: {
+                    stop_reason: "end_turn",
+                    stop_sequence: null
+                  },
+                  usage: {
+                    cache_creation_input_tokens: null,
+                    cache_read_input_tokens: null,
+                    input_tokens: null,
+                    output_tokens: 5
+                  }
+                },
+                {
+                  type: "message_stop"
+                }
+              ]))
+            )
+          ))
+        )
+
+        const partsChunk = yield* LanguageModel.streamText({
+          prompt: "say hello"
+        }).pipe(
+          Stream.runCollect,
+          Effect.provide(AnthropicLanguageModel.model("claude-not-a-known-model-id")),
+          Effect.provide(layer)
+        )
+
+        const parts = globalThis.Array.from(partsChunk)
+        const metadata = parts.find((part) => part.type === "response-metadata")
+        assert.isDefined(metadata)
+        if (metadata?.type !== "response-metadata") {
+          return
+        }
+
+        assert.strictEqual(metadata.modelId, "claude-not-a-known-model-id")
+
+        const text = parts.find((part) => part.type === "text-delta")
+        assert.isDefined(text)
+        if (text?.type !== "text-delta") {
+          return
+        }
+
+        assert.strictEqual(text.delta, "Hello")
+      }))
   })
 
   describe("generateText", () => {

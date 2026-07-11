@@ -254,10 +254,13 @@ describe.concurrent("ClusterWorkflowEngine", () => {
         executionId: executionIdBeforeRegister
       })
 
-      yield* DurableDeferred.done(ShardedDeferred, {
+      // Prime the partial client cache without waiting for the unregistered workflow entity.
+      const beforeRegisterDoneFiber = yield* DurableDeferred.done(ShardedDeferred, {
         token: tokenBeforeRegister,
         exit: Exit.void
-      })
+      }).pipe(Effect.forkChild({ startImmediately: true }))
+      yield* Effect.yieldNow
+      yield* Fiber.interrupt(beforeRegisterDoneFiber)
 
       yield* engine.register(ShardedDeferredWorkflow, () => Effect.void)
 
@@ -274,6 +277,41 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       const envelope = driver.journal.slice(journalLength).find((envelope) =>
         envelope._tag === "Request" && envelope.address.entityType === "Workflow/ShardedDeferredWorkflow"
+      )
+      assert(envelope)
+      assert.strictEqual(envelope.address.shardId.group, "workflow")
+    }).pipe(Effect.scoped, Effect.provide(TestWorkflowEngine)))
+
+  it.effect("routes activities to the workflow shard group after a partial client is cached", () =>
+    Effect.gen(function*() {
+      const driver = yield* MessageStorage.MemoryDriver
+      const engine = yield* WorkflowEngine
+      const payload = { id: "partial-client-before-execute" }
+      const executionId = yield* ShardedDeferredWorkflow.executionId(payload)
+      const token = DurableDeferred.tokenFromExecutionId(ShardedDeferred, {
+        workflow: ShardedDeferredWorkflow,
+        executionId
+      })
+      // Prime the partial client cache without waiting for the unregistered workflow entity.
+      const doneFiber = yield* DurableDeferred.done(ShardedDeferred, {
+        token,
+        exit: Exit.void
+      }).pipe(Effect.forkChild({ startImmediately: true }))
+      yield* Effect.yieldNow
+      yield* Fiber.interrupt(doneFiber)
+
+      yield* engine.register(ShardedDeferredWorkflow, () =>
+        Activity.make({
+          name: "ShardedActivity",
+          execute: Effect.void
+        }))
+
+      const journalLength = driver.journal.length
+      assert.strictEqual(yield* ShardedDeferredWorkflow.execute(payload), undefined)
+      const envelope = driver.journal.slice(journalLength).find((envelope) =>
+        envelope._tag === "Request" &&
+        envelope.address.entityType === "Workflow/ShardedDeferredWorkflow" &&
+        envelope.tag === "activity"
       )
       assert(envelope)
       assert.strictEqual(envelope.address.shardId.group, "workflow")

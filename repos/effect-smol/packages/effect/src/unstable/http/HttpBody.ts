@@ -335,8 +335,8 @@ export const jsonSchema = <S extends Schema.Constraint>(
  * @category constructors
  * @since 4.0.0
  */
-export const urlParams = (urlParams: UrlParams.UrlParams, contentType?: string): Uint8Array =>
-  text(UrlParams.toString(urlParams), contentType ?? "application/x-www-form-urlencoded")
+export const urlParams = (urlParams: UrlParams.Input, contentType?: string): Uint8Array =>
+  text(UrlParams.toString(UrlParams.fromInput(urlParams)), contentType ?? "application/x-www-form-urlencoded")
 
 /**
  * HTTP body variant backed by Web `FormData`.

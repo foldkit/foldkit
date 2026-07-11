@@ -1616,6 +1616,7 @@ export const Memory_20250818 = Tool.providerDefined({
   id: "anthropic.memory_20250818",
   customName: "AnthropicMemory",
   providerName: "memory",
+  requiresHandler: true,
   parameters: Memory_20250818_Commands,
   success: Schema.String
 })

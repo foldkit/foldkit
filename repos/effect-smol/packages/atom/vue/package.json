@@ -1,6 +1,6 @@
 {
   "name": "@effect/atom-vue",
-  "version": "4.0.0-beta.88",
+  "version": "4.0.0-beta.97",
   "type": "module",
   "license": "MIT",
   "description": "Vue bindings for the Effect Atom modules",
@@ -51,7 +51,6 @@
   },
   "scripts": {
     "build": "tsc -b tsconfig.json && pnpm babel",
-    "build:tsgo": "tsgo -b tsconfig.json && pnpm babel",
     "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
@@ -59,7 +58,7 @@
   },
   "devDependencies": {
     "effect": "workspace:^",
-    "vue": "^3.5.34"
+    "vue": "^3.5.39"
   },
   "peerDependencies": {
     "effect": "workspace:^",

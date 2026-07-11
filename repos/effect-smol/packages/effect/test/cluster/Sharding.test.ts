@@ -11,7 +11,15 @@ import {
   ShardingConfig,
   Snowflake
 } from "effect/unstable/cluster"
-import { TestEntity, TestEntityNoState, TestEntityState, User } from "./TestEntity.ts"
+import {
+  CallerId,
+  ContextBleedEntity,
+  ContextBleedLayer,
+  TestEntity,
+  TestEntityNoState,
+  TestEntityState,
+  User
+} from "./TestEntity.ts"
 
 describe.concurrent("Sharding", () => {
   it.effect("delivers volatile requests directly to the entity", () =>
@@ -22,6 +30,22 @@ describe.concurrent("Sharding", () => {
       const user = yield* client.GetUserVolatile({ id: 1 })
       expect(user).toEqual(new User({ id: 1, name: "User 1" }))
     }).pipe(Effect.provide(TestSharding)))
+
+  it.effect("does not freeze the first caller's context into the entity server", () =>
+    Effect.gen(function*() {
+      yield* TestClock.adjust(1)
+      const makeClient = yield* ContextBleedEntity.client
+      const client = makeClient("1")
+
+      const first = yield* client.ReadCaller().pipe(Effect.provideService(CallerId, "A"))
+      expect(first).toEqual("A")
+
+      const second = yield* client.ReadCaller()
+      expect(second).toEqual("none")
+
+      const durable = yield* client.ReadCallerPersisted()
+      expect(durable).toEqual("none")
+    }).pipe(Effect.provide(ContextBleedSharding)))
 
   it.effect("persists durable requests until the entity replies", () =>
     Effect.gen(function*() {
@@ -576,3 +600,5 @@ const TestSharding = TestShardingWithoutStorage.pipe(
   Layer.provideMerge(MessageStorage.layerMemory),
   Layer.provide(TestShardingConfig)
 )
+
+const ContextBleedSharding = ContextBleedLayer.pipe(Layer.provideMerge(TestSharding))

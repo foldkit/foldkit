@@ -45,10 +45,10 @@
     "maxDelta": 117
   },
   "to-codec-string-tree": {
-    "maxDelta": 59
+    "maxDelta": 57
   },
   "to-codec-array-from-single": {
-    "maxDelta": 96
+    "maxDelta": 94
   },
   "brand": {
     "maxDelta": 82

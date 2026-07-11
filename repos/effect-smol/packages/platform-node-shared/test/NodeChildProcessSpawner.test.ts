@@ -905,7 +905,7 @@ describe("NodeChildProcessSpawner", () => {
           assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(1))
 
           // Allow cleanup to occur
-          yield* TestClock.withLive(Effect.sleep("10 millis"))
+          yield* TestClock.withLive(Effect.sleep("100 millis"))
 
           const afterExitHandle = yield* ChildProcess.make("bash", [
             "-c",

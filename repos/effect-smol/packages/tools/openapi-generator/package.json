@@ -1,7 +1,7 @@
 {
   "name": "@effect/openapi-generator",
   "type": "module",
-  "version": "4.0.0-beta.88",
+  "version": "4.0.0-beta.97",
   "license": "MIT",
   "description": "Generate Effect Schema types, HTTP clients, and HttpApi modules from OpenAPI specifications",
   "homepage": "https://effect.website",
@@ -55,7 +55,6 @@
   },
   "scripts": {
     "build": "tsc -b tsconfig.json && pnpm babel",
-    "build:tsgo": "tsgo -b tsconfig.json && pnpm babel",
     "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
