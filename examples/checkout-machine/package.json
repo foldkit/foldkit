@@ -1,5 +1,5 @@
 {
-  "name": "statechart-checkout-example",
+  "name": "checkout-machine-example",
   "private": true,
   "version": "0.0.0",
   "type": "module",

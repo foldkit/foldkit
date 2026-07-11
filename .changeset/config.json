@@ -45,6 +45,6 @@
     "@foldkit/examples-e2e",
     "@foldkit/lustre-benchmark",
     "charting-example",
-    "statechart-checkout-example"
+    "checkout-machine-example"
   ]
 }

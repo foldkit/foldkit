@@ -17,7 +17,7 @@ export const EXAMPLE_VALUES = [
   'generative-art',
   'auth',
   'shopping-cart',
-  'statechart-checkout',
+  'checkout-machine',
   'pixel-art',
   'websocket-chat',
   'managed-resource-layer',
@@ -135,10 +135,10 @@ export const examples: ReadonlyArray<{
     description: 'Complex state management with nested models and routing',
   },
   {
-    value: 'statechart-checkout',
-    title: 'statechart-checkout',
+    value: 'checkout-machine',
+    title: 'checkout-machine',
     description:
-      'Checkout workflow powered by the experimental statechart module with guarded branches and edge Commands',
+      'Checkout workflow powered by the experimental state machine module with guarded branches and edge Commands',
   },
   {
     value: 'pixel-art',

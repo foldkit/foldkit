@@ -355,7 +355,7 @@ export type Machine<State extends Tagged, Message extends Tagged> = Readonly<{
 
 /**
  * The Schemas a Machine is defined over: the state union and the Message
- * union. Passed to `defineMachine`'s first stage so the type parameters are
+ * union. Passed to `define`'s first stage so the type parameters are
  * fully resolved before the transition table is checked.
  */
 export type MachineSchemas<
@@ -458,7 +458,7 @@ const extractMemberTag = (member: unknown): Option.Option<string> =>
  * `reachableFrom`, `unreachableStates`, `deadTransitions`, and `toMermaid`
  * all read it directly.
  */
-export const defineMachine =
+export const define =
   <State extends Tagged, Message extends Tagged>(
     schemas: MachineSchemas<State, Message>,
   ) =>
@@ -478,7 +478,7 @@ export const defineMachine =
           extractMemberTag(member),
           () =>
             new Error(
-              'defineMachine: every member of the state union Schema must be a Struct with a literal _tag field',
+              'Machine.define: every member of the state union Schema must be a Struct with a literal _tag field',
             ),
         ),
       ),

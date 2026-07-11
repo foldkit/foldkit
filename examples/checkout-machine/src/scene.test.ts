@@ -5,14 +5,14 @@ import { PlaceOrder, SucceededPlaceOrder, initialModel, update } from './main'
 import { view } from './view'
 
 describe('scene', () => {
-  test('initial view shows the hardcover order and statechart inspector', () => {
+  test('initial view shows the hardcover order and state machine inspector', () => {
     Scene.scene(
       { update, view },
       Scene.with(initialModel),
       Scene.expect(Scene.role('heading', { name: 'Your order' })).toExist(),
       Scene.expect(Scene.role('radio', { name: 'Hardcover' })).toBeChecked(),
       Scene.expect(
-        Scene.role('heading', { name: 'Statechart inspector' }),
+        Scene.role('heading', { name: 'State machine inspector' }),
       ).toExist(),
       Scene.expect(Scene.text('stateDiagram-v2', { exact: false })).toExist(),
     )

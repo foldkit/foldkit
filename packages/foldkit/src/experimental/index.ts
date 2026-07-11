@@ -1,1 +1,1 @@
-export * as Statechart from './statechart/index.js'
+export * as Machine from './machine/index.js'
