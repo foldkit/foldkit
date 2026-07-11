@@ -31,6 +31,7 @@ jobs:
           - weather
           - api-cache
           - routing
+          - route-transitions
           - query-sync
           - snake
           - auth

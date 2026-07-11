@@ -13,6 +13,8 @@ import {
 } from '../prose'
 import {
   bestPracticesKeyingRouter,
+  coreManagedResourcesRouter,
+  coreSubscriptionsRouter,
   exampleDetailRouter,
   patternsInformingSubmodelsRouter,
 } from '../route'
@@ -85,10 +87,10 @@ const coldLoadsHeader: TableOfContentsEntry = {
   text: 'Cold Loads and the Initial Route',
 }
 
-const enteringARouteHeader: TableOfContentsEntry = {
+const routeTransitionsHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'entering-a-route',
-  text: 'Entering a Route',
+  id: 'route-transitions',
+  text: 'Route Transitions',
 }
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
@@ -103,7 +105,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   keyingRouteViewsHeader,
   navigationHeader,
   coldLoadsHeader,
-  enteringARouteHeader,
+  routeTransitionsHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
@@ -676,7 +678,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ),
         ' runs on it.',
       ),
-      tableOfContentsEntryToHeader(enteringARouteHeader),
+      tableOfContentsEntryToHeader(routeTransitionsHeader),
       para(
         'The shared helper above answers what a route needs, so its Commands fire on every navigation that lands on the route. For ',
         inlineCode('FetchPeople'),
@@ -698,7 +700,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' asks the question: a transition enters a route when the next route carries the tag and the previous route did not, and a cold load counts as an entry. Navigating within a route, between two ids of one detail route or two search texts of one list route, is not an entry.',
       ),
       para(
-        'Pin the application’s route union once and alias the predicate. TypeScript narrows the tag argument to the union’s tags, so a misspelled route name fails to compile. Then build the transition in the same two places that resolve a URL into a route: ',
+        'The route union is inferred from the transition argument and the tag is checked against it, so a misspelled route name fails to compile. Build the transition in the same two places that resolve a URL into a route: ',
         inlineCode('init'),
         ' holds no route yet, so it builds the cold load, and the ',
         inlineCode('ChangedUrl'),
@@ -737,13 +739,66 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'mb-8',
       ),
       para(
+        'When a single route owns the entry Command and needs the route’s payload, skip the dispatch: ',
+        inlineCode('Transition.enteredRoute(transition, tag)'),
+        ' returns the entered route narrowed to the tag, so the payload arrives typed:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.routingEnteredRouteHighlighted),
+          ],
+          [],
+        ),
+        Snippet.routingEnteredRouteRaw,
+        'Copy enteredRoute example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'Entering has a mirror. ',
+        inlineCode('Transition.exited'),
+        ' returns the route the transition left, and ',
+        inlineCode('Transition.exitedRoute(transition, tag)'),
+        ' is its single-route, payload-carrying form. Exits are for one-shot Commands on the way out, saving a draft, recording that a visit ended. They are not for tearing down things that live while a route is active: listeners, timers, and handles belong to a ',
+        link(coreSubscriptionsRouter(), 'Subscription'),
+        ' or ',
+        link(coreManagedResourcesRouter(), 'ManagedResource'),
+        ' condition on the Model, which also ends them when the route state disappears for reasons other than navigation.',
+      ),
+      para(
+        'The last case is staying. ',
+        inlineCode('Transition.stayed(transition, tag)'),
+        ' returns both sides of a within-route navigation, narrowed to the tag: ',
+        inlineCode('Some({ previousRoute, nextRoute })'),
+        ' when the transition stayed on that route, ',
+        inlineCode('Option.none()'),
+        ' when it entered it, left it, or never touched it. A cold load stays nowhere. Reach for it when the previous payload matters, comparing a detail id or diffing query parameters; when only the next value matters, the ',
+        inlineCode('ChangedUrl'),
+        ' handler already has the next route.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.routingExitedStayedHighlighted),
+          ],
+          [],
+        ),
+        Snippet.routingExitedStayedRaw,
+        'Copy exited and stayed example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
         'Because a cold load counts as an entry, ',
         inlineCode('init'),
         ' and the ',
         inlineCode('ChangedUrl'),
         ' handler share one load-on-entry policy: reloading on ',
         inlineCode('/people'),
-        ' runs the same entry Commands as clicking there from the home page. Entry-only Commands and per-navigation Commands compose; a handler that needs both concatenates the results of the two helpers.',
+        ' runs the same entry Commands as clicking there from the home page. Transition helpers compose by concatenation, as above; a handler that mixes entry, exit, and per-navigation Commands flattens their results into one batch.',
       ),
     ],
   )

@@ -8,19 +8,22 @@ Move route transitions into a `Transition` namespace on `foldkit/route` and add 
 
 `Transition.entered` returns the route a transition entered as an `Option`: `Some(nextRoute)` on a tag change or a cold load, `None` for navigation within one route. Applications with entry Commands on several routes match on it once instead of stacking predicates, and `isEntering` is now defined in terms of it.
 
-Breaking: `Route.isEntering` is now `Transition.isEntering`, and the `RouteTransition` type is now `Transition.Transition`. Migration:
+Breaking: `Route.isEntering` is now `Transition.isEntering` and takes the transition data-first, and the `RouteTransition` type is now `Transition.Transition`. Before:
 
 ```ts
-// Before
 import { Route } from 'foldkit'
 
 const isEntering = Route.isEntering<AppRoute>
+isEntering('Gallery')(transition)
 type AppTransition = Route.RouteTransition<AppRoute>
+```
 
-// After
+After:
+
+```ts
 import { Transition } from 'foldkit/route'
 
-const isEntering = Transition.isEntering<AppRoute>
+Transition.isEntering(transition, 'Gallery')
 type AppTransition = Transition.Transition<AppRoute>
 ```
 

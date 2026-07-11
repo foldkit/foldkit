@@ -207,6 +207,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 - **[API Cache](https://foldkit.dev/example-apps/api-cache)**: Query caching with stale-while-revalidate, request deduplication, and interval refetching
 - **[Charting](https://foldkit.dev/example-apps/charting)**: Live public GitHub and npm telemetry rendered through an ECharts Mount adapter
 - **[Routing](https://foldkit.dev/example-apps/routing)**: URL routing with parser combinators
+- **[Route Transitions](https://foldkit.dev/example-apps/route-transitions)**: Live transition log with entry, exit, and stayed navigation policies
 - **[Query Sync](https://foldkit.dev/example-apps/query-sync)**: URL query parameter sync with filtering and sorting
 - **[Snake](https://foldkit.dev/example-apps/snake)**: Classic game built with Subscriptions
 - **[Map](https://foldkit.dev/example-apps/map)**: Interactive MapLibre GL map demonstrating Mount with a third-party DOM library
