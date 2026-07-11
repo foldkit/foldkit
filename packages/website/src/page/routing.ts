@@ -85,6 +85,12 @@ const coldLoadsHeader: TableOfContentsEntry = {
   text: 'Cold Loads and the Initial Route',
 }
 
+const enteringARouteHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'entering-a-route',
+  text: 'Entering a Route',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   biparserHeader,
   definingRoutesHeader,
@@ -97,6 +103,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   keyingRouteViewsHeader,
   navigationHeader,
   coldLoadsHeader,
+  enteringARouteHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
@@ -668,6 +675,75 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
           'Routing example',
         ),
         ' runs on it.',
+      ),
+      tableOfContentsEntryToHeader(enteringARouteHeader),
+      para(
+        'The shared helper above answers what a route needs, so its Commands fire on every navigation that lands on the route. For ',
+        inlineCode('FetchPeople'),
+        ' that is the point: every search text is a new query. Other Commands should run once when the user arrives, loading a filter catalog, starting a poll, recording a page view. For those the route alone cannot answer the real question: did this navigation enter the route, or was the application already there?',
+      ),
+      para(
+        'The ',
+        inlineCode('Transition'),
+        ' namespace in ',
+        inlineCode('foldkit/route'),
+        ' answers it. A ',
+        inlineCode('Transition.Transition'),
+        ' carries both halves of the question: the route the application was on and the route it is on now. ',
+        inlineCode('Transition.make(previousRoute, nextRoute)'),
+        ' builds the navigation case, ',
+        inlineCode('Transition.coldLoad(nextRoute)'),
+        ' builds the cold load, where there is no previous route, and ',
+        inlineCode('Transition.isEntering'),
+        ' asks the question: a transition enters a route when the next route carries the tag and the previous route did not, and a cold load counts as an entry. Navigating within a route, between two ids of one detail route or two search texts of one list route, is not an entry.',
+      ),
+      para(
+        'Pin the application’s route union once and alias the predicate. TypeScript narrows the tag argument to the union’s tags, so a misspelled route name fails to compile. Then build the transition in the same two places that resolve a URL into a route: ',
+        inlineCode('init'),
+        ' holds no route yet, so it builds the cold load, and the ',
+        inlineCode('ChangedUrl'),
+        ' handler transitions from the route the Model still holds:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.routingIsEnteringHighlighted),
+          ],
+          [],
+        ),
+        Snippet.routingIsEnteringRaw,
+        'Copy isEntering example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'One route checks cleanly with a predicate. When several routes have entry Commands, ask the transition which route it entered instead: ',
+        inlineCode('Transition.entered'),
+        ' returns the entered route in a ',
+        inlineCode('Some'),
+        ', payload included, and ',
+        inlineCode('Option.none()'),
+        ' when the transition stayed within one route. Match on the result to dispatch every entry policy in one place:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippet.routingEnteredHighlighted)],
+          [],
+        ),
+        Snippet.routingEnteredRaw,
+        'Copy entered example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'Because a cold load counts as an entry, ',
+        inlineCode('init'),
+        ' and the ',
+        inlineCode('ChangedUrl'),
+        ' handler share one load-on-entry policy: reloading on ',
+        inlineCode('/people'),
+        ' runs the same entry Commands as clicking there from the home page. Entry-only Commands and per-navigation Commands compose; a handler that needs both concatenates the results of the two helpers.',
       ),
     ],
   )

@@ -4,7 +4,13 @@ import { expect, expectTypeOf } from 'vitest'
 import { describe, it } from '@effect/vitest'
 
 import { r } from './index.js'
-import { type RouteTransition, isEntering } from './transition.js'
+import {
+  type Transition,
+  coldLoad,
+  entered,
+  isEntering,
+  make,
+} from './transition.js'
 
 const Home = r('Home')
 const Notes = r('Notes')
@@ -14,38 +20,64 @@ type AppRoute = typeof Home.Type | typeof Notes.Type | typeof NoteDetail.Type
 
 const isEnteringNotes = isEntering<AppRoute>('Notes')
 
+describe('make', () => {
+  it('builds a transition with the previous route present', () => {
+    const transition: Transition<AppRoute> = make<AppRoute>(Home(), Notes())
+    expect(transition.maybePreviousRoute).toStrictEqual(Option.some(Home()))
+    expect(transition.nextRoute).toStrictEqual(Notes())
+  })
+})
+
+describe('coldLoad', () => {
+  it('builds a transition with no previous route', () => {
+    const transition: Transition<AppRoute> = coldLoad(Notes())
+    expect(transition.maybePreviousRoute).toStrictEqual(Option.none())
+    expect(transition.nextRoute).toStrictEqual(Notes())
+  })
+})
+
+describe('entered', () => {
+  it('returns the next route when the tag changes', () => {
+    expect(entered(make<AppRoute>(Home(), Notes()))).toStrictEqual(
+      Option.some(Notes()),
+    )
+  })
+
+  it('returns the next route on a cold load', () => {
+    expect(entered(coldLoad(Notes()))).toStrictEqual(Option.some(Notes()))
+  })
+
+  it('returns none when staying within one route across two ids', () => {
+    const transition = make<AppRoute>(
+      NoteDetail({ id: '1' }),
+      NoteDetail({ id: '2' }),
+    )
+    expect(entered(transition)).toStrictEqual(Option.none())
+  })
+})
+
 describe('isEntering', () => {
   it('is true when entering the target route from a different route', () => {
-    const transition: RouteTransition<AppRoute> = {
-      maybePreviousRoute: Option.some(Home()),
-      nextRoute: Notes(),
-    }
-    expect(isEnteringNotes(transition)).toBe(true)
+    expect(isEnteringNotes(make<AppRoute>(Home(), Notes()))).toBe(true)
   })
 
   it('is true on a cold load into the target route', () => {
-    const transition: RouteTransition<AppRoute> = {
-      maybePreviousRoute: Option.none(),
-      nextRoute: Notes(),
-    }
-    expect(isEnteringNotes(transition)).toBe(true)
+    expect(isEnteringNotes(coldLoad(Notes()))).toBe(true)
   })
 
   it('is false when staying on the target route across two ids', () => {
     const isEnteringNoteDetail = isEntering<AppRoute>('NoteDetail')
-    const transition: RouteTransition<AppRoute> = {
-      maybePreviousRoute: Option.some(NoteDetail({ id: '1' })),
-      nextRoute: NoteDetail({ id: '2' }),
-    }
+    const transition = make<AppRoute>(
+      NoteDetail({ id: '1' }),
+      NoteDetail({ id: '2' }),
+    )
     expect(isEnteringNoteDetail(transition)).toBe(false)
   })
 
   it('is false for a transition to a different route', () => {
-    const transition: RouteTransition<AppRoute> = {
-      maybePreviousRoute: Option.some(Home()),
-      nextRoute: NoteDetail({ id: '1' }),
-    }
-    expect(isEnteringNotes(transition)).toBe(false)
+    expect(
+      isEnteringNotes(make<AppRoute>(Home(), NoteDetail({ id: '1' }))),
+    ).toBe(false)
   })
 })
 
