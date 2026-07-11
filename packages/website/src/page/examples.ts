@@ -88,7 +88,7 @@ const examplesTable = (): Html => {
   const h = html<Message>()
 
   return h.div(
-    [h.Class('mb-8')],
+    [h.Class('mb-8 overflow-x-auto')],
     [
       h.table(
         [h.Class('w-full text-sm')],

@@ -305,7 +305,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
     )
 
   const componentTable: Html = h.div(
-    [h.Class('mb-8')],
+    [h.Class('mb-8 overflow-x-auto')],
     [
       h.table(
         [h.Class('w-full text-sm')],

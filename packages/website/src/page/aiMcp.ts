@@ -246,7 +246,7 @@ const toolsTable = (): Html => {
   const h = html<Message>()
 
   return h.div(
-    [h.Class('mb-6')],
+    [h.Class('mb-6 overflow-x-auto')],
     [
       h.table(
         [h.Class('w-full text-sm')],
