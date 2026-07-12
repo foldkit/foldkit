@@ -1,5 +1,553 @@
 # @foldkit/ui
 
+## 0.128.0
+
+### Minor Changes
+
+- f7c4f17: Breaking: Calendar and DatePicker no longer store the selected date. The parent Model owns an `Option<CalendarDate>`, passes it in per render via `ViewInputs.maybeSelectedDate`, and folds the OutMessages back into its own state. DatePicker gains a `ClearedDate` OutMessage: clearing no longer silently empties internal state, it announces the fact so the parent clears its own field. `InitConfig` replaces `initialSelectedDate` with `initialViewDate`, which only controls the month the calendar opens onto; pass the parent's current value to open onto it. `reflectSelectedDate` is replaced on both components by `focusDate`, which moves the view and cursor to a plain `CalendarDate` without touching the selection. Config reflectors (`reflectMinDate`, `reflectMaxDate`, `reflectDisabledDates`, `reflectDisabledDaysOfWeek`) are unchanged, since bounds and disabled dates remain child configuration. Part of #676.
+
+  ### Migration
+
+  Add a field for the selected date to your Model and seed it in init:
+
+  ```ts
+  // Before
+  const Model = S.Struct({
+    datePicker: DatePicker.Model,
+  })
+
+  const init = (today: CalendarDate) => ({
+    datePicker: DatePicker.init({
+      id: 'due-date',
+      today,
+      initialSelectedDate: today,
+    }),
+  })
+  ```
+
+  ```ts
+  // After
+  const Model = S.Struct({
+    datePicker: DatePicker.Model,
+    maybeDueDate: S.Option(Calendar.CalendarDate),
+  })
+
+  const init = (today: CalendarDate) => ({
+    datePicker: DatePicker.init({
+      id: 'due-date',
+      today,
+      initialViewDate: today,
+    }),
+    maybeDueDate: Option.some(today),
+  })
+  ```
+
+  In update, fold the `SelectedDate` and `ClearedDate` OutMessages into the parent-owned field:
+
+  ```ts
+  GotDatePickerMessage: ({ message }) => {
+    const [nextDatePicker, datePickerCommands, maybeOutMessage] =
+      DatePicker.update(model.datePicker, message)
+
+    const nextMaybeDueDate = Option.match(maybeOutMessage, {
+      onNone: () => model.maybeDueDate,
+      onSome: M.type<DatePicker.OutMessage>().pipe(
+        M.tagsExhaustive({
+          SelectedDate: ({ date }) => Option.some(date),
+          ClearedDate: () => Option.none(),
+          ChangedViewMonth: () => model.maybeDueDate,
+        }),
+      ),
+    })
+
+    return [
+      evo(model, {
+        datePicker: () => nextDatePicker,
+        maybeDueDate: () => nextMaybeDueDate,
+      }),
+      Command.mapMessages(datePickerCommands, message =>
+        GotDatePickerMessage({ message }),
+      ),
+    ]
+  }
+  ```
+
+  In view, pass the parent-owned selection back in (Calendar takes the same `maybeSelectedDate` view input):
+
+  ```ts
+  h.submodel({
+    slotId: model.datePicker.id,
+    model: model.datePicker,
+    view: DatePicker.view,
+    viewInputs: {
+      anchor,
+      maybeSelectedDate: model.maybeDueDate,
+      triggerContent,
+      toCalendarView,
+    },
+    toParentMessage: message => GotDatePickerMessage({ message }),
+  })
+  ```
+
+  Callers of `reflectSelectedDate` should set the parent-owned field and, when the picker should open onto the new date, call `focusDate`:
+
+  ```ts
+  // Before
+  evo(model, {
+    datePicker: DatePicker.reflectSelectedDate(Option.some(date)),
+  })
+  ```
+
+  ```ts
+  // After
+  evo(model, {
+    maybeDueDate: () => Option.some(date),
+    datePicker: DatePicker.focusDate(date),
+  })
+  ```
+
+- 9d09804: Breaking: `Combobox` and `Combobox.Multi` no longer store the selection. The Submodel Model kept a copy of a value the parent Model already owned. The Model now holds interaction state only, including `inputValue`, the transient text being typed. The selection lives in the parent Model, flows into the view each render (`ViewInputs.maybeSelectedValue` for single-select, `ViewInputs.selectedValues` for multi-select) together with `restingInputValue` (the text the input rests at when the combobox closes), and comes back out as OutMessages the parent folds.
+
+  API changes:
+
+  - `Combobox.Model` drops `maybeSelectedItem` and `maybeSelectedDisplayText`; `Combobox.Multi.Model` drops `selectedItems`. `inputValue` stays.
+  - `init` no longer accepts `selectedItem`, `selectedDisplayText`, or `selectedItems`. Seed the parent field instead.
+  - `ViewInputs` gains a required selection input and `restingInputValue: string`. Single-select takes `maybeSelectedValue: Option<Item>`, multi-select takes `selectedValues: ReadonlyArray<Item>`. For single-select, `restingInputValue` is the selection's display text, or empty. The multi-select input always rests empty on close, so multi consumers pass `''`.
+  - The `Selected` OutMessage drops `wasAdded`. It carries only the activated `value`; the parent decides what activation means (single-select stores it, multi-select toggles membership).
+  - New `ClearedSelection` OutMessage: sent when a nullable combobox closes with an empty input. The parent clears the selection it owns. `OutMessage` is now the union of `Selected` and `ClearedSelection`, so exhaustive folds must handle both tags.
+  - Close-path Messages carry the resting text as a payload fact: `Closed`, `BlurredInput`, and `PressedToggleButton` now have a `restingInputValue: string` payload, and `SelectedItem` carries `wasSelected: boolean` so nullable deselect works without the Model knowing the selection. The view computes these payloads from `ViewInputs`.
+  - `Closed` and `BlurredInput` are no-ops while the combobox is already closed, so a stale close dispatch baked from an old render cannot rewrite `inputValue` or re-emit `ClearedSelection`.
+  - `Combobox.close(model, restingInputValue)` now takes the resting text. `Combobox.Multi.close(model)` keeps its signature; the multi input always rests empty.
+  - Immediate mode (`immediate: true`) now emits `Selected` on every keyboard activation while open, so arrow keys commit as they move. Combining `immediate` with `nullable` is discouraged: a toggle fold would deselect as the arrows pass back over the selected item.
+  - The multi-select hidden form inputs now submit the full parent-owned selection, not just the selected items present in the currently filtered list.
+
+  ### Migration
+
+  Own the selection in the parent Model and stop seeding it through `init`. Declaring the values as an `S.Literals` Schema keeps the field literal-typed end to end:
+
+  ```ts
+  // Before
+  const Model = S.Struct({
+    cityCombobox: Combobox.Model,
+  })
+
+  const init = (): Model => ({
+    cityCombobox: Combobox.init({ id: 'city-combobox', selectedItem: 'Kyiv' }),
+  })
+
+  // After
+  const City = S.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
+  type City = typeof City.Type
+
+  const CityCombobox = Combobox.create<City>()
+
+  const Model = S.Struct({
+    cityCombobox: Combobox.Model,
+    maybeSelectedCity: S.Option(City),
+  })
+
+  const init = (): Model => ({
+    cityCombobox: Combobox.init({ id: 'city-combobox' }),
+    maybeSelectedCity: Option.some('Kyiv'),
+  })
+  ```
+
+  Pass the selection and the resting text into the view. Single-select passes an `Option` as `maybeSelectedValue`; multi-select passes its full array as `selectedValues` and `restingInputValue: ''`:
+
+  ```ts
+  h.submodel({
+    model: model.cityCombobox,
+    view: CityCombobox.view,
+    viewInputs: {
+      items: filteredCities,
+      maybeSelectedValue: model.maybeSelectedCity,
+      restingInputValue: Option.getOrElse(model.maybeSelectedCity, () => ''),
+      itemToValue: city => city,
+      itemToDisplayText: city => city,
+      itemToConfig: cityItemConfig,
+    },
+    toParentMessage: message => GotCityComboboxMessage({ message }),
+  })
+  ```
+
+  Fold the OutMessages into the selection you own. `ClearedSelection` only fires for nullable comboboxes; a nullable fold clears the field as shown below, while a non-nullable fold keeps its selection in that arm since it can never fire. Either way the match stays exhaustive:
+
+  ```ts
+  GotCityComboboxMessage: ({ message }) => {
+    const [nextCombobox, commands, maybeOutMessage] = CityCombobox.update(
+      model.cityCombobox,
+      message,
+    )
+    const mappedCommands = Command.mapMessages(commands, message =>
+      GotCityComboboxMessage({ message }),
+    )
+
+    return Option.match(maybeOutMessage, {
+      onNone: () => [
+        evo(model, { cityCombobox: () => nextCombobox }),
+        mappedCommands,
+      ],
+      onSome: M.type<Combobox.OutMessage<City>>().pipe(
+        M.tagsExhaustive({
+          Selected: ({ value }) => [
+            evo(model, {
+              cityCombobox: () => nextCombobox,
+              maybeSelectedCity: () => Option.some(value),
+            }),
+            mappedCommands,
+          ],
+          ClearedSelection: () => [
+            evo(model, {
+              cityCombobox: () => nextCombobox,
+              maybeSelectedCity: () => Option.none(),
+            }),
+            mappedCommands,
+          ],
+        }),
+      ),
+    })
+  }
+  ```
+
+  Multi-select folds `Selected` by toggling the value's membership in its array, exactly as the Listbox migration shows.
+
+  Callers of `reflectSelectedItem`/`reflectSelectedItems` delete the reflect call and read the selection from the state that already owned it.
+
+  Part of #676.
+
+- 9fe90d6: Make `Checkbox`, `Switch`, and `Disclosure` stateless controlled render helpers and remove their Submodel forms. Following `RadioGroup`, each holds only the value the parent already owns (`isChecked` / `isOpen`), so the Submodel Model was a mirror carrying a reflect-on-every-transition sync obligation. Each now exposes a single `view(ViewConfig)`:
+
+  - `Checkbox.view` / `Switch.view` take `isChecked` and dispatch `onToggle(isChecked)` with the new state.
+  - `Disclosure.view` takes `isOpen` and dispatches `onToggle(isOpen)`, and still exposes `buttonId` plus the `animatePanel` helper.
+
+  The parent owns the state and just stores the value in `update`. There is no focus Command: Disclosure's toggle is button-driven so focus stays on the button, and a programmatic open/close should not steal focus.
+
+  BREAKING: `Model`, `init`, `update`, `setChecked`, `reflectChecked` (Checkbox/Switch), `toggle`, `close`, `reflectOpenState`, `FocusButton`, `CompletedFocusButton` (Disclosure), the `OutMessage`/`Message`/`Toggled`/`SetChecked`/`Closed`/`ToggledChecked`/`ToggledOpenState` schemas, and the `InitConfig`/`ViewInputs` types are removed from all three. Move each usage to a parent-owned Model field rendered with `view`: store the value, handle the `onToggle` Message in `update`, and delete the `Got*` plumbing. Your `toView` markup moves over unchanged; the attribute bundles keep their names and contents. A "select all" now sets the child fields directly instead of calling `setChecked`. Part of #676.
+
+  Before, with the Submodel form:
+
+  ```ts
+  // model
+  acceptTerms: Checkbox.Model,
+
+  // view
+  h.submodel({
+    slotId: 'accept-terms',
+    model: model.acceptTerms,
+    view: Checkbox.view,
+    viewInputs: { toView: attributes => ... },
+    toParentMessage: message => GotAcceptTermsMessage({ message }),
+  })
+
+  // update: delegate to Checkbox.update, then match the ToggledChecked
+  // OutMessage to read the new value
+  ```
+
+  After, with the controlled helper:
+
+  ```ts
+  // model
+  acceptedTerms: S.Boolean,
+
+  // view
+  Checkbox.view<Message>({
+    id: 'accept-terms',
+    isChecked: model.acceptedTerms,
+    onToggle: isChecked => ToggledTerms({ isChecked }),
+    toView: attributes => ...,
+  })
+
+  // update
+  ToggledTerms: ({ isChecked }) => [
+    evo(model, { acceptedTerms: () => isChecked }),
+    [],
+  ],
+  ```
+
+- 9d09804: Breaking: `Listbox` and `Listbox.Multi` no longer store the selection. The Submodel Model kept a copy of a value the parent Model already owned, so every app carried two sources of truth and had to keep them in sync. The Model now holds interaction state only (open/closed, active item, activation trigger, typeahead search). The selection lives in the parent Model, flows into the view each render (`ViewInputs.maybeSelectedValue` for single-select, `ViewInputs.selectedValues` for multi-select), and comes back out as a neutral `Selected({ value })` OutMessage the parent folds: single-select stores the value, multi-select toggles the value's membership.
+
+  API changes:
+
+  - `Listbox.Model` drops `maybeSelectedItem`; `Listbox.Multi.Model` drops `selectedItems`.
+  - `Listbox.init` no longer accepts `selectedItem`; `Listbox.Multi.init` no longer accepts `selectedItems`. Seed the parent field instead.
+  - `ViewInputs` gains a required selection input: single-select takes `maybeSelectedValue: Option<Value>`, multi-select takes `selectedValues: ReadonlyArray<Value>`. It drives `aria-selected` and `data-selected` on items, which item the Listbox highlights when it opens onto a selection, and the hidden form inputs submitted under `name`.
+  - The `Selected` OutMessage drops `wasAdded`. It now carries only the activated `value`; the parent owns the selection and decides what activation means.
+  - `reflectSelectedItem` and `reflectSelectedItems` are removed from both variants and from `create`. To mirror external truth (a URL parameter, restored storage, a server push), update the parent field that owns the selection. The Listbox has nothing left to sync.
+
+  ### Migration
+
+  Own the selection in the parent Model and stop seeding it through `init`. Declaring the values as an `S.Literals` Schema keeps the field literal-typed end to end:
+
+  ```ts
+  // Before
+  const Model = S.Struct({
+    planListbox: Listbox.Model,
+  })
+
+  const init = (): Model => ({
+    planListbox: Listbox.init({ id: 'plan-listbox', selectedItem: 'Pro' }),
+  })
+
+  // After
+  const Plan = S.Literals(['Free', 'Pro', 'Enterprise'])
+  type Plan = typeof Plan.Type
+
+  const PlanListbox = Listbox.create<Plan>()
+
+  const Model = S.Struct({
+    planListbox: Listbox.Model,
+    maybeSelectedPlan: S.Option(Plan),
+  })
+
+  const init = (): Model => ({
+    planListbox: Listbox.init({ id: 'plan-listbox' }),
+    maybeSelectedPlan: Option.some('Pro'),
+  })
+  ```
+
+  Pass the selection into the view. Single-select passes an `Option` as `maybeSelectedValue`, multi-select passes its full array as `selectedValues`:
+
+  ```ts
+  h.submodel({
+    model: model.planListbox,
+    view: PlanListbox.view,
+    viewInputs: {
+      items: plans,
+      maybeSelectedValue: model.maybeSelectedPlan,
+      itemToConfig: planItemConfig,
+      buttonContent: planButtonContent(model.maybeSelectedPlan),
+    },
+    toParentMessage: message => GotPlanListboxMessage({ message }),
+  })
+  ```
+
+  Fold the OutMessage into the selection you own. Single-select stores the value:
+
+  ```ts
+  GotPlanListboxMessage: ({ message }) => {
+    const [nextListbox, commands, maybeOutMessage] = PlanListbox.update(
+      model.planListbox,
+      message,
+    )
+    const mappedCommands = Command.mapMessages(commands, message =>
+      GotPlanListboxMessage({ message }),
+    )
+
+    return Option.match(maybeOutMessage, {
+      onNone: () => [
+        evo(model, { planListbox: () => nextListbox }),
+        mappedCommands,
+      ],
+      onSome: M.type<Listbox.OutMessage<Plan>>().pipe(
+        M.tagsExhaustive({
+          Selected: ({ value }) => [
+            evo(model, {
+              planListbox: () => nextListbox,
+              maybeSelectedPlan: () => Option.some(value),
+            }),
+            mappedCommands,
+          ],
+        }),
+      ),
+    })
+  }
+  ```
+
+  Multi-select folds the same OutMessage by toggling membership, replacing the removed `wasAdded` branch:
+
+  ```ts
+  // Before
+  Selected: ({ value, wasAdded }) => [
+    evo(model, {
+      peopleListbox: () => nextListbox,
+      selectedPeople: () =>
+        wasAdded
+          ? Array.append(model.selectedPeople, value)
+          : Array.filter(model.selectedPeople, person => person !== value),
+    }),
+    mappedCommands,
+  ],
+
+  // After
+  Selected: ({ value }) => [
+    evo(model, {
+      peopleListbox: () => nextListbox,
+      selectedPeople: () =>
+        Array.contains(model.selectedPeople, value)
+          ? Array.filter(model.selectedPeople, person => person !== value)
+          : Array.append(model.selectedPeople, value),
+    }),
+    mappedCommands,
+  ],
+  ```
+
+  Callers of `reflectSelectedItem`/`reflectSelectedItems` delete the reflect call and read the selection from the state that already owned it.
+
+  Part of #676.
+
+- 8dd1906: Make `RadioGroup` a stateless controlled render helper and remove the Submodel form. `RadioGroup.view` takes a `ViewConfig` (`id`, `selectedValue`, `options`, `onSelect`, `ariaLabel`, `orientation`, `toView`, plus the optional `isOptionDisabled`, `isDisabled`, and `name`) and dispatches the parent's own Message through `onSelect(value)`. The parent owns the selection, so there is no mirrored `selectedValue` to keep in sync. Moving focus onto the newly-selected option is the radio group's own concern now: it happens inside the component's click and keydown handlers (via `OnClickFocus` and the new `OnKeyDownFocus`), so the parent's `update` only stores the value. There is no focus command or acknowledgement to wire.
+
+  BREAKING: `RadioGroup.Model`, `init`, `update`, `select`, `create`, `reflectSelectedValue`, `FocusOption`, `CompletedFocusOption`, `SelectedOption`, `Selected`, `OutMessage`, `Message`, and the `InitConfig`/`ViewInputs` types are removed. Move each usage to a parent-owned selection field rendered with `RadioGroup.view`: store the value in your Model, handle the `onSelect` Message in `update`, and delete the `Got*` plumbing. A radio group is a select with different rendering, so it now sits with `Select`, `Input`, and `Textarea` as a controlled helper rather than a Submodel.
+
+- f7c4f17: Breaking: Slider no longer stores its value. The parent Model owns the value, passes it in per render via `ViewInputs.value`, and folds the `ChangedValue` OutMessage back into its own state. The component keeps only private interaction state (`min`/`max`/`step` configuration and the drag phase), so the value cannot drift from parent truth. `InitConfig` drops `initialValue`; seed the parent-owned field instead, conforming it with the newly exported `snapAndClamp(value, min, max, step)`. `reflectValue` is removed; update the parent-owned field directly. `fractionOfValue` now takes `(value, min, max)` instead of a Model. `reflectRange` still reflects an externally-driven range onto the component but no longer clamps a stored value; clamp the parent-owned value with `snapAndClamp` in the same update. Part of #676.
+
+  ### Migration
+
+  Add a field for the value to your Model and seed it in init:
+
+  ```ts
+  // Before
+  const Model = S.Struct({
+    volumeSlider: Slider.Model,
+  })
+
+  const init = () => ({
+    volumeSlider: Slider.init({
+      id: 'volume',
+      min: 0,
+      max: 1,
+      step: 0.05,
+      initialValue: 0.5,
+    }),
+  })
+  ```
+
+  ```ts
+  // After
+  const Model = S.Struct({
+    volumeSlider: Slider.Model,
+    volume: S.Number,
+  })
+
+  const init = () => ({
+    volumeSlider: Slider.init({ id: 'volume', min: 0, max: 1, step: 0.05 }),
+    volume: Slider.snapAndClamp(0.5, 0, 1, 0.05),
+  })
+  ```
+
+  In update, fold the `ChangedValue` OutMessage into the parent-owned field:
+
+  ```ts
+  GotVolumeSliderMessage: ({ message }) => {
+    const [nextVolumeSlider, sliderCommands, maybeOutMessage] = Slider.update(
+      model.volumeSlider,
+      message,
+    )
+
+    const nextVolume = Option.match(maybeOutMessage, {
+      onNone: () => model.volume,
+      onSome: M.type<Slider.OutMessage>().pipe(
+        M.tagsExhaustive({
+          ChangedValue: ({ value }) => value,
+        }),
+      ),
+    })
+
+    return [
+      evo(model, {
+        volumeSlider: () => nextVolumeSlider,
+        volume: () => nextVolume,
+      }),
+      Command.mapMessages(sliderCommands, message =>
+        GotVolumeSliderMessage({ message }),
+      ),
+    ]
+  }
+  ```
+
+  In view, pass the parent-owned value back in:
+
+  ```ts
+  h.submodel({
+    slotId: model.volumeSlider.id,
+    model: model.volumeSlider,
+    view: Slider.view,
+    viewInputs: {
+      value: model.volume,
+      ariaLabel: 'Volume',
+      toView,
+    },
+    toParentMessage: message => GotVolumeSliderMessage({ message }),
+  })
+  ```
+
+- f7c4f17: Breaking: Tabs no longer stores the active tab. The parent Model owns the selected value, passes it in per render via `ViewInputs.selectedValue`, and folds the `Selected` OutMessage back into its own state. The component keeps only private interaction state (the roving keyboard-focus cursor and the activation mode), so there is no second copy of the selection to drift from parent truth. `InitConfig` drops `activeIndex`, and `selectTab` and `reflectSelectedTab` are removed; to change the active tab, update the parent-owned field directly. Part of #676.
+
+  ### Migration
+
+  Add a field for the active tab to your Model and seed it in init:
+
+  ```ts
+  // Before
+  const Model = S.Struct({
+    tabs: Tabs.Model,
+  })
+
+  const init = () => ({
+    tabs: Tabs.init({ id: 'framework-tabs', activeIndex: 0 }),
+  })
+  ```
+
+  ```ts
+  // After
+  const Model = S.Struct({
+    tabs: Tabs.Model,
+    activeFramework: Framework,
+  })
+
+  const init = () => ({
+    tabs: Tabs.init({ id: 'framework-tabs' }),
+    activeFramework: 'Foldkit',
+  })
+  ```
+
+  In update, fold the `Selected` OutMessage into the parent-owned field:
+
+  ```ts
+  GotTabsMessage: ({ message }) => {
+    const [nextTabs, tabsCommands, maybeOutMessage] = FrameworkTabs.update(
+      model.tabs,
+      message,
+    )
+
+    const nextActiveFramework = Option.match(maybeOutMessage, {
+      onNone: () => model.activeFramework,
+      onSome: M.type<Tabs.OutMessage<Framework>>().pipe(
+        M.tagsExhaustive({
+          Selected: ({ value }) => value,
+        }),
+      ),
+    })
+
+    return [
+      evo(model, {
+        tabs: () => nextTabs,
+        activeFramework: () => nextActiveFramework,
+      }),
+      Command.mapMessages(tabsCommands, message => GotTabsMessage({ message })),
+    ]
+  }
+  ```
+
+  In view, pass the parent-owned value back in:
+
+  ```ts
+  h.submodel({
+    slotId: model.tabs.id,
+    model: model.tabs,
+    view: FrameworkTabs.view,
+    viewInputs: {
+      tabs: frameworks,
+      selectedValue: model.activeFramework,
+      ariaLabel: 'Framework comparison',
+      toView,
+    },
+    toParentMessage: message => GotTabsMessage({ message }),
+  })
+  ```
+
+- 080b391: Add `Toast.test.drainEntry` for Story tests. Showing a toast emits a multi-step animation and dismiss lifecycle, and a Story test must resolve every emitted Command or it fails on leftover Commands. The helper builds the `Story.Command.resolveAll` step that drains a single entry end to end: enter animation, settle, auto-dismiss, exit animation, settle. Each step resolves with the child's raw result Message, so `resolveAll` replays the matched Command's own wrapping and a parent that embeds the toast Submodel drains the same way. The lifecycle knowledge now lives in one place instead of being hand-rolled in each test.
+
 ## 0.127.0
 
 ### Minor Changes

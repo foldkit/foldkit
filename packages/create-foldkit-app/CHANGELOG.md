@@ -1,5 +1,17 @@
 # create-foldkit-app
 
+## 0.21.0
+
+### Minor Changes
+
+- 426b4a3: Add the `checkout-machine` example: a checkout workflow built on the experimental `foldkit/experimental/machine` module, demonstrating guarded `when` branches and edge Commands.
+- 0029a3d: Add the `route-transitions` example: a gallery app with a live transition log, demonstrating the `Transition` helpers for load-on-entry, save-on-exit, and refetch-on-stay navigation policies.
+- a25f769: The scaffold `.oxlintrc.json` now extends the `@foldkit/oxlint-plugin` recommended preset instead of hand-listing a subset of foldkit rules, keeping only app-specific config (the core TypeScript rules and `ignorePatterns`) inline. Freshly scaffolded apps get the full foldkit ruleset and can never drift from the preset again, while the preset's own `overrides` keep those rules off in test files.
+
+### Patch Changes
+
+- 519ee57: Rewrite the `File Organization` section of the generated `AGENTS.md` to lead with the runtime-boot invariant (the definitions stay importable from tests because only `entry.ts` calls `Runtime.run`) and to describe when to split a growing app across more files. It now covers the revealed-seam heuristic, the two forced splits, and exemplars from the example apps.
+
 ## 0.20.1
 
 ### Patch Changes

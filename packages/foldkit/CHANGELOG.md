@@ -1,5 +1,63 @@
 # foldkit
 
+## 0.128.0
+
+### Minor Changes
+
+- a25f769: `Command.mapMessage` / `Command.mapMessages` now record their message mapping on the Command as recoverable metadata, in addition to fusing it into the Effect as before. Production dispatch is unchanged, but the Story and Scene test layers can now replay a Command's own wrapping when you resolve it. Scene mounts get the parallel treatment: a mount rendered inside an `h.submodel` boundary snapshots that boundary's `toParentMessage` lift at render time, so `Scene.Mount.resolve` can replay it too.
+
+  BREAKING: the third `toParentMessage` argument to `Story.Command.resolve` / `Story.Command.resolveAll`, their `Scene` equivalents, and `Scene.Mount.resolve` / `Scene.Mount.resolveAll` is removed. Resolve a Command or mount with the child's raw result Message and the parent's own wrapping (a Command's `Command.mapMessages`, or a mount's Submodel-boundary lift) is replayed for you, so a test no longer restates the wrapping by hand. Migrate `resolve(Def, result, message => GotChildMessage({ message }))` to `resolve(Def, result)`, and the analogous `resolveAll` tuples from `[Def, result, mapper]` to `[Def, result]`.
+
+- 8dd1906: Add the `OnKeyDownFocus` HTML attribute. On a handled key it synchronously focuses the element matching a computed `focusSelector` and dispatches a Message, both inside the originating event handler; unhandled keys return `Option.none()` and keep default behavior. It is the keyboard companion to `OnClickFocus`, letting roving-tabindex widgets (radio groups, toolbars) move DOM focus onto the newly-active option from their own view handlers, so focus never has to travel through the parent's `update` as a command.
+- 426b4a3: Add an experimental state machine module at `foldkit/experimental/machine`. The declarative transition table compiles to a plain transition function. Edge `build` and `commands` callbacks receive a single `{ state, message, guardValue }` input, so call sites destructure only what they use. A `when` guard either resolves the state and Message to an `Option` value that flows to its Edge as `guardValue`, or returns a plain boolean when there is nothing to extract. A new Checkout Machine example demonstrates guarded branches and edge Commands.
+- 95ff403: Rename `AsyncData.matchDataSplit` to `AsyncData.matchDataSplitEmpty`. This is a breaking rename. The new name says what the variant splits: the `onEmpty` channel that `matchData` collapses is broken back into `onIdle` and `onLoading`. Behavior and handler shape are unchanged; update call sites from `AsyncData.matchDataSplit(...)` to `AsyncData.matchDataSplitEmpty(...)`.
+- 1785aa3: Add `restString`, a terminal catch-all route param that captures the raw remaining URL path, slashes and dots included, as a single `string` and round-trips bidirectionally: `/vault/a/b/c.md` parses into `{ path: 'a/b/c.md' }` and builds back from it. Where `rest` yields a `NonEmptyArray` of segments, `restString` rejoins the tail into one path string, so file-tree and docs routes can carry a repository-relative path as `{ path: S.String }` route data. Printing requires a normalized path, non-empty with no leading, trailing, or repeated slashes; any other value would build a URL that parses back differently, so printing fails with a `ParseError` instead. Exported from `foldkit/route`.
+- 9b6d47a: Move route transitions into a `Transition` namespace on `foldkit/route` and add constructors.
+
+  `Transition.make(previousRoute, nextRoute)` builds the transition for an in-app navigation, and `Transition.coldLoad(nextRoute)` builds the cold load case, so applications no longer construct the record and its `Option` by hand.
+
+  `Transition.entered` returns the route a transition entered as an `Option`: `Some(nextRoute)` on a tag change or a cold load, `None` for navigation within one route. Applications with entry Commands on several routes match on it once instead of stacking predicates, and `isEntering` is now defined in terms of it.
+
+  Breaking: `Route.isEntering` is now `Transition.isEntering` and takes the transition data-first, and the `RouteTransition` type is now `Transition.Transition`. Before:
+
+  ```ts
+  import { Route } from 'foldkit'
+
+  const isEntering = Route.isEntering<AppRoute>
+  isEntering('Gallery')(transition)
+  type AppTransition = Route.RouteTransition<AppRoute>
+  ```
+
+  After:
+
+  ```ts
+  import { Transition } from 'foldkit/route'
+
+  Transition.isEntering(transition, 'Gallery')
+  type AppTransition = Transition.Transition<AppRoute>
+  ```
+
+  The namespace also hangs off the `Route` export, so `Route.Transition.isEntering` works without the subpath import.
+
+- 0029a3d: Complete the `Transition` vocabulary with `enteredRoute`, `exited`, `exitedRoute`, and `stayed`.
+
+  `Transition.enteredRoute(transition, tag)` and `Transition.exitedRoute(transition, tag)` are the single-route, payload-carrying forms of `entered` and `exited`: they return the entered or exited route narrowed to the given tag, so an entry Command for a detail route gets its payload typed without a full match.
+
+  `Transition.exited(transition)` mirrors `entered`: `Some(previousRoute)` when the transition left a route, `None` on a cold load or within-route navigation. It is for one-shot Commands on the way out, like saving a draft. Things that live while a route is active still belong to a Subscription or ManagedResource condition on the Model.
+
+  `Transition.stayed(transition, tag)` returns both sides of a within-route navigation, narrowed to the tag: `Some({ previousRoute, nextRoute })` when the transition stayed on that route, `None` when it entered it, left it, or never touched it. For reacting to payload changes within one route when the previous value matters.
+
+  `Transition.isEntering(transition, tag)` is the boolean view of `enteredRoute`. Every tag-taking helper infers the route union from the transition argument, so the tag is checked against the union's tags with no pinned alias anywhere. The migration from the released curried `Route.isEntering` is covered by the Transition namespace changeset.
+
+### Patch Changes
+
+- f7c4f17: Update the `Reflect2` TSDoc example and the README description of `@foldkit/ui` for parent-owned component values: stateful components own their interaction state while the parent Model owns the value, which flows in through view inputs and out through OutMessages. Docs only, no behavior change. Part of #676.
+- 9d09804: Update the `Submodel.Reflect` TSDoc example to use `Slider.reflectRange`. The previous example referenced the Listbox's `reflectSelectedItem`, which `@foldkit/ui` removed when the Listbox selection moved to the parent Model. Docs only, no runtime change.
+
+  Part of #676.
+
+- 9fe90d6: Refresh the Submodel child-attribute example to use a neutral CommandMenu child and pass child-published slot data to the parent slot instead of reading inside the child Model.
+
 ## 0.127.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # @foldkit/devtools
 
+## 0.128.0
+
+### Patch Changes
+
+- 9fe90d6: Update the DevTools flatten-to-leaf setting to use the controlled `Switch.view` helper while preserving the existing setting state and persistence behavior.
+- 9d09804: Migrate the overlay's Message filter Listbox to the parent-owned selection API in `@foldkit/ui`. The overlay's `maybeSubmodelFilter` field is now the single source of truth: the Listbox view reads it through `ViewInputs.maybeSelectedValue`, and the redundant sync that mirrored the filter back onto the Listbox Model when a stale filter reset is gone. No behavior change.
+
+  Part of #676.
+
+- f7c4f17: Migrate the overlay to the parent-owned value API in `@foldkit/ui`: the overlay Model now owns the active inspector tab and the scrubber value, passing them in through view inputs and folding the Tabs `Selected` and Slider `ChangedValue` OutMessages. No user-facing behavior change. Part of #676.
+
 ## 0.127.0
 
 ## 0.126.0
