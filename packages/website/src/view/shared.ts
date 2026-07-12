@@ -1,9 +1,10 @@
 import { clsx } from 'clsx'
-import { Array, Match as M, Option } from 'effect'
+import { Array, Match as M } from 'effect'
+import { AsyncData } from 'foldkit'
 import type { Field } from 'foldkit/fieldValidation'
 import { Html, html } from 'foldkit/html'
 
-import { formatStarCount } from '../githubStars'
+import { GitHubStarsAsyncData, formatStarCount } from '../githubStars'
 import { Icon } from '../icon'
 import { type EmailSubscriptionStatus } from '../main'
 import { type Message, SubmittedEmailForm, UpdatedEmailField } from '../message'
@@ -42,37 +43,44 @@ export const iconLink = (link: string, ariaLabel: string, icon: Html) => {
 const STAR_COUNT_WIDTH = 'w-[3ch]'
 const STAR_COUNT_PLACEHOLDER = '···'
 
-export const githubStarBadge = (maybeCount: Option.Option<number>): Html => {
+export const githubStarBadge = (
+  githubStarsAsyncData: GitHubStarsAsyncData,
+): Html => {
   const h = html<Message>()
 
-  const countLabel = Option.match(maybeCount, {
-    onNone: () =>
-      h.span([h.Class('animate-pulse opacity-60')], [STAR_COUNT_PLACEHOLDER]),
-    onSome: count => h.span([], [formatStarCount(count)]),
-  })
-
-  return h.span(
-    [
-      h.Class(
-        'inline-flex items-center gap-1 rounded-full bg-gray-900 dark:bg-white px-2 pt-0.5 pb-0.75 text-xs font-semibold text-white dark:text-gray-900',
-      ),
-      h.AriaHidden(true),
-    ],
-    [
-      Icon.star('w-3.5 h-3.5'),
-      h.span(
-        [
-          h.Class(
-            clsx(
-              'mt-px inline-flex justify-center tabular-nums',
-              STAR_COUNT_WIDTH,
+  const badge = (label: Html): Html =>
+    h.span(
+      [
+        h.Class(
+          'inline-flex items-center gap-1 rounded-full bg-gray-900 dark:bg-white px-2 pt-0.5 pb-0.75 text-xs font-semibold text-white dark:text-gray-900',
+        ),
+        h.AriaHidden(true),
+      ],
+      [
+        Icon.star('w-3.5 h-3.5'),
+        h.span(
+          [
+            h.Class(
+              clsx(
+                'mt-px inline-flex justify-center tabular-nums',
+                STAR_COUNT_WIDTH,
+              ),
             ),
-          ),
-        ],
-        [countLabel],
+          ],
+          [label],
+        ),
+      ],
+    )
+
+  return AsyncData.matchDataSplitEmpty(githubStarsAsyncData, {
+    onData: count => badge(h.span([], [formatStarCount(count)])),
+    onLoading: () =>
+      badge(
+        h.span([h.Class('animate-pulse opacity-60')], [STAR_COUNT_PLACEHOLDER]),
       ),
-    ],
-  )
+    onFailure: () => h.empty,
+    onIdle: () => h.empty,
+  })
 }
 
 export const skipNavLink: Html = (() => {

@@ -8,6 +8,7 @@ import {
   Number as Number_,
   Option,
   Record as Record_,
+  Result,
   Schema as S,
   pipe,
 } from 'effect'
@@ -28,6 +29,7 @@ import { type Document, html } from 'foldkit/html'
 import { load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
+import { githubStarCount } from 'virtual:landing-data'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Dialog, Menu, Tabs } from '@foldkit/ui'
@@ -41,7 +43,7 @@ import {
   allPages,
   findActiveSectionKey,
 } from './docsNav'
-import { GitHubStarsAsyncData } from './githubStars'
+import { GitHubStarsAsyncData, initialGitHubStars } from './githubStars'
 import {
   CompletedApplyTheme,
   CompletedInjectAnalytics,
@@ -238,7 +240,7 @@ export const Model = S.Struct({
   copiedSnippets: S.HashSet(S.String),
   emailField: FieldValidation.Field(S.String),
   emailSubscriptionStatus: EmailSubscriptionStatus,
-  githubStars: GitHubStarsAsyncData.schema,
+  githubStarsAsyncData: GitHubStarsAsyncData.schema,
   currentYear: S.Number,
   mobileMenuDialog: Dialog.Model,
   isMobileTableOfContentsOpen: S.Boolean,
@@ -423,7 +425,7 @@ export const init: Runtime.RoutingApplicationInit<
       copiedSnippets: HashSet.empty(),
       emailField: FieldValidation.NotValidated({ value: '' }),
       emailSubscriptionStatus: 'Idle',
-      githubStars: GitHubStarsAsyncData.Loading(),
+      githubStarsAsyncData: initialGitHubStars(githubStarCount),
       currentYear: flags.currentYear,
       mobileMenuDialog: Dialog.init({ id: 'mobile-menu' }),
       isMobileTableOfContentsOpen: false,
@@ -716,14 +718,16 @@ export const update = (
 
       SucceededFetchGitHubStars: ({ count }) => [
         evo(model, {
-          githubStars: () => GitHubStarsAsyncData.Success({ data: count }),
+          githubStarsAsyncData: () =>
+            GitHubStarsAsyncData.Success({ data: count }),
         }),
         [],
       ],
 
       FailedFetchGitHubStars: ({ error }) => [
         evo(model, {
-          githubStars: () => GitHubStarsAsyncData.Failure({ error }),
+          githubStarsAsyncData: previousGitHubStarsAsyncData =>
+            AsyncData.settle(previousGitHubStarsAsyncData, Result.fail(error)),
         }),
         [],
       ],
