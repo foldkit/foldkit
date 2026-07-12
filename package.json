@@ -43,6 +43,7 @@
     "dev:example:todo": "pnpm --filter todo-example dev",
     "dev:example:form": "pnpm --filter form-example dev",
     "dev:example:routing": "pnpm --filter routing-example dev",
+    "dev:example:route-transitions": "pnpm --filter route-transitions-example dev",
     "dev:example:query-sync": "pnpm --filter query-sync-example dev",
     "dev:example:shopping-cart": "pnpm --filter shopping-cart-example dev",
     "dev:example:checkout-machine": "pnpm --filter checkout-machine-example dev",

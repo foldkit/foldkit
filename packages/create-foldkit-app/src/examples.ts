@@ -11,6 +11,7 @@ export const EXAMPLE_VALUES = [
   'api-cache',
   'charting',
   'routing',
+  'route-transitions',
   'query-sync',
   'snake',
   'canvas-art',
@@ -99,6 +100,12 @@ export const examples: ReadonlyArray<{
     value: 'routing',
     title: 'routing',
     description: 'URL routing with parser combinators and route parameters',
+  },
+  {
+    value: 'route-transitions',
+    title: 'route-transitions',
+    description:
+      'Live transition log with entry, exit, and stayed navigation policies',
   },
   {
     value: 'query-sync',

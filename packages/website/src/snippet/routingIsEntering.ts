@@ -3,15 +3,11 @@ import { Transition } from 'foldkit/route'
 import { evo } from 'foldkit/struct'
 import { Url } from 'foldkit/url'
 
-// Pin the application's route union once and alias the predicate
-const isEntering = Transition.isEntering<AppRoute>
-const isEnteringPeople = isEntering('People')
-
 // Entry-only Commands ask about the transition, not the route alone...
 const commandsForTransition = (
   transition: Transition.Transition<AppRoute>,
 ): ReadonlyArray<Command.Command<Message>> =>
-  isEnteringPeople(transition) ? [FetchPeopleFilters()] : []
+  Transition.isEntering(transition, 'People') ? [FetchPeopleFilters()] : []
 
 // ...init builds the cold load transition, which counts as an entry...
 const init: Runtime.RoutingApplicationInit<Model, Message> = (url: Url) => {

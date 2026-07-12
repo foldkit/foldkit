@@ -15,6 +15,7 @@ export const ExampleSlug = S.Literals([
   'api-cache',
   'charting',
   'routing',
+  'route-transitions',
   'query-sync',
   'snake',
   'auth',
@@ -140,6 +141,15 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Client-side routing with URL parameters, nested routes, rest segments, and navigation.',
     difficulty: 'Intermediate',
     tags: ['Routing'],
+    hasRouting: true,
+  },
+  {
+    slug: 'route-transitions',
+    title: 'Route Transitions',
+    description:
+      'Live log of every navigation, narrated by the Transition helpers. Entering the gallery loads the catalog once, flipping paintings refetches only when the id changes via stayed, and leaving the studio saves a draft with exitedRoute.',
+    difficulty: 'Intermediate',
+    tags: ['Routing', 'Transitions', 'Commands'],
     hasRouting: true,
   },
   {

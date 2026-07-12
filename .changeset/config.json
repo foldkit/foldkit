@@ -23,6 +23,7 @@
     "weather-example",
     "api-cache-example",
     "routing-example",
+    "route-transitions-example",
     "counter-example",
     "counters-example",
     "websocket-chat-example",

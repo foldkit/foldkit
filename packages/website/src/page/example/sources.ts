@@ -26,6 +26,8 @@ const loadersBySlug: Readonly<Record<string, SourceLoader | undefined>> = {
   'api-cache': () => import('virtual:example-sources/api-cache'),
   charting: () => import('virtual:example-sources/charting'),
   routing: () => import('virtual:example-sources/routing'),
+  'route-transitions': () =>
+    import('virtual:example-sources/route-transitions'),
   'query-sync': () => import('virtual:example-sources/query-sync'),
   'shopping-cart': () => import('virtual:example-sources/shopping-cart'),
   'checkout-machine': () => import('virtual:example-sources/checkout-machine'),
