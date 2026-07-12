@@ -13,7 +13,7 @@ import {
   SubmittedJoinRoomFromPage,
 } from '../message'
 import type { Message } from '../message'
-import { Model, RoomAsyncData, RoomPlayerSession } from '../model'
+import { Model, RoomPlayerSession } from '../model'
 import { findFirstWrongCharIndex } from '../userGameText'
 import { countdown } from './countdown'
 import { finished } from './finished'
@@ -74,7 +74,8 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
 
     const leaveRoomText = isInLeavableState ? leaveRoomContent : h.empty
 
-    return h.div(
+    return h.keyed('div')(
+      'Room',
       [h.Class('max-w-4xl flex-1 flex flex-col justify-between')],
       [
         h.div(
@@ -96,15 +97,6 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
   },
 )
 
-const contentKey = (
-  roomAsyncData: RoomAsyncData,
-  maybeSession: Option.Option<RoomPlayerSession>,
-): string =>
-  Option.match(AsyncData.getData(roomAsyncData), {
-    onSome: () => (Option.isSome(maybeSession) ? 'Game' : 'Join'),
-    onNone: () => roomAsyncData._tag,
-  })
-
 const content = ({
   roomAsyncData,
   maybeSession,
@@ -113,21 +105,15 @@ const content = ({
 }: Model): Html => {
   const h = html<Message>()
 
-  return h.keyed('div')(
-    contentKey(roomAsyncData, maybeSession),
-    [],
-    [
-      AsyncData.matchData(roomAsyncData, {
-        onEmpty: () => h.div([], ['Loading...']),
-        onFailure: () => h.empty,
-        onData: room =>
-          Option.match(maybeSession, {
-            onNone: () => joinForm(username),
-            onSome: () => gameContent(room, maybeSession, userGameText),
-          }),
+  return AsyncData.matchData(roomAsyncData, {
+    onEmpty: () => h.keyed('div')('Loading', [], ['Loading...']),
+    onFailure: () => h.empty,
+    onData: room =>
+      Option.match(maybeSession, {
+        onNone: () => joinForm(username),
+        onSome: () => gameContent(room, maybeSession, userGameText),
       }),
-    ],
-  )
+  })
 }
 
 const gameContent = (
@@ -135,41 +121,29 @@ const gameContent = (
   maybeSession: Option.Option<RoomPlayerSession>,
   userGameText: string,
 ): Html => {
-  const h = html<Message>()
   const maybeGameText = Option.map(room.maybeGame, ({ text }) => text)
   const maybeWrongCharIndex = Option.flatMap(
     maybeGameText,
     findFirstWrongCharIndex(userGameText),
   )
 
-  return h.keyed('div')(
-    room.status._tag,
-    [],
-    [
-      M.value(room.status).pipe(
-        M.tagsExhaustive({
-          Waiting: () => waiting(room.players, room.hostId, maybeSession),
-          GetReady: () => getReady(maybeGameText),
-          Countdown: ({ secondsLeft }) => countdown(secondsLeft, maybeGameText),
-          Playing: ({ secondsLeft }) =>
-            playing(
-              secondsLeft,
-              maybeGameText,
-              userGameText,
-              maybeWrongCharIndex,
-            ),
-          Finished: () =>
-            finished(room.maybeScoreboard, room.hostId, maybeSession),
-        }),
-      ),
-    ],
+  return M.value(room.status).pipe(
+    M.tagsExhaustive({
+      Waiting: () => waiting(room.players, room.hostId, maybeSession),
+      GetReady: () => getReady(maybeGameText),
+      Countdown: ({ secondsLeft }) => countdown(secondsLeft, maybeGameText),
+      Playing: ({ secondsLeft }) =>
+        playing(secondsLeft, maybeGameText, userGameText, maybeWrongCharIndex),
+      Finished: () => finished(room.maybeScoreboard, room.hostId, maybeSession),
+    }),
   )
 }
 
 const joinForm = (username: string): Html => {
   const h = html<Message>()
 
-  return h.form(
+  return h.keyed('form')(
+    'Join',
     [h.OnSubmit(SubmittedJoinRoomFromPage())],
     [
       h.div(

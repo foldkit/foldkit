@@ -518,7 +518,7 @@ For file uploads (resumes, images, attachments):
 - Use `clsx` from the `clsx` package for conditional class composition: `h.Class(clsx('base-classes', { 'active-class': isActive, 'bg-blue-500': variant === 'Primary' }))`. Use `clsx` whenever classes depend on model state, boolean flags, or discriminated union tags. Never string concatenation, template literals, or `&&` expressions.
 - Pattern match on model state: `M.value(model.state).pipe(M.tagsExhaustive({...}))`
 - Use `Option.match` for conditional rendering based on Option fields
-- Use `h.keyed('div')(routeOrStateTag, attrs, children)` on layout branches
+- Key same-tag layout branches on each branch's own root element (`h.keyed('div')('Products', ...)` per branch, never a wrapper keyed on `model.route._tag`); branches with different root tags need no keys
 - Delegate complex sections to extracted view functions
 - Wire events to messages: `h.OnClick(ClickedSubmit())` (Message directly, not a callback), `h.OnInput(value => UpdatedEmail({ value }))` (callback that maps the value to a Message)
 - Use Foldkit UI components when the interaction matches (Dialog for modals, Tabs for tabbed content, etc.)
@@ -539,7 +539,7 @@ For file uploads (resumes, images, attachments):
 - **Suffix route variant constants with `Route`**: `HomeRoute`, `NewLinkRoute`, `NotFoundRoute`. Every exemplar (auth, shopping-cart, routing) does this. Disambiguates the route schema from views, models, or UI components with matching tag names.
 - Build each route as a Router: `const homeRouter = pipe(Route.root, Route.mapTo(HomeRoute))`. **Routers are callable**: `homeRouter()` returns `'/'`, `tagFilterRouter({ tag: 'foo' })` returns `'/tag/foo'`. This is the print side of the bidirectional parser.
 - **Never hand-construct paths with template strings.** `Href(homeRouter())` not `Href('/')`. `navigateInternal(newLinkRouter())` not `navigateInternal('/new')`. `Href(tagFilterRouter({ tag: tagName }))` not ``Href(`/tag/${encodeURIComponent(tagName)}`)``. The router handles encoding and keeps the URL shape in one place so a refactor changes one file, not every call site.
-- Key view content on `model.route._tag`
+- Key same-tag route views on their own root elements (`h.keyed('div')('Home', ...)` per route); route views whose root tags all differ need no keys
 - Use `pushUrl` from `foldkit/navigation` in Commands for programmatic navigation. In the `ClickedLink` handler's `Internal` case, use `urlToString(url)` from `foldkit/url`. Never reconstruct the URL from `url.pathname + search + hash` manually; that path drops the `?` prefix and hash silently.
 - In the `ClickedLink` handler, **don't pre-update `model.route`**. The runtime fires `ChangedUrl` after `pushUrl` resolves, which updates the route. Pre-updating creates a double-write.
 

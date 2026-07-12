@@ -26,7 +26,8 @@ const infoRow = (label: string, value: string): Html => {
 export const view = (session: Session): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'Settings',
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1([h.Class('text-4xl font-bold text-gray-800 mb-6')], ['Settings']),

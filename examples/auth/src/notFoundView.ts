@@ -7,7 +7,8 @@ export const notFoundView = (
 ): Html => {
   const h = html()
 
-  return h.div(
+  return h.keyed('div')(
+    'NotFound',
     [h.Class('max-w-4xl mx-auto px-4 text-center')],
     [
       h.h1(

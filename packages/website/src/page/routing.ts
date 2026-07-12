@@ -519,15 +519,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       tableOfContentsEntryToHeader(keyingRouteViewsHeader),
       warningCallout(
-        'Always key your route content.',
-        'Without a key, the virtual DOM will try to patch one route’s DOM into another instead of replacing it. This causes stale input state, mismatched event handlers, and bugs that are extremely hard to track down.',
+        'Key route views that share a root tag.',
+        'When two route views root at the same element tag, the virtual DOM will try to patch one route’s DOM into the other instead of replacing it. This causes stale input state, mismatched event handlers, and bugs that are extremely hard to track down.',
       ),
       para(
-        'Wrap your route content in a ',
+        'Give each route view its own key, on its root element, with ',
         inlineCode('keyed'),
-        ' element using ',
-        inlineCode('model.route._tag'),
-        ' as the key. This tells Snabbdom that each route is a distinct tree that should be fully replaced on navigation.',
+        '. This tells Snabbdom that each route is a distinct tree that should be fully replaced on navigation. Never introduce a wrapper element just to carry the key. Route views whose root tags all differ need no keys; a tag change already forces a replacement.',
       ),
       highlightedCodeBlock(
         h.div(

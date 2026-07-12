@@ -96,7 +96,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
     () => 'Select a character',
   )
 
-  return h.div(
+  return h.keyed('div')(
+    'Listbox',
     [],
     [
       h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Listbox']),

@@ -6,7 +6,8 @@ import type { Message } from '../message'
 export const view = (): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'Home',
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.div(

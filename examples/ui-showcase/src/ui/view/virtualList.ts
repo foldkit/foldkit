@@ -271,7 +271,8 @@ const tallRow = (row: Activity, summary: Summary): Html => {
 export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
   const h = html<UiMessage>()
 
-  return h.div(
+  return h.keyed('div')(
+    'VirtualList',
     [],
     [
       h.h2(

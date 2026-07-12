@@ -279,7 +279,8 @@ const personListItemView = (person: Person): Html => {
 export const view = Submodel.defineView<Model, Message>((model): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'People',
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1([h.Class('text-4xl font-bold text-gray-800 mb-6')], ['People']),
@@ -343,21 +344,12 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
         [statusText(model.results)],
       ),
 
-      h.keyed('div')(
-        model.results._tag,
-        [],
-        [
-          M.value(model.results).pipe(
-            M.tag('SearchLoading', () => h.empty),
-            M.tag('SearchLoaded', ({ people: results }) =>
-              h.ul(
-                [h.Class('space-y-3')],
-                Array.map(results, personListItemView),
-              ),
-            ),
-            M.exhaustive,
-          ),
-        ],
+      M.value(model.results).pipe(
+        M.tag('SearchLoading', () => h.empty),
+        M.tag('SearchLoaded', ({ people: results }) =>
+          h.ul([h.Class('space-y-3')], Array.map(results, personListItemView)),
+        ),
+        M.exhaustive,
       ),
     ],
   )

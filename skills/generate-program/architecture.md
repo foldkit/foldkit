@@ -261,18 +261,32 @@ Canonical live examples:
 
 ## Keyed Views
 
-Use `keyed` wrappers when the view branches into structurally different layouts:
+Keys stop the virtual DOM from patching one branch of a view into another. Snabbdom only patches two elements when they share the same tag, so which branches need keys follows from the root tags:
+
+- Branches whose root tags all differ need no keys. A `span` replacing an `a` is always a full teardown and replacement.
+- Branches that share a root tag must each key their own root element, one key per branch.
+- The key goes on the element that is the branch. Never introduce a wrapper element whose only job is to carry a key; the wrapper adds a DOM node and is itself torn down on every branch change.
 
 ```ts
-// Key layout branches: prevents vdom from diffing landing into docs
+// No keys needed: a span and an a can never patch into each other
+model.isAccountEnabled
+  ? a([Href('/account')], ['Account'])
+  : span([Class('text-gray-400')], ['Account'])
+
+// Key same-tag layout branches on their own roots: prevents vdom
+// from diffing landing into docs
 keyed('div')('landing', [...], [...])
 keyed('div')('docs', [...], [...])
 
-// Key content areas on route tag: replaces content on navigation
-keyed('div')(model.route._tag, [...], [...])
+// Wrong: a wrapper introduced only to carry the key
+main([], [keyed('div')(model.route._tag, [], [routeContent])])
+
+// Right: each route view roots at its own keyed element, and the
+// match arms return them directly
+main([], [routeContent])
 ```
 
-Without keying, the virtual DOM tries to patch one layout into another, causing stale DOM, mismatched event handlers, and rendering bugs.
+Without keys, same-tag branches patch into each other, causing stale DOM, mismatched event handlers, and rendering bugs.
 
 Keys carry identity, never data. A key answers which branch or item occupies a position, not what it currently shows. Never derive a key from displayed data to force a refresh when content changes:
 

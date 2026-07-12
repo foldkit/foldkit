@@ -38,24 +38,19 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
     onSome: username => h.h2([h.Class('mb-6')], [`Welcome, ${username}!`]),
   })
 
-  return h.div(
+  return h.keyed('div')(
+    'Home',
     [h.Class('max-w-4xl')],
     [
       h.h1([h.Class('mb-6 uppercase')], ['Typing Terminal']),
       welcomeText,
 
-      h.keyed('div')(
-        model.homeStep._tag,
-        [],
-        [
-          M.value(model.homeStep).pipe(
-            M.tagsExhaustive({
-              EnterUsername: enterUsername,
-              SelectAction: selectAction,
-              EnterRoomId: enterRoomId,
-            }),
-          ),
-        ],
+      M.value(model.homeStep).pipe(
+        M.tagsExhaustive({
+          EnterUsername: enterUsername,
+          SelectAction: selectAction,
+          EnterRoomId: enterRoomId,
+        }),
       ),
 
       maybeErrorMessage(model.formError),
@@ -66,7 +61,8 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
 const enterUsername = ({ username }: EnterUsername): Html => {
   const h = html<Message>()
 
-  return h.form(
+  return h.keyed('form')(
+    'EnterUsername',
     [h.OnSubmit(SubmittedUsernameForm())],
     [
       h.div(
@@ -102,7 +98,8 @@ const enterUsername = ({ username }: EnterUsername): Html => {
 const selectAction = ({ selectedAction }: SelectAction): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'SelectAction',
     [h.Class('space-y-4')],
     [
       ...Array.map(HOME_ACTIONS, action(selectedAction)),
@@ -131,7 +128,8 @@ const action =
 const enterRoomId = ({ roomId }: EnterRoomId): Html => {
   const h = html<Message>()
 
-  return h.form(
+  return h.keyed('form')(
+    'EnterRoomId',
     [h.OnSubmit(SubmittedJoinRoomForm())],
     [
       h.div(

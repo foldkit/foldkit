@@ -21,7 +21,8 @@ export const view = (
   const h = html<Message>()
 
   if (orderPlaced) {
-    return h.div(
+    return h.keyed('div')(
+      'OrderPlaced',
       [h.Class('max-w-4xl mx-auto px-4 text-center')],
       [
         h.h1(
@@ -54,7 +55,8 @@ export const view = (
     )
   }
 
-  return h.div(
+  return h.keyed('div')(
+    'Checkout',
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1([h.Class('text-4xl font-bold text-gray-800 mb-8')], ['Checkout']),

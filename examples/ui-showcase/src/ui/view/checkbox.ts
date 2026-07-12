@@ -32,7 +32,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
 
   const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
 
-  return h.div(
+  return h.keyed('div')(
+    'Checkbox',
     [],
     [
       h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Checkbox']),

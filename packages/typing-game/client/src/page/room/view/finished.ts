@@ -143,7 +143,8 @@ export const finished = (
     session => session.player.id === hostId,
   )
 
-  return h.div(
+  return h.keyed('div')(
+    'Finished',
     [h.Class('space-y-6')],
     [
       h.h3([h.Class('uppercase')], ['[Game complete]']),

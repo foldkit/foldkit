@@ -7,17 +7,18 @@ const postsSection = (model: Model): Html => {
   const keyedDiv = h.keyed('div')
 
   return AsyncData.matchDataSplitEmpty(model.posts, {
-    onIdle: () => keyedDiv('Idle', [], [promptView()]),
+    onIdle: () => keyedDiv('Idle', [], ['Search to load posts.']),
     onLoading: () => keyedDiv('Loading', [], [spinnerView()]),
     onFailure: error => keyedDiv('Failure', [], [errorView(error)]),
-    onData: posts => keyedDiv('Loaded', [], [postsView(posts, model.posts)]),
+    onData: posts => postsView(posts, model.posts),
   })
 }
 
 const postsView = (posts: ReadonlyArray<Post>, state: PostsData): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'Loaded',
     [],
     [
       ...(AsyncData.isRefreshing(state)

@@ -38,7 +38,8 @@ const knob = (isChecked: boolean): Html => {
 export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
   const h = html<UiMessage>()
 
-  return h.div(
+  return h.keyed('div')(
+    'Switch',
     [],
     [
       h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Switch']),

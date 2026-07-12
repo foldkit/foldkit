@@ -185,8 +185,8 @@ If none: write `None.`
 ## QUALITY
 Items that work but fall short of the bar: generic naming, inline
 handlers that should be extracted, native methods instead of Effect
-modules in pipes, views that should be decomposed, missing keyed
-wrappers, etc. Should fix.
+modules in pipes, views that should be decomposed, missing keys on
+same-tag branch roots, etc. Should fix.
 Each item: `path/to/file.ts:line: <the gap>. Idiomatic version: <what to write>`.
 Cite the exemplar when relevant: "typing-game does this as X at
 page/home/update/handleKeyPressed.ts:33-40".
@@ -250,7 +250,7 @@ When `$ARGUMENTS` narrows to a focus area, Phase 5 reduces to the relevant subag
 | `naming`        | C                                                                                                                            | #7, #9, #20     |
 | `decomposition` | C                                                                                                                            | #5, #6          |
 | `forms`         | D + form-specific (Ui.Input adoption, fieldValidation usage, label/input pairing)                                            | #12, #13        |
-| `routing`       | A + routing-specific (bidirectional parser usage, keyed branches on `route._tag`, `urlToString` in `Internal` case)          | #11             |
+| `routing`       | A + routing-specific (bidirectional parser usage, keyed roots on same-tag route branches, `urlToString` in `Internal` case)  | #11             |
 | `subscriptions` | A + subscription-specific (`Subscription.make` shape, `S.Struct({})` for always-active, message mapping inside `Stream.map`) | none            |
 | `testing`       | E                                                                                                                            | #14             |
 | `submodels`     | A + submodel-specific (Got\* wrapping, three-tuple update returns with OutMessage, parent ↔ child Message isolation)         | #19             |

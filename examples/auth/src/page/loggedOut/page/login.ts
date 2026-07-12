@@ -270,7 +270,8 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
 
   const canSubmit = isFormValid(model) && !model.isSubmitting
 
-  return h.div(
+  return h.keyed('div')(
+    'Login',
     [h.Class('max-w-md mx-auto px-4')],
     [
       h.div(

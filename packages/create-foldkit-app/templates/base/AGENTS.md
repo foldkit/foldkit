@@ -54,7 +54,7 @@ Use `evo()` from `foldkit/struct` for immutable model updates. Never spread or `
 
 Bind the `html` factory inside each view function with `const h = html<Message>()` (never at module level), then reach for `h.div`, `h.OnClick`, etc. off the returned record. Use `empty` (not `null`) for conditional rendering, `M.value().pipe(M.tagsExhaustive({...}))` for discriminated unions, and `Array.match` for lists that may be empty.
 
-Use `keyed` wrappers whenever the view branches into structurally different layouts based on route or model state. Without keying, the virtual DOM tries to diff one layout into another, causing stale DOM and event handler mismatches.
+When view branches at the same DOM position share a root tag, key each branch's root element with `keyed` (never a wrapper element introduced to carry the key). Without keys, the virtual DOM diffs one same-tag branch into another, causing stale DOM and event handler mismatches. Branches whose root tags all differ need no keys; a tag change already forces a full replacement.
 
 ### Commands
 

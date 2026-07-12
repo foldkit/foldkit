@@ -92,7 +92,8 @@ export const playing = (
 ): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'Playing',
     [h.Class('space-y-6')],
     [
       h.h3(

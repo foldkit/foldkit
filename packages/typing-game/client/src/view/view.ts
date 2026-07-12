@@ -62,13 +62,7 @@ export const view = (model: Model): Document => {
     title: routeTitle(model.route),
     body: h.div(
       [h.Class('min-h-screen flex flex-col p-16')],
-      [
-        h.main(
-          [h.Class('flex-1 flex flex-col')],
-          [h.keyed('div')(model.route._tag, [], [content])],
-        ),
-        footerElement,
-      ],
+      [h.main([h.Class('flex-1 flex flex-col')], [content]), footerElement],
     ),
   }
 }
@@ -76,7 +70,8 @@ export const view = (model: Model): Document => {
 const notFound = ({ path }: NotFoundRoute): Html => {
   const h = html<Message>()
 
-  return h.section(
+  return h.keyed('section')(
+    'NotFound',
     [h.Class('max-w-4xl')],
     [
       h.h1([h.Class('mb-6 uppercase')], ['404 - Not Found']),

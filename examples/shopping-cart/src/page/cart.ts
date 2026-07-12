@@ -18,7 +18,8 @@ import { checkoutRouter, productsRouter } from '../route'
 export const view = (cart: Cart.Cart): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'Cart',
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1(

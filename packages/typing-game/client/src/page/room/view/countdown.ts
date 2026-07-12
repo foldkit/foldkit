@@ -9,7 +9,8 @@ export const countdown = (
 ): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'Countdown',
     [h.Class('space-y-6')],
     [
       h.h3([h.Class('uppercase')], [`Starting in ${secondsLeft}...`]),

@@ -72,7 +72,8 @@ const checkPlaceholder = (): Html => {
 export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
   const h = html<UiMessage>()
 
-  return h.div(
+  return h.keyed('div')(
+    'RadioGroup',
     [],
     [
       h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Radio Group']),

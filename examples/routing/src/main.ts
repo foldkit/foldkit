@@ -244,7 +244,8 @@ const navigationView = (currentRoute: AppRoute): Html => {
 const homeView = (): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'Home',
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1(
@@ -265,7 +266,8 @@ const homeView = (): Html => {
 const nestedView = (): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'Nested',
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1(
@@ -287,7 +289,8 @@ const personView = (personId: number): Html => {
 
   return Option.match(person, {
     onNone: () =>
-      h.div(
+      h.keyed('div')(
+        'PersonNotFound',
         [h.Class('max-w-4xl mx-auto px-4')],
         [
           h.h2(
@@ -309,7 +312,8 @@ const personView = (personId: number): Html => {
       ),
 
     onSome: person =>
-      h.div(
+      h.keyed('div')(
+        'Person',
         [h.Class('max-w-4xl mx-auto px-4')],
         [
           h.a(
@@ -469,7 +473,8 @@ const breadcrumbView = (path: Array.NonEmptyReadonlyArray<string>): Html => {
 const fileDetailView = (file: File): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'File',
     [h.Class('bg-gray-50 border border-gray-200 rounded-lg p-6')],
     [
       h.h2([h.Class('text-2xl font-bold text-gray-800 mb-2')], [file.name]),
@@ -481,7 +486,8 @@ const fileDetailView = (file: File): Html => {
 const missingEntryView = (path: Array.NonEmptyReadonlyArray<string>): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'Missing',
     [],
     [
       h.h2([h.Class('text-4xl font-bold text-red-600 mb-6')], ['Nothing Here']),
@@ -500,7 +506,8 @@ const missingEntryView = (path: Array.NonEmptyReadonlyArray<string>): Html => {
 const filesIndexView = (): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'FilesIndex',
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1([h.Class('text-4xl font-bold text-gray-800 mb-6')], ['Files']),
@@ -520,11 +527,6 @@ const filesView = (path: Array.NonEmptyReadonlyArray<string>): Html => {
 
   const maybeEntry = findEntry(path)
 
-  const contentKey = Option.match(maybeEntry, {
-    onNone: () => 'Missing',
-    onSome: entry => entry._tag,
-  })
-
   const content = Option.match(maybeEntry, {
     onNone: () => missingEntryView(path),
     onSome: entry =>
@@ -536,16 +538,18 @@ const filesView = (path: Array.NonEmptyReadonlyArray<string>): Html => {
       ),
   })
 
-  return h.div(
+  return h.keyed('div')(
+    'Files',
     [h.Class('max-w-4xl mx-auto px-4')],
-    [breadcrumbView(path), h.keyed('div')(contentKey, [], [content])],
+    [breadcrumbView(path), content],
   )
 }
 
 const notFoundView = (path: string): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'NotFound',
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1(
@@ -603,10 +607,7 @@ export const view = (model: Model): Document => {
       [h.Class('min-h-screen bg-gray-100')],
       [
         h.header([], [navigationView(model.route)]),
-        h.main(
-          [h.Class('py-8')],
-          [h.keyed('div')(model.route._tag, [], [routeContent])],
-        ),
+        h.main([h.Class('py-8')], [routeContent]),
       ],
     ),
   }

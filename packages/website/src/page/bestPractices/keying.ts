@@ -72,11 +72,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         'Foldkit uses ',
         link(Link.snabbdom, 'Snabbdom'),
-        ' for virtual DOM diffing. When a view renders different content at the same DOM position, Snabbdom will try to patch one version into the other. This can cause stale input state, mismatched event handlers, and carried-over focus.',
+        ' for virtual DOM diffing. When a view renders different content at the same DOM position, and the two versions share a root tag, Snabbdom will try to patch one version into the other. This can cause stale input state, mismatched event handlers, and carried-over focus.',
       ),
       warningCallout(
-        'Always key branch points',
-        'If the same DOM position renders different content depending on your model, key it. Without a key, Snabbdom patches where it should replace.',
+        'Key branch points that share a root tag',
+        'If the same DOM position renders different branches depending on your model, and those branches share a root tag, give each branch root its own key. Without keys, Snabbdom patches where it should replace.',
       ),
       para(
         'The ',
@@ -87,7 +87,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       bullets(
         bulletPoint(
           'Branching views',
-          'a position rendering different content based on a value',
+          'a position rendering different branches that share a root tag',
         ),
         bulletPoint(
           'Mapped list items',
@@ -99,7 +99,25 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ),
       ),
       tableOfContentsEntryToHeader(branchingViewsHeader),
-      para('Use a discriminating string as the key, typically a tag:'),
+      para(
+        'Snabbdom only patches two elements when they share a tag. A branch whose root tag differs from every other branch can never be patched into one of them; a tag change is always a full teardown and replacement. Branches whose root tags all differ therefore need no keys:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.keyingDifferentTagsHighlighted),
+          ],
+          [],
+        ),
+        Snippet.keyingDifferentTagsRaw,
+        'Copy different tags keying example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'When branches share a root tag, keys are what keep them apart. Give each branch’s root element its own discriminating key, typically the branch tag, one key per branch:',
+      ),
       highlightedCodeBlock(
         h.div(
           [
@@ -112,6 +130,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'Copy branching views keying example to clipboard',
         copiedSnippets,
         'mb-8',
+      ),
+      para(
+        'The key lives on the element that is the branch. Never introduce a wrapper element whose only job is to carry the key: the wrapper adds a DOM node, and it is itself torn down and rebuilt on every branch change.',
       ),
       para(
         'The same rule applies to any control-flow branch that produces different content: ',
@@ -228,7 +249,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'mb-8',
       ),
       para(
-        'Snabbdom’s diff can often handle conditional inserts correctly by matching elements on their tag and classes, but that is implicit behavior. Explicit keys make the intent clear and stay correct across refactors.',
+        'Snabbdom’s diff can often handle conditional inserts correctly by matching elements on their tag, but that is implicit behavior. Explicit keys make the intent clear and stay correct across refactors.',
       ),
     ],
   )

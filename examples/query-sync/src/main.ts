@@ -674,7 +674,8 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
   const fields = routeToBrowseFields(route)
   const results = filterAndSort(fields)
 
-  return h.div(
+  return h.keyed('div')(
+    'Browse',
     [h.Class('max-w-6xl mx-auto px-4')],
     [
       h.h1(
@@ -835,7 +836,8 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
 const notFoundView = (path: string): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'NotFound',
     [h.Class('max-w-4xl mx-auto px-4 text-center')],
     [
       h.h1(
@@ -891,10 +893,7 @@ export const view = (model: Model): Document => {
           ),
         ],
       ),
-      h.main(
-        [h.Class('pb-12')],
-        [h.keyed('div')(model.route._tag, [], [routeContent])],
-      ),
+      h.main([h.Class('pb-12')], [routeContent]),
     ],
   )
 

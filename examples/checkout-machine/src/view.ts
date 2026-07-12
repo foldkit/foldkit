@@ -453,7 +453,8 @@ const cartView = (state: typeof Cart.Type): Html => {
     ? 'Continue to delivery'
     : 'Continue to payment'
 
-  return h.div(
+  return h.keyed('div')(
+    'Cart',
     [h.Class('grid gap-8')],
     [
       h.div(
@@ -538,7 +539,8 @@ const cartView = (state: typeof Cart.Type): Html => {
 const shippingView = (): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'Shipping',
     [h.Class('grid gap-7')],
     [
       h.section(
@@ -702,7 +704,8 @@ const shippingView = (): Html => {
 const paymentView = (state: typeof Payment.Type): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'Payment',
     [h.Class('grid gap-7')],
     [
       h.div(
@@ -855,7 +858,8 @@ const reviewView = (state: typeof Review.Type): Html => {
     promoToMaybeDiscount(state.promo),
   )
 
-  return h.div(
+  return h.keyed('div')(
+    'Review',
     [h.Class('grid gap-7')],
     [
       h.div(
@@ -1015,32 +1019,27 @@ const reviewView = (state: typeof Review.Type): Html => {
               }),
             ],
           ),
-          h.keyed('div')(
-            state.promo._tag,
-            [],
-            [
-              M.value(state.promo).pipe(
-                M.tagsExhaustive({
-                  NoPromo: () => h.p([h.Class(promoFeedbackClassName)], ['']),
-                  AppliedPromo: ({ discount }) =>
-                    h.p(
-                      [
-                        h.Class(
-                          clsx(promoFeedbackClassName, 'text-orange-800'),
-                        ),
-                      ],
-                      [
-                        `${discount.code} applied · ${discount.percentOff}% off`,
-                      ],
-                    ),
-                  RejectedPromo: () =>
-                    h.p(
-                      [h.Class(clsx(promoFeedbackClassName, 'text-red-700'))],
-                      ["That code isn't recognized."],
-                    ),
-                }),
-              ),
-            ],
+          M.value(state.promo).pipe(
+            M.tagsExhaustive({
+              NoPromo: () =>
+                h.keyed('p')(
+                  'NoPromo',
+                  [h.Class(promoFeedbackClassName)],
+                  [''],
+                ),
+              AppliedPromo: ({ discount }) =>
+                h.keyed('p')(
+                  'AppliedPromo',
+                  [h.Class(clsx(promoFeedbackClassName, 'text-orange-800'))],
+                  [`${discount.code} applied · ${discount.percentOff}% off`],
+                ),
+              RejectedPromo: () =>
+                h.keyed('p')(
+                  'RejectedPromo',
+                  [h.Class(clsx(promoFeedbackClassName, 'text-red-700'))],
+                  ["That code isn't recognized."],
+                ),
+            }),
           ),
         ],
       ),
@@ -1142,7 +1141,8 @@ const reviewView = (state: typeof Review.Type): Html => {
 const placingView = (): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'Placing',
     [
       h.Role('status'),
       h.AriaLive('polite'),
@@ -1173,7 +1173,8 @@ const placingView = (): Html => {
 const confirmedView = (state: typeof Confirmed.Type): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'Confirmed',
     [
       h.Class(
         'grid min-h-80 content-center justify-items-center py-8 text-center',
@@ -1226,7 +1227,8 @@ const confirmedView = (state: typeof Confirmed.Type): Html => {
 const cancelledView = (): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'Cancelled',
     [
       h.Class(
         'grid min-h-72 content-center justify-items-center py-8 text-center',
@@ -1263,27 +1265,18 @@ const cancelledView = (): Html => {
   )
 }
 
-const checkoutContentView = (state: typeof CheckoutState.Type): Html => {
-  const h = html<Message>()
-
-  return h.keyed('div')(
-    state._tag,
-    [],
-    [
-      M.value(state).pipe(
-        M.tagsExhaustive({
-          Cart: cartView,
-          Shipping: shippingView,
-          Payment: paymentView,
-          Review: reviewView,
-          Placing: placingView,
-          Confirmed: confirmedView,
-          Cancelled: cancelledView,
-        }),
-      ),
-    ],
+const checkoutContentView = (state: typeof CheckoutState.Type): Html =>
+  M.value(state).pipe(
+    M.tagsExhaustive({
+      Cart: cartView,
+      Shipping: shippingView,
+      Payment: paymentView,
+      Review: reviewView,
+      Placing: placingView,
+      Confirmed: confirmedView,
+      Cancelled: cancelledView,
+    }),
   )
-}
 
 const checkoutPanelView = (state: typeof CheckoutState.Type): Html => {
   const h = html<Message>()

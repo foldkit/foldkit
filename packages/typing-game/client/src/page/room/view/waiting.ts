@@ -62,7 +62,8 @@ export const waiting = (
     session => session.player.id === hostId,
   )
 
-  return h.div(
+  return h.keyed('div')(
+    'Waiting',
     [],
     [
       h.h3([h.Class('uppercase mb-2')], ['[Connected users]']),

@@ -302,7 +302,8 @@ const checkoutView = (model: Model): Html => {
 const notFoundView = (path: string): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'NotFound',
     [h.Class('max-w-4xl mx-auto px-4 text-center')],
     [
       h.h1(
@@ -351,10 +352,7 @@ export const view = (model: Model): Document => {
           [],
           [navigationView(model.route, Cart.totalItems(model.cart))],
         ),
-        h.main(
-          [h.Class('py-8')],
-          [h.keyed('div')(model.route._tag, [], [routeContent])],
-        ),
+        h.main([h.Class('py-8')], [routeContent]),
       ],
     ),
   }

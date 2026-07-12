@@ -580,7 +580,8 @@ const mobileMenuView = (model: Model): Html => {
 const homeView = (): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'Home',
     [h.Class('max-w-2xl')],
     [
       h.h1(
@@ -606,7 +607,8 @@ const homeView = (): Html => {
 const notFoundView = (path: string): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'NotFound',
     [h.Class('max-w-2xl')],
     [
       h.h1(
@@ -687,7 +689,7 @@ export const view = (model: Model): Document => {
         sidebarView(model.route),
         h.main(
           [h.Class('flex-1 p-4 md:p-8 overflow-auto')],
-          [h.keyed('div')(model.route._tag, [], [contentView(model)])],
+          [contentView(model)],
         ),
       ],
     ),

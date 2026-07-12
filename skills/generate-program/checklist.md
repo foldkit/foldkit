@@ -177,7 +177,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 
 ## View
 
-- [ ] `keyed` wrappers on layout branches (route-based or state-based)
+- [ ] Keys on the roots of same-tag layout branches (route-based or state-based); no wrapper elements introduced to carry keys; different-tag branches need no keys
 - [ ] Events dispatch Messages, never perform actions directly
 - [ ] Semantic HTML elements (`main`, `nav`, `section`, `article`, `header`, `footer`)
 

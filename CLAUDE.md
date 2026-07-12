@@ -78,7 +78,8 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 
 ## View Architecture
 
-- Key every branching view. Whenever a DOM position renders different content based on a value (route tag, top-level model variant, sub-model, any tagged union), wrap it in a single `keyed` element with a discriminating key. Same rule applies to `Match`, `if/else`, and ternaries.
+- Key same-tag branches. Whenever a DOM position renders different content based on a value (route tag, top-level model variant, sub-model, any tagged union) and the branches share a root tag, give each branch's root element a discriminating key. Same rule applies to `Match`, `if/else`, and ternaries. Branches whose root tags all differ need no keys: Snabbdom only patches elements with the same tag, so a tag change already forces teardown and replacement.
+- Keys go on the branch root itself. Never introduce a wrapper element whose only job is to carry a key; it adds a DOM node and is itself torn down on every branch change.
 - One key per branch, never shared. If two branches would share a key, restructure them into a single branch whose internal differences are keyed conditional inserts. Sharing a key across branches encodes an identity claim the branch structure contradicts, and it rots into cross-branch patching.
 - Keys carry identity, never data. A key answers which branch or item occupies a position, not what it currently shows. Never derive a key from displayed data (field values, booleans, formatted strings) to force a refresh; content changes patch in place, and a data-derived key tears down live DOM state (focus, scroll, an open `details`) on every change. If a key can change while the same conceptual thing stays on screen, the key is wrong.
 - Key mapped list items by a stable model identifier, never by array position.

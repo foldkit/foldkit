@@ -200,7 +200,8 @@ const ghostView = (
 export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
   const h = html<UiMessage>()
 
-  return h.div(
+  return h.keyed('div')(
+    'DragAndDrop',
     [],
     [
       h.h2(

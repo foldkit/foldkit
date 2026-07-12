@@ -66,26 +66,21 @@ const navigationView = (session: Session, currentRouteTag: string): Html => {
 export const view = Submodel.defineView<Model, Message>((model): Html => {
   const h = html<Message>()
 
-  return h.div(
+  return h.keyed('div')(
+    'LoggedIn',
     [h.Class('min-h-screen')],
     [
       navigationView(model.session, model.route._tag),
       h.main(
         [h.Class('py-8')],
         [
-          h.keyed('div')(
-            model.route._tag,
-            [],
-            [
-              M.value(model.route).pipe(
-                M.tagsExhaustive({
-                  Dashboard: () => Dashboard.view(model.session),
-                  Settings: () => Settings.view(model.session),
-                  NotFound: ({ path }) =>
-                    notFoundView(path, dashboardRouter(), 'Go to Dashboard'),
-                }),
-              ),
-            ],
+          M.value(model.route).pipe(
+            M.tagsExhaustive({
+              Dashboard: () => Dashboard.view(model.session),
+              Settings: () => Settings.view(model.session),
+              NotFound: ({ path }) =>
+                notFoundView(path, dashboardRouter(), 'Go to Dashboard'),
+            }),
           ),
         ],
       ),
