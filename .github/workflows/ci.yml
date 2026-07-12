@@ -22,6 +22,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Plan change-scoped checks
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/plan-ci.mjs "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
@@ -64,28 +71,62 @@ jobs:
         run: pnpm changeset status --since=origin/main
 
       - name: Lint
-        run: pnpm lint
+        run: pnpm --filter @foldkit/oxlint-plugin build && pnpm lint:ci
 
       - name: Check dead code
         run: pnpm check:dead-code
 
       - name: Check circular dependencies
+        if: steps.scope.outputs.typing_game == 'true'
         run: pnpm check:circular-deps
 
-      - name: Build packages
-        run: pnpm -r --filter './packages/**' build
+      - name: Build reusable packages
+        if: steps.scope.outputs.workspace_packages == 'true' || steps.scope.outputs.create_foldkit_smoke == 'true' || steps.scope.outputs.website == 'true' || steps.scope.outputs.typing_game == 'true'
+        run: pnpm --filter foldkit --filter @foldkit/ui --filter @foldkit/devtools --filter @foldkit/vite-plugin --filter create-foldkit-app --filter @foldkit/devtools-mcp --filter @typing-game/shared build
+
+      - name: Typecheck scripts
+        run: pnpm typecheck:scripts
 
       - name: Typecheck
+        if: steps.scope.outputs.full_workspace_checks == 'true'
         run: pnpm -r typecheck
 
+      - name: Typecheck affected packages
+        if: steps.scope.outputs.full_workspace_checks == 'false'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: pnpm -r --filter "...[$BASE_SHA]" run --if-present typecheck
+
       - name: Smoke test create-foldkit-app
-        run: pnpm check:create-foldkit-app-smoke
+        if: steps.scope.outputs.create_foldkit_smoke == 'true'
+        run: pnpm check:create-foldkit-app-smoke:ci
+
+      - name: Build website
+        if: steps.scope.outputs.website == 'true'
+        run: pnpm --filter website exec vite build
+
+      - name: Build typing game client
+        if: steps.scope.outputs.typing_game == 'true'
+        run: pnpm --filter @typing-game/client build
+
+      - name: Build typing game server
+        if: steps.scope.outputs.typing_game == 'true'
+        run: pnpm --filter @typing-game/server build
 
       - name: Test
+        if: steps.scope.outputs.full_workspace_checks == 'true'
         run: pnpm test
 
+      - name: Test affected packages
+        if: steps.scope.outputs.full_workspace_checks == 'false'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: pnpm -r --filter "...[$BASE_SHA]" run --if-present test
+
       - name: Install Playwright browsers
+        if: steps.scope.outputs.website == 'true'
         run: pnpm --filter website exec playwright install --with-deps chromium
 
       - name: E2E smoke test
+        if: steps.scope.outputs.website == 'true'
         run: pnpm --filter website test:e2e

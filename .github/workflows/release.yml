@@ -4,6 +4,22 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '.changeset/**'
+      - 'packages/foldkit/**'
+      - 'packages/ui/**'
+      - 'packages/devtools/**'
+      - 'packages/vite-plugin-foldkit/**'
+      - 'packages/create-foldkit-app/**'
+      - 'packages/oxlint-plugin-foldkit/**'
+      - 'packages/devtools-mcp/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'scripts/check-changeset-ignore.ts'
+      - 'scripts/check-create-foldkit-app-smoke.ts'
+      - 'scripts/reset-peer-deps.ts'
+      - '.github/workflows/release.yml'
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -39,7 +55,7 @@ jobs:
           npm --version
 
       - name: Install Dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Verify changeset ignore list
         run: pnpm check:changeset-ignore

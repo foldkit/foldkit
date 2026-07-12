@@ -27,6 +27,7 @@ const PNPM_WORKSPACE_POLICY_PATH = join(
 const PNPM_WORKSPACE_POLICY = `allowBuilds:
   msgpackr-extract: false
 `
+const isSkipBuild = process.argv.includes('--skip-build')
 const LINT_SMOKE_SOURCE = `const Command = {
   define: (name: string) => () => ({ name }),
 }
@@ -348,18 +349,20 @@ const main = (): void => {
   try {
     assertTemplateTooling()
     assertPnpmWorkspacePolicy()
-    runRequired(
-      'Building create-foldkit-app...',
-      'pnpm',
-      ['--filter', 'create-foldkit-app', 'build'],
-      { inherit: true },
-    )
-    runRequired(
-      'Building @foldkit/oxlint-plugin...',
-      'pnpm',
-      ['--filter', '@foldkit/oxlint-plugin', 'build'],
-      { inherit: true },
-    )
+    if (!isSkipBuild) {
+      runRequired(
+        'Building create-foldkit-app...',
+        'pnpm',
+        ['--filter', 'create-foldkit-app', 'build'],
+        { inherit: true },
+      )
+      runRequired(
+        'Building @foldkit/oxlint-plugin...',
+        'pnpm',
+        ['--filter', '@foldkit/oxlint-plugin', 'build'],
+        { inherit: true },
+      )
+    }
 
     const tarballPath = packPackage(
       'Packing create-foldkit-app tarball...',

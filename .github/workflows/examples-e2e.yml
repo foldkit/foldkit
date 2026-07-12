@@ -13,38 +13,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      example-count: ${{ steps.plan.outputs.example-count }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Plan affected examples
+        id: plan
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/plan-examples-e2e.mjs "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
   examples-e2e:
-    name: ${{ matrix.example }}
+    name: Shard ${{ matrix.shard }}
+    needs: plan
+    if: needs.plan.outputs.example-count != '0'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        example:
-          - counter
-          - counters
-          - todo
-          - stopwatch
-          - crash-view
-          - slow-warnings
-          - form
-          - job-application
-          - weather
-          - api-cache
-          - routing
-          - query-sync
-          - snake
-          - auth
-          - shopping-cart
-          - statechart-checkout
-          - pixel-art
-          - websocket-chat
-          - kanban
-          - map
-          - canvas-art
-          - generative-art
-          - web-components
-          - embedding
-          - ui-showcase
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,23 +54,62 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        env:
+          EXAMPLES: ${{ matrix.examples }}
+        run: |
+          filters=(--filter '@foldkit/examples-e2e...')
+          for example in $EXAMPLES; do
+            filters+=(--filter "{examples/$example}...")
+          done
+          pnpm install --frozen-lockfile "${filters[@]}"
 
-      - name: Build workspace packages
-        run: pnpm -r --filter './packages/**' build
+      - name: Build E2E prerequisites
+        run: pnpm --filter foldkit --filter @foldkit/vite-plugin build
 
       - name: Install Playwright browsers
         run: pnpm --filter @foldkit/examples-e2e exec playwright install --with-deps chromium
 
-      - name: Run examples e2e for ${{ matrix.example }}
+      - name: Run example E2E shard
         env:
-          EXAMPLE_SLUG: ${{ matrix.example }}
-        run: pnpm --filter @foldkit/examples-e2e test:e2e
+          EXAMPLES: ${{ matrix.examples }}
+        run: |
+          failed_examples=()
+          for example in $EXAMPLES; do
+            if ! EXAMPLE_SLUG="$example" pnpm --filter @foldkit/examples-e2e test:e2e; then
+              failed_examples+=("$example")
+            fi
+          done
 
-      - name: Upload Playwright report on failure
+          if [ "${#failed_examples[@]}" -gt 0 ]; then
+            echo "Failed examples: ${failed_examples[*]}"
+            exit 1
+          fi
+
+      - name: Upload Playwright traces on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ matrix.example }}
-          path: packages/examples-e2e/playwright-report/
+          name: playwright-traces-shard-${{ matrix.shard }}
+          path: packages/examples-e2e/test-results/
           retention-days: 7
+
+  result:
+    name: Examples E2E
+    needs:
+      - plan
+      - examples-e2e
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check E2E result
+        env:
+          PLAN_RESULT: ${{ needs.plan.result }}
+          E2E_RESULT: ${{ needs.examples-e2e.result }}
+        run: |
+          if [ "$PLAN_RESULT" != 'success' ]; then
+            exit 1
+          fi
+
+          if [ "$E2E_RESULT" != 'success' ] && [ "$E2E_RESULT" != 'skipped' ]; then
+            exit 1
+          fi

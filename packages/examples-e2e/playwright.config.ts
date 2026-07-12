@@ -18,6 +18,7 @@ export default defineConfig({
   forbidOnly: Boolean(process.env['CI']),
   retries: process.env['CI'] ? 2 : 1,
   reporter: process.env['CI'] ? 'github' : 'list',
+  outputDir: `./test-results/${exampleSlug}`,
   timeout: 60_000,
   use: {
     baseURL: BASE_URL,

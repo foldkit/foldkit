@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
     ".": {
-      "entry": ["scripts/*.{ts,js,sh}"],
+      "entry": ["scripts/*.{ts,js,mjs,sh}"],
       "project": ["scripts/**"]
     },
     "packages/foldkit": {
@@ -70,5 +70,5 @@
   },
   "ignore": ["**/*.css", "packages/website/public/**"],
   "ignoreDependencies": ["@foldkit/oxlint-plugin", "tailwindcss", "madge"],
-  "ignoreBinaries": ["typecheck", "vercel"]
+  "ignoreBinaries": ["typecheck"]
 }

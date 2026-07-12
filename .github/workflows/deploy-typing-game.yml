@@ -8,9 +8,13 @@ on:
       - 'packages/typing-game/client/**'
       - 'packages/typing-game/shared/**'
       - 'packages/foldkit/**'
-      - 'packages/foldkit-vite-plugin/**'
+      - 'packages/vite-plugin-foldkit/**'
       - 'pnpm-lock.yaml'
       - '.github/workflows/deploy-typing-game.yml'
+
+concurrency:
+  group: deploy-typing-game-production
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -30,7 +34,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter @typing-game/client...
 
       - name: Build typing game client
         run: pnpm build:typing-game:client
@@ -40,8 +44,8 @@ jobs:
       - name: Deploy to Vercel
         working-directory: packages/typing-game/client
         run: |
-          npx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-          npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+          pnpm dlx vercel@55.0.0 pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+          pnpm dlx vercel@55.0.0 deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

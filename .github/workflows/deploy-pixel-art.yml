@@ -11,6 +11,10 @@ on:
       - 'pnpm-lock.yaml'
       - '.github/workflows/deploy-pixel-art.yml'
 
+concurrency:
+  group: deploy-pixel-art-production
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -29,20 +33,20 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter pixel-art-example...
 
       - name: Build foldkit and vite plugin
         run: pnpm --filter foldkit build && pnpm --filter @foldkit/vite-plugin build
 
       - name: Build pixel art
         working-directory: examples/pixel-art
-        run: npx vite build
+        run: pnpm exec vite build
 
       - name: Deploy to Vercel
         working-directory: examples/pixel-art
         run: |
-          npx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-          npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+          pnpm dlx vercel@55.0.0 pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+          pnpm dlx vercel@55.0.0 deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.PIXEL_ART_VERCEL_PROJECT_ID }}
