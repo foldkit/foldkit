@@ -1,5 +1,6 @@
 import { Html, html } from 'foldkit/html'
 
+import { Link } from '../link'
 import type { TableOfContentsEntry } from '../main'
 import type { Message } from '../message'
 import {
@@ -200,7 +201,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         'This page is for people who have already chosen Effect. ',
         link('https://github.com/tim-smart/effect-atom', 'Effect Atom'),
-        ' is a reactive, atomic state-management library: state is a set of small cells, each an independent piece of state, read and written through a host view framework. The core is framework-agnostic, with bindings for React, Solid, and Vue; the framework does the rendering, and Effect Atom is the state layer. Foldkit is a framework. It owns its runtime, virtual DOM, and view layer, ships a routing module and a UI library, includes Story and Scene testing, and implements the Elm Architecture in TypeScript: one Model, one Message union, one update function, side effects as values returned to the runtime.',
+        ' is a reactive, atomic state-management library: state is a set of small cells, each an independent piece of state, read and written through a host view framework. The core is framework-agnostic, with bindings for React, Solid, and Vue; the framework does the rendering, and Effect Atom is the state layer. Foldkit is a framework. It owns its runtime and view layer, renders through a virtual DOM built on ',
+        link(Link.snabbdom, 'Snabbdom'),
+        ', ships a routing module and a UI library, includes Story and Scene testing, and implements the Elm Architecture in TypeScript: one Model, one Message union, one update function, side effects as values returned to the runtime.',
       ),
       para(
         'So the difference is not a narrow one about where state lives. Adopting Effect Atom means building a React (or Solid, or Vue) app and reaching for atoms as the state layer. Adopting Foldkit means building a Foldkit app. They are different paradigms that happen to both use Effect.',
@@ -218,7 +221,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('Atom.make'),
         ' or ',
         inlineCode('runtime.fn'),
-        '; in Foldkit you return a Command that wraps one. Both put errors in the type signature, both use Schema for validation at the boundary, and both lean on Layers and structured concurrency. Above that foundation they diverge completely. Effect Atom is the state layer and defers rendering, the component model, and routing to its host framework; Foldkit owns the whole stack, from its runtime and virtual DOM up through routing and its UI library.',
+        '; in Foldkit you return a Command that wraps one. Both put errors in the type signature, both use Schema for validation at the boundary, and both lean on Layers and structured concurrency. Above that foundation they diverge completely. Effect Atom is the state layer and defers rendering, the component model, and routing to its host framework; Foldkit owns the whole stack, from its runtime and Snabbdom-based virtual DOM up through routing and its UI library.',
       ),
 
       tableOfContentsEntryToHeader(atomsVsModelHeader),

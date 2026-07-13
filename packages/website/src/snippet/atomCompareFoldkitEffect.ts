@@ -18,9 +18,9 @@ const CreateTodo = Command.define(
   }).pipe(Effect.provide(Api.Default)),
 )
 
-// A global listener gated on Model state is a Subscription. The runtime
-// subscribes and unsubscribes as model.isDrawing changes. No addEventListener,
-// no cleanup, no stale closure.
+// Here the global listener becomes a Subscription: an external event source
+// bound to a slice of the Model. The runtime subscribes and unsubscribes as
+// model.isDrawing changes. No addEventListener, no cleanup, no stale closure.
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   mouseRelease: entry(
     { isDrawing: S.Boolean },
