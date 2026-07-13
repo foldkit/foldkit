@@ -1,5 +1,5 @@
 import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
-import { Command, Runtime } from 'foldkit'
+import { Command, Runtime, Subscription } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
@@ -53,6 +53,7 @@ export const ClickedLink = m('ClickedLink', {
   request: UrlRequest,
 })
 export const ChangedUrl = m('ChangedUrl', { url: Url })
+export const RequestedNavigation = m('RequestedNavigation', { url: S.String })
 export const GotPeopleMessage = m('GotPeopleMessage', {
   message: People.Message,
 })
@@ -62,6 +63,7 @@ export const Message = S.Union([
   CompletedLoadExternal,
   ClickedLink,
   ChangedUrl,
+  RequestedNavigation,
   GotPeopleMessage,
 ])
 export type Message = typeof Message.Type
@@ -148,6 +150,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         )
       },
 
+      RequestedNavigation: ({ url }) => [model, [NavigateInternal({ url })]],
+
       GotPeopleMessage: ({ message }) => {
         const [nextPeoplePage, peopleCommands] = People.update(
           model.peoplePage,
@@ -162,6 +166,36 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
     }),
   )
+
+// SUBSCRIPTION
+
+export const subscriptions = Subscription.make<Model, Message>()(() => ({
+  shortcuts: Subscription.persistent(
+    Subscription.keyboardShortcuts<Message>({
+      bindings: [
+        {
+          chord: ['g', 'h'],
+          message: () => RequestedNavigation({ url: homeRouter() }),
+        },
+        {
+          chord: ['g', 'p'],
+          message: () =>
+            RequestedNavigation({
+              url: peopleRouter({ searchText: Option.none() }),
+            }),
+        },
+        {
+          chord: ['g', 'f'],
+          message: () => RequestedNavigation({ url: filesIndexRouter() }),
+        },
+        {
+          chord: ['g', 'n'],
+          message: () => RequestedNavigation({ url: nestedRouter() }),
+        },
+      ],
+    }),
+  ),
+}))
 
 // VIEW
 
