@@ -261,15 +261,18 @@ Canonical live examples:
 
 ## Keyed Views
 
-Use `keyed` wrappers when the view branches into structurally different layouts:
+Key every branch of a view that renders different content at one DOM position, even when the branch root tags differ. Tag-based replacement is an implementation detail of the differ, and it silently stops protecting a branch the moment someone changes its root tag.
+
+Keys live at the branch site. Key inline branch roots directly, never a wrapper introduced only to carry a key. Ternaries and `if`/`else` chains always key each branch node: they have no ready discriminator, and synthesizing one for a wrapper key restates the branch logic in a string that nothing keeps in sync. When the arms of a tag match delegate to other view functions, key a single wrapper at the branch site instead of pushing keys into those functions:
 
 ```ts
-// Key layout branches: prevents vdom from diffing landing into docs
+// Inline branches: key each branch's root element directly
 keyed('div')('landing', [...], [...])
 keyed('div')('docs', [...], [...])
 
-// Key content areas on route tag: replaces content on navigation
-keyed('div')(model.route._tag, [...], [...])
+// Delegating branches: key a wrapper on the discriminator at the
+// branch site, keeping the branching visible where it happens
+keyed('div')(model.route._tag, [], [routeContent])
 ```
 
 Without keying, the virtual DOM tries to patch one layout into another, causing stale DOM, mismatched event handlers, and rendering bugs.

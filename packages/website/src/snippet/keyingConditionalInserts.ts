@@ -6,11 +6,11 @@ const cartView = (model: Model): Html => {
   return h.div(
     [],
     [
-      h.keyed('div')('summary', [], [summaryView(model)]),
+      summaryView(model),
       ...(model.hasDiscount
         ? [h.keyed('div')('discount', [], [discountView(model)])]
         : []),
-      h.keyed('div')('checkout', [], [checkoutView(model)]),
+      checkoutView(model),
     ],
   )
 }

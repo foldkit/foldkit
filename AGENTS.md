@@ -75,7 +75,8 @@ Do not add inline or block comments to explain code. If code needs explanation, 
 
 ## View Architecture
 
-- Key every branching view. Whenever a DOM position renders different content based on a value, wrap it in a single `keyed` element with a discriminating key.
+- Key every branching view. Whenever a DOM position renders different content based on a value, give every branch a discriminating key, even when the branch root tags differ.
+- Keys live at the branch site. Key inline branch roots directly, never a wrapper introduced only to carry a key. Ternaries and `if`/`else` chains key each branch node; never synthesize a wrapper key from the condition. When the arms of a tag match delegate to other view functions, key a single wrapper at the branch site instead of pushing keys into those functions.
 - Key mapped list items by a stable model identifier, never by array position.
 - Key conditional inserts between stable siblings.
 

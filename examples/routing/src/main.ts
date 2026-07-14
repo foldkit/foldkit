@@ -435,24 +435,27 @@ const breadcrumbView = (path: Array.NonEmptyReadonlyArray<string>): Html => {
       h.Class('flex flex-wrap items-center gap-2 mb-6 text-sm'),
     ],
     [
-      h.keyed('a')(
-        'files-root',
+      h.a(
         [h.Href(filesIndexRouter()), h.Class('text-blue-500 hover:underline')],
         ['Files'],
       ),
       ...Array.map(path, (segment, index) => {
         const crumbPath = Array.append(Array.take(path, index), segment)
         const isCurrentSegment = index === lastSegmentIndex
-        const crumbRole = isCurrentSegment ? 'current' : 'link'
 
         return h.keyed('span')(
-          `${Array.join(crumbPath, '/')}:${crumbRole}`,
+          Array.join(crumbPath, '/'),
           [h.Class('flex items-center gap-2')],
           [
             h.span([h.Class('text-gray-400')], ['/']),
             isCurrentSegment
-              ? h.span([h.Class('font-medium text-gray-800')], [segment])
-              : h.a(
+              ? h.keyed('span')(
+                  'current',
+                  [h.Class('font-medium text-gray-800')],
+                  [segment],
+                )
+              : h.keyed('a')(
+                  'link',
                   [
                     h.Href(filesRouter({ path: crumbPath })),
                     h.Class('text-blue-500 hover:underline'),

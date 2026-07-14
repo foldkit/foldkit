@@ -418,22 +418,24 @@ const warningsView = (warnings: ReadonlyArray<SlowWarning>): Html => {
           ),
         ],
       ),
-      h.keyed('div')(
-        Array.isReadonlyArrayEmpty(warnings) ? 'empty' : 'warnings',
-        [],
-        Array.isReadonlyArrayEmpty(warnings)
-          ? [
-              h.div(
-                [
-                  h.Class(
-                    'rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-6 text-sm text-zinc-600',
-                  ),
-                ],
-                ['Run a workload to record a warning.'],
+      Array.match(warnings, {
+        onEmpty: () =>
+          h.keyed('div')(
+            'Empty',
+            [
+              h.Class(
+                'rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-6 text-sm text-zinc-600',
               ),
-            ]
-          : [h.ul([h.Class('grid gap-3')], Array.map(warnings, warningView))],
-      ),
+            ],
+            ['Run a workload to record a warning.'],
+          ),
+        onNonEmpty: warnings =>
+          h.keyed('ul')(
+            'Warnings',
+            [h.Class('grid gap-3')],
+            Array.map(warnings, warningView),
+          ),
+      }),
     ],
   )
 }
