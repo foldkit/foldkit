@@ -1610,6 +1610,9 @@ importers:
       '@effect/vitest':
         specifier: 4.0.0-beta.88
         version: 4.0.0-beta.88(effect@4.0.0-beta.88)(vitest@4.1.9)
+      '@types/node':
+        specifier: ^25.9.3
+        version: 25.9.3
       '@vitest/coverage-v8':
         specifier: ^4.1.9
         version: 4.1.9(vitest@4.1.9)
