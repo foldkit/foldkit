@@ -1,5 +1,15 @@
 # create-foldkit-app
 
+## 0.21.1
+
+### Patch Changes
+
+- 96167d1: Bump bundled Effect dependencies to `4.0.0-beta.97`. No user-facing changes. Newly scaffolded apps will get the updated pins from the example sources.
+
+  The CLI dependencies now pin `effect`, `@effect/platform-node`, and `@effect/platform-node-shared` to `4.0.0-beta.97` exactly during the v4 beta window.
+
+- d3d7a7f: Update the keying rule in the generated `AGENTS.md`: key every view branch even when the branch root tags differ, key inline branch roots directly instead of introducing a wrapper element only to carry a key, and key a single wrapper at the branch site when the branches delegate to other view functions.
+
 ## 0.21.0
 
 ### Minor Changes
