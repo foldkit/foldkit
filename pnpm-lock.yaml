@@ -919,8 +919,8 @@ importers:
   examples/route-transitions:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
@@ -928,8 +928,8 @@ importers:
         specifier: ^4.3.1
         version: 4.3.1(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       effect:
-        specifier: 4.0.0-beta.88
-        version: 4.0.0-beta.88
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
