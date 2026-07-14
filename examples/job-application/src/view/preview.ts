@@ -36,11 +36,7 @@ const headerSection = (
   return h.div(
     [h.Class('text-center mb-4 pb-4 border-b border-gray-200')],
     [
-      h.keyed('h2')(
-        'preview-name',
-        [h.Class('text-xl font-bold text-gray-900')],
-        [fullName],
-      ),
+      h.h2([h.Class('text-xl font-bold text-gray-900')], [fullName]),
       ...(String.isNonEmpty(pronounLabel)
         ? [
             h.keyed('p')(

@@ -1015,32 +1015,27 @@ const reviewView = (state: typeof Review.Type): Html => {
               }),
             ],
           ),
-          h.keyed('div')(
-            state.promo._tag,
-            [],
-            [
-              M.value(state.promo).pipe(
-                M.tagsExhaustive({
-                  NoPromo: () => h.p([h.Class(promoFeedbackClassName)], ['']),
-                  AppliedPromo: ({ discount }) =>
-                    h.p(
-                      [
-                        h.Class(
-                          clsx(promoFeedbackClassName, 'text-orange-800'),
-                        ),
-                      ],
-                      [
-                        `${discount.code} applied · ${discount.percentOff}% off`,
-                      ],
-                    ),
-                  RejectedPromo: () =>
-                    h.p(
-                      [h.Class(clsx(promoFeedbackClassName, 'text-red-700'))],
-                      ["That code isn't recognized."],
-                    ),
-                }),
-              ),
-            ],
+          M.value(state.promo).pipe(
+            M.tagsExhaustive({
+              NoPromo: () =>
+                h.keyed('p')(
+                  'NoPromo',
+                  [h.Class(promoFeedbackClassName)],
+                  [''],
+                ),
+              AppliedPromo: ({ discount }) =>
+                h.keyed('p')(
+                  'AppliedPromo',
+                  [h.Class(clsx(promoFeedbackClassName, 'text-orange-800'))],
+                  [`${discount.code} applied · ${discount.percentOff}% off`],
+                ),
+              RejectedPromo: () =>
+                h.keyed('p')(
+                  'RejectedPromo',
+                  [h.Class(clsx(promoFeedbackClassName, 'text-red-700'))],
+                  ["That code isn't recognized."],
+                ),
+            }),
           ),
         ],
       ),
@@ -1369,8 +1364,7 @@ const orderSummaryView = (state: typeof CheckoutState.Type): Html => {
       h.dl(
         [h.Class('grid gap-3 border-b border-stone-300 py-5 text-sm')],
         [
-          h.keyed('div')(
-            'subtotal',
+          h.div(
             [h.Class(summaryRowClassName)],
             [
               h.dt([h.Class('text-stone-600')], ['Subtotal']),
@@ -1399,8 +1393,7 @@ const orderSummaryView = (state: typeof CheckoutState.Type): Html => {
               ),
             ],
           }),
-          h.keyed('div')(
-            'delivery',
+          h.div(
             [h.Class(summaryRowClassName)],
             [
               h.dt(
@@ -1410,8 +1403,7 @@ const orderSummaryView = (state: typeof CheckoutState.Type): Html => {
               h.dd([h.Class('font-medium text-stone-900')], ['Free']),
             ],
           ),
-          h.keyed('div')(
-            'tax',
+          h.div(
             [h.Class(summaryRowClassName)],
             [
               h.dt([h.Class('text-stone-600')], ['Estimated tax']),

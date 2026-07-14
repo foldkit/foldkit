@@ -185,8 +185,8 @@ If none: write `None.`
 ## QUALITY
 Items that work but fall short of the bar: generic naming, inline
 handlers that should be extracted, native methods instead of Effect
-modules in pipes, views that should be decomposed, missing keyed
-wrappers, etc. Should fix.
+modules in pipes, views that should be decomposed, missing branch
+keys or wrappers introduced only to carry a key, etc. Should fix.
 Each item: `path/to/file.ts:line: <the gap>. Idiomatic version: <what to write>`.
 Cite the exemplar when relevant: "typing-game does this as X at
 page/home/update/handleKeyPressed.ts:33-40".

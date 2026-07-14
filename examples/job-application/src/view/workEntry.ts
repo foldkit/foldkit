@@ -23,8 +23,7 @@ export const workEntryView = Submodel.defineView<
 
   const showEndDate = !model.isCurrentlyEmployed
 
-  const startDatePicker = h.keyed('div')(
-    `${model.id}-start-date`,
+  const startDatePicker = h.div(
     [h.Class('space-y-1')],
     [
       h.label(

@@ -233,11 +233,7 @@ const engineStatusView = (engine: EngineState): Html => {
     M.exhaustive,
   )
 
-  return h.keyed('p')(
-    engine._tag,
-    [h.Class(status.colorClassName)],
-    [status.text],
-  )
+  return h.p([h.Class(status.colorClassName)], [status.text])
 }
 
 const engineControlsView = (engine: EngineState): Html => {
@@ -245,13 +241,11 @@ const engineControlsView = (engine: EngineState): Html => {
 
   const controls = M.value(engine).pipe(
     M.tag('EngineBooting', 'EngineReady', () => ({
-      key: 'Running',
       label: 'Stop engine',
       message: ClickedStopEngine(),
       colorClassName: 'bg-red-500 hover:bg-red-600',
     })),
     M.tag('EngineOff', 'EngineFailed', () => ({
-      key: 'Stopped',
       label: 'Start engine',
       message: ClickedStartEngine(),
       colorClassName: 'bg-green-500 hover:bg-green-600',
@@ -259,8 +253,7 @@ const engineControlsView = (engine: EngineState): Html => {
     M.exhaustive,
   )
 
-  return h.keyed('div')(
-    controls.key,
+  return h.div(
     [h.Class('flex gap-3')],
     [primaryButton(controls.label, controls.message, controls.colorClassName)],
   )

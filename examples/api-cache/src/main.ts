@@ -505,8 +505,7 @@ const postsListView = (model: Model): Html => {
                 onNone: () => [],
                 onSome: error => [staleView(error, ClickedRetryPosts())],
               }),
-              h.keyed('ul')(
-                'list',
+              h.ul(
                 [h.Class('flex flex-col gap-2')],
                 postListItems(posts, model.postDetailById),
               ),
@@ -630,8 +629,7 @@ const postDetailView = (model: Model, postId: string): Html => {
 const postDetailCard = (detail: PostDetail, fetchedAt: number): Html => {
   const h = html<Message>()
 
-  return h.keyed('article')(
-    'detail',
+  return h.article(
     [h.Class('bg-white rounded-xl shadow p-6 flex flex-col gap-3')],
     [
       h.h2([h.Class('text-2xl font-bold text-slate-900')], [detail.title]),
@@ -711,8 +709,7 @@ const statsCards = (
 ): Html => {
   const h = html<Message>()
 
-  return h.keyed('div')(
-    'stats',
+  return h.div(
     [h.Class('flex flex-col gap-3')],
     [
       h.div(
@@ -726,11 +723,7 @@ const statsCards = (
       h.div(
         [h.Class('flex items-center gap-3 text-sm text-slate-500')],
         [
-          h.keyed('span')(
-            'updatedAt',
-            [],
-            [`Updated at ${formatFetchedAt(fetchedAt)}`],
-          ),
+          h.span([], [`Updated at ${formatFetchedAt(fetchedAt)}`]),
           ...(isRefreshing
             ? [
                 h.keyed('span')(

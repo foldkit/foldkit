@@ -261,8 +261,7 @@ const submissionSection = (
             Button.view<Message>({
               onClick: ClickedSubmit(),
               toView: attributes =>
-                h.keyed('button')(
-                  'submit',
+                h.button(
                   [...attributes.button, h.Class(submitButtonClass)],
                   ['Submit Application'],
                 ),
@@ -313,8 +312,7 @@ const submissionSection = (
           'submit-error',
           [h.Class('space-y-3 pt-4')],
           [
-            h.keyed('div')(
-              'error-alert',
+            h.div(
               [
                 h.Role('alert'),
                 h.Class(
@@ -327,8 +325,7 @@ const submissionSection = (
             Button.view<Message>({
               onClick: ClickedSubmit(),
               toView: attributes =>
-                h.keyed('button')(
-                  'submit',
+                h.button(
                   [...attributes.button, h.Class(submitButtonClass)],
                   ['Try Again'],
                 ),

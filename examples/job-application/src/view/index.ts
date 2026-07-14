@@ -207,12 +207,10 @@ const stepContentPanel = (
 ): Html => {
   const h = html<Message>()
 
-  return h.keyed('div')(
-    'step-content-panel',
+  return h.div(
     [...panelAttributes, h.Class('flex-1 min-w-0')],
     [
-      h.keyed('h2')(
-        'step-heading',
+      h.h2(
         [h.Class('text-lg font-semibold text-gray-900 mb-6')],
         [Step.show(model.currentStep)],
       ),
@@ -246,8 +244,7 @@ const stepTabsLayout = (
         h.div(
           [h.Class('lg:flex lg:gap-8')],
           [
-            h.keyed('div')(
-              'desktop-sidebar',
+            h.div(
               [h.Class('hidden w-60 shrink-0 lg:block')],
               [
                 h.div(
@@ -283,8 +280,7 @@ const stepTabsLayout = (
 const desktopPreviewSidebar = (model: Model): Html => {
   const h = html<Message>()
 
-  return h.keyed('div')(
-    'desktop-preview',
+  return h.div(
     [h.Class('hidden w-80 shrink-0 xl:block')],
     [
       h.div(
@@ -316,8 +312,7 @@ const desktopPreviewSidebar = (model: Model): Html => {
 const mobilePreviewToggle = (model: Model): Html => {
   const h = html<Message>()
 
-  return h.keyed('div')(
-    'mobile-toggle',
+  return h.div(
     [h.Class('fixed top-4 right-4 xl:hidden')],
     [
       Button.view<Message>({

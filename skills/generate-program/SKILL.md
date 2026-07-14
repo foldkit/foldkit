@@ -518,7 +518,7 @@ For file uploads (resumes, images, attachments):
 - Use `clsx` from the `clsx` package for conditional class composition: `h.Class(clsx('base-classes', { 'active-class': isActive, 'bg-blue-500': variant === 'Primary' }))`. Use `clsx` whenever classes depend on model state, boolean flags, or discriminated union tags. Never string concatenation, template literals, or `&&` expressions.
 - Pattern match on model state: `M.value(model.state).pipe(M.tagsExhaustive({...}))`
 - Use `Option.match` for conditional rendering based on Option fields
-- Use `h.keyed('div')(routeOrStateTag, attrs, children)` on layout branches
+- Key every layout branch: inline branch roots directly, delegating branches via `h.keyed('div')(routeOrStateTag, attrs, children)` at the branch site
 - Delegate complex sections to extracted view functions
 - Wire events to messages: `h.OnClick(ClickedSubmit())` (Message directly, not a callback), `h.OnInput(value => UpdatedEmail({ value }))` (callback that maps the value to a Message)
 - Use Foldkit UI components when the interaction matches (Dialog for modals, Tabs for tabbed content, etc.)

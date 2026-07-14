@@ -95,7 +95,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ),
         bulletPoint(
           'Conditional inserts',
-          'all children in a list where any appear conditionally',
+          'children that appear and disappear between stable siblings',
         ),
       ),
       tableOfContentsEntryToHeader(branchingViewsHeader),
@@ -119,6 +119,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ', ',
         inlineCode('if/else'),
         ', and ternaries.',
+      ),
+      para(
+        'Keys live at the branch site. When the branches are built inline, key each branch’s root element directly rather than introducing a wrapper element whose only job is to carry the key: the wrapper adds a DOM node, and it is itself torn down and rebuilt on every branch change. This holds doubly for ternaries and if/else chains: they have no tag to key a wrapper on, and synthesizing one from the condition restates the branch logic in a string that nothing keeps in sync, so each branch node carries its own key. When the arms of a tag match delegate to other view functions, as in the routing example above, a single keyed wrapper at the branch site keeps the branching and its keys visible in one place instead of scattering them across the delegated functions.',
       ),
       tableOfContentsEntryToHeader(oneKeyPerBranchHeader),
       para(
@@ -210,9 +213,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       tableOfContentsEntryToHeader(conditionalInsertsHeader),
       para(
-        'When a child appears or disappears between stable siblings, key each of them. Given children like ',
+        'When a child appears or disappears between stable siblings, key the child that comes and goes. Given children like ',
         inlineCode('[a, ...(cond ? [b] : []), c]'),
-        ', give all three a key:',
+        ', the key belongs on ',
+        inlineCode('b'),
+        ':',
       ),
       highlightedCodeBlock(
         h.div(
@@ -228,7 +233,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'mb-8',
       ),
       para(
-        'Snabbdom’s diff can often handle conditional inserts correctly by matching elements on their tag and classes, but that is implicit behavior. Explicit keys make the intent clear and stay correct across refactors.',
+        'The key on the insert is load-bearing: Snabbdom never matches a keyed element against an unkeyed one, so a keyed insert is created and removed as a unit instead of being patched into a neighbor, no matter what tags its siblings have. The stable siblings need no keys of their own; they hold their positions and patch in place. If a stable sibling later becomes conditional, that edit is the moment it gains a key.',
       ),
     ],
   )
