@@ -182,6 +182,14 @@ export const foldkitAliases = (dirname: string) => ({
     '../../packages/ui/src/virtualList/public',
   ),
   '@foldkit/ui': path.resolve(dirname, '../../packages/ui/src/index'),
+  '@foldkit/markdown/vite': path.resolve(
+    dirname,
+    '../../packages/markdown/src/vite/public',
+  ),
+  '@foldkit/markdown': path.resolve(
+    dirname,
+    '../../packages/markdown/src/index',
+  ),
   '@foldkit/devtools': path.resolve(
     dirname,
     '../../packages/devtools/src/index',

@@ -9,6 +9,7 @@ const PUBLISHABLE_PACKAGES = [
   '@foldkit/vite-plugin',
   '@foldkit/devtools-mcp',
   '@foldkit/oxlint-plugin',
+  '@foldkit/markdown',
 ]
 
 interface PnpmListEntry {

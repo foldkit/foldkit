@@ -46,6 +46,7 @@ jobs:
           - web-components
           - embedding
           - ui-showcase
+          - personal-blog
     steps:
       - name: Checkout
         uses: actions/checkout@v4

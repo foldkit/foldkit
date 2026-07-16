@@ -1,0 +1,79 @@
+{
+  "name": "@foldkit/markdown",
+  "version": "0.0.0",
+  "description": "Markdown compiled at build time into typed Foldkit views, with live component islands",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite/public.d.ts",
+      "import": "./dist/vite/public.js"
+    },
+    "./content": {
+      "types": "./content.d.ts"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "content.d.ts"
+  ],
+  "scripts": {
+    "clean": "rimraf dist *.tsbuildinfo",
+    "build": "pnpm run clean && tsc -b tsconfig.build.json",
+    "watch": "tsc -b tsconfig.build.json --watch",
+    "lint": "pnpm --filter @foldkit/oxlint-plugin build && oxlint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "effect": "4.0.0-beta.97",
+    "foldkit": "workspace:^0",
+    "vite": "^7.0.0 || ^8.0.0"
+  },
+  "dependencies": {
+    "remark-directive": "^4.0.0",
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5"
+  },
+  "devDependencies": {
+    "@types/mdast": "^4.0.4",
+    "@types/unist": "^3.0.3",
+    "effect": "4.0.0-beta.97",
+    "foldkit": "workspace:*",
+    "happy-dom": "^20.10.4",
+    "mdast-util-directive": "^3.1.0",
+    "rimraf": "^6.1.3",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
+  },
+  "keywords": [
+    "foldkit",
+    "markdown",
+    "vite-plugin",
+    "islands",
+    "mdast"
+  ],
+  "author": "Devin Jameson",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/foldkit/foldkit.git",
+    "directory": "packages/markdown"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,6 +1,6 @@
-import { Array } from 'effect'
+import { Array, Option } from 'effect'
 import { readFile, readdir } from 'node:fs/promises'
-import { dirname, extname, join, relative, resolve } from 'node:path'
+import { dirname, extname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Plugin } from 'vite'
 
@@ -18,6 +18,7 @@ const WORKSPACE_PACKAGE_JSON_PATHS: Readonly<Record<string, string>> = {
   foldkit: resolve(WEBSITE_ROOT, '../foldkit/package.json'),
   '@foldkit/ui': resolve(WEBSITE_ROOT, '../ui/package.json'),
   '@foldkit/devtools': resolve(WEBSITE_ROOT, '../devtools/package.json'),
+  '@foldkit/markdown': resolve(WEBSITE_ROOT, '../markdown/package.json'),
   '@foldkit/vite-plugin': resolve(
     WEBSITE_ROOT,
     '../vite-plugin-foldkit/package.json',
@@ -28,7 +29,14 @@ const TS_CONFIG_BASE_PATH = resolve(WEBSITE_ROOT, '../../tsconfig.base.json')
 const VIRTUAL_MODULE_ID = 'virtual:playground-files'
 const RESOLVED_VIRTUAL_MODULE_ID = '\0' + VIRTUAL_MODULE_ID
 
-const INCLUDED_EXTENSIONS = new Set(['.ts', '.tsx', '.css', '.html', '.json'])
+const INCLUDED_EXTENSIONS = new Set([
+  '.ts',
+  '.tsx',
+  '.css',
+  '.html',
+  '.json',
+  '.md',
+])
 const EXPECTED_SKIP_EXTENSIONS = new Set([
   '.gif',
   '.ico',
@@ -36,7 +44,6 @@ const EXPECTED_SKIP_EXTENSIONS = new Set([
   '.jpg',
   '.log',
   '.map',
-  '.md',
   '.png',
   '.svg',
   '.tsbuildinfo',
@@ -62,6 +69,14 @@ export default defineConfig({
   plugins: [tailwindcss(), foldkit()],
 })
 `
+
+// NOTE: An example's vite.config.ts imports the monorepo alias helper, which
+// does not exist inside the WebContainer, so the playground replaces it with
+// STANDALONE_VITE_CONFIG. An example that needs extra plugins in the
+// playground (e.g. personal-blog's markdown compiler) ships a
+// vite.config.playground.ts written against published packages; when present,
+// its contents become the WebContainer's vite.config.ts instead.
+const PLAYGROUND_VITE_CONFIG_FILENAME = 'vite.config.playground.ts'
 
 const ROOT_LOADING_MARKUP = `<div id="root"><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#9ca3af">Loading\u2026</div></div>`
 
@@ -223,24 +238,44 @@ const buildExampleFileMap = async (
   const exampleDirectory = resolve(EXAMPLES_DIRECTORY, slug)
   const rawFiles = await collectFiles(exampleDirectory, exampleDirectory)
 
-  const transformedEntries = rawFiles.map(([path, contents]) => {
-    if (path === 'package.json') {
-      return [path, transformPackageJson(contents, versions)] as const
-    }
-    if (path === 'tsconfig.json') {
-      return [
-        path,
-        transformTsConfig(contents, baseCompilerOptions, baseExclude),
-      ] as const
-    }
-    if (path === 'vite.config.ts') {
-      return [path, STANDALONE_VITE_CONFIG] as const
-    }
-    if (path === 'index.html') {
-      return [path, injectLoadingPlaceholder(contents, slug)] as const
-    }
-    return [path, contents] as const
-  })
+  const standaloneViteConfig = Option.getOrElse(
+    Option.map(
+      Array.findFirst(
+        rawFiles,
+        ([path]) => path === PLAYGROUND_VITE_CONFIG_FILENAME,
+      ),
+      ([, contents]) => contents,
+    ),
+    () => STANDALONE_VITE_CONFIG,
+  )
+
+  // NOTE: Markdown is bundled only from src/, where it is app content compiled
+  // by @foldkit/markdown. Root-level markdown (README, CHANGELOG) is
+  // documentation and stays out of the WebContainer.
+  const transformedEntries = rawFiles
+    .filter(([path]) => path !== PLAYGROUND_VITE_CONFIG_FILENAME)
+    .filter(
+      ([path]) =>
+        extname(path) !== '.md' || path.split(sep).join('/').startsWith('src/'),
+    )
+    .map(([path, contents]) => {
+      if (path === 'package.json') {
+        return [path, transformPackageJson(contents, versions)] as const
+      }
+      if (path === 'tsconfig.json') {
+        return [
+          path,
+          transformTsConfig(contents, baseCompilerOptions, baseExclude),
+        ] as const
+      }
+      if (path === 'vite.config.ts') {
+        return [path, standaloneViteConfig] as const
+      }
+      if (path === 'index.html') {
+        return [path, injectLoadingPlaceholder(contents, slug)] as const
+      }
+      return [path, contents] as const
+    })
 
   return Object.fromEntries(transformedEntries)
 }

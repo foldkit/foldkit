@@ -26,6 +26,9 @@
     "packages/devtools": {
       "entry": ["src/index.ts"]
     },
+    "packages/markdown": {
+      "entry": ["src/index.ts", "src/vite/public.ts"]
+    },
     "packages/examples-e2e": {
       "entry": ["page.ts", "e2e/**/*.spec.ts"],
       "ignoreFiles": ["playwright.config.ts"],
@@ -51,6 +54,15 @@
     },
     "examples/charting": {
       "entry": [],
+      "ignoreDependencies": [
+        "@trivago/prettier-plugin-sort-imports",
+        "prettier",
+        "tailwindcss"
+      ]
+    },
+    "examples/personal-blog": {
+      "entry": ["src/**/*.test.ts", "src/vitest-*.ts"],
+      "ignoreFiles": ["vite.config.playground.ts"],
       "ignoreDependencies": [
         "@trivago/prettier-plugin-sort-imports",
         "prettier",

@@ -25,7 +25,7 @@
     "test:e2e": "pnpm --filter website test:e2e",
     "format": "prettier -w .",
     "format:check": "prettier --check .",
-    "dev:libs": "pnpm --filter foldkit --filter @foldkit/ui --filter @foldkit/devtools --parallel watch",
+    "dev:libs": "pnpm --filter foldkit --filter @foldkit/ui --filter @foldkit/devtools --filter @foldkit/markdown --parallel watch",
     "dev:website": "pnpm --filter website dev",
     "build:examples": "tsx scripts/build-examples.ts",
     "build:website": "pnpm --filter website... build",
@@ -62,6 +62,7 @@
     "dev:example:web-components": "pnpm --filter web-components-example dev",
     "dev:example:embedding": "pnpm --filter embedding-example dev",
     "dev:example:ui-showcase": "pnpm --filter ui-showcase dev",
+    "dev:example:personal-blog": "pnpm --filter personal-blog-example dev",
     "changeset": "changeset",
     "version-packages": "changeset version && tsx scripts/reset-peer-deps.ts && pnpm install --no-frozen-lockfile",
     "release": "pnpm -r build && changeset publish"

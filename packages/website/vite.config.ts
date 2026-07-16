@@ -778,7 +778,7 @@ const RESOLVED_EXAMPLE_SOURCES_PREFIX = '\0' + EXAMPLE_SOURCES_PREFIX
 
 const EXAMPLE_SLUG_SET: Set<string> = new Set(exampleSlugs)
 
-const EXAMPLE_FILE_EXTENSIONS = new Set(['.ts', '.tsx', '.css'])
+const EXAMPLE_FILE_EXTENSIONS = new Set(['.ts', '.tsx', '.css', '.md'])
 
 const langFromExtension = (filePath: string): string => {
   const extension = extname(filePath)
@@ -787,6 +787,9 @@ const langFromExtension = (filePath: string): string => {
   }
   if (extension === '.css') {
     return 'css'
+  }
+  if (extension === '.md') {
+    return 'markdown'
   }
   return 'typescript'
 }
