@@ -1,4 +1,4 @@
-import { Effect, Fiber, Option, Ref } from 'effect'
+import { Array, Effect, Fiber, Option, Ref, pipe } from 'effect'
 import { TestClock } from 'effect/testing'
 import { Story } from 'foldkit'
 import { describe, expect, test } from 'vitest'
@@ -16,12 +16,20 @@ import {
   SelectedEdition,
   SubmittedPromoCode,
   SucceededPlaceOrder,
+  TRANSITION_LOG_LIMIT,
   ToggledPaymentMethod,
   ToggledTermsAccepted,
   UpdatedPromoCode,
   initialModel,
   update,
 } from './main'
+import type { Model } from './main'
+
+const maybeLatestTransitionSummary = (model: Model): Option.Option<string> =>
+  pipe(
+    Array.head(model.transitionLog),
+    Option.map(entry => entry.summary),
+  )
 
 describe('update', () => {
   test('PlaceOrder waits before succeeding', () =>
@@ -53,13 +61,17 @@ describe('update', () => {
       Story.Command.expectNone(),
       Story.model(model => {
         expect(model.checkout._tag).toBe('Shipping')
-        expect(model.maybeLastTransitionSummary).toEqual(
+        expect(maybeLatestTransitionSummary(model)).toEqual(
           Option.some('Cart -> Shipping on ClickedContinue'),
         )
       }),
       Story.message(ClickedContinue()),
       Story.model(model => {
         expect(model.checkout._tag).toBe('Payment')
+        expect(Array.map(model.transitionLog, entry => entry.summary)).toEqual([
+          'Shipping -> Payment on ClickedContinue',
+          'Cart -> Shipping on ClickedContinue',
+        ])
       }),
     )
   })
@@ -122,7 +134,7 @@ describe('update', () => {
         if (model.checkout._tag === 'Review') {
           expect(model.checkout.promo).toEqual(RejectedPromo())
         }
-        expect(model.maybeLastTransitionSummary).toEqual(
+        expect(maybeLatestTransitionSummary(model)).toEqual(
           Option.some('Review -> Review on SubmittedPromoCode'),
         )
       }),
@@ -141,7 +153,7 @@ describe('update', () => {
       Story.Command.expectNone(),
       Story.model(model => {
         expect(model.checkout._tag).toBe('Review')
-        expect(model.maybeLastTransitionSummary).toEqual(
+        expect(maybeLatestTransitionSummary(model)).toEqual(
           Option.some('ClickedPlaceOrder ignored in Review'),
         )
       }),
@@ -170,5 +182,27 @@ describe('update', () => {
         }
       }),
     )
+  })
+
+  test('the transition log truncates to the newest twenty entries', () => {
+    const messageCount = TRANSITION_LOG_LIMIT + 5
+
+    const finalModel = pipe(
+      Array.makeBy(messageCount, index =>
+        SelectedEdition({ isShippingRequired: index % 2 === 0 }),
+      ),
+      Array.reduce(initialModel, (model, message) => {
+        const [nextModel] = update(model, message)
+        return nextModel
+      }),
+    )
+
+    expect(finalModel.transitionLog).toHaveLength(TRANSITION_LOG_LIMIT)
+    expect(
+      Option.map(Array.head(finalModel.transitionLog), entry => entry.id),
+    ).toEqual(Option.some(messageCount - 1))
+    expect(
+      Option.map(Array.last(finalModel.transitionLog), entry => entry.id),
+    ).toEqual(Option.some(messageCount - TRANSITION_LOG_LIMIT))
   })
 })
