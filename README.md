@@ -223,6 +223,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 - **[Web Components](https://foldkit.dev/example-apps/web-components)**: QR code designer using typed CustomElement integration with third-party web components
 - **[Embedding](https://foldkit.dev/example-apps/embedding)**: A Foldkit widget embedded in a plain TypeScript host page via `Runtime.embed`, with typed Ports in both directions and `dispose` on unmount
 - **[UI Showcase](https://foldkit.dev/example-apps/ui-showcase)**: Interactive showcase of every Foldkit UI component
+- **[Personal Blog](https://foldkit.dev/example-apps/personal-blog)**: Markdown compiled at build time into typed Foldkit views via `@foldkit/markdown`, with live Submodel islands between paragraphs
 - **[Typing Game](packages/typing-game)**: Multiplayer typing game with Effect RPC backend ([play it live](https://typingterminal.com))
 
 ## Development

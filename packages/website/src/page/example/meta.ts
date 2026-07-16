@@ -31,6 +31,7 @@ export const ExampleSlug = S.Literals([
   'web-components',
   'embedding',
   'ui-showcase',
+  'personal-blog',
 ])
 export type ExampleSlug = typeof ExampleSlug.Type
 
@@ -294,6 +295,15 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Interactive showcase of every Foldkit UI component with styled examples, routing, and component state management.',
     difficulty: 'Advanced',
     tags: ['UI Components', 'Routing'],
+    hasRouting: true,
+  },
+  {
+    slug: 'personal-blog',
+    title: 'Personal Blog',
+    description:
+      'Blog whose prose lives in markdown files. The @foldkit/markdown Vite plugin compiles each file into a typed document at build time, the app restyles the fold with per-node view overrides, and directive islands place a live Counter Submodel and a Note callout between paragraphs.',
+    difficulty: 'Advanced',
+    tags: ['Markdown', 'Islands', 'Submodels', 'Routing'],
     hasRouting: true,
   },
 ]
