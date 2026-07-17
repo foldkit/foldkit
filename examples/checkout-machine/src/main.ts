@@ -3,13 +3,16 @@ import {
   Duration,
   Effect,
   Match as M,
+  Number,
   Option,
   Schema as S,
   String,
+  flow,
   pipe,
 } from 'effect'
 import { Command, Runtime } from 'foldkit'
 import { Machine } from 'foldkit/experimental'
+import { otherwise, to, when } from 'foldkit/experimental/machine'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
@@ -62,9 +65,16 @@ export const CheckoutState = S.Union([
   Cancelled,
 ])
 
+export const TransitionLogEntry = S.Struct({
+  id: S.Number,
+  summary: S.String,
+})
+export type TransitionLogEntry = typeof TransitionLogEntry.Type
+
 export const Model = S.Struct({
   checkout: CheckoutState,
-  maybeLastTransitionSummary: S.Option(S.String),
+  transitionLog: S.Array(TransitionLogEntry),
+  nextTransitionLogId: S.Number,
 })
 export type Model = typeof Model.Type
 
@@ -163,18 +173,18 @@ export const checkoutMachine = Machine.define({
   states: {
     Cart: {
       on: {
-        SelectedEdition: Machine.to('Cart', ({ state, message }) =>
+        SelectedEdition: to('Cart', ({ state, message }) =>
           evo(state, { isShippingRequired: () => message.isShippingRequired }),
         ),
         ClickedContinue: [
-          Machine.when(
+          when(
             state => state.isShippingRequired,
             'Shipping',
             ({ state }) =>
               Shipping({ isShippingRequired: state.isShippingRequired }),
           ),
-          Machine.otherwise(
-            Machine.to('Payment', ({ state }) =>
+          otherwise(
+            to('Payment', ({ state }) =>
               Payment({
                 isPaymentMethodSelected: false,
                 isShippingRequired: state.isShippingRequired,
@@ -182,33 +192,33 @@ export const checkoutMachine = Machine.define({
             ),
           ),
         ],
-        ClickedCancel: Machine.to('Cancelled', ({ state }) =>
+        ClickedCancel: to('Cancelled', ({ state }) =>
           Cancelled({ isShippingRequired: state.isShippingRequired }),
         ),
       },
     },
     Shipping: {
       on: {
-        ClickedContinue: Machine.to('Payment', ({ state }) =>
+        ClickedContinue: to('Payment', ({ state }) =>
           Payment({
             isPaymentMethodSelected: false,
             isShippingRequired: state.isShippingRequired,
           }),
         ),
-        ClickedBack: Machine.to('Cart', ({ state }) =>
+        ClickedBack: to('Cart', ({ state }) =>
           Cart({ isShippingRequired: state.isShippingRequired }),
         ),
-        ClickedCancel: Machine.to('Cancelled', ({ state }) =>
+        ClickedCancel: to('Cancelled', ({ state }) =>
           Cancelled({ isShippingRequired: state.isShippingRequired }),
         ),
       },
     },
     Payment: {
       on: {
-        ToggledPaymentMethod: Machine.to('Payment', ({ state, message }) =>
+        ToggledPaymentMethod: to('Payment', ({ state, message }) =>
           evo(state, { isPaymentMethodSelected: () => message.isSelected }),
         ),
-        ClickedContinue: Machine.to('Review', ({ state }) =>
+        ClickedContinue: to('Review', ({ state }) =>
           Review({
             isPaymentMethodSelected: state.isPaymentMethodSelected,
             isShippingRequired: state.isShippingRequired,
@@ -218,32 +228,32 @@ export const checkoutMachine = Machine.define({
           }),
         ),
         ClickedBack: [
-          Machine.when(
+          when(
             state => state.isShippingRequired,
             'Shipping',
             ({ state }) =>
               Shipping({ isShippingRequired: state.isShippingRequired }),
           ),
-          Machine.otherwise(
-            Machine.to('Cart', ({ state }) =>
+          otherwise(
+            to('Cart', ({ state }) =>
               Cart({ isShippingRequired: state.isShippingRequired }),
             ),
           ),
         ],
-        ClickedCancel: Machine.to('Cancelled', ({ state }) =>
+        ClickedCancel: to('Cancelled', ({ state }) =>
           Cancelled({ isShippingRequired: state.isShippingRequired }),
         ),
       },
     },
     Review: {
       on: {
-        ToggledPaymentMethod: Machine.to('Review', ({ state, message }) =>
+        ToggledPaymentMethod: to('Review', ({ state, message }) =>
           evo(state, { isPaymentMethodSelected: () => message.isSelected }),
         ),
-        ToggledTermsAccepted: Machine.to('Review', ({ state, message }) =>
+        ToggledTermsAccepted: to('Review', ({ state, message }) =>
           evo(state, { isTermsAccepted: () => message.isAccepted }),
         ),
-        UpdatedPromoCode: Machine.to('Review', ({ state, message }) =>
+        UpdatedPromoCode: to('Review', ({ state, message }) =>
           evo(state, {
             promoCodeInput: () => message.value,
             promo: currentPromo =>
@@ -251,20 +261,20 @@ export const checkoutMachine = Machine.define({
           }),
         ),
         SubmittedPromoCode: [
-          Machine.when(
+          when(
             reviewToMaybeDiscount,
             'Review',
             ({ state, guardValue: discount }) =>
               evo(state, { promo: () => AppliedPromo({ discount }) }),
           ),
-          Machine.otherwise(
-            Machine.to('Review', ({ state }) =>
+          otherwise(
+            to('Review', ({ state }) =>
               evo(state, { promo: () => RejectedPromo() }),
             ),
           ),
         ],
         ClickedPlaceOrder: [
-          Machine.when(
+          when(
             isReviewReady,
             'Placing',
             ({ state }) =>
@@ -277,20 +287,20 @@ export const checkoutMachine = Machine.define({
             ],
           ),
         ],
-        ClickedBack: Machine.to('Payment', ({ state }) =>
+        ClickedBack: to('Payment', ({ state }) =>
           Payment({
             isPaymentMethodSelected: state.isPaymentMethodSelected,
             isShippingRequired: state.isShippingRequired,
           }),
         ),
-        ClickedCancel: Machine.to('Cancelled', ({ state }) =>
+        ClickedCancel: to('Cancelled', ({ state }) =>
           Cancelled({ isShippingRequired: state.isShippingRequired }),
         ),
       },
     },
     Placing: {
       on: {
-        SucceededPlaceOrder: Machine.to('Confirmed', ({ state, message }) =>
+        SucceededPlaceOrder: to('Confirmed', ({ state, message }) =>
           Confirmed({
             isShippingRequired: state.isShippingRequired,
             maybeDiscount: state.maybeDiscount,
@@ -301,14 +311,14 @@ export const checkoutMachine = Machine.define({
     },
     Confirmed: {
       on: {
-        ClickedStartOver: Machine.to('Cart', ({ state }) =>
+        ClickedStartOver: to('Cart', ({ state }) =>
           Cart({ isShippingRequired: state.isShippingRequired }),
         ),
       },
     },
     Cancelled: {
       on: {
-        ClickedStartOver: Machine.to('Cart', ({ state }) =>
+        ClickedStartOver: to('Cart', ({ state }) =>
           Cart({ isShippingRequired: state.isShippingRequired }),
         ),
       },
@@ -320,7 +330,8 @@ export const checkoutMachine = Machine.define({
 
 export const initialModel: Model = {
   checkout: checkoutMachine.initial,
-  maybeLastTransitionSummary: Option.none(),
+  transitionLog: [],
+  nextTransitionLogId: 0,
 }
 
 export const init: Runtime.ApplicationInit<Model, Message> = () => [
@@ -331,6 +342,8 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => [
 // UPDATE
 
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+
+export const TRANSITION_LOG_LIMIT = 20
 
 const resultToTransitionSummary = (
   result: Machine.TransitionResult<typeof CheckoutState.Type, Message>,
@@ -356,14 +369,19 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     }),
   )
 
-  const nextMaybeLastTransitionSummary = Option.some(
-    resultToTransitionSummary(result),
-  )
+  const transitionLogEntry: TransitionLogEntry = {
+    id: model.nextTransitionLogId,
+    summary: resultToTransitionSummary(result),
+  }
 
   return [
     evo(model, {
       checkout: () => nextCheckout,
-      maybeLastTransitionSummary: () => nextMaybeLastTransitionSummary,
+      transitionLog: flow(
+        Array.prepend(transitionLogEntry),
+        Array.take(TRANSITION_LOG_LIMIT),
+      ),
+      nextTransitionLogId: Number.increment,
     }),
     transitionCommands,
   ]

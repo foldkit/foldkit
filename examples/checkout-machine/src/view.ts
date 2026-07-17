@@ -1452,23 +1452,31 @@ const formatTags = (tags: ReadonlyArray<string>): string =>
     onNonEmpty: Array.join(', '),
   })
 
-const transitionStatusView = (model: Model): Html => {
+const transitionLogView = (model: Model): Html => {
   const h = html<Message>()
 
-  return h.div(
-    [
-      h.Role('status'),
-      h.Class(
-        'border-l-2 border-orange-700 pl-3 font-mono text-xs leading-5 text-stone-300 lg:col-span-3',
+  const transitionLogClassName =
+    'border-l-2 border-orange-700 pl-3 font-mono text-xs leading-5 text-stone-300 lg:col-span-3'
+
+  return Array.match(model.transitionLog, {
+    onEmpty: () =>
+      h.keyed('div')(
+        'transition-log-empty',
+        [h.Role('status'), h.Class(transitionLogClassName)],
+        ['Waiting for the first checkout event'],
       ),
-    ],
-    [
-      Option.getOrElse(
-        model.maybeLastTransitionSummary,
-        () => 'Waiting for the first checkout event',
+    onNonEmpty: transitionLog =>
+      h.keyed('ol')(
+        'transition-log-entries',
+        [
+          h.Role('log'),
+          h.Class(clsx(transitionLogClassName, 'max-h-40 overflow-y-auto')),
+        ],
+        Array.map(transitionLog, entry =>
+          h.keyed('li')(String(entry.id), [], [entry.summary]),
+        ),
       ),
-    ],
-  )
+  })
 }
 
 const analysisView = (model: Model): Html => {
@@ -1540,7 +1548,7 @@ const analysisView = (model: Model): Html => {
         [h.Class('grid gap-5 border-t border-stone-700 px-5 py-5 sm:px-7')],
         [
           h.div(
-            [h.Class('grid gap-3 lg:grid-cols-4 lg:items-center')],
+            [h.Class('grid gap-3 lg:grid-cols-4 lg:items-start')],
             [
               h.div(
                 [
@@ -1548,9 +1556,9 @@ const analysisView = (model: Model): Html => {
                     'text-xs font-bold uppercase tracking-widest text-stone-400',
                   ),
                 ],
-                ['Last transition'],
+                ['Recent transitions'],
               ),
-              transitionStatusView(model),
+              transitionLogView(model),
             ],
           ),
           h.ol(
