@@ -1,6 +1,7 @@
 import { Array } from 'effect'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
+import * as Interruptible from '../command/interruptible/index.js'
 import {
   ClickedDecrement,
   ClickedFetch,
@@ -28,6 +29,18 @@ import {
   initialParentModel,
   parentUpdate,
 } from './apps/formChild.js'
+import {
+  CancelUploadFile,
+  ClickedCancelUpload,
+  ClickedRetryUpload,
+  ClickedStartUpload,
+  CompletedCancelUploadFile,
+  SucceededUploadFile,
+  UploadFile,
+  type Model as UploadsModel,
+  initialModel as initialUploadsModel,
+  update as uploadsUpdate,
+} from './apps/uploads.js'
 import * as Story from './story.js'
 
 // TEST
@@ -485,6 +498,119 @@ describe('story', () => {
       }),
       Story.Command.expectNone(),
     )
+  })
+})
+
+describe('interruptible Commands', () => {
+  test('a keyed Command may stay pending across Messages and is dropped when its Interrupt resolves', () => {
+    Story.story(
+      uploadsUpdate,
+      Story.with(initialUploadsModel),
+      Story.message(ClickedStartUpload()),
+      Story.Command.expectHas(UploadFile),
+      Story.message(ClickedCancelUpload({ uploadId: 0 })),
+      Story.Command.resolve(
+        CancelUploadFile({ uploadId: 0 }),
+        CompletedCancelUploadFile({
+          uploadId: 0,
+          outcome: Interruptible.Interrupted(),
+        }),
+      ),
+      Story.model((model: UploadsModel) => {
+        expect(model.uploads).toEqual([{ id: 0, status: 'Cancelled' }])
+      }),
+      Story.Command.expectNone(),
+    )
+  })
+
+  test('resolving an Interrupt with NotFound keeps nothing pending and skips the status change', () => {
+    Story.story(
+      uploadsUpdate,
+      Story.with(initialUploadsModel),
+      Story.message(ClickedStartUpload()),
+      Story.Command.resolve(
+        UploadFile({ uploadId: 0 }),
+        SucceededUploadFile({ uploadId: 0 }),
+      ),
+      Story.message(ClickedCancelUpload({ uploadId: 0 })),
+      Story.Command.resolve(
+        CancelUploadFile({ uploadId: 0 }),
+        CompletedCancelUploadFile({
+          uploadId: 0,
+          outcome: Interruptible.NotFound(),
+        }),
+      ),
+      Story.model((model: UploadsModel) => {
+        expect(model.uploads).toEqual([{ id: 0, status: 'Done' }])
+      }),
+    )
+  })
+
+  test('interrupting one key leaves Commands under other keys pending', () => {
+    Story.story(
+      uploadsUpdate,
+      Story.with(initialUploadsModel),
+      Story.message(ClickedStartUpload()),
+      Story.message(ClickedStartUpload()),
+      Story.Command.expectHas(
+        UploadFile({ uploadId: 0 }),
+        UploadFile({ uploadId: 1 }),
+      ),
+      Story.message(ClickedCancelUpload({ uploadId: 1 })),
+      Story.Command.resolve(
+        CancelUploadFile({ uploadId: 1 }),
+        CompletedCancelUploadFile({
+          uploadId: 1,
+          outcome: Interruptible.Interrupted(),
+        }),
+      ),
+      Story.Command.expectExact(UploadFile({ uploadId: 0 })),
+      Story.Command.resolve(
+        UploadFile({ uploadId: 0 }),
+        SucceededUploadFile({ uploadId: 0 }),
+      ),
+      Story.model((model: UploadsModel) => {
+        expect(model.uploads).toEqual([
+          { id: 0, status: 'Done' },
+          { id: 1, status: 'Cancelled' },
+        ])
+      }),
+    )
+  })
+
+  test('same-key Commands stay pending together and an Interrupt resolution drops them all', () => {
+    Story.story(
+      uploadsUpdate,
+      Story.with(initialUploadsModel),
+      Story.message(ClickedStartUpload()),
+      Story.message(ClickedRetryUpload({ uploadId: 0 })),
+      Story.Command.expectExact(
+        UploadFile({ uploadId: 0 }),
+        UploadFile({ uploadId: 0 }),
+      ),
+      Story.message(ClickedCancelUpload({ uploadId: 0 })),
+      Story.Command.resolve(
+        CancelUploadFile({ uploadId: 0 }),
+        CompletedCancelUploadFile({
+          uploadId: 0,
+          outcome: Interruptible.Interrupted(),
+        }),
+      ),
+      Story.Command.expectNone(),
+      Story.model((model: UploadsModel) => {
+        expect(model.uploads).toEqual([{ id: 0, status: 'Cancelled' }])
+      }),
+    )
+  })
+
+  test('a keyed Command left pending at the end of the story still throws', () => {
+    expect(() =>
+      Story.story(
+        uploadsUpdate,
+        Story.with(initialUploadsModel),
+        Story.message(ClickedStartUpload()),
+      ),
+    ).toThrow('I found Commands without resolvers')
   })
 })
 

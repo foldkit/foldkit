@@ -16,10 +16,18 @@ import { type MountDefinition, MountDefinitionTypeId } from '../mount/index.js'
  *  `Command.mapMessage`/`mapMessages`). It rides along on pending Commands so
  *  `resolve` can apply the parent's wrapping to a substitute result Message
  *  without the test restating it. Absent on synthetic matchers built for
- *  formatting; treated as empty then. */
+ *  formatting; treated as empty then.
+ *
+ *  `key` is present on Commands built with `Command.Interruptible.define`:
+ *  such Commands may stay pending across Messages (they model long-running
+ *  work). `interruptsKey` is present on Interrupt Commands: resolving one
+ *  drops every pending Command holding that key, mirroring the runtime
+ *  guarantee that an interrupted Command's result Message never dispatches. */
 export type AnyCommand = Readonly<{
   name: string
   args?: Record<string, unknown>
+  key?: string
+  interruptsKey?: string
   messageMappers?: ReadonlyArray<(message: unknown) => unknown>
 }>
 
@@ -165,6 +173,22 @@ export type BaseInternal<Model, Message, OutMessage = undefined> = Readonly<{
   resolvers: ReadonlyArray<ResolverEntry>
 }>
 
+/** Drops every pending Command holding `interruptsKey` when a resolved
+ *  Command declares one (an Interrupt Command). Resolving the Interrupt
+ *  before the target declares that the interrupt won the race, so the
+ *  target's result Message never arrives; resolving the target first models
+ *  completion before the interrupt ran. */
+const dropInterruptedCommands = (
+  pending: ReadonlyArray<AnyCommand>,
+  resolvedCommand: AnyCommand,
+): ReadonlyArray<AnyCommand> =>
+  Predicate.isUndefined(resolvedCommand.interruptsKey)
+    ? pending
+    : Array.filter(
+        pending,
+        pendingCommand => pendingCommand.key !== resolvedCommand.interruptsKey,
+      )
+
 /** Folds a recorded message-mapping chain over `resultMessage`, reproducing the
  *  wrapping a resolved Command or mounted child's result travels through in
  *  production: the parent's `Command.mapMessages` for a Command, or the
@@ -201,9 +225,9 @@ export const resolveByMatcher = <Model, Message>(
             matchedCommand.messageMappers,
             resultMessage,
           ) as Message
-          const remainingCommands = Array.remove(
-            internal.commands,
-            commandIndex,
+          const remainingCommands = dropInterruptedCommands(
+            Array.remove(internal.commands, commandIndex),
+            matchedCommand,
           )
           const [nextModel, newCommands, ...rest] = internal.updateFn(
             internal.model,
@@ -439,14 +463,21 @@ export const assertZeroCommands = (
   }
 }
 
-/** Throws when trying to send a message with unresolved Commands. */
+/** Throws when trying to send a message with unresolved Commands. Keyed
+ *  Commands (built with `Command.Interruptible.define`) are exempt: they model
+ *  long-running work that legitimately stays in flight while later Messages
+ *  arrive, so a story can dispatch the Message that interrupts them. They
+ *  must still be resolved or interrupted by the end of the test. */
 export const assertNoUnresolvedCommands = (
   commands: ReadonlyArray<AnyCommand>,
   context: string,
 ): void => {
-  if (Array.isReadonlyArrayNonEmpty(commands)) {
+  const unresolvable = Array.filter(commands, command =>
+    Predicate.isUndefined(command.key),
+  )
+  if (Array.isReadonlyArrayNonEmpty(unresolvable)) {
     throw new Error(
-      `I found unresolved Commands ${context}:\n\n${formatCommandList(commands)}\n\n` +
+      `I found unresolved Commands ${context}:\n\n${formatCommandList(unresolvable)}\n\n` +
         'Resolve all Commands before sending the next Message.\n' +
         'Use resolve(Definition | instance, ResultMessage) for each one,\n' +
         'or resolveAll(...resolvers) to resolve them all at once.',
