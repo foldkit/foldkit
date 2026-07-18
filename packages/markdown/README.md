@@ -1,6 +1,6 @@
 # @foldkit/markdown
 
-Markdown compiled at build time into typed Foldkit views, with live component islands.
+Write markdown files, get Foldkit views with live islands.
 
 A Vite plugin parses each imported `.md` file with remark, validates it against an Effect Schema vocabulary, and emits a typed document module. The browser receives data, never a parser. A pure fold renders the document as Foldkit `Html`, so markdown content participates in the vdom, DevTools, and time travel like any other view.
 
