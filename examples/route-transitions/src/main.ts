@@ -492,8 +492,12 @@ const galleryView = (catalogStatus: CatalogStatus): Html => {
         ],
       ),
       isCatalogReady
-        ? paintingGridView()
-        : loadingView('Hanging the paintings…'),
+        ? h.keyed('div')('catalog', [h.Class('contents')], [paintingGridView()])
+        : h.keyed('div')(
+            'loading',
+            [h.Class('contents')],
+            [loadingView('Hanging the paintings…')],
+          ),
     ],
   )
 }

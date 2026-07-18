@@ -290,11 +290,21 @@ const pageNavigationView = (tag: string) => {
     [
       Option.match(maybePrevious, {
         onNone: () => h.empty,
-        onSome: page => neighborLink({ page, direction: 'Previous' }),
+        onSome: page =>
+          h.keyed('div')(
+            'previous',
+            [h.Class('contents')],
+            [neighborLink({ page, direction: 'Previous' })],
+          ),
       }),
       Option.match(maybeNext, {
         onNone: () => h.empty,
-        onSome: page => neighborLink({ page, direction: 'Next' }),
+        onSome: page =>
+          h.keyed('div')(
+            'next',
+            [h.Class('contents')],
+            [neighborLink({ page, direction: 'Next' })],
+          ),
       }),
     ],
   )

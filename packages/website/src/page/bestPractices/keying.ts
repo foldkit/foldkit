@@ -3,8 +3,6 @@ import { Html, html } from 'foldkit/html'
 import { Link } from '../../link'
 import { Message, type TableOfContentsEntry } from '../../main'
 import {
-  bulletPoint,
-  bullets,
   inlineCode,
   link,
   pageTitle,
@@ -12,7 +10,6 @@ import {
   tableOfContentsEntryToHeader,
   warningCallout,
 } from '../../prose'
-import { asyncDataRouter } from '../../route'
 import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -22,22 +19,10 @@ const keyingHeader: TableOfContentsEntry = {
   text: 'Keying',
 }
 
-const branchingViewsHeader: TableOfContentsEntry = {
+const automaticBranchIdentityHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'branching-views',
-  text: 'Branching Views',
-}
-
-const oneKeyPerBranchHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'one-key-per-branch',
-  text: 'One Key per Branch',
-}
-
-const identityNotDataHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'keys-carry-identity-not-data',
-  text: 'Keys Carry Identity, Not Data',
+  id: 'automatic-branch-identity',
+  text: 'Automatic Branch Identity',
 }
 
 const mappedListItemsHeader: TableOfContentsEntry = {
@@ -46,19 +31,31 @@ const mappedListItemsHeader: TableOfContentsEntry = {
   text: 'Mapped List Items',
 }
 
-const conditionalInsertsHeader: TableOfContentsEntry = {
+const delegatedBranchArmsHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'conditional-inserts',
-  text: 'Conditional Inserts',
+  id: 'delegated-branch-arms',
+  text: 'Delegated Branch Arms',
+}
+
+const continuityHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'continuity-across-branches',
+  text: 'Continuity Across Branches',
+}
+
+const withoutBuildIntegrationHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'without-the-build-integration',
+  text: 'Without the Build Integration',
 }
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   keyingHeader,
-  branchingViewsHeader,
-  oneKeyPerBranchHeader,
-  identityNotDataHeader,
+  automaticBranchIdentityHeader,
   mappedListItemsHeader,
-  conditionalInsertsHeader,
+  delegatedBranchArmsHeader,
+  continuityHeader,
+  withoutBuildIntegrationHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
@@ -72,127 +69,37 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         'Foldkit uses ',
         link(Link.snabbdom, 'Snabbdom'),
-        ' for virtual DOM diffing. When a view renders different content at the same DOM position, Snabbdom will try to patch one version into the other. This can cause stale input state, mismatched event handlers, and carried-over focus.',
+        ' for virtual DOM diffing. A key tells the differ which thing occupies a DOM position, so it can decide between patching an element in place and replacing it. With ',
+        inlineCode('@foldkit/vite-plugin'),
+        ' in the build, branch identity is handled for you: every conditional view arm that constructs its element directly receives a key derived from its call site. What remains manual is small: key mapped list items by a stable identifier, and key the branch site when an arm delegates to another view function.',
       ),
-      warningCallout(
-        'Always key branch points',
-        'If the same DOM position renders different content depending on your model, key it. Without a key, Snabbdom patches where it should replace.',
-      ),
+      tableOfContentsEntryToHeader(automaticBranchIdentityHeader),
       para(
-        'The ',
-        inlineCode('keyed'),
-        ' function tells Snabbdom that when the key changes, the old tree should be fully removed and the new tree inserted fresh: no diffing, no patching, no carryover.',
-      ),
-      para('There are three places in a view where keying matters:'),
-      bullets(
-        bulletPoint(
-          'Branching views',
-          'a position rendering different content based on a value',
-        ),
-        bulletPoint(
-          'Mapped list items',
-          'children rendered by mapping over an array',
-        ),
-        bulletPoint(
-          'Conditional inserts',
-          'children that appear and disappear between stable siblings',
-        ),
-      ),
-      tableOfContentsEntryToHeader(branchingViewsHeader),
-      para('Use a discriminating string as the key, typically a tag:'),
-      highlightedCodeBlock(
-        h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippet.keyingBranchingViewsHighlighted),
-          ],
-          [],
-        ),
-        Snippet.keyingBranchingViewsRaw,
-        'Copy branching views keying example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      para(
-        'The same rule applies to any control-flow branch that produces different content: ',
-        inlineCode('Match'),
-        ', ',
-        inlineCode('if/else'),
-        ', and ternaries.',
-      ),
-      para(
-        'Keys live at the branch site. When the branches are built inline, key each branch’s root element directly rather than introducing a wrapper element whose only job is to carry the key: the wrapper adds a DOM node, and it is itself torn down and rebuilt on every branch change. This holds doubly for ternaries and if/else chains: they have no tag to key a wrapper on, and synthesizing one from the condition restates the branch logic in a string that nothing keeps in sync, so each branch node carries its own key. When the arms of a tag match delegate to other view functions, as in the routing example above, a single keyed wrapper at the branch site keeps the branching and its keys visible in one place instead of scattering them across the delegated functions.',
-      ),
-      tableOfContentsEntryToHeader(oneKeyPerBranchHeader),
-      para(
-        'Every branch gets its own key, and a key is never shared across branches. The temptation to share shows up with async data: ',
-        inlineCode('Success'),
-        ', ',
-        inlineCode('Refreshing'),
-        ', and ',
-        inlineCode('Stale'),
-        ' all render the same list, and giving them one key keeps the DOM (scroll position, focus, transitions) alive through a background refresh instead of rebuilding it on every revalidation.',
-      ),
-      para(
-        'Sharing the key is the wrong fix. It splits one identity claim across two places that must now agree forever: the match arms say the states are different things, the key says they are the same thing, and nothing checks that the branches sharing a key keep rendering compatible trees. When they drift apart, Snabbdom patches one branch into another, which is the exact corruption keying exists to prevent.',
-      ),
-      para(
-        'Restructure the view instead, so the branch structure itself carries the identity: collapse the states that render the same scaffold into one branch, and express their differences as keyed conditional inserts inside it. With ',
-        link(asyncDataRouter(), 'AsyncData'),
-        ' that is ',
-        inlineCode('matchDataSplitEmpty'),
-        ': four branches, four keys, and the ',
-        inlineCode('Refreshing'),
-        ' badge and ',
-        inlineCode('Stale'),
-        ' banner become inserts driven by ',
-        inlineCode('isRefreshing'),
-        ' and ',
-        inlineCode('getError'),
-        '.',
-      ),
-      highlightedCodeBlock(
-        h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippet.keyingOneKeyPerBranchHighlighted),
-          ],
-          [],
-        ),
-        Snippet.keyingOneKeyPerBranchRaw,
-        'Copy one key per branch example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      warningCallout(
-        'One key per branch',
-        'If two branches want to share a key, they want to be one branch. Restructure the view rather than aliasing keys.',
-      ),
-      tableOfContentsEntryToHeader(identityNotDataHeader),
-      para(
-        'Every key above names an identity: which branch occupies a position, which row an element belongs to. The inverse mistake is deriving a key from the data a view displays, so that the key changes whenever the content changes. A key answers which thing occupies this position, never what that thing currently shows.',
-      ),
-      highlightedCodeBlock(
-        h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippet.keyingIdentityNotDataHighlighted),
-          ],
-          [],
-        ),
-        Snippet.keyingIdentityNotDataRaw,
-        'Copy identity keying example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      para(
-        'When only data changed, the element should stay and patch: that is the diff working as intended. A data-derived key turns every content change into a teardown, which discards DOM state the next render cannot recreate: focus, scroll position, text selection, an open ',
+        'When a view renders different content at the same DOM position, an unkeyed differ patches one version into the other. Focus, scroll positions, uncontrolled input values, and open ',
         inlineCode('details'),
-        ' element.',
+        ' elements bleed across what is logically a different element. The build integration closes this hole. Ternary arms, if/else returns, ',
+        inlineCode('Match'),
+        ' arms, ',
+        inlineCode('Option.match'),
+        ' and ',
+        inlineCode('Array.match'),
+        ' handlers, and inline conditional inserts all get a call-site key, so switching branches replaces the subtree:',
       ),
-      warningCallout(
-        'Keys are not change detection',
-        'Key by what a thing is (a branch tag, a stable id), never by what it shows. If a key can change while the same conceptual thing stays on screen, the key is wrong.',
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.keyingAutomaticBranchesHighlighted),
+          ],
+          [],
+        ),
+        Snippet.keyingAutomaticBranchesRaw,
+        'Copy automatic branch identity example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'Neither branch carries a key. The build gives each arm its own identity, so toggling replaces the whole arm instead of patching the summary into the editor.',
       ),
       tableOfContentsEntryToHeader(mappedListItemsHeader),
       para(
@@ -209,15 +116,34 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'mb-8',
       ),
       para(
-        'Positional diffing looks correct until an entry is removed from the middle of the list or the list is reordered. Snabbdom then patches the old row’s DOM into what should be a different row.',
+        'Positional diffing looks correct until an entry is removed from the middle of the list or the list is reordered; the differ then patches one row’s DOM into what should be a different row. Automatic keys deliberately stay out of mapped rows: a call-site key would repeat on every row, so a row’s identity has to come from your data.',
       ),
-      tableOfContentsEntryToHeader(conditionalInsertsHeader),
       para(
-        'When a child appears or disappears between stable siblings, key the child that comes and goes. Given children like ',
-        inlineCode('[a, ...(cond ? [b] : []), c]'),
-        ', the key belongs on ',
-        inlineCode('b'),
-        ':',
+        'Key by what the row is, never by what it shows. A key derived from displayed data changes whenever the content changes, which turns every edit into a teardown that discards focus, scroll position, and text selection.',
+      ),
+      tableOfContentsEntryToHeader(delegatedBranchArmsHeader),
+      para(
+        'The build can only key an arm whose element construction it can see. When an arm delegates to another view function, the element call lives inside the callee, so the branch site carries the key instead: one ',
+        inlineCode('keyed'),
+        ' wrapper with the discriminating tag.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.keyingBranchingViewsHighlighted),
+          ],
+          [],
+        ),
+        Snippet.keyingBranchingViewsRaw,
+        'Copy branching views keying example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'The ',
+        inlineCode('keyed-required-for-delegated-arms'),
+        ' lint rule flags delegated arms whose branch site carries no key. Conditional inserts of delegated content between stable siblings need the same treatment:',
       ),
       highlightedCodeBlock(
         h.div(
@@ -232,8 +158,53 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         copiedSnippets,
         'mb-8',
       ),
+      tableOfContentsEntryToHeader(continuityHeader),
       para(
-        'The key on the insert is load-bearing: Snabbdom never matches a keyed element against an unkeyed one, so a keyed insert is created and removed as a unit instead of being patched into a neighbor, no matter what tags its siblings have. The stable siblings need no keys of their own; they hold their positions and patch in place. If a stable sibling later becomes conditional, that edit is the moment it gains a key.',
+        'Automatic keys make replacement the default. The rare inverse case is wanting an element to survive a branch switch: a draft input that must keep its text, focus, and scroll while the layout around it changes. Explicit keys always win over injected ones, and sharing one explicit key across arm roots claims the arms are the same element:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.keyingContinuityOverrideHighlighted),
+          ],
+          [],
+        ),
+        Snippet.keyingContinuityOverrideRaw,
+        'Copy continuity override example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'The shared root key keeps the wrapper patching in place across the toggle, and the keyed textarea inside it is matched across positions, so its state survives. Use this sparingly: a shared key asserts that the arms render compatible trees, and nothing checks that they stay compatible as the code evolves.',
+      ),
+      para(
+        'The same discipline applies in the other direction: never derive an explicit key from displayed data to force a refresh.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.keyingIdentityNotDataHighlighted),
+          ],
+          [],
+        ),
+        Snippet.keyingIdentityNotDataRaw,
+        'Copy identity keying example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      warningCallout(
+        'Keys are not change detection',
+        'Key by what a thing is (a stable id, a discriminating tag), never by what it shows. If a key can change while the same conceptual thing stays on screen, the key is wrong.',
+      ),
+      tableOfContentsEntryToHeader(withoutBuildIntegrationHeader),
+      warningCallout(
+        'Branch identity requires the build integration',
+        'Automatic branch keys are injected by @foldkit/vite-plugin, which create-foldkit-app includes by default. A build without the plugin keeps the old semantics: unkeyed branches patch in place.',
+      ),
+      para(
+        'If your build cannot use the plugin, key branch points by hand: give every arm of a branching position its own key at its root, one key per branch, exactly as the sections above do for delegated arms.',
       ),
     ],
   )

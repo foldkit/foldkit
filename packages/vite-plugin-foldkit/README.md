@@ -45,6 +45,14 @@ The plugin uses Vite's WebSocket connection to communicate between the dev serve
 
 Model is preserved across hot reloads but cleared on manual browser refreshes, giving you control over when to reset your app.
 
+## Automatic branch keys
+
+The plugin also rewrites conditional view arms at build time, in dev and production alike. Every arm that constructs an element directly (ternary arms, Match handler results, if/else returns) gets a stable call-site `h.Key`, so switching branches replaces the subtree instead of patching the old branch's DOM in place. Stale input values, scroll positions, and open states no longer leak across branches.
+
+Explicit keys always win: an arm that already carries `h.Key(...)` or uses `h.keyed(...)` is left untouched. Only direct element construction arms are covered. Arms that delegate to another view function still need a manual key at the branch site, enforced by the `@foldkit/oxlint-plugin` rule `keyed-required-for-delegated-arms`.
+
+Degraded mode: builds without this plugin keep the old semantics, where unkeyed branches patch in place.
+
 ## DevTools MCP relay
 
 Pass `devToolsMcpPort` to enable the relay that exposes your running Foldkit app to AI agents via the [`@foldkit/devtools-mcp`](https://www.npmjs.com/package/@foldkit/devtools-mcp) MCP server:

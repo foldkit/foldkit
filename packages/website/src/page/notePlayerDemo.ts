@@ -732,44 +732,42 @@ const playbackControlView = (model: Model, canPlay: boolean): Html => {
       h.div(
         [h.Class('flex gap-2')],
         [
-          isPlaying
-            ? Button.view<Message>({
-                onClick: ClickedPause(),
-                toView: attributes =>
-                  h.button(
-                    [
-                      ...attributes.button,
-                      h.Class(
-                        'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer',
-                      ),
-                      h.AriaLabel('Pause'),
-                    ],
-                    [Icon.pause('w-4 h-4'), 'Pause'],
+          Button.view<Message>({
+            onClick: isPlaying ? ClickedPause() : ClickedPlay(),
+            isDisabled: !isPlaying && !canPlay,
+            toView: attributes =>
+              h.button(
+                [
+                  ...attributes.button,
+                  h.Class(
+                    clsx(
+                      'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition',
+                      {
+                        'bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer':
+                          isPlaying || canPlay,
+                        'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed':
+                          !isPlaying && !canPlay,
+                      },
+                    ),
                   ),
-              })
-            : Button.view<Message>({
-                onClick: ClickedPlay(),
-                isDisabled: !canPlay,
-                toView: attributes =>
-                  h.button(
-                    [
-                      ...attributes.button,
-                      h.Class(
-                        clsx(
-                          'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition',
-                          {
-                            'bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer':
-                              canPlay,
-                            'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed':
-                              !canPlay,
-                          },
-                        ),
+                  h.AriaLabel(isPlaying ? 'Pause' : 'Play'),
+                ],
+                [
+                  isPlaying
+                    ? h.keyed('span')(
+                        'pause-icon',
+                        [h.Class('contents')],
+                        [Icon.pause('w-4 h-4')],
+                      )
+                    : h.keyed('span')(
+                        'play-icon',
+                        [h.Class('contents')],
+                        [Icon.play('w-4 h-4')],
                       ),
-                      h.AriaLabel('Play'),
-                    ],
-                    [Icon.play('w-4 h-4'), 'Play'],
-                  ),
-              }),
+                  isPlaying ? 'Pause' : 'Play',
+                ],
+              ),
+          }),
           Button.view<Message>({
             onClick: ClickedStop(),
             isDisabled: !isActive,
@@ -848,8 +846,18 @@ const noteSequenceView = (model: Model): Html => {
     ],
     [
       Array.match(notes, {
-        onEmpty: () => placeholderVisualizerView(),
-        onNonEmpty: validNotes => noteVisualizerView(model, validNotes),
+        onEmpty: () =>
+          h.keyed('div')(
+            'placeholder',
+            [h.Class('contents')],
+            [placeholderVisualizerView()],
+          ),
+        onNonEmpty: validNotes =>
+          h.keyed('div')(
+            'notes',
+            [h.Class('contents')],
+            [noteVisualizerView(model, validNotes)],
+          ),
       }),
     ],
   )

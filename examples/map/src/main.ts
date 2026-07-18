@@ -13,7 +13,7 @@ import {
 } from 'effect'
 import { Command, Mount, Runtime, Subscription } from 'foldkit'
 import * as Dom from 'foldkit/dom'
-import type { Document, Html } from 'foldkit/html'
+import type { Attribute, Document, Html } from 'foldkit/html'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -719,19 +719,28 @@ const geolocateOverlayView = (state: GeolocateState): Html => {
     M.tagsExhaustive({
       GeolocateIdle: () => h.empty,
       GeolocateLocating: () =>
-        geolocateOverlayShellView(geolocateLocatingContentView()),
+        geolocateOverlayShellView(
+          [h.Key('Geolocate()-overlay')],
+          geolocateLocatingContentView(),
+        ),
       GeolocateFailed: ({ reason }) =>
-        geolocateOverlayShellView(geolocateFailedContentView(reason)),
+        geolocateOverlayShellView(
+          [h.Key('Geolocate()-overlay')],
+          geolocateFailedContentView(reason),
+        ),
     }),
   )
 }
 
-const geolocateOverlayShellView = (content: Html): Html => {
+const geolocateOverlayShellView = (
+  attributes: ReadonlyArray<Attribute<Message>>,
+  content: Html,
+): Html => {
   const h = html<Message>()
 
-  return h.keyed('div')(
-    'Geolocate()-overlay',
+  return h.div(
     [
+      ...attributes,
       h.Class(
         'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40',
       ),

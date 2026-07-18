@@ -151,6 +151,13 @@ const ruleGroups: ReadonlyArray<RuleGroup> = [
         highlighted: Snippet.lintKeyedRequiredForMappedRowsHighlighted,
       },
       {
+        heading: ruleHeading('keyed-required-for-delegated-arms'),
+        description:
+          'Requires a conditional arm that delegates to another view function to carry a key at the branch site. Automatic branch keys from the build integration cover only arms that construct their element directly.',
+        raw: Snippet.lintKeyedRequiredForDelegatedArmsRaw,
+        highlighted: Snippet.lintKeyedRequiredForDelegatedArmsHighlighted,
+      },
+      {
         heading: ruleHeading('require-rel-for-external-link'),
         description:
           'Requires target="_blank" links to carry a rel with noopener or noreferrer.',

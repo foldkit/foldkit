@@ -54,6 +54,7 @@
       "rules": {
         "foldkit/command-define-pascal-const": "error",
         "foldkit/got-wrapper-carries-only-routing": "error",
+        "foldkit/keyed-required-for-delegated-arms": "error",
         "foldkit/keyed-required-for-mapped-rows": "error",
         "foldkit/lazy-view-stable-references": "error",
         "foldkit/mount-factory-must-use-element": "error",

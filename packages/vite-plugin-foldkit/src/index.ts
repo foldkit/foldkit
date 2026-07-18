@@ -34,6 +34,8 @@ import { resolve } from 'node:path'
 import type { Plugin, ViteDevServer, WebSocketClient } from 'vite'
 import { type WebSocket, WebSocketServer } from 'ws'
 
+import { foldkitBranchKeys } from './branchKeys.js'
+
 /** Options for the `foldkit` Vite plugin. */
 export type FoldkitPluginOptions = Readonly<{
   /**
@@ -587,41 +589,54 @@ const main = (
 
 // PLUGIN ENTRY
 
-export const foldkit = (options: FoldkitPluginOptions = {}): Plugin => {
+/**
+ * The Foldkit Vite plugin set. Returns two plugins: the branch-keys
+ * transform, which injects call-site keys onto conditional view arms in
+ * both dev and build, and the dev-server plugin that provides hot module
+ * reloading with model preservation plus the optional DevTools MCP relay.
+ * Vite flattens nested plugin arrays, so `plugins: [foldkit()]` works
+ * unchanged.
+ */
+export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
   const events = Effect.runSync(Queue.unbounded<Event>())
 
-  return {
-    name: 'foldkit-hmr',
-    apply: 'serve',
-    config: userConfig => ({
-      optimizeDeps: {
-        include: [...FORCE_INCLUDED_EFFECT_NAMESPACES],
+  return [
+    foldkitBranchKeys(),
+    {
+      name: 'foldkit-hmr',
+      apply: 'serve',
+      config: userConfig => ({
+        optimizeDeps: {
+          include: [...FORCE_INCLUDED_EFFECT_NAMESPACES],
+        },
+        resolve: {
+          dedupe: resolveInstalledFoldkitPackages(
+            userConfig.root ?? process.cwd(),
+          ),
+        },
+      }),
+      configureServer: server => {
+        const fiber = Effect.runFork(
+          Effect.scoped(main(server, events, options)),
+        )
+        server.httpServer?.on('close', () => {
+          Effect.runFork(Fiber.interrupt(fiber))
+        })
       },
-      resolve: {
-        dedupe: resolveInstalledFoldkitPackages(
-          userConfig.root ?? process.cwd(),
-        ),
+      handleHotUpdate: ({
+        server,
+        modules,
+      }: {
+        server: ViteDevServer
+        modules: ReadonlyArray<unknown>
+      }) => {
+        if (modules.length === 0) {
+          return
+        }
+        server.ws.send({ type: 'full-reload' })
+        Queue.offerUnsafe(events, Event.HotUpdateFired())
+        return []
       },
-    }),
-    configureServer: server => {
-      const fiber = Effect.runFork(Effect.scoped(main(server, events, options)))
-      server.httpServer?.on('close', () => {
-        Effect.runFork(Fiber.interrupt(fiber))
-      })
     },
-    handleHotUpdate: ({
-      server,
-      modules,
-    }: {
-      server: ViteDevServer
-      modules: ReadonlyArray<unknown>
-    }) => {
-      if (modules.length === 0) {
-        return
-      }
-      server.ws.send({ type: 'full-reload' })
-      Queue.offerUnsafe(events, Event.HotUpdateFired())
-      return []
-    },
-  }
+  ]
 }

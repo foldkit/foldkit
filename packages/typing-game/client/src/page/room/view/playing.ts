@@ -103,7 +103,12 @@ export const playing = (
       ),
       Option.match(maybeGameText, {
         onNone: () => h.empty,
-        onSome: gameText => typing(gameText, userGameText, maybeWrongCharIndex),
+        onSome: gameText =>
+          h.keyed('div')(
+            'typing',
+            [h.Class('contents')],
+            [typing(gameText, userGameText, maybeWrongCharIndex)],
+          ),
       }),
     ],
   )

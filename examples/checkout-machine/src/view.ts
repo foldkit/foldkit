@@ -793,7 +793,11 @@ const paymentView = (state: typeof Payment.Type): Html => {
                     ],
                     [
                       state.isPaymentMethodSelected
-                        ? Icon.check('h-3.5 w-3.5')
+                        ? h.keyed('span')(
+                            'check',
+                            [h.Class('contents')],
+                            [Icon.check('h-3.5 w-3.5')],
+                          )
                         : h.empty,
                     ],
                   ),
@@ -1065,7 +1069,15 @@ const reviewView = (state: typeof Review.Type): Html => {
                     ),
                   ),
                 ],
-                [state.isTermsAccepted ? Icon.check('h-3.5 w-3.5') : h.empty],
+                [
+                  state.isTermsAccepted
+                    ? h.keyed('span')(
+                        'check',
+                        [h.Class('contents')],
+                        [Icon.check('h-3.5 w-3.5')],
+                      )
+                    : h.empty,
+                ],
               ),
               h.span(
                 [],

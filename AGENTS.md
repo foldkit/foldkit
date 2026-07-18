@@ -75,10 +75,12 @@ Do not add inline or block comments to explain code. If code needs explanation, 
 
 ## View Architecture
 
-- Key every branching view. Whenever a DOM position renders different content based on a value, give every branch a discriminating key, even when the branch root tags differ.
-- Keys live at the branch site. Key inline branch roots directly, never a wrapper introduced only to carry a key. Ternaries and `if`/`else` chains key each branch node; never synthesize a wrapper key from the condition. When the arms of a tag match delegate to other view functions, key a single wrapper at the branch site instead of pushing keys into those functions.
-- Key mapped list items by a stable model identifier, never by array position.
-- Key conditional inserts between stable siblings.
+- Branch identity is automatic. The `@foldkit/vite-plugin` build injects a call-site key on every conditional view arm that constructs its element directly. Do not add manual keys to those arms.
+- Key delegated arms at the branch site. When a branching position's arms delegate to other view functions, wrap the result once with the discriminating key: `h.keyed('div')(model.route._tag, [], [routeContent])`. The `keyed-required-for-delegated-arms` lint flags the gap. Conditional inserts of delegated content need the same treatment.
+- Key mapped list items by a stable model identifier, never by array position. Injected keys deliberately skip mapped rows.
+- Keys carry identity, never data. Never derive a key from displayed data to force a refresh.
+- Explicit keys always win over injected ones. Share one explicit key across arm roots only to deliberately preserve an element's DOM state across the condition.
+- Builds without `@foldkit/vite-plugin` keep the manual semantics: every branch point needs a hand-written key at each arm root, one key per branch.
 
 ## File Organization
 

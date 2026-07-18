@@ -405,13 +405,20 @@ export const view = (model: Model): Document => {
 
             messagesView(model.messages),
 
-            M.value(model.connection).pipe(
-              M.tagsExhaustive({
-                ConnectionDisconnected: connectButtonView,
-                ConnectionConnecting: connectingView,
-                ConnectionConnected: () => messageInputView(model.messageInput),
-                ConnectionError: ({ error }) => errorView(error),
-              }),
+            h.keyed('div')(
+              model.connection._tag,
+              [h.Class('contents')],
+              [
+                M.value(model.connection).pipe(
+                  M.tagsExhaustive({
+                    ConnectionDisconnected: connectButtonView,
+                    ConnectionConnecting: connectingView,
+                    ConnectionConnected: () =>
+                      messageInputView(model.messageInput),
+                    ConnectionError: ({ error }) => errorView(error),
+                  }),
+                ),
+              ],
             ),
           ],
         ),

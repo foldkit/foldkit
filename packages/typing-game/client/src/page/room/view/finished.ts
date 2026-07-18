@@ -149,7 +149,12 @@ export const finished = (
       h.h3([h.Class('uppercase')], ['[Game complete]']),
       Option.match(maybeScoreboard, {
         onNone: () => h.empty,
-        onSome: scoreboard => scoreboardView(scoreboard, hostId),
+        onSome: scoreboard =>
+          h.keyed('div')(
+            'scoreboard',
+            [h.Class('contents')],
+            [scoreboardView(scoreboard, hostId)],
+          ),
       }),
       ...(isLocalPlayerHost
         ? [h.div([h.Class('mt-4')], ['> Enter to play again'])]

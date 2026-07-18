@@ -5,6 +5,7 @@ import { commandDefinePascalConst } from './rules/command-define-pascal-const.ts
 import { gotPrefixRequiresSubmodelPayload } from './rules/got-prefix-requires-submodel-payload.ts'
 import { gotSubmodelMessageName } from './rules/got-submodel-message-name.ts'
 import { gotWrapperCarriesOnlyRouting } from './rules/got-wrapper-carries-only-routing.ts'
+import { keyedRequiredForDelegatedArms } from './rules/keyed-required-for-delegated-arms.ts'
 import { keyedRequiredForMappedRows } from './rules/keyed-required-for-mapped-rows.ts'
 import { lazyViewStableReferences } from './rules/lazy-view-stable-references.ts'
 import { messageBindingMatchesTag } from './rules/message-binding-matches-tag.ts'
@@ -34,6 +35,7 @@ const basePlugin = Plugin.define({
     'got-prefix-requires-submodel-payload': gotPrefixRequiresSubmodelPayload,
     'got-submodel-message-name': gotSubmodelMessageName,
     'got-wrapper-carries-only-routing': gotWrapperCarriesOnlyRouting,
+    'keyed-required-for-delegated-arms': keyedRequiredForDelegatedArms,
     'keyed-required-for-mapped-rows': keyedRequiredForMappedRows,
     'lazy-view-stable-references': lazyViewStableReferences,
     'message-binding-matches-tag': messageBindingMatchesTag,

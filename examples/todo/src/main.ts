@@ -526,39 +526,51 @@ const footerView = (
               Array.match(model.todos, {
                 onEmpty: () => h.empty,
                 onNonEmpty: todos =>
-                  Button.view<Message>({
-                    onClick: ToggledAll(),
-                    toView: attributes =>
-                      h.button(
-                        [
-                          ...attributes.button,
-                          h.Class(
-                            'px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300',
+                  h.keyed('div')(
+                    'toggle-all',
+                    [h.Class('contents')],
+                    [
+                      Button.view<Message>({
+                        onClick: ToggledAll(),
+                        toView: attributes =>
+                          h.button(
+                            [
+                              ...attributes.button,
+                              h.Class(
+                                'px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300',
+                              ),
+                            ],
+                            [
+                              Array.every(todos, todo => todo.completed)
+                                ? 'Mark all active'
+                                : 'Mark all complete',
+                            ],
                           ),
-                        ],
-                        [
-                          Array.every(todos, todo => todo.completed)
-                            ? 'Mark all active'
-                            : 'Mark all complete',
-                        ],
-                      ),
-                  }),
+                      }),
+                    ],
+                  ),
               }),
 
               completedCount > 0
-                ? Button.view<Message>({
-                    onClick: ClearedCompleted(),
-                    toView: attributes =>
-                      h.button(
-                        [
-                          ...attributes.button,
-                          h.Class(
-                            'px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200',
+                ? h.keyed('div')(
+                    'clear-completed',
+                    [h.Class('contents')],
+                    [
+                      Button.view<Message>({
+                        onClick: ClearedCompleted(),
+                        toView: attributes =>
+                          h.button(
+                            [
+                              ...attributes.button,
+                              h.Class(
+                                'px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200',
+                              ),
+                            ],
+                            [`Clear ${completedCount} completed`],
                           ),
-                        ],
-                        [`Clear ${completedCount} completed`],
-                      ),
-                  })
+                      }),
+                    ],
+                  )
                 : h.empty,
             ],
           ),

@@ -521,15 +521,17 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       tableOfContentsEntryToHeader(keyingRouteViewsHeader),
       warningCallout(
-        'Always key your route content.',
-        'Without a key, the virtual DOM will try to patch one route’s DOM into another instead of replacing it. This causes stale input state, mismatched event handlers, and bugs that are extremely hard to track down.',
+        'Key your route content at the branch site.',
+        'Route arms delegate to page view functions, which puts them beyond the reach of automatic branch keys. Without a key at the branch site, the virtual DOM patches one route’s DOM into another instead of replacing it, causing stale input state and mismatched event handlers.',
       ),
       para(
         'Wrap your route content in a ',
         inlineCode('keyed'),
         ' element using ',
         inlineCode('model.route._tag'),
-        ' as the key. This tells Snabbdom that each route is a distinct tree that should be fully replaced on navigation.',
+        ' as the key. This tells Snabbdom that each route is a distinct tree that should be fully replaced on navigation. The ',
+        inlineCode('keyed-required-for-delegated-arms'),
+        ' lint rule flags route matches that are missing this wrapper.',
       ),
       highlightedCodeBlock(
         h.div(

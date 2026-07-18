@@ -118,7 +118,17 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                         [h.Class('flex items-center gap-3')],
                         [
                           h.span([h.Class(priceClassName)], [planPrices[plan]]),
-                          option.isSelected ? checkIcon() : checkPlaceholder(),
+                          option.isSelected
+                            ? h.keyed('span')(
+                                'check',
+                                [h.Class('contents')],
+                                [checkIcon()],
+                              )
+                            : h.keyed('span')(
+                                'placeholder',
+                                [h.Class('contents')],
+                                [checkPlaceholder()],
+                              ),
                         ],
                       ),
                     ],
@@ -167,7 +177,17 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
                           ),
                         ],
                       ),
-                      option.isSelected ? checkIcon() : checkPlaceholder(),
+                      option.isSelected
+                        ? h.keyed('span')(
+                            'check',
+                            [h.Class('contents')],
+                            [checkIcon()],
+                          )
+                        : h.keyed('span')(
+                            'placeholder',
+                            [h.Class('contents')],
+                            [checkPlaceholder()],
+                          ),
                     ],
                   ),
                   h.span(
