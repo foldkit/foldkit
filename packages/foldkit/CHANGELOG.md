@@ -1,5 +1,15 @@
 # foldkit
 
+## 0.129.0
+
+### Minor Changes
+
+- 15241c8: Add interruptible Commands. `Command.Interruptible.define` declares a Command whose invocations register under a key in the runtime's interrupt registry for the duration of their Effect. The key function is stated once at the definition and maps the args to whatever distinguishes invocations; Foldkit prefixes the Command name automatically, so keys never collide across definitions, and a Command with no declared args uses the Command name as its key. A key is an address, not a lock: any number of invocations may run under one key, and dispatching never interrupts anything. The returned Definition carries an `Interrupt` constructor that builds an ordinary Command to stop every current holder of the key, producing a Message from an `Interruptible.Outcome`: `Interrupted` when at least one holder was stopped (the stopped holders' result Messages are guaranteed never to dispatch) or `NotFound` when nothing held the key. To dispatch a replacement after cancelling, sequence through the Interrupt's result Message; Commands in one batch have no execution-order guarantee. Story and Scene understand the semantics: keyed Commands may stay pending across Messages, and resolving an Interrupt drops every pending Command under its key.
+
+### Patch Changes
+
+- 0027bb0: Allow Interrupt Commands to stay pending across Messages in Story and Scene, matching the existing exemption for keyed Commands. A story can now keep sending Messages (for example further keystrokes) while a cancellation is in flight, resolving the Interrupt when the test is ready. Interrupt Commands must still be resolved by the end of the test.
+
 ## 0.128.1
 
 ### Patch Changes
