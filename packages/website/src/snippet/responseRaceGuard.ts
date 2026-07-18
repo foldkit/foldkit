@@ -13,7 +13,6 @@ const SearchResultsData = AsyncData.Schema(S.Array(SearchResult), S.String)
 const Model = S.Struct({
   queryInput: S.String,
   searchResults: SearchResultsData.schema,
-  latestRequestId: S.Number,
 })
 type Model = typeof Model.Type
 
@@ -21,7 +20,7 @@ type Model = typeof Model.Type
 
 const ChangedQuery = m('ChangedQuery', { query: S.String })
 const SettledSearch = m('SettledSearch', {
-  requestId: S.Number,
+  query: S.String,
   result: S.Result(S.Array(SearchResult), S.String),
 })
 
@@ -32,9 +31,9 @@ type Message = typeof Message.Type
 
 const Search = Command.define(
   'Search',
-  { requestId: S.Number, query: S.String },
+  { query: S.String },
   SettledSearch,
-)(({ requestId, query }) =>
+)(({ query }) =>
   pipe(
     Effect.gen(function* () {
       const client = yield* HttpClient.HttpClient
@@ -48,7 +47,7 @@ const Search = Command.define(
     }),
     Effect.mapError(error => String(error)),
     Effect.result,
-    Effect.map(result => SettledSearch({ requestId, result })),
+    Effect.map(result => SettledSearch({ query, result })),
     Effect.provide(Http.layer),
   ),
 )
@@ -64,21 +63,16 @@ const update = (
       readonly [Model, ReadonlyArray<Command.Command<Message>>]
     >(),
     M.tagsExhaustive({
-      ChangedQuery: ({ query }) => {
-        const requestId = model.latestRequestId + 1
+      ChangedQuery: ({ query }) => [
+        evo(model, {
+          queryInput: () => query,
+          searchResults: () => SearchResultsData.Loading(),
+        }),
+        [Search({ query })],
+      ],
 
-        return [
-          evo(model, {
-            queryInput: () => query,
-            searchResults: () => SearchResultsData.Loading(),
-            latestRequestId: () => requestId,
-          }),
-          [Search({ requestId, query })],
-        ]
-      },
-
-      SettledSearch: ({ requestId, result }) => {
-        if (requestId !== model.latestRequestId) {
+      SettledSearch: ({ query, result }) => {
+        if (query !== model.queryInput) {
           return [model, []]
         }
         return [evo(model, { searchResults: AsyncData.settle(result) }), []]

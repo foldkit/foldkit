@@ -4,7 +4,6 @@ import {
   Duration,
   Effect,
   Match as M,
-  Number,
   Random,
   Schema as S,
 } from 'effect'
@@ -59,7 +58,6 @@ type Submission = typeof Submission.Type
 export const Model = S.Struct({
   name: Field(S.String),
   email: Field(S.String),
-  emailValidationId: S.Number,
   messageText: Field(S.String),
   submission: Submission,
 })
@@ -70,7 +68,6 @@ export type Model = typeof Model.Type
 export const UpdatedName = m('UpdatedName', { value: S.String })
 export const UpdatedEmail = m('UpdatedEmail', { value: S.String })
 export const ValidatedEmail = m('ValidatedEmail', {
-  validationId: S.Number,
   field: Field(S.String),
 })
 export const UpdatedMessageText = m('UpdatedMessageText', { value: S.String })
@@ -97,7 +94,6 @@ export type Message = typeof Message.Type
 export const initialModel: Model = {
   name: NotValidated({ value: '' }),
   email: NotValidated({ value: '' }),
-  emailValidationId: 0,
   messageText: NotValidated({ value: '' }),
   submission: NotSubmitted(),
 }
@@ -123,13 +119,12 @@ const isEmailOnWaitlist = (email: string): Effect.Effect<boolean> =>
 
 export const ValidateEmail = Command.define(
   'ValidateEmail',
-  { email: S.String, validationId: S.Number },
+  { email: S.String },
   ValidatedEmail,
-)(({ email, validationId }) =>
+)(({ email }) =>
   Effect.gen(function* () {
     if (yield* isEmailOnWaitlist(email)) {
       return ValidatedEmail({
-        validationId,
         field: Invalid({
           value: email,
           errors: ['This email is already on our waitlist'],
@@ -137,7 +132,6 @@ export const ValidateEmail = Command.define(
       })
     } else {
       return ValidatedEmail({
-        validationId,
         field: Valid({ value: email }),
       })
     }
@@ -173,29 +167,26 @@ export const update = (
 
       UpdatedEmail: ({ value }) => {
         const validateEmailResult = validateEmail(value)
-        const validationId = Number.increment(model.emailValidationId)
 
         if (validateEmailResult._tag === 'Valid') {
           return [
             evo(model, {
               email: () => Validating({ value }),
-              emailValidationId: () => validationId,
             }),
-            [ValidateEmail({ email: value, validationId })],
+            [ValidateEmail({ email: value })],
           ]
         } else {
           return [
             evo(model, {
               email: () => validateEmailResult,
-              emailValidationId: () => validationId,
             }),
             [],
           ]
         }
       },
 
-      ValidatedEmail: ({ validationId, field }) => {
-        if (validationId === model.emailValidationId) {
+      ValidatedEmail: ({ field }) => {
+        if (field.value === model.email.value) {
           return [
             evo(model, {
               email: () => field,

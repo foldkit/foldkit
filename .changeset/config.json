@@ -47,6 +47,7 @@
     "@foldkit/lustre-benchmark",
     "charting-example",
     "checkout-machine-example",
-    "personal-blog-example"
+    "personal-blog-example",
+    "upload-example"
   ]
 }

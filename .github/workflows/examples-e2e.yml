@@ -32,6 +32,7 @@ jobs:
           - api-cache
           - routing
           - route-transitions
+          - upload
           - query-sync
           - snake
           - auth
