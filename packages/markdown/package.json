@@ -1,6 +1,6 @@
 {
   "name": "@foldkit/markdown",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Markdown compiled at build time into typed Foldkit views, with live component islands",
   "type": "module",
   "main": "./dist/index.js",
