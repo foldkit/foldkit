@@ -32,7 +32,7 @@ jobs:
           - api-cache
           - routing
           - route-transitions
-          - upload
+          - interrupting-commands
           - query-sync
           - snake
           - auth

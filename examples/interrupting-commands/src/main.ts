@@ -373,5 +373,5 @@ export const view = (model: Model): Document => {
     ],
   )
 
-  return { title: 'Foldkit Upload Example', body }
+  return { title: 'Foldkit Interrupting Commands Example', body }
 }

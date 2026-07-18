@@ -344,7 +344,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       para(
         'The ',
-        link(exampleDetailRouter({ exampleSlug: 'upload' }), 'upload example'),
+        link(
+          exampleDetailRouter({ exampleSlug: 'interrupting-commands' }),
+          'interrupting-commands example',
+        ),
         ' puts the whole pattern in one small app: concurrent uploads keyed by upload id, a per-upload Cancel that interrupts a single key, a Cancel all that returns one Interrupt per running upload, and a Restart that reuses a freed key.',
       ),
       infoCallout(

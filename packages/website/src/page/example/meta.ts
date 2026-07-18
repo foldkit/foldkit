@@ -16,7 +16,7 @@ export const ExampleSlug = S.Literals([
   'charting',
   'routing',
   'route-transitions',
-  'upload',
+  'interrupting-commands',
   'query-sync',
   'snake',
   'auth',
@@ -155,8 +155,8 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     hasRouting: true,
   },
   {
-    slug: 'upload',
-    title: 'Upload',
+    slug: 'interrupting-commands',
+    title: 'Interrupting Commands',
     description:
       'Simulated file uploads driven by interruptible Commands. Cancel a single upload, cancel every upload in flight, or restart a cancelled one; each cancellation resolves through a keyed interrupt registry and an outcome-carrying result Message.',
     difficulty: 'Intermediate',
