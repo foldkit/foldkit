@@ -47,8 +47,23 @@ jobs:
           ABC_FAVORIT_BOOK_WOFF2_BASE64: ${{ secrets.ABC_FAVORIT_BOOK_WOFF2_BASE64 }}
           ABC_FAVORIT_LIGHT_WOFF2_BASE64: ${{ secrets.ABC_FAVORIT_LIGHT_WOFF2_BASE64 }}
 
+      - name: Resolve GitHub star count
+        id: github-stars
+        env:
+          GH_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          count=$(curl -sfL --connect-timeout 10 --max-time 30 \
+            -H "Authorization: Bearer ${GH_API_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "User-Agent: foldkit-website-build" \
+            https://api.github.com/repos/foldkit/foldkit \
+            | jq -r '.stargazers_count // empty') || count=""
+          echo "count=${count}" >> "$GITHUB_OUTPUT"
+
       - name: Build website
         run: pnpm build:website
+        env:
+          FOLDKIT_GITHUB_STAR_COUNT: ${{ steps.github-stars.outputs.count }}
 
       - name: Install Playwright chromium
         run: pnpm --filter website exec playwright install --with-deps chromium

@@ -15,6 +15,7 @@ import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { foldkitVersion } from 'virtual:landing-data'
 
+import { GitHubStarsAsyncData } from '../githubStars'
 import { Icon } from '../icon'
 import { Link } from '../link'
 import { type Message } from '../message'
@@ -87,14 +88,14 @@ export const view = (
   emailSignupView: Html,
   playgroundMenuView: Html,
   aiHeadingToggleCount: number,
-  maybeStarCount: Option.Option<number>,
+  githubStarsAsyncData: GitHubStarsAsyncData,
 ): Html => {
   const h = html<Message>()
 
   return h.div(
     [h.Class('isolate overflow-x-hidden')],
     [
-      heroSection(copiedSnippets, playgroundMenuView, maybeStarCount),
+      heroSection(copiedSnippets, playgroundMenuView, githubStarsAsyncData),
       glyph('{ }'),
       promiseSection(),
       glyph('=>'),
@@ -116,12 +117,14 @@ export const view = (
       glyph('...', '-translate-y-1/3'),
       trustSection(),
       glyph('->'),
-      finalCtaSection(emailSignupView, maybeStarCount),
+      finalCtaSection(emailSignupView, githubStarsAsyncData),
     ],
   )
 }
 
-const viewOnGitHubButton = (maybeStarCount: Option.Option<number>): Html => {
+const viewOnGitHubButton = (
+  githubStarsAsyncData: GitHubStarsAsyncData,
+): Html => {
   const h = html<Message>()
 
   return h.a(
@@ -129,7 +132,7 @@ const viewOnGitHubButton = (maybeStarCount: Option.Option<number>): Html => {
     [
       Icon.github('w-5 h-5'),
       h.span([h.Class('mr-2')], ['View on GitHub']),
-      githubStarBadge(maybeStarCount),
+      githubStarBadge(githubStarsAsyncData),
     ],
   )
 }
@@ -179,7 +182,7 @@ const INSTALL_COMMAND = 'npx create-foldkit-app@latest'
 const heroSection = (
   copiedSnippets: CopiedSnippets,
   playgroundMenuView: Html,
-  maybeStarCount: Option.Option<number>,
+  githubStarsAsyncData: GitHubStarsAsyncData,
 ): Html => {
   const h = html<Message>()
 
@@ -256,7 +259,7 @@ const heroSection = (
                 ['Dive In', Icon.arrowRight('w-5 h-5')],
               ),
               playgroundMenuView,
-              viewOnGitHubButton(maybeStarCount),
+              viewOnGitHubButton(githubStarsAsyncData),
             ],
           ),
         ],
@@ -1289,7 +1292,7 @@ const aiSection = (aiHeadingToggleCount: number): Html => {
 
 const finalCtaSection = (
   emailSignupView: Html,
-  maybeStarCount: Option.Option<number>,
+  githubStarsAsyncData: GitHubStarsAsyncData,
 ): Html => {
   const h = html<Message>()
 
@@ -1335,7 +1338,7 @@ const finalCtaSection = (
                         ],
                         ['Dive In', Icon.arrowRight('w-5 h-5')],
                       ),
-                      viewOnGitHubButton(maybeStarCount),
+                      viewOnGitHubButton(githubStarsAsyncData),
                     ],
                   ),
                 ],

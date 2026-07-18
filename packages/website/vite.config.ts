@@ -700,6 +700,15 @@ const notePlayerDemoCodePlugin = (): Plugin => ({
 const LANDING_DATA_ID = 'virtual:landing-data'
 const RESOLVED_LANDING_DATA_ID = '\0' + LANDING_DATA_ID
 
+const readBakedStarCount = (): number | null => {
+  const raw = process.env['FOLDKIT_GITHUB_STAR_COUNT']
+  if (raw === undefined || raw === '') {
+    return null
+  }
+  const parsed = Number(raw)
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null
+}
+
 const landingDataPlugin = (): Plugin => ({
   name: 'landing-data',
   resolveId(id) {
@@ -718,9 +727,12 @@ const landingDataPlugin = (): Plugin => ({
       await readFile(resolve(__dirname, '../foldkit/package.json'), 'utf-8'),
     )
 
+    const githubStarCount = readBakedStarCount()
+
     return [
       `export const foldkitVersion = ${JSON.stringify(packageJson.version)}`,
       `export const effectVersion = ${JSON.stringify(packageJson.peerDependencies.effect)}`,
+      `export const githubStarCount = ${JSON.stringify(githubStarCount)}`,
     ].join('\n')
   },
 })

@@ -58,6 +58,7 @@ declare module 'virtual:parsed-api' {
 declare module 'virtual:landing-data' {
   export const foldkitVersion: string
   export const effectVersion: string
+  export const githubStarCount: number | null
 }
 
 declare module 'virtual:counter-demo-code' {

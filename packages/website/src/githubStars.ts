@@ -16,6 +16,17 @@ export const formatStarCount = (count: number): string => {
   }
 }
 
-export const maybeStarCount = (
-  stars: GitHubStarsAsyncData,
-): Option.Option<number> => AsyncData.getData(stars)
+/**
+ * Seeds the star state from the count baked into the page at build time. A
+ * baked count starts as `Success`, so the badge renders the real number
+ * straight from the prerendered HTML with no loading flash. An absent count
+ * (the build-time fetch failed) starts `Loading`, leaving the client fetch to
+ * fill it in.
+ */
+export const initialGitHubStars = (
+  bakedStarCount: number | null,
+): GitHubStarsAsyncData =>
+  Option.match(Option.fromNullishOr(bakedStarCount), {
+    onNone: () => GitHubStarsAsyncData.Loading(),
+    onSome: data => GitHubStarsAsyncData.Success({ data }),
+  })
