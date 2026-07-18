@@ -12,6 +12,7 @@ import {
 import {
   coreArchitectureRouter,
   coreMountRouter,
+  exampleDetailRouter,
   testingRouter,
 } from '../../route'
 import * as Snippet from '../../snippet'
@@ -280,6 +281,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'Derive the key from the Model identity that owns the in-flight work, for example a list item id or an entity id. The update function is pure, so keys are never generated. If two invocations are distinguishable enough to cancel one and not the other, the Model already holds the fact that distinguishes them, and that fact is the key. Two uploads of the same file still get different keys, because the Model tracks each upload as its own entity with its own id.',
       ),
       para(
+        'The Command name is the interrupt namespace, so interruptible Command names must be unique across the app. Two definitions that share a name share a key space, and an Interrupt stops every holder of its key regardless of which definition dispatched it. Unique names are already the rule in practice, because DevTools traces, Story matchers, and span names all identify Commands by name.',
+      ),
+      para(
+        'The same reasoning covers reusable Submodels. Two instances of one Submodel running the same Command share a key unless something distinguishes them, so include the instance identity in the key args, for example ',
+        inlineCode('({ instanceId }) => instanceId'),
+        '. A Submodel that appears in a list already threads an instance id through its Message lifting; the Command args carry the same id. A Submodel with a single instance needs no scoping.',
+      ),
+      para(
         'The definition carries an ',
         inlineCode('Interrupt'),
         ' constructor. It takes the key args and a function from the interrupt outcome to a Message, and returns an ordinary Command: update stays pure, DevTools shows the dispatch, and tests resolve it like any other Command. The outcome is ',
@@ -314,6 +323,29 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' and ',
         inlineCode('NotFound'),
         ' agree on the fact that matters: the key is free now.',
+      ),
+      para(
+        'When the same Command can be cancelled with more than one meaning, for example a Cancel button and a fresh keystroke that supersedes the in-flight work, give each meaning its own result Message, named for its cause: ',
+        inlineCode('CompletedCancelUploadFileDueToClickedCancel'),
+        ' from one handler, ',
+        inlineCode('CompletedCancelUploadFileDueToSelectedNewFile'),
+        ' from the other. The ',
+        inlineCode('toMessage'),
+        ' function is written at the dispatch site and closes over it, so each handler builds its own Message. Name the cause that happened, never the action the handler intends next: a Message is a fact about the past, and the follow-up is a decision update makes at handling time. Messages are already tags, so two meanings get two Messages, not one Message carrying a cause field that update has to match a second time. Payload fields are for data the handler needs, for example the ',
+        inlineCode('uploadId'),
+        ', not for selecting behavior. When every cancelling context records the same meaning, one plain ',
+        inlineCode('CompletedCancel<CommandName>'),
+        ' serves them all: a per-upload Cancel button and a Cancel all button differ only in how many keys they interrupt, so both dispatch sites share one Message.',
+      ),
+      para(
+        'When the cancelling contexts can interleave on the same key, anything chosen at dispatch time is a snapshot that can go stale: the user clicks Cancel, then types again before the acknowledgment arrives, and honoring the click would now be wrong. Keep the current intent in the Model instead, as a union such as ',
+        inlineCode('CancellingToStop | CancellingToRevalidate'),
+        ', let later Messages update it, and have a single acknowledgment handler read it from the Model. Intent-first names are right here for the same reason cause-first names were right for Messages: a Message records what happened, while this Model field records what the app has decided to do next, and the Model is allowed to change its mind. The acknowledgment is only the fact that the key is free; what happens next is a function of the newest state, not of whichever context happened to dispatch the Interrupt.',
+      ),
+      para(
+        'The ',
+        link(exampleDetailRouter({ exampleSlug: 'upload' }), 'upload example'),
+        ' puts the whole pattern in one small app: concurrent uploads keyed by upload id, a per-upload Cancel that interrupts a single key, a Cancel all that returns one Interrupt per running upload, and a Restart that reuses a freed key.',
       ),
       infoCallout(
         'Interruption is for one-shot work',

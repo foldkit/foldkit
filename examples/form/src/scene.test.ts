@@ -72,7 +72,6 @@ describe('view', () => {
       Scene.Command.resolve(
         ValidateEmail,
         ValidatedEmail({
-          validationId: 1,
           field: FieldValidation.Valid({ value: 'alice@example.com' }),
         }),
       ),
@@ -91,7 +90,6 @@ describe('view', () => {
       Scene.Command.resolve(
         ValidateEmail,
         ValidatedEmail({
-          validationId: 1,
           field: FieldValidation.Invalid({
             value: 'test@example.com',
             errors: ['This email is already on our waitlist'],

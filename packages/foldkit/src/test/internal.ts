@@ -464,16 +464,21 @@ export const assertZeroCommands = (
 }
 
 /** Throws when trying to send a message with unresolved Commands. Keyed
- *  Commands (built with `Command.Interruptible.define`) are exempt: they model
- *  long-running work that legitimately stays in flight while later Messages
- *  arrive, so a story can dispatch the Message that interrupts them. They
- *  must still be resolved or interrupted by the end of the test. */
+ *  Commands (built with `Command.Interruptible.define`) and Interrupt
+ *  Commands are exempt: they model in-flight async work that legitimately
+ *  stays pending while later Messages arrive, so a story can dispatch the
+ *  Message that interrupts a keyed Command, or keep typing while a
+ *  cancellation is in flight. They must still be resolved by the end of the
+ *  test. */
 export const assertNoUnresolvedCommands = (
   commands: ReadonlyArray<AnyCommand>,
   context: string,
 ): void => {
-  const unresolvable = Array.filter(commands, command =>
-    Predicate.isUndefined(command.key),
+  const unresolvable = Array.filter(
+    commands,
+    command =>
+      Predicate.isUndefined(command.key) &&
+      Predicate.isUndefined(command.interruptsKey),
   )
   if (Array.isReadonlyArrayNonEmpty(unresolvable)) {
     throw new Error(

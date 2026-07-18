@@ -32,6 +32,7 @@ The CLI prompts you for a project name, starter example, and package manager. Pa
 | `api-cache`              | Query caching in the Model with stale-while-revalidate, request deduplication, and interval refetching |
 | `charting`               | Live GitHub and npm telemetry rendered through an ECharts Mount adapter                                |
 | `routing`                | URL routing with parser combinators and route parameters                                               |
+| `upload`                 | Simulated file uploads with cancellable, restartable interruptible Commands                            |
 | `query-sync`             | URL-driven filtering, sorting, and search with query parameters                                        |
 | `snake`                  | Classic game built with Subscriptions                                                                  |
 | `canvas-art`             | Declarative 2D canvas with shapes, animation-frame Subscriptions, and pointer events                   |

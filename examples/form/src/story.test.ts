@@ -60,13 +60,11 @@ describe('update', () => {
         Story.message(UpdatedEmail({ value: 'alice@example.com' })),
         Story.model(model => {
           expect(model.email._tag).toBe('Validating')
-          expect(model.emailValidationId).toBe(1)
         }),
         Story.Command.expectHas(ValidateEmail),
         Story.Command.resolve(
           ValidateEmail,
           ValidatedEmail({
-            validationId: 1,
             field: FieldValidation.Valid({ value: 'alice@example.com' }),
           }),
         ),
@@ -88,11 +86,10 @@ describe('update', () => {
       )
     })
 
-    test('stale ValidatedEmail responses are ignored', () => {
+    test('a validation result for a superseded email value is ignored', () => {
       const inFlightModel: Model = {
         ...initialModel,
         email: FieldValidation.Validating({ value: 'alice@example.com' }),
-        emailValidationId: 5,
       }
 
       Story.story(
@@ -100,22 +97,19 @@ describe('update', () => {
         Story.with(inFlightModel),
         Story.message(
           ValidatedEmail({
-            validationId: 3,
             field: FieldValidation.Valid({ value: 'old@example.com' }),
           }),
         ),
         Story.model(model => {
           expect(model.email._tag).toBe('Validating')
-          expect(model.emailValidationId).toBe(5)
         }),
       )
     })
 
-    test('async result for the current validationId updates the email field', () => {
+    test('a validation result for the current email value updates the field', () => {
       const inFlightModel: Model = {
         ...initialModel,
         email: FieldValidation.Validating({ value: 'taken@example.com' }),
-        emailValidationId: 2,
       }
 
       Story.story(
@@ -123,7 +117,6 @@ describe('update', () => {
         Story.with(inFlightModel),
         Story.message(
           ValidatedEmail({
-            validationId: 2,
             field: FieldValidation.Invalid({
               value: 'taken@example.com',
               errors: ['This email is already on our waitlist'],

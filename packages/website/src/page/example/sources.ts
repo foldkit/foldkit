@@ -28,6 +28,7 @@ const loadersBySlug: Readonly<Record<string, SourceLoader | undefined>> = {
   routing: () => import('virtual:example-sources/routing'),
   'route-transitions': () =>
     import('virtual:example-sources/route-transitions'),
+  upload: () => import('virtual:example-sources/upload'),
   'query-sync': () => import('virtual:example-sources/query-sync'),
   'shopping-cart': () => import('virtual:example-sources/shopping-cart'),
   'checkout-machine': () => import('virtual:example-sources/checkout-machine'),

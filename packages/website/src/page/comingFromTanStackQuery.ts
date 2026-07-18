@@ -138,7 +138,10 @@ const conceptTable: Html = comparisonTable(
     ],
     [
       ['Out-of-order response handling'],
-      ['A request id in the Model, checked in ', inlineCode('update')],
+      [
+        'The request context threaded through the result Message, judged against the Model in ',
+        inlineCode('update'),
+      ],
     ],
     [
       [inlineCode('invalidateQueries')],
@@ -355,9 +358,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' tells you what state a field is in. It does not, and cannot, order the responses that arrive to fill it. Here is a bug that is easy to hit. Fire a request for A, then fire a request for B before A returns. A is slow, B is fast, so B resolves first, then A resolves last and overwrites it. Now you are showing A’s data when the user asked for B.',
       ),
       para(
-        'Foldkit does not auto-cancel in-flight effects, and there is no ordering guarantee between independent requests, so this is reachable. You handle it the same way TanStack Query does internally: track the latest request and ignore any response that is not it. Keep a request id in the Model, thread it through the Command into the result Message, and in ',
+        'Foldkit does not auto-cancel in-flight effects, and there is no ordering guarantee between independent requests, so this is reachable. You handle it the same way TanStack Query does internally: track what the Model currently wants and ignore any response that is not it. Thread the query through the Command into the result Message, and in ',
         inlineCode('update'),
-        ' discard any result whose id is no longer current:',
+        ' discard any result whose query no longer matches the Model:',
       ),
       highlightedCodeBlock(
         h.div(
@@ -373,15 +376,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'mb-6',
       ),
       para(
-        'The late response for an earlier query sees that ',
-        inlineCode('requestId'),
+        'The late response for an earlier query sees that its ',
+        inlineCode('query'),
         ' no longer matches ',
-        inlineCode('latestRequestId'),
+        inlineCode('queryInput'),
         ' and is dropped. The newest query stays on screen. Everything around the guard is the standard shape: the Command settles the fetch into a ',
         inlineCode('Result'),
         ', and ',
         inlineCode('AsyncData.settle'),
-        ' folds it into the field.',
+        ' folds it into the field. The comparison uses data the Model already holds; there is no synthetic request counter to maintain.',
       ),
       para(
         'This snippet also shows where ',
@@ -398,7 +401,19 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       infoCallout(
         'This is the solution, not a workaround',
-        'It is tempting to read the request id as boilerplate you tolerate until something better comes along. It is not. The behavior you want, newest request wins, has to live somewhere. Here it lives in the Model as a value you can read, and in update as a comparison you can test. That visibility is the point, not a tax on it. The shape generalizes: tag each async result with what the Model wanted when you started it, then ignore any result that no longer matches. The same few lines that resolve this fetch race also resolve a debounced search box firing on every keystroke, because the question is identical: is this result still the one the Model is waiting for?',
+        'It is tempting to read the guard as boilerplate you tolerate until something better comes along. It is not. The behavior you want, newest request wins, has to live somewhere. Here it lives in update as a comparison against the Model you can read and test. That visibility is the point, not a tax on it. The shape generalizes: tag each async result with what the Model wanted when you started it, then ignore any result that no longer matches. The same few lines that resolve this fetch race also resolve a debounced search box firing on every keystroke, because the question is identical: is this result still the one the Model is waiting for?',
+      ),
+      para(
+        'Judging at receipt is the correctness layer, and it is never optional. There is a second, situational layer: when the superseded request is worth stopping, because the fetch is expensive or the user gets a Cancel button, define the Command with ',
+        inlineCode('Command.Interruptible.define'),
+        ' and dispatch its ',
+        inlineCode('Interrupt'),
+        ' Command to stop the in-flight work explicitly. The guard stays either way: a result can already be in the queue when the interrupt lands. See ',
+        link(
+          `${coreCommandsRouter()}#interrupting-commands`,
+          'Interrupting Commands',
+        ),
+        '.',
       ),
       tableOfContentsEntryToHeader(faqHeader),
       faqQuestion('faq-where-is-usequery', 'Where is useQuery?'),
@@ -442,7 +457,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('Refreshing'),
         ') it yields ',
         inlineCode('None'),
-        ', so you make no transition and return no Command. Because every request starts as a decision made in one place, not firing twice is a branch, not a feature. Note this is a different thing from out-of-order handling above: dedup avoids starting redundant work, the request-id guard resolves work that finishes out of order.',
+        ', so you make no transition and return no Command. Because every request starts as a decision made in one place, not firing twice is a branch, not a feature. Note this is a different thing from out-of-order handling above: dedup avoids starting redundant work, the judgment in ',
+        inlineCode('update'),
+        ' resolves work that finishes out of order.',
       ),
       faqQuestion('faq-keep-previous-data', 'What about keepPreviousData?'),
       para(

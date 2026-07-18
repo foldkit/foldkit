@@ -30,7 +30,7 @@ const UploadFile = Command.Interruptible.define(
   ),
 )
 
-const setStatusById = (uploadId: number, status: UploadStatus) =>
+const setStatusForId = (uploadId: number, status: UploadStatus) =>
   Array.map((upload: Upload) =>
     upload.id === uploadId ? evo(upload, { status: () => status }) : upload,
   )
@@ -62,7 +62,7 @@ const update = (
             // The upload was stopped. Its result Message will never arrive,
             // so this branch owns the state transition.
             Interrupted: () => [
-              evo(model, { uploads: setStatusById(uploadId, 'Cancelled') }),
+              evo(model, { uploads: setStatusForId(uploadId, 'Cancelled') }),
               [],
             ],
             // Nothing held the key: the upload already completed (or never
@@ -71,11 +71,11 @@ const update = (
           }),
         ),
       SucceededUploadFile: ({ uploadId }) => [
-        evo(model, { uploads: setStatusById(uploadId, 'Done') }),
+        evo(model, { uploads: setStatusForId(uploadId, 'Done') }),
         [],
       ],
       FailedUploadFile: ({ uploadId }) => [
-        evo(model, { uploads: setStatusById(uploadId, 'Failed') }),
+        evo(model, { uploads: setStatusForId(uploadId, 'Failed') }),
         [],
       ],
     }),
