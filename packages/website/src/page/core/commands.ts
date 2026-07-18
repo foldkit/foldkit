@@ -47,12 +47,19 @@ const commandsWithArgsHeader: TableOfContentsEntry = {
   text: 'Commands with Args',
 }
 
+const interruptingCommandsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'interrupting-commands',
+  text: 'Interrupting Commands',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   anatomyHeader,
   testableByDesignHeader,
   httpRequestsHeader,
   commandsWithArgsHeader,
+  interruptingCommandsHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html => {
@@ -247,6 +254,70 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
           "Scene.Command.expectExact(FetchWeather({ zipCode: '90210' }))",
         ),
         '.',
+      ),
+      tableOfContentsEntryToHeader(interruptingCommandsHeader),
+      para(
+        'Commands normally run to completion. Sometimes the user changes their mind first, for example an upload they no longer want or a search superseded by new input. ',
+        inlineCode('Command.Interruptible.define'),
+        ' declares a Command that can be stopped mid-flight. It works like ',
+        inlineCode('Command.define'),
+        ' with one addition: a key that identifies the invocation. The key function is stated once at the definition and maps the args to whatever distinguishes invocations; Foldkit prefixes it with the Command name automatically, so keys never collide across definitions. A Command with no declared args needs no key function at all: its key is the Command name.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.commandInterruptibleHighlighted),
+          ],
+          [],
+        ),
+        Snippet.commandInterruptibleRaw,
+        'Copy interruptible command example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'Derive the key from the Model identity that owns the in-flight work, for example a list item id or an entity id. The update function is pure, so keys are never generated. If two invocations are distinguishable enough to cancel one and not the other, the Model already holds the fact that distinguishes them, and that fact is the key. Two uploads of the same file still get different keys, because the Model tracks each upload as its own entity with its own id.',
+      ),
+      para(
+        'The definition carries an ',
+        inlineCode('Interrupt'),
+        ' constructor. It takes the key args and a function from the interrupt outcome to a Message, and returns an ordinary Command: update stays pure, DevTools shows the dispatch, and tests resolve it like any other Command. The outcome is ',
+        inlineCode('Interrupted'),
+        ' when an in-flight Command was stopped, or ',
+        inlineCode('NotFound'),
+        ' when nothing held the key because the Command already completed or was never dispatched (the two are indistinguishable by design).',
+      ),
+      para(
+        'After ',
+        inlineCode('Interrupted'),
+        ', the target’s result Message is guaranteed never to dispatch. Whoever requested the interruption owns the state transition, which is why the example moves the upload to ',
+        inlineCode('Cancelled'),
+        ' in the ',
+        inlineCode('Interrupted'),
+        ' branch and does nothing on ',
+        inlineCode('NotFound'),
+        '.',
+      ),
+      para(
+        'A key is an address, not a lock. Any number of invocations can run under one key at once, and dispatching never interrupts anything. The only thing that stops an interruptible Command is an Interrupt Command returned from update, so every cancellation in the program is an explicit fact, visible in update, in DevTools history, and in tests.',
+      ),
+      para(
+        'To start a replacement after cancelling, sequence through the Interrupt’s result Message: return the new Command from the ',
+        inlineCode('CompletedCancel<CommandName>'),
+        ' handler. Commands in one batch run concurrently with no execution-order guarantee, so returning the Interrupt and its replacement together in one list is a race, not a sequence. A typeahead search makes the pattern concrete: ',
+        inlineCode('ChangedQuery'),
+        ' stores the query in the Model and returns the cancel Command, and the ',
+        inlineCode('CompletedCancelFetchWeather'),
+        ' handler returns the fetch, reading the latest query from the Model rather than the keystroke that triggered the cancel. Both outcomes proceed identically there, because ',
+        inlineCode('Interrupted'),
+        ' and ',
+        inlineCode('NotFound'),
+        ' agree on the fact that matters: the key is free now.',
+      ),
+      infoCallout(
+        'Interruption is for one-shot work',
+        'A long-running process that should stop when the Model says so is a Subscription or ManagedResource: gate it on a Model condition and it stops declaratively. Interruption is for work that is structurally a Command, fired once and normally left to finish, where stopping it is the exception: for example an in-flight HTTP request, a file read, or an upload.',
       ),
       para(
         'Commands fire once and produce one result Message when they finish (chosen from the result Messages they declare). For work bound to a specific DOM element’s lifetime, Foldkit has ',

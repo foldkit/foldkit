@@ -219,6 +219,17 @@ const formatType = (
         return `{\n${indent(depth + 1)}${readonlyPrefix}[${parameter} in ${formatType(parameterType, depth + 1, namedSchemas)}]: ${formatType(templateType, depth + 1, namedSchemas)}\n${indent(depth)}}`
       },
     ),
+    whenType('templateLiteral', ({ head, tail }) =>
+      pipe(
+        tail,
+        Array.map(
+          ([memberType, text]) =>
+            `\${${formatType(memberType, depth, namedSchemas)}}${text}`,
+        ),
+        Array.join(''),
+        interpolations => `\`${head}${interpolations}\``,
+      ),
+    ),
     whenType('inferred', ({ name }) => `infer ${name}`),
     whenType('predicate', 'unknown', () => 'unknown'),
     M.exhaustive,

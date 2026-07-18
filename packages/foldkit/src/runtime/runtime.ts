@@ -27,6 +27,10 @@ import { BrowserRuntime } from '@effect/platform-browser'
 
 import type { Command } from '../command/index.js'
 import {
+  __CurrentRegistry as __CurrentInterruptRegistry,
+  __makeRegistry as __makeInterruptRegistry,
+} from '../command/interruptible/index.js'
+import {
   type CommandRecord,
   type DevToolsStore,
   type MountRecord,
@@ -1529,6 +1533,8 @@ const makeRuntime = <
             ),
         })
 
+        const interruptRegistry = __makeInterruptRegistry()
+
         const provideAllResources = <A>(
           effect: Effect.Effect<A, never, Resources | ManagedResourceServices>,
         ): Effect.Effect<A> => {
@@ -1548,7 +1554,7 @@ const makeRuntime = <
               Effect.provide(withResources, managedLayer) as Effect.Effect<A>,
           })
 
-          return Option.match(maybePortChannels, {
+          const withPortChannels = Option.match(maybePortChannels, {
             onNone: () => withManagedResources,
             onSome: portChannels =>
               Effect.provideService(
@@ -1557,6 +1563,12 @@ const makeRuntime = <
                 portChannels.channels,
               ),
           })
+
+          return Effect.provideService(
+            withPortChannels,
+            __CurrentInterruptRegistry,
+            interruptRegistry,
+          )
         }
 
         const flags = yield* resolveFlags

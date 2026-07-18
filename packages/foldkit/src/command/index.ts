@@ -9,16 +9,21 @@ export const CommandDefinitionTypeId: unique symbol = Symbol.for(
 /** Type-level brand for CommandDefinition values. */
 export type CommandDefinitionTypeId = typeof CommandDefinitionTypeId
 
-/** A named Effect that produces a message, optionally carrying the args used to construct it. */
+/** A named Effect that produces a message, optionally carrying the args used
+ *  to construct it. `key` is present on Commands built by
+ *  `Interruptible.define`: it addresses the invocation in the runtime's
+ *  interrupt registry so a later Interrupt Command can stop it. */
 export type Command<T, E = never, R = never> = [T] extends [Schema.Top]
   ? Readonly<{
       name: string
       args?: Record<string, unknown>
+      key?: string
       effect: Effect.Effect<Schema.Schema.Type<T>, E, R>
     }>
   : Readonly<{
       name: string
       args?: Record<string, unknown>
+      key?: string
       effect: Effect.Effect<T, E, R>
     }>
 
@@ -40,6 +45,8 @@ type MessageMapper = (message: unknown) => unknown
 type CommandWithMappers = Readonly<{
   name: string
   args?: Record<string, unknown>
+  key?: string
+  interruptsKey?: string
   effect: Effect.Effect<unknown, unknown, unknown>
   messageMappers?: ReadonlyArray<MessageMapper>
 }>

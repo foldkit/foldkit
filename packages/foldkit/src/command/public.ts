@@ -11,3 +11,4 @@ export {
   mapMessage,
   mapMessages,
 } from './index.js'
+export * as Interruptible from './interruptible/public.js'
