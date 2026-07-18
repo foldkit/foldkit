@@ -142,6 +142,8 @@ jobs:
               { "src": "^/field-validation\\.md$", "status": 308, "headers": { "Location": "/core/field-validation.md" } },
               { "src": "^/project-organization$", "status": 308, "headers": { "Location": "/patterns/project-organization" } },
               { "src": "^/project-organization\\.md$", "status": 308, "headers": { "Location": "/patterns/project-organization.md" } },
+              { "src": "^/example-apps/upload$", "status": 308, "headers": { "Location": "/example-apps/interrupting-commands" } },
+              { "src": "^/playground/upload$", "status": 308, "headers": { "Location": "/playground/interrupting-commands" } },
               { "handle": "filesystem" },
               {
                 "src": "/",

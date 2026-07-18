@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 import * as Page from '../page'
 
-test.describe('upload example', () => {
+test.describe('interrupting-commands example', () => {
   test('loads cleanly', async ({ page }) => {
     await Page.assertLoadedCleanly(page)
   })

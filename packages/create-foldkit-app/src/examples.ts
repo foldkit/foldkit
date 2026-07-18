@@ -12,7 +12,7 @@ export const EXAMPLE_VALUES = [
   'charting',
   'routing',
   'route-transitions',
-  'upload',
+  'interrupting-commands',
   'query-sync',
   'snake',
   'canvas-art',
@@ -109,8 +109,8 @@ export const examples: ReadonlyArray<{
       'Live transition log with entry, exit, and stayed navigation policies',
   },
   {
-    value: 'upload',
-    title: 'upload',
+    value: 'interrupting-commands',
+    title: 'interrupting-commands',
     description:
       'Simulated file uploads with cancellable, restartable interruptible Commands',
   },
