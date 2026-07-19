@@ -208,7 +208,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 - **[Charting](https://foldkit.dev/example-apps/charting)**: Live public GitHub and npm telemetry rendered through an ECharts Mount adapter
 - **[Routing](https://foldkit.dev/example-apps/routing)**: URL routing with parser combinators
 - **[Route Transitions](https://foldkit.dev/example-apps/route-transitions)**: Live transition log with entry, exit, and stayed navigation policies
-- **[Upload](https://foldkit.dev/example-apps/upload)**: Simulated file uploads with cancellable, restartable interruptible Commands
+- **[Interrupting Commands](https://foldkit.dev/example-apps/interrupting-commands)**: Simulated file uploads with cancellable, restartable interruptible Commands
 - **[Query Sync](https://foldkit.dev/example-apps/query-sync)**: URL query parameter sync with filtering and sorting
 - **[Snake](https://foldkit.dev/example-apps/snake)**: Classic game built with Subscriptions
 - **[Map](https://foldkit.dev/example-apps/map)**: Interactive MapLibre GL map demonstrating Mount with a third-party DOM library
