@@ -43,6 +43,9 @@ ul {
 .flex {
   display: flex;
 }
+.contents {
+  display: contents;
+}
 .flex-col {
   flex-direction: column;
 }

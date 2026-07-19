@@ -291,14 +291,12 @@ export const view = (model: Model): Document => {
         AsyncData.matchDataSplitEmpty(model.weather, {
           onIdle: () => h.empty,
           onLoading: () =>
-            h.keyed('div')(
-              'Loading',
+            h.div(
               [h.Class('text-blue-600 font-semibold text-center')],
               ['Fetching weather...'],
             ),
           onFailure: error =>
-            h.keyed('div')(
-              'Failure',
+            h.div(
               [
                 h.Class(
                   'p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg',
@@ -307,11 +305,7 @@ export const view = (model: Model): Document => {
               [error],
             ),
           onData: weather =>
-            h.keyed('div')(
-              'Success',
-              [h.Class('w-full max-w-md')],
-              [weatherView(weather)],
-            ),
+            h.div([h.Class('w-full max-w-md')], [weatherView(weather)]),
         }),
       ],
     ),

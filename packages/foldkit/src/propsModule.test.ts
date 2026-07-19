@@ -1,7 +1,7 @@
-import { eventListenersModule, h, init, toVNode } from 'snabbdom'
 import { describe, expect, it } from 'vitest'
 
 import { propsModule } from './propsModule.js'
+import { eventListenersModule, h, init, toVNode } from './snabbdom/index.js'
 
 const patch = init([propsModule, eventListenersModule])
 

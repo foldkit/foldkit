@@ -1622,6 +1622,9 @@ importers:
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../ui
+      '@foldkit/vite-plugin':
+        specifier: workspace:*
+        version: link:../vite-plugin-foldkit
       effect:
         specifier: 4.0.0-beta.97
         version: 4.0.0-beta.97
@@ -1634,6 +1637,9 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.9(@types/node@25.9.3)(@vitest/coverage-v8@4.1.9)(happy-dom@20.10.4)(jsdom@29.1.1)(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
 
   packages/devtools-mcp:
     dependencies:
@@ -1697,10 +1703,6 @@ importers:
         version: 6.0.3
 
   packages/foldkit:
-    dependencies:
-      snabbdom:
-        specifier: ^3.6.3
-        version: 3.6.3
     devDependencies:
       '@effect/platform-browser':
         specifier: 4.0.0-beta.97
@@ -1894,6 +1896,9 @@ importers:
       '@effect/vitest':
         specifier: 4.0.0-beta.97
         version: 4.0.0-beta.97(effect@4.0.0-beta.97)(vitest@4.1.9)
+      '@foldkit/vite-plugin':
+        specifier: workspace:*
+        version: link:../vite-plugin-foldkit
       effect:
         specifier: 4.0.0-beta.97
         version: 4.0.0-beta.97
@@ -1918,10 +1923,16 @@ importers:
 
   packages/vite-plugin-foldkit:
     dependencies:
+      magic-string:
+        specifier: ^0.30.21
+        version: 0.30.21
       ws:
         specifier: ^8.21.0
         version: 8.21.0
     devDependencies:
+      '@types/node':
+        specifier: ^25.9.3
+        version: 25.9.3
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
@@ -1931,6 +1942,9 @@ importers:
       foldkit:
         specifier: workspace:*
         version: link:../foldkit
+      happy-dom:
+        specifier: ^20.10.4
+        version: 20.10.4
       rimraf:
         specifier: ^6.1.3
         version: 6.1.3
@@ -1940,6 +1954,9 @@ importers:
       vite:
         specifier: ^8.0.16
         version: 8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.9(@types/node@25.9.3)(@vitest/coverage-v8@4.1.9)(happy-dom@20.10.4)(jsdom@29.1.1)(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
 
   packages/website:
     dependencies:
@@ -5624,10 +5641,6 @@ packages:
   smol-toml@1.6.1:
     resolution: {integrity: sha512-dWUG8F5sIIARXih1DTaQAX4SsiTXhInKf1buxdY9DIg4ZYPZK5nGM1VRIYmEbDbsHt7USo99xSLFu5Q1IqTmsg==}
     engines: {node: '>= 18'}
-
-  snabbdom@3.6.3:
-    resolution: {integrity: sha512-W2lHLLw2qR2Vv0DcMmcxXqcfdBaIcoN+y/86SmHv8fn4DazEQSH6KN3TjZcWvwujW56OHiiirsbHWZb4vx/0fg==}
-    engines: {node: '>=12.17.0'}
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -9872,8 +9885,6 @@ snapshots:
   slash@3.0.0: {}
 
   smol-toml@1.6.1: {}
-
-  snabbdom@3.6.3: {}
 
   source-map-js@1.2.1: {}
 

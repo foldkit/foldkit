@@ -29,8 +29,7 @@ const fileKey = (file: File.File): string =>
 const resumeView = (resume: File.File): Html => {
   const h = html<Attachments.Message>()
 
-  return h.keyed('div')(
-    'resume-filled',
+  return h.div(
     [
       h.Class(
         'flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3',
@@ -133,8 +132,7 @@ export const attachmentsView = Submodel.defineView<
             viewInputs: {
               accept: ['application/pdf', '.doc', '.docx'],
               toView: attributes =>
-                h.keyed('label')(
-                  'resume-empty',
+                h.label(
                   [
                     ...attributes.root,
                     h.Class(clsx(dropZoneClassName, 'py-6')),

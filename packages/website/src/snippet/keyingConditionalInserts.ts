@@ -7,9 +7,7 @@ const cartView = (model: Model): Html => {
     [],
     [
       summaryView(model),
-      ...(model.hasDiscount
-        ? [h.keyed('div')('discount', [], [discountView(model)])]
-        : []),
+      ...(model.hasDiscount ? [discountView(model)] : []),
       checkoutView(model),
     ],
   )

@@ -449,13 +449,8 @@ const breadcrumbView = (path: Array.NonEmptyReadonlyArray<string>): Html => {
           [
             h.span([h.Class('text-gray-400')], ['/']),
             isCurrentSegment
-              ? h.keyed('span')(
-                  'current',
-                  [h.Class('font-medium text-gray-800')],
-                  [segment],
-                )
-              : h.keyed('a')(
-                  'link',
+              ? h.span([h.Class('font-medium text-gray-800')], [segment])
+              : h.a(
                   [
                     h.Href(filesRouter({ path: crumbPath })),
                     h.Class('text-blue-500 hover:underline'),
@@ -523,11 +518,6 @@ const filesView = (path: Array.NonEmptyReadonlyArray<string>): Html => {
 
   const maybeEntry = findEntry(path)
 
-  const contentKey = Option.match(maybeEntry, {
-    onNone: () => 'Missing',
-    onSome: entry => entry._tag,
-  })
-
   const content = Option.match(maybeEntry, {
     onNone: () => missingEntryView(path),
     onSome: entry =>
@@ -541,7 +531,7 @@ const filesView = (path: Array.NonEmptyReadonlyArray<string>): Html => {
 
   return h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
-    [breadcrumbView(path), h.keyed('div')(contentKey, [], [content])],
+    [breadcrumbView(path), content],
   )
 }
 
@@ -606,10 +596,7 @@ export const view = (model: Model): Document => {
       [h.Class('min-h-screen bg-gray-100')],
       [
         h.header([], [navigationView(model.route)]),
-        h.main(
-          [h.Class('py-8')],
-          [h.keyed('div')(model.route._tag, [], [routeContent])],
-        ),
+        h.main([h.Class('py-8')], [routeContent]),
       ],
     ),
   }

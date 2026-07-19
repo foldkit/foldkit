@@ -1039,8 +1039,7 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
     }),
   )
 
-  return h.keyed('div')(
-    'docs',
+  return h.div(
     [h.Class('flex flex-col min-h-screen')],
     [
       skipNavLink,

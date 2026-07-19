@@ -891,10 +891,7 @@ export const view = (model: Model): Document => {
           ),
         ],
       ),
-      h.main(
-        [h.Class('pb-12')],
-        [h.keyed('div')(model.route._tag, [], [routeContent])],
-      ),
+      h.main([h.Class('pb-12')], [routeContent]),
     ],
   )
 

@@ -138,8 +138,7 @@ const isLastStep = (model: Model): boolean =>
 const navigationButtons = (model: Model): Html => {
   const h = html<Message>()
 
-  return h.keyed('div')(
-    'navigation',
+  return h.div(
     [h.Class('flex justify-between pt-6 mt-8 border-t border-gray-200')],
     [
       ...(isFirstStep(model)
@@ -148,8 +147,7 @@ const navigationButtons = (model: Model): Html => {
             Button.view<Message>({
               onClick: ClickedPrevious(),
               toView: attributes =>
-                h.keyed('button')(
-                  'previous',
+                h.button(
                   [
                     ...attributes.button,
                     h.Class(
@@ -166,8 +164,7 @@ const navigationButtons = (model: Model): Html => {
             Button.view<Message>({
               onClick: ClickedNext(),
               toView: attributes =>
-                h.keyed('button')(
-                  'next',
+                h.button(
                   [
                     ...attributes.button,
                     h.Class(
@@ -214,11 +211,7 @@ const stepContentPanel = (
         [h.Class('text-lg font-semibold text-gray-900 mb-6')],
         [Step.show(model.currentStep)],
       ),
-      h.keyed('div')(
-        `step-content-${model.currentStep}`,
-        [h.Class('min-h-[400px]')],
-        [stepContent(model, attentionSteps)],
-      ),
+      h.div([h.Class('min-h-[400px]')], [stepContent(model, attentionSteps)]),
       ...(model.currentStep !== 'Review' ? [navigationButtons(model)] : []),
     ],
   )
@@ -340,8 +333,7 @@ const mobilePreviewToggle = (model: Model): Html => {
 const mobilePreviewOverlay = (model: Model): Html => {
   const h = html<Message>()
 
-  return h.keyed('div')(
-    'mobile-overlay',
+  return h.div(
     [
       h.Class(
         'fixed inset-x-4 top-16 bottom-4 overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-2xl xl:hidden',

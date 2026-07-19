@@ -70,8 +70,7 @@ export const canvasView = (model: Model, theme: PaletteTheme): Html => {
       div(
         [OnMouseLeave(LeftCanvas()), Class('w-full max-w-lg')],
         [
-          html<Message>().keyed('div')(
-            `canvas-${model.gridSize}`,
+          div(
             [
               Class('cursor-crosshair select-none w-full aspect-square'),
               Style({

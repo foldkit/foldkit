@@ -78,12 +78,9 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 
 ## View Architecture
 
-- Key every branching view. Whenever a DOM position renders different content based on a value (route tag, top-level model variant, sub-model, any tagged union), give every branch a discriminating key, even when the branch root tags differ. Tag-based replacement is an implementation detail of the current differ, and it silently stops protecting a branch the moment someone changes its root tag. Same rule applies to `Match`, `if/else`, and ternaries.
-- Keys live at the branch site. When branches are built inline, key each branch's root element directly; never introduce a wrapper element whose only job is to carry a key. Ternaries and `if`/`else` chains always key each branch node: they have no ready discriminator, and synthesizing one for a wrapper key (`isOpen ? 'Open' : 'Closed'`) restates the branch logic in a string that nothing keeps in sync. When the arms of a tag match delegate to other view functions, keep a single `keyed` wrapper with the discriminating key at the branch site (`h.keyed('div')(model.route._tag, [], [routeContent])`) instead of pushing keys into those functions, so the branching stays visible where it happens. If keying an `if` chain feels awkward no matter where the keys go, the condition usually wants to be a tagged union on the Model.
-- One key per branch, never shared. If two branches would share a key, restructure them into a single branch whose internal differences are keyed conditional inserts. Sharing a key across branches encodes an identity claim the branch structure contradicts, and it rots into cross-branch patching.
-- Keys carry identity, never data. A key answers which branch or item occupies a position, not what it currently shows. Never derive a key from displayed data (field values, booleans, formatted strings) to force a refresh; content changes patch in place, and a data-derived key tears down live DOM state (focus, scroll, an open `details`) on every change. If a key can change while the same conceptual thing stays on screen, the key is wrong.
-- Key mapped list items by a stable model identifier, never by array position.
-- Key conditional inserts between stable siblings.
+- Key mapped list items by a stable Model identifier, never by array position. The same applies to entity keys: when one view function renders different entities at one position (a detail page across slugs), key by the entity id. These are the only keys to write; identity carries everything else.
+- Never key branches. Branch identity comes from view functions via the build. When switching a same-tag inline ternary must reset DOM state, extract the arms into named view functions.
+- Always build with `@foldkit/vite-plugin`. Without it, branch identity falls back to positional-plus-key semantics and every branch point needs hand-written keys.
 
 ## File Organization
 

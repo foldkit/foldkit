@@ -13,12 +13,12 @@ import {
   String,
   pipe,
 } from 'effect'
-import { h } from 'snabbdom'
-import type { Attrs, On, Props, VNodeData } from 'snabbdom'
 
 import type { File } from '../file/index.js'
 import type { MountAction } from '../mount/index.js'
 import { MountTracker } from '../mount/index.js'
+import { h } from '../snabbdom/index.js'
+import type { Attrs, On, Props, VNodeData } from '../snabbdom/index.js'
 import { VNode } from '../vdom.js'
 import { type ChildAttribute, isChildAttribute } from './childAttribute.js'
 import {

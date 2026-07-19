@@ -1,6 +1,6 @@
 # @foldkit/vite-plugin
 
-Vite plugin for Foldkit that enables hot module reloading with model preservation.
+Vite plugin for Foldkit: view identity branding for the differ, plus hot module reloading with model preservation.
 
 ## Installation
 
@@ -26,7 +26,15 @@ export default defineConfig({
 })
 ```
 
-## What it does
+## View identity
+
+Foldkit's differ tracks two independent kinds of identity: user keys, which match siblings in dynamic lists, and a framework-managed identity, which decides whether a matched position is still the same thing. When the producing view function changes, the differ replaces the node instead of patching it, so DOM state cannot bleed across an identity change. Branches rendered inline by one view function share that function's identity and patch in place, exactly as same-type elements do in React; extracting the branches into named view functions makes them identity boundaries.
+
+This plugin supplies that identity. At build time, in dev and production alike, it wraps every function return in your application modules with a branding call that stamps returned vnodes with the function's id (module path plus function name), set-if-absent. Identity therefore attaches at view-function boundaries, and any branching syntax behaves the same: if/else, ternaries, Effect Match, switch statements, and pattern-matching libraries are all equivalent, because identity belongs to the function that produced the subtree, not to the branch that selected it.
+
+Foldkit core modules are never instrumented, and functions that never return vnodes are wrapped inertly. Builds without this plugin fall back to positional matching plus keys, where branch points need hand-written keys.
+
+## Hot module reloading
 
 When you save a file during development, the plugin:
 

@@ -18,30 +18,23 @@ export const view = (model: Model): Document => {
     body: h.div(
       [h.Class('min-h-screen bg-gray-100')],
       [
-        h.keyed('div')(
-          model._tag,
-          [],
-          [
-            M.value(model).pipe(
-              M.tagsExhaustive({
-                LoggedOut: loggedOutModel =>
-                  h.submodel({
-                    slotId: 'logged-out',
-                    model: loggedOutModel,
-                    view: LoggedOut.view,
-                    toParentMessage: message =>
-                      GotLoggedOutMessage({ message }),
-                  }),
-                LoggedIn: loggedInModel =>
-                  h.submodel({
-                    slotId: 'logged-in',
-                    model: loggedInModel,
-                    view: LoggedIn.view,
-                    toParentMessage: message => GotLoggedInMessage({ message }),
-                  }),
+        M.value(model).pipe(
+          M.tagsExhaustive({
+            LoggedOut: loggedOutModel =>
+              h.submodel({
+                slotId: 'logged-out',
+                model: loggedOutModel,
+                view: LoggedOut.view,
+                toParentMessage: message => GotLoggedOutMessage({ message }),
               }),
-            ),
-          ],
+            LoggedIn: loggedInModel =>
+              h.submodel({
+                slotId: 'logged-in',
+                model: loggedInModel,
+                view: LoggedIn.view,
+                toParentMessage: message => GotLoggedInMessage({ message }),
+              }),
+          }),
         ),
       ],
     ),

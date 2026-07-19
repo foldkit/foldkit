@@ -351,10 +351,7 @@ export const view = (model: Model): Document => {
           [],
           [navigationView(model.route, Cart.totalItems(model.cart))],
         ),
-        h.main(
-          [h.Class('py-8')],
-          [h.keyed('div')(model.route._tag, [], [routeContent])],
-        ),
+        h.main([h.Class('py-8')], [routeContent]),
       ],
     ),
   }

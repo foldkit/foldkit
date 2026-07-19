@@ -114,7 +114,7 @@
   ],
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
-    "build": "pnpm run clean && tsc -b tsconfig.build.json",
+    "build": "pnpm run clean && tsc -b tsconfig.build.json && node scripts/brand-dist.mjs",
     "docs": "typedoc",
     "watch": "tsc -b tsconfig.build.json --watch",
     "lint": "pnpm --filter @foldkit/oxlint-plugin build && oxlint src",
@@ -130,6 +130,7 @@
   },
   "devDependencies": {
     "@effect/vitest": "4.0.0-beta.97",
+    "@foldkit/vite-plugin": "workspace:*",
     "effect": "4.0.0-beta.97",
     "foldkit": "workspace:*",
     "happy-dom": "^20.10.4",

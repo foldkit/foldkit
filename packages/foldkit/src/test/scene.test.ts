@@ -1,9 +1,9 @@
 import { Option, pipe } from 'effect'
-import { h } from 'snabbdom'
-import type { VNode } from 'snabbdom'
 import { describe, expect, test } from 'vitest'
 
 import { html as attributeHtml } from '../html/index.js'
+import { h } from '../snabbdom/index.js'
+import type { VNode } from '../snabbdom/index.js'
 import { defineView } from '../submodel/public.js'
 import {
   testId as attributeTestId,

@@ -127,16 +127,8 @@ export const chartStatusView = (model: Model): Html => {
 
   return Option.match(model.maybeChartError, {
     onNone: () =>
-      h.keyed('div')(
-        'ChartReady',
-        [h.Class('text-xs font-medium text-emerald-700')],
-        ['Chart ready'],
-      ),
+      h.div([h.Class('text-xs font-medium text-emerald-700')], ['Chart ready']),
     onSome: error =>
-      h.keyed('div')(
-        'ChartError',
-        [h.Class('max-w-md text-xs font-medium text-rose-700')],
-        [error],
-      ),
+      h.div([h.Class('max-w-md text-xs font-medium text-rose-700')], [error]),
   })
 }

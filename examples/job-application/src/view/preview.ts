@@ -38,18 +38,11 @@ const headerSection = (
     [
       h.h2([h.Class('text-xl font-bold text-gray-900')], [fullName]),
       ...(String.isNonEmpty(pronounLabel)
-        ? [
-            h.keyed('p')(
-              'preview-pronouns',
-              [h.Class('text-xs text-gray-500 italic')],
-              [pronounLabel],
-            ),
-          ]
+        ? [h.p([h.Class('text-xs text-gray-500 italic')], [pronounLabel])]
         : []),
       ...(Array.isReadonlyArrayNonEmpty(contacts)
         ? [
-            h.keyed('p')(
-              'preview-contact',
+            h.p(
               [h.Class('text-xs text-gray-500 mt-1 break-words')],
               [contacts.join(' · ')],
             ),

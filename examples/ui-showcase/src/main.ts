@@ -687,7 +687,7 @@ export const view = (model: Model): Document => {
         sidebarView(model.route),
         h.main(
           [h.Class('flex-1 p-4 md:p-8 overflow-auto')],
-          [h.keyed('div')(model.route._tag, [], [contentView(model)])],
+          [contentView(model)],
         ),
       ],
     ),

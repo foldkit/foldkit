@@ -673,13 +673,10 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
               [h.Class('mt-6')],
               [
                 AsyncData.matchData(model.currentSources, {
-                  onEmpty: () =>
-                    h.keyed('div')('Loading', [], [sourcesSkeletonView()]),
-                  onFailure: error =>
-                    h.keyed('div')('Failure', [], [sourcesFailureView(error)]),
+                  onEmpty: () => sourcesSkeletonView(),
+                  onFailure: error => sourcesFailureView(error),
                   onData: sources =>
-                    h.keyed('div')(
-                      'Loaded',
+                    h.div(
                       [],
                       Array.match(sources.files, {
                         onEmpty: () => [],

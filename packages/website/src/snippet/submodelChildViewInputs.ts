@@ -26,8 +26,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         h.button([h.OnClick(toggleMessage)], [viewInputs.buttonLabel]),
         ...(model.isOpen
           ? [
-              h.keyed('div')(
-                'menu',
+              h.div(
                 [h.Role('menu')],
                 Array.map(viewInputs.items, (label, index) =>
                   h.keyed('div')(

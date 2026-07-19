@@ -69,7 +69,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('createKeyedLazy'),
         ' for lists. Both work by caching the VNode returned by a view function. When the function reference and all arguments are referentially equal (',
         inlineCode('==='),
-        ") to the previous call, the cached VNode is returned without re-running the view function. Snabbdom's diff algorithm short-circuits when it sees the same VNode reference, so both VNode construction ",
+        ') to the previous call, the cached VNode is returned without re-running the view function. The differ short-circuits when it sees the same VNode reference, so both VNode construction ',
         'and subtree diffing are skipped.',
       ),
       tableOfContentsEntryToHeader(createLazyHeader),
@@ -127,7 +127,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       warningCallout(
         'One slot per position',
-        "A cached VNode can only be rendered at one position in the tree. Snabbdom uses each VNode's identity to track its real DOM element, so rendering the same cached VNode at two positions causes patches to collide and can duplicate or misplace DOM nodes. If the same content needs to appear in multiple positions (for example, the same navigation in a desktop sidebar and a mobile menu), create a separate lazy slot for each position.",
+        "A cached VNode can only be rendered at one position in the tree. The differ records each VNode object's real DOM element on the VNode itself, so rendering the same cached VNode at two positions causes patches to collide and can duplicate or misplace DOM nodes. If the same content needs to appear in multiple positions (for example, the same navigation in a desktop sidebar and a mobile menu), create a separate lazy slot for each position.",
       ),
       tableOfContentsEntryToHeader(whenToUseLazyHeader),
       para('Lazy views help most when:'),
@@ -141,7 +141,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       infoCallout(
         'How it works under the hood',
-        'Foldkit’s virtual DOM library (',
+        'Foldkit’s differ (a vendored fork of ',
         link(Link.snabbdom, 'Snabbdom'),
         ') compares the old and new VNode by reference before diffing. When ',
         inlineCode('oldVnode === newVnode'),

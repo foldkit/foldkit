@@ -982,7 +982,7 @@ const buildDaysAttributes = (
     locale.firstDayOfWeek,
   )
 
-  const rootAttributes = [h.Id(id), h.Key('Days')]
+  const rootAttributes = [h.Id(id)]
 
   const previousMonthButton = [
     h.Type('button'),
@@ -1150,7 +1150,7 @@ const buildMonthsAttributes = (
 
   const headingText = `${viewYear}`
 
-  const rootAttributes = [h.Id(id), h.Key('Months')]
+  const rootAttributes = [h.Id(id)]
 
   const headingButton = [
     h.Type('button'),
@@ -1274,7 +1274,7 @@ const buildYearsAttributes = (
   const pageEnd = pageStart + YEARS_PAGE_SIZE - 1
   const headingText = `${pageStart}–${pageEnd}`
 
-  const rootAttributes = [h.Id(id), h.Key('Years')]
+  const rootAttributes = [h.Id(id)]
 
   const previousPageButton = [
     h.Type('button'),

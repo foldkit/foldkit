@@ -54,7 +54,7 @@ Use `evo()` from `foldkit/struct` for immutable model updates. Never spread or `
 
 Bind the `html` factory inside each view function with `const h = html<Message>()` (never at module level), then reach for `h.div`, `h.OnClick`, etc. off the returned record. Use `empty` (not `null`) for conditional rendering, `M.value().pipe(M.tagsExhaustive({...}))` for discriminated unions, and `Array.match` for lists that may be empty.
 
-Key every view branch based on route or model state, even when the branch root tags differ. Key inline branch roots directly (never a wrapper introduced only to carry a key); when the branches delegate to other view functions, key a single wrapper at the branch site with the discriminating key, for example `h.keyed('div')(model.route._tag, [], [routeContent])`. Without keying, the virtual DOM tries to diff one layout into another, causing stale DOM and event handler mismatches.
+Keys are for mapped list items only: key each row by a stable Model identifier (`h.keyed('li')(item.id, [], [...])`), never by array position, and never derive a key from displayed data. Never key branches; the build gives each view function's output its own identity, so branch switches replace DOM automatically. When switching an inline same-tag ternary must reset DOM state, extract each arm into its own named view function.
 
 ### Commands
 

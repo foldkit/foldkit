@@ -355,8 +355,7 @@ export const landingView = (model: Model) => {
     toParentMessage: message => GotDemoTabsMessage({ message }),
   })
 
-  return h.keyed('div')(
-    'landing',
+  return h.div(
     [h.Class('flex flex-col min-h-screen')],
     [
       skipNavLink,
@@ -382,8 +381,7 @@ export const landingView = (model: Model) => {
 export const newsletterView = (model: Model) => {
   const h = html<Message>()
 
-  return h.keyed('div')(
-    'newsletter',
+  return h.div(
     [h.Class('flex flex-col min-h-screen')],
     [
       skipNavLink,

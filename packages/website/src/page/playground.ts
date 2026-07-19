@@ -844,8 +844,7 @@ const previewPaneView = (state: PlaygroundState): Html => {
       ),
     ],
     [
-      h.keyed('div')(
-        state._tag,
+      h.div(
         [h.Class('flex-1 min-w-0 min-h-0 flex flex-col')],
         [
           M.value(state).pipe(

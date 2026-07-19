@@ -931,7 +931,7 @@ export const view = (
         inlineCode('h.submodel'),
         ' is designed so the per-render-fresh ',
         inlineCode('toParentMessage'),
-        ' closure stays out of the cached VNode. The boundary’s wrap is stored in a runtime registry keyed by id, not captured by the VNode itself, so a cache hit preserves the wrap from the previous render. Snabbdom’s destroy hook deregisters the wrap when the DOM node is actually removed, so memoization across boundaries doesn’t leak.',
+        ' closure stays out of the cached VNode. The boundary’s wrap is stored in a runtime registry keyed by id, not captured by the VNode itself, so a cache hit preserves the wrap from the previous render. The differ’s destroy hook deregisters the wrap when the DOM node is actually removed, so memoization across boundaries doesn’t leak.',
       ),
       para(
         'Default: don’t memoize. Reach for ',

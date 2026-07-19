@@ -18,10 +18,11 @@
   ],
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
-    "build": "pnpm run clean && tsc -b tsconfig.build.json",
+    "build": "pnpm run clean && tsc -b tsconfig.build.json && node scripts/brand-dist.mjs",
     "watch": "tsc -b tsconfig.build.json --watch",
     "lint": "pnpm --filter @foldkit/oxlint-plugin build && oxlint src",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
   },
   "peerDependencies": {
     "@effect/platform-browser": "4.0.0-beta.97",
@@ -35,10 +36,12 @@
   "devDependencies": {
     "@effect/platform-browser": "4.0.0-beta.97",
     "@foldkit/ui": "workspace:*",
+    "@foldkit/vite-plugin": "workspace:*",
     "effect": "4.0.0-beta.97",
     "foldkit": "workspace:*",
     "rimraf": "^6.1.3",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
   },
   "keywords": [
     "foldkit",

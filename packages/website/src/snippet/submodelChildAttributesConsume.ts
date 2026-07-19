@@ -27,8 +27,7 @@ export const view = (model: Model) => {
             ),
             ...(slot.isOpen
               ? [
-                  h.keyed('div')(
-                    'menu',
+                  h.div(
                     [...slot.menuAttributes, h.Class('mt-2 p-1 bg-gray-50')],
                     Array.map(slot.items, item =>
                       h.keyed('div')(

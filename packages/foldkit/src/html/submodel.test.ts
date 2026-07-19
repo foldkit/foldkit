@@ -1,11 +1,11 @@
 import { Context, Option } from 'effect'
-import { h } from 'snabbdom'
 import { afterEach, beforeEach, expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
+import { h } from '../snabbdom/index.js'
 import { type VNode, dedupeSharedVNodes, memoizedVNodes } from '../vdom.js'
 import {
   type BoundaryRegistry,
