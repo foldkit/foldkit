@@ -420,8 +420,7 @@ const warningsView = (warnings: ReadonlyArray<SlowWarning>): Html => {
       ),
       Array.match(warnings, {
         onEmpty: () =>
-          h.keyed('div')(
-            'Empty',
+          h.div(
             [
               h.Class(
                 'rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-6 text-sm text-zinc-600',
@@ -430,11 +429,7 @@ const warningsView = (warnings: ReadonlyArray<SlowWarning>): Html => {
             ['Run a workload to record a warning.'],
           ),
         onNonEmpty: warnings =>
-          h.keyed('ul')(
-            'Warnings',
-            [h.Class('grid gap-3')],
-            Array.map(warnings, warningView),
-          ),
+          h.ul([h.Class('grid gap-3')], Array.map(warnings, warningView)),
       }),
     ],
   )
@@ -444,8 +439,7 @@ const patchRowsView = (rowCount: number, patchRun: number): Html => {
   const h = html<Message>()
 
   if (rowCount === 0) {
-    return h.keyed('div')(
-      'empty',
+    return h.div(
       [
         h.Class(
           'rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-6 text-sm text-zinc-600',

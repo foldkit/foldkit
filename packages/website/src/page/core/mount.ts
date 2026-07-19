@@ -186,13 +186,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       tableOfContentsEntryToHeader(sideEffectsOnMountHeader),
       para(
-        'Mount’s lifecycle is tied to the DOM node, not the VNode. VNodes are reconstructed on every render; DOM nodes persist across renders unless Snabbdom’s diff decides to replace them. If the diff reuses an existing DOM node (same tag, same key, same position), the Mount keeps running: ',
+        'Mount’s lifecycle is tied to the DOM node, not the VNode. VNodes are reconstructed on every render; DOM nodes persist across renders unless the differ decides to replace them. If the differ matches an existing DOM node (same tag, same identity, and for keyed list siblings the same key), the Mount keeps running: ',
         inlineCode('insert'),
         ' doesn’t re-fire and ',
         inlineCode('destroy'),
-        ' doesn’t fire. If the diff replaces the node (different tag, mismatched key, no key on a re-shuffled list), the old Mount’s scope closes (running ',
+        ' doesn’t fire. If the differ replaces the node (different tag, changed view-function identity, mismatched key), the old Mount’s scope closes (running ',
         inlineCode('acquireRelease'),
-        ' finalizers) and the new node gets a fresh Mount. Keying branching views and mapped list items is what keeps the diff from mis-matching elements across renders and accidentally transferring Mount state to the wrong element.',
+        ' finalizers) and the new node gets a fresh Mount. An unkeyed reordered list reuses DOM positions for different logical rows instead of replacing them, so view-function identity and stable keys on mapped list items are what keep the differ from mis-matching elements across renders and accidentally transferring Mount state to the wrong element.',
       ),
       para(
         'A typical Mount uses the element parameter to do DOM work that should pair with the element existing. Portal-to-body is the canonical small example: when this overlay element appears, move it to ',
@@ -217,7 +217,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         'Cleanup is registered via ',
         inlineCode('Effect.acquireRelease'),
-        ' inside the Effect, not as a separate hook. The runtime closes the Mount’s scope when Snabbdom destroys the element, which runs the release. Pair the setup and the release in the same ',
+        ' inside the Effect, not as a separate hook. The runtime closes the Mount’s scope when the differ destroys the element, which runs the release. Pair the setup and the release in the same ',
         inlineCode('acquireRelease'),
         ' expression.',
       ),
@@ -226,7 +226,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'Both must hold. First, the factory uses the element parameter. Mount provides the live element handle, and that handle is what makes Mount distinct from the alternatives. If your factory doesn’t read or write the element, pick a different primitive. Second, the work is DOM measurement or DOM manipulation on that element: read its geometry, mutate its CSS, attach an observer to it, portal it, hand it to a third-party library. Anything else is a Command from update (network, storage, analytics, focus-on-transition, scroll lock for the page), a Subscription whose dependencies are derived from the Model (timers, document-level keyboard listeners, system theme observers), or a ManagedResource whose lifetime tracks a Model condition (a WebSocket connection, a camera stream). If you find yourself wanting a Mount that doesn’t use its element, the cause is a Model condition or a Message dispatch, not the element’s existence. Re-check the cause and pick the matching primitive.',
       ),
       para(
-        'Only one Mount can attach per element. Snabbdom’s hook system stores a single ',
+        'Only one Mount can attach per element. The differ’s hook system stores a single ',
         inlineCode('insert'),
         '/',
         inlineCode('destroy'),
@@ -293,7 +293,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('MountAction'),
         ' with current arg values, but only the first invocation’s args ever execute. ',
         inlineCode('OnMount'),
-        ' is bound to Snabbdom’s ',
+        ' is bound to the differ’s ',
         inlineCode('insert'),
         ' and ',
         inlineCode('destroy'),

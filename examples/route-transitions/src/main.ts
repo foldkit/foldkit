@@ -536,8 +536,7 @@ const paintingNeighborsView = (paintingIndex: number): Html => {
 const missingPaintingView = (paintingId: number): Html => {
   const h = html<Message>()
 
-  return h.keyed('div')(
-    'Missing',
+  return h.div(
     [],
     [
       h.h1(
@@ -567,8 +566,7 @@ const foundPaintingView = (
     paintingStatus._tag === 'PaintingReady' &&
     paintingStatus.paintingId === painting.id
 
-  return h.keyed('div')(
-    'Found',
+  return h.div(
     [],
     [
       h.a(
@@ -820,10 +818,7 @@ export const view = (model: Model): Document => {
               'max-w-6xl mx-auto px-4 py-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] items-start',
             ),
           ],
-          [
-            h.keyed('div')(model.route._tag, [], [routeContent]),
-            transitionLogView(model.transitionLog),
-          ],
+          [routeContent, transitionLogView(model.transitionLog)],
         ),
       ],
     ),

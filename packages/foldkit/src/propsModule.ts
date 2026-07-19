@@ -1,4 +1,4 @@
-import type { Module } from 'snabbdom'
+import type { Module } from './snabbdom/index.js'
 
 /** A custom props module that extends snabbdom's built-in propsModule with
  *  proper cleanup of removed properties.

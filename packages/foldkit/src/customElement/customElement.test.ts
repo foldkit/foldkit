@@ -1,13 +1,4 @@
 import { Context, Effect, Schema as S } from 'effect'
-import {
-  attributesModule,
-  classModule,
-  datasetModule,
-  eventListenersModule,
-  init,
-  styleModule,
-  toVNode,
-} from 'snabbdom'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -21,6 +12,15 @@ import { m } from '../message/index.js'
 import { MountTracker } from '../mount/index.js'
 import { propsModule } from '../propsModule.js'
 import { Dispatch } from '../runtime/index.js'
+import {
+  attributesModule,
+  classModule,
+  datasetModule,
+  eventListenersModule,
+  init,
+  styleModule,
+  toVNode,
+} from '../snabbdom/index.js'
 import type { VNode } from '../vdom.js'
 import * as CustomElement from './index.js'
 

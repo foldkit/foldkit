@@ -438,11 +438,7 @@ const postsTabView = (model: Model): Html => {
 
   return Option.match(model.maybeSelectedPostId, {
     onNone: () =>
-      h.keyed('section')(
-        'PostsList',
-        [h.Class('flex flex-col gap-4')],
-        [postsListView(model)],
-      ),
+      h.section([h.Class('flex flex-col gap-4')], [postsListView(model)]),
     onSome: postId =>
       h.keyed('section')(
         postId,
@@ -486,19 +482,11 @@ const postsListView = (model: Model): Html => {
         ],
       ),
       AsyncData.matchDataSplitEmpty(model.posts, {
-        onIdle: () =>
-          h.keyed('div')('Idle', [], [loadingPanel('Loading posts...')]),
-        onLoading: () =>
-          h.keyed('div')('Loading', [], [loadingPanel('Loading posts...')]),
-        onFailure: error =>
-          h.keyed('div')(
-            'Failure',
-            [],
-            [errorPanel(error, ClickedRetryPosts())],
-          ),
+        onIdle: () => loadingPanel('Loading posts...'),
+        onLoading: () => loadingPanel('Loading posts...'),
+        onFailure: error => errorPanel(error, ClickedRetryPosts()),
         onData: ({ posts }) =>
-          h.keyed('div')(
-            'Loaded',
+          h.div(
             [h.Class('flex flex-col gap-4')],
             [
               ...Option.match(AsyncData.getError(model.posts), {
@@ -597,19 +585,12 @@ const postDetailView = (model: Model, postId: string): Html => {
           ),
       }),
       AsyncData.matchDataSplitEmpty(postDetailData, {
-        onIdle: () =>
-          h.keyed('div')('Idle', [], [loadingPanel('Loading post...')]),
-        onLoading: () =>
-          h.keyed('div')('Loading', [], [loadingPanel('Loading post...')]),
+        onIdle: () => loadingPanel('Loading post...'),
+        onLoading: () => loadingPanel('Loading post...'),
         onFailure: error =>
-          h.keyed('div')(
-            'Failure',
-            [],
-            [errorPanel(error, ClickedRetryPostDetail({ postId }))],
-          ),
+          errorPanel(error, ClickedRetryPostDetail({ postId })),
         onData: ({ detail, fetchedAt }) =>
-          h.keyed('div')(
-            'Loaded',
+          h.div(
             [h.Class('flex flex-col gap-4')],
             [
               ...Option.match(AsyncData.getError(postDetailData), {
@@ -675,19 +656,11 @@ const statsTabView = (model: Model): Html => {
         ],
       ),
       AsyncData.matchDataSplitEmpty(model.stats, {
-        onIdle: () =>
-          h.keyed('div')('Idle', [], [loadingPanel('Loading stats...')]),
-        onLoading: () =>
-          h.keyed('div')('Loading', [], [loadingPanel('Loading stats...')]),
-        onFailure: error =>
-          h.keyed('div')(
-            'Failure',
-            [],
-            [errorPanel(error, ClickedRetryStats())],
-          ),
+        onIdle: () => loadingPanel('Loading stats...'),
+        onLoading: () => loadingPanel('Loading stats...'),
+        onFailure: error => errorPanel(error, ClickedRetryStats()),
         onData: ({ stats, fetchedAt }) =>
-          h.keyed('div')(
-            'Loaded',
+          h.div(
             [h.Class('flex flex-col gap-4')],
             [
               ...Option.match(AsyncData.getError(model.stats), {
@@ -726,8 +699,7 @@ const statsCards = (
           h.span([], [`Updated at ${formatFetchedAt(fetchedAt)}`]),
           ...(isRefreshing
             ? [
-                h.keyed('span')(
-                  'refreshing',
+                h.span(
                   [h.Class('text-indigo-600 font-semibold')],
                   ['Refreshing'],
                 ),
@@ -760,11 +732,8 @@ const loadingPanel = (text: string): Html => {
   )
 }
 
-const staleView = (error: string, retryMessage: Message): Html => {
-  const h = html<Message>()
-
-  return h.keyed('div')('stale', [], [errorPanel(error, retryMessage)])
-}
+const staleView = (error: string, retryMessage: Message): Html =>
+  errorPanel(error, retryMessage)
 
 const errorPanel = (error: string, retryMessage: Message): Html => {
   const h = html<Message>()

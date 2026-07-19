@@ -17,10 +17,7 @@ const view = (model: Model): Document => {
     title: `${model.route._tag} | Shop`,
     body: h.div(
       [],
-      [
-        h.header([], [navigationView(model.route)]),
-        h.main([], [h.keyed('div')(model.route._tag, [], [routeContent])]),
-      ],
+      [h.header([], [navigationView(model.route)]), h.main([], [routeContent])],
     ),
   }
 }

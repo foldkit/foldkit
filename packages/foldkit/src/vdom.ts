@@ -1,4 +1,6 @@
 import { Option, Predicate } from 'effect'
+
+import { propsModule } from './propsModule.js'
 import {
   type VNode,
   attributesModule,
@@ -9,11 +11,9 @@ import {
   init,
   styleModule,
   toVNode,
-} from 'snabbdom'
+} from './snabbdom/index.js'
 
-import { propsModule } from './propsModule.js'
-
-export type { VNode } from 'snabbdom'
+export type { VNode } from './snabbdom/index.js'
 export { toVNode }
 
 export const patch = init([

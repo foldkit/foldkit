@@ -8,6 +8,7 @@
     "packages/foldkit": {
       "entry": [
         "src/index.ts",
+        "src/brand/public.ts",
         "src/experimental/public.ts",
         "src/experimental/machine/public.ts",
         "src/html/public.ts",

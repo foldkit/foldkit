@@ -71,8 +71,8 @@ const restSegmentsHeader: TableOfContentsEntry = {
 
 const keyingRouteViewsHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'keying-route-views',
-  text: 'Keying Route Views',
+  id: 'route-view-identity',
+  text: 'Route View Identity',
 }
 
 const navigationHeader: TableOfContentsEntry = {
@@ -520,31 +520,30 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' uses a rest route to drive a small file browser, building breadcrumb and directory links from the captured segments.',
       ),
       tableOfContentsEntryToHeader(keyingRouteViewsHeader),
-      warningCallout(
-        'Always key your route content.',
-        'Without a key, the virtual DOM will try to patch one route’s DOM into another instead of replacing it. This causes stale input state, mismatched event handlers, and bugs that are extremely hard to track down.',
-      ),
       para(
-        'Wrap your route content in a ',
-        inlineCode('keyed'),
-        ' element using ',
-        inlineCode('model.route._tag'),
-        ' as the key. This tells Snabbdom that each route is a distinct tree that should be fully replaced on navigation.',
+        'Each route arm delegates to its own view function, and view functions are identity boundaries: the build brands the vnodes a function returns with that function’s identity, and the differ replaces a position whose identity changed instead of patching it. Navigating from one route to another therefore tears down the old page and builds the new one fresh, with no keys and no wrapper elements. The identity is stamped by ',
+        inlineCode('@foldkit/vite-plugin'),
+        ', which ',
+        inlineCode('create-foldkit-app'),
+        ' includes by default. Do not build a Foldkit app without it:',
       ),
       highlightedCodeBlock(
         h.div(
-          [h.Class('text-sm'), h.InnerHTML(Snippet.routingKeyedHighlighted)],
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.routingViewIdentityHighlighted),
+          ],
           [],
         ),
-        Snippet.routingKeyedRaw,
-        'Copy keyed route example to clipboard',
+        Snippet.routingViewIdentityRaw,
+        'Copy route view identity example to clipboard',
         copiedSnippets,
         'mb-8',
       ),
       para(
-        'Route views are the most common case, but keying applies anywhere the view branches into structurally different trees. See ',
+        'Route views are the most common branch, but the same protection applies to any control flow that selects between view functions. See ',
         link(bestPracticesKeyingRouter(), 'Keying'),
-        ' in Best Practices for layout branches, model state branches, and what happens under the hood.',
+        ' in Best Practices for the full identity model, list keys, and the edges that remain manual.',
       ),
       tableOfContentsEntryToHeader(navigationHeader),
       para(

@@ -30,91 +30,79 @@ const addCardForm = (
   )
 
   if (!isAddingToThisColumn) {
-    return h.keyed('div')(
-      'idle',
-      [],
-      [
-        Button.view<Message>({
-          onClick: toParentMessage(ClickedAddCard({ columnId })),
-          toView: attributes =>
-            h.button(
-              [
-                ...attributes.button,
-                h.Class(
-                  'w-full rounded-lg border border-dashed border-gray-300 p-2 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors cursor-pointer',
-                ),
-              ],
-              ['+ Add card'],
+    return Button.view<Message>({
+      onClick: toParentMessage(ClickedAddCard({ columnId })),
+      toView: attributes =>
+        h.button(
+          [
+            ...attributes.button,
+            h.Class(
+              'w-full rounded-lg border border-dashed border-gray-300 p-2 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors cursor-pointer',
             ),
-        }),
-      ],
-    )
+          ],
+          ['+ Add card'],
+        ),
+    })
   }
 
-  return h.keyed('div')(
-    'adding',
-    [],
+  return h.form(
     [
-      h.form(
+      h.Class('flex flex-col gap-2'),
+      h.OnSubmit(toParentMessage(SubmittedNewCard())),
+    ],
+    [
+      h.label(
+        [h.For(ADD_CARD_INPUT_ID), h.Class('sr-only')],
+        ['New card title'],
+      ),
+      Input.view<Message>({
+        id: ADD_CARD_INPUT_ID,
+        onInput: value => toParentMessage(ChangedNewCardTitle({ value })),
+        value: model.newCardTitle,
+        placeholder: 'Card title...',
+        toView: attributes =>
+          h.input([
+            ...attributes.input,
+            h.Class(
+              'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none',
+            ),
+            h.OnKeyDownPreventDefault(
+              flow(
+                Option.liftPredicate(Equal.equals('Escape')),
+                Option.map(() => toParentMessage(CancelledNewCard())),
+              ),
+            ),
+          ]),
+      }),
+      h.div(
+        [h.Class('flex gap-2 justify-end')],
         [
-          h.Class('flex flex-col gap-2'),
-          h.OnSubmit(toParentMessage(SubmittedNewCard())),
-        ],
-        [
-          h.label(
-            [h.For(ADD_CARD_INPUT_ID), h.Class('sr-only')],
-            ['New card title'],
-          ),
-          Input.view<Message>({
-            id: ADD_CARD_INPUT_ID,
-            onInput: value => toParentMessage(ChangedNewCardTitle({ value })),
-            value: model.newCardTitle,
-            placeholder: 'Card title...',
+          Button.view<Message>({
+            onClick: toParentMessage(CancelledNewCard()),
             toView: attributes =>
-              h.input([
-                ...attributes.input,
-                h.Class(
-                  'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none',
-                ),
-                h.OnKeyDownPreventDefault(
-                  flow(
-                    Option.liftPredicate(Equal.equals('Escape')),
-                    Option.map(() => toParentMessage(CancelledNewCard())),
+              h.button(
+                [
+                  ...attributes.button,
+                  h.Class(
+                    'rounded-lg px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer',
                   ),
-                ),
-              ]),
+                ],
+                ['Cancel'],
+              ),
           }),
-          h.div(
-            [h.Class('flex gap-2 justify-end')],
-            [
-              Button.view<Message>({
-                onClick: toParentMessage(CancelledNewCard()),
-                toView: attributes =>
-                  h.button(
-                    [
-                      ...attributes.button,
-                      h.Class(
-                        'rounded-lg px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer',
-                      ),
-                    ],
-                    ['Cancel'],
+          Button.view<Message>({
+            type: 'submit',
+            toView: attributes =>
+              h.button(
+                [
+                  ...attributes.button,
+                  h.Class(
+                    'rounded-lg bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600 transition-colors cursor-pointer',
                   ),
-              }),
-              Button.view<Message>({
-                type: 'submit',
-                toView: attributes =>
-                  h.button(
-                    [
-                      ...attributes.button,
-                      h.Class(
-                        'rounded-lg bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600 transition-colors cursor-pointer',
-                      ),
-                    ],
-                    ['Add'],
-                  ),
-              }),
-            ],
-          ),
+                ],
+                ['Add'],
+              ),
+          }),
         ],
       ),
     ],

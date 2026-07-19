@@ -34,6 +34,15 @@ import { resolve } from 'node:path'
 import type { Plugin, ViteDevServer, WebSocketClient } from 'vite'
 import { type WebSocket, WebSocketServer } from 'ws'
 
+import { foldkitViewIdentity } from './viewIdentity.js'
+
+export { type BrandDistResult, brandDistDirectory } from './brandDist.js'
+export {
+  type ViewIdentityTransformResult,
+  foldkitViewIdentity,
+  transformViewIdentity,
+} from './viewIdentity.js'
+
 /** Options for the `foldkit` Vite plugin. */
 export type FoldkitPluginOptions = Readonly<{
   /**
@@ -587,10 +596,16 @@ const main = (
 
 // PLUGIN ENTRY
 
-export const foldkit = (options: FoldkitPluginOptions = {}): Plugin => {
+/**
+ * Foldkit's Vite plugin set: the view-identity branding transform (dev and
+ * build) plus the HMR bridge with state preservation and the optional
+ * DevTools MCP relay (dev only). Returned as an array; Vite flattens nested
+ * plugin arrays, so `plugins: [foldkit()]` keeps working.
+ */
+export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
   const events = Effect.runSync(Queue.unbounded<Event>())
 
-  return {
+  const hmrPlugin: Plugin = {
     name: 'foldkit-hmr',
     apply: 'serve',
     config: userConfig => ({
@@ -624,4 +639,6 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Plugin => {
       return []
     },
   }
+
+  return [foldkitViewIdentity(), hmrPlugin]
 }

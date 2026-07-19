@@ -1,11 +1,11 @@
 import { Context } from 'effect'
-import { h as snabbdomH } from 'snabbdom'
 import { afterEach, beforeEach, expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
+import { h as snabbdomH } from '../snabbdom/index.js'
 import {
   type BoundaryRegistry,
   beginRender,

@@ -362,7 +362,7 @@ const editingTodoView = (todo: Todo, text: string): Html => {
   const h = html<Message>()
 
   return h.keyed('li')(
-    `${todo.id}:editing`,
+    todo.id,
     [h.Class('flex items-center gap-3 p-3 bg-gray-50 rounded-lg')],
     [
       Input.view<Message>({
@@ -418,7 +418,7 @@ const nonEditingTodoView = (todo: Todo): Html => {
   const h = html<Message>()
 
   return h.keyed('li')(
-    `${todo.id}:viewing`,
+    todo.id,
     [h.Class('flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg group')],
     [
       Checkbox.view<Message>({

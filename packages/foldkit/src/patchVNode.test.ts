@@ -1,7 +1,7 @@
 import { Option } from 'effect'
-import { h } from 'snabbdom'
 import { describe, expect, it } from 'vitest'
 
+import { h } from './snabbdom/index.js'
 import { type VNode, __patchVNode } from './vdom.js'
 
 const spanCountsIn = (root: Node | undefined): ReadonlyArray<number> => {

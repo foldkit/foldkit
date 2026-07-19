@@ -409,8 +409,7 @@ const editionOptionView = (
                 [formatMoney(editionPrice(option.value))],
               ),
               option.isSelected
-                ? h.keyed('span')(
-                    'selected',
+                ? h.span(
                     [
                       h.Class(
                         clsx(
@@ -421,8 +420,7 @@ const editionOptionView = (
                     ],
                     [Icon.check('h-3 w-3'), 'Selected'],
                   )
-                : h.keyed('span')(
-                    'choose',
+                : h.span(
                     [h.Class(clsx(selectionBadgeClassName, 'text-stone-600'))],
                     ['Choose'],
                   ),
@@ -1017,21 +1015,14 @@ const reviewView = (state: typeof Review.Type): Html => {
           ),
           M.value(state.promo).pipe(
             M.tagsExhaustive({
-              NoPromo: () =>
-                h.keyed('p')(
-                  'NoPromo',
-                  [h.Class(promoFeedbackClassName)],
-                  [''],
-                ),
+              NoPromo: () => h.p([h.Class(promoFeedbackClassName)], ['']),
               AppliedPromo: ({ discount }) =>
-                h.keyed('p')(
-                  'AppliedPromo',
+                h.p(
                   [h.Class(clsx(promoFeedbackClassName, 'text-orange-800'))],
                   [`${discount.code} applied · ${discount.percentOff}% off`],
                 ),
               RejectedPromo: () =>
-                h.keyed('p')(
-                  'RejectedPromo',
+                h.p(
                   [h.Class(clsx(promoFeedbackClassName, 'text-red-700'))],
                   ["That code isn't recognized."],
                 ),
@@ -1258,27 +1249,18 @@ const cancelledView = (): Html => {
   )
 }
 
-const checkoutContentView = (state: typeof CheckoutState.Type): Html => {
-  const h = html<Message>()
-
-  return h.keyed('div')(
-    state._tag,
-    [],
-    [
-      M.value(state).pipe(
-        M.tagsExhaustive({
-          Cart: cartView,
-          Shipping: shippingView,
-          Payment: paymentView,
-          Review: reviewView,
-          Placing: placingView,
-          Confirmed: confirmedView,
-          Cancelled: cancelledView,
-        }),
-      ),
-    ],
+const checkoutContentView = (state: typeof CheckoutState.Type): Html =>
+  M.value(state).pipe(
+    M.tagsExhaustive({
+      Cart: cartView,
+      Shipping: shippingView,
+      Payment: paymentView,
+      Review: reviewView,
+      Placing: placingView,
+      Confirmed: confirmedView,
+      Cancelled: cancelledView,
+    }),
   )
-}
 
 const checkoutPanelView = (state: typeof CheckoutState.Type): Html => {
   const h = html<Message>()
@@ -1377,8 +1359,7 @@ const orderSummaryView = (state: typeof CheckoutState.Type): Html => {
           ...Option.match(pricing.maybeAppliedDiscount, {
             onNone: () => [],
             onSome: appliedDiscount => [
-              h.keyed('div')(
-                'discount',
+              h.div(
                 [h.Class(summaryRowClassName)],
                 [
                   h.dt(
@@ -1426,16 +1407,14 @@ const orderSummaryView = (state: typeof CheckoutState.Type): Html => {
         ],
       ),
       state.isShippingRequired
-        ? h.keyed('div')(
-            'shipping-note',
+        ? h.div(
             [h.Class(orderNoteClassName)],
             [
               Icon.truck('mt-0.5 h-4 w-4 shrink-0'),
               'Free tracked shipping in the United States.',
             ],
           )
-        : h.keyed('div')(
-            'download-note',
+        : h.div(
             [h.Class(orderNoteClassName)],
             [
               Icon.download('mt-0.5 h-4 w-4 shrink-0'),
@@ -1460,14 +1439,12 @@ const transitionLogView = (model: Model): Html => {
 
   return Array.match(model.transitionLog, {
     onEmpty: () =>
-      h.keyed('div')(
-        'transition-log-empty',
+      h.div(
         [h.Role('status'), h.Class(transitionLogClassName)],
         ['Waiting for the first checkout event'],
       ),
     onNonEmpty: transitionLog =>
-      h.keyed('ol')(
-        'transition-log-entries',
+      h.ol(
         [
           h.Role('log'),
           h.Class(clsx(transitionLogClassName, 'max-h-40 overflow-y-auto')),

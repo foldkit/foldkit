@@ -236,8 +236,7 @@ const blockedNoticeText = (attentionSteps: ReadonlyArray<Step.Step>): string =>
 const blockedNotice = (attentionSteps: ReadonlyArray<Step.Step>): Html => {
   const h = html<Message>()
 
-  return h.keyed('p')(
-    'blocked-notice',
+  return h.p(
     [h.Class('text-sm text-red-600 text-center')],
     [blockedNoticeText(attentionSteps)],
   )
@@ -253,8 +252,7 @@ const submissionSection = (
   return M.value(submission).pipe(
     M.tagsExhaustive({
       NotSubmitted: () =>
-        h.keyed('div')(
-          'submit-idle',
+        h.div(
           [h.Class('pt-4 space-y-2')],
           [
             ...(shouldShowBlockedNotice ? [blockedNotice(attentionSteps)] : []),
@@ -269,8 +267,7 @@ const submissionSection = (
           ],
         ),
       Submitting: () =>
-        h.keyed('div')(
-          'submit-pending',
+        h.div(
           [h.Class('pt-4')],
           [
             Button.view<Message>({
@@ -288,8 +285,7 @@ const submissionSection = (
           ],
         ),
       SubmitSuccess: () =>
-        h.keyed('div')(
-          'submit-success',
+        h.div(
           [
             h.Role('status'),
             h.Class(
@@ -308,8 +304,7 @@ const submissionSection = (
           ],
         ),
       SubmitError: ({ error }) =>
-        h.keyed('div')(
-          'submit-error',
+        h.div(
           [h.Class('space-y-3 pt-4')],
           [
             h.div(

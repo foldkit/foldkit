@@ -73,19 +73,13 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
       h.main(
         [h.Class('py-8')],
         [
-          h.keyed('div')(
-            model.route._tag,
-            [],
-            [
-              M.value(model.route).pipe(
-                M.tagsExhaustive({
-                  Dashboard: () => Dashboard.view(model.session),
-                  Settings: () => Settings.view(model.session),
-                  NotFound: ({ path }) =>
-                    notFoundView(path, dashboardRouter(), 'Go to Dashboard'),
-                }),
-              ),
-            ],
+          M.value(model.route).pipe(
+            M.tagsExhaustive({
+              Dashboard: () => Dashboard.view(model.session),
+              Settings: () => Settings.view(model.session),
+              NotFound: ({ path }) =>
+                notFoundView(path, dashboardRouter(), 'Go to Dashboard'),
+            }),
           ),
         ],
       ),

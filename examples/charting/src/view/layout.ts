@@ -89,8 +89,7 @@ export const telemetryStateView = (model: Model): Html =>
 export const loadingView = (): Html => {
   const h = html<Message>()
 
-  return h.keyed('section')(
-    'TelemetryLoading',
+  return h.section(
     [
       h.Class(
         'grid flex-1 place-items-center rounded-md border border-zinc-200 bg-white px-6 py-16',
@@ -123,8 +122,7 @@ export const loadingView = (): Html => {
 export const failureView = (error: string): Html => {
   const h = html<Message>()
 
-  return h.keyed('section')(
-    'TelemetryFailure',
+  return h.section(
     [
       h.Class(
         'grid flex-1 place-items-center rounded-md border border-rose-200 bg-rose-50 px-6 py-16 text-center',
@@ -166,8 +164,7 @@ export const dashboardShellView = (
 ): Html => {
   const h = html<Message>()
 
-  return h.keyed('section')(
-    'TelemetryDashboard',
+  return h.section(
     [
       h.Class(
         'grid flex-1 gap-5 md:grid-cols-[18rem_minmax(0,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)]',

@@ -806,8 +806,7 @@ const audioUnavailableNoticeView = (audio: AudioState): ReadonlyArray<Html> => {
   return M.value(audio).pipe(
     M.withReturnType<ReadonlyArray<Html>>(),
     M.tag('AudioUnavailable', () => [
-      h.keyed('p')(
-        'note-demo-audio-unavailable',
+      h.p(
         [h.Class('text-xs text-amber-600 dark:text-amber-500')],
         ['No audio output in this browser, so playback stays silent.'],
       ),

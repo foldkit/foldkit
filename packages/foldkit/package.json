@@ -15,6 +15,10 @@
       "types": "./dist/asyncData/public.d.ts",
       "import": "./dist/asyncData/public.js"
     },
+    "./brand": {
+      "types": "./dist/brand/public.d.ts",
+      "import": "./dist/brand/public.js"
+    },
     "./calendar": {
       "types": "./dist/calendar/public.d.ts",
       "import": "./dist/calendar/public.js"
@@ -146,7 +150,8 @@
   },
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "THIRD-PARTY-NOTICES.md"
   ],
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
@@ -184,9 +189,6 @@
     "type": "git",
     "url": "https://github.com/foldkit/foldkit.git",
     "directory": "packages/foldkit"
-  },
-  "dependencies": {
-    "snabbdom": "^3.6.3"
   },
   "publishConfig": {
     "access": "public"

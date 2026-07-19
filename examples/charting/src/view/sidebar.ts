@@ -46,8 +46,7 @@ export const sidebarView = (
       Option.match(maybeBanner, {
         onNone: () => h.empty,
         onSome: banner =>
-          h.keyed('div')(
-            'TelemetryBanner',
+          h.div(
             [
               h.Class(
                 'rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950',
@@ -161,8 +160,7 @@ export const controlPanelView = (model: Model): Html => {
         ],
       ),
       model.chartMode !== 'Ecosystem'
-        ? h.keyed('div')(
-            'period-control',
+        ? h.div(
             [h.Class('mt-3')],
             [
               h.div(

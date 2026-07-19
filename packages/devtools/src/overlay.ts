@@ -34,16 +34,11 @@ import {
   toInspectableValue,
 } from 'foldkit/devtools-host'
 import { lockScroll, unlockScroll } from 'foldkit/dom'
-import {
-  type Html,
-  childAttributes,
-  createKeyedLazy,
-  createLazy,
-  html,
-} from 'foldkit/html'
+import { type Html, createKeyedLazy, createLazy, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { makeElement } from 'foldkit/runtime'
 import type { DevToolsMode, DevToolsPosition } from 'foldkit/runtime'
+import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 import * as Subscription from 'foldkit/subscription'
 
@@ -944,41 +939,29 @@ const makeView = (
 
   // JSON TREE
 
+  const leafSpan = (className: string, text: string): Html =>
+    h.span([h.Class(className)], [text])
+
   const leafValueView = (value: unknown): Html =>
     M.value(value).pipe(
-      M.when(Predicate.isNull, () =>
-        h.span([h.Key('value'), h.Class('json-null italic')], ['null']),
-      ),
+      M.when(Predicate.isNull, () => leafSpan('json-null italic', 'null')),
       M.when(Predicate.isUndefined, () =>
-        h.span([h.Key('value'), h.Class('json-null italic')], ['undefined']),
+        leafSpan('json-null italic', 'undefined'),
       ),
       M.when(Predicate.isString, stringValue =>
-        h.span([h.Key('value'), h.Class('json-string')], [`"${stringValue}"`]),
+        leafSpan('json-string', `"${stringValue}"`),
       ),
       M.when(Predicate.isNumber, numberValue =>
-        h.span([h.Key('value'), h.Class('json-number')], [String(numberValue)]),
+        leafSpan('json-number', String(numberValue)),
       ),
       M.when(Predicate.isBoolean, booleanValue =>
-        h.span(
-          [h.Key('value'), h.Class('json-boolean')],
-          [String(booleanValue)],
-        ),
+        leafSpan('json-boolean', String(booleanValue)),
       ),
-      M.orElse(unknownValue =>
-        h.span([h.Key('value'), h.Class('json-null')], [String(unknownValue)]),
-      ),
+      M.orElse(unknownValue => leafSpan('json-null', String(unknownValue))),
     )
 
-  // NOTE: each row-child view declares an explicit key. snabbdom's
-  // `sameVnode` only checks `key + sel`, and foldkit element vnodes carry
-  // `sel = tagName` with classes stored in `data.class`. Without per-role
-  // keys, two unkeyed spans with different classes (e.g. `.json-key` and
-  // `.diff-dot`) are sameVnode to snabbdom, so a single DOM span gets
-  // recycled across roles as rows transition shape \u2014 and the text-node
-  // children from the old role can leak into the new role's element.
-  // Keying by role pins each slot to its own DOM element.
   const keyView = (key: string): Html =>
-    h.span([h.Key('key'), h.Class('json-key')], [`${key}:\u00a0`])
+    h.span([h.Class('json-key')], [`${key}:\u00a0`])
 
   const CHEVRON_RIGHT = 'M8.25 4.5l7.5 7.5-7.5 7.5'
   const CHEVRON_DOWN = 'M19.5 8.25l-7.5 7.5-7.5-7.5'
@@ -986,7 +969,6 @@ const makeView = (
   const arrowView = (isExpanded: boolean): Html =>
     h.svg(
       [
-        h.Key('arrow'),
         h.AriaHidden(true),
         h.Class('json-arrow shrink-0'),
         h.Xmlns('http://www.w3.org/2000/svg'),
@@ -1008,10 +990,41 @@ const makeView = (
     )
 
   const tagLabelView = (tag: string): Html =>
-    h.span([h.Key('tag'), h.Class('json-tag')], [tag])
+    h.span([h.Class('json-tag')], [tag])
 
-  const diffDotView: Html = h.span([h.Key('diffdot'), h.Class('diff-dot')], [])
+  const previewView = (preview: string): Html =>
+    h.span([h.Class('json-preview')], [preview])
+
+  const diffDotView: Html = h.span([h.Class('diff-dot')], [])
   const inlineDiffDotView: Html = h.span([h.Class('diff-dot-inline')], [])
+
+  const ArrowSegment = ts('ArrowSegment', { isExpanded: S.Boolean })
+  const DiffDotSegment = ts('DiffDotSegment')
+  const KeyLabelSegment = ts('KeyLabelSegment', { key: S.String })
+  const TagLabelSegment = ts('TagLabelSegment', { tag: S.String })
+  const PreviewSegment = ts('PreviewSegment', { preview: S.String })
+  const LeafValueSegment = ts('LeafValueSegment', { value: S.Unknown })
+
+  const RowSegment = S.Union([
+    ArrowSegment,
+    DiffDotSegment,
+    KeyLabelSegment,
+    TagLabelSegment,
+    PreviewSegment,
+    LeafValueSegment,
+  ])
+  type RowSegment = typeof RowSegment.Type
+
+  const rowSegmentView = M.type<RowSegment>().pipe(
+    M.tagsExhaustive({
+      ArrowSegment: ({ isExpanded }) => arrowView(isExpanded),
+      DiffDotSegment: () => diffDotView,
+      KeyLabelSegment: ({ key }) => keyView(key),
+      TagLabelSegment: ({ tag }) => tagLabelView(tag),
+      PreviewSegment: ({ preview }) => previewView(preview),
+      LeafValueSegment: ({ value }) => leafValueView(value),
+    }),
+  )
 
   type FlatNode = Readonly<{
     value: unknown
@@ -1123,7 +1136,13 @@ const makeView = (
     const hasDiffDot = isChanged || isAffected
 
     if (!nodeIsExpandable) {
-      return h.div(
+      const rowSegments: Array<RowSegment> = [
+        ...(hasDiffDot ? [DiffDotSegment()] : []),
+        ...(String_.isNonEmpty(key) ? [KeyLabelSegment({ key })] : []),
+        LeafValueSegment({ value }),
+      ]
+
+      return h.ul(
         [
           h.Key(treePath),
           h.Class(
@@ -1133,11 +1152,13 @@ const makeView = (
           ),
           indent,
         ],
-        [
-          ...(hasDiffDot ? [diffDotView] : []),
-          ...(String_.isNonEmpty(key) ? [keyView(key)] : []),
-          leafValueView(value),
-        ],
+        rowSegments.map(segment =>
+          h.keyed('li')(
+            segment._tag,
+            [h.Class('contents')],
+            [rowSegmentView(segment)],
+          ),
+        ),
       )
     }
 
@@ -1147,7 +1168,15 @@ const makeView = (
         : ''
       : collapsedPreview(value)
 
-    return h.div(
+    const rowSegments: Array<RowSegment> = [
+      ...(isRoot ? [] : [ArrowSegment({ isExpanded })]),
+      ...(!isRoot && hasDiffDot ? [DiffDotSegment()] : []),
+      ...(String_.isNonEmpty(key) ? [KeyLabelSegment({ key })] : []),
+      ...(String_.isNonEmpty(tag) ? [TagLabelSegment({ tag })] : []),
+      PreviewSegment({ preview }),
+    ]
+
+    return h.ul(
       [
         h.Key(treePath),
         h.Class(
@@ -1159,13 +1188,13 @@ const makeView = (
         indent,
         ...(isRoot ? [] : [h.OnClick(ToggledTreeNode({ path: treePath }))]),
       ],
-      [
-        ...(isRoot ? [] : [arrowView(isExpanded)]),
-        ...(!isRoot && hasDiffDot ? [diffDotView] : []),
-        ...(String_.isNonEmpty(key) ? [keyView(key)] : []),
-        ...(String_.isNonEmpty(tag) ? [tagLabelView(tag)] : []),
-        h.span([h.Key('value'), h.Class('json-preview')], [preview]),
-      ],
+      rowSegments.map(segment =>
+        h.keyed('li')(
+          segment._tag,
+          [h.Class('contents')],
+          [rowSegmentView(segment)],
+        ),
+      ),
     )
   }
 
@@ -1812,11 +1841,7 @@ const makeView = (
 
   const scrollToTopPillView = (): Html =>
     h.button(
-      [
-        h.Key('scroll-pill'),
-        h.Class('dt-scroll-pill'),
-        h.OnClick(ClickedScrollToTopPill()),
-      ],
+      [h.Class('dt-scroll-pill'), h.OnClick(ClickedScrollToTopPill())],
       [
         arrowUpIconView,
         h.span([h.Class('dt-scroll-pill-text')], ['Jump to top']),
@@ -1876,7 +1901,6 @@ const makeView = (
         buttonClassName: 'dt-filter-button',
         itemsClassName: 'dt-filter-items',
         className: 'dt-filter-wrapper',
-        attributes: childAttributes([h.Key('submodel-filter')]),
         backdropClassName: 'dt-filter-backdrop',
       },
       toParentMessage: message => GotSubmodelFilterMessage({ message }),
@@ -1919,8 +1943,7 @@ const makeView = (
     })
 
   const settingsScreenView = (model: Model): Html =>
-    h.keyed('div')(
-      'Settings',
+    h.div(
       [h.Class('flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-none')],
       [
         h.div(
@@ -2164,7 +2187,6 @@ const makeView = (
 
     return h.ul(
       [
-        h.Key('message-list'),
         h.Class('message-list flex-1 overflow-y-auto min-h-0 overscroll-none'),
         h.OnScroll(scrollTop => ScrolledMessageList({ scrollTop })),
       ],
@@ -2267,7 +2289,6 @@ const makeView = (
 
   const gearIconView: Html = h.svg(
     [
-      h.Key('gear-icon'),
       h.AriaHidden(true),
       h.Class('dt-settings-icon shrink-0'),
       h.Xmlns('http://www.w3.org/2000/svg'),
@@ -2290,7 +2311,6 @@ const makeView = (
 
   const closeSettingsIconView: Html = h.svg(
     [
-      h.Key('close-icon'),
       h.AriaHidden(true),
       h.Class('dt-settings-icon shrink-0'),
       h.Xmlns('http://www.w3.org/2000/svg'),
@@ -2352,8 +2372,7 @@ const makeView = (
       scrollToTopPillView(),
     )
 
-    return h.keyed('div')(
-      'Messages',
+    return h.div(
       [h.Class('flex flex-1 min-h-0 dt-content')],
       [
         h.div(
@@ -2378,8 +2397,7 @@ const makeView = (
     )
 
   const panelView = (model: Model): Html =>
-    h.keyed('div')(
-      'dt-panel',
+    h.div(
       [
         h.Class(
           clsx(

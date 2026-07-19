@@ -729,8 +729,7 @@ const geolocateOverlayView = (state: GeolocateState): Html => {
 const geolocateOverlayShellView = (content: Html): Html => {
   const h = html<Message>()
 
-  return h.keyed('div')(
-    'Geolocate()-overlay',
+  return h.div(
     [
       h.Class(
         'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40',
@@ -744,8 +743,7 @@ const geolocateOverlayShellView = (content: Html): Html => {
 const geolocateLocatingContentView = (): Html => {
   const h = html<Message>()
 
-  return h.keyed('article')(
-    'Geolocate()-locating',
+  return h.article(
     [
       h.Class(
         'bg-white rounded-lg shadow-lg max-w-sm w-full mx-4 px-6 py-5 text-center',
@@ -765,8 +763,7 @@ const geolocateLocatingContentView = (): Html => {
 const geolocateFailedContentView = (reason: string): Html => {
   const h = html<Message>()
 
-  return h.keyed('article')(
-    'Geolocate()-failed',
+  return h.article(
     [
       h.Class(
         'bg-white rounded-lg shadow-lg max-w-sm w-full mx-4 px-6 py-5 text-center',

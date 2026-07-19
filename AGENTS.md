@@ -75,10 +75,9 @@ Do not add inline or block comments to explain code. If code needs explanation, 
 
 ## View Architecture
 
-- Key every branching view. Whenever a DOM position renders different content based on a value, give every branch a discriminating key, even when the branch root tags differ.
-- Keys live at the branch site. Key inline branch roots directly, never a wrapper introduced only to carry a key. Ternaries and `if`/`else` chains key each branch node; never synthesize a wrapper key from the condition. When the arms of a tag match delegate to other view functions, key a single wrapper at the branch site instead of pushing keys into those functions.
-- Key mapped list items by a stable model identifier, never by array position.
-- Key conditional inserts between stable siblings.
+- Key mapped list items by a stable Model identifier, never by array position. The same applies to entity keys: when one view function renders different entities at one position (a detail page across slugs), key by the entity id. These are the only keys to write; identity carries everything else.
+- Never key branches. Branch identity comes from view functions via the build. When switching a same-tag inline ternary must reset DOM state, extract the arms into named view functions.
+- Always build with `@foldkit/vite-plugin`. Without it, branch identity falls back to positional-plus-key semantics and every branch point needs hand-written keys.
 
 ## File Organization
 

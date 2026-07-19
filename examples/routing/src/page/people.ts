@@ -346,11 +346,7 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
       M.value(model.results).pipe(
         M.tag('SearchLoading', () => h.empty),
         M.tag('SearchLoaded', ({ people: results }) =>
-          h.keyed('ul')(
-            'SearchLoaded',
-            [h.Class('space-y-3')],
-            Array.map(results, personListItemView),
-          ),
+          h.ul([h.Class('space-y-3')], Array.map(results, personListItemView)),
         ),
         M.exhaustive,
       ),

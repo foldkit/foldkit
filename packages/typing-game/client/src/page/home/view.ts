@@ -44,18 +44,12 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
       h.h1([h.Class('mb-6 uppercase')], ['Typing Terminal']),
       welcomeText,
 
-      h.keyed('div')(
-        model.homeStep._tag,
-        [],
-        [
-          M.value(model.homeStep).pipe(
-            M.tagsExhaustive({
-              EnterUsername: enterUsername,
-              SelectAction: selectAction,
-              EnterRoomId: enterRoomId,
-            }),
-          ),
-        ],
+      M.value(model.homeStep).pipe(
+        M.tagsExhaustive({
+          EnterUsername: enterUsername,
+          SelectAction: selectAction,
+          EnterRoomId: enterRoomId,
+        }),
       ),
 
       maybeErrorMessage(model.formError),

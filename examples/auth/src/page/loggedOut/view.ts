@@ -15,25 +15,18 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
   return h.div(
     [h.Class('py-8')],
     [
-      h.keyed('div')(
-        model.route._tag,
-        [],
-        [
-          M.value(model.route).pipe(
-            M.tagsExhaustive({
-              Home: () => Home.view(),
-              Login: () =>
-                h.submodel({
-                  slotId: 'login',
-                  model: model.loginModel,
-                  view: Login.view,
-                  toParentMessage: message => GotLoginMessage({ message }),
-                }),
-              NotFound: ({ path }) =>
-                notFoundView(path, homeRouter(), 'Go Home'),
+      M.value(model.route).pipe(
+        M.tagsExhaustive({
+          Home: () => Home.view(),
+          Login: () =>
+            h.submodel({
+              slotId: 'login',
+              model: model.loginModel,
+              view: Login.view,
+              toParentMessage: message => GotLoginMessage({ message }),
             }),
-          ),
-        ],
+          NotFound: ({ path }) => notFoundView(path, homeRouter(), 'Go Home'),
+        }),
       ),
     ],
   )
