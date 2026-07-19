@@ -12,7 +12,7 @@ With it attached, agents can:
 - Inspect runtime state: current index, retained history bounds, pause status
 - Replay to any past state and resume
 - Discover the runtime's `Message` Schema as JSON Schema so agents can construct valid payloads without reading the application source
-- Dispatch Messages into the runtime, decoded against your `Message` Schema
+- Dispatch Messages into the runtime, singly or as an ordered batch, decoded against your `Message` Schema
 
 ## Quick Start
 
@@ -85,6 +85,7 @@ Each tool accepts an optional `runtime_id`. When omitted, the most recently conn
 | `foldkit_resume`                | Resumes normal execution after a replay.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `foldkit_get_message_schema`    | Describes the runtime's Message Schema so agents can construct valid Messages without reading the application source. With no arguments, returns a small variant index (top-level tag names plus payload fields). With `variant_tag` set to a dot-separated path of variant tags (e.g. `"GotChildMessage.Opened"`), narrows the JSON Schema along the chain and collapses deeper unions to summary placeholders. Returns `maybeResult: None` when the runtime hasn't configured `DevToolsConfig.Message`. |
 | `foldkit_dispatch_message`      | Enqueues a Message into the runtime as if your application produced it. The runtime decodes the payload against your Schema and returns a clean error if it does not match.                                                                                                                                                                                                                                                                                                                               |
+| `foldkit_dispatch_messages`     | Enqueues an ordered batch of Messages in one call, first to last. The runtime validates every payload before enqueueing any of them, so one invalid entry rejects the whole batch with its position and nothing is dispatched. The response reports the predicted history index for each Message.                                                                                                                                                                                                         |
 
 ### Reading the Model efficiently
 

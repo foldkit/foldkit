@@ -40,6 +40,7 @@ import {
   RequestFrame,
   type Response,
   ResponseDispatched,
+  ResponseDispatchedBatch,
   ResponseError,
   ResponseFrame,
   ResponseInit,
@@ -72,6 +73,7 @@ import {
   INIT_INDEX,
   computeDiff,
   latestEntryIndex,
+  nextEntryIndex,
 } from './store.js'
 import {
   type PathResolution,
@@ -363,7 +365,20 @@ const formatUnknownVariantError = (
   })
 }
 
-const dispatchRequest = (
+const missingMessageSchemaResponse = ResponseError({
+  reason:
+    'Cannot dispatch: DevToolsConfig.Message not configured. Pass your Message Schema to enable dispatch.',
+})
+
+const formatInvalidMessageReason = (error: unknown, message: unknown): string =>
+  `${error instanceof Error ? error.message : String(error)}\n\nReceived (typeof ${typeof message}): ${JSON.stringify(message)}`
+
+/**
+ * Fulfill one bridge Request against the DevTools store. `startWebSocketBridge`
+ * wires this to the HMR request channel; exported so tests can drive request
+ * handling without a live HMR connection.
+ */
+export const dispatchRequest = (
   store: DevToolsStore,
   dispatch: (message: unknown) => Effect.Effect<void>,
   maybeDispatchSchema: Option.Option<S.Codec<any, any>>,
@@ -595,29 +610,57 @@ const dispatchRequest = (
 
       RequestDispatchMessage: ({ message }) =>
         Option.match(maybeDispatchSchema, {
-          onNone: () =>
-            Effect.succeed(
-              ResponseError({
-                reason:
-                  'Cannot dispatch: DevToolsConfig.Message not configured. Pass your Message Schema to enable dispatch.',
-              }),
-            ),
+          onNone: () => Effect.succeed(missingMessageSchemaResponse),
           onSome: dispatchSchema =>
             Effect.gen(function* () {
               const decodedMessage =
                 yield* S.decodeUnknownEffect(dispatchSchema)(message)
               const stateBefore = yield* SubscriptionRef.get(store.stateRef)
-              const acceptedAtIndex =
-                stateBefore.startIndex + stateBefore.entries.length
+              const acceptedAtIndex = nextEntryIndex(stateBefore)
               yield* dispatch(decodedMessage)
               return ResponseDispatched({ acceptedAtIndex })
             }).pipe(
               Effect.catch(error =>
                 Effect.succeed(
                   ResponseError({
-                    reason: `Invalid Message: ${error instanceof Error ? error.message : String(error)}\n\nReceived (typeof ${typeof message}): ${JSON.stringify(message)}`,
+                    reason: `Invalid Message: ${formatInvalidMessageReason(error, message)}`,
                   }),
                 ),
+              ),
+            ),
+        }),
+
+      RequestDispatchMessages: ({ messages }) =>
+        Option.match(maybeDispatchSchema, {
+          onNone: () => Effect.succeed(missingMessageSchemaResponse),
+          onSome: dispatchSchema =>
+            Effect.gen(function* () {
+              const decodeMessage = S.decodeUnknownEffect(dispatchSchema)
+              const decodedMessages = yield* Effect.forEach(
+                messages,
+                (message, position) =>
+                  Effect.mapError(
+                    decodeMessage(message),
+                    error =>
+                      new Error(
+                        `Invalid Message at batch position ${position}: ${formatInvalidMessageReason(error, message)}\n\nNo Messages from the batch were dispatched.`,
+                      ),
+                  ),
+              )
+              const stateBefore = yield* SubscriptionRef.get(store.stateRef)
+              const firstAcceptedIndex = nextEntryIndex(stateBefore)
+              // NOTE: sequential dispatch is the ordered-batch contract.
+              // Concurrency here would race the queue offers and reorder
+              // entries.
+              yield* Effect.forEach(decodedMessages, dispatch)
+              const acceptedAtIndices = Array.map(
+                decodedMessages,
+                (_decodedMessage, offset) => firstAcceptedIndex + offset,
+              )
+              return ResponseDispatchedBatch({ acceptedAtIndices })
+            }).pipe(
+              Effect.catch(error =>
+                Effect.succeed(ResponseError({ reason: error.message })),
               ),
             ),
         }),
