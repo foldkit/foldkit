@@ -390,20 +390,26 @@ describe('createKeyedLazy', () => {
     expect(callCount).toBe(2)
   })
 
-  it('keeps numeric and string keys distinct', () => {
+  it('caches PropertyKeys by identity', () => {
     let callCount = 0
     const viewFn = (label: string) => {
       callCount++
       return h('div', {}, [label])
     }
 
+    const firstSymbol = Symbol('1')
+    const secondSymbol = Symbol('1')
     const lazy = createKeyedLazy()
     lazy(1, viewFn, ['number'])
     lazy('1', viewFn, ['string'])
+    lazy(firstSymbol, viewFn, ['first symbol'])
+    lazy(secondSymbol, viewFn, ['second symbol'])
     lazy(1, viewFn, ['number'])
     lazy('1', viewFn, ['string'])
+    lazy(firstSymbol, viewFn, ['first symbol'])
+    lazy(secondSymbol, viewFn, ['second symbol'])
 
-    expect(callCount).toBe(2)
+    expect(callCount).toBe(4)
   })
 
   it('recomputes only the key whose args changed', () => {
