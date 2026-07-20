@@ -390,6 +390,22 @@ describe('createKeyedLazy', () => {
     expect(callCount).toBe(2)
   })
 
+  it('keeps numeric and string keys distinct', () => {
+    let callCount = 0
+    const viewFn = (label: string) => {
+      callCount++
+      return h('div', {}, [label])
+    }
+
+    const lazy = createKeyedLazy()
+    lazy(1, viewFn, ['number'])
+    lazy('1', viewFn, ['string'])
+    lazy(1, viewFn, ['number'])
+    lazy('1', viewFn, ['string'])
+
+    expect(callCount).toBe(2)
+  })
+
   it('recomputes only the key whose args changed', () => {
     const calls: Array<string> = []
     const viewFn = (label: string) => {

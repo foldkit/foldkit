@@ -2326,7 +2326,7 @@ const keyed =
   <Message>() =>
   (tagName: TagName) =>
   (
-    key: string,
+    key: PropertyKey,
     attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
     children: ReadonlyArray<Child> = [],
   ): Html => {

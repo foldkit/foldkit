@@ -125,14 +125,14 @@ export const createLazy = (): (<Args extends ReadonlyArray<unknown>>(
  *  position in the tree. If the same item needs to appear in multiple
  *  positions, create one keyed lazy per position. */
 export const createKeyedLazy = (): (<Args extends ReadonlyArray<unknown>>(
-  key: string,
+  key: PropertyKey,
   fn: (...args: Args) => VNode | null,
   args: Args,
 ) => VNode | null) => {
-  const cache = new Map<string, CacheEntry>()
+  const cache = new Map<PropertyKey, CacheEntry>()
 
   return <Args extends ReadonlyArray<unknown>>(
-    key: string,
+    key: PropertyKey,
     fn: (...args: Args) => VNode | null,
     args: Args,
   ): VNode | null =>
