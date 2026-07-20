@@ -259,25 +259,26 @@ Canonical live examples:
 - **Conditional WebSocket connection** (active only when a session exists): `repos/foldkit/examples/websocket-chat/src/main.ts`
 - **Production multi-stream pattern**: `repos/foldkit/packages/typing-game/client/src/subscription.ts`
 
-## Keyed Views
+## View Identity and Keys
 
-Key every branch of a view that renders different content at one DOM position, even when the branch root tags differ. Tag-based replacement is an implementation detail of the differ, and it silently stops protecting a branch the moment someone changes its root tag.
+View functions are the differ's identity boundaries. `@foldkit/vite-plugin` brands every view function's return with that function's identity, so switching between branches that render through different view functions replaces the old subtree instead of patching it, even when both branch roots share a tag. Branches are never keyed. `if`/`else`, ternaries, Effect `Match`, and `switch` all behave the same way: each arm's view function carries its own identity, and continuity is structural.
 
-Keys live at the branch site. Key inline branch roots directly, never a wrapper introduced only to carry a key. Ternaries and `if`/`else` chains always key each branch node: they have no ready discriminator, and synthesizing one for a wrapper key restates the branch logic in a string that nothing keeps in sync. When the arms of a tag match delegate to other view functions, key a single wrapper at the branch site instead of pushing keys into those functions:
+Extract the arms into named view functions when a same-tag inline ternary must reset DOM state on switch. An inline `cond ? div(...) : div(...)` renders both arms through the enclosing function, so they share one identity and patch in place; two named functions give each arm its own identity.
+
+Write keys in exactly two places:
+
+- **Mapped list items**, keyed by a stable Model id, never by array position. Rows rendered by one row view function all share that function's identity, so the key is what distinguishes them.
+- **A shared view function rendering different entities at one position** (a detail page across slugs or ids), keyed by the entity id, so switching entities resets DOM state instead of bleeding it across.
 
 ```ts
-// Inline branches: key each branch's root element directly
-keyed('div')('landing', [...], [...])
-keyed('div')('docs', [...], [...])
+// Mapped list: key each row by its stable Model id
+Array.map(model.items, item => keyed('li')(item.id, [...], [...]))
 
-// Delegating branches: key a wrapper on the discriminator at the
-// branch site, keeping the branching visible where it happens
-keyed('div')(model.route._tag, [], [routeContent])
+// Shared view function across entities: key by the entity id
+keyed('article')(model.selectedProduct.id, [...], [...])
 ```
 
-Without keying, the virtual DOM tries to patch one layout into another, causing stale DOM, mismatched event handlers, and rendering bugs.
-
-Keys carry identity, never data. A key answers which branch or item occupies a position, not what it currently shows. Never derive a key from displayed data to force a refresh when content changes:
+Keys carry identity, never data. A key answers which item or entity occupies a position, not what it currently shows. Never derive a key from displayed data to force a refresh when content changes:
 
 ```ts
 // Wrong: the key restates displayed data, so every toggle tears the
@@ -288,7 +289,7 @@ keyed('div')(`${model.isCardSelected}:${model.isTermsAccepted}`, [...], [...])
 div([...], [...])
 ```
 
-If a key can change while the same conceptual thing stays on screen, the key is doing change detection, and patching already does that.
+If a key can change while the same conceptual thing stays on screen, the key is doing change detection, and patching already does that. Always build with `@foldkit/vite-plugin`; without it, branch identity falls back to positional-plus-key semantics and every branch point needs a hand-written key.
 
 ## DOM and Effect Helpers
 

@@ -194,7 +194,10 @@ const isAlreadyBranded = (program: AstNode): boolean => {
   )
 }
 
-const isEligibleModuleId = (id: string): boolean => {
+const isEligibleModuleId = (
+  id: string,
+  isFoldkitCoreResolved: boolean,
+): boolean => {
   if (id.startsWith(VIRTUAL_MODULE_PREFIX)) {
     return false
   }
@@ -205,6 +208,15 @@ const isEligibleModuleId = (id: string): boolean => {
   }
   if (!SCRIPT_FILE_PATTERN.test(strippedId)) {
     return false
+  }
+  // NOTE: the unanchored `packages/foldkit/` fragment is a best-effort
+  // fallback, applied only when the installed foldkit package could not be
+  // resolved. When it was resolved, the plugin's precise `foldkitPackageRoot`
+  // gate already excluded core, so re-applying the fragment here would wrongly
+  // un-brand a consumer whose own app path merely contains the segment (a
+  // workspace named `foldkit`, a vendored fork holding app code).
+  if (isFoldkitCoreResolved) {
+    return true
   }
   return !normalizedId.includes(FOLDKIT_CORE_PATH_FRAGMENT)
 }
@@ -424,10 +436,14 @@ export type ViewIdentityTransformResult = Readonly<{
  * every function, including async and generator functions and functions that
  * never produce a vnode, is inert outside view results.
  *
- * Skips foldkit core modules (both under `node_modules` and when aliased into
- * `packages/foldkit/`): if the element factory's own returns were branded,
- * every vnode would carry an identity at construction and set-if-absent would
- * neutralize the feature.
+ * Skips foldkit core modules: if the element factory's own returns were
+ * branded, every vnode would carry an identity at construction and
+ * set-if-absent would neutralize the feature. Core under `node_modules` is
+ * always skipped. The plugin resolves the installed foldkit package and passes
+ * `isFoldkitCoreResolved`; when it resolved, the plugin's precise package-root
+ * gate is authoritative and the coarse `packages/foldkit/` path fragment is
+ * left to the resolution-failed fallback, so a consumer whose own path merely
+ * contains that segment is still branded.
  *
  * Skips modules whose parsed program imports or re-exports the
  * `foldkit/brand` specifier: packages such as `@foldkit/ui` and
@@ -443,8 +459,9 @@ export const transformViewIdentity = (
   code: string,
   id: string,
   root: string,
+  options?: Readonly<{ isFoldkitCoreResolved?: boolean }>,
 ): ViewIdentityTransformResult | null => {
-  if (!isEligibleModuleId(id)) {
+  if (!isEligibleModuleId(id, options?.isFoldkitCoreResolved ?? false)) {
     return null
   }
   const program = parseProgram(code)
@@ -595,7 +612,9 @@ export const foldkitViewIdentity = (): Plugin => {
       ) {
         return null
       }
-      return transformViewIdentity(code, id, resolvedRoot)
+      return transformViewIdentity(code, id, resolvedRoot, {
+        isFoldkitCoreResolved: foldkitPackageRoot !== undefined,
+      })
     },
   }
 }

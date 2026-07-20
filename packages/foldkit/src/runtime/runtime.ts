@@ -1852,7 +1852,14 @@ const makeRuntime = <
           message: Option.Option<Message>,
         ): void => {
           queueMicrotask(() => {
-            if (isRuntimeDisposed) {
+            // NOTE: `isCrashed` as well as `isRuntimeDisposed`. A crash is
+            // terminal but does not dispose the runtime, and a Command forked
+            // by a Message processed just before the crashing Message sits in
+            // this microtask when the crash view paints. Without the crash
+            // check its effect would run behind the crash view, contradicting
+            // the crash-terminality contract. `crashWith` sets `isCrashed`
+            // synchronously, so it is already set by the time this runs.
+            if (isRuntimeDisposed || isCrashed) {
               return
             }
             Effect.runForkWith(runtimeContextForCommands)(
@@ -2555,7 +2562,7 @@ const makeRuntime = <
           ) =>
           (
             maybeRequirements: unknown,
-          ): Stream.Stream<Effect.Effect<Message, unknown>> => {
+          ): Stream.Stream<Effect.Effect<Message>> => {
             if (
               Option.isOption(maybeRequirements) &&
               Option.isNone(maybeRequirements)
@@ -2619,6 +2626,13 @@ const makeRuntime = <
                   maybeRequirementsToLifecycle(config, resourceRef),
                 ),
                 Stream.runForEach(Effect.flatMap(enqueueMessageEffect)),
+                // NOTE: mirrors the Subscription fork so a defect in
+                // `modelToMaybeRequirements` or the equivalence surfaces as
+                // the crash view instead of dying silently in this detached
+                // fiber. `provideAllResources` is not needed: `acquire` only
+                // requires `Scope`, which `Stream.scoped` supplies, and
+                // `release` requires nothing.
+                Effect.catchCause(cause => crashWith(cause, Option.none())),
               ),
             )
           })
