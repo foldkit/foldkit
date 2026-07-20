@@ -5,20 +5,21 @@ import {
   Effect,
   Fiber,
   Function,
-  Match,
   Option,
-  Predicate,
   Record,
   Stream,
-  String,
-  pipe,
 } from 'effect'
 
 import type { File } from '../file/index.js'
 import type { MountAction } from '../mount/index.js'
 import { MountTracker } from '../mount/index.js'
-import { h } from '../snabbdom/index.js'
-import type { Attrs, On, Props, VNodeData } from '../snabbdom/index.js'
+import {
+  type On,
+  type VNodeData,
+  VNodeDataMask,
+  h,
+  vnodeDataMaskKey,
+} from '../snabbdom/index.js'
 import { VNode } from '../vdom.js'
 import { type ChildAttribute, isChildAttribute } from './childAttribute.js'
 import {
@@ -445,17 +446,17 @@ export type Attribute<Message> = Data.TaggedEnum<{
   OnMouseOut: { readonly message: Message }
   OnMouseMove: { readonly message: Message }
   OnPointerMove: {
-    readonly f: (
+    readonly toMaybeMessage: (
       screenX: number,
       screenY: number,
       pointerType: string,
     ) => Option.Option<Message>
   }
   OnPointerLeave: {
-    readonly f: (pointerType: string) => Option.Option<Message>
+    readonly toMaybeMessage: (pointerType: string) => Option.Option<Message>
   }
   OnPointerDown: {
-    readonly f: (
+    readonly toMaybeMessage: (
       pointerType: string,
       button: number,
       screenX: number,
@@ -466,7 +467,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
     ) => Option.Option<Message>
   }
   OnPointerUp: {
-    readonly f: (
+    readonly toMaybeMessage: (
       screenX: number,
       screenY: number,
       pointerType: string,
@@ -474,51 +475,53 @@ export type Attribute<Message> = Data.TaggedEnum<{
     ) => Option.Option<Message>
   }
   OnKeyDown: {
-    readonly f: (key: string, modifiers: KeyboardModifiers) => Message
+    readonly toMessage: (key: string, modifiers: KeyboardModifiers) => Message
   }
   OnKeyDownPreventDefault: {
-    readonly f: (
+    readonly toMaybeMessage: (
       key: string,
       modifiers: KeyboardModifiers,
     ) => Option.Option<Message>
   }
   OnKeyDownFocus: {
-    readonly f: (
+    readonly toMaybeFocusAndMessage: (
       key: string,
       modifiers: KeyboardModifiers,
     ) => Option.Option<Readonly<{ focusSelector: string; message: Message }>>
   }
   OnKeyUp: {
-    readonly f: (key: string, modifiers: KeyboardModifiers) => Message
+    readonly toMessage: (key: string, modifiers: KeyboardModifiers) => Message
   }
   OnKeyUpPreventDefault: {
-    readonly f: (
+    readonly toMaybeMessage: (
       key: string,
       modifiers: KeyboardModifiers,
     ) => Option.Option<Message>
   }
   OnKeyPress: {
-    readonly f: (key: string, modifiers: KeyboardModifiers) => Message
+    readonly toMessage: (key: string, modifiers: KeyboardModifiers) => Message
   }
   OnFocus: { readonly message: Message }
   OnBlur: { readonly message: Message }
-  OnInput: { readonly f: (value: string) => Message }
-  OnChange: { readonly f: (value: string) => Message }
-  OnFileChange: { readonly f: (files: ReadonlyArray<File>) => Message }
+  OnInput: { readonly toMessage: (value: string) => Message }
+  OnChange: { readonly toMessage: (value: string) => Message }
+  OnFileChange: {
+    readonly toMessage: (files: ReadonlyArray<File>) => Message
+  }
   OnSubmit: { readonly message: Message }
   OnReset: { readonly message: Message }
-  OnScroll: { readonly f: (scrollTop: number) => Message }
+  OnScroll: { readonly toMessage: (scrollTop: number) => Message }
   OnWheel: { readonly message: Message }
   OnCopy: { readonly message: Message }
   OnCut: { readonly message: Message }
   OnPaste: { readonly message: Message }
   OnPastePreventDefault: {
-    readonly f: (text: string) => Option.Option<Message>
+    readonly toMaybeMessage: (text: string) => Option.Option<Message>
   }
   OnCopyText: { readonly text: string }
   OnCutText: { readonly text: string; readonly message: Message }
   OnCancel: { readonly message: Message }
-  OnToggle: { readonly f: (isOpen: boolean) => Message }
+  OnToggle: { readonly toMessage: (isOpen: boolean) => Message }
   OnContextMenu: { readonly message: Message }
   OnDragStart: { readonly message: Message }
   OnDrag: { readonly message: Message }
@@ -528,7 +531,9 @@ export type Attribute<Message> = Data.TaggedEnum<{
   OnDragOver: { readonly message: Message }
   AllowDrop: {}
   OnDrop: { readonly message: Message }
-  OnDropFiles: { readonly f: (files: ReadonlyArray<File>) => Message }
+  OnDropFiles: {
+    readonly toMessage: (files: ReadonlyArray<File>) => Message
+  }
   OnTouchStart: { readonly message: Message }
   OnTouchEnd: { readonly message: Message }
   OnTouchMove: { readonly message: Message }
@@ -774,7 +779,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
   Prop: { readonly key: string; readonly value: unknown }
   OnCustomEvent: {
     readonly name: string
-    readonly f: (event: CustomEvent<any>) => Message
+    readonly toMessage: (event: CustomEvent<any>) => Message
   }
   OnMount: {
     readonly action: MountAction<Message, any>
@@ -1108,7 +1113,7 @@ export { Prop, OnCustomEvent }
 // items route through a child Submodel's own dispatch).
 type BuildContext = Readonly<{
   data: VNodeData
-  postpatchProps: Array<Readonly<{ propName: string; value: unknown }>>
+  getPostpatchProps: () => Array<Readonly<{ propName: string; value: unknown }>>
   dispatch: DispatchSync
   resolveUnmount: UnmountResolver
   boundaryMappers: ReadonlyArray<(message: unknown) => unknown>
@@ -1123,25 +1128,65 @@ const setData = <K extends keyof VNodeData>(
   ctx.data[key] = value
 }
 
-const updateData = <K extends keyof VNodeData>(
-  ctx: BuildContext,
-  key: K,
-  value: Partial<VNodeData[K]>,
-): void => {
-  const existing = ctx.data[key]
-  if (existing === undefined) {
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    ctx.data[key] = value as VNodeData[K]
-  } else {
-    Object.assign(existing, value)
-  }
+const addVNodeDataMask = (ctx: BuildContext, dataMask: number): void => {
+  ctx.data[vnodeDataMaskKey] = (ctx.data[vnodeDataMaskKey] ?? 0) | dataMask
 }
 
-const updateDataProps = (ctx: BuildContext, props: Props): void =>
-  updateData(ctx, 'props', props)
+const setModuleData = <K extends keyof VNodeData>(
+  ctx: BuildContext,
+  key: K,
+  value: VNodeData[K],
+  dataMask: number,
+): void => {
+  ctx.data[key] = value
+  addVNodeDataMask(ctx, dataMask)
+}
 
-const updateDataAttrs = (ctx: BuildContext, attrs: Attrs): void =>
-  updateData(ctx, 'attrs', attrs)
+// NOTE: single-key fast paths. The bulk of attribute handlers set exactly
+// one prop, attr, or event handler; writing it directly into the vnode data
+// avoids allocating a `{ key: value }` literal and merging it per attribute.
+const setDataProp = (ctx: BuildContext, key: string, value: unknown): void => {
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const props = (ctx.data.props ??= {}) as Record<string, unknown>
+  props[key] = value
+  addVNodeDataMask(ctx, VNodeDataMask.Props)
+}
+
+const setDataAttr = (
+  ctx: BuildContext,
+  key: string,
+  value: string | number | boolean,
+): void => {
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const attrs = (ctx.data.attrs ??= {}) as Record<
+    string,
+    string | number | boolean
+  >
+  attrs[key] = value
+  addVNodeDataMask(ctx, VNodeDataMask.Attrs)
+}
+
+const addDataOn = (
+  ctx: BuildContext,
+  eventName: string,
+  handler: (...args: ReadonlyArray<never>) => void,
+): void => {
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const on = (ctx.data.on ??= {}) as Record<string, unknown>
+  addVNodeDataMask(ctx, VNodeDataMask.On)
+  const existingHandler = on[eventName]
+  if (existingHandler === undefined) {
+    on[eventName] = handler
+  } else {
+    // NOTE: chain in registration order, mirroring updateDataOn.
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const previous = existingHandler as (...args: ReadonlyArray<never>) => void
+    on[eventName] = (...args: ReadonlyArray<never>) => {
+      previous(...args)
+      handler(...args)
+    }
+  }
+}
 
 // Event handlers chain per DOM event in spread order. Without this,
 // `Object.assign` would silently drop earlier handlers for the same
@@ -1152,6 +1197,7 @@ const updateDataAttrs = (ctx: BuildContext, attrs: Attrs): void =>
 // earlier handler throws, later handlers do not run (mirroring native
 // exception propagation, not silently swallowing bugs).
 const updateDataOn = (ctx: BuildContext, on: On): void => {
+  addVNodeDataMask(ctx, VNodeDataMask.On)
   if (ctx.data.on === undefined) {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     ctx.data.on = on as On
@@ -1187,1712 +1233,1070 @@ const updatePropsWithPostpatch = (
   propName: string,
   value: unknown,
 ): void => {
-  updateDataProps(ctx, { [propName]: value })
-  ctx.postpatchProps.push({ propName, value })
+  setDataProp(ctx, propName, value)
+  ctx.getPostpatchProps().push({ propName, value })
 }
 
-// NOTE: Built once at module load. The matcher dispatches on `_tag` and
-// returns a thunk that applies the resulting mutation to a per-VNode
-// BuildContext. Per-attribute cost drops from O(matcher arms) closure
-// allocations to one thunk. `Attribute<unknown>` is the runtime-erased
-// shape. Message is purely a TypeScript parameter at this level and
-// DispatchSync already accepts unknown.
-const attributeMatcher: (
-  attribute: Attribute<unknown>,
-) => (ctx: BuildContext) => void = Match.type<Attribute<unknown>>().pipe(
-  Match.tagsExhaustive({
-    Key:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        setData(ctx, 'key', value),
-    Class: ({ value }) => {
-      const classObject = pipe(
-        value,
-        String.split(/\s+/),
-        Array.filter(String.isNonEmpty),
-        Array.reduce({}, (acc, className) => ({
-          ...acc,
-          [className]: true,
-        })),
-      )
-      return (ctx: BuildContext) => setData(ctx, 'class', classObject)
-    },
-    Id:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { id: value }),
-    Title:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { title: value }),
-    Lang:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { lang: value }),
-    Dir:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { dir: value }),
-    Tabindex:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { tabIndex: value }),
-    Hidden:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { hidden: value }),
-    Contenteditable:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { contenteditable: value }),
-    Draggable:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { draggable: value }),
-    Accesskey:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { accesskey: value }),
-    Translate:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { translate: value }),
-    Inert:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { inert: value }),
-    Popover:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { popover: value }),
-    Popovertarget:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { popovertarget: value }),
-    Popovertargetaction:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { popovertargetaction: value }),
-    OnClick:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { click: () => ctx.dispatch(message) }),
-    OnClickFocus:
-      ({ focusSelector, message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          click: () => {
-            const focusTarget = document.querySelector(focusSelector)
-            if (focusTarget instanceof HTMLElement) {
-              focusTarget.focus()
-            }
-            ctx.dispatch(message)
-          },
-        }),
-    OnDoubleClick:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { dblclick: () => ctx.dispatch(message) }),
-    OnMouseDown:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { mousedown: () => ctx.dispatch(message) }),
-    OnMouseUp:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { mouseup: () => ctx.dispatch(message) }),
-    OnMouseEnter:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { mouseenter: () => ctx.dispatch(message) }),
-    OnMouseLeave:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { mouseleave: () => ctx.dispatch(message) }),
-    OnMouseOver:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { mouseover: () => ctx.dispatch(message) }),
-    OnMouseOut:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { mouseout: () => ctx.dispatch(message) }),
-    OnMouseMove:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { mousemove: () => ctx.dispatch(message) }),
-    OnPointerMove:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          pointermove: (event: PointerEvent) => {
-            const maybeMessage = f(
-              event.screenX,
-              event.screenY,
-              event.pointerType,
-            )
-            if (Option.isSome(maybeMessage)) {
-              ctx.dispatch(maybeMessage.value)
-            }
-          },
-        }),
-    OnPointerLeave:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          pointerleave: (event: PointerEvent) => {
-            const maybeMessage = f(event.pointerType)
-            if (Option.isSome(maybeMessage)) {
-              ctx.dispatch(maybeMessage.value)
-            }
-          },
-        }),
-    OnPointerDown:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          pointerdown: (event: PointerEvent) => {
-            const maybeMessage = f(
-              event.pointerType,
-              event.button,
-              event.screenX,
-              event.screenY,
-              event.timeStamp,
-              event.clientX,
-              event.clientY,
-            )
-            if (Option.isSome(maybeMessage)) {
-              ctx.dispatch(maybeMessage.value)
-            }
-          },
-        }),
-    OnPointerUp:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          pointerup: (event: PointerEvent) => {
-            const maybeMessage = f(
-              event.screenX,
-              event.screenY,
-              event.pointerType,
-              event.timeStamp,
-            )
-            if (Option.isSome(maybeMessage)) {
-              ctx.dispatch(maybeMessage.value)
-            }
-          },
-        }),
-    OnKeyDown:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          keydown: (event: KeyboardEvent) =>
-            ctx.dispatch(f(event.key, keyboardModifiers(event))),
-        }),
-    OnKeyDownPreventDefault:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          keydown: (event: KeyboardEvent) => {
-            const maybeMessage = f(event.key, keyboardModifiers(event))
-            if (Option.isSome(maybeMessage)) {
-              event.preventDefault()
-              ctx.dispatch(maybeMessage.value)
-            }
-          },
-        }),
-    OnKeyDownFocus:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          keydown: (event: KeyboardEvent) => {
-            const maybeResult = f(event.key, keyboardModifiers(event))
-            if (Option.isSome(maybeResult)) {
-              event.preventDefault()
-              const { focusSelector, message } = maybeResult.value
-              const focusTarget = document.querySelector(focusSelector)
-              if (focusTarget instanceof HTMLElement) {
-                focusTarget.focus()
-              }
-              ctx.dispatch(message)
-            }
-          },
-        }),
-    OnKeyUp:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          keyup: (event: KeyboardEvent) =>
-            ctx.dispatch(f(event.key, keyboardModifiers(event))),
-        }),
-    OnKeyUpPreventDefault:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          keyup: (event: KeyboardEvent) => {
-            const maybeMessage = f(event.key, keyboardModifiers(event))
-            if (Option.isSome(maybeMessage)) {
-              event.preventDefault()
-              ctx.dispatch(maybeMessage.value)
-            }
-          },
-        }),
-    OnKeyPress:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          keypress: (event: KeyboardEvent) =>
-            ctx.dispatch(f(event.key, keyboardModifiers(event))),
-        }),
-    OnFocus:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { focus: () => ctx.dispatch(message) }),
-    OnBlur:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          blur: (event: FocusEvent) => {
-            if (
-              event.relatedTarget instanceof Element &&
-              event.relatedTarget.id === DEVTOOLS_HOST_ID
-            ) {
-              return
-            }
-            ctx.dispatch(message)
-          },
-        }),
-    OnInput:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          input: (event: Event) =>
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            ctx.dispatch(f((event.target as HTMLInputElement).value)),
-        }),
-    OnChange:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          change: (event: Event) =>
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            ctx.dispatch(f((event.target as HTMLInputElement).value)),
-        }),
-    OnFileChange:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          change: tagAsFileHandler((event: Event) => {
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            const target = event.target as HTMLInputElement
-            const files: ReadonlyArray<File> = target.files
-              ? Array.fromIterable(target.files)
-              : Array.empty()
-            target.value = ''
-            ctx.dispatch(f(files))
-          }, 'OnFileChange'),
-        }),
-    OnSubmit:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          submit: (event: Event) => {
-            event.preventDefault()
-            ctx.dispatch(message)
-          },
-        }),
-    OnReset:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { reset: () => ctx.dispatch(message) }),
-    OnScroll:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          scroll: (event: Event) =>
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            ctx.dispatch(f((event.target as HTMLElement).scrollTop)),
-        }),
-    OnWheel:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { wheel: () => ctx.dispatch(message) }),
-    OnCopy:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { copy: () => ctx.dispatch(message) }),
-    OnCut:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { cut: () => ctx.dispatch(message) }),
-    OnPaste:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { paste: () => ctx.dispatch(message) }),
-    OnPastePreventDefault:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          paste: (event: ClipboardEvent) => {
-            const text = event.clipboardData?.getData('text/plain') ?? ''
-            const maybeMessage = f(text)
-            if (Option.isSome(maybeMessage)) {
-              event.preventDefault()
-              ctx.dispatch(maybeMessage.value)
-            }
-          },
-        }),
-    OnCopyText:
-      ({ text }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          copy: (event: ClipboardEvent) => {
-            if (event.clipboardData) {
-              event.clipboardData.setData('text/plain', text)
-              event.preventDefault()
-            }
-          },
-        }),
-    OnCutText:
-      ({ text, message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          cut: (event: ClipboardEvent) => {
-            if (event.clipboardData) {
-              event.clipboardData.setData('text/plain', text)
-              event.preventDefault()
-              ctx.dispatch(message)
-            }
-          },
-        }),
-    OnCancel:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          cancel: (event: Event) => {
-            event.preventDefault()
-            ctx.dispatch(message)
-          },
-        }),
-    OnToggle:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          toggle: event =>
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            ctx.dispatch(f((event.target as HTMLDetailsElement).open)),
-        }),
-    OnContextMenu:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          contextmenu: (event: Event) => {
-            event.preventDefault()
-            ctx.dispatch(message)
-          },
-        }),
-    OnDragStart:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { dragstart: () => ctx.dispatch(message) }),
-    OnDrag:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { drag: () => ctx.dispatch(message) }),
-    OnDragEnd:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { dragend: () => ctx.dispatch(message) }),
-    OnDragEnter:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          dragenter: (event: Event) => {
-            event.preventDefault()
-            const zone = event.currentTarget
-            if (!(zone instanceof Element)) {
-              ctx.dispatch(message)
-              return
-            }
-            const state = getDragZoneState(zone)
-            if (processDragEnter(state, zone, event.target)) {
-              ctx.dispatch(message)
-            }
-          },
-        }),
-    OnDragLeave:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          dragleave: (event: Event) => {
-            const zone = event.currentTarget
-            if (!(zone instanceof Element)) {
-              ctx.dispatch(message)
-              return
-            }
-            const state = getDragZoneState(zone)
-            if (processDragLeave(state, zone, event.target) === 'schedule') {
-              queueMicrotask(() => {
-                if (checkScheduledLeave(state)) {
-                  ctx.dispatch(message)
-                }
-              })
-            }
-          },
-        }),
-    OnDragOver:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          dragover: (event: Event) => {
-            event.preventDefault()
-            ctx.dispatch(message)
-          },
-        }),
-    AllowDrop: () => (ctx: BuildContext) =>
-      updateDataOn(ctx, {
-        dragover: (event: Event) => {
-          event.preventDefault()
-        },
-      }),
-    OnDrop:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          drop: (event: Event) => {
-            event.preventDefault()
-            const zone = event.currentTarget
-            if (zone instanceof Element) {
-              clearDragZoneAfterDrop(zone)
-            }
-            ctx.dispatch(message)
-          },
-        }),
-    OnDropFiles:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          drop: tagAsFileHandler((event: Event) => {
-            event.preventDefault()
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            const dragEvent = event as DragEvent
-            const zone = dragEvent.currentTarget
-            if (zone instanceof Element) {
-              clearDragZoneAfterDrop(zone)
-            }
-            const files: ReadonlyArray<File> = dragEvent.dataTransfer?.files
-              ? Array.fromIterable(dragEvent.dataTransfer.files)
-              : Array.empty()
-            ctx.dispatch(f(files))
-          }, 'OnDropFiles'),
-        }),
-    OnTouchStart:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { touchstart: () => ctx.dispatch(message) }),
-    OnTouchEnd:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { touchend: () => ctx.dispatch(message) }),
-    OnTouchMove:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { touchmove: () => ctx.dispatch(message) }),
-    OnTouchCancel:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { touchcancel: () => ctx.dispatch(message) }),
-    OnAnimationStart:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { animationstart: () => ctx.dispatch(message) }),
-    OnAnimationEnd:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { animationend: () => ctx.dispatch(message) }),
-    OnAnimationIteration:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { animationiteration: () => ctx.dispatch(message) }),
-    OnTransitionEnd:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { transitionend: () => ctx.dispatch(message) }),
-    OnLoad:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { load: () => ctx.dispatch(message) }),
-    OnError:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { error: () => ctx.dispatch(message) }),
-    OnPlay:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { play: () => ctx.dispatch(message) }),
-    OnPause:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { pause: () => ctx.dispatch(message) }),
-    OnEnded:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { ended: () => ctx.dispatch(message) }),
-    OnTimeUpdate:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { timeupdate: () => ctx.dispatch(message) }),
-    OnVolumeChange:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { volumechange: () => ctx.dispatch(message) }),
-    OnSelect:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { select: () => ctx.dispatch(message) }),
-    Value:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updatePropsWithPostpatch(ctx, 'value', value),
-    Checked:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updatePropsWithPostpatch(ctx, 'checked', value),
-    Selected:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updatePropsWithPostpatch(ctx, 'selected', value),
-    Open:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updatePropsWithPostpatch(ctx, 'open', value),
-    Placeholder:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { placeholder: value }),
-    Name:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { name: value }),
-    Disabled:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { disabled: value }),
-    Readonly:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { readOnly: value }),
-    Required:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { required: value }),
-    Autofocus:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { autofocus: value }),
-    Spellcheck:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { spellcheck: value.toString() }),
-    Autocorrect:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { autocorrect: value }),
-    Autocapitalize:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { autocapitalize: value }),
-    InputMode:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { inputmode: value }),
-    EnterKeyHint:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { enterkeyhint: value }),
-    Multiple:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { multiple: value }),
-    Type:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { type: value }),
-    Accept:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { accept: value }),
-    Autocomplete:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { autocomplete: value }),
-    Pattern:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { pattern: value }),
-    Maxlength:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { maxLength: value }),
-    Minlength:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { minLength: value }),
-    Size:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { size: value }),
-    Cols:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { cols: value }),
-    Rows:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { rows: value }),
-    Max:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { max: value }),
-    Min:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { min: value }),
-    Step:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { step: value }),
-    For:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { htmlFor: value }),
-    Href:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { href: value }),
-    Src:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { src: value }),
-    Alt:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { alt: value }),
-    Target:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { target: value }),
-    Rel:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { rel: value }),
-    Download:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { download: value }),
-    Action:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { action: value }),
-    Method:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { method: value }),
-    Enctype:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { enctype: value }),
-    Novalidate:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { noValidate: value }),
-    Formaction:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { formAction: value }),
-    Formmethod:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { formMethod: value }),
-    Formnovalidate:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { formNoValidate: value }),
-    Formtarget:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { formTarget: value }),
-    Formenctype:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { formEnctype: value }),
-    Colspan:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { colSpan: value }),
-    Rowspan:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { rowSpan: value }),
-    Scope:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { scope: value }),
-    Headers:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { headers: value }),
-    Span:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { span: value }),
-    Start:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { start: value }),
-    Reversed:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { reversed: value }),
-    CiteAttr:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { cite: value }),
-    Datetime:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { dateTime: value }),
-    Wrap:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { wrap: value }),
-    List:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { list: value }),
-    FormAttr:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { form: value }),
-    LabelAttr:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { label: value }),
-    ContentAttr:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { content: value }),
-    Charset:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { charset: value }),
-    HttpEquiv:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'http-equiv': value }),
-    Srcset:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { srcset: value }),
-    Sizes:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { sizes: value }),
-    Loading:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { loading: value }),
-    Decoding:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { decoding: value }),
-    Fetchpriority:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { fetchpriority: value }),
-    Crossorigin:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { crossorigin: value }),
-    Referrerpolicy:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { referrerpolicy: value }),
-    Integrity:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { integrity: value }),
-    Hreflang:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { hreflang: value }),
-    Ping:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { ping: value }),
-    Sandbox:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { sandbox: value }),
-    Allow:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { allow: value }),
-    Srcdoc:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { srcdoc: value }),
-    Autoplay:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { autoplay: value }),
-    Controls:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { controls: value }),
-    Loop:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { loop: value }),
-    Muted:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updatePropsWithPostpatch(ctx, 'muted', value),
-    Poster:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { poster: value }),
-    Preload:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { preload: value }),
-    Playsinline:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { playsInline: value }),
-    High:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { high: value }),
-    Low:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { low: value }),
-    Optimum:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { optimum: value }),
-    Usemap:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { usemap: value }),
-    Ismap:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { isMap: value }),
-    Role:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { role: value }),
-    AriaLabel:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-label': value }),
-    AriaLabelledBy:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-labelledby': value }),
-    AriaDescribedBy:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-describedby': value }),
-    AriaHidden:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-hidden': value.toString() }),
-    AriaExpanded:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-expanded': value.toString() }),
-    AriaSelected:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-selected': value.toString() }),
-    AriaChecked:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-checked': value.toString() }),
-    AriaDisabled:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-disabled': value.toString() }),
-    AriaRequired:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-required': value.toString() }),
-    AriaInvalid:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-invalid': value.toString() }),
-    AriaLive:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-live': value }),
-    AriaControls:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-controls': value }),
-    AriaCurrent:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-current': value }),
-    AriaOrientation:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-orientation': value }),
-    AriaPressed:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-pressed': value }),
-    AriaHasPopup:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-haspopup': value }),
-    AriaActiveDescendant:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-activedescendant': value }),
-    AriaSort:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-sort': value }),
-    AriaMultiSelectable:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-multiselectable': value.toString() }),
-    AriaModal:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-modal': value.toString() }),
-    AriaBusy:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-busy': value.toString() }),
-    AriaErrorMessage:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-errormessage': value }),
-    AriaRoleDescription:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-roledescription': value }),
-    AriaAtomic:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-atomic': value.toString() }),
-    AriaAutocomplete:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-autocomplete': value }),
-    AriaColcount:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-colcount': value.toString() }),
-    AriaColindex:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-colindex': value.toString() }),
-    AriaColspan:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-colspan': value.toString() }),
-    AriaDescription:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-description': value }),
-    AriaDetails:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-details': value }),
-    AriaFlowto:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-flowto': value }),
-    AriaKeyshortcuts:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-keyshortcuts': value }),
-    AriaLevel:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-level': value.toString() }),
-    AriaOwns:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-owns': value }),
-    AriaPlaceholder:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-placeholder': value }),
-    AriaPosinset:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-posinset': value.toString() }),
-    AriaReadonly:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-readonly': value.toString() }),
-    AriaRelevant:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-relevant': value }),
-    AriaRowcount:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-rowcount': value.toString() }),
-    AriaRowindex:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-rowindex': value.toString() }),
-    AriaRowspan:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-rowspan': value.toString() }),
-    AriaSetsize:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-setsize': value.toString() }),
-    AriaValuemax:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-valuemax': value.toString() }),
-    AriaValuemin:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-valuemin': value.toString() }),
-    AriaValuenow:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-valuenow': value.toString() }),
-    AriaValuetext:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-valuetext': value }),
-    Attribute:
-      ({ key, value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { [key]: value }),
-    DataAttribute:
-      ({ key, value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { [`data-${key}`]: value }),
-    Style:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        setData(ctx, 'style', value),
-    InnerHTML:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { innerHTML: value }),
-    ViewBox:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { viewBox: value }),
-    Xmlns:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { xmlns: value }),
-    Fill:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { fill: value }),
-    FillRule:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'fill-rule': value }),
-    ClipRule:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'clip-rule': value }),
-    Stroke:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { stroke: value }),
-    StrokeWidth:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'stroke-width': value }),
-    StrokeLinecap:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'stroke-linecap': value }),
-    StrokeLinejoin:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'stroke-linejoin': value }),
-    D:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { d: value }),
-    Cx:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { cx: value }),
-    Cy:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { cy: value }),
-    R:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { r: value }),
-    X:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { x: value }),
-    Y:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { y: value }),
-    Width:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { width: value }),
-    Height:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { height: value }),
-    X1:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { x1: value }),
-    Y1:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { y1: value }),
-    X2:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { x2: value }),
-    Y2:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { y2: value }),
-    Points:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { points: value }),
-    Transform:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { transform: value }),
-    Opacity:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { opacity: value }),
-    StrokeDasharray:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'stroke-dasharray': value }),
-    StrokeDashoffset:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'stroke-dashoffset': value }),
-    Dx:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { dx: value }),
-    Dy:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { dy: value }),
-    Rotate:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { rotate: value }),
-    TextAnchor:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'text-anchor': value }),
-    DominantBaseline:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'dominant-baseline': value }),
-    AlignmentBaseline:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'alignment-baseline': value }),
-    BaselineShift:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'baseline-shift': value }),
-    TextLength:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { textLength: value }),
-    LengthAdjust:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { lengthAdjust: value }),
-    FontFamily:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'font-family': value }),
-    FontSize:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'font-size': value }),
-    FontWeight:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'font-weight': value }),
-    FontStyle:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'font-style': value }),
-    LetterSpacing:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'letter-spacing': value }),
-    WordSpacing:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'word-spacing': value }),
-    TextDecoration:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'text-decoration': value }),
-    WritingMode:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'writing-mode': value }),
-    Rx:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { rx: value }),
-    Ry:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { ry: value }),
-    PathLength:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { pathLength: value }),
-    FillOpacity:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'fill-opacity': value }),
-    StrokeOpacity:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'stroke-opacity': value }),
-    StrokeMiterlimit:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'stroke-miterlimit': value }),
-    PaintOrder:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'paint-order': value }),
-    VectorEffect:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'vector-effect': value }),
-    Color:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { color: value }),
-    Visibility:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { visibility: value }),
-    Display:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { display: value }),
-    Overflow:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { overflow: value }),
-    PointerEvents:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'pointer-events': value }),
-    Cursor:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { cursor: value }),
-    ShapeRendering:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'shape-rendering': value }),
-    TextRendering:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'text-rendering': value }),
-    ImageRendering:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'image-rendering': value }),
-    ClipPath:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'clip-path': value }),
-    Mask:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { mask: value }),
-    Filter:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { filter: value }),
-    ClipPathUnits:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { clipPathUnits: value }),
-    MaskUnits:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { maskUnits: value }),
-    MaskContentUnits:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { maskContentUnits: value }),
-    FilterUnits:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { filterUnits: value }),
-    PrimitiveUnits:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { primitiveUnits: value }),
-    Offset:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { offset: value }),
-    StopColor:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'stop-color': value }),
-    StopOpacity:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'stop-opacity': value }),
-    GradientUnits:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { gradientUnits: value }),
-    GradientTransform:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { gradientTransform: value }),
-    SpreadMethod:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { spreadMethod: value }),
-    Fx:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { fx: value }),
-    Fy:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { fy: value }),
-    Fr:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { fr: value }),
-    PatternUnits:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { patternUnits: value }),
-    PatternContentUnits:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { patternContentUnits: value }),
-    PatternTransform:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { patternTransform: value }),
-    MarkerStart:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'marker-start': value }),
-    MarkerMid:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'marker-mid': value }),
-    MarkerEnd:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'marker-end': value }),
-    MarkerWidth:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { markerWidth: value }),
-    MarkerHeight:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { markerHeight: value }),
-    MarkerUnits:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { markerUnits: value }),
-    RefX:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { refX: value }),
-    RefY:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { refY: value }),
-    Orient:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { orient: value }),
-    PreserveAspectRatio:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { preserveAspectRatio: value }),
-    Prop:
-      ({ key, value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { [key]: value }),
-    OnCustomEvent:
-      ({ name, f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          [name]: (event: Event) => {
-            if (event instanceof CustomEvent) {
-              ctx.dispatch(f(event))
-            }
-          },
-        }),
-    OnMount:
-      ({ action }) =>
-      (ctx: BuildContext) => {
-        const capturedContext = ctx.getCapturedContext()
-        const maybeTracker = Context.getOption(capturedContext, MountTracker)
-        const notifyStarted = Option.isSome(maybeTracker)
-          ? () => maybeTracker.value.started(action.name, action.args)
-          : Function.constVoid
-        const notifyEnded = Option.isSome(maybeTracker)
-          ? () => maybeTracker.value.ended(action.name, action.args)
-          : Function.constVoid
-        const markerWithArgs: FoldkitMountMarker =
-          action.args === undefined
-            ? { name: action.name }
-            : { name: action.name, args: action.args }
-        const boundaryLift = ctx.boundaryMappers
-        const marker: FoldkitMountMarker = Array.isReadonlyArrayEmpty(
-          boundaryLift,
+// NOTE: class strings repeat heavily across elements and renders, so the
+// parsed class object is cached per distinct string. Cached objects are
+// shared across vnodes; snabbdom's classModule only reads them, and the
+// Class handler installs them via `setData` (never merged into), so sharing
+// is safe. Class strings interpolated from model data can take unboundedly
+// many values, so the cache clears at a size cap instead of retaining every
+// string for the page lifetime; the render after a clear re-parses and
+// re-caches what it actually uses.
+const CLASS_OBJECT_CACHE_LIMIT = 10_000
+const classObjectCache = new Map<string, Readonly<Record<string, true>>>()
+
+const classObjectFor = (value: string): Readonly<Record<string, true>> => {
+  const cached = classObjectCache.get(value)
+  if (cached !== undefined) {
+    return cached
+  }
+  const classObject: Record<string, true> = {}
+  for (const className of value.split(/\s+/)) {
+    if (className !== '') {
+      classObject[className] = true
+    }
+  }
+  if (classObjectCache.size >= CLASS_OBJECT_CACHE_LIMIT) {
+    classObjectCache.clear()
+  }
+  classObjectCache.set(value, classObject)
+  return classObject
+}
+
+// NOTE: Built once at module load. Handlers are keyed by `_tag` and apply
+// their mutation to a per-VNode BuildContext directly, so applying an
+// attribute is one map lookup and one call with no per-attribute closure
+// allocation. The mapped type keeps the record exhaustive over the Attribute
+// union exactly like `Match.tagsExhaustive` did. `Attribute<unknown>` is the
+// runtime-erased shape. Message is purely a TypeScript parameter at this
+// level and DispatchSync already accepts unknown.
+type AttributeHandlers = {
+  readonly [Tag in Attribute<unknown>['_tag']]: (
+    attribute: Extract<Attribute<unknown>, Readonly<{ _tag: Tag }>>,
+    ctx: BuildContext,
+  ) => void
+}
+
+const attributeHandlers: AttributeHandlers = {
+  Key: ({ value }, ctx: BuildContext) => setData(ctx, 'key', value),
+  Class: ({ value }, ctx: BuildContext) =>
+    setModuleData(ctx, 'class', classObjectFor(value), VNodeDataMask.Class),
+  Id: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'id', value),
+  Title: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'title', value),
+  Lang: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'lang', value),
+  Dir: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'dir', value),
+  Tabindex: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'tabIndex', value),
+  Hidden: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'hidden', value),
+  Contenteditable: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'contenteditable', value),
+  Draggable: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'draggable', value),
+  Accesskey: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'accesskey', value),
+  Translate: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'translate', value),
+  Inert: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'inert', value),
+  Popover: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'popover', value),
+  Popovertarget: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'popovertarget', value),
+  Popovertargetaction: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'popovertargetaction', value),
+  OnClick: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'click', () => ctx.dispatch(message)),
+  OnClickFocus: ({ focusSelector, message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      click: () => {
+        const focusTarget = document.querySelector(focusSelector)
+        if (focusTarget instanceof HTMLElement) {
+          focusTarget.focus()
+        }
+        ctx.dispatch(message)
+      },
+    }),
+  OnDoubleClick: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'dblclick', () => ctx.dispatch(message)),
+  OnMouseDown: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'mousedown', () => ctx.dispatch(message)),
+  OnMouseUp: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'mouseup', () => ctx.dispatch(message)),
+  OnMouseEnter: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'mouseenter', () => ctx.dispatch(message)),
+  OnMouseLeave: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'mouseleave', () => ctx.dispatch(message)),
+  OnMouseOver: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'mouseover', () => ctx.dispatch(message)),
+  OnMouseOut: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'mouseout', () => ctx.dispatch(message)),
+  OnMouseMove: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'mousemove', () => ctx.dispatch(message)),
+  OnPointerMove: ({ toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      pointermove: (event: PointerEvent) => {
+        const maybeMessage = toMaybeMessage(
+          event.screenX,
+          event.screenY,
+          event.pointerType,
         )
-          ? markerWithArgs
-          : { ...markerWithArgs, messageMappers: boundaryLift }
+        if (Option.isSome(maybeMessage)) {
+          ctx.dispatch(maybeMessage.value)
+        }
+      },
+    }),
+  OnPointerLeave: ({ toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      pointerleave: (event: PointerEvent) => {
+        const maybeMessage = toMaybeMessage(event.pointerType)
+        if (Option.isSome(maybeMessage)) {
+          ctx.dispatch(maybeMessage.value)
+        }
+      },
+    }),
+  OnPointerDown: ({ toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      pointerdown: (event: PointerEvent) => {
+        const maybeMessage = toMaybeMessage(
+          event.pointerType,
+          event.button,
+          event.screenX,
+          event.screenY,
+          event.timeStamp,
+          event.clientX,
+          event.clientY,
+        )
+        if (Option.isSome(maybeMessage)) {
+          ctx.dispatch(maybeMessage.value)
+        }
+      },
+    }),
+  OnPointerUp: ({ toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      pointerup: (event: PointerEvent) => {
+        const maybeMessage = toMaybeMessage(
+          event.screenX,
+          event.screenY,
+          event.pointerType,
+          event.timeStamp,
+        )
+        if (Option.isSome(maybeMessage)) {
+          ctx.dispatch(maybeMessage.value)
+        }
+      },
+    }),
+  OnKeyDown: ({ toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      keydown: (event: KeyboardEvent) =>
+        ctx.dispatch(toMessage(event.key, keyboardModifiers(event))),
+    }),
+  OnKeyDownPreventDefault: ({ toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      keydown: (event: KeyboardEvent) => {
+        const maybeMessage = toMaybeMessage(event.key, keyboardModifiers(event))
+        if (Option.isSome(maybeMessage)) {
+          event.preventDefault()
+          ctx.dispatch(maybeMessage.value)
+        }
+      },
+    }),
+  OnKeyDownFocus: ({ toMaybeFocusAndMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      keydown: (event: KeyboardEvent) => {
+        const maybeResult = toMaybeFocusAndMessage(
+          event.key,
+          keyboardModifiers(event),
+        )
+        if (Option.isSome(maybeResult)) {
+          event.preventDefault()
+          const { focusSelector, message } = maybeResult.value
+          const focusTarget = document.querySelector(focusSelector)
+          if (focusTarget instanceof HTMLElement) {
+            focusTarget.focus()
+          }
+          ctx.dispatch(message)
+        }
+      },
+    }),
+  OnKeyUp: ({ toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      keyup: (event: KeyboardEvent) =>
+        ctx.dispatch(toMessage(event.key, keyboardModifiers(event))),
+    }),
+  OnKeyUpPreventDefault: ({ toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      keyup: (event: KeyboardEvent) => {
+        const maybeMessage = toMaybeMessage(event.key, keyboardModifiers(event))
+        if (Option.isSome(maybeMessage)) {
+          event.preventDefault()
+          ctx.dispatch(maybeMessage.value)
+        }
+      },
+    }),
+  OnKeyPress: ({ toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      keypress: (event: KeyboardEvent) =>
+        ctx.dispatch(toMessage(event.key, keyboardModifiers(event))),
+    }),
+  OnFocus: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'focus', () => ctx.dispatch(message)),
+  OnBlur: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      blur: (event: FocusEvent) => {
+        if (
+          event.relatedTarget instanceof Element &&
+          event.relatedTarget.id === DEVTOOLS_HOST_ID
+        ) {
+          return
+        }
+        ctx.dispatch(message)
+      },
+    }),
+  OnInput: ({ toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      input: (event: Event) =>
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-        ;(ctx.data as Record<string, unknown>)[FOLDKIT_MOUNT_KEY] = marker
-        const existingDestroy = ctx.data.hook?.destroy
-        ctx.data.hook = {
-          ...ctx.data.hook,
-          insert: vnode => {
-            if (vnode.elm instanceof Element) {
-              const element = vnode.elm
-              notifyStarted()
-              const fiber = Effect.runForkWith(capturedContext)(
-                Stream.runForEach(action.f(element), message =>
-                  Effect.sync(() => ctx.dispatch(message)),
-                ).pipe(
-                  Effect.catchCause(cause =>
-                    Effect.sync(() => {
-                      console.error(
-                        `[OnMount ${action.name}] unhandled failure`,
-                        cause,
-                      )
-                    }),
-                  ),
-                ),
-              )
-              onMountStates.set(element, { fiber })
-            }
-          },
-          destroy: vnode => {
-            if (existingDestroy !== undefined) {
-              existingDestroy(vnode)
-            }
-            if (vnode.elm instanceof Element) {
-              const state = onMountStates.get(vnode.elm)
-              if (state) {
-                Effect.runFork(Fiber.interrupt(state.fiber))
-                onMountStates.delete(vnode.elm)
-                notifyEnded()
-              }
-            }
-          },
+        ctx.dispatch(toMessage((event.target as HTMLInputElement).value)),
+    }),
+  OnChange: ({ toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      change: (event: Event) =>
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        ctx.dispatch(toMessage((event.target as HTMLInputElement).value)),
+    }),
+  OnFileChange: ({ toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      change: tagAsFileHandler((event: Event) => {
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        const target = event.target as HTMLInputElement
+        const files: ReadonlyArray<File> = target.files
+          ? Array.fromIterable(target.files)
+          : Array.empty()
+        target.value = ''
+        ctx.dispatch(toMessage(files))
+      }, 'OnFileChange'),
+    }),
+  OnSubmit: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      submit: (event: Event) => {
+        event.preventDefault()
+        ctx.dispatch(message)
+      },
+    }),
+  OnReset: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'reset', () => ctx.dispatch(message)),
+  OnScroll: ({ toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      scroll: (event: Event) =>
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        ctx.dispatch(toMessage((event.target as HTMLElement).scrollTop)),
+    }),
+  OnWheel: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'wheel', () => ctx.dispatch(message)),
+  OnCopy: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'copy', () => ctx.dispatch(message)),
+  OnCut: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'cut', () => ctx.dispatch(message)),
+  OnPaste: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'paste', () => ctx.dispatch(message)),
+  OnPastePreventDefault: ({ toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      paste: (event: ClipboardEvent) => {
+        const text = event.clipboardData?.getData('text/plain') ?? ''
+        const maybeMessage = toMaybeMessage(text)
+        if (Option.isSome(maybeMessage)) {
+          event.preventDefault()
+          ctx.dispatch(maybeMessage.value)
         }
       },
-    OnUnmount:
-      ({ message }) =>
-      (ctx: BuildContext) => {
-        // NOTE: resolve the boundary wrapping chain eagerly, while the boundary
-        // is still live this render. The destroy hook fires during the patch
-        // that removes the element, after the Submodel's own destroy hook has
-        // deregistered the wrap, so a fire-time lookup would throw; the
-        // precomputed thunk sidesteps that teardown race.
-        const dispatchUnmount = ctx.resolveUnmount(message)
-        const existingDestroy = ctx.data.hook?.destroy
-        ctx.data.hook = {
-          ...ctx.data.hook,
-          destroy: vnode => {
-            if (existingDestroy !== undefined) {
-              existingDestroy(vnode)
-            }
-            if (!isReplayRenderActive) {
-              dispatchUnmount()
-            }
-          },
+    }),
+  OnCopyText: ({ text }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      copy: (event: ClipboardEvent) => {
+        if (event.clipboardData) {
+          event.clipboardData.setData('text/plain', text)
+          event.preventDefault()
         }
       },
-  }),
-)
-
-const buildVNodeData = <Message>(
-  attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
-): VNodeData => {
-  // Capture lazily, and tolerate the absence of a runtime frame. Static
-  // elements (`h.code([h.Class('x')], ['text'])`) and prose fragments built
-  // at module top level (`const fragment = inlineCode('foo')` at import
-  // time) must construct without an active render frame. They never invoke
-  // the fallback dispatcher because they have no event handlers; event-
-  // bearing Html constructed outside a render reaches the fallback only at
-  // event-fire time, which surfaces a clear error rather than failing at
-  // import time.
-  let cachedCurrentDispatch: DispatchSync | undefined
-  const getCurrentDispatch = (): DispatchSync => {
-    if (cachedCurrentDispatch === undefined) {
-      try {
-        cachedCurrentDispatch = requireDispatch()
-      } catch {
-        cachedCurrentDispatch = () => {
-          throw new Error(
-            'Foldkit: an event-bearing Html attribute fired without an ' +
-              'active runtime frame. This typically means an Html element ' +
-              'with event handlers (OnClick, OnInput, etc.) was constructed ' +
-              'at module top level outside of a view function.',
-          )
+    }),
+  OnCutText: ({ text, message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      cut: (event: ClipboardEvent) => {
+        if (event.clipboardData) {
+          event.clipboardData.setData('text/plain', text)
+          event.preventDefault()
+          ctx.dispatch(message)
         }
-      }
-    }
-    return cachedCurrentDispatch
-  }
-  let cachedUnmountResolver: UnmountResolver | undefined
-  const getCurrentUnmountResolver = (): UnmountResolver => {
-    if (cachedUnmountResolver === undefined) {
-      try {
-        cachedUnmountResolver = requireUnmountResolver()
-      } catch {
-        cachedUnmountResolver = () => () => {
-          throw new Error(
-            'Foldkit: an OnUnmount attribute fired without an active runtime ' +
-              'frame. This typically means an Html element with OnUnmount was ' +
-              'constructed at module top level outside of a view function.',
-          )
+      },
+    }),
+  OnCancel: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      cancel: (event: Event) => {
+        event.preventDefault()
+        ctx.dispatch(message)
+      },
+    }),
+  OnToggle: ({ toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      toggle: event =>
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        ctx.dispatch(toMessage((event.target as HTMLDetailsElement).open)),
+    }),
+  OnContextMenu: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      contextmenu: (event: Event) => {
+        event.preventDefault()
+        ctx.dispatch(message)
+      },
+    }),
+  OnDragStart: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'dragstart', () => ctx.dispatch(message)),
+  OnDrag: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'drag', () => ctx.dispatch(message)),
+  OnDragEnd: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'dragend', () => ctx.dispatch(message)),
+  OnDragEnter: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      dragenter: (event: Event) => {
+        event.preventDefault()
+        const zone = event.currentTarget
+        if (!(zone instanceof Element)) {
+          ctx.dispatch(message)
+          return
         }
-      }
-    }
-    return cachedUnmountResolver
-  }
-  let cachedCapturedContext: Context.Context<never> | undefined
-  const getCapturedContext = (): Context.Context<never> => {
-    if (cachedCapturedContext === undefined) {
-      try {
-        cachedCapturedContext = requireRuntimeContext()
-      } catch {
-        cachedCapturedContext = Context.empty()
-      }
-    }
-    return cachedCapturedContext
-  }
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  const data = {} as VNodeData
-  const postpatchProps: Array<Readonly<{ propName: string; value: unknown }>> =
-    []
-
-  // Most attributes route through the current frame's dispatch. ChildAttribute
-  // items carry a different dispatcher (captured by `childAttributes`
-  // in a Submodel's own boundary), so they need their own BuildContext closed
-  // over that dispatch. The matcher itself is module-level and shared.
-  // The main ctx is built lazily. Static-only attribute arrays (Class, Id,
-  // etc. with no event handlers) skip `requireDispatch` entirely so Html can
-  // be constructed at module top level.
-  let mainCtx: BuildContext | undefined
-  const boundaryCtxByDispatch = new Map<DispatchSync, BuildContext>()
-
-  for (const item of attributes) {
-    if (isChildAttribute(item)) {
-      let ctx = boundaryCtxByDispatch.get(item.dispatch)
-      if (ctx === undefined) {
-        ctx = {
-          data,
-          postpatchProps,
-          dispatch: item.dispatch,
-          resolveUnmount: item.resolveUnmount,
-          boundaryMappers: item.boundaryMappers,
-          getCapturedContext,
+        const state = getDragZoneState(zone)
+        if (processDragEnter(state, zone, event.target)) {
+          ctx.dispatch(message)
         }
-        boundaryCtxByDispatch.set(item.dispatch, ctx)
-      }
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      attributeMatcher(item.attribute as Attribute<unknown>)(ctx)
-    } else {
-      if (mainCtx === undefined) {
-        mainCtx = {
-          data,
-          postpatchProps,
-          dispatch: getCurrentDispatch(),
-          resolveUnmount: getCurrentUnmountResolver(),
-          boundaryMappers: requireBoundaryMappers(),
-          getCapturedContext,
+      },
+    }),
+  OnDragLeave: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      dragleave: (event: Event) => {
+        const zone = event.currentTarget
+        if (!(zone instanceof Element)) {
+          ctx.dispatch(message)
+          return
         }
-      }
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      attributeMatcher(item as Attribute<unknown>)(mainCtx)
-    }
-  }
-
-  if (Array.isReadonlyArrayNonEmpty(postpatchProps)) {
-    data.hook = {
-      ...data.hook,
-      postpatch: (_oldVnode, vnode) => {
-        if (vnode.elm) {
-          Array.forEach(postpatchProps, ({ propName, value }) => {
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            if ((vnode.elm as any)[propName] !== value) {
-              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              ;(vnode.elm as any)[propName] = value
+        const state = getDragZoneState(zone)
+        if (processDragLeave(state, zone, event.target) === 'schedule') {
+          queueMicrotask(() => {
+            if (checkScheduledLeave(state)) {
+              ctx.dispatch(message)
             }
           })
         }
       },
+    }),
+  OnDragOver: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      dragover: (event: Event) => {
+        event.preventDefault()
+        ctx.dispatch(message)
+      },
+    }),
+  AllowDrop: (_attribute, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      dragover: (event: Event) => {
+        event.preventDefault()
+      },
+    }),
+  OnDrop: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      drop: (event: Event) => {
+        event.preventDefault()
+        const zone = event.currentTarget
+        if (zone instanceof Element) {
+          clearDragZoneAfterDrop(zone)
+        }
+        ctx.dispatch(message)
+      },
+    }),
+  OnDropFiles: ({ toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      drop: tagAsFileHandler((event: Event) => {
+        event.preventDefault()
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        const dragEvent = event as DragEvent
+        const zone = dragEvent.currentTarget
+        if (zone instanceof Element) {
+          clearDragZoneAfterDrop(zone)
+        }
+        const files: ReadonlyArray<File> = dragEvent.dataTransfer?.files
+          ? Array.fromIterable(dragEvent.dataTransfer.files)
+          : Array.empty()
+        ctx.dispatch(toMessage(files))
+      }, 'OnDropFiles'),
+    }),
+  OnTouchStart: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'touchstart', () => ctx.dispatch(message)),
+  OnTouchEnd: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'touchend', () => ctx.dispatch(message)),
+  OnTouchMove: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'touchmove', () => ctx.dispatch(message)),
+  OnTouchCancel: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'touchcancel', () => ctx.dispatch(message)),
+  OnAnimationStart: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'animationstart', () => ctx.dispatch(message)),
+  OnAnimationEnd: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'animationend', () => ctx.dispatch(message)),
+  OnAnimationIteration: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'animationiteration', () => ctx.dispatch(message)),
+  OnTransitionEnd: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'transitionend', () => ctx.dispatch(message)),
+  OnLoad: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'load', () => ctx.dispatch(message)),
+  OnError: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'error', () => ctx.dispatch(message)),
+  OnPlay: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'play', () => ctx.dispatch(message)),
+  OnPause: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'pause', () => ctx.dispatch(message)),
+  OnEnded: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'ended', () => ctx.dispatch(message)),
+  OnTimeUpdate: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'timeupdate', () => ctx.dispatch(message)),
+  OnVolumeChange: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'volumechange', () => ctx.dispatch(message)),
+  OnSelect: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'select', () => ctx.dispatch(message)),
+  Value: ({ value }, ctx: BuildContext) =>
+    updatePropsWithPostpatch(ctx, 'value', value),
+  Checked: ({ value }, ctx: BuildContext) =>
+    updatePropsWithPostpatch(ctx, 'checked', value),
+  Selected: ({ value }, ctx: BuildContext) =>
+    updatePropsWithPostpatch(ctx, 'selected', value),
+  Open: ({ value }, ctx: BuildContext) =>
+    updatePropsWithPostpatch(ctx, 'open', value),
+  Placeholder: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'placeholder', value),
+  Name: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'name', value),
+  Disabled: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'disabled', value),
+  Readonly: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'readOnly', value),
+  Required: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'required', value),
+  Autofocus: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'autofocus', value),
+  Spellcheck: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'spellcheck', value.toString()),
+  Autocorrect: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'autocorrect', value),
+  Autocapitalize: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'autocapitalize', value),
+  InputMode: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'inputmode', value),
+  EnterKeyHint: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'enterkeyhint', value),
+  Multiple: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'multiple', value),
+  Type: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'type', value),
+  Accept: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'accept', value),
+  Autocomplete: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'autocomplete', value),
+  Pattern: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'pattern', value),
+  Maxlength: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'maxLength', value),
+  Minlength: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'minLength', value),
+  Size: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'size', value),
+  Cols: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'cols', value),
+  Rows: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'rows', value),
+  Max: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'max', value),
+  Min: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'min', value),
+  Step: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'step', value),
+  For: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'htmlFor', value),
+  Href: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'href', value),
+  Src: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'src', value),
+  Alt: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'alt', value),
+  Target: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'target', value),
+  Rel: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'rel', value),
+  Download: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'download', value),
+  Action: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'action', value),
+  Method: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'method', value),
+  Enctype: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'enctype', value),
+  Novalidate: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'noValidate', value),
+  Formaction: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'formAction', value),
+  Formmethod: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'formMethod', value),
+  Formnovalidate: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'formNoValidate', value),
+  Formtarget: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'formTarget', value),
+  Formenctype: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'formEnctype', value),
+  Colspan: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'colSpan', value),
+  Rowspan: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'rowSpan', value),
+  Scope: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'scope', value),
+  Headers: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'headers', value),
+  Span: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'span', value),
+  Start: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'start', value),
+  Reversed: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'reversed', value),
+  CiteAttr: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'cite', value),
+  Datetime: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'dateTime', value),
+  Wrap: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'wrap', value),
+  List: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'list', value),
+  FormAttr: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'form', value),
+  LabelAttr: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'label', value),
+  ContentAttr: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'content', value),
+  Charset: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'charset', value),
+  HttpEquiv: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'http-equiv', value),
+  Srcset: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'srcset', value),
+  Sizes: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'sizes', value),
+  Loading: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'loading', value),
+  Decoding: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'decoding', value),
+  Fetchpriority: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'fetchpriority', value),
+  Crossorigin: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'crossorigin', value),
+  Referrerpolicy: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'referrerpolicy', value),
+  Integrity: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'integrity', value),
+  Hreflang: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'hreflang', value),
+  Ping: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'ping', value),
+  Sandbox: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'sandbox', value),
+  Allow: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'allow', value),
+  Srcdoc: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'srcdoc', value),
+  Autoplay: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'autoplay', value),
+  Controls: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'controls', value),
+  Loop: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'loop', value),
+  Muted: ({ value }, ctx: BuildContext) =>
+    updatePropsWithPostpatch(ctx, 'muted', value),
+  Poster: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'poster', value),
+  Preload: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'preload', value),
+  Playsinline: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'playsInline', value),
+  High: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'high', value),
+  Low: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'low', value),
+  Optimum: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'optimum', value),
+  Usemap: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'usemap', value),
+  Ismap: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'isMap', value),
+  Role: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'role', value),
+  AriaLabel: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-label', value),
+  AriaLabelledBy: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-labelledby', value),
+  AriaDescribedBy: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-describedby', value),
+  AriaHidden: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-hidden', value.toString()),
+  AriaExpanded: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-expanded', value.toString()),
+  AriaSelected: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-selected', value.toString()),
+  AriaChecked: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-checked', value.toString()),
+  AriaDisabled: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-disabled', value.toString()),
+  AriaRequired: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-required', value.toString()),
+  AriaInvalid: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-invalid', value.toString()),
+  AriaLive: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-live', value),
+  AriaControls: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-controls', value),
+  AriaCurrent: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-current', value),
+  AriaOrientation: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-orientation', value),
+  AriaPressed: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-pressed', value),
+  AriaHasPopup: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-haspopup', value),
+  AriaActiveDescendant: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-activedescendant', value),
+  AriaSort: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-sort', value),
+  AriaMultiSelectable: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-multiselectable', value.toString()),
+  AriaModal: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-modal', value.toString()),
+  AriaBusy: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-busy', value.toString()),
+  AriaErrorMessage: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-errormessage', value),
+  AriaRoleDescription: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-roledescription', value),
+  AriaAtomic: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-atomic', value.toString()),
+  AriaAutocomplete: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-autocomplete', value),
+  AriaColcount: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-colcount', value.toString()),
+  AriaColindex: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-colindex', value.toString()),
+  AriaColspan: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-colspan', value.toString()),
+  AriaDescription: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-description', value),
+  AriaDetails: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-details', value),
+  AriaFlowto: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-flowto', value),
+  AriaKeyshortcuts: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-keyshortcuts', value),
+  AriaLevel: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-level', value.toString()),
+  AriaOwns: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-owns', value),
+  AriaPlaceholder: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-placeholder', value),
+  AriaPosinset: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-posinset', value.toString()),
+  AriaReadonly: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-readonly', value.toString()),
+  AriaRelevant: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-relevant', value),
+  AriaRowcount: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-rowcount', value.toString()),
+  AriaRowindex: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-rowindex', value.toString()),
+  AriaRowspan: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-rowspan', value.toString()),
+  AriaSetsize: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-setsize', value.toString()),
+  AriaValuemax: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-valuemax', value.toString()),
+  AriaValuemin: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-valuemin', value.toString()),
+  AriaValuenow: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-valuenow', value.toString()),
+  AriaValuetext: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-valuetext', value),
+  Attribute: ({ key, value }, ctx: BuildContext) =>
+    setDataAttr(ctx, key, value),
+  DataAttribute: ({ key, value }, ctx: BuildContext) =>
+    setDataAttr(ctx, `data-${key}`, value),
+  Style: ({ value }, ctx: BuildContext) =>
+    setModuleData(ctx, 'style', value, VNodeDataMask.Style),
+  InnerHTML: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'innerHTML', value),
+  ViewBox: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'viewBox', value),
+  Xmlns: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'xmlns', value),
+  Fill: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'fill', value),
+  FillRule: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'fill-rule', value),
+  ClipRule: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'clip-rule', value),
+  Stroke: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'stroke', value),
+  StrokeWidth: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stroke-width', value),
+  StrokeLinecap: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stroke-linecap', value),
+  StrokeLinejoin: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stroke-linejoin', value),
+  D: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'd', value),
+  Cx: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'cx', value),
+  Cy: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'cy', value),
+  R: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'r', value),
+  X: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'x', value),
+  Y: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'y', value),
+  Width: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'width', value),
+  Height: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'height', value),
+  X1: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'x1', value),
+  Y1: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'y1', value),
+  X2: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'x2', value),
+  Y2: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'y2', value),
+  Points: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'points', value),
+  Transform: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'transform', value),
+  Opacity: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'opacity', value),
+  StrokeDasharray: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stroke-dasharray', value),
+  StrokeDashoffset: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stroke-dashoffset', value),
+  Dx: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'dx', value),
+  Dy: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'dy', value),
+  Rotate: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'rotate', value),
+  TextAnchor: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'text-anchor', value),
+  DominantBaseline: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'dominant-baseline', value),
+  AlignmentBaseline: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'alignment-baseline', value),
+  BaselineShift: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'baseline-shift', value),
+  TextLength: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'textLength', value),
+  LengthAdjust: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'lengthAdjust', value),
+  FontFamily: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'font-family', value),
+  FontSize: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'font-size', value),
+  FontWeight: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'font-weight', value),
+  FontStyle: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'font-style', value),
+  LetterSpacing: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'letter-spacing', value),
+  WordSpacing: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'word-spacing', value),
+  TextDecoration: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'text-decoration', value),
+  WritingMode: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'writing-mode', value),
+  Rx: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'rx', value),
+  Ry: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'ry', value),
+  PathLength: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'pathLength', value),
+  FillOpacity: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'fill-opacity', value),
+  StrokeOpacity: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stroke-opacity', value),
+  StrokeMiterlimit: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stroke-miterlimit', value),
+  PaintOrder: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'paint-order', value),
+  VectorEffect: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'vector-effect', value),
+  Color: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'color', value),
+  Visibility: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'visibility', value),
+  Display: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'display', value),
+  Overflow: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'overflow', value),
+  PointerEvents: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'pointer-events', value),
+  Cursor: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'cursor', value),
+  ShapeRendering: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'shape-rendering', value),
+  TextRendering: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'text-rendering', value),
+  ImageRendering: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'image-rendering', value),
+  ClipPath: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'clip-path', value),
+  Mask: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'mask', value),
+  Filter: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'filter', value),
+  ClipPathUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'clipPathUnits', value),
+  MaskUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'maskUnits', value),
+  MaskContentUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'maskContentUnits', value),
+  FilterUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'filterUnits', value),
+  PrimitiveUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'primitiveUnits', value),
+  Offset: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'offset', value),
+  StopColor: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stop-color', value),
+  StopOpacity: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stop-opacity', value),
+  GradientUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'gradientUnits', value),
+  GradientTransform: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'gradientTransform', value),
+  SpreadMethod: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'spreadMethod', value),
+  Fx: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'fx', value),
+  Fy: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'fy', value),
+  Fr: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'fr', value),
+  PatternUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'patternUnits', value),
+  PatternContentUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'patternContentUnits', value),
+  PatternTransform: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'patternTransform', value),
+  MarkerStart: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'marker-start', value),
+  MarkerMid: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'marker-mid', value),
+  MarkerEnd: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'marker-end', value),
+  MarkerWidth: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'markerWidth', value),
+  MarkerHeight: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'markerHeight', value),
+  MarkerUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'markerUnits', value),
+  RefX: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'refX', value),
+  RefY: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'refY', value),
+  Orient: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'orient', value),
+  PreserveAspectRatio: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'preserveAspectRatio', value),
+  Prop: ({ key, value }, ctx: BuildContext) => setDataProp(ctx, key, value),
+  OnCustomEvent: ({ name, toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      [name]: (event: Event) => {
+        if (event instanceof CustomEvent) {
+          ctx.dispatch(toMessage(event))
+        }
+      },
+    }),
+  OnMount: ({ action }, ctx: BuildContext) => {
+    const capturedContext = ctx.getCapturedContext()
+    const maybeTracker = Context.getOption(capturedContext, MountTracker)
+    const notifyStarted = Option.isSome(maybeTracker)
+      ? () => maybeTracker.value.started(action.name, action.args)
+      : Function.constVoid
+    const notifyEnded = Option.isSome(maybeTracker)
+      ? () => maybeTracker.value.ended(action.name, action.args)
+      : Function.constVoid
+    const markerWithArgs: FoldkitMountMarker =
+      action.args === undefined
+        ? { name: action.name }
+        : { name: action.name, args: action.args }
+    const boundaryLift = ctx.boundaryMappers
+    const marker: FoldkitMountMarker = Array.isReadonlyArrayEmpty(boundaryLift)
+      ? markerWithArgs
+      : { ...markerWithArgs, messageMappers: boundaryLift }
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    ;(ctx.data as Record<string, unknown>)[FOLDKIT_MOUNT_KEY] = marker
+    const existingDestroy = ctx.data.hook?.destroy
+    ctx.data.hook = {
+      ...ctx.data.hook,
+      insert: vnode => {
+        if (vnode.elm instanceof Element) {
+          const element = vnode.elm
+          notifyStarted()
+          const fiber = Effect.runForkWith(capturedContext)(
+            Stream.runForEach(action.f(element), message =>
+              Effect.sync(() => ctx.dispatch(message)),
+            ).pipe(
+              Effect.catchCause(cause =>
+                Effect.sync(() => {
+                  console.error(
+                    `[OnMount ${action.name}] unhandled failure`,
+                    cause,
+                  )
+                }),
+              ),
+            ),
+          )
+          onMountStates.set(element, { fiber })
+        }
+      },
+      destroy: vnode => {
+        if (existingDestroy !== undefined) {
+          existingDestroy(vnode)
+        }
+        if (vnode.elm instanceof Element) {
+          const state = onMountStates.get(vnode.elm)
+          if (state) {
+            Effect.runFork(Fiber.interrupt(state.fiber))
+            onMountStates.delete(vnode.elm)
+            notifyEnded()
+          }
+        }
+      },
     }
+  },
+  OnUnmount: ({ message }, ctx: BuildContext) => {
+    // NOTE: resolve the boundary wrapping chain eagerly, while the boundary
+    // is still live this render. The destroy hook fires during the patch
+    // that removes the element, after the Submodel's own destroy hook has
+    // deregistered the wrap, so a fire-time lookup would throw; the
+    // precomputed thunk sidesteps that teardown race.
+    const dispatchUnmount = ctx.resolveUnmount(message)
+    const existingDestroy = ctx.data.hook?.destroy
+    ctx.data.hook = {
+      ...ctx.data.hook,
+      destroy: vnode => {
+        if (existingDestroy !== undefined) {
+          existingDestroy(vnode)
+        }
+        if (!isReplayRenderActive) {
+          dispatchUnmount()
+        }
+      },
+    }
+  },
+}
+
+const applyAttribute = (
+  attribute: Attribute<unknown>,
+  ctx: BuildContext,
+): void => {
+  // NOTE: the mapped record type correlates each handler's attribute
+  // parameter with its tag, which TypeScript cannot re-derive at this
+  // widened call site.
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const handler = attributeHandlers[attribute._tag] as (
+    attribute: Attribute<unknown>,
+    ctx: BuildContext,
+  ) => void
+  handler(attribute, ctx)
+}
+
+// NOTE: tolerate the absence of a runtime frame. Static elements
+// (`h.code([h.Class('x')], ['text'])`) and prose fragments built at module
+// top level (`const fragment = inlineCode('foo')` at import time) must
+// construct without an active render frame. They never invoke the fallback
+// dispatcher because they have no event handlers; event-bearing Html
+// constructed outside a render reaches the fallback only at event-fire time,
+// which surfaces a clear error rather than failing at import time. The
+// fallbacks are module-level constants so element construction allocates no
+// per-element closures for them.
+const fallbackDispatch: DispatchSync = () => {
+  throw new Error(
+    'Foldkit: an event-bearing Html attribute fired without an ' +
+      'active runtime frame. This typically means an Html element ' +
+      'with event handlers (OnClick, OnInput, etc.) was constructed ' +
+      'at module top level outside of a view function.',
+  )
+}
+
+const fallbackUnmountResolver: UnmountResolver = () => () => {
+  throw new Error(
+    'Foldkit: an OnUnmount attribute fired without an active runtime ' +
+      'frame. This typically means an Html element with OnUnmount was ' +
+      'constructed at module top level outside of a view function.',
+  )
+}
+
+const currentDispatchOrFallback = (): DispatchSync => {
+  try {
+    return requireDispatch()
+  } catch {
+    return fallbackDispatch
+  }
+}
+
+const currentUnmountResolverOrFallback = (): UnmountResolver => {
+  try {
+    return requireUnmountResolver()
+  } catch {
+    return fallbackUnmountResolver
+  }
+}
+
+const capturedContextOrEmpty = (): Context.Context<never> => {
+  try {
+    return requireRuntimeContext()
+  } catch {
+    return Context.empty()
+  }
+}
+
+const attachPostpatchHook = (
+  data: VNodeData,
+  postpatchProps: ReadonlyArray<Readonly<{ propName: string; value: unknown }>>,
+): void => {
+  data.hook = {
+    ...data.hook,
+    postpatch: (_oldVnode, vnode) => {
+      if (vnode.elm) {
+        Array.forEach(postpatchProps, ({ propName, value }) => {
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          if ((vnode.elm as any)[propName] !== value) {
+            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+            ;(vnode.elm as any)[propName] = value
+          }
+        })
+      }
+    },
+  }
+}
+
+const buildVNodeData = <Message>(
+  attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
+): VNodeData => {
+  const data: VNodeData = { [vnodeDataMaskKey]: 0 }
+  if (attributes.length === 0) {
+    return data
+  }
+
+  // NOTE: most attributes route through the current frame's dispatch.
+  // ChildAttribute items carry a different dispatcher (captured by
+  // `childAttributes` in a Submodel's own boundary), so they need their own
+  // BuildContext closed over that dispatch. The handler record itself is
+  // module-level and shared. The main ctx is built lazily. Static-only
+  // attribute arrays (Class, Id, etc. with no event handlers) skip
+  // `requireDispatch` entirely so Html can be constructed at module top
+  // level. The boundary ctx map is only allocated when a ChildAttribute is
+  // actually present.
+  let mainCtx: BuildContext | undefined
+  let boundaryCtxByDispatch: Map<DispatchSync, BuildContext> | undefined
+  let sharedPostpatchProps:
+    | Array<Readonly<{ propName: string; value: unknown }>>
+    | undefined
+  const getSharedPostpatchProps = (): Array<
+    Readonly<{ propName: string; value: unknown }>
+  > => (sharedPostpatchProps ??= [])
+
+  for (const item of attributes) {
+    if (isChildAttribute(item)) {
+      boundaryCtxByDispatch ??= new Map()
+      let ctx = boundaryCtxByDispatch.get(item.dispatch)
+      if (ctx === undefined) {
+        ctx = {
+          data,
+          getPostpatchProps: getSharedPostpatchProps,
+          dispatch: item.dispatch,
+          resolveUnmount: item.resolveUnmount,
+          boundaryMappers: item.boundaryMappers,
+          getCapturedContext: capturedContextOrEmpty,
+        }
+        boundaryCtxByDispatch.set(item.dispatch, ctx)
+      }
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      applyAttribute(item.attribute as Attribute<unknown>, ctx)
+    } else {
+      if (mainCtx === undefined) {
+        mainCtx = {
+          data,
+          getPostpatchProps: getSharedPostpatchProps,
+          dispatch: currentDispatchOrFallback(),
+          resolveUnmount: currentUnmountResolverOrFallback(),
+          boundaryMappers: requireBoundaryMappers(),
+          getCapturedContext: capturedContextOrEmpty,
+        }
+      }
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      applyAttribute(item as Attribute<unknown>, mainCtx)
+    }
+  }
+
+  if (
+    sharedPostpatchProps !== undefined &&
+    Array.isReadonlyArrayNonEmpty(sharedPostpatchProps)
+  ) {
+    attachPostpatchHook(data, sharedPostpatchProps)
   }
 
   return data
 }
 
-const processVNodeChildren = (
+// NOTE: one fresh mutable array per element in a single pass: `h.empty`
+// children (null) are dropped, and snabbdom's `h` converts primitive
+// children to text vnodes in place, so the caller's array must never be
+// handed over directly.
+const copyChildrenDroppingEmpty = (
   children: ReadonlyArray<Child>,
-): ReadonlyArray<VNode | string> => Array.filter(children, Predicate.isNotNull)
+): Array<VNode | string> => {
+  const next: Array<VNode | string> = []
+  for (let index = 0; index < children.length; index++) {
+    const child = children[index]
+    if (child !== null && child !== undefined) {
+      next.push(child)
+    }
+  }
+  return next
+}
 
 const createElement = <Message>(
   tagName: string,
   attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
   children: ReadonlyArray<Child> = [],
 ): Html =>
-  h(
-    tagName,
-    buildVNodeData(attributes),
-    Array.fromIterable(processVNodeChildren(children)),
-  )
+  h(tagName, buildVNodeData(attributes), copyChildrenDroppingEmpty(children))
 
 const element =
   <Message>() =>
@@ -2925,8 +2329,11 @@ const keyed =
     key: string,
     attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
     children: ReadonlyArray<Child> = [],
-  ): Html =>
-    element<Message>()(tagName)([...attributes, Key({ value: key })], children)
+  ): Html => {
+    const data = buildVNodeData(attributes)
+    data.key = key
+    return h(tagName, data, copyChildrenDroppingEmpty(children))
+  }
 
 type ElementFunction<Message> = (
   attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
@@ -3471,25 +2878,27 @@ type HtmlAttributes<Message> = {
     readonly message: Message
   }
   OnPointerMove: (
-    f: (
+    toMaybeMessage: (
       screenX: number,
       screenY: number,
       pointerType: string,
     ) => Option.Option<Message>,
   ) => {
     readonly _tag: 'OnPointerMove'
-    readonly f: (
+    readonly toMaybeMessage: (
       screenX: number,
       screenY: number,
       pointerType: string,
     ) => Option.Option<Message>
   }
-  OnPointerLeave: (f: (pointerType: string) => Option.Option<Message>) => {
+  OnPointerLeave: (
+    toMaybeMessage: (pointerType: string) => Option.Option<Message>,
+  ) => {
     readonly _tag: 'OnPointerLeave'
-    readonly f: (pointerType: string) => Option.Option<Message>
+    readonly toMaybeMessage: (pointerType: string) => Option.Option<Message>
   }
   OnPointerDown: (
-    f: (
+    toMaybeMessage: (
       pointerType: string,
       button: number,
       screenX: number,
@@ -3500,7 +2909,7 @@ type HtmlAttributes<Message> = {
     ) => Option.Option<Message>,
   ) => {
     readonly _tag: 'OnPointerDown'
-    readonly f: (
+    readonly toMaybeMessage: (
       pointerType: string,
       button: number,
       screenX: number,
@@ -3511,7 +2920,7 @@ type HtmlAttributes<Message> = {
     ) => Option.Option<Message>
   }
   OnPointerUp: (
-    f: (
+    toMaybeMessage: (
       screenX: number,
       screenY: number,
       pointerType: string,
@@ -3519,54 +2928,66 @@ type HtmlAttributes<Message> = {
     ) => Option.Option<Message>,
   ) => {
     readonly _tag: 'OnPointerUp'
-    readonly f: (
+    readonly toMaybeMessage: (
       screenX: number,
       screenY: number,
       pointerType: string,
       timeStamp: number,
     ) => Option.Option<Message>
   }
-  OnKeyDown: (f: (key: string, modifiers: KeyboardModifiers) => Message) => {
+  OnKeyDown: (
+    toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => {
     readonly _tag: 'OnKeyDown'
-    readonly f: (key: string, modifiers: KeyboardModifiers) => Message
+    readonly toMessage: (key: string, modifiers: KeyboardModifiers) => Message
   }
   OnKeyDownFocus: (
-    f: (
+    toMaybeFocusAndMessage: (
       key: string,
       modifiers: KeyboardModifiers,
     ) => Option.Option<Readonly<{ focusSelector: string; message: Message }>>,
   ) => {
     readonly _tag: 'OnKeyDownFocus'
-    readonly f: (
+    readonly toMaybeFocusAndMessage: (
       key: string,
       modifiers: KeyboardModifiers,
     ) => Option.Option<Readonly<{ focusSelector: string; message: Message }>>
   }
   OnKeyDownPreventDefault: (
-    f: (key: string, modifiers: KeyboardModifiers) => Option.Option<Message>,
+    toMaybeMessage: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>,
   ) => {
     readonly _tag: 'OnKeyDownPreventDefault'
-    readonly f: (
+    readonly toMaybeMessage: (
       key: string,
       modifiers: KeyboardModifiers,
     ) => Option.Option<Message>
   }
-  OnKeyUp: (f: (key: string, modifiers: KeyboardModifiers) => Message) => {
+  OnKeyUp: (
+    toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => {
     readonly _tag: 'OnKeyUp'
-    readonly f: (key: string, modifiers: KeyboardModifiers) => Message
+    readonly toMessage: (key: string, modifiers: KeyboardModifiers) => Message
   }
   OnKeyUpPreventDefault: (
-    f: (key: string, modifiers: KeyboardModifiers) => Option.Option<Message>,
+    toMaybeMessage: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>,
   ) => {
     readonly _tag: 'OnKeyUpPreventDefault'
-    readonly f: (
+    readonly toMaybeMessage: (
       key: string,
       modifiers: KeyboardModifiers,
     ) => Option.Option<Message>
   }
-  OnKeyPress: (f: (key: string, modifiers: KeyboardModifiers) => Message) => {
+  OnKeyPress: (
+    toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => {
     readonly _tag: 'OnKeyPress'
-    readonly f: (key: string, modifiers: KeyboardModifiers) => Message
+    readonly toMessage: (key: string, modifiers: KeyboardModifiers) => Message
   }
   OnFocus: (message: Message) => {
     readonly _tag: 'OnFocus'
@@ -3576,17 +2997,17 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnBlur'
     readonly message: Message
   }
-  OnInput: (f: (value: string) => Message) => {
+  OnInput: (toMessage: (value: string) => Message) => {
     readonly _tag: 'OnInput'
-    readonly f: (value: string) => Message
+    readonly toMessage: (value: string) => Message
   }
-  OnChange: (f: (value: string) => Message) => {
+  OnChange: (toMessage: (value: string) => Message) => {
     readonly _tag: 'OnChange'
-    readonly f: (value: string) => Message
+    readonly toMessage: (value: string) => Message
   }
-  OnFileChange: (f: (files: ReadonlyArray<File>) => Message) => {
+  OnFileChange: (toMessage: (files: ReadonlyArray<File>) => Message) => {
     readonly _tag: 'OnFileChange'
-    readonly f: (files: ReadonlyArray<File>) => Message
+    readonly toMessage: (files: ReadonlyArray<File>) => Message
   }
   OnSubmit: (message: Message) => {
     readonly _tag: 'OnSubmit'
@@ -3596,9 +3017,9 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnReset'
     readonly message: Message
   }
-  OnScroll: (f: (scrollTop: number) => Message) => {
+  OnScroll: (toMessage: (scrollTop: number) => Message) => {
     readonly _tag: 'OnScroll'
-    readonly f: (scrollTop: number) => Message
+    readonly toMessage: (scrollTop: number) => Message
   }
   OnWheel: (message: Message) => {
     readonly _tag: 'OnWheel'
@@ -3616,9 +3037,11 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnPaste'
     readonly message: Message
   }
-  OnPastePreventDefault: (f: (text: string) => Option.Option<Message>) => {
+  OnPastePreventDefault: (
+    toMaybeMessage: (text: string) => Option.Option<Message>,
+  ) => {
     readonly _tag: 'OnPastePreventDefault'
-    readonly f: (text: string) => Option.Option<Message>
+    readonly toMaybeMessage: (text: string) => Option.Option<Message>
   }
   OnCopyText: (text: string) => {
     readonly _tag: 'OnCopyText'
@@ -3636,9 +3059,9 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnCancel'
     readonly message: Message
   }
-  OnToggle: (f: (isOpen: boolean) => Message) => {
+  OnToggle: (toMessage: (isOpen: boolean) => Message) => {
     readonly _tag: 'OnToggle'
-    readonly f: (isOpen: boolean) => Message
+    readonly toMessage: (isOpen: boolean) => Message
   }
   OnContextMenu: (message: Message) => {
     readonly _tag: 'OnContextMenu'
@@ -3673,9 +3096,9 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnDrop'
     readonly message: Message
   }
-  OnDropFiles: (f: (files: ReadonlyArray<File>) => Message) => {
+  OnDropFiles: (toMessage: (files: ReadonlyArray<File>) => Message) => {
     readonly _tag: 'OnDropFiles'
-    readonly f: (files: ReadonlyArray<File>) => Message
+    readonly toMessage: (files: ReadonlyArray<File>) => Message
   }
   OnTouchStart: (message: Message) => {
     readonly _tag: 'OnTouchStart'
@@ -4536,16 +3959,17 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   OnMouseOut: (message: Message) => OnMouseOut({ message }),
   OnMouseMove: (message: Message) => OnMouseMove({ message }),
   OnPointerMove: (
-    f: (
+    toMaybeMessage: (
       screenX: number,
       screenY: number,
       pointerType: string,
     ) => Option.Option<Message>,
-  ) => OnPointerMove({ f }),
-  OnPointerLeave: (f: (pointerType: string) => Option.Option<Message>) =>
-    OnPointerLeave({ f }),
+  ) => OnPointerMove({ toMaybeMessage }),
+  OnPointerLeave: (
+    toMaybeMessage: (pointerType: string) => Option.Option<Message>,
+  ) => OnPointerLeave({ toMaybeMessage }),
   OnPointerDown: (
-    f: (
+    toMaybeMessage: (
       pointerType: string,
       button: number,
       screenX: number,
@@ -4554,20 +3978,24 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
       clientX: number,
       clientY: number,
     ) => Option.Option<Message>,
-  ) => OnPointerDown({ f }),
+  ) => OnPointerDown({ toMaybeMessage }),
   OnPointerUp: (
-    f: (
+    toMaybeMessage: (
       screenX: number,
       screenY: number,
       pointerType: string,
       timeStamp: number,
     ) => Option.Option<Message>,
-  ) => OnPointerUp({ f }),
-  OnKeyDown: (f: (key: string, modifiers: KeyboardModifiers) => Message) =>
-    OnKeyDown({ f }),
+  ) => OnPointerUp({ toMaybeMessage }),
+  OnKeyDown: (
+    toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => OnKeyDown({ toMessage }),
   OnKeyDownPreventDefault: (
-    f: (key: string, modifiers: KeyboardModifiers) => Option.Option<Message>,
-  ) => OnKeyDownPreventDefault({ f }),
+    toMaybeMessage: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>,
+  ) => OnKeyDownPreventDefault({ toMaybeMessage }),
   /**
    * Keydown handler that, for a handled key, synchronously focuses the element
    * matching `focusSelector` and dispatches `message`, both inside the
@@ -4591,27 +4019,33 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
    * ```
    */
   OnKeyDownFocus: (
-    f: (
+    toMaybeFocusAndMessage: (
       key: string,
       modifiers: KeyboardModifiers,
     ) => Option.Option<Readonly<{ focusSelector: string; message: Message }>>,
-  ) => OnKeyDownFocus({ f }),
-  OnKeyUp: (f: (key: string, modifiers: KeyboardModifiers) => Message) =>
-    OnKeyUp({ f }),
+  ) => OnKeyDownFocus({ toMaybeFocusAndMessage }),
+  OnKeyUp: (
+    toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => OnKeyUp({ toMessage }),
   OnKeyUpPreventDefault: (
-    f: (key: string, modifiers: KeyboardModifiers) => Option.Option<Message>,
-  ) => OnKeyUpPreventDefault({ f }),
-  OnKeyPress: (f: (key: string, modifiers: KeyboardModifiers) => Message) =>
-    OnKeyPress({ f }),
+    toMaybeMessage: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>,
+  ) => OnKeyUpPreventDefault({ toMaybeMessage }),
+  OnKeyPress: (
+    toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => OnKeyPress({ toMessage }),
   OnFocus: (message: Message) => OnFocus({ message }),
   OnBlur: (message: Message) => OnBlur({ message }),
-  OnInput: (f: (value: string) => Message) => OnInput({ f }),
-  OnChange: (f: (value: string) => Message) => OnChange({ f }),
-  OnFileChange: (f: (files: ReadonlyArray<File>) => Message) =>
-    OnFileChange({ f }),
+  OnInput: (toMessage: (value: string) => Message) => OnInput({ toMessage }),
+  OnChange: (toMessage: (value: string) => Message) => OnChange({ toMessage }),
+  OnFileChange: (toMessage: (files: ReadonlyArray<File>) => Message) =>
+    OnFileChange({ toMessage }),
   OnSubmit: (message: Message) => OnSubmit({ message }),
   OnReset: (message: Message) => OnReset({ message }),
-  OnScroll: (f: (scrollTop: number) => Message) => OnScroll({ f }),
+  OnScroll: (toMessage: (scrollTop: number) => Message) =>
+    OnScroll({ toMessage }),
   OnWheel: (message: Message) => OnWheel({ message }),
   OnCopy: (message: Message) => OnCopy({ message }),
   OnCut: (message: Message) => OnCut({ message }),
@@ -4633,8 +4067,9 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
    * h.OnPastePreventDefault(text => Option.some(PastedText({ text })))
    * ```
    */
-  OnPastePreventDefault: (f: (text: string) => Option.Option<Message>) =>
-    OnPastePreventDefault({ f }),
+  OnPastePreventDefault: (
+    toMaybeMessage: (text: string) => Option.Option<Message>,
+  ) => OnPastePreventDefault({ toMaybeMessage }),
   /**
    * Copy handler that synchronously writes `text` to the clipboard as
    * `text/plain` and calls `preventDefault`, replacing the browser's default
@@ -4663,7 +4098,8 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
    */
   OnCutText: (text: string, message: Message) => OnCutText({ text, message }),
   OnCancel: (message: Message) => OnCancel({ message }),
-  OnToggle: (f: (isOpen: boolean) => Message) => OnToggle({ f }),
+  OnToggle: (toMessage: (isOpen: boolean) => Message) =>
+    OnToggle({ toMessage }),
   OnContextMenu: (message: Message) => OnContextMenu({ message }),
   OnDragStart: (message: Message) => OnDragStart({ message }),
   OnDrag: (message: Message) => OnDrag({ message }),
@@ -4673,8 +4109,8 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   OnDragOver: (message: Message) => OnDragOver({ message }),
   AllowDrop: () => AllowDrop(),
   OnDrop: (message: Message) => OnDrop({ message }),
-  OnDropFiles: (f: (files: ReadonlyArray<File>) => Message) =>
-    OnDropFiles({ f }),
+  OnDropFiles: (toMessage: (files: ReadonlyArray<File>) => Message) =>
+    OnDropFiles({ toMessage }),
   OnTouchStart: (message: Message) => OnTouchStart({ message }),
   OnTouchEnd: (message: Message) => OnTouchEnd({ message }),
   OnTouchMove: (message: Message) => OnTouchMove({ message }),

@@ -189,4 +189,81 @@ describe('makeApplication', () => {
       await Effect.runPromise(Fiber.interrupt(fiber))
     }
   })
+
+  it('reuses metadata elements and reasserts externally changed values', async () => {
+    const canonicalUrl = 'https://example.com/todos'
+    const application = makeApplication({
+      Model,
+      init: () => [{ label: 'hello' }, []],
+      update,
+      view: model => ({
+        title: model.label,
+        canonical: canonicalUrl,
+        ogUrl: canonicalUrl,
+        body: h.div(
+          [],
+          [h.button([h.OnClick(ClickedBump())], ['bump']), model.label],
+        ),
+      }),
+      container,
+    })
+
+    const fiber = Effect.runFork(application.start())
+
+    try {
+      await awaitBodyText('hello')
+      const canonical = document.head.querySelector('link[rel="canonical"]')
+      const ogUrl = document.head.querySelector('meta[property="og:url"]')
+      const button = document.body.querySelector('button')
+      expect(canonical).toBeInstanceOf(HTMLLinkElement)
+      expect(ogUrl).toBeInstanceOf(HTMLMetaElement)
+      expect(button).not.toBeNull()
+      if (
+        !(canonical instanceof HTMLLinkElement) ||
+        !(ogUrl instanceof HTMLMetaElement) ||
+        button === null
+      ) {
+        throw new Error('expected application metadata and button')
+      }
+
+      const querySelectorSpy = vi.spyOn(document.head, 'querySelector')
+      const canonicalSetAttributeSpy = vi.spyOn(canonical, 'setAttribute')
+      const ogUrlSetAttributeSpy = vi.spyOn(ogUrl, 'setAttribute')
+      try {
+        button.click()
+        await awaitBodyText('world')
+
+        expect(querySelectorSpy).not.toHaveBeenCalled()
+        expect(canonicalSetAttributeSpy).not.toHaveBeenCalled()
+        expect(ogUrlSetAttributeSpy).not.toHaveBeenCalled()
+
+        canonical.setAttribute('href', 'https://example.com/changed')
+        ogUrl.setAttribute('content', 'https://example.com/changed')
+        canonicalSetAttributeSpy.mockClear()
+        ogUrlSetAttributeSpy.mockClear()
+
+        button.click()
+        await vi.waitFor(() => {
+          expect(canonical.getAttribute('href')).toBe(canonicalUrl)
+          expect(ogUrl.getAttribute('content')).toBe(canonicalUrl)
+        })
+
+        expect(querySelectorSpy).not.toHaveBeenCalled()
+        expect(canonicalSetAttributeSpy).toHaveBeenCalledWith(
+          'href',
+          canonicalUrl,
+        )
+        expect(ogUrlSetAttributeSpy).toHaveBeenCalledWith(
+          'content',
+          canonicalUrl,
+        )
+      } finally {
+        querySelectorSpy.mockRestore()
+        canonicalSetAttributeSpy.mockRestore()
+        ogUrlSetAttributeSpy.mockRestore()
+      }
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
 })

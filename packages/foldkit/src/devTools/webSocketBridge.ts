@@ -113,7 +113,7 @@ const tryDeriveJsonSchemaDocument = (
  * `EventDisconnected` on tab close or HMR module dispose so the relay can
  * remove this runtime from its connected set.
  *
- * `dispatch` enqueues a Message into the runtime's message queue; the bridge
+ * `dispatch` delivers a Message to the runtime; the bridge
  * uses it to fulfill `RequestDispatchMessage` after decoding the payload
  * against a JSON-canonical derivation of `maybeMessageSchema` (via
  * `Schema.toCodecJson`). The derivation reconstructs runtime values like

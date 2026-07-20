@@ -11,4 +11,10 @@ export type { Module } from './module.js'
 export type { Props } from './props.js'
 export { styleModule } from './style.js'
 export { toVNode } from './tovnode.js'
-export type { Key, VNode, VNodeData } from './vnode.js'
+export {
+  VNodeDataMask,
+  vnodeDataMaskKey,
+  type Key,
+  type VNode,
+  type VNodeData,
+} from './vnode.js'

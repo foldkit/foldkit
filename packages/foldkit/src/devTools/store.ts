@@ -326,8 +326,8 @@ export const createDevToolsStore = (
 
     /** Attaches Mount lifecycle events from the most recent render to the
      *  history entry that triggered the render. Mount events fire during
-     *  snabbdom's `patch` (inside `render`), but the runtime's render loop
-     *  is gated by `requestAnimationFrame`, so a render may fire after the
+     *  snabbdom's `patch`, but render frames are scheduled through
+     *  `requestAnimationFrame`, so a render may fire after the
      *  Message that dirtied it has already been recorded. The runtime drains
      *  its mount buffer after each render and calls this to associate the
      *  events with the correct entry. When called before any Message has been

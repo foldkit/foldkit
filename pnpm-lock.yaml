@@ -1535,12 +1535,18 @@ importers:
         specifier: workspace:*
         version: link:../../packages/foldkit
     devDependencies:
+      '@foldkit/vite-plugin':
+        specifier: workspace:*
+        version: link:../../packages/vite-plugin-foldkit
       '@types/node':
         specifier: ^25.9.3
         version: 25.9.3
       happy-dom:
         specifier: ^20.10.4
         version: 20.10.4
+      playwright:
+        specifier: ^1.61.0
+        version: 1.61.0
       typescript:
         specifier: ^6.0.3
         version: 6.0.3

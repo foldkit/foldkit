@@ -1,0 +1,172 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>bench runner</title>
+  </head>
+  <body>
+    <iframe id="benchmark" style="width: 800px; height: 600px"></iframe>
+    <script>
+      // Local driver for lustre-labs/benchmark's step.ffi.mjs + instrumentation
+      // aggregation, minus the Lustre UI around it. The instrumentation.js inside
+      // the iframe dispatches CustomEvents on the iframe element; we accumulate
+      // them by type exactly like instrumentation.gleam's to_results and settle
+      // application boot separately before measuring the runbook.
+
+      const iframe = document.getElementById('benchmark')
+
+      const results = {
+        sync: 0,
+        timeout: 0,
+        animation_frame: 0,
+        microtask: 0,
+        promise: 0,
+      }
+      const counts = {
+        sync: 0,
+        timeout: 0,
+        animation_frame: 0,
+        microtask: 0,
+        promise: 0,
+      }
+
+      let measurementVersion = 0
+
+      iframe.addEventListener('lustre-benchmark:measurement', event => {
+        const { type, elapsed } = event.detail
+        results[type] += elapsed
+        counts[type] += 1
+        measurementVersion += 1
+      })
+
+      function resetMeasurements() {
+        for (const key of Object.keys(results)) {
+          results[key] = 0
+          counts[key] = 0
+        }
+      }
+
+      function snapshotMeasurements() {
+        return {
+          results: { ...results },
+          counts: { ...counts },
+        }
+      }
+
+      function timed(callback) {
+        const start = performance.now()
+        callback()
+        const elapsed = performance.now() - start
+        results.sync += elapsed
+        counts.sync += 1
+      }
+
+      function waitForElement(selector) {
+        return new Promise(resolve => {
+          function checkForElement() {
+            const element = iframe.contentDocument.querySelector(selector)
+            if (element) {
+              resolve(element)
+            } else {
+              setTimeout(checkForElement, 100)
+            }
+          }
+          checkForElement()
+        })
+      }
+
+      function waitForRerender() {
+        return new Promise(resolve => {
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => queueMicrotask(resolve)),
+          )
+        })
+      }
+
+      function waitForQuietFrame() {
+        return new Promise(resolve => {
+          let previousMeasurementVersion = measurementVersion
+
+          function checkNextFrame() {
+            requestAnimationFrame(() => {
+              if (measurementVersion === previousMeasurementVersion) {
+                queueMicrotask(resolve)
+              } else {
+                previousMeasurementVersion = measurementVersion
+                checkNextFrame()
+              }
+            })
+          }
+
+          checkNextFrame()
+        })
+      }
+
+      async function setValue(selector, value) {
+        const element = await waitForElement(selector)
+        const event = new Event('input', { bubbles: true })
+        timed(() => {
+          element.value = value
+          element.dispatchEvent(event)
+        })
+        await waitForRerender()
+      }
+
+      async function pressEnter(selector) {
+        const element = await waitForElement(selector)
+        const event = new Event('keydown', { bubbles: true })
+        event.key = 'Enter'
+        event.keyCode = event.which = 13
+        timed(() => element.dispatchEvent(event))
+        await waitForRerender()
+      }
+
+      async function click(selector) {
+        const element = await waitForElement(selector)
+        timed(() => element.click())
+        await waitForRerender()
+      }
+
+      window.runBenchmark = async function (implementationUrl, itemCount) {
+        resetMeasurements()
+
+        await new Promise(resolve => {
+          iframe.addEventListener('load', resolve, { once: true })
+          iframe.src = implementationUrl
+        })
+
+        await waitForElement('.new-todo')
+        await waitForQuietFrame()
+        const boot = snapshotMeasurements()
+        resetMeasurements()
+
+        for (let index = 1; index <= itemCount; index++) {
+          await setValue('.new-todo', 'Item ' + index)
+          await pressEnter('.new-todo')
+        }
+        for (let index = 1; index <= itemCount; index++) {
+          await click('.todo-list>:nth-of-type(' + index + ') .toggle')
+        }
+        for (let index = 1; index <= itemCount; index++) {
+          await click('.todo-list .destroy')
+        }
+
+        await waitForQuietFrame()
+
+        const total =
+          results.sync +
+          results.timeout +
+          results.animation_frame +
+          results.microtask +
+          results.promise
+        return {
+          crossOriginIsolated: window.crossOriginIsolated,
+          total,
+          boot,
+          results: { ...results },
+          counts: { ...counts },
+        }
+      }
+    </script>
+  </body>
+</html>

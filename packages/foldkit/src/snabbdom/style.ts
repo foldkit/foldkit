@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import type { Module } from './module.js'
-import type { VNode, VNodeData } from './vnode.js'
+import { type VNode, type VNodeData, VNodeDataMask } from './vnode.js'
 
 export type ElementStyle = Partial<CSSStyleDeclaration>
 
@@ -122,6 +122,7 @@ function forceReflow() {
 }
 
 export const styleModule: Module = {
+  dataMask: VNodeDataMask.Style,
   pre: forceReflow,
   create: updateStyle,
   update: updateStyle,

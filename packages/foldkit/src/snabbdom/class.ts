@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import type { Module } from './module.js'
-import type { VNode, VNodeData } from './vnode.js'
+import { type VNode, type VNodeData, VNodeDataMask } from './vnode.js'
 
 export type Classes = Record<string, boolean>
 
@@ -30,4 +30,8 @@ function updateClass(oldVnode: VNode, vnode: VNode): void {
   }
 }
 
-export const classModule: Module = { create: updateClass, update: updateClass }
+export const classModule: Module = {
+  dataMask: VNodeDataMask.Class,
+  create: updateClass,
+  update: updateClass,
+}

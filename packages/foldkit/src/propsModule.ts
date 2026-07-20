@@ -1,4 +1,5 @@
 import type { Module } from './snabbdom/index.js'
+import { VNodeDataMask } from './snabbdom/vnode.js'
 
 /** A custom props module that extends snabbdom's built-in propsModule with
  *  proper cleanup of removed properties.
@@ -55,4 +56,8 @@ function updateProps(
   }
 }
 
-export const propsModule: Module = { create: updateProps, update: updateProps }
+export const propsModule: Module = {
+  dataMask: VNodeDataMask.Props,
+  create: updateProps,
+  update: updateProps,
+}

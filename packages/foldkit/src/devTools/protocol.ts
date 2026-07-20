@@ -221,7 +221,7 @@ export const ResponseReplayed = ts('ResponseReplayed', {
 /** Response confirming the runtime resumed normal execution. */
 export const ResponseResumed = ts('ResponseResumed')
 
-/** Response confirming a Message was dispatched. The `acceptedAtIndex` is the absolute history index where the entry is predicted to land. Computed from the runtime's history length at dispatch time. The Message reaches the runtime's update loop asynchronously, so concurrent Messages produced by the runtime itself could in principle shift ordering; in practice the bridge is the only external dispatch source and the runtime queue serializes Messages, so this index is reliable for correlation. */
+/** Response confirming a Message was dispatched. The `acceptedAtIndex` is the absolute history index where the entry is predicted to land. Computed from the runtime's history length at dispatch time. The runtime processes Messages in arrival order and the bridge is the only external dispatch source, so this index is reliable for correlation. */
 export const ResponseDispatched = ts('ResponseDispatched', {
   acceptedAtIndex: S.Number,
 })

@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite'
 
+import { foldkit } from '@foldkit/vite-plugin'
+
 import { foldkitAliases } from '../../examples/vite.aliases'
 
 const variant = process.env['BUILD_VARIANT'] ?? 'naive'
@@ -7,6 +9,7 @@ const isOptimised = variant === 'optimised'
 
 export default defineConfig({
   base: './',
+  plugins: [foldkit()],
   resolve: {
     alias: foldkitAliases(__dirname),
   },

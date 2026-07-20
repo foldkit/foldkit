@@ -487,7 +487,7 @@ export const buildTools = (
   {
     name: 'foldkit_dispatch_message',
     description:
-      "Dispatch a Message into a Foldkit runtime's message queue, as if the application itself produced it. Requires the runtime to have configured DevToolsConfig.Message; without it, dispatch is rejected. Call `foldkit_get_message_schema` with no arguments to enumerate the variants, then with `variant_tag` to learn one variant's exact payload shape, before constructing the Message object. The runtime decodes the payload and returns a clean error if it doesn't match.",
+      "Dispatch a Message into a Foldkit runtime, as if the application itself produced it. Requires the runtime to have configured DevToolsConfig.Message; without it, dispatch is rejected. Call `foldkit_get_message_schema` with no arguments to enumerate the variants, then with `variant_tag` to learn one variant's exact payload shape, before constructing the Message object. The runtime decodes the payload and returns a clean error if it doesn't match.",
     inputSchema: toInputSchema(DispatchMessageInput),
     handle: runRuntimeTool(
       DispatchMessageInput,

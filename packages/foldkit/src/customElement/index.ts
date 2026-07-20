@@ -193,7 +193,7 @@ export const define = <
       ): Attribute<Message> =>
         OnCustomEvent({
           name: eventName,
-          f: event => toMessage(event.detail),
+          toMessage: event => toMessage(event.detail),
         })
     }
 

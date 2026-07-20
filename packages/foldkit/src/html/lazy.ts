@@ -16,9 +16,17 @@ import {
 const argsEqual = (
   previous: ReadonlyArray<unknown>,
   current: ReadonlyArray<unknown>,
-): boolean =>
-  previous.length === current.length &&
-  previous.every((value, index) => value === current[index])
+): boolean => {
+  if (previous.length !== current.length) {
+    return false
+  }
+  for (let index = 0; index < previous.length; index++) {
+    if (previous[index] !== current[index]) {
+      return false
+    }
+  }
+  return true
+}
 
 type CacheEntry = Readonly<{
   fn: Function

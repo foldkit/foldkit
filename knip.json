@@ -74,7 +74,7 @@
       "ignoreDependencies": ["tailwindcss"]
     },
     "internal/lustre-benchmark": {
-      "entry": ["src/main.ts", "src/entry.optimised.ts"]
+      "entry": ["src/main.ts", "src/entry.optimised.ts", "bench/*.mjs"]
     },
     "internal/performance-harness": {
       "entry": ["src/main.ts"],
