@@ -1,5 +1,11 @@
 # @foldkit/devtools-mcp
 
+## 0.13.3
+
+### Patch Changes
+
+- 2b788f2: Reword the `foldkit_dispatch_message` tool description and README table entry to drop references to a message queue, matching the runtime's synchronous dispatch path.
+
 ## 0.13.2
 
 ### Patch Changes
