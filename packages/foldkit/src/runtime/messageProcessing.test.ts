@@ -22,8 +22,9 @@ import { makeElement } from './runtime.js'
  *   render painted the init Model, and a Command returned by that result's
  *   update forks and completes correctly.
  * - A crash is terminal: Messages dispatched after update throws are
- *   dropped, so no update, Command fork, or side effect runs behind the
- *   crash view.
+ *   dropped, and a Command forked by a Message processed just before the
+ *   crash does not run its effect, so no update, Command fork, or side
+ *   effect runs behind the crash view.
  * - A Message dispatched while a render frame's patch is on the stack (an
  *   OnUnmount destroy hook) is buffered until the frame commits, so a
  *   defect in its update crashes cleanly and dispose still restores the
@@ -387,6 +388,69 @@ describe('message processing', () => {
       // Give any wrongly-forked Command time to run before asserting.
       await new Promise(resolve => setTimeout(resolve, 20))
       expect(processedLog).toEqual(['ThrewInUpdate'])
+      expect(commandEffectSpy).not.toHaveBeenCalled()
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('does not run a Command forked by a Message processed just before a crash', async () => {
+    let capturedDispatch: ((message: Message) => void) | null = null
+    const commandEffectSpy = vi.fn()
+
+    const spiedCommand: Command<Message> = {
+      name: 'ProduceSpiedResult',
+      effect: Effect.sync(() => {
+        commandEffectSpy()
+        return AppendedCommandResult()
+      }),
+    }
+
+    const update = (
+      model: Model,
+      message: Message,
+    ): readonly [Model, ReadonlyArray<Command<Message>>] => {
+      if (message._tag === 'ThrewInUpdate') {
+        throw new Error('boom in update')
+      }
+      const nextModel = { log: [...model.log, message._tag] }
+      if (message._tag === 'AppendedFirst') {
+        return [nextModel, [spiedCommand]]
+      }
+      return [nextModel, []]
+    }
+
+    const element = makeElement({
+      Model,
+      init: () => [{ log: [] }, []],
+      update,
+      view: model => {
+        capturedDispatch = __requireDispatch()
+        return view(model)
+      },
+      crash: {
+        view: () => h.div([], ['crash-view-marker']),
+      },
+      container,
+    })
+
+    const fiber = Effect.runFork(element.start())
+    await vi.waitFor(() => {
+      expect(capturedDispatch).not.toBeNull()
+    })
+
+    try {
+      const dispatch = capturedDispatch!
+      // AppendedFirst forks a Command whose fork is deferred to a microtask;
+      // ThrewInUpdate crashes on the same synchronous stack before that
+      // microtask runs. The Command's side effect must not run behind the
+      // crash view.
+      dispatch(AppendedFirst())
+      dispatch(ThrewInUpdate())
+      expect(document.body.textContent).toContain('crash-view-marker')
+
+      // Give the deferred Command fork a chance to run before asserting.
+      await new Promise(resolve => setTimeout(resolve, 20))
       expect(commandEffectSpy).not.toHaveBeenCalled()
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))

@@ -177,7 +177,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 
 ## View
 
-- [ ] Every layout branch keyed (route-based or state-based); inline branch roots keyed directly, delegating branches behind a single keyed wrapper at the branch site, no wrapper introduced only to carry a key
+- [ ] Branches are never keyed; each branch renders through a view function (identity boundary), with a same-tag inline ternary extracted into named view functions when switching must reset DOM state
 - [ ] Events dispatch Messages, never perform actions directly
 - [ ] Semantic HTML elements (`main`, `nav`, `section`, `article`, `header`, `footer`)
 

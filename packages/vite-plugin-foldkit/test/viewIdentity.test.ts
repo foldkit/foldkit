@@ -210,7 +210,7 @@ const view = () => 2
 describe('eligibility', () => {
   const FUNCTION_SOURCE = 'const view = () => 1\n'
 
-  it('skips foldkit core aliased into packages/foldkit', () => {
+  it('skips a packages/foldkit path via the fallback when foldkit is unresolved', () => {
     expect(
       transformViewIdentity(
         FUNCTION_SOURCE,
@@ -218,6 +218,21 @@ describe('eligibility', () => {
         ROOT,
       ),
     ).toBeNull()
+  })
+
+  it('brands a consumer module under packages/foldkit once foldkit resolves', () => {
+    // Regression: with the installed foldkit package resolved, the plugin's
+    // precise package-root gate is authoritative, so the coarse
+    // `packages/foldkit/` fragment must not un-brand a consumer whose own app
+    // path merely contains the segment.
+    const result = transformViewIdentity(
+      FUNCTION_SOURCE,
+      '/work/app/packages/foldkit/View.ts',
+      '/work/app',
+      { isFoldkitCoreResolved: true },
+    )
+    expect(result).not.toBeNull()
+    expect(result?.code).toContain('"packages/foldkit/View.ts#view"')
   })
 
   it('skips foldkit core under node_modules', () => {
