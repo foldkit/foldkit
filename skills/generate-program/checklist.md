@@ -153,7 +153,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 - [ ] `Completed*` uses verb+object order: `CompletedFocusInput` not `CompletedInputFocus`
 - [ ] Option fields prefixed with `maybe`
 - [ ] Boolean fields prefixed with `is`
-- [ ] No abbreviations anywhere
+- [ ] No opaque abbreviations or unexplained single-letter names
 - [ ] Constants for all magic numbers
 - [ ] Schema literals are capitalized: `S.Literals(['Active', 'Inactive'])`
 
@@ -331,7 +331,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 - [ ] Message names are verb-first past-tense: `ClickedSubmit`, `UpdatedEmail`, `SucceededFetchWeather`. Never noun-first (`SubmitClicked`) or imperative (`FetchWeather` as a Message).
 - [ ] `Completed*` Messages mirror the Command name verb-first: Command `LockScroll` → Message `CompletedLockScroll`. Never `CompletedScrollLock`.
 - [ ] Named helpers use specific verbs, not generic ones: `enqueueMessage` not `addMessage`, `announceKeyboardDrag` not `announce`, `whenSelectAction` not `handleSelect`. The verb eliminates ambiguity.
-- [ ] No abbreviations anywhere: `signature` not `sig`, `tickCount` not `t`, `message` not `msg`, `index` not `i`. Callback parameters included.
+- [ ] Names are immediately understandable in context: `signature` not `sig`, `tickCount` not `t`, `message` not `msg`, `index` not `i`. Callback parameters are included. Conventional technical shorthand is allowed when it is the normal domain spelling, such as `attrs`, `props`, `args`, `dir`, `ctx`, `fn`, `DOM`, `URL`, and `VNode`. Established API and DSL bindings such as `h` are also allowed. Prefer a precise semantic name such as `toMessage` over an unexplained `f`.
 
 ## File structure and exports
 

@@ -12,7 +12,6 @@ import {
   Option,
   Predicate,
   PubSub,
-  Queue,
   Record,
   Ref,
   Scheduler,
@@ -81,9 +80,7 @@ import {
   preserveScrollPosition,
   restorePreservedScrollPosition,
 } from './hmrScroll.js'
-import { type EnvelopedMessage, orderByPriority } from './messagePriority.js'
 import { makePreserveScheduler } from './preserveScheduler.js'
-import { makeRenderLoop } from './renderLoop.js'
 
 type AnyCommand<T, E = never, R = never> = {
   readonly name: string
@@ -1361,24 +1358,6 @@ const makeRuntime = <
 
   const runtimeId = container?.id ?? ''
 
-  // NOTE: When the message queue drains a chain of dispatches (e.g. recursive
-  // Commands, websocket bursts), processing all of them inside one macrotask
-  // blocks the browser from painting. Yield via MessageChannel once the
-  // current burst exceeds FRAME_BUDGET_MS so the browser gets a frame.
-  // setTimeout(0) is clamped to 4ms+; MessageChannel delivers in ~0.5ms.
-  const FRAME_BUDGET_MS = 5
-
-  // NOTE: render coalescing relies on this firing once per frame. Multiple
-  // Messages dispatched between frames all flag the renderLoop dirty; the
-  // next rAF tick reads the latest model and renders once. Without this,
-  // every Message would call render() inline, and during high-rate streams
-  // (drag pointermove, websocket bursts) the runtime would paint each
-  // intermediate frame with the cursor leading the rendered position.
-  const awaitNextFrame: Effect.Effect<void> = Effect.callback<void>(resume => {
-    const handle = requestAnimationFrame(() => resume(Effect.void))
-    return Effect.sync(() => cancelAnimationFrame(handle))
-  })
-
   const startWith = (
     maybeConnector: Option.Option<HostConnector>,
     hmrModel?: unknown,
@@ -1394,44 +1373,12 @@ const makeRuntime = <
           )
         }
 
-        // NOTE: every perpetual fiber (render loop, Subscription streams,
-        // ManagedResource lifecycles) and every Command fiber forks into the
-        // runtime scope, so interrupting the runtime fiber (what dispose
-        // does) interrupts them all and runs their finalizers. A detached
-        // fork would outlive the runtime.
+        // NOTE: every perpetual fiber (for example, Subscription streams
+        // and ManagedResource lifecycles) and every Command fiber forks
+        // into the runtime scope, so interrupting the runtime fiber (what
+        // dispose does) interrupts them all and runs their finalizers. A
+        // detached fork would outlive the runtime.
         const runtimeScope = yield* Effect.scope
-
-        // NOTE: one persistent MessageChannel for the runtime lifetime,
-        // shared by every burst-budget yield. The queue-drain fiber is the
-        // sole consumer, so a single `pendingYieldResume` slot is sufficient.
-        const yieldChannel = yield* Effect.acquireRelease(
-          Effect.sync(() => new MessageChannel()),
-          channel =>
-            Effect.sync(() => {
-              channel.port1.close()
-              channel.port2.close()
-            }),
-        )
-        let pendingYieldResume: ((effect: Effect.Effect<void>) => void) | null =
-          null
-        yieldChannel.port2.onmessage = () => {
-          const resume = pendingYieldResume
-          pendingYieldResume = null
-          if (resume !== null) {
-            resume(Effect.void)
-          }
-        }
-        const yieldToBrowser: Effect.Effect<void> = Effect.callback<void>(
-          resume => {
-            pendingYieldResume = resume
-            yieldChannel.port1.postMessage(null)
-            return Effect.sync(() => {
-              if (pendingYieldResume === resume) {
-                pendingYieldResume = null
-              }
-            })
-          },
-        )
 
         // NOTE: `Effect.provide(effect, layer)` builds the Layer into a
         // scope that closes when the provided effect ends, so providing the
@@ -1638,23 +1585,67 @@ const makeRuntime = <
         const schedulePreserveModel = (model: Model): Effect.Effect<void> =>
           hot ? preserveScheduler.schedule(model) : Effect.void
 
-        // NOTE: Each enqueued Message carries a priority. Within a single
-        // takeAll batch the drain loop processes all High before any Normal,
-        // so user input (view dispatch, navigation, subscription events,
-        // managed-resource events, external dispatchers) lands ahead of
-        // chain-derived work (Command results) when they share a frame.
-        // FIFO order is preserved within a priority class.
-        const messageQueue = yield* Queue.unbounded<EnvelopedMessage<Message>>()
+        // NOTE: the dispatch hot path is plain JavaScript. A dispatched
+        // Message is pushed onto a plain array and drained synchronously on
+        // the spot, so update runs on the dispatching stack (for example, a
+        // DOM event handler, a Command fiber completing, or a Subscription
+        // emit) with no fiber hop in between. The drain guards against
+        // re-entrancy: a Message dispatched mid-drain (for example, by an
+        // update triggered from a synchronous Command) is queued and picked
+        // up by the outer drain loop in arrival order, and a Message
+        // dispatched while a render frame's patch is on the stack is
+        // buffered until the frame completes.
+        let pendingMessages: Array<Message> = []
+        let isProcessingMessages = false
+        let isRenderFrameScheduled = false
+        // NOTE: mirrors the old queue's boot behavior: a Message arriving
+        // before boot completes (for example, a navigation event during an
+        // async dev-mode boot step, or a boot-forked fiber emitting early)
+        // is buffered, not processed. Processing against a partially
+        // initialized runtime would race the init render, DevTools
+        // recording, and Subscription attachment. The flag flips as the
+        // last act of boot, which then drains the buffer. enqueueMessage
+        // checks it directly, not just the drain: dispatch sources go live
+        // mid-boot, before `drainPendingMessages` is initialized, and
+        // calling it from a pre-boot dispatch would hit the temporal dead
+        // zone.
+        let isBootComplete = false
+        // NOTE: mirrors the old queue's post-interrupt behavior: a Message
+        // dispatched after the runtime scope closed (for example, an
+        // OnUnmount fired by the dispose teardown patch, or a stale DOM
+        // handler) is dropped
+        // instead of updating a disposed runtime. Set by a finalizer
+        // registered at the end of boot, so it runs before
+        // earlier-registered teardown (finalizers are LIFO).
+        let isRuntimeDisposed = false
+        // NOTE: the differ fires destroy and insert hooks while `patch` is
+        // on the stack, and both can dispatch synchronously (for example,
+        // an OnUnmount dispatch, or a Mount stream's synchronous first
+        // emission). Draining
+        // inline would run update, and on a defect the crash renderer,
+        // against a DOM the outer patch is still mutating. The frame
+        // buffers such dispatches and drains them after it completes.
+        let isRenderingFrame = false
+        // NOTE: a crash is terminal. The old runtime's drain fiber died on
+        // the first defect, so nothing was processed after a crash; this
+        // flag preserves that: the drain stops and later dispatches are
+        // dropped, so update, Command forks, and DevTools recording all
+        // stop with the crash view on screen.
+        let isCrashed = false
 
-        const enqueueHigh = (message: Message) =>
-          Queue.offer(messageQueue, { priority: 'High', message })
-
-        const enqueueNormal = (message: Message) =>
-          Queue.offer(messageQueue, { priority: 'Normal', message })
-
-        const enqueueHighUnsafe = (message: Message): void => {
-          Queue.offerUnsafe(messageQueue, { priority: 'High', message })
+        const enqueueMessage = (message: Message): void => {
+          if (isRuntimeDisposed || isCrashed) {
+            return
+          }
+          pendingMessages.push(message)
+          if (!isBootComplete || isRenderingFrame) {
+            return
+          }
+          drainPendingMessages()
         }
+
+        const enqueueMessageEffect = (message: Message) =>
+          Effect.sync(() => enqueueMessage(message))
 
         const currentUrl: Option.Option<Url> = Option.fromNullishOr(
           routingConfig,
@@ -1691,18 +1682,21 @@ const makeRuntime = <
         if (routingConfig) {
           yield* Effect.acquireRelease(
             Effect.sync(() =>
-              addNavigationEventListeners(enqueueHighUnsafe, routingConfig),
+              addNavigationEventListeners(enqueueMessage, routingConfig),
             ),
             removeNavigationEventListeners =>
               Effect.sync(() => removeNavigationEventListeners()),
           )
         }
 
-        const modelRef = yield* Ref.make<Model>(initModel)
+        // NOTE: the model and the current vnode are plain closure state.
+        // The hot path reads and writes them directly; the cold paths that
+        // run inside Effects (crash rendering, the dispose finalizer, the
+        // replay render) read the same variables synchronously, so no Ref
+        // is needed.
+        let liveModel: Model = initModel
 
-        const maybeCurrentVNodeRef = yield* Ref.make<Option.Option<VNode>>(
-          Option.none(),
-        )
+        const vnodeSlot: VNodeSlot = { maybeCurrentVNode: Option.none() }
 
         // NOTE: registered before any perpetual fiber is forked so it runs
         // after they are interrupted (scope finalizers are LIFO). Patching to
@@ -1718,7 +1712,7 @@ const makeRuntime = <
             if (!Exit.hasInterrupts(exit)) {
               return
             }
-            const maybeCurrentVNode = yield* Ref.get(maybeCurrentVNodeRef)
+            const maybeCurrentVNode = vnodeSlot.maybeCurrentVNode
             yield* Option.match(maybeCurrentVNode, {
               onNone: () => Effect.void,
               onSome: currentVNode =>
@@ -1740,28 +1734,27 @@ const makeRuntime = <
           }),
         )
 
-        const isCrashedRef = yield* Ref.make(false)
-
-        // NOTE: shared by every fiber's crash path: init render, render
-        // loop, message drain, and the Command and Subscription forks (a
-        // Command's Effect and a Subscription's Stream are typed with a
-        // `never` error channel, so a cause escaping one can only be a
-        // `resources` Layer build failure or an escaped defect, both
-        // unrecoverable). Each fiber catches its own cause so
-        // a failure surfaces as the crash view instead of dying silently
-        // and leaving the DOM frozen at the last successful render. The
-        // first crash wins: concurrent Command fibers can fail on the same
-        // broken Layer, and only one should report and render.
+        // NOTE: shared by every crash path: the init render, the plain
+        // message drain and render frame (which reach it through
+        // `Effect.runFork` from their catch blocks), and the Command and
+        // Subscription fibers (a Command's Effect and a Subscription's
+        // Stream are typed with a `never` error channel, so a cause
+        // escaping one can only be a `resources` Layer build failure or an
+        // escaped defect, both unrecoverable). Each path catches its own
+        // cause so a failure surfaces as the crash view instead of dying
+        // silently and leaving the DOM frozen at the last successful
+        // render. The first crash wins: concurrent Command fibers can fail
+        // on the same broken Layer, and only one should report and render.
         const crashWith = (
           cause: Cause.Cause<never>,
           maybeMessage: Option.Option<Message>,
         ): Effect.Effect<void> =>
-          Effect.gen(function* () {
-            const wasCrashed = yield* Ref.getAndSet(isCrashedRef, true)
-            if (wasCrashed) {
+          Effect.sync(() => {
+            if (isCrashed) {
               return
             }
-            const model = yield* Ref.get(modelRef)
+            isCrashed = true
+            const model = liveModel
             const squashed = Cause.squash(cause)
             const error =
               squashed instanceof Error ? squashed : new Error(String(squashed))
@@ -1769,79 +1762,60 @@ const makeRuntime = <
               { error, model, message: maybeMessage },
               crash,
               container,
-              maybeCurrentVNodeRef,
+              vnodeSlot,
               manageDocument,
             )
           })
 
-        yield* Effect.forEach(
-          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-          initCommands as ReadonlyArray<
-            AnyCommand<Message, never, Resources | ManagedResourceServices>
-          >,
-          command =>
-            Effect.forkIn(runtimeScope)(
-              command.effect.pipe(
-                Effect.withSpan(command.name, {
-                  attributes: command.args ?? {},
-                }),
-                provideAllResources,
-                Effect.flatMap(enqueueNormal),
-                Effect.catchCause(cause => crashWith(cause, Option.none())),
-              ),
-            ),
-        )
-
-        // NOTE: queue-drain-fiber-local state. Kept as plain closure
-        // variables instead of `Ref`s because nothing else reads or writes
-        // them concurrently, and JS's single-threaded model already orders
-        // writes against subsequent reads. `currentMessage` is read by the
-        // crash handler, which runs inside the same `forever` fiber via
-        // `Effect.catchCause`.
+        // NOTE: drain-local state. Kept as plain closure variables instead
+        // of `Ref`s because nothing else reads or writes them concurrently,
+        // and JS's single-threaded model already orders writes against
+        // subsequent reads. `currentMessage` is read by the crash handler.
         let currentMessage = Option.none<Message>()
-        let burstStartedAt = 0
+        let maybeLastDirtyMessage = Option.none<Message>()
 
         // NOTE: the DevTools store is installed at most once during boot and
         // never replaced. Caching it in a closure variable avoids a
-        // `Ref.get` on every message and on every render-loop tick (the
-        // store powers `isPausedEffect`).
-        let maybeDevToolsStore: Option.Option<DevToolsStore> = Option.none()
+        // `Ref.get` on every message and on every render frame (the
+        // store powers the pause check). Plain `null` rather than `Option`:
+        // the hot path only ever presence-checks it, and the check should
+        // stay a bare comparison.
+        let devToolsStore: DevToolsStore | null = null
 
         const dispatchSync = (message: unknown): void => {
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-          enqueueHighUnsafe(message as Message)
+          enqueueMessage(message as Message)
         }
 
         const dispatchAsync = (message: unknown): Effect.Effect<void> =>
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-          enqueueHigh(message as Message)
+          enqueueMessageEffect(message as Message)
 
         const dispatch = { dispatchAsync, dispatchSync }
 
-        const isRenderPendingRef = yield* SubscriptionRef.make(false)
-        const maybeLastDirtyMessageRef = yield* Ref.make<
-          Option.Option<Message>
-        >(Option.none())
+        const isPausedNow = (): boolean =>
+          devToolsStore !== null &&
+          SubscriptionRef.getUnsafe(devToolsStore.stateRef).isPaused
 
-        const isPausedEffect: Effect.Effect<boolean> = Effect.suspend(() =>
-          Option.match(maybeDevToolsStore, {
-            onNone: () => Effect.succeed(false),
-            onSome: ({ stateRef }) =>
-              SubscriptionRef.get(stateRef).pipe(
-                Effect.map(({ isPaused }) => isPaused),
-              ),
-          }),
-        )
-
+        // NOTE: recording is gated on the DevTools store because the store
+        // is the only consumer. Without the gate every Mount start and end
+        // in a production frame would allocate a record just to be sliced
+        // and dropped.
         const mountStartBuffer: Array<MountRecord> = []
         const mountEndBuffer: Array<MountRecord> = []
         const mountTracker: typeof MountTracker.Service = {
           started: (name, args) => {
+            if (devToolsStore === null) {
+              return
+            }
             mountStartBuffer.push(
               args === undefined ? { name } : { name, args },
             )
           },
           ended: (name, args) => {
+            if (devToolsStore === null) {
+              return
+            }
             mountEndBuffer.push(args === undefined ? { name } : { name, args })
           },
         }
@@ -1856,73 +1830,107 @@ const makeRuntime = <
           return { starts, ends }
         }
 
-        const processMessage = (message: Message): Effect.Effect<void> =>
-          Effect.gen(function* () {
-            const currentModel = yield* Ref.get(modelRef)
-
-            const [[nextModelRaw, commands], maybeUpdateDuration] =
-              measureSlowPhase(resolvedSlowUpdate, () =>
-                update(currentModel, message),
-              )
-            const nextModel = maybeFreezeModel(nextModelRaw)
-
-            reportSlowPhase<SlowUpdateContext<Model, Message>>(
-              resolvedSlowUpdate,
-              maybeUpdateDuration,
-              (durationMs, thresholdMs) => ({
-                _tag: 'Update',
-                previousModel: currentModel,
-                nextModel,
-                message,
-                durationMs,
-                thresholdMs,
-              }),
+        // NOTE: the fork is deferred one microtask so a Command's Effect
+        // never begins on the dispatching stack. Commands are facts from
+        // outside the update loop; their results always arrive
+        // asynchronously, exactly as under the old queue. The fork runs
+        // through `Effect.runForkWith` (which starts its fiber
+        // synchronously, so the child is registered in `runtimeScope`
+        // before this callback returns), not `Effect.runSyncWith`:
+        // `runSyncWith` injects a temporary synchronous scheduler into the
+        // fiber context, the child would inherit it, and every later yield
+        // in the Command (for example, an op-budget suspension, or a
+        // Stream step) would
+        // reschedule through clamped `setTimeout` instead of the browser
+        // microtask scheduler carried by `runtimeContextForCommands`.
+        const forkCommand = (
+          command: AnyCommand<
+            Message,
+            never,
+            Resources | ManagedResourceServices
+          >,
+          message: Option.Option<Message>,
+        ): void => {
+          queueMicrotask(() => {
+            if (isRuntimeDisposed) {
+              return
+            }
+            Effect.runForkWith(runtimeContextForCommands)(
+              Effect.forkIn(runtimeScope)(
+                command.effect.pipe(
+                  Effect.withSpan(command.name, {
+                    attributes: command.args ?? {},
+                  }),
+                  provideAllResources,
+                  Effect.flatMap(enqueueMessageEffect),
+                  Effect.catchCause(cause => crashWith(cause, message)),
+                ),
+              ),
             )
+          })
+        }
 
-            if (currentModel !== nextModel) {
-              yield* Ref.set(modelRef, nextModel)
-              yield* SubscriptionRef.set(isRenderPendingRef, true)
-              yield* Ref.set(maybeLastDirtyMessageRef, Option.some(message))
+        const processMessagePlain = (message: Message): void => {
+          const currentModel = liveModel
 
-              PubSub.publishUnsafe(modelPubSub, nextModel)
-              yield* schedulePreserveModel(nextModel)
+          const [[nextModelRaw, commands], maybeUpdateDuration] =
+            measureSlowPhase(resolvedSlowUpdate, () =>
+              update(currentModel, message),
+            )
+          const nextModel = maybeFreezeModel(nextModelRaw)
+
+          reportSlowPhase<SlowUpdateContext<Model, Message>>(
+            resolvedSlowUpdate,
+            maybeUpdateDuration,
+            (durationMs, thresholdMs) => ({
+              _tag: 'Update',
+              previousModel: currentModel,
+              nextModel,
+              message,
+              durationMs,
+              thresholdMs,
+            }),
+          )
+
+          if (currentModel !== nextModel) {
+            liveModel = nextModel
+            maybeLastDirtyMessage = Option.some(message)
+            PubSub.publishUnsafe(modelPubSub, nextModel)
+            if (import.meta.hot) {
+              Effect.runSync(schedulePreserveModel(nextModel))
             }
+            scheduleRenderFrame()
+          }
 
-            if (!Array.isReadonlyArrayEmpty(commands)) {
-              yield* Effect.forEach(
+          if (!Array.isReadonlyArrayEmpty(commands)) {
+            for (const command of commands) {
+              forkCommand(
                 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                commands as ReadonlyArray<
-                  AnyCommand<
-                    Message,
-                    never,
-                    Resources | ManagedResourceServices
-                  >
+                command as AnyCommand<
+                  Message,
+                  never,
+                  Resources | ManagedResourceServices
                 >,
-                command =>
-                  Effect.forkIn(runtimeScope)(
-                    command.effect.pipe(
-                      Effect.withSpan(command.name, {
-                        attributes: command.args ?? {},
-                      }),
-                      provideAllResources,
-                      Effect.flatMap(enqueueNormal),
-                      Effect.catchCause(cause =>
-                        crashWith(cause, Option.some(message)),
-                      ),
-                    ),
-                  ),
+                Option.some(message),
               )
             }
+          }
 
+          // NOTE: store writes go through `Effect.runFork`, not
+          // `Effect.runSync`. Both complete inline when the store's state
+          // Ref is uncontended (the always case on this path), but a
+          // DevTools fiber holding the Ref's permit across a yield would
+          // make `runSync` throw and crash the app; `runFork` parks and
+          // finishes the write when the permit frees, and the Ref's FIFO
+          // permit queue preserves write order.
+          if (devToolsStore !== null) {
+            const store = devToolsStore
             /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
             const tag = (message as { _tag: string })._tag
             const isModelChanged = currentModel !== nextModel
-            const isExcludedFromHistory = excludeFromHistoryTags.has(tag)
-
-            if (Option.isSome(maybeDevToolsStore)) {
-              const store = maybeDevToolsStore.value
-              if (!isExcludedFromHistory) {
-                yield* store.recordMessage(
+            if (!excludeFromHistoryTags.has(tag)) {
+              Effect.runFork(
+                store.recordMessage(
                   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
                   message as Message & { _tag: string },
                   currentModel,
@@ -1933,19 +1941,117 @@ const makeRuntime = <
                     toCommandRecord,
                   ),
                   isModelChanged,
-                )
-              } else if (isModelChanged) {
-                yield* store.updateLatestModel(nextModel)
+                ),
+              )
+            } else if (isModelChanged) {
+              Effect.runFork(store.updateLatestModel(nextModel))
+            }
+          }
+        }
+
+        // NOTE: escape hatch for synchronous bursts, so the page keeps
+        // painting under pathological load (for example, a fiber
+        // dispatching thousands of Messages in one task, or a fully
+        // synchronous Command chain). Bursts
+        // arrive as many single-Message drains within one browser task, so
+        // the budget is cumulative across drains: it accumulates processing
+        // time and resets when the browser demonstrably got control back (a
+        // render frame ran, or the gap since the last drain exceeds the
+        // budget). Once over budget, processing defers to a MessageChannel
+        // tick, which starts a new task so a pending frame can paint.
+        // setTimeout(0) would be clamped to 4ms+; MessageChannel delivers in
+        // ~0.5ms. The normal path pays two clock reads per drain.
+        let syncWorkMsSinceYield = 0
+        let lastDrainEndedAt = 0
+        let isDrainDeferredToNextTask = false
+        let maybeDeferredDrainChannel: MessageChannel | null = null
+
+        const scheduleDeferredDrain = (): void => {
+          if (maybeDeferredDrainChannel === null) {
+            maybeDeferredDrainChannel = new MessageChannel()
+            maybeDeferredDrainChannel.port2.onmessage = () => {
+              isDrainDeferredToNextTask = false
+              syncWorkMsSinceYield = 0
+              drainPendingMessages()
+            }
+          }
+          isDrainDeferredToNextTask = true
+          maybeDeferredDrainChannel.port1.postMessage(null)
+        }
+
+        yield* Effect.addFinalizer(() =>
+          Effect.sync(() => {
+            if (maybeDeferredDrainChannel !== null) {
+              maybeDeferredDrainChannel.port1.close()
+              maybeDeferredDrainChannel.port2.close()
+              maybeDeferredDrainChannel = null
+            }
+          }),
+        )
+
+        const drainPendingMessages = (): void => {
+          if (
+            !isBootComplete ||
+            isProcessingMessages ||
+            isRenderingFrame ||
+            isDrainDeferredToNextTask ||
+            isRuntimeDisposed ||
+            isCrashed
+          ) {
+            return
+          }
+          const drainStartedAt = performance.now()
+          if (drainStartedAt - lastDrainEndedAt > DRAIN_BUDGET_MS) {
+            syncWorkMsSinceYield = 0
+          }
+          if (syncWorkMsSinceYield > DRAIN_BUDGET_MS) {
+            scheduleDeferredDrain()
+            return
+          }
+          isProcessingMessages = true
+          try {
+            while (pendingMessages.length > 0) {
+              const batch = pendingMessages
+              pendingMessages = []
+              for (let index = 0; index < batch.length; index++) {
+                const message = batch[index]!
+                currentMessage = Option.some(message)
+                processMessagePlain(message)
+
+                const hasRemainingWork =
+                  index + 1 < batch.length || pendingMessages.length > 0
+                if (
+                  hasRemainingWork &&
+                  syncWorkMsSinceYield + (performance.now() - drainStartedAt) >
+                    DRAIN_BUDGET_MS
+                ) {
+                  // NOTE: unprocessed batch Messages arrived before
+                  // anything in pendingMessages, so they go back to the
+                  // front to keep arrival order.
+                  pendingMessages = batch
+                    .slice(index + 1)
+                    .concat(pendingMessages)
+                  scheduleDeferredDrain()
+                  return
+                }
               }
             }
-          })
+          } catch (error) {
+            Effect.runFork(crashWith(Cause.die(error), currentMessage))
+          } finally {
+            const drainEndedAt = performance.now()
+            syncWorkMsSinceYield += drainEndedAt - drainStartedAt
+            lastDrainEndedAt = drainEndedAt
+            isProcessingMessages = false
+          }
+        }
 
         // NOTE: `dispatchService` defaults to the live dispatch but is
         // overridable so the DevTools jumpTo render path can pass
         // `noOpDispatch`. Mount Effects forked during a replay render still
         // execute (so the rendered DOM looks correct: positioning,
         // observer attachment, library setup), but their result Messages
-        // reach a no-op dispatchSync and never enter the runtime queue.
+        // reach a no-op dispatchSync and are never processed.
         // This prevents mount-derived Messages from polluting history when
         // the user is just inspecting past state.
         const render = (
@@ -1955,6 +2061,7 @@ const makeRuntime = <
           renderMode: 'Live' | 'Replay' = 'Live',
         ) =>
           Effect.gen(function* () {
+            isRenderingFrame = true
             const runtimeContext = yield* Effect.context<never>()
             const maybeLiveRender = Option.liftPredicate(
               renderMode,
@@ -2002,7 +2109,7 @@ const makeRuntime = <
               }),
             )
 
-            const maybeCurrentVNode = yield* Ref.get(maybeCurrentVNodeRef)
+            const maybeCurrentVNode = vnodeSlot.maybeCurrentVNode
 
             const [patchedVNode, maybePatchDuration] = yield* Effect.sync(() =>
               measureSlowPhase(maybeLiveSlowPatch, () =>
@@ -2014,7 +2121,7 @@ const makeRuntime = <
                 ),
               ),
             )
-            yield* Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode))
+            vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
 
             reportSlowPhase<SlowPatchContext<Model, Message>>(
               maybeLiveSlowPatch,
@@ -2040,7 +2147,13 @@ const makeRuntime = <
               )
             }
           }).pipe(
-            Effect.ensuring(Effect.sync(() => endReplayHtmlRender())),
+            Effect.ensuring(
+              Effect.sync(() => {
+                isRenderingFrame = false
+                endReplayHtmlRender()
+                drainPendingMessages()
+              }),
+            ),
             Effect.provideService(Dispatch, dispatchService),
             Effect.provideService(MountTracker, mountTracker),
           )
@@ -2077,7 +2190,7 @@ const makeRuntime = <
           // direct lookup that reflects the real live state at the moment
           // the entry was recorded.
           const isExcludingMessages = excludeFromHistoryTags.size > 0
-          const devToolsStore = yield* createDevToolsStore(
+          const store = yield* createDevToolsStore(
             {
               /* eslint-disable @typescript-eslint/consistent-type-assertions */
               replay: (model, message) => {
@@ -2088,17 +2201,13 @@ const makeRuntime = <
                 return maybeFreezeModel(updatedModel)
               },
               /* eslint-enable @typescript-eslint/consistent-type-assertions */
-              // NOTE: clears the dirty bit on the jumpTo render so the
-              // renderLoop's Stream.changes sees the next dispatch as a real
-              // false-to-true transition rather than a deduped no-op. Passes
-              // `noOpDispatch` so mount Effects forked during the replay
-              // render dispatch their result Messages into a no-op (instead
-              // of enqueueing them as new history entries). Also discards
-              // mount events fired during the render so they don't get
-              // attributed to the next user-initiated dispatch.
+              // NOTE: passes `noOpDispatch` so mount Effects forked during
+              // the replay render dispatch their result Messages into a
+              // no-op (instead of enqueueing them as new history entries).
+              // Also discards mount events fired during the render so they
+              // don't get attributed to the next user-initiated dispatch.
               render: model =>
                 Effect.gen(function* () {
-                  yield* SubscriptionRef.set(isRenderPendingRef, false)
                   yield* render(
                     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
                     model as Model,
@@ -2108,12 +2217,10 @@ const makeRuntime = <
                   )
                   drainMountEvents()
                 }),
-              // NOTE: `resume` calls this to wake the renderLoop after a
-              // jumpTo render attached DOM listeners to `noOpDispatch`. The
-              // false-to-true transition triggers one tick on the next
-              // animation frame, which renders the live model with live
-              // dispatch and rebinds listeners.
-              markRenderPending: SubscriptionRef.set(isRenderPendingRef, true),
+              // NOTE: `resume` calls this after a jumpTo render attached DOM
+              // listeners to `noOpDispatch`. Scheduling a frame renders the
+              // live model with live dispatch and rebinds listeners.
+              markRenderPending: Effect.sync(() => scheduleRenderFrame()),
             },
             {
               ...(devToolsKeyframeInterval !== undefined && {
@@ -2129,14 +2236,12 @@ const makeRuntime = <
               ...(isExcludingMessages && { keyframeInterval: 1 }),
             },
           )
-          maybeDevToolsStore = Option.some(devToolsStore)
-          // The init render runs below; capture the events it produces. We
-          // record init AFTER that render so the buffer reflects the mounts
-          // that fired on the first paint.
+          devToolsStore = store
+          // NOTE: init is recorded after the init render below, so the
+          // mount buffer reflects the Mounts that fired on the first paint.
           yield* Option.match(maybeOverlay, {
             onNone: () => Effect.void,
-            onSome: overlay =>
-              overlay(devToolsStore, position, mode, maybeBanner),
+            onSome: overlay => overlay(store, position, mode, maybeBanner),
           })
 
           if (import.meta.hot) {
@@ -2145,24 +2250,14 @@ const makeRuntime = <
                 ? Option.fromNullishOr(devTools.Message)
                 : Option.none<Schema.Codec<any, any, unknown, unknown>>()
             yield* startWebSocketBridge(
-              devToolsStore,
+              store,
               import.meta.hot,
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              message => enqueueHigh(message as Message),
+              message => enqueueMessageEffect(message as Message),
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
               maybeMessageSchema as Option.Option<Schema.Codec<any, any>>,
             )
           }
-        }
-
-        // NOTE: a fast-failing init Command (a `resources` Layer that
-        // throws synchronously) can render the crash view before this
-        // point. Rendering the init view would paint over it, so a crashed
-        // runtime suspends here instead, exactly like the failing-init-
-        // render path below.
-        const isCrashedBeforeInitRender = yield* Ref.get(isCrashedRef)
-        if (isCrashedBeforeInitRender) {
-          return yield* Effect.never
         }
 
         const initRenderExit = yield* Effect.exit(
@@ -2181,62 +2276,150 @@ const makeRuntime = <
         }
 
         const initMountEvents = drainMountEvents()
-        yield* Option.match(maybeDevToolsStore, {
-          onNone: () => Effect.void,
-          onSome: store =>
-            store.recordInit(
-              initModel,
-              Array.map(initCommands, toCommandRecord),
-              initMountEvents.starts,
-            ),
-        })
+        if (devToolsStore !== null) {
+          yield* devToolsStore.recordInit(
+            initModel,
+            Array.map(initCommands, toCommandRecord),
+            initMountEvents.starts,
+          )
+        }
 
-        // NOTE: maybeLastDirtyMessageRef holds the most recent dirtying
+        // NOTE: maybeLastDirtyMessage holds the most recent dirtying
         // Message, so slow render-phase callbacks during high-rate bursts attribute
         // to the last Message in the frame batch, not the specific one that
         // pushed the view past threshold. Acceptable for a debug callback;
         // full attribution would require correlating each message with its
         // render contribution, which isn't worth the complexity.
 
-        const renderLoop = makeRenderLoop({
-          pendingRef: isRenderPendingRef,
-          awaitNextFrame,
-          isPaused: isPausedEffect,
-          render: Effect.gen(function* () {
-            // NOTE: a Message that dirtied the model can also be the one
-            // whose Command crashed the runtime. Without this guard the
-            // next animation frame would render the live view over the
-            // crash view.
-            const isCrashed = yield* Ref.get(isCrashedRef)
-            if (isCrashed) {
-              return
-            }
-            const model = yield* Ref.get(modelRef)
-            const maybeMessage = yield* Ref.get(maybeLastDirtyMessageRef)
-            yield* render(model, maybeMessage)
+        // NOTE: render frames run as plain JavaScript inside the
+        // requestAnimationFrame callback. Messages arriving between frames
+        // mark at most one pending frame; the callback renders once with the
+        // latest model. The runtime context for OnMount forking and Command
+        // forking is captured once here; it is constant for the lifetime of
+        // the runtime.
+        const runtimeContextForCommands = yield* Effect.context<never>()
+        const liveRenderContext = Context.add(
+          Context.add(runtimeContextForCommands, Dispatch, dispatch),
+          MountTracker,
+          mountTracker,
+        )
 
-            const mountEvents = drainMountEvents()
-            yield* Option.match(maybeDevToolsStore, {
-              onNone: () => Effect.void,
-              onSome: store =>
-                store.attachRenderedMounts(
+        const renderFramePlain = (): void => {
+          isRenderFrameScheduled = false
+          // NOTE: a frame scheduled before disposal fires after it; a
+          // disposed runtime must not repaint the released container.
+          if (isRuntimeDisposed) {
+            return
+          }
+          // NOTE: a frame is running, so the browser got control back; the
+          // drain budget starts fresh.
+          syncWorkMsSinceYield = 0
+          // NOTE: a Message that dirtied the model can also be the one
+          // whose Command crashed the runtime. Without this guard the
+          // next animation frame would render the live view over the
+          // crash view.
+          if (isCrashed) {
+            return
+          }
+          if (isPausedNow()) {
+            return
+          }
+          isRenderingFrame = true
+          try {
+            renderSyncPlain(liveModel, maybeLastDirtyMessage)
+            if (devToolsStore !== null) {
+              const mountEvents = drainMountEvents()
+              Effect.runFork(
+                devToolsStore.attachRenderedMounts(
                   mountEvents.starts,
                   mountEvents.ends,
                 ),
-            })
-          }),
-        })
+              )
+            }
+          } catch (error) {
+            Effect.runFork(crashWith(Cause.die(error), maybeLastDirtyMessage))
+          } finally {
+            isRenderingFrame = false
+          }
+          // NOTE: Messages dispatched by patch-time hooks (for example,
+          // OnUnmount destroys, or Mount emissions) were buffered while the
+          // frame held the stack; they process now, after the patch has
+          // committed and the frame's Mount events are attributed.
+          drainPendingMessages()
+        }
 
-        yield* Effect.forkIn(runtimeScope)(
-          renderLoop.pipe(
-            Effect.catchCause(cause =>
-              Effect.gen(function* () {
-                const maybeMessage = yield* Ref.get(maybeLastDirtyMessageRef)
-                yield* crashWith(cause, maybeMessage)
-              }),
-            ),
-          ),
-        )
+        const renderSyncPlain = (
+          model: Model,
+          maybeMessage: Option.Option<Message>,
+        ): void => {
+          const [nextDocument, maybeViewDuration] = measureSlowPhase(
+            resolvedSlowView,
+            () => {
+              beginHtmlRender(boundaryRegistry)
+              setHtmlRuntime(
+                dispatch.dispatchSync,
+                liveRenderContext,
+                boundaryRegistry,
+              )
+              try {
+                return view(model)
+              } finally {
+                clearHtmlRuntime()
+              }
+            },
+          )
+          reportSlowPhase<SlowViewContext<Model, Message>>(
+            resolvedSlowView,
+            maybeViewDuration,
+            (durationMs, thresholdMs) => ({
+              _tag: 'View',
+              model,
+              message: maybeMessage,
+              durationMs,
+              thresholdMs,
+            }),
+          )
+
+          const maybeCurrentVNode = vnodeSlot.maybeCurrentVNode
+          const [patchedVNode, maybePatchDuration] = measureSlowPhase(
+            resolvedSlowPatch,
+            () =>
+              __patchVNode(
+                maybeCurrentVNode,
+                nextDocument.body,
+                container,
+                boundaryRegistry.dedupeSeen,
+              ),
+          )
+          vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
+          reportSlowPhase<SlowPatchContext<Model, Message>>(
+            resolvedSlowPatch,
+            maybePatchDuration,
+            (durationMs, thresholdMs) => ({
+              _tag: 'Patch',
+              model,
+              message: maybeMessage,
+              durationMs,
+              thresholdMs,
+            }),
+          )
+
+          if (manageDocument) {
+            applyDocumentMetadata(nextDocument, patchedVNode.elm)
+          }
+
+          if (import.meta.hot) {
+            duplicateIdScanner?.schedule(patchedVNode.elm)
+          }
+        }
+
+        const scheduleRenderFrame = (): void => {
+          if (isRenderFrameScheduled) {
+            return
+          }
+          isRenderFrameScheduled = true
+          requestAnimationFrame(renderFramePlain)
+        }
 
         // NOTE: reloading on bfcache restore is a page-level decision, so
         // only a page-owning runtime that manages the document installs the
@@ -2348,7 +2531,7 @@ const makeRuntime = <
                       ),
                       Stream.runForEach(message =>
                         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                        enqueueHigh(message as Message),
+                        enqueueMessageEffect(message as Message),
                       ),
                       provideAllResources,
                       Effect.catchCause(cause =>
@@ -2394,7 +2577,7 @@ const makeRuntime = <
               Effect.gen(function* () {
                 yield* config.release(value)
                 yield* Ref.set(resourceRef, Option.none())
-                yield* enqueueHigh(config.onReleased())
+                yield* enqueueMessageEffect(config.onReleased())
               }).pipe(Effect.catchCause(() => Effect.void))
 
             return pipe(
@@ -2435,7 +2618,7 @@ const makeRuntime = <
                 Stream.switchMap(
                   maybeRequirementsToLifecycle(config, resourceRef),
                 ),
-                Stream.runForEach(Effect.flatMap(enqueueHigh)),
+                Stream.runForEach(Effect.flatMap(enqueueMessageEffect)),
               ),
             )
           })
@@ -2449,85 +2632,47 @@ const makeRuntime = <
           },
         )
 
-        const processWithBudget = (message: Message): Effect.Effect<void> =>
-          Effect.gen(function* () {
-            currentMessage = Option.some(message)
-            yield* processMessage(message)
-
-            if (performance.now() - burstStartedAt < FRAME_BUDGET_MS) {
-              return
-            }
-
-            yield* yieldToBrowser
-            burstStartedAt = performance.now()
-          })
-
-        const processBatch = (
-          batch: ReadonlyArray<EnvelopedMessage<Message>>,
-        ): Effect.Effect<void> =>
-          Effect.forEach(orderByPriority(batch), processWithBudget, {
-            discard: true,
-          })
-
-        // NOTE: Effect 4's `Queue.takeAll` blocks until at least one message
-        // arrives (it's `takeBetween(self, 1, ∞)`, not a non-blocking
-        // snapshot). For batching we want "give me whatever is currently in
-        // the queue, possibly nothing" so we drain via repeated `Queue.poll`
-        // until it returns `None`.
-        const pollAvailable: Effect.Effect<
-          ReadonlyArray<EnvelopedMessage<Message>>
-        > = Effect.gen(function* () {
-          const accumulated: Array<EnvelopedMessage<Message>> = []
-          while (true) {
-            const next = yield* Queue.poll(messageQueue)
-            if (Option.isNone(next)) {
-              return accumulated
-            }
-            accumulated.push(next.value)
-          }
-        })
-
-        const drainQueue: Effect.Effect<void> = Effect.gen(function* () {
-          const batch = yield* pollAvailable
-          if (Array.isReadonlyArrayEmpty(batch)) {
-            return
-          }
-          yield* processBatch(batch)
-          yield* drainQueue
-        })
-
-        // NOTE: only reset the burst timer when `Queue.take` actually blocked
-        // (queue was empty). With Command-chained dispatches each forever
-        // iteration handles a single message, so resetting unconditionally
-        // would keep the per-iteration cost under FRAME_BUDGET_MS forever
-        // and the runtime would never yield to the browser. Polling first
-        // distinguishes "continuing a burst" (poll returns Some) from
-        // "waking from idle" (poll returns None, take blocks).
-        yield* pipe(
-          Effect.forever(
-            Effect.gen(function* () {
-              const maybeFirst = yield* Queue.poll(messageQueue)
-              const first = yield* Option.match(maybeFirst, {
-                onNone: () =>
-                  Effect.gen(function* () {
-                    const message = yield* Queue.take(messageQueue)
-                    burstStartedAt = performance.now()
-                    return message
-                  }),
-                onSome: Effect.succeed,
-              })
-              const rest = yield* pollAvailable
-              yield* processBatch(Array.prepend(rest, first))
-              yield* drainQueue
-            }),
-          ),
-          Effect.catchCause(cause => crashWith(cause, currentMessage)),
+        // NOTE: registered before the boot buffer drains, so an interrupt
+        // landing anywhere after this yield tears down with the flag set
+        // (finalizers are LIFO; this one runs before every
+        // earlier-registered teardown, including the container-restoring
+        // patch whose OnUnmount dispatches must be dropped). An interrupt
+        // landing before this yield tears down with isBootComplete still
+        // false, so every dispatch buffers and dies with the closure.
+        // Either way no Message is processed against a closing runtime.
+        yield* Effect.addFinalizer(() =>
+          Effect.sync(() => {
+            isRuntimeDisposed = true
+          }),
         )
 
-        // NOTE: reached only after the drain loop crashed and the crash view
-        // rendered. Suspending keeps the runtime scope open so the crash view
-        // and the DevTools overlay stay up for inspection; interruption
-        // (dispose, or page unload) still tears everything down.
+        // NOTE: init Commands fork as the last act of boot, exactly where
+        // the old queue's drain loop used to start. Together with the
+        // isBootComplete barrier this guarantees no Command result (or any
+        // other Message) is processed until the init render has painted
+        // initModel and every boot subsystem (DevTools store, Subscriptions,
+        // ManagedResources, ports) is attached. forkCommand also defers each
+        // start by a microtask, so a fully synchronous init Command still
+        // delivers its result asynchronously.
+        for (const command of initCommands) {
+          forkCommand(
+            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+            command as AnyCommand<
+              Message,
+              never,
+              Resources | ManagedResourceServices
+            >,
+            Option.none(),
+          )
+        }
+
+        isBootComplete = true
+        drainPendingMessages()
+
+        // NOTE: suspend forever. Messages are processed synchronously on
+        // the dispatching stack and render frames run as plain rAF
+        // callbacks, so this fiber's only remaining job is keeping the
+        // runtime scope open until interruption (dispose, or page unload).
         yield* Effect.never
       }),
     )
@@ -2544,22 +2689,62 @@ const makeRuntime = <
   return program
 }
 
+// NOTE: how long one synchronous drain may hold the stack before the
+// remaining Messages defer to a new task so the browser can paint. Only
+// multi-Message bursts ever reach the check; the single-Message path never
+// reads the clock beyond the drain start.
+const DRAIN_BUDGET_MS = 5
+
+/** Mutable holder for the vnode tree currently mounted in the container.
+ *  The render frame writes it after every patch; the dispose finalizer, the
+ *  replay render, and {@link renderCrashView} read it. A plain object rather
+ *  than a Ref because every reader runs synchronously on the main thread. */
+type VNodeSlot = {
+  maybeCurrentVNode: Option.Option<VNode>
+}
+
 const currentLocationUrl = (): string => {
   const { origin, pathname, search } = window.location
   return `${origin}${pathname}${search}`
 }
 
-const upsertHeadElement = <K extends keyof HTMLElementTagNameMap>(
-  tagName: K,
-  selector: string,
-  attributes: Readonly<Record<string, string>>,
-): void => {
-  const existing = document.head.querySelector(selector)
-  const element =
-    existing ?? document.head.appendChild(document.createElement(tagName))
-  Object.entries(attributes).forEach(([key, value]) => {
-    element.setAttribute(key, value)
-  })
+type DocumentMetadataElements = {
+  canonical?: HTMLLinkElement
+  ogUrl?: HTMLMetaElement
+}
+
+const documentMetadataElements = new WeakMap<
+  globalThis.Document,
+  DocumentMetadataElements
+>()
+
+const metadataElementsForDocument = (): Readonly<{
+  canonical: HTMLLinkElement
+  ogUrl: HTMLMetaElement
+}> => {
+  let elements = documentMetadataElements.get(document)
+  if (elements === undefined) {
+    elements = {}
+    documentMetadataElements.set(document, elements)
+  }
+
+  let canonical = elements.canonical
+  if (canonical === undefined || canonical.parentNode !== document.head) {
+    canonical =
+      document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]') ??
+      document.head.appendChild(document.createElement('link'))
+    elements.canonical = canonical
+  }
+
+  let ogUrl = elements.ogUrl
+  if (ogUrl === undefined || ogUrl.parentNode !== document.head) {
+    ogUrl =
+      document.head.querySelector<HTMLMetaElement>('meta[property="og:url"]') ??
+      document.head.appendChild(document.createElement('meta'))
+    elements.ogUrl = ogUrl
+  }
+
+  return { canonical, ogUrl }
 }
 
 const applyDocumentMetadata = (
@@ -2576,22 +2761,27 @@ const applyDocumentMetadata = (
 
   const canonical = nextDocument.canonical ?? currentLocationUrl()
   const ogUrl = nextDocument.ogUrl ?? canonical
+  const metadataElements = metadataElementsForDocument()
 
-  upsertHeadElement('link', 'link[rel="canonical"]', {
-    rel: 'canonical',
-    href: canonical,
-  })
-  upsertHeadElement('meta', 'meta[property="og:url"]', {
-    property: 'og:url',
-    content: ogUrl,
-  })
+  if (metadataElements.canonical.getAttribute('rel') !== 'canonical') {
+    metadataElements.canonical.setAttribute('rel', 'canonical')
+  }
+  if (metadataElements.canonical.getAttribute('href') !== canonical) {
+    metadataElements.canonical.setAttribute('href', canonical)
+  }
+  if (metadataElements.ogUrl.getAttribute('property') !== 'og:url') {
+    metadataElements.ogUrl.setAttribute('property', 'og:url')
+  }
+  if (metadataElements.ogUrl.getAttribute('content') !== ogUrl) {
+    metadataElements.ogUrl.setAttribute('content', ogUrl)
+  }
 }
 
 const renderCrashView = <Model, Message>(
   context: CrashContext<Model, Message>,
   crash: CrashConfig<Model, Message> | undefined,
   container: HTMLElement,
-  maybeCurrentVNodeRef: Ref.Ref<Option.Option<VNode>>,
+  vnodeSlot: VNodeSlot,
   manageDocument: boolean,
 ): void => {
   console.error('[foldkit] Application crash:', context.error)
@@ -2622,13 +2812,12 @@ const renderCrashView = <Model, Message>(
       clearHtmlRuntime()
     }
 
-    const maybeCurrentVNode = Effect.runSync(Ref.get(maybeCurrentVNodeRef))
     const patchedVNode = __patchVNode(
-      maybeCurrentVNode,
+      vnodeSlot.maybeCurrentVNode,
       crashDocument.body,
       container,
     )
-    Effect.runSync(Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode)))
+    vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
     if (manageDocument) {
       applyDocumentMetadata(crashDocument, patchedVNode.elm)
     }
@@ -2646,13 +2835,12 @@ const renderCrashView = <Model, Message>(
       clearHtmlRuntime()
     }
 
-    const maybeCurrentVNode = Effect.runSync(Ref.get(maybeCurrentVNodeRef))
     const patchedVNode = __patchVNode(
-      maybeCurrentVNode,
+      vnodeSlot.maybeCurrentVNode,
       fallbackDocument.body,
       container,
     )
-    Effect.runSync(Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode)))
+    vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
     if (manageDocument) {
       applyDocumentMetadata(fallbackDocument, patchedVNode.elm)
     }
@@ -3105,9 +3293,12 @@ const PLUGIN_RESPONSE_TIMEOUT_MS = 500
 // NOTE: scheduling fix for browser performance. Effect needs to defer work
 // onto a future tick of the event loop. The default browser scheduler picks
 // `setTimeout(f, 0)`, but browsers clamp `setTimeout` to a minimum of 4ms.
-// `queueMicrotask` runs on the very next tick (sub-millisecond). Without this
-// override, every dispatched message takes an extra 4-16ms round-trip,
-// sharply visible on hover and drag.
+// `queueMicrotask` runs on the very next tick (sub-millisecond). Dispatch no
+// longer routes through the Effect scheduler, but Command and Subscription
+// fibers still do; without this override every fiber yield (for example, an
+// op-budget suspension, or a Stream step) would take an extra 4-16ms
+// round-trip before
+// its result Message lands.
 const microtaskSetImmediate = (callback: () => void): (() => void) => {
   let cancelled = false
   queueMicrotask(() => {

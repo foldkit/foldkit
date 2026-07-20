@@ -3,7 +3,6 @@ import { describe, it } from 'vitest'
 
 import { Document, __requireDispatch, html } from '../html/index.js'
 import { m } from '../message/index.js'
-import { type EnvelopedMessage, orderByPriority } from './messagePriority.js'
 import { makeApplication } from './runtime.js'
 
 /**
@@ -14,9 +13,8 @@ import { makeApplication } from './runtime.js'
  *
  * Constructs a minimal Foldkit application (counter Model, trivial view that
  * captures the runtime dispatcher), starts it under happy-dom, then dispatches
- * N Messages from outside the runtime and measures wall-clock time for the
- * queue to drain. Also includes a pure-function microbenchmark of
- * `orderByPriority`.
+ * N Messages from outside the runtime and measures wall-clock time until
+ * every Message has been processed.
  */
 
 // NOTE: reads process.env through globalThis so this browser-typed package
@@ -148,20 +146,9 @@ const summarize = (
   )
 }
 
-const buildBatch = (size: number): ReadonlyArray<EnvelopedMessage<Message>> => {
-  const items: Array<EnvelopedMessage<Message>> = []
-  for (let index = 0; index < size; index++) {
-    items.push({
-      priority: index % 3 === 0 ? 'High' : 'Normal',
-      message: Increment(),
-    })
-  }
-  return items
-}
-
 describe.skipIf(!isBenchEnabled)('dispatch throughput', () => {
   it(
-    'measures throughput of an external Message burst draining the queue',
+    'measures throughput of an external Message burst',
     { timeout: 120_000 },
     async () => {
       const WARMUP_RUNS = 2
@@ -180,27 +167,4 @@ describe.skipIf(!isBenchEnabled)('dispatch throughput', () => {
       summarize('external burst', COUNT, samples)
     },
   )
-
-  it('measures orderByPriority over mixed batches', () => {
-    const WARMUP_ROUNDS = 1_000
-    const MEASURED_ROUNDS = 5_000
-    const BATCH_SIZE = 100
-    const batch = buildBatch(BATCH_SIZE)
-
-    for (let index = 0; index < WARMUP_ROUNDS; index++) {
-      orderByPriority(batch)
-    }
-
-    const samples: Array<number> = []
-    const TRIALS = 5
-    for (let trial = 0; trial < TRIALS; trial++) {
-      const start = performance.now()
-      for (let index = 0; index < MEASURED_ROUNDS; index++) {
-        orderByPriority(batch)
-      }
-      samples.push(performance.now() - start)
-    }
-
-    summarize(`orderByPriority (batch=${BATCH_SIZE})`, MEASURED_ROUNDS, samples)
-  })
 })

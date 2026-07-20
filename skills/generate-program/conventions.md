@@ -56,13 +56,14 @@ const FailedFetchWeather = m('FailedFetchWeather', { error: S.String })
 
 ### Variables and Functions
 
-- Never abbreviate: `signature` not `sig`, `username` not `user`, `message` not `msg`
-- Full names in callbacks: `(tickCount) => tickCount + 1` not `(t) => t + 1`
+- Avoid opaque abbreviations: `signature` not `sig`, `message` not `msg`, `callbacks` not `cbs`
+- Conventional technical shorthand is allowed when it is the normal domain spelling, such as `attrs`, `props`, `args`, `dir`, `ctx`, `fn`, `DOM`, `URL`, and `VNode`; established API and DSL bindings such as `h` are also allowed
+- Use descriptive callback parameters: `(tickCount) => tickCount + 1` not `(t) => t + 1`; prefer `toMessage` over an unexplained `f`
 - Prefix Option values with `maybe`: `maybeCurrentUser`, `maybeSession`, `maybeError`. **`maybe*` is reserved for `Option<T>` specifically.** A helper named `maybePlaceholder` whose type is `string | undefined` is wrong: change the type to `Option<string>` (usually the better fix: optional fields at internal API boundaries should be `Option<T>` so the call site reads `Option.some(...)` / `Option.none()`, not bare `undefined`).
 - Boolean fields use `is*`: `isPlaying`, `isVisible`, `isMenuOpen`
 - Command variables named by action: `fetchWeather`, not `fetchWeatherCommand`
 - Command names are verb-first imperatives: `FetchWeather`, `FocusButton`, `LockScroll`, `Tick`
-- Callback parameters use full names: `(tickCount) => tickCount + 1` not `(t) => t + 1`
+- Callback parameters are immediately understandable: `(tickCount) => tickCount + 1` not `(t) => t + 1`
 - Constants for magic numbers: `FINAL_PHOTO_INDEX` not `15`, `EXIT_COUNTDOWN_SECONDS` not `5`
 
 ### Schemas

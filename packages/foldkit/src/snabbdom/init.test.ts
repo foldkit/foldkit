@@ -2,7 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { h } from './h.js'
 import { __overrideDuplicateKeyWarning, init } from './init.js'
-import type { VNode } from './vnode.js'
+import {
+  type Key,
+  type VNode,
+  VNodeDataMask,
+  vnodeDataMaskKey,
+} from './vnode.js'
 
 const patch = init([])
 
@@ -30,6 +35,36 @@ const listItemsIn = (node: VNode): Array<HTMLLIElement> =>
   Array.from(elementOf(node).querySelectorAll('li'))
 
 describe('identity-aware patching', () => {
+  it('preserves reference-identical siblings around a changed middle', () => {
+    const stableStart = h('li', { key: 'start' }, ['start'])
+    const stableEnd = h('li', { key: 'end' }, ['end'])
+    const container = document.createElement('div')
+    const mounted = patch(
+      container,
+      h('ul', {}, [
+        stableStart,
+        h('li', { key: 'middle' }, ['before']),
+        stableEnd,
+      ]),
+    )
+    const [startBefore, middleBefore, endBefore] = listItemsIn(mounted)
+
+    const patched = patch(
+      mounted,
+      h('ul', {}, [
+        stableStart,
+        h('li', { key: 'middle' }, ['after']),
+        stableEnd,
+      ]),
+    )
+    const [startAfter, middleAfter, endAfter] = listItemsIn(patched)
+
+    expect(startAfter).toBe(startBefore)
+    expect(middleAfter).toBe(middleBefore)
+    expect(endAfter).toBe(endBefore)
+    expect(elementOf(patched).textContent).toBe('startafterend')
+  })
+
   it('patches an unkeyed sibling in place when identities match', () => {
     const container = document.createElement('div')
     const mounted = patch(
@@ -119,6 +154,96 @@ describe('identity-aware patching', () => {
     expect(firstAfter).toBe(itemC)
     expect(secondAfter).toBe(itemA)
     expect(thirdAfter).toBe(itemB)
+  })
+
+  it('moves a sibling keyed with an object prototype property name', () => {
+    const renderList = (keys: ReadonlyArray<string>): VNode =>
+      h(
+        'ul',
+        {},
+        keys.map(key => h('li', { key }, [key])),
+      )
+
+    const container = document.createElement('div')
+    const mounted = patch(
+      container,
+      renderList(['a', 'b', '__proto__', 'd', 'e', 'f']),
+    )
+    const [itemA, itemB, itemPrototype, itemD, itemE, itemF] =
+      listItemsIn(mounted)
+
+    const patched = patch(
+      mounted,
+      renderList(['__proto__', 'd', 'a', 'b', 'e', 'f']),
+    )
+    const [
+      firstAfter,
+      secondAfter,
+      thirdAfter,
+      fourthAfter,
+      fifthAfter,
+      sixthAfter,
+    ] = listItemsIn(patched)
+
+    expect(firstAfter).toBe(itemPrototype)
+    expect(secondAfter).toBe(itemD)
+    expect(thirdAfter).toBe(itemA)
+    expect(fourthAfter).toBe(itemB)
+    expect(fifthAfter).toBe(itemE)
+    expect(sixthAfter).toBe(itemF)
+  })
+
+  it('distinguishes numeric keys from equivalent string keys', () => {
+    const renderList = (
+      entries: ReadonlyArray<Readonly<{ key: Key; label: string }>>,
+    ): VNode =>
+      h(
+        'ul',
+        {},
+        entries.map(({ key, label }) => h('li', { key }, [label])),
+      )
+
+    const container = document.createElement('div')
+    const mounted = patch(
+      container,
+      renderList([
+        { key: 'a', label: 'a' },
+        { key: 'b', label: 'b' },
+        { key: 1, label: 'number' },
+        { key: '1', label: 'string' },
+        { key: 'e', label: 'e' },
+        { key: 'f', label: 'f' },
+      ]),
+    )
+    const [itemA, itemB, numericItem, stringItem, itemE, itemF] =
+      listItemsIn(mounted)
+
+    const patched = patch(
+      mounted,
+      renderList([
+        { key: 1, label: 'number' },
+        { key: '1', label: 'string' },
+        { key: 'a', label: 'a' },
+        { key: 'b', label: 'b' },
+        { key: 'e', label: 'e' },
+        { key: 'f', label: 'f' },
+      ]),
+    )
+    const [
+      firstAfter,
+      secondAfter,
+      thirdAfter,
+      fourthAfter,
+      fifthAfter,
+      sixthAfter,
+    ] = listItemsIn(patched)
+
+    expect(firstAfter).toBe(numericItem)
+    expect(secondAfter).toBe(stringItem)
+    expect(thirdAfter).toBe(itemA)
+    expect(fourthAfter).toBe(itemB)
+    expect(fifthAfter).toBe(itemE)
+    expect(sixthAfter).toBe(itemF)
   })
 
   it('moves unkeyed siblings on reorder when the adjacency probes match distinct identities diagonally', () => {
@@ -253,6 +378,130 @@ describe('identity-aware patching', () => {
     expect(parent.contains(rootAfter)).toBe(true)
     expect(parent.contains(rootBefore)).toBe(false)
     expect(rootAfter.textContent).toBe('second')
+  })
+})
+
+describe('module data masks', () => {
+  it('runs only modules whose data appears in the old or new vnode', () => {
+    const attrsCreate = vi.fn()
+    const attrsUpdate = vi.fn()
+    const attrsDestroy = vi.fn()
+    const classCreate = vi.fn()
+    const classUpdate = vi.fn()
+    const classDestroy = vi.fn()
+    const unmaskedCreate = vi.fn()
+    const unmaskedUpdate = vi.fn()
+    const unmaskedDestroy = vi.fn()
+    const maskedPatch = init([
+      {
+        dataMask: VNodeDataMask.Attrs,
+        create: attrsCreate,
+        update: attrsUpdate,
+        destroy: attrsDestroy,
+      },
+      {
+        dataMask: VNodeDataMask.Class,
+        create: classCreate,
+        update: classUpdate,
+        destroy: classDestroy,
+      },
+      {
+        create: unmaskedCreate,
+        update: unmaskedUpdate,
+        destroy: unmaskedDestroy,
+      },
+    ])
+    const parent = document.createElement('div')
+    const container = document.createElement('div')
+    parent.appendChild(container)
+    const mounted = maskedPatch(
+      container,
+      h(
+        'section',
+        {
+          [vnodeDataMaskKey]: VNodeDataMask.Class,
+          class: { active: true },
+        },
+        [],
+      ),
+    )
+    attrsDestroy.mockClear()
+    classDestroy.mockClear()
+    unmaskedDestroy.mockClear()
+
+    expect(attrsCreate).not.toHaveBeenCalled()
+    expect(classCreate).toHaveBeenCalledTimes(1)
+    expect(unmaskedCreate).toHaveBeenCalledTimes(1)
+
+    const withoutModuleData = maskedPatch(
+      mounted,
+      h('section', { [vnodeDataMaskKey]: 0 }, []),
+    )
+
+    expect(attrsUpdate).not.toHaveBeenCalled()
+    expect(classUpdate).toHaveBeenCalledTimes(1)
+    expect(unmaskedUpdate).toHaveBeenCalledTimes(1)
+
+    const withAttrs = maskedPatch(
+      withoutModuleData,
+      h(
+        'section',
+        {
+          [vnodeDataMaskKey]: VNodeDataMask.Attrs,
+          attrs: { title: 'active' },
+        },
+        [],
+      ),
+    )
+
+    expect(attrsUpdate).toHaveBeenCalledTimes(1)
+    expect(classUpdate).toHaveBeenCalledTimes(1)
+    expect(unmaskedUpdate).toHaveBeenCalledTimes(2)
+
+    maskedPatch(withAttrs, h('article', { [vnodeDataMaskKey]: 0 }, []))
+
+    expect(attrsDestroy).toHaveBeenCalledTimes(1)
+    expect(classDestroy).not.toHaveBeenCalled()
+    expect(unmaskedDestroy).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps unmarked vnode data compatible with every module', () => {
+    const attrsCreate = vi.fn()
+    const attrsUpdate = vi.fn()
+    const attrsDestroy = vi.fn()
+    const classCreate = vi.fn()
+    const classUpdate = vi.fn()
+    const classDestroy = vi.fn()
+    const maskedPatch = init([
+      {
+        dataMask: VNodeDataMask.Attrs,
+        create: attrsCreate,
+        update: attrsUpdate,
+        destroy: attrsDestroy,
+      },
+      {
+        dataMask: VNodeDataMask.Class,
+        create: classCreate,
+        update: classUpdate,
+        destroy: classDestroy,
+      },
+    ])
+    const parent = document.createElement('div')
+    const container = document.createElement('div')
+    parent.appendChild(container)
+
+    const mounted = maskedPatch(container, h('section', {}, []))
+    attrsDestroy.mockClear()
+    classDestroy.mockClear()
+    const updated = maskedPatch(mounted, h('section', {}, []))
+    maskedPatch(updated, h('article', { [vnodeDataMaskKey]: 0 }, []))
+
+    expect(attrsCreate).toHaveBeenCalledTimes(1)
+    expect(classCreate).toHaveBeenCalledTimes(1)
+    expect(attrsUpdate).toHaveBeenCalledTimes(1)
+    expect(classUpdate).toHaveBeenCalledTimes(1)
+    expect(attrsDestroy).toHaveBeenCalledTimes(1)
+    expect(classDestroy).toHaveBeenCalledTimes(1)
   })
 })
 

@@ -2,25 +2,29 @@
 import { type DOMAPI, htmlDomApi } from './htmldomapi.js'
 import * as is from './is.js'
 import type { Module } from './module.js'
-import { type Key, type VNode, vnode } from './vnode.js'
+import { type Key, type VNode, vnode, vnodeDataMaskKey } from './vnode.js'
 
 type VNodeQueue = Array<VNode>
 
 const emptyNode = vnode('', {}, [], undefined, undefined)
 
 function sameVnode(vnode1: VNode, vnode2: VNode): boolean {
-  const isSameKey = vnode1.key === vnode2.key
-  const isSameIdentity = vnode1.identity === vnode2.identity
-  const isSameIs = vnode1.data?.is === vnode2.data?.is
-  const isSameSel = vnode1.sel === vnode2.sel
-  const isSameTextOrFragment =
-    !vnode1.sel && vnode1.sel === vnode2.sel
-      ? typeof vnode1.text === typeof vnode2.text
-      : true
-
-  return (
-    isSameSel && isSameKey && isSameIdentity && isSameIs && isSameTextOrFragment
-  )
+  if (vnode1 === vnode2) {
+    return true
+  }
+  if (vnode1.sel !== vnode2.sel) {
+    return false
+  }
+  if (vnode1.key !== vnode2.key) {
+    return false
+  }
+  if (vnode1.identity !== vnode2.identity) {
+    return false
+  }
+  if (vnode1.data?.is !== vnode2.data?.is) {
+    return false
+  }
+  return vnode1.sel !== undefined || typeof vnode1.text === typeof vnode2.text
 }
 
 /**
@@ -44,30 +48,40 @@ function isDocumentFragment(
   return api.isDocumentFragment?.(vnode as any) ?? false
 }
 
-type KeyToIndexMap = { [key: string]: number }
+type ModuleHookName =
+  | 'create'
+  | 'update'
+  | 'remove'
+  | 'destroy'
+  | 'pre'
+  | 'post'
 
-type ArraysOf<T> = {
-  [K in keyof T]: Array<T[K]>
+type ModuleHooks = {
+  [Hook in ModuleHookName]: Array<NonNullable<Module[Hook]>>
 }
 
-type ModuleHooks = ArraysOf<Required<Module>>
+type MaskedModuleHookName = 'create' | 'update' | 'destroy'
 
-function createKeyToOldIdx(
+type ModuleDataMasks = {
+  [Hook in MaskedModuleHookName]: Array<number | undefined>
+}
+
+function createKeyToPreviousIndex(
   children: Array<VNode>,
-  beginIdx: number,
-  endIdx: number,
-): KeyToIndexMap {
-  const map: KeyToIndexMap = {}
-  for (let i = beginIdx; i <= endIdx; ++i) {
-    const key = children[i]?.key
+  beginIndex: number,
+  endIndex: number,
+): Map<Key, number> {
+  const map = new Map<Key, number>()
+  for (let childIndex = beginIndex; childIndex <= endIndex; ++childIndex) {
+    const key = children[childIndex]?.key
     if (key !== undefined) {
-      map[key as string] = i
+      map.set(key, childIndex)
     }
   }
   return map
 }
 
-const hooks: Array<keyof Module> = [
+const hooks: Array<ModuleHookName> = [
   'create',
   'update',
   'remove',
@@ -105,13 +119,18 @@ export function init(
   domApi?: DOMAPI,
   options?: Options,
 ) {
-  const cbs: ModuleHooks = {
+  const moduleHooks: ModuleHooks = {
     create: [],
     update: [],
     remove: [],
     destroy: [],
     pre: [],
     post: [],
+  }
+  const moduleDataMasks: ModuleDataMasks = {
+    create: [],
+    update: [],
+    destroy: [],
   }
 
   const api: DOMAPI = domApi !== undefined ? domApi : htmlDomApi
@@ -122,88 +141,113 @@ export function init(
     for (const module of modules) {
       const currentHook = module[hook]
       if (currentHook !== undefined) {
-        ;(cbs[hook] as Array<any>).push(currentHook)
+        ;(moduleHooks[hook] as Array<any>).push(currentHook)
+        if (hook === 'create' || hook === 'update' || hook === 'destroy') {
+          moduleDataMasks[hook].push(module.dataMask)
+        }
       }
     }
   }
 
-  function emptyNodeAt(elm: Element) {
-    const id = elm.id ? '#' + elm.id : ''
+  function emptyNodeAt(element: Element) {
+    const id = element.id ? '#' + element.id : ''
 
-    // elm.className doesn't return a string when elm is an SVG element inside a shadowRoot.
+    // element.className doesn't return a string when element is an SVG element inside a shadowRoot.
     // https://stackoverflow.com/questions/29454340/detecting-classname-of-svganimatedstring
-    const classes = elm.getAttribute('class')
+    const classes = element.getAttribute('class')
 
-    const c = classes ? '.' + classes.split(' ').join('.') : ''
+    const classSelector = classes ? '.' + classes.split(' ').join('.') : ''
     return vnode(
-      api.tagName(elm).toLowerCase() + id + c,
+      api.tagName(element).toLowerCase() + id + classSelector,
       {},
       [],
       undefined,
-      elm,
+      element,
     )
   }
 
-  function emptyDocumentFragmentAt(frag: DocumentFragment) {
-    return vnode(undefined, {}, [], undefined, frag)
+  function emptyDocumentFragmentAt(fragment: DocumentFragment) {
+    return vnode(undefined, {}, [], undefined, fragment)
   }
 
-  function createRmCb(childElm: Node, listeners: number) {
-    return function rmCb() {
+  function createRemoveCallback(childElement: Node, listeners: number) {
+    return function removeCallback() {
       if (--listeners === 0) {
-        const parent = api.parentNode(childElm)
+        const parent = api.parentNode(childElement)
         if (parent !== null) {
-          api.removeChild(parent, childElm)
+          api.removeChild(parent, childElement)
         }
       }
     }
   }
 
   function createElm(vnode: VNode, insertedVnodeQueue: VNodeQueue): Node {
-    let i: number
     const data = vnode.data
     const hook = data?.hook
     hook?.init?.(vnode)
     const children = vnode.children
-    const sel = vnode.sel
-    if (sel === '!') {
+    const selector = vnode.sel
+    if (selector === '!') {
       vnode.text ??= ''
       vnode.elm = api.createComment(vnode.text)
-    } else if (sel === '') {
+    } else if (selector === '') {
       // textNode has no selector
       vnode.elm = api.createTextNode(vnode.text!)
-    } else if (sel !== undefined) {
+    } else if (selector !== undefined) {
       // Parse selector
-      const hashIdx = sel.indexOf('#')
-      const dotIdx = sel.indexOf('.', hashIdx)
-      const hash = hashIdx > 0 ? hashIdx : sel.length
-      const dot = dotIdx > 0 ? dotIdx : sel.length
-      const tag =
-        hashIdx !== -1 || dotIdx !== -1
-          ? sel.slice(0, Math.min(hash, dot))
-          : sel
-      const ns = data?.ns
-      const elm =
-        ns === undefined
-          ? api.createElement(tag, data)
-          : api.createElementNS(ns, tag, data)
-      vnode.elm = elm
-      if (hash < dot) elm.setAttribute('id', sel.slice(hash + 1, dot))
-      if (dotIdx > 0)
-        elm.setAttribute('class', sel.slice(dot + 1).replace(/\./g, ' '))
-      for (i = 0; i < cbs.create.length; ++i) cbs.create[i]!(emptyNode, vnode)
+      const hashIndex = selector.indexOf('#')
+      const dotIndex = selector.indexOf('.', hashIndex)
+      const hash = hashIndex > 0 ? hashIndex : selector.length
+      const dot = dotIndex > 0 ? dotIndex : selector.length
+      const tagName =
+        hashIndex !== -1 || dotIndex !== -1
+          ? selector.slice(0, Math.min(hash, dot))
+          : selector
+      const namespace = data?.ns
+      const element =
+        namespace === undefined
+          ? api.createElement(tagName, data)
+          : api.createElementNS(namespace, tagName, data)
+      vnode.elm = element
+      if (hash < dot) {
+        element.setAttribute('id', selector.slice(hash + 1, dot))
+      }
+      if (dotIndex > 0) {
+        element.setAttribute(
+          'class',
+          selector.slice(dot + 1).replace(/\./g, ' '),
+        )
+      }
+      const dataMask = data?.[vnodeDataMaskKey]
+      for (
+        let moduleIndex = 0;
+        moduleIndex < moduleHooks.create.length;
+        ++moduleIndex
+      ) {
+        const moduleDataMask = moduleDataMasks.create[moduleIndex]
+        if (
+          moduleDataMask === undefined ||
+          dataMask === undefined ||
+          (dataMask & moduleDataMask) !== 0
+        ) {
+          moduleHooks.create[moduleIndex]!(emptyNode, vnode)
+        }
+      }
       if (
         is.primitive(vnode.text) &&
         (!is.array(children) || children.length === 0)
       ) {
         // allow h1 and similar nodes to be created w/ text and empty child list
-        api.appendChild(elm, api.createTextNode(vnode.text))
+        api.appendChild(element, api.createTextNode(vnode.text))
       }
       if (is.array(children)) {
-        for (i = 0; i < children.length; ++i) {
-          const ch = children[i]
-          if (ch != null) {
-            api.appendChild(elm, createElm(ch as VNode, insertedVnodeQueue))
+        for (let childIndex = 0; childIndex < children.length; ++childIndex) {
+          const child = children[childIndex]
+          if (child != null) {
+            api.appendChild(
+              element,
+              createElm(child as VNode, insertedVnodeQueue),
+            )
           }
         }
       }
@@ -217,11 +261,32 @@ export function init(
       vnode.elm = (
         api.createDocumentFragment ?? documentFragmentIsNotSupported
       )()
-      for (i = 0; i < cbs.create.length; ++i) cbs.create[i]!(emptyNode, vnode)
-      for (i = 0; i < vnode.children.length; ++i) {
-        const ch = vnode.children[i]
-        if (ch != null) {
-          api.appendChild(vnode.elm, createElm(ch as VNode, insertedVnodeQueue))
+      const dataMask = data?.[vnodeDataMaskKey]
+      for (
+        let moduleIndex = 0;
+        moduleIndex < moduleHooks.create.length;
+        ++moduleIndex
+      ) {
+        const moduleDataMask = moduleDataMasks.create[moduleIndex]
+        if (
+          moduleDataMask === undefined ||
+          dataMask === undefined ||
+          (dataMask & moduleDataMask) !== 0
+        ) {
+          moduleHooks.create[moduleIndex]!(emptyNode, vnode)
+        }
+      }
+      for (
+        let childIndex = 0;
+        childIndex < vnode.children.length;
+        ++childIndex
+      ) {
+        const child = vnode.children[childIndex]
+        if (child != null) {
+          api.appendChild(
+            vnode.elm,
+            createElm(child as VNode, insertedVnodeQueue),
+          )
         }
       }
     } else {
@@ -231,17 +296,21 @@ export function init(
   }
 
   function addVnodes(
-    parentElm: Node,
+    parentElement: Node,
     before: Node | null,
     vnodes: Array<VNode>,
-    startIdx: number,
-    endIdx: number,
+    startIndex: number,
+    endIndex: number,
     insertedVnodeQueue: VNodeQueue,
   ) {
-    for (; startIdx <= endIdx; ++startIdx) {
-      const ch = vnodes[startIdx]
-      if (ch != null) {
-        api.insertBefore(parentElm, createElm(ch, insertedVnodeQueue), before)
+    for (; startIndex <= endIndex; ++startIndex) {
+      const child = vnodes[startIndex]
+      if (child != null) {
+        api.insertBefore(
+          parentElement,
+          createElm(child, insertedVnodeQueue),
+          before,
+        )
       }
     }
   }
@@ -250,10 +319,28 @@ export function init(
     const data = vnode.data
     if (data !== undefined) {
       data?.hook?.destroy?.(vnode)
-      for (let i = 0; i < cbs.destroy.length; ++i) cbs.destroy[i]!(vnode)
+      const dataMask = data[vnodeDataMaskKey]
+      for (
+        let moduleIndex = 0;
+        moduleIndex < moduleHooks.destroy.length;
+        ++moduleIndex
+      ) {
+        const moduleDataMask = moduleDataMasks.destroy[moduleIndex]
+        if (
+          moduleDataMask === undefined ||
+          dataMask === undefined ||
+          (dataMask & moduleDataMask) !== 0
+        ) {
+          moduleHooks.destroy[moduleIndex]!(vnode)
+        }
+      }
       if (vnode.children !== undefined) {
-        for (let j = 0; j < vnode.children.length; ++j) {
-          const child = vnode.children[j]
+        for (
+          let childIndex = 0;
+          childIndex < vnode.children.length;
+          ++childIndex
+        ) {
+          const child = vnode.children[childIndex]
           if (child != null && typeof child !== 'string') {
             invokeDestroyHook(child)
           }
@@ -263,38 +350,44 @@ export function init(
   }
 
   function removeVnodes(
-    parentElm: Node,
+    parentElement: Node,
     vnodes: Array<VNode>,
-    startIdx: number,
-    endIdx: number,
+    startIndex: number,
+    endIndex: number,
   ): void {
-    for (; startIdx <= endIdx; ++startIdx) {
+    for (; startIndex <= endIndex; ++startIndex) {
       let listeners: number
-      const ch = vnodes[startIdx]
-      if (ch != null) {
-        if (ch.sel !== undefined) {
-          invokeDestroyHook(ch)
-          listeners = cbs.remove.length + 1
-          const rm = createRmCb(ch.elm!, listeners)
-          for (let i = 0; i < cbs.remove.length; ++i) cbs.remove[i]!(ch, rm)
-          const removeHook = ch?.data?.hook?.remove
-          if (removeHook !== undefined) {
-            removeHook(ch, rm)
-          } else {
-            rm()
+      const child = vnodes[startIndex]
+      if (child != null) {
+        if (child.sel !== undefined) {
+          invokeDestroyHook(child)
+          listeners = moduleHooks.remove.length + 1
+          const removeCallback = createRemoveCallback(child.elm!, listeners)
+          for (
+            let moduleIndex = 0;
+            moduleIndex < moduleHooks.remove.length;
+            ++moduleIndex
+          ) {
+            moduleHooks.remove[moduleIndex]!(child, removeCallback)
           }
-        } else if (ch.children) {
+          const removeHook = child.data?.hook?.remove
+          if (removeHook !== undefined) {
+            removeHook(child, removeCallback)
+          } else {
+            removeCallback()
+          }
+        } else if (child.children) {
           // Fragment node
-          invokeDestroyHook(ch)
+          invokeDestroyHook(child)
           removeVnodes(
-            parentElm,
-            ch.children as Array<VNode>,
+            parentElement,
+            child.children as Array<VNode>,
             0,
-            ch.children.length - 1,
+            child.children.length - 1,
           )
         } else {
           // Text node
-          api.removeChild(parentElm, ch.elm!)
+          api.removeChild(parentElement, child.elm!)
         }
       }
     }
@@ -302,27 +395,27 @@ export function init(
 
   function warnOnDuplicateKeys(
     children: Array<VNode>,
-    beginIdx: number,
-    endIdx: number,
-    parentElm: Node,
+    beginIndex: number,
+    endIndex: number,
+    parentElement: Node,
   ): void {
     if (!isDuplicateKeyWarningActive() || isDuplicateKeyWarningIssued) {
       return
     }
     const seenKeys = new Set<Key>()
-    for (let i = beginIdx; i <= endIdx; ++i) {
-      const key = children[i]?.key
+    for (let childIndex = beginIndex; childIndex <= endIndex; ++childIndex) {
+      const key = children[childIndex]?.key
       if (key === undefined) {
         continue
       }
       if (seenKeys.has(key)) {
         isDuplicateKeyWarningIssued = true
-        const parentSel = api.isElement(parentElm)
-          ? api.tagName(parentElm).toLowerCase()
-          : String(parentElm.nodeName).toLowerCase()
+        const parentSelector = api.isElement(parentElement)
+          ? api.tagName(parentElement).toLowerCase()
+          : String(parentElement.nodeName).toLowerCase()
         console.warn(
           `[foldkit] Duplicate key "${String(key)}" among children of ` +
-            `<${parentSel}>. Keys must be unique among siblings; duplicates ` +
+            `<${parentSelector}>. Keys must be unique among siblings; duplicates ` +
             'make sibling matching ambiguous and can patch the wrong element.',
         )
         return
@@ -332,113 +425,169 @@ export function init(
   }
 
   function updateChildren(
-    parentElm: Node,
-    oldCh: Array<VNode>,
-    newCh: Array<VNode>,
+    parentElement: Node,
+    previousChildren: Array<VNode>,
+    nextChildren: Array<VNode>,
     insertedVnodeQueue: VNodeQueue,
   ) {
-    warnOnDuplicateKeys(newCh, 0, newCh.length - 1, parentElm)
-    let oldStartIdx = 0
-    let newStartIdx = 0
-    let oldEndIdx = oldCh.length - 1
-    let oldStartVnode = oldCh[0]
-    let oldEndVnode = oldCh[oldEndIdx]
-    let newEndIdx = newCh.length - 1
-    let newStartVnode = newCh[0]
-    let newEndVnode = newCh[newEndIdx]
-    let oldKeyToIdx: KeyToIndexMap | undefined
-    let idxInOld: number | undefined
-    let elmToMove: VNode
+    if (previousChildren.length === 0 && nextChildren.length === 0) {
+      return
+    }
+    warnOnDuplicateKeys(nextChildren, 0, nextChildren.length - 1, parentElement)
+    let previousStartIndex = 0
+    let nextStartIndex = 0
+    let previousEndIndex = previousChildren.length - 1
+    let nextEndIndex = nextChildren.length - 1
+
+    while (
+      previousStartIndex <= previousEndIndex &&
+      nextStartIndex <= nextEndIndex &&
+      previousChildren[previousStartIndex] === nextChildren[nextStartIndex]
+    ) {
+      previousStartIndex += 1
+      nextStartIndex += 1
+    }
+    while (
+      previousStartIndex <= previousEndIndex &&
+      nextStartIndex <= nextEndIndex &&
+      previousChildren[previousEndIndex] === nextChildren[nextEndIndex]
+    ) {
+      previousEndIndex -= 1
+      nextEndIndex -= 1
+    }
+
+    let previousStartVnode = previousChildren[previousStartIndex]
+    let previousEndVnode = previousChildren[previousEndIndex]
+    let nextStartVnode = nextChildren[nextStartIndex]
+    let nextEndVnode = nextChildren[nextEndIndex]
+    let previousKeyToIndex: Map<Key, number> | undefined
+    let indexInPreviousChildren: number | undefined
+    let vnodeToMove: VNode
     let before: Node | null
 
-    while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
-      if (oldStartVnode == null) {
-        oldStartVnode = oldCh[++oldStartIdx] // Vnode might have been moved left
-      } else if (oldEndVnode == null) {
-        oldEndVnode = oldCh[--oldEndIdx]
-      } else if (newStartVnode == null) {
-        newStartVnode = newCh[++newStartIdx]
-      } else if (newEndVnode == null) {
-        newEndVnode = newCh[--newEndIdx]
-      } else if (sameVnode(oldStartVnode, newStartVnode)) {
-        patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue)
-        oldStartVnode = oldCh[++oldStartIdx]
-        newStartVnode = newCh[++newStartIdx]
-      } else if (sameVnode(oldEndVnode, newEndVnode)) {
-        patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue)
-        oldEndVnode = oldCh[--oldEndIdx]
-        newEndVnode = newCh[--newEndIdx]
-      } else if (sameVnode(oldStartVnode, newEndVnode)) {
+    while (
+      previousStartIndex <= previousEndIndex &&
+      nextStartIndex <= nextEndIndex
+    ) {
+      if (previousStartVnode == null) {
+        previousStartVnode = previousChildren[++previousStartIndex]
+      } else if (previousEndVnode == null) {
+        previousEndVnode = previousChildren[--previousEndIndex]
+      } else if (nextStartVnode == null) {
+        nextStartVnode = nextChildren[++nextStartIndex]
+      } else if (nextEndVnode == null) {
+        nextEndVnode = nextChildren[--nextEndIndex]
+      } else if (sameVnode(previousStartVnode, nextStartVnode)) {
+        patchVnode(previousStartVnode, nextStartVnode, insertedVnodeQueue)
+        previousStartVnode = previousChildren[++previousStartIndex]
+        nextStartVnode = nextChildren[++nextStartIndex]
+      } else if (sameVnode(previousEndVnode, nextEndVnode)) {
+        patchVnode(previousEndVnode, nextEndVnode, insertedVnodeQueue)
+        previousEndVnode = previousChildren[--previousEndIndex]
+        nextEndVnode = nextChildren[--nextEndIndex]
+      } else if (sameVnode(previousStartVnode, nextEndVnode)) {
         // Vnode moved right
-        patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue)
+        patchVnode(previousStartVnode, nextEndVnode, insertedVnodeQueue)
         api.insertBefore(
-          parentElm,
-          oldStartVnode.elm!,
-          api.nextSibling(oldEndVnode.elm!),
+          parentElement,
+          previousStartVnode.elm!,
+          api.nextSibling(previousEndVnode.elm!),
         )
-        oldStartVnode = oldCh[++oldStartIdx]
-        newEndVnode = newCh[--newEndIdx]
-      } else if (sameVnode(oldEndVnode, newStartVnode)) {
+        previousStartVnode = previousChildren[++previousStartIndex]
+        nextEndVnode = nextChildren[--nextEndIndex]
+      } else if (sameVnode(previousEndVnode, nextStartVnode)) {
         // Vnode moved left
-        patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue)
-        api.insertBefore(parentElm, oldEndVnode.elm!, oldStartVnode.elm!)
-        oldEndVnode = oldCh[--oldEndIdx]
-        newStartVnode = newCh[++newStartIdx]
+        patchVnode(previousEndVnode, nextStartVnode, insertedVnodeQueue)
+        api.insertBefore(
+          parentElement,
+          previousEndVnode.elm!,
+          previousStartVnode.elm!,
+        )
+        previousEndVnode = previousChildren[--previousEndIndex]
+        nextStartVnode = nextChildren[++nextStartIndex]
       } else {
-        if (oldKeyToIdx === undefined) {
-          oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx)
-          warnOnDuplicateKeys(oldCh, oldStartIdx, oldEndIdx, parentElm)
+        if (previousKeyToIndex === undefined) {
+          previousKeyToIndex = createKeyToPreviousIndex(
+            previousChildren,
+            previousStartIndex,
+            previousEndIndex,
+          )
+          warnOnDuplicateKeys(
+            previousChildren,
+            previousStartIndex,
+            previousEndIndex,
+            parentElement,
+          )
         }
-        idxInOld = oldKeyToIdx[newStartVnode.key as string]
-        if (idxInOld === undefined) {
-          // `newStartVnode` is new, create and insert it in beginning
+        const nextStartKey = nextStartVnode.key
+        indexInPreviousChildren =
+          nextStartKey === undefined
+            ? undefined
+            : previousKeyToIndex.get(nextStartKey)
+        if (indexInPreviousChildren === undefined) {
+          // `nextStartVnode` is new, create and insert it in beginning
           api.insertBefore(
-            parentElm,
-            createElm(newStartVnode, insertedVnodeQueue),
-            oldStartVnode.elm!,
+            parentElement,
+            createElm(nextStartVnode, insertedVnodeQueue),
+            previousStartVnode.elm!,
           )
-          newStartVnode = newCh[++newStartIdx]
-        } else if (oldKeyToIdx[newEndVnode.key as string] === undefined) {
-          // `newEndVnode` is new, create and insert it in the end
+          nextStartVnode = nextChildren[++nextStartIndex]
+        } else if (
+          nextEndVnode.key === undefined ||
+          previousKeyToIndex.get(nextEndVnode.key) === undefined
+        ) {
+          // `nextEndVnode` is new, create and insert it in the end
           api.insertBefore(
-            parentElm,
-            createElm(newEndVnode, insertedVnodeQueue),
-            api.nextSibling(oldEndVnode.elm!),
+            parentElement,
+            createElm(nextEndVnode, insertedVnodeQueue),
+            api.nextSibling(previousEndVnode.elm!),
           )
-          newEndVnode = newCh[--newEndIdx]
+          nextEndVnode = nextChildren[--nextEndIndex]
         } else {
           // Neither of the new endpoints are new vnodes, so we make progress by
-          // moving `newStartVnode` into position
-          elmToMove = oldCh[idxInOld]!
-          if (!sameVnode(elmToMove, newStartVnode)) {
+          // moving `nextStartVnode` into position
+          vnodeToMove = previousChildren[indexInPreviousChildren]!
+          if (!sameVnode(vnodeToMove, nextStartVnode)) {
             api.insertBefore(
-              parentElm,
-              createElm(newStartVnode, insertedVnodeQueue),
-              oldStartVnode.elm!,
+              parentElement,
+              createElm(nextStartVnode, insertedVnodeQueue),
+              previousStartVnode.elm!,
             )
           } else {
-            patchVnode(elmToMove, newStartVnode, insertedVnodeQueue)
-            oldCh[idxInOld] = undefined as any
-            api.insertBefore(parentElm, elmToMove.elm!, oldStartVnode.elm!)
+            patchVnode(vnodeToMove, nextStartVnode, insertedVnodeQueue)
+            previousChildren[indexInPreviousChildren] = undefined as any
+            api.insertBefore(
+              parentElement,
+              vnodeToMove.elm!,
+              previousStartVnode.elm!,
+            )
           }
-          newStartVnode = newCh[++newStartIdx]
+          nextStartVnode = nextChildren[++nextStartIndex]
         }
       }
     }
 
-    if (newStartIdx <= newEndIdx) {
-      before = newCh[newEndIdx + 1] == null ? null : newCh[newEndIdx + 1]!.elm!
+    if (nextStartIndex <= nextEndIndex) {
+      before =
+        nextChildren[nextEndIndex + 1] == null
+          ? null
+          : nextChildren[nextEndIndex + 1]!.elm!
       addVnodes(
-        parentElm,
+        parentElement,
         before,
-        newCh,
-        newStartIdx,
-        newEndIdx,
+        nextChildren,
+        nextStartIndex,
+        nextEndIndex,
         insertedVnodeQueue,
       )
     }
-    if (oldStartIdx <= oldEndIdx) {
-      removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx)
+    if (previousStartIndex <= previousEndIndex) {
+      removeVnodes(
+        parentElement,
+        previousChildren,
+        previousStartIndex,
+        previousEndIndex,
+      )
     }
   }
 
@@ -447,38 +596,69 @@ export function init(
     vnode: VNode,
     insertedVnodeQueue: VNodeQueue,
   ) {
+    if (oldVnode === vnode) {
+      return
+    }
     const hook = vnode.data?.hook
     hook?.prepatch?.(oldVnode, vnode)
-    const elm = (vnode.elm = oldVnode.elm!)
-    if (oldVnode === vnode) return
+    const element = (vnode.elm = oldVnode.elm!)
     if (
       vnode.data !== undefined ||
       (vnode.text !== undefined && vnode.text !== oldVnode.text)
     ) {
       vnode.data ??= {}
       oldVnode.data ??= {}
-      for (let i = 0; i < cbs.update.length; ++i)
-        cbs.update[i]!(oldVnode, vnode)
+      const oldDataMask = oldVnode.data[vnodeDataMaskKey]
+      const dataMask = vnode.data[vnodeDataMaskKey]
+      for (
+        let moduleIndex = 0;
+        moduleIndex < moduleHooks.update.length;
+        ++moduleIndex
+      ) {
+        const moduleDataMask = moduleDataMasks.update[moduleIndex]
+        if (
+          moduleDataMask === undefined ||
+          oldDataMask === undefined ||
+          dataMask === undefined ||
+          ((oldDataMask | dataMask) & moduleDataMask) !== 0
+        ) {
+          moduleHooks.update[moduleIndex]!(oldVnode, vnode)
+        }
+      }
       vnode.data?.hook?.update?.(oldVnode, vnode)
     }
-    const oldCh = oldVnode.children as Array<VNode>
-    const ch = vnode.children as Array<VNode>
+    const previousChildren = oldVnode.children as Array<VNode>
+    const nextChildren = vnode.children as Array<VNode>
     if (vnode.text === undefined) {
-      if (oldCh !== undefined && ch !== undefined) {
-        if (oldCh !== ch) updateChildren(elm, oldCh, ch, insertedVnodeQueue)
-      } else if (ch !== undefined) {
-        if (oldVnode.text !== undefined) api.setTextContent(elm, '')
-        addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue)
-      } else if (oldCh !== undefined) {
-        removeVnodes(elm, oldCh, 0, oldCh.length - 1)
+      if (previousChildren !== undefined && nextChildren !== undefined) {
+        if (previousChildren !== nextChildren) {
+          updateChildren(
+            element,
+            previousChildren,
+            nextChildren,
+            insertedVnodeQueue,
+          )
+        }
+      } else if (nextChildren !== undefined) {
+        if (oldVnode.text !== undefined) api.setTextContent(element, '')
+        addVnodes(
+          element,
+          null,
+          nextChildren,
+          0,
+          nextChildren.length - 1,
+          insertedVnodeQueue,
+        )
+      } else if (previousChildren !== undefined) {
+        removeVnodes(element, previousChildren, 0, previousChildren.length - 1)
       } else if (oldVnode.text !== undefined) {
-        api.setTextContent(elm, '')
+        api.setTextContent(element, '')
       }
     } else if (oldVnode.text !== vnode.text) {
-      if (oldCh !== undefined) {
-        removeVnodes(elm, oldCh, 0, oldCh.length - 1)
+      if (previousChildren !== undefined) {
+        removeVnodes(element, previousChildren, 0, previousChildren.length - 1)
       }
-      api.setTextContent(elm, vnode.text)
+      api.setTextContent(element, vnode.text)
     }
     hook?.postpatch?.(oldVnode, vnode)
   }
@@ -487,10 +667,15 @@ export function init(
     oldVnode: VNode | Element | DocumentFragment,
     vnode: VNode,
   ): VNode {
-    let i: number, elm: Node, parent: Node | null
     const insertedVnodeQueue: VNodeQueue = []
     isDuplicateKeyWarningIssued = false
-    for (i = 0; i < cbs.pre.length; ++i) cbs.pre[i]!()
+    for (
+      let moduleIndex = 0;
+      moduleIndex < moduleHooks.pre.length;
+      ++moduleIndex
+    ) {
+      moduleHooks.pre[moduleIndex]!()
+    }
 
     if (isElement(api, oldVnode)) {
       oldVnode = emptyNodeAt(oldVnode)
@@ -501,21 +686,33 @@ export function init(
     if (sameVnode(oldVnode, vnode)) {
       patchVnode(oldVnode, vnode, insertedVnodeQueue)
     } else {
-      elm = oldVnode.elm!
-      parent = api.parentNode(elm)
+      const element = oldVnode.elm!
+      const parent = api.parentNode(element)
 
       createElm(vnode, insertedVnodeQueue)
 
       if (parent !== null) {
-        api.insertBefore(parent, vnode.elm!, api.nextSibling(elm))
+        api.insertBefore(parent, vnode.elm!, api.nextSibling(element))
         removeVnodes(parent, [oldVnode], 0, 0)
       }
     }
 
-    for (i = 0; i < insertedVnodeQueue.length; ++i) {
-      insertedVnodeQueue[i]!.data!.hook!.insert!(insertedVnodeQueue[i]!)
+    for (
+      let insertedVnodeIndex = 0;
+      insertedVnodeIndex < insertedVnodeQueue.length;
+      ++insertedVnodeIndex
+    ) {
+      insertedVnodeQueue[insertedVnodeIndex]!.data!.hook!.insert!(
+        insertedVnodeQueue[insertedVnodeIndex]!,
+      )
     }
-    for (i = 0; i < cbs.post.length; ++i) cbs.post[i]!()
+    for (
+      let moduleIndex = 0;
+      moduleIndex < moduleHooks.post.length;
+      ++moduleIndex
+    ) {
+      moduleHooks.post[moduleIndex]!()
+    }
     return vnode
   }
 }

@@ -18,21 +18,39 @@ update are shared.
 - **`foldkit-<version>`**: naive view from `src/main.ts`. No memoization. Every
   Message rebuilds the entire VNode tree.
 - **`foldkit-<version>-optimised`**: optimised view from `src/main.optimised.ts`.
-  Uses `createLazy` on the header and footer (depend on a small set of
-  primitives) and `createKeyedLazy` per todo item (each todo's VNode is reused
-  when its `Todo`, edit state, and edit text are referentially equal to the
-  previous render). Snabbdom short-circuits the subtree diff when a lazy slot
-  returns its cached VNode.
+  Uses `createLazy` slots for the header, the footer, the footer's filters
+  list, and the toggle-all controls, and `createKeyedLazy` per todo item (a
+  todo's VNode is reused when its `Todo` is referentially unchanged and it is
+  not being edited). The differ short-circuits the subtree diff when a lazy
+  slot returns its cached VNode.
 
 ## Relationship to `examples/todo`
 
-The model layer is intentionally identical. The `Todo` schema, every Message,
-the `GenerateTodo` Command, and every preserved `update` branch match
-`examples/todo` line-for-line.
+The app is written for speed within the harness contract: the same TodoMVC
+workload and required selectors and structure, with the implementation behind
+them free to be as fast as Foldkit allows. Benchmarks measure the framework's
+floor, so hot paths deliberately drop convenience idioms the way every other
+slot does (Elm and Gleam compile their pattern matches to jump tables; Lustre
+uses a bare integer id counter). `examples/todo` remains the idiomatic
+reference. Concretely, the model layer diverges from `examples/todo`:
 
-The view is rewritten to render the same TodoMVC reference markup every other
-implementation in the harness uses, so absolute timings are comparable. The
-differences:
+- Todo ids come from a `nextTodoId` counter in the Model, matching the Elm
+  and Lustre slots, instead of the example's `GenerateTodo` Command. Adding
+  a todo is one Message with no Command round trip, and `createdAt` is
+  dropped because nothing in the benchmark reads it.
+- `update` dispatches through a handler record keyed by Message tag,
+  exhaustive via a mapped type, instead of constructing a
+  `M.value(...).pipe(M.tagsExhaustive(...))` matcher per Message.
+- View hot paths check tags directly and compute the footer counts in one
+  pass. The optimised view nests lazy slots so the footer's filters list
+  and the toggle-all controls skip the per-step footer and main rebuilds.
+- The document title is a constant. Formatting a live count into the title
+  every frame is work no other implementation in the harness does.
+
+The view renders the TodoMVC structure and selectors required by the harness.
+Same-batch relative timings are comparable because every implementation runs
+through the same driver, runbook, and browser batch, not because their DOM is
+byte-for-byte identical. The differences from the example's view:
 
 - TodoMVC class names on the relevant elements (`new-todo`, `todo-list`,
   `toggle`, `destroy`, etc.) instead of Tailwind utilities.
@@ -95,6 +113,10 @@ From this directory:
 pnpm build
 ```
 
+Both variants build through `@foldkit/vite-plugin`, so the bundles carry the
+view-identity branding a production Foldkit app ships with; the benchmark
+measures the real production pipeline, not a stripped-down one.
+
 That produces two output directories:
 
 - `dist/naive/`: naive view, relative asset URLs, includes the
@@ -123,6 +145,50 @@ gleam run -m serve
 ```
 
 Open the URL it prints and run the benchmark from the page UI.
+
+## Local driver (headless, with per-bucket attribution)
+
+`bench/` uses the harness instrumentation, runbook, and one-quiet-frame unload
+gate under Playwright so results are scriptable and split by bucket. The
+harness measures the SUM of time spent executing inside instrumented async
+callbacks (setTimeout, rAF, queueMicrotask, Promise.then) plus synchronous
+event-handler time; waiting between steps costs nothing. The runner lets
+application boot settle, records it separately, resets immediately before the
+runbook, and applies the harness unload gate after the final step. The
+per-bucket split is the diagnostic payload: runtime scheduling overhead shows
+up as microtask or timeout time that a single total hides. The runner serves
+everything cross-origin isolated (full timer precision) and stubs the unpkg
+CSS identically for every implementation.
+
+```sh
+pnpm build
+HARNESS_DIR=~/dev/lustre-benchmark pnpm bench:install
+HARNESS_DIR=~/dev/lustre-benchmark pnpm bench:run
+HARNESS_DIR=~/dev/lustre-benchmark pnpm bench:verify
+```
+
+- `bench:install` copies `dist/naive` and `dist/optimised` into
+  `foldkit-dev` / `foldkit-dev-optimised` slots in the clone.
+- `bench:run` interleaves implementations by round, drives the runbook, and
+  prints per-bucket medians plus each implementation's time relative to the
+  fastest median in the same batch. It also prints the harness commit and
+  Chromium version so a published batch is reproducible. Compare against the
+  clone's committed implementations with
+  `IMPLS=foldkit-dev-optimised,elm-0.19.1-optimised,react-19.1.0-optimised`.
+  `RUNS` controls the median width. By default, the driver uses the smallest
+  multiple of the implementation count that is at least five, so cyclic round
+  rotation puts every implementation in every ordinal position equally often.
+  If you set `RUNS` to a non-multiple, the driver warns that the order is not
+  position-balanced.
+- `bench:verify` asserts the slot actually behaves (add, toggle, destroy,
+  edit, filters, toggle-all, clear-completed); the benchmark itself never
+  checks correctness.
+
+Numbers are machine-specific and drift a few percent between sessions. Run
+comparisons in one `bench:run` batch and read the relative column, which is
+computed directly from the medians printed beside it, rather than comparing
+absolute milliseconds across sessions. If Playwright's managed Chromium is
+not installed, point `FOLDKIT_BENCH_CHROMIUM` at a Chromium executable.
 
 ## When Foldkit's version bumps
 

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import type { Module } from './module.js'
-import type { VNode, VNodeData } from './vnode.js'
+import { type VNode, type VNodeData, VNodeDataMask } from './vnode.js'
 
 type Listener<T> = (this: VNode, ev: T, vnode: VNode) => void
 
@@ -105,6 +105,7 @@ function updateEventListeners(oldVnode: VNode, vnode?: VNode): void {
 }
 
 export const eventListenersModule: Module = {
+  dataMask: VNodeDataMask.On,
   create: updateEventListeners,
   update: updateEventListeners,
   destroy: updateEventListeners,

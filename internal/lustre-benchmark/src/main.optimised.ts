@@ -1,4 +1,4 @@
-import { Array, Match as M, Option } from 'effect'
+import { Array, Option } from 'effect'
 import { Document, Html, createKeyedLazy, createLazy, html } from 'foldkit/html'
 
 import {
@@ -14,11 +14,12 @@ import {
   SelectedFilter,
   StartedEditing,
   Todo,
-  Todos,
   ToggledAll,
   ToggledTodo,
   UpdatedEditingTodo,
   UpdatedNewTodo,
+  countActiveTodos,
+  filterTodos,
 } from './main.js'
 
 // VIEW
@@ -107,25 +108,18 @@ const todoItemView = (
     onSome: text => editingTodoView(todo, text),
   })
 
-const filterTodos = (todos: Todos, filter: Filter): Todos =>
-  M.value(filter).pipe(
-    M.when('All', () => todos),
-    M.when('Active', () => Array.filter(todos, todo => !todo.completed)),
-    M.when('Completed', () => Array.filter(todos, todo => todo.completed)),
-    M.exhaustive,
-  )
-
+// NOTE: hot-path helper. `M.value(...).pipe(M.tagsExhaustive(...))`
+// constructs a fresh matcher on every call; done per todo per frame it
+// dominates view time, so this checks the tag directly.
 const maybeEditingTextFor = (
   editing: EditingState,
   todoId: string,
-): Option.Option<string> =>
-  M.value(editing).pipe(
-    M.tagsExhaustive({
-      NotEditing: () => Option.none(),
-      Editing: ({ id, text }) =>
-        Option.liftPredicate(text, () => id === todoId),
-    }),
-  )
+): Option.Option<string> => {
+  if (editing._tag === 'Editing' && editing.id === todoId) {
+    return Option.some(editing.text)
+  }
+  return Option.none()
+}
 
 const headerView = (newTodoText: string): Html => {
   const h = html<Message>()
@@ -168,6 +162,25 @@ const filterItemView = (
   )
 }
 
+const filtersView = (filter: Filter): Html => {
+  const h = html<Message>()
+
+  return h.ul(
+    [h.Class('filters')],
+    [
+      filterItemView('All', 'All', '#/', filter),
+      filterItemView('Active', 'Active', '#/active', filter),
+      filterItemView('Completed', 'Completed', '#/completed', filter),
+    ],
+  )
+}
+
+// NOTE: the footer rebuilds on every count change, which is every runbook
+// step, but the filters list depends only on the active filter. The nested
+// lazy slot keeps the per-step footer rebuild down to the count span and
+// the clear button.
+const lazyFilters = createLazy()
+
 const footerView = (
   activeCount: number,
   completedCount: number,
@@ -176,22 +189,14 @@ const footerView = (
   const h = html<Message>()
   const word = activeCount === 1 ? 'item' : 'items'
 
-  return h.keyed('footer')(
-    'todo-footer',
+  return h.footer(
     [h.Class('footer')],
     [
       h.span(
         [h.Class('todo-count')],
         [h.strong([], [activeCount.toString()]), ` ${word} left`],
       ),
-      h.ul(
-        [h.Class('filters')],
-        [
-          filterItemView('All', 'All', '#/', filter),
-          filterItemView('Active', 'Active', '#/active', filter),
-          filterItemView('Completed', 'Completed', '#/completed', filter),
-        ],
-      ),
+      lazyFilters(filtersView, [filter]),
       completedCount > 0
         ? h.button(
             [h.Class('clear-completed'), h.OnClick(ClearedCompleted())],
@@ -202,39 +207,50 @@ const footerView = (
   )
 }
 
+const toggleAllInputView = (allCompleted: boolean): Html => {
+  const h = html<Message>()
+
+  return h.input([
+    h.Class('toggle-all'),
+    h.Id('toggle-all'),
+    h.Type('checkbox'),
+    h.Name('toggle'),
+    h.Checked(allCompleted),
+    h.OnClick(ToggledAll()),
+  ])
+}
+
+const toggleAllLabelView = (): Html => {
+  const h = html<Message>()
+
+  return h.label([h.For('toggle-all')], ['Mark all as complete'])
+}
+
 const lazyHeader = createLazy()
 const lazyFooter = createLazy()
+const lazyToggleAllInput = createLazy()
+const lazyToggleAllLabel = createLazy()
 const lazyTodo = createKeyedLazy()
 
 export const view = (model: Model): Document => {
   const h = html<Message>()
 
   const filteredTodos = filterTodos(model.todos, model.filter)
-  const activeCount = Array.length(
-    Array.filter(model.todos, todo => !todo.completed),
-  )
+  const activeCount = countActiveTodos(model.todos)
   const completedCount = Array.length(model.todos) - activeCount
   const allCompleted =
-    Array.isReadonlyArrayNonEmpty(model.todos) &&
-    Array.every(model.todos, todo => todo.completed)
+    Array.isReadonlyArrayNonEmpty(model.todos) && activeCount === 0
 
   const renderedHeader = lazyHeader(headerView, [model.newTodoText])
 
   const renderedMain = Array.match(model.todos, {
     onEmpty: () => h.empty,
     onNonEmpty: () =>
-      h.keyed('section')(
-        'todo-main',
+      h.section(
         [h.Class('main')],
         [
-          h.input([
-            h.Class('toggle-all'),
-            h.Type('checkbox'),
-            h.Name('toggle'),
-            h.Checked(allCompleted),
-            h.OnClick(ToggledAll()),
-          ]),
-          h.label([h.For('toggle-all')], ['Mark all as complete']),
+          lazyToggleAllInput(toggleAllInputView, [allCompleted]),
+          lazyToggleAllLabel(toggleAllLabelView, []),
           h.ul(
             [h.Class('todo-list')],
             Array.map(filteredTodos, todo =>
@@ -255,7 +271,7 @@ export const view = (model: Model): Document => {
   })
 
   return {
-    title: `Todos (${activeCount})`,
+    title: 'Foldkit TodoMVC Benchmark',
     body: h.section(
       [h.Class('todoapp')],
       [renderedHeader, renderedMain, renderedFooter],

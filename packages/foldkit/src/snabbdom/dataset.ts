@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import type { Module } from './module.js'
-import type { VNode, VNodeData } from './vnode.js'
+import { type VNode, type VNodeData, VNodeDataMask } from './vnode.js'
 
 export type Dataset = Record<string, string>
 
@@ -46,6 +46,7 @@ function updateDataset(oldVnode: VNode, vnode: VNode): void {
 }
 
 export const datasetModule: Module = {
+  dataMask: VNodeDataMask.Dataset,
   create: updateDataset,
   update: updateDataset,
 }

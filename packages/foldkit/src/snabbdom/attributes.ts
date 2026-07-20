@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import type { Module } from './module.js'
-import type { VNode, VNodeData } from './vnode.js'
+import { type VNode, type VNodeData, VNodeDataMask } from './vnode.js'
 
 export type Attrs = Record<string, string | number | boolean>
 
@@ -59,6 +59,7 @@ function updateAttrs(oldVnode: VNode, vnode: VNode): void {
 }
 
 export const attributesModule: Module = {
+  dataMask: VNodeDataMask.Attrs,
   create: updateAttrs,
   update: updateAttrs,
 }

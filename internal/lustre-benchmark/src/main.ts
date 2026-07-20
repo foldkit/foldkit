@@ -1,13 +1,4 @@
-import {
-  Array,
-  Clock,
-  Effect,
-  Match as M,
-  Option,
-  Random,
-  Schema as S,
-  String,
-} from 'effect'
+import { Array, Match as M, Option, Schema as S, String } from 'effect'
 import { Command, Runtime } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -20,7 +11,6 @@ const Todo = S.Struct({
   id: S.String,
   text: S.String,
   completed: S.Boolean,
-  createdAt: S.Number,
 })
 export type Todo = typeof Todo.Type
 
@@ -47,6 +37,7 @@ export const Model = S.Struct({
   newTodoText: S.String,
   filter: Filter,
   editing: EditingState,
+  nextTodoId: S.Number,
 })
 export type Model = typeof Model.Type
 
@@ -55,11 +46,6 @@ export type Model = typeof Model.Type
 export const UpdatedNewTodo = m('UpdatedNewTodo', { text: S.String })
 export const UpdatedEditingTodo = m('UpdatedEditingTodo', { text: S.String })
 export const AddedTodo = m('AddedTodo')
-export const GeneratedTodo = m('GeneratedTodo', {
-  id: S.String,
-  timestamp: S.Number,
-  text: S.String,
-})
 export const DeletedTodo = m('DeletedTodo', { id: S.String })
 export const ToggledTodo = m('ToggledTodo', { id: S.String })
 export const StartedEditing = m('StartedEditing', { id: S.String })
@@ -73,7 +59,6 @@ export const Message = S.Union([
   UpdatedNewTodo,
   UpdatedEditingTodo,
   AddedTodo,
-  GeneratedTodo,
   DeletedTodo,
   ToggledTodo,
   StartedEditing,
@@ -93,6 +78,7 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => [
     newTodoText: '',
     filter: 'All',
     editing: NotEditing(),
+    nextTodoId: 0,
   },
   [],
 ]
@@ -103,178 +89,165 @@ export const update = (
   model: Model,
   message: Message,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      UpdatedNewTodo: ({ text }) => [
-        evo(model, {
-          newTodoText: () => text,
-        }),
-        [],
-      ],
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  updateHandlers[message._tag](model, message as never)
 
-      UpdatedEditingTodo: ({ text }) => [
-        evo(model, {
-          editing: () =>
-            M.value(model.editing).pipe(
-              M.tagsExhaustive({
-                NotEditing: () => model.editing,
-                Editing: ({ id }) => Editing({ id, text }),
-              }),
-            ),
-        }),
-        [],
-      ],
+// NOTE: hot-path dispatch. A `M.value(...).pipe(M.tagsExhaustive(...))`
+// matcher is constructed per call; done per Message it is measurable on the
+// benchmark, so update dispatches through a handler record built once. The
+// mapped type keeps the record exhaustive over the Message union.
+type UpdateResult = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 
-      AddedTodo: () => {
-        if (String.isEmpty(String.trim(model.newTodoText))) {
-          return [model, []]
-        }
+type UpdateHandlers = {
+  readonly [Tag in Message['_tag']]: (
+    model: Model,
+    message: Extract<Message, Readonly<{ _tag: Tag }>>,
+  ) => UpdateResult
+}
 
-        return [model, [GenerateTodo({ text: String.trim(model.newTodoText) })]]
-      },
+const updateHandlers: UpdateHandlers = {
+  UpdatedNewTodo: (model, { text }) => [
+    evo(model, {
+      newTodoText: () => text,
+    }),
+    [],
+  ],
 
-      GeneratedTodo: ({ id, timestamp, text }) => {
-        const newTodo: Todo = {
-          id,
-          text,
-          completed: false,
-          createdAt: timestamp,
-        }
+  UpdatedEditingTodo: (model, { text }) => {
+    if (model.editing._tag === 'NotEditing') {
+      return [model, []]
+    }
+    const editingId = model.editing.id
+    return [
+      evo(model, {
+        editing: () => Editing({ id: editingId, text }),
+      }),
+      [],
+    ]
+  },
 
-        return [
-          evo(model, {
-            todos: () => [...model.todos, newTodo],
-            newTodoText: () => '',
-          }),
-          [],
-        ]
-      },
+  AddedTodo: model => {
+    const text = String.trim(model.newTodoText)
+    if (String.isEmpty(text)) {
+      return [model, []]
+    }
 
-      DeletedTodo: ({ id }) => [
-        evo(model, {
-          todos: () => Array.filter(model.todos, todo => todo.id !== id),
-        }),
-        [],
-      ],
+    const newTodo: Todo = {
+      id: `todo-${model.nextTodoId}`,
+      text,
+      completed: false,
+    }
 
-      ToggledTodo: ({ id }) => [
-        evo(model, {
-          todos: () =>
-            Array.map(model.todos, todo =>
-              todo.id === id
-                ? evo(todo, { completed: completed => !completed })
-                : todo,
-            ),
-        }),
-        [],
-      ],
+    return [
+      evo(model, {
+        todos: () => [...model.todos, newTodo],
+        newTodoText: () => '',
+        nextTodoId: nextTodoId => nextTodoId + 1,
+      }),
+      [],
+    ]
+  },
 
-      StartedEditing: ({ id }) => {
-        const maybeTodo = Array.findFirst(model.todos, todo => todo.id === id)
-        return [
-          evo(model, {
-            editing: () =>
-              Editing({
-                id,
-                text: Option.match(maybeTodo, {
-                  onNone: () => '',
-                  onSome: todo => todo.text,
-                }),
-              }),
-          }),
-          [],
-        ]
-      },
+  DeletedTodo: (model, { id }) => [
+    evo(model, {
+      todos: () => Array.filter(model.todos, todo => todo.id !== id),
+    }),
+    [],
+  ],
 
-      SavedEdit: () =>
-        M.value(model.editing).pipe(
-          M.withReturnType<
-            readonly [Model, ReadonlyArray<Command.Command<Message>>]
-          >(),
-          M.tagsExhaustive({
-            NotEditing: () => [model, []],
-
-            Editing: ({ id, text }) => {
-              if (String.isEmpty(String.trim(text))) {
-                return [
-                  evo(model, {
-                    editing: () => NotEditing(),
-                  }),
-                  [],
-                ]
-              }
-
-              return [
-                evo(model, {
-                  todos: () =>
-                    Array.map(model.todos, todo =>
-                      todo.id === id
-                        ? evo(todo, { text: () => String.trim(text) })
-                        : todo,
-                    ),
-                  editing: () => NotEditing(),
-                }),
-                [],
-              ]
-            },
-          }),
+  ToggledTodo: (model, { id }) => [
+    evo(model, {
+      todos: () =>
+        Array.map(model.todos, todo =>
+          todo.id === id
+            ? evo(todo, { completed: completed => !completed })
+            : todo,
         ),
+    }),
+    [],
+  ],
 
-      CancelledEdit: () => [
+  StartedEditing: (model, { id }) => {
+    const maybeTodo = Array.findFirst(model.todos, todo => todo.id === id)
+    return [
+      evo(model, {
+        editing: () =>
+          Editing({
+            id,
+            text: Option.match(maybeTodo, {
+              onNone: () => '',
+              onSome: todo => todo.text,
+            }),
+          }),
+      }),
+      [],
+    ]
+  },
+
+  SavedEdit: model => {
+    if (model.editing._tag === 'NotEditing') {
+      return [model, []]
+    }
+
+    const editingId = model.editing.id
+    const text = String.trim(model.editing.text)
+    if (String.isEmpty(text)) {
+      return [
         evo(model, {
           editing: () => NotEditing(),
         }),
         [],
-      ],
+      ]
+    }
 
-      ToggledAll: () => {
-        const allCompleted = Array.every(model.todos, todo => todo.completed)
-        return [
-          evo(model, {
-            todos: () =>
-              Array.map(model.todos, todo =>
-                evo(todo, {
-                  completed: () => !allCompleted,
-                }),
-              ),
-          }),
-          [],
-        ]
-      },
+    return [
+      evo(model, {
+        todos: () =>
+          Array.map(model.todos, todo =>
+            todo.id === editingId ? evo(todo, { text: () => text }) : todo,
+          ),
+        editing: () => NotEditing(),
+      }),
+      [],
+    ]
+  },
 
-      ClearedCompleted: () => [
-        evo(model, {
-          todos: () => Array.filter(model.todos, todo => !todo.completed),
-        }),
-        [],
-      ],
-
-      SelectedFilter: ({ filter }) => [
-        evo(model, {
-          filter: () => filter,
-        }),
-        [],
-      ],
+  CancelledEdit: model => [
+    evo(model, {
+      editing: () => NotEditing(),
     }),
-  )
+    [],
+  ],
 
-// COMMAND
+  ToggledAll: model => {
+    const allCompleted = Array.every(model.todos, todo => todo.completed)
+    return [
+      evo(model, {
+        todos: () =>
+          Array.map(model.todos, todo =>
+            evo(todo, {
+              completed: () => !allCompleted,
+            }),
+          ),
+      }),
+      [],
+    ]
+  },
 
-export const GenerateTodo = Command.define(
-  'GenerateTodo',
-  { text: S.String },
-  GeneratedTodo,
-)(({ text }) =>
-  Effect.gen(function* () {
-    const idNumber = yield* Random.nextIntBetween(0, Number.MAX_SAFE_INTEGER)
-    const id = idNumber.toString(36)
-    const timestamp = yield* Clock.currentTimeMillis
-    return GeneratedTodo({ id, timestamp, text })
-  }),
-)
+  ClearedCompleted: model => [
+    evo(model, {
+      todos: () => Array.filter(model.todos, todo => !todo.completed),
+    }),
+    [],
+  ],
+
+  SelectedFilter: (model, { filter }) => [
+    evo(model, {
+      filter: () => filter,
+    }),
+    [],
+  ],
+}
 
 // VIEW
 
@@ -351,26 +324,37 @@ const editingTodoView = (todo: Todo, text: string): Html => {
   )
 }
 
+// NOTE: hot-path helpers. `M.value(...).pipe(M.tagsExhaustive(...))`
+// constructs a fresh matcher on every call; done per todo per frame it
+// dominates view time, so these run on the tag directly.
 const todoItemView =
   (editing: EditingState) =>
-  (todo: Todo): Html =>
-    M.value(editing).pipe(
-      M.tagsExhaustive({
-        NotEditing: () => nonEditingTodoView(todo),
-        Editing: ({ id, text }) =>
-          id === todo.id
-            ? editingTodoView(todo, text)
-            : nonEditingTodoView(todo),
-      }),
-    )
+  (todo: Todo): Html => {
+    if (editing._tag === 'Editing' && editing.id === todo.id) {
+      return editingTodoView(todo, editing.text)
+    }
+    return nonEditingTodoView(todo)
+  }
 
-const filterTodos = (todos: Todos, filter: Filter): Todos =>
-  M.value(filter).pipe(
-    M.when('All', () => todos),
-    M.when('Active', () => Array.filter(todos, todo => !todo.completed)),
-    M.when('Completed', () => Array.filter(todos, todo => todo.completed)),
-    M.exhaustive,
-  )
+export const filterTodos = (todos: Todos, filter: Filter): Todos => {
+  if (filter === 'All') {
+    return todos
+  }
+  if (filter === 'Active') {
+    return Array.filter(todos, todo => !todo.completed)
+  }
+  return Array.filter(todos, todo => todo.completed)
+}
+
+export const countActiveTodos = (todos: Todos): number => {
+  let activeCount = 0
+  for (const todo of todos) {
+    if (!todo.completed) {
+      activeCount += 1
+    }
+  }
+  return activeCount
+}
 
 const filterItemView =
   (active: Filter) =>
@@ -392,13 +376,10 @@ export const view = (model: Model): Document => {
   const h = html<Message>()
 
   const filteredTodos = filterTodos(model.todos, model.filter)
-  const activeCount = Array.length(
-    Array.filter(model.todos, todo => !todo.completed),
-  )
+  const activeCount = countActiveTodos(model.todos)
   const completedCount = Array.length(model.todos) - activeCount
   const allCompleted =
-    Array.isReadonlyArrayNonEmpty(model.todos) &&
-    Array.every(model.todos, todo => todo.completed)
+    Array.isReadonlyArrayNonEmpty(model.todos) && activeCount === 0
   const word = activeCount === 1 ? 'item' : 'items'
   const filterItem = filterItemView(model.filter)
 
@@ -423,12 +404,12 @@ export const view = (model: Model): Document => {
   const mainView = Array.match(model.todos, {
     onEmpty: () => h.empty,
     onNonEmpty: () =>
-      h.keyed('section')(
-        'todo-main',
+      h.section(
         [h.Class('main')],
         [
           h.input([
             h.Class('toggle-all'),
+            h.Id('toggle-all'),
             h.Type('checkbox'),
             h.Name('toggle'),
             h.Checked(allCompleted),
@@ -446,8 +427,7 @@ export const view = (model: Model): Document => {
   const footerView = Array.match(model.todos, {
     onEmpty: () => h.empty,
     onNonEmpty: () =>
-      h.keyed('footer')(
-        'todo-footer',
+      h.footer(
         [h.Class('footer')],
         [
           h.span(
@@ -473,7 +453,7 @@ export const view = (model: Model): Document => {
   })
 
   return {
-    title: `Todos (${activeCount})`,
+    title: 'Foldkit TodoMVC Benchmark',
     body: h.section([h.Class('todoapp')], [headerView, mainView, footerView]),
   }
 }

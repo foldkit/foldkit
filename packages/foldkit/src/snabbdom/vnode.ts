@@ -8,6 +8,17 @@ import type { VNodeStyle } from './style.js'
 
 export type Key = PropertyKey
 
+export const vnodeDataMaskKey = Symbol('foldkit/vnode-data-mask')
+
+export const VNodeDataMask = {
+  Attrs: 1,
+  Class: 2,
+  Dataset: 4,
+  On: 8,
+  Props: 16,
+  Style: 32,
+}
+
 export interface VNode {
   sel: string | undefined
   data: VNodeData | undefined
@@ -23,6 +34,7 @@ export interface VNode {
 }
 
 export interface VNodeData<VNodeProps = Props> {
+  [vnodeDataMaskKey]?: number
   props?: VNodeProps
   attrs?: Attrs
   class?: Classes

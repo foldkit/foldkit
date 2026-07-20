@@ -222,7 +222,7 @@ const tools: ReadonlyArray<ToolRowSpec> = [
   {
     name: 'foldkit_dispatch_message',
     description: [
-      'Enqueues a Message into the runtime as if your application produced it. The runtime decodes the payload against your Schema and returns a clean error if it does not match.',
+      'Dispatches a Message into the runtime as if your application produced it. The runtime decodes the payload against your Schema and returns a clean error if it does not match.',
     ],
   },
 ]

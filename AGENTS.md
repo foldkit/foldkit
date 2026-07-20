@@ -27,7 +27,7 @@ Calibrate to the right context: library design when inside `packages/foldkit/src
 - Never use `NoOp` Messages. Use descriptive facts even for no-ops: `IgnoredMouseClick`, `SuppressedSpaceScroll`. `Completed*` mirrors the Command name verb-first: `LockScroll` produces `CompletedLockScroll`.
 - Commands are verb-first imperatives: `FetchWeather`, `FocusButton`, `LockScroll`.
 - Mount Definitions are verb-first imperatives like Commands: `AnchorPopover`, `PortalPopoverBackdrop`, `SyncSidebarScroll`.
-- Never abbreviate names anywhere, including callback parameters. Write `(tickCount) => tickCount + 1`, not `(t) => t + 1`.
+- Use names that are immediately understandable in context. Avoid opaque abbreviations and unexplained single-letter names: `callbacks`, not `cbs`; `context`, not `c`; `(tickCount)`, not `(t)`. Conventional technical shorthand is allowed when it is the normal spelling for the domain, including `attrs`, `props`, `args`, `dir`, `ctx`, `fn`, `DOM`, `URL`, and `VNode`. Established API and DSL bindings such as `h` are also allowed. Prefer a more precise semantic name when one exists, such as `toMessage` instead of `f`.
 - When computing the next value for a Model field, name the local const `next<FieldName>`. For example, use `nextRoute` for `route`, `nextPeoplePage` for `peoplePage`, and `nextTabs` for `tabs`.
 - Do not suffix Command variables with `Command`. The type already says so.
 - Prefix `Option`-typed values with `maybe`. Never prefix `T | undefined` values with `nullable`; name them plainly and let the type carry the optionality.

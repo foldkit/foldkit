@@ -8,6 +8,7 @@ import type {
 } from './hooks.js'
 
 export type Module = Partial<{
+  dataMask: number
   pre: PreHook
   create: CreateHook
   update: UpdateHook
