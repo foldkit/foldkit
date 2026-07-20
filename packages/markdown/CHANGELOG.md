@@ -1,5 +1,11 @@
 # @foldkit/markdown
 
+## 0.1.1
+
+### Patch Changes
+
+- c94b028: Reword the package tagline: write markdown files, get Foldkit views with live islands.
+
 ## 0.1.0
 
 ### Minor Changes

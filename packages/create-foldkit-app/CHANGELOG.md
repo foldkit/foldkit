@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.22.0
+
+### Minor Changes
+
+- 2fbc8dd: Rename the `upload` example to `interrupting-commands`. The scaffolded app is unchanged; only the example's name moved. Scripts passing `--example upload` should pass `--example interrupting-commands` instead.
+
 ## 0.21.1
 
 ### Patch Changes
