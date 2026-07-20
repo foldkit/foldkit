@@ -1,5 +1,24 @@
 {
+  "$schema": "./node_modules/@effect/language-service/schema.json",
   "compilerOptions": {
+    // NOTE: @effect/language-service is a TypeScript plugin, so its diagnostics
+    // surface in tsserver (editors) automatically, but tsc/CI only sees them
+    // after `effect-language-service patch`. See docs/effect-language-service.md.
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "diagnosticSeverity": {
+          "processEnv": "off",
+          "processEnvInEffect": "off",
+          "globalConsole": "off",
+          "globalConsoleInEffect": "off",
+          "preferSchemaOverJson": "warning"
+        },
+        "ignoreEffectWarningsInTscExitCode": true,
+        "ignoreEffectSuggestionsInTscExitCode": true
+      }
+    ],
+
     "target": "ES2022",
     "module": "ESNext",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],

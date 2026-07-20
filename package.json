@@ -70,6 +70,7 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
+    "@effect/language-service": "^0.86.4",
     "@foldkit/oxlint-plugin": "workspace:*",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/node": "^25.9.3",
