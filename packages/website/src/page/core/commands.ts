@@ -262,7 +262,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('Command.Interruptible.define'),
         ' declares a Command that can be stopped mid-flight. It works like ',
         inlineCode('Command.define'),
-        ' with one addition: a key that identifies the invocation. The key function is stated once at the definition and maps the args to whatever distinguishes invocations; Foldkit prefixes it with the Command name automatically, so keys never collide across definitions. A Command with no declared args needs no key function at all: its key is the Command name.',
+        ' with one addition: a key that identifies the invocation. The key function is stated once at the definition and maps the args to whatever distinguishes invocations; Foldkit prefixes it with the Command name automatically, so keys never collide across definitions. A Command with no declared args needs no key function at all: its key is the Command name. The key function is optional even with declared args: omit it when at most one invocation is meaningfully in flight, and the key falls back to the Command name, so ',
+        inlineCode('Interrupt'),
+        ' takes only ',
+        inlineCode('toMessage'),
+        '; provide it, derived from the owning Model identity, when invocations run concurrently and must be interrupted independently.',
       ),
       highlightedCodeBlock(
         h.div(
@@ -291,7 +295,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       para(
         'The definition carries an ',
         inlineCode('Interrupt'),
-        ' constructor. It takes the key args and a function from the interrupt outcome to a Message, and returns an ordinary Command: update stays pure, DevTools shows the dispatch, and tests resolve it like any other Command. The outcome is ',
+        ' constructor. It takes a function from the interrupt outcome to a Message, preceded by the key args for a definition whose key is derived from its args, and returns an ordinary Command: update stays pure, DevTools shows the dispatch, and tests resolve it like any other Command. The outcome is ',
         inlineCode('Interrupted'),
         ' when an in-flight Command was stopped, or ',
         inlineCode('NotFound'),

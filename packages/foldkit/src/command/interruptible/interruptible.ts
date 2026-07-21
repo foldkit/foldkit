@@ -216,6 +216,28 @@ export interface DefinitionWithArgs<
   }>
 }
 
+/** An interruptible Command definition with declared args but no `toKey`, so
+ *  its key is the Command name, exactly like the no-args form. Call as
+ *  `Definition(args)` to produce a Command instance; use `Definition.Interrupt`
+ *  to build the Command that stops it. Reach for this when a Command takes args
+ *  yet at most one invocation is meaningfully in flight, so its invocations need
+ *  nothing to distinguish them. */
+export interface DefinitionWithArgsNameKeyed<
+  Name extends string,
+  Fields extends Schema.Struct.Fields,
+  Eff extends Effect.Effect<any, any, any>,
+> {
+  readonly [CommandDefinitionTypeId]: CommandDefinitionTypeId
+  readonly name: Name
+  readonly Interrupt: InterruptDefinitionNoArgs<Name>;
+  (args: Schema.Schema.Type<Schema.Struct<Fields>>): Readonly<{
+    name: Name
+    args: Schema.Schema.Type<Schema.Struct<Fields>>
+    key: string
+    effect: Eff
+  }>
+}
+
 const brandAsDefinition = (definition: unknown, name: string): void => {
   Object.defineProperty(definition, 'name', {
     value: name,
@@ -275,6 +297,13 @@ const makeInterruptDefinitionWithArgs = (
  * from a generated value: the update function is pure, and any invocation you
  * can meaningfully target is already distinguished by data in the Model.
  *
+ * `toKey` is optional on the with-args form. Omit it when at most one
+ * invocation is meaningfully in flight (a single-instance submit flow), and the
+ * key is the Command name, exactly like the no-args form, with `Interrupt`
+ * taking only `toMessage`. Provide it, deriving the key from the owning Model
+ * identity, when invocations run concurrently and must be interrupted
+ * independently.
+ *
  * Semantics:
  *
  * - A key is an address, not a lock. Any number of invocations may run under
@@ -326,6 +355,21 @@ const makeInterruptDefinitionWithArgs = (
  *   CompletedCancelUploadFile({ uploadId: 1, outcome }),
  * )
  * ```
+ *
+ * @example With args, keyed by name (one invocation in flight)
+ * ```ts
+ * const SaveDraft = Command.Interruptible.define(
+ *   'SaveDraft',
+ *   { draftId: S.String, body: S.String },
+ *   SucceededSaveDraft,
+ *   FailedSaveDraft,
+ * )(({ draftId, body }) =>
+ *   Effect.gen(function* () { ... }),
+ * )
+ * // Call sites:
+ * SaveDraft({ draftId: 'abc', body })
+ * SaveDraft.Interrupt(outcome => CompletedCancelSaveDraft({ outcome }))
+ * ```
  */
 export function define<
   const Name extends string,
@@ -351,6 +395,18 @@ export function define<
   effectBuilder: (args: Schema.Schema.Type<Schema.Struct<Fields>>) => Eff,
 ) => DefinitionWithArgs<Name, Fields, KeyArgs, Eff>
 
+export function define<
+  const Name extends string,
+  Fields extends Schema.Struct.Fields,
+  Results extends ReadonlyArray<Schema.Top>,
+>(
+  name: Name,
+  args: Fields,
+  ...results: Results
+): <Eff extends Effect.Effect<Schema.Schema.Type<Results[number]>, any, any>>(
+  effectBuilder: (args: Schema.Schema.Type<Schema.Struct<Fields>>) => Eff,
+) => DefinitionWithArgsNameKeyed<Name, Fields, Eff>
+
 export function define(name: string, ...rest: ReadonlyArray<unknown>): unknown {
   const [maybeArgs, maybeToKey] = rest
 
@@ -373,6 +429,32 @@ export function define(name: string, ...rest: ReadonlyArray<unknown>): unknown {
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       return definition as unknown as DefinitionNoArgs<
         string,
+        Effect.Effect<any, any, any>
+      >
+    }
+  }
+
+  const isToKeyFunction =
+    Predicate.isFunction(maybeToKey) && !Schema.isSchema(maybeToKey)
+
+  if (!isToKeyFunction) {
+    const key = name
+    return (effectBuilder: (args: any) => Effect.Effect<any, any, any>) => {
+      const definition = (args: any) => ({
+        name,
+        args,
+        key,
+        effect: registerKeyWhileRunning(key, effectBuilder(args)),
+        messageMappers: [],
+      })
+      brandAsDefinition(definition, name)
+      Object.defineProperty(definition, 'Interrupt', {
+        value: makeInterruptDefinitionNoArgs(name, key),
+      })
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      return definition as unknown as DefinitionWithArgsNameKeyed<
+        string,
+        any,
         Effect.Effect<any, any, any>
       >
     }
