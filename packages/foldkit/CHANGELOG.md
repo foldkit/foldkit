@@ -1,5 +1,13 @@
 # foldkit
 
+## 0.131.0
+
+### Minor Changes
+
+- 79be223: `Command.Interruptible.define` now accepts an optional `toKey` on the with-args form. Omit it when at most one invocation is meaningfully in flight, and the key is the Command name, exactly like the no-args form, with `Interrupt` taking only `toMessage`. This drops the empty `{}` key args a single-instance submit flow was forced to pass. Provide `toKey`, derived from the owning Model identity, when invocations run concurrently and must be interrupted independently.
+- d5fc8b8: `Machine` in `foldkit/experimental/machine` now threads a requirements type parameter `R` through `define`, `to`, `when`, and the transition result types, so an edge Command whose Effect needs a service (an RPC client or anything Layer-provided) typechecks instead of being rejected against a `never` requirements channel. `R` defaults to `never` and is inferred from the table when every edge Command shares one service. When edges need distinct services, supply the union on the second call: `define(schemas)<UploadsClient | SaveClient>({ ... })`.
+- 09ce86c: `Story.Command.resolve` and `Scene.Command.resolve` now accept a bare interruptible Command definition (from `Command.Interruptible.define`), matching it by name the way their `expectHas` and `expectExact` counterparts already do. Previously the definition overload only accepted plain `Command.define` definitions, so resolving an interruptible Command by its definition failed to typecheck and forced a resolve-by-instance workaround.
+
 ## 0.130.0
 
 ### Minor Changes
