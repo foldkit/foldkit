@@ -102,10 +102,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       ),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Correct Foldkit programs have zero side effects, period. Yes, zero (0).',
+        'A correct Foldkit program is a pure description with zero side effects, period. Yes, zero (0). Your program is the Foldkit application you define: your Model, update, view, the Command values returned by update, and more. Evaluating it does not perform side effects.',
       ),
       para(
-        'Every side effect is described as an Effect: a value that represents a computation without executing it. An Effect does nothing when you construct it. It produces side effects when the Foldkit runtime runs your program.',
+        'Every side effect is described as an Effect: a value that represents a computation without executing it. An Effect does nothing when you construct it. The side effects still happen, but only when the Foldkit runtime runs your program and executes the Effects it produces.',
       ),
       para(
         'Both ',
