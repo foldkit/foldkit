@@ -1,4 +1,5 @@
 import {
+  Context,
   Duration,
   Effect,
   Match as M,
@@ -514,6 +515,167 @@ const plainTagMachine = define({
   },
 })
 
+// REQUIREMENTS
+
+type UploadsShape = Readonly<{ presign: Effect.Effect<string> }>
+
+class UploadsClient extends Context.Service<UploadsClient, UploadsShape>()(
+  'UploadsClient',
+) {}
+
+type SaveShape = Readonly<{ save: Effect.Effect<string> }>
+
+class SaveClient extends Context.Service<SaveClient, SaveShape>()(
+  'SaveClient',
+) {}
+
+const PRESIGNED_URL = 'https://uploads.example.test/presigned'
+const PERSISTED_ID = 'record-1'
+
+const SubmitIdle = ts('SubmitIdle')
+const Presigning = ts('Presigning')
+const Persisting = ts('Persisting')
+const Submitted = ts('Submitted')
+
+const SubmitState = S.Union([SubmitIdle, Presigning, Persisting, Submitted])
+type SubmitState = typeof SubmitState.Type
+
+const ClickedSubmit = m('ClickedSubmit')
+const SucceededPresign = m('SucceededPresign', { url: S.String })
+const SucceededPersist = m('SucceededPersist', { id: S.String })
+
+const SubmitMessage = S.Union([
+  ClickedSubmit,
+  SucceededPresign,
+  SucceededPersist,
+])
+type SubmitMessage = typeof SubmitMessage.Type
+
+const Presign = Command.define(
+  'Presign',
+  SucceededPresign,
+)(
+  Effect.gen(function* () {
+    const client = yield* UploadsClient
+    const url = yield* client.presign
+    return SucceededPresign({ url })
+  }),
+)
+
+const Persist = Command.define(
+  'Persist',
+  SucceededPersist,
+)(
+  Effect.gen(function* () {
+    const client = yield* SaveClient
+    const id = yield* client.save
+    return SucceededPersist({ id })
+  }),
+)
+
+const inferredRequirementsMachine = define({
+  state: SubmitState,
+  message: SubmitMessage,
+})({
+  initial: SubmitIdle(),
+  states: {
+    SubmitIdle: {
+      on: {
+        ClickedSubmit: to(
+          'Presigning',
+          () => Presigning(),
+          () => [Presign()],
+        ),
+      },
+    },
+  },
+})
+
+const inferredGuardRequirementsMachine = define({
+  state: SubmitState,
+  message: SubmitMessage,
+})({
+  initial: SubmitIdle(),
+  states: {
+    SubmitIdle: {
+      on: {
+        ClickedSubmit: [
+          when(
+            () => true,
+            'Presigning',
+            () => Presigning(),
+            () => [Presign()],
+          ),
+          otherwise(to('SubmitIdle', () => SubmitIdle())),
+        ],
+      },
+    },
+  },
+})
+
+const inferredOtherwiseRequirementsMachine = define({
+  state: SubmitState,
+  message: SubmitMessage,
+})({
+  initial: SubmitIdle(),
+  states: {
+    SubmitIdle: {
+      on: {
+        ClickedSubmit: [
+          when(
+            () => false,
+            'Submitted',
+            () => Submitted(),
+          ),
+          otherwise(
+            to(
+              'Presigning',
+              () => Presigning(),
+              () => [Presign()],
+            ),
+          ),
+        ],
+      },
+    },
+  },
+})
+
+const explicitRequirementsMachine = define({
+  state: SubmitState,
+  message: SubmitMessage,
+})<UploadsClient | SaveClient>({
+  initial: SubmitIdle(),
+  states: {
+    SubmitIdle: {
+      on: {
+        ClickedSubmit: to(
+          'Presigning',
+          () => Presigning(),
+          () => [Presign()],
+        ),
+      },
+    },
+    Presigning: {
+      on: {
+        SucceededPresign: [
+          when(
+            () => true,
+            'Persisting',
+            () => Persisting(),
+            () => [Persist()],
+          ),
+          otherwise(to('SubmitIdle', () => SubmitIdle())),
+        ],
+      },
+    },
+    Persisting: {
+      on: {
+        SucceededPersist: to('Submitted', () => Submitted()),
+      },
+    },
+  },
+})
+
 // TESTS
 
 describe('remote data machine', () => {
@@ -864,5 +1026,134 @@ describe('integration', () => {
   it('wires the gating sketch records', () => {
     expect(Object.keys(managedResources)).toEqual(['socket'])
     expect(Object.keys(subscriptions)).toEqual(['backoffTimer'])
+  })
+})
+
+describe('edge command requirements', () => {
+  it('threads a requirement inferred from a single edge command into R', () => {
+    const [nextState, commands] = inferredRequirementsMachine.transition(
+      SubmitIdle(),
+      ClickedSubmit(),
+    )
+    expect(nextState).toStrictEqual(Presigning())
+
+    const requiresUploads: ReadonlyArray<
+      Command.Command<SubmitMessage, never, UploadsClient>
+    > = commands
+    expect(requiresUploads).toHaveLength(1)
+
+    const uploads: UploadsShape = { presign: Effect.succeed(PRESIGNED_URL) }
+    const messages = commands.map(command =>
+      Effect.runSync(
+        Effect.provideService(command.effect, UploadsClient, uploads),
+      ),
+    )
+    expect(messages).toEqual([SucceededPresign({ url: PRESIGNED_URL })])
+  })
+
+  it('threads a requirement inferred from a guard-list edge command', () => {
+    const [nextState, commands] = inferredGuardRequirementsMachine.transition(
+      SubmitIdle(),
+      ClickedSubmit(),
+    )
+    expect(nextState).toStrictEqual(Presigning())
+
+    const requiresUploads: ReadonlyArray<
+      Command.Command<SubmitMessage, never, UploadsClient>
+    > = commands
+    expect(requiresUploads).toHaveLength(1)
+
+    const uploads: UploadsShape = { presign: Effect.succeed(PRESIGNED_URL) }
+    const messages = commands.map(command =>
+      Effect.runSync(
+        Effect.provideService(command.effect, UploadsClient, uploads),
+      ),
+    )
+    expect(messages).toEqual([SucceededPresign({ url: PRESIGNED_URL })])
+  })
+
+  it('threads a requirement inferred from an otherwise fallback command', () => {
+    const [nextState, commands] =
+      inferredOtherwiseRequirementsMachine.transition(
+        SubmitIdle(),
+        ClickedSubmit(),
+      )
+    expect(nextState).toStrictEqual(Presigning())
+
+    const requiresUploads: ReadonlyArray<
+      Command.Command<SubmitMessage, never, UploadsClient>
+    > = commands
+    expect(requiresUploads).toHaveLength(1)
+
+    const uploads: UploadsShape = { presign: Effect.succeed(PRESIGNED_URL) }
+    const messages = commands.map(command =>
+      Effect.runSync(
+        Effect.provideService(command.effect, UploadsClient, uploads),
+      ),
+    )
+    expect(messages).toEqual([SucceededPresign({ url: PRESIGNED_URL })])
+  })
+
+  it('leaves R as never when no edge command needs a service', () => {
+    const [, commands] = remoteDataMachine.transition(Idle(), ClickedFetch())
+
+    const requiresNever: ReadonlyArray<
+      Command.Command<RemoteDataMessage, never, never>
+    > = commands
+    expect(requiresNever).toEqual([])
+  })
+
+  it('does not collapse an edge command requirement to never', () => {
+    const [, commands] = inferredRequirementsMachine.transition(
+      SubmitIdle(),
+      ClickedSubmit(),
+    )
+
+    // @ts-expect-error the edge command requires UploadsClient, so R is not never
+    const requiresNever: ReadonlyArray<
+      Command.Command<SubmitMessage, never, never>
+    > = commands
+    expect(requiresNever).toHaveLength(1)
+  })
+
+  it('accepts an explicit requirements union across edges', () => {
+    const uploads: UploadsShape = { presign: Effect.succeed(PRESIGNED_URL) }
+    const save: SaveShape = { save: Effect.succeed(PERSISTED_ID) }
+
+    const [presigning, presignCommands] =
+      explicitRequirementsMachine.transition(SubmitIdle(), ClickedSubmit())
+    expect(presigning).toStrictEqual(Presigning())
+
+    const requiresBoth: ReadonlyArray<
+      Command.Command<SubmitMessage, never, UploadsClient | SaveClient>
+    > = presignCommands
+    expect(requiresBoth).toHaveLength(1)
+
+    const presignMessages = presignCommands.map(command =>
+      Effect.runSync(
+        command.effect.pipe(
+          Effect.provideService(UploadsClient, uploads),
+          Effect.provideService(SaveClient, save),
+        ),
+      ),
+    )
+    expect(presignMessages).toEqual([SucceededPresign({ url: PRESIGNED_URL })])
+
+    const [persisting, persistCommands] =
+      explicitRequirementsMachine.transition(
+        Presigning(),
+        SucceededPresign({ url: PRESIGNED_URL }),
+      )
+    expect(persisting).toStrictEqual(Persisting())
+
+    const persistMessages = persistCommands.map(command =>
+      Effect.runSync(
+        command.effect.pipe(
+          Effect.provideService(UploadsClient, uploads),
+          Effect.provideService(SaveClient, save),
+        ),
+      ),
+    )
+    expect(persistMessages).toEqual([SucceededPersist({ id: PERSISTED_ID })])
   })
 })
