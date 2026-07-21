@@ -1,6 +1,7 @@
 import { Array, Effect, Equal, Option, Predicate, pipe } from 'effect'
 
 import type { CommandDefinition } from '../command/index.js'
+import type * as Interruptible from '../command/interruptible/index.js'
 import type {
   AnyCommand,
   BaseInternal,
@@ -31,6 +32,21 @@ type AnyCommandInstance<ResultMessage = unknown> = Readonly<{
   args?: Record<string, unknown>
   effect: Effect.Effect<ResultMessage, any, any>
 }>
+
+/** A Command Definition accepted by `Story.Command.resolve` as a name matcher:
+ *  a plain `Command.define` Definition or an interruptible
+ *  `Command.Interruptible.define` Definition. Both carry the
+ *  `CommandDefinitionTypeId` brand and match by name at runtime, so `resolve`
+ *  accepts either, the way `expectHas`/`expectExact` already do. */
+type ResolvableCommandDefinition<Name extends string, ResultMessage> =
+  | CommandDefinition<Name, ResultMessage>
+  | Interruptible.DefinitionNoArgs<Name, Effect.Effect<ResultMessage, any, any>>
+  | Interruptible.DefinitionWithArgs<
+      Name,
+      any,
+      any,
+      Effect.Effect<ResultMessage, any, any>
+    >
 
 /** An immutable test simulation of a Foldkit program. */
 export type StorySimulation<Model, Message, OutMessage = undefined> = Readonly<{
@@ -142,7 +158,7 @@ export const message =
  *  or a Command instance (matches by name AND args; strict). */
 const resolveCommand: {
   <Name extends string, ResultMessage>(
-    definition: CommandDefinition<Name, ResultMessage>,
+    definition: ResolvableCommandDefinition<Name, ResultMessage>,
     resultMessage: ResultMessage,
   ): <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
