@@ -523,6 +523,39 @@ describe('interruptible Commands', () => {
     )
   })
 
+  test('resolves a keyed Command by its bare Definition, matching by name', () => {
+    Story.story(
+      uploadsUpdate,
+      Story.with(initialUploadsModel),
+      Story.message(ClickedStartUpload()),
+      Story.Command.resolve(UploadFile, SucceededUploadFile({ uploadId: 0 })),
+      Story.model(model => {
+        expect(model.uploads).toEqual([{ id: 0, status: 'Done' }])
+      }),
+      Story.Command.expectNone(),
+    )
+  })
+
+  test('resolveAll resolves keyed Commands by their bare Definition', () => {
+    Story.story(
+      uploadsUpdate,
+      Story.with(initialUploadsModel),
+      Story.message(ClickedStartUpload()),
+      Story.message(ClickedStartUpload()),
+      Story.Command.resolveAll(
+        [UploadFile, SucceededUploadFile({ uploadId: 0 })],
+        [UploadFile, SucceededUploadFile({ uploadId: 1 })],
+      ),
+      Story.model(model => {
+        expect(model.uploads).toEqual([
+          { id: 0, status: 'Done' },
+          { id: 1, status: 'Done' },
+        ])
+      }),
+      Story.Command.expectNone(),
+    )
+  })
+
   test('resolving an Interrupt with NotFound keeps nothing pending and skips the status change', () => {
     Story.story(
       uploadsUpdate,
@@ -701,6 +734,14 @@ describe('type safety', () => {
     const resolver = Story.Command.resolve(
       FetchCount,
       SucceededFetchCount({ count: 0 }),
+    )
+    expectTypeOf(resolver).toBeFunction()
+  })
+
+  test('resolve accepts a bare interruptible Command definition', () => {
+    const resolver = Story.Command.resolve(
+      UploadFile,
+      SucceededUploadFile({ uploadId: 0 }),
     )
     expectTypeOf(resolver).toBeFunction()
   })
