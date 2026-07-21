@@ -42,3 +42,9 @@ export type {
   DevToolsOverlay,
   DevToolsPosition,
 } from './runtime.js'
+
+export type {
+  ViewTransitionConfig,
+  ViewTransitionContext,
+  ViewTransitionDecision,
+} from './viewTransition.js'

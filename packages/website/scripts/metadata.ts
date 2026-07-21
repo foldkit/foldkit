@@ -252,6 +252,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Crash View',
     'A fallback UI and crash reporting for unrecoverable runtime errors.',
   ),
+  CoreViewTransitions: core(
+    'View Transitions',
+    'Animated renders via the View Transitions API, with direction-aware types and shared-element morphs.',
+  ),
   CoreSlowWarnings: core(
     'Slow Warnings',
     'Per-phase performance warnings for update, view, patch, and subscription dependencies.',

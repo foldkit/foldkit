@@ -30,6 +30,7 @@ const loadersBySlug: Readonly<Record<string, SourceLoader | undefined>> = {
     import('virtual:example-sources/route-transitions'),
   'interrupting-commands': () =>
     import('virtual:example-sources/interrupting-commands'),
+  'view-transitions': () => import('virtual:example-sources/view-transitions'),
   'query-sync': () => import('virtual:example-sources/query-sync'),
   'shopping-cart': () => import('virtual:example-sources/shopping-cart'),
   'checkout-machine': () => import('virtual:example-sources/checkout-machine'),
