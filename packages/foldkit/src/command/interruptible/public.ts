@@ -1,6 +1,7 @@
 export type {
   DefinitionNoArgs,
   DefinitionWithArgs,
+  DefinitionWithArgsNameKeyed,
   InterruptDefinitionNoArgs,
   InterruptDefinitionWithArgs,
 } from './index.js'

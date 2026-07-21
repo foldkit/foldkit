@@ -54,6 +54,110 @@ describe('Interruptible.define', () => {
     expect(interrupt.interruptsKey).toBe('SyncLibrary')
   })
 
+  it('uses the Command name as the key on the with-args form when toKey is omitted', () => {
+    const SaveDraft = define(
+      'SaveDraft',
+      { taskId: S.Number },
+      SucceededTask,
+    )(({ taskId }) => Effect.succeed(SucceededTask({ taskId })))
+
+    const instance = SaveDraft({ taskId: 7 })
+    expect(instance.name).toBe('SaveDraft')
+    expect(instance.args).toEqual({ taskId: 7 })
+    expect(instance.key).toBe('SaveDraft')
+
+    const interrupt = SaveDraft.Interrupt(outcome => outcome)
+    expect(interrupt.name).toBe('SaveDraft.Interrupt')
+    expect(interrupt.interruptsKey).toBe('SaveDraft')
+  })
+
+  it.effect(
+    'interrupts the in-flight holder on the with-args form when toKey is omitted',
+    () =>
+      Effect.gen(function* () {
+        const registry = __makeRegistry()
+
+        const SaveDraft = define(
+          'SaveDraft',
+          { taskId: S.Number },
+          SucceededTask,
+        )(({ taskId }) => Effect.as(Effect.never, SucceededTask({ taskId })))
+
+        const fiber = yield* Effect.forkChild(
+          SaveDraft({ taskId: 7 }).effect.pipe(provideRegistry(registry)),
+        )
+        yield* Effect.yieldNow
+
+        expect(
+          Array.isReadonlyArrayNonEmpty(registry.lookup('SaveDraft')),
+        ).toBe(true)
+
+        const outcome = yield* SaveDraft.Interrupt(
+          outcome => outcome,
+        ).effect.pipe(provideRegistry(registry))
+
+        expect(outcome._tag).toBe('Interrupted')
+        expect(Array.isReadonlyArrayEmpty(registry.lookup('SaveDraft'))).toBe(
+          true,
+        )
+
+        const exit = yield* Fiber.await(fiber)
+        expect(exit._tag).toBe('Failure')
+      }),
+  )
+
+  it.effect(
+    'reports NotFound after the holder completed on the with-args form when toKey is omitted',
+    () =>
+      Effect.gen(function* () {
+        const registry = __makeRegistry()
+
+        const SaveDraft = define(
+          'SaveDraft',
+          { taskId: S.Number },
+          SucceededTask,
+        )(({ taskId }) => Effect.succeed(SucceededTask({ taskId })))
+
+        const message = yield* SaveDraft({ taskId: 7 }).effect.pipe(
+          provideRegistry(registry),
+        )
+        expect(message).toEqual(SucceededTask({ taskId: 7 }))
+
+        const outcome = yield* SaveDraft.Interrupt(
+          outcome => outcome,
+        ).effect.pipe(provideRegistry(registry))
+
+        expect(outcome._tag).toBe('NotFound')
+      }),
+  )
+
+  it.effect(
+    'releases the key when the Effect fails on the with-args form when toKey is omitted',
+    () =>
+      Effect.gen(function* () {
+        const registry = __makeRegistry()
+
+        const SaveDraft = define(
+          'SaveDraft',
+          { taskId: S.Number },
+          SucceededTask,
+        )(({ taskId }) =>
+          Effect.flatMap(Effect.fail('boom'), () =>
+            Effect.succeed(SucceededTask({ taskId })),
+          ),
+        )
+
+        const exit = yield* Effect.exit(
+          SaveDraft({ taskId: 7 }).effect.pipe(provideRegistry(registry)),
+        )
+
+        expect(exit._tag).toBe('Failure')
+        expect(Array.isReadonlyArrayEmpty(registry.lookup('SaveDraft'))).toBe(
+          true,
+        )
+      }),
+  )
+
   it.effect('interrupts the in-flight holder and reports Interrupted', () =>
     Effect.gen(function* () {
       const registry = __makeRegistry()
