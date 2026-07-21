@@ -72,10 +72,11 @@ const sectionHeadingConfig = {
   },
 }
 
-export const heading = (
+export const headingWithContent = (
   level: 'h2' | 'h3' | 'h4',
   id: string,
-  text: string,
+  ariaText: string,
+  content: ReadonlyArray<string | Html>,
 ): Html => {
   const h = html<Message>()
 
@@ -85,11 +86,17 @@ export const heading = (
   return h.div(
     [h.Class(config.wrapperClassName)],
     [
-      tag[level]([h.Class(config.textClassName), h.Id(id)], [text]),
-      headingLinkButton(id, text),
+      tag[level]([h.Class(config.textClassName), h.Id(id)], content),
+      headingLinkButton(id, ariaText),
     ],
   )
 }
+
+export const heading = (
+  level: 'h2' | 'h3' | 'h4',
+  id: string,
+  text: string,
+): Html => headingWithContent(level, id, text, [text])
 
 export const para = (...content: ReadonlyArray<string | Html>): Html => {
   const h = html<Message>()
@@ -197,3 +204,62 @@ export const warningCallout = (
     ],
   )
 }
+
+const calloutBlocks = (
+  config: Readonly<{
+    borderClassName: string
+    labelClassName: string
+    icon: Html
+    label: string
+    blocks: ReadonlyArray<Html>
+  }>,
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
+    [h.Class(`border ${config.borderClassName} py-3.5 px-5 mb-6 rounded-lg`)],
+    [
+      h.p(
+        [
+          h.Class(
+            `flex items-center gap-1.5 font-semibold ${config.labelClassName} mb-1`,
+          ),
+        ],
+        [config.icon, h.span([], [config.label])],
+      ),
+      h.div(
+        [
+          h.Class(
+            'text-gray-700 dark:text-gray-300 [&>p]:leading-7 [&>p:last-child]:mb-0',
+          ),
+        ],
+        config.blocks,
+      ),
+    ],
+  )
+}
+
+export const infoCalloutBlocks = (
+  label: string,
+  blocks: ReadonlyArray<Html>,
+): Html =>
+  calloutBlocks({
+    borderClassName:
+      'border-gray-300 dark:border-gray-700 bg-gray-200/40 dark:bg-gray-800/40',
+    labelClassName: 'text-gray-800 dark:text-gray-200',
+    icon: Icon.informationCircle('w-5 h-5 shrink-0'),
+    label,
+    blocks,
+  })
+
+export const warningCalloutBlocks = (
+  label: string,
+  blocks: ReadonlyArray<Html>,
+): Html =>
+  calloutBlocks({
+    borderClassName: 'border-amber-400 dark:border-amber-500/50',
+    labelClassName: 'text-amber-900 dark:text-amber-200',
+    icon: Icon.exclamationTriangle('w-5 h-5 shrink-0'),
+    label,
+    blocks,
+  })

@@ -1972,6 +1972,9 @@ importers:
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../devtools
+      '@foldkit/markdown':
+        specifier: workspace:*
+        version: link:../markdown
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../ui

@@ -57,11 +57,18 @@ export const codeBlock = (
   ariaLabel: string,
   copiedSnippets: CopiedSnippets,
   className?: string,
+  language?: string,
 ) => {
   const h = html<Message>()
 
+  const languageAttribute =
+    language !== undefined && language.length > 0
+      ? [h.DataAttribute('language', language)]
+      : []
+
   const content = h.pre(
     [
+      ...languageAttribute,
       h.Class(
         'text-[#403d4a] dark:text-[#E0DEE6] text-sm p-4 pr-14 overflow-x-auto !rounded-none !border-none',
       ),
