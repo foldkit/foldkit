@@ -24,7 +24,7 @@ import {
 
 import { BrowserRuntime } from '@effect/platform-browser'
 
-import type { Command } from '../command/index.js'
+import { type Command, messageMappersOf } from '../command/index.js'
 import {
   __CurrentRegistry as __CurrentInterruptRegistry,
   __makeRegistry as __makeInterruptRegistry,
@@ -35,6 +35,7 @@ import {
   type MountRecord,
   createDevToolsStore,
 } from '../devTools/store.js'
+import { commandSubmodelPath } from '../devTools/submodelPath.js'
 import { startWebSocketBridge } from '../devTools/webSocketBridge.js'
 import {
   type BoundaryRegistry,
@@ -90,10 +91,12 @@ type AnyCommand<T, E = never, R = never> = {
 
 const toCommandRecord = (
   command: Readonly<{ name: string; args?: Record<string, unknown> }>,
-): CommandRecord =>
-  command.args !== undefined
-    ? { name: command.name, args: command.args }
-    : { name: command.name }
+): CommandRecord => {
+  const submodelPath = commandSubmodelPath(messageMappersOf(command))
+  return command.args !== undefined
+    ? { name: command.name, args: command.args, submodelPath }
+    : { name: command.name, submodelPath }
+}
 
 /** Position of the DevTools badge and panel on screen. */
 export type DevToolsPosition =

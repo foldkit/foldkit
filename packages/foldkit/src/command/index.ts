@@ -51,6 +51,18 @@ type CommandWithMappers = Readonly<{
   messageMappers?: ReadonlyArray<MessageMapper>
 }>
 
+/** @internal Reads a Command's recorded message-mapping chain, the lifts
+ *  `mapMessage`/`mapMessages` applied to it. Returns an empty array for a
+ *  Command built by hand (not via {@link define}), which carries no chain.
+ *  DevTools folds the chain over a probe leaf to recover the destination
+ *  Submodel's wrapper-tag path without running the Command's Effect. Matches
+ *  the `as unknown as CommandWithMappers` cast idiom {@link mapMessage} uses. */
+export const messageMappersOf = (
+  command: Readonly<{ name: string; args?: Record<string, unknown> }>,
+): ReadonlyArray<MessageMapper> =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  (command as unknown as CommandWithMappers).messageMappers ?? []
+
 /** A Command definition for a Command with no declared args. Call as `Definition()` to produce a Command instance. */
 export interface CommandDefinitionNoArgs<
   Name extends string,

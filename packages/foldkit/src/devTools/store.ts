@@ -134,6 +134,7 @@ export const computeDiff = (
 export type CommandRecord = Readonly<{
   name: string
   args?: Record<string, unknown>
+  submodelPath: ReadonlyArray<string>
 }>
 
 export type MountRecord = Readonly<{
