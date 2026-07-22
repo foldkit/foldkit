@@ -63,6 +63,7 @@ export type Edge<
   SourceState extends State,
   TriggerMessage extends Message,
   GuardValue = void,
+  R = never,
 > = Readonly<{
   _tag: 'Edge'
   target: TagOf<State>
@@ -70,7 +71,7 @@ export type Edge<
   maybeCommands: Option.Option<
     (
       input: EdgeInput<SourceState, TriggerMessage, unknown>,
-    ) => ReadonlyArray<Command<Message>>
+    ) => ReadonlyArray<Command<Message, never, R>>
   >
   readonly [EdgeGuardValueTypeId]?: GuardValue
 }>
@@ -82,10 +83,11 @@ export type When<
   SourceState extends State,
   TriggerMessage extends Message,
   GuardValue = unknown,
+  R = never,
 > = Readonly<{
   _tag: 'When'
   guard: (state: SourceState, message: TriggerMessage) => Option.Option<unknown>
-  edge: Edge<State, Message, SourceState, TriggerMessage, GuardValue>
+  edge: Edge<State, Message, SourceState, TriggerMessage, GuardValue, R>
 }>
 
 /** The unconditional fallback Edge at the end of a guard list. Construct with {@link otherwise}. */
@@ -94,9 +96,10 @@ export type Otherwise<
   Message extends Tagged,
   SourceState extends State,
   TriggerMessage extends Message,
+  R = never,
 > = Readonly<{
   _tag: 'Otherwise'
-  edge: Edge<State, Message, SourceState, TriggerMessage>
+  edge: Edge<State, Message, SourceState, TriggerMessage, void, R>
 }>
 
 /** One entry in an ordered guard list: a {@link When} or the {@link Otherwise} fallback. */
@@ -105,9 +108,10 @@ export type GuardedEdge<
   Message extends Tagged,
   SourceState extends State,
   TriggerMessage extends Message,
+  R = never,
 > =
-  | When<State, Message, SourceState, TriggerMessage, unknown>
-  | Otherwise<State, Message, SourceState, TriggerMessage>
+  | When<State, Message, SourceState, TriggerMessage, unknown, R>
+  | Otherwise<State, Message, SourceState, TriggerMessage, R>
 
 type OptionValue<MaybeValue> =
   MaybeValue extends Option.Option<infer Value> ? Value : never
@@ -126,6 +130,7 @@ type GuardValueOf<GuardResult> = [GuardResult] extends [boolean]
 export type TransitionTable<
   State extends Tagged,
   Message extends Tagged,
+  R = never,
 > = Readonly<{
   [SourceTag in TagOf<State>]?: Readonly<{
     on: Readonly<{
@@ -134,14 +139,17 @@ export type TransitionTable<
             State,
             Message,
             Variant<State, SourceTag>,
-            Variant<Message, MessageTag>
+            Variant<Message, MessageTag>,
+            void,
+            R
           >
         | ReadonlyArray<
             GuardedEdge<
               State,
               Message,
               Variant<State, SourceTag>,
-              Variant<Message, MessageTag>
+              Variant<Message, MessageTag>,
+              R
             >
           >
     }>
@@ -155,6 +163,7 @@ const makeEdge = <
   TriggerMessage extends Message,
   const TargetTag extends TagOf<State>,
   GuardValue = void,
+  R = never,
 >(
   target: TargetTag,
   build: (
@@ -162,8 +171,8 @@ const makeEdge = <
   ) => NoInfer<Variant<State, TargetTag>>,
   commands?: (
     input: NoInfer<EdgeInput<SourceState, TriggerMessage, GuardValue>>,
-  ) => NoInfer<ReadonlyArray<Command<Message>>>,
-): Edge<State, Message, SourceState, TriggerMessage, GuardValue> => {
+  ) => NoInfer<ReadonlyArray<Command<Message, never, R>>>,
+): Edge<State, Message, SourceState, TriggerMessage, GuardValue, R> => {
   const narrowGuardValue = (
     input: EdgeInput<SourceState, TriggerMessage, unknown>,
   ): EdgeInput<SourceState, TriggerMessage, GuardValue> => {
@@ -189,6 +198,9 @@ const makeEdge = <
  * must return the target variant. Optional `commands` attach transition-time
  * effects.
  *
+ * The `commands` callback may return Commands whose Effects need services. The
+ * requirements they carry flow into the Machine's `R` through {@link define}.
+ *
  * Only meaningful inside a {@link TransitionTable}: the source and trigger
  * types flow in from the table position contextually.
  */
@@ -198,6 +210,7 @@ export const to = <
   SourceState extends State,
   TriggerMessage extends Message,
   const TargetTag extends TagOf<State>,
+  R = never,
 >(
   target: TargetTag,
   build: (
@@ -205,8 +218,8 @@ export const to = <
   ) => NoInfer<Variant<State, TargetTag>>,
   commands?: (
     input: NoInfer<EdgeInput<SourceState, TriggerMessage>>,
-  ) => NoInfer<ReadonlyArray<Command<Message>>>,
-): Edge<State, Message, SourceState, TriggerMessage> =>
+  ) => ReadonlyArray<Command<NoInfer<Message>, never, R>>,
+): Edge<State, Message, SourceState, TriggerMessage, void, R> =>
   makeEdge(target, build, commands)
 
 /**
@@ -227,6 +240,7 @@ export const when = <
   TriggerMessage extends Message,
   GuardResult extends Option.Option<unknown> | boolean,
   const TargetTag extends TagOf<State>,
+  R = never,
 >(
   guard: (
     state: NoInfer<SourceState>,
@@ -242,13 +256,14 @@ export const when = <
     input: NoInfer<
       EdgeInput<SourceState, TriggerMessage, GuardValueOf<GuardResult>>
     >,
-  ) => NoInfer<ReadonlyArray<Command<Message>>>,
+  ) => ReadonlyArray<Command<NoInfer<Message>, never, R>>,
 ): When<
   State,
   Message,
   SourceState,
   TriggerMessage,
-  GuardValueOf<GuardResult>
+  GuardValueOf<GuardResult>,
+  R
 > => ({
   _tag: 'When',
   guard: (state, message) => {
@@ -263,15 +278,20 @@ export const when = <
   edge: makeEdge(target, build, commands),
 })
 
-/** The unconditional fallback at the end of a guard list. The parameter is `NoInfer` for the same reason as {@link when}'s. */
+/**
+ * The unconditional fallback at the end of a guard list. Its edge may carry
+ * Commands whose Effects need services, threading their requirements into the
+ * Machine's `R` the same way {@link to} and {@link when} do.
+ */
 export const otherwise = <
   State extends Tagged,
   Message extends Tagged,
   SourceState extends State,
   TriggerMessage extends Message,
+  R = never,
 >(
-  edge: NoInfer<Edge<State, Message, SourceState, TriggerMessage>>,
-): Otherwise<State, Message, SourceState, TriggerMessage> => ({
+  edge: Edge<State, Message, SourceState, TriggerMessage, void, R>,
+): Otherwise<State, Message, SourceState, TriggerMessage, R> => ({
   _tag: 'Otherwise',
   edge,
 })
@@ -282,13 +302,14 @@ export const otherwise = <
 export type Transitioned<
   State extends Tagged,
   Message extends Tagged,
+  R = never,
 > = Readonly<{
   _tag: 'Transitioned'
   from: TagOf<State>
   target: TagOf<State>
   messageTag: TagOf<Message>
   state: State
-  commands: ReadonlyArray<Command<Message>>
+  commands: ReadonlyArray<Command<Message, never, R>>
 }>
 
 /** A step that matched no Edge: the state is unchanged and the Message is observable as ignored. */
@@ -300,9 +321,11 @@ export type Ignored<State extends Tagged, Message extends Tagged> = Readonly<{
 }>
 
 /** The observable outcome of one step: `Transitioned` or `Ignored`. */
-export type TransitionResult<State extends Tagged, Message extends Tagged> =
-  | Transitioned<State, Message>
-  | Ignored<State, Message>
+export type TransitionResult<
+  State extends Tagged,
+  Message extends Tagged,
+  R = never,
+> = Transitioned<State, Message, R> | Ignored<State, Message>
 
 // ANALYSIS
 
@@ -338,15 +361,19 @@ export type DeadTransition<
 // MACHINE
 
 /** A compiled state Machine: a pure transition function plus static analysis over the Edge set. */
-export type Machine<State extends Tagged, Message extends Tagged> = Readonly<{
+export type Machine<
+  State extends Tagged,
+  Message extends Tagged,
+  R = never,
+> = Readonly<{
   initial: State
   stateTags: ReadonlyArray<TagOf<State>>
   edges: ReadonlyArray<EdgeSummary<State, Message>>
   transition: (
     state: State,
     message: Message,
-  ) => [State, ReadonlyArray<Command<Message>>]
-  step: (state: State, message: Message) => TransitionResult<State, Message>
+  ) => [State, ReadonlyArray<Command<Message, never, R>>]
+  step: (state: State, message: Message) => TransitionResult<State, Message, R>
   reachableFrom: (tag: TagOf<State>) => ReadonlySet<TagOf<State>>
   unreachableStates: () => ReadonlyArray<TagOf<State>>
   deadTransitions: () => ReadonlyArray<DeadTransition<State, Message>>
@@ -371,49 +398,52 @@ export type MachineSchemas<
 export type MachineDefinition<
   State extends Tagged,
   Message extends Tagged,
+  R = never,
 > = Readonly<{
   initial: State
-  states: TransitionTable<State, Message>
+  states: TransitionTable<State, Message, R>
 }>
 
-type LooseEdge<State extends Tagged, Message extends Tagged> = Edge<
+type LooseEdge<State extends Tagged, Message extends Tagged, R> = Edge<
   State,
   Message,
   State,
   Message,
-  unknown
+  unknown,
+  R
 >
 
 type LooseGuardedEdge<
   State extends Tagged,
   Message extends Tagged,
-> = GuardedEdge<State, Message, State, Message>
+  R,
+> = GuardedEdge<State, Message, State, Message, R>
 
-type SelectedEdge<State extends Tagged, Message extends Tagged> = Readonly<{
-  edge: LooseEdge<State, Message>
+type SelectedEdge<State extends Tagged, Message extends Tagged, R> = Readonly<{
+  edge: LooseEdge<State, Message, R>
   guardValue: unknown
 }>
 
-type LooseTable<State extends Tagged, Message extends Tagged> = Readonly<
+type LooseTable<State extends Tagged, Message extends Tagged, R> = Readonly<
   Record<
     TagOf<State>,
     Readonly<{
       on: Readonly<
         Record<
           TagOf<Message>,
-          | LooseEdge<State, Message>
-          | ReadonlyArray<LooseGuardedEdge<State, Message>>
+          | LooseEdge<State, Message, R>
+          | ReadonlyArray<LooseGuardedEdge<State, Message, R>>
         >
       >
     }>
   >
 >
 
-const isGuardList = <State extends Tagged, Message extends Tagged>(
+const isGuardList = <State extends Tagged, Message extends Tagged, R>(
   edgeOrGuardedEdges:
-    | LooseEdge<State, Message>
-    | ReadonlyArray<LooseGuardedEdge<State, Message>>,
-): edgeOrGuardedEdges is ReadonlyArray<LooseGuardedEdge<State, Message>> =>
+    | LooseEdge<State, Message, R>
+    | ReadonlyArray<LooseGuardedEdge<State, Message, R>>,
+): edgeOrGuardedEdges is ReadonlyArray<LooseGuardedEdge<State, Message, R>> =>
   globalThis.Array.isArray(edgeOrGuardedEdges)
 
 const extractLiteralTag = (tagField: unknown): Option.Option<string> => {
@@ -457,16 +487,40 @@ const extractMemberTag = (member: unknown): Option.Option<string> =>
  * Because every Edge names a literal target tag, the Edge set is plain data:
  * `reachableFrom`, `unreachableStates`, `deadTransitions`, and `toMermaid`
  * all read it directly.
+ *
+ * The Machine's requirements `R` are the services its edge Commands need, and
+ * flow into `transition` and `step`. `R` defaults to `never`. When every edge
+ * Command shares one service, `R` is inferred from the table. When edges need
+ * distinct services `R` cannot be inferred to their union, so supply it on the
+ * second call: `define(schemas)<UploadsClient | SaveClient>({ ... })`.
+ *
+ * @example An edge Command that needs a service
+ * ```ts
+ * const machine = define({ state: DialogState, message: DialogMessage })({
+ *   initial: Idle(),
+ *   states: {
+ *     Idle: {
+ *       on: {
+ *         ClickedSubmit: to('Uploading', () => Uploading(), () => [Presign()]),
+ *       },
+ *     },
+ *   },
+ * })
+ * // machine.transition(...) returns Commands typed with UploadsClient in R.
+ * ```
  */
 export const define =
   <State extends Tagged, Message extends Tagged>(
     schemas: MachineSchemas<State, Message>,
   ) =>
-  (definition: MachineDefinition<State, Message>): Machine<State, Message> => {
+  <R = never>(
+    definition: MachineDefinition<State, Message, R>,
+  ): Machine<State, Message, R> => {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const looseStates = definition.states as unknown as LooseTable<
       State,
-      Message
+      Message,
+      R
     >
 
     const initialTag = definition.initial._tag
@@ -497,8 +551,8 @@ export const define =
       from: TagOf<State>,
       messageTag: TagOf<Message>,
       edgeOrGuardedEdges:
-        | LooseEdge<State, Message>
-        | ReadonlyArray<LooseGuardedEdge<State, Message>>,
+        | LooseEdge<State, Message, R>
+        | ReadonlyArray<LooseGuardedEdge<State, Message, R>>,
     ): ReadonlyArray<EdgeSummary<State, Message>> =>
       isGuardList(edgeOrGuardedEdges)
         ? Array.map(edgeOrGuardedEdges, (guardedEdge, position) =>
@@ -531,10 +585,10 @@ export const define =
     )
 
     const selectFromGuardList = (
-      guardedEdges: ReadonlyArray<LooseGuardedEdge<State, Message>>,
+      guardedEdges: ReadonlyArray<LooseGuardedEdge<State, Message, R>>,
       state: State,
       message: Message,
-    ): Option.Option<SelectedEdge<State, Message>> =>
+    ): Option.Option<SelectedEdge<State, Message, R>> =>
       Array.matchLeft(guardedEdges, {
         onEmpty: () => Option.none(),
         onNonEmpty: (guardedEdge, rest) => {
@@ -560,11 +614,11 @@ export const define =
 
     const chooseEdge = (
       edgeOrGuardedEdges:
-        | LooseEdge<State, Message>
-        | ReadonlyArray<LooseGuardedEdge<State, Message>>,
+        | LooseEdge<State, Message, R>
+        | ReadonlyArray<LooseGuardedEdge<State, Message, R>>,
       state: State,
       message: Message,
-    ): Option.Option<SelectedEdge<State, Message>> =>
+    ): Option.Option<SelectedEdge<State, Message, R>> =>
       isGuardList(edgeOrGuardedEdges)
         ? selectFromGuardList(edgeOrGuardedEdges, state, message)
         : Option.some({ edge: edgeOrGuardedEdges, guardValue: undefined })
@@ -572,8 +626,8 @@ export const define =
     const makeTransitioned = (
       state: State,
       message: Message,
-      selectedEdge: SelectedEdge<State, Message>,
-    ): Transitioned<State, Message> => ({
+      selectedEdge: SelectedEdge<State, Message, R>,
+    ): Transitioned<State, Message, R> => ({
       _tag: 'Transitioned',
       from: state._tag,
       target: selectedEdge.edge.target,
@@ -607,7 +661,7 @@ export const define =
     const step = (
       state: State,
       message: Message,
-    ): TransitionResult<State, Message> =>
+    ): TransitionResult<State, Message, R> =>
       pipe(
         Record.get(looseStates, state._tag),
         Option.flatMap(stateEntry => Record.get(stateEntry.on, message._tag)),
@@ -624,7 +678,7 @@ export const define =
     const transition = (
       state: State,
       message: Message,
-    ): [State, ReadonlyArray<Command<Message>>] => {
+    ): [State, ReadonlyArray<Command<Message, never, R>>] => {
       const result = step(state, message)
 
       if (result._tag === 'Transitioned') {

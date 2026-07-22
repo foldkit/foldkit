@@ -11,6 +11,7 @@ import {
 import { dual } from 'effect/Function'
 
 import type { CommandDefinition } from '../command/index.js'
+import type * as Interruptible from '../command/interruptible/index.js'
 import type { File } from '../file/index.js'
 import type { FoldkitMountMarker } from '../html/index.js'
 import {
@@ -228,6 +229,21 @@ type SceneCommandInstance<ResultMessage = unknown> = Readonly<{
   args?: Record<string, unknown>
   effect: Effect.Effect<ResultMessage, any, any>
 }>
+
+/** A Command Definition accepted by `Scene.Command.resolve` as a name matcher:
+ *  a plain `Command.define` Definition or an interruptible
+ *  `Command.Interruptible.define` Definition. Both carry the
+ *  `CommandDefinitionTypeId` brand and match by name at runtime, so `resolve`
+ *  accepts either, the way `expectHas`/`expectExact` already do. */
+type ResolvableCommandDefinition<Name extends string, ResultMessage> =
+  | CommandDefinition<Name, ResultMessage>
+  | Interruptible.DefinitionNoArgs<Name, Effect.Effect<ResultMessage, any, any>>
+  | Interruptible.DefinitionWithArgs<
+      Name,
+      any,
+      any,
+      Effect.Effect<ResultMessage, any, any>
+    >
 
 const slotKey = ({ name, occurrence }: PendingMount): string =>
   `${name}#${occurrence}`
@@ -637,7 +653,7 @@ const with_ = <Model>(model: Model): WithStep<Model> => {
  *  or a Command instance (matches by name AND args; strict). */
 const resolveCommand: {
   <Name extends string, ResultMessage>(
-    definition: CommandDefinition<Name, ResultMessage>,
+    definition: ResolvableCommandDefinition<Name, ResultMessage>,
     resultMessage: ResultMessage,
   ): <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,

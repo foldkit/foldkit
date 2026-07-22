@@ -60,7 +60,7 @@ Args appear in DevTools alongside the Command name and let Story/Scene tests ass
 
 ## Interrupting Commands
 
-Commands normally run to completion. Sometimes the user changes their mind first, for example an upload they no longer want or a search superseded by new input. `Command.Interruptible.define` declares a Command that can be stopped mid-flight. It works like `Command.define` with one addition: a key that identifies the invocation. The key function is stated once at the definition and maps the args to whatever distinguishes invocations; Foldkit prefixes it with the Command name automatically, so keys never collide across definitions. A Command with no declared args needs no key function at all: its key is the Command name.
+Commands normally run to completion. Sometimes the user changes their mind first, for example an upload they no longer want or a search superseded by new input. `Command.Interruptible.define` declares a Command that can be stopped mid-flight. It works like `Command.define` with one addition: a key that identifies the invocation. The key function is stated once at the definition and maps the args to whatever distinguishes invocations; Foldkit prefixes it with the Command name automatically, so keys never collide across definitions. A Command with no declared args needs no key function at all: its key is the Command name. The key function is optional even with declared args: omit it when at most one invocation is meaningfully in flight, and the key falls back to the Command name, so `Interrupt` takes only `toMessage`; provide it, derived from the owning Model identity, when invocations run concurrently and must be interrupted independently.
 
 ::Snippet{name="commandInterruptible" label="interruptible command example"}
 
@@ -70,7 +70,7 @@ The Command name is the interrupt namespace, so interruptible Command names must
 
 The same reasoning covers reusable Submodels. Two instances of one Submodel running the same Command share a key unless something distinguishes them, so include the instance identity in the key args, for example `({ instanceId }) => instanceId`. A Submodel that appears in a list already threads an instance id through its Message lifting; the Command args carry the same id. A Submodel with a single instance needs no scoping.
 
-The definition carries an `Interrupt` constructor. It takes the key args and a function from the interrupt outcome to a Message, and returns an ordinary Command: update stays pure, DevTools shows the dispatch, and tests resolve it like any other Command. The outcome is `Interrupted` when an in-flight Command was stopped, or `NotFound` when nothing held the key because the Command already completed or was never dispatched (the two are indistinguishable by design).
+The definition carries an `Interrupt` constructor. It takes a function from the interrupt outcome to a Message, preceded by the key args for a definition whose key is derived from its args, and returns an ordinary Command: update stays pure, DevTools shows the dispatch, and tests resolve it like any other Command. The outcome is `Interrupted` when an in-flight Command was stopped, or `NotFound` when nothing held the key because the Command already completed or was never dispatched (the two are indistinguishable by design).
 
 After `Interrupted`, the target’s result Message is guaranteed never to dispatch. Whoever requested the interruption owns the state transition, which is why the example moves the upload to `Cancelled` in the `Interrupted` branch and does nothing on `NotFound`.
 

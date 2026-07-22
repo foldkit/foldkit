@@ -91,6 +91,13 @@ import {
   view as resumeView,
 } from './apps/resumeUpload.js'
 import type { Model as ResumeModel } from './apps/resumeUpload.js'
+import {
+  SucceededUploadFile,
+  UploadFile,
+  initialModel as initialUploadsModel,
+  update as uploadsUpdate,
+  view as uploadsView,
+} from './apps/uploads.js'
 import { parseSelector } from './query.js'
 import {
   attr,
@@ -1497,6 +1504,20 @@ describe('scene', () => {
       Scene.tap(({ html }) => {
         expect(find(html, '[role="alert"]')).toHaveText('Invalid credentials')
         expect(find(html, '.retry')).toExist()
+      }),
+    )
+  })
+
+  test('resolves a keyed Command by its bare Definition, matching by name', () => {
+    Scene.scene(
+      { update: uploadsUpdate, view: uploadsView },
+      Scene.with(initialUploadsModel),
+      Scene.click(Scene.role('button', { name: 'Start upload' })),
+      Scene.Command.expectExact(UploadFile),
+      Scene.Command.resolve(UploadFile, SucceededUploadFile({ uploadId: 0 })),
+      Scene.Command.expectNone(),
+      Scene.tap(({ html }) => {
+        expect(find(html, 'span')).toHaveText('upload 0: Done')
       }),
     )
   })
