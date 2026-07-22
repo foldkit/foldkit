@@ -142,6 +142,12 @@ const handlingInTheParentHeader: TableOfContentsEntry = {
   text: 'Handling in the Parent',
 }
 
+const armsWithoutAnOutMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'arms-without-an-out-message',
+  text: 'Arms Without an OutMessage',
+}
+
 const reflectingExternalStateHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'reflecting-external-state',
@@ -285,6 +291,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   definingOutMessagesHeader,
   emittingFromTheChildHeader,
   handlingInTheParentHeader,
+  armsWithoutAnOutMessageHeader,
   reflectingExternalStateHeader,
   childAttributesHeader,
   childAttributesProblemHeader,
@@ -1115,6 +1122,13 @@ export const view = (
         inlineCode('Option.some(SucceededLogin({ sessionId }))'),
         ', the signal the parent needs.',
       ),
+      para(
+        'The 3-tuple is only for children that declare an OutMessage. A child that declares none has nothing to put in a third position, so its update returns the usual ',
+        inlineCode('[Model, Commands]'),
+        ' 2-tuple, the shape the ',
+        link('#child-submodel', 'Settings child'),
+        ' earlier on this page returns. Starting with the 2-tuple costs nothing: if the child later declares an OutMessage, widening the return is a mechanical change, and a parent that has no use for the new fact can keep destructuring just the first two elements.',
+      ),
       tableOfContentsEntryToHeader(handlingInTheParentHeader),
       para(
         'The parent uses ',
@@ -1149,6 +1163,36 @@ export const view = (
         ' for a complete implementation: a login module emits ',
         inlineCode('SucceededLogin'),
         ' when authentication completes, and the parent transitions to the logged-in state, saves the session, and updates the URL, all triggered by a single OutMessage.',
+      ),
+      tableOfContentsEntryToHeader(armsWithoutAnOutMessageHeader),
+      para(
+        'In a real child, the arms that raise an OutMessage are the minority. An update with a dozen Messages might surface one or two facts, and every other arm ends in ',
+        inlineCode('Option.none()'),
+        '. Once the shape is understood, that repetition is noise. Define a local helper for the arms that don’t return an OutMessage:',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.withoutOutMessageHighlighted),
+          ],
+          [],
+        ),
+        Snippet.withoutOutMessageRaw,
+        'Copy withoutOutMessage helper to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'Arms that don’t return an OutMessage stay one call wide, and the rare arm that returns the bare 3-tuple stands out with exactly the visual weight the emission deserves.',
+      ),
+      para(
+        inlineCode('withoutOutMessage'),
+        ' is deliberately not a Foldkit export. The view side needs the ',
+        inlineCode('Submodel.defineView'),
+        ' brand so ',
+        inlineCode('h.submodel'),
+        ' can type-check the embed site, but the update side has no framework wiring at all: a child’s update is a plain function only the parent calls, and the 3-tuple is a convention between them, not a framework signature. That makes its ergonomics yours to shape. Define the helper next to the update it serves.',
       ),
       tableOfContentsEntryToHeader(reflectingExternalStateHeader),
       para(

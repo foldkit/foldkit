@@ -214,6 +214,8 @@ export { default as outMessageChildUpdateRaw } from './outMessageChildUpdate.ts?
 export { default as outMessageChildUpdateHighlighted } from './outMessageChildUpdate.ts?highlighted'
 export { default as outMessageParentHandleRaw } from './outMessageParentHandle.ts?raw'
 export { default as outMessageParentHandleHighlighted } from './outMessageParentHandle.ts?highlighted'
+export { default as withoutOutMessageRaw } from './withoutOutMessage.ts?raw'
+export { default as withoutOutMessageHighlighted } from './withoutOutMessage.ts?highlighted'
 export { default as submodelReflectExternalStateRaw } from './submodelReflectExternalState.ts?raw'
 export { default as submodelReflectExternalStateHighlighted } from './submodelReflectExternalState.ts?highlighted'
 export { default as submodelChildModuleRaw } from './submodelChildModule.ts?raw'
