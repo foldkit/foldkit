@@ -72,7 +72,7 @@ The principles below apply broadly. Calibrate to the right context: library desi
 
 Don't add inline or block comments to explain code. If code needs explanation, refactor for clarity or use better names. Exceptions:
 
-- Section headers: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// VIEW`, `// COMMAND`. One word, no suffixes like `ACTIONS` or `HELPERS`.
+- Section headers: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// VIEW`, `// COMMAND`, and short descriptive headers for sections outside that set (`// SHARED STYLES`, `// TABLE OF CONTENTS`).
 - TSDoc (`/** ... */`) on all public exports.
 - `// NOTE:` comments, with a high bar. Only for behavior that would mislead a careful reader (timing dependency, upstream bug workaround, browser quirk). Not for normal patterns, state machine shapes, framework idioms, or what a function does.
 

@@ -69,7 +69,7 @@ Calibrate to the right context: library design when inside `packages/foldkit/src
 
 Do not add inline or block comments to explain code. If code needs explanation, refactor for clarity or use better names. Exceptions:
 
-- Section headers: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// VIEW`, `// COMMAND`. One word only.
+- Section headers: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// VIEW`, `// COMMAND`, and short descriptive headers for sections outside that set (`// SHARED STYLES`, `// TABLE OF CONTENTS`).
 - TSDoc on all public exports.
 - `// NOTE:` comments, with a high bar. Use them only for behavior that would mislead a careful reader.
 
