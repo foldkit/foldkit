@@ -47,6 +47,11 @@ type ResolvableCommandDefinition<Name extends string, ResultMessage> =
       any,
       Effect.Effect<ResultMessage, any, any>
     >
+  | Interruptible.DefinitionWithArgsNameKeyed<
+      Name,
+      any,
+      Effect.Effect<ResultMessage, any, any>
+    >
 
 /** An immutable test simulation of a Foldkit program. */
 export type StorySimulation<Model, Message, OutMessage = undefined> = Readonly<{

@@ -16,6 +16,13 @@ import {
   update,
 } from './apps/counter.js'
 import {
+  ClickedSaveDraft,
+  SaveDraft,
+  SucceededSaveDraft,
+  update as draftsUpdate,
+  initialModel as initialDraftsModel,
+} from './apps/drafts.js'
+import {
   CancelledForm,
   CompletedReset,
   GotChildMessage,
@@ -536,6 +543,19 @@ describe('interruptible Commands', () => {
     )
   })
 
+  test('resolves a name-keyed Command by its bare Definition, matching by name', () => {
+    Story.story(
+      draftsUpdate,
+      Story.with(initialDraftsModel),
+      Story.message(ClickedSaveDraft()),
+      Story.Command.resolve(SaveDraft, SucceededSaveDraft({ revision: 0 })),
+      Story.model(model => {
+        expect(model.status).toBe('Saved')
+      }),
+      Story.Command.expectNone(),
+    )
+  })
+
   test('resolveAll resolves keyed Commands by their bare Definition', () => {
     Story.story(
       uploadsUpdate,
@@ -742,6 +762,14 @@ describe('type safety', () => {
     const resolver = Story.Command.resolve(
       UploadFile,
       SucceededUploadFile({ uploadId: 0 }),
+    )
+    expectTypeOf(resolver).toBeFunction()
+  })
+
+  test('resolve accepts a bare name-keyed interruptible Command definition', () => {
+    const resolver = Story.Command.resolve(
+      SaveDraft,
+      SucceededSaveDraft({ revision: 0 }),
     )
     expectTypeOf(resolver).toBeFunction()
   })
