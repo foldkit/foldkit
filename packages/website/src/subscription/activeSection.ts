@@ -88,6 +88,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             CoreManagedResources: () =>
               Page.Core.ManagedResources.tableOfContents,
             CoreCrashView: () => Page.Core.CrashView.tableOfContents,
+            CoreViewTransitions: () =>
+              Page.Core.ViewTransitions.tableOfContents,
             CoreSlowWarnings: () => Page.Core.Slow.tableOfContents,
             CoreFreezeModel: () => Page.Core.FreezeModel.tableOfContents,
             CorePreserveScroll: () => Page.Core.PreserveScroll.tableOfContents,

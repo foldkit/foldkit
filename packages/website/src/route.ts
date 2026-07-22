@@ -67,6 +67,7 @@ export const CoreResourcesRoute = r('CoreResources')
 export const CoreManagedResourcesRoute = r('CoreManagedResources')
 export const CoreDevToolsRoute = r('CoreDevTools')
 export const CoreCrashViewRoute = r('CoreCrashView')
+export const CoreViewTransitionsRoute = r('CoreViewTransitions')
 export const CoreSlowWarningsRoute = r('CoreSlowWarnings')
 export const CoreFreezeModelRoute = r('CoreFreezeModel')
 export const CorePreserveScrollRoute = r('CorePreserveScroll')
@@ -163,6 +164,7 @@ export const DocsRoute = S.Union([
   CoreManagedResourcesRoute,
   CoreDevToolsRoute,
   CoreCrashViewRoute,
+  CoreViewTransitionsRoute,
   CoreSlowWarningsRoute,
   CoreFreezeModelRoute,
   CorePreserveScrollRoute,
@@ -376,6 +378,10 @@ export const coreManagedResourcesRouter = core(
 )
 export const coreDevToolsRouter = core('devtools', CoreDevToolsRoute)
 export const coreCrashViewRouter = core('crash-view', CoreCrashViewRoute)
+export const coreViewTransitionsRouter = core(
+  'view-transitions',
+  CoreViewTransitionsRoute,
+)
 export const coreSlowWarningsRouter = core(
   'slow-warnings',
   CoreSlowWarningsRoute,
@@ -485,6 +491,7 @@ const coreParser = oneOf(
   coreManagedResourcesRouter,
   coreDevToolsRouter,
   coreCrashViewRouter,
+  coreViewTransitionsRouter,
   coreSlowWarningsRouter,
   coreFreezeModelRouter,
   corePreserveScrollRouter,

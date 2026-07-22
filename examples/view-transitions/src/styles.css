@@ -1,0 +1,57 @@
+@import 'tailwindcss';
+
+/* Route changes slide the whole page while matching view-transition-name
+   pairs (gallery card to detail hero) morph between snapshots. The runtime
+   tags each transition with a type, so direction-aware animations are pure
+   CSS. Reduced-motion users never reach this file's animations: the runtime
+   skips startViewTransition entirely. */
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root:active-view-transition-type(to-detail)::view-transition-old(root) {
+  animation-name: slide-out-to-left;
+}
+
+:root:active-view-transition-type(to-detail)::view-transition-new(root) {
+  animation-name: slide-in-from-right;
+}
+
+:root:active-view-transition-type(to-gallery)::view-transition-old(root) {
+  animation-name: slide-out-to-right;
+}
+
+:root:active-view-transition-type(to-gallery)::view-transition-new(root) {
+  animation-name: slide-in-from-left;
+}
+
+@keyframes slide-out-to-left {
+  to {
+    opacity: 0;
+    transform: translateX(-2rem);
+  }
+}
+
+@keyframes slide-in-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(2rem);
+  }
+}
+
+@keyframes slide-out-to-right {
+  to {
+    opacity: 0;
+    transform: translateX(2rem);
+  }
+}
+
+@keyframes slide-in-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-2rem);
+  }
+}

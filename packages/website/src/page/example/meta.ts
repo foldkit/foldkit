@@ -17,6 +17,7 @@ export const ExampleSlug = S.Literals([
   'routing',
   'route-transitions',
   'interrupting-commands',
+  'view-transitions',
   'query-sync',
   'snake',
   'auth',
@@ -162,6 +163,15 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     difficulty: 'Intermediate',
     tags: ['Commands', 'Concurrency'],
     hasRouting: false,
+  },
+  {
+    slug: 'view-transitions',
+    title: 'View Transitions',
+    description:
+      'Animated route changes with the View Transitions API. Direction-aware slides via transition types and a shared-element morph from gallery card to detail hero.',
+    difficulty: 'Intermediate',
+    tags: ['Routing', 'Animation'],
+    hasRouting: true,
   },
   {
     slug: 'query-sync',

@@ -39,6 +39,7 @@ import {
   coreUpdateRouter,
   coreViewMemoizationRouter,
   coreViewRouter,
+  coreViewTransitionsRouter,
   effectAtomComparisonRouter,
   elmComparisonRouter,
   exampleDetailRouter,
@@ -228,6 +229,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'RoutingAndNavigation',
           href: routingAndNavigationRouter(),
           label: 'Routing & Navigation',
+        },
+        {
+          _tag: 'CoreViewTransitions',
+          href: coreViewTransitionsRouter(),
+          label: 'View Transitions',
         },
       ],
       [

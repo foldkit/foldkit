@@ -33,6 +33,7 @@ jobs:
           - routing
           - route-transitions
           - interrupting-commands
+          - view-transitions
           - query-sync
           - snake
           - auth
