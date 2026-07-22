@@ -28,6 +28,13 @@ import {
   view as counterView,
 } from './apps/counter.js'
 import {
+  SaveDraft,
+  SucceededSaveDraft,
+  update as draftsUpdate,
+  view as draftsView,
+  initialModel as initialDraftsModel,
+} from './apps/drafts.js'
+import {
   initialModel as fileUploadInitialModel,
   update as fileUploadUpdate,
   view as fileUploadView,
@@ -1518,6 +1525,19 @@ describe('scene', () => {
       Scene.Command.expectNone(),
       Scene.tap(({ html }) => {
         expect(find(html, 'span')).toHaveText('upload 0: Done')
+      }),
+    )
+  })
+
+  test('resolves a name-keyed Command by its bare Definition, matching by name', () => {
+    Scene.scene(
+      { update: draftsUpdate, view: draftsView },
+      Scene.with(initialDraftsModel),
+      Scene.click(Scene.role('button', { name: 'Save draft' })),
+      Scene.Command.resolve(SaveDraft, SucceededSaveDraft({ revision: 0 })),
+      Scene.Command.expectNone(),
+      Scene.tap(({ html }) => {
+        expect(find(html, 'span')).toHaveText('draft: Saved')
       }),
     )
   })

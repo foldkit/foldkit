@@ -244,6 +244,11 @@ type ResolvableCommandDefinition<Name extends string, ResultMessage> =
       any,
       Effect.Effect<ResultMessage, any, any>
     >
+  | Interruptible.DefinitionWithArgsNameKeyed<
+      Name,
+      any,
+      Effect.Effect<ResultMessage, any, any>
+    >
 
 const slotKey = ({ name, occurrence }: PendingMount): string =>
   `${name}#${occurrence}`
