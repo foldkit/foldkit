@@ -40,7 +40,7 @@
       "ignoreDependencies": ["@effect/platform-node-shared"]
     },
     "packages/website": {
-      "entry": ["src/main.ts"],
+      "entry": ["src/main.ts", "src/**/*.test.ts", "scripts/**/*.test.ts"],
       "ignore": ["src/snippet/**", "public/**"]
     },
     "packages/oxlint-plugin-foldkit": {
