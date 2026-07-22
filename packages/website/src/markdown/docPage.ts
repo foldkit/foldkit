@@ -9,7 +9,7 @@ import { docIslands } from './islands'
 import { type HeadingIds, collectHeadings } from './tableOfContents'
 import { docViews } from './views'
 
-// DOC PAGE
+// PAGE
 
 const renderDocument = (
   document: Markdown.MarkdownDocument,

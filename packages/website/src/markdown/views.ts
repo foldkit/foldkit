@@ -95,21 +95,20 @@ export const docViews = (config: DocViewConfig): Partial<Markdown.Views> => {
         M.when(2, () => headingWithContent('h2', id, text, content)),
         M.when(3, () => headingWithContent('h3', id, text, content)),
         M.when(4, () => headingWithContent('h4', id, text, content)),
-        M.orElse(() => headingWithContent('h4', id, text, content)),
+        M.when(5, () => headingWithContent('h5', id, text, content)),
+        M.when(6, () => headingWithContent('h6', id, text, content)),
+        M.exhaustive,
       )
     },
 
-    CodeBlock: ({ maybeLanguage, value }) => {
-      const language = Option.getOrElse(maybeLanguage, () => '')
-
-      return codeBlock(
+    CodeBlock: ({ maybeLanguage, value }) =>
+      codeBlock(
         value,
         'Copy code to clipboard',
         config.copiedSnippets,
         'mb-8',
-        language,
-      )
-    },
+        Option.getOrUndefined(maybeLanguage),
+      ),
 
     List: (list, items) => {
       if (list.isOrdered) {

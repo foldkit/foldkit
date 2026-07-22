@@ -70,17 +70,34 @@ const sectionHeadingConfig = {
     wrapperClassName:
       'group flex items-center gap-1 md:hover-capable:gap-0 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
   },
+  h5: {
+    textClassName:
+      'text-sm font-mono font-normal text-gray-900 dark:text-white scroll-mt-6',
+    wrapperClassName:
+      'group flex items-center gap-1 md:hover-capable:gap-0 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
+  },
+  h6: {
+    textClassName:
+      'text-sm font-mono font-normal text-gray-500 dark:text-gray-400 scroll-mt-6',
+    wrapperClassName:
+      'group flex items-center gap-1 md:hover-capable:gap-0 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
+  },
 }
 
+/**
+ * Renders a linkable section heading (`h2` through `h6`) with the hover anchor
+ * button. `ariaText` labels the copy-link control; `content` is the heading's
+ * rendered inline content, so a heading may carry inline code or emphasis.
+ */
 export const headingWithContent = (
-  level: 'h2' | 'h3' | 'h4',
+  level: 'h2' | 'h3' | 'h4' | 'h5' | 'h6',
   id: string,
   ariaText: string,
   content: ReadonlyArray<string | Html>,
 ): Html => {
   const h = html<Message>()
 
-  const tag = { h2: h.h2, h3: h.h3, h4: h.h4 }
+  const tag = { h2: h.h2, h3: h.h3, h4: h.h4, h5: h.h5, h6: h.h6 }
   const config = sectionHeadingConfig[level]
 
   return h.div(
@@ -239,6 +256,10 @@ const calloutBlocks = (
   )
 }
 
+/**
+ * An informational callout wrapping block content (paragraphs, lists, code
+ * blocks). The `:::Info` markdown island renders through this.
+ */
 export const infoCalloutBlocks = (
   label: string,
   blocks: ReadonlyArray<Html>,
@@ -252,6 +273,10 @@ export const infoCalloutBlocks = (
     blocks,
   })
 
+/**
+ * A cautionary callout wrapping block content. The `:::Warning` markdown island
+ * renders through this.
+ */
 export const warningCalloutBlocks = (
   label: string,
   blocks: ReadonlyArray<Html>,

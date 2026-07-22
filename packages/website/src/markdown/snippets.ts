@@ -24,7 +24,7 @@ const highlightedByPath = import.meta.glob<string>(
 const snippetName = (path: string): Option.Option<string> =>
   pipe(
     Array.last(String.split(path, '/')),
-    Option.map(fileName => fileName.replace(/\.(?:ts|tsx|elm|json)$/, '')),
+    Option.map(String.replace(/\.(?:ts|tsx|elm|json)$/, '')),
   )
 
 const registry: Record<string, Snippet> = pipe(

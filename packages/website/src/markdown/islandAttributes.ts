@@ -1,6 +1,6 @@
 import { Schema as S } from 'effect'
 
-// ISLAND ATTRIBUTES
+// ATTRIBUTES
 
 /**
  * Attribute schemas for every markdown island directive used on the site. One

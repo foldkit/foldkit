@@ -62,9 +62,7 @@ export const codeBlock = (
   const h = html<Message>()
 
   const languageAttribute =
-    language !== undefined && language.length > 0
-      ? [h.DataAttribute('language', language)]
-      : []
+    language === undefined ? [] : [h.DataAttribute('language', language)]
 
   const content = h.pre(
     [
