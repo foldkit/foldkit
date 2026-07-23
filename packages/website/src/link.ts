@@ -54,4 +54,6 @@ export const Link = {
     'https://github.com/foldkit/foldkit/blob/main/packages/foldkit/CHANGELOG.md',
   dragAndDropDocumentStyles:
     'https://github.com/foldkit/foldkit/blob/main/packages/ui/src/dragAndDrop/index.ts#L663-L689',
+  chatgptSkills: 'https://learn.chatgpt.com/docs/build-skills',
+  opencodeSkills: 'https://opencode.ai/docs/skills/',
 }
