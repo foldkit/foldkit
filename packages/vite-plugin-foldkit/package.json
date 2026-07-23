@@ -23,7 +23,7 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "effect": "4.0.0-beta.97",
+    "effect": "4.0.0-beta.101",
     "foldkit": "workspace:^0",
     "vite": "^7.0.0 || ^8.0.0"
   },
@@ -34,7 +34,7 @@
   "devDependencies": {
     "@types/node": "^25.9.3",
     "@types/ws": "^8.18.1",
-    "effect": "4.0.0-beta.97",
+    "effect": "4.0.0-beta.101",
     "foldkit": "workspace:*",
     "happy-dom": "^20.10.4",
     "rimraf": "^6.1.3",

@@ -25,19 +25,19 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "@effect/platform-browser": "4.0.0-beta.97",
+    "@effect/platform-browser": "4.0.0-beta.101",
     "@foldkit/ui": "workspace:^0",
-    "effect": "4.0.0-beta.97",
+    "effect": "4.0.0-beta.101",
     "foldkit": "workspace:^0"
   },
   "dependencies": {
     "clsx": "^2.1.1"
   },
   "devDependencies": {
-    "@effect/platform-browser": "4.0.0-beta.97",
+    "@effect/platform-browser": "4.0.0-beta.101",
     "@foldkit/ui": "workspace:*",
     "@foldkit/vite-plugin": "workspace:*",
-    "effect": "4.0.0-beta.97",
+    "effect": "4.0.0-beta.101",
     "foldkit": "workspace:*",
     "rimraf": "^6.1.3",
     "typescript": "^6.0.3",

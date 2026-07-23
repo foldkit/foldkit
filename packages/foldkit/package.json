@@ -162,14 +162,14 @@
     "docs": "typedoc"
   },
   "peerDependencies": {
-    "@effect/platform-browser": "4.0.0-beta.97",
-    "effect": "4.0.0-beta.97"
+    "@effect/platform-browser": "4.0.0-beta.101",
+    "effect": "4.0.0-beta.101"
   },
   "devDependencies": {
-    "@effect/platform-browser": "4.0.0-beta.97",
-    "@effect/vitest": "4.0.0-beta.97",
+    "@effect/platform-browser": "4.0.0-beta.101",
+    "@effect/vitest": "4.0.0-beta.101",
     "@vitest/coverage-v8": "^4.1.9",
-    "effect": "4.0.0-beta.97",
+    "effect": "4.0.0-beta.101",
     "happy-dom": "^20.10.4",
     "rimraf": "^6.1.3",
     "typedoc": "^0.28.19",

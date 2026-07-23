@@ -241,11 +241,11 @@ pnpm dev:libs
 pnpm dev:example:counter
 ```
 
-External reference repositories under `repos/` are vendored in as git subtrees, so they come down with the clone. Each is pinned to the release tag matching the version this repo depends on, not a moving branch, so the reference source always matches what installs and compiles. Refresh `repos/effect-smol` from the `effect@<version>` tag that matches `package.json`, and re-pin it whenever the `effect` dependency is bumped:
+External reference repositories under `repos/` are vendored in as git subtrees, so they come down with the clone. Each is pinned to the release tag matching the version this repo depends on, not a moving branch, so the reference source always matches what installs and compiles. Refresh `repos/effect` from the `effect@<version>` tag that matches `package.json`, and re-pin it whenever the `effect` dependency is bumped:
 
 ```bash
 VER=$(node -p "require('./packages/foldkit/package.json').devDependencies.effect")
-git subtree pull --prefix=repos/effect-smol https://github.com/Effect-TS/effect-smol.git "effect@${VER}" --squash
+git subtree pull --prefix=repos/effect https://github.com/Effect-TS/effect.git "effect@${VER}" --squash
 ```
 
 ## License

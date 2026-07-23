@@ -19,15 +19,15 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@effect/platform-node": "4.0.0-beta.97",
-    "@effect/platform-node-shared": "4.0.0-beta.97",
+    "@effect/platform-node": "4.0.0-beta.101",
+    "@effect/platform-node-shared": "4.0.0-beta.101",
     "chalk": "^5.6.2",
-    "effect": "4.0.0-beta.97",
+    "effect": "4.0.0-beta.101",
     "rimraf": "^6.1.3",
     "typescript": "^6.0.3"
   },
   "devDependencies": {
-    "@effect/vitest": "4.0.0-beta.97",
+    "@effect/vitest": "4.0.0-beta.101",
     "@types/node": "^25.9.3",
     "vitest": "^4.1.9"
   },
