@@ -48,6 +48,7 @@ const loadersBySlug: Readonly<Record<string, SourceLoader | undefined>> = {
   embedding: () => import('virtual:example-sources/embedding'),
   'ui-showcase': () => import('virtual:example-sources/ui-showcase'),
   'personal-blog': () => import('virtual:example-sources/personal-blog'),
+  'cross-tab-tasks': () => import('virtual:example-sources/cross-tab-tasks'),
 }
 
 export const loadSourcesForSlug = async (

@@ -33,6 +33,7 @@ export const ExampleSlug = S.Literals([
   'embedding',
   'ui-showcase',
   'personal-blog',
+  'cross-tab-tasks',
 ])
 export type ExampleSlug = typeof ExampleSlug.Type
 
@@ -315,6 +316,15 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     difficulty: 'Advanced',
     tags: ['Markdown', 'Islands', 'Submodels', 'Routing'],
     hasRouting: true,
+  },
+  {
+    slug: 'cross-tab-tasks',
+    title: 'Cross-Tab Tasks',
+    description:
+      'A task list persisted in IndexedDB that stays live across browser tabs on one device. Writes commit through Commands and announce over a BroadcastChannel, a single Subscription reloads the projection on every change, and the Model holds the store as AsyncData. The integration shape a local-first store would slot into.',
+    difficulty: 'Advanced',
+    tags: ['Storage', 'Subscriptions', 'Commands'],
+    hasRouting: false,
   },
 ]
 
