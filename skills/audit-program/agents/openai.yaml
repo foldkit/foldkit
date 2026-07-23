@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Audit Program'
+  short_description: 'Audit a Foldkit app against the architecture and conventions'
+  default_prompt: 'Use $audit-program to review a Foldkit app against the architecture and conventions.'
