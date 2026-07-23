@@ -122,6 +122,45 @@ const ruleGroups: ReadonlyArray<RuleGroup> = [
     ],
   },
   {
+    heading: groupHeading('state-modeling-rules', 'State Modeling'),
+    rules: [
+      {
+        heading: ruleHeading('no-switch-on-message-tag'),
+        description:
+          'Rejects a switch on a Message or state _tag. Dispatch with M.tagsExhaustive so a forgotten variant is a type error instead of a silent fall-through.',
+        raw: Snippet.lintNoSwitchOnMessageTagRaw,
+        highlighted: Snippet.lintNoSwitchOnMessageTagHighlighted,
+      },
+      {
+        heading: ruleHeading('prefer-option-over-nullable-in-model'),
+        description:
+          'Requires the Model struct to model absence with Schema.Option, not Schema.NullOr, Schema.Null, or Schema.optional, so presence is explicit and threads through update without null checks.',
+        raw: Snippet.lintPreferOptionOverNullableInModelRaw,
+        highlighted: Snippet.lintPreferOptionOverNullableInModelHighlighted,
+      },
+    ],
+  },
+  {
+    heading: groupHeading('command-effect-rules', 'Commands and Effects'),
+    rules: [
+      {
+        heading: ruleHeading('acquire-release-constructs-in-acquire-body'),
+        description:
+          'Requires the Effect.acquireRelease acquire Effect to construct its resource in place. Returning a handle captured from an outer binding leaks it if interruption strikes before acquire runs.',
+        raw: Snippet.lintAcquireReleaseConstructsInAcquireBodyRaw,
+        highlighted:
+          Snippet.lintAcquireReleaseConstructsInAcquireBodyHighlighted,
+      },
+      {
+        heading: ruleHeading('prefer-command-mapmessage'),
+        description:
+          'Lift a Command result Message with Command.mapMessage / mapMessages, not by mapping the Effect. A manual Effect.map wrap dispatches correctly but records nothing on the message-mapping chain, so Story/Scene resolve replays the chain and sees the raw child Message.',
+        raw: Snippet.lintPreferCommandMapmessageRaw,
+        highlighted: Snippet.lintPreferCommandMapmessageHighlighted,
+      },
+    ],
+  },
+  {
     heading: groupHeading('routing-rules', 'Routing'),
     rules: [
       {
@@ -130,6 +169,13 @@ const ruleGroups: ReadonlyArray<RuleGroup> = [
           'Rejects hardcoded path and URL strings passed to link and navigation helpers. Build them from the Route module so they stay in sync with the routes.',
         raw: Snippet.lintNoHardcodedRouteStringsRaw,
         highlighted: Snippet.lintNoHardcodedRouteStringsHighlighted,
+      },
+      {
+        heading: ruleHeading('no-route-query-constructor-default'),
+        description:
+          'Rejects Schema.withConstructorDefault on Route.query fields. The default makes the field optional in the constructor-input type Route.mapTo encodes, so the Route.query plus Route.mapTo pipe stops typechecking. Model the missing parameter with Option instead.',
+        raw: Snippet.lintNoRouteQueryConstructorDefaultRaw,
+        highlighted: Snippet.lintNoRouteQueryConstructorDefaultHighlighted,
       },
     ],
   },

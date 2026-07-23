@@ -196,7 +196,8 @@ export function define(name: string, ...rest: ReadonlyArray<unknown>): unknown {
  *  correctly in production but is invisible to `Story`/`Scene` `resolve`, which
  *  replays only the recorded chain and never runs the Effect, so the test would
  *  see the child's raw Message instead of the wrapped one. Lift result Messages
- *  with {@link mapMessage} / {@link mapMessages}, which record the lift. */
+ *  with {@link mapMessage} / {@link mapMessages}, which record the lift. The
+ *  `foldkit/prefer-command-mapmessage` lint rule flags this misuse. */
 export const mapEffect: {
   <A, E1, R1, B, E2, R2>(
     f: (effect: Effect.Effect<A, E1, R1>) => Effect.Effect<B, E2, R2>,
