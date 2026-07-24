@@ -4,12 +4,14 @@ import { basename, extname, join, relative, resolve } from 'node:path'
 import { codeToHtml } from 'shiki'
 import { type Plugin, defineConfig } from 'vite'
 
+import { markdown } from '@foldkit/markdown/vite'
 import { foldkit } from '@foldkit/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 
 import { monacoWorkersPlugin } from './scripts/monacoWorkersPlugin'
 import { playgroundFilesPlugin } from './scripts/playgroundFilesPlugin'
 import { playgroundTypesPlugin } from './scripts/playgroundTypesPlugin'
+import { islandAttributes } from './src/markdown/islandAttributes'
 import {
   ParsedApiReference,
   collectNamedSchemas,
@@ -991,6 +993,7 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     foldkit({ devToolsMcpPort: 9988 }),
+    markdown({ islands: islandAttributes }),
     embeddedExampleRedirectPlugin(),
     playgroundIsolationHeadersPlugin(),
     playgroundShellFallbackPlugin(),
