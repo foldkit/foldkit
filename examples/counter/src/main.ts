@@ -61,7 +61,7 @@ export const view = (model: Model): Document => {
         ),
       ],
       [
-        h.div(
+        h.p(
           [h.Class('text-6xl font-bold text-gray-800')],
           [model.count.toString()],
         ),
