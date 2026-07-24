@@ -1,5 +1,22 @@
 # foldkit
 
+## 0.132.0
+
+### Minor Changes
+
+- 2a3a331: `Story.Command.resolve` and `Scene.Command.resolve` now accept a bare name-keyed interruptible Command definition, the with-args `Command.Interruptible.define` shape that omits `toKey`. The definition overload already accepted the no-args and keyed with-args shapes, but the name-keyed shape was missing from its union, so resolving one by its definition failed to typecheck and forced a resolve-by-instance workaround. Runtime matching was name-only all along, so this closes a type-level gap.
+
+### Patch Changes
+
+- 95118d8: Bump Effect to `4.0.0-beta.101` (from `4.0.0-beta.97`). Foldkit's peer dependencies now require `effect@4.0.0-beta.101` and `@effect/platform-browser@4.0.0-beta.101`.
+
+  Pin your Effect packages to `4.0.0-beta.101` to match. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.101 @effect/platform-browser@4.0.0-beta.101
+  pnpm add -D @effect/vitest@4.0.0-beta.101
+  ```
+
 ## 0.131.0
 
 ### Minor Changes
