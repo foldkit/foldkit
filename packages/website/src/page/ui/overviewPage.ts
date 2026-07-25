@@ -28,6 +28,9 @@ import {
   uiSwitchRouter,
   uiTabsRouter,
   uiTextareaRouter,
+  uiToastRouter,
+  uiTooltipRouter,
+  uiVirtualListRouter,
 } from '../../route'
 import { type CopiedSnippets, codeBlock } from '../../view/codeBlock'
 
@@ -199,6 +202,22 @@ const components: ReadonlyArray<ComponentEntry> = [
       'Floating panel with arbitrary content and natural Tab navigation.',
   },
   {
+    name: 'Tooltip',
+    href: uiTooltipRouter(),
+    kind: 'Submodel',
+    category: 'Overlays',
+    description:
+      'Non-interactive floating label anchored to a trigger. Shows on hover after a delay or immediately on keyboard focus, and hides on pointer-leave, blur, or Escape.',
+  },
+  {
+    name: 'Toast',
+    href: uiToastRouter(),
+    kind: 'Submodel',
+    category: 'Overlays',
+    description:
+      'Stack of transient notifications anchored to a corner of the viewport. Each entry has its own enter and leave animation, auto-dismiss timer, and hover-to-pause behavior.',
+  },
+  {
     name: 'Disclosure',
     href: uiDisclosureRouter(),
     kind: 'Helper',
@@ -261,6 +280,14 @@ const components: ReadonlyArray<ComponentEntry> = [
     category: 'Animation',
     description:
       'Coordinates CSS enter/leave animations via a state machine and data attributes. Works with both CSS transitions and CSS keyframe animations. Sends an OutMessage when the leave animation completes.',
+  },
+  {
+    name: 'Virtual List',
+    href: uiVirtualListRouter(),
+    kind: 'Submodel',
+    category: 'Interaction',
+    description:
+      'Virtualization for large lists. Only the items inside the viewport plus an overscan buffer are mounted, and spacer elements above and below the visible slice keep the scrollbar accurate.',
   },
 ]
 
