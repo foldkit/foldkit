@@ -264,19 +264,7 @@ const featureTag = (text: string): Html => {
   )
 }
 
-const chromeRecommendedHint = (): Html => {
-  const h = html<Message>()
-
-  return h.p(
-    [h.Class('text-xs text-gray-500 dark:text-gray-400')],
-    ['Requires a Chromium browser'],
-  )
-}
-
-const launchPlaygroundSection = (
-  meta: ExampleMeta,
-  isChromium: boolean,
-): Html => {
+const launchPlaygroundSection = (meta: ExampleMeta): Html => {
   const h = html<Message>()
 
   return h.div(
@@ -289,12 +277,11 @@ const launchPlaygroundSection = (
         ],
         [Icon.bolt('w-4 h-4'), 'Launch Playground'],
       ),
-      ...(isChromium ? [] : [chromeRecommendedHint()]),
     ],
   )
 }
 
-const headerView = (meta: ExampleMeta, isChromium: boolean): Html => {
+const headerView = (meta: ExampleMeta): Html => {
   const h = html<Message>()
 
   return h.div(
@@ -318,7 +305,7 @@ const headerView = (meta: ExampleMeta, isChromium: boolean): Html => {
       h.div(
         [h.Class('flex flex-col items-start gap-3 mt-3')],
         [
-          launchPlaygroundSection(meta, isChromium),
+          launchPlaygroundSection(meta),
           h.a(
             [
               h.Href(exampleSourceHref(meta.slug)),
@@ -648,11 +635,10 @@ type ViewInputs = Readonly<{
   slug: string
   copiedSnippets: CopiedSnippets
   isNarrowViewport: boolean
-  isChromium: boolean
 }>
 
 export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { slug, copiedSnippets, isNarrowViewport, isChromium }): Html => {
+  (model, { slug, copiedSnippets, isNarrowViewport }): Html => {
     const h = html<Message>()
 
     return Option.match(findBySlug(slug), {
@@ -662,7 +648,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           slug,
           [],
           [
-            headerView(meta, isChromium),
+            headerView(meta),
             livePreviewDisclosureView(
               model.isLivePreviewOpen,
               meta,

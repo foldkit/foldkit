@@ -185,26 +185,6 @@ const playgroundItemClassName =
 
 const playgroundBackdropClassName = 'fixed inset-0 z-10'
 
-const chromeRecommendedHint: Html = (() => {
-  const h = html<Message>()
-
-  return h.p(
-    [h.Class('text-xs text-gray-500 dark:text-gray-400')],
-    ['Requires a Chromium browser'],
-  )
-})()
-
-const withChromeRecommendedHint = (menu: Html, isChromium: boolean): Html => {
-  const h = html<Message>()
-
-  return isChromium
-    ? menu
-    : h.div(
-        [h.Class('flex flex-col items-start gap-1')],
-        [menu, chromeRecommendedHint],
-      )
-}
-
 const playgroundItemContent = (meta: ExampleMeta): Html => {
   const h = html<Message>()
 
@@ -297,12 +277,9 @@ export const landingView = (model: Model) => {
     model.emailSubscriptionStatus,
   )
 
-  const playgroundMenu = withChromeRecommendedHint(
-    playgroundMenuView(
-      model.playgroundMenu,
-      examples.map(example => example.slug),
-    ),
-    model.isChromium,
+  const playgroundMenu = playgroundMenuView(
+    model.playgroundMenu,
+    examples.map(example => example.slug),
   )
 
   const buttonLabelFor = (tab: DemoTab.Tab): string =>

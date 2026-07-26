@@ -492,7 +492,6 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
               slug: exampleSlug,
               copiedSnippets: model.copiedSnippets,
               isNarrowViewport: model.isNarrowViewport,
-              isChromium: model.isChromium,
             },
             toParentMessage: message => GotExampleDetailMessage({ message }),
           }),

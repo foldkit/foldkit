@@ -1014,22 +1014,26 @@ const editorLayoutView = (model: Model): Html => {
   )
 }
 
-type ViewInputs = Readonly<{ isChromium: boolean }>
+type ViewInputs = Readonly<{ isPlaygroundSupported: boolean }>
 
 export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { isChromium }): Html => {
+  (model, { isPlaygroundSupported }): Html => {
     const h = html<Message>()
 
     const maybeMeta = findBySlug(model.slug)
     const maybeFiles = Option.fromNullishOr(filesBySlug[model.slug])
 
-    const content = M.value({ isChromium, maybeMeta, maybeFiles }).pipe(
+    const content = M.value({
+      isPlaygroundSupported,
+      maybeMeta,
+      maybeFiles,
+    }).pipe(
       M.when(
-        ({ isChromium }) => !isChromium,
+        ({ isPlaygroundSupported }) => !isPlaygroundSupported,
         () =>
           messageView(
-            'Playground requires a Chromium browser',
-            'The editable playground runs on WebContainers, which requires Chrome, Edge, Brave, or another Chromium-based browser. You can still see the example running on its detail page.',
+            'Your browser cannot run the playground',
+            'The editable playground runs on WebContainers, which needs a cross-origin isolated document and SharedArrayBuffer. Chromium browsers and Firefox support this today; Safari does not yet. You can still see the example running on its detail page.',
             maybeMeta,
           ),
       ),
