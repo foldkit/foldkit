@@ -3,7 +3,7 @@ import { Command } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { PeopleRoute } from '../route'
+import { PeopleRoute } from './route'
 
 // MESSAGE
 

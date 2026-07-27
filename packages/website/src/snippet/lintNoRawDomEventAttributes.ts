@@ -6,9 +6,9 @@ const h = html<Message>()
 // A raw DOM event attribute escapes the typed handlers and the Message flow.
 const badButton = h.button(
   [h.Attribute('onclick', 'location.reload()')],
-  [text('Reload')],
+  ['Reload'],
 )
 
 // ✅ Good
 // Dispatch a Message through the typed event helper.
-const goodButton = h.button([h.OnClick(ClickedReload())], [text('Reload')])
+const goodButton = h.button([h.OnClick(ClickedReload())], ['Reload'])

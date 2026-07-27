@@ -1,4 +1,4 @@
-import { Schema as S, pipe } from 'effect'
+import { Option, Schema as S, pipe } from 'effect'
 import { Route } from 'foldkit'
 import { literal } from 'foldkit/route'
 

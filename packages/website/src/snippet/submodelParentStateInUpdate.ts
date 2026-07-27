@@ -2,9 +2,9 @@ import { Match as M } from 'effect'
 import type { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import type { User } from '../user'
 import { type Message, PersistSettings } from './message'
 import type { Model } from './model'
+import type { User } from './user'
 
 // The Context shape is declared by the child. The parent assembles it
 // inline when delegating in its own update handler.

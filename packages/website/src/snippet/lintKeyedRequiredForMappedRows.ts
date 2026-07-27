@@ -9,7 +9,7 @@ const badList = (tasks: ReadonlyArray<Task>) =>
   h.ul(
     [],
     tasks.map(task =>
-      h.li([h.OnClick(ClickedTask({ id: task.id }))], [text(task.title)]),
+      h.li([h.OnClick(ClickedTask({ id: task.id }))], [task.title]),
     ),
   )
 
@@ -21,7 +21,7 @@ const goodList = (tasks: ReadonlyArray<Task>) =>
       h.keyed('li')(
         task.id,
         [h.OnClick(ClickedTask({ id: task.id }))],
-        [text(task.title)],
+        [task.title],
       ),
     ),
   )

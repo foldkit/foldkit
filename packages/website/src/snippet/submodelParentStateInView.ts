@@ -1,9 +1,9 @@
 import { Submodel } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
-import type { User } from '../user'
 import type { Message } from './message'
 import type { Model } from './model'
+import type { User } from './user'
 
 // The child declares the parent state it needs via the third type
 // parameter on `Submodel.defineView`. The view receives it as

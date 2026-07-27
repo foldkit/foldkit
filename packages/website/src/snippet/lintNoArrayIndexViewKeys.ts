@@ -7,7 +7,7 @@ const h = html<Message>()
 const badList = (tasks: ReadonlyArray<Task>) =>
   h.ul(
     [],
-    tasks.map((task, index) => h.keyed('li')(index, [], [text(task.title)])),
+    tasks.map((task, index) => h.keyed('li')(index, [], [task.title])),
   )
 
 // ✅ Good
@@ -15,5 +15,5 @@ const badList = (tasks: ReadonlyArray<Task>) =>
 const goodList = (tasks: ReadonlyArray<Task>) =>
   h.ul(
     [],
-    tasks.map(task => h.keyed('li')(task.id, [], [text(task.title)])),
+    tasks.map(task => h.keyed('li')(task.id, [], [task.title])),
   )

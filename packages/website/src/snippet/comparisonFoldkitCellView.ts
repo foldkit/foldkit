@@ -1,3 +1,12 @@
+import { Array } from 'effect'
+import { type Html, html } from 'foldkit/html'
+
+import { EnteredCell, type Message, PressedCell } from './message'
+import type { Cell, HexColor } from './model'
+import { type PaletteTheme, resolveColor } from './palette'
+
+const { div, OnMouseDown, OnMouseEnter, Style } = html<Message>()
+
 const rowView = (
   row: ReadonlyArray<Cell>,
   y: number,

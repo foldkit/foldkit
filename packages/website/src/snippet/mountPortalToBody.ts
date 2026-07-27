@@ -27,8 +27,8 @@ const PortalToBody = Mount.define(
 const overlayView = (): Html => {
   const h = html<Message>()
 
-  return h.div([
-    h.Class('fixed inset-0 bg-black/50'),
-    h.OnMount(PortalToBody()),
-  ])
+  return h.div(
+    [h.Class('fixed inset-0 bg-black/50'), h.OnMount(PortalToBody())],
+    [],
+  )
 }

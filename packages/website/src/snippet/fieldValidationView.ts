@@ -1,5 +1,6 @@
 import { Array, Match as M } from 'effect'
 import { type Field, allValid } from 'foldkit/fieldValidation'
+import { html } from 'foldkit/html'
 
 const borderClass = (field: Field<string>) =>
   M.value(field).pipe(
@@ -11,15 +12,18 @@ const borderClass = (field: Field<string>) =>
     }),
   )
 
-const statusIndicator = (field: Field<string>) =>
-  M.value(field).pipe(
+const statusIndicator = (field: Field<string>) => {
+  const h = html<Message>()
+
+  return M.value(field).pipe(
     M.tagsExhaustive({
-      NotValidated: () => empty,
-      Validating: () => span([], ['Checking...']),
-      Valid: () => span([], ['✓']),
-      Invalid: ({ errors }) => div([], [Array.headNonEmpty(errors)]),
+      NotValidated: () => h.empty,
+      Validating: () => h.span([], ['Checking...']),
+      Valid: () => h.span([], ['✓']),
+      Invalid: ({ errors }) => h.div([], [Array.headNonEmpty(errors)]),
     }),
   )
+}
 
 // `allValid` gates fields of one value type per call; required rules demand
 // `Valid`, optional rules also accept `NotValidated`. For a form that mixes

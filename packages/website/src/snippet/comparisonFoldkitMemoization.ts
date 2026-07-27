@@ -1,3 +1,14 @@
+import { type Document, createKeyedLazy, createLazy, html } from 'foldkit/html'
+
+import { isGridEmpty } from './grid'
+import type { Message } from './message'
+import type { Model } from './model'
+import { canvasView } from './view/canvas'
+import { historyPanelView } from './view/history'
+import { headerView, toolPanelView } from './view/toolbar'
+
+const { div } = html<Message>()
+
 const lazyHeader = createLazy()
 const lazyToolPanel = createLazy()
 const lazyHistoryPanel = createLazy()
