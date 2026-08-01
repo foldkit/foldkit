@@ -666,16 +666,6 @@ const monthCellId = (modelId: string, month: number): string =>
 const yearCellId = (modelId: string, year: number): string =>
   `${modelId}-cell-year-${year}`
 
-const DAY_NAMES_SUNDAY_FIRST: ReadonlyArray<Calendar.DayOfWeek> = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-]
-
 const DAY_OF_WEEK_INDEX: Readonly<Record<Calendar.DayOfWeek, number>> = {
   Sunday: 0,
   Monday: 1,
@@ -823,6 +813,29 @@ export type CalendarAttributes =
   | MonthsModeAttributes
   | YearsModeAttributes
 
+/** Accessible labels and label builders accepted by Calendar views. DatePicker
+ * accepts the same fields and forwards them to its embedded Calendar. */
+export type ViewLabels = Readonly<{
+  previousMonthLabel?: string
+  nextMonthLabel?: string
+  previousYearsPageLabel?: string
+  nextYearsPageLabel?: string
+  daysHeadingButtonLabel?: string
+  monthsHeadingButtonLabel?: string
+  /** Builds the day grid's `aria-label` from the heading text the locale's
+   *  `monthYearFormat` produced. Defaults to English. */
+  toDaysGridLabel?: (monthYear: string) => string
+  /** Builds a week row's `aria-label` from the date that starts the week.
+   *  Defaults to English. */
+  toWeekLabel?: (weekStart: CalendarDate) => string
+  /** Builds the month grid's `aria-label` from the displayed year. Defaults
+   *  to English. */
+  toMonthsGridLabel?: (year: number) => string
+  /** Builds the year grid's `aria-label` from the displayed year range.
+   *  Defaults to English. */
+  toYearsGridLabel?: (startYear: number, endYear: number) => string
+}>
+
 /** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *
  *  The Calendar dispatches its own `ClickedDay` message on date commit
@@ -833,13 +846,8 @@ export type ViewInputs = Readonly<{
    *  marker derives from it. */
   maybeSelectedDate: Option.Option<CalendarDate>
   toView: (attributes: CalendarAttributes) => Html
-  previousMonthLabel?: string
-  nextMonthLabel?: string
-  previousYearsPageLabel?: string
-  nextYearsPageLabel?: string
-  daysHeadingButtonLabel?: string
-  monthsHeadingButtonLabel?: string
-}>
+}> &
+  ViewLabels
 
 const NAV_KEYS: ReadonlySet<string> = new Set([
   'ArrowLeft',
@@ -906,13 +914,18 @@ const buildDaysAttributes = (
   const nextMonthLabel = viewInputs.nextMonthLabel ?? 'Next month'
   const headingButtonLabel =
     viewInputs.daysHeadingButtonLabel ?? 'Switch to month picker'
+  const toDaysGridLabel =
+    viewInputs.toDaysGridLabel ?? (monthYear => `Calendar, ${monthYear}`)
+  const toWeekLabel =
+    viewInputs.toWeekLabel ??
+    (weekStart => `Week of ${Calendar.formatLong(weekStart, locale)}`)
 
-  const headingText = `${locale.monthNames[viewMonth - 1]} ${viewYear}`
-
-  const rotatedDayNames = rotateDayNames(
-    DAY_NAMES_SUNDAY_FIRST,
-    locale.firstDayOfWeek,
+  const headingText = Calendar.formatMonthYear(
+    Calendar.make(viewYear, viewMonth, 1),
+    locale,
   )
+
+  const rotatedDayNames = rotateDayNames(locale.dayNames, locale.firstDayOfWeek)
   const rotatedShortDayNames = rotateDayNames(
     locale.shortDayNames,
     locale.firstDayOfWeek,
@@ -975,7 +988,7 @@ const buildDaysAttributes = (
   const gridAttributes = [
     h.Id(gridId(id)),
     h.Role('grid'),
-    h.AriaLabel(`Calendar, ${headingText}`),
+    h.AriaLabel(toDaysGridLabel(headingText)),
     h.AriaRowcount(Number.increment(WEEKS_IN_GRID)),
     h.AriaColcount(DAYS_IN_WEEK),
     h.Tabindex(0),
@@ -1040,7 +1053,7 @@ const buildDaysAttributes = (
       attributes: childAttributes([
         h.Role('row'),
         h.AriaRowindex(weekIndex + 2),
-        h.AriaLabel(`Week of ${Calendar.formatLong(weekStart, locale)}`),
+        h.AriaLabel(toWeekLabel(weekStart)),
       ]),
       cells: weekDates.map(buildDayCell),
     }
@@ -1090,6 +1103,8 @@ const buildMonthsAttributes = (
 
   const headingButtonLabel =
     viewInputs.monthsHeadingButtonLabel ?? 'Switch to year picker'
+  const toMonthsGridLabel =
+    viewInputs.toMonthsGridLabel ?? (year => `Month picker, ${year}`)
 
   const headingText = `${viewYear}`
 
@@ -1131,7 +1146,7 @@ const buildMonthsAttributes = (
   const gridAttributes = [
     h.Id(gridId(id)),
     h.Role('grid'),
-    h.AriaLabel(`Month picker, ${headingText}`),
+    h.AriaLabel(toMonthsGridLabel(viewYear)),
     h.Tabindex(0),
     h.OnFocus(Message.FocusedGrid()),
     h.OnBlur(Message.BlurredGrid()),
@@ -1167,7 +1182,9 @@ const buildMonthsAttributes = (
     const buttonAttributes = [
       h.Type('button'),
       h.Tabindex(-1),
-      h.AriaLabel(`${label} ${viewYear}`),
+      h.AriaLabel(
+        Calendar.formatMonthYear(Calendar.make(viewYear, month, 1), locale),
+      ),
       h.AriaDisabled(isDisabled),
       ...(isDisabled ? [] : [h.OnClick(Message.SelectedMonth({ month }))]),
     ]
@@ -1209,6 +1226,9 @@ const buildYearsAttributes = (
   const previousYearsPageLabel =
     viewInputs.previousYearsPageLabel ?? 'Previous 12 years'
   const nextYearsPageLabel = viewInputs.nextYearsPageLabel ?? 'Next 12 years'
+  const toYearsGridLabel =
+    viewInputs.toYearsGridLabel ??
+    ((startYear, endYear) => `Year picker, ${startYear}–${endYear}`)
 
   const cursorYear = Option.match(maybeFocusedDate, {
     onNone: () => viewYear,
@@ -1259,7 +1279,7 @@ const buildYearsAttributes = (
   const gridAttributes = [
     h.Id(gridId(id)),
     h.Role('grid'),
-    h.AriaLabel(`Year picker, ${headingText}`),
+    h.AriaLabel(toYearsGridLabel(pageStart, pageEnd)),
     h.Tabindex(0),
     h.OnFocus(Message.FocusedGrid()),
     h.OnBlur(Message.BlurredGrid()),

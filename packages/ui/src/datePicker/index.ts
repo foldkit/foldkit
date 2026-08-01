@@ -317,7 +317,7 @@ const encodeIsoDate = Schema.encodeSync(Calendar.CalendarDateFromIsoString)
  *  The DatePicker emits a `SelectedDate({ date })` OutMessage when the
  *  user commits a date. Handle it in the `foldOutMessage` of the
  *  DatePicker's `Update.foldChild` config to lift the date into domain
- *  state. */
+ *  state. Calendar label fields are forwarded to the embedded Calendar. */
 export type ViewInputs = Readonly<{
   anchor: AnchorConfig
   /** The selected date, read straight from the parent Model. The trigger
@@ -346,7 +346,8 @@ export type ViewInputs = Readonly<{
   panelAttributes?: ReadonlyArray<ChildAttribute>
   backdropClassName?: string
   backdropAttributes?: ReadonlyArray<ChildAttribute>
-}>
+}> &
+  UiCalendar.ViewLabels
 
 /** Renders an accessible date picker: a trigger button that opens a popover
  * containing an accessible calendar grid. The date picker assembles the
@@ -386,11 +387,48 @@ export const view = defineView<Model, Message, ViewInputs>(
 
     const triggerLabelAttributes = resolveTriggerLabel()
 
+    const calendarViewLabels: UiCalendar.ViewLabels = {
+      ...(viewInputs.previousMonthLabel !== undefined && {
+        previousMonthLabel: viewInputs.previousMonthLabel,
+      }),
+      ...(viewInputs.nextMonthLabel !== undefined && {
+        nextMonthLabel: viewInputs.nextMonthLabel,
+      }),
+      ...(viewInputs.previousYearsPageLabel !== undefined && {
+        previousYearsPageLabel: viewInputs.previousYearsPageLabel,
+      }),
+      ...(viewInputs.nextYearsPageLabel !== undefined && {
+        nextYearsPageLabel: viewInputs.nextYearsPageLabel,
+      }),
+      ...(viewInputs.daysHeadingButtonLabel !== undefined && {
+        daysHeadingButtonLabel: viewInputs.daysHeadingButtonLabel,
+      }),
+      ...(viewInputs.monthsHeadingButtonLabel !== undefined && {
+        monthsHeadingButtonLabel: viewInputs.monthsHeadingButtonLabel,
+      }),
+      ...(viewInputs.toDaysGridLabel !== undefined && {
+        toDaysGridLabel: viewInputs.toDaysGridLabel,
+      }),
+      ...(viewInputs.toWeekLabel !== undefined && {
+        toWeekLabel: viewInputs.toWeekLabel,
+      }),
+      ...(viewInputs.toMonthsGridLabel !== undefined && {
+        toMonthsGridLabel: viewInputs.toMonthsGridLabel,
+      }),
+      ...(viewInputs.toYearsGridLabel !== undefined && {
+        toYearsGridLabel: viewInputs.toYearsGridLabel,
+      }),
+    }
+
     const calendarVNode = h.submodel({
       slotId: model.calendar.id,
       model: model.calendar,
       view: UiCalendar.view,
-      viewInputs: { maybeSelectedDate, toView: toCalendarView },
+      viewInputs: {
+        maybeSelectedDate,
+        toView: toCalendarView,
+        ...calendarViewLabels,
+      },
       toParentMessage: message => Message.GotCalendarMessage({ message }),
     })
 
