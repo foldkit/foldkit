@@ -7,10 +7,11 @@ import {
   notePlayerDemoCodePlugin,
 } from './scripts/demoCodePlugin'
 import { islandAttributes } from './src/markdown/islandAttributes'
+import { PostFrontmatter } from './src/page/blog/frontmatter'
 
 export default defineConfig({
   plugins: [
-    markdown({ islands: islandAttributes }),
+    markdown({ islands: islandAttributes, frontmatter: PostFrontmatter }),
     counterDemoCodePlugin(),
     notePlayerDemoCodePlugin(),
   ],

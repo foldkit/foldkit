@@ -39,6 +39,8 @@ import {
   BestPracticesKeyingRoute,
   BestPracticesMessagesRoute,
   BestPracticesSideEffectsRoute,
+  BlogPostRoute,
+  BlogRoute,
   ComingFromReactRoute,
   ComingFromTanStackQueryRoute,
   CoreArchitectureRoute,
@@ -128,6 +130,8 @@ import {
   bestPracticesKeyingRouter,
   bestPracticesMessagesRouter,
   bestPracticesSideEffectsRouter,
+  blogPostRouter,
+  blogRouter,
   comingFromReactRouter,
   comingFromTanStackQueryRouter,
   coreArchitectureRouter,
@@ -210,6 +214,7 @@ import {
   whatAboutSsrRouter,
   whyNoJsxRouter,
 } from '../src/route'
+import { type BlogPostEntry, blogPostSlugs, blogPosts } from './blogPosts'
 import {
   type LlmsFullEntry,
   type LlmsIndexEntry,
@@ -313,6 +318,8 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   AiOverviewRoute(),
   AiSkillsRoute(),
   AiMcpRoute(),
+  BlogRoute(),
+  ...Array.map(blogPostSlugs, slug => BlogPostRoute({ postSlug: slug })),
 ]
 
 export const routeToUrlPath = (route: AppRoute): string =>
@@ -410,6 +417,8 @@ export const routeToUrlPath = (route: AppRoute): string =>
       ApiModule: ({ moduleSlug }) => apiModuleRouter({ moduleSlug }),
       Playground: ({ exampleSlug }) => playgroundRouter({ exampleSlug }),
       Newsletter: () => newsletterRouter(),
+      Blog: () => blogRouter(),
+      BlogPost: ({ postSlug }) => blogPostRouter({ postSlug }),
       NotFound: () => '/',
     }),
   )
@@ -693,6 +702,50 @@ ${entries}
 </urlset>`
 }
 
+// RSS
+
+const RSS_OUTPUT_PATH = 'blog/rss.xml'
+
+const escapeXml = (text: string): string =>
+  text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+
+const toRfc822Date = (date: string): string =>
+  Option.match(DateTime.make(date), {
+    onNone: () => date,
+    onSome: dateTime => DateTime.toDateUtc(dateTime).toUTCString(),
+  })
+
+const blogPostRssItem = (entry: BlogPostEntry): string => {
+  const postUrl = `${SITE_URL}${blogPostRouter({ postSlug: entry.slug })}`
+  return `<item>
+  <title>${escapeXml(entry.frontmatter.title)}</title>
+  <link>${escapeXml(postUrl)}</link>
+  <guid>${escapeXml(postUrl)}</guid>
+  <description>${escapeXml(entry.frontmatter.description)}</description>
+  <pubDate>${toRfc822Date(entry.frontmatter.date)}</pubDate>
+</item>`
+}
+
+export const buildBlogRssFeed = (
+  posts: ReadonlyArray<BlogPostEntry>,
+): string => {
+  const items = pipe(posts, Array.map(blogPostRssItem), Array.join('\n'))
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>Foldkit Blog</title>
+<link>${SITE_URL}${blogRouter()}</link>
+<description>Release notes, patterns, and deep dives into building frontend applications with Foldkit.</description>
+${items}
+</channel>
+</rss>`
+}
+
 // PROGRAM
 
 const resultToIndexEntry =
@@ -760,6 +813,11 @@ const program = Effect.scoped(
       resolve(DIST_DIR, 'sitemap.xml'),
       buildSitemap(routes, lastModification),
     )
+
+    const rssFilePath = resolve(DIST_DIR, RSS_OUTPUT_PATH)
+    yield* fs.makeDirectory(dirname(rssFilePath), { recursive: true })
+    yield* fs.writeFileString(rssFilePath, buildBlogRssFeed(blogPosts))
+    yield* Console.log(`  ✓ /${RSS_OUTPUT_PATH}`)
 
     const indexEntries = Array.map(
       markdownResults,

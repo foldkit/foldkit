@@ -114,6 +114,11 @@ export const AiMcpRoute = r('AiMcp')
 
 export const NewsletterRoute = r('Newsletter')
 
+export const BlogRoute = r('Blog')
+export type BlogRoute = typeof BlogRoute.Type
+export const BlogPostRoute = r('BlogPost', { postSlug: S.String })
+export type BlogPostRoute = typeof BlogPostRoute.Type
+
 export const NotFoundRoute = r('NotFound', { path: S.String })
 
 export const DocsRoute = S.Union([
@@ -211,6 +216,8 @@ export type DocsRoute = typeof DocsRoute.Type
 export const AppRoute = S.Union([
   HomeRoute,
   NewsletterRoute,
+  BlogRoute,
+  BlogPostRoute,
   PlaygroundRoute,
   DocsRoute,
 ])
@@ -218,6 +225,11 @@ export type AppRoute = typeof AppRoute.Type
 
 export const isPlaygroundRoute = (route: AppRoute): route is PlaygroundRoute =>
   route._tag === 'Playground'
+
+export const isBlogRoute = (
+  route: AppRoute,
+): route is BlogRoute | BlogPostRoute =>
+  route._tag === 'Blog' || route._tag === 'BlogPost'
 
 // ROUTERS
 
@@ -568,15 +580,22 @@ const docsParser = oneOf(
 
 export const newsletterRouter = page('newsletter', NewsletterRoute)
 
+export const blogRouter = page('blog', BlogRoute)
+export const blogPostRouter = pipe(
+  literal('blog'),
+  slash(string('postSlug')),
+  mapTo(BlogPostRoute),
+)
+
+const blogParser = oneOf(blogPostRouter, blogRouter)
+
 export const routeParser = oneOf(
   docsParser,
   apiModuleRouter,
   newsletterRouter,
+  blogParser,
   playgroundRouter,
   homeRouter,
 )
 
 export const urlToAppRoute = parseUrlWithFallback(routeParser, NotFoundRoute)
-
-export const isLandingHeaderAlwaysVisible = (route: AppRoute) =>
-  route._tag === 'Newsletter'

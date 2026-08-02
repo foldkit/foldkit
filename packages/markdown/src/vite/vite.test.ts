@@ -2,7 +2,11 @@ import { Option, Schema as S } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import { decodeDocument, encodeDocument } from '../ast/index.js'
-import { markdown, parseMarkdown } from './vite.js'
+import {
+  markdown,
+  parseMarkdown,
+  parseMarkdownWithFrontmatter,
+} from './vite.js'
 import type { MarkdownPluginOptions } from './vite.js'
 
 const lines = (...sourceLines: ReadonlyArray<string>): string =>
@@ -407,18 +411,142 @@ describe('parseMarkdown', () => {
     )
   })
 
-  it('rejects YAML frontmatter', () => {
+  it('rejects YAML frontmatter when no frontmatter schema is configured', () => {
     expect(() =>
       parseMarkdown(lines('---', 'title: My Post', '---', '', 'Prose.')),
     ).toThrowError(/Frontmatter is not supported/)
   })
 })
 
+describe('parseMarkdownWithFrontmatter', () => {
+  const frontmatterOptions: MarkdownPluginOptions = {
+    frontmatter: S.Struct({
+      title: S.String,
+      date: S.optionalKey(S.String),
+    }),
+  }
+
+  it('extracts validated frontmatter fields and drops the block from the document', () => {
+    const { document, maybeFrontmatter } = parseMarkdownWithFrontmatter(
+      lines('---', 'title: My Post', 'date: 2026-08-01', '---', '', 'Prose.'),
+      frontmatterOptions,
+    )
+
+    expect(maybeFrontmatter).toStrictEqual(
+      Option.some({ title: 'My Post', date: '2026-08-01' }),
+    )
+    expect(document.blocks.map(block => block._tag)).toStrictEqual([
+      'Paragraph',
+    ])
+  })
+
+  it('strips matching surrounding quotes from field values', () => {
+    const { maybeFrontmatter } = parseMarkdownWithFrontmatter(
+      lines('---', 'title: "Colons: allowed"', '---'),
+      frontmatterOptions,
+    )
+
+    expect(maybeFrontmatter).toStrictEqual(
+      Option.some({ title: 'Colons: allowed' }),
+    )
+  })
+
+  it('returns no frontmatter for a document without a block', () => {
+    const { maybeFrontmatter } = parseMarkdownWithFrontmatter(
+      '# Title',
+      frontmatterOptions,
+    )
+
+    expect(maybeFrontmatter).toStrictEqual(Option.none())
+  })
+
+  it('rejects entries that are not flat key: value pairs', () => {
+    expect(() =>
+      parseMarkdownWithFrontmatter(
+        lines('---', 'tags:', '  - one', '---'),
+        frontmatterOptions,
+      ),
+    ).toThrowError(/flat `key: value` pairs/)
+  })
+
+  it('parses field names shared with Object.prototype members', () => {
+    const prototypeOptions: MarkdownPluginOptions = {
+      frontmatter: S.Struct({ toString: S.String }),
+    }
+
+    const { maybeFrontmatter } = parseMarkdownWithFrontmatter(
+      lines('---', 'toString: yes', '---'),
+      prototypeOptions,
+    )
+
+    expect(maybeFrontmatter).toStrictEqual(Option.some({ toString: 'yes' }))
+  })
+
+  it('rejects duplicate fields', () => {
+    expect(() =>
+      parseMarkdownWithFrontmatter(
+        lines('---', 'title: One', 'title: Two', '---'),
+        frontmatterOptions,
+      ),
+    ).toThrowError(/Duplicate frontmatter field "title"/)
+  })
+
+  it('rejects fields outside the schema, naming the allowed fields', () => {
+    expect(() =>
+      parseMarkdownWithFrontmatter(
+        lines('---', 'title: My Post', 'author: Devin', '---'),
+        frontmatterOptions,
+      ),
+    ).toThrowError(
+      /Unknown frontmatter field "author".*Allowed fields: title, date\./,
+    )
+  })
+
+  it('rejects values the schema does not accept', () => {
+    const strictOptions: MarkdownPluginOptions = {
+      frontmatter: S.Struct({ count: S.NumberFromString.check(S.isFinite()) }),
+    }
+
+    expect(() =>
+      parseMarkdownWithFrontmatter(
+        lines('---', 'count: not-a-number', '---'),
+        strictOptions,
+      ),
+    ).toThrowError(/Invalid frontmatter/)
+  })
+
+  it('rejects a document missing required fields', () => {
+    expect(() =>
+      parseMarkdownWithFrontmatter(
+        lines('---', 'date: 2026-08-01', '---'),
+        frontmatterOptions,
+      ),
+    ).toThrowError(/Invalid frontmatter/)
+  })
+
+  it('rejects a non-Struct frontmatter schema', () => {
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const malformedOptions = {
+      frontmatter: S.String,
+    } as unknown as MarkdownPluginOptions
+
+    expect(() =>
+      parseMarkdownWithFrontmatter('# Title', malformedOptions),
+    ).toThrowError(
+      'The `frontmatter` markdown plugin option must be a Schema struct describing the frontmatter fields.',
+    )
+  })
+})
+
 describe('markdown', () => {
-  const runTransform = (source: string, id: string) => {
-    const plugin = markdown({
+  const runTransform = (
+    source: string,
+    id: string,
+    options: MarkdownPluginOptions = {
       islands: { Counter: S.Struct({ label: S.optionalKey(S.String) }) },
-    })
+    },
+  ) => {
+    const plugin = markdown(options)
     if (typeof plugin.transform !== 'function') {
       throw new Error('Expected the plugin transform hook to be a function')
     }
@@ -438,12 +566,37 @@ describe('markdown', () => {
     }
     expect(result.code.startsWith('export default ')).toBe(true)
 
+    const [documentLine = ''] = result.code.split('\n')
     const wire: unknown = JSON.parse(
-      result.code.slice('export default '.length),
+      documentLine.slice('export default '.length),
     )
     expect(decodeDocument(wire).blocks.map(block => block._tag)).toStrictEqual([
       'Heading',
     ])
+  })
+
+  it('emits validated frontmatter as a named export', () => {
+    const frontmatterOptions: MarkdownPluginOptions = {
+      frontmatter: S.Struct({ title: S.String }),
+    }
+
+    const withFrontmatter = runTransform(
+      lines('---', 'title: My Post', '---', '', '# Title'),
+      '/site/src/content/post.md',
+      frontmatterOptions,
+    )
+    expect(withFrontmatter?.code).toContain(
+      'export const frontmatter = {"title":"My Post"}',
+    )
+
+    const withoutFrontmatter = runTransform(
+      '# Title',
+      '/site/src/content/about.md',
+      frontmatterOptions,
+    )
+    expect(withoutFrontmatter?.code).toContain(
+      'export const frontmatter = undefined',
+    )
   })
 
   it('leaves non-markdown modules untouched', () => {
