@@ -84,6 +84,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             CoreHttp: () => Page.Core.CoreHttp.tableOfContents,
             CoreCanvas: () => Page.Core.CoreCanvas.tableOfContents,
             CoreRuntime: () => Page.Core.Runtime.tableOfContents,
+            CoreServerRendering: () =>
+              Page.Core.CoreServerRendering.tableOfContents,
             CoreResources: () => Page.Core.Resources.tableOfContents,
             CoreManagedResources: () =>
               Page.Core.ManagedResources.tableOfContents,

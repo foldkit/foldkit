@@ -1,0 +1,13 @@
+---
+'foldkit': minor
+---
+
+Add server rendering as an experimental capability. The new `foldkit/experimental/server` entry ships `renderToString`, which resolves `init` for a request, runs the pure view under a no-op dispatch frame, and serializes the resulting Document to an HTML string. The root element is stamped with `data-foldkit-app` and, when the application declares Flags, the Schema-encoded flags ride along in a JSON script tag so a hydrating client reconstructs the same Model from the same inputs. Commands returned by `init` are not run on the server; the rendered HTML is the post-init state.
+
+On the client, a new `Runtime.hydrate(application)` boots by adopting a server-rendered DOM, as the counterpart to `Runtime.run`, which always renders fresh. The choice is explicit: `run` builds the DOM, `hydrate` adopts it, and reading the entry file tells you which mode a page uses, with no hidden detection. Under `hydrate` the first render adopts the server DOM in place instead of replacing it: existing elements keep their identity, focus, and scroll while module hooks attach listeners and re-assert attributes, props, and controlled values, and Mounts fire for adopted nodes in the same children-first order the differ uses for created ones. A mismatching subtree is rebuilt at the nearest parent, an undecodable flags payload falls back to a fresh render with a console warning, and an HMR-restored Model wins over hydration. `hydrate` on a page with no server-rendered root renders fresh, so the same client entry works when the app is served statically.
+
+`renderToString` returns the `Document`'s head state alongside the markup (`title`, `lang`, `dir`, `canonical`, `ogUrl`) so the host can stamp it into the shell and the served HTML is correct before the runtime boots, including the `<html>` language and direction for a localized page on first paint.
+
+Hydratable output now requires a non-empty runtime id and an element root, with typed `InvalidRuntimeId` and `InvalidHydrationRoot` failures when the handoff cannot be represented. Unsafe markup produces a typed `ServerSerializationError`, and serialized attribute names are validated before output. Hydration is the default for both request-time rendering and build-time static generation; visitor-specific browser facts should arrive through Commands or Subscriptions after hydration rather than being baked into SSG Flags.
+
+The server API lives under `foldkit/experimental/server` while it settles and may change in any release. `Runtime.hydrate` ships in the stable runtime as a sibling to `run`, but it only adopts a DOM stamped by the experimental server entry and otherwise renders fresh, so apps that do not use server rendering are unaffected.

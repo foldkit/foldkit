@@ -2,24 +2,23 @@ import {
   Array,
   Console,
   DateTime,
-  Deferred,
   Effect,
   Match as M,
   Option,
   Record,
   Schema as S,
   String as Str,
-  Stream,
   pipe,
 } from 'effect'
 import { FileSystem } from 'effect'
-import { ChildProcess } from 'effect/unstable/process'
+import * as Server from 'foldkit/experimental/server'
+import { Window } from 'happy-dom'
 import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { type Browser, chromium } from 'playwright'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { NodeRuntime, NodeServices } from '@effect/platform-node'
 
+import type * as ServerEntry from '../src/entry.server'
 import {
   type ApiModule,
   moduleNameToSlug,
@@ -62,6 +61,7 @@ import {
   CoreRenderRoute,
   CoreResourcesRoute,
   CoreRuntimeRoute,
+  CoreServerRenderingRoute,
   CoreSlowWarningsRoute,
   CoreSubmodelRoute,
   CoreSubscriptionsRoute,
@@ -151,6 +151,7 @@ import {
   coreRenderRouter,
   coreResourcesRouter,
   coreRuntimeRouter,
+  coreServerRenderingRouter,
   coreSlowWarningsRouter,
   coreSubmodelRouter,
   coreSubscriptionsRouter,
@@ -215,7 +216,7 @@ import {
   type LlmsIndexEntry,
   buildLlmsFull,
   buildLlmsIndex,
-  extractPageMarkdown,
+  extractMarkdownFromRenderedDocument,
   shouldExportMarkdown,
   urlPathToMarkdownPath,
 } from './markdown'
@@ -269,6 +270,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   CoreHttpRoute(),
   CoreCanvasRoute(),
   CoreRuntimeRoute(),
+  CoreServerRenderingRoute(),
   CoreResourcesRoute(),
   CoreManagedResourcesRoute(),
   CoreDevToolsRoute(),
@@ -362,6 +364,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
       CoreHttp: () => coreHttpRouter(),
       CoreCanvas: () => coreCanvasRouter(),
       CoreRuntime: () => coreRuntimeRouter(),
+      CoreServerRendering: () => coreServerRenderingRouter(),
       CoreResources: () => coreResourcesRouter(),
       CoreManagedResources: () => coreManagedResourcesRouter(),
       CoreDevTools: () => coreDevToolsRouter(),
@@ -421,8 +424,15 @@ export const routeToOutputPath = (route: AppRoute): string => {
 
 const ROOT_PLACEHOLDER = '<div id="root"></div>'
 
+// NOTE: the replacement is a function so `$` sequences in rendered markup
+// (code snippets routinely contain `$&`, `$'`, and the like) are inserted
+// verbatim. A string second argument to `String.replace` would treat them as
+// match-insertion patterns and corrupt the page.
 export const injectHtml = (baseHtml: string, renderedHtml: string): string =>
-  baseHtml.replace(ROOT_PLACEHOLDER, `<div id="root">${renderedHtml}</div>`)
+  baseHtml.replace(
+    ROOT_PLACEHOLDER,
+    () => `<div id="root">${renderedHtml}</div>`,
+  )
 
 // PLAYGROUND SHELL
 
@@ -461,102 +471,88 @@ const DIST_DIR = resolve(WEBSITE_DIR, 'dist')
 const API_JSON_PATH = resolve(WEBSITE_DIR, 'src/generated/api.json')
 const API_UI_JSON_PATH = resolve(WEBSITE_DIR, 'src/generated/api-ui.json')
 
-// SERVICES
+// SERVER ENTRY
 
-const PREVIEW_PORT = 4173
-const PREVIEW_BASE_URL = `http://localhost:${PREVIEW_PORT}`
+const SERVER_ENTRY_PATH = resolve(WEBSITE_DIR, 'dist-server/entry.server.js')
 
-const previewServerResource = Effect.acquireRelease(
-  Effect.gen(function* () {
-    const cmd = ChildProcess.make(
-      'pnpm',
-      [
-        'exec',
-        'vite',
-        'preview',
-        '--port',
-        String(PREVIEW_PORT),
-        '--strictPort',
-      ],
-      { cwd: WEBSITE_DIR },
-    )
-
-    const serverProcess = yield* cmd
-    const ready = yield* Deferred.make<void>()
-
-    const checkLine = (line: string): Effect.Effect<void> =>
-      line.includes('localhost')
-        ? Deferred.succeed(ready, undefined).pipe(Effect.asVoid)
-        : Effect.void
-
-    yield* serverProcess.stdout.pipe(
-      Stream.decodeText({ encoding: 'utf-8' }),
-      Stream.splitLines,
-      Stream.runForEach(checkLine),
-      Effect.forkDetach,
-    )
-
-    yield* Deferred.await(ready)
-    return serverProcess
-  }),
-  serverProcess => Effect.ignore(serverProcess.kill()),
-).pipe(Effect.asVoid)
-
-const playwrightBrowserResource = Effect.acquireRelease(
-  Effect.tryPromise(() => chromium.launch({ headless: true })),
-  browser => Effect.promise(() => browser.close()),
+// NOTE: the app module graph uses Vite-only specifiers (`virtual:*`, `.md`,
+// `?raw`, `import.meta.glob`), so it cannot be imported by tsx directly. The
+// `preprerender` script builds `src/entry.server.ts` with `vite build --ssr`
+// first, and this dynamic import loads that bundle.
+const loadServerEntry: Effect.Effect<typeof ServerEntry> = Effect.promise(
+  () => import(pathToFileURL(SERVER_ENTRY_PATH).href),
 )
 
-type CapturedPage = Readonly<{ html: string; markdown: string }>
+type RenderedPage = Readonly<{
+  application: Server.RenderedApplication
+  markdown: string
+}>
 
-// NOTE: tsx/esbuild wraps named arrow functions with a `__name(fn, "name")`
-// helper to preserve debug names. When Playwright ships our extraction
-// function to the page via `fn.toString()`, the body still references
-// `__name`, which doesn't exist in browser scope. The no-op polyfill keeps
-// `page.evaluate` calls from crashing without touching the foldkit bundle
-// (Vite scopes its own `__name` per module, so the global shim is never
-// reached by app code).
-const PAGE_INIT_SCRIPT = `
-  Object.defineProperty(window, "__FOLDKIT_PRERENDER__", {
-    value: true,
-    writable: false,
-  });
-  window.__name = (target) => target;
-`
+const API_SECTION_MARKER = 'data-pagefind-meta="section"'
 
-const captureRoutePage = (browser: Browser, url: string, route: AppRoute) =>
+const extractMarkdownFromHtml = (html: string): Effect.Effect<string> =>
   Effect.acquireUseRelease(
-    Effect.tryPromise(() => browser.newPage()),
-    page =>
-      Effect.gen(function* () {
-        yield* Effect.tryPromise(() => page.addInitScript(PAGE_INIT_SCRIPT))
-        yield* Effect.tryPromise(() => page.goto(url))
-        yield* Effect.tryPromise(() =>
-          page.waitForFunction(() => {
-            const firstChild = document.body.firstElementChild
-            return (
-              firstChild !== null &&
-              firstChild.id !== 'root' &&
-              firstChild.children.length > 0
-            )
-          }),
-        )
-        if (route._tag === 'ApiModule') {
-          yield* Effect.tryPromise(() =>
-            page.waitForSelector('h1[data-pagefind-meta="section"]'),
-          )
-        }
-        const html = yield* Effect.tryPromise(() =>
-          page.evaluate(() => document.body.firstElementChild?.outerHTML ?? ''),
-        )
-        const markdown = shouldExportMarkdown(route)
-          ? yield* extractPageMarkdown(page)
-          : ''
-        const captured: CapturedPage = { html, markdown }
-        return captured
+    Effect.sync(() => new Window()),
+    window =>
+      Effect.sync(() => {
+        window.document.body.innerHTML = html
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        const renderedDocument = window.document as unknown as Document
+        return extractMarkdownFromRenderedDocument(renderedDocument)
       }),
-    page => Effect.promise(() => page.close()),
+    window => Effect.promise(() => window.happyDOM.close()),
   )
+
+const renderRoutePage = (serverEntry: typeof ServerEntry, route: AppRoute) =>
+  Effect.gen(function* () {
+    const urlPath = routeToUrlPath(route)
+    const result = yield* Effect.promise(() =>
+      serverEntry.renderPage(new Request(`${SITE_URL}${urlPath}`)),
+    )
+    if (result._tag === 'Responded') {
+      return yield* Effect.fail(
+        new Error(
+          `The server entry returned a complete Response while prerendering ${urlPath}; static HTML generation requires a Rendered result.`,
+        ),
+      )
+    }
+    if (result.status !== undefined && result.status !== 200) {
+      return yield* Effect.fail(
+        new Error(
+          `The server entry returned status ${result.status} while prerendering ${urlPath}; the static host cannot preserve that status in an HTML file.`,
+        ),
+      )
+    }
+    if (result.headers !== undefined) {
+      return yield* Effect.fail(
+        new Error(
+          `The server entry returned response headers while prerendering ${urlPath}; the static host cannot preserve them in an HTML file.`,
+        ),
+      )
+    }
+    const rendered = result.application
+
+    if (
+      route._tag === 'ApiModule' &&
+      !rendered.html.includes(API_SECTION_MARKER)
+    ) {
+      return yield* Effect.fail(
+        new Error(
+          `API module page ${urlPath} rendered without its section heading; ` +
+            'the API data seeding in entry.server.ts has regressed.',
+        ),
+      )
+    }
+
+    const markdown = shouldExportMarkdown(route)
+      ? yield* extractMarkdownFromHtml(rendered.html)
+      : ''
+    const renderedPage: RenderedPage = {
+      application: rendered,
+      markdown,
+    }
+    return renderedPage
+  })
 
 // PRERENDER
 
@@ -604,7 +600,7 @@ const buildApiModuleNameResolver = (
 
 const prerenderRoute =
   (
-    browser: Browser,
+    serverEntry: typeof ServerEntry,
     baseHtml: string,
     resolveApiModuleName: ApiModuleNameResolver,
   ) =>
@@ -612,11 +608,13 @@ const prerenderRoute =
     Effect.gen(function* () {
       const urlPath = routeToUrlPath(route)
       const outputPath = routeToOutputPath(route)
-      const url = `${PREVIEW_BASE_URL}${urlPath}`
       const outputFilePath = resolve(DIST_DIR, outputPath)
 
-      const captured = yield* captureRoutePage(browser, url, route)
-      const injectedHtml = injectHtml(baseHtml, captured.html)
+      const captured = yield* renderRoutePage(serverEntry, route)
+      const injectedHtml = Server.injectIntoTemplate(
+        baseHtml,
+        captured.application,
+      )
       const outputHtml = injectMetaTags(
         injectedHtml,
         route,
@@ -715,8 +713,7 @@ const program = Effect.scoped(
   Effect.gen(function* () {
     yield* Console.log('Starting prerender...')
 
-    yield* previewServerResource
-    const browser = yield* playwrightBrowserResource
+    const serverEntry = yield* loadServerEntry
 
     const apiModules = yield* readApiModules
     const apiModuleSlugs = Array.map(apiModules, ({ name }) =>
@@ -745,11 +742,19 @@ const program = Effect.scoped(
 
     const results = yield* Effect.forEach(
       routes,
-      prerenderRoute(browser, baseHtml, resolveApiModuleName),
+      prerenderRoute(serverEntry, baseHtml, resolveApiModuleName),
       { concurrency: 4 },
     )
 
     const successfulResults = Array.getSomes(results)
+    const failedResults = Array.filter(results, Option.isNone)
+    if (Array.isArrayNonEmpty(failedResults)) {
+      return yield* Effect.die(
+        new Error(
+          `Failed to prerender ${failedResults.length} routes. See the errors above.`,
+        ),
+      )
+    }
     const markdownResults = Array.filter(
       successfulResults,
       result => result.markdown.length > 0,

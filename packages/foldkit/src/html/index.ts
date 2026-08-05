@@ -141,6 +141,22 @@ export const TextDirection = S.Literals(['Ltr', 'Rtl', 'Auto'])
  *  element. `Auto` defers to the browser's first-strong-character heuristic. */
 export type TextDirection = typeof TextDirection.Type
 
+const textDirectionAttributes: Readonly<
+  Record<TextDirection, 'ltr' | 'rtl' | 'auto'>
+> = {
+  Ltr: 'ltr',
+  Rtl: 'rtl',
+  Auto: 'auto',
+}
+
+/** Maps a {@link TextDirection} to the lowercase value written to the `dir`
+ *  attribute on the `<html>` element. Shared by the client runtime, which sets
+ *  it after each render, and server rendering, which stamps it into the served
+ *  shell so the direction is correct on first paint. */
+export const textDirectionToAttribute = (
+  direction: TextDirection,
+): 'ltr' | 'rtl' | 'auto' => textDirectionAttributes[direction]
+
 /** A view's complete output for the runtime: title, body, and optional document
  *  metadata. The runtime applies `title` to `document.title`, syncs `lang` and
  *  `dir` to the `<html>` element, syncs `canonical` to `<link rel="canonical">`

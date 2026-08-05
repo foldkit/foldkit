@@ -41,7 +41,6 @@ import {
   Document,
   Html,
   type HtmlBuilder,
-  TextDirection,
   __beginRender as beginHtmlRender,
   __beginReplayRender as beginReplayHtmlRender,
   __clearRuntime as clearHtmlRuntime,
@@ -49,7 +48,13 @@ import {
   __endReplayRender as endReplayHtmlRender,
   __htmlBuilder as htmlBuilderFor,
   __setRuntime as setHtmlRuntime,
+  textDirectionToAttribute,
 } from '../html/index.js'
+import { __hydrateVNode } from '../hydrate.js'
+import {
+  FOLDKIT_APP_ATTRIBUTE,
+  FOLDKIT_FLAGS_ATTRIBUTE,
+} from '../hydrationMarker.js'
 import type {
   ManagedResourceConfig,
   ManagedResources,
@@ -604,6 +609,67 @@ export type CrashConfig<Model, Message> = Readonly<{
 }>
 
 /** Full runtime configuration including model schema, flags, init, update, view, and optional routing/stream config. */
+type HydrationConfig = Readonly<{
+  root: HTMLElement
+  runtimeId: string
+  maybeFlagsPayload: Option.Option<string>
+  isFlagsRequired: boolean
+}>
+
+const hydrationForRoot = (
+  root: HTMLElement,
+  isFlagsRequired: boolean,
+): HydrationConfig => {
+  const runtimeId = root.getAttribute(FOLDKIT_APP_ATTRIBUTE) ?? ''
+  const maybeFlagsPayload = pipe(
+    Array.fromIterable(
+      document.querySelectorAll<HTMLScriptElement>(
+        `script[${FOLDKIT_FLAGS_ATTRIBUTE}]`,
+      ),
+    ),
+    Array.findFirst(
+      script => script.getAttribute(FOLDKIT_FLAGS_ATTRIBUTE) === runtimeId,
+    ),
+    Option.map(script => script.textContent ?? ''),
+  )
+  return { root, runtimeId, maybeFlagsPayload, isFlagsRequired }
+}
+
+// NOTE: hydration is scoped to the app's own container so a server-rendered
+// app never adopts another app's DOM. A non-null container hydrates only when
+// that exact element carries the stamp; an unstamped container (a client-only
+// widget, or a static SPA fallback serving an empty root) boots fresh even if
+// some other app's stamped root is elsewhere on the page. A null container is
+// the replace-parity case, where the server root took the placeholder's place
+// and `getElementById` no longer finds it, so the stamp is the only handle;
+// more than one stamped root is then ambiguous and is a hard error rather than
+// a silent wrong-DOM adoption.
+const findDocumentHydration = (
+  container: HTMLElement | null,
+  isFlagsRequired: boolean,
+): HydrationConfig | undefined => {
+  if (container !== null) {
+    return container.hasAttribute(FOLDKIT_APP_ATTRIBUTE)
+      ? hydrationForRoot(container, isFlagsRequired)
+      : undefined
+  }
+  const stampedRoots = document.querySelectorAll<HTMLElement>(
+    `[${FOLDKIT_APP_ATTRIBUTE}]`,
+  )
+  if (stampedRoots.length > 1) {
+    throw new Error(
+      '[foldkit] Found multiple server-rendered roots stamped with ' +
+        `\`${FOLDKIT_APP_ATTRIBUTE}\` but no container to disambiguate them. ` +
+        'Give each app its own container element so the runtime can tell ' +
+        'which root to hydrate.',
+    )
+  }
+  return Option.match(Array.head(Array.fromIterable(stampedRoots)), {
+    onNone: () => undefined,
+    onSome: root => hydrationForRoot(root, isFlagsRequired),
+  })
+}
+
 type RuntimeConfig<
   Model,
   Message,
@@ -646,6 +712,16 @@ type RuntimeConfig<
     Resources | ManagedResourceServices
   >
   container: HTMLElement
+  /**
+   * Present when `makeApplication` found a server-rendered root stamped with
+   * `data-foldkit-app`. The first render then adopts that DOM in place
+   * instead of replacing it, and when the config declares Flags, `init` is
+   * fed the Schema-decoded flags payload the server embedded rather than the
+   * result of the client `flags` Effect, so both sides compute the same
+   * Model. An HMR-restored Model or an undecodable payload falls back to a
+   * fresh replace boot against the stamped root.
+   */
+  hydration?: HydrationConfig
   routing?: RoutingConfig<Message>
   crash?: CrashConfig<Model, Message>
   slow?: SlowConfig<Model, Message>
@@ -1033,6 +1109,8 @@ export type ElementInit<
   ManagedResourceServices = never,
 > = ApplicationInit<Model, Message, Flags, Resources, ManagedResourceServices>
 
+type BootMode = 'Fresh' | 'Hydrate'
+
 /** A configured Foldkit runtime returned by `makeApplication` or `makeElement`.
  *  Pass it to `run` to start a page-owning app, or to `embed` to start it under
  *  a host-controlled lifecycle handle. `ports` is the Ports record from the
@@ -1313,6 +1391,7 @@ type RuntimeInternals = {
   startWith: (
     maybeConnector: Option.Option<HostConnector>,
     hmrModel?: unknown,
+    bootMode?: BootMode,
   ) => Effect.Effect<void>
   isEmbedActive: boolean
   maybeActiveFiber: Option.Option<Fiber.Fiber<void>>
@@ -1330,6 +1409,7 @@ const makeRuntime = <
 >({
   ports,
   Model,
+  Flags: FlagsCodec,
   flags: maybeResolveFlags,
   init,
   update,
@@ -1337,6 +1417,7 @@ const makeRuntime = <
   manageDocument,
   subscriptions,
   container,
+  hydration,
   routing: routingConfig,
   crash,
   slow,
@@ -1446,11 +1527,15 @@ const makeRuntime = <
     validatePorts(ports)
   }
 
-  const runtimeId = container?.id ?? ''
+  const runtimeId =
+    hydration !== undefined && hydration.runtimeId !== ''
+      ? hydration.runtimeId
+      : (container?.id ?? '')
 
   const startWith = (
     maybeConnector: Option.Option<HostConnector>,
     hmrModel?: unknown,
+    bootMode: BootMode = 'Fresh',
   ): Effect.Effect<void> => {
     // NOTE: one notifier per runtime, provided across the whole runtime
     // Effect so Commands, Subscriptions, and Mount-forked Effects all resolve
@@ -1464,7 +1549,8 @@ const makeRuntime = <
           return yield* Effect.die(
             new Error(
               '[foldkit] Runtime container must have an `id` for HMR model preservation. ' +
-                'Set `container.id = "app"` (or any unique string) before passing it to makeApplication or makeElement.',
+                'Set `container.id = "app"` (or any unique string) before passing it to makeApplication or makeElement. ' +
+                'On a server-rendered page the id comes from the `data-foldkit-app` root stamp instead.',
             ),
           )
         }
@@ -1666,12 +1752,81 @@ const makeRuntime = <
               }),
           })
 
-        const resolveFlags: Effect.Effect<Flags> = Option.match(
+        const resolveConfigFlags: Effect.Effect<Flags> = Option.match(
           maybeResolveFlags,
           {
             /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
             onNone: () => Effect.succeed(undefined as Flags),
             onSome: provideResources,
+          },
+        )
+
+        const decodeFlagsPayload = (payload: string): Option.Option<Flags> => {
+          if (Predicate.isUndefined(FlagsCodec)) {
+            return Option.none()
+          }
+          try {
+            const parsedPayload: unknown = JSON.parse(payload)
+            return pipe(
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              Schema.toCodecJson(FlagsCodec as Schema.Codec<Flags>),
+              Schema.decodeUnknownExit,
+              decode => decode(parsedPayload),
+              Exit.match({
+                onFailure: () => Option.none<Flags>(),
+                onSuccess: Option.some,
+              }),
+            )
+          } catch {
+            return Option.none()
+          }
+        }
+
+        // NOTE: hydration happens only when the caller explicitly booted with
+        // `hydrate`; `run` always renders fresh. An HMR-restored Model wins
+        // even under `hydrate`, because a reload means code changed and the
+        // server DOM reflects a stale view, so a fresh render against the
+        // stamped root is the correct boot.
+        const maybeRequestedHydration =
+          bootMode === 'Hydrate' && Predicate.isUndefined(hmrModel)
+            ? Option.fromNullishOr(hydration)
+            : Option.none<HydrationConfig>()
+
+        const maybeHydrationFlags: Option.Option<Flags> = Option.flatMap(
+          maybeRequestedHydration,
+          requestedHydration =>
+            requestedHydration.isFlagsRequired
+              ? Option.flatMap(
+                  requestedHydration.maybeFlagsPayload,
+                  decodeFlagsPayload,
+                )
+              : Option.none(),
+        )
+
+        const maybeHydrationRoot: Option.Option<HTMLElement> = Option.flatMap(
+          maybeRequestedHydration,
+          requestedHydration =>
+            !requestedHydration.isFlagsRequired ||
+            Option.isSome(maybeHydrationFlags)
+              ? Option.some(requestedHydration.root)
+              : Option.none(),
+        )
+
+        if (
+          Option.isSome(maybeRequestedHydration) &&
+          Option.isNone(maybeHydrationRoot)
+        ) {
+          console.warn(
+            '[foldkit] Found a server-rendered root but no decodable flags ' +
+              'payload. Rendering fresh instead of hydrating.',
+          )
+        }
+
+        const resolveFlags: Effect.Effect<Flags> = Option.match(
+          maybeHydrationFlags,
+          {
+            onNone: () => resolveConfigFlags,
+            onSome: Effect.succeed,
           },
         )
 
@@ -1889,6 +2044,12 @@ const makeRuntime = <
         }
 
         const vnodeSlot: VNodeSlot = { maybeCurrentVNode: Option.none() }
+
+        // NOTE: consumed by the first render only. Set when this boot found
+        // an adoptable server-rendered root; the first patch then goes
+        // through `__hydrateVNode` instead of replacing the container.
+        let pendingHydrationRoot: HTMLElement | null =
+          Option.getOrNull(maybeHydrationRoot)
 
         // NOTE: registered before any perpetual fiber is forked so it runs
         // after they are interrupted (scope finalizers are LIFO). Patching to
@@ -2314,14 +2475,31 @@ const makeRuntime = <
             const maybeCurrentVNode = vnodeSlot.maybeCurrentVNode
 
             const [patchedVNode, maybePatchDuration] = yield* Effect.sync(() =>
-              measureSlowPhase(maybeLiveSlowPatch, () =>
-                __patchVNode(
+              measureSlowPhase(maybeLiveSlowPatch, () => {
+                if (
+                  Option.isNone(maybeCurrentVNode) &&
+                  pendingHydrationRoot !== null
+                ) {
+                  const hydrationRoot = pendingHydrationRoot
+                  pendingHydrationRoot = null
+                  const hydratedVNode = __hydrateVNode(
+                    hydrationRoot,
+                    nextVNode,
+                    boundaryRegistry.dedupeSeen,
+                  )
+                  // NOTE: strip the stamp once adopted so a later boot on the
+                  // same container (a dispose-then-embed remount) does not
+                  // re-detect this now-consumed root as hydratable.
+                  hydrationRoot.removeAttribute(FOLDKIT_APP_ATTRIBUTE)
+                  return hydratedVNode
+                }
+                return __patchVNode(
                   maybeCurrentVNode,
                   nextVNode,
                   container,
                   boundaryRegistry.dedupeSeen,
-                ),
-              ),
+                )
+              }),
             )
             vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
 
@@ -3008,7 +3186,7 @@ const makeRuntime = <
   }
 
   const start = (hmrModel?: unknown): Effect.Effect<void> =>
-    startWith(Option.none(), hmrModel)
+    startWith(Option.none(), hmrModel, 'Fresh')
 
   const program: MakeRuntimeReturn<P> = { runtimeId, start, ports }
   runtimeInternals.set(program, {
@@ -3036,14 +3214,6 @@ type VNodeSlot = {
 const currentLocationUrl = (): string => {
   const { origin, pathname, search } = window.location
   return `${origin}${pathname}${search}`
-}
-
-const textDirectionForHtmlElement: Readonly<
-  Record<TextDirection, 'ltr' | 'rtl' | 'auto'>
-> = {
-  Ltr: 'ltr',
-  Rtl: 'rtl',
-  Auto: 'auto',
 }
 
 type DocumentMetadataElements = {
@@ -3107,7 +3277,7 @@ const applyDocumentMetadata = (
   }
 
   if (nextDocument.dir !== undefined) {
-    const dir = textDirectionForHtmlElement[nextDocument.dir]
+    const dir = textDirectionToAttribute(nextDocument.dir)
     if (documentElement.dir !== dir) {
       documentElement.dir = dir
     }
@@ -3309,16 +3479,21 @@ export function makeApplication<
     | ApplicationConfig<Model, Message, Resources, ManagedResourceServices, P>,
 ): MakeRuntimeReturn<P> {
   const { container } = config
-  if (container === null) {
-    throw new Error(
-      '[foldkit] Container is null. Make sure the element exists in the DOM ' +
-        'before calling makeApplication (e.g. that your <div id="root"></div> has ' +
-        'rendered, and your script runs after it).',
-    )
-  }
 
   const hasRouting = 'routing' in config
   const hasFlags = 'Flags' in config
+
+  const hydration = findDocumentHydration(container, hasFlags)
+
+  const resolvedContainer = hydration?.root ?? container
+  if (resolvedContainer === null) {
+    throw new Error(
+      '[foldkit] Container is null. Make sure the element exists in the DOM ' +
+        'before calling makeApplication (e.g. that your <div id="root"></div> has ' +
+        'rendered, and your script runs after it). On a server-rendered page ' +
+        'the runtime instead finds the root by its `data-foldkit-app` stamp.',
+    )
+  }
 
   const currentUrl: Url | undefined = hasRouting
     ? Option.getOrThrow(urlFromString(window.location.href))
@@ -3331,7 +3506,8 @@ export function makeApplication<
     manageDocument: true,
     ports: config.ports,
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
-    container,
+    container: resolvedContainer,
+    ...(hydration && { hydration }),
     ...(hasRouting && { routing: config.routing }),
     ...(config.crash && { crash: config.crash }),
     ...(Predicate.isNotUndefined(config.slow) && {
@@ -3725,15 +3901,65 @@ const resolveHmrModel = (runtimeId: string): Effect.Effect<unknown> => {
   )
 }
 
-/** Starts a Foldkit runtime that owns the page for the page's whole lifetime,
- *  with HMR support for development. To start a runtime under a
- *  host-controlled lifecycle instead, use `embed`. */
-export const run = (program: MakeRuntimeReturn<Ports | undefined>): void => {
+/** Starts a program Effect with explicit boot inputs for runtime tests.
+ * @internal */
+export const __startProgram = (
+  program: MakeRuntimeReturn<Ports | undefined>,
+  hmrModel: unknown,
+  bootMode: BootMode,
+): Effect.Effect<void> => {
+  if (bootMode === 'Fresh') {
+    return program.start(hmrModel)
+  }
+
+  const internals = runtimeInternals.get(program)
+  if (Predicate.isUndefined(internals)) {
+    return Effect.die(
+      new Error(
+        '[foldkit] hydrate expects a program created by makeApplication.',
+      ),
+    )
+  }
+  return internals.startWith(Option.none(), hmrModel, 'Hydrate')
+}
+
+const startProgram = (
+  program: MakeRuntimeReturn<Ports | undefined>,
+  bootMode: BootMode,
+): void => {
   BrowserRuntime.runMain(
     provideBrowserScheduler(
-      Effect.flatMap(resolveHmrModel(program.runtimeId), program.start),
+      Effect.flatMap(resolveHmrModel(program.runtimeId), hmrModel =>
+        __startProgram(program, hmrModel, bootMode),
+      ),
     ),
   )
+}
+
+/** Starts a Foldkit runtime that owns the page for the page's whole lifetime,
+ *  with HMR support for development. The first render builds the DOM fresh in
+ *  the container, replacing whatever is there. On a server-rendered page use
+ *  `hydrate` instead, which adopts the existing DOM. To start a runtime under a
+ *  host-controlled lifecycle, use `embed`. */
+export const run = (program: MakeRuntimeReturn<Ports | undefined>): void => {
+  startProgram(program, 'Fresh')
+}
+
+/** Starts a Foldkit runtime by adopting a server-rendered DOM in place instead
+ *  of building it fresh. Use this as the client entry for a page served by
+ *  `renderToString`: the first render attaches to the stamped root, keeps the
+ *  existing nodes, and reconstructs the Model from the flags the server
+ *  embedded. When no server-rendered root is present (for example the same
+ *  bundle served statically), it renders fresh, so one entry works for both.
+ *  The intent is explicit: reading the entry file tells you the boot hydrates,
+ *  rather than the runtime deciding on its own.
+ *
+ * @experimental Server rendering and hydration are experimental while their
+ * contracts settle. */
+export const hydrate = (
+  program: MakeRuntimeReturn<Ports | undefined>,
+): void => {
+  startProgram(program, 'Hydrate')
 }
 
 const buildPortHandles = <P extends Ports | undefined>(

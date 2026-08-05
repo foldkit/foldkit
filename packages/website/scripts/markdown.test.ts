@@ -5,7 +5,7 @@ import {
   type LlmsIndexEntry,
   buildLlmsFull,
   buildLlmsIndex,
-  extractMarkdownFromCurrentDocument,
+  extractMarkdownFromRenderedDocument,
   shouldExportMarkdown,
   urlPathToMarkdownPath,
 } from './markdown'
@@ -16,14 +16,14 @@ const setBody = (html: string): void => {
   document.body.innerHTML = `<div data-pagefind-body>${html}</div>`
 }
 
-describe('extractMarkdownFromCurrentDocument', () => {
+describe('extractMarkdownFromRenderedDocument', () => {
   beforeEach(() => {
     document.body.innerHTML = ''
   })
 
   it('returns the empty string when no pagefind body is present', () => {
     document.body.innerHTML = '<div>orphaned content</div>'
-    expect(extractMarkdownFromCurrentDocument(SITE_URL)).toBe('')
+    expect(extractMarkdownFromRenderedDocument(document, SITE_URL)).toBe('')
   })
 
   it('converts headings, paragraphs, and links', () => {
@@ -34,7 +34,7 @@ describe('extractMarkdownFromCurrentDocument', () => {
       <p>Run <code>pnpm create foldkit-app</code>.</p>
     `)
 
-    expect(extractMarkdownFromCurrentDocument(SITE_URL)).toBe(
+    expect(extractMarkdownFromRenderedDocument(document, SITE_URL)).toBe(
       `# Getting Started
 
 Welcome to [Foldkit](https://foldkit.dev/manifesto).
@@ -47,7 +47,7 @@ Run \`pnpm create foldkit-app\`.`,
 
   it('preserves external link hrefs verbatim', () => {
     setBody(`<p>See <a href="https://example.com/x">the docs</a>.</p>`)
-    expect(extractMarkdownFromCurrentDocument(SITE_URL)).toBe(
+    expect(extractMarkdownFromRenderedDocument(document, SITE_URL)).toBe(
       'See [the docs](https://example.com/x).',
     )
   })
@@ -57,7 +57,7 @@ Run \`pnpm create foldkit-app\`.`,
       <pre><code class="language-typescript">const x = 1
 const y = 2</code></pre>
     `)
-    const markdown = extractMarkdownFromCurrentDocument(SITE_URL)
+    const markdown = extractMarkdownFromRenderedDocument(document, SITE_URL)
     expect(markdown).toContain('```typescript')
     expect(markdown).toContain('const x = 1\nconst y = 2')
     expect(markdown).toContain('```')
@@ -65,14 +65,16 @@ const y = 2</code></pre>
 
   it('renders unordered lists with hyphen bullets', () => {
     setBody(`<ul><li>first</li><li>second</li><li>third</li></ul>`)
-    expect(extractMarkdownFromCurrentDocument(SITE_URL)).toBe(
+    expect(extractMarkdownFromRenderedDocument(document, SITE_URL)).toBe(
       '- first\n- second\n- third',
     )
   })
 
   it('renders ordered lists with numeric markers', () => {
     setBody(`<ol><li>one</li><li>two</li></ol>`)
-    expect(extractMarkdownFromCurrentDocument(SITE_URL)).toBe('1. one\n2. two')
+    expect(extractMarkdownFromRenderedDocument(document, SITE_URL)).toBe(
+      '1. one\n2. two',
+    )
   })
 
   it('prefixes labeled code blocks with a bold label line', () => {
@@ -81,7 +83,7 @@ const y = 2</code></pre>
         <pre><code class="language-bash">pnpm dev</code></pre>
       </div>
     `)
-    expect(extractMarkdownFromCurrentDocument(SITE_URL)).toBe(
+    expect(extractMarkdownFromRenderedDocument(document, SITE_URL)).toBe(
       '**pnpm**\n\n```bash\npnpm dev\n```',
     )
   })
@@ -93,7 +95,9 @@ const y = 2</code></pre>
         <p>nav junk</p>
       </div>
     `)
-    expect(extractMarkdownFromCurrentDocument(SITE_URL)).toBe('kept paragraph')
+    expect(extractMarkdownFromRenderedDocument(document, SITE_URL)).toBe(
+      'kept paragraph',
+    )
   })
 
   it('does not skip elements marked only data-pagefind-ignore', () => {
@@ -102,7 +106,7 @@ const y = 2</code></pre>
         <pre><code class="language-typescript">const x = 1</code></pre>
       </div>
     `)
-    expect(extractMarkdownFromCurrentDocument(SITE_URL)).toBe(
+    expect(extractMarkdownFromRenderedDocument(document, SITE_URL)).toBe(
       '```typescript\nconst x = 1\n```',
     )
   })
@@ -111,7 +115,7 @@ const y = 2</code></pre>
     setBody(
       `<pre class="shiki" data-language="typescript"><code><span class="line"><span style="color:#569cd6">const</span><span style="color:#9cdcfe"> x</span><span style="color:#d4d4d4"> =</span><span style="color:#b5cea8"> 1</span></span>\n<span class="line"><span style="color:#569cd6">const</span><span style="color:#9cdcfe"> y</span><span style="color:#d4d4d4"> =</span><span style="color:#b5cea8"> 2</span></span></code></pre>`,
     )
-    expect(extractMarkdownFromCurrentDocument(SITE_URL)).toBe(
+    expect(extractMarkdownFromRenderedDocument(document, SITE_URL)).toBe(
       '```typescript\nconst x = 1\nconst y = 2\n```',
     )
   })
@@ -121,7 +125,9 @@ const y = 2</code></pre>
       <p>visible <svg><path d="M0,0"/></svg> text</p>
       <button>Copy</button>
     `)
-    expect(extractMarkdownFromCurrentDocument(SITE_URL)).toBe('visible text')
+    expect(extractMarkdownFromRenderedDocument(document, SITE_URL)).toBe(
+      'visible text',
+    )
   })
 
   it('collapses excess blank lines between blocks', () => {
@@ -132,7 +138,7 @@ const y = 2</code></pre>
       <h2>B</h2>
       <p>three</p>
     `)
-    const markdown = extractMarkdownFromCurrentDocument(SITE_URL)
+    const markdown = extractMarkdownFromRenderedDocument(document, SITE_URL)
     expect(markdown).not.toMatch(/\n\n\n/)
   })
 })

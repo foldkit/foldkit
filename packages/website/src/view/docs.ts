@@ -675,6 +675,14 @@ export const docsView = (
           lazyDocsContent(Page.Core.Runtime.view, [model.copiedSnippets, h]),
           Page.Core.Runtime.tableOfContents,
         ),
+      CoreServerRendering: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.Core.CoreServerRendering.view, [
+            model.copiedSnippets,
+            h,
+          ]),
+          Page.Core.CoreServerRendering.tableOfContents,
+        ),
       CoreResources: () =>
         withTableOfContents(
           lazyDocsContent(Page.Core.Resources.view, [model.copiedSnippets, h]),

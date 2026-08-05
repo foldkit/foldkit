@@ -1,0 +1,170 @@
+import { Effect, Match as M, Schema as S } from 'effect'
+import { Command, Runtime } from 'foldkit'
+import { type Document, type Html, type HtmlBuilder } from 'foldkit/html'
+import { m } from 'foldkit/message'
+import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
+import { evo } from 'foldkit/struct'
+import { Url, toString as urlToString } from 'foldkit/url'
+
+import { AppRoute, aboutRouter, homeRouter, urlToAppRoute } from './route'
+
+// MODEL
+
+export const Model = S.Struct({
+  route: AppRoute,
+  count: S.Number,
+})
+export type Model = typeof Model.Type
+
+// MESSAGE
+
+export const ClickedIncrement = m('ClickedIncrement')
+export const ClickedLink = m('ClickedLink', { request: UrlRequest })
+export const ChangedUrl = m('ChangedUrl', { url: Url })
+export const CompletedNavigateInternal = m('CompletedNavigateInternal')
+export const CompletedLoadExternal = m('CompletedLoadExternal')
+
+export const Message = S.Union([
+  ClickedIncrement,
+  ClickedLink,
+  ChangedUrl,
+  CompletedNavigateInternal,
+  CompletedLoadExternal,
+])
+export type Message = typeof Message.Type
+
+// INIT
+
+export const init: Runtime.RoutingApplicationInit<Model, Message> = url => [
+  { route: urlToAppRoute(url), count: 0 },
+  [],
+]
+
+// COMMAND
+
+const NavigateInternal = Command.define('NavigateInternal', {
+  args: { url: S.String },
+  messages: [CompletedNavigateInternal],
+  execute: ({ url }) =>
+    pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())),
+})
+
+const LoadExternal = Command.define('LoadExternal', {
+  args: { href: S.String },
+  messages: [CompletedLoadExternal],
+  execute: ({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())),
+})
+
+// UPDATE
+
+type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+const withUpdateReturn = M.withReturnType<UpdateReturn>()
+
+export const update = (model: Model, message: Message): UpdateReturn =>
+  M.value(message).pipe(
+    withUpdateReturn,
+    M.tagsExhaustive({
+      ClickedIncrement: () => [evo(model, { count: count => count + 1 }), []],
+      ClickedLink: ({ request }) =>
+        M.value(request).pipe(
+          withUpdateReturn,
+          M.tagsExhaustive({
+            Internal: ({ url }) => [
+              model,
+              [NavigateInternal({ url: urlToString(url) })],
+            ],
+            External: ({ href }) => [model, [LoadExternal({ href })]],
+          }),
+        ),
+      ChangedUrl: ({ url }) => [
+        evo(model, { route: () => urlToAppRoute(url) }),
+        [],
+      ],
+      CompletedNavigateInternal: () => [model, []],
+      CompletedLoadExternal: () => [model, []],
+    }),
+  )
+
+// VIEW
+
+const routeTitle = (route: AppRoute): string =>
+  M.value(route).pipe(
+    M.tagsExhaustive({
+      Home: () => 'Home | Static Generation | Foldkit',
+      About: () => 'About | Static Generation | Foldkit',
+      NotFound: () => 'Not Found | Static Generation | Foldkit',
+    }),
+  )
+
+const navigationView = (h: HtmlBuilder<Message>): Html =>
+  h.nav(
+    [h.Class('flex gap-4')],
+    [
+      h.a([h.Href(homeRouter()), h.Class('underline')], ['Home']),
+      h.a([h.Href(aboutRouter()), h.Class('underline')], ['About']),
+    ],
+  )
+
+const pageView = (model: Model, h: HtmlBuilder<Message>): Html =>
+  M.value(model.route).pipe(
+    M.tagsExhaustive({
+      Home: () =>
+        h.section(
+          [h.Class('grid gap-4')],
+          [
+            h.h1(
+              [h.Id('page-title'), h.Class('text-4xl font-bold')],
+              ['Statically generated home'],
+            ),
+            h.p(
+              [],
+              [
+                'This route was rendered during the build and hydrated in place.',
+              ],
+            ),
+            h.button(
+              [
+                h.OnClick(ClickedIncrement()),
+                h.Class('w-fit bg-black px-4 py-2 text-white'),
+              ],
+              [`Count: ${model.count}`],
+            ),
+          ],
+        ),
+      About: () =>
+        h.section(
+          [h.Class('grid gap-4')],
+          [
+            h.h1(
+              [h.Id('page-title'), h.Class('text-4xl font-bold')],
+              ['Statically generated about page'],
+            ),
+            h.p(
+              [],
+              [
+                'The same renderPage function produced this route in the same build.',
+              ],
+            ),
+          ],
+        ),
+      NotFound: ({ path }) =>
+        h.section(
+          [h.Class('grid gap-4')],
+          [
+            h.h1(
+              [h.Id('page-title'), h.Class('text-4xl font-bold')],
+              ['Not found'],
+            ),
+            h.p([], [`No statically generated page exists for ${path}.`]),
+          ],
+        ),
+    }),
+  )
+
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+  title: routeTitle(model.route),
+  body: h.main(
+    [h.Class('mx-auto grid min-h-screen max-w-3xl content-center gap-10 p-8')],
+    [navigationView(h), pageView(model, h)],
+  ),
+})

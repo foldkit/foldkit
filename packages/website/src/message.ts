@@ -1,4 +1,5 @@
 import { Schema as S } from 'effect'
+import { Calendar } from 'foldkit'
 import { m } from 'foldkit/message'
 import { UrlRequest } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
@@ -7,7 +8,7 @@ import { Dialog, Menu, Tabs } from '@foldkit/ui'
 
 import * as Page from './page'
 import * as Search from './search'
-import { GroupKey } from './sidebarStorage'
+import { GroupKey, SidebarState } from './sidebarStorage'
 
 // THEME
 
@@ -28,6 +29,18 @@ export const CompletedScrollToAnchor = m('CompletedScrollToAnchor')
 export const CompletedApplyTheme = m('CompletedApplyTheme')
 export const CompletedSaveThemePreference = m('CompletedSaveThemePreference')
 export const CompletedSaveSidebarState = m('CompletedSaveSidebarState')
+export const CompletedLoadBrowserEnvironment = m(
+  'CompletedLoadBrowserEnvironment',
+  {
+    maybeThemePreference: S.Option(ThemePreference),
+    maybeSidebarState: S.Option(SidebarState),
+    systemTheme: ResolvedTheme,
+    isNarrowViewport: S.Boolean,
+    isChromium: S.Boolean,
+    currentYear: S.Number,
+    today: Calendar.CalendarDate,
+  },
+)
 export const CompletedScrollSidebarActiveLinkIntoView = m(
   'CompletedScrollSidebarActiveLinkIntoView',
 )
@@ -135,6 +148,7 @@ export const Message = S.Union([
   CompletedApplyTheme,
   CompletedSaveThemePreference,
   CompletedSaveSidebarState,
+  CompletedLoadBrowserEnvironment,
   CompletedScrollSidebarActiveLinkIntoView,
   CompletedScrollMobileMenuActiveLinkIntoView,
   SucceededCopyLink,
