@@ -2,7 +2,7 @@
 
 ## Init
 
-The counter works, but every time the user refreshes the page, the count resets to zero. What if we want to remember the last count? That’s where `init` comes in, and where flags let you pass data into your app at startup.
+The counter works, but every time the user refreshes the page, the count resets to zero. What if we want to remember the last count? That’s where `init` comes in, and where Flags let you pass data into your app at startup.
 
 In the restaurant analogy, init is the waiter’s notebook at the start of the shift: the state of every table before the first customer walks in.
 
@@ -14,20 +14,22 @@ For elements (components without routing), init takes no arguments. For applicat
 
 ## Flags
 
-In the restaurant analogy, flags are what the manager tells the waiter before the shift: “table 5 has a reservation at 7, and we’re out of the salmon.” Information from outside the app that shapes the initial state.
+In the restaurant analogy, Flags are what the manager tells the waiter before the shift: “table 5 has a reservation at 7, and we’re out of the salmon.” Information from outside the app that shapes the initial state.
 
-Flags let you pass initialization data into your application, like persisted state from localStorage or configuration values. Define a Flags schema and provide an Effect that loads the flags.
+Flags let you pass initialization data into your application, like persisted state from localStorage or configuration values. Define a Flags Schema and, for a fresh client boot, an Effect that loads the value.
 
-::Snippet{name="flagsDefinition" label="flags definition"}
+::Snippet{name="flagsDefinition" label="Flags definition"}
 
-When using flags, your init function receives them as the first argument:
+When using Flags, your init function receives them as the first argument:
 
-::Snippet{name="initWithFlags" label="init with flags"}
+::Snippet{name="initWithFlags" label="init with Flags"}
 
-Both the schema and the Effect are passed to `makeApplication` as `Flags` and `flags`. Without them the runtime calls `init` with no arguments and the compiler rejects the config.
+Pass the Schema to `makeApplication` as `Flags`. Pass the Effect to `Runtime.run`, where the client boot resolves it before `init`. Without the Schema, the runtime calls `init` with no arguments and the compiler rejects the config.
 
-::Snippet{name="counterEntryWithFlags" label="flags wiring"}
+::Snippet{name="counterEntryWithFlags" label="Flags wiring"}
 
-The example above discharges its own `KeyValueStore` requirement with `Effect.provide`, which is the right placement for a service used only at startup. When the flags Effect needs an app-wide singleton that Commands also use, leave the requirement in its type and let the `resources` Layer provide it. The runtime builds that Layer once and shares it, so [Resources](/core/resources) covers the details.
+The example above discharges its own `KeyValueStore` requirement with `Effect.provide`, which is the right placement for a service used only at startup. When the Flags Effect needs an app-wide singleton that Commands also use, leave the requirement in its type and let the `resources` Layer provide it. The runtime builds that Layer once and shares it, so [Resources](/core/resources) covers the details.
+
+Server rendering has a different authority for the value. `renderToString` receives Flags from the request or build, embeds their Schema encoding in the HTML, and `Runtime.hydrate` decodes that exact value. A hydrating entry does not provide a client Flags Effect and fails startup if the handoff is missing or invalid.
 
 Once your app outgrows a single Model, Message, and update, the next step is to decompose it into [Submodels](/core/submodel): self-contained modules with their own state, Messages, and update, embedded under a parent.

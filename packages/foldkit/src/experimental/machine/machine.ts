@@ -126,6 +126,8 @@ type GuardValueOf<GuardResult> = [GuardResult] extends [boolean]
  * from the table, and Messages absent from a state's `on` record, are
  * ignored: {@link Machine.step} reports them as `Ignored` rather than
  * transitioning.
+ *
+ * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
  */
 export type TransitionTable<
   State extends Tagged,
@@ -203,6 +205,8 @@ const makeEdge = <
  *
  * Only meaningful inside a {@link TransitionTable}: the source and trigger
  * types flow in from the table position contextually.
+ *
+ * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
  */
 export const to = <
   State extends Tagged,
@@ -232,6 +236,8 @@ export const to = <
  *
  * The state and Message parameters are `NoInfer` so they resolve from the
  * guard list's table position alone.
+ *
+ * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
  */
 export const when = <
   State extends Tagged,
@@ -282,6 +288,8 @@ export const when = <
  * The unconditional fallback at the end of a guard list. Its edge may carry
  * Commands whose Effects need services, threading their requirements into the
  * Machine's `R` the same way {@link to} and {@link when} do.
+ *
+ * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
  */
 export const otherwise = <
   State extends Tagged,
@@ -320,7 +328,10 @@ export type Ignored<State extends Tagged, Message extends Tagged> = Readonly<{
   state: State
 }>
 
-/** The observable outcome of one step: `Transitioned` or `Ignored`. */
+/** The observable outcome of one step: `Transitioned` or `Ignored`.
+ *
+ * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
+ */
 export type TransitionResult<
   State extends Tagged,
   Message extends Tagged,
@@ -360,7 +371,10 @@ export type DeadTransition<
 
 // MACHINE
 
-/** A compiled state Machine: a pure transition function plus static analysis over the Edge set. */
+/** A compiled state Machine: a pure transition function plus static analysis over the Edge set.
+ *
+ * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
+ */
 export type Machine<
   State extends Tagged,
   Message extends Tagged,
@@ -394,7 +408,10 @@ export type MachineSchemas<
   message: Schema.Top & Readonly<{ Type: Message }>
 }>
 
-/** The Machine definition: the initial state and the transition table. */
+/** The Machine definition: the initial state and the transition table.
+ *
+ * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
+ */
 export type MachineDefinition<
   State extends Tagged,
   Message extends Tagged,
@@ -508,6 +525,8 @@ const extractMemberTag = (member: unknown): Option.Option<string> =>
  * })
  * // machine.transition(...) returns Commands typed with UploadsClient in R.
  * ```
+ *
+ * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
  */
 export const define =
   <State extends Tagged, Message extends Tagged>(

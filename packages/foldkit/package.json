@@ -47,6 +47,10 @@
       "types": "./dist/experimental/machine/public.d.ts",
       "import": "./dist/experimental/machine/public.js"
     },
+    "./experimental/server": {
+      "types": "./dist/experimental/server/public.d.ts",
+      "import": "./dist/experimental/server/public.js"
+    },
     "./html": {
       "types": "./dist/html/public.d.ts",
       "import": "./dist/html/public.js"

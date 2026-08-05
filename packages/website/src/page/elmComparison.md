@@ -16,16 +16,16 @@ The Foldkit version is in the [examples gallery](/example-apps/pixel-art). The [
 
 Here is the whole translation table. Every row is a direct conceptual match.
 
-|               | Elm                                           | Foldkit                                           |
-| ------------- | --------------------------------------------- | ------------------------------------------------- |
-| State         | `Model`                                       | Model (Schema struct)                             |
-| Events        | `Msg` custom type                             | Message union (Schema)                            |
-| Transitions   | `update : Msg -> Model -> ( Model, Cmd Msg )` | `update(model, message): [Model, Command[]]`      |
-| Side effects  | `Cmd Msg` (opaque)                            | Command (a named, inspectable value)              |
-| Event streams | `Sub Msg`                                     | Subscription (Effect Stream)                      |
-| Boot data     | Flags (`Json.Decode.Value`)                   | [Flags](/core/init-and-flags) (Schema, an Effect) |
-| JS interop    | Ports, custom elements                        | n/a (the app is already JavaScript)               |
-| Nested state  | Nested TEA (by hand)                          | [Submodel](/core/submodel) (first-class)          |
+|               | Elm                                           | Foldkit                                                  |
+| ------------- | --------------------------------------------- | -------------------------------------------------------- |
+| State         | `Model`                                       | Model (Schema struct)                                    |
+| Events        | `Msg` custom type                             | Message union (Schema)                                   |
+| Transitions   | `update : Msg -> Model -> ( Model, Cmd Msg )` | `update(model, message): [Model, Command[]]`             |
+| Side effects  | `Cmd Msg` (opaque)                            | Command (a named, inspectable value)                     |
+| Event streams | `Sub Msg`                                     | Subscription (Effect Stream)                             |
+| Boot data     | Flags (`Json.Decode.Value`)                   | [Flags](/core/init-and-flags) (Schema, supplied at boot) |
+| JS interop    | Ports, custom elements                        | n/a (the app is already JavaScript)                      |
+| Nested state  | Nested TEA (by hand)                          | [Submodel](/core/submodel) (first-class)                 |
 
 The rest of this page walks through the rows where the differences are interesting. Where a row is boring (in the best way), we say so and move on.
 

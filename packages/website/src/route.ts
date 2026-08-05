@@ -63,6 +63,7 @@ export const CoreFileRoute = r('CoreFile')
 export const CoreHttpRoute = r('CoreHttp')
 export const CoreCanvasRoute = r('CoreCanvas')
 export const CoreRuntimeRoute = r('CoreRuntime')
+export const CoreServerRenderingRoute = r('CoreServerRendering')
 export const CoreResourcesRoute = r('CoreResources')
 export const CoreManagedResourcesRoute = r('CoreManagedResources')
 export const CoreDevToolsRoute = r('CoreDevTools')
@@ -160,6 +161,7 @@ export const DocsRoute = S.Union([
   CoreHttpRoute,
   CoreCanvasRoute,
   CoreRuntimeRoute,
+  CoreServerRenderingRoute,
   CoreResourcesRoute,
   CoreManagedResourcesRoute,
   CoreDevToolsRoute,
@@ -371,6 +373,10 @@ export const coreFileRouter = core('file', CoreFileRoute)
 export const coreHttpRouter = core('http', CoreHttpRoute)
 export const coreCanvasRouter = core('canvas', CoreCanvasRoute)
 export const coreRuntimeRouter = core('runtime', CoreRuntimeRoute)
+export const coreServerRenderingRouter = core(
+  'server-rendering',
+  CoreServerRenderingRoute,
+)
 export const coreResourcesRouter = core('resources', CoreResourcesRoute)
 export const coreManagedResourcesRouter = core(
   'managed-resources',
@@ -487,6 +493,7 @@ const coreParser = oneOf(
   coreHttpRouter,
   coreCanvasRouter,
   coreRuntimeRouter,
+  coreServerRenderingRouter,
   coreResourcesRouter,
   coreManagedResourcesRouter,
   coreDevToolsRouter,

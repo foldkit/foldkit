@@ -11,7 +11,6 @@ import { view } from './view'
 const application = Runtime.makeApplication({
   Model,
   Flags,
-  flags,
   init,
   update,
   view,
@@ -26,4 +25,4 @@ const application = Runtime.makeApplication({
   },
 })
 
-Runtime.run(application)
+Runtime.run(application, { flags })

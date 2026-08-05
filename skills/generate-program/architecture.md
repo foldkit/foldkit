@@ -187,14 +187,14 @@ SucceededUpdateNote: ({ note }) =>
 
 ## Flags: Side Effects That Seed the Initial Model
 
-When the initial Model needs data from a side effect (current time, localStorage, browser APIs), use flags, not module-level constants:
+When the initial Model needs data from a side effect (current time, localStorage, browser APIs), use Flags, not module-level constants:
 
 ```ts
 // WRONG: module-level side effect (stale on HMR, non-deterministic, untestable)
 const now = Date.now()
 const init = () => [{ createdAt: now }, []]
 
-// RIGHT: flags run as an Effect before init, result passed in
+// RIGHT: Flags run as an Effect before init, result passed in
 const Flags = S.Struct({
   createdAt: S.Number,
 })
@@ -210,27 +210,29 @@ const init: Runtime.ApplicationInit<Model, Message, Flags> = (flags) => [
 ]
 ```
 
-Flags are an `Effect<Flags>`. The runtime executes them once before init, and passes the result in. This keeps init pure while still allowing side effects to populate the initial Model. Common uses:
+For a fresh browser boot, Flags are produced by an `Effect<Flags>`. The runtime executes it once before init and passes the result in. This keeps init pure while still allowing side effects to populate the initial Model. Common uses:
 
 - Reading from localStorage/sessionStorage (restoring saved state)
 - Getting the current time
 - Reading browser capabilities (`navigator.language`, `matchMedia`)
-- Decoding data embedded in the HTML (`<script type="application/json">`)
 
-Pass `Flags` and `flags` to `Runtime.makeApplication`:
+Declare the `Flags` Schema on `Runtime.makeApplication`, then pass the Effect to `Runtime.run`:
 
 ```ts
 const application = Runtime.makeApplication({
   Model,
   Flags,
-  flags,
   init,
   update,
   view,
 })
+
+Runtime.run(application, { flags })
 ```
 
-A service used only at startup is discharged inside `flags` with `Effect.provide`, the same way a Command discharges its own (`Effect.provide(BrowserKeyValueStore.layerLocalStorage)`). When the service is an app-wide singleton that Commands also use, leave the requirement in the flags type as `Effect<Flags, never, ApiClientService>` and let `resources` provide it. The runtime builds that Layer once and shares it with flags, Commands, and Subscriptions. Never provide the same Layer to `flags` and pass it as `resources`: that builds it twice and hands the app two instances of whatever it holds.
+Hydrated applications do not provide a browser Flags Effect. `Runtime.hydrate(application)` decodes the exact Schema-encoded Flags payload emitted by the server. Missing or invalid server handoff data is a fatal boot error.
+
+A service used only at startup is discharged inside `flags` with `Effect.provide`, the same way a Command discharges its own (`Effect.provide(BrowserKeyValueStore.layerLocalStorage)`). When the service is an app-wide singleton that Commands also use, leave the requirement in the flags type as `Effect<Flags, never, ApiClientService>` and let `resources` provide it. The runtime builds that Layer once and shares it with Flags, Commands, and Subscriptions. Never provide the same Layer to `flags` and pass it as `resources`: that builds it twice and hands the app two instances of whatever it holds.
 
 ## The Submodel Pattern
 
@@ -393,7 +395,7 @@ Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, o
 
 ### Without Routing
 
-For single-page apps that own the page but don't navigate. init receives only flags (if any):
+For single-page apps that own the page but don't navigate. init receives only Flags (if any):
 
 ```ts
 const application = Runtime.makeApplication({
@@ -409,7 +411,7 @@ Runtime.run(application)
 
 ### With Routing
 
-For apps with pages, navigation, and URL-driven state. init receives flags (if any) and the current URL. Add a `routing` config with two Message constructors:
+For apps with pages, navigation, and URL-driven state. init receives Flags (if any) and the current URL. Add a `routing` config with two Message constructors:
 
 ```ts
 const application = Runtime.makeApplication({
@@ -431,7 +433,7 @@ Runtime.run(application)
 
 `makeApplication` assumes it owns the page: its `view` returns a `Document` (`{ title, lang?, dir?, canonical?, ogUrl?, body }`) and the runtime writes `document.title`, the `lang` / `dir` attributes on `<html>`, and the canonical / og:url tags on every render. For a widget embedded on a page you do not control, that clobbers the host page's metadata.
 
-Use `Runtime.makeElement` instead. Its `view` returns `Html` directly (no title to discard) and the runtime never touches the document `<head>` or the `<html>` element. Everything else (Model, init, update, Commands, Subscriptions, flags, crash handling) is identical. Embedded apps don't own the URL bar, so `makeElement` has no `routing` config.
+Use `Runtime.makeElement` instead. Its `view` returns `Html` directly (no title to discard) and the runtime never touches the document `<head>` or the `<html>` element. Everything else (Model, init, update, Commands, Subscriptions, Flags, crash handling) is identical. Embedded apps don't own the URL bar, so `makeElement` has no `routing` config.
 
 ```ts
 const element = Runtime.makeElement({

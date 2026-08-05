@@ -27,10 +27,11 @@ const flags: Effect.Effect<Flags, never, ApiClientService> = Effect.gen(
 const application = Runtime.makeApplication({
   Model,
   Flags,
-  flags,
   init,
   update,
   view,
   container: document.getElementById('root'),
   resources: ApiClientService.Default,
 })
+
+Runtime.run(application, { flags })

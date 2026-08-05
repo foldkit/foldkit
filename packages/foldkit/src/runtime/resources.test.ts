@@ -15,8 +15,7 @@ import * as Command from '../command/index.js'
 import { __htmlBuilder } from '../html/index.js'
 import { m } from '../message/index.js'
 import * as Subscription from '../subscription/subscription.js'
-import type { ApplicationConfigWithFlags } from './runtime.js'
-import { makeApplication, makeElement } from './runtime.js'
+import { makeApplication, makeElement, run } from './runtime.js'
 
 const ClickedReadValue = m('ClickedReadValue')
 const SucceededReadValue = m('SucceededReadValue', { value: S.String })
@@ -555,32 +554,27 @@ describe('resources', () => {
         container,
       })
 
-      const configWithoutResources: ApplicationConfigWithFlags<
-        Model,
-        Message,
-        Flags
-      > = {
+      const applicationWithoutResources = makeApplication({
         Model,
         Flags,
-        // @ts-expect-error ResourceService is absent from `resources`
-        flags: flagsNeedingResource,
         init: resourceFreeInit,
         update: resourceFreeUpdate,
         view: documentView,
         container,
-      }
-      void configWithoutResources
+      })
+      // @ts-expect-error ResourceService is absent from `resources`
+      run(applicationWithoutResources, { flags: flagsNeedingResource })
 
-      makeApplication({
+      const application = makeApplication({
         Model,
         Flags,
-        flags: flagsNeedingResource,
         init: ({ initialLabel }) => [{ label: initialLabel }, [ReadValue()]],
         update,
         view: documentView,
         container,
         resources: FailingResourceLive,
       })
+      run(application, { flags: flagsNeedingResource })
 
       // NOTE: `init` and `update` here contribute a `ReadonlyArray<never>`
       // inference candidate for `Resources`, which must not pin it to `never`

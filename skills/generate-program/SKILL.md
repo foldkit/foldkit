@@ -77,7 +77,7 @@ Then read the tier-specific example files that match the app's complexity. **Alw
 Read `${CLAUDE_SKILL_DIR}/../../examples/counter/src/main.ts`
 
 **Tier 2: Timers, subscriptions, simple stateful apps:**
-Read `${CLAUDE_SKILL_DIR}/../../examples/stopwatch/src/main.ts` (timer via subscription, `Duration` field pattern) and `${CLAUDE_SKILL_DIR}/../../examples/todo/src/main.ts` (CRUD with localStorage via flags)
+Read `${CLAUDE_SKILL_DIR}/../../examples/stopwatch/src/main.ts` (timer via subscription, `Duration` field pattern) and `${CLAUDE_SKILL_DIR}/../../examples/todo/src/main.ts` (CRUD with localStorage via Flags)
 
 **Tier 3: Async operations, loading/error states, API calls, form validation:**
 Read `${CLAUDE_SKILL_DIR}/../../examples/weather/src/main.ts` (HTTP with `HttpClient`) and `${CLAUDE_SKILL_DIR}/../../examples/form/src/main.ts` (uses `foldkit/fieldValidation`; see the Form Validation section in Phase 4)
@@ -86,7 +86,7 @@ Read `${CLAUDE_SKILL_DIR}/../../examples/weather/src/main.ts` (HTTP with `HttpCl
 Read `${CLAUDE_SKILL_DIR}/../../examples/routing/src/main.ts` and `${CLAUDE_SKILL_DIR}/../../examples/query-sync/src/main.ts`
 
 **Tier 5: Complex state, nested domain models, CRUD, drag-and-drop:**
-Read `${CLAUDE_SKILL_DIR}/../../examples/shopping-cart/src/main.ts` (nested domain schemas, cart state) and `${CLAUDE_SKILL_DIR}/../../examples/kanban/src/main.ts` (CRUD with `DragAndDrop`, flags restoring from localStorage, subscriptions)
+Read `${CLAUDE_SKILL_DIR}/../../examples/shopping-cart/src/main.ts` (nested domain schemas, cart state) and `${CLAUDE_SKILL_DIR}/../../examples/kanban/src/main.ts` (CRUD with `DragAndDrop`, Flags restoring from localStorage, subscriptions)
 
 **Tier 6: Submodels, OutMessage, multi-step forms, auth flows, multi-module apps:**
 Read `${CLAUDE_SKILL_DIR}/../../examples/auth/src/main.ts` (login/signup with Submodels, OutMessage, protected routes) and `${CLAUDE_SKILL_DIR}/../../examples/job-application/src/main.ts` (multi-step form with deeply nested Submodels in `step/`, `DatePicker`, `FileDrop`, `Listbox`, `Calendar` module for date handling)
@@ -486,13 +486,14 @@ Every message must carry meaning. No `NoOp`.
 
 - Define a `Flags` Schema for data the initial Model needs from side effects
 - Define `flags` as an `Effect<Flags>` that computes the values (localStorage reads, current time, etc.)
+- Pass `flags` to `Runtime.run(application, { flags })` for a fresh browser boot. Hydrated applications call `Runtime.hydrate(application)` and use only the server-encoded Flags payload
 - Pass the result into init. Never perform side effects at module level or inside init directly
-- See the flags section in [architecture.md](architecture.md) for the full pattern
+- See the Flags section in [architecture.md](architecture.md) for the full pattern
 
 ### Init
 
 - Return `[Model, ReadonlyArray<Command<Message>>]`
-- If flags are used, accept them as the first parameter: `(flags: Flags) => [Model, Commands]` or `(flags: Flags, url: Url) => [Model, Commands]`
+- If Flags are used, accept them as the first parameter: `(flags: Flags) => [Model, Commands]` or `(flags: Flags, url: Url) => [Model, Commands]`
 - Include startup Commands (initial fetch, focus first input, etc.)
 - Use callable Schema constructors for the initial Model: `Model({ field: value })`
 
@@ -575,7 +576,7 @@ For date handling (birthday, deadlines, scheduling):
 
 - Use the `Calendar` module: `Calendar.CalendarDate`, `Calendar.today.local` (Effect returning today's date in the user's timezone), `Calendar.make(year, month, day)`, `Calendar.addDays`, etc.
 - Use `DatePicker` (input + popover calendar) or `Calendar` (inline grid) from `@foldkit/ui` for the UI
-- Seed the initial date via flags when needed. See `job-application` example, which uses `Calendar.today.local` in its flags Effect
+- Seed the initial date via Flags when needed. See `job-application` example, which uses `Calendar.today.local` in its Flags Effect
 
 For file uploads (resumes, images, attachments):
 
@@ -853,7 +854,7 @@ Before running round N+1, produce a short written diff between "what round N fla
 After generating the program (and passing review), walk the user through what was built:
 
 1. **Files generated**: list each file with a one-line description of what it contains and why it exists as a separate file (or why everything is in one file)
-2. **Architecture decisions**: explain key modeling choices, for example: which discriminated unions were used and why, which Foldkit UI components were integrated, why flags were or weren't needed, any domain extraction decisions, etc.
+2. **Architecture decisions**: explain key modeling choices, for example: which discriminated unions were used and why, which Foldkit UI components were integrated, why Flags were or weren't needed, any domain extraction decisions, etc.
 3. **Review outcome**: state how many review rounds ran and the final verdict. If `PASS`, say so. If `NEEDS-WORK` after round 3, list the outstanding items verbatim under "Known polish areas" so the user knows what the reviewer flagged that didn't get fixed.
 4. **How to run**: remind the user to start the dev server and what they should see
 5. **How to extend**: give concrete next steps: "to add bookmark editing, define `ClickedEditBookmark` and `UpdatedEditTitle` Messages, add an `Editing` variant to the Model, and handle both in update"

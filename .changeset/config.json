@@ -49,6 +49,8 @@
     "state-machine-example",
     "personal-blog-example",
     "interrupting-commands-example",
-    "view-transitions-example"
+    "view-transitions-example",
+    "ssr-example",
+    "ssg-example"
   ]
 }

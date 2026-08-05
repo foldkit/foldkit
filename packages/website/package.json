@@ -16,6 +16,7 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
+    "preprerender": "vite build --ssr src/entry.server.ts --outDir dist-server",
     "prerender": "tsx scripts/prerender.ts",
     "postprerender": "pagefind",
     "preview:search": "pnpm build && pnpm prerender && vite preview"
@@ -46,7 +47,6 @@
     "esbuild": "^0.28.1",
     "happy-dom": "^20.10.4",
     "pagefind": "^1.5.2",
-    "playwright": "^1.61.0",
     "prettier": "^3.8.4",
     "satori": "^0.26.0",
     "tsx": "^4.22.4",

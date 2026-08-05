@@ -1,0 +1,29 @@
+{
+  "name": "ssg-example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build --outDir dist/client && vite build --ssr src/entry.server.ts --outDir dist/server && tsx scripts/prerender.ts",
+    "preview": "vite preview --outDir dist/client",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@effect/platform-browser": "4.0.0-beta.103",
+    "@effect/platform-node": "4.0.0-beta.103",
+    "@foldkit/devtools": "workspace:*",
+    "@tailwindcss/vite": "^4.3.1",
+    "effect": "4.0.0-beta.103",
+    "foldkit": "workspace:*",
+    "tailwindcss": "^4.3.1"
+  },
+  "devDependencies": {
+    "@foldkit/vite-plugin": "workspace:*",
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
+    "prettier": "^3.8.4",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16"
+  }
+}

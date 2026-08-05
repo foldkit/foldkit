@@ -41,7 +41,6 @@ import {
   Document,
   Html,
   type HtmlBuilder,
-  TextDirection,
   __beginRender as beginHtmlRender,
   __beginReplayRender as beginReplayHtmlRender,
   __clearRuntime as clearHtmlRuntime,
@@ -49,7 +48,13 @@ import {
   __endReplayRender as endReplayHtmlRender,
   __htmlBuilder as htmlBuilderFor,
   __setRuntime as setHtmlRuntime,
+  textDirectionToAttribute,
 } from '../html/index.js'
+import { __hydrateVNode } from '../hydrate.js'
+import {
+  FOLDKIT_APP_ATTRIBUTE,
+  FOLDKIT_FLAGS_ATTRIBUTE,
+} from '../hydrationMarker.js'
 import type {
   ManagedResourceConfig,
   ManagedResources,
@@ -603,7 +608,67 @@ export type CrashConfig<Model, Message> = Readonly<{
   report?: (context: CrashContext<Model, Message>) => void
 }>
 
-/** Full runtime configuration including model schema, flags, init, update, view, and optional routing/stream config. */
+/** Full runtime configuration including Model Schema, Flags, init, update, view, and optional routing/stream config. */
+type HydrationConfig = Readonly<{
+  root: HTMLElement
+  runtimeId: string
+  flagsPayloads: ReadonlyArray<string>
+  isFlagsRequired: boolean
+}>
+
+const hydrationForRoot = (
+  root: HTMLElement,
+  isFlagsRequired: boolean,
+): HydrationConfig => {
+  const runtimeId = root.getAttribute(FOLDKIT_APP_ATTRIBUTE) ?? ''
+  const flagsPayloads = pipe(
+    Array.fromIterable(
+      document.querySelectorAll<HTMLScriptElement>(
+        `script[${FOLDKIT_FLAGS_ATTRIBUTE}]`,
+      ),
+    ),
+    Array.filter(
+      script => script.getAttribute(FOLDKIT_FLAGS_ATTRIBUTE) === runtimeId,
+    ),
+    Array.map(script => script.textContent ?? ''),
+  )
+  return { root, runtimeId, flagsPayloads, isFlagsRequired }
+}
+
+// NOTE: hydration is scoped to the app's own container so a server-rendered
+// app never adopts another app's DOM. A non-null container is a hydration
+// candidate only when that exact element carries the stamp; an unstamped
+// container never adopts some other app's stamped root. A null container is
+// the replace-parity case, where the server root took the placeholder's place
+// and `getElementById` no longer finds it, so the stamp is the only handle;
+// more than one stamped root is then ambiguous and is a hard error rather than
+// a silent wrong-DOM adoption.
+const findDocumentHydration = (
+  container: HTMLElement | null,
+  isFlagsRequired: boolean,
+): HydrationConfig | undefined => {
+  if (container !== null) {
+    return container.hasAttribute(FOLDKIT_APP_ATTRIBUTE)
+      ? hydrationForRoot(container, isFlagsRequired)
+      : undefined
+  }
+  const stampedRoots = document.querySelectorAll<HTMLElement>(
+    `[${FOLDKIT_APP_ATTRIBUTE}]`,
+  )
+  if (stampedRoots.length > 1) {
+    throw new Error(
+      '[foldkit] Found multiple server-rendered roots stamped with ' +
+        `\`${FOLDKIT_APP_ATTRIBUTE}\` but no container to disambiguate them. ` +
+        'Give each app its own container element so the runtime can tell ' +
+        'which root to hydrate.',
+    )
+  }
+  return Option.match(Array.head(Array.fromIterable(stampedRoots)), {
+    onNone: () => undefined,
+    onSome: root => hydrationForRoot(root, isFlagsRequired),
+  })
+}
+
 type RuntimeConfig<
   Model,
   Message,
@@ -611,11 +676,14 @@ type RuntimeConfig<
   Resources = never,
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
+  Kind extends 'Application' | 'Element' = 'Application' | 'Element',
 > = Readonly<{
+  kind: Kind
   ports: P
   Model: Schema.Codec<Model, any, unknown, unknown>
   Flags: Schema.Codec<Flags, any, unknown, unknown>
-  flags: Option.Option<Effect.Effect<Flags, never, Resources>>
+  configuredFlags: Option.Option<Effect.Effect<Flags, never, Resources>>
+  isFlagsRequired: boolean
   init: (
     flags: Flags,
     url?: Url,
@@ -646,6 +714,16 @@ type RuntimeConfig<
     Resources | ManagedResourceServices
   >
   container: HTMLElement
+  /**
+   * Present when `makeApplication` found a server-rendered root stamped with
+   * `data-foldkit-app`. The first render then adopts that DOM in place
+   * instead of replacing it, and when the config declares Flags, `init` is
+   * fed the Schema-decoded Flags payload the server embedded, so both sides
+   * compute the same Model. Missing or undecodable handoff data is fatal.
+   * An HMR-restored Model gets a fresh replace boot against the stamped root
+   * because the restored code may no longer match the served DOM.
+   */
+  hydration?: HydrationConfig
   routing?: RoutingConfig<Message>
   crash?: CrashConfig<Model, Message>
   slow?: SlowConfig<Model, Message>
@@ -699,10 +777,10 @@ type RuntimeConfig<
    */
   preserveScroll?: boolean
   /**
-   * An Effect Layer providing services shared by the `flags` Effect and
-   * every Command and Subscription. The runtime builds the Layer once, the
-   * first time it is needed: at startup in an app that declares `flags` (it
-   * resolves before `init`) or Subscriptions (their pipelines run for the
+   * An Effect Layer providing services shared by the fresh-boot Flags Effect
+   * and every Command and Subscription. The runtime builds the Layer once,
+   * the first time it is needed: at startup when a fresh boot supplies Flags
+   * (they resolve before `init`) or Subscriptions (their pipelines run for the
    * application's lifetime), otherwise when the first Command runs. The
    * built services are reused for the application's lifetime and released
    * at runtime teardown.
@@ -714,10 +792,10 @@ type RuntimeConfig<
    * graph, an RTCPeerConnection). A Layer that fails to build crashes the
    * app with the crash view: the runtime provides this Layer to every
    * Command, so a service that cannot be constructed leaves no Command
-   * safe to run. The one exception is a Layer that fails while `flags` are
-   * resolving and the flags Effect needs it: that lands before the first
+   * safe to run. The one exception is a Layer that fails while Flags are
+   * resolving and the Flags Effect needs it: that lands before the first
    * render, where there is no Model to render a crash view against, so
-   * startup fails instead. Neither cause is swallowed, so a flags Effect
+   * startup fails instead. Neither cause is swallowed, so a Flags Effect
    * that fails for its own unrelated reason stays visible alongside the
    * build error.
    *
@@ -775,22 +853,11 @@ type BaseApplicationConfig<
   devTools?: DevToolsConfig
 }>
 
-type FlagsConfig<Flags, Resources> = Readonly<{
+type FlagsSchemaConfig<Flags> = Readonly<{
   Flags: Schema.Codec<Flags, any, unknown, unknown>
-  /**
-   * Resolves the flags once at startup, before `init` runs. Services this
-   * Effect requires are provided from the `resources` Layer, which the
-   * runtime builds a single time and shares with every Command and
-   * Subscription, so a client or connection needed both at startup and by
-   * Commands is constructed once. A requirement that `resources` does not
-   * provide is a compile error here. The error channel is `never`, so this
-   * Effect handles its own failures with `Effect.catch`, the same contract
-   * a Command's Effect has.
-   */
-  flags: Effect.Effect<Flags, never, NoInfer<Resources>>
 }>
 
-/** Configuration for `makeApplication` with flags and URL routing. */
+/** Configuration for `makeApplication` with Flags and URL routing. */
 export type RoutingApplicationConfigWithFlags<
   Model,
   Message,
@@ -805,7 +872,7 @@ export type RoutingApplicationConfigWithFlags<
   ManagedResourceServices,
   P
 > &
-  FlagsConfig<Flags, Resources> &
+  FlagsSchemaConfig<Flags> &
   Readonly<{
     routing: RoutingConfig<Message>
     init: (
@@ -819,7 +886,7 @@ export type RoutingApplicationConfigWithFlags<
     ]
   }>
 
-/** Configuration for `makeApplication` with URL routing but no flags. */
+/** Configuration for `makeApplication` with URL routing but no Flags. */
 export type RoutingApplicationConfig<
   Model,
   Message,
@@ -845,7 +912,7 @@ export type RoutingApplicationConfig<
     ]
   }>
 
-/** Configuration for `makeApplication` with flags but no URL routing. */
+/** Configuration for `makeApplication` with Flags but no URL routing. */
 export type ApplicationConfigWithFlags<
   Model,
   Message,
@@ -860,7 +927,7 @@ export type ApplicationConfigWithFlags<
   ManagedResourceServices,
   P
 > &
-  FlagsConfig<Flags, Resources> &
+  FlagsSchemaConfig<Flags> &
   Readonly<{
     init: (
       flags: Flags,
@@ -872,7 +939,7 @@ export type ApplicationConfigWithFlags<
     ]
   }>
 
-/** Configuration for `makeApplication` without flags or URL routing. */
+/** Configuration for `makeApplication` without Flags or URL routing. */
 export type ApplicationConfig<
   Model,
   Message,
@@ -935,7 +1002,7 @@ type BaseElementConfig<
   devTools?: DevToolsConfig
 }>
 
-/** Configuration for `makeElement` with flags. */
+/** Configuration for `makeElement` with Flags. */
 export type ElementConfigWithFlags<
   Model,
   Message,
@@ -944,8 +1011,17 @@ export type ElementConfigWithFlags<
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
 > = BaseElementConfig<Model, Message, Resources, ManagedResourceServices, P> &
-  FlagsConfig<Flags, Resources> &
+  FlagsSchemaConfig<Flags> &
   Readonly<{
+    /**
+     * Resolves the Flags once at startup, before `init` runs. Services this
+     * Effect requires are provided from the `resources` Layer, which the
+     * runtime builds a single time and shares with every Command and
+     * Subscription. The error channel is `never`, so this Effect handles its
+     * own failures with `Effect.catch`, the same contract a Command's Effect
+     * has.
+     */
+    flags: Effect.Effect<Flags, never, NoInfer<Resources>>
     init: (
       flags: Flags,
     ) => readonly [
@@ -956,7 +1032,7 @@ export type ElementConfigWithFlags<
     ]
   }>
 
-/** Configuration for `makeElement` without flags. */
+/** Configuration for `makeElement` without Flags. */
 export type ElementConfig<
   Model,
   Message,
@@ -996,7 +1072,7 @@ export type ApplicationInit<
       >,
     ]
 
-/** The `init` function type for a `makeApplication` app with URL routing, receives the current URL and optional flags. */
+/** The `init` function type for a `makeApplication` app with URL routing, receives the current URL and optional Flags. */
 export type RoutingApplicationInit<
   Model,
   Message,
@@ -1024,7 +1100,7 @@ export type RoutingApplicationInit<
 
 /** The `init` function type for a `makeElement` app. A scoped app never owns
  *  the URL, so its `init` has the same shape as a non-routing
- *  `ApplicationInit`: argless, or receiving flags when `Flags` is set. */
+ *  `ApplicationInit`: argless, or receiving Flags when `Flags` is set. */
 export type ElementInit<
   Model,
   Message,
@@ -1033,17 +1109,41 @@ export type ElementInit<
   ManagedResourceServices = never,
 > = ApplicationInit<Model, Message, Flags, Resources, ManagedResourceServices>
 
+type BootMode = 'Fresh' | 'Hydrate'
+
+declare const RuntimeBootTypeId: unique symbol
+
+/** Client-only startup input for an application that declares Flags. Pass it
+ *  to `run` or `embed`; `hydrate` instead decodes the exact Flags value
+ *  embedded by the server render.
+ */
+export type RunOptions<Flags, Resources = never> = Readonly<{
+  flags: Effect.Effect<Flags, never, Resources>
+}>
+
 /** A configured Foldkit runtime returned by `makeApplication` or `makeElement`.
  *  Pass it to `run` to start a page-owning app, or to `embed` to start it under
  *  a host-controlled lifecycle handle. `ports` is the Ports record from the
  *  config (or `undefined` when the config declared none); it types the
- *  `EmbedHandle` that `embed` returns. */
-export type MakeRuntimeReturn<P extends Ports | undefined = undefined> =
-  Readonly<{
-    runtimeId: string
-    start: (hmrModel?: unknown) => Effect.Effect<void>
-    ports: P
+ *  `EmbedHandle` that `embed` returns. `Flags` and `Resources` carry the
+ *  fresh-boot requirements from `makeApplication` to `run` and `embed`; they
+ *  have no runtime representation.
+ */
+export type MakeRuntimeReturn<
+  P extends Ports | undefined = undefined,
+  Flags = void,
+  Resources = never,
+  Kind extends 'Application' | 'Element' = 'Application' | 'Element',
+> = Readonly<{
+  runtimeId: string
+  start: (hmrModel?: unknown) => Effect.Effect<void>
+  ports: P
+  [RuntimeBootTypeId]?: Readonly<{
+    Flags: (flags: Flags) => Flags
+    Resources: (resources: Resources) => Resources
+    Kind: Kind
   }>
+}>
 
 /** Host-side handle for one inbound Port. `send` validates the value by
  *  decoding it against the Port's Schema: on success the decoded value enters
@@ -1313,12 +1413,21 @@ type RuntimeInternals = {
   startWith: (
     maybeConnector: Option.Option<HostConnector>,
     hmrModel?: unknown,
+    bootMode?: BootMode,
+    flags?: Effect.Effect<any, never, any>,
   ) => Effect.Effect<void>
+  kind: 'Application' | 'Element'
   isEmbedActive: boolean
   maybeActiveFiber: Option.Option<Fiber.Fiber<void>>
 }
 
-const runtimeInternals = new WeakMap<MakeRuntimeReturn<any>, RuntimeInternals>()
+type RuntimeProgram = Readonly<{
+  runtimeId: string
+  start: (hmrModel?: unknown) => Effect.Effect<void>
+  ports: Ports | undefined
+}>
+
+const runtimeInternals = new WeakMap<object, RuntimeInternals>()
 
 const makeRuntime = <
   Model,
@@ -1327,16 +1436,21 @@ const makeRuntime = <
   Resources,
   ManagedResourceServices,
   P extends Ports | undefined,
+  Kind extends 'Application' | 'Element',
 >({
   ports,
+  kind,
   Model,
-  flags: maybeResolveFlags,
+  Flags: FlagsCodec,
+  configuredFlags,
+  isFlagsRequired,
   init,
   update,
   view,
   manageDocument,
   subscriptions,
   container,
+  hydration,
   routing: routingConfig,
   crash,
   slow,
@@ -1352,8 +1466,9 @@ const makeRuntime = <
   Flags,
   Resources,
   ManagedResourceServices,
-  P
->): MakeRuntimeReturn<P> => {
+  P,
+  Kind
+>): MakeRuntimeReturn<P, Flags, Resources, Kind> => {
   const isSlowVisible = (show: Visibility): boolean =>
     Match.value(show).pipe(
       Match.when('Always', () => true),
@@ -1446,11 +1561,16 @@ const makeRuntime = <
     validatePorts(ports)
   }
 
-  const runtimeId = container?.id ?? ''
+  const runtimeId =
+    hydration !== undefined && hydration.runtimeId !== ''
+      ? hydration.runtimeId
+      : (container?.id ?? '')
 
   const startWith = (
     maybeConnector: Option.Option<HostConnector>,
     hmrModel?: unknown,
+    bootMode: BootMode = 'Fresh',
+    bootFlags?: Effect.Effect<Flags, never, Resources>,
   ): Effect.Effect<void> => {
     // NOTE: one notifier per runtime, provided across the whole runtime
     // Effect so Commands, Subscriptions, and Mount-forked Effects all resolve
@@ -1464,7 +1584,8 @@ const makeRuntime = <
           return yield* Effect.die(
             new Error(
               '[foldkit] Runtime container must have an `id` for HMR model preservation. ' +
-                'Set `container.id = "app"` (or any unique string) before passing it to makeApplication or makeElement.',
+                'Set `container.id = "app"` (or any unique string) before passing it to makeApplication or makeElement. ' +
+                'On a server-rendered page the id comes from the `data-foldkit-app` root stamp instead.',
             ),
           )
         }
@@ -1614,28 +1735,28 @@ const makeRuntime = <
           )
         }
 
-        // NOTE: flags run through the same cached build that Commands and
+        // NOTE: Flags run through the same cached build that Commands and
         // Subscriptions use, rather than being handed the Layer again, so a
         // service needed both at startup and by a Command is constructed
-        // once. An app without flags never reaches it, which keeps the Layer
+        // once. An app without Flags never reaches it, which keeps the Layer
         // lazy when the first thing that needs it is a Command.
         //
         // NOTE: a Layer that fails to build is not fatal here. Flags resolve
         // before `init`, so there is no Model for a crash view to render
         // against and a failure escaping this point kills the app with a
-        // blank container. Running flags against an empty context instead
-        // lets an app whose flags never touch the Layer boot as it did
-        // before flags could consume `resources`: the cached failure then
+        // blank container. Running Flags against an empty context instead
+        // lets an app whose Flags never touch the Layer boot as it did
+        // before Flags could consume `resources`: the cached failure then
         // surfaces at the first Command or Subscription, where `crashWith`
         // does render the crash view. Flags that do need the Layer still
         // fail here, and both causes are reported: the `Service not found`
         // defect the empty context produced is useless on its own, and the
         // build failure that explains it would be lost if it replaced the
-        // flags cause outright. Combining them also keeps a flags Effect
+        // Flags cause outright. Combining them also keeps a Flags Effect
         // that fails for its own unrelated reason visible instead of
         // attributing its defect to the Layer. Interrupts propagate
         // untouched on both sides, because dispose racing either the build
-        // or the flags run is not a failure to recover from, and
+        // or the Flags run is not a failure to recover from, and
         // `Effect.catchCause` hands the handler interrupt causes too.
         const provideResources = <A>(
           effect: Effect.Effect<A, never, Resources>,
@@ -1666,12 +1787,120 @@ const makeRuntime = <
               }),
           })
 
-        const resolveFlags: Effect.Effect<Flags> = Option.match(
-          maybeResolveFlags,
+        const maybeResolveFreshFlags = Option.orElse(
+          Option.fromNullishOr(bootFlags),
+          () => configuredFlags,
+        )
+
+        const resolveFreshFlags: Effect.Effect<Flags> = Option.match(
+          maybeResolveFreshFlags,
           {
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            onNone: () => Effect.succeed(undefined as Flags),
+            onNone: () =>
+              isFlagsRequired
+                ? Effect.die(
+                    new Error(
+                      '[foldkit] This application declares Flags. Pass its ' +
+                        'Flags Effect to Runtime.run or Runtime.embed.',
+                    ),
+                  )
+                : /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                  Effect.succeed(undefined as Flags),
             onSome: provideResources,
+          },
+        )
+
+        const decodeFlagsPayload = (
+          payload: string,
+          runtimeId: string,
+        ): Effect.Effect<Flags> =>
+          Effect.try({
+            try: () => {
+              const parsedPayload: unknown = JSON.parse(payload)
+              return pipe(
+                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                Schema.toCodecJson(FlagsCodec as Schema.Codec<Flags>),
+                Schema.decodeUnknownSync,
+                decode => decode(parsedPayload),
+              )
+            },
+            catch: cause =>
+              new Error(
+                '[foldkit] Runtime.hydrate could not decode the server ' +
+                  `Flags payload for application "${runtimeId}". The HTML ` +
+                  'and client bundle must use the same Flags Schema.',
+                { cause },
+              ),
+          }).pipe(Effect.orDie)
+
+        const maybeRequestedHydration =
+          bootMode === 'Hydrate'
+            ? Option.fromNullishOr(hydration)
+            : Option.none<HydrationConfig>()
+
+        if (bootMode === 'Hydrate' && Option.isNone(maybeRequestedHydration)) {
+          return yield* Effect.die(
+            new Error(
+              '[foldkit] Runtime.hydrate could not find a server-rendered ' +
+                `root stamped with \`${FOLDKIT_APP_ATTRIBUTE}\`. Use ` +
+                'Runtime.run for a fresh client boot.',
+            ),
+          )
+        }
+
+        // NOTE: an HMR-restored Model wins over DOM adoption because the
+        // server DOM reflects older code. The hydration handoff is still
+        // required, but the restored Model gets a fresh patch against its
+        // stamped root.
+        const maybeHydrationRoot: Option.Option<HTMLElement> =
+          Predicate.isUndefined(hmrModel)
+            ? Option.map(
+                maybeRequestedHydration,
+                requestedHydration => requestedHydration.root,
+              )
+            : Option.none()
+
+        const maybeHydrationFlags: Option.Option<Flags> = yield* Option.match(
+          maybeRequestedHydration,
+          {
+            onNone: () => Effect.succeed(Option.none()),
+            onSome: requestedHydration =>
+              Effect.map(
+                requestedHydration.isFlagsRequired
+                  ? Array.match(requestedHydration.flagsPayloads, {
+                      onEmpty: () =>
+                        Effect.die(
+                          new Error(
+                            '[foldkit] Runtime.hydrate found application ' +
+                              `"${requestedHydration.runtimeId}" but its ` +
+                              'server Flags payload is missing.',
+                          ),
+                        ),
+                      onNonEmpty: ([payload, ...remainingPayloads]) =>
+                        Array.isArrayNonEmpty(remainingPayloads)
+                          ? Effect.die(
+                              new Error(
+                                '[foldkit] Runtime.hydrate found multiple ' +
+                                  'server Flags payloads for application ' +
+                                  `"${requestedHydration.runtimeId}".`,
+                              ),
+                            )
+                          : decodeFlagsPayload(
+                              payload,
+                              requestedHydration.runtimeId,
+                            ),
+                    })
+                  : /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                    Effect.succeed(undefined as Flags),
+                Option.some,
+              ),
+          },
+        )
+
+        const resolveFlags: Effect.Effect<Flags> = Option.match(
+          maybeHydrationFlags,
+          {
+            onNone: () => resolveFreshFlags,
+            onSome: Effect.succeed,
           },
         )
 
@@ -1688,12 +1917,12 @@ const makeRuntime = <
 
         type InitResult = ReturnType<typeof init>
 
-        // NOTE: a restored Model skips `init`, so resolving flags on that
+        // NOTE: a restored Model skips `init`, so resolving Flags on that
         // path would build the `resources` Layer only to discard what it
         // produced. Gating the resolution on the restore decision is what
         // stops a reload from reconnecting whatever the Layer holds. It has
         // to stay ahead of the preserve-scheduler and HMR finalizers: a
-        // flags Effect that fails after those are registered tears down more
+        // Flags Effect that fails after those are registered tears down more
         // than it used to, and their release defects would bury its cause.
         const runInit: Effect.Effect<InitResult> = Effect.map(
           resolveFlags,
@@ -1889,6 +2118,12 @@ const makeRuntime = <
         }
 
         const vnodeSlot: VNodeSlot = { maybeCurrentVNode: Option.none() }
+
+        // NOTE: consumed by the first render only. Set when this boot found
+        // an adoptable server-rendered root; the first patch then goes
+        // through `__hydrateVNode` instead of replacing the container.
+        let pendingHydrationRoot: HTMLElement | null =
+          Option.getOrNull(maybeHydrationRoot)
 
         // NOTE: registered before any perpetual fiber is forked so it runs
         // after they are interrupted (scope finalizers are LIFO). Patching to
@@ -2314,14 +2549,31 @@ const makeRuntime = <
             const maybeCurrentVNode = vnodeSlot.maybeCurrentVNode
 
             const [patchedVNode, maybePatchDuration] = yield* Effect.sync(() =>
-              measureSlowPhase(maybeLiveSlowPatch, () =>
-                __patchVNode(
+              measureSlowPhase(maybeLiveSlowPatch, () => {
+                if (
+                  Option.isNone(maybeCurrentVNode) &&
+                  pendingHydrationRoot !== null
+                ) {
+                  const hydrationRoot = pendingHydrationRoot
+                  pendingHydrationRoot = null
+                  const hydratedVNode = __hydrateVNode(
+                    hydrationRoot,
+                    nextVNode,
+                    boundaryRegistry.dedupeSeen,
+                  )
+                  // NOTE: strip the stamp once adopted so a later boot on the
+                  // same container (a dispose-then-embed remount) does not
+                  // re-detect this now-consumed root as hydratable.
+                  hydrationRoot.removeAttribute(FOLDKIT_APP_ATTRIBUTE)
+                  return hydratedVNode
+                }
+                return __patchVNode(
                   maybeCurrentVNode,
                   nextVNode,
                   container,
                   boundaryRegistry.dedupeSeen,
-                ),
-              ),
+                )
+              }),
             )
             vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
 
@@ -3008,11 +3260,17 @@ const makeRuntime = <
   }
 
   const start = (hmrModel?: unknown): Effect.Effect<void> =>
-    startWith(Option.none(), hmrModel)
+    startWith(Option.none(), hmrModel, 'Fresh')
 
-  const program: MakeRuntimeReturn<P> = { runtimeId, start, ports }
+  const program: MakeRuntimeReturn<P, Flags, Resources, Kind> = {
+    runtimeId,
+    start,
+    ports,
+  }
   runtimeInternals.set(program, {
-    startWith,
+    startWith: (maybeConnector, hmrModel, bootMode, flags) =>
+      startWith(maybeConnector, hmrModel, bootMode, flags),
+    kind,
     isEmbedActive: false,
     maybeActiveFiber: Option.none(),
   })
@@ -3036,14 +3294,6 @@ type VNodeSlot = {
 const currentLocationUrl = (): string => {
   const { origin, pathname, search } = window.location
   return `${origin}${pathname}${search}`
-}
-
-const textDirectionForHtmlElement: Readonly<
-  Record<TextDirection, 'ltr' | 'rtl' | 'auto'>
-> = {
-  Ltr: 'ltr',
-  Rtl: 'rtl',
-  Auto: 'auto',
 }
 
 type DocumentMetadataElements = {
@@ -3107,7 +3357,7 @@ const applyDocumentMetadata = (
   }
 
   if (nextDocument.dir !== undefined) {
-    const dir = textDirectionForHtmlElement[nextDocument.dir]
+    const dir = textDirectionToAttribute(nextDocument.dir)
     if (documentElement.dir !== dir) {
       documentElement.dir = dir
     }
@@ -3222,7 +3472,7 @@ export function makeApplication<
     ManagedResourceServices,
     P
   >,
-): MakeRuntimeReturn<P>
+): MakeRuntimeReturn<P, Flags, Resources, 'Application'>
 
 export function makeApplication<
   Model,
@@ -3238,7 +3488,7 @@ export function makeApplication<
     ManagedResourceServices,
     P
   >,
-): MakeRuntimeReturn<P>
+): MakeRuntimeReturn<P, void, Resources, 'Application'>
 
 export function makeApplication<
   Model,
@@ -3256,7 +3506,7 @@ export function makeApplication<
     ManagedResourceServices,
     P
   >,
-): MakeRuntimeReturn<P>
+): MakeRuntimeReturn<P, Flags, Resources, 'Application'>
 
 export function makeApplication<
   Model,
@@ -3272,7 +3522,7 @@ export function makeApplication<
     ManagedResourceServices,
     P
   >,
-): MakeRuntimeReturn<P>
+): MakeRuntimeReturn<P, void, Resources, 'Application'>
 
 export function makeApplication<
   Model,
@@ -3307,31 +3557,38 @@ export function makeApplication<
         P
       >
     | ApplicationConfig<Model, Message, Resources, ManagedResourceServices, P>,
-): MakeRuntimeReturn<P> {
+): MakeRuntimeReturn<P, any, Resources, 'Application'> {
   const { container } = config
-  if (container === null) {
-    throw new Error(
-      '[foldkit] Container is null. Make sure the element exists in the DOM ' +
-        'before calling makeApplication (e.g. that your <div id="root"></div> has ' +
-        'rendered, and your script runs after it).',
-    )
-  }
 
   const hasRouting = 'routing' in config
   const hasFlags = 'Flags' in config
+
+  const hydration = findDocumentHydration(container, hasFlags)
+
+  const resolvedContainer = hydration?.root ?? container
+  if (resolvedContainer === null) {
+    throw new Error(
+      '[foldkit] Container is null. Make sure the element exists in the DOM ' +
+        'before calling makeApplication (e.g. that your <div id="root"></div> has ' +
+        'rendered, and your script runs after it). On a server-rendered page ' +
+        'the runtime instead finds the root by its `data-foldkit-app` stamp.',
+    )
+  }
 
   const currentUrl: Url | undefined = hasRouting
     ? Option.getOrThrow(urlFromString(window.location.href))
     : undefined
 
   const baseConfig = {
+    kind: 'Application',
     Model: config.Model,
     update: config.update,
     view: config.view,
     manageDocument: true,
     ports: config.ports,
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
-    container,
+    container: resolvedContainer,
+    ...(hydration && { hydration }),
     ...(hasRouting && { routing: config.routing }),
     ...(config.crash && { crash: config.crash }),
     ...(Predicate.isNotUndefined(config.slow) && {
@@ -3360,7 +3617,8 @@ export function makeApplication<
     return makeRuntime({
       ...baseConfig,
       Flags: config.Flags,
-      flags: Option.some(config.flags),
+      configuredFlags: Option.none(),
+      isFlagsRequired: true,
       init: (flags: unknown, url) =>
         (
           config as RoutingApplicationConfigWithFlags<
@@ -3377,13 +3635,15 @@ export function makeApplication<
       Flags,
       Resources,
       ManagedResourceServices,
-      P
+      P,
+      'Application'
     >)
   } else if (hasRouting) {
     return makeRuntime({
       ...baseConfig,
       Flags: Schema.Void,
-      flags: Option.none(),
+      configuredFlags: Option.none(),
+      isFlagsRequired: false,
       init: (_flags, url) =>
         (
           config as RoutingApplicationConfig<
@@ -3399,13 +3659,15 @@ export function makeApplication<
       void,
       Resources,
       ManagedResourceServices,
-      P
+      P,
+      'Application'
     >)
   } else if (hasFlags) {
     return makeRuntime({
       ...baseConfig,
       Flags: config.Flags,
-      flags: Option.some(config.flags),
+      configuredFlags: Option.none(),
+      isFlagsRequired: true,
       init: (flags: unknown) =>
         (
           config as ApplicationConfigWithFlags<
@@ -3422,13 +3684,15 @@ export function makeApplication<
       Flags,
       Resources,
       ManagedResourceServices,
-      P
+      P,
+      'Application'
     >)
   } else {
     return makeRuntime({
       ...baseConfig,
       Flags: Schema.Void,
-      flags: Option.none(),
+      configuredFlags: Option.none(),
+      isFlagsRequired: false,
       init: () =>
         (
           config as ApplicationConfig<
@@ -3444,7 +3708,8 @@ export function makeApplication<
       void,
       Resources,
       ManagedResourceServices,
-      P
+      P,
+      'Application'
     >)
   }
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
@@ -3504,7 +3769,7 @@ export function makeElement<
     ManagedResourceServices,
     P
   >,
-): MakeRuntimeReturn<P>
+): MakeRuntimeReturn<P, void, Resources, 'Element'>
 
 export function makeElement<
   Model,
@@ -3514,7 +3779,7 @@ export function makeElement<
   P extends Ports | undefined = undefined,
 >(
   config: ElementConfig<Model, Message, Resources, ManagedResourceServices, P>,
-): MakeRuntimeReturn<P>
+): MakeRuntimeReturn<P, void, Resources, 'Element'>
 
 export function makeElement<
   Model,
@@ -3534,7 +3799,7 @@ export function makeElement<
         P
       >
     | ElementConfig<Model, Message, Resources, ManagedResourceServices, P>,
-): MakeRuntimeReturn<P> {
+): MakeRuntimeReturn<P, void, Resources, 'Element'> {
   const { container } = config
   if (container === null) {
     throw new Error(
@@ -3555,6 +3820,7 @@ export function makeElement<
   const crash = toCrashConfig(config.crash)
 
   const baseConfig = {
+    kind: 'Element',
     Model: config.Model,
     update: config.update,
     view,
@@ -3586,7 +3852,8 @@ export function makeElement<
     return makeRuntime({
       ...baseConfig,
       Flags: config.Flags,
-      flags: Option.some(config.flags),
+      configuredFlags: Option.some(config.flags),
+      isFlagsRequired: true,
       init: (flags: unknown) =>
         (
           config as ElementConfigWithFlags<
@@ -3603,13 +3870,15 @@ export function makeElement<
       Flags,
       Resources,
       ManagedResourceServices,
-      P
-    >)
+      P,
+      'Element'
+    >) as unknown as MakeRuntimeReturn<P, void, Resources, 'Element'>
   } else {
     return makeRuntime({
       ...baseConfig,
       Flags: Schema.Void,
-      flags: Option.none(),
+      configuredFlags: Option.none(),
+      isFlagsRequired: false,
       init: () =>
         (
           config as ElementConfig<
@@ -3625,7 +3894,8 @@ export function makeElement<
       void,
       Resources,
       ManagedResourceServices,
-      P
+      P,
+      'Element'
     >)
   }
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
@@ -3725,15 +3995,91 @@ const resolveHmrModel = (runtimeId: string): Effect.Effect<unknown> => {
   )
 }
 
-/** Starts a Foldkit runtime that owns the page for the page's whole lifetime,
- *  with HMR support for development. To start a runtime under a
- *  host-controlled lifecycle instead, use `embed`. */
-export const run = (program: MakeRuntimeReturn<Ports | undefined>): void => {
+/** Starts a program Effect with explicit boot inputs for runtime tests.
+ * @internal */
+export const __startProgram = (
+  program: RuntimeProgram,
+  hmrModel: unknown,
+  bootMode: BootMode,
+  flags?: Effect.Effect<unknown, never, any>,
+): Effect.Effect<void> => {
+  const internals = runtimeInternals.get(program)
+  if (Predicate.isUndefined(internals)) {
+    return Effect.die(
+      new Error(
+        '[foldkit] Runtime boot expects a program created by ' +
+          'makeApplication or makeElement.',
+      ),
+    )
+  }
+
+  if (bootMode === 'Hydrate' && internals.kind !== 'Application') {
+    return Effect.die(
+      new Error(
+        '[foldkit] Runtime.hydrate expects a program created by ' +
+          'makeApplication.',
+      ),
+    )
+  }
+
+  return internals.startWith(Option.none(), hmrModel, bootMode, flags)
+}
+
+const startProgram = (
+  program: RuntimeProgram,
+  bootMode: BootMode,
+  flags?: Effect.Effect<unknown, never, any>,
+): void => {
   BrowserRuntime.runMain(
     provideBrowserScheduler(
-      Effect.flatMap(resolveHmrModel(program.runtimeId), program.start),
+      Effect.flatMap(resolveHmrModel(program.runtimeId), hmrModel =>
+        __startProgram(program, hmrModel, bootMode, flags),
+      ),
     ),
   )
+}
+
+/** Starts a Foldkit runtime that owns the page for the page's whole lifetime,
+ *  with HMR support for development. The first render builds the DOM fresh in
+ *  the container, replacing whatever is there. On a server-rendered page use
+ *  `hydrate` instead, which adopts the existing DOM. To start a runtime under a
+ *  host-controlled lifecycle, use `embed`. */
+export function run<
+  P extends Ports | undefined,
+  Resources,
+  Kind extends 'Application' | 'Element',
+>(program: MakeRuntimeReturn<P, void, Resources, Kind>): void
+export function run<
+  P extends Ports | undefined,
+  Flags,
+  Resources,
+  Kind extends 'Application' | 'Element',
+>(
+  program: MakeRuntimeReturn<P, Flags, Resources, Kind>,
+  options: RunOptions<Flags, Resources>,
+): void
+export function run(
+  program: RuntimeProgram,
+  options?: RunOptions<unknown, any>,
+): void {
+  startProgram(program, 'Fresh', options?.flags)
+}
+
+/** Starts a Foldkit runtime by adopting a server-rendered DOM in place instead
+ *  of building it fresh. Use this as the client entry for a page served by
+ *  `renderToString`: the first render attaches to the stamped root, keeps the
+ *  existing nodes, and reconstructs the Model from the Flags the server
+ *  embedded. The handoff is strict: a missing server root, missing Flags
+ *  payload, or undecodable payload terminates startup and leaves the server
+ *  HTML visible but inert. Use `run` in a separate client-only entry when the
+ *  page should boot without server output.
+ *
+ * @experimental Server rendering and hydration are experimental while their
+ * contracts settle. */
+export const hydrate = <P extends Ports | undefined, Flags, Resources>(
+  program: MakeRuntimeReturn<P, Flags, Resources, 'Application'>,
+): void => {
+  startProgram(program, 'Hydrate')
 }
 
 const buildPortHandles = <P extends Ports | undefined>(
@@ -3785,9 +4131,24 @@ const buildPortHandles = <P extends Ports | undefined>(
  * handle.dispose()
  * ```
  */
-export const embed = <P extends Ports | undefined = undefined>(
-  program: MakeRuntimeReturn<P>,
-): EmbedHandle<P> => {
+export function embed<
+  P extends Ports | undefined = undefined,
+  Resources = never,
+  Kind extends 'Application' | 'Element' = 'Application' | 'Element',
+>(program: MakeRuntimeReturn<P, void, Resources, Kind>): EmbedHandle<P>
+export function embed<
+  P extends Ports | undefined,
+  Flags,
+  Resources,
+  Kind extends 'Application' | 'Element',
+>(
+  program: MakeRuntimeReturn<P, Flags, Resources, Kind>,
+  options: RunOptions<Flags, Resources>,
+): EmbedHandle<P>
+export function embed<P extends Ports | undefined = undefined>(
+  program: RuntimeProgram & Readonly<{ ports: P }>,
+  options?: RunOptions<unknown, any>,
+): EmbedHandle<P> {
   const internals = runtimeInternals.get(program)
   if (Predicate.isUndefined(internals)) {
     throw new Error(
@@ -3818,7 +4179,12 @@ export const embed = <P extends Ports | undefined = undefined>(
     }),
     Effect.andThen(resolveHmrModel(program.runtimeId)),
     Effect.flatMap(hmrModel =>
-      internals.startWith(Option.some(connector), hmrModel),
+      internals.startWith(
+        Option.some(connector),
+        hmrModel,
+        'Fresh',
+        options?.flags,
+      ),
     ),
   )
 

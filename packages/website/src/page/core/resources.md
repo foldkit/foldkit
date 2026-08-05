@@ -8,7 +8,7 @@ Commands are self-contained by default. Each execution starts fresh with no shar
 Resources are kitchen equipment: the oven, the stand mixer, the deep fryer. They’re turned on when the kitchen opens and run all night. Every dish (Command) can use them. You don’t buy a new oven per order. An `RpcClient` and an analytics client are the same: expensive singletons that live for the entire app lifecycle. Need multiple pieces of equipment? Combine them with `Layer.mergeAll`.
 :::
 
-Define a service using [Context.Service](https://effect.website/docs/requirements-management/services/), then pass its default layer to `makeApplication` via the `resources` config field. The runtime builds the Layer once, the first time it is needed: at startup in an app that declares flags (they resolve before `init`) or Subscriptions (their pipelines run for the application’s lifetime), otherwise when the first Command runs. The built services are shared for the application’s lifetime and released at teardown. Commands access a service by yielding its tag.
+Define a service using [Context.Service](https://effect.website/docs/requirements-management/services/), then pass its default layer to `makeApplication` via the `resources` config field. The runtime builds the Layer once, the first time it is needed: at startup when `Runtime.run` receives a Flags Effect or Subscriptions begin, otherwise when the first Command runs. The built services are shared for the application’s lifetime and released at teardown. Commands access a service by yielding its tag.
 
 ::Snippet{name="resources" label="resources example"}
 
@@ -31,13 +31,13 @@ An HTTP client can still graduate. When an app grows many HTTP Commands, or shar
 
 ## Resources in Flags
 
-The `flags` Effect can require services too. Declare them in its type and the runtime provides them from the same `resources` Layer it gives Commands and Subscriptions, so a client needed both at startup and by Commands is constructed once rather than once per consumer.
+The Flags Effect passed to `Runtime.run` can require services too. Declare them in its type and the runtime provides them from the same `resources` Layer it gives Commands and Subscriptions, so a client needed both at startup and by Commands is constructed once rather than once per consumer.
 
-::Snippet{name="resourcesFlags" label="flags consuming a resource"}
+::Snippet{name="resourcesFlags" label="Flags consuming a resource"}
 
-Flags resolve before `init`, so an app that declares them builds the Layer at startup rather than on the first Command. A Layer that fails to build still reaches the crash view, with one exception. When the flags Effect itself needs the broken service it cannot proceed, and it fails before the first render, where there is no Model for the crash view to render against. That case fails startup, and neither cause is swallowed, so a flags Effect that fails for its own unrelated reason stays visible alongside the build error. Every other case is unchanged: the app starts, and the failure reaches the crash view at the first Command or Subscription that needs the Layer.
+During fresh boot, Flags resolve before `init`, so a Flags Effect that requires a Resource builds the Layer at startup rather than on the first Command. A Layer that fails to build still reaches the crash view, with one exception. When the Flags Effect itself needs the broken service it cannot proceed, and it fails before the first render, where there is no Model for the crash view to render against. That case fails startup, and neither cause is swallowed, so a Flags Effect that fails for its own unrelated reason stays visible alongside the build error. Every other case is unchanged: the app starts, and the failure reaches the crash view at the first Command or Subscription that needs the Layer.
 
-Requirements are checked at the `makeApplication` and `makeElement` boundaries. A flags Effect requiring a service that `resources` does not provide is a compile error, not a runtime one, whenever `Resources` is inferred from `resources`. Naming it explicitly in the type arguments detaches it from any Layer, which is the same gap Commands already have. Provide a service the flags Effect alone needs with `Effect.provide` inside `flags` instead, exactly as a Command does: `KeyValueStore` reading persisted state at startup is the common case, and it belongs there rather than in `resources`.
+Requirements are checked where the Effect is supplied: `Runtime.run` for an application and `makeElement` for an element. A Flags Effect requiring a service that `resources` does not provide is a compile error whenever `Resources` is inferred from `resources`. Naming it explicitly in the type arguments detaches it from any Layer, which is the same gap Commands already have. Provide a service the Flags Effect alone needs with `Effect.provide` inside `flags` instead, exactly as a Command does: `KeyValueStore` reading persisted state at startup is the common case, and it belongs there rather than in `resources`.
 
 ## Providing Multiple Services
 
