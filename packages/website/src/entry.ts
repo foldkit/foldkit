@@ -55,4 +55,4 @@ const application = Runtime.makeApplication<
   },
 })
 
-Runtime.run(application)
+Runtime.hydrate(application)

@@ -11,6 +11,7 @@
         "src/brand/public.ts",
         "src/experimental/public.ts",
         "src/experimental/machine/public.ts",
+        "src/experimental/server/public.ts",
         "src/html/public.ts",
         "src/devTools/public.ts",
         "src/devTools/host.ts",
@@ -27,6 +28,9 @@
     "packages/devtools": {
       "entry": ["src/index.ts"]
     },
+    "packages/vite-plugin-foldkit": {
+      "ignoreFiles": ["test/fixtures/**"]
+    },
     "packages/markdown": {
       "entry": ["src/index.ts", "src/vite/public.ts"]
     },
@@ -40,7 +44,12 @@
       "ignoreDependencies": ["@effect/platform-node-shared"]
     },
     "packages/website": {
-      "entry": ["src/main.ts", "src/**/*.test.ts", "scripts/**/*.test.ts"],
+      "entry": [
+        "src/main.ts",
+        "src/entry.server.ts",
+        "src/**/*.test.ts",
+        "scripts/**/*.test.ts"
+      ],
       "ignore": ["src/snippet/**", "public/**"]
     },
     "packages/oxlint-plugin-foldkit": {
@@ -55,6 +64,14 @@
     },
     "examples/charting": {
       "entry": [],
+      "ignoreDependencies": [
+        "@trivago/prettier-plugin-sort-imports",
+        "prettier",
+        "tailwindcss"
+      ]
+    },
+    "examples/ssr": {
+      "entry": ["server/main.ts", "src/entry.server.ts"],
       "ignoreDependencies": [
         "@trivago/prettier-plugin-sort-imports",
         "prettier",

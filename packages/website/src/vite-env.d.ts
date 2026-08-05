@@ -106,10 +106,6 @@ declare module 'virtual:playground-types' {
   export default data
 }
 
-interface Window {
-  readonly __FOLDKIT_PRERENDER__?: boolean
-}
-
 interface Navigator {
   readonly userAgentData?: Readonly<{
     brands?: ReadonlyArray<Readonly<{ brand: string }>>

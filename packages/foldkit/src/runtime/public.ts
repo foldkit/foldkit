@@ -2,6 +2,7 @@ export {
   SlowPhase,
   defaultSlowCallback,
   embed,
+  hydrate,
   makeApplication,
   makeElement,
   run,

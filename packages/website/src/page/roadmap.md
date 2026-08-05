@@ -20,7 +20,7 @@ Day-to-day work is tracked at ticket granularity in a private tracker, and that 
 
 ## After 1.0
 
-The largest committed direction is per-request server rendering with a hydration handoff, covered in depth in [What about SSR?](/faq/what-about-ssr). Its timing is not settled yet: it may land shortly before 1.0 or as an early release after.
+Build-time static generation and per-request server rendering share one experimental hydration handoff: `renderToString` in `foldkit/experimental/server` and explicit adoption via `Runtime.hydrate`. The [Server Rendering](/core/server-rendering) and [What about SSR?](/faq/what-about-ssr) pages cover the architecture, with separate SSG and SSR reference applications.
 
 Beyond that, these are directions being explored, not commitments:
 

@@ -1,0 +1,7 @@
+---
+'foldkit': minor
+---
+
+Add `injectIntoTemplate` to `foldkit/experimental/server`. It places a rendered page into an HTML template: the rendered markup replaces exactly one empty container placeholder (`<div id="root"></div>` by default, configurable via `containerId`), and the `Document` head fields are stamped into the shell, `title` into the template's single required `<title>`, `lang` and `dir` onto `<html>`, and `canonical` and `ogUrl` into a matching `<link rel="canonical">` and `<meta property="og:url">` when the template carries them. The exact placeholder and title contracts prevent an injection helper from silently discarding container attributes or matching ambiguous markup. The helper is pure string work with no module state, so a host process may import it directly even when the render itself must stay inside the server entry's module graph.
+
+Also add a delivery-neutral server entry contract. `renderPage` takes a Web `Request` and returns a `Promise<ServerEntryResult>`. `Rendered` carries an application plus optional HTTP status and headers for template injection; `Responded` carries a complete Web `Response` for redirects, APIs, and other bypasses. `toResponse` turns either result into the response a host sends. The Promise boundary keeps entries callable from build scripts, serverless functions, Vite, and Effect HTTP servers without making the host provide the application's Effect requirements.

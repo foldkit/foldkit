@@ -1,12 +1,4 @@
-import {
-  Array as Array_,
-  Effect,
-  Option,
-  Order,
-  String as Str,
-  pipe,
-} from 'effect'
-import { type Page } from 'playwright'
+import { Array as Array_, Option, Order, String as Str, pipe } from 'effect'
 
 import { type AppRoute } from '../src/route'
 import { type PageMetadata } from './metadata'
@@ -15,8 +7,17 @@ import { type PageMetadata } from './metadata'
 
 const SITE_URL = 'https://foldkit.dev'
 
-export const extractMarkdownFromCurrentDocument = (siteUrl: string): string => {
-  const root = document.querySelector('[data-pagefind-body]')
+const TEXT_NODE_TYPE = 3
+const ELEMENT_NODE_TYPE = 1
+
+const isElementNode = (node: Node): node is Element =>
+  node.nodeType === ELEMENT_NODE_TYPE
+
+export const extractMarkdownFromRenderedDocument = (
+  renderedDocument: Document,
+  siteUrl: string = SITE_URL,
+): string => {
+  const root = renderedDocument.querySelector('[data-pagefind-body]')
   if (root === null) {
     return ''
   }
@@ -50,10 +51,10 @@ export const extractMarkdownFromCurrentDocument = (siteUrl: string): string => {
   }
 
   const collectInline = (node: Node): string => {
-    if (node.nodeType === Node.TEXT_NODE) {
+    if (node.nodeType === TEXT_NODE_TYPE) {
       return collapseWhitespace(node.textContent ?? '')
     }
-    if (!(node instanceof Element)) {
+    if (!isElementNode(node)) {
       return ''
     }
     if (isSkippedElement(node)) {
@@ -160,14 +161,14 @@ export const extractMarkdownFromCurrentDocument = (siteUrl: string): string => {
   const extractBlocks = (parent: Element): string => {
     const parts: Array<string> = []
     for (const node of Array.from(parent.childNodes)) {
-      if (node.nodeType === Node.TEXT_NODE) {
+      if (node.nodeType === TEXT_NODE_TYPE) {
         const text = collapseWhitespace(node.textContent ?? '').trim()
         if (text.length > 0) {
           parts.push(text)
         }
         continue
       }
-      if (!(node instanceof Element)) {
+      if (!isElementNode(node)) {
         continue
       }
       if (isSkippedElement(node)) {
@@ -255,12 +256,6 @@ export const extractMarkdownFromCurrentDocument = (siteUrl: string): string => {
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
-
-export const extractPageMarkdown = (page: Page): Effect.Effect<string, Error> =>
-  Effect.tryPromise({
-    try: () => page.evaluate(extractMarkdownFromCurrentDocument, SITE_URL),
-    catch: error => new Error(`Failed to extract markdown: ${String(error)}`),
-  })
 
 // PATHS
 

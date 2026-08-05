@@ -236,6 +236,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Runtime',
     'Mount and run a Foldkit application in the browser.',
   ),
+  CoreServerRendering: core(
+    'Server Rendering',
+    'Render a request to HTML with renderToString and hydrate the DOM in place on boot.',
+  ),
   CoreResources: core(
     'Resources',
     'Long-lived browser singletons shared across Commands.',
