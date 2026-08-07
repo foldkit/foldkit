@@ -266,9 +266,9 @@ describe('DevToolsStore', () => {
           initialModel,
           { count: 1 },
           [
-            { name: 'FetchData', args: { id: 7 } },
-            { name: 'LockScroll' },
-            { name: 'FocusButton' },
+            { name: 'FetchData', args: { id: 7 }, submodelPath: [] },
+            { name: 'LockScroll', submodelPath: [] },
+            { name: 'FocusButton', submodelPath: [] },
           ],
           true,
         ),
@@ -276,9 +276,9 @@ describe('DevToolsStore', () => {
 
       const state = getState(store)
       expect(state.entries[0]?.commands).toEqual([
-        { name: 'FetchData', args: { id: 7 } },
-        { name: 'LockScroll' },
-        { name: 'FocusButton' },
+        { name: 'FetchData', args: { id: 7 }, submodelPath: [] },
+        { name: 'LockScroll', submodelPath: [] },
+        { name: 'FocusButton', submodelPath: [] },
       ])
     })
 

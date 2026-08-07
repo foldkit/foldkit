@@ -1,7 +1,8 @@
-import { Option } from 'effect'
+import { Option, Schema as S } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import { extractSubmodelInfo } from './submodelPath.js'
+import { m } from '../schema/index.js'
+import { commandSubmodelPath, extractSubmodelInfo } from './submodelPath.js'
 
 describe('extractSubmodelInfo', () => {
   it('returns an empty path and None for top-level Messages', () => {
@@ -60,5 +61,58 @@ describe('extractSubmodelInfo', () => {
     })
     expect(submodelPath).toEqual([])
     expect(maybeLeafTag).toEqual(Option.none())
+  })
+})
+
+describe('commandSubmodelPath', () => {
+  const CompletedChildWork = m('CompletedChildWork')
+  const ChildMessage = S.Union([CompletedChildWork])
+  const GotChildMessage = m('GotChildMessage', { message: ChildMessage })
+
+  const CompletedEditorWork = m('CompletedEditorWork')
+  const EditorMessage = S.Union([CompletedEditorWork])
+  const GotEditorMessage = m('GotEditorMessage', { message: EditorMessage })
+  const PanelMessage = S.Union([GotEditorMessage])
+  const GotPanelMessage = m('GotPanelMessage', { message: PanelMessage })
+
+  const WrappedLeaf = m('WrappedLeaf', { payload: ChildMessage })
+
+  // Adapts a validating constructor into the existential
+  // `(message: unknown) => unknown` mapper shape that `commandSubmodelPath`
+  // folds. The single assertion mirrors the boundary in `Command.mapMessage`,
+  // where the recorded chain is typed `(message: unknown) => unknown`.
+  const asMapper =
+    (construct: (input: never) => unknown) =>
+    (message: unknown): unknown =>
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      construct(message as never)
+
+  it('returns an empty path for an empty chain', () => {
+    expect(commandSubmodelPath([])).toEqual([])
+  })
+
+  it('returns an empty path for an undefined chain', () => {
+    expect(commandSubmodelPath(undefined)).toEqual([])
+  })
+
+  it('recovers a single-level wrapper from one validating constructor', () => {
+    expect(
+      commandSubmodelPath([asMapper(message => GotChildMessage({ message }))]),
+    ).toEqual(['GotChildMessage'])
+  })
+
+  it('recovers a nested wrapper path, last mapper applied is outermost', () => {
+    expect(
+      commandSubmodelPath([
+        asMapper(message => GotEditorMessage({ message })),
+        asMapper(message => GotPanelMessage({ message })),
+      ]),
+    ).toEqual(['GotPanelMessage', 'GotEditorMessage'])
+  })
+
+  it('returns an empty path when the fold does not produce a Got*Message', () => {
+    expect(
+      commandSubmodelPath([asMapper(payload => WrappedLeaf({ payload }))]),
+    ).toEqual([])
   })
 })

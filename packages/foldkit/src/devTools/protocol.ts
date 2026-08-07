@@ -4,10 +4,11 @@ import { ts } from '../schema/index.js'
 
 // SHARED
 
-/** A serialized Command produced during a Message dispatch (or `init`). `args` is `Some` when the Command's definition declared an args record, and carries the runtime values used to construct the Command instance. */
+/** A serialized Command produced during a Message dispatch (or `init`). `args` is `Some` when the Command's definition declared an args record, and carries the runtime values used to construct the Command instance. `submodelPath` lists the `Got<Child>Message` wrapper tags from outer to inner naming the Command's destination Submodel, recovered from the `Command.mapMessage`/`mapMessages` lifts applied to it; it is empty for a top-level Command. Unlike a history entry there is no `maybeLeafTag`, because the Command's result Message does not exist until its Effect resolves. */
 export const SerializedCommand = S.Struct({
   name: S.String,
   args: S.OptionFromNullOr(S.Record(S.String, S.Unknown)),
+  submodelPath: S.Array(S.String),
 })
 /** A serialized Command suitable for transmission over the WS protocol. */
 export type SerializedCommand = typeof SerializedCommand.Type
