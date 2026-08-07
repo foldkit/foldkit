@@ -27,6 +27,7 @@ import {
   slugToModuleName,
 } from '../src/page/apiReference/domain'
 import { TypeDocJson } from '../src/page/apiReference/typedoc'
+import { BLOG_DESCRIPTION } from '../src/page/blog/meta'
 import { exampleSlugs } from '../src/page/example/meta'
 import {
   AiMcpRoute,
@@ -706,6 +707,10 @@ ${entries}
 
 const RSS_OUTPUT_PATH = 'blog/rss.xml'
 
+// NOTE: index.html advertises the feed with this same title on its
+// `rel="alternate"` link, which is static HTML and cannot import it.
+const RSS_FEED_TITLE = 'Foldkit Blog'
+
 const escapeXml = (text: string): string =>
   text
     .replaceAll('&', '&amp;')
@@ -730,17 +735,31 @@ const blogPostRssItem = (entry: BlogPostEntry): string => {
 </item>`
 }
 
+// NOTE: posts arrive newest first, so the newest post's date is the feed's last
+// build date. Deriving it from the content rather than the clock keeps two
+// builds of the same commit byte-identical.
+const rssChannelHeader = (posts: ReadonlyArray<BlogPostEntry>): string => {
+  const channel = `<title>${RSS_FEED_TITLE}</title>
+<link>${SITE_URL}${blogRouter()}</link>
+<atom:link href="${SITE_URL}/${RSS_OUTPUT_PATH}" rel="self" type="application/rss+xml" />
+<description>${escapeXml(BLOG_DESCRIPTION)}</description>`
+
+  return Option.match(Array.head(posts), {
+    onNone: () => channel,
+    onSome: newest =>
+      `${channel}\n<lastBuildDate>${toRfc822Date(newest.frontmatter.date)}</lastBuildDate>`,
+  })
+}
+
 export const buildBlogRssFeed = (
   posts: ReadonlyArray<BlogPostEntry>,
 ): string => {
   const items = pipe(posts, Array.map(blogPostRssItem), Array.join('\n'))
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
-<title>Foldkit Blog</title>
-<link>${SITE_URL}${blogRouter()}</link>
-<description>Release notes, patterns, and deep dives into building frontend applications with Foldkit.</description>
+${rssChannelHeader(posts)}
 ${items}
 </channel>
 </rss>`

@@ -1,5 +1,10 @@
 import { Array, Match as M, Option } from 'effect'
 
+import {
+  BLOG_DESCRIPTION,
+  BLOG_SECTION,
+  BLOG_TITLE,
+} from '../src/page/blog/meta'
 import { findBySlug } from '../src/page/example/meta'
 import { type AppRoute } from '../src/route'
 import { blogPosts } from './blogPosts'
@@ -418,12 +423,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
       'Subscribe to the Foldkit newsletter for new releases, patterns, and the occasional deep dive.',
     section: '',
   },
-  Blog: {
-    title: 'Blog',
-    description:
-      'Release notes, patterns, and deep dives into building frontend applications with Foldkit.',
-    section: '',
-  },
+  Blog: docs(BLOG_TITLE, BLOG_DESCRIPTION, BLOG_SECTION),
 }
 
 export const routeToMetadata = (
@@ -444,9 +444,9 @@ export const routeToMetadata = (
       Option.match(
         Array.findFirst(blogPosts, ({ slug }) => slug === postSlug),
         {
-          onNone: () => docs('Blog', 'A Foldkit blog post.', 'Blog'),
+          onNone: () => docs(BLOG_TITLE, 'A Foldkit blog post.', BLOG_SECTION),
           onSome: ({ frontmatter }) =>
-            docs(frontmatter.title, frontmatter.description, 'Blog'),
+            docs(frontmatter.title, frontmatter.description, BLOG_SECTION),
         },
       ),
     ),

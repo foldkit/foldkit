@@ -231,6 +231,17 @@ export const isBlogRoute = (
 ): route is BlogRoute | BlogPostRoute =>
   route._tag === 'Blog' || route._tag === 'BlogPost'
 
+const isDocsUnionRoute = S.is(DocsRoute)
+
+/**
+ * Whether a route belongs to the documentation section, which is what the
+ * header's `Docs` link highlights on. Derived from `DocsRoute` so a new
+ * top-level route cannot silently join the section. `NotFound` is a member of
+ * the union so 404s render in the docs shell, but it belongs to no section.
+ */
+export const isDocsSectionRoute = (route: AppRoute): boolean =>
+  isDocsUnionRoute(route) && route._tag !== 'NotFound'
+
 // ROUTERS
 
 const page = <T>(slug: string, route: { make: (input: {}) => T }) =>

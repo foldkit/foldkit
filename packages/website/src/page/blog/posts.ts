@@ -2,7 +2,6 @@ import {
   Array,
   DateTime,
   Option,
-  Order,
   Record as Record_,
   Schema as S,
   String as String_,
@@ -10,6 +9,7 @@ import {
 } from 'effect'
 
 import { PostFrontmatter } from './frontmatter'
+import { byDateThenSlugDescending } from './meta'
 
 // POSTS
 
@@ -40,20 +40,22 @@ const decodePostFrontmatter = S.decodeUnknownSync(PostFrontmatter)
 const pathToSlug = (path: string): string =>
   pipe(path, String_.replace('./post/', ''), String_.replace(/\.md$/, ''))
 
+// NOTE: the plugin emits `frontmatter` as `undefined` for a document with no
+// frontmatter block, so the glob has the key with an undefined value rather
+// than no key. Both spellings mean the post declared no frontmatter.
+const maybePostFrontmatter = (path: string): Option.Option<{}> =>
+  Option.flatMap(Record_.get(frontmatterByPath, path), Option.fromNullishOr)
+
 const toBlogPost = (path: string, document: unknown): BlogPost => ({
   slug: pathToSlug(path),
   frontmatter: decodePostFrontmatter(
-    Option.getOrUndefined(Record_.get(frontmatterByPath, path)),
+    Option.getOrThrowWith(
+      maybePostFrontmatter(path),
+      () => new Error(`Blog post ${path} has no frontmatter block.`),
+    ),
   ),
   document,
 })
-
-const byDateThenSlugDescending: Order.Order<BlogPost> = Order.flip(
-  Order.combine(
-    Order.mapInput(Order.String, (post: BlogPost) => post.frontmatter.date),
-    Order.mapInput(Order.String, (post: BlogPost) => post.slug),
-  ),
-)
 
 /** Every blog post, newest first. */
 export const posts: ReadonlyArray<BlogPost> = pipe(

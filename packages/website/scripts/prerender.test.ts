@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
+import { SECTION_ORDER } from './markdown'
+import { routeToMetadata } from './metadata'
 import {
   STATIC_ROUTES,
+  buildBlogRssFeed,
   buildPlaygroundShellHtml,
   enumerateRoutes,
   injectHtml,
@@ -51,5 +54,65 @@ describe('enumerateRoutes', () => {
       _tag: 'ApiModule',
       moduleSlug: 'runtime',
     })
+  })
+})
+
+describe('page metadata sections', () => {
+  it('ranks every section a static route reports', () => {
+    const unranked = STATIC_ROUTES.map(
+      route => routeToMetadata(route, slug => slug).section,
+    ).filter(section => section.length > 0 && !SECTION_ORDER.includes(section))
+
+    expect(unranked).toEqual([])
+  })
+})
+
+describe('buildBlogRssFeed', () => {
+  const entry = (slug: string, title: string, date: string) => ({
+    slug,
+    frontmatter: { title, description: `About ${title}.`, date },
+  })
+
+  it('declares itself with an atom self link and the newest post as last build date', () => {
+    const feed = buildBlogRssFeed([
+      entry('newer', 'Newer', '2026-08-01'),
+      entry('older', 'Older', '2026-07-01'),
+    ])
+
+    expect(feed).toContain('xmlns:atom="http://www.w3.org/2005/Atom"')
+    expect(feed).toContain(
+      '<atom:link href="https://foldkit.dev/blog/rss.xml" rel="self" type="application/rss+xml" />',
+    )
+    expect(feed).toContain(
+      '<lastBuildDate>Sat, 01 Aug 2026 00:00:00 GMT</lastBuildDate>',
+    )
+  })
+
+  it('emits one item per post, newest first, with an absolute guid', () => {
+    const feed = buildBlogRssFeed([
+      entry('newer', 'Newer', '2026-08-01'),
+      entry('older', 'Older', '2026-07-01'),
+    ])
+
+    expect(feed).toContain('<guid>https://foldkit.dev/blog/newer</guid>')
+    expect(feed.indexOf('<title>Newer</title>')).toBeLessThan(
+      feed.indexOf('<title>Older</title>'),
+    )
+  })
+
+  it('escapes markup characters in post fields', () => {
+    const feed = buildBlogRssFeed([
+      entry('escaping', 'Types & <script>', '2026-08-01'),
+    ])
+
+    expect(feed).toContain('<title>Types &amp; &lt;script&gt;</title>')
+    expect(feed).not.toContain('<script>')
+  })
+
+  it('omits the last build date when there are no posts', () => {
+    const feed = buildBlogRssFeed([])
+
+    expect(feed).not.toContain('<lastBuildDate>')
+    expect(feed).not.toContain('<item>')
   })
 })

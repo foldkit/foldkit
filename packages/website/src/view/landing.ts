@@ -14,6 +14,7 @@ import { Icon } from '../icon'
 import { Link } from '../link'
 import { type Model } from '../main'
 import {
+  ClickedOpenMobileMenu,
   GotAsyncCounterDemoMessage,
   GotDemoTabsMessage,
   GotNotePlayerDemoMessage,
@@ -30,6 +31,7 @@ import {
 import { coreArchitectureRouter, homeRouter } from '../route'
 import { headerNavView } from './headerNav'
 import { betaTag, emailSignupContentView, skipNavLink } from './shared'
+import { mobileMenuView } from './sidebar'
 import { themeSelector } from './themeSelector'
 
 const PlaygroundMenu = Menu.create<ExampleSlug>()
@@ -79,6 +81,17 @@ const landingHeaderView = (model: Model, h: HtmlBuilder<Message>) =>
               ),
             ],
             ['Dive In', Icon.arrowRight('w-4 h-4')],
+          ),
+          h.button(
+            [
+              h.Class(
+                'sm:hidden p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
+              ),
+              h.AriaExpanded(model.mobileMenuDialog.isOpen),
+              h.AriaLabel('Toggle menu'),
+              h.OnClick(ClickedOpenMobileMenu()),
+            ],
+            [Icon.menu('w-6 h-6')],
           ),
         ],
       ),
@@ -347,6 +360,7 @@ export const landingView = (model: Model, h: HtmlBuilder<Message>) => {
     [
       skipNavLink,
       landingHeaderView(model, h),
+      mobileMenuView(model, h),
       h.main(
         [
           h.Id('main-content'),
@@ -376,11 +390,12 @@ export const newsletterView = (model: Model, h: HtmlBuilder<Message>) =>
     [
       skipNavLink,
       landingHeaderView(model, h),
+      mobileMenuView(model, h),
       h.main(
         [
           h.Id('main-content'),
           h.Class(
-            'flex-1 flex items-center justify-center px-6 py-20 md:px-12 lg:px-20 pt-[var(--header-height)]',
+            'flex-1 flex items-center justify-center px-6 pb-20 pt-[calc(var(--header-height)+5rem)] md:px-12 lg:px-20',
           ),
         ],
         [

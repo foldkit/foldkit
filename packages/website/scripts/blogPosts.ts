@@ -1,4 +1,4 @@
-import { Array, Option, Order, Schema as S, pipe } from 'effect'
+import { Array, Option, Schema as S, pipe } from 'effect'
 import { readFileSync, readdirSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -7,6 +7,7 @@ import { parseMarkdownWithFrontmatter } from '@foldkit/markdown/vite'
 
 import { islandAttributes } from '../src/markdown/islandAttributes'
 import { PostFrontmatter } from '../src/page/blog/frontmatter'
+import { byDateThenSlugDescending } from '../src/page/blog/meta'
 
 // BLOG POSTS
 
@@ -37,16 +38,6 @@ const readPostEntry = (fileName: string): BlogPostEntry => {
     ),
   }
 }
-
-const byDateThenSlugDescending: Order.Order<BlogPostEntry> = Order.flip(
-  Order.combine(
-    Order.mapInput(
-      Order.String,
-      (entry: BlogPostEntry) => entry.frontmatter.date,
-    ),
-    Order.mapInput(Order.String, (entry: BlogPostEntry) => entry.slug),
-  ),
-)
 
 /**
  * Every blog post's slug and frontmatter, newest first, read from the post

@@ -1279,7 +1279,7 @@ const routeTitle = (
     M.tag('Blog', () => `Blog | ${SITE_NAME}`),
     M.tag('BlogPost', ({ postSlug }) =>
       Option.match(Page.Blog.findPostBySlug(postSlug), {
-        onNone: () => `Blog | ${SITE_NAME}`,
+        onNone: () => `Not Found | ${SITE_NAME}`,
         onSome: ({ frontmatter }) =>
           `${frontmatter.title} | Blog | ${SITE_NAME}`,
       }),

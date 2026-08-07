@@ -3,6 +3,7 @@ import { type Html, inertHtml as ih } from 'foldkit/html'
 
 import { pageTitle, para } from '../../prose'
 import { blogPostRouter } from '../../route'
+import { BLOG_DESCRIPTION, BLOG_TITLE } from './meta'
 import { type BlogPost, formatPostDate, posts } from './posts'
 
 // VIEW
@@ -50,10 +51,8 @@ export const view = (): Html =>
   ih.div(
     [],
     [
-      pageTitle('blog', 'Blog'),
-      para(
-        'Release notes, patterns, and deep dives into building frontend applications with Foldkit.',
-      ),
+      pageTitle('blog', BLOG_TITLE),
+      para(BLOG_DESCRIPTION),
       ih.div([ih.Class('mt-4')], Array.map(posts, postEntry)),
     ],
   )

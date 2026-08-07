@@ -9,6 +9,7 @@ import {
   blogRouter,
   coreArchitectureRouter,
   isBlogRoute,
+  isDocsSectionRoute,
 } from '../route'
 
 // HEADER NAV
@@ -18,18 +19,9 @@ type HeaderSection = typeof HeaderSection.Type
 
 const headerSections: ReadonlyArray<HeaderSection> = HeaderSection.literals
 
-const NON_DOCS_ROUTE_TAGS: ReadonlySet<AppRoute['_tag']> = new Set([
-  'Home',
-  'Newsletter',
-  'Playground',
-  'Blog',
-  'BlogPost',
-  'NotFound',
-])
-
 const isSectionCurrent = (route: AppRoute, section: HeaderSection): boolean =>
   M.value(section).pipe(
-    M.when('Docs', () => !NON_DOCS_ROUTE_TAGS.has(route._tag)),
+    M.when('Docs', () => isDocsSectionRoute(route)),
     M.when('Blog', () => isBlogRoute(route)),
     M.exhaustive,
   )
