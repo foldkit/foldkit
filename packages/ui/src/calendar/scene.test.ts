@@ -97,6 +97,61 @@ const sceneView = Scene.withViewInputs(view, {
   toView: testToView,
 })
 
+const germanLocale: Calendar.LocaleConfig = {
+  ...Calendar.defaultEnglishLocale,
+  firstDayOfWeek: 'Monday',
+  monthNames: [
+    'Januar',
+    'Februar',
+    'März',
+    'April',
+    'Mai',
+    'Juni',
+    'Juli',
+    'August',
+    'September',
+    'Oktober',
+    'November',
+    'Dezember',
+  ],
+  dayNames: [
+    'Sonntag',
+    'Montag',
+    'Dienstag',
+    'Mittwoch',
+    'Donnerstag',
+    'Freitag',
+    'Samstag',
+  ],
+  shortDayNames: ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'],
+  longFormat: [
+    Calendar.DayNumber(),
+    Calendar.LiteralText({ text: '. ' }),
+    Calendar.MonthName(),
+    Calendar.LiteralText({ text: ' ' }),
+    Calendar.YearNumber(),
+  ],
+  ariaLabelFormat: [
+    Calendar.DayName(),
+    Calendar.LiteralText({ text: ', ' }),
+    Calendar.DayNumber(),
+    Calendar.LiteralText({ text: '. ' }),
+    Calendar.MonthName(),
+    Calendar.LiteralText({ text: ' ' }),
+    Calendar.YearNumber(),
+  ],
+}
+
+const yearFirstLocale: Calendar.LocaleConfig = {
+  ...Calendar.defaultEnglishLocale,
+  monthYearFormat: [
+    Calendar.YearNumber(),
+    Calendar.LiteralText({ text: '年' }),
+    Calendar.MonthNumber(),
+    Calendar.LiteralText({ text: '月' }),
+  ],
+}
+
 const grid = Scene.role('grid')
 const previousMonthButton = Scene.label('Previous month')
 const nextMonthButton = Scene.label('Next month')
@@ -293,6 +348,71 @@ describe('Calendar', () => {
         // First column header should be Monday's short name
         Scene.expectAll(Scene.all.role('columnheader')).toHaveCount(7),
         Scene.expect(Scene.label('Monday')).toExist(),
+      )
+    })
+  })
+
+  describe('localization', () => {
+    it('draws column header names from the locale rather than English', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(init({ id: 'test', today, locale: germanLocale })),
+        Scene.expect(Scene.label('Montag')).toExist(),
+        Scene.expect(Scene.label('Sonntag')).toExist(),
+      )
+    })
+
+    it('orders day cell labels the way the locale orders them', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(init({ id: 'test', today, locale: germanLocale })),
+        Scene.expect(dayButton('Montag, 13. April 2026')).toExist(),
+      )
+    })
+
+    it('builds the heading and month cells from monthYearFormat', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(init({ id: 'test', today, locale: yearFirstLocale })),
+        Scene.expect(daysHeadingFor('2026年4月')).toExist(),
+        Scene.click(monthsHeadingButton),
+        resolveFocusGrid,
+        Scene.expect(Scene.label('2026年1月')).toExist(),
+      )
+    })
+
+    it('takes the day grid and week row labels from view inputs', () => {
+      Scene.scene(
+        {
+          update,
+          view: sceneView({
+            toDaysGridLabel: monthYear => `Kalender, ${monthYear}`,
+            toWeekLabel: weekStart =>
+              `Woche ab ${Calendar.formatLong(weekStart, germanLocale)}`,
+          }),
+        },
+        Scene.given(init({ id: 'test', today, locale: germanLocale })),
+        Scene.expect(Scene.label('Kalender, April 2026')).toExist(),
+        Scene.expect(Scene.label('Woche ab 30. März 2026')).toExist(),
+      )
+    })
+
+    it('takes the month and year grid labels from view inputs', () => {
+      Scene.scene(
+        {
+          update,
+          view: sceneView({
+            toMonthsGridLabel: year => `Monatsauswahl, ${year}`,
+            toYearsGridLabel: yearRange => `Jahresauswahl, ${yearRange}`,
+          }),
+        },
+        Scene.given(init({ id: 'test', today, locale: germanLocale })),
+        Scene.click(monthsHeadingButton),
+        resolveFocusGrid,
+        Scene.expect(Scene.label('Monatsauswahl, 2026')).toExist(),
+        Scene.click(yearsHeadingButton),
+        resolveFocusGrid,
+        Scene.expect(Scene.label('Jahresauswahl, 2016–2027')).toExist(),
       )
     })
   })

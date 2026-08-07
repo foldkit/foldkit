@@ -49,6 +49,66 @@ The grid container receives DOM focus, and navigation happens via `aria-activede
 
 The grid renders with `role="grid"` and an explicit `aria-label` that leads with a non-numeric word ("Calendar, April 2026") so VoiceOver doesn't pattern-match the grid's row position into a date literal. Each row has `role="row"`, column headers have `role="columnheader"`, and day cells have `role="gridcell"` with `aria-selected` set on the chosen date. Day buttons carry a full accessible name via `aria-label` (e.g. "Monday, April 13, 2026"), and disabled days get `aria-disabled="true"`.
 
+## Localization
+
+Two inputs cover a localized calendar, and they belong to different layers.
+
+The `LocaleConfig` you pass to `init` carries the words and the ordering: month names, day names, the first day of the week, and a `DateFormat` for each shape the calendar renders. A `DateFormat` is an ordered list of parts, so a locale that reads day-first or year-first renders correctly without a code change.
+
+```ts
+const germanLocale: Calendar.LocaleConfig = {
+  firstDayOfWeek: 'Monday',
+  monthNames: ['Januar', 'Februar', 'März' /* ... */],
+  shortMonthNames: ['Jan.', 'Feb.', 'März' /* ... */],
+  dayNames: ['Sonntag', 'Montag', 'Dienstag' /* ... */],
+  shortDayNames: ['So', 'Mo', 'Di' /* ... */],
+  longFormat: [
+    Calendar.DayNumber(),
+    Calendar.LiteralText({ text: '. ' }),
+    Calendar.MonthName(),
+    Calendar.LiteralText({ text: ' ' }),
+    Calendar.YearNumber(),
+  ],
+  shortFormat: [
+    Calendar.DayNumber(),
+    Calendar.LiteralText({ text: '. ' }),
+    Calendar.ShortMonthName(),
+    Calendar.LiteralText({ text: ' ' }),
+    Calendar.YearNumber(),
+  ],
+  ariaLabelFormat: [
+    Calendar.DayName(),
+    Calendar.LiteralText({ text: ', ' }),
+    Calendar.DayNumber(),
+    Calendar.LiteralText({ text: '. ' }),
+    Calendar.MonthName(),
+    Calendar.LiteralText({ text: ' ' }),
+    Calendar.YearNumber(),
+  ],
+  monthYearFormat: [
+    Calendar.MonthName(),
+    Calendar.LiteralText({ text: ' ' }),
+    Calendar.YearNumber(),
+  ],
+}
+```
+
+Every field is required, and none of them fall back to anything. Spreading `defaultEnglishLocale` and overriding a few fields is convenient, but whatever you leave out stays English, so a locale that sets `monthNames` and `longFormat` alone still renders English abbreviations in the months grid and an English-ordered date in every day cell's accessible name.
+
+The component's own chrome is the other half: the words the calendar wraps around your dates, such as "Calendar, " on the grid and "Week of " on each row. Those are not locale data, so they come from ViewConfig instead. Every one has an English default and a `to*Label` override.
+
+```ts
+Calendar.view({
+  // ...
+  previousMonthLabel: 'Vorheriger Monat',
+  toDaysGridLabel: monthYear => `Kalender, ${monthYear}`,
+  toWeekLabel: weekStart =>
+    `Woche ab ${Calendar.formatLong(weekStart, germanLocale)}`,
+})
+```
+
+Foldkit ships `defaultEnglishLocale` and nothing else. Supply the locale data your app needs, or derive it from `Intl` at the app boundary.
+
 ## API Reference
 
 ### InitConfig {#init-config}
@@ -60,7 +120,7 @@ Configuration object passed to `Calendar.init()`.
 | `id`                 | `string`                      | —                      | Unique ID for the calendar instance.                                                                                                                                                              |
 | `today`              | `CalendarDate`                | —                      | The current calendar date. Typically fetched at the app boundary via Calendar.today.local and threaded through flags.                                                                             |
 | `initialViewDate`    | `CalendarDate`                | —                      | Seeds the month the calendar opens onto. When set, the view starts on the month containing this date. The parent owns the selection itself; pass your initial selected date here to open onto it. |
-| `locale`             | `LocaleConfig`                | `defaultEnglishLocale` | Month and day names plus the first day of the week. Import from foldkit/calendar.                                                                                                                 |
+| `locale`             | `LocaleConfig`                | `defaultEnglishLocale` | Month and day names, the first day of the week, and the DateFormat for each shape the calendar renders. Import from foldkit/calendar.                                                             |
 | `minDate`            | `CalendarDate`                | —                      | Earliest selectable date. Dates before minDate are marked disabled and skipped by keyboard navigation.                                                                                            |
 | `maxDate`            | `CalendarDate`                | —                      | Latest selectable date. Dates after maxDate are marked disabled and skipped by keyboard navigation.                                                                                               |
 | `disabledDaysOfWeek` | `ReadonlyArray<DayOfWeek>`    | `[]`                   | Days of the week to disable (e.g. ["Saturday", "Sunday"] for weekday-only selection).                                                                                                             |
@@ -78,7 +138,7 @@ The calendar state managed as a Submodel field in your parent Model.
 | `viewMonth`          | `number`                        | —        | The month (1-12) currently rendered in the grid.                                                              |
 | `maybeFocusedDate`   | `Option<CalendarDate>`          | —        | The keyboard cursor position, referenced by aria-activedescendant on the grid.                                |
 | `isGridFocused`      | `boolean`                       | —        | Whether the grid container has DOM focus. Used to apply focused styling only when visually appropriate.       |
-| `locale`             | `LocaleConfig`                  | —        | The locale for month/day names and first day of the week.                                                     |
+| `locale`             | `LocaleConfig`                  | —        | The locale for month/day names, first day of the week, and date formats.                                      |
 | `maybeMinDate`       | `Option<CalendarDate>`          | —        | Lower bound for selectable dates.                                                                             |
 | `maybeMaxDate`       | `Option<CalendarDate>`          | —        | Upper bound for selectable dates.                                                                             |
 | `disabledDaysOfWeek` | `ReadonlyArray<DayOfWeek>`      | —        | Days of the week disabled across every month.                                                                 |
@@ -101,6 +161,10 @@ Configuration object passed to `Calendar.view()`.
 | `nextYearsPageLabel`       | `string`                                            | `'Next 12 years'`          | Accessible label for the next-page button in the years grid.                                                                                                                                                        |
 | `daysHeadingButtonLabel`   | `string`                                            | `'Switch to month picker'` | Accessible label for the heading button in Days mode. Clicked to drill into the months grid.                                                                                                                        |
 | `monthsHeadingButtonLabel` | `string`                                            | `'Switch to year picker'`  | Accessible label for the heading button in Months mode. Clicked to drill into the years grid.                                                                                                                       |
+| `toDaysGridLabel`          | `(monthYear: string) => string`                     | English                    | Builds the day grid's accessible label from the heading text the locale's monthYearFormat produced. The default renders "Calendar, September 2019".                                                                 |
+| `toWeekLabel`              | `(weekStart: CalendarDate) => string`               | English                    | Builds each week row's accessible label from the date that starts the week. The default renders "Week of September 1, 2019" using the locale's longFormat.                                                          |
+| `toMonthsGridLabel`        | `(year: string) => string`                          | English                    | Builds the months grid's accessible label from the displayed year. The default renders "Month picker, 2019".                                                                                                        |
+| `toYearsGridLabel`         | `(yearRange: string) => string`                     | English                    | Builds the years grid's accessible label from the displayed 12-year window. The default renders "Year picker, 2016–2027".                                                                                           |
 
 ### CalendarAttributes {#calendar-attributes}
 
