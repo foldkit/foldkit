@@ -1,7 +1,7 @@
 import { Array, Function, Option, pipe } from 'effect'
 
 import { type AsyncData } from '../asyncData/index.js'
-import { type Command } from '../command/index.js'
+import { type Command, mapMessages } from '../command/index.js'
 
 /** The Commands half of an update return: every Command the update wants
  *  the runtime to run, in order. `R` is the services the Commands need
@@ -143,5 +143,183 @@ export const refresh =
       Option.match({
         onNone: () => [model, []],
         onSome: next => [refreshable.write(model, next), [refreshable.load]],
+      }),
+    )
+
+/** The four capabilities that fold one child Submodel's update into the
+ *  parent, for a child without an OutMessage channel.
+ *
+ *  - `update`: the child entry point to run, returning {@link Return}.
+ *    Usually the child's update function, so `Input` is the child's
+ *    Message, but any entry point with the same return shape fits: an
+ *    `informPressedKey(child, key)` takes a string, a `join(child,
+ *    player)` takes a domain value. An entry point that takes extra
+ *    context is closed over here
+ *    (`update: (child, message) => Room.update(child, message, { roomId })`).
+ *  - `read`: gets the child Model out of the parent Model. Returns an
+ *    `Option` because a child may not be mounted (a page behind a route,
+ *    a keyed collection miss); single fields wrap in `Option.some`.
+ *  - `write`: puts the updated child Model back into the parent Model.
+ *  - `toParentMessage`: lifts a child Message into the parent's Message,
+ *    the same contract `h.submodel` takes for the view half. Always the
+ *    child's `Got*` wrapper: `message => GotSearchMessage({ message })`. */
+export type ChildFold<
+  ParentModel,
+  ParentMessage,
+  ChildModel,
+  Input,
+  ChildMessage,
+  R = never,
+> = Readonly<{
+  update: (
+    childModel: ChildModel,
+    input: Input,
+  ) => Return<ChildModel, ChildMessage, R>
+  read: (model: ParentModel) => Option.Option<ChildModel>
+  write: (model: ParentModel, nextChildModel: ChildModel) => ParentModel
+  toParentMessage: (message: ChildMessage) => ParentMessage
+}>
+
+/** {@link ChildFold} for a child whose update returns
+ *  {@link ReturnWithOutMessage}, adding the fifth capability:
+ *
+ *  - `foldOutMessage`: folds the child's OutMessage into the parent as a
+ *    {@link Step}. The Step receives the parent Model with the child
+ *    already written back, and its Commands run after the child's. Match
+ *    on the OutMessage tag inside (`M.tagsExhaustive`), and compose
+ *    multi-part reactions with {@link combine}. */
+export type ChildFoldWithOutMessage<
+  ParentModel,
+  ParentMessage,
+  ChildModel,
+  Input,
+  ChildMessage,
+  ChildOutMessage,
+  R = never,
+> = Readonly<{
+  update: (
+    childModel: ChildModel,
+    input: Input,
+  ) => ReturnWithOutMessage<ChildModel, ChildMessage, ChildOutMessage, R>
+  read: (model: ParentModel) => Option.Option<ChildModel>
+  write: (model: ParentModel, nextChildModel: ChildModel) => ParentModel
+  toParentMessage: (message: ChildMessage) => ParentMessage
+  foldOutMessage: (
+    outMessage: ChildOutMessage,
+  ) => Step<ParentModel, ParentMessage, R>
+}>
+
+/** @internal Implementation-facing view of both {@link ChildFold} shapes:
+ *  the child update's third tuple element and `foldOutMessage` are
+ *  optional, and every type parameter is erased. The overloads on
+ *  {@link foldChild} carry the public contract. */
+type AnyChildFold = Readonly<{
+  update: (
+    childModel: any,
+    input: any,
+  ) => readonly [any, Commands<any, any>, Option.Option<any>?]
+  read: (model: any) => Option.Option<any>
+  write: (model: any, nextChildModel: any) => any
+  toParentMessage: (message: any) => any
+  foldOutMessage?: (outMessage: any) => Step<any, any, any>
+}>
+
+/** Folds a child Submodel's update into the parent: the update half of
+ *  embedding a child, complementing `h.submodel` on the view half. Give
+ *  it the facts that vary per child (a {@link ChildFold}, or a
+ *  {@link ChildFoldWithOutMessage} when the child raises OutMessages) and
+ *  it returns `(message) => Step`, so the parent's `Got*` handler is one
+ *  line and the fold composes with {@link combine} like any other Step:
+ *
+ *  ```ts
+ *  const foldSearch = Update.foldChild({
+ *    update: Search.update,
+ *    read: (model: Model) => Option.some(model.search),
+ *    write: (model, nextSearch) => evo(model, { search: () => nextSearch }),
+ *    toParentMessage: message => GotSearchMessage({ message }),
+ *  })
+ *
+ *  // in the parent update
+ *  GotSearchMessage: ({ message }) => foldSearch(message)(model),
+ *  ```
+ *
+ *  The Step runs the child entry point against the Model `read`
+ *  returns, writes the child back, and lifts the child's Commands
+ *  through `toParentMessage` with `Command.mapMessages`, so the mapping
+ *  chain stays recoverable for `Story`/`Scene` `resolve`. When `read`
+ *  returns `None` the Step is `[model, []]`: a Message for an unmounted
+ *  child is a no-op. When the child raises an OutMessage,
+ *  `foldOutMessage` runs against the Model with the child already
+ *  written, and its Commands append after the child's mapped Commands.
+ *
+ *  `Input` is whatever the entry point takes: the child's Message for an
+ *  update-driven fold, a plain value for an `inform*` entry point. A
+ *  Command that must run before the child's (a navigation racing a
+ *  join) is a plain Step composed ahead of the fold with
+ *  {@link combine}. */
+export const foldChild: {
+  <
+    ParentModel,
+    ParentMessage,
+    ChildModel,
+    Input,
+    ChildMessage,
+    ChildOutMessage,
+    R = never,
+  >(
+    childFold: ChildFoldWithOutMessage<
+      ParentModel,
+      ParentMessage,
+      ChildModel,
+      Input,
+      ChildMessage,
+      ChildOutMessage,
+      R
+    >,
+  ): (input: Input) => Step<ParentModel, ParentMessage, R>
+  <ParentModel, ParentMessage, ChildModel, Input, ChildMessage, R = never>(
+    childFold: ChildFold<
+      ParentModel,
+      ParentMessage,
+      ChildModel,
+      Input,
+      ChildMessage,
+      R
+    >,
+  ): (input: Input) => Step<ParentModel, ParentMessage, R>
+} =
+  (childFold: AnyChildFold) =>
+  (input: any): Step<any, any, any> =>
+  model =>
+    pipe(
+      childFold.read(model),
+      Option.match({
+        onNone: () => [model, []],
+        onSome: childModel => {
+          const [nextChildModel, childCommands, maybeOutMessage] =
+            childFold.update(childModel, input)
+          const modelWithChild = childFold.write(model, nextChildModel)
+          const mappedCommands = mapMessages(
+            childCommands,
+            childFold.toParentMessage,
+          )
+
+          if (
+            childFold.foldOutMessage === undefined ||
+            maybeOutMessage === undefined
+          ) {
+            return [modelWithChild, mappedCommands]
+          }
+
+          const { foldOutMessage } = childFold
+          return Option.match(maybeOutMessage, {
+            onNone: () => [modelWithChild, mappedCommands],
+            onSome: outMessage => {
+              const [nextModel, outCommands] =
+                foldOutMessage(outMessage)(modelWithChild)
+              return [nextModel, [...mappedCommands, ...outCommands]]
+            },
+          })
+        },
       }),
     )

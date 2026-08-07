@@ -23,6 +23,7 @@ import {
   ManagedResource,
   Runtime,
   Subscription,
+  Update,
 } from 'foldkit'
 import { type Document, type HtmlBuilder } from 'foldkit/html'
 import { load, pushUrl } from 'foldkit/navigation'
@@ -475,6 +476,142 @@ export const init: Runtime.RoutingApplicationInit<
 
 const isPathnameEqual = (a: Url, b: Url): boolean => a.pathname === b.pathname
 
+const foldMobileMenuDialog = Update.foldChild({
+  update: Dialog.update,
+  read: (model: Model) => Option.some(model.mobileMenuDialog),
+  write: (model, nextMobileMenuDialog) =>
+    evo(model, { mobileMenuDialog: () => nextMobileMenuDialog }),
+  toParentMessage: message => GotMobileMenuDialogMessage({ message }),
+  foldOutMessage: M.type<Dialog.OutMessage>().pipe(
+    M.withReturnType<Update.Step<Model, Message>>(),
+    M.tagsExhaustive({
+      Opened: () => model => [model, []],
+      Closed: () => model => [model, []],
+    }),
+  ),
+})
+
+const foldDemoTabs = Update.foldChild({
+  update: DemoTab.DemoTabs.update,
+  read: (model: Model) => Option.some(model.demoTabs),
+  write: (model, nextDemoTabs) => evo(model, { demoTabs: () => nextDemoTabs }),
+  toParentMessage: message => GotDemoTabsMessage({ message }),
+  foldOutMessage: M.type<Tabs.OutMessage<DemoTab.Tab>>().pipe(
+    M.withReturnType<Update.Step<Model, Message>>(),
+    M.tagsExhaustive({
+      Selected:
+        ({ value }) =>
+        model => [
+          evo(model, {
+            activeDemoTab: () => value,
+            asyncCounterDemo: () =>
+              reflectAsyncCounterDemoPresence(
+                model.asyncCounterDemo,
+                isAsyncCounterDemoVisible(model.route, value),
+              ),
+            notePlayerDemo: () =>
+              reflectNotePlayerDemoPresence(
+                model.notePlayerDemo,
+                isNotePlayerDemoVisible(model.route, value),
+              ),
+          }),
+          [],
+        ],
+    }),
+  ),
+})
+
+const foldPlaygroundMenuOutMessage: (
+  outMessage: Menu.OutMessage<ExampleSlug>,
+) => Update.Step<Model, Message> = M.type<Menu.OutMessage<ExampleSlug>>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    // NOTE: `LoadExternal` (not `NavigateInternal`).
+    // WebContainer requires `window.crossOriginIsolated`,
+    // which is only true when the document is loaded with
+    // COEP/COOP headers. SPA navigation reuses the previous
+    // page's document (no headers), so playground URLs need
+    // a fresh document load.
+    Selected:
+      ({ value }) =>
+      model => [
+        model,
+        [LoadExternal({ href: playgroundRouter({ exampleSlug: value }) })],
+      ],
+  }),
+)
+
+const foldPlaygroundMenu = Update.foldChild({
+  update: PlaygroundMenu.update,
+  read: (model: Model) => Option.some(model.playgroundMenu),
+  write: (model, nextPlaygroundMenu) =>
+    evo(model, { playgroundMenu: () => nextPlaygroundMenu }),
+  toParentMessage: message => GotPlaygroundMenuMessage({ message }),
+  foldOutMessage: foldPlaygroundMenuOutMessage,
+})
+
+const foldAsyncCounterDemo = Update.foldChild({
+  update: Page.AsyncCounterDemo.update,
+  read: (model: Model) => model.asyncCounterDemo,
+  write: (model, nextAsyncCounterDemo) =>
+    evo(model, { asyncCounterDemo: () => Option.some(nextAsyncCounterDemo) }),
+  toParentMessage: message => GotAsyncCounterDemoMessage({ message }),
+})
+
+const foldNotePlayerDemo = Update.foldChild({
+  update: Page.NotePlayerDemo.update,
+  read: (model: Model) => model.notePlayerDemo,
+  write: (model, nextNotePlayerDemo) =>
+    evo(model, { notePlayerDemo: () => Option.some(nextNotePlayerDemo) }),
+  toParentMessage: message => GotNotePlayerDemoMessage({ message }),
+})
+
+const foldComingFromReact = Update.foldChild({
+  update: Page.ComingFromReact.update,
+  read: (model: Model) => Option.some(model.comingFromReact),
+  write: (model, nextComingFromReact) =>
+    evo(model, { comingFromReact: () => nextComingFromReact }),
+  toParentMessage: message => GotComingFromReactMessage({ message }),
+})
+
+const foldApiReference = Update.foldChild({
+  update: Page.ApiReference.update,
+  read: (model: Model) => Option.some(model.apiReference),
+  write: (model, nextApiReference) =>
+    evo(model, { apiReference: () => nextApiReference }),
+  toParentMessage: message => GotApiReferenceMessage({ message }),
+})
+
+const foldUiPages = Update.foldChild({
+  update: Page.UiPages.update,
+  read: (model: Model) => Option.some(model.uiPages),
+  write: (model, nextUiPages) => evo(model, { uiPages: () => nextUiPages }),
+  toParentMessage: message => GotUiPageMessage({ message }),
+})
+
+const foldExampleDetail = Update.foldChild({
+  update: Page.Example.ExampleDetail.update,
+  read: (model: Model) => Option.some(model.exampleDetail),
+  write: (model, nextExampleDetail) =>
+    evo(model, { exampleDetail: () => nextExampleDetail }),
+  toParentMessage: message => GotExampleDetailMessage({ message }),
+})
+
+const foldSearch = Update.foldChild({
+  update: Search.update,
+  read: (model: Model) => Option.some(model.search),
+  write: (model, nextSearch) => evo(model, { search: () => nextSearch }),
+  toParentMessage: message => GotSearchMessage({ message }),
+})
+
+const foldPlayground = Update.foldChild({
+  update: Page.Playground.update,
+  read: (model: Model) => model.playground,
+  write: (model, nextPlayground) =>
+    evo(model, { playground: () => Option.some(nextPlayground) }),
+  toParentMessage: message => GotPlaygroundMessage({ message }),
+})
+
 export const update = (
   model: Model,
   message: Message,
@@ -729,21 +866,8 @@ export const update = (
         ]
       },
 
-      GotMobileMenuDialogMessage: ({ message }) => {
-        const [nextMobileMenuDialog, mobileMenuDialogCommands] = Dialog.update(
-          model.mobileMenuDialog,
-          message,
-        )
-
-        return [
-          evo(model, {
-            mobileMenuDialog: () => nextMobileMenuDialog,
-          }),
-          Command.mapMessages(mobileMenuDialogCommands, message =>
-            GotMobileMenuDialogMessage({ message }),
-          ),
-        ]
-      },
+      GotMobileMenuDialogMessage: ({ message }) =>
+        foldMobileMenuDialog(message)(model),
 
       ToggledMobileTableOfContents: ({ isOpen }) => [
         evo(model, { isMobileTableOfContentsOpen: () => isOpen }),
@@ -797,118 +921,16 @@ export const update = (
         ]
       },
 
-      GotDemoTabsMessage: ({ message }) => {
-        const [nextDemoTabs, demoTabsCommands, maybeOutMessage] =
-          DemoTab.DemoTabs.update(model.demoTabs, message)
+      GotDemoTabsMessage: ({ message }) => foldDemoTabs(message)(model),
 
-        const nextActiveDemoTab = Option.match(maybeOutMessage, {
-          onNone: () => model.activeDemoTab,
-          onSome: M.type<Tabs.OutMessage<DemoTab.Tab>>().pipe(
-            M.tagsExhaustive({
-              Selected: ({ value }) => value,
-            }),
-          ),
-        })
-
-        const nextAsyncCounterDemo = reflectAsyncCounterDemoPresence(
-          model.asyncCounterDemo,
-          isAsyncCounterDemoVisible(model.route, nextActiveDemoTab),
-        )
-
-        const nextNotePlayerDemo = reflectNotePlayerDemoPresence(
-          model.notePlayerDemo,
-          isNotePlayerDemoVisible(model.route, nextActiveDemoTab),
-        )
-
-        return [
-          evo(model, {
-            demoTabs: () => nextDemoTabs,
-            activeDemoTab: () => nextActiveDemoTab,
-            asyncCounterDemo: () => nextAsyncCounterDemo,
-            notePlayerDemo: () => nextNotePlayerDemo,
-          }),
-          Command.mapMessages(demoTabsCommands, message =>
-            GotDemoTabsMessage({ message }),
-          ),
-        ]
-      },
-
-      GotPlaygroundMenuMessage: ({ message }) => {
-        const [nextMenu, menuCommands, maybeOutMessage] = PlaygroundMenu.update(
-          model.playgroundMenu,
-          message,
-        )
-        const mappedCommands = Command.mapMessages(menuCommands, message =>
-          GotPlaygroundMenuMessage({ message }),
-        )
-        type UpdateReturn = readonly [
-          Model,
-          ReadonlyArray<Command.Command<Message>>,
-        ]
-
-        return Option.match(maybeOutMessage, {
-          onNone: (): UpdateReturn => [
-            evo(model, { playgroundMenu: () => nextMenu }),
-            mappedCommands,
-          ],
-          onSome: M.type<Menu.OutMessage<ExampleSlug>>().pipe(
-            M.withReturnType<UpdateReturn>(),
-            M.tagsExhaustive({
-              // NOTE: `LoadExternal` (not `NavigateInternal`).
-              // WebContainer requires `window.crossOriginIsolated`,
-              // which is only true when the document is loaded with
-              // COEP/COOP headers. SPA navigation reuses the previous
-              // page's document (no headers), so playground URLs need
-              // a fresh document load.
-              Selected: ({ value }) => [
-                evo(model, { playgroundMenu: () => nextMenu }),
-                [
-                  ...mappedCommands,
-                  LoadExternal({
-                    href: playgroundRouter({ exampleSlug: value }),
-                  }),
-                ],
-              ],
-            }),
-          ),
-        })
-      },
+      GotPlaygroundMenuMessage: ({ message }) =>
+        foldPlaygroundMenu(message)(model),
 
       GotAsyncCounterDemoMessage: ({ message }) =>
-        Option.match(model.asyncCounterDemo, {
-          onNone: () => [model, []],
-          onSome: asyncCounterDemo => {
-            const [nextAsyncCounterDemo, asyncCounterDemoCommands] =
-              Page.AsyncCounterDemo.update(asyncCounterDemo, message)
-
-            return [
-              evo(model, {
-                asyncCounterDemo: () => Option.some(nextAsyncCounterDemo),
-              }),
-              Command.mapMessages(asyncCounterDemoCommands, message =>
-                GotAsyncCounterDemoMessage({ message }),
-              ),
-            ]
-          },
-        }),
+        foldAsyncCounterDemo(message)(model),
 
       GotNotePlayerDemoMessage: ({ message }) =>
-        Option.match(model.notePlayerDemo, {
-          onNone: () => [model, []],
-          onSome: notePlayerDemo => {
-            const [nextNotePlayerDemo, notePlayerDemoCommands] =
-              Page.NotePlayerDemo.update(notePlayerDemo, message)
-
-            return [
-              evo(model, {
-                notePlayerDemo: () => Option.some(nextNotePlayerDemo),
-              }),
-              Command.mapMessages(notePlayerDemoCommands, message =>
-                GotNotePlayerDemoMessage({ message }),
-              ),
-            ]
-          },
-        }),
+        foldNotePlayerDemo(message)(model),
 
       ChangedSystemTheme: ({ theme }) => {
         const resolvedTheme = resolveTheme(model.themePreference, theme)
@@ -922,45 +944,12 @@ export const update = (
         ]
       },
 
-      GotComingFromReactMessage: ({ message }) => {
-        const [nextComingFromReact, comingFromReactCommands] =
-          Page.ComingFromReact.update(model.comingFromReact, message)
+      GotComingFromReactMessage: ({ message }) =>
+        foldComingFromReact(message)(model),
 
-        return [
-          evo(model, {
-            comingFromReact: () => nextComingFromReact,
-          }),
-          Command.mapMessages(comingFromReactCommands, message =>
-            GotComingFromReactMessage({ message }),
-          ),
-        ]
-      },
+      GotApiReferenceMessage: ({ message }) => foldApiReference(message)(model),
 
-      GotApiReferenceMessage: ({ message }) => {
-        const [nextApiReference, apiReferenceCommands] =
-          Page.ApiReference.update(model.apiReference, message)
-
-        return [
-          evo(model, { apiReference: () => nextApiReference }),
-          Command.mapMessages(apiReferenceCommands, message =>
-            GotApiReferenceMessage({ message }),
-          ),
-        ]
-      },
-
-      GotUiPageMessage: ({ message }) => {
-        const [nextUiPages, uiPagesCommands] = Page.UiPages.update(
-          model.uiPages,
-          message,
-        )
-
-        return [
-          evo(model, { uiPages: () => nextUiPages }),
-          Command.mapMessages(uiPagesCommands, message =>
-            GotUiPageMessage({ message }),
-          ),
-        ]
-      },
+      GotUiPageMessage: ({ message }) => foldUiPages(message)(model),
 
       ToggledSidebarGroup: ({ key, isOpen }) => {
         const nextModel = evo(model, {
@@ -974,50 +963,12 @@ export const update = (
         [],
       ],
 
-      GotExampleDetailMessage: ({ message }) => {
-        const [nextExampleDetail, exampleDetailCommands] =
-          Page.Example.ExampleDetail.update(model.exampleDetail, message)
+      GotExampleDetailMessage: ({ message }) =>
+        foldExampleDetail(message)(model),
 
-        return [
-          evo(model, {
-            exampleDetail: () => nextExampleDetail,
-          }),
-          Command.mapMessages(exampleDetailCommands, message =>
-            GotExampleDetailMessage({ message }),
-          ),
-        ]
-      },
+      GotSearchMessage: ({ message }) => foldSearch(message)(model),
 
-      GotSearchMessage: ({ message }) => {
-        const [nextSearch, searchCommands] = Search.update(
-          model.search,
-          message,
-        )
-
-        return [
-          evo(model, { search: () => nextSearch }),
-          Command.mapMessages(searchCommands, message =>
-            GotSearchMessage({ message }),
-          ),
-        ]
-      },
-
-      GotPlaygroundMessage: ({ message }) =>
-        Option.match(model.playground, {
-          onNone: () => [model, []],
-          onSome: playgroundModel => {
-            const [nextPlayground, playgroundCommands] = Page.Playground.update(
-              playgroundModel,
-              message,
-            )
-            return [
-              evo(model, { playground: () => Option.some(nextPlayground) }),
-              Command.mapMessages(playgroundCommands, message =>
-                GotPlaygroundMessage({ message }),
-              ),
-            ]
-          },
-        }),
+      GotPlaygroundMessage: ({ message }) => foldPlayground(message)(model),
     }),
     M.tag(
       'CompletedNavigateInternal',

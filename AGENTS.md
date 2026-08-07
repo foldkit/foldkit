@@ -48,6 +48,7 @@ The principles below apply broadly. Calibrate to the right context: library desi
 - Use `Option` at boundaries where the value will be matched or chained (`Option.match`, `Option.map`, `Option.flatMap`). Simple presence checks don't need it. Don't wrap in `Option` just to check `isSome`.
 - Errors in Commands become Messages via `Effect.catch(() => Effect.succeed(ErrorMessage(...)))`. Side effects should never crash the app.
 - Fold a Submodel OutMessage by matching on it: `Option.match(maybeOutMessage, { onNone: ..., onSome: M.type<X.OutMessage>().pipe(M.tagsExhaustive({ ... })) })`. Always match on the tag, even when the union has one variant, in app code, docs, snippets, and examples alike. Never destructure the OutMessage payload in `onSome` without naming the variant.
+- Wire a child Submodel into the parent update with `Update.foldChild`, not a hand-written `Got*` handler: pass the child entry point (`update`, or an `inform*`/`join` helper with the same return shape), an `Option`-returning `read`, `write`, `toParentMessage`, and `foldOutMessage` when the child raises OutMessages. Name each fold `fold<Child>` after what it folds (`foldSearch`, `foldHomeKeyPress`). The tag-matching rule above applies inside `foldOutMessage`. Route gating and per-dispatch context stay at the call site; close over context in the `update` field. When a `foldOutMessage` emits Commands, bind it as an annotated standalone const (`(outMessage: X.OutMessage) => Update.Step<Model, Message>`) so inference sees the wide parent Message.
 
 ## Code Style
 

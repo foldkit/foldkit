@@ -1,4 +1,4 @@
-import { Effect, HashMap, Match as M, Number, Option } from 'effect'
+import { Array, Effect, HashMap, Match as M, Number, Option } from 'effect'
 import { expect, expectTypeOf } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -13,6 +13,7 @@ import {
   type ReturnWithOutMessage,
   type Step,
   combine,
+  foldChild,
   refresh,
 } from './update.js'
 
@@ -224,6 +225,228 @@ describe('refresh', () => {
   })
 })
 
+type CounterModel = Readonly<{ value: number }>
+
+const BumpedValue = m('BumpedValue')
+const CompletedLoadCounter = m('CompletedLoadCounter')
+type CounterMessage = typeof BumpedValue.Type | typeof CompletedLoadCounter.Type
+
+const loadCounter: Command<CounterMessage> = {
+  name: 'LoadCounter',
+  effect: Effect.succeed(CompletedLoadCounter()),
+}
+
+const counterUpdate = (
+  model: CounterModel,
+  message: CounterMessage,
+): Return<CounterModel, CounterMessage> =>
+  M.value(message).pipe(
+    M.withReturnType<Return<CounterModel, CounterMessage>>(),
+    M.tagsExhaustive({
+      BumpedValue: () => [evo(model, { value: Number.increment }), []],
+      CompletedLoadCounter: () => [model, [loadCounter]],
+    }),
+  )
+
+type ClosedCounter = Readonly<{ _tag: 'ClosedCounter' }>
+const ClosedCounter = (): ClosedCounter => ({ _tag: 'ClosedCounter' })
+
+const counterUpdateWithOutMessage = (
+  model: CounterModel,
+  message: CounterMessage,
+): ReturnWithOutMessage<CounterModel, CounterMessage, ClosedCounter> =>
+  M.value(message).pipe(
+    M.withReturnType<
+      ReturnWithOutMessage<CounterModel, CounterMessage, ClosedCounter>
+    >(),
+    M.tagsExhaustive({
+      BumpedValue: () => [
+        evo(model, { value: Number.increment }),
+        [],
+        Option.none(),
+      ],
+      CompletedLoadCounter: () => [
+        evo(model, { value: Number.multiply(2) }),
+        [loadCounter],
+        Option.some(ClosedCounter()),
+      ],
+    }),
+  )
+
+type GotCounterMessage = Readonly<{
+  _tag: 'GotCounterMessage'
+  message: CounterMessage
+}>
+const GotCounterMessage = (message: CounterMessage): GotCounterMessage => ({
+  _tag: 'GotCounterMessage',
+  message,
+})
+
+type NotifiedCounterClosed = Readonly<{ _tag: 'NotifiedCounterClosed' }>
+const NotifiedCounterClosed = (): NotifiedCounterClosed => ({
+  _tag: 'NotifiedCounterClosed',
+})
+
+type ParentMessage = GotCounterMessage | NotifiedCounterClosed
+
+type ParentModel = Readonly<{
+  counter: CounterModel
+  isCounterClosed: boolean
+  closedAtValue: number
+}>
+
+const parentModel: ParentModel = {
+  counter: { value: 3 },
+  isCounterClosed: false,
+  closedAtValue: 0,
+}
+
+const notifyCounterClosed: Command<ParentMessage> = {
+  name: 'NotifyCounterClosed',
+  effect: Effect.succeed(NotifiedCounterClosed()),
+}
+
+const foldCounter = foldChild({
+  update: counterUpdate,
+  read: (model: ParentModel) => Option.some(model.counter),
+  write: (model, nextCounter) => ({ ...model, counter: nextCounter }),
+  toParentMessage: GotCounterMessage,
+})
+
+const foldClosableCounter = foldChild({
+  update: counterUpdateWithOutMessage,
+  read: (model: ParentModel) => Option.some(model.counter),
+  write: (model, nextCounter) => ({ ...model, counter: nextCounter }),
+  toParentMessage: GotCounterMessage,
+  foldOutMessage: () => model => [
+    {
+      ...model,
+      isCounterClosed: true,
+      closedAtValue: model.counter.value,
+    },
+    [notifyCounterClosed],
+  ],
+})
+
+type GatedParentModel = Readonly<{
+  maybeCounter: Option.Option<CounterModel>
+}>
+
+const foldGatedCounter = foldChild({
+  update: counterUpdate,
+  read: (model: GatedParentModel) => model.maybeCounter,
+  write: (model, nextCounter) => ({
+    ...model,
+    maybeCounter: Option.some(nextCounter),
+  }),
+  toParentMessage: GotCounterMessage,
+})
+
+describe('foldChild', () => {
+  it('writes the updated child back into the parent Model', () => {
+    const [nextModel, commands] = foldCounter(BumpedValue())(parentModel)
+    expect(nextModel.counter).toEqual({ value: 4 })
+    expect(nextModel.isCounterClosed).toBe(false)
+    expect(commands).toEqual([])
+  })
+
+  it('lifts the child Commands through toParentMessage, preserving name', () => {
+    const [nextModel, commands] = foldCounter(CompletedLoadCounter())(
+      parentModel,
+    )
+    expect(nextModel.counter).toBe(parentModel.counter)
+
+    const maybeCommand = Array.head(commands)
+    expect(Option.isSome(maybeCommand)).toBe(true)
+    if (Option.isSome(maybeCommand)) {
+      expect(maybeCommand.value.name).toBe('LoadCounter')
+      expect(Effect.runSync(maybeCommand.value.effect)).toEqual(
+        GotCounterMessage(CompletedLoadCounter()),
+      )
+    }
+  })
+
+  it('is a no-op when read finds no mounted child', () => {
+    const model: GatedParentModel = { maybeCounter: Option.none() }
+    const [nextModel, commands] = foldGatedCounter(BumpedValue())(model)
+    expect(nextModel).toBe(model)
+    expect(commands).toEqual([])
+  })
+
+  it('folds a mounted gated child and writes it back as Some', () => {
+    const model: GatedParentModel = {
+      maybeCounter: Option.some({ value: 7 }),
+    }
+    const [nextModel] = foldGatedCounter(BumpedValue())(model)
+    expect(nextModel.maybeCounter).toEqual(Option.some({ value: 8 }))
+  })
+
+  it('skips foldOutMessage when the child raises no OutMessage', () => {
+    const [nextModel, commands] =
+      foldClosableCounter(BumpedValue())(parentModel)
+    expect(nextModel.counter).toEqual({ value: 4 })
+    expect(nextModel.isCounterClosed).toBe(false)
+    expect(commands).toEqual([])
+  })
+
+  it('runs foldOutMessage against the Model with the child already written', () => {
+    const [nextModel] = foldClosableCounter(CompletedLoadCounter())(parentModel)
+    expect(nextModel.counter).toEqual({ value: 6 })
+    expect(nextModel.isCounterClosed).toBe(true)
+    expect(nextModel.closedAtValue).toBe(6)
+  })
+
+  it('appends the OutMessage Step Commands after the mapped child Commands', () => {
+    const [, commands] = foldClosableCounter(CompletedLoadCounter())(
+      parentModel,
+    )
+    expect(commands.map(command => command.name)).toEqual([
+      'LoadCounter',
+      'NotifyCounterClosed',
+    ])
+  })
+
+  it('folds an inform-style entry point whose input is not the child Message', () => {
+    const informPressedKey = (
+      counter: CounterModel,
+      key: string,
+    ): Return<CounterModel, CounterMessage> =>
+      key === 'ArrowUp' ? counterUpdate(counter, BumpedValue()) : [counter, []]
+
+    const foldCounterKeyPress = foldChild({
+      update: informPressedKey,
+      read: (model: ParentModel) => Option.some(model.counter),
+      write: (model, nextCounter) => ({ ...model, counter: nextCounter }),
+      toParentMessage: GotCounterMessage,
+    })
+
+    expectTypeOf(foldCounterKeyPress).toEqualTypeOf<
+      (input: string) => Step<ParentModel, GotCounterMessage>
+    >()
+
+    const [bumpedModel] = foldCounterKeyPress('ArrowUp')(parentModel)
+    expect(bumpedModel.counter).toEqual({ value: 4 })
+
+    const [unchangedModel] = foldCounterKeyPress('Escape')(parentModel)
+    expect(unchangedModel.counter).toBe(parentModel.counter)
+  })
+
+  it('composes with combine as an ordinary Step', () => {
+    const closeThenBump = combine([
+      foldClosableCounter(CompletedLoadCounter()),
+      foldCounter(BumpedValue()),
+    ])
+
+    const [nextModel, commands] = closeThenBump(parentModel)
+    expect(nextModel.counter).toEqual({ value: 7 })
+    expect(nextModel.isCounterClosed).toBe(true)
+    expect(commands.map(command => command.name)).toEqual([
+      'LoadCounter',
+      'NotifyCounterClosed',
+    ])
+  })
+})
+
 describe('types', () => {
   type TestServices = Readonly<{ baseUrl: string }>
   type TestOutMessage = Readonly<{ _tag: 'ClosedEditor' }>
@@ -273,6 +496,41 @@ describe('types', () => {
     expectTypeOf(
       combine(baseModel, [incrementCount, emitLoadNotes]),
     ).toEqualTypeOf<Return<TestModel, TestMessage>>()
+  })
+
+  it('foldChild returns a message-to-Step function whose Return slots into the parent update', () => {
+    expectTypeOf(foldCounter).toEqualTypeOf<
+      (message: CounterMessage) => Step<ParentModel, GotCounterMessage>
+    >()
+
+    const handleGotCounterMessage = (
+      model: ParentModel,
+      message: CounterMessage,
+    ): Return<ParentModel, ParentMessage> => foldCounter(message)(model)
+    const handleGotClosableCounterMessage = (
+      model: ParentModel,
+      message: CounterMessage,
+    ): Return<ParentModel, ParentMessage> => foldClosableCounter(message)(model)
+
+    expectTypeOf(handleGotCounterMessage).returns.toEqualTypeOf<
+      Return<ParentModel, ParentMessage>
+    >()
+    expectTypeOf(handleGotClosableCounterMessage).returns.toEqualTypeOf<
+      Return<ParentModel, ParentMessage>
+    >()
+  })
+
+  it('foldChild rejects an OutMessage child without foldOutMessage', () => {
+    // @ts-expect-error a ReturnWithOutMessage child update requires foldOutMessage
+    foldChild({
+      update: counterUpdateWithOutMessage,
+      read: (model: ParentModel) => Option.some(model.counter),
+      write: (model: ParentModel, nextCounter: CounterModel) => ({
+        ...model,
+        counter: nextCounter,
+      }),
+      toParentMessage: GotCounterMessage,
+    })
   })
 
   it('compiles the app-local withReturnType idiom over a two-variant message union', () => {
