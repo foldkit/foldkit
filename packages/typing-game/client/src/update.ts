@@ -39,6 +39,24 @@ const withUpdateReturn = M.withReturnType<UpdateReturn<Model, Message>>()
 
 type UpdateStep = Update.Step<Model, Message, RoomsClient>
 
+const readHome = (model: Model): Option.Option<Home.Model.Model> =>
+  Option.some(model.home)
+
+const writeHome = (model: Model, nextHome: Home.Model.Model): Model =>
+  evo(model, { home: () => nextHome })
+
+const toGotHomeMessage = (message: Home.Message.Message): Message =>
+  GotHomeMessage({ message })
+
+const readRoom = (model: Model): Option.Option<Room.Model.Model> =>
+  Option.some(model.room)
+
+const writeRoom = (model: Model, nextRoom: Room.Model.Model): Model =>
+  evo(model, { room: () => nextRoom })
+
+const toGotRoomMessage = (message: Room.Message.Message): Message =>
+  GotRoomMessage({ message })
+
 const navigateToRoom =
   (roomId: string): UpdateStep =>
   model => [model, [NavigateToRoom({ roomId })]]
@@ -49,9 +67,9 @@ const joinRoom = (roomId: string, player: Shared.Player): UpdateStep =>
     Update.foldChild({
       update: (roomModel: Room.Model.Model, joiningPlayer: Shared.Player) =>
         Room.join(roomModel, joiningPlayer, { roomId }),
-      read: (model: Model) => Option.some(model.room),
-      write: (model, nextRoom) => evo(model, { room: () => nextRoom }),
-      toParentMessage: message => GotRoomMessage({ message }),
+      read: readRoom,
+      write: writeRoom,
+      toParentMessage: toGotRoomMessage,
     })(player),
   ])
 
@@ -67,17 +85,17 @@ const foldHomeOutMessage: (outMessage: Home.Message.OutMessage) => UpdateStep =
 
 const foldHomeMessage = Update.foldChild({
   update: Home.update,
-  read: (model: Model) => Option.some(model.home),
-  write: (model, nextHome) => evo(model, { home: () => nextHome }),
-  toParentMessage: message => GotHomeMessage({ message }),
+  read: readHome,
+  write: writeHome,
+  toParentMessage: toGotHomeMessage,
   foldOutMessage: foldHomeOutMessage,
 })
 
 const foldHomeKeyPress = Update.foldChild({
   update: Home.informPressedKey,
-  read: (model: Model) => Option.some(model.home),
-  write: (model, nextHome) => evo(model, { home: () => nextHome }),
-  toParentMessage: message => GotHomeMessage({ message }),
+  read: readHome,
+  write: writeHome,
+  toParentMessage: toGotHomeMessage,
   foldOutMessage: foldHomeOutMessage,
 })
 
@@ -85,18 +103,18 @@ const foldRoomMessage = (roomId: string) =>
   Update.foldChild({
     update: (roomModel: Room.Model.Model, message: Room.Message.Message) =>
       Room.update(roomModel, message, { roomId }),
-    read: (model: Model) => Option.some(model.room),
-    write: (model, nextRoom) => evo(model, { room: () => nextRoom }),
-    toParentMessage: message => GotRoomMessage({ message }),
+    read: readRoom,
+    write: writeRoom,
+    toParentMessage: toGotRoomMessage,
   })
 
 const foldRoomKeyPress = (roomId: string) =>
   Update.foldChild({
     update: (roomModel: Room.Model.Model, key: string) =>
       Room.informPressedKey(roomModel, key, { roomId }),
-    read: (model: Model) => Option.some(model.room),
-    write: (model, nextRoom) => evo(model, { room: () => nextRoom }),
-    toParentMessage: message => GotRoomMessage({ message }),
+    read: readRoom,
+    write: writeRoom,
+    toParentMessage: toGotRoomMessage,
   })
 
 export const update = (
