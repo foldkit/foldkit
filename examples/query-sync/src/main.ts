@@ -11,7 +11,7 @@ import {
   Types,
   pipe,
 } from 'effect'
-import { Command, Route, Runtime } from 'foldkit'
+import { Command, Route, Runtime, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder, childAttributes } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { UrlRequest, load, pushUrl, replaceUrl } from 'foldkit/navigation'
@@ -282,6 +282,71 @@ const LoadExternal = Command.define('LoadExternal', {
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
+const DietListbox = Listbox.create<string>()
+const PeriodListbox = Listbox.create<string>()
+
+const foldDietListboxOutMessage: (
+  outMessage: Listbox.OutMessage,
+) => Update.Step<Model, Message> = M.type<Listbox.OutMessage>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    Selected:
+      ({ value }) =>
+      model => {
+        const fields = routeToBrowseFields(model.route)
+        return [
+          model,
+          [
+            ReplaceFilters({
+              ...fields,
+              diet: selectionToParam(Option.some(value), Diet),
+            }),
+          ],
+        ]
+      },
+  }),
+)
+
+const foldDietListbox = Update.foldChild({
+  update: DietListbox.update,
+  read: (model: Model) => Option.some(model.dietListbox),
+  write: (model, nextDietListbox) =>
+    evo(model, { dietListbox: () => nextDietListbox }),
+  toParentMessage: message => GotDietListboxMessage({ message }),
+  foldOutMessage: foldDietListboxOutMessage,
+})
+
+const foldPeriodListboxOutMessage: (
+  outMessage: Listbox.OutMessage,
+) => Update.Step<Model, Message> = M.type<Listbox.OutMessage>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    Selected:
+      ({ value }) =>
+      model => {
+        const fields = routeToBrowseFields(model.route)
+        return [
+          model,
+          [
+            ReplaceFilters({
+              ...fields,
+              period: selectionToParam(Option.some(value), Period),
+            }),
+          ],
+        ]
+      },
+  }),
+)
+
+const foldPeriodListbox = Update.foldChild({
+  update: PeriodListbox.update,
+  read: (model: Model) => Option.some(model.periodListbox),
+  write: (model, nextPeriodListbox) =>
+    evo(model, { periodListbox: () => nextPeriodListbox }),
+  toParentMessage: message => GotPeriodListboxMessage({ message }),
+  foldOutMessage: foldPeriodListboxOutMessage,
+})
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
@@ -336,71 +401,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      GotDietListboxMessage: ({ message }) => {
-        const [nextDietListbox, listboxCommands, maybeOutMessage] =
-          DietListbox.update(model.dietListbox, message)
-        const mappedCommands = Command.mapMessages(listboxCommands, message =>
-          GotDietListboxMessage({ message }),
-        )
+      GotDietListboxMessage: ({ message }) => foldDietListbox(message)(model),
 
-        return Option.match(maybeOutMessage, {
-          onNone: (): UpdateReturn => [
-            evo(model, { dietListbox: () => nextDietListbox }),
-            mappedCommands,
-          ],
-          onSome: M.type<Listbox.OutMessage>().pipe(
-            M.withReturnType<UpdateReturn>(),
-            M.tagsExhaustive({
-              Selected: ({ value }) => {
-                const fields = routeToBrowseFields(model.route)
-                return [
-                  evo(model, { dietListbox: () => nextDietListbox }),
-                  [
-                    ...mappedCommands,
-                    ReplaceFilters({
-                      ...fields,
-                      diet: selectionToParam(Option.some(value), Diet),
-                    }),
-                  ],
-                ]
-              },
-            }),
-          ),
-        })
-      },
-
-      GotPeriodListboxMessage: ({ message }) => {
-        const [nextPeriodListbox, listboxCommands, maybeOutMessage] =
-          PeriodListbox.update(model.periodListbox, message)
-        const mappedCommands = Command.mapMessages(listboxCommands, message =>
-          GotPeriodListboxMessage({ message }),
-        )
-
-        return Option.match(maybeOutMessage, {
-          onNone: (): UpdateReturn => [
-            evo(model, { periodListbox: () => nextPeriodListbox }),
-            mappedCommands,
-          ],
-          onSome: M.type<Listbox.OutMessage>().pipe(
-            M.withReturnType<UpdateReturn>(),
-            M.tagsExhaustive({
-              Selected: ({ value }) => {
-                const fields = routeToBrowseFields(model.route)
-                return [
-                  evo(model, { periodListbox: () => nextPeriodListbox }),
-                  [
-                    ...mappedCommands,
-                    ReplaceFilters({
-                      ...fields,
-                      period: selectionToParam(Option.some(value), Period),
-                    }),
-                  ],
-                ]
-              },
-            }),
-          ),
-        })
-      },
+      GotPeriodListboxMessage: ({ message }) =>
+        foldPeriodListbox(message)(model),
     }),
   )
 
@@ -578,9 +582,6 @@ const LISTBOX_ANCHOR: AnchorConfig = {
   gap: 4,
   padding: 8,
 }
-
-const DietListbox = Listbox.create<string>()
-const PeriodListbox = Listbox.create<string>()
 
 const listboxButtonClassName =
   'inline-flex items-center justify-between gap-2 min-w-40 px-4 py-2 text-sm border border-gray-300 rounded-lg bg-white cursor-pointer select-none hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:border-emerald-500'
