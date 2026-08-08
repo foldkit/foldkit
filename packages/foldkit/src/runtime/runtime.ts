@@ -14,6 +14,7 @@ import {
   PubSub,
   Record,
   Ref,
+  Runtime,
   Scheduler,
   Schema,
   Scope,
@@ -3830,7 +3831,23 @@ export const embed = <P extends Ports | undefined = undefined>(
     ),
   )
 
-  const fiber = Effect.runFork(provideBrowserScheduler(startEffect))
+  // NOTE: `run` goes through `BrowserRuntime.runMain`, which observes the
+  // fiber and logs unreported non-interrupt causes via `Effect.logError`.
+  // `embed` used a bare `Effect.runFork`, so the same startup failure (for
+  // example a flags Effect that dies before the first render) left a blank
+  // container and nothing in the console. Mirror `makeRunMain`'s reporting
+  // here so both entry points surface the cause the same way. Dispose still
+  // interrupts the fiber, and interrupt-only exits stay quiet.
+  const fiber = Effect.runFork(
+    Effect.tapCause(provideBrowserScheduler(startEffect), cause => {
+      if (Cause.hasInterruptsOnly(cause)) {
+        return Effect.void
+      }
+      return Runtime.getErrorReported(Cause.squash(cause))
+        ? Effect.logError(cause)
+        : Effect.void
+    }),
+  )
   internals.maybeActiveFiber = Option.some(fiber)
 
   let isHandleDisposed = false

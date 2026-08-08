@@ -308,6 +308,47 @@ describe('embed', () => {
     }
   })
 
+  it('reports a failing flags Effect instead of dying silently', async () => {
+    const FLAGS_ERROR = 'flags blew up on embed startup'
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {})
+    const Flags = S.Struct({ initialCount: S.Number })
+
+    const handle = embed(
+      makeElement({
+        Model,
+        Flags,
+        flags: Effect.sync((): { initialCount: number } => {
+          throw new Error(FLAGS_ERROR)
+        }),
+        init: flags => [{ count: flags.initialCount, step: 1 }, []],
+        update,
+        view,
+        subscriptions,
+        ports,
+        container,
+      }),
+    )
+
+    try {
+      await vi.waitFor(() => {
+        const logged = [
+          ...consoleLogSpy.mock.calls,
+          ...consoleErrorSpy.mock.calls,
+        ]
+          .flat()
+          .map(String)
+          .join('\n')
+        expect(logged).toContain(FLAGS_ERROR)
+      })
+      expect(document.body.textContent).not.toContain('count:')
+    } finally {
+      handle.dispose()
+    }
+  })
+
   it('dispose stops Subscriptions, releases Mounts, removes the rendered DOM, and restores the container', async () => {
     const handle = embed(makeWidget())
 

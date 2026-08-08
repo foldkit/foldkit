@@ -48,6 +48,8 @@ When the program runs without an embed handle (started with `Runtime.run`), emit
 
 `dispose` ties the runtime to the host’s unmount. It interrupts the runtime and runs all cleanup: Subscriptions, Mounts, and ManagedResources release, in-flight Commands stop, the rendered DOM is removed, and the container element is restored empty in its place, ready for a fresh `embed`. It is idempotent, and sends on a disposed handle are no-ops, so a host that unmounts and remounts in quick succession stays correct. A program can be embedded once at a time; after `dispose`, the same program and container can be embedded again.
 
+A startup failure before the first render (for example a `flags` Effect that dies) leaves the container blank and has no Model for a crash view. `embed` reports that Cause the same way `Runtime.run` does, so the failure is visible in the console instead of silent.
+
 ## The Schema Boundary
 
 Every value that crosses the boundary passes through its Port’s Schema. The host works with the Schema’s Encoded side, the app with the decoded Type: `send` validates by decoding, and `Port.emit` encodes before delivery. Keep Port Schemas to data that survives encoding, the same discipline as a network payload; functions and DOM references cannot cross. The Model does not cross either: outbound Ports carry facts the app chooses to announce, not state snapshots, so the host never couples to the app’s internal shape.
