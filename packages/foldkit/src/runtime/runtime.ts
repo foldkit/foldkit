@@ -3745,6 +3745,22 @@ export const run = (program: MakeRuntimeReturn<Ports | undefined>): void => {
   )
 }
 
+/**
+ * Mirrors `makeRunMain`'s default fiber reporting: log unreported
+ * non-interrupt causes, stay quiet on interrupt-only exits. Used by `embed`,
+ * which starts its fiber with `Effect.runFork` instead of `runMain`.
+ */
+export const __reportUnhandledCause = (
+  cause: Cause.Cause<unknown>,
+): Effect.Effect<void> => {
+  if (Cause.hasInterruptsOnly(cause)) {
+    return Effect.void
+  }
+  return Runtime.getErrorReported(Cause.squash(cause))
+    ? Effect.logError(cause)
+    : Effect.void
+}
+
 const buildPortHandles = <P extends Ports | undefined>(
   ports: P,
   connector: HostConnector,
@@ -3832,14 +3848,10 @@ export const embed = <P extends Ports | undefined = undefined>(
   )
 
   const fiber = Effect.runFork(
-    Effect.tapCause(provideBrowserScheduler(startEffect), cause => {
-      if (Cause.hasInterruptsOnly(cause)) {
-        return Effect.void
-      }
-      return Runtime.getErrorReported(Cause.squash(cause))
-        ? Effect.logError(cause)
-        : Effect.void
-    }),
+    Effect.tapCause(
+      provideBrowserScheduler(startEffect),
+      __reportUnhandledCause,
+    ),
   )
   internals.maybeActiveFiber = Option.some(fiber)
 

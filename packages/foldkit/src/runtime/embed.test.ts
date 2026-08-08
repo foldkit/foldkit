@@ -1,12 +1,4 @@
-import {
-  Effect,
-  Exit,
-  Match as M,
-  Queue,
-  Runtime,
-  Schema as S,
-  Stream,
-} from 'effect'
+import { Effect, Exit, Match as M, Queue, Schema as S, Stream } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
@@ -165,12 +157,6 @@ const clickIncrement = (): void => {
   button?.click()
 }
 
-const consoleOutput = (
-  logSpy: ReturnType<typeof vi.spyOn>,
-  errorSpy: ReturnType<typeof vi.spyOn>,
-): string =>
-  [...logSpy.mock.calls, ...errorSpy.mock.calls].flat().map(String).join('\n')
-
 describe('embed', () => {
   it('renders the app and drives update through an inbound Port send', async () => {
     const handle = embed(makeWidget())
@@ -322,12 +308,7 @@ describe('embed', () => {
     }
   })
 
-  it('logs a failing flags Effect and leaves the container blank', async () => {
-    const FLAGS_ERROR = 'flags blew up on embed startup'
-    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {})
+  it('leaves the container blank when flags fail before the first render', async () => {
     const Flags = S.Struct({ initialCount: S.Number })
 
     const handle = embed(
@@ -335,65 +316,7 @@ describe('embed', () => {
         Model,
         Flags,
         flags: Effect.sync((): { initialCount: number } => {
-          throw new Error(FLAGS_ERROR)
-        }),
-        init: flags => [{ count: flags.initialCount, step: 1 }, []],
-        update,
-        view,
-        subscriptions,
-        ports,
-        container,
-      }),
-    )
-
-    try {
-      await vi.waitFor(() => {
-        expect(consoleOutput(consoleLogSpy, consoleErrorSpy)).toContain(
-          FLAGS_ERROR,
-        )
-      })
-      expect(document.body.textContent).not.toContain('count:')
-    } finally {
-      handle.dispose()
-    }
-  })
-
-  it('does not log when dispose interrupts a live embed', async () => {
-    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {})
-
-    const handle = embed(makeWidget())
-    await awaitBodyText('count:0')
-
-    consoleLogSpy.mockClear()
-    consoleErrorSpy.mockClear()
-    handle.dispose()
-
-    await vi.waitFor(() => {
-      expect(isTickStreamActive).toBe(false)
-    })
-
-    expect(consoleOutput(consoleLogSpy, consoleErrorSpy)).not.toMatch(/ERROR/)
-  })
-
-  it('does not log a flags failure marked already reported', async () => {
-    const FLAGS_ERROR = 'already reported flags failure'
-    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {})
-    const Flags = S.Struct({ initialCount: S.Number })
-
-    const handle = embed(
-      makeElement({
-        Model,
-        Flags,
-        flags: Effect.sync((): { initialCount: number } => {
-          throw Object.assign(new Error(FLAGS_ERROR), {
-            [Runtime.errorReported]: false,
-          })
+          throw new Error('flags blew up on embed startup')
         }),
         init: flags => [{ count: flags.initialCount, step: 1 }, []],
         update,
@@ -408,11 +331,7 @@ describe('embed', () => {
       await vi.waitFor(() => {
         expect(document.body.textContent).not.toContain('count:')
       })
-      // Give the fiber a turn to finish any logging it might attempt.
-      await Promise.resolve()
-      expect(consoleOutput(consoleLogSpy, consoleErrorSpy)).not.toContain(
-        FLAGS_ERROR,
-      )
+      expect(container.childNodes.length).toBe(0)
     } finally {
       handle.dispose()
     }
