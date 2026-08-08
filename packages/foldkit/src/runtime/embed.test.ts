@@ -308,6 +308,35 @@ describe('embed', () => {
     }
   })
 
+  it('leaves the container blank when flags fail before the first render', async () => {
+    const Flags = S.Struct({ initialCount: S.Number })
+
+    const handle = embed(
+      makeElement({
+        Model,
+        Flags,
+        flags: Effect.sync((): { initialCount: number } => {
+          throw new Error('flags blew up on embed startup')
+        }),
+        init: flags => [{ count: flags.initialCount, step: 1 }, []],
+        update,
+        view,
+        subscriptions,
+        ports,
+        container,
+      }),
+    )
+
+    try {
+      await vi.waitFor(() => {
+        expect(document.body.textContent).not.toContain('count:')
+      })
+      expect(container.childNodes.length).toBe(0)
+    } finally {
+      handle.dispose()
+    }
+  })
+
   it('dispose stops Subscriptions, releases Mounts, removes the rendered DOM, and restores the container', async () => {
     const handle = embed(makeWidget())
 
