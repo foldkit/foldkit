@@ -151,6 +151,11 @@ const awaitBodyText = (text: string): Promise<void> =>
     expect(document.body.textContent).toContain(text)
   })
 
+const awaitNoBodyText = (text: string): Promise<void> =>
+  vi.waitFor(() => {
+    expect(document.body.textContent).not.toContain(text)
+  })
+
 const clickIncrement = (): void => {
   const button = document.body.querySelector('button')
   expect(button).not.toBeNull()
@@ -328,9 +333,7 @@ describe('embed', () => {
     )
 
     try {
-      await vi.waitFor(() => {
-        expect(document.body.textContent).not.toContain('count:')
-      })
+      await awaitNoBodyText('count:')
       expect(container.childNodes.length).toBe(0)
     } finally {
       handle.dispose()
