@@ -3750,8 +3750,8 @@ export const run = (program: MakeRuntimeReturn<Ports | undefined>): void => {
  * non-interrupt causes, stay quiet on interrupt-only exits. Used by `embed`,
  * which starts its fiber with `Effect.runFork` instead of `runMain`.
  */
-export const __reportUnhandledCause = (
-  cause: Cause.Cause<unknown>,
+export const __reportUnhandledCause = <E>(
+  cause: Cause.Cause<E>,
 ): Effect.Effect<void> => {
   if (Cause.hasInterruptsOnly(cause)) {
     return Effect.void
