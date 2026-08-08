@@ -1,5 +1,5 @@
 import { Array, Match as M, Option, pipe } from 'effect'
-import { Command } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { Menu, Tabs } from '@foldkit/ui'
@@ -53,140 +53,102 @@ const toPreviousStep = (current: Step.Step): Step.Step =>
     Option.getOrElse(() => current),
   )
 
+const foldPersonalInfo = Update.foldChild({
+  update: PersonalInfo.update,
+  read: (model: Model) => Option.some(model.personalInfo),
+  write: (model, nextPersonalInfo) =>
+    evo(model, { personalInfo: () => nextPersonalInfo }),
+  toParentMessage: message => GotPersonalInfoMessage({ message }),
+})
+
+const foldWorkHistory = Update.foldChild({
+  update: WorkHistory.update,
+  read: (model: Model) => Option.some(model.workHistory),
+  write: (model, nextWorkHistory) =>
+    evo(model, { workHistory: () => nextWorkHistory }),
+  toParentMessage: message => GotWorkHistoryMessage({ message }),
+})
+
+const foldEducation = Update.foldChild({
+  update: Education.update,
+  read: (model: Model) => Option.some(model.education),
+  write: (model, nextEducation) =>
+    evo(model, { education: () => nextEducation }),
+  toParentMessage: message => GotEducationMessage({ message }),
+})
+
+const foldSkills = Update.foldChild({
+  update: Skills.update,
+  read: (model: Model) => Option.some(model.skills),
+  write: (model, nextSkills) => evo(model, { skills: () => nextSkills }),
+  toParentMessage: message => GotSkillsMessage({ message }),
+})
+
+const foldCoverLetter = Update.foldChild({
+  update: CoverLetter.update,
+  read: (model: Model) => Option.some(model.coverLetter),
+  write: (model, nextCoverLetter) =>
+    evo(model, { coverLetter: () => nextCoverLetter }),
+  toParentMessage: message => GotCoverLetterMessage({ message }),
+})
+
+const foldAttachments = Update.foldChild({
+  update: Attachments.update,
+  read: (model: Model) => Option.some(model.attachments),
+  write: (model, nextAttachments) =>
+    evo(model, { attachments: () => nextAttachments }),
+  toParentMessage: message => GotAttachmentsMessage({ message }),
+})
+
+const foldStepMenu = Update.foldChild({
+  update: StepMenu.update,
+  read: (model: Model) => Option.some(model.stepMenu),
+  write: (model, nextStepMenu) => evo(model, { stepMenu: () => nextStepMenu }),
+  toParentMessage: message => GotStepMenuMessage({ message }),
+  foldOutMessage: M.type<Menu.OutMessage<Step.Step>>().pipe(
+    M.withReturnType<Update.Step<Model, Message>>(),
+    M.tagsExhaustive({
+      Selected:
+        ({ value }) =>
+        model => [evo(model, { currentStep: () => value }), []],
+    }),
+  ),
+})
+
+const foldStepTabs = Update.foldChild({
+  update: StepTabs.update,
+  read: (model: Model) => Option.some(model.stepTabs),
+  write: (model, nextStepTabs) => evo(model, { stepTabs: () => nextStepTabs }),
+  toParentMessage: message => GotStepTabsMessage({ message }),
+  foldOutMessage: M.type<Tabs.OutMessage<Step.Step>>().pipe(
+    M.withReturnType<Update.Step<Model, Message>>(),
+    M.tagsExhaustive({
+      Selected:
+        ({ value }) =>
+        model => [evo(model, { currentStep: () => value }), []],
+    }),
+  ),
+})
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      GotPersonalInfoMessage: ({ message: stepMessage }) => {
-        const [nextPersonalInfo, commands] = PersonalInfo.update(
-          model.personalInfo,
-          stepMessage,
-        )
-        return [
-          evo(model, { personalInfo: () => nextPersonalInfo }),
-          Command.mapMessages(commands, message =>
-            GotPersonalInfoMessage({ message }),
-          ),
-        ]
-      },
+      GotPersonalInfoMessage: ({ message }) => foldPersonalInfo(message)(model),
 
-      GotWorkHistoryMessage: ({ message: stepMessage }) => {
-        const [nextWorkHistory, commands] = WorkHistory.update(
-          model.workHistory,
-          stepMessage,
-        )
-        return [
-          evo(model, { workHistory: () => nextWorkHistory }),
-          Command.mapMessages(commands, message =>
-            GotWorkHistoryMessage({ message }),
-          ),
-        ]
-      },
+      GotWorkHistoryMessage: ({ message }) => foldWorkHistory(message)(model),
 
-      GotEducationMessage: ({ message: stepMessage }) => {
-        const [nextEducation, commands] = Education.update(
-          model.education,
-          stepMessage,
-        )
-        return [
-          evo(model, { education: () => nextEducation }),
-          Command.mapMessages(commands, message =>
-            GotEducationMessage({ message }),
-          ),
-        ]
-      },
+      GotEducationMessage: ({ message }) => foldEducation(message)(model),
 
-      GotSkillsMessage: ({ message: stepMessage }) => {
-        const [nextSkills, commands] = Skills.update(model.skills, stepMessage)
-        return [
-          evo(model, { skills: () => nextSkills }),
-          Command.mapMessages(commands, message =>
-            GotSkillsMessage({ message }),
-          ),
-        ]
-      },
+      GotSkillsMessage: ({ message }) => foldSkills(message)(model),
 
-      GotCoverLetterMessage: ({ message: stepMessage }) => {
-        const [nextCoverLetter, commands] = CoverLetter.update(
-          model.coverLetter,
-          stepMessage,
-        )
-        return [
-          evo(model, { coverLetter: () => nextCoverLetter }),
-          Command.mapMessages(commands, message =>
-            GotCoverLetterMessage({ message }),
-          ),
-        ]
-      },
+      GotCoverLetterMessage: ({ message }) => foldCoverLetter(message)(model),
 
-      GotAttachmentsMessage: ({ message: stepMessage }) => {
-        const [nextAttachments, commands] = Attachments.update(
-          model.attachments,
-          stepMessage,
-        )
-        return [
-          evo(model, { attachments: () => nextAttachments }),
-          Command.mapMessages(commands, message =>
-            GotAttachmentsMessage({ message }),
-          ),
-        ]
-      },
+      GotAttachmentsMessage: ({ message }) => foldAttachments(message)(model),
 
-      GotStepMenuMessage: ({ message: menuMessage }) => {
-        const [nextStepMenu, commands, maybeOutMessage] = StepMenu.update(
-          model.stepMenu,
-          menuMessage,
-        )
-        const mappedCommands = Command.mapMessages(commands, message =>
-          GotStepMenuMessage({ message }),
-        )
-        return Option.match(maybeOutMessage, {
-          onNone: () => [
-            evo(model, { stepMenu: () => nextStepMenu }),
-            mappedCommands,
-          ],
-          onSome: M.type<Menu.OutMessage<Step.Step>>().pipe(
-            withUpdateReturn,
-            M.tagsExhaustive({
-              Selected: ({ value }) => [
-                evo(model, {
-                  stepMenu: () => nextStepMenu,
-                  currentStep: () => value,
-                }),
-                mappedCommands,
-              ],
-            }),
-          ),
-        })
-      },
+      GotStepMenuMessage: ({ message }) => foldStepMenu(message)(model),
 
-      GotStepTabsMessage: ({ message: tabsMessage }) => {
-        const [nextStepTabs, commands, maybeOutMessage] = StepTabs.update(
-          model.stepTabs,
-          tabsMessage,
-        )
-        const mappedCommands = Command.mapMessages(commands, message =>
-          GotStepTabsMessage({ message }),
-        )
-        return Option.match(maybeOutMessage, {
-          onNone: () => [
-            evo(model, { stepTabs: () => nextStepTabs }),
-            mappedCommands,
-          ],
-          onSome: M.type<Tabs.OutMessage<Step.Step>>().pipe(
-            withUpdateReturn,
-            M.tagsExhaustive({
-              Selected: ({ value }) => [
-                evo(model, {
-                  stepTabs: () => nextStepTabs,
-                  currentStep: () => value,
-                }),
-                mappedCommands,
-              ],
-            }),
-          ),
-        })
-      },
+      GotStepTabsMessage: ({ message }) => foldStepTabs(message)(model),
 
       NavigatedToStep: ({ step }) => [
         evo(model, { currentStep: () => step }),

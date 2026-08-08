@@ -200,6 +200,11 @@ describe('proof pages', () => {
       { level: 'h3', id: 'delegating-in-update', text: 'Delegating in update' },
       {
         level: 'h3',
+        id: 'fold-child',
+        text: 'Folding with Update.foldChild',
+      },
+      {
+        level: 'h3',
         id: 'wiring-the-view',
         text: 'Wiring the View with h.submodel',
       },

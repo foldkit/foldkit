@@ -7,6 +7,7 @@ import {
   Runtime,
   Submodel,
   Subscription,
+  Update,
 } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -241,6 +242,13 @@ const toUiMessage = (message: typeof UiMessage.Type): Message =>
 const toMobileMenuDialogMessage = (message: Dialog.Message): Message =>
   GotUiMessage({ message: GotMobileMenuDialogMessage({ message }) })
 
+const foldUi = Update.foldChild({
+  update: uiUpdate,
+  read: (model: Model) => Option.some(model.uiModel),
+  write: (model, nextUiModel) => evo(model, { uiModel: () => nextUiModel }),
+  toParentMessage: toUiMessage,
+})
+
 export const update = (
   model: Model,
   message: Message,
@@ -291,14 +299,7 @@ export const update = (
         ]
       },
 
-      GotUiMessage: ({ message }) => {
-        const [nextUiModel, uiCommands] = uiUpdate(model.uiModel, message)
-
-        return [
-          evo(model, { uiModel: () => nextUiModel }),
-          Command.mapMessages(uiCommands, message => GotUiMessage({ message })),
-        ]
-      },
+      GotUiMessage: ({ message }) => foldUi(message)(model),
     }),
   )
 

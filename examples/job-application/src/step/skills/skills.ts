@@ -1,13 +1,5 @@
-import {
-  Array,
-  Crypto,
-  Effect,
-  Match as M,
-  Option,
-  Schema as S,
-  pipe,
-} from 'effect'
-import { Command } from 'foldkit'
+import { Array, Crypto, Effect, Match as M, Schema as S } from 'effect'
+import { Command, Update } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
@@ -68,13 +60,33 @@ export const GenerateEntryId = Command.define('GenerateEntryId', {
 
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 
-const mapEntryCommands = (
+const foldEntryOutMessage: (
   entryId: string,
-  commands: ReadonlyArray<Command.Command<Entry.Message>>,
-): ReadonlyArray<Command.Command<Message>> =>
-  Command.mapMessages(commands, message =>
-    GotEntryMessage({ entryId, message }),
+) => (outMessage: Entry.OutMessage) => Update.Step<Model, Message> = entryId =>
+  M.type<Entry.OutMessage>().pipe(
+    M.withReturnType<Update.Step<Model, Message>>(),
+    M.tagsExhaustive({
+      Removed: () => model => [
+        evo(model, {
+          entries: Array.filter(entry => entry.id !== entryId),
+        }),
+        [],
+      ],
+    }),
   )
+
+const foldEntry = (entryId: string) =>
+  Update.foldChild({
+    update: Entry.update,
+    read: (model: Model) =>
+      Array.findFirst(model.entries, entry => entry.id === entryId),
+    write: (model, nextEntry) =>
+      evo(model, {
+        entries: Array.map(entry => (entry.id === entryId ? nextEntry : entry)),
+      }),
+    toParentMessage: message => GotEntryMessage({ entryId, message }),
+    foldOutMessage: foldEntryOutMessage(entryId),
+  })
 
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
@@ -98,40 +110,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
 
-      GotEntryMessage: ({ entryId, message: entryMessage }) =>
-        pipe(
-          model.entries,
-          Array.findFirst(entry => entry.id === entryId),
-          Option.match({
-            onNone: (): UpdateReturn => [model, []],
-            onSome: matchedEntry => {
-              const [nextEntry, entryCommands, maybeOutMessage] = Entry.update(
-                matchedEntry,
-                entryMessage,
-              )
-              const mappedCommands = mapEntryCommands(entryId, entryCommands)
-              const modelWithEntry = evo(model, {
-                entries: Array.map(entry =>
-                  entry.id === entryId ? nextEntry : entry,
-                ),
-              })
-              return Option.match(maybeOutMessage, {
-                onNone: (): UpdateReturn => [modelWithEntry, mappedCommands],
-                onSome: M.type<Entry.OutMessage>().pipe(
-                  M.withReturnType<UpdateReturn>(),
-                  M.tagsExhaustive({
-                    Removed: () => [
-                      evo(modelWithEntry, {
-                        entries: Array.filter(entry => entry.id !== entryId),
-                      }),
-                      mappedCommands,
-                    ],
-                  }),
-                ),
-              })
-            },
-          }),
-        ),
+      GotEntryMessage: ({ entryId, message }) =>
+        foldEntry(entryId)(message)(model),
     }),
   )
 

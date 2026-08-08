@@ -1,5 +1,5 @@
 import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
-import { Command, Runtime } from 'foldkit'
+import { Command, Runtime, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
@@ -108,6 +108,14 @@ const LoadExternal = Command.define('LoadExternal', {
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
+const foldPeople = Update.foldChild({
+  update: People.update,
+  read: (model: Model) => Option.some(model.peoplePage),
+  write: (model, nextPeoplePage) =>
+    evo(model, { peoplePage: () => nextPeoplePage }),
+  toParentMessage: message => GotPeopleMessage({ message }),
+})
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
@@ -149,18 +157,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         )
       },
 
-      GotPeopleMessage: ({ message }) => {
-        const [nextPeoplePage, peopleCommands] = People.update(
-          model.peoplePage,
-          message,
-        )
-        return [
-          evo(model, { peoplePage: () => nextPeoplePage }),
-          Command.mapMessages(peopleCommands, childMessage =>
-            GotPeopleMessage({ message: childMessage }),
-          ),
-        ]
-      },
+      GotPeopleMessage: ({ message }) => foldPeople(message)(model),
     }),
   )
 

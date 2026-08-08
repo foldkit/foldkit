@@ -1,5 +1,5 @@
 import { Effect, Match as M, Option, Schema as S } from 'effect'
-import { Command, Url } from 'foldkit'
+import { Command, Update, Url } from 'foldkit'
 import { load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 
@@ -31,52 +31,91 @@ const LoadExternal = Command.define('LoadExternal', {
   execute: ({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())),
 })
 
-export type UpdateReturn<Model, Message> = [
+export type UpdateReturn<Model, Message> = readonly [
   Model,
   ReadonlyArray<Command.Command<Message, never, RoomsClient>>,
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn<Model, Message>>()
 
-const applyRoomResult = (
-  model: Model,
-  [nextRoomModel, roomCommands]: Room.UpdateReturn,
-): UpdateReturn<Model, Message> => [
-  evo(model, { room: () => nextRoomModel }),
-  Command.mapMessages(roomCommands, message => GotRoomMessage({ message })),
-]
+type UpdateStep = Update.Step<Model, Message, RoomsClient>
 
-const applyHomeResult = (
-  model: Model,
-  [nextHomeModel, homeCommands, maybeOutMessage]: Home.UpdateReturn,
-): UpdateReturn<Model, Message> => {
-  const mappedCommands = Command.mapMessages(homeCommands, message =>
-    GotHomeMessage({ message }),
-  )
+const readHome = (model: Model): Option.Option<Home.Model.Model> =>
+  Option.some(model.home)
 
-  return Option.match(maybeOutMessage, {
-    onNone: () => [evo(model, { home: () => nextHomeModel }), mappedCommands],
-    onSome: outMessage =>
-      M.value(outMessage).pipe(
-        withUpdateReturn,
-        M.tag(
-          'SucceededCreateRoom',
-          'SucceededJoinRoom',
-          ({ roomId, player }) => {
-            const [nextModel, roomCommands] = handleRoomJoined(
-              model,
-              roomId,
-              player,
-            )
-            return [
-              evo(nextModel, { home: () => nextHomeModel }),
-              [...mappedCommands, ...roomCommands],
-            ]
-          },
-        ),
-        M.exhaustive,
+const writeHome = (model: Model, nextHome: Home.Model.Model): Model =>
+  evo(model, { home: () => nextHome })
+
+const toGotHomeMessage = (message: Home.Message.Message): Message =>
+  GotHomeMessage({ message })
+
+const readRoom = (model: Model): Option.Option<Room.Model.Model> =>
+  Option.some(model.room)
+
+const writeRoom = (model: Model, nextRoom: Room.Model.Model): Model =>
+  evo(model, { room: () => nextRoom })
+
+const toGotRoomMessage = (message: Room.Message.Message): Message =>
+  GotRoomMessage({ message })
+
+const navigateToRoom =
+  (roomId: string): UpdateStep =>
+  model => [model, [NavigateToRoom({ roomId })]]
+
+const joinRoom = (roomId: string, player: Shared.Player): UpdateStep =>
+  Update.combine([
+    navigateToRoom(roomId),
+    Update.foldChild({
+      update: (roomModel: Room.Model.Model, joiningPlayer: Shared.Player) =>
+        Room.join(roomModel, joiningPlayer, { roomId }),
+      read: readRoom,
+      write: writeRoom,
+      toParentMessage: toGotRoomMessage,
+    })(player),
+  ])
+
+const foldHomeOutMessage: (outMessage: Home.Message.OutMessage) => UpdateStep =
+  outMessage => model =>
+    M.value(outMessage).pipe(
+      withUpdateReturn,
+      M.tag('SucceededCreateRoom', 'SucceededJoinRoom', ({ roomId, player }) =>
+        joinRoom(roomId, player)(model),
       ),
+      M.exhaustive,
+    )
+
+const foldHomeMessage = Update.foldChild({
+  update: Home.update,
+  read: readHome,
+  write: writeHome,
+  toParentMessage: toGotHomeMessage,
+  foldOutMessage: foldHomeOutMessage,
+})
+
+const foldHomeKeyPress = Update.foldChild({
+  update: Home.informPressedKey,
+  read: readHome,
+  write: writeHome,
+  toParentMessage: toGotHomeMessage,
+  foldOutMessage: foldHomeOutMessage,
+})
+
+const foldRoomMessage = (roomId: string) =>
+  Update.foldChild({
+    update: (roomModel: Room.Model.Model, message: Room.Message.Message) =>
+      Room.update(roomModel, message, { roomId }),
+    read: readRoom,
+    write: writeRoom,
+    toParentMessage: toGotRoomMessage,
   })
-}
+
+const foldRoomKeyPress = (roomId: string) =>
+  Update.foldChild({
+    update: (roomModel: Room.Model.Model, key: string) =>
+      Room.informPressedKey(roomModel, key, { roomId }),
+    read: readRoom,
+    write: writeRoom,
+    toParentMessage: toGotRoomMessage,
+  })
 
 export const update = (
   model: Model,
@@ -104,17 +143,13 @@ export const update = (
         [],
       ],
 
-      GotHomeMessage: ({ message }) =>
-        applyHomeResult(model, Home.update(model.home, message)),
+      GotHomeMessage: ({ message }) => foldHomeMessage(message)(model),
 
       GotRoomMessage: ({ message }) =>
         M.value(model.route).pipe(
           withUpdateReturn,
           M.tag('Room', ({ roomId }) =>
-            applyRoomResult(
-              model,
-              Room.update(model.room, message, { roomId }),
-            ),
+            foldRoomMessage(roomId)(message)(model),
           ),
           M.orElse(() => [model, []]),
         ),
@@ -123,13 +158,8 @@ export const update = (
         M.value(model.route).pipe(
           withUpdateReturn,
           M.tagsExhaustive({
-            Home: () =>
-              applyHomeResult(model, Home.informPressedKey(model.home, key)),
-            Room: ({ roomId }) =>
-              applyRoomResult(
-                model,
-                Room.informPressedKey(model.room, key, { roomId }),
-              ),
+            Home: () => foldHomeKeyPress(key)(model),
+            Room: ({ roomId }) => foldRoomKeyPress(roomId)(key)(model),
             NotFound: () => [model, []],
           }),
         ),
@@ -142,23 +172,3 @@ export const update = (
     ),
     M.exhaustive,
   )
-
-const handleRoomJoined = (
-  model: Model,
-  roomId: string,
-  player: Shared.Player,
-): UpdateReturn<Model, Message> => {
-  const [nextRoomModel, roomCommands] = Room.join(model.room, player, {
-    roomId,
-  })
-
-  return [
-    evo(model, { room: () => nextRoomModel }),
-    [
-      NavigateToRoom({ roomId }),
-      ...Command.mapMessages(roomCommands, message =>
-        GotRoomMessage({ message }),
-      ),
-    ],
-  ]
-}

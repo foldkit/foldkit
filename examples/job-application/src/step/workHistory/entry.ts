@@ -1,5 +1,5 @@
 import { Match as M, Option, Schema as S } from 'effect'
-import { Command } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { CalendarDate } from 'foldkit/calendar'
 import {
   Field,
@@ -104,6 +104,65 @@ type UpdateReturn = readonly [
   Option.Option<OutMessage>,
 ]
 
+const foldStartDate = Update.foldChild({
+  update: DatePicker.update,
+  read: (model: Model) => Option.some(model.startDate),
+  write: (model, nextStartDate) =>
+    evo(model, { startDate: () => nextStartDate }),
+  toParentMessage: message => GotStartDateMessage({ message }),
+  foldOutMessage: M.type<DatePicker.OutMessage>().pipe(
+    M.withReturnType<Update.Step<Model, Message>>(),
+    M.tagsExhaustive({
+      ChangedViewMonth: () => model => [model, []],
+      SelectedDate:
+        ({ date }) =>
+        model => [
+          evo(model, {
+            maybeStartDate: () => Option.some(date),
+            endDate: DatePicker.reflectMinDate(Option.some(date)),
+          }),
+          [],
+        ],
+      ClearedDate: () => model => [
+        evo(model, {
+          maybeStartDate: () => Option.none(),
+          endDate: DatePicker.reflectMinDate(Option.none()),
+        }),
+        [],
+      ],
+    }),
+  ),
+})
+
+const foldEndDate = Update.foldChild({
+  update: DatePicker.update,
+  read: (model: Model) => Option.some(model.endDate),
+  write: (model, nextEndDate) => evo(model, { endDate: () => nextEndDate }),
+  toParentMessage: message => GotEndDateMessage({ message }),
+  foldOutMessage: M.type<DatePicker.OutMessage>().pipe(
+    M.withReturnType<Update.Step<Model, Message>>(),
+    M.tagsExhaustive({
+      ChangedViewMonth: () => model => [model, []],
+      SelectedDate:
+        ({ date }) =>
+        model => [
+          evo(model, {
+            maybeEndDate: () => Option.some(date),
+            startDate: DatePicker.reflectMaxDate(Option.some(date)),
+          }),
+          [],
+        ],
+      ClearedDate: () => model => [
+        evo(model, {
+          maybeEndDate: () => Option.none(),
+          startDate: DatePicker.reflectMaxDate(Option.none()),
+        }),
+        [],
+      ],
+    }),
+  ),
+})
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     M.withReturnType<UpdateReturn>(),
@@ -120,94 +179,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         Option.none(),
       ],
 
-      GotStartDateMessage: ({ message: dateMessage }) => {
-        const [nextStartDate, commands, maybeOutMessage] = DatePicker.update(
-          model.startDate,
-          dateMessage,
-        )
-        const mappedCommands = Command.mapMessages(commands, message =>
-          GotStartDateMessage({ message }),
-        )
-        return Option.match(maybeOutMessage, {
-          onNone: (): UpdateReturn => [
-            evo(model, { startDate: () => nextStartDate }),
-            mappedCommands,
-            Option.none(),
-          ],
-          onSome: M.type<DatePicker.OutMessage>().pipe(
-            M.withReturnType<UpdateReturn>(),
-            M.tagsExhaustive({
-              ChangedViewMonth: () => [
-                evo(model, { startDate: () => nextStartDate }),
-                mappedCommands,
-                Option.none(),
-              ],
-              SelectedDate: ({ date }) => [
-                evo(model, {
-                  startDate: () => nextStartDate,
-                  maybeStartDate: () => Option.some(date),
-                  endDate: DatePicker.reflectMinDate(Option.some(date)),
-                }),
-                mappedCommands,
-                Option.none(),
-              ],
-              ClearedDate: () => [
-                evo(model, {
-                  startDate: () => nextStartDate,
-                  maybeStartDate: () => Option.none(),
-                  endDate: DatePicker.reflectMinDate(Option.none()),
-                }),
-                mappedCommands,
-                Option.none(),
-              ],
-            }),
-          ),
-        })
+      GotStartDateMessage: ({ message }) => {
+        const [nextModel, commands] = foldStartDate(message)(model)
+        return [nextModel, commands, Option.none()]
       },
 
-      GotEndDateMessage: ({ message: dateMessage }) => {
-        const [nextEndDate, commands, maybeOutMessage] = DatePicker.update(
-          model.endDate,
-          dateMessage,
-        )
-        const mappedCommands = Command.mapMessages(commands, message =>
-          GotEndDateMessage({ message }),
-        )
-        return Option.match(maybeOutMessage, {
-          onNone: (): UpdateReturn => [
-            evo(model, { endDate: () => nextEndDate }),
-            mappedCommands,
-            Option.none(),
-          ],
-          onSome: M.type<DatePicker.OutMessage>().pipe(
-            M.withReturnType<UpdateReturn>(),
-            M.tagsExhaustive({
-              ChangedViewMonth: () => [
-                evo(model, { endDate: () => nextEndDate }),
-                mappedCommands,
-                Option.none(),
-              ],
-              SelectedDate: ({ date }) => [
-                evo(model, {
-                  endDate: () => nextEndDate,
-                  maybeEndDate: () => Option.some(date),
-                  startDate: DatePicker.reflectMaxDate(Option.some(date)),
-                }),
-                mappedCommands,
-                Option.none(),
-              ],
-              ClearedDate: () => [
-                evo(model, {
-                  endDate: () => nextEndDate,
-                  maybeEndDate: () => Option.none(),
-                  startDate: DatePicker.reflectMaxDate(Option.none()),
-                }),
-                mappedCommands,
-                Option.none(),
-              ],
-            }),
-          ),
-        })
+      GotEndDateMessage: ({ message }) => {
+        const [nextModel, commands] = foldEndDate(message)(model)
+        return [nextModel, commands, Option.none()]
       },
 
       ToggledCurrentlyEmployed: ({ isChecked }) => [

@@ -1,5 +1,5 @@
 import { Array, Match as M, Option } from 'effect'
-import { Command } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { Dialog, Listbox } from '@foldkit/ui'
@@ -45,6 +45,73 @@ const applyFill = (model: Model, x: number, y: number) => {
     floodFill(currentGrid, fillX, fillY, model.selectedColorIndex),
   )
 }
+
+const foldErrorDialog = Update.foldChild({
+  update: Dialog.update,
+  read: (model: Model) => Option.some(model.errorDialog),
+  write: (model, nextErrorDialog) =>
+    evo(model, { errorDialog: () => nextErrorDialog }),
+  toParentMessage: message => GotErrorDialogMessage({ message }),
+  foldOutMessage: M.type<Dialog.OutMessage>().pipe(
+    M.withReturnType<Update.Step<Model, Message>>(),
+    M.tagsExhaustive({
+      Opened: () => model => [model, []],
+      Closed: () => model => [
+        evo(model, { maybeExportError: () => Option.none() }),
+        [],
+      ],
+    }),
+  ),
+})
+
+const foldThemeListboxOutMessage: (
+  outMessage: Listbox.OutMessage,
+) => Update.Step<Model, Message> = M.type<Listbox.OutMessage>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    Selected:
+      ({ value }) =>
+      model => {
+        const themeIndex = Number(value)
+        const maybeNextTheme = Array.get(PALETTE_THEMES, themeIndex)
+        if (Option.isNone(maybeNextTheme)) {
+          return [model, []]
+        }
+        const nextModel = evo(model, {
+          paletteThemeIndex: () => themeIndex,
+          selectedColorIndex: () => DEFAULT_COLOR_INDEX,
+        })
+        return [nextModel, [saveCanvas(nextModel)]]
+      },
+  }),
+)
+
+const foldThemeListbox = Update.foldChild({
+  update: ThemeListbox.update,
+  read: (model: Model) => Option.some(model.themeListbox),
+  write: (model, nextThemeListbox) =>
+    evo(model, { themeListbox: () => nextThemeListbox }),
+  toParentMessage: message => GotThemeListboxMessage({ message }),
+  foldOutMessage: foldThemeListboxOutMessage,
+})
+
+const foldGridSizeConfirmDialog = Update.foldChild({
+  update: Dialog.update,
+  read: (model: Model) => Option.some(model.gridSizeConfirmDialog),
+  write: (model, nextGridSizeConfirmDialog) =>
+    evo(model, { gridSizeConfirmDialog: () => nextGridSizeConfirmDialog }),
+  toParentMessage: message => GotGridSizeConfirmDialogMessage({ message }),
+  foldOutMessage: M.type<Dialog.OutMessage>().pipe(
+    M.withReturnType<Update.Step<Model, Message>>(),
+    M.tagsExhaustive({
+      Opened: () => model => [model, []],
+      Closed: () => model => [
+        evo(model, { maybePendingGridSize: () => Option.none() }),
+        [],
+      ],
+    }),
+  ),
+})
 
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
@@ -255,72 +322,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      GotErrorDialogMessage: ({ message }) => {
-        const [nextErrorDialog, errorDialogCommands, maybeOutMessage] =
-          Dialog.update(model.errorDialog, message)
-        const mappedCommands = Command.mapMessages(
-          errorDialogCommands,
-          dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
-        )
-        return Option.match(maybeOutMessage, {
-          onNone: () => [
-            evo(model, { errorDialog: () => nextErrorDialog }),
-            mappedCommands,
-          ],
-          onSome: M.type<Dialog.OutMessage>().pipe(
-            M.withReturnType<UpdateReturn>(),
-            M.tagsExhaustive({
-              Opened: () => [
-                evo(model, { errorDialog: () => nextErrorDialog }),
-                mappedCommands,
-              ],
-              Closed: () => [
-                evo(model, {
-                  errorDialog: () => nextErrorDialog,
-                  maybeExportError: () => Option.none(),
-                }),
-                mappedCommands,
-              ],
-            }),
-          ),
-        })
-      },
+      GotErrorDialogMessage: ({ message }) => foldErrorDialog(message)(model),
 
-      GotThemeListboxMessage: ({ message }) => {
-        const [nextThemeListbox, themeListboxCommands, maybeOutMessage] =
-          ThemeListbox.update(model.themeListbox, message)
-        const mappedCommands = Command.mapMessages(
-          themeListboxCommands,
-          listboxMessage => GotThemeListboxMessage({ message: listboxMessage }),
-        )
-        return Option.match(maybeOutMessage, {
-          onNone: () => [
-            evo(model, { themeListbox: () => nextThemeListbox }),
-            mappedCommands,
-          ],
-          onSome: M.type<Listbox.OutMessage>().pipe(
-            M.withReturnType<UpdateReturn>(),
-            M.tagsExhaustive({
-              Selected: ({ value }) => {
-                const themeIndex = Number(value)
-                const nextTheme = PALETTE_THEMES[themeIndex]
-                if (nextTheme === undefined) {
-                  return [
-                    evo(model, { themeListbox: () => nextThemeListbox }),
-                    mappedCommands,
-                  ]
-                }
-                const nextModel = evo(model, {
-                  paletteThemeIndex: () => themeIndex,
-                  selectedColorIndex: () => DEFAULT_COLOR_INDEX,
-                  themeListbox: () => nextThemeListbox,
-                })
-                return [nextModel, [...mappedCommands, saveCanvas(nextModel)]]
-              },
-            }),
-          ),
-        })
-      },
+      GotThemeListboxMessage: ({ message }) => foldThemeListbox(message)(model),
 
       ConfirmedGridSizeChange: () =>
         Option.match(model.maybePendingGridSize, {
@@ -345,39 +349,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           },
         }),
 
-      GotGridSizeConfirmDialogMessage: ({ message }) => {
-        const [nextDialog, dialogCommands, maybeOutMessage] = Dialog.update(
-          model.gridSizeConfirmDialog,
-          message,
-        )
-        const mappedCommands = Command.mapMessages(
-          dialogCommands,
-          dialogMessage =>
-            GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
-        )
-        return Option.match(maybeOutMessage, {
-          onNone: () => [
-            evo(model, { gridSizeConfirmDialog: () => nextDialog }),
-            mappedCommands,
-          ],
-          onSome: M.type<Dialog.OutMessage>().pipe(
-            M.withReturnType<UpdateReturn>(),
-            M.tagsExhaustive({
-              Opened: () => [
-                evo(model, { gridSizeConfirmDialog: () => nextDialog }),
-                mappedCommands,
-              ],
-              Closed: () => [
-                evo(model, {
-                  gridSizeConfirmDialog: () => nextDialog,
-                  maybePendingGridSize: () => Option.none(),
-                }),
-                mappedCommands,
-              ],
-            }),
-          ),
-        })
-      },
+      GotGridSizeConfirmDialogMessage: ({ message }) =>
+        foldGridSizeConfirmDialog(message)(model),
     }),
   )
 
