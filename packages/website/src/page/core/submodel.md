@@ -321,6 +321,8 @@ Issues new Submodel users hit, and where to read about the fix:
 - **View-build error like** `viewInputs.config.onSubmit`. A slot callback was nested inside an object or array in `viewInputs`. Lift it to the top level. See the warning callout under [Per-render View Inputs](#per-render-view-inputs).
 - **Long list of Submodels feels slow.** Default is to re-render each row every parent render. See [Memoization Across Submodel Boundaries](#memoization).
 
+These are the mechanical ones. For the boundary itself weakening, where the wiring compiles and the parent still ends up owning state or vocabulary it should not, see [Anti-patterns](/patterns/anti-patterns).
+
 ## API Reference
 
 ### h.submodel {#api-h-submodel}

@@ -735,6 +735,14 @@ export const docsView = (
           lazyDocsContent(Page.AsyncData.view, [model.copiedSnippets, h]),
           Page.AsyncData.tableOfContents,
         ),
+      PatternsAntiPatterns: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.Patterns.AntiPatterns.view, [
+            model.copiedSnippets,
+            h,
+          ]),
+          Page.Patterns.AntiPatterns.tableOfContents,
+        ),
       PatternsInformingSubmodels: () =>
         withTableOfContents(
           lazyDocsContent(Page.Patterns.InformingSubmodels.view, [

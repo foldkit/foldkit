@@ -76,6 +76,7 @@ export const CoreEmbeddingRoute = r('CoreEmbedding')
 export const CoreSubmodelRoute = r('CoreSubmodel')
 export const AsyncDataRoute = r('AsyncData')
 
+export const PatternsAntiPatternsRoute = r('PatternsAntiPatterns')
 export const PatternsInformingSubmodelsRoute = r('PatternsInformingSubmodels')
 export const PatternsSubscriptionOrganizationRoute = r(
   'PatternsSubscriptionOrganization',
@@ -172,6 +173,7 @@ export const DocsRoute = S.Union([
   CoreEmbeddingRoute,
   CoreSubmodelRoute,
   AsyncDataRoute,
+  PatternsAntiPatternsRoute,
   PatternsInformingSubmodelsRoute,
   PatternsSubscriptionOrganizationRoute,
   UiOverviewRoute,
@@ -399,6 +401,10 @@ export const coreEmbeddingRouter = core('embedding', CoreEmbeddingRoute)
 export const coreSubmodelRouter = core('submodel', CoreSubmodelRoute)
 export const asyncDataRouter = core('async-data', AsyncDataRoute)
 
+export const patternsAntiPatternsRouter = patterns(
+  'anti-patterns',
+  PatternsAntiPatternsRoute,
+)
 export const patternsInformingSubmodelsRouter = patterns(
   'informing-submodels',
   PatternsInformingSubmodelsRoute,
@@ -504,6 +510,7 @@ const coreParser = oneOf(
 )
 
 const patternsParser = oneOf(
+  patternsAntiPatternsRouter,
   patternsInformingSubmodelsRouter,
   patternsSubscriptionOrganizationRouter,
   projectOrganizationRouter,

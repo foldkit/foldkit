@@ -284,6 +284,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Async Data',
     'A six-state value type for asynchronously loaded data in the Model: Idle, Loading, Refreshing, Failure, Stale, and Success, with stale-while-revalidate and keep-stale-on-failure built in.',
   ),
+  PatternsAntiPatterns: pattern(
+    'Anti-patterns',
+    'Architectural warning signs in Foldkit apps, with idiomatic replacements for leaky Submodel boundaries, ambiguous state, misplaced side effects, async races, and incorrect keys.',
+  ),
   PatternsInformingSubmodels: pattern(
     'Informing Submodels',
     'Relay a change a Submodel does not own (a URL, a server push, an auth change) through a helper it exposes, so it can update its own state in response.',
