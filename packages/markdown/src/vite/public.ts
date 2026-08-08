@@ -1,2 +1,7 @@
-export { markdown, parseMarkdown } from './vite.js'
-export type { MarkdownPluginOptions } from './vite.js'
+export {
+  markdown,
+  parseMarkdown,
+  parseMarkdownWithFrontmatter,
+} from './vite.js'
+export type { MarkdownPluginOptions, ParsedMarkdown } from './vite.js'
+export type { FrontmatterDefinition } from './frontmatter.js'

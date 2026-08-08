@@ -21,7 +21,13 @@ import {
   type Message,
   ToggledSidebarGroup,
 } from '../message'
-import { ExampleDetailRoute, apiModuleRouter, homeRouter } from '../route'
+import {
+  ExampleDetailRoute,
+  apiModuleRouter,
+  blogRouter,
+  homeRouter,
+  isBlogRoute,
+} from '../route'
 import { type GroupKey, type SidebarGroups } from '../sidebarStorage'
 import { betaTag, iconLink } from './shared'
 
@@ -115,6 +121,37 @@ const sidebarGroup = (
   )
 }
 
+const linkClass = (isActive: boolean) =>
+  clsx(
+    'block px-4 py-2.5 md:px-2.5 md:py-1 rounded-md transition text-sm font-normal',
+    {
+      'bg-accent-100 dark:bg-accent-900/50 text-accent-700 dark:text-accent-400':
+        isActive,
+      'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800':
+        !isActive,
+    },
+  )
+
+const navLink = (
+  href: string,
+  isActive: boolean,
+  label: string,
+  h: HtmlBuilder<Message>,
+) =>
+  h.li(
+    [],
+    [
+      h.a(
+        [
+          h.Href(href),
+          h.Class(linkClass(isActive)),
+          ...(isActive ? [h.AriaCurrent('page')] : []),
+        ],
+        [label],
+      ),
+    ],
+  )
+
 const computeNavLinks = (
   idPrefix: string,
   route: Model['route'],
@@ -137,32 +174,6 @@ const computeNavLinks = (
   const isLocked = (key: GroupKey): boolean =>
     Option.exists(maybeActiveSectionKey, Equal.equals(key))
 
-  const linkClass = (isActive: boolean) =>
-    clsx(
-      'block px-4 py-2.5 md:px-2.5 md:py-1 rounded-md transition text-sm font-normal',
-      {
-        'bg-accent-100 dark:bg-accent-900/50 text-accent-700 dark:text-accent-400':
-          isActive,
-        'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800':
-          !isActive,
-      },
-    )
-
-  const navLink = (href: string, isActive: boolean, label: string) =>
-    h.li(
-      [],
-      [
-        h.a(
-          [
-            h.Href(href),
-            h.Class(linkClass(isActive)),
-            ...(isActive ? [h.AriaCurrent('page')] : []),
-          ],
-          [label],
-        ),
-      ],
-    )
-
   const pageGroupList = (pages: ReadonlyArray<NavPage>): Html =>
     h.ul(
       [h.Class('space-y-0.5')],
@@ -171,6 +182,7 @@ const computeNavLinks = (
           page.href,
           isNavPageActive(route._tag, maybeExampleSlug, page._tag),
           page.label,
+          h,
         ),
       ),
     )
@@ -217,6 +229,7 @@ const computeNavLinks = (
                 }),
                 isOnApiModulePage && route.moduleSlug === slug,
                 name,
+                h,
               ),
             ),
           ),
@@ -226,6 +239,31 @@ const computeNavLinks = (
     ],
   )
 }
+
+const blogSectionHeaderClassName = clsx(
+  'w-full flex items-center justify-between transition cursor-default',
+  'px-4 py-2.5 md:py-2',
+  'text-xs font-semibold uppercase tracking-wider',
+  'text-gray-600 dark:text-gray-400',
+  'bg-gray-200 dark:bg-gray-800',
+)
+
+const blogSection = (route: Model['route'], h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [],
+    [
+      h.div([h.Class(blogSectionHeaderClassName)], ['Blog']),
+      h.div(
+        [h.Class('px-4 py-2')],
+        [
+          h.ul(
+            [h.Class('space-y-0.5')],
+            [navLink(blogRouter(), isBlogRoute(route), 'Posts', h)],
+          ),
+        ],
+      ),
+    ],
+  )
 
 const lazyDesktopNavLinks = createLazy()
 const lazyMobileNavLinks = createLazy()
@@ -237,14 +275,8 @@ export const sidebarView = (model: Model, h: HtmlBuilder<Message>): Html => {
     model.sidebarGroups,
     h,
   ])
-  const mobileNavLinks = lazyMobileNavLinks(computeNavLinks, [
-    'mobile',
-    model.route,
-    model.sidebarGroups,
-    h,
-  ])
 
-  const desktopSidebar = h.aside(
+  return h.aside(
     [
       h.AriaLabel('Documentation sidebar'),
       h.Class(
@@ -262,6 +294,15 @@ export const sidebarView = (model: Model, h: HtmlBuilder<Message>): Html => {
       ),
     ],
   )
+}
+
+export const mobileMenuView = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const mobileNavLinks = lazyMobileNavLinks(computeNavLinks, [
+    'mobile',
+    model.route,
+    model.sidebarGroups,
+    h,
+  ])
 
   const mobileMenuContent = (
     closeButton: Dialog.RenderInfo['closeButton'],
@@ -310,7 +351,7 @@ export const sidebarView = (model: Model, h: HtmlBuilder<Message>): Html => {
             h.Tabindex(-1),
             h.Autofocus(true),
           ],
-          [mobileNavLinks],
+          [blogSection(model.route, h), mobileNavLinks],
         ),
         h.div(
           [
@@ -333,7 +374,7 @@ export const sidebarView = (model: Model, h: HtmlBuilder<Message>): Html => {
       ],
     )
 
-  const mobileMenu = h.submodel({
+  return h.submodel({
     slotId: model.mobileMenuDialog.id,
     model: model.mobileMenuDialog,
     view: Dialog.view,
@@ -359,6 +400,4 @@ export const sidebarView = (model: Model, h: HtmlBuilder<Message>): Html => {
     },
     toParentMessage: message => GotMobileMenuDialogMessage({ message }),
   })
-
-  return h.div([], [desktopSidebar, mobileMenu])
 }

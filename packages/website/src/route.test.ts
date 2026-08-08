@@ -12,6 +12,7 @@ const PARAMETERIZED_ROUTERS: ReadonlySet<string> = new Set([
   'exampleDetailRouter',
   'apiModuleRouter',
   'playgroundRouter',
+  'blogPostRouter',
 ])
 
 const expectedTag = (routerName: string): string => {
@@ -45,4 +46,29 @@ describe('route table', () => {
       expect(parsed._tag).toBe(expectedTag(name))
     },
   )
+})
+
+describe('blog routes', () => {
+  test('parses /blog/<slug> into BlogPost', () => {
+    const parsed = Route.urlToAppRoute(
+      Option.getOrThrow(
+        urlFromString(`${SITE}/blog/introducing-the-foldkit-blog`),
+      ),
+    )
+
+    expect(parsed).toEqual(
+      Route.BlogPostRoute({ postSlug: 'introducing-the-foldkit-blog' }),
+    )
+  })
+
+  test('builds a post URL that parses back to its route', () => {
+    const path = Route.blogPostRouter({ postSlug: 'some-post' })
+
+    expect(path).toBe('/blog/some-post')
+
+    const parsed = Route.urlToAppRoute(
+      Option.getOrThrow(urlFromString(`${SITE}${path}`)),
+    )
+    expect(parsed).toEqual(Route.BlogPostRoute({ postSlug: 'some-post' }))
+  })
 })

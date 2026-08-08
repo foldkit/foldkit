@@ -1,10 +1,4 @@
-import {
-  Array,
-  Match as M,
-  Option,
-  Record as Record_,
-  Schema as S,
-} from 'effect'
+import { Array, Match as M, Option, Record as Record_ } from 'effect'
 import type {
   ListItem as MdastListItem,
   Table as MdastTable,
@@ -42,6 +36,7 @@ import {
   ThematicBreak,
 } from '../ast/index.js'
 import type { IslandDefinition, IslandDefinitions } from '../island/index.js'
+import { validateFields } from './validateFields.js'
 
 /**
  * Options for {@link normalizeRoot}. `islands`, when provided, maps each
@@ -79,7 +74,7 @@ const UNSUPPORTED_GUIDANCE: Readonly<Record<string, string>> = {
     'Reference-style link definitions are not supported. Use inline links (`[text](url)`).',
   footnoteReference: 'Footnotes are not supported.',
   footnoteDefinition: 'Footnotes are not supported.',
-  yaml: 'Frontmatter is not supported. Keep document metadata in application code, for example a typed post registry.',
+  yaml: 'Frontmatter is not supported without a `frontmatter` schema in the markdown plugin options. Pass one to enable it, or keep document metadata in application code.',
   'leaf directive label':
     'Leaf directive labels (`::Name[label]`) are not supported. Pass information through attributes (`::Name{label="..."}`) instead.',
 }
@@ -195,31 +190,17 @@ export const normalizeRoot = (
     directive: DirectiveNode,
     attributesSchema: IslandDefinition,
     attributes: Readonly<Record<string, string>>,
-  ): void => {
-    const allowedAttributeNames = Object.keys(attributesSchema.fields)
-    const unknownAttributeNames = Object.keys(attributes).filter(
-      attributeName => !allowedAttributeNames.includes(attributeName),
-    )
-    if (Array.isArrayNonEmpty(unknownAttributeNames)) {
-      const allowedDescription = Array.match(allowedAttributeNames, {
-        onEmpty: () => 'It takes no attributes.',
-        onNonEmpty: names => `Allowed attributes: ${names.join(', ')}.`,
-      })
-      throw new Error(
-        `Unknown attribute "${Array.headNonEmpty(unknownAttributeNames)}" for island "${directive.name}"${sourceLocation(directive)}. ` +
-          allowedDescription,
-      )
-    }
-
-    try {
-      S.decodeUnknownSync(attributesSchema)(attributes)
-    } catch (error) {
-      throw new Error(
-        `Invalid attributes for island "${directive.name}"${sourceLocation(directive)}. ` +
-          `${error instanceof Error ? error.message : String(error)}`,
-      )
-    }
-  }
+  ): void =>
+    validateFields({
+      schema: attributesSchema,
+      values: attributes,
+      memberNounPlural: 'attributes',
+      unknownField: (attributeName, allowedDescription) =>
+        `Unknown attribute "${attributeName}" for island "${directive.name}"${sourceLocation(directive)}. ` +
+        allowedDescription,
+      invalidValues: detail =>
+        `Invalid attributes for island "${directive.name}"${sourceLocation(directive)}. ${detail}`,
+    })
 
   const toIsland = (
     directive: DirectiveNode,

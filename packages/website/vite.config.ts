@@ -36,6 +36,7 @@ import {
   type TypeDocSignature,
   type TypeDocTypeParam,
 } from './src/page/apiReference/typedoc'
+import { PostFrontmatter } from './src/page/blog/frontmatter'
 import { exampleSlugs } from './src/page/example/meta'
 import { shikiDarkTheme, shikiLightTheme } from './src/shikiTheme'
 
@@ -864,7 +865,7 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     foldkit({ devToolsMcpPort: 9988 }),
-    markdown({ islands: islandAttributes }),
+    markdown({ islands: islandAttributes, frontmatter: PostFrontmatter }),
     embeddedExampleRedirectPlugin(),
     playgroundIsolationHeadersPlugin(),
     playgroundShellFallbackPlugin(),

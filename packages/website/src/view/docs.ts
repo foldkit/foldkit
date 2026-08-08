@@ -31,8 +31,9 @@ import { defaultRenderHeadingLink } from '../prose'
 import { type DocsRoute, homeRouter } from '../route'
 import * as Search from '../search'
 import { defaultRenderCopyButton } from './codeBlock'
+import { headerNavView } from './headerNav'
 import { betaTag, emailFormView, iconLink, skipNavLink } from './shared'
-import { sidebarView } from './sidebar'
+import { mobileMenuView, sidebarView } from './sidebar'
 import {
   mobileTableOfContentsView,
   tableOfContentsView,
@@ -47,11 +48,26 @@ const openSearchDialog: Message = GotSearchMessage({
   message: Search.ClickedOpenSearch(),
 })
 
+/**
+ * The site-wide search dialog Submodel, shared by every shell that renders the
+ * docs header, so the wiring cannot drift between the docs and blog views.
+ */
+export const searchSubmodelView = (
+  model: Model,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.submodel({
+    slotId: 'search',
+    model: model.search,
+    view: Search.view,
+    toParentMessage: message => GotSearchMessage({ message }),
+  })
+
 const searchKeyboardWarmupSelector = `#${Search.KEYBOARD_WARMUP_INPUT_ID}`
 
 // DOCS HEADER
 
-const docsHeaderView = (model: Model, h: HtmlBuilder<Message>) =>
+export const docsHeaderView = (model: Model, h: HtmlBuilder<Message>) =>
   h.header(
     [
       h.Class(
@@ -80,6 +96,7 @@ const docsHeaderView = (model: Model, h: HtmlBuilder<Message>) =>
       h.div(
         [h.Class('flex items-center gap-3 md:gap-8')],
         [
+          headerNavView(model.route, 'hidden md:flex items-center gap-6', h),
           h.button(
             [
               h.Class(
@@ -152,7 +169,7 @@ const docsHeaderView = (model: Model, h: HtmlBuilder<Message>) =>
 
 // DOCS FOOTER
 
-const docsFooterView = (
+export const docsFooterView = (
   emailField: Field<string>,
   emailSubscriptionStatus: EmailSubscriptionStatus,
   currentYear: number,
@@ -1084,16 +1101,12 @@ export const docsView = (
     [
       skipNavLink,
       docsHeaderView(model, h),
-      h.submodel({
-        slotId: 'search',
-        model: model.search,
-        view: Search.view,
-        toParentMessage: message => GotSearchMessage({ message }),
-      }),
+      searchSubmodelView(model, h),
       h.div(
         [h.Class('flex flex-1 pt-[var(--header-height)] md:pl-64')],
         [
           sidebarView(model, h),
+          mobileMenuView(model, h),
           h.main(
             [
               h.Id('main-content'),

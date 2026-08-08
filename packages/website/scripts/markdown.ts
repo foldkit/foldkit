@@ -285,18 +285,25 @@ export type LlmsIndexEntry = Readonly<{
   metadata: PageMetadata
 }>
 
-const SECTION_ORDER: ReadonlyArray<string> = [
+/**
+ * Every section a page can report, in the order sections appear in `llms.txt`
+ * and `llms-full.txt`. A section missing from this list ranks last, so adding a
+ * new one here is part of adding it to {@link PageMetadata}.
+ */
+export const SECTION_ORDER: ReadonlyArray<string> = [
   'Docs',
   'Guides',
   'Core Concepts',
   'Best Practices',
   'Patterns',
+  'Tooling',
   'FAQ',
   'Foldkit UI',
   'Testing',
   'Examples',
   'AI',
   'API Reference',
+  'Blog',
 ]
 
 const sectionRank = (section: string): number =>

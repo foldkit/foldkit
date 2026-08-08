@@ -1,7 +1,13 @@
-import { Match as M, Option } from 'effect'
+import { Array, Match as M, Option } from 'effect'
 
+import {
+  BLOG_DESCRIPTION,
+  BLOG_SECTION,
+  BLOG_TITLE,
+} from '../src/page/blog/meta'
 import { findBySlug } from '../src/page/example/meta'
 import { type AppRoute } from '../src/route'
+import { blogPosts } from './blogPosts'
 
 // PAGE METADATA
 
@@ -40,7 +46,7 @@ const tooling = (title: string, description: string): PageMetadata =>
 
 type StaticRouteTag = Exclude<
   AppRoute['_tag'],
-  'ApiModule' | 'ExampleDetail' | 'Playground'
+  'ApiModule' | 'BlogPost' | 'ExampleDetail' | 'Playground'
 >
 
 const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
@@ -417,6 +423,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
       'Subscribe to the Foldkit newsletter for new releases, patterns, and the occasional deep dive.',
     section: '',
   },
+  Blog: docs(BLOG_TITLE, BLOG_DESCRIPTION, BLOG_SECTION),
 }
 
 export const routeToMetadata = (
@@ -433,6 +440,16 @@ export const routeToMetadata = (
         'API Reference',
       )
     }),
+    M.tag('BlogPost', ({ postSlug }) =>
+      Option.match(
+        Array.findFirst(blogPosts, ({ slug }) => slug === postSlug),
+        {
+          onNone: () => docs(BLOG_TITLE, 'A Foldkit blog post.', BLOG_SECTION),
+          onSome: ({ frontmatter }) =>
+            docs(frontmatter.title, frontmatter.description, BLOG_SECTION),
+        },
+      ),
+    ),
     M.tag('ExampleDetail', ({ exampleSlug }) =>
       Option.match(findBySlug(exampleSlug), {
         onNone: () =>
