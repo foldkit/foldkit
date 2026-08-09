@@ -5,8 +5,6 @@
 '@foldkit/vite-plugin': patch
 ---
 
-`Runtime.embed` now reports startup failures the same way `Runtime.run` does.
+`Runtime.run` and `Runtime.embed` now share one unhandled-Cause reporting path.
 
-`run` goes through `BrowserRuntime.runMain`, which logs unreported non-interrupt causes when the root fiber fails. `embed` previously used a bare `Effect.runFork`, so the same failure (for example a `flags` Effect that dies before the first render) left a blank container and nothing in the console.
-
-`embed` now mirrors that reporting: a failed startup logs the Cause, interrupt-only exits from `dispose` stay quiet, and the public handle API is unchanged. `@foldkit/vite-plugin` force-includes `effect/Runtime` and `effect/Logger` so the new reporting path stays in the prebundled Effect blob in dev.
+Previously only `run` logged startup failures (via Effect's `makeRunMain`). `embed` used a bare `Effect.runFork`, so a failing `flags` Effect left a blank container and nothing in the console. Both entrypoints now go through the same Foldkit reporter: unreported non-interrupt Causes are logged, interrupt-only exits stay quiet, and `run` disables Effect's built-in reporter to avoid a second copy of the policy. The public `embed` handle API is unchanged. `@foldkit/vite-plugin` force-includes `effect/Runtime` and `effect/Logger` so the reporting path stays in the prebundled Effect blob in dev.

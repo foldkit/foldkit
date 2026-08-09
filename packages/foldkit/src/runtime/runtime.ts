@@ -3734,21 +3734,10 @@ const resolveHmrModel = (runtimeId: string): Effect.Effect<unknown> => {
   )
 }
 
-/** Starts a Foldkit runtime that owns the page for the page's whole lifetime,
- *  with HMR support for development. To start a runtime under a
- *  host-controlled lifecycle instead, use `embed`. */
-export const run = (program: MakeRuntimeReturn<Ports | undefined>): void => {
-  BrowserRuntime.runMain(
-    provideBrowserScheduler(
-      Effect.flatMap(resolveHmrModel(program.runtimeId), program.start),
-    ),
-  )
-}
-
 /**
- * Mirrors `makeRunMain`'s default fiber reporting: log unreported
- * non-interrupt causes, stay quiet on interrupt-only exits. Used by `embed`,
- * which starts its fiber with `Effect.runFork` instead of `runMain`.
+ * Logs unreported non-interrupt Causes; stays quiet on interrupt-only exits
+ * and on errors marked `[Runtime.errorReported]: false`. Shared by `run` and
+ * `embed` so both entrypoints use one reporting path.
  */
 export const __reportUnhandledCause = <E>(
   cause: Cause.Cause<E>,
@@ -3759,6 +3748,27 @@ export const __reportUnhandledCause = <E>(
   return Runtime.getErrorReported(Cause.squash(cause))
     ? Effect.logError(cause)
     : Effect.void
+}
+
+const withUnhandledCauseReporting = <A, E, R>(
+  effect: Effect.Effect<A, E, R>,
+): Effect.Effect<A, E, R> => Effect.tapCause(effect, __reportUnhandledCause)
+
+/** Starts a Foldkit runtime that owns the page for the page's whole lifetime,
+ *  with HMR support for development. To start a runtime under a
+ *  host-controlled lifecycle instead, use `embed`. */
+export const run = (program: MakeRuntimeReturn<Ports | undefined>): void => {
+  // NOTE: disable Effect's built-in `makeRunMain` reporting so `run` and
+  // `embed` share Foldkit's `withUnhandledCauseReporting` instead of keeping
+  // two copies of the same policy in sync by hand.
+  BrowserRuntime.runMain(
+    withUnhandledCauseReporting(
+      provideBrowserScheduler(
+        Effect.flatMap(resolveHmrModel(program.runtimeId), program.start),
+      ),
+    ),
+    { disableErrorReporting: true },
+  )
 }
 
 const buildPortHandles = <P extends Ports | undefined>(
@@ -3848,10 +3858,7 @@ export const embed = <P extends Ports | undefined = undefined>(
   )
 
   const fiber = Effect.runFork(
-    Effect.tapCause(
-      provideBrowserScheduler(startEffect),
-      __reportUnhandledCause,
-    ),
+    withUnhandledCauseReporting(provideBrowserScheduler(startEffect)),
   )
   internals.maybeActiveFiber = Option.some(fiber)
 
