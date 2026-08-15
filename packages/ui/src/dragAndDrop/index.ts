@@ -662,38 +662,33 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       }),
       dependenciesToStream: ({ dragActivity }) =>
         Stream.when(
-          Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-            Stream.mapEffect((event): Effect.Effect<Option.Option<Message>> =>
-              Effect.sync(() => {
-                // NOTE: the draggable's OnKeyDownPreventDefault calls preventDefault on
-                // the Space that activates keyboard drag. Skip it here so the same
-                // keypress doesn't also confirm the drop in the same tick.
-                if (event.defaultPrevented) {
-                  return Option.none()
-                }
-                if (event.key === 'Tab') {
-                  event.preventDefault()
-                  return Option.some(
-                    Message.PressedArrowKey({
-                      direction: event.shiftKey
-                        ? 'PreviousContainer'
-                        : 'NextContainer',
-                    }),
-                  )
-                }
-                if (event.key === ' ' || event.key === 'Enter') {
-                  event.preventDefault()
-                  return Option.some(Message.ConfirmedKeyboardDrop())
-                }
-                return Option.map(arrowKeyToDirection(event.key), direction => {
-                  event.preventDefault()
-                  return Message.PressedArrowKey({ direction })
-                })
-              }),
-            ),
-            Stream.filter(Option.isSome),
-            Stream.map(option => option.value),
-          ),
+          Subscription.fromEventPreventDefault<KeyboardEvent, Message>({
+            target: document,
+            type: 'keydown',
+            toMessage: event => {
+              // NOTE: the draggable's OnKeyDownPreventDefault calls preventDefault on
+              // the Space that activates keyboard drag. Skip it here so the same
+              // keypress doesn't also confirm the drop in the same tick.
+              if (event.defaultPrevented) {
+                return Option.none()
+              }
+              if (event.key === 'Tab') {
+                return Option.some(
+                  Message.PressedArrowKey({
+                    direction: event.shiftKey
+                      ? 'PreviousContainer'
+                      : 'NextContainer',
+                  }),
+                )
+              }
+              if (event.key === ' ' || event.key === 'Enter') {
+                return Option.some(Message.ConfirmedKeyboardDrop())
+              }
+              return Option.map(arrowKeyToDirection(event.key), direction =>
+                Message.PressedArrowKey({ direction }),
+              )
+            },
+          }),
           Effect.sync(() => dragActivity === 'Active'),
         ),
     },

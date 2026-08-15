@@ -39,7 +39,8 @@
     "foldkit/prefer-callable-message-constructor": "error",
     "foldkit/command-binding-matches-name": "error",
     "foldkit/no-module-level-mutable-state": "error",
-    "foldkit/prefer-effect-module-names": "error"
+    "foldkit/prefer-effect-module-names": "error",
+    "foldkit/no-prevent-default-in-stream-operator": "error"
   },
   "overrides": [
     {

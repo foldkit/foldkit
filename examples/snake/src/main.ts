@@ -1,4 +1,13 @@
-import { Array, Duration, Effect, Match, Schema, Stream, pipe } from 'effect'
+import {
+  Array,
+  Duration,
+  Effect,
+  Match,
+  Option,
+  Schema,
+  Stream,
+  pipe,
+} from 'effect'
 import { Command, Runtime, Subscription, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -243,13 +252,12 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 
   keyboard: Subscription.persistent(
-    Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-      Stream.mapEffect(keyboardEvent =>
-        Effect.sync(() => keyboardEvent.preventDefault()).pipe(
-          Effect.as(Message.PressedKey({ key: keyboardEvent.key })),
-        ),
-      ),
-    ),
+    Subscription.fromEventPreventDefault<KeyboardEvent, Message>({
+      target: document,
+      type: 'keydown',
+      toMessage: keyboardEvent =>
+        Option.some(Message.PressedKey({ key: keyboardEvent.key })),
+    }),
   ),
 }))
 

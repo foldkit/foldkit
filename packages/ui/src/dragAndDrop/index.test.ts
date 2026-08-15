@@ -1,4 +1,4 @@
-import { Option } from 'effect'
+import { Effect, Fiber, Option, Stream } from 'effect'
 import * as Story from 'foldkit/story'
 import { expect } from 'vitest'
 
@@ -14,10 +14,14 @@ import {
   isDragging,
   maybeDraggedItemId,
   maybeDropTarget,
+  subscriptions,
   update,
 } from './index.js'
 
 const defaultInit = () => init({ id: 'test' })
+
+const waitForNextTurn = (): Promise<void> =>
+  new Promise(resolve => setTimeout(resolve, 0))
 
 const pressedDraggable = Message.PressedDraggable({
   itemId: 'item-1',
@@ -489,6 +493,40 @@ describe('DragAndDrop', () => {
   })
 
   describe('keyboard drag', () => {
+    it('prevents handled document keys before the native dispatch returns', async () => {
+      const keyboardDrag = update(defaultInit(), activatedKeyboardDrag)
+      const dependencies = subscriptions.documentKeyboard.modelToDependencies(
+        keyboardDrag.model,
+      )
+      const received: Array<Message> = []
+      const stream =
+        subscriptions.documentKeyboard.dependenciesToStream(dependencies)
+      const fiber = Effect.runFork(
+        Stream.runForEach(stream, message =>
+          Effect.sync(() => {
+            received.push(message)
+          }),
+        ),
+      )
+
+      await waitForNextTurn()
+
+      const event = new KeyboardEvent('keydown', {
+        key: 'Tab',
+        cancelable: true,
+      })
+      document.dispatchEvent(event)
+
+      expect(event.defaultPrevented).toBe(true)
+
+      await waitForNextTurn()
+      await Effect.runPromise(Fiber.interrupt(fiber))
+
+      expect(received).toEqual([
+        Message.PressedArrowKey({ direction: 'NextContainer' }),
+      ])
+    })
+
     it('transitions from Idle to KeyboardDragging on ActivatedKeyboardDrag', () => {
       Story.story(
         update,

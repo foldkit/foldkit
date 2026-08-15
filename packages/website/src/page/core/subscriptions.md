@@ -51,7 +51,7 @@ Choose the lifecycle primitive by what owns the work:
 | [Mount](/core/mount)                       | One rendered element                                | Listeners, observers, or imperative work that needs that element                              |
 | [ManagedResource](/core/managed-resources) | A Model condition, with a typed handle for Commands | A `WebSocket`, camera stream, or third-party instance that other parts of the program consume |
 
-Subscription callbacks can perform synchronous browser work when the event requires it. `preventDefault()` is the common case. The mapper in `Subscription.fromEvent` runs inside the browser's event dispatch, so it can suppress the default action before returning a Message.
+When work must be synchronous with an event, it has to run inside the listener callback. Calling `preventDefault()` is the common case: routing the event through update or a downstream `Stream` operator arrives after the browser has committed the default action. The `Subscription.fromEvent` helpers run their mappers inside the dispatch, and `Subscription.fromEventPreventDefault` calls `preventDefault()` for every event its mapper handles.
 
 ## Auto-Counter Example
 
@@ -94,9 +94,11 @@ The helper returns a Stream, not a complete entry. Wrap it in `Stream.when` insi
 
 ::Snippet{name="subscriptionFromEvent" label="DOM event subscription example"}
 
-The `toMessage` mapper runs synchronously in the same call stack as the browser event, so it may call `event.preventDefault()`. Pass `target` as a thunk if the target may not exist until the scope opens. Pass always-present globals such as `window` and `document` directly.
+The `toMessage` mapper runs synchronously in the same call stack as the browser event, so it may call `event.preventDefault()` unless the listener is passive. Some browsers default wheel and touch listeners on global targets to passive, where cancellation is ignored. Pass `options: { passive: false }` when cancelling those events. Pass `target` as a thunk if it may not exist until the scope opens; pass always-present globals such as `window` and `document` directly.
 
 Use `Subscription.fromEventFilterMap` when only some events should dispatch. Its mapper returns `Option.some(message)` to emit or `Option.none()` to ignore the event. For a listener attached to one rendered element, use [Mount](/core/mount) instead.
+
+When a handled event should also cancel its default action, use `Subscription.fromEventPreventDefault`. Its mapper returns `Option.some(message)` to handle the event or `Option.none()` to leave its default behavior intact. The helper evaluates the mapper, calls `preventDefault()`, and queues the Message before the native listener returns. It registers the listener with `passive: false` by default and rejects `passive: true`, which would make cancellation ineffective.
 
 ## Keep a Stream Alive Across Dependency Changes {#advanced}
 

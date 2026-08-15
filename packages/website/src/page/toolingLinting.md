@@ -144,6 +144,16 @@ Catches an inline empty array in the children slot, on element builders and on k
 
 ## Purity Boundaries {#purity-rules}
 
+### foldkit/no-prevent-default-in-stream-operator {#no-prevent-default-in-stream-operator}
+
+Flags `preventDefault()` inside callbacks passed to `Stream.map`, `Stream.mapEffect`, `Stream.filterMap`, `Stream.filterMapEffect`, `Stream.filter`, `Stream.filterEffect`, or `Stream.tap`. A DOM event placed into a callback-backed Stream is queued before downstream operators run, so cancellation there happens after the native listener returns and may be too late for the browser.
+
+Use `Subscription.fromEventPreventDefault` instead. Its mapper returns `Option.some(message)` for a handled event or `Option.none()` for an event the browser should handle normally. Foldkit calls `preventDefault()` for handled events before the native listener returns.
+
+The rule recognizes inline callbacks and functions declared in the same module. It is intentionally conservative about the Stream's source. Suppress it when the value is not a DOM event or the Stream is deliberately executed synchronously inside a native listener.
+
+::Snippet{name="lintNoPreventDefaultInStreamOperator" label="foldkit/no-prevent-default-in-stream-operator example"}
+
 ### foldkit/no-impure-call-at-decision-time {#no-impure-call-at-decision-time}
 
 Flags these direct calls unless they appear inside a recognized callback that Effect or a Foldkit lifecycle primitive defers until execution:

@@ -11,6 +11,14 @@ export { animationFrame } from './animationFrame.js'
 
 export type { AnimationFrameConfig } from './animationFrame.js'
 
-export { fromEvent, fromEventFilterMap } from './fromEvent.js'
+export {
+  fromEvent,
+  fromEventFilterMap,
+  fromEventPreventDefault,
+} from './fromEvent.js'
 
-export type { FromEventConfig, FromEventFilterMapConfig } from './fromEvent.js'
+export type {
+  FromEventConfig,
+  FromEventFilterMapConfig,
+  FromEventPreventDefaultConfig,
+} from './fromEvent.js'
