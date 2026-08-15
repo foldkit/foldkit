@@ -129,6 +129,12 @@ describe('real-oxlint rule fixtures', () => {
     )
   })
 
+  it('follows named callbacks and aliased Stream imports', () => {
+    expect(
+      countDiagnostics('no-prevent-default-in-stream-operator', 'invalid'),
+    ).toBe(5)
+  })
+
   it('reports every direct child Message import form', () => {
     const diagnostics = diagnosticsFor(
       'no-child-message-construction-in-root',

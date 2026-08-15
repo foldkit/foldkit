@@ -23,6 +23,7 @@ import { noImpureCallAtDecisionTime } from './rules/no-impure-call-at-decision-t
 import { noModuleLevelMutableState } from './rules/no-module-level-mutable-state.ts'
 import { noNonportableServerGlobals } from './rules/no-nonportable-server-globals.ts'
 import { noNoopMessage } from './rules/no-noop-message.ts'
+import { noPreventDefaultInStreamOperator } from './rules/no-prevent-default-in-stream-operator.ts'
 import { noRawDomEventAttributes } from './rules/no-raw-dom-event-attributes.ts'
 import { noRouteQueryConstructorDefault } from './rules/no-route-query-constructor-default.ts'
 import { noSpreadInEvo } from './rules/no-spread-in-evo.ts'
@@ -63,6 +64,7 @@ const basePlugin = Plugin.define({
     'no-module-level-mutable-state': noModuleLevelMutableState,
     'no-nonportable-server-globals': noNonportableServerGlobals,
     'no-noop-message': noNoopMessage,
+    'no-prevent-default-in-stream-operator': noPreventDefaultInStreamOperator,
     'no-raw-dom-event-attributes': noRawDomEventAttributes,
     'no-route-query-constructor-default': noRouteQueryConstructorDefault,
     'no-spread-in-evo': noSpreadInEvo,

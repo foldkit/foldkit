@@ -44,7 +44,8 @@
     "foldkit/prefer-option-over-nullable-in-model": "error",
     "foldkit/prefer-command-mapmessage": "error",
     "foldkit/no-route-query-constructor-default": "error",
-    "foldkit/prefer-effect-module-names": "error"
+    "foldkit/prefer-effect-module-names": "error",
+    "foldkit/no-prevent-default-in-stream-operator": "error"
   },
   "overrides": [
     {

@@ -1,48 +1,58 @@
-import { Effect, Option, Schema, Stream } from 'effect'
+import { Effect, Match, Option, Schema, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
 import { Message } from './message'
 import type { Model } from './model'
 
-export const handleKeyboardEvent = (
-  event: KeyboardEvent,
-): Effect.Effect<Option.Option<Message>> =>
-  Effect.sync(() => {
-    const isCtrlOrMeta = event.ctrlKey || event.metaKey
-    const key = event.key.toLowerCase()
-
-    if (isCtrlOrMeta && key === 'z') {
-      event.preventDefault()
-      return Option.some(
-        event.shiftKey ? Message.ClickedRedo() : Message.ClickedUndo(),
-      )
-    }
-    if (isCtrlOrMeta && key === 'y') {
-      event.preventDefault()
-      return Option.some(Message.ClickedRedo())
-    }
-
-    if (!isCtrlOrMeta) {
-      if (key === 'b') {
-        return Option.some(Message.SelectedTool({ tool: 'Brush' }))
-      }
-      if (key === 'f') {
-        return Option.some(Message.SelectedTool({ tool: 'Fill' }))
-      }
-      if (key === 'e') {
-        return Option.some(Message.SelectedTool({ tool: 'Eraser' }))
-      }
-    }
+const toUndoRedoMessage = (event: KeyboardEvent): Option.Option<Message> => {
+  const isCtrlOrMeta = event.ctrlKey || event.metaKey
+  if (!isCtrlOrMeta) {
     return Option.none()
-  })
+  }
+
+  return Match.value(event.key.toLowerCase()).pipe(
+    Match.withReturnType<Option.Option<Message>>(),
+    Match.when('z', () =>
+      Option.some(
+        event.shiftKey ? Message.ClickedRedo() : Message.ClickedUndo(),
+      ),
+    ),
+    Match.when('y', () => Option.some(Message.ClickedRedo())),
+    Match.orElse(() => Option.none()),
+  )
+}
+
+const toToolMessage = (event: KeyboardEvent): Option.Option<Message> => {
+  if (event.ctrlKey || event.metaKey) {
+    return Option.none()
+  }
+
+  return Match.value(event.key.toLowerCase()).pipe(
+    Match.withReturnType<Option.Option<Message>>(),
+    Match.when('b', () => Option.some(Message.SelectedTool({ tool: 'Brush' }))),
+    Match.when('f', () => Option.some(Message.SelectedTool({ tool: 'Fill' }))),
+    Match.when('e', () =>
+      Option.some(Message.SelectedTool({ tool: 'Eraser' })),
+    ),
+    Match.orElse(() => Option.none()),
+  )
+}
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  keyboard: Subscription.persistent(
-    Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-      Stream.mapEffect(handleKeyboardEvent),
-      Stream.filter(Option.isSome),
-      Stream.map(option => option.value),
-    ),
+  undoRedoKeys: Subscription.persistent(
+    Subscription.fromEventFilterMapPreventDefault<KeyboardEvent, Message>({
+      target: document,
+      type: 'keydown',
+      toMessage: toUndoRedoMessage,
+    }),
+  ),
+
+  toolKeys: Subscription.persistent(
+    Subscription.fromEventFilterMap<KeyboardEvent, Message>({
+      target: document,
+      type: 'keydown',
+      toMessage: toToolMessage,
+    }),
   ),
 
   mouseRelease: entry(
