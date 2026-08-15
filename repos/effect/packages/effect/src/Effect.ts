@@ -1813,10 +1813,19 @@ export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect<A, E> = i
  * @category converting
  * @since 4.0.0
  */
-export const fromOption: <Arg extends Option<unknown> | LazyArg<unknown>, E = Cause.NoSuchElementError>(
-  arg: Arg,
-  ...rest: [Arg] extends [Option<unknown>] ? [onNone?: LazyArg<E>] : []
-) => [Arg] extends [Option<infer A>] ? Effect<A, E>
+export const fromOption: <
+  Arg extends Option<unknown> | LazyArg<unknown>,
+  Rest extends [] | [onNone: LazyArg<unknown> | undefined] = []
+>(
+  arg: Arg & (Rest extends [] ? unknown : Option<unknown>),
+  ...rest: Rest
+) => [Arg] extends [Option<infer A>] ? Effect<
+    A,
+    Rest extends [LazyArg<infer E>] ? E
+      : Rest extends [undefined] ? Cause.NoSuchElementError
+      : Rest extends [LazyArg<infer E> | undefined] ? E | Cause.NoSuchElementError
+      : Cause.NoSuchElementError
+  >
   : [Arg] extends [LazyArg<infer E>] ? <A>(option: Option<A>) => Effect<A, E>
   : never = internal.fromOption
 
@@ -5813,7 +5822,7 @@ export const contextWith: <R, A, E, R2>(
  *
  * const Database = Context.Service<Database>("Database")
  *
- * const DatabaseLive = Layer.succeed(Database)({
+ * const DatabaseLayer = Layer.succeed(Database)({
  *   query: Effect.fn("Database.query")((sql: string) => Effect.succeed(`Result for: ${sql}`))
  * })
  *
@@ -5822,7 +5831,7 @@ export const contextWith: <R, A, E, R2>(
  *   return yield* db.query("SELECT * FROM users")
  * })
  *
- * const provided = Effect.provide(program, DatabaseLive)
+ * const provided = Effect.provide(program, DatabaseLayer)
  *
  * await Effect.runPromise(provided) // => "Result for: SELECT * FROM users"
  * ```
@@ -14520,11 +14529,12 @@ export const tx = <A, E, R>(
   effect: Effect<A, E, R>
 ): Effect<A, E, Exclude<R, Transaction>> =>
   withFiber((fiber) => {
-    if (fiber.context.mapUnsafe.has(Transaction.key)) {
+    let state = Context.getOrUndefined(fiber.context, Transaction)
+    if (state) {
       return effect as Effect<A, E, Exclude<R, Transaction>>
     }
     // Create transaction state only at the outermost boundary
-    const state: Transaction["Service"] = { journal: new Map(), retry: false }
+    state = { journal: new Map(), retry: false }
     let result: Exit.Exit<A, E> | undefined
     return uninterruptibleMask((restore) =>
       flatMap(

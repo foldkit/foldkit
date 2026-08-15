@@ -111,8 +111,8 @@ Each entry in `RenderInfo.tabs`. Carries the value, derived state flags, and att
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Pattern-match on the OutMessage in your update handler.
+Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
 
-| Name       | Type                              | Default | Description                                                                                                                                                                                                                                          |
-| ---------- | --------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Selected` | `{ value: Value; index: number }` | —       | Emitted when a tab is committed via click or keyboard. Carries both the tab’s value (typed as your `Value` union via `Tabs.create<Value>()`) and its index. Pattern-match the third tuple element of `Tabs.update` in your `GotTabsMessage` handler. |
+| Name       | Type                              | Default | Description                                                                                                                                                                                                    |
+| ---------- | --------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Selected` | `{ value: Value; index: number }` | —       | Emitted when a tab is committed via click or keyboard. Carries both the tab’s value (typed as your `Value` union via `Tabs.create<Value>()`) and its index. Fold it in the `foldOutMessage` of your Tabs fold. |

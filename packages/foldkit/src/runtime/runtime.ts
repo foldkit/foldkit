@@ -23,8 +23,6 @@ import {
   pipe,
 } from 'effect'
 
-import { BrowserRuntime } from '@effect/platform-browser'
-
 import type { Command } from '../command/index.js'
 import {
   __CurrentRegistry as __CurrentInterruptRegistry,
@@ -70,10 +68,7 @@ import { RenderCommit, createCommitNotifier } from '../render/commit.js'
 import type { Subscriptions } from '../subscription/subscription.js'
 import { Url, fromString as urlFromString } from '../url/index.js'
 import { VNode, __patchVNode } from '../vdom.js'
-import {
-  addBfcacheRestoreListener,
-  addNavigationEventListeners,
-} from './browserListeners.js'
+import { addNavigationEventListeners } from './browserListeners.js'
 import { defaultCrashView, noOpDispatch } from './crashUI.js'
 import { deepFreeze } from './deepFreeze.js'
 import {
@@ -2496,7 +2491,8 @@ const makeRuntime = <
           yield* crashWith(initRenderExit.cause, Option.none())
           // NOTE: suspend instead of returning. Completing would close the
           // runtime scope and tear down the crash view; the scope must stay
-          // open until the runtime is interrupted (dispose, or page unload).
+          // open until the runtime is interrupted (an embedded app's dispose)
+          // or the document goes away.
           return yield* Effect.never
         }
 
@@ -2749,27 +2745,6 @@ const makeRuntime = <
           requestAnimationFrame(renderFramePlain)
         }
 
-        // NOTE: reloading on bfcache restore is a page-level decision, so
-        // only a page-owning runtime that manages the document installs the
-        // listener. An app started through `embed` carries a host connector
-        // and must never force the host page to reload, so it is excluded
-        // even when it manages the document.
-        //
-        // The listener is installed for the page's whole lifetime and is
-        // deliberately not torn down with the runtime scope.
-        // `BrowserRuntime.runMain` interrupts the runtime on `beforeunload`,
-        // which is exactly when the browser freezes the page into the
-        // back/forward cache. A scope-bound listener would be removed by that
-        // interrupt before the freeze, so the `pageshow` restore would have
-        // nothing left to reload and the page would come back blank: the
-        // interrupt finalizer empties the container. A full document
-        // navigation (the only way into and out of a cross-origin-isolated
-        // page) is what exercises this path. Registration is idempotent, so an
-        // HMR re-run does not stack listeners.
-        if (manageDocument && Option.isNone(maybeConnector)) {
-          yield* Effect.sync(() => addBfcacheRestoreListener())
-        }
-
         if (subscriptions) {
           yield* pipe(
             subscriptions,
@@ -3010,7 +2985,8 @@ const makeRuntime = <
         // NOTE: suspend forever. Messages are processed synchronously on
         // the dispatching stack and render frames run as plain rAF
         // callbacks, so this fiber's only remaining job is keeping the
-        // runtime scope open until interruption (dispose, or page unload).
+        // runtime scope open until interruption (an embedded app's dispose)
+        // or the document goes away.
         yield* Effect.never
       }),
     ).pipe(Effect.provideService(RenderCommit, commitNotifier.service))
@@ -3754,14 +3730,25 @@ const withUnhandledCauseReporting = <A, E, R>(
   effect: Effect.Effect<A, E, R>,
 ): Effect.Effect<A, E, R> => Effect.tapCause(effect, __reportUnhandledCause)
 
+// NOTE: deliberately not `BrowserRuntime.runMain`, which interrupts the
+// runtime on `beforeunload`. `beforeunload` is a question, not a commitment:
+// the browser also fires it for a click on a download link, for a navigation
+// the user cancels, and when freezing the page into the back/forward cache.
+// The document survives all three, but the interrupt finalizer has already
+// put the container element back empty, so the page is left alive with no app
+// in it. A page-owning runtime gains nothing from tearing itself down while
+// the document is on its way out, so it starts with no page-lifecycle
+// interrupt at all and lets the document take the runtime with it. The
+// keep-alive interval still comes from `makeRunMain`. Error reporting is
+// Foldkit's `withUnhandledCauseReporting` (shared with `embed`);
+// `disableErrorReporting` turns off `makeRunMain`'s copy of the same policy.
+const runMainWithoutUnloadInterrupt = Runtime.makeRunMain(Function.constVoid)
+
 /** Starts a Foldkit runtime that owns the page for the page's whole lifetime,
  *  with HMR support for development. To start a runtime under a
  *  host-controlled lifecycle instead, use `embed`. */
 export const run = (program: MakeRuntimeReturn<Ports | undefined>): void => {
-  // NOTE: disable Effect's built-in `makeRunMain` reporting so `run` and
-  // `embed` share Foldkit's `withUnhandledCauseReporting` instead of keeping
-  // two copies of the same policy in sync by hand.
-  BrowserRuntime.runMain(
+  runMainWithoutUnloadInterrupt(
     withUnhandledCauseReporting(
       provideBrowserScheduler(
         Effect.flatMap(resolveHmrModel(program.runtimeId), program.start),

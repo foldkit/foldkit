@@ -1,7 +1,7 @@
 {
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.17.1",
+  "packageManager": "pnpm@11.20.0",
   "scripts": {
     "prepare": "node scripts/setup-agents.mjs && effect-tsgo patch",
     "clean": "node scripts/clean.mjs",
@@ -25,7 +25,6 @@
     "jsdocs": "effect-jsdocs",
     "lint": "oxlint -f unix && dprint check",
     "lint-fix": "oxlint --fix && dprint fmt",
-    "docgen": "pnpm --recursive --filter \"./packages/**/*\" exec docgen && node scripts/docs.mjs",
     "ai-docgen": "effect-ai-docgen ai-docs/src -o LLMS.md",
     "ai-docgen:watch": "pnpm ai-docgen --watch",
     "api-diff": "pnpm --dir packages/tools/api-diff exec node src/bin.ts",

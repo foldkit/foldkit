@@ -1,5 +1,5 @@
 import { Array, Match as M, Option, String, pipe } from 'effect'
-import { Command } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { DragAndDrop } from '@foldkit/ui'
@@ -97,70 +97,59 @@ const screenReaderTextForDrop = (
     }),
   )
 
+const foldDragAndDropOutMessage: (
+  previousModel: Model,
+) => (outMessage: DragAndDrop.OutMessage) => Update.Step<Model, Message> =
+  previousModel => outMessage => model =>
+    M.value(outMessage).pipe(
+      withUpdateReturn,
+      M.tagsExhaustive({
+        Reordered: ({ itemId, fromContainerId, toContainerId, toIndex }) => {
+          const nextColumns = Column.reorder(
+            model.columns,
+            itemId,
+            fromContainerId,
+            toContainerId,
+            toIndex,
+          )
+          return [
+            evo(model, {
+              columns: () => nextColumns,
+              announcement: () =>
+                screenReaderTextForDrop(previousModel, outMessage),
+            }),
+            [SaveBoard({ columns: nextColumns })],
+          ]
+        },
+        Cancelled: () => [
+          evo(model, {
+            announcement: () =>
+              screenReaderTextForDrop(previousModel, outMessage),
+          }),
+          [],
+        ],
+      }),
+    )
+
+const foldDragAndDrop = (previousModel: Model) =>
+  Update.foldChild({
+    update: DragAndDrop.update,
+    read: (model: Model) => Option.some(model.dragAndDrop),
+    write: (model, nextDragAndDrop) =>
+      evo(model, {
+        dragAndDrop: () => nextDragAndDrop,
+        announcement: () => announceKeyboardDrag(model, nextDragAndDrop),
+      }),
+    toParentMessage: message => GotDragAndDropMessage({ message }),
+    foldOutMessage: foldDragAndDropOutMessage(previousModel),
+  })
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      GotDragAndDropMessage: ({ message: dragMessage }) => {
-        const [nextDragAndDrop, dragCommands, maybeOutMessage] =
-          DragAndDrop.update(model.dragAndDrop, dragMessage)
-
-        const mappedCommands = Command.mapMessages(
-          dragCommands,
-          (innerMessage): Message =>
-            GotDragAndDropMessage({ message: innerMessage }),
-        )
-
-        return Option.match(maybeOutMessage, {
-          onNone: () => {
-            const announcement = announceKeyboardDrag(model, nextDragAndDrop)
-            return [
-              evo(model, {
-                dragAndDrop: () => nextDragAndDrop,
-                announcement: () => announcement,
-              }),
-              mappedCommands,
-            ]
-          },
-          onSome: outMessage =>
-            M.value(outMessage).pipe(
-              withUpdateReturn,
-              M.tagsExhaustive({
-                Reordered: ({
-                  itemId,
-                  fromContainerId,
-                  toContainerId,
-                  toIndex,
-                }) => {
-                  const nextColumns = Column.reorder(
-                    model.columns,
-                    itemId,
-                    fromContainerId,
-                    toContainerId,
-                    toIndex,
-                  )
-                  return [
-                    evo(model, {
-                      columns: () => nextColumns,
-                      dragAndDrop: () => nextDragAndDrop,
-                      announcement: () =>
-                        screenReaderTextForDrop(model, outMessage),
-                    }),
-                    [...mappedCommands, SaveBoard({ columns: nextColumns })],
-                  ]
-                },
-                Cancelled: () => [
-                  evo(model, {
-                    dragAndDrop: () => nextDragAndDrop,
-                    announcement: () =>
-                      screenReaderTextForDrop(model, outMessage),
-                  }),
-                  mappedCommands,
-                ],
-              }),
-            ),
-        })
-      },
+      GotDragAndDropMessage: ({ message }) =>
+        foldDragAndDrop(model)(model, message),
 
       ClickedAddCard: ({ columnId }) => [
         evo(model, {

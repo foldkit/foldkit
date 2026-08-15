@@ -3,7 +3,7 @@ import { Option } from 'effect'
 import { Submodel } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { Button, RadioGroup } from '@foldkit/ui'
+import { Button } from '@foldkit/ui'
 
 import { ProficiencyLevel } from '../domain'
 import { Skills } from '../step'
@@ -24,14 +24,15 @@ export const skillEntryView = Submodel.defineView<
     h,
   )
 
-  const proficiencyView = RadioGroup.view(
-    {
-      id: Skills.Entry.proficiencyRadioGroupId(model.id),
+  const proficiencyView = h.submodel({
+    slotId: model.proficiencyRadioGroup.id,
+    model: model.proficiencyRadioGroup,
+    view: Skills.Entry.ProficiencyRadioGroup.view,
+    viewInputs: {
       selectedValue: Option.some(model.proficiency),
       options: ProficiencyLevel.all,
       orientation: 'Horizontal',
       ariaLabel: 'Proficiency level',
-      onSelect: value => Skills.Entry.SelectedProficiency({ value }),
       toView: attributes =>
         h.div(
           [...attributes.group, h.Class('inline-flex flex-wrap gap-2')],
@@ -56,8 +57,9 @@ export const skillEntryView = Submodel.defineView<
           ),
         ),
     },
-    h,
-  )
+    toParentMessage: message =>
+      Skills.Entry.GotProficiencyRadioGroupMessage({ message }),
+  })
 
   return h.keyed('div')(
     model.id,

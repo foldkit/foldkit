@@ -44,6 +44,7 @@ import {
   Searched,
   Selected,
   SelectedItem,
+  SuppressedItemCommit,
   SuppressedSpaceScroll,
   UnlockScroll,
   buttonId,
@@ -794,6 +795,17 @@ describe('Listbox', () => {
           }),
         )
       })
+
+      it('returns model unchanged for SuppressedItemCommit', () => {
+        Story.story(
+          update,
+          givenOpen,
+          Story.message(SuppressedItemCommit()),
+          Story.model(model => {
+            expect(model.isOpen).toBe(true)
+          }),
+        )
+      })
     })
 
     describe('transitions', () => {
@@ -1200,12 +1212,7 @@ describe('Listbox', () => {
     }
 
     const sceneView =
-      (
-        overrides: Omit<
-          Partial<ViewInputs<string>>,
-          'items' | 'buttonContent'
-        > = {},
-      ) =>
+      (overrides: Omit<Partial<ViewInputs<string>>, 'buttonContent'> = {}) =>
       (model: Model, h: HtmlBuilder<Message>) =>
         view(
           model,
@@ -1341,6 +1348,256 @@ describe('Listbox', () => {
       })
     })
 
+    describe('read-only', () => {
+      const button = Scene.selector('#test-button')
+      const itemsContainer = Scene.selector('#test-items')
+      const item = (index: number) => Scene.selector(`#test-item-${index}`)
+
+      it('emits aria-readonly and data-readonly on the items container, and data-readonly on the button and every item', () => {
+        Scene.scene(
+          { update, view: sceneView({ isReadOnly: true }) },
+          Scene.given(openModel()),
+          Scene.expect(itemsContainer).toHaveAttr('aria-readonly', 'true'),
+          Scene.expect(itemsContainer).toHaveAttr('data-readonly', ''),
+          Scene.expect(button).toHaveAttr('data-readonly', ''),
+          Scene.expect(item(0)).toHaveAttr('data-readonly', ''),
+          Scene.expect(item(1)).toHaveAttr('data-readonly', ''),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
+      it('emits data-readonly on the wrapper', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({ isReadOnly: true, className: 'test-wrapper' }),
+          },
+          Scene.given(openModel()),
+          Scene.expect(Scene.selector('.test-wrapper')).toHaveAttr(
+            'data-readonly',
+            '',
+          ),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
+      it('emits no read-only attributes by default', () => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.given(openModel()),
+          Scene.expect(itemsContainer).not.toHaveAttr('aria-readonly'),
+          Scene.expect(itemsContainer).not.toHaveAttr('data-readonly'),
+          Scene.expect(button).not.toHaveAttr('data-readonly'),
+          Scene.expect(item(0)).not.toHaveAttr('data-readonly'),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
+      it('passes isReadOnly to itemToConfig', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              isReadOnly: true,
+              itemToConfig: (_item, context) => ({
+                content: null,
+                className: context.isReadOnly ? 'is-read-only' : 'is-editable',
+              }),
+            }),
+          },
+          Scene.given(openModel()),
+          Scene.expect(item(0)).toHaveClass('is-read-only'),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
+      it('emits both aria-readonly/data-readonly and aria-disabled/data-disabled when set together', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({ isReadOnly: true, isDisabled: true }),
+          },
+          Scene.given(openModel()),
+          Scene.expect(itemsContainer).toHaveAttr('aria-readonly', 'true'),
+          Scene.expect(button).toHaveAttr('data-readonly', ''),
+          Scene.expect(button).toHaveAttr('data-disabled', ''),
+          Scene.expect(button).toHaveAttr('aria-disabled', 'true'),
+          Scene.expect(button).not.toHaveHandler('click'),
+          Scene.expect(button).not.toHaveHandler('keydown'),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
+      it('drops the item click handler while keeping the keydown handler', () => {
+        Scene.scene(
+          { update, view: sceneView({ isReadOnly: true }) },
+          Scene.given(openModel()),
+          Scene.expect(item(0)).not.toHaveHandler('click'),
+          Scene.expect(item(0)).toHaveHandler('pointerleave'),
+          Scene.expect(item(1)).not.toHaveHandler('click'),
+          Scene.expect(item(1)).toHaveHandler('pointermove'),
+          Scene.expect(itemsContainer).toHaveHandler('keydown'),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
+      it('does not commit the active item on Enter', () => {
+        Scene.scene(
+          { update, view: sceneView({ isReadOnly: true }) },
+          Scene.given(openModel()),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(itemsContainer, 'Enter'),
+          Scene.expectNoOutMessage(),
+          Scene.Command.expectNone(),
+          Scene.expect(itemsContainer).toExist(),
+        )
+      })
+
+      it('does not commit the active item on Space', () => {
+        Scene.scene(
+          { update, view: sceneView({ isReadOnly: true }) },
+          Scene.given(openModel()),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(itemsContainer, ' '),
+          Scene.expectNoOutMessage(),
+          Scene.Command.expectNone(),
+          Scene.expect(itemsContainer).toExist(),
+        )
+      })
+
+      it('runs typeahead on Space while a search query is pending', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              isReadOnly: true,
+              items: ['Apple', 'Banana', 'B Team'],
+            }),
+          },
+          Scene.given(openModel()),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(itemsContainer, 'B'),
+          Scene.expect(item(1)).toHaveAttr('data-active', ''),
+          Scene.Command.resolve(
+            DelayClearSearch,
+            CompletedDelayClearSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
+          ),
+          Scene.keydown(itemsContainer, ' '),
+          Scene.expectNoOutMessage(),
+          Scene.expect(item(1)).not.toHaveAttr('data-active'),
+          Scene.expect(item(2)).toHaveAttr('data-active', ''),
+          Scene.Command.resolve(
+            DelayClearSearch,
+            CompletedDelayClearSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
+          ),
+        )
+      })
+
+      it('keeps arrow, Home, and End navigation live', () => {
+        Scene.scene(
+          { update, view: sceneView({ isReadOnly: true }) },
+          Scene.given(openModel()),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(itemsContainer, 'ArrowDown'),
+          Scene.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Scene.expect(item(1)).toHaveAttr('data-active', ''),
+          Scene.keydown(itemsContainer, 'Home'),
+          Scene.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Scene.expect(item(0)).toHaveAttr('data-active', ''),
+          Scene.keydown(itemsContainer, 'End'),
+          Scene.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Scene.expect(item(1)).toHaveAttr('data-active', ''),
+          Scene.expectNoOutMessage(),
+        )
+      })
+
+      it('moves the active item off the selection without changing it', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              isReadOnly: true,
+              maybeSelectedValue: Option.some('Apple'),
+            }),
+          },
+          Scene.given(openModel()),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.expect(item(0)).toHaveAttr('data-selected', ''),
+          Scene.expect(item(0)).toHaveAttr('data-active', ''),
+          Scene.keydown(itemsContainer, 'ArrowDown'),
+          Scene.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Scene.expect(item(1)).toHaveAttr('data-active', ''),
+          Scene.expect(item(0)).not.toHaveAttr('data-active'),
+          Scene.expect(item(0)).toHaveAttr('data-selected', ''),
+          Scene.expect(item(1)).not.toHaveAttr('data-selected'),
+          Scene.expect(itemsContainer).toHaveAttr(
+            'aria-activedescendant',
+            'test-item-1',
+          ),
+          Scene.expectNoOutMessage(),
+        )
+      })
+
+      it('consumes Enter on the active item without committing', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({ isReadOnly: true }),
+          },
+          Scene.given(openModel()),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(itemsContainer, 'Enter'),
+          Scene.expectHandled(),
+          Scene.expectNoOutMessage(),
+          Scene.Command.expectNone(),
+        )
+      })
+
+      it('consumes Space on the active item without committing', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({ isReadOnly: true }),
+          },
+          Scene.given(openModel()),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(itemsContainer, ' '),
+          Scene.expectHandled(),
+          Scene.expectNoOutMessage(),
+          Scene.Command.expectNone(),
+        )
+      })
+
+      it('still opens from the button and closes on Escape', () => {
+        Scene.scene(
+          { update, view: sceneView({ isReadOnly: true }) },
+          Scene.given(closedModel()),
+          Scene.click(button),
+          Scene.Command.resolve(FocusItems, CompletedFocusItems()),
+          Scene.expect(itemsContainer).toExist(),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(itemsContainer, 'Escape'),
+          Scene.Command.resolve(FocusButton, CompletedFocusButton()),
+          Scene.Mount.expectEnded(AnchorListbox, PortalListboxBackdrop),
+          Scene.expect(itemsContainer).toBeAbsent(),
+        )
+      })
+    })
+
     describe('form integration', () => {
       it('renders hidden input when name is provided', () => {
         Scene.scene(
@@ -1459,25 +1716,14 @@ describe('Listbox', () => {
     describe('item context', () => {
       it('itemToConfig receives isSelected: true for selected item', () => {
         const contexts: Array<
-          Readonly<{
-            isActive: boolean
-            isDisabled: boolean
-            isSelected: boolean
-          }>
+          Parameters<ViewInputs<string>['itemToConfig']>[1]
         > = []
         Scene.scene(
           {
             update,
             view: sceneView({
               maybeSelectedValue: Option.some('Apple'),
-              itemToConfig: (
-                _item: string,
-                context: Readonly<{
-                  isActive: boolean
-                  isDisabled: boolean
-                  isSelected: boolean
-                }>,
-              ) => {
+              itemToConfig: (_item, context) => {
                 contexts.push(context)
                 return { content: null }
               },
@@ -1494,25 +1740,14 @@ describe('Listbox', () => {
 
       it('itemToConfig receives isSelected: false for non-selected items', () => {
         const contexts: Array<
-          Readonly<{
-            isActive: boolean
-            isDisabled: boolean
-            isSelected: boolean
-          }>
+          Parameters<ViewInputs<string>['itemToConfig']>[1]
         > = []
         Scene.scene(
           {
             update,
             view: sceneView({
               maybeSelectedValue: Option.some('Apple'),
-              itemToConfig: (
-                _item: string,
-                context: Readonly<{
-                  isActive: boolean
-                  isDisabled: boolean
-                  isSelected: boolean
-                }>,
-              ) => {
+              itemToConfig: (_item, context) => {
                 contexts.push(context)
                 return { content: null }
               },

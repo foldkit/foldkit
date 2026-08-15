@@ -12,6 +12,10 @@ import {
 
 const [initialModel] = init()
 
+const INCREMENT_PHASE_STEPS = 3
+const DURATION_PHASE_STEPS = 3
+const RESET_PHASE_STEPS = 6
+
 const advancePhases = (steps: number, generation: number) =>
   Array.makeBy(steps, () =>
     Command.resolve(
@@ -28,7 +32,7 @@ describe('async counter demo view', () => {
       expect(text('0')).toExist(),
       click(role('button', { name: 'Add 1' })),
       expect(text('1')).toExist(),
-      ...advancePhases(3, 1),
+      ...advancePhases(INCREMENT_PHASE_STEPS, 1),
       expect(text('1')).toExist(),
     )
   })
@@ -40,7 +44,7 @@ describe('async counter demo view', () => {
       expect(role('button', { name: 'Reset after 2 seconds' })).toExist(),
       click(role('button', { name: 'Reset after 2 seconds' })),
       expect(role('button', { name: 'Resetting...' })).toExist(),
-      ...advancePhases(6, 1),
+      ...advancePhases(RESET_PHASE_STEPS, 1),
       expect(role('button', { name: 'Reset after 2 seconds' })).toExist(),
     )
   })
@@ -50,10 +54,10 @@ describe('async counter demo view', () => {
       { update, view },
       given(initialModel),
       click(role('button', { name: 'Add 1' })),
-      ...advancePhases(3, 1),
+      ...advancePhases(INCREMENT_PHASE_STEPS, 1),
       expect(text('1')).toExist(),
       click(role('button', { name: 'Reset after 2 seconds' })),
-      ...advancePhases(6, 2),
+      ...advancePhases(RESET_PHASE_STEPS, 2),
       expect(text('0')).toExist(),
     )
   })
@@ -71,7 +75,7 @@ describe('async counter demo view', () => {
       expect(
         role('button', { name: 'Decrease reset delay', disabled: true }),
       ).toExist(),
-      ...advancePhases(6, 1),
+      ...advancePhases(RESET_PHASE_STEPS, 1),
       expect(role('button', { name: 'Add 1', disabled: false })).toExist(),
       expect(
         role('button', { name: 'Increase reset delay', disabled: false }),
@@ -85,10 +89,10 @@ describe('async counter demo view', () => {
       given(initialModel),
       click(role('button', { name: 'Increase reset delay' })),
       expect(role('button', { name: 'Reset after 3 seconds' })).toExist(),
-      ...advancePhases(3, 1),
+      ...advancePhases(DURATION_PHASE_STEPS, 1),
       click(role('button', { name: 'Decrease reset delay' })),
       expect(role('button', { name: 'Reset after 2 seconds' })).toExist(),
-      ...advancePhases(3, 2),
+      ...advancePhases(DURATION_PHASE_STEPS, 2),
     )
   })
 
@@ -105,7 +109,7 @@ describe('async counter demo view', () => {
       expect(
         role('button', { name: 'Decrease reset delay', disabled: false }),
       ).toExist(),
-      ...advancePhases(3, 1),
+      ...advancePhases(DURATION_PHASE_STEPS, 1),
     )
   })
 
@@ -122,7 +126,7 @@ describe('async counter demo view', () => {
       expect(
         role('button', { name: 'Increase reset delay', disabled: false }),
       ).toExist(),
-      ...advancePhases(3, 1),
+      ...advancePhases(DURATION_PHASE_STEPS, 1),
     )
   })
 

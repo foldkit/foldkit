@@ -120,6 +120,18 @@ For `LocatorAll` (from `all.*`), use `expectAll(locatorAll)` for count-based ass
 | `.toHaveCount(n)` | The locator matches exactly n elements |
 | `.toBeEmpty()`    | The locator matches zero elements      |
 
+## Handled and Ignored Interactions
+
+An interaction that falls through must be acknowledged. Scene fails when a handler produced no Message and no `expectIgnored()` followed, either at the next interaction or when the scene ends, and the failure names the event and the target it was dispatched on. One acknowledgement covers one fall-through, so two in a row need one each. Saying nothing is not a position Scene lets you hold: a test that leaves a fall-through unsaid passes whether the interaction is correctly inert or its handler regressed.
+
+An interaction on an element with no handler for that event throws, so a Scene test cannot silently target the wrong element. A handler that runs and returns `Option.none()` is a different case: the event falls through, nothing changes, and the step is a no-op. `expectHandled()` asserts the preceding interaction's handler produced a Message; `expectIgnored()` asserts it did not.
+
+Reach for these when inertness is the behavior under test. A read-only widget that stops committing changes no Model, emits no OutMessage, and alters no DOM, so `expectNoOutMessage()` and `Command.expectNone()` hold just as well against a build whose handler was deleted. Only `expectIgnored()` distinguishes "correctly inert" from "no longer wired up".
+
+`expectHandled()` is also how to assert that a key is consumed. A handler that returns a Message is what makes `h.OnKeyDownPreventDefault` call `preventDefault()`, so a handled keydown is one whose browser default is suppressed: `Space` does not scroll the page and `Enter` does not submit a surrounding form. Prefer it over asserting which Message was produced. The Message is the mechanism a component happens to use; being consumed is the contract, and the assertion survives renaming the Message.
+
+Only interaction steps set the outcome. `Command.resolve`, `Mount.resolve`, and a plain `expect` leave it alone, so the value is the last interaction rather than the last step. Keep the assertion next to the interaction it covers.
+
 ## Commands
 
 When `update` returns Commands (see [Commands](/core/commands)), Scene tracks each as pending until the test resolves it with the result Message its Effect would resolve to at runtime. `update` declares the Command, the test declares its outcome.

@@ -11,6 +11,7 @@ import {
   Listbox,
   Menu,
   Popover,
+  RadioGroup,
   Slider,
   Tabs,
   Tooltip,
@@ -109,7 +110,13 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
     popoverNestedChildDemo: Popover.init({
       id: 'popover-nested-child-demo',
     }),
+    verticalRadioGroupDemo: RadioGroup.init({
+      id: 'vertical-radio-group-demo',
+    }),
     verticalRadioGroupDemoValue: Option.none(),
+    horizontalRadioGroupDemo: RadioGroup.init({
+      id: 'horizontal-radio-group-demo',
+    }),
     horizontalRadioGroupDemoValue: Option.none(),
     selectDemoValue: 'us',
     sliderRatingDemo: Slider.init({

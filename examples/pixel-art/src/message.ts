@@ -1,7 +1,7 @@
 import { Schema as S } from 'effect'
 import { m } from 'foldkit/message'
 
-import { Dialog, Listbox } from '@foldkit/ui'
+import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
 import { PaletteIndex, Tool } from './model'
 
@@ -41,6 +41,15 @@ export const GotGridSizeConfirmDialogMessage = m(
 export const GotThemeListboxMessage = m('GotThemeListboxMessage', {
   message: Listbox.Message,
 })
+export const GotToolRadioGroupMessage = m('GotToolRadioGroupMessage', {
+  message: RadioGroup.Message,
+})
+export const GotGridSizeRadioGroupMessage = m('GotGridSizeRadioGroupMessage', {
+  message: RadioGroup.Message,
+})
+export const GotPaletteRadioGroupMessage = m('GotPaletteRadioGroupMessage', {
+  message: RadioGroup.Message,
+})
 export const CompletedSaveCanvas = m('CompletedSaveCanvas')
 
 export const Message = S.Union([
@@ -63,6 +72,9 @@ export const Message = S.Union([
   FailedExportPng,
   GotErrorDialogMessage,
   GotThemeListboxMessage,
+  GotToolRadioGroupMessage,
+  GotGridSizeRadioGroupMessage,
+  GotPaletteRadioGroupMessage,
   ConfirmedGridSizeChange,
   GotGridSizeConfirmDialogMessage,
   CompletedSaveCanvas,

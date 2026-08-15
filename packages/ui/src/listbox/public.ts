@@ -43,6 +43,7 @@ export {
   PressedPointerOnButton,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
+  SuppressedItemCommit,
 } from './shared.js'
 
 export type {

@@ -1,5 +1,223 @@
 # foldkit
 
+## 0.145.0
+
+### Minor Changes
+
+- ac3a34f: Stop treating page-lifecycle events as a commitment. A page-owning app no longer tears itself down, or reloads itself, on an event the document can survive.
+
+  Fixes an app going permanently blank when the user clicks a download link. `Runtime.run` started the program with `BrowserRuntime.runMain`, which interrupts the runtime on `beforeunload`. Chrome fires `beforeunload` for a click on a download link: it starts a navigation and converts it to a download once it sees the response, so the navigation is abandoned and the document lives on. By then the interrupt had already run the render finalizer, which puts the container element back empty. The file downloaded, the URL never changed, nothing was logged, and the app was gone until a manual reload.
+
+  None of this is specific to Chrome, or to downloads. Browsers fire `beforeunload` when a navigation starts rather than when it commits, so any navigation that does not replace the document leaves the same result. A response that comes back `204 No Content` has the same shape, as does a navigation the user cancels. The download link is the case that was reported.
+
+  `run` now starts the program with a `Runtime.makeRunMain` runner that registers no page-lifecycle interrupt. Error reporting is unchanged. A real navigation still ends the runtime, because the document goes with it.
+
+  **Behavior change:** a page-owning app restored from the browser's back/forward cache no longer reloads the page. The runtime survives the freeze with its Model, its DOM, and its listeners intact, so a back-navigation now returns the app as the user left it, which is what the cache is for. The reload was there to rescue a page the `beforeunload` interrupt had already emptied, and that interrupt is gone. Two things do come back changed: an app that wants fresh data on restore has to ask for it, with a `pageshow` Subscription that dispatches a Message when `persisted` is set, and an app holding its own WebSocket gets it back closed, since the browser closes sockets on the way into the cache.
+
+  One thing goes with the interrupt: a runtime's finalizers, meaning ManagedResource releases and Subscription and Mount teardowns, no longer get a best-effort run when the tab closes or the page navigates away. Nothing promised they would, and upstream calls that interrupt best-effort. An app that flushed state from a release should flush it as the state changes, or from a `pagehide` Subscription.
+
+  The DevTools bridge no longer announces a disconnect on `beforeunload` either. It reported a live app as gone after a download-link click, and the MCP relay ignored that app until the next reload. A page that really goes away closes its Vite HMR socket, and the plugin already prunes the runtime on that close. Because the freeze into the back/forward cache closes that socket too, the bridge now re-announces the connection on a restore, so a resumed app comes back visible to the DevTools MCP tools instead of staying pruned.
+
+  `foldkit` no longer imports `@effect/platform-browser`, so it is dropped from the package's dependencies and from its peer dependencies. Installing `foldkit` no longer asks for it. Apps still need it at the pinned version wherever they use it directly: `@foldkit/devtools` declares it as a peer dependency, and Effect's browser services such as `BrowserKeyValueStore` and `BrowserCrypto` come from it. `@foldkit/vite-plugin` adds `effect/Runtime` to the namespaces it force-includes in Vite's dependency optimizer, so a dev server prebundles what the compiled runtime now references.
+
+- 71556de: Add `Scene.expectHandled()` and `Scene.expectIgnored()`, which assert whether the preceding interaction's event handler produced a Message.
+
+  Scene had no way to express this and silently tolerated the negative case. `captureFromElement` resolved a handler that produced nothing back to the unchanged simulation, so an interaction whose handler ran and chose to return `Option.none()` left no trace. An element with no handler at all has always thrown; this is the narrower case of a handler that ran and let the event fall through.
+
+  That made a whole class of test vacuous. Any test of the shape "pressing this does nothing" passed whether the interaction was correctly inert or the handler had been deleted outright. In `@foldkit/ui` this was not hypothetical: replacing a read-only Listbox's commit branch with `Option.none()` left every listbox test passing, because the read-only tests asserted only the absence of an OutMessage and of Commands, and both hold when nothing is dispatched at all.
+
+  `expectHandled()` is the assertion behind "the key is consumed here". A handler that returns a Message is what makes `h.OnKeyDownPreventDefault` call `preventDefault()`, so a handled keydown is one whose browser default is suppressed: `Space` does not scroll the page and `Enter` does not submit a surrounding form. Reach for it rather than asserting the Message's tag, which couples the test to a name that is only the mechanism.
+
+  `expectIgnored()` is its complement, for where falling through is the intended behavior, so the intent is stated rather than left as the absence of any assertion.
+
+- bf60461: Fail a Scene test on an interaction that fell through and was never acknowledged.
+
+  An event handler that runs and returns `Option.none()` lets the event fall through. Scene records that outcome, which `expectHandled()` and `expectIgnored()` assert on, and now fails when nothing acknowledges it. Acknowledge with `expectIgnored()` where falling through is the intended behavior. Where the event should have been consumed, the handler is the bug, and `expectHandled()` states that expectation and fails until it is fixed.
+
+  Without this, a test asserting "pressing this does nothing" passed whether the interaction was correctly inert or its handler had regressed into producing an inert Message, since neither case changes the Model, emits an OutMessage, or alters the DOM.
+
+  This is a breaking change for test suites. An existing Scene test that fires an interaction whose handler produces nothing, and asserts nothing about it, will now fail and needs `expectIgnored()` added. One acknowledgement covers one fall-through, so two in a row need one each, and each must come before the next interaction. An interaction on an element with no handler for that event has always thrown, so that case is unaffected, as are handled interactions, which need no acknowledgement.
+
+  The failure names the event and the target it was dispatched on, because it is raised at the next interaction or at the end of the scene rather than at the step itself. It is deferred rather than raised inside the interaction step, because a later `expectIgnored()` cannot opt out of an error already thrown.
+
+## 0.144.0
+
+### Minor Changes
+
+- 3feb9ba: Bump Effect to `4.0.0-rc.108` (from `4.0.0-beta.107`), the first Effect v4 release candidate. Foldkit's peer dependencies now require `effect@4.0.0-rc.108` and `@effect/platform-browser@4.0.0-rc.108`.
+
+  Pin your Effect packages to `4.0.0-rc.108` to match this release. While Effect v4 is in prerelease, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.108 @effect/platform-browser@4.0.0-rc.108
+  pnpm add -D @effect/vitest@4.0.0-rc.108
+  ```
+
+## 0.143.0
+
+## 0.142.1
+
+### Patch Changes
+
+- 87e9dbf: Bump Effect to `4.0.0-beta.107` (from `4.0.0-beta.106`). Foldkit's peer dependencies now require `effect@4.0.0-beta.107` and `@effect/platform-browser@4.0.0-beta.107`.
+
+  Pin your Effect packages to `4.0.0-beta.107` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.107 @effect/platform-browser@4.0.0-beta.107
+  pnpm add -D @effect/vitest@4.0.0-beta.107
+  ```
+
+## 0.142.0
+
+### Minor Changes
+
+- 0262c9b: `Update.foldChild`'s `foldOutMessage` now receives an optional second parameter, an `Update.FoldContext` carrying `liftCommand` and `liftCommands` bound to the config's `toParentMessage`. The fold already lifts the Commands the child's update returns. The context covers the other case: a Command the parent returns on the child's behalf from the OutMessage Step, built with context only the parent holds, whose result Message is still the child's. The lifters apply the same lift the fold gives the child's own Commands, so there is no `Command.mapMessage` call to write and no second copy of the wrapper to keep in sync.
+
+  Existing one-parameter `foldOutMessage` functions keep working unchanged.
+
+  In the example below, the magic link carries a redirect destination, and only the parent knows the current Route. The Login child cannot build `Login.SendMagicLink` itself, so it emits `RequestedMagicLink` as a fact and the parent returns the Command with the Route filled in.
+
+  Before:
+
+  ```ts
+  const foldLoginOutMessage = M.type<Login.OutMessage>().pipe(
+    M.withReturnType<Update.Step<Model, Message>>(),
+    M.tagsExhaustive({
+      RequestedMagicLink:
+        ({ email }) =>
+        model => [
+          model,
+          [
+            Command.mapMessage(
+              Login.SendMagicLink({ email, redirectRoute: model.route }),
+              message => GotLoginMessage({ message }),
+            ),
+          ],
+        ],
+    }),
+  )
+  ```
+
+  After:
+
+  ```ts
+  const foldLoginOutMessage: (
+    outMessage: Login.OutMessage,
+    context: Update.FoldContext<Login.Message, Message>,
+  ) => Update.Step<Model, Message> = (outMessage, { liftCommand }) =>
+    M.value(outMessage).pipe(
+      M.withReturnType<Update.Step<Model, Message>>(),
+      M.tagsExhaustive({
+        RequestedMagicLink:
+          ({ email }) =>
+          model => [
+            model,
+            [
+              liftCommand(
+                Login.SendMagicLink({ email, redirectRoute: model.route }),
+              ),
+            ],
+          ],
+      }),
+    )
+  ```
+
+- dbacfa5: Add an optional `when` gate to `Subscription.lift`. It is a parent-side field on the parent's `lift` call and it receives the parent Model, so the parent holds the half of a condition the child cannot see, such as the route a page Submodel sits behind. The child neither declares nor sees the gate; it keeps holding its own half in `modelToDependencies`. Pass one predicate to gate every entry in the record, or a `Subscription.EntryGates` map keyed by entry name to gate entries individually, which leaves entries the map omits lifted ungated. A closed gate is a real teardown: the entry's Stream stops, and the child's `modelToDependencies` does not run again until the parent reopens the gate, so child state that changes behind a closed gate causes no restarts. Gating rewrites a gated entry's dependencies to `Subscription.GatedDependencies`, whose `maybeDependencies` is `None` while the gate is closed; a gated entry's `readDependencies` returns the last dependencies seen through an open gate. Ungated entries and lifts without `when` are unchanged. Lifts chain, so a record can pass through intermediate levels and pick up a gate at whichever level knows the condition.
+
+  One predicate gates the whole record. The Settings page keeps declaring its own Subscriptions, and the parent adds the route condition the page cannot answer:
+
+  ```ts
+  const settingsSubscriptions = Subscription.lift(Settings.subscriptions)<
+    Model,
+    Message
+  >({
+    toChildModel: model => model.settings,
+    toParentMessage: message => GotSettingsMessage({ message }),
+    when: ({ route }) => route._tag === 'Settings',
+  })
+  ```
+
+  A gate map names the entries to gate. The Room page holds a WebSocket stream that should outlive navigation and a keyboard listener that should not, so naming one entry gates it and leaves the other lifted ungated:
+
+  ```ts
+  const roomSubscriptions = Subscription.lift(Room.subscriptions)({
+    toChildModel: (model: Model) => model.room,
+    toParentMessage: (message: Room.Message): Message =>
+      GotRoomMessage({ message }),
+    when: { roomKeyboard: ({ route }) => route._tag === 'Room' },
+  })
+  ```
+
+- dbacfa5: Add `Update.foldChildStep`, the `Update.foldChild` variant for a child entry point that takes nothing but the child Model, such as `Dialog.close` or a Submodel's `informRouteChanged` that derives everything from its own state. It returns the `Update.Step` itself rather than a dual `Update.Fold`, so the call site composes with `Update.combine` without inventing an input the child does not take. Reading, writing, Command lifting, the no-op on a `None` from `read`, and `foldOutMessage` all behave exactly as they do in `foldChild`, down to the optional second parameter `foldOutMessage` receives, an `Update.FoldContext` carrying `liftCommand` and `liftCommands` bound to the config's `toParentMessage`.
+
+## 0.141.2
+
+### Patch Changes
+
+- 84050fc: Bump Effect to `4.0.0-beta.106` (from `4.0.0-beta.105`). Foldkit's peer dependencies now require `effect@4.0.0-beta.106` and `@effect/platform-browser@4.0.0-beta.106`.
+
+  Pin your Effect packages to `4.0.0-beta.106` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.106 @effect/platform-browser@4.0.0-beta.106
+  pnpm add -D @effect/vitest@4.0.0-beta.106
+  ```
+
+## 0.141.1
+
+### Patch Changes
+
+- 8d139ff: Document `createKeyedLazy`'s key contract. The TSDoc now states that a key should be the identifier that already gives the rendered thing its DOM identity, so the memo and the DOM invalidate together, and that entries are never evicted, so keys are expected to be bounded. For example: an entity registry, a route table, a fixed set of call sites. It also names the upgrade path for an unbounded key space, which is a variant that drops keys absent from the latest render pass rather than a cap on this one.
+- dc6682f: Rename the `Update.foldChild` TSDoc example's step from `joinRoom` to `enterJoinedRoom` and the child helper it calls from `Room.join` to `Room.informJoined`. The step runs after the join has already succeeded, so the old names read as initiating a join the example is actually reporting.
+
+## 0.141.0
+
+### Minor Changes
+
+- ea9c4f3: Add `Update.foldChild`, the update half of embedding a child Submodel. It takes the facts that vary per child (the child `update`, an `Option`-returning `read`, `write`, `toParentMessage`, and `foldOutMessage` for children that emit OutMessages) and returns a dual `Update.Fold`: call it data-first in a handler (`foldSearch(model, message)`) or data-last to build an `Update.Step` that composes with `Update.combine` (`foldSearch(message)`). When `read` returns `None` the fold is a no-op, so a Message for an unmounted child does nothing. A parent that is itself a Submodel adds `toParentOutMessage` to lift the child's OutMessage into its own; that fold returns `Update.ReturnWithOutMessage`, carrying the parent's OutMessage channel.
+
+  Existing hand-rolled `Got*` handlers keep working unchanged. To adopt, a handler like this:
+
+  ```ts
+  GotSettingsMessage: ({ message }) => {
+    const [nextSettings, commands] = Settings.update(model.settings, message)
+    return [
+      evo(model, { settings: () => nextSettings }),
+      Command.mapMessages(commands, message => GotSettingsMessage({ message })),
+    ]
+  },
+  ```
+
+  becomes a module-scope fold and a one-line handler:
+
+  ```ts
+  const foldSettings = Update.foldChild({
+    update: Settings.update,
+    read: (model: Model) => Option.some(model.settings),
+    write: (model, nextSettings) => evo(model, { settings: () => nextSettings }),
+    toParentMessage: message => GotSettingsMessage({ message }),
+  })
+
+  GotSettingsMessage: ({ message }) => foldSettings(model, message),
+  ```
+
+  See the [Submodel docs](https://foldkit.dev/core/submodel#fold-child) for OutMessage folding and the call-site conventions.
+
+### Patch Changes
+
+- 35621da: Type `Command.mapEffect`, `Command.mapMessage`, and `Command.mapMessages` against `Command` in argument and result positions instead of structural command shapes. Inside a generic combinator the Message is an open type parameter, so `Command<Message>` stayed a deferred conditional that never unified with the structural shapes. A parent lifting a child Submodel's Commands, generic over the Message types, can now annotate arguments and returns as `Command.Command<Message>` directly:
+
+  ```ts
+  const liftCommands = <ChildMessage, ParentMessage>(
+    commands: ReadonlyArray<Command.Command<ChildMessage>>,
+    toParent: (message: ChildMessage) => ParentMessage,
+  ): ReadonlyArray<Command.Command<ParentMessage>> =>
+    Command.mapMessages(commands, toParent)
+  ```
+
+  Concrete call sites infer exactly as before.
+
 ## 0.140.1
 
 ### Patch Changes

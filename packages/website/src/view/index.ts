@@ -1,2 +1,3 @@
-export { docsView } from './docs'
-export { landingView, newsletterView } from './landing'
+export * from './blog'
+export * from './docs'
+export * from './landing'

@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Match as M, Option, Schema as S } from 'effect'
-import { Command } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -46,33 +46,37 @@ const init = () => [
 const GotToastMessage = m('GotToastMessage', { message: Toast.Message })
 const ClickedSave = m('ClickedSave')
 
-// Inside your update's M.tagsExhaustive({...}), delegate Toast's own
-// Messages. The third tuple element is `Option<OutMessage>`. Pattern-match
-// it to lift the DismissedToast event into domain state:
-GotToastMessage: ({ message }) => {
-  const [nextToast, commands, maybeOutMessage] = Toast.update(
-    model.toast,
-    message,
-  )
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotToastMessage({ message }),
-  )
+// At module scope, fold the OutMessage into your own Model, lifting the
+// DismissedToast event into domain state. The arm returns an Update.Step over
+// the parent Model, which already has the next Toast Model written back:
+const foldToastOutMessage = M.type<typeof Toast.OutMessage.Type>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    DismissedToast:
+      ({ payload }) =>
+      model => [
+        evo(model, {
+          maybeLastDismissedBody: () => Option.some(payload.bodyText),
+        }),
+        [],
+      ],
+  }),
+)
 
-  return Option.match(maybeOutMessage, {
-    onNone: () => [evo(model, { toast: () => nextToast }), mappedCommands],
-    onSome: M.type<typeof Toast.OutMessage.Type>().pipe(
-      M.tagsExhaustive({
-        DismissedToast: ({ payload }) => [
-          evo(model, {
-            toast: () => nextToast,
-            maybeLastDismissedBody: () => Option.some(payload.bodyText),
-          }),
-          mappedCommands,
-        ],
-      }),
-    ),
-  })
-}
+// Update.foldChild wires the child into the parent: it delegates Toast's own
+// Messages to Toast.update, writes the next Toast Model back, maps the
+// Submodel's Commands into your Message type, and hands any OutMessage to
+// foldOutMessage.
+const foldToast = Update.foldChild({
+  update: Toast.update,
+  read: (model: Model) => Option.some(model.toast),
+  write: (model, nextToast) => evo(model, { toast: () => nextToast }),
+  toParentMessage: message => GotToastMessage({ message }),
+  foldOutMessage: foldToastOutMessage,
+})
+
+// Inside your update's M.tagsExhaustive({...}), call the fold:
+GotToastMessage: ({ message }) => foldToast(model, message)
 
 ClickedSave: () => {
   const [nextToast, commands] = Toast.show(model.toast, {

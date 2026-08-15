@@ -5558,9 +5558,9 @@ console.log(JSON.stringify(document, null, 2))
 
 ### Generating an Arbitrary from a Schema
 
-Property-based tests need generators. `Schema.toArbitrary` derives a
-`fast-check` `Arbitrary` that generates decoded `Type` values accepted by the
-schema.
+Property-based tests need generators. `Schema.toArbitrary` derives a factory
+that accepts the `fast-check` module and returns an `Arbitrary` that generates
+decoded `Type` values accepted by the schema.
 
 Most schemas do not need any extra work:
 
@@ -5573,21 +5573,9 @@ const Person = Schema.Struct({
   age: Schema.Int.check(Schema.isBetween({ minimum: 18, maximum: 80 }))
 })
 
-const PersonArbitrary = Schema.toArbitrary(Person)
+const PersonArbitrary = Schema.toArbitrary(Person)(FastCheck)
 
 console.log(FastCheck.sample(PersonArbitrary, 3))
-```
-
-Use `Schema.toArbitraryLazy` only when you want the caller to provide
-`fast-check`:
-
-```ts
-import { Schema } from "effect"
-import { FastCheck } from "effect/testing"
-
-const makeStringArbitrary = Schema.toArbitraryLazy(Schema.String)
-
-const StringArbitrary = makeStringArbitrary(FastCheck)
 ```
 
 `Schema.Never` and declaration schemas without a `toArbitrary` annotation cannot
@@ -5641,35 +5629,6 @@ const Palindrome = Schema.String.check(
 This works because the final predicate check rejects strings that are not
 palindromes. It may need many attempts, because the base string generator has no
 reason to produce mirrored strings.
-
-#### Reports
-
-Use `{ report: true }` when you want to know which filters did not guide
-generation:
-
-```ts
-import { Schema } from "effect"
-
-const isPalindrome = (s: string) => s === Array.from(s).reverse().join("")
-
-const Palindrome = Schema.String.check(
-  Schema.makeFilter(isPalindrome, {
-    expected: "a palindrome"
-  })
-)
-
-const result = Schema.toArbitrary(Palindrome, { report: true })
-
-result.value
-result.report.warnings
-```
-
-An `OpaqueFilter` warning means: "this filter is still checked, but it did not
-help build the generator."
-
-Reports contain warnings only. Unsupported schemas, impossible constraints,
-invalid candidates, and recursive schemas without a finite terminal path still
-fail immediately.
 
 #### Custom Filters With Constraints
 
@@ -5947,7 +5906,7 @@ const Person = Schema.Struct({
   company: Company
 })
 
-console.log(FastCheck.sample(Schema.toArbitrary(Person), 3))
+console.log(FastCheck.sample(Schema.toArbitrary(Person)(FastCheck), 3))
 ```
 
 These overrides are useful because the values have domain shape: names look like
@@ -6302,14 +6261,19 @@ const multiDocument = SchemaRepresentation.toRepresentations([
 ])
 ```
 
-Repeated structural nodes, identifiers, and recursive schemas are placed in `references`. `toMultiDocument(document)`
-wraps a single document when a compiler requires multiple roots.
+Repeated structural nodes, identifiers, and recursive schemas are placed in `references`. Repeated `Suspend` and
+`Declaration` nodes are reference candidates as well. For unions, enums, template literals, and string literals, the
+converter uses an inexpensive size estimate and creates an anonymous reference only when it expects the reference to be
+smaller than repeating the body. `toMultiDocument(document)` wraps a single document when a compiler requires multiple
+roots.
 
-An explicit `identifier` requests a reference name within a conversion. Reusing the same schema shares its reference. Copies
-whose AST fields are referentially identical once property-key context is ignored are canonicalized and also share a
-reference. Otherwise, when referentially distinct schemas request the same name, the first schema keeps it and later schemas
-receive numeric suffixes in encounter order, such as `Value_1` and `Value_2`. Internal `~identifier` annotations are fallback
-allocation hints; their generated names use the `Encoded` suffix and follow the same collision rules.
+An explicit `identifier` requests a reference name within a conversion. Reusing the same schema shares its reference.
+Context-only copies created through `SchemaAST.replaceContext` retain the original AST as their reference owner, including
+across several successive context changes. Context still belongs to each occurrence and does not, by itself, make a node a
+reference candidate. Independently constructed ASTs are not canonicalized merely because their other fields contain the
+same references. When distinct schemas request the same name, the first schema keeps it and later schemas receive numeric
+suffixes in encounter order, such as `Value_1` and `Value_2`. Internal `~identifier` annotations are fallback allocation
+hints; their generated names use the `Encoded` suffix and follow the same collision rules.
 
 ## JSON persistence
 
@@ -6409,11 +6373,23 @@ The same reviver can then be included in the `revivers` array passed to `fromRep
 ### Exporting JSON Schema
 
 For a runtime schema, prefer `Schema.toJsonSchemaDocument(schema)`. It first derives the schema's canonical JSON codec,
-then compiles its encoded representation to JSON Schema Draft 2020-12.
+then compiles its encoded representation to JSON Schema Draft 2020-12. During this high-level conversion, declarations
+are not extracted into anonymous references: their JSON Schema body is unconstrained, and leaving it inline preserves
+empty-schema simplifications. Explicit and recursive references are unaffected.
 
 At the lower level, `SchemaRepresentation.toJsonSchemaDocument(document)` compiles a live `Document`, and
 `toJsonSchemaMultiDocument` compiles a live `MultiDocument`. Check-level `toJsonSchema` callbacks contribute JSON Schema
 constraints. Opaque declarations that have not been structurally lowered compile to an unconstrained JSON Schema.
+
+`toJsonSchema` callbacks must treat their input schemas as immutable and return a valid JSON Schema object graph. After a
+callback returns, it must not mutate that object or anything reachable from it; returning a new graph is the supported way
+to produce different output during a later compilation. The compiler may cache structural comparisons while
+deduplicating completed definitions, so mutating a previously returned graph can make equality results stale.
+
+Definitions are compared only with definitions in the same internal fallback-identifier group. Equal definitions in
+different groups and definitions with explicit identifiers remain distinct. After compilation, local `#/$defs/...`
+references are rewritten to the surviving definition, including references returned directly by callbacks. External
+references and other local JSON Pointers remain unchanged.
 
 Because compiler callbacks are not persisted, compile the live document before calling `toJson`, or rebuild and lower the
 schema with revivers first.
@@ -6429,6 +6405,13 @@ roots. To pass the result to a representation compiler, call `toRepresentations`
 Import is best-effort: JSON Schema constructs are translated to Effect schemas where possible, but the result is not a
 lossless reconstruction of an original Effect schema. The optional `onEnter` callback can normalize each JSON Schema node
 before it is translated.
+
+Regular expression constraints reached during best-effort translation are rejected by default because imported patterns
+use the runtime's native regular expression engine and may block validation for an unbounded amount of time. Set
+`patterns: "apply"` only for trusted documents. Set `patterns: "ignore"` to skip reached pattern constraints explicitly;
+the resulting schema accepts values that the source document may reject. The policy includes `pattern`, the keys of
+`patternProperties`, and patterns nested in `propertyNames`. Ignoring `patternProperties` also skips its value constraints
+and `additionalProperties`, because matching keys cannot be determined without evaluating the patterns.
 
 ## Code generation
 

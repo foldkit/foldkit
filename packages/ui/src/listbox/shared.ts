@@ -16,6 +16,7 @@ import { m } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
 import { makeConstrainedEvo } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
+import * as Update from 'foldkit/update'
 
 import { AnchorConfig, anchorSetup, portalToContainingRoot } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
@@ -154,6 +155,8 @@ export const CompletedClickItem = m('CompletedClickItem')
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
+/** Sent when Enter or Space would commit the active item but the listbox is read-only. Update no-ops; the Message keeps the keypress visible and lets the view prevent the browser's default Space scroll. */
+export const SuppressedItemCommit = m('SuppressedItemCommit')
 /** Sent when the listbox items panel mounts and Floating UI has positioned it. Update no-ops; surfaces the positioning side effect for DevTools. */
 export const CompletedAnchorListbox = m('CompletedAnchorListbox')
 /** Sent when the listbox backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
@@ -193,6 +196,7 @@ export const Message: S.Union<
     typeof CompletedClickItem,
     typeof IgnoredMouseClick,
     typeof SuppressedSpaceScroll,
+    typeof SuppressedItemCommit,
     typeof CompletedAnchorListbox,
     typeof CompletedPortalListboxBackdrop,
     typeof GotAnimationMessage,
@@ -219,6 +223,7 @@ export const Message: S.Union<
   CompletedClickItem,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
+  SuppressedItemCommit,
   CompletedAnchorListbox,
   CompletedPortalListboxBackdrop,
   GotAnimationMessage,
@@ -237,6 +242,7 @@ export type Searched = typeof Searched.Type
 export type CompletedDelayClearSearch = typeof CompletedDelayClearSearch.Type
 export type IgnoredMouseClick = typeof IgnoredMouseClick.Type
 export type SuppressedSpaceScroll = typeof SuppressedSpaceScroll.Type
+export type SuppressedItemCommit = typeof SuppressedItemCommit.Type
 export type PressedPointerOnButton = typeof PressedPointerOnButton.Type
 
 export type Message = typeof Message.Type
@@ -434,44 +440,33 @@ export const makeUpdate = <Model extends BaseModel>(
   ]
   const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-  const delegateToAnimation = (
-    model: Model,
-    animationMessage: AnimationMessage,
-  ): UpdateReturn => {
-    const [nextAnimation, animationCommands, maybeOutMessage] = animationUpdate(
-      model.animation,
-      animationMessage,
-    )
+  const foldAnimationOutMessage = M.type<AnimationOutMessage>().pipe(
+    M.withReturnType<Update.Step<Model, Message>>(),
+    M.tagsExhaustive({
+      StartedLeaveAnimating: () => model => [
+        model,
+        [DetectMovementOrAnimationEnd({ id: model.id })],
+      ],
+      TransitionedOut: () => model => [model, []],
+    }),
+  )
 
-    const mappedCommands = Command.mapMessages(animationCommands, message =>
-      GotAnimationMessage({ message }),
-    )
-
-    const additionalCommands = Option.match(maybeOutMessage, {
-      onNone: () => [],
-      onSome: M.type<AnimationOutMessage>().pipe(
-        M.tagsExhaustive({
-          StartedLeaveAnimating: () => [
-            DetectMovementOrAnimationEnd({ id: model.id }),
-          ],
-          TransitionedOut: () => [],
-        }),
-      ),
-    })
-
-    return [
+  const foldAnimation = Update.foldChild({
+    update: animationUpdate,
+    read: (model: Model) => Option.some(model.animation),
+    write: (model, nextAnimation) =>
       constrainedEvo(model, { animation: () => nextAnimation }),
-      [...mappedCommands, ...additionalCommands],
-      Option.none(),
-    ]
-  }
+    toParentMessage: message => GotAnimationMessage({ message }),
+    toParentOutMessage: () => Option.none(),
+    foldOutMessage: foldAnimationOutMessage,
+  })
 
   const openListbox = (
     baseModel: Model,
     openCommands: ReadonlyArray<Command.Command<Message>>,
   ): UpdateReturn => {
     if (baseModel.isAnimated) {
-      const [nextModel, animationCommands] = delegateToAnimation(
+      const [nextModel, animationCommands] = foldAnimation(
         baseModel,
         AnimationShowed(),
       )
@@ -501,7 +496,7 @@ export const makeUpdate = <Model extends BaseModel>(
     const closed = closedModel(baseModel)
 
     if (baseModel.isAnimated) {
-      const [nextModel, animationCommands] = delegateToAnimation(
+      const [nextModel, animationCommands] = foldAnimation(
         closed,
         AnimationHid(),
       )
@@ -553,6 +548,7 @@ export const makeUpdate = <Model extends BaseModel>(
         'CompletedScrollIntoView',
         'CompletedClickItem',
         'SuppressedSpaceScroll',
+        'SuppressedItemCommit',
         'CompletedAnchorListbox',
         'CompletedPortalListboxBackdrop',
         () => [model, [], Option.none()],
@@ -683,7 +679,7 @@ export const makeUpdate = <Model extends BaseModel>(
         },
 
         GotAnimationMessage: ({ message: animationMessage }) =>
-          delegateToAnimation(model, animationMessage),
+          foldAnimation(model, animationMessage),
 
         PressedPointerOnButton: ({ pointerType, button }) => {
           const withPointerType = constrainedEvo(model, {
@@ -810,6 +806,9 @@ export type BaseViewInputsCommon<Item> = Readonly<{
     context: Readonly<{
       isActive: boolean
       isDisabled: boolean
+      /** Mirrors the view input of the same name, so `itemToConfig` can
+       *  style items for read-only state without closing over `viewInputs`. */
+      isReadOnly: boolean
       isSelected: boolean
     }>,
   ) => ItemConfig
@@ -836,7 +835,18 @@ export type BaseViewInputsCommon<Item> = Readonly<{
   anchor?: AnchorConfig
   name?: string
   form?: string
+  /** Marks the Listbox unavailable with `aria-disabled="true"` on the button
+   *  and `data-disabled` on the button and the wrapper, and removes the
+   *  button's handlers so the dropdown cannot be opened. */
   isDisabled?: boolean
+  /** Prevents committing a selection while exposing read-only semantics
+   *  with `aria-readonly="true"` and `data-readonly` on the items panel, and
+   *  `data-readonly` on the wrapper, button, and every item. The Listbox
+   *  still opens, navigates, and searches. Independent of `isDisabled`:
+   *  setting both emits both attribute sets, and `isDisabled` still wins for
+   *  interaction, since its button drops every handler, so a Listbox that is
+   *  both read-only and disabled cannot be opened at all. */
+  isReadOnly?: boolean
   isInvalid?: boolean
   ariaLabel?: string
   ariaLabelledBy?: string
@@ -915,6 +925,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         name,
         form,
         isDisabled,
+        isReadOnly = false,
         isInvalid,
         ariaLabel,
         ariaLabelledBy,
@@ -1085,20 +1096,24 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         return Option.some(Searched({ key, maybeTargetIndex }))
       }
 
+      const resolveCommitMessage = (): Option.Option<Message> => {
+        if (isReadOnly) {
+          return Option.as(maybeActiveItemIndex, SuppressedItemCommit())
+        } else {
+          return Option.map(maybeActiveItemIndex, index =>
+            RequestedItemClick({ index }),
+          )
+        }
+      }
+
       const handleItemsKeyDown = (key: string): Option.Option<Message> =>
         M.value(key).pipe(
           M.when('Escape', () => Option.some(Closed())),
-          M.when('Enter', () =>
-            Option.map(maybeActiveItemIndex, index =>
-              RequestedItemClick({ index }),
-            ),
-          ),
+          M.when('Enter', resolveCommitMessage),
           M.when(' ', () =>
             Str.isNonEmpty(searchQuery)
               ? searchForKey(' ')
-              : Option.map(maybeActiveItemIndex, index =>
-                  RequestedItemClick({ index }),
-                ),
+              : resolveCommitMessage(),
           ),
           M.when(isNavigationKey, () =>
             Option.some(
@@ -1145,6 +1160,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
               h.Style({ position: 'relative', zIndex: '1' }),
             ]
           : []),
+        ...(isReadOnly ? [h.DataAttribute('readonly', '')] : []),
         ...(isInvalid ? [h.DataAttribute('invalid', '')] : []),
         ...(buttonClassName ? [h.Class(buttonClassName)] : []),
         ...buttonAttributes,
@@ -1169,6 +1185,9 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         h.Role('listbox'),
         h.AriaOrientation(Str.toLowerCase(orientation)),
         ...(behavior.ariaMultiSelectable ? [h.AriaMultiSelectable(true)] : []),
+        ...(isReadOnly
+          ? [h.AriaReadonly(true), h.DataAttribute('readonly', '')]
+          : []),
         h.AriaLabelledBy(`${id}-button`),
         ...maybeActiveDescendant,
         h.Tabindex(0),
@@ -1195,10 +1214,12 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         const itemConfig = itemToConfig(item, {
           isActive: isActiveItem,
           isDisabled: isDisabledItem,
+          isReadOnly,
           isSelected: isSelectedItem,
         })
 
-        const isInteractive = !isDisabledItem && !isLeaving
+        const isHoverable = !isDisabledItem && !isLeaving
+        const isClickable = isHoverable && !isReadOnly
 
         return h.keyed('div')(
           itemId(id, index),
@@ -1211,9 +1232,12 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
             ...(isDisabledItem
               ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
               : []),
-            ...(isInteractive
+            ...(isReadOnly ? [h.DataAttribute('readonly', '')] : []),
+            ...(isClickable
+              ? [h.OnClick(SelectedItem({ item: itemToValue(item) }))]
+              : []),
+            ...(isHoverable
               ? [
-                  h.OnClick(SelectedItem({ item: itemToValue(item) })),
                   ...(isActiveItem
                     ? []
                     : [
@@ -1366,6 +1390,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         ...attributes,
         ...(isVisible ? [h.DataAttribute('open', '')] : []),
         ...(isDisabled ? [h.DataAttribute('disabled', '')] : []),
+        ...(isReadOnly ? [h.DataAttribute('readonly', '')] : []),
         ...(isInvalid ? [h.DataAttribute('invalid', '')] : []),
       ]
 

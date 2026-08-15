@@ -6,7 +6,7 @@ An accessible inline calendar grid built to the WAI-ARIA grid pattern. Calendar 
 
 The calendar heading is a button: clicking it switches the day grid into a 3×4 months grid. Clicking the year heading from there switches into a paged 3×4 years grid (prev/next page through 12-year windows). Selecting a year drills back to the months grid for that year; selecting a month drills back to the days grid for that month.
 
-Calendar uses the Submodel pattern: initialize with `Calendar.init()`, store the Model in your parent, delegate Messages via `Calendar.update()`, and render with `Calendar.view()`. The update function returns `[Model, Commands, Option<OutMessage>]`. The parent owns the selected date: store it in your Model, pass it back as `maybeSelectedDate`, and fold the `SelectedDate` OutMessage into that field. The OutMessage lets the parent handle meaningful events, for example date selection or month changes.
+Calendar uses the Submodel pattern: initialize with `Calendar.init()`, store the Model in your parent, wire Messages through [`Update.foldChild`](/core/submodel#fold-child), and render with `Calendar.view()`. The update function returns `[Model, Commands, Option<OutMessage>]`. The parent owns the selected date: store it in your Model, pass it back as `maybeSelectedDate`, and fold the `SelectedDate` OutMessage into that field. The OutMessage lets the parent handle meaningful events, for example date selection or month changes.
 
 :::Info{label="See it in an app"}
 Check out how Calendar is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/calendar.ts).
@@ -121,11 +121,11 @@ Attribute groups and derived data provided to the `toView` callback.
 
 ### OutMessage {#out-messages}
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Parents pattern-match on the OutMessage in their own update handler.
+Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Parents fold the OutMessage in the `foldOutMessage` of their [`Update.foldChild`](/core/submodel#fold-child) config.
 
 | Name               | Type                              | Default | Description                                                                                                                                                                                                                                                                                |
 | ------------------ | --------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `SelectedDate`     | `{ date: CalendarDate }`          | —       | Emitted when the user commits a date (click / Enter / Space). Pattern-match the third tuple element of Calendar.update in your GotCalendarMessage handler to lift the date into domain state.                                                                                              |
+| `SelectedDate`     | `{ date: CalendarDate }`          | —       | Emitted when the user commits a date (click / Enter / Space). Fold it in the `foldOutMessage` of your Calendar fold to lift the date into domain state.                                                                                                                                    |
 | `ChangedViewMonth` | `{ year: number; month: number }` | —       | Emitted when navigation changes the visible month (prev/next buttons, heading-drill selection of a different month, arrow keys crossing a month boundary, or a commit that crosses a month). Useful for inline-calendar consumers loading month-scoped data like holidays or availability. |
 
 ### Programmatic Helpers

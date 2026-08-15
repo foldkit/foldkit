@@ -8,13 +8,13 @@ import {
   Option,
   Record,
   Schema as S,
-  String as Str,
   Stream,
+  String as String_,
   pipe,
 } from 'effect'
 import { FileSystem } from 'effect'
 import { ChildProcess } from 'effect/unstable/process'
-import { dirname, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { type Browser, chromium } from 'playwright'
 
@@ -27,6 +27,7 @@ import {
   slugToModuleName,
 } from '../src/page/apiReference/domain'
 import { TypeDocJson } from '../src/page/apiReference/typedoc'
+import { BLOG_DESCRIPTION, BLOG_RSS_PATH } from '../src/page/blog/meta'
 import { exampleSlugs } from '../src/page/example/meta'
 import {
   AiMcpRoute,
@@ -39,6 +40,8 @@ import {
   BestPracticesKeyingRoute,
   BestPracticesMessagesRoute,
   BestPracticesSideEffectsRoute,
+  BlogPostRoute,
+  BlogRoute,
   ComingFromReactRoute,
   ComingFromTanStackQueryRoute,
   CoreArchitectureRoute,
@@ -128,6 +131,8 @@ import {
   bestPracticesKeyingRouter,
   bestPracticesMessagesRouter,
   bestPracticesSideEffectsRouter,
+  blogPostRouter,
+  blogRouter,
   comingFromReactRouter,
   comingFromTanStackQueryRouter,
   coreArchitectureRouter,
@@ -210,6 +215,7 @@ import {
   whatAboutSsrRouter,
   whyNoJsxRouter,
 } from '../src/route'
+import { type BlogPostEntry, blogPostSlugs, blogPosts } from './blogPosts'
 import {
   type LlmsFullEntry,
   type LlmsIndexEntry,
@@ -313,6 +319,8 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   AiOverviewRoute(),
   AiSkillsRoute(),
   AiMcpRoute(),
+  BlogRoute(),
+  ...Array.map(blogPostSlugs, slug => BlogPostRoute({ postSlug: slug })),
 ]
 
 export const routeToUrlPath = (route: AppRoute): string =>
@@ -410,6 +418,8 @@ export const routeToUrlPath = (route: AppRoute): string =>
       ApiModule: ({ moduleSlug }) => apiModuleRouter({ moduleSlug }),
       Playground: ({ exampleSlug }) => playgroundRouter({ exampleSlug }),
       Newsletter: () => newsletterRouter(),
+      Blog: () => blogRouter(),
+      BlogPost: ({ postSlug }) => blogPostRouter({ postSlug }),
       NotFound: () => '/',
     }),
   )
@@ -585,6 +595,7 @@ type PrerenderResult = Readonly<{
   route: AppRoute
   urlPath: string
   markdown: string
+  html: string
 }>
 
 const buildApiModuleNameResolver = (
@@ -646,6 +657,7 @@ const prerenderRoute =
         route,
         urlPath,
         markdown: captured.markdown,
+        html: captured.html,
       })
     }).pipe(
       Effect.catch(error =>
@@ -664,7 +676,7 @@ const formatDateIso = (dateTime: DateTime.DateTime): string => {
   const { year, month, day } = DateTime.toPartsUtc(dateTime)
   return pipe(
     [String(year), String(month), String(day)],
-    Array.map(Str.padStart(2, '0')),
+    Array.map(String_.padStart(2, '0')),
     Array.join('-'),
   )
 }
@@ -691,6 +703,131 @@ const buildSitemap = (
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${entries}
 </urlset>`
+}
+
+// RSS
+
+// NOTE: index.html advertises the feed with this same title on its
+// `rel="alternate"` link, which is static HTML and cannot import it.
+const RSS_FEED_TITLE = 'Foldkit Blog'
+
+const escapeXml = (text: string): string =>
+  text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+
+const toRfc822Date = (date: string): string =>
+  Option.match(DateTime.make(date), {
+    onNone: () => date,
+    onSome: dateTime => DateTime.toDateUtc(dateTime).toUTCString(),
+  })
+
+/**
+ * Extracts a prerendered blog post page's `article` element, the cover, the
+ * header, and the rendered prose, leaving out the surrounding site chrome.
+ */
+export const extractPostArticleHtml = (
+  pageHtml: string,
+): Option.Option<string> =>
+  pipe(
+    String_.indexOf('<article')(pageHtml),
+    Option.flatMap(startIndex =>
+      Option.map(String_.indexOf('</article>')(pageHtml), endIndex =>
+        pageHtml.slice(startIndex, endIndex + '</article>'.length),
+      ),
+    ),
+  )
+
+/**
+ * Prepares an extracted article for the feed: root-relative links and image
+ * sources become absolute, since feed readers resolve them against nothing,
+ * and the back-to-blog link is dropped, since it only makes sense on the site.
+ */
+export const toFeedArticleHtml = (articleHtml: string): string =>
+  articleHtml
+    .replace(/<a[^>]*>←[^<]*<\/a>/, '')
+    .replace(/(href|src)="\//g, `$1="${SITE_URL}/`)
+
+const escapeCdataContent = (html: string): string =>
+  html.replaceAll(']]>', ']]]]><![CDATA[>')
+
+const maybeFeedArticleEntry = (
+  result: PrerenderResult,
+): Option.Option<readonly [string, string]> =>
+  M.value(result.route).pipe(
+    M.tag('BlogPost', ({ postSlug }) =>
+      Option.map(
+        extractPostArticleHtml(result.html),
+        articleHtml => [postSlug, toFeedArticleHtml(articleHtml)] as const,
+      ),
+    ),
+    M.orElse(() => Option.none()),
+  )
+
+const blogPostRssItem = (
+  entry: BlogPostEntry,
+  maybeArticleHtml: Option.Option<string>,
+): string => {
+  const postUrl = `${SITE_URL}${blogPostRouter({ postSlug: entry.slug })}`
+  const enclosure = Option.match(entry.maybeCoverAsset, {
+    onNone: () => '',
+    onSome: cover =>
+      `\n  <enclosure url="${escapeXml(`${SITE_URL}${cover.src}`)}" length="${cover.byteLength}" type="${cover.mimeType}" />`,
+  })
+  const contentEncoded = Option.match(maybeArticleHtml, {
+    onNone: () => '',
+    onSome: articleHtml =>
+      `\n  <content:encoded><![CDATA[${escapeCdataContent(articleHtml)}]]></content:encoded>`,
+  })
+  return `<item>
+  <title>${escapeXml(entry.frontmatter.title)}</title>
+  <link>${escapeXml(postUrl)}</link>
+  <guid>${escapeXml(postUrl)}</guid>
+  <description>${escapeXml(entry.frontmatter.description)}</description>
+  <pubDate>${toRfc822Date(entry.frontmatter.date)}</pubDate>${enclosure}${contentEncoded}
+</item>`
+}
+
+// NOTE: posts arrive newest first, so the newest post's date is the feed's last
+// build date. Deriving it from the content rather than the clock keeps two
+// builds of the same commit byte-identical.
+const rssChannelHeader = (posts: ReadonlyArray<BlogPostEntry>): string => {
+  const channel = `<title>${RSS_FEED_TITLE}</title>
+<link>${SITE_URL}${blogRouter()}</link>
+<atom:link href="${SITE_URL}${BLOG_RSS_PATH}" rel="self" type="application/rss+xml" />
+<description>${escapeXml(BLOG_DESCRIPTION)}</description>`
+
+  return Option.match(Array.head(posts), {
+    onNone: () => channel,
+    onSome: newest =>
+      `${channel}\n<lastBuildDate>${toRfc822Date(newest.frontmatter.date)}</lastBuildDate>`,
+  })
+}
+
+export const buildBlogRssFeed = (
+  posts: ReadonlyArray<BlogPostEntry>,
+  articleHtmlBySlug: ReadonlyMap<string, string>,
+): string => {
+  const items = pipe(
+    posts,
+    Array.map(entry =>
+      blogPostRssItem(
+        entry,
+        Option.fromNullishOr(articleHtmlBySlug.get(entry.slug)),
+      ),
+    ),
+    Array.join('\n'),
+  )
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+<channel>
+${rssChannelHeader(posts)}
+${items}
+</channel>
+</rss>`
 }
 
 // PROGRAM
@@ -730,6 +867,7 @@ const program = Effect.scoped(
       routeToUrlPath,
       DIST_DIR,
       resolveApiModuleName,
+      browser,
     )
 
     const fs = yield* FileSystem.FileSystem
@@ -760,6 +898,18 @@ const program = Effect.scoped(
       resolve(DIST_DIR, 'sitemap.xml'),
       buildSitemap(routes, lastModification),
     )
+
+    const feedArticleHtmlBySlug = new Map(
+      pipe(successfulResults, Array.map(maybeFeedArticleEntry), Array.getSomes),
+    )
+
+    const rssFilePath = join(DIST_DIR, BLOG_RSS_PATH)
+    yield* fs.makeDirectory(dirname(rssFilePath), { recursive: true })
+    yield* fs.writeFileString(
+      rssFilePath,
+      buildBlogRssFeed(blogPosts, feedArticleHtmlBySlug),
+    )
+    yield* Console.log(`  ✓ ${BLOG_RSS_PATH}`)
 
     const indexEntries = Array.map(
       markdownResults,

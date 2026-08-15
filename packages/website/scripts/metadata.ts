@@ -1,7 +1,13 @@
-import { Match as M, Option } from 'effect'
+import { Array, Match as M, Option } from 'effect'
 
+import {
+  BLOG_DESCRIPTION,
+  BLOG_SECTION,
+  BLOG_TITLE,
+} from '../src/page/blog/meta'
 import { findBySlug } from '../src/page/example/meta'
 import { type AppRoute } from '../src/route'
+import { blogPosts } from './blogPosts'
 
 // PAGE METADATA
 
@@ -40,7 +46,7 @@ const tooling = (title: string, description: string): PageMetadata =>
 
 type StaticRouteTag = Exclude<
   AppRoute['_tag'],
-  'ApiModule' | 'ExampleDetail' | 'Playground'
+  'ApiModule' | 'BlogPost' | 'ExampleDetail' | 'Playground'
 >
 
 const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
@@ -417,6 +423,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
       'Subscribe to the Foldkit newsletter for new releases, patterns, and the occasional deep dive.',
     section: '',
   },
+  Blog: docs(BLOG_TITLE, BLOG_DESCRIPTION, BLOG_SECTION),
 }
 
 export const routeToMetadata = (
@@ -433,23 +440,39 @@ export const routeToMetadata = (
         'API Reference',
       )
     }),
-    M.tag('ExampleDetail', ({ exampleSlug }) =>
-      Option.match(findBySlug(exampleSlug), {
-        onNone: () =>
-          docs('Example', 'A Foldkit example application.', 'Examples'),
-        onSome: example => docs(example.title, example.description, 'Examples'),
-      }),
-    ),
-    M.tag('Playground', ({ exampleSlug }) =>
-      Option.match(findBySlug(exampleSlug), {
-        onNone: () => docs('Playground', 'Foldkit playground.', 'Playground'),
-        onSome: example =>
-          docs(
-            `${example.title} playground`,
-            `Edit and run the ${example.title} example live in your browser.`,
-            'Playground',
+    M.tag('BlogPost', ({ postSlug }) => {
+      const { frontmatter } = Option.getOrThrowWith(
+        Array.findFirst(blogPosts, ({ slug }) => slug === postSlug),
+        () =>
+          new Error(
+            `Blog post "${postSlug}" is missing from the blog post registry.`,
           ),
-      }),
-    ),
+      )
+      return docs(frontmatter.title, frontmatter.description, BLOG_SECTION)
+    }),
+    M.tag('ExampleDetail', ({ exampleSlug }) => {
+      const example = Option.getOrThrowWith(
+        findBySlug(exampleSlug),
+        () =>
+          new Error(
+            `Example "${exampleSlug}" is missing from the example registry.`,
+          ),
+      )
+      return docs(example.title, example.description, 'Examples')
+    }),
+    M.tag('Playground', ({ exampleSlug }) => {
+      const example = Option.getOrThrowWith(
+        findBySlug(exampleSlug),
+        () =>
+          new Error(
+            `Playground example "${exampleSlug}" is missing from the example registry.`,
+          ),
+      )
+      return docs(
+        `${example.title} playground`,
+        `Edit and run the ${example.title} example live in your browser.`,
+        'Playground',
+      )
+    }),
     M.orElse(({ _tag }) => METADATA_BY_TAG[_tag]),
   )

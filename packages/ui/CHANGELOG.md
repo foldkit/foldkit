@@ -1,5 +1,116 @@
 # @foldkit/ui
 
+## 0.145.0
+
+### Minor Changes
+
+- 1dc70c7: Widen `AnchorConfig.padding` to accept a partial per-side object alongside the existing scalar, mirroring `@floating-ui/dom`'s `Padding` type. A number still pads every side uniformly; `{ top: 88, right: 16, bottom: 16, left: 16 }` bounds each side independently. The value is forwarded unchanged to the `flip`, `shift`, and `size` middleware.
+
+  With a single scalar, a panel that `flip` moves above its button can slide to within that scalar of the viewport top, under fixed chrome such as a sticky site header, which then paints over the panel. Per-side padding gives the top the extra clearance the header needs while the other sides keep the tighter viewport bound.
+
+### Patch Changes
+
+- 71556de: Assert the read-only commit suppression through `Scene.expectHandled()` instead of a hand-rolled `update` wrapper, and harden three tests that asserted nothing.
+
+  Listbox and Combobox recorded dispatched Messages by wrapping `update` and matching on the `SuppressedItemCommit` tag, because Scene could not express what the component actually promises. It promises the keypress is consumed, so the browser default is suppressed; the Message tag is the mechanism. Those four sites now use `expectHandled()` and `expectIgnored()` and drop the wrapper.
+
+  Three tests elsewhere asserted inertness with no assertion behind it, and now say so: RadioGroup's read-only Space, and Calendar's disabled-month and disabled-year Enter. Each held whether the key was correctly ignored or its handler had started producing a Message with no visible effect, which is the regression they exist to catch. Removing the handler outright has always thrown from the interaction step.
+
+  Test-only change. No API or behavior change.
+
+## 0.144.0
+
+### Minor Changes
+
+- 3feb9ba: Bump Effect to `4.0.0-rc.108` (from `4.0.0-beta.107`), the first Effect v4 release candidate. Foldkit's peer dependencies now require `effect@4.0.0-rc.108` and `@effect/platform-browser@4.0.0-rc.108`.
+
+  Pin your Effect packages to `4.0.0-rc.108` to match this release. While Effect v4 is in prerelease, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.108 @effect/platform-browser@4.0.0-rc.108
+  pnpm add -D @effect/vitest@4.0.0-rc.108
+  ```
+
+## 0.143.0
+
+### Minor Changes
+
+- a614c5e: Stop a multi-select Combobox emitting `ClearedSelection` when it closes.
+
+  `handleClose` read an empty `inputValue` on close as the user having cleared the selection. That inference holds for single-select, where the input displays the current selection and the user has to empty it deliberately. It never held for multi-select, whose `restingInputValue` is an empty string by design, so the condition was true on every close. A nullable multi-select therefore wiped the parent's whole selection each time it closed, by `Escape`, blur, the toggle button, or a backdrop click, without the user doing anything to ask for it.
+
+  Multi-select now never emits `ClearedSelection`. Clearing a multi-select is toggling its values off, one `Selected` at a time, which is the channel it already had. Single-select is unchanged, and `nullable` continues to govern its empty-input close.
+
+- a614c5e: Add `isReadOnly` to the view inputs of both Combobox variants.
+
+  A read-only Combobox emits the native `readonly` attribute plus `aria-readonly="true"` on the input, `aria-readonly="true"` on the items panel, and `data-readonly` on the wrapper, input, toggle button, items panel, and every item. It still opens, navigates, and closes, and the input still takes focus and allows text selection and copying. Five paths that would change the parent's selection close: typing is frozen, items carry no click handler, `Enter` on the active item emits a `SuppressedItemCommit` Message instead of selecting, an `immediate` Combobox stops committing as the arrow keys move, and a nullable Combobox no longer emits `ClearedSelection` when a user close finds an empty input. `itemToConfig`'s context gains `isReadOnly`, so an item can style itself for the state without closing over the view inputs.
+
+  `Closed`, `BlurredInput`, and `PressedToggleButton` gained an `isClearable` field, since the close path lives in `update` and cannot see `isReadOnly`, which is a view input. The view passes it, and the programmatic `close` helpers pass `true`, so `close(model)` clears exactly as before.
+
+  Typing is frozen rather than left to filter because `inputValue` is both the filter query and the display of the selection, so a typable read-only Combobox would have a visible value the user can change.
+
+  `isReadOnly` and `isDisabled` are independent: setting both emits both attribute sets, and `isDisabled` still wins for interaction, since it drops every handler, so a Combobox that is both read-only and disabled cannot be opened at all.
+
+## 0.142.1
+
+### Patch Changes
+
+- 87e9dbf: Bump Effect to `4.0.0-beta.107` (from `4.0.0-beta.106`). Foldkit's peer dependencies now require `effect@4.0.0-beta.107` and `@effect/platform-browser@4.0.0-beta.107`.
+
+  Pin your Effect packages to `4.0.0-beta.107` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.107 @effect/platform-browser@4.0.0-beta.107
+  pnpm add -D @effect/vitest@4.0.0-beta.107
+  ```
+
+## 0.142.0
+
+### Minor Changes
+
+- b2704a4: Add `isReadOnly` to the view inputs of both Listbox variants.
+
+  A read-only Listbox emits `aria-readonly="true"` on the items panel and `data-readonly` on the wrapper, button, items panel, and every item. It still opens, navigates, and searches, but items carry no click handler and `Enter` or `Space` on the active item emits a `SuppressedItemCommit` Message instead of selecting. `itemToConfig`'s context gains `isReadOnly`, so an item can style itself for the state without closing over the view inputs.
+
+  `isReadOnly` and `isDisabled` are independent: setting both emits both attribute sets, and `isDisabled` still wins for interaction, since its button drops every handler, so a Listbox that is both read-only and disabled cannot be opened at all.
+
+- 7632ab7: Turn RadioGroup into a Submodel and add `isReadOnly` to its view inputs.
+
+  RadioGroup now owns its keyboard focus in a Model. Create it with `RadioGroup.create<Value>()`, hold `RadioGroup.Model` in your Model, initialize it with `RadioGroup.init({ id })`, embed it with `h.submodel`, and fold the `Selected` OutMessage back into the field you pass in as `selectedValue`. The `id` and `onSelect` fields are gone: `id` moves to `init`, and the committed value now arrives as an OutMessage instead of a Message the config builds. Focus moves through a `FocusOption` Command rather than inside the view's event handlers, so a scene or story test resolves it like any other Command.
+
+  A read-only group keeps arrow, Home, End, PageUp, and PageDown focus navigation, reporting each move as a `FocusedOption` Message, and makes Space and clicking inert. The group carries `aria-readonly="true"` and `data-readonly`, and each option carries `data-readonly`. Because focus is modeled, `data-active`, `OptionInfo.isActive`, and `tabindex` follow the keyboard rather than staying pinned to the selection. `isReadOnly` and `isDisabled` are independent; a disabled option drops both its click and its keydown handler.
+
+- bea1da5: Add `isReadOnly` to Slider's view inputs.
+
+  A read-only Slider emits `aria-readonly="true"` on the thumb and `data-readonly` on every attribute group, remains focusable, and omits its pointerdown and keydown handlers. `isReadOnly` and `isDisabled` are independent, and either one removes the interaction handlers.
+
+### Patch Changes
+
+- b49c0b8: Fold the DatePicker's Popover entry points with `Update.foldChildStep`. The hand-written `closePopover` Step and the `Opened` and `Closed` handlers now run `Popover.open` and `Popover.close` through the helper instead of calling them directly and lifting their Commands with `Command.mapMessages`, so the Popover's read, write, and Message lift are stated once and shared with the existing `Update.foldChild` config. Internal refactor with no API change.
+- 47e861a: Document `isDisabled` on Checkbox, Switch, and Slider.
+
+  Each component documented `isReadOnly` and left `isDisabled` bare, so the only description of what `isDisabled` emits lived inside its neighbor's comment. Each now describes the attributes it emits, that the control stays focusable, and which of the two flags to reach for. The Slider docs page gains the same guidance.
+
+- 8f7312d: Drop the redundant function-type annotation from the component internals' `fold<Child>OutMessage` consts. `M.type<X.OutMessage>()` names the OutMessage and `M.withReturnType<Update.Step<Model, Message>>()` names the Step, so the standalone annotation restated both. Calendar, Popover, Menu, Combobox, and Listbox folds now bind the pipe directly. The Dialog and Toast leave-animation folds keep their annotation, since they take the fold's `Update.FoldContext` as a second parameter and nothing else types it. Internal refactor with no API or behavior change.
+- e515c76: Fold child Submodels inside component internals with `Update.foldChild`. Dialog, Popover, Menu, DatePicker, Listbox, Combobox, and Toast now build their child folds from the helper instead of hand-writing `Command.mapMessages` plus an OutMessage match. The Dialog and Toast leave-animation folds take the fold's `Update.FoldContext` and lift the overridable leave Command with `liftCommand`. Internal refactor with no API or behavior change.
+
+## 0.141.2
+
+### Patch Changes
+
+- 84050fc: Bump Effect to `4.0.0-beta.106` (from `4.0.0-beta.105`). Foldkit's peer dependencies now require `effect@4.0.0-beta.106` and `@effect/platform-browser@4.0.0-beta.106`.
+
+  Pin your Effect packages to `4.0.0-beta.106` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.106 @effect/platform-browser@4.0.0-beta.106
+  pnpm add -D @effect/vitest@4.0.0-beta.106
+  ```
+
+## 0.141.1
+
+## 0.141.0
+
 ## 0.140.1
 
 ### Patch Changes

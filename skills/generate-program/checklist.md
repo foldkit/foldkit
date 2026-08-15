@@ -296,7 +296,7 @@ Foldkit ships these; reaching past them is a finding, not a style choice.
 
 - [ ] Foldkit UI components used where interaction matches (Dialog, Tabs, Menu, Combobox, DatePicker, FileDrop, Toast, Tooltip, DragAndDrop, etc.). Never hand-roll accessible widgets
 - [ ] **Form inputs use `Input.view`, `Textarea.view`, `Button.view` from `@foldkit/ui`.** Hand-rolled `input`/`textarea`/`button` elements in a form are a fail unless the file has a NOTE comment explaining why the component couldn't be used.
-- [ ] Each stateful UI component has its Model in the app Model, a `Got*` Message, init in init, and delegation in update. Stateless render helpers (`Button`, `Input`, `Textarea`, `Select`, `Fieldset`, `RadioGroup`, `Checkbox`, `Switch`, `Disclosure`, `Nav`) are called directly in view and dispatch parent Messages; the controlled ones (`RadioGroup`, `Checkbox`, `Switch`, `Disclosure`) take the current value in from the parent Model, which stores the new value on toggle
+- [ ] Each stateful UI component has its Model in the app Model, a `Got*` Message, init in init, and delegation in update. Stateless render helpers (`Button`, `Input`, `Textarea`, `Select`, `Fieldset`, `Checkbox`, `Switch`, `Disclosure`, `Nav`) are called directly in view and dispatch parent Messages; the controlled ones (`Checkbox`, `Switch`, `Disclosure`) take the current value in from the parent Model, which stores the new value on toggle
 - [ ] `Toast` uses `Toast.make(PayloadSchema)` to bind to a consumer-defined payload type
 - [ ] No custom keyboard navigation or ARIA attributes for patterns covered by Foldkit UI components
 
@@ -330,7 +330,7 @@ Hand-rolling a control the table covers is permitted only when the component gen
 
 **A NOTE is not a free pass.** Before writing one, read the component's `.d.ts` and confirm the concern is real. Common false-justifications to avoid:
 
-- _"Using the component would require a per-row Model instance and duplicate state"_: first check whether the component is stateful. Stateless controlled helpers like `Checkbox`, `Switch`, `Disclosure`, and `RadioGroup` do not add a child Model. Store the value in the parent Model and pass it to `view` with an `onToggle` or `onSelect` Message. For stateful components, the component Model holds UI state (focus, open/closed, typeahead key buffer), not your domain value, so holding it is not duplication.
+- _"Using the component would require a per-row Model instance and duplicate state"_: first check whether the component is stateful. Stateless controlled helpers like `Checkbox`, `Switch`, and `Disclosure` do not add a child Model. Store the value in the parent Model and pass it to `view` with an `onToggle` Message. For stateful components, the component Model holds UI state (focus, open/closed, typeahead key buffer), not your domain value, so holding it is not duplication.
 - _"The component needs a toParentMessage and I don't want to wire one"_: that's always the wiring cost. The whole point of Ui components is that you pay it once per use and get a11y for free.
 - _"The interaction is too custom for the component"_: check the `toView` callback signature. It lets you render whatever HTML you want inside the component's attribute-scaffolding. Custom visual = fine, custom a11y = never needed.
 

@@ -2,6 +2,7 @@ import { describe, it } from "@effect/vitest"
 import {
   Context,
   Effect,
+  Inspectable,
   Option,
   Redactable,
   Redacted,
@@ -19,6 +20,14 @@ class SensitiveData implements Redactable.Redactable {
 
   f(s: string) {
     this.secret += s
+  }
+
+  toString() {
+    return this.secret
+  }
+
+  toJSON() {
+    return { secret: this.secret }
   }
 
   [Redactable.symbolRedactable]() {
@@ -238,6 +247,43 @@ describe("Formatter", () => {
       strictEqual(format(data), `{"secret":"[REDACTED]"}`)
       strictEqual(format({ a: data }), `{"a":{"secret":"[REDACTED]"}}`)
     })
+
+    it("redacts before specialized representations", () => {
+      const array = Object.assign(["secret"], {
+        [Redactable.symbolRedactable]: () => ["[REDACTED]"]
+      })
+      const date = Object.assign(new Date(0), {
+        [Redactable.symbolRedactable]: () => "[REDACTED]"
+      })
+
+      strictEqual(format(array), `["[REDACTED]"]`)
+      strictEqual(format(date), `"[REDACTED]"`)
+    })
+
+    it("preserves formatting options for redacted representations", () => {
+      let toStringCalls = 0
+      const value = {
+        [Redactable.symbolRedactable]: () => ({
+          a: 1,
+          b: 2,
+          toString() {
+            toStringCalls++
+            return "custom"
+          }
+        })
+      }
+
+      assertTrue(format(value, { space: 2, ignoreToString: true }).startsWith(`{\n  "a": 1,\n  "b": 2,`))
+      strictEqual(toStringCalls, 0)
+    })
+
+    it("tracks circular references through redacted representations", () => {
+      const value: Redactable.Redactable = {
+        [Redactable.symbolRedactable]: () => ({ value })
+      }
+
+      strictEqual(format(value), `{"value":[Circular]}`)
+    })
   })
 
   describe("formatJson", () => {
@@ -256,9 +302,49 @@ describe("Formatter", () => {
       strictEqual(formatJson({ left: shared, right: shared }), `{"left":{"a":1},"right":{"a":1}}`)
     })
 
+    it("should stringify BigInt values", () => {
+      strictEqual(formatJson(123n), `"123n"`)
+      strictEqual(formatJson({ value: 123n }), `{"value":"123n"}`)
+      strictEqual(formatJson([1n, 2n]), `["1n","2n"]`)
+    })
+
     it("should redact sensitive data", () => {
+      const date = Object.assign(new Date(0), {
+        [Redactable.symbolRedactable]: () => "[REDACTED]"
+      })
+
       strictEqual(formatJson(data), `{"secret":"[REDACTED]"}`)
       strictEqual(formatJson({ a: data }), `{"a":{"secret":"[REDACTED]"}}`)
+      strictEqual(formatJson([data]), `[{"secret":"[REDACTED]"}]`)
+      strictEqual(formatJson(date), `"[REDACTED]"`)
+    })
+  })
+
+  describe("Inspectable.toJson", () => {
+    it("redacts before toJSON", () => {
+      deepStrictEqual(
+        Inspectable.toJson(data),
+        { secret: "[REDACTED]" }
+      )
+    })
+
+    it("preserves plain objects as structured values", () => {
+      const value: any = { count: 1n }
+      value.self = value
+
+      strictEqual(Inspectable.toJson(value), value)
+    })
+  })
+
+  describe("Inspectable.toStringUnknown", () => {
+    it("should stringify BigInt values", () => {
+      strictEqual(Inspectable.toStringUnknown(123n), `123n`)
+      strictEqual(
+        Inspectable.toStringUnknown({ value: 123n }),
+        `{
+  "value": "123n"
+}`
+      )
     })
   })
 

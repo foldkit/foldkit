@@ -1,5 +1,5 @@
 import { Effect, Match as M, Option, Schema as S } from 'effect'
-import { Command } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
@@ -59,6 +59,60 @@ const RedirectToHome = Command.define('RedirectToHome', {
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
+const foldLoggedOutOutMessage: (
+  outMessage: LoggedOut.OutMessage,
+) => Update.Step<Model, Message> = M.type<LoggedOut.OutMessage>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    SucceededLogin:
+      ({ session }) =>
+      () => [
+        LoggedIn.init(DashboardRoute(), session),
+        [SaveSession({ session }), RedirectToDashboard()],
+      ],
+  }),
+)
+
+const foldLoggedOut = Update.foldChild({
+  update: LoggedOut.update,
+  read: (model: Model) =>
+    M.value(model).pipe(
+      M.tagsExhaustive({
+        LoggedOut: loggedOutModel => Option.some(loggedOutModel),
+        LoggedIn: () => Option.none(),
+      }),
+    ),
+  write: (_model, nextLoggedOut) => nextLoggedOut,
+  toParentMessage: message => GotLoggedOutMessage({ message }),
+  foldOutMessage: foldLoggedOutOutMessage,
+})
+
+const foldLoggedInOutMessage: (
+  outMessage: LoggedIn.OutMessage,
+) => Update.Step<Model, Message> = M.type<LoggedIn.OutMessage>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    RequestedLogout: () => () => [
+      LoggedOut.init(HomeRoute()),
+      [ClearSession(), RedirectToHome()],
+    ],
+  }),
+)
+
+const foldLoggedIn = Update.foldChild({
+  update: LoggedIn.update,
+  read: (model: Model) =>
+    M.value(model).pipe(
+      M.tagsExhaustive({
+        LoggedOut: () => Option.none(),
+        LoggedIn: loggedInModel => Option.some(loggedInModel),
+      }),
+    ),
+  write: (_model, nextLoggedIn) => nextLoggedIn,
+  toParentMessage: message => GotLoggedInMessage({ message }),
+  foldOutMessage: foldLoggedInOutMessage,
+})
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
@@ -114,11 +168,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [LogError({ entries: ['Failed to clear session:', error] })],
       ],
 
-      GotLoggedOutMessage: ({ message }) =>
-        handleGotLoggedOutMessage(model, message),
+      GotLoggedOutMessage: ({ message }) => foldLoggedOut(model, message),
 
-      GotLoggedInMessage: ({ message }) =>
-        handleGotLoggedInMessage(model, message),
+      GotLoggedInMessage: ({ message }) => foldLoggedIn(model, message),
     }),
     M.tag(
       'CompletedNavigateInternal',
@@ -130,68 +182,3 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     ),
     M.exhaustive,
   )
-
-const handleGotLoggedOutMessage = (
-  model: Model,
-  message: LoggedOut.Message,
-): UpdateReturn => {
-  if (model._tag !== 'LoggedOut') {
-    return [model, []]
-  }
-
-  const [nextModel, commands, maybeOutMessage] = LoggedOut.update(
-    model,
-    message,
-  )
-
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotLoggedOutMessage({ message }),
-  )
-
-  return Option.match(maybeOutMessage, {
-    onNone: () => [nextModel, mappedCommands],
-    onSome: outMessage =>
-      M.value(outMessage).pipe(
-        withUpdateReturn,
-        M.tagsExhaustive({
-          SucceededLogin: ({ session }) => [
-            LoggedIn.init(DashboardRoute(), session),
-            [
-              ...mappedCommands,
-              SaveSession({ session }),
-              RedirectToDashboard(),
-            ],
-          ],
-        }),
-      ),
-  })
-}
-
-const handleGotLoggedInMessage = (
-  model: Model,
-  message: LoggedIn.Message,
-): UpdateReturn => {
-  if (model._tag !== 'LoggedIn') {
-    return [model, []]
-  }
-
-  const [nextModel, commands, maybeOutMessage] = LoggedIn.update(model, message)
-
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotLoggedInMessage({ message }),
-  )
-
-  return Option.match(maybeOutMessage, {
-    onNone: () => [nextModel, mappedCommands],
-    onSome: outMessage =>
-      M.value(outMessage).pipe(
-        withUpdateReturn,
-        M.tagsExhaustive({
-          RequestedLogout: () => [
-            LoggedOut.init(HomeRoute()),
-            [...mappedCommands, ClearSession(), RedirectToHome()],
-          ],
-        }),
-      ),
-  })
-}

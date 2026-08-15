@@ -16,6 +16,7 @@ import { m } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
 import { evo } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
+import * as Update from 'foldkit/update'
 
 import { AnchorConfig, anchorSetup, portalToContainingRoot } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
@@ -411,37 +412,26 @@ export const DetectMovementOrAnimationEnd = Command.define(
   },
 )
 
-const delegateToAnimation = (
-  model: Model,
-  animationMessage: AnimationMessage,
-): UpdateReturn => {
-  const [nextAnimation, animationCommands, maybeOutMessage] = animationUpdate(
-    model.animation,
-    animationMessage,
-  )
+const foldAnimationOutMessage = M.type<AnimationOutMessage>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    StartedLeaveAnimating: () => model => [
+      model,
+      [DetectMovementOrAnimationEnd({ id: model.id })],
+    ],
+    TransitionedOut: () => model => [model, []],
+  }),
+)
 
-  const mappedCommands = Command.mapMessages(animationCommands, message =>
-    GotAnimationMessage({ message }),
-  )
-
-  const additionalCommands = Option.match(maybeOutMessage, {
-    onNone: () => [],
-    onSome: M.type<AnimationOutMessage>().pipe(
-      M.tagsExhaustive({
-        StartedLeaveAnimating: () => [
-          DetectMovementOrAnimationEnd({ id: model.id }),
-        ],
-        TransitionedOut: () => [],
-      }),
-    ),
-  })
-
-  return [
+const foldAnimation = Update.foldChild({
+  update: animationUpdate,
+  read: (model: Model) => Option.some(model.animation),
+  write: (model, nextAnimation) =>
     evo(model, { animation: () => nextAnimation }),
-    [...mappedCommands, ...additionalCommands],
-    Option.none(),
-  ]
-}
+  toParentMessage: message => GotAnimationMessage({ message }),
+  toParentOutMessage: () => Option.none(),
+  foldOutMessage: foldAnimationOutMessage,
+})
 
 /** Processes a menu message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn => {
@@ -476,7 +466,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 
   const openMenu = (baseModel: Model): UpdateReturn => {
     if (model.isAnimated) {
-      const [nextModel, animationCommands] = delegateToAnimation(
+      const [nextModel, animationCommands] = foldAnimation(
         baseModel,
         AnimationShowed(),
       )
@@ -502,7 +492,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     const closed = closedModel(baseModel)
 
     if (model.isAnimated) {
-      const [nextModel, animationCommands] = delegateToAnimation(
+      const [nextModel, animationCommands] = foldAnimation(
         closed,
         AnimationHid(),
       )
@@ -636,7 +626,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
       },
 
       GotAnimationMessage: ({ message: animationMessage }) =>
-        delegateToAnimation(model, animationMessage),
+        foldAnimation(model, animationMessage),
 
       PressedPointerOnButton: ({
         pointerType,

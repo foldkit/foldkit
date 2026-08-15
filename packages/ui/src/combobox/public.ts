@@ -39,6 +39,7 @@ export {
   DeactivatedItem,
   MovedPointerOverItem,
   RequestedItemClick,
+  SuppressedItemCommit,
   UpdatedInputValue,
   PressedToggleButton,
 } from './shared.js'

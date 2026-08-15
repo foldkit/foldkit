@@ -82,7 +82,6 @@ export const SelectedThemePreference = m('SelectedThemePreference', {
 export const ChangedSystemTheme = m('ChangedSystemTheme', {
   theme: ResolvedTheme,
 })
-export const { ChangedHeroVisibility } = Page.Landing
 export const ChangedViewportWidth = m('ChangedViewportWidth', {
   isNarrow: S.Boolean,
 })
@@ -157,7 +156,6 @@ export const Message = S.Union([
   ChangedActiveSection,
   SelectedThemePreference,
   ChangedSystemTheme,
-  ChangedHeroVisibility,
   ChangedViewportWidth,
   ToggledAiHeading,
   GotDemoTabsMessage,

@@ -4,7 +4,7 @@
 
 The `Http` module has a single export, `Http.layer`: Effect’s Fetch-backed `HttpClient` with trace header propagation disabled by default. It is the browser-correct client to provide to an HTTP [Command](/core/commands). Yield `HttpClient.HttpClient` inside the Command and provide `Http.layer` at the edge of its Effect.
 
-The snippet on this page imports from `effect/unstable/http`. In the Effect v4 beta that Foldkit pins, the `HttpClient` modules live under the unstable namespace, so that import path is expected and matches what Foldkit projects use.
+The snippet on this page imports from `effect/unstable/http`. In the Effect v4 release candidate that Foldkit pins, the `HttpClient` modules live under the unstable namespace, so that import path is expected and matches what Foldkit projects use.
 
 ## Why propagation is off
 

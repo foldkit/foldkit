@@ -42,6 +42,11 @@ describe("Serializers", () => {
       strictEqual(Schema.toCodecJson(Schema.MutableJson).ast, Schema.MutableJson.ast)
     })
 
+    it("is idempotent", () => {
+      const once = Schema.toCodecJson(Schema.suspend(() => Schema.Struct({ value: Schema.Number })))
+      strictEqual(Schema.toCodecJson(once).ast, once.ast)
+    })
+
     it("should reorder the types in the Union based on the encoded side", async () => {
       const schema = Schema.Union([
         Schema.String,
@@ -1726,6 +1731,11 @@ describe("Serializers", () => {
         const serializer = Schema.toCodecStringTree(Schema.Unknown)
         strictEqual(serializer.ast, Schema.toCodecStringTree(serializer).ast)
       })
+
+      it("Suspend", () => {
+        const serializer = Schema.toCodecStringTree(Schema.suspend(() => Schema.Array(Schema.Finite)))
+        strictEqual(serializer.ast, Schema.toCodecStringTree(serializer).ast)
+      })
     })
 
     describe("schemas without encoding", () => {
@@ -2737,6 +2747,18 @@ Expected "Infinity" | "-Infinity" | "NaN"`
   })
 
   describe("toCodecArrayFromSingle", () => {
+    it("preserves union fallback when a singleton fails array element checks", async () => {
+      const schema = Schema.toCodecArrayFromSingle(Schema.toCodecStringTree(Schema.Union([
+        Schema.Array(Schema.String.check(Schema.isMinLength(2))),
+        Schema.String
+      ])))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("a", "a")
+      await decoding.succeed("ab", ["ab"])
+    })
+
     it("accepts string and array inputs for a top-level array", async () => {
       const serializer = Schema.toCodecArrayFromSingle(Schema.toCodecStringTree(Schema.Array(Schema.Finite)))
       strictEqual(serializer.ast._tag, "Arrays")
@@ -2798,8 +2820,15 @@ Expected "Infinity" | "-Infinity" | "NaN"`
       await decoding.succeed([["1", "2"]], [[1, 2]])
     })
 
-    it("is idempotent", () => {
+    it("preserves array-from-single encoding when converting to StringTree again", () => {
       const schema = Schema.toCodecArrayFromSingle(Schema.toCodecStringTree(Schema.Array(Schema.Finite)))
+      strictEqual(Schema.toCodecStringTree(schema).ast, schema.ast)
+    })
+
+    it("is idempotent", () => {
+      const schema = Schema.toCodecArrayFromSingle(
+        Schema.toCodecStringTree(Schema.suspend(() => Schema.Array(Schema.Finite)))
+      )
       strictEqual(schema.ast, Schema.toCodecArrayFromSingle(schema).ast)
     })
   })

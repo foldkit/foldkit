@@ -87,7 +87,9 @@ type Hot = NonNullable<ImportMeta['hot']>
 
 const REQUEST_CHANNEL = 'foldkit:devTools:request'
 const RESPONSE_CHANNEL = 'foldkit:devTools:response'
-const EVENT_CHANNEL = 'foldkit:devTools:event'
+
+/** HMR channel the bridge announces connection lifecycle events on. */
+export const EVENT_CHANNEL = 'foldkit:devTools:event'
 
 const generateConnectionId = (): string =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
@@ -110,11 +112,14 @@ const tryDeriveJsonSchemaDocument = (
  * Start the browser-side WebSocket bridge that exposes a Foldkit runtime's
  * DevToolsStore to an external MCP server (via the Vite plugin relay).
  *
- * Emits `EventConnected` on startup so the relay tracks this runtime.
- * Listens on the request channel for `RequestFrame`s targeted at this
- * connection's id and replies with the matching `ResponseFrame`. Emits
- * `EventDisconnected` on tab close or HMR module dispose so the relay can
- * remove this runtime from its connected set.
+ * Emits `EventConnected` on startup so the relay tracks this runtime, and
+ * again when the page is restored from the back/forward cache, whose freeze
+ * closed the socket the relay was tracking it on. Listens on the request
+ * channel for `RequestFrame`s targeted at this connection's id and replies
+ * with the matching `ResponseFrame`. Emits `EventDisconnected` when the
+ * runtime is disposed or its HMR module is replaced, so the relay can remove
+ * this runtime from its connected set. A page that goes away for good takes
+ * its socket with it, and the relay prunes on that close.
  *
  * `dispatch` delivers a Message to the runtime; the bridge
  * uses it to fulfill `RequestDispatchMessage` after decoding the payload
@@ -170,15 +175,19 @@ export const startWebSocketBridge = (
       hot.send(RESPONSE_CHANNEL, encodeResponseFrame({ id, response }))
     }
 
-    sendEvent(
-      EventConnected({
-        runtime: RuntimeInfo.make({
-          connectionId,
-          url: window.location.href,
-          title: document.title,
+    const announceConnected = (): void => {
+      sendEvent(
+        EventConnected({
+          runtime: RuntimeInfo.make({
+            connectionId,
+            url: window.location.href,
+            title: document.title,
+          }),
         }),
-      }),
-    )
+      )
+    }
+
+    announceConnected()
 
     const handleRequest = (id: string, request: Request) =>
       Effect.gen(function* () {
@@ -227,9 +236,25 @@ export const startWebSocketBridge = (
       hot.off(REQUEST_CHANNEL, handleRequestFrame)
     })
 
-    window.addEventListener('beforeunload', emitDisconnect, { once: true })
+    // NOTE: a page-lifecycle event is not a disconnect. `beforeunload` fires
+    // for a download-link click and for a navigation the user cancels, and the
+    // runtime survives both, so announcing a disconnect there left the relay
+    // ignoring a live app until the next reload. A page that really goes away
+    // closes its Vite HMR socket, and the plugin prunes the runtime on that
+    // close, so the relay learns it from a signal the page cannot survive.
+    //
+    // Freezing the page into the back/forward cache closes that socket too,
+    // which prunes a runtime that is only suspended. The runtime itself
+    // survives the freeze, so the restore has to announce it again.
+    const announceOnRestore = ({ persisted }: PageTransitionEvent): void => {
+      if (persisted) {
+        announceConnected()
+      }
+    }
 
-    // NOTE: a disposed runtime must disconnect from the MCP relay and stop
+    window.addEventListener('pageshow', announceOnRestore)
+
+    // NOTE: a disposed runtime must disconnect from the relay and stop
     // answering requests. Without this finalizer, every embed/dispose cycle
     // would leave a ghost connection that keeps responding with the dead
     // runtime's state.
@@ -237,7 +262,7 @@ export const startWebSocketBridge = (
       Effect.sync(() => {
         emitDisconnect()
         hot.off(REQUEST_CHANNEL, handleRequestFrame)
-        window.removeEventListener('beforeunload', emitDisconnect)
+        window.removeEventListener('pageshow', announceOnRestore)
       }),
     )
   })

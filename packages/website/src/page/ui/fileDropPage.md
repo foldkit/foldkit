@@ -4,7 +4,7 @@
 
 A file drop zone that accepts files via both drag-and-drop and a hidden `<input type="file">`. FileDrop is headless. The component owns drag state and file-arrival events; your `toView` callback owns the visual.
 
-FileDrop uses the Submodel pattern: initialize with `FileDrop.init()`, delegate in your parent update via `FileDrop.update()`, and render with `FileDrop.view()`. The update function returns `[Model, Commands, Option<OutMessage>]`. `ReceivedFiles` fires when files arrive with a guaranteed non-empty list; `RejectedNonFiles` fires when a drop or change event produced no files (e.g. a drag of non-file data). Pattern-match on both.
+FileDrop uses the Submodel pattern: initialize with `FileDrop.init()`, wire Messages through [`Update.foldChild`](/core/submodel#fold-child) in your parent update, and render with `FileDrop.view()`. The update function returns `[Model, Commands, Option<OutMessage>]`. `ReceivedFiles` fires when files arrive with a guaranteed non-empty list; `RejectedNonFiles` fires when a drop or change event produced no files (e.g. a drag of non-file data). Match both in the fold's `foldOutMessage`.
 
 :::Info{label="See it in an app"}
 Check out how FileDrop is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/fileDrop.ts).
@@ -65,9 +65,9 @@ Attribute groups provided to the `toView` callback.
 
 ### OutMessage {#out-message}
 
-The third element of the update tuple (`[Model, Commands, Option<OutMessage>]`). Pattern-match in your parent update handler to process arriving files.
+The third element of the update tuple (`[Model, Commands, Option<OutMessage>]`). Fold it in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config to process arriving files.
 
 | Name               | Type                                     | Default | Description                                                                                                                                                                                                                                |
 | ------------------ | ---------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ReceivedFiles`    | `{ files: NonEmptyReadonlyArray<File> }` | —       | Emitted when the user drops files on the zone or selects them via the hidden input. The files list is guaranteed non-empty. Pattern-match on the OutMessage in your parent update to process the files (validate, upload, store in Model). |
+| `ReceivedFiles`    | `{ files: NonEmptyReadonlyArray<File> }` | —       | Emitted when the user drops files on the zone or selects them via the hidden input. The files list is guaranteed non-empty. Fold it in the `foldOutMessage` of your FileDrop fold to process the files (validate, upload, store in Model). |
 | `RejectedNonFiles` | `{}`                                     | —       | Emitted when a drop or input-change event fires without any files, typically a drag of non-file data (text, URLs, images from another page). Consumers can ignore this or surface a hint to the user.                                      |

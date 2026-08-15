@@ -1,12 +1,29 @@
 import { FileSystem } from 'effect'
-import { Array, Console, Effect, pipe } from 'effect'
+import {
+  Array,
+  Console,
+  Effect,
+  Match as M,
+  Option,
+  String as String_,
+  pipe,
+} from 'effect'
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { join, resolve } from 'node:path'
+import { type Browser } from 'playwright'
 import satori, { type Font } from 'satori'
 
 import { Resvg } from '@resvg/resvg-js'
 
+import { type PostCover, maybePostCover } from '../src/page/blog/frontmatter'
+import { BLOG_AUTHOR } from '../src/page/blog/meta'
 import { type AppRoute } from '../src/route'
+import {
+  type BlogPostEntry,
+  PUBLIC_DIR,
+  blogPosts,
+  maybeCoverMimeType,
+} from './blogPosts'
 import {
   type ApiModuleNameResolver,
   type PageMetadata,
@@ -186,52 +203,160 @@ const urlPathToSlug = (urlPath: string): string => {
   return urlPath.slice(1).replace(/\//g, '-')
 }
 
+// COVER IMAGES
+
+const maybeRoutePostEntry = (route: AppRoute): Option.Option<BlogPostEntry> =>
+  M.value(route).pipe(
+    M.tag('BlogPost', ({ postSlug }) =>
+      Array.findFirst(blogPosts, ({ slug }) => slug === postSlug),
+    ),
+    M.orElse(() => Option.none()),
+  )
+
+const maybeRouteCover = (route: AppRoute): Option.Option<PostCover> =>
+  Option.flatMap(maybeRoutePostEntry(route), ({ frontmatter }) =>
+    maybePostCover(frontmatter),
+  )
+
+const coverMimeType = (src: string): Effect.Effect<string, Error> =>
+  Option.match(maybeCoverMimeType(src), {
+    onNone: () =>
+      Effect.fail(
+        new Error(`Cover image ${src} has no recognized image extension.`),
+      ),
+    onSome: Effect.succeed,
+  })
+
+// NOTE: Chromium decodes the cover and re-encodes it as PNG because resvg
+// cannot embed webp sources, and PNG is the one format every OG consumer
+// renders. The cover is center-cropped onto the standard 1200x630 card so
+// every platform shows the same crop instead of choosing its own. The
+// string-form evaluate polyfills the `__name` helper tsx injects into
+// compiled callbacks; see the note on PAGE_INIT_SCRIPT in prerender.ts.
+const renderCoverOgImage = (browser: Browser, cover: PostCover) =>
+  Effect.gen(function* () {
+    const mimeType = yield* coverMimeType(cover.src)
+    const fs = yield* FileSystem.FileSystem
+    const coverBytes = yield* fs.readFile(join(PUBLIC_DIR, cover.src))
+    const sourceUri = `data:${mimeType};base64,${Buffer.from(coverBytes).toString('base64')}`
+
+    const pngBase64 = yield* Effect.acquireUseRelease(
+      Effect.tryPromise(() => browser.newPage()),
+      page =>
+        Effect.gen(function* () {
+          yield* Effect.tryPromise(() =>
+            page.evaluate('window.__name = (target) => target'),
+          )
+          return yield* Effect.tryPromise(() =>
+            page.evaluate(
+              async ({ source, targetHeight, targetWidth }) => {
+                const image = new Image()
+                image.src = source
+                await image.decode()
+                if (image.naturalWidth === 0 || image.naturalHeight === 0) {
+                  throw new Error(
+                    'Cover image decoded with no intrinsic dimensions.',
+                  )
+                }
+                const canvas = document.createElement('canvas')
+                canvas.width = targetWidth
+                canvas.height = targetHeight
+                const context = canvas.getContext('2d')
+                if (context === null) {
+                  throw new Error('Canvas 2d context is unavailable.')
+                }
+                const scale = Math.max(
+                  targetWidth / image.naturalWidth,
+                  targetHeight / image.naturalHeight,
+                )
+                const drawWidth = image.naturalWidth * scale
+                const drawHeight = image.naturalHeight * scale
+                context.drawImage(
+                  image,
+                  (targetWidth - drawWidth) / 2,
+                  (targetHeight - drawHeight) / 2,
+                  drawWidth,
+                  drawHeight,
+                )
+                const pngPrefix = 'data:image/png;base64,'
+                return canvas.toDataURL('image/png').slice(pngPrefix.length)
+              },
+              {
+                source: sourceUri,
+                targetHeight: OG_HEIGHT,
+                targetWidth: OG_WIDTH,
+              },
+            ),
+          )
+        }),
+      page => Effect.promise(() => page.close()),
+    )
+
+    return Buffer.from(pngBase64, 'base64')
+  })
+
 // GENERATION
 
+const renderSatoriOgImage = (fonts: Array<Font>, metadata: PageMetadata) =>
+  Effect.gen(function* () {
+    const template = ogTemplate(metadata)
+
+    const svg = yield* Effect.tryPromise(() =>
+      // @ts-expect-error satori expects ReactNode but accepts plain {type, props} objects at runtime
+      satori(template, {
+        width: OG_WIDTH,
+        height: OG_HEIGHT,
+        fonts,
+      }),
+    )
+
+    const resvg = new Resvg(svg, {
+      fitTo: { mode: 'width', value: OG_WIDTH },
+    })
+
+    return resvg.render().asPng()
+  })
+
+// NOTE: a failed render fails the whole prerender on purpose. The page's meta
+// tags point at this file unconditionally, so shipping without it would ship
+// an og:image URL that 404s.
 const renderOgImage =
   (
     fonts: Array<Font>,
     ogDir: string,
     routeToUrlPath: (route: AppRoute) => string,
     resolveApiModuleName: ApiModuleNameResolver,
+    browser: Browser,
   ) =>
-  (route: AppRoute) =>
-    pipe(
+  (route: AppRoute) => {
+    const slug = urlPathToSlug(routeToUrlPath(route))
+    return pipe(
       Effect.gen(function* () {
-        const metadata = routeToMetadata(route, resolveApiModuleName)
-        const template = ogTemplate(metadata)
-        const slug = urlPathToSlug(routeToUrlPath(route))
-
-        const svg = yield* Effect.tryPromise(() =>
-          // @ts-expect-error satori expects ReactNode but accepts plain {type, props} objects at runtime
-          satori(template, {
-            width: OG_WIDTH,
-            height: OG_HEIGHT,
-            fonts,
-          }),
-        )
-
-        const resvg = new Resvg(svg, {
-          fitTo: { mode: 'width', value: OG_WIDTH },
+        const png = yield* Option.match(maybeRouteCover(route), {
+          onNone: () =>
+            renderSatoriOgImage(
+              fonts,
+              routeToMetadata(route, resolveApiModuleName),
+            ),
+          onSome: cover => renderCoverOgImage(browser, cover),
         })
-        const png = resvg.render().asPng()
 
         const fs = yield* FileSystem.FileSystem
         yield* fs.writeFile(resolve(ogDir, `${slug}.png`), png)
         yield* Console.log(`  ✓ og/${slug}.png`)
       }),
-      Effect.catch(error =>
-        Console.warn(
-          `  ✗ og/${urlPathToSlug(routeToUrlPath(route))}.png: ${String(error)}`,
-        ),
+      Effect.mapError(
+        error => new Error(`og/${slug}.png failed to render: ${String(error)}`),
       ),
     )
+  }
 
 export const generateOgImages = (
   routes: ReadonlyArray<AppRoute>,
   routeToUrlPath: (route: AppRoute) => string,
   distDir: string,
   resolveApiModuleName: ApiModuleNameResolver,
+  browser: Browser,
 ) =>
   Effect.gen(function* () {
     yield* Console.log('Generating OG images...')
@@ -243,7 +368,13 @@ export const generateOgImages = (
 
     yield* Effect.forEach(
       routes,
-      renderOgImage(fonts, ogDir, routeToUrlPath, resolveApiModuleName),
+      renderOgImage(
+        fonts,
+        ogDir,
+        routeToUrlPath,
+        resolveApiModuleName,
+        browser,
+      ),
       { concurrency: 8 },
     )
 
@@ -286,6 +417,23 @@ const HOMEPAGE_JSON_LD = [
   jsonLdTag(WEBSITE_SCHEMA),
 ].join('\n    ')
 
+const blogPostingJsonLd = (
+  entry: BlogPostEntry,
+  pageUrl: string,
+  ogImageUrl: string,
+): string =>
+  jsonLdTag({
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: entry.frontmatter.title,
+    description: entry.frontmatter.description,
+    datePublished: entry.frontmatter.date,
+    author: { '@type': 'Person', name: BLOG_AUTHOR },
+    image: ogImageUrl,
+    url: pageUrl,
+    mainEntityOfPage: pageUrl,
+  })
+
 // META TAG INJECTION
 
 const replaceOrThrow = (
@@ -300,7 +448,7 @@ const replaceOrThrow = (
     )
   }
 
-  return html.replace(pattern, replacement)
+  return html.replace(pattern, () => replacement)
 }
 
 export const injectMetaTags = (
@@ -318,14 +466,45 @@ export const injectMetaTags = (
       ? 'Foldkit - TypeScript Frontend Framework Built on Effect-TS | Elm Architecture'
       : `${metadata.title} - Foldkit | Effect-TS Frontend Framework`
 
-  const jsonLd = metadata.title === 'Foldkit' ? HOMEPAGE_JSON_LD : ''
+  const ogImageAlt = pipe(
+    maybeRouteCover(route),
+    Option.map(cover => cover.alt),
+    Option.filter(String_.isNonEmpty),
+    Option.getOrElse(() => fullTitle),
+  )
+
+  const escapedTitle = escapeHtml(fullTitle)
+  const escapedDescription = escapeHtml(metadata.description)
+  const escapedOgImageAlt = escapeHtml(ogImageAlt)
+
+  const maybePostEntry = maybeRoutePostEntry(route)
+
+  const ogType = Option.match(maybePostEntry, {
+    onNone: () => 'website',
+    onSome: () => 'article',
+  })
+
+  const headAppends = [
+    ...(metadata.title === 'Foldkit' ? [HOMEPAGE_JSON_LD] : []),
+    ...Option.match(maybePostEntry, {
+      onNone: () => [],
+      onSome: entry => [
+        `<meta property="article:published_time" content="${entry.frontmatter.date}" />`,
+        blogPostingJsonLd(entry, pageUrl, ogImageUrl),
+      ],
+    }),
+  ]
 
   const metaTagReplacements: ReadonlyArray<readonly [RegExp, string]> = [
-    [/<title>[^<]*<\/title>/, `<title>${fullTitle}</title>`],
+    [/<title>[^<]*<\/title>/, `<title>${escapedTitle}</title>`],
     [/rel="canonical"\s+href="[^"]*"/, `rel="canonical" href="${pageUrl}"`],
     [
+      /property="og:type"\s+content="[^"]*"/,
+      `property="og:type" content="${ogType}"`,
+    ],
+    [
       /name="description"\s+content="[^"]*"/,
-      `name="description" content="${metadata.description}"`,
+      `name="description" content="${escapedDescription}"`,
     ],
     [
       /property="og:url"\s+content="[^"]*"/,
@@ -333,11 +512,11 @@ export const injectMetaTags = (
     ],
     [
       /property="og:title"\s+content="[^"]*"/,
-      `property="og:title" content="${fullTitle}"`,
+      `property="og:title" content="${escapedTitle}"`,
     ],
     [
       /property="og:description"\s+content="[^"]*"/,
-      `property="og:description" content="${metadata.description}"`,
+      `property="og:description" content="${escapedDescription}"`,
     ],
     [
       /property="og:image"\s+content="[^"]*"/,
@@ -345,15 +524,15 @@ export const injectMetaTags = (
     ],
     [
       /property="og:image:alt"\s+content="[^"]*"/,
-      `property="og:image:alt" content="${fullTitle}"`,
+      `property="og:image:alt" content="${escapedOgImageAlt}"`,
     ],
     [
       /name="twitter:title"\s+content="[^"]*"/,
-      `name="twitter:title" content="${fullTitle}"`,
+      `name="twitter:title" content="${escapedTitle}"`,
     ],
     [
       /name="twitter:description"\s+content="[^"]*"/,
-      `name="twitter:description" content="${metadata.description}"`,
+      `name="twitter:description" content="${escapedDescription}"`,
     ],
     [
       /name="twitter:image"\s+content="[^"]*"/,
@@ -371,7 +550,9 @@ export const injectMetaTags = (
   return replaceOrThrow(
     withMetaTags,
     /<\/head>/,
-    jsonLd ? `${jsonLd}\n  </head>` : '</head>',
+    Array.isArrayNonEmpty(headAppends)
+      ? `${Array.join(headAppends, '\n    ')}\n  </head>`
+      : '</head>',
     urlPath,
   )
 }

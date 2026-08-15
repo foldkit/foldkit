@@ -1,5 +1,5 @@
 import { Option, flow } from 'effect'
-import type { HtmlBuilder } from 'foldkit/html'
+import { type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
 import { expect } from 'vitest'
@@ -12,9 +12,10 @@ import type { Model, ViewInputs } from './multi.js'
 import {
   ActivatedItem,
   AnchorCombobox,
-  ClearedSelection,
+  AttachComboboxPreventBlur,
   Closed,
   CompletedAnchorCombobox,
+  CompletedAttachComboboxPreventBlur,
   CompletedFocusInput,
   CompletedInertOthers,
   CompletedLockScroll,
@@ -46,6 +47,10 @@ const acknowledgeAnchor = Scene.Mount.resolve(
 const acknowledgeBackdrop = Scene.Mount.resolve(
   PortalComboboxBackdrop,
   CompletedPortalComboboxBackdrop(),
+)
+const acknowledgePreventBlur = Scene.Mount.resolve(
+  AttachComboboxPreventBlur,
+  CompletedAttachComboboxPreventBlur(),
 )
 
 const givenClosed = Story.given(init({ id: 'test' }))
@@ -190,7 +195,9 @@ describe('Combobox.Multi', () => {
             isOpen: true,
             inputValue: 'app',
           }),
-          Story.message(Closed({ restingInputValue: 'Apple' })),
+          Story.message(
+            Closed({ restingInputValue: 'Apple', isClearable: true }),
+          ),
           Story.Command.resolve(FocusInput, CompletedFocusInput()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
@@ -199,13 +206,13 @@ describe('Combobox.Multi', () => {
         )
       })
 
-      it('emits ClearedSelection when nullable and input is empty', () => {
+      it('does not emit ClearedSelection when nullable, since the input rests empty', () => {
         Story.story(
           update,
           Story.given(init({ id: 'test', nullable: true })),
           Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-          Story.message(Closed({ restingInputValue: '' })),
-          Story.expectOutMessage(ClearedSelection()),
+          Story.message(Closed({ restingInputValue: '', isClearable: true })),
+          Story.expectNoOutMessage(),
           Story.Command.resolve(FocusInput, CompletedFocusInput()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
@@ -219,7 +226,9 @@ describe('Combobox.Multi', () => {
         Story.story(
           update,
           Story.given(closedModel),
-          Story.message(Closed({ restingInputValue: 'Stale' })),
+          Story.message(
+            Closed({ restingInputValue: 'Stale', isClearable: true }),
+          ),
           Story.expectNoOutMessage(),
           Story.Command.expectNone(),
           Story.model(model => {
@@ -280,7 +289,7 @@ describe('Combobox.Multi', () => {
       Story.story(
         update,
         givenOpenModal,
-        Story.message(Closed({ restingInputValue: '' })),
+        Story.message(Closed({ restingInputValue: '', isClearable: true })),
         Story.Command.resolveAllExact(
           [FocusInput, CompletedFocusInput()],
           [UnlockScroll, CompletedUnlockScroll()],
@@ -331,7 +340,7 @@ describe('Combobox.Multi', () => {
       (
         overrides: Omit<
           Partial<ViewInputs<string>>,
-          'items' | 'itemToConfig' | 'itemToValue' | 'itemToDisplayText'
+          'items' | 'itemToValue' | 'itemToDisplayText'
         > = {},
       ) =>
       (model: Model, h: HtmlBuilder<Message>) =>
@@ -484,6 +493,230 @@ describe('Combobox.Multi', () => {
 
       it('inputId derives the input id from the base id', () => {
         expect(inputId('test')).toBe('test-input')
+      })
+    })
+
+    describe('read-only', () => {
+      const input = Scene.selector('#test-input')
+      const itemsContainer = Scene.selector('#test-items')
+      const button = Scene.selector('#test-button')
+      const item = (index: number) => Scene.selector(`#test-item-${index}`)
+
+      const toggleButtonContent = ih.span([])
+
+      it('emits the read-only attributes on the input, panel, and items', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              isReadOnly: true,
+              selectedValues: ['Apple'],
+            }),
+          },
+          Scene.given(openMultiModel()),
+          Scene.expect(input).toHaveAttr('readOnly', 'true'),
+          Scene.expect(input).toHaveAttr('aria-readonly', 'true'),
+          Scene.expect(input).toHaveAttr('data-readonly', ''),
+          Scene.expect(itemsContainer).toHaveAttr('aria-readonly', 'true'),
+          Scene.expect(itemsContainer).toHaveAttr('data-readonly', ''),
+          Scene.expect(item(0)).toHaveAttr('data-readonly', ''),
+          Scene.expect(item(1)).toHaveAttr('data-readonly', ''),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
+      it('emits data-readonly on the wrapper', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              isReadOnly: true,
+              selectedValues: ['Apple'],
+              className: 'test-wrapper',
+            }),
+          },
+          Scene.given(openMultiModel()),
+          Scene.expect(Scene.selector('.test-wrapper')).toHaveAttr(
+            'data-readonly',
+            '',
+          ),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
+      it('emits data-readonly on the toggle button', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              isReadOnly: true,
+              selectedValues: ['Apple'],
+              buttonContent: toggleButtonContent,
+            }),
+          },
+          Scene.given(openMultiModel()),
+          Scene.expect(button).toHaveAttr('data-readonly', ''),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          acknowledgePreventBlur,
+        )
+      })
+
+      it('emits no read-only attributes by default', () => {
+        Scene.scene(
+          { update, view: sceneView({ selectedValues: ['Apple'] }) },
+          Scene.given(openMultiModel()),
+          Scene.expect(input).not.toHaveAttr('readOnly'),
+          Scene.expect(itemsContainer).not.toHaveAttr('aria-readonly'),
+          Scene.expect(item(0)).not.toHaveAttr('data-readonly'),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
+      it('drops the input and item click handlers', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              isReadOnly: true,
+              selectedValues: ['Apple'],
+            }),
+          },
+          Scene.given(openMultiModel()),
+          Scene.expect(input).not.toHaveHandler('input'),
+          Scene.expect(input).toHaveHandler('keydown'),
+          Scene.expect(item(0)).not.toHaveHandler('click'),
+          Scene.expect(item(1)).not.toHaveHandler('click'),
+          Scene.expect(item(1)).toHaveHandler('pointerleave'),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
+      it('emits Selected on item click when not read-only', () => {
+        Scene.scene(
+          { update, view: sceneView({ selectedValues: ['Apple'] }) },
+          Scene.given(openMultiModel()),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.click(item(1)),
+          Scene.expectOutMessage(Selected({ value: 'Banana' })),
+        )
+      })
+
+      it('reports Enter on the active item as SuppressedItemCommit', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              isReadOnly: true,
+              selectedValues: ['Apple'],
+            }),
+          },
+          Scene.given(openMultiModel()),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(input, 'Enter'),
+          Scene.expectHandled(),
+          Scene.expectNoOutMessage(),
+        )
+      })
+
+      it('does not commit while navigating an immediate combobox', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              isReadOnly: true,
+              selectedValues: ['Apple'],
+            }),
+          },
+          Scene.given({ ...openMultiModel(), immediate: true }),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(input, 'ArrowDown'),
+          Scene.expect(item(1)).toHaveAttr('data-active', ''),
+          Scene.expectNoOutMessage(),
+          Scene.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
+        )
+      })
+
+      it('moves the active item off the selection without changing it', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              isReadOnly: true,
+              selectedValues: ['Apple'],
+            }),
+          },
+          Scene.given(openMultiModel()),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.expect(item(0)).toHaveAttr('data-selected', ''),
+          Scene.expect(item(0)).toHaveAttr('data-active', ''),
+          Scene.keydown(input, 'ArrowDown'),
+          Scene.expect(item(1)).toHaveAttr('data-active', ''),
+          Scene.expect(item(0)).toHaveAttr('data-selected', ''),
+          Scene.expect(item(1)).not.toHaveAttr('data-selected'),
+          Scene.expectNoOutMessage(),
+          Scene.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
+        )
+      })
+
+      it('passes isReadOnly to itemToConfig', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              isReadOnly: true,
+              selectedValues: ['Apple'],
+              itemToConfig: (_item, context) => ({
+                content: null,
+                className: context.isReadOnly ? 'is-read-only' : 'is-editable',
+              }),
+            }),
+          },
+          Scene.given(openMultiModel()),
+          Scene.expect(item(0)).toHaveClass('is-read-only'),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
+      it('does not clear the selection when Escape closes a nullable group', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({ isReadOnly: true, selectedValues: ['Apple'] }),
+          },
+          Scene.given({ ...openMultiModel(), nullable: true, inputValue: '' }),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(input, 'Escape'),
+          Scene.expectNoOutMessage(),
+          Scene.Command.resolve(FocusInput, CompletedFocusInput()),
+          Scene.Mount.expectEnded(AnchorCombobox, PortalComboboxBackdrop),
+        )
+      })
+
+      it('does not clear the selection when Escape closes a nullable group that is not read-only', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({ selectedValues: ['Apple'] }),
+          },
+          Scene.given({ ...openMultiModel(), nullable: true, inputValue: '' }),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(input, 'Escape'),
+          Scene.expectNoOutMessage(),
+          Scene.Command.resolve(FocusInput, CompletedFocusInput()),
+          Scene.Mount.expectEnded(AnchorCombobox, PortalComboboxBackdrop),
+        )
       })
     })
   })

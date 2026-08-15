@@ -23,6 +23,7 @@ import {
   ManagedResource,
   Runtime,
   Subscription,
+  Update,
 } from 'foldkit'
 import { type Document, type HtmlBuilder } from 'foldkit/html'
 import { load, pushUrl } from 'foldkit/navigation'
@@ -80,7 +81,6 @@ import * as Page from './page'
 import { type ExampleSlug } from './page/example/meta'
 import {
   AppRoute,
-  isLandingHeaderAlwaysVisible,
   isPlaygroundRoute,
   playgroundRouter,
   urlToAppRoute,
@@ -95,7 +95,7 @@ import {
   SidebarStateJsonString,
 } from './sidebarStorage'
 import * as Subscriptions from './subscription'
-import { docsView, landingView, newsletterView } from './view'
+import { blogView, docsView, landingView, newsletterView } from './view'
 
 export type { Message } from './message'
 
@@ -241,7 +241,6 @@ export const Model = S.Struct({
   mobileMenuDialog: Dialog.Model,
   isMobileTableOfContentsOpen: S.Boolean,
   activeSection: S.Option(S.String),
-  isLandingHeaderVisible: S.Boolean,
   isNarrowViewport: S.Boolean,
   isChromium: S.Boolean,
   playground: S.Option(Page.Playground.Model),
@@ -427,7 +426,6 @@ export const init: Runtime.RoutingApplicationInit<
       isMobileTableOfContentsOpen: false,
       activeSection: Option.none(),
       aiHeadingToggleCount: 0,
-      isLandingHeaderVisible: isLandingHeaderAlwaysVisible(initialRoute),
       isNarrowViewport: flags.isNarrowViewport,
       isChromium: flags.isChromium,
       playground: pipe(
@@ -473,7 +471,226 @@ export const init: Runtime.RoutingApplicationInit<
 
 // UPDATE
 
+type UpdateStep = Update.Step<
+  Model,
+  Message,
+  AppResources | AppManagedResources
+>
+
 const isPathnameEqual = (a: Url, b: Url): boolean => a.pathname === b.pathname
+
+const foldMobileMenuDialogOutMessage = M.type<Dialog.OutMessage>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    Opened: () => model => [model, []],
+    Closed: () => model => [model, []],
+  }),
+)
+
+const readMobileMenuDialog = (model: Model): Option.Option<Dialog.Model> =>
+  Option.some(model.mobileMenuDialog)
+
+const writeMobileMenuDialog = (
+  model: Model,
+  nextMobileMenuDialog: Dialog.Model,
+): Model => evo(model, { mobileMenuDialog: () => nextMobileMenuDialog })
+
+const toGotMobileMenuDialogMessage = (message: Dialog.Message): Message =>
+  GotMobileMenuDialogMessage({ message })
+
+const foldMobileMenuDialog = Update.foldChild({
+  update: Dialog.update,
+  read: readMobileMenuDialog,
+  write: writeMobileMenuDialog,
+  toParentMessage: toGotMobileMenuDialogMessage,
+  foldOutMessage: foldMobileMenuDialogOutMessage,
+})
+
+const foldMobileMenuDialogClose = Update.foldChildStep({
+  update: Dialog.close,
+  read: readMobileMenuDialog,
+  write: writeMobileMenuDialog,
+  toParentMessage: toGotMobileMenuDialogMessage,
+  foldOutMessage: foldMobileMenuDialogOutMessage,
+})
+
+const foldDemoTabsOutMessage = M.type<Tabs.OutMessage<DemoTab.Tab>>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    Selected:
+      ({ value }) =>
+      model => [
+        evo(model, {
+          activeDemoTab: () => value,
+          asyncCounterDemo: () =>
+            reflectAsyncCounterDemoPresence(
+              model.asyncCounterDemo,
+              isAsyncCounterDemoVisible(model.route, value),
+            ),
+          notePlayerDemo: () =>
+            reflectNotePlayerDemoPresence(
+              model.notePlayerDemo,
+              isNotePlayerDemoVisible(model.route, value),
+            ),
+        }),
+        [],
+      ],
+  }),
+)
+
+const foldDemoTabs = Update.foldChild({
+  update: DemoTab.DemoTabs.update,
+  read: (model: Model) => Option.some(model.demoTabs),
+  write: (model, nextDemoTabs) => evo(model, { demoTabs: () => nextDemoTabs }),
+  toParentMessage: message => GotDemoTabsMessage({ message }),
+  foldOutMessage: foldDemoTabsOutMessage,
+})
+
+const foldPlaygroundMenuOutMessage: (
+  outMessage: Menu.OutMessage<ExampleSlug>,
+) => Update.Step<Model, Message> = M.type<Menu.OutMessage<ExampleSlug>>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    // NOTE: `LoadExternal` (not `NavigateInternal`).
+    // WebContainer requires `window.crossOriginIsolated`,
+    // which is only true when the document is loaded with
+    // COEP/COOP headers. SPA navigation reuses the previous
+    // page's document (no headers), so playground URLs need
+    // a fresh document load.
+    Selected:
+      ({ value }) =>
+      model => [
+        model,
+        [LoadExternal({ href: playgroundRouter({ exampleSlug: value }) })],
+      ],
+  }),
+)
+
+const foldPlaygroundMenu = Update.foldChild({
+  update: PlaygroundMenu.update,
+  read: (model: Model) => Option.some(model.playgroundMenu),
+  write: (model, nextPlaygroundMenu) =>
+    evo(model, { playgroundMenu: () => nextPlaygroundMenu }),
+  toParentMessage: message => GotPlaygroundMenuMessage({ message }),
+  foldOutMessage: foldPlaygroundMenuOutMessage,
+})
+
+const foldAsyncCounterDemo = Update.foldChild({
+  update: Page.AsyncCounterDemo.update,
+  read: (model: Model) => model.asyncCounterDemo,
+  write: (model, nextAsyncCounterDemo) =>
+    evo(model, { asyncCounterDemo: () => Option.some(nextAsyncCounterDemo) }),
+  toParentMessage: message => GotAsyncCounterDemoMessage({ message }),
+})
+
+const foldNotePlayerDemo = Update.foldChild({
+  update: Page.NotePlayerDemo.update,
+  read: (model: Model) => model.notePlayerDemo,
+  write: (model, nextNotePlayerDemo) =>
+    evo(model, { notePlayerDemo: () => Option.some(nextNotePlayerDemo) }),
+  toParentMessage: message => GotNotePlayerDemoMessage({ message }),
+})
+
+const foldComingFromReact = Update.foldChild({
+  update: Page.ComingFromReact.update,
+  read: (model: Model) => Option.some(model.comingFromReact),
+  write: (model, nextComingFromReact) =>
+    evo(model, { comingFromReact: () => nextComingFromReact }),
+  toParentMessage: message => GotComingFromReactMessage({ message }),
+})
+
+const readApiReference = (
+  model: Model,
+): Option.Option<Page.ApiReference.Model> => Option.some(model.apiReference)
+
+const writeApiReference = (
+  model: Model,
+  nextApiReference: Page.ApiReference.Model,
+): Model => evo(model, { apiReference: () => nextApiReference })
+
+const toGotApiReferenceMessage = (
+  message: Page.ApiReference.Message,
+): Message => GotApiReferenceMessage({ message })
+
+const foldApiReference = Update.foldChild({
+  update: Page.ApiReference.update,
+  read: readApiReference,
+  write: writeApiReference,
+  toParentMessage: toGotApiReferenceMessage,
+})
+
+const foldApiReferenceRouteChanged = Update.foldChildStep({
+  update: Page.ApiReference.informRouteChanged,
+  read: readApiReference,
+  write: writeApiReference,
+  toParentMessage: toGotApiReferenceMessage,
+})
+
+const foldUiPages = Update.foldChild({
+  update: Page.UiPages.update,
+  read: (model: Model) => Option.some(model.uiPages),
+  write: (model, nextUiPages) => evo(model, { uiPages: () => nextUiPages }),
+  toParentMessage: message => GotUiPageMessage({ message }),
+})
+
+const readExampleDetail = (
+  model: Model,
+): Option.Option<Page.Example.ExampleDetail.Model> =>
+  Option.some(model.exampleDetail)
+
+const writeExampleDetail = (
+  model: Model,
+  nextExampleDetail: Page.Example.ExampleDetail.Model,
+): Model => evo(model, { exampleDetail: () => nextExampleDetail })
+
+const toGotExampleDetailMessage = (
+  message: Page.Example.ExampleDetail.Message,
+): Message => GotExampleDetailMessage({ message })
+
+const foldExampleDetail = Update.foldChild({
+  update: Page.Example.ExampleDetail.update,
+  read: readExampleDetail,
+  write: writeExampleDetail,
+  toParentMessage: toGotExampleDetailMessage,
+})
+
+const foldExampleDetailRouteChanged = Update.foldChild({
+  update: Page.Example.ExampleDetail.informRouteChanged,
+  read: readExampleDetail,
+  write: writeExampleDetail,
+  toParentMessage: toGotExampleDetailMessage,
+})
+
+const readSearch = (model: Model): Option.Option<Search.Model> =>
+  Option.some(model.search)
+
+const writeSearch = (model: Model, nextSearch: Search.Model): Model =>
+  evo(model, { search: () => nextSearch })
+
+const toGotSearchMessage = (message: Search.Message): Message =>
+  GotSearchMessage({ message })
+
+const foldSearch = Update.foldChild({
+  update: Search.update,
+  read: readSearch,
+  write: writeSearch,
+  toParentMessage: toGotSearchMessage,
+})
+
+const foldSearchRouteChanged = Update.foldChildStep({
+  update: Search.informRouteChanged,
+  read: readSearch,
+  write: writeSearch,
+  toParentMessage: toGotSearchMessage,
+})
+
+const foldPlayground = Update.foldChild({
+  update: Page.Playground.update,
+  read: (model: Model) => model.playground,
+  write: (model, nextPlayground) =>
+    evo(model, { playground: () => Option.some(nextPlayground) }),
+  toParentMessage: message => GotPlaygroundMessage({ message }),
+})
 
 export const update = (
   model: Model,
@@ -550,37 +767,13 @@ export const update = (
               : Record_.set(model.sidebarGroups, activeSectionKey, true),
         })
 
-        const [closedMobileMenu, closeMobileMenuCommands] = Dialog.close(
-          model.mobileMenuDialog,
-        )
-
-        const [nextSearch, searchResetCommands] = Search.informRouteChanged(
-          model.search,
-        )
-
-        const [nextApiReference, apiReferenceLoadCommands] = M.value(
-          nextRoute,
-        ).pipe(
-          M.withReturnType<ReturnType<typeof Page.ApiReference.update>>(),
-          M.tag('ApiModule', () =>
-            Page.ApiReference.informRouteChanged(model.apiReference),
-          ),
-          M.orElse(() => [model.apiReference, []]),
-        )
-
-        const [nextExampleDetail, exampleDetailLoadCommands] = M.value(
-          nextRoute,
-        ).pipe(
-          M.withReturnType<
-            ReturnType<typeof Page.Example.ExampleDetail.update>
-          >(),
-          M.tag('ExampleDetail', ({ exampleSlug }) =>
-            Page.Example.ExampleDetail.informRouteChanged(
-              model.exampleDetail,
-              exampleSlug,
-            ),
-          ),
-          M.orElse(() => [model.exampleDetail, []]),
+        const routeSteps = M.value(nextRoute).pipe(
+          M.withReturnType<ReadonlyArray<UpdateStep>>(),
+          M.tag('ApiModule', () => [foldApiReferenceRouteChanged]),
+          M.tag('ExampleDetail', ({ exampleSlug }) => [
+            foldExampleDetailRouteChanged(exampleSlug),
+          ]),
+          M.orElse(() => []),
         )
 
         const maybeScrollSidebar = Option.liftPredicate(
@@ -609,34 +802,21 @@ export const update = (
           Option.map(({ exampleSlug }) => Page.Playground.init(exampleSlug)),
         )
 
-        return [
+        const writeRouteFields: UpdateStep = model => [
           evo(model, {
             route: () => nextRoute,
             url: () => url,
             asyncCounterDemo: () => nextAsyncCounterDemo,
             notePlayerDemo: () => nextNotePlayerDemo,
-            mobileMenuDialog: () => closedMobileMenu,
-            apiReference: () => nextApiReference,
-            exampleDetail: () => nextExampleDetail,
             playground: () => nextPlaygroundRoute,
-            search: () => nextSearch,
-            isLandingHeaderVisible: () =>
-              isLandingHeaderAlwaysVisible(nextRoute),
             sidebarGroups: () => nextSidebarGroups,
           }),
+          [],
+        ]
+
+        const scrollToRoute: UpdateStep = model => [
+          model,
           [
-            ...Command.mapMessages(closeMobileMenuCommands, message =>
-              GotMobileMenuDialogMessage({ message }),
-            ),
-            ...Command.mapMessages(searchResetCommands, message =>
-              GotSearchMessage({ message }),
-            ),
-            ...Command.mapMessages(apiReferenceLoadCommands, message =>
-              GotApiReferenceMessage({ message }),
-            ),
-            ...Command.mapMessages(exampleDetailLoadCommands, message =>
-              GotExampleDetailMessage({ message }),
-            ),
             ...Option.match(url.hash, {
               onNone: () => Option.toArray(maybeScrollToTop),
               onSome: hash => [ScrollToAnchor({ hash })],
@@ -644,6 +824,14 @@ export const update = (
             ...Option.toArray(maybeScrollSidebar),
           ],
         ]
+
+        return Update.combine(model, [
+          writeRouteFields,
+          foldMobileMenuDialogClose,
+          foldSearchRouteChanged,
+          ...routeSteps,
+          scrollToRoute,
+        ])
       },
 
       ClickedCopySnippet: ({ text }) => [model, [CopySnippet({ text })]],
@@ -729,21 +917,8 @@ export const update = (
         ]
       },
 
-      GotMobileMenuDialogMessage: ({ message }) => {
-        const [nextMobileMenuDialog, mobileMenuDialogCommands] = Dialog.update(
-          model.mobileMenuDialog,
-          message,
-        )
-
-        return [
-          evo(model, {
-            mobileMenuDialog: () => nextMobileMenuDialog,
-          }),
-          Command.mapMessages(mobileMenuDialogCommands, message =>
-            GotMobileMenuDialogMessage({ message }),
-          ),
-        ]
-      },
+      GotMobileMenuDialogMessage: ({ message }) =>
+        foldMobileMenuDialog(model, message),
 
       ToggledMobileTableOfContents: ({ isOpen }) => [
         evo(model, { isMobileTableOfContentsOpen: () => isOpen }),
@@ -762,11 +937,6 @@ export const update = (
         evo(model, {
           activeSection: () => Option.some(sectionId),
         }),
-        [],
-      ],
-
-      ChangedHeroVisibility: ({ isVisible }) => [
-        evo(model, { isLandingHeaderVisible: () => !isVisible }),
         [],
       ],
 
@@ -797,118 +967,16 @@ export const update = (
         ]
       },
 
-      GotDemoTabsMessage: ({ message }) => {
-        const [nextDemoTabs, demoTabsCommands, maybeOutMessage] =
-          DemoTab.DemoTabs.update(model.demoTabs, message)
+      GotDemoTabsMessage: ({ message }) => foldDemoTabs(model, message),
 
-        const nextActiveDemoTab = Option.match(maybeOutMessage, {
-          onNone: () => model.activeDemoTab,
-          onSome: M.type<Tabs.OutMessage<DemoTab.Tab>>().pipe(
-            M.tagsExhaustive({
-              Selected: ({ value }) => value,
-            }),
-          ),
-        })
-
-        const nextAsyncCounterDemo = reflectAsyncCounterDemoPresence(
-          model.asyncCounterDemo,
-          isAsyncCounterDemoVisible(model.route, nextActiveDemoTab),
-        )
-
-        const nextNotePlayerDemo = reflectNotePlayerDemoPresence(
-          model.notePlayerDemo,
-          isNotePlayerDemoVisible(model.route, nextActiveDemoTab),
-        )
-
-        return [
-          evo(model, {
-            demoTabs: () => nextDemoTabs,
-            activeDemoTab: () => nextActiveDemoTab,
-            asyncCounterDemo: () => nextAsyncCounterDemo,
-            notePlayerDemo: () => nextNotePlayerDemo,
-          }),
-          Command.mapMessages(demoTabsCommands, message =>
-            GotDemoTabsMessage({ message }),
-          ),
-        ]
-      },
-
-      GotPlaygroundMenuMessage: ({ message }) => {
-        const [nextMenu, menuCommands, maybeOutMessage] = PlaygroundMenu.update(
-          model.playgroundMenu,
-          message,
-        )
-        const mappedCommands = Command.mapMessages(menuCommands, message =>
-          GotPlaygroundMenuMessage({ message }),
-        )
-        type UpdateReturn = readonly [
-          Model,
-          ReadonlyArray<Command.Command<Message>>,
-        ]
-
-        return Option.match(maybeOutMessage, {
-          onNone: (): UpdateReturn => [
-            evo(model, { playgroundMenu: () => nextMenu }),
-            mappedCommands,
-          ],
-          onSome: M.type<Menu.OutMessage<ExampleSlug>>().pipe(
-            M.withReturnType<UpdateReturn>(),
-            M.tagsExhaustive({
-              // NOTE: `LoadExternal` (not `NavigateInternal`).
-              // WebContainer requires `window.crossOriginIsolated`,
-              // which is only true when the document is loaded with
-              // COEP/COOP headers. SPA navigation reuses the previous
-              // page's document (no headers), so playground URLs need
-              // a fresh document load.
-              Selected: ({ value }) => [
-                evo(model, { playgroundMenu: () => nextMenu }),
-                [
-                  ...mappedCommands,
-                  LoadExternal({
-                    href: playgroundRouter({ exampleSlug: value }),
-                  }),
-                ],
-              ],
-            }),
-          ),
-        })
-      },
+      GotPlaygroundMenuMessage: ({ message }) =>
+        foldPlaygroundMenu(model, message),
 
       GotAsyncCounterDemoMessage: ({ message }) =>
-        Option.match(model.asyncCounterDemo, {
-          onNone: () => [model, []],
-          onSome: asyncCounterDemo => {
-            const [nextAsyncCounterDemo, asyncCounterDemoCommands] =
-              Page.AsyncCounterDemo.update(asyncCounterDemo, message)
-
-            return [
-              evo(model, {
-                asyncCounterDemo: () => Option.some(nextAsyncCounterDemo),
-              }),
-              Command.mapMessages(asyncCounterDemoCommands, message =>
-                GotAsyncCounterDemoMessage({ message }),
-              ),
-            ]
-          },
-        }),
+        foldAsyncCounterDemo(model, message),
 
       GotNotePlayerDemoMessage: ({ message }) =>
-        Option.match(model.notePlayerDemo, {
-          onNone: () => [model, []],
-          onSome: notePlayerDemo => {
-            const [nextNotePlayerDemo, notePlayerDemoCommands] =
-              Page.NotePlayerDemo.update(notePlayerDemo, message)
-
-            return [
-              evo(model, {
-                notePlayerDemo: () => Option.some(nextNotePlayerDemo),
-              }),
-              Command.mapMessages(notePlayerDemoCommands, message =>
-                GotNotePlayerDemoMessage({ message }),
-              ),
-            ]
-          },
-        }),
+        foldNotePlayerDemo(model, message),
 
       ChangedSystemTheme: ({ theme }) => {
         const resolvedTheme = resolveTheme(model.themePreference, theme)
@@ -922,45 +990,12 @@ export const update = (
         ]
       },
 
-      GotComingFromReactMessage: ({ message }) => {
-        const [nextComingFromReact, comingFromReactCommands] =
-          Page.ComingFromReact.update(model.comingFromReact, message)
+      GotComingFromReactMessage: ({ message }) =>
+        foldComingFromReact(model, message),
 
-        return [
-          evo(model, {
-            comingFromReact: () => nextComingFromReact,
-          }),
-          Command.mapMessages(comingFromReactCommands, message =>
-            GotComingFromReactMessage({ message }),
-          ),
-        ]
-      },
+      GotApiReferenceMessage: ({ message }) => foldApiReference(model, message),
 
-      GotApiReferenceMessage: ({ message }) => {
-        const [nextApiReference, apiReferenceCommands] =
-          Page.ApiReference.update(model.apiReference, message)
-
-        return [
-          evo(model, { apiReference: () => nextApiReference }),
-          Command.mapMessages(apiReferenceCommands, message =>
-            GotApiReferenceMessage({ message }),
-          ),
-        ]
-      },
-
-      GotUiPageMessage: ({ message }) => {
-        const [nextUiPages, uiPagesCommands] = Page.UiPages.update(
-          model.uiPages,
-          message,
-        )
-
-        return [
-          evo(model, { uiPages: () => nextUiPages }),
-          Command.mapMessages(uiPagesCommands, message =>
-            GotUiPageMessage({ message }),
-          ),
-        ]
-      },
+      GotUiPageMessage: ({ message }) => foldUiPages(model, message),
 
       ToggledSidebarGroup: ({ key, isOpen }) => {
         const nextModel = evo(model, {
@@ -974,50 +1009,12 @@ export const update = (
         [],
       ],
 
-      GotExampleDetailMessage: ({ message }) => {
-        const [nextExampleDetail, exampleDetailCommands] =
-          Page.Example.ExampleDetail.update(model.exampleDetail, message)
+      GotExampleDetailMessage: ({ message }) =>
+        foldExampleDetail(model, message),
 
-        return [
-          evo(model, {
-            exampleDetail: () => nextExampleDetail,
-          }),
-          Command.mapMessages(exampleDetailCommands, message =>
-            GotExampleDetailMessage({ message }),
-          ),
-        ]
-      },
+      GotSearchMessage: ({ message }) => foldSearch(model, message),
 
-      GotSearchMessage: ({ message }) => {
-        const [nextSearch, searchCommands] = Search.update(
-          model.search,
-          message,
-        )
-
-        return [
-          evo(model, { search: () => nextSearch }),
-          Command.mapMessages(searchCommands, message =>
-            GotSearchMessage({ message }),
-          ),
-        ]
-      },
-
-      GotPlaygroundMessage: ({ message }) =>
-        Option.match(model.playground, {
-          onNone: () => [model, []],
-          onSome: playgroundModel => {
-            const [nextPlayground, playgroundCommands] = Page.Playground.update(
-              playgroundModel,
-              message,
-            )
-            return [
-              evo(model, { playground: () => Option.some(nextPlayground) }),
-              Command.mapMessages(playgroundCommands, message =>
-                GotPlaygroundMessage({ message }),
-              ),
-            ]
-          },
-        }),
+      GotPlaygroundMessage: ({ message }) => foldPlayground(model, message),
     }),
     M.tag(
       'CompletedNavigateInternal',
@@ -1142,16 +1139,32 @@ const ScrollMobileMenuActiveLinkIntoView = Command.define(
   },
 )
 
+// NOTE: mirrors --color-cream and --color-gray-900 in styles.css.
+// src/themeColor.test.ts fails when these drift.
+const LIGHT_THEME_COLOR = '#f8f7fb'
+const DARK_THEME_COLOR = '#1e1c21'
+
+const setThemeColorMeta = (color: string): void => {
+  const themeColorMeta = document.querySelector('meta[name="theme-color"]')
+  if (themeColorMeta !== null) {
+    themeColorMeta.setAttribute('content', color)
+  }
+}
+
 const ApplyTheme = Command.define('ApplyTheme', {
   args: { theme: ResolvedTheme },
   messages: [CompletedApplyTheme],
   execute: ({ theme }) =>
     Effect.sync(() => {
       M.value(theme).pipe(
-        M.when('Dark', () => document.documentElement.classList.add('dark')),
-        M.when('Light', () =>
-          document.documentElement.classList.remove('dark'),
-        ),
+        M.when('Dark', () => {
+          document.documentElement.classList.add('dark')
+          setThemeColorMeta(DARK_THEME_COLOR)
+        }),
+        M.when('Light', () => {
+          document.documentElement.classList.remove('dark')
+          setThemeColorMeta(LIGHT_THEME_COLOR)
+        }),
         M.exhaustive,
       )
       return CompletedApplyTheme()
@@ -1241,6 +1254,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   body: M.value(model.route).pipe(
     M.tag('Home', () => landingView(model, h)),
     M.tag('Newsletter', () => newsletterView(model, h)),
+    M.tag('Blog', 'BlogPost', route => blogView(model, route, h)),
     M.tag('Playground', () =>
       Option.match(model.playground, {
         onNone: () => h.empty,
@@ -1285,6 +1299,14 @@ const routeTitle = (
   M.value(route).pipe(
     M.tag('Home', () => SITE_NAME),
     M.tag('Newsletter', () => `Newsletter | ${SITE_NAME}`),
+    M.tag('Blog', () => `Blog | ${SITE_NAME}`),
+    M.tag('BlogPost', ({ postSlug }) =>
+      Option.match(Page.Blog.findPostBySlug(postSlug), {
+        onNone: () => `Not Found | ${SITE_NAME}`,
+        onSome: ({ frontmatter }) =>
+          `${frontmatter.title} | Blog | ${SITE_NAME}`,
+      }),
+    ),
     M.tag('NotFound', () => `Not Found | ${SITE_NAME}`),
     M.tag(
       'ApiModule',

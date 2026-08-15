@@ -89,6 +89,11 @@
     }
   },
   "ignore": ["**/*.css", "packages/website/public/**"],
-  "ignoreDependencies": ["@foldkit/oxlint-plugin", "tailwindcss", "madge"],
+  "ignoreDependencies": [
+    "@effect/platform-browser",
+    "@foldkit/oxlint-plugin",
+    "tailwindcss",
+    "madge"
+  ],
   "ignoreBinaries": ["typecheck"]
 }

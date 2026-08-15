@@ -2,48 +2,47 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Match as M, Option, Schema as S } from 'effect'
+import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { RadioGroup } from '@foldkit/ui'
 
-const RADIO_GROUP_ID = 'plan'
-
 const Plan = S.Literals(['Startup', 'Business', 'Enterprise'])
 type Plan = typeof Plan.Type
 
-// Your Model owns the selected value. RadioGroup keeps no state of its own:
+// Add fields to your Model for the RadioGroup Submodel and the selected
+// value. The Submodel keeps private keyboard-focus state; the parent owns
+// the selection and passes it back in as selectedValue.
 const Model = S.Struct({
+  planRadioGroup: RadioGroup.Model,
   maybePlan: S.Option(Plan),
   // ...your other fields
 })
+type Model = typeof Model.Type
 
-// In your init function, start with nothing selected:
+// In your init function, initialize the RadioGroup Submodel with a unique
+// id and start with nothing selected:
 const init = () => [
   {
+    planRadioGroup: RadioGroup.init({ id: 'plan' }),
     maybePlan: Option.none(),
     // ...your other fields
   },
   [],
 ]
 
-// A Message carrying the committed value. The radio group manages focus
-// itself, so no focus command or acknowledgement reaches your update:
-const SelectedPlan = m('SelectedPlan', { plan: Plan })
+// Embed the RadioGroup Message in your parent Message:
+const GotPlanRadioGroupMessage = m('GotPlanRadioGroupMessage', {
+  message: RadioGroup.Message,
+})
+type Message = typeof GotPlanRadioGroupMessage.Type // ...united with your others
 
-const Message = S.Union([SelectedPlan])
-
-// Inside your update function's M.tagsExhaustive({...}), just store the value:
-const update = (model, message) =>
-  M.value(message).pipe(
-    M.tagsExhaustive({
-      SelectedPlan: ({ plan }) => [
-        evo(model, { maybePlan: () => Option.some(plan) }),
-        [],
-      ],
-    }),
-  )
+// Declare a typed RadioGroup factory once at module scope. The Value
+// generic types option.value in toView so the consumer can switch on it
+// without casting:
+const PlanRadioGroup = RadioGroup.create<Plan>()
 
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 
@@ -53,15 +52,45 @@ const descriptions: Record<Plan, string> = {
   Enterprise: '32GB / 12 CPUs. Dedicated infrastructure',
 }
 
-// Inside your view function, call RadioGroup.view directly:
-const view = (model, h: HtmlBuilder<Message>) =>
-  RadioGroup.view(
-    {
-      id: RADIO_GROUP_ID,
-      selectedValue: model.maybePlan,
+// At module scope, fold the OutMessage into your own Model. The `Selected`
+// arm carries the chosen value (typed as `Plan`) and its index, and returns
+// an Update.Step. This arm is also where the parent updates its own state or
+// dispatches Commands, for example to persist the choice or price the order.
+const foldPlanRadioGroupOutMessage = M.type<RadioGroup.OutMessage<Plan>>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    Selected:
+      ({ value }) =>
+      model => [evo(model, { maybePlan: () => Option.some(value) }), []],
+  }),
+)
+
+// Update.foldChild wires the child into the parent: it runs the child update,
+// writes the child Model back, maps the child's Commands into your Message
+// type, and hands any OutMessage to foldOutMessage.
+const foldPlanRadioGroup = Update.foldChild({
+  update: PlanRadioGroup.update,
+  read: (model: Model) => Option.some(model.planRadioGroup),
+  write: (model, nextPlanRadioGroup) =>
+    evo(model, { planRadioGroup: () => nextPlanRadioGroup }),
+  toParentMessage: message => GotPlanRadioGroupMessage({ message }),
+  foldOutMessage: foldPlanRadioGroupOutMessage,
+})
+
+// Inside your update function's M.tagsExhaustive({...}), call the fold:
+GotPlanRadioGroupMessage: ({ message }) => foldPlanRadioGroup(model, message)
+
+// Inside your view function, embed the radio group via h.submodel and pass
+// the parent-owned selection as selectedValue:
+const view = (model: Model, h: HtmlBuilder<Message>) =>
+  h.submodel({
+    slotId: model.planRadioGroup.id,
+    model: model.planRadioGroup,
+    view: PlanRadioGroup.view,
+    viewInputs: {
       options: plans,
+      selectedValue: model.maybePlan,
       ariaLabel: 'Server plan',
-      onSelect: plan => SelectedPlan({ plan }),
       toView: ({ group, options }) =>
         h.div(
           [...group, h.Class('flex flex-col gap-3')],
@@ -88,5 +117,5 @@ const view = (model, h: HtmlBuilder<Message>) =>
           }),
         ),
     },
-    h,
-  )
+    toParentMessage: message => GotPlanRadioGroupMessage({ message }),
+  })

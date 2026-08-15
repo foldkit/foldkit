@@ -80,7 +80,9 @@ Test update functions with `foldkit/test`. Since update is pure, tests run witho
 
 Import the steps as named imports from `foldkit/story` or `foldkit/scene`: `import { Command, given, message, model, story } from 'foldkit/story'`. A test file needs only one of the two modules. If a single file ever tests both, import the namespaces instead (`import { Scene, Story } from 'foldkit'`) so `Story.given` and `Scene.given` stay distinguishable.
 
-Name each test file for its test style, beside the code under test: `story.test.ts` for the Story tests (which drive `update`) and `scene.test.ts` for the Scene tests (which drive the rendered view). The name describes how the test works, not a source file, so it stays correct whether `update` and `view` live in `main.ts` or in their own files. When one folder holds more than one test of a kind (sibling pages, component variants), prefix with the subject: `login.story.test.ts`. Scene tests always run from the root `update`/`view`, so a single root-level `scene.test.ts` is the right home even in a multi-page app. If the `repos/foldkit` subtree is available, study the `story.test.ts` and `scene.test.ts` files in `repos/foldkit/examples/`.
+Name each test file for its test style, beside the code under test: `story.test.ts` for the Story tests (which drive `update`) and `scene.test.ts` for the Scene tests (which drive the rendered view). The name describes how the test works, not a source file, so it stays correct whether `update` and `view` live in `main.ts` or in their own files. A test file lives in the folder that holds the code it drives, so in a multi-page app most of them sit in a page folder rather than at the root. When one folder holds more than one test of a kind (sibling pages, component variants), prefix with the subject: `login.story.test.ts`.
+
+Scene runs at any level, since a page's own `update`/`view` pair drops into `scene` unmodified. Put a `scene.test.ts` in the page folder for behavior that page owns, which covers view states awkward to reach through the root Model, and keep a root-level `scene.test.ts` for flows that cross pages, which covers how the parent folds an OutMessage, a Command the parent lifts, a route change, and view inputs the parent computes. If the `repos/foldkit` subtree is available, study the `story.test.ts` and `scene.test.ts` files in `repos/foldkit/examples/`. `repos/foldkit/examples/auth` is the multi-page shape: a root `src/scene.test.ts` for the cross-page login flow alongside `src/page/loggedOut/page/login.scene.test.ts` and `login.story.test.ts` driving that page's own pair.
 
 ## Code Style
 
@@ -97,7 +99,7 @@ Name each test file for its test style, beside the code under test: `story.test.
 
 ## Message Layout
 
-Group all `m()` declarations together with no blank lines between them, then put `S.Union([...])` and `type Message = typeof Message.Type` on adjacent lines:
+Group all `m()` declarations together, then put `S.Union([...])` and `type Message = typeof Message.Type` on adjacent lines:
 
 ```ts
 const ClickedSubmit = m('ClickedSubmit')
@@ -106,6 +108,8 @@ const UpdatedEmail = m('UpdatedEmail', { value: S.String })
 const Message = S.Union([ClickedSubmit, UpdatedEmail])
 type Message = typeof Message.Type
 ```
+
+Keep the declarations in one unbroken block while the union is small, up to roughly a dozen Messages. Past that, blank-line thematic clusters (navigation, session, one per feature) are equally fine, so pick whichever reads better for the union at hand. The `S.Union([...])` and `type Message` pair stays adjacent, directly after the declarations, either way.
 
 Messages are verb-first past-tense. Common prefixes: `Clicked*`, `Updated*` (input changes and external state updates), `Submitted*`, `Pressed*`, `Selected*`, `Succeeded*` / `Failed*` (paired async results), `Completed*` (every other Command result), `Got*` (child OutMessage in the Submodel pattern).
 

@@ -27,12 +27,24 @@ export const Placement = S.Literals([
   'left-end',
 ])
 
+/** Schema mirroring `@floating-ui/dom`'s `Padding` type: a uniform number or a
+ *  partial per-side object (`top`/`right`/`bottom`/`left`). */
+export const Padding = S.Union([
+  S.Number,
+  S.Struct({
+    top: S.optionalKey(S.Number),
+    right: S.optionalKey(S.Number),
+    bottom: S.optionalKey(S.Number),
+    left: S.optionalKey(S.Number),
+  }),
+])
+
 /** Static configuration for anchor-based positioning of a floating element relative to a button. */
 export const AnchorConfig = S.Struct({
   placement: S.optional(Placement),
   gap: S.optional(S.Number),
   offset: S.optional(S.Number),
-  padding: S.optional(S.Number),
+  padding: S.optional(Padding),
   portal: S.optional(S.Boolean),
   isPlacementLocked: S.optional(S.Boolean),
 })

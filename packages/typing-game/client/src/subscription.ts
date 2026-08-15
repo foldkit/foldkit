@@ -1,49 +1,27 @@
-import { Effect, Match as M, Schema as S, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
-import { GotRoomMessage, Message, PressedKey } from './message'
+import { GotHomeMessage, GotRoomMessage, Message } from './message'
 import { Model } from './model'
 import { Home, Room } from './page'
 import { RoomsClient } from './rpc'
 
-const roomSubscriptions = Subscription.lift(Room.subscriptions)<Model, Message>(
+const homeSubscriptions = Subscription.lift(Home.subscriptions)<Model, Message>(
   {
-    toChildModel: model => model.room,
-    toParentMessage: message => GotRoomMessage({ message }),
+    toChildModel: model => model.home,
+    toParentMessage: message => GotHomeMessage({ message }),
+    when: ({ route }) => route._tag === 'Home',
   },
 )
 
-const keyboardSubscriptions = Subscription.make<Model, Message>()(entry => ({
-  keyboard: entry(
-    { shouldCaptureKeyboard: S.Boolean },
-    {
-      modelToDependencies: ({ route, room, home }) => ({
-        shouldCaptureKeyboard: M.value(route).pipe(
-          M.tagsExhaustive({
-            Home: () => Home.Model.capturesKeyboard(home),
-            Room: () => Room.Model.capturesKeyboard(room),
-            NotFound: () => true,
-          }),
-        ),
-      }),
-      dependenciesToStream: ({ shouldCaptureKeyboard }) =>
-        Stream.when(
-          Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-            Stream.mapEffect(keyboardEvent =>
-              Effect.sync(() => {
-                keyboardEvent.preventDefault()
-                return PressedKey({ key: keyboardEvent.key })
-              }),
-            ),
-          ),
-          Effect.sync(() => shouldCaptureKeyboard),
-        ),
-    },
-  ),
-}))
+const roomSubscriptions = Subscription.lift(Room.subscriptions)({
+  toChildModel: (model: Model) => model.room,
+  toParentMessage: (message: Room.Message.Message): Message =>
+    GotRoomMessage({ message }),
+  when: { roomKeyboard: ({ route }) => route._tag === 'Room' },
+})
 
 export const subscriptions = Subscription.aggregate<
   Model,
   Message,
   RoomsClient
->()(roomSubscriptions, keyboardSubscriptions)
+>()(homeSubscriptions, roomSubscriptions)

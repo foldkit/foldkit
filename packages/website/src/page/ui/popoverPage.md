@@ -106,7 +106,7 @@ Payload delivered to the `toView` callback each render.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Pattern-match on the OutMessage in your update handler.
+Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
 
 | Name     | Type | Default | Description                                                                                                                                    |
 | -------- | ---- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |

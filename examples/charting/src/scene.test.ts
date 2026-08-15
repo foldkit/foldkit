@@ -11,6 +11,8 @@ import {
 } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
+import { RadioGroup } from '@foldkit/ui'
+
 import { SyncChart } from './command'
 import { loadingModel, readyModel, sampleTelemetry } from './main.fixtures'
 import { SucceededMountChart, SucceededSyncChart } from './message'
@@ -25,6 +27,11 @@ const acknowledgeChartMount = Mount.resolve(
 )
 
 const acknowledgeChartSync = Command.resolve(SyncChart, SucceededSyncChart())
+
+const resolveFocusOption = Command.resolve(
+  RadioGroup.FocusOption,
+  RadioGroup.CompletedFocusOption(),
+)
 
 describe('view', () => {
   test('loading view shows a telemetry progress state', () => {
@@ -55,6 +62,7 @@ describe('view', () => {
       acknowledgeChartMount,
       acknowledgeChartSync,
       click(role('radio', { name: 'Velocity' })),
+      resolveFocusOption,
       Command.resolve(SyncChart, SucceededSyncChart()),
       expect(role('radio', { name: 'Velocity' })).toHaveAttr(
         'aria-checked',

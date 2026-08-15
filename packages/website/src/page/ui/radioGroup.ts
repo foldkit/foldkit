@@ -3,14 +3,13 @@ import type { HtmlBuilder } from 'foldkit/html'
 import { RadioGroup } from '@foldkit/ui'
 
 import {
+  GotHorizontalRadioGroupDemoMessage,
+  GotVerticalRadioGroupDemoMessage,
   type Message,
-  SelectedHorizontalPlan,
-  SelectedVerticalPlan,
 } from './message'
 import { type Model, type Plan } from './model'
 
-export const VERTICAL_RADIO_GROUP_ID = 'vertical-radio-group-demo'
-export const HORIZONTAL_RADIO_GROUP_ID = 'horizontal-radio-group-demo'
+export const PlanRadioGroup = RadioGroup.create<Plan>()
 
 // DEMO CONTENT
 
@@ -68,13 +67,14 @@ export const verticalDemo = (model: Model, h: HtmlBuilder<Message>) => {
   const checkPlaceholder = h.div([h.Class('size-5')])
 
   return [
-    RadioGroup.view(
-      {
-        id: VERTICAL_RADIO_GROUP_ID,
+    h.submodel({
+      slotId: model.verticalRadioGroupDemo.id,
+      model: model.verticalRadioGroupDemo,
+      view: PlanRadioGroup.view,
+      viewInputs: {
         selectedValue: model.verticalRadioGroupDemoValue,
         options: plans,
         ariaLabel: 'Server plan',
-        onSelect: plan => SelectedVerticalPlan({ plan }),
         toView: ({ group, options }) =>
           h.div(
             [...group, h.Class(verticalGroupClassName)],
@@ -116,8 +116,8 @@ export const verticalDemo = (model: Model, h: HtmlBuilder<Message>) => {
             }),
           ),
       },
-      h,
-    ),
+      toParentMessage: message => GotVerticalRadioGroupDemoMessage({ message }),
+    }),
   ]
 }
 
@@ -142,14 +142,15 @@ export const horizontalDemo = (model: Model, h: HtmlBuilder<Message>) => {
   const checkPlaceholder = h.div([h.Class('size-5')])
 
   return [
-    RadioGroup.view(
-      {
-        id: HORIZONTAL_RADIO_GROUP_ID,
+    h.submodel({
+      slotId: model.horizontalRadioGroupDemo.id,
+      model: model.horizontalRadioGroupDemo,
+      view: PlanRadioGroup.view,
+      viewInputs: {
         selectedValue: model.horizontalRadioGroupDemoValue,
         options: plans,
         ariaLabel: 'Server plan',
         orientation: 'Horizontal',
-        onSelect: plan => SelectedHorizontalPlan({ plan }),
         toView: ({ group, options }) =>
           h.div(
             [...group, h.Class(horizontalGroupClassName)],
@@ -181,7 +182,8 @@ export const horizontalDemo = (model: Model, h: HtmlBuilder<Message>) => {
             }),
           ),
       },
-      h,
-    ),
+      toParentMessage: message =>
+        GotHorizontalRadioGroupDemoMessage({ message }),
+    }),
   ]
 }

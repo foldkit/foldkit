@@ -22,12 +22,13 @@ Pointer drag needs document-level `pointermove` / `pointerup` tracking (the curs
 
 ## Styling
 
-Slider exposes `data-dragging` while the user is actively dragging, `data-disabled` when disabled, and `data-orientation` on the root. The `filledTrack` attribute group carries an inline width so the filled portion always matches the current value.
+Slider exposes `data-dragging` while the user is actively dragging, `data-disabled` when disabled, `data-readonly` when read-only, and `data-orientation` on the root. The `filledTrack` attribute group carries an inline width so the filled portion always matches the current value.
 
 | Attribute          | Condition                                                                                |
 | ------------------ | ---------------------------------------------------------------------------------------- |
 | `data-dragging`    | Present on the root, track, filled track, and thumb while the user is actively dragging. |
 | `data-disabled`    | Present on all groups when isDisabled is true.                                           |
+| `data-readonly`    | Present on all groups when isReadOnly is true.                                           |
 | `data-orientation` | Present on the root. Always "horizontal" in v1; vertical is planned.                     |
 
 ## Keyboard Interaction
@@ -42,9 +43,21 @@ Slider exposes `data-dragging` while the user is actively dragging, `data-disabl
 | `End`                   | Jumps to the maximum value.                                              |
 | `Escape`                | During a pointer drag, cancels the drag and restores the pre-drag value. |
 
+Every key in this table is inert when `isDisabled` or `isReadOnly` is true, because both remove the thumb's keydown handler. Escape is the exception. It cancels a drag through a Subscription rather than the handler, so a drag that began before the slider became read-only can still be cancelled, and can still run to pointerup on its own. Flipping `isReadOnly` mid-drag does not interrupt the drag in flight. `isDisabled` behaves the same way.
+
 ## Accessibility
 
 The thumb receives `role="slider"`, `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, and `aria-orientation`. When `formatValue` is provided, the formatted string is announced via `aria-valuetext`. By default the thumb is labeled via `aria-labelledby` pointing at the id carried on the `label` attribute group; you can override this with an explicit `ariaLabel` or `ariaLabelledBy`.
+
+`isReadOnly` and `isDisabled` both stop the Slider from reacting to pointer drags and keys. They differ in the semantics exposed to assistive technology, so they are not interchangeable.
+
+`aria-disabled="true"`, which `isDisabled` emits, communicates that the Slider is unavailable. `aria-readonly="true"`, which `isReadOnly` emits, communicates that its value cannot be changed but remains relevant to the user. It sits on the thumb, the element carrying `role="slider"`. Both states keep `tabindex="0"`, following Foldkit's convention that unavailable controls remain discoverable by keyboard and assistive technology.
+
+Assistive technology support for `aria-readonly` on sliders varies. Pair it with a visible read-only treatment or explanatory text when users must distinguish it from disabled, and test the browser and assistive technology combinations your app supports.
+
+Use `isReadOnly` when the value is still information the user needs, such as a level set by another control, and `isDisabled` when the Slider is unavailable.
+
+The two flags are independent. Setting both emits both sets of attributes, and either one on its own removes the pointer and keyboard handlers.
 
 ## API Reference
 
@@ -73,6 +86,7 @@ Configuration object passed to `Slider.view()`.
 | `ariaLabelledBy`  | `string`                                          | —       | ID of an external element whose text serves as the slider’s accessible name.                                                                                                                                                 |
 | `formatValue`     | `(value: number) => string`                       | —       | Produces the aria-valuetext announced to screen readers. Use it when the numeric value needs a natural-language form (e.g. "3 of 10" or "50 percent").                                                                       |
 | `isDisabled`      | `boolean`                                         | `false` | Whether the slider is disabled. Removes pointer and keyboard interactivity while preserving focusability.                                                                                                                    |
+| `isReadOnly`      | `boolean`                                         | `false` | Whether the slider is readable but not adjustable. Carries `aria-readonly` rather than `aria-disabled`. Independent of `isDisabled`. Removes pointer and keyboard interactivity while preserving focusability.               |
 | `name`            | `string`                                          | —       | Form field name. When provided, a hidden input carrying the current numeric value is included for native form submission.                                                                                                    |
 | `getTrackRoot`    | `(() => Document \| ShadowRoot) \| undefined`     | —       | Optional accessor returning the DOM root that contains the slider track. Defaults to `document`. Override when rendering inside a Shadow DOM so the drag subscription can find the track element to measure cursor position. |
 
@@ -91,8 +105,8 @@ Attribute groups provided to the `toView` callback.
 
 ### OutMessage {#out-messages}
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Parents pattern-match on the OutMessage in their own update handler.
+Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Parents fold the OutMessage in the `foldOutMessage` of their [`Update.foldChild`](/core/submodel#fold-child) config.
 
-| Name           | Type                | Default | Description                                                                                                                                                                                                                                                |
-| -------------- | ------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ChangedValue` | `{ value: number }` | —       | Emitted whenever the slider value changes via drag, click-to-jump, or keyboard navigation. Pattern-match the third tuple element of Slider.update in your GotSliderMessage handler to react: persist the value, validate, or trigger a downstream Command. |
+| Name           | Type                | Default | Description                                                                                                                                                                                                                         |
+| -------------- | ------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ChangedValue` | `{ value: number }` | —       | Emitted whenever the slider value changes via drag, click-to-jump, or keyboard navigation. Fold it in the `foldOutMessage` of your Slider fold to react, for example: persist the value, validate, or trigger a downstream Command. |

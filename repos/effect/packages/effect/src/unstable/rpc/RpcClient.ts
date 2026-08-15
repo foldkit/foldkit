@@ -510,7 +510,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
   ) => Effect.Effect<any, E> => {
     const middlewares: Array<RpcMiddleware.RpcMiddlewareClient<any, any, any>> = []
     for (const tag of rpc.middlewares.values()) {
-      const middleware = services.mapUnsafe.get(`${tag.key}/Client`)
+      const middleware = Context.getOrUndefinedUnsafe(services, `${tag.key}/Client`) as any
       if (!middleware) continue
       middlewares.push(middleware)
     }
@@ -1285,6 +1285,11 @@ export const makeProtocolWorker = (
           undefined
       }).pipe(
         Effect.tapCause((cause) => {
+          for (const [requestId, entry] of entries) {
+            if (entry.worker !== backing) continue
+            entries.delete(requestId)
+            entry.latch.openUnsafe()
+          }
           const error = Cause.findError(cause)
           return broadcast({
             _tag: "ClientProtocolError",

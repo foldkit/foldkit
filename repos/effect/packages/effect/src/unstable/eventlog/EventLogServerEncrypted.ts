@@ -10,10 +10,10 @@
  *
  * @since 4.0.0
  */
-import * as Uuid from "uuid"
 import * as Arr from "../../Array.ts"
 import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
+import * as Uuid from "../../internal/uuid.ts"
 import * as Layer from "../../Layer.ts"
 import * as PubSub from "../../PubSub.ts"
 import * as RcMap from "../../RcMap.ts"
@@ -67,10 +67,10 @@ export const layerRpcHandlers = Layer.unwrap(Effect.gen(function*() {
         })
       }
       if (request.encryptedEntries.length === 0) return
-      const entries = request.encryptedEntries.map(({ encryptedEntry, entryId }) =>
+      const entries = request.encryptedEntries.map(({ encryptedEntry, entryId, iv }) =>
         new PersistedEntry({
           entryId,
-          iv: request.iv,
+          iv,
           encryptedEntry
         })
       )

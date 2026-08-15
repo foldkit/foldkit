@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Array, Option, Schema as S } from 'effect'
+import { Array, Option } from 'effect'
 import { type Html, type HtmlBuilder, childAttributes } from 'foldkit/html'
 
 import { Button, Listbox, RadioGroup, Switch } from '@foldkit/ui'
@@ -7,15 +7,15 @@ import { Button, Listbox, RadioGroup, Switch } from '@foldkit/ui'
 import { EMPTY_COLOR, GRID_SIZE_STRINGS } from '../constant'
 import {
   ClickedClear,
+  GotGridSizeRadioGroupMessage,
+  GotPaletteRadioGroupMessage,
   GotThemeListboxMessage,
+  GotToolRadioGroupMessage,
   type Message,
-  SelectedColor,
-  SelectedGridSize,
-  SelectedTool,
   ToggledMirrorHorizontal,
   ToggledMirrorVertical,
 } from '../message'
-import { type MirrorMode, PaletteIndex, type Tool } from '../model'
+import { type MirrorMode, type PaletteIndex, type Tool } from '../model'
 import { PALETTE_THEMES, type PaletteTheme } from '../palette'
 
 const TOOLS: ReadonlyArray<Tool> = ['Brush', 'Fill', 'Eraser']
@@ -28,14 +28,9 @@ export const MIRROR_VERTICAL_SWITCH_ID = 'mirror-vertical'
 
 export const ThemeListbox = Listbox.create<string>()
 
-const paletteIndexFromValue = (
-  value: string,
-  fallback: PaletteIndex,
-): PaletteIndex =>
-  Option.getOrElse(
-    S.decodeUnknownOption(PaletteIndex)(Number(value)),
-    () => fallback,
-  )
+export const ToolRadioGroup = RadioGroup.create<Tool>()
+export const GridSizeRadioGroup = RadioGroup.create()
+export const PaletteRadioGroup = RadioGroup.create()
 
 const TOOL_SHORTCUTS: Record<Tool, string> = {
   Brush: 'B',
@@ -112,37 +107,46 @@ export const toolPanelView = (
   theme: PaletteTheme,
   paletteThemeIndex: number,
   themeListbox: typeof Listbox.Model.Type,
+  toolRadioGroup: RadioGroup.Model,
+  gridSizeRadioGroup: RadioGroup.Model,
+  paletteRadioGroup: RadioGroup.Model,
   h: HtmlBuilder<Message>,
 ): Html =>
   h.div(
     [h.Class('w-full md:w-44 flex flex-col gap-5 flex-shrink-0')],
     [
-      toolSectionView(tool, h),
+      toolSectionView(tool, toolRadioGroup, h),
       mirrorSectionView(mirrorMode, h),
-      sizeSectionView(gridSize, h),
+      sizeSectionView(gridSize, gridSizeRadioGroup, h),
       paletteSectionView(
         selectedColorIndex,
         theme,
         paletteThemeIndex,
         themeListbox,
+        paletteRadioGroup,
         h,
       ),
       clearCanvasView(isCanvasEmpty, h),
     ],
   )
 
-const toolSectionView = (selectedTool: Tool, h: HtmlBuilder<Message>): Html =>
+const toolSectionView = (
+  selectedTool: Tool,
+  toolRadioGroup: RadioGroup.Model,
+  h: HtmlBuilder<Message>,
+): Html =>
   h.div(
     [],
     [
       sectionLabel('Tools', h),
-      RadioGroup.view(
-        {
-          id: TOOL_RADIO_GROUP_ID,
+      h.submodel({
+        slotId: toolRadioGroup.id,
+        model: toolRadioGroup,
+        view: ToolRadioGroup.view,
+        viewInputs: {
           selectedValue: Option.some(selectedTool),
           options: TOOLS,
           ariaLabel: 'Drawing tool',
-          onSelect: tool => SelectedTool({ tool }),
           toView: ({ group, options }) =>
             h.div(
               [...group, h.Class('flex flex-col gap-1.5')],
@@ -173,8 +177,8 @@ const toolSectionView = (selectedTool: Tool, h: HtmlBuilder<Message>): Html =>
               }),
             ),
         },
-        h,
-      ),
+        toParentMessage: message => GotToolRadioGroupMessage({ message }),
+      }),
     ],
   )
 
@@ -264,19 +268,24 @@ const mirrorSectionView = (
   )
 }
 
-const sizeSectionView = (gridSize: number, h: HtmlBuilder<Message>): Html =>
+const sizeSectionView = (
+  gridSize: number,
+  gridSizeRadioGroup: RadioGroup.Model,
+  h: HtmlBuilder<Message>,
+): Html =>
   h.div(
     [],
     [
       sectionLabel('Grid Size', h),
-      RadioGroup.view(
-        {
-          id: GRID_SIZE_RADIO_GROUP_ID,
+      h.submodel({
+        slotId: gridSizeRadioGroup.id,
+        model: gridSizeRadioGroup,
+        view: GridSizeRadioGroup.view,
+        viewInputs: {
           selectedValue: Option.some(gridSize.toString()),
           options: GRID_SIZE_STRINGS,
           ariaLabel: 'Grid size',
           orientation: 'Horizontal',
-          onSelect: value => SelectedGridSize({ size: Number(value) }),
           toView: ({ group, options }) =>
             h.div(
               [...group, h.Class('flex gap-1')],
@@ -300,8 +309,8 @@ const sizeSectionView = (gridSize: number, h: HtmlBuilder<Message>): Html =>
               ),
             ),
         },
-        h,
-      ),
+        toParentMessage: message => GotGridSizeRadioGroupMessage({ message }),
+      }),
     ],
   )
 
@@ -310,6 +319,7 @@ const paletteSectionView = (
   theme: PaletteTheme,
   paletteThemeIndex: number,
   themeListbox: typeof Listbox.Model.Type,
+  paletteRadioGroup: RadioGroup.Model,
   h: HtmlBuilder<Message>,
 ): Html => {
   const paletteIndexStrings = theme.colors.map((_, index) => index.toString())
@@ -323,17 +333,15 @@ const paletteSectionView = (
         [h.Class('text-xs text-gray-400 font-mono pb-3')],
         [selectedHexColor],
       ),
-      RadioGroup.view(
-        {
-          id: PALETTE_RADIO_GROUP_ID,
+      h.submodel({
+        slotId: paletteRadioGroup.id,
+        model: paletteRadioGroup,
+        view: PaletteRadioGroup.view,
+        viewInputs: {
           selectedValue: Option.some(selectedColorIndex.toString()),
           options: paletteIndexStrings,
           ariaLabel: 'Color palette',
           orientation: 'Horizontal',
-          onSelect: value =>
-            SelectedColor({
-              colorIndex: paletteIndexFromValue(value, selectedColorIndex),
-            }),
           toView: ({ group, options }) =>
             h.div(
               [...group, h.Class('grid grid-cols-4 gap-2.5')],
@@ -361,8 +369,8 @@ const paletteSectionView = (
               }),
             ),
         },
-        h,
-      ),
+        toParentMessage: message => GotPaletteRadioGroupMessage({ message }),
+      }),
       themeListboxView(themeListbox, theme, paletteThemeIndex, h),
     ],
   )

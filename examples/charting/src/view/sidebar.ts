@@ -3,8 +3,6 @@ import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 import { HtmlBuilder } from 'foldkit/html'
 
-import { RadioGroup } from '@foldkit/ui'
-
 import {
   type Telemetry,
   chartModes,
@@ -17,16 +15,16 @@ import {
   totalDownloads,
 } from '../domain'
 import {
+  GotChartModeRadioGroupMessage,
+  GotPackageRadioGroupMessage,
+  GotPeriodRadioGroupMessage,
   type Message,
-  SelectedChartMode,
-  SelectedPackage,
-  SelectedPeriod,
 } from '../message'
 import { type Model } from '../model'
 import {
-  CHART_MODE_RADIO_GROUP_ID,
-  PACKAGE_RADIO_GROUP_ID,
-  PERIOD_RADIO_GROUP_ID,
+  ChartModeRadioGroup,
+  PackageRadioGroup,
+  PeriodRadioGroup,
 } from '../radioGroups'
 import { formatCompact, formatFetchedAt, formatInteger } from './format'
 
@@ -129,14 +127,15 @@ export const controlPanelView = (model: Model, h: HtmlBuilder<Message>): Html =>
             [h.Class('mb-1.5 text-xs font-medium text-zinc-500')],
             ['Chart mode'],
           ),
-          RadioGroup.view(
-            {
-              id: CHART_MODE_RADIO_GROUP_ID,
+          h.submodel({
+            slotId: model.chartModeRadioGroup.id,
+            model: model.chartModeRadioGroup,
+            view: ChartModeRadioGroup.view,
+            viewInputs: {
               selectedValue: Option.some(model.chartMode),
               options: chartModes,
               ariaLabel: 'Chart mode',
               orientation: 'Horizontal',
-              onSelect: chartMode => SelectedChartMode({ chartMode }),
               toView: ({ group, options }) =>
                 h.div(
                   [...group, h.Class(radioGroupClassName)],
@@ -152,8 +151,9 @@ export const controlPanelView = (model: Model, h: HtmlBuilder<Message>): Html =>
                   ),
                 ),
             },
-            h,
-          ),
+            toParentMessage: message =>
+              GotChartModeRadioGroupMessage({ message }),
+          }),
         ],
       ),
       model.chartMode !== 'Ecosystem'
@@ -164,14 +164,15 @@ export const controlPanelView = (model: Model, h: HtmlBuilder<Message>): Html =>
                 [h.Class('mb-1.5 text-xs font-medium text-zinc-500')],
                 ['Period'],
               ),
-              RadioGroup.view(
-                {
-                  id: PERIOD_RADIO_GROUP_ID,
+              h.submodel({
+                slotId: model.periodRadioGroup.id,
+                model: model.periodRadioGroup,
+                view: PeriodRadioGroup.view,
+                viewInputs: {
                   selectedValue: Option.some(model.period),
                   options: periods,
                   ariaLabel: 'Period',
                   orientation: 'Horizontal',
-                  onSelect: period => SelectedPeriod({ period }),
                   toView: ({ group, options }) =>
                     h.div(
                       [...group, h.Class(radioGroupClassName)],
@@ -187,8 +188,9 @@ export const controlPanelView = (model: Model, h: HtmlBuilder<Message>): Html =>
                       ),
                     ),
                 },
-                h,
-              ),
+                toParentMessage: message =>
+                  GotPeriodRadioGroupMessage({ message }),
+              }),
             ],
           )
         : h.empty,
@@ -207,14 +209,15 @@ export const packagePanelView = (
       h.div(
         [h.Class('mt-3')],
         [
-          RadioGroup.view(
-            {
-              id: PACKAGE_RADIO_GROUP_ID,
+          h.submodel({
+            slotId: model.packageRadioGroup.id,
+            model: model.packageRadioGroup,
+            view: PackageRadioGroup.view,
+            viewInputs: {
               selectedValue: Option.some(model.selectedPackageId),
               options: packageIds,
               ariaLabel: 'Package',
               orientation: 'Vertical',
-              onSelect: packageId => SelectedPackage({ packageId }),
               toView: ({ group, options }) =>
                 h.div(
                   [...group, h.Class('grid gap-2')],
@@ -258,8 +261,9 @@ export const packagePanelView = (
                   }),
                 ),
             },
-            h,
-          ),
+            toParentMessage: message =>
+              GotPackageRadioGroupMessage({ message }),
+          }),
         ],
       ),
     ],

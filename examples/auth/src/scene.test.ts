@@ -11,9 +11,11 @@ import {
 import { describe, test } from 'vitest'
 
 import { SaveSession } from './command'
+import { Session } from './domain/session'
 import { CompletedNavigateInternal, SucceededSaveSession } from './message'
 import { LoggedOut } from './model'
 import {
+  Model as LoginModel,
   SimulateAuthRequest,
   SucceededSimulateAuthRequest,
   initModel as initLoginModel,
@@ -24,14 +26,18 @@ import { view } from './view'
 
 const validModel = LoggedOut.Model({
   route: LoginRoute(),
-  loginModel: {
+  loginModel: LoginModel.make({
     ...initLoginModel(),
     email: Valid({ value: 'alice@example.com' }),
     password: Valid({ value: 'password' }),
-  },
+  }),
 })
 
-const aliceSession = { userId: '1', email: 'alice@example.com', name: 'alice' }
+const aliceSession = Session.make({
+  userId: '1',
+  email: 'alice@example.com',
+  name: 'alice',
+})
 
 describe('login flow', () => {
   test('successful login saves the session and lands on the dashboard', () => {

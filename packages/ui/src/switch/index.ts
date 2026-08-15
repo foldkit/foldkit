@@ -31,6 +31,10 @@ export type SwitchAttributes<Message> = Readonly<{
  *    `update` by storing the value.
  *  - `toView`: receives the {@link SwitchAttributes} and lays out the
  *    switch.
+ *  - `isDisabled`: marks the switch unavailable with `aria-disabled="true"`
+ *    and `data-disabled`, keeping it focusable. Use it when the control does
+ *    not apply; use `isReadOnly` when its state is still information the user
+ *    needs.
  *  - `isReadOnly`: prevents toggling while exposing read-only semantics with
  *    `aria-readonly="true"` and `data-readonly`. The switch remains
  *    focusable. Independent of `isDisabled`: setting both emits both

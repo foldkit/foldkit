@@ -2,9 +2,9 @@ import { Schema as S, pipe } from 'effect'
 import { Route } from 'foldkit'
 import { literal, r, slash, string } from 'foldkit/route'
 
-const HomeRoute = r('Home')
-const RoomRoute = r('Room', { roomId: S.String })
-const NotFoundRoute = r('NotFound', { path: S.String })
+export const HomeRoute = r('Home')
+export const RoomRoute = r('Room', { roomId: S.String })
+export const NotFoundRoute = r('NotFound', { path: S.String })
 
 export const AppRoute = S.Union([HomeRoute, RoomRoute, NotFoundRoute])
 

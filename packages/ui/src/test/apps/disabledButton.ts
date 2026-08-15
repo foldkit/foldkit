@@ -1,7 +1,9 @@
-import { Match as M, Schema as S } from 'effect'
+import { Match as M, Option, Schema as S } from 'effect'
 import * as Command from 'foldkit/command'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { m } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
+import * as Update from 'foldkit/update'
 
 import * as Dialog from '../../dialog/index.js'
 
@@ -33,6 +35,22 @@ export const initialModel: Model = {
 
 // UPDATE
 
+const foldDialogOutMessage = M.type<Dialog.OutMessage>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    Opened: () => model => [model, []],
+    Closed: () => model => [model, []],
+  }),
+)
+
+const foldDialog = Update.foldChild({
+  update: Dialog.update,
+  read: (model: Model) => Option.some(model.dialog),
+  write: (model, nextDialog) => evo(model, { dialog: () => nextDialog }),
+  toParentMessage: message => GotDialogMessage({ message }),
+  foldOutMessage: foldDialogOutMessage,
+})
+
 export const update = (
   model: Model,
   message: Message,
@@ -44,18 +62,8 @@ export const update = (
     M.tagsExhaustive({
       ClickedToggle: () => [{ ...model, isEnabled: !model.isEnabled }, []],
       ClickedSubmit: () => [model, []],
-      GotDialogMessage: ({ message: dialogMessage }) => {
-        const [nextDialog, commands] = Dialog.update(
-          model.dialog,
-          dialogMessage,
-        )
-        return [
-          { ...model, dialog: nextDialog },
-          Command.mapMessages(commands, dialogMessage =>
-            GotDialogMessage({ message: dialogMessage }),
-          ),
-        ]
-      },
+      GotDialogMessage: ({ message: dialogMessage }) =>
+        foldDialog(model, dialogMessage),
     }),
   )
 

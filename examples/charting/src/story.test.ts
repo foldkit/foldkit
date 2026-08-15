@@ -1,20 +1,49 @@
 import { Command, given, message, model, story } from 'foldkit/story'
 import { expect, test } from 'vitest'
 
+import { RadioGroup } from '@foldkit/ui'
+
 import { FetchTelemetry, SyncChart } from './command'
+import {
+  type ChartMode,
+  type PackageId,
+  chartModes,
+  packageIds,
+} from './domain'
 import { loadingModel, readyModel, sampleTelemetry } from './main.fixtures'
 import {
   ClickedChartDatum,
   ClickedRefresh,
   FailedFetchTelemetry,
-  SelectedChartMode,
-  SelectedPackage,
+  GotChartModeRadioGroupMessage,
+  GotPackageRadioGroupMessage,
   SucceededFetchTelemetry,
   SucceededMountChart,
   SucceededSyncChart,
 } from './message'
 import { TelemetryAsyncData } from './model'
 import { update } from './update'
+
+const selectedChartMode = (chartMode: ChartMode) =>
+  GotChartModeRadioGroupMessage({
+    message: RadioGroup.SelectedOption({
+      index: chartModes.indexOf(chartMode),
+      value: chartMode,
+    }),
+  })
+
+const selectedPackage = (packageId: PackageId) =>
+  GotPackageRadioGroupMessage({
+    message: RadioGroup.SelectedOption({
+      index: packageIds.indexOf(packageId),
+      value: packageId,
+    }),
+  })
+
+const resolveChartModeFocus = Command.resolve(
+  RadioGroup.FocusOption,
+  RadioGroup.CompletedFocusOption(),
+)
 
 test('mounting the chart syncs current telemetry into ECharts', () => {
   story(
@@ -32,7 +61,8 @@ test('selecting a chart mode clears selected datum and syncs the chart', () => {
     given(readyModel),
     message(ClickedChartDatum({ datumId: 'Velocity:Commits:2026-06-15' })),
     Command.resolve(SyncChart, SucceededSyncChart()),
-    message(SelectedChartMode({ chartMode: 'Velocity' })),
+    message(selectedChartMode('Velocity')),
+    resolveChartModeFocus,
     model(model => {
       expect(model.chartMode).toBe('Velocity')
       expect(model.maybeSelectedDatumId._tag).toBe('None')
@@ -46,7 +76,8 @@ test('selecting a package syncs the selected package into the chart', () => {
   story(
     update,
     given(readyModel),
-    message(SelectedPackage({ packageId: 'Ui' })),
+    message(selectedPackage('Ui')),
+    resolveChartModeFocus,
     model(model => {
       expect(model.selectedPackageId).toBe('Ui')
     }),

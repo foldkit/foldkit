@@ -822,7 +822,7 @@ export const fiberJoin = <A, E>(self: Fiber.Fiber<A, E>): Effect.Effect<A, E> =>
 /** @internal */
 export const fiberJoinAll = <A extends Iterable<Fiber.Fiber<any, any>>>(self: A): Effect.Effect<
   Arr.ReadonlyArray.With<A, A extends Iterable<Fiber.Fiber<infer _A, infer _E>> ? _A : never>,
-  A extends Fiber.Fiber<infer _A, infer _E> ? _E : never
+  A extends Iterable<Fiber.Fiber<infer _A, infer _E>> ? _E : never
 > =>
   callback((resume) => {
     const fibers = Array.from(self)
@@ -945,10 +945,19 @@ export const suspend: <A, E, R>(
 })
 
 /** @internal */
-export const fromOption: <Arg extends Option.Option<unknown> | LazyArg<unknown>, E = Cause.NoSuchElementError>(
-  arg: Arg,
-  ...rest: [Arg] extends [Option.Option<unknown>] ? [onNone?: LazyArg<E>] : []
-) => [Arg] extends [Option.Option<infer A>] ? Effect.Effect<A, E>
+export const fromOption: <
+  Arg extends Option.Option<unknown> | LazyArg<unknown>,
+  Rest extends [] | [onNone: LazyArg<unknown> | undefined] = []
+>(
+  arg: Arg & (Rest extends [] ? unknown : Option.Option<unknown>),
+  ...rest: Rest
+) => [Arg] extends [Option.Option<infer A>] ? Effect.Effect<
+    A,
+    Rest extends [LazyArg<infer E>] ? E
+      : Rest extends [undefined] ? Cause.NoSuchElementError
+      : Rest extends [LazyArg<infer E> | undefined] ? E | Cause.NoSuchElementError
+      : Cause.NoSuchElementError
+  >
   : [Arg] extends [LazyArg<infer E>] ? <A>(option: Option.Option<A>) => Effect.Effect<A, E>
   : never = dual(
     (args) => args.length >= 2 || Option.isOption(args[0]),
@@ -2057,11 +2066,7 @@ export const serviceOption = <I, S>(
 export const serviceOptional = <I, S>(
   service: Context.Key<I, S>
 ): Effect.Effect<S, Cause.NoSuchElementError> =>
-  withFiber((fiber) =>
-    fiber.context.mapUnsafe.has(service.key)
-      ? succeed(Context.getUnsafe(fiber.context, service))
-      : fail(new NoSuchElementError())
-  )
+  withFiber((fiber) => fromOption(Context.getOption(fiber.context, service)))
 
 /** @internal */
 export const updateContext: {
@@ -2223,12 +2228,7 @@ const provideServiceImpl = <A, E, R, I, S>(
   self: Effect.Effect<A, E, R>,
   service: Context.Key<I, S>,
   implementation: S
-): Effect.Effect<A, E, Exclude<R, I>> =>
-  updateContext(self, (s) => {
-    const prev = s.mapUnsafe.get(service.key)
-    if (prev === implementation) return s
-    return Context.add(s, service, implementation)
-  }) as any
+): Effect.Effect<A, E, Exclude<R, I>> => updateContext(self, Context.add(service, implementation)) as any
 
 /** @internal */
 export const provideServiceEffect: {
@@ -5862,11 +5862,8 @@ export const useSpan: {
   return withFiber((fiber) => {
     const span = makeSpanUnsafe(fiber, name, options)
     const clock = fiber.getRef(ClockRef)
-    return onExit(internalCall(() => evaluate(span)), (exit) =>
-      sync(() => {
-        if (span.status._tag === "Ended") return
-        span.end(clock.currentTimeNanosUnsafe(), exit)
-      }))
+    const timingEnabled = fiber.getRef(TracerTimingEnabled)
+    return onExit(internalCall(() => evaluate(span)), (exit) => endSpan(span, exit, clock, timingEnabled))
   })
 }
 
@@ -6305,7 +6302,6 @@ export const formatLogSpan = (self: [label: string, timestamp: number], now: num
 /** @internal */
 export const structuredMessage = (u: unknown): unknown => {
   switch (typeof u) {
-    case "bigint":
     case "function":
     case "symbol": {
       return String(u)

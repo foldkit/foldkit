@@ -6,7 +6,7 @@ Sortable lists and cross-container movement with pointer tracking, keyboard navi
 
 DragAndDrop is different from other Foldkit UI components in two ways. First, it doesn’t have a `view()` function. Instead, you spread `draggable()` and `droppable()` attributes onto your own elements. Second, its update function returns a three-tuple: `[Model, Commands, Option<OutMessage>]`. You handle `Reordered` and `Cancelled` OutMessages to decide how to reorder your data.
 
-Integration requires four pieces: a `DragAndDrop.Model` field in your Model, update delegation with OutMessage handling, `DragAndDrop.subscriptions` for document-level pointer and keyboard listeners, and `draggable()` / `droppable()` attributes in your view.
+Integration requires four pieces: a `DragAndDrop.Model` field in your Model, an [`Update.foldChild`](/core/submodel#fold-child) fold with a `foldOutMessage`, `DragAndDrop.subscriptions` for document-level pointer and keyboard listeners, and `draggable()` / `droppable()` attributes in your view.
 
 :::Info{label="See it in an app"}
 Check out how DragAndDrop is wired up in the [kanban example](https://github.com/foldkit/foldkit/tree/main/examples/kanban/src) or the [UI showcase](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/dragAndDrop.ts).
@@ -77,9 +77,9 @@ Functions for attaching drag-and-drop behavior to your elements and reading drag
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Pattern-match on the OutMessage in your update handler.
+Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
 
-| Name        | Type                                                             | Default | Description                                                                                                                                                                                                                                                                                     |
-| ----------- | ---------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Reordered` | `{ itemId, fromContainerId, fromIndex, toContainerId, toIndex }` | —       | Emitted when a drag completes with a valid drop target. The parent uses this to commit the reorder against its own data (move the item in the source array, splice it into the destination). Pattern-match the third tuple element of DragAndDrop.update in your GotDragAndDropMessage handler. |
-| `Cancelled` | `{}`                                                             | —       | Emitted when a drag is cancelled via Escape or a pointer release without a valid drop target. No reorder should be applied.                                                                                                                                                                     |
+| Name        | Type                                                             | Default | Description                                                                                                                                                                                                                                            |
+| ----------- | ---------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Reordered` | `{ itemId, fromContainerId, fromIndex, toContainerId, toIndex }` | —       | Emitted when a drag completes with a valid drop target. The parent uses this to commit the reorder against its own data (move the item in the source array, splice it into the destination). Fold it in the `foldOutMessage` of your DragAndDrop fold. |
+| `Cancelled` | `{}`                                                             | —       | Emitted when a drag is cancelled via Escape or a pointer release without a valid drop target. No reorder should be applied.                                                                                                                            |

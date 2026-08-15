@@ -1,5 +1,5 @@
 import { Array, Match as M, Number, Option, Result } from 'effect'
-import { Command } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { Slider } from '@foldkit/ui'
@@ -230,6 +230,42 @@ const appendGeneratedParticle =
     ]
   }
 
+const foldFlowStrengthSliderOutMessage = M.type<Slider.OutMessage>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    ChangedValue:
+      ({ value }) =>
+      model => [evo(model, { flowStrength: () => value }), []],
+  }),
+)
+
+const foldFlowStrengthSlider = Update.foldChild({
+  update: Slider.update,
+  read: (model: Model) => Option.some(model.flowStrengthSlider),
+  write: (model, nextFlowStrengthSlider) =>
+    evo(model, { flowStrengthSlider: () => nextFlowStrengthSlider }),
+  toParentMessage: message => GotFlowStrengthSliderMessage({ message }),
+  foldOutMessage: foldFlowStrengthSliderOutMessage,
+})
+
+const foldNoiseScaleSliderOutMessage = M.type<Slider.OutMessage>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    ChangedValue:
+      ({ value }) =>
+      model => [evo(model, { noiseScale: () => value }), []],
+  }),
+)
+
+const foldNoiseScaleSlider = Update.foldChild({
+  update: Slider.update,
+  read: (model: Model) => Option.some(model.noiseScaleSlider),
+  write: (model, nextNoiseScaleSlider) =>
+    evo(model, { noiseScaleSlider: () => nextNoiseScaleSlider }),
+  toParentMessage: message => GotNoiseScaleSliderMessage({ message }),
+  foldOutMessage: foldNoiseScaleSliderOutMessage,
+})
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     M.withReturnType<UpdateReturn>(),
@@ -283,52 +319,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
 
-      GotFlowStrengthSliderMessage: ({ message }) => {
-        const [nextSlider, sliderCommands, maybeOutMessage] = Slider.update(
-          model.flowStrengthSlider,
-          message,
-        )
-        const nextFlowStrength = Option.match(maybeOutMessage, {
-          onNone: () => model.flowStrength,
-          onSome: M.type<Slider.OutMessage>().pipe(
-            M.tagsExhaustive({
-              ChangedValue: ({ value }) => value,
-            }),
-          ),
-        })
-        return [
-          evo(model, {
-            flowStrengthSlider: () => nextSlider,
-            flowStrength: () => nextFlowStrength,
-          }),
-          Command.mapMessages(sliderCommands, message =>
-            GotFlowStrengthSliderMessage({ message }),
-          ),
-        ]
-      },
+      GotFlowStrengthSliderMessage: ({ message }) =>
+        foldFlowStrengthSlider(model, message),
 
-      GotNoiseScaleSliderMessage: ({ message }) => {
-        const [nextSlider, sliderCommands, maybeOutMessage] = Slider.update(
-          model.noiseScaleSlider,
-          message,
-        )
-        const nextNoiseScale = Option.match(maybeOutMessage, {
-          onNone: () => model.noiseScale,
-          onSome: M.type<Slider.OutMessage>().pipe(
-            M.tagsExhaustive({
-              ChangedValue: ({ value }) => value,
-            }),
-          ),
-        })
-        return [
-          evo(model, {
-            noiseScaleSlider: () => nextSlider,
-            noiseScale: () => nextNoiseScale,
-          }),
-          Command.mapMessages(sliderCommands, message =>
-            GotNoiseScaleSliderMessage({ message }),
-          ),
-        ]
-      },
+      GotNoiseScaleSliderMessage: ({ message }) =>
+        foldNoiseScaleSlider(model, message),
     }),
   )

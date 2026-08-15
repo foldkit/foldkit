@@ -1,5 +1,5 @@
 import { Effect, Match as M, Option, Schema as S } from 'effect'
-import { Command, Runtime } from 'foldkit'
+import { Command, Runtime, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
@@ -106,6 +106,30 @@ const LoadExternal = Command.define('LoadExternal', {
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
+const foldProductsOutMessage = M.type<Products.OutMessage>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    AddedToCart:
+      ({ item }) =>
+      model => [evo(model, { cart: Cart.addItem(item) }), []],
+    IncrementedQuantity:
+      ({ itemId }) =>
+      model => [evo(model, { cart: Cart.incrementQuantity(itemId) }), []],
+    DecrementedQuantity:
+      ({ itemId }) =>
+      model => [evo(model, { cart: Cart.decrementQuantity(itemId) }), []],
+  }),
+)
+
+const foldProducts = Update.foldChild({
+  update: Products.update,
+  read: (model: Model) => Option.some(model.productsPage),
+  write: (model, nextProductsPage) =>
+    evo(model, { productsPage: () => nextProductsPage }),
+  toParentMessage: message => GotProductsMessage({ message }),
+  foldOutMessage: foldProductsOutMessage,
+})
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
@@ -133,47 +157,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
 
-      GotProductsMessage: ({ message }) => {
-        const [nextProductsModel, commands, maybeOutMessage] = Products.update(
-          model.productsPage,
-          message,
-        )
-        const mappedCommands = Command.mapMessages(commands, message =>
-          GotProductsMessage({ message }),
-        )
-        return Option.match(maybeOutMessage, {
-          onNone: (): UpdateReturn => [
-            evo(model, { productsPage: () => nextProductsModel }),
-            mappedCommands,
-          ],
-          onSome: M.type<Products.OutMessage>().pipe(
-            withUpdateReturn,
-            M.tagsExhaustive({
-              AddedToCart: ({ item }) => [
-                evo(model, {
-                  productsPage: () => nextProductsModel,
-                  cart: Cart.addItem(item),
-                }),
-                mappedCommands,
-              ],
-              IncrementedQuantity: ({ itemId }) => [
-                evo(model, {
-                  productsPage: () => nextProductsModel,
-                  cart: Cart.incrementQuantity(itemId),
-                }),
-                mappedCommands,
-              ],
-              DecrementedQuantity: ({ itemId }) => [
-                evo(model, {
-                  productsPage: () => nextProductsModel,
-                  cart: Cart.decrementQuantity(itemId),
-                }),
-                mappedCommands,
-              ],
-            }),
-          ),
-        })
-      },
+      GotProductsMessage: ({ message }) => foldProducts(model, message),
 
       ClickedIncrementQuantity: ({ itemId }) => [
         evo(model, {

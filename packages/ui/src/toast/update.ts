@@ -6,9 +6,11 @@ import {
   Number,
   Option,
   Schema as S,
+  pipe,
 } from 'effect'
 import * as Command from 'foldkit/command'
 import { evo } from 'foldkit/struct'
+import * as Update from 'foldkit/update'
 
 import {
   Hid as AnimationHid,
@@ -139,62 +141,84 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
     }
   }
 
+  const readEntryAnimation =
+    (entryId: string) =>
+    (model: Model): Option.Option<Entry['animation']> =>
+      pipe(
+        Array.findFirst(model.entries, ({ id }) => id === entryId),
+        Option.map(({ animation }) => animation),
+      )
+
+  const writeEntryAnimation =
+    (entryId: string) =>
+    (model: Model, nextAnimation: Entry['animation']): Model =>
+      updateEntry(model, entryId, entry =>
+        evo(entry, { animation: () => nextAnimation }),
+      )
+
+  const toGotAnimationMessage =
+    (entryId: string) =>
+    (message: AnimationMessage): Message =>
+      GotAnimationMessage({ entryId, message })
+
+  const toDismissedToastOutMessage: (
+    payload: A,
+  ) => (
+    outMessage: AnimationOutMessage,
+  ) => Option.Option<OutMessage> = payload =>
+    M.type<AnimationOutMessage>().pipe(
+      M.withReturnType<Option.Option<OutMessage>>(),
+      M.tagsExhaustive({
+        StartedLeaveAnimating: () => Option.none(),
+        TransitionedOut: () => Option.some(DismissedToast({ payload })),
+      }),
+    )
+
+  const foldEntryAnimationOutMessage: (
+    entryId: string,
+  ) => (
+    outMessage: AnimationOutMessage,
+    context: Update.FoldContext<AnimationMessage, Message>,
+  ) => Update.Step<Model, Message> =
+    entryId =>
+    (outMessage, { liftCommand }) =>
+      M.value(outMessage).pipe(
+        M.withReturnType<Update.Step<Model, Message>>(),
+        M.tagsExhaustive({
+          StartedLeaveAnimating: () => model =>
+            Option.match(readEntryAnimation(entryId)(model), {
+              onNone: () => [model, []],
+              onSome: animation => [
+                model,
+                [liftCommand(animationDefaultLeaveCommand(animation))],
+              ],
+            }),
+          TransitionedOut: () => model => [removeEntry(model, entryId), []],
+        }),
+      )
+
+  const foldEntryAnimation = (entry: Entry) =>
+    Update.foldChild({
+      update: animationUpdate,
+      read: readEntryAnimation(entry.id),
+      write: writeEntryAnimation(entry.id),
+      toParentMessage: toGotAnimationMessage(entry.id),
+      toParentOutMessage: toDismissedToastOutMessage(entry.payload),
+      foldOutMessage: foldEntryAnimationOutMessage(entry.id),
+    })
+
   const delegateToEntryAnimation = (
     model: Model,
     entryId: string,
     animationMessage: AnimationMessage,
-  ): UpdateReturn => {
-    const maybeEntry = Array.findFirst(
-      model.entries,
-      ({ id }) => id === entryId,
-    )
-
-    return Option.match(maybeEntry, {
-      onNone: (): UpdateReturn => [model, [], Option.none()],
-      onSome: entry => {
-        const [nextAnimation, animationCommands, maybeOutMessage] =
-          animationUpdate(entry.animation, animationMessage)
-
-        const toMessage = (message: AnimationMessage): Message =>
-          GotAnimationMessage({ entryId, message })
-
-        const mappedCommands = Command.mapMessages(animationCommands, toMessage)
-
-        const nextEntry: Entry = evo(entry, {
-          animation: () => nextAnimation,
-        })
-
-        return Option.match(maybeOutMessage, {
-          onNone: (): UpdateReturn => [
-            updateEntry(model, entryId, () => nextEntry),
-            mappedCommands,
-            Option.none(),
-          ],
-          onSome: M.type<AnimationOutMessage>().pipe(
-            withUpdateReturn,
-            M.tagsExhaustive({
-              StartedLeaveAnimating: () => [
-                updateEntry(model, entryId, () => nextEntry),
-                [
-                  ...mappedCommands,
-                  Command.mapMessage(
-                    animationDefaultLeaveCommand(nextAnimation),
-                    toMessage,
-                  ),
-                ],
-                Option.none(),
-              ],
-              TransitionedOut: () => [
-                removeEntry(model, entryId),
-                mappedCommands,
-                Option.some(DismissedToast({ payload: entry.payload })),
-              ],
-            }),
-          ),
-        })
+  ): UpdateReturn =>
+    Option.match(
+      Array.findFirst(model.entries, ({ id }) => id === entryId),
+      {
+        onNone: (): UpdateReturn => [model, [], Option.none()],
+        onSome: entry => foldEntryAnimation(entry)(model, animationMessage),
       },
-    })
-  }
+    )
 
   const createEntry = (model: Model, input: ShowInput<A>): Entry => {
     const entryId = `${model.id}-entry-${model.nextEntryKey}`

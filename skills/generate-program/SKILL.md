@@ -115,7 +115,7 @@ Before generating, check if any part of the app maps to a built-in component:
 | Dropdown menu                   | `Menu`        | Arrow keys, typeahead search, aria-expanded, click-outside      |
 | Autocomplete/tag input          | `Combobox`    | Filtering, arrow key selection, aria-activedescendant           |
 | Select dropdown                 | `Select`      | Keyboard selection, aria-selected, positioning                  |
-| Single selection from options   | `RadioGroup`  | Arrow key cycling, aria-checked                                 |
+| Single selection from options   | `RadioGroup`  | Arrow key cycling, aria-checked, read-only navigation           |
 | On/off toggle                   | `Switch`      | Spacebar toggle, aria-checked                                   |
 | Boolean option                  | `Checkbox`    | Spacebar toggle, aria-checked, indeterminate                    |
 | Expandable section              | `Disclosure`  | Enter/Space toggle, aria-expanded                               |
@@ -137,11 +137,11 @@ Before generating, check if any part of the app maps to a built-in component:
 
 The package is not one shape.
 
-**Stateful Submodels** carry their own Model, Message, update, and (mostly) OutMessage, and are embedded via `h.submodel`: `Menu`, `Listbox`, `Combobox`, `Calendar`, `DatePicker`, `Dialog`, `Popover`, `Tabs`, `Tooltip`, `FileDrop`, `DragAndDrop`, `Slider`, `VirtualList`, plus `Toast` once built through `Toast.make(PayloadSchema)`.
+**Stateful Submodels** carry their own Model, Message, update, and (mostly) OutMessage, and are embedded via `h.submodel`: `Menu`, `Listbox`, `Combobox`, `Calendar`, `DatePicker`, `Dialog`, `Popover`, `RadioGroup`, `Tabs`, `Tooltip`, `FileDrop`, `DragAndDrop`, `Slider`, `VirtualList`, plus `Toast` once built through `Toast.make(PayloadSchema)`.
 
-**Stateless render helpers** have no Model at all. You call `view` directly with a ViewConfig and your own `h`, and store the value in your own Model: `Button`, `Input`, `Textarea`, `Select`, `Fieldset`, `Checkbox`, `Switch`, `Disclosure`, `RadioGroup`, `Nav`.
+**Stateless render helpers** have no Model at all. You call `view` directly with a ViewConfig and your own `h`, and store the value in your own Model: `Button`, `Input`, `Textarea`, `Select`, `Fieldset`, `Checkbox`, `Switch`, `Disclosure`, `Nav`.
 
-Don't take that split on faith, because components have moved across it (`Checkbox`, `Switch`, and `Disclosure` became controlled render helpers; `Tabs` and `Slider` moved their selection to the parent Model). Read the component's `public.d.ts`: exporting `Model` and `update` means Submodel, exporting only `view` and a `ViewConfig` / `ViewInputs` type means render helper. A render helper does not want a `Got*` Message.
+Don't take that split on faith, because components have moved across it (`Checkbox`, `Switch`, and `Disclosure` became controlled render helpers; `RadioGroup` became a Submodel; `Tabs` and `Slider` moved their selection to the parent Model). Read the component's `public.d.ts`: exporting `Model` and `update` means Submodel, exporting only `view` and a `ViewConfig` / `ViewInputs` type means render helper. A render helper does not want a `Got*` Message.
 
 To use a stateful Submodel:
 
@@ -364,7 +364,7 @@ For each Foldkit module you plan to use, read the `.d.ts` at the paths below. Re
 
 # If using any UI component (SEPARATE PACKAGE)
 <project>/node_modules/@foldkit/ui/dist/<component>/public.d.ts  # Model, Message, init, update, view (Submodel-shaped) or ViewConfig (render-helper-shaped), OutMessage when applicable
-# Check: is it a Submodel (Menu/Listbox/Combobox/Calendar/DatePicker/Dialog/Popover/Tabs/Tooltip/FileDrop/DragAndDrop/Slider/VirtualList/Toast) embedded via h.submodel, or a stateless render helper (Button/Input/Textarea/Select/Fieldset/Checkbox/Switch/Disclosure/RadioGroup/Nav) called directly? Submodels carry their own Model/Message/update/OutMessage; render helpers don't. Check ViewInputs (for Submodels) or ViewConfig (for helpers) for the slot callbacks (toView, itemToConfig, etc.).
+# Check: is it a Submodel (Menu/Listbox/Combobox/Calendar/DatePicker/Dialog/Popover/RadioGroup/Tabs/Tooltip/FileDrop/DragAndDrop/Slider/VirtualList/Toast) embedded via h.submodel, or a stateless render helper (Button/Input/Textarea/Select/Fieldset/Checkbox/Switch/Disclosure/Nav) called directly? Submodels carry their own Model/Message/update/OutMessage; render helpers don't. Check ViewInputs (for Submodels) or ViewConfig (for helpers) for the slot callbacks (toView, itemToConfig, etc.).
 
 # If using dates
 <project>/node_modules/foldkit/dist/calendar/index.d.ts # CalendarDate, today.local (returns Effect<CalendarDate>); for raw millis use Clock.currentTimeMillis
@@ -449,7 +449,7 @@ Generate files following the architecture and conventions guides exactly. Write 
 Follow the four-group layout strictly:
 
 ```ts
-// Group 1: All m() declarations, no blank lines between them
+// Group 1: All m() declarations
 const ClickedSubmit = m('ClickedSubmit')
 const UpdatedEmail = m('UpdatedEmail', { value: S.String })
 const SucceededLogin = m('SucceededLogin', { user: User })
@@ -466,6 +466,8 @@ const Message = S.Union([
 ])
 type Message = typeof Message.Type
 ```
+
+Keep Group 1 in one unbroken block while the union is small, up to roughly a dozen Messages. Past that, blank-line thematic clusters (navigation, session, one per feature) are equally fine, so pick whichever reads better for the union at hand. Group 2 stays adjacent, directly after the declarations, either way.
 
 Name messages by category:
 
@@ -624,7 +626,7 @@ For file uploads (resumes, images, attachments):
 - `dependenciesToStream` builds `Stream<Message>` from dependencies
 - Subscriptions auto-start/stop based on Model state. Never manually managed
 - For Subscriptions with no Model dependencies (always active), pass `{}` as the `entry` fields argument and return `{}` from `modelToDependencies`
-- To embed child Subscriptions, use `Subscription.lift(childRecord)<Parent, Parent>({ toChildModel, toParentMessage })`. To combine multiple records, use `Subscription.aggregate<Model, Message>()(...records)`
+- To embed child Subscriptions, use `Subscription.lift(childRecord)<Parent, Parent>({ toChildModel, toParentMessage })`. Add `when` on the parent's lift call to gate on a parent fact the child cannot see (the route a page Submodel sits behind); the parent owns the gate and reads the parent Model, and a closed gate tears the entry's Stream down. `when: parentModel => boolean` gates every entry; `when: { entryName: parentModel => boolean }` gates only the entries it names, so a child never splits its record to suit its parent's gating. To combine multiple records, use `Subscription.aggregate<Model, Message>()(...records)`
 
 ### Managed Resources (if stateful runtime handles)
 
@@ -680,7 +682,7 @@ Fix ALL output from all four before declaring Phase 5 done. "Typecheck clean and
 
 ### Type errors first
 
-Then generate tests using `foldkit/test`. There are two test styles. Name each test file for its style, beside the code under test: `story.test.ts` for Story tests (the state machine, driving `update`) and `scene.test.ts` for Scene tests (the rendered view). The name describes how the test works, not a source file, so it holds whether `update` and `view` live in `main.ts` or their own files. When a folder holds more than one test of a kind (sibling pages, component variants), prefix with the subject: `login.story.test.ts`. Scene runs at any level: `Submodel.defineView` produces a plain `(model, h) => Html`, so a page's view drops into `scene` unmodified, and a Submodel declaring `ViewInputs` takes a second argument the test supplies through `withViewInputs(view, defaults)`, whose returned factory takes per-test overrides for everything except `toView`. A page-level Scene asserts the OutMessage a Submodel emits with `expectOutMessage` / `expectNoOutMessage`, and drives Messages from the non-view lifecycle causes with cause-named steps: `Subscription.emit` (only when the Message has no DOM affordance; click the actual button when it does), `ManagedResource.acquire` / `release` / `failAcquire` (gated on the entry's `modelToMaybeRequirements`, so drive the Model transition first), and `CustomElement.emit` (typed by the spec's event Schemas). Put a `scene.test.ts` in the page folder for behavior that page owns, and keep a root-level `scene.test.ts` for flows that cross pages, which covers how the parent folds an OutMessage, a Command the parent lifts, a route change, and view inputs the parent computes.
+Then generate tests using `foldkit/test`. There are two test styles. Name each test file for its style, beside the code under test: `story.test.ts` for Story tests (the state machine, driving `update`) and `scene.test.ts` for Scene tests (the rendered view). The name describes how the test works, not a source file, so it holds whether `update` and `view` live in `main.ts` or their own files. When a folder holds more than one test of a kind (sibling pages, component variants), prefix with the subject: `login.story.test.ts`. Scene runs at any level: `Submodel.defineView` produces a plain `(model, h) => Html`, so a page's view drops into `scene` unmodified, and a Submodel declaring `ViewInputs` takes a second argument the test supplies through `withViewInputs(view, defaults)`, whose returned factory takes per-test overrides for everything except `toView`. A page-level Scene asserts the OutMessage a Submodel emits with `expectOutMessage` / `expectNoOutMessage`, and drives Messages from the non-view lifecycle causes with cause-named steps: `Subscription.emit` (only when the Message has no DOM affordance; click the actual button when it does), `ManagedResource.acquire` / `release` / `failAcquire` (gated on the entry's `modelToMaybeRequirements`, so drive the Model transition first), and `CustomElement.emit` (typed by the spec's event Schemas). An interaction whose handler returns `Option.none()` lets the event fall through, and Scene requires that be stated: follow it with `expectIgnored()`, or Scene fails at the next interaction or the end of the scene. Use `expectHandled()` where the event should have been consumed, which is the assertion behind a key being consumed so the browser default is prevented. Put a `scene.test.ts` in the page folder for behavior that page owns, and keep a root-level `scene.test.ts` for flows that cross pages, which covers how the parent folds an OutMessage, a Command the parent lifts, a route change, and view inputs the parent computes.
 
 Import the steps as named imports from `foldkit/story` or `foldkit/scene`: `import { Command, given, message, model, story } from 'foldkit/story'`. A test file needs only one of the two modules, so this keeps call sites short. In the rare case a single file tests both a story and a scene, import the namespaces instead (`import { Scene, Story } from 'foldkit'`) so `Story.given` and `Scene.given` stay distinguishable.
 
@@ -701,6 +703,7 @@ Write `story` pipelines covering:
 
 - `${CLAUDE_SKILL_DIR}/../../examples/weather/src/scene.test.ts`: basic Scene flow with form interaction and Command resolution
 - `${CLAUDE_SKILL_DIR}/../../examples/auth/src/scene.test.ts`: a multi-page app's root-level Scene driving the login flow through the root view
+- `${CLAUDE_SKILL_DIR}/../../examples/auth/src/page/loggedOut/page/login.scene.test.ts`: a page-scoped Scene in that same app, driving the page's own `update`/`view` rather than the root pair
 - `${CLAUDE_SKILL_DIR}/../../examples/kanban/src/scene.test.ts`: scoped queries with `within`, `toHaveValue`, explicit test data
 
 Write `scene` pipelines covering:

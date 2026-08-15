@@ -1,6 +1,6 @@
 {
   "name": "@foldkit/vite-plugin",
-  "version": "0.12.1",
+  "version": "0.13.1",
   "description": "Vite plugin for Foldkit hot module reloading with state preservation",
   "type": "module",
   "main": "./dist/index.js",
@@ -23,7 +23,7 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "effect": "4.0.0-beta.105",
+    "effect": "4.0.0-rc.109",
     "foldkit": "workspace:^0",
     "vite": "^7.0.0 || ^8.0.0"
   },
@@ -34,7 +34,7 @@
   "devDependencies": {
     "@types/node": "^25.9.3",
     "@types/ws": "^8.18.1",
-    "effect": "4.0.0-beta.105",
+    "effect": "4.0.0-rc.109",
     "foldkit": "workspace:*",
     "happy-dom": "^20.10.4",
     "rimraf": "^6.1.3",

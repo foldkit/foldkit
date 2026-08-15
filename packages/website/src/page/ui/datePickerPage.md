@@ -4,7 +4,7 @@
 
 An accessible date picker that wraps `Calendar` in a `Popover`. Consumers provide the trigger button face and the calendar grid layout. DatePicker handles focus choreography (opening focuses the grid, closing returns focus to the trigger), open/close state, and an optional hidden form input for native form submission.
 
-DatePicker uses the Submodel pattern: initialize with `DatePicker.init()`, store the Model in your parent, delegate Messages via `DatePicker.update()`, and render with `DatePicker.view()`. The update function returns `[Model, Commands, Option<OutMessage>]`. The [OutMessage](/core/submodel#surfacing-facts) carries `SelectedDate({ date })` when the user commits a date, `ClearedDate` when the user clears it, and `ChangedViewMonth` when navigation shifts the visible month. The parent owns the selected date: store it in your Model, pass it back as `maybeSelectedDate`, and fold `SelectedDate` and `ClearedDate` into that field. Pattern-match the third tuple element of `DatePicker.update` in your `GotDatePickerMessage` handler to react. For programmatic control in update functions, use `DatePicker.open(model)` and `DatePicker.close(model)` which return `[Model, Commands]` directly.
+DatePicker uses the Submodel pattern: initialize with `DatePicker.init()`, store the Model in your parent, wire Messages through [`Update.foldChild`](/core/submodel#fold-child), and render with `DatePicker.view()`. The update function returns `[Model, Commands, Option<OutMessage>]`. The [OutMessage](/core/submodel#surfacing-facts) carries `SelectedDate({ date })` when the user commits a date, `ClearedDate` when the user clears it, and `ChangedViewMonth` when navigation shifts the visible month. The parent owns the selected date: store it in your Model, pass it back as `maybeSelectedDate`, and fold `SelectedDate` and `ClearedDate` into that field from the fold's `foldOutMessage`. For programmatic control in update functions, use `DatePicker.open(model)` and `DatePicker.close(model)` which return `[Model, Commands]` directly.
 
 The calendar heading inside the popover is a button: clicking it switches the day grid into a 3x4 months grid; clicking the year heading from there switches into a paged 3x4 years grid. Selecting a year drills back to the months grid for that year; selecting a month drills back to the days grid for that month. Re-opening the popover always shows the day grid.
 
@@ -111,13 +111,13 @@ The discriminated union passed to `toCalendarView`. Pattern-match on `_tag` (`'D
 
 ### OutMessage {#out-messages}
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Pattern-match on the OutMessage in your update handler.
+Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
 
-| Name               | Type                              | Default | Description                                                                                                                                                                                       |
-| ------------------ | --------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SelectedDate`     | `{ date: CalendarDate }`          | —       | Emitted when the user commits a date (click / Enter / Space). Pattern-match the third tuple element of DatePicker.update in your GotDatePickerMessage handler to lift the date into domain state. |
-| `ClearedDate`      | `{}`                              | —       | Emitted when the user clears the selected date (via Cleared or DatePicker.clear). The popover stays open. Fold it into the parent-owned selected-date field by setting it to Option.none().       |
-| `ChangedViewMonth` | `{ year: number; month: number }` | —       | Emitted when navigation changes the visible month inside the calendar grid.                                                                                                                       |
+| Name               | Type                              | Default | Description                                                                                                                                                                                 |
+| ------------------ | --------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SelectedDate`     | `{ date: CalendarDate }`          | —       | Emitted when the user commits a date (click / Enter / Space). Fold it in the `foldOutMessage` of your DatePicker fold to lift the date into domain state.                                   |
+| `ClearedDate`      | `{}`                              | —       | Emitted when the user clears the selected date (via Cleared or DatePicker.clear). The popover stays open. Fold it into the parent-owned selected-date field by setting it to Option.none(). |
+| `ChangedViewMonth` | `{ year: number; month: number }` | —       | Emitted when navigation changes the visible month inside the calendar grid.                                                                                                                 |
 
 ### Programmatic Helpers
 

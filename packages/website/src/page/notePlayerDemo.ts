@@ -11,7 +11,13 @@ import {
   String as Str,
   pipe,
 } from 'effect'
-import { Command, FieldValidation, ManagedResource, Submodel } from 'foldkit'
+import {
+  Command,
+  FieldValidation,
+  ManagedResource,
+  Submodel,
+  Update,
+} from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -48,6 +54,7 @@ const PHASE_DURATION: Duration.Input = '150 millis'
 const MAX_LOG_ENTRIES = 50
 const MIN_NOTES = 2
 const MAX_NOTES = 8
+const NOTE_DURATION_RADIO_GROUP_ID = 'note-duration'
 
 // MODEL
 
@@ -56,6 +63,8 @@ type Note = typeof Note.Type
 
 const NoteDuration = S.Literals(['Short', 'Medium', 'Long'])
 type NoteDuration = typeof NoteDuration.Type
+
+const NoteDurationRadioGroup = RadioGroup.create<NoteDuration>()
 
 const noteInputRules = FieldValidation.makeRules({
   required: 'Enter some notes',
@@ -104,6 +113,7 @@ type AudioState = typeof AudioState.Type
 
 export const Model = S.Struct({
   noteInput: FieldValidation.Field(S.String),
+  noteDurationRadioGroup: RadioGroup.Model,
   noteDuration: NoteDuration,
   playbackState: PlaybackState,
   highlightPhase: NoteHighlightPhase,
@@ -117,8 +127,8 @@ export type Model = typeof Model.Type
 // MESSAGE
 
 const ChangedNoteInput = m('ChangedNoteInput', { value: S.String })
-const SelectedNoteDuration = m('SelectedNoteDuration', {
-  value: NoteDuration,
+const GotNoteDurationMessage = m('GotNoteDurationMessage', {
+  message: RadioGroup.Message,
 })
 const ClickedPlay = m('ClickedPlay')
 const ClickedPause = m('ClickedPause')
@@ -133,7 +143,7 @@ const ReleasedAudioContext = m('ReleasedAudioContext')
 
 export const Message = S.Union([
   ChangedNoteInput,
-  SelectedNoteDuration,
+  GotNoteDurationMessage,
   ClickedPlay,
   ClickedPause,
   ClickedStop,
@@ -171,6 +181,9 @@ export const init = (): readonly [
 ] => [
   {
     noteInput: validateNoteInput(INITIAL_NOTE_SEQUENCE),
+    noteDurationRadioGroup: RadioGroup.init({
+      id: NOTE_DURATION_RADIO_GROUP_ID,
+    }),
     noteDuration: 'Medium',
     playbackState: Idle(),
     highlightPhase: 'Idle',
@@ -225,6 +238,32 @@ const enterNoteCommandPhase = (
   ],
 ]
 
+const foldNoteDurationRadioGroupOutMessage = M.type<
+  RadioGroup.OutMessage<NoteDuration>
+>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    Selected:
+      ({ value }) =>
+      model => [
+        evo(model, {
+          noteDuration: () => value,
+          messageLog: prependToLog(`Selected(${value})`),
+        }),
+        [],
+      ],
+  }),
+)
+
+const foldNoteDurationRadioGroup = Update.foldChild({
+  update: NoteDurationRadioGroup.update,
+  read: (model: Model) => Option.some(model.noteDurationRadioGroup),
+  write: (model, nextNoteDurationRadioGroup) =>
+    evo(model, { noteDurationRadioGroup: () => nextNoteDurationRadioGroup }),
+  toParentMessage: message => GotNoteDurationMessage({ message }),
+  foldOutMessage: foldNoteDurationRadioGroupOutMessage,
+})
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
@@ -245,13 +284,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      SelectedNoteDuration: ({ value }) => [
-        evo(model, {
-          noteDuration: () => value,
-          messageLog: prependToLog(`SelectedNoteDuration(${value})`),
-        }),
-        [],
-      ],
+      GotNoteDurationMessage: ({ message }) =>
+        foldNoteDurationRadioGroup(model, message),
 
       ClickedPlay: () =>
         M.value(model.playbackState).pipe(
@@ -675,8 +709,6 @@ const noteInputView = (
 
 const noteDurations: ReadonlyArray<NoteDuration> = ['Short', 'Medium', 'Long']
 
-const NOTE_DURATION_RADIO_GROUP_ID = 'note-duration'
-
 const durationSelectorView = (
   model: Model,
   isInputLocked: boolean,
@@ -689,15 +721,16 @@ const durationSelectorView = (
         [h.Class('text-xs text-gray-500 dark:text-gray-400')],
         ['Note Length'],
       ),
-      RadioGroup.view(
-        {
-          id: NOTE_DURATION_RADIO_GROUP_ID,
+      h.submodel({
+        slotId: model.noteDurationRadioGroup.id,
+        model: model.noteDurationRadioGroup,
+        view: NoteDurationRadioGroup.view,
+        viewInputs: {
           selectedValue: Option.some(model.noteDuration),
           options: noteDurations,
           ariaLabel: 'Note length',
           orientation: 'Horizontal',
           isDisabled: isInputLocked,
-          onSelect: value => SelectedNoteDuration({ value }),
           toView: ({ group, options }) =>
             h.div(
               [
@@ -719,8 +752,8 @@ const durationSelectorView = (
               ),
             ),
         },
-        h,
-      ),
+        toParentMessage: message => GotNoteDurationMessage({ message }),
+      }),
     ],
   )
 

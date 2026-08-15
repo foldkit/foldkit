@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Array, Match as M, Option } from 'effect'
-import { Command } from 'foldkit'
+import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -39,40 +39,43 @@ const GotListboxMultiMessage = m('GotListboxMultiMessage', {
   message: Listbox.Message,
 })
 
-// Delegate keyboard navigation, typeahead, and open/close to
-// PeopleListbox.update. The OutMessage's `Selected` carries the activated
-// value. The parent owns the selection and decides what it means: for
-// multi-select, toggle the value in and out of its array:
-GotListboxMultiMessage: ({ message }) => {
-  const [nextListbox, commands, maybeOutMessage] = PeopleListbox.update(
-    model.listboxMulti,
-    message,
-  )
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotListboxMultiMessage({ message }),
-  )
+// At module scope, fold the OutMessage into your own Model. `Selected` carries
+// the activated value. The parent owns the selection and decides what it
+// means: for multi-select, toggle the value in and out of its array. The arm
+// returns an Update.Step over the parent Model, which already has the next
+// Listbox Model written back:
+const foldListboxMultiOutMessage = M.type<Listbox.OutMessage<Person>>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    Selected:
+      ({ value }) =>
+      model => [
+        evo(model, {
+          selectedPeople: () =>
+            Array.contains(model.selectedPeople, value)
+              ? Array.filter(model.selectedPeople, person => person !== value)
+              : Array.append(model.selectedPeople, value),
+        }),
+        [],
+      ],
+  }),
+)
 
-  return Option.match(maybeOutMessage, {
-    onNone: () => [
-      evo(model, { listboxMulti: () => nextListbox }),
-      mappedCommands,
-    ],
-    onSome: M.type<Listbox.OutMessage<Person>>().pipe(
-      M.tagsExhaustive({
-        Selected: ({ value }) => [
-          evo(model, {
-            listboxMulti: () => nextListbox,
-            selectedPeople: () =>
-              Array.contains(model.selectedPeople, value)
-                ? Array.filter(model.selectedPeople, person => person !== value)
-                : Array.append(model.selectedPeople, value),
-          }),
-          mappedCommands,
-        ],
-      }),
-    ),
-  })
-}
+// Update.foldChild wires the child into the parent: it delegates keyboard
+// navigation, typeahead, and open/close to PeopleListbox.update, writes the
+// next Listbox Model back, maps the Submodel's Commands into your Message
+// type, and hands any OutMessage to foldOutMessage.
+const foldListboxMulti = Update.foldChild({
+  update: PeopleListbox.update,
+  read: (model: Model) => Option.some(model.listboxMulti),
+  write: (model, nextListboxMulti) =>
+    evo(model, { listboxMulti: () => nextListboxMulti }),
+  toParentMessage: message => GotListboxMultiMessage({ message }),
+  foldOutMessage: foldListboxMultiOutMessage,
+})
+
+// Inside your update function's M.tagsExhaustive({...}), call the fold:
+GotListboxMultiMessage: ({ message }) => foldListboxMulti(model, message)
 
 const people: ReadonlyArray<Person> = [
   'Michael Bluth',

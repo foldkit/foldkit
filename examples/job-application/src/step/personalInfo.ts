@@ -7,7 +7,7 @@ import {
   Option,
   Schema as S,
 } from 'effect'
-import { Command } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { CalendarDate } from 'foldkit/calendar'
 import {
   Field,
@@ -181,6 +181,52 @@ export const ValidateEmailAsync = Command.define('ValidateEmailAsync', {
 
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 
+const foldPronounsOutMessage = M.type<Listbox.OutMessage>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    Selected:
+      ({ value }) =>
+      model => [
+        evo(model, { maybeSelectedPronoun: () => Option.some(value) }),
+        [],
+      ],
+  }),
+)
+
+const foldPronouns = Update.foldChild({
+  update: PronounsListbox.update,
+  read: (model: Model) => Option.some(model.pronouns),
+  write: (model, nextPronouns) => evo(model, { pronouns: () => nextPronouns }),
+  toParentMessage: message => GotPronounsMessage({ message }),
+  foldOutMessage: foldPronounsOutMessage,
+})
+
+const foldAvailableDateOutMessage = M.type<DatePicker.OutMessage>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    SelectedDate:
+      ({ date }) =>
+      model => [
+        evo(model, { maybeAvailableDate: () => Option.some(date) }),
+        [],
+      ],
+    ClearedDate: () => model => [
+      evo(model, { maybeAvailableDate: () => Option.none() }),
+      [],
+    ],
+    ChangedViewMonth: () => model => [model, []],
+  }),
+)
+
+const foldAvailableDate = Update.foldChild({
+  update: DatePicker.update,
+  read: (model: Model) => Option.some(model.availableDate),
+  write: (model, nextAvailableDate) =>
+    evo(model, { availableDate: () => nextAvailableDate }),
+  toParentMessage: message => GotAvailableDateMessage({ message }),
+  foldOutMessage: foldAvailableDateOutMessage,
+})
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     M.withReturnType<UpdateReturn>(),
@@ -229,27 +275,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
 
-      GotPronounsMessage: ({ message: listboxMessage }) => {
-        const [nextPronouns, listboxCommands, maybeOutMessage] =
-          PronounsListbox.update(model.pronouns, listboxMessage)
-        const nextMaybeSelectedPronoun = Option.match(maybeOutMessage, {
-          onNone: () => model.maybeSelectedPronoun,
-          onSome: M.type<Listbox.OutMessage>().pipe(
-            M.tagsExhaustive({
-              Selected: ({ value }) => Option.some(value),
-            }),
-          ),
-        })
-        return [
-          evo(model, {
-            pronouns: () => nextPronouns,
-            maybeSelectedPronoun: () => nextMaybeSelectedPronoun,
-          }),
-          Command.mapMessages(listboxCommands, innerMessage =>
-            GotPronounsMessage({ message: innerMessage }),
-          ),
-        ]
-      },
+      GotPronounsMessage: ({ message }) => foldPronouns(model, message),
 
       UpdatedCustomPronouns: ({ value }) => [
         evo(model, { customPronouns: () => value }),
@@ -263,31 +289,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
 
-      GotAvailableDateMessage: ({ message: dateMessage }) => {
-        const [nextDate, commands, maybeOutMessage] = DatePicker.update(
-          model.availableDate,
-          dateMessage,
-        )
-        const nextMaybeAvailableDate = Option.match(maybeOutMessage, {
-          onNone: () => model.maybeAvailableDate,
-          onSome: M.type<DatePicker.OutMessage>().pipe(
-            M.tagsExhaustive({
-              SelectedDate: ({ date }) => Option.some(date),
-              ClearedDate: () => Option.none(),
-              ChangedViewMonth: () => model.maybeAvailableDate,
-            }),
-          ),
-        })
-        return [
-          evo(model, {
-            availableDate: () => nextDate,
-            maybeAvailableDate: () => nextMaybeAvailableDate,
-          }),
-          Command.mapMessages(commands, innerMessage =>
-            GotAvailableDateMessage({ message: innerMessage }),
-          ),
-        ]
-      },
+      GotAvailableDateMessage: ({ message }) =>
+        foldAvailableDate(model, message),
     }),
   )
 

@@ -545,10 +545,9 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
   const client = yield* OpenRouterClient
   const codecTransformer = getCodecTransformer(model)
 
-  const makeConfig = Effect.gen(function*() {
-    const services = yield* Effect.context<never>()
-    return { model, ...providerConfig, ...services.mapUnsafe.get(Config.key) }
-  })
+  const makeConfig = Effect.contextWith((services: Context.Context<never>) =>
+    Effect.succeed({ model, ...providerConfig, ...Context.getOrUndefined(services, Config) })
+  )
 
   const makeRequest = Effect.fnUntraced(
     function*({ config, options }: {
@@ -1320,7 +1319,7 @@ const makeStreamResponse = Effect.fnUntraced(
                 // The signature typically arrives in the last reasoning delta,
                 // but reasoning-start only carries the first delta's metadata.
                 metadata: accumulatedReasoningDetails.length > 0
-                  ? { openRouter: { reasoningDetails: accumulatedReasoningDetails } }
+                  ? { openrouter: { reasoningDetails: accumulatedReasoningDetails } }
                   : undefined
               })
               reasoningStarted = false
@@ -1361,7 +1360,7 @@ const makeStreamResponse = Effect.fnUntraced(
                         ? { startIndex: annotation.url_citation.start_index }
                         : undefined),
                       ...(Predicate.isNotUndefined(annotation.url_citation.end_index)
-                        ? { startIndex: annotation.url_citation.end_index }
+                        ? { endIndex: annotation.url_citation.end_index }
                         : undefined)
                     }
                   }
@@ -1377,6 +1376,7 @@ const makeStreamResponse = Effect.fnUntraced(
             for (const toolCall of toolCalls) {
               const index = toolCall.index ?? toolCalls.length - 1
               let activeToolCall = activeToolCalls[index]
+              const argumentsDelta = toolCall.function?.arguments ?? ""
 
               // Tool call start - OpenRouter returns all information except the
               // tool call parameters in the first chunk
@@ -1415,7 +1415,7 @@ const makeStreamResponse = Effect.fnUntraced(
                   id: toolCall.id,
                   type: "function",
                   name: toolCall.function.name,
-                  params: toolCall.function.arguments ?? ""
+                  params: argumentsDelta
                 }
 
                 activeToolCalls[index] = activeToolCall
@@ -1425,23 +1425,16 @@ const makeStreamResponse = Effect.fnUntraced(
                   id: activeToolCall.id,
                   name: activeToolCall.name
                 })
-
-                // Emit a tool call delta part if parameters were also sent
-                if (activeToolCall.params.length > 0) {
-                  parts.push({
-                    type: "tool-params-delta",
-                    id: activeToolCall.id,
-                    delta: activeToolCall.params
-                  })
-                }
               } else {
-                // If an active tool call was found, update and emit the delta for
-                // the tool call's parameters
-                activeToolCall.params += toolCall.function?.arguments ?? ""
+                activeToolCall.params += argumentsDelta
+              }
+
+              // Emit a tool call delta part if parameters were also sent
+              if (argumentsDelta.length > 0) {
                 parts.push({
                   type: "tool-params-delta",
                   id: activeToolCall.id,
-                  delta: activeToolCall.params
+                  delta: argumentsDelta
                 })
               }
 

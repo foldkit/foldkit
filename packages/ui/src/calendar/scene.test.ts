@@ -683,6 +683,7 @@ describe('Calendar', () => {
         Scene.keydown(grid, 'ArrowDown'),
         Scene.keydown(grid, 'ArrowDown'),
         Scene.keydown(grid, 'Enter'),
+        Scene.expectIgnored(),
         Scene.expect(yearsHeadingButton).toExist(),
       )
     })
@@ -700,6 +701,7 @@ describe('Calendar', () => {
         resolveFocusGrid,
         Scene.keydown(grid, 'PageUp'),
         Scene.keydown(grid, 'Enter'),
+        Scene.expectIgnored(),
         Scene.expect(previousYearsPageButton).toExist(),
       )
     })

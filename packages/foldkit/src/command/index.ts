@@ -400,29 +400,11 @@ export function define(name: string, config: DefineConfig): unknown {
 export const mapEffect: {
   <A, E1, R1, B, E2, R2>(
     f: (effect: Effect.Effect<A, E1, R1>) => Effect.Effect<B, E2, R2>,
-  ): (
-    command: Readonly<{
-      name: string
-      args?: Record<string, unknown>
-      effect: Effect.Effect<A, E1, R1>
-    }>,
-  ) => Readonly<{
-    name: string
-    args?: Record<string, unknown>
-    effect: Effect.Effect<B, E2, R2>
-  }>
+  ): (command: Command<A, E1, R1>) => Command<B, E2, R2>
   <A, E1, R1, B, E2, R2>(
-    command: Readonly<{
-      name: string
-      args?: Record<string, unknown>
-      effect: Effect.Effect<A, E1, R1>
-    }>,
+    command: Command<A, E1, R1>,
     f: (effect: Effect.Effect<A, E1, R1>) => Effect.Effect<B, E2, R2>,
-  ): Readonly<{
-    name: string
-    args?: Record<string, unknown>
-    effect: Effect.Effect<B, E2, R2>
-  }>
+  ): Command<B, E2, R2>
 } = Function.dual(
   2,
   <A, E1, R1, B, E2, R2>(
@@ -455,33 +437,21 @@ export const mapEffect: {
  *  Preserves the Command's `name` and `args` so traces still attribute
  *  it to the originating Submodel. When you need to transform the
  *  Effect itself (not just the result Message), reach for
- *  {@link mapEffect} instead. */
+ *  {@link mapEffect} instead.
+ *
+ *  Typed against {@link Command} in argument and result positions, so a
+ *  generic combinator over a type-parameter Message unifies with
+ *  `Command.Command<Message>` directly. */
 export const mapMessage: {
   <FromMessage, ToMessage, E = never, R = never>(
-    command: Readonly<{
-      name: string
-      args?: Record<string, unknown>
-      effect: Effect.Effect<FromMessage, E, R>
-    }>,
+    command: Command<FromMessage, E, R>,
     f: (message: FromMessage) => ToMessage,
-  ): Readonly<{
-    name: string
-    args?: Record<string, unknown>
-    effect: Effect.Effect<ToMessage, E, R>
-  }>
+  ): Command<ToMessage, E, R>
   <FromMessage, ToMessage>(
     f: (message: FromMessage) => ToMessage,
   ): <E = never, R = never>(
-    command: Readonly<{
-      name: string
-      args?: Record<string, unknown>
-      effect: Effect.Effect<FromMessage, E, R>
-    }>,
-  ) => Readonly<{
-    name: string
-    args?: Record<string, unknown>
-    effect: Effect.Effect<ToMessage, E, R>
-  }>
+    command: Command<FromMessage, E, R>,
+  ) => Command<ToMessage, E, R>
 } = Function.dual(
   2,
   <FromMessage, ToMessage, E = never, R = never>(
@@ -534,57 +504,26 @@ export const mapMessage: {
  *  from the matched Command.
  *  Preserves each Command's `name` and `args` so traces still attribute the
  *  Command to the originating Submodel. When you need to transform the Effect
- *  itself (not just the result Message), reach for {@link mapEffect} instead. */
+ *  itself (not just the result Message), reach for {@link mapEffect} instead.
+ *
+ *  Typed against {@link Command} in argument and result positions, so a
+ *  generic combinator over a type-parameter Message unifies with
+ *  `Command.Command<Message>` directly. */
 export const mapMessages: {
   <FromMessage, ToMessage, E = never, R = never>(
-    commands: ReadonlyArray<
-      Readonly<{
-        name: string
-        args?: Record<string, unknown>
-        effect: Effect.Effect<FromMessage, E, R>
-      }>
-    >,
+    commands: ReadonlyArray<Command<FromMessage, E, R>>,
     f: (message: FromMessage) => ToMessage,
-  ): ReadonlyArray<
-    Readonly<{
-      name: string
-      args?: Record<string, unknown>
-      effect: Effect.Effect<ToMessage, E, R>
-    }>
-  >
+  ): ReadonlyArray<Command<ToMessage, E, R>>
   <FromMessage, ToMessage>(
     f: (message: FromMessage) => ToMessage,
   ): <E = never, R = never>(
-    commands: ReadonlyArray<
-      Readonly<{
-        name: string
-        args?: Record<string, unknown>
-        effect: Effect.Effect<FromMessage, E, R>
-      }>
-    >,
-  ) => ReadonlyArray<
-    Readonly<{
-      name: string
-      args?: Record<string, unknown>
-      effect: Effect.Effect<ToMessage, E, R>
-    }>
-  >
+    commands: ReadonlyArray<Command<FromMessage, E, R>>,
+  ) => ReadonlyArray<Command<ToMessage, E, R>>
 } = Function.dual(
   2,
   <FromMessage, ToMessage, E = never, R = never>(
-    commands: ReadonlyArray<
-      Readonly<{
-        name: string
-        args?: Record<string, unknown>
-        effect: Effect.Effect<FromMessage, E, R>
-      }>
-    >,
+    commands: ReadonlyArray<Command<FromMessage, E, R>>,
     f: (message: FromMessage) => ToMessage,
-  ): ReadonlyArray<
-    Readonly<{
-      name: string
-      args?: Record<string, unknown>
-      effect: Effect.Effect<ToMessage, E, R>
-    }>
-  > => Array.map(commands, command => mapMessage(command, f)),
+  ): ReadonlyArray<Command<ToMessage, E, R>> =>
+    Array.map(commands, command => mapMessage(command, f)),
 )

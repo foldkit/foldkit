@@ -11,12 +11,15 @@ import {
   ClickedContinue,
   ClickedPlaceOrder,
   ClickedStartOver,
-  SelectedEdition,
+  EDITIONS,
+  EditionRadioGroup,
+  GotEditionRadioGroupMessage,
   SubmittedPromoCode,
   ToggledPaymentMethod,
   ToggledTermsAccepted,
   UpdatedPromoCode,
   checkoutMachine,
+  editionName,
   isReviewReady,
   promoToMaybeDiscount,
 } from './main'
@@ -117,11 +120,6 @@ const currentProgressIndex = (state: typeof CheckoutState.Type): number =>
     ),
     Option.getOrElse(() => progressSteps.length),
   )
-
-const EDITIONS: ReadonlyArray<string> = ['Hardcover', 'E-book']
-
-const editionName = (isShippingRequired: boolean): string =>
-  isShippingRequired ? 'Hardcover' : 'E-book'
 
 const editionPrice = (edition: string): number =>
   edition === 'Hardcover' ? PHYSICAL_PRICE : DIGITAL_PRICE
@@ -359,7 +357,7 @@ const progressView = (
 }
 
 const editionOptionView = (
-  option: RadioGroup.OptionInfo<string, Message>,
+  option: RadioGroup.OptionInfo,
   h: HtmlBuilder<Message>,
 ): Html => {
   const selectionBadgeClassName =
@@ -444,7 +442,11 @@ const cancelCheckoutButton = (h: HtmlBuilder<Message>): Html =>
     h,
   )
 
-const cartView = (state: typeof Cart.Type, h: HtmlBuilder<Message>): Html => {
+const cartView = (
+  state: typeof Cart.Type,
+  editionRadioGroup: RadioGroup.Model,
+  h: HtmlBuilder<Message>,
+): Html => {
   const continueLabel = state.isShippingRequired
     ? 'Continue to delivery'
     : 'Continue to payment'
@@ -493,25 +495,24 @@ const cartView = (state: typeof Cart.Type, h: HtmlBuilder<Message>): Html => {
             [h.Class('mb-3 text-sm font-bold text-stone-900')],
             ['Choose an edition'],
           ),
-          RadioGroup.view(
-            {
-              id: 'edition',
+          h.submodel({
+            slotId: editionRadioGroup.id,
+            model: editionRadioGroup,
+            view: EditionRadioGroup.view,
+            viewInputs: {
               selectedValue: Option.some(editionName(state.isShippingRequired)),
               options: EDITIONS,
               ariaLabel: 'Choose an edition',
               orientation: 'Horizontal',
-              onSelect: edition =>
-                SelectedEdition({
-                  isShippingRequired: edition === 'Hardcover',
-                }),
               toView: ({ group, options }) =>
                 h.div(
                   [...group, h.Class('grid gap-3 sm:grid-cols-2')],
                   Array.map(options, option => editionOptionView(option, h)),
                 ),
             },
-            h,
-          ),
+            toParentMessage: message =>
+              GotEditionRadioGroupMessage({ message }),
+          }),
         ],
       ),
       h.div(
@@ -1296,11 +1297,12 @@ const cancelledView = (h: HtmlBuilder<Message>): Html =>
 
 const checkoutContentView = (
   state: typeof CheckoutState.Type,
+  editionRadioGroup: RadioGroup.Model,
   h: HtmlBuilder<Message>,
 ): Html =>
   M.value(state).pipe(
     M.tagsExhaustive({
-      Cart: cartState => cartView(cartState, h),
+      Cart: cartState => cartView(cartState, editionRadioGroup, h),
       Shipping: () => shippingView(h),
       Payment: paymentState => paymentView(paymentState, h),
       Review: reviewState => reviewView(reviewState, h),
@@ -1312,6 +1314,7 @@ const checkoutContentView = (
 
 const checkoutPanelView = (
   state: typeof CheckoutState.Type,
+  editionRadioGroup: RadioGroup.Model,
   h: HtmlBuilder<Message>,
 ): Html =>
   h.section(
@@ -1342,7 +1345,7 @@ const checkoutPanelView = (
           ),
         ],
       ),
-      checkoutContentView(state, h),
+      checkoutContentView(state, editionRadioGroup, h),
     ],
   )
 
@@ -1651,7 +1654,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           h.div(
             [h.Class('mt-6 grid gap-6 sm:mt-8 lg:grid-cols-3 lg:items-start')],
             [
-              checkoutPanelView(model.checkout, h),
+              checkoutPanelView(model.checkout, model.editionRadioGroup, h),
               orderSummaryView(model.checkout, h),
             ],
           ),

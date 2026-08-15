@@ -54,6 +54,8 @@ const view = (h: HtmlBuilder<Message>): Html =>
   h.div([], [Markdown.view(about)])
 ```
 
+`decodeDocument` memoizes on the wire object, so calling it inside a view decodes each module once rather than once per render.
+
 `Markdown.view` renders every node through unstyled semantic defaults. Restyle any node by overriding its view:
 
 ```typescript
@@ -144,11 +146,54 @@ const postView = (
 
 Attribute values are strings on the wire, so transforming field schemas decode past them: `S.NumberFromString` turns `::Chart{height="240"}` into `height: number`. A plain `islands` record of untyped views (`Readonly<Record<string, IslandView>>`) also works when you want to skip the schemas.
 
+## Frontmatter
+
+Documents can open with a frontmatter block when the plugin is given a schema for it. Declare the fields as a Schema struct, once, in a module both your Vite config and your application import:
+
+```typescript
+// src/postFrontmatter.ts
+import { Schema as S } from 'effect'
+
+export const PostFrontmatter = S.Struct({
+  title: S.String.check(S.isNonEmpty()),
+  date: S.String,
+})
+```
+
+```typescript
+import { markdown } from '@foldkit/markdown/vite'
+
+import { PostFrontmatter } from './src/postFrontmatter'
+
+markdown({ frontmatter: PostFrontmatter })
+```
+
+```markdown
+---
+title: 'Introducing the blog'
+date: 2026-08-01
+---
+
+The prose starts here.
+```
+
+Every field validates at build time. An unknown field, a missing required field, or a value the schema rejects fails the build with the file and line. Without a `frontmatter` schema, a frontmatter block fails the build.
+
+The supported shape is deliberately flat: one `key: value` pair per line, every value a string. A value wrapped in matching single or double quotes has that outer pair stripped, so values containing special characters like `:` stay unambiguous. Only the first and last characters decide, so a value that itself starts and ends with the same quote character loses that pair; wrap it in the other quote style to keep it. Nesting, lists, and multi-line values are not supported.
+
+Every compiled `.md` module carries a `frontmatter` named export alongside the default document export. It holds the block's validated fields, and it is `undefined` when the document has no block:
+
+```typescript
+import postRaw, { frontmatter } from './post/introducing-the-blog.md'
+```
+
+The fields arrive as the raw strings the block declares. The build validates them against the schema and discards the decoded result, so where the application needs typed values, decode the export with the same schema at runtime; validation at build time means that decode cannot fail. `S.NumberFromString` and friends do their transformation in that runtime decode, not in the emitted module.
+
 ## Vocabulary
 
 The schema accepts CommonMark plus GFM tables and strikethrough: headings, paragraphs, emphasis, strong, strikethrough, inline code, links, images, hard breaks, nested lists, code blocks, blockquotes, thematic breaks, and tables. Directives (`::Name`, `:::Name`) become Island nodes.
 
-Anything outside the vocabulary fails the build with an error naming the construct and its line. Raw HTML is rejected by design; islands are the escape hatch. Reference-style links, footnotes, task lists, YAML frontmatter, and directive labels (`::Name[label]`) are not supported; keep document metadata in application code. Link and image URLs must be relative or use the `http:`, `https:`, `mailto:`, or `tel:` schemes; executable schemes like `javascript:` fail the build.
+Anything outside the vocabulary fails the build with an error naming the construct and its line. Raw HTML is rejected by design; islands are the escape hatch. Reference-style links, footnotes, task lists, and directive labels (`::Name[label]`) are not supported. Frontmatter is supported only with a `frontmatter` schema configured, in the flat shape described above. Link and image URLs must be relative or use the `http:`, `https:`, `mailto:`, or `tel:` schemes; executable schemes like `javascript:` fail the build.
 
 ## One-off compilation
 
@@ -160,4 +205,16 @@ import { parseMarkdown } from '@foldkit/markdown/vite'
 import { islandAttributes } from './islands'
 
 const document = parseMarkdown('# Title', { islands: islandAttributes })
+```
+
+`parseMarkdownWithFrontmatter` also returns the document's frontmatter fields, as an `Option` of the raw string record:
+
+```typescript
+import { parseMarkdownWithFrontmatter } from '@foldkit/markdown/vite'
+
+import { PostFrontmatter } from './postFrontmatter'
+
+const { document, maybeFrontmatter } = parseMarkdownWithFrontmatter(source, {
+  frontmatter: PostFrontmatter,
+})
 ```

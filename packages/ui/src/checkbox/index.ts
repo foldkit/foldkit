@@ -40,6 +40,10 @@ export type CheckboxAttributes<Message> = Readonly<{
  *    `update` by storing the value.
  *  - `toView`: receives the {@link CheckboxAttributes} and lays out the
  *    checkbox.
+ *  - `isDisabled`: marks the checkbox unavailable with `aria-disabled="true"`
+ *    and `data-disabled`, keeping it focusable. Use it when the control does
+ *    not apply; use `isReadOnly` when its state is still information the user
+ *    needs.
  *  - `isReadOnly`: prevents toggling while exposing read-only semantics with
  *    `aria-readonly="true"` and `data-readonly`. The checkbox remains
  *    focusable. Independent of `isDisabled`: setting both emits both

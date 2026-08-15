@@ -12,6 +12,7 @@ const PARAMETERIZED_ROUTERS: ReadonlySet<string> = new Set([
   'exampleDetailRouter',
   'apiModuleRouter',
   'playgroundRouter',
+  'blogPostRouter',
 ])
 
 const expectedTag = (routerName: string): string => {
@@ -43,6 +44,61 @@ describe('route table', () => {
         Option.getOrThrow(urlFromString(`${SITE}${path}`)),
       )
       expect(parsed._tag).toBe(expectedTag(name))
+    },
+  )
+})
+
+describe('blog routes', () => {
+  test('parses /blog/<slug> into BlogPost', () => {
+    const parsed = Route.urlToAppRoute(
+      Option.getOrThrow(
+        urlFromString(`${SITE}/blog/introducing-the-foldkit-blog`),
+      ),
+    )
+
+    expect(parsed).toEqual(
+      Route.BlogPostRoute({ postSlug: 'introducing-the-foldkit-blog' }),
+    )
+  })
+
+  test('builds a post URL that parses back to its route', () => {
+    const path = Route.blogPostRouter({ postSlug: 'some-post' })
+
+    expect(path).toBe('/blog/some-post')
+
+    const parsed = Route.urlToAppRoute(
+      Option.getOrThrow(urlFromString(`${SITE}${path}`)),
+    )
+    expect(parsed).toEqual(Route.BlogPostRoute({ postSlug: 'some-post' }))
+  })
+
+  test('leaves /blog/rss.xml to the static feed file', () => {
+    const parsed = Route.urlToAppRoute(
+      Option.getOrThrow(urlFromString(`${SITE}/blog/rss.xml`)),
+    )
+
+    expect(parsed._tag).toBe('NotFound')
+  })
+})
+
+describe('section predicates', () => {
+  const cases: ReadonlyArray<
+    readonly [string, Route.AppRoute, boolean, boolean]
+  > = [
+    ['GettingStarted', Route.GettingStartedRoute(), true, false],
+    ['CoreArchitecture', Route.CoreArchitectureRoute(), true, false],
+    ['Home', Route.HomeRoute(), false, false],
+    ['Newsletter', Route.NewsletterRoute(), false, false],
+    ['NotFound', Route.NotFoundRoute({ path: '/missing' }), false, false],
+    ['Blog', Route.BlogRoute(), false, true],
+    ['BlogPost', Route.BlogPostRoute({ postSlug: 'some-post' }), false, true],
+  ]
+
+  test.each(cases)(
+    '%s: isDocsSectionRoute %s, isBlogRoute %s',
+    (_name, route, isDocsSection, isBlog) => {
+      expect(Route.isDocsSectionRoute(route)).toBe(isDocsSection)
+      expect(Route.isBlogRoute(route)).toBe(isBlog)
     },
   )
 })

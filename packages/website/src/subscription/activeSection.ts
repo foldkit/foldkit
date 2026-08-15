@@ -139,6 +139,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           M.tag(
             'Home',
             'Newsletter',
+            'Blog',
+            'BlogPost',
             'Playground',
             'NotFound',
             'Examples',

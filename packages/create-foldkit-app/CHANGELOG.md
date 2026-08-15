@@ -1,5 +1,35 @@
 # create-foldkit-app
 
+## 0.25.0
+
+### Minor Changes
+
+- 3feb9ba: Bump bundled Effect dependencies to `4.0.0-rc.108`, the first Effect v4 release candidate. No user-facing changes. Newly scaffolded apps will get the updated pins from the example sources.
+
+  The CLI now pins `effect`, `@effect/platform-node`, and `@effect/platform-node-shared` to exactly `4.0.0-rc.108` to match this release (exact versions, not ranges, while Effect v4 is in prerelease).
+
+## 0.24.5
+
+### Patch Changes
+
+- 87e9dbf: Bump bundled Effect dependencies to `4.0.0-beta.107`. No user-facing changes. Newly scaffolded apps will get the updated pins from the example sources.
+
+  The CLI now pins `effect`, `@effect/platform-node`, and `@effect/platform-node-shared` to exactly `4.0.0-beta.107` to match this release (exact versions, not ranges, while Effect v4 is in beta).
+
+## 0.24.4
+
+### Patch Changes
+
+- 14bb759: Correct the scaffolded `AGENTS.md` testing guidance and relax its Message layout rule. Scene tests do not always run from the root `update`/`view`, so the template no longer claims a single root-level `scene.test.ts` is the right home for a multi-page app. It now says a test file lives in the folder holding the code it drives, blesses a page-scoped `scene.test.ts` for behavior that page owns, keeps the root-level file for flows that cross pages, and points at `repos/foldkit/examples/auth` for the shape. The Message layout section keeps one unbroken block of `m()` declarations as the rule for small unions and allows blank-line thematic clusters once a union grows past roughly a dozen Messages, with `S.Union([...])` and `type Message` still adjacent directly after the declarations.
+
+## 0.24.3
+
+### Patch Changes
+
+- 84050fc: Bump bundled Effect dependencies to `4.0.0-beta.106`. No user-facing changes. Newly scaffolded apps will get the updated pins from the example sources.
+
+  The CLI now pins `effect`, `@effect/platform-node`, and `@effect/platform-node-shared` to exactly `4.0.0-beta.106` to match this release (exact versions, not ranges, while Effect v4 is in beta).
+
 ## 0.24.2
 
 ### Patch Changes

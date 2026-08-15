@@ -41,8 +41,8 @@ export const init = (config: InitConfig): Model => baseInit(config)
 
 /** Processes a combobox message and returns the next model, commands, and optional OutMessage. Closes the combobox on selection (single-select behavior); emits `Selected({ value })` for the parent to store, and `ClearedSelection` when a nullable combobox closes with an empty input. */
 export const update = makeUpdate<Model>({
-  handleClose: (model, restingInputValue) => {
-    if (model.nullable && model.inputValue === '') {
+  handleClose: (model, restingInputValue, isClearable) => {
+    if (isClearable && model.nullable && model.inputValue === '') {
       return [
         evo(closedBaseModel(model), { inputValue: () => '' }),
         Option.some(ClearedSelection()),
@@ -84,7 +84,7 @@ export const open = (model: Model): UpdateReturn =>
  *  returns to (the parent-owned selection's display text, or empty). Use
  *  this in domain-event handlers to close the combobox. */
 export const close = (model: Model, restingInputValue: string): UpdateReturn =>
-  update(model, Closed({ restingInputValue }))
+  update(model, Closed({ restingInputValue, isClearable: true }))
 
 /** Programmatically selects an item in the single-select combobox, closing
  *  the combobox and emitting `Selected({ value })`. The Submodel treats the
@@ -191,6 +191,6 @@ export const create = <Item extends string = string>(): Bundle<Item> => {
     open: model =>
       typedUpdate(model, Opened({ maybeActiveItemIndex: Option.none() })),
     close: (model, restingInputValue) =>
-      typedUpdate(model, Closed({ restingInputValue })),
+      typedUpdate(model, Closed({ restingInputValue, isClearable: true })),
   }
 }

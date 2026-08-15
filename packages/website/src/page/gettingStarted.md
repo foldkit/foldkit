@@ -10,12 +10,18 @@ If you’d like to learn about Foldkit’s architecture before starting a projec
 
 `create-foldkit-app` requires Node.js 22.22.2 or newer.
 
-Foldkit is built on the Effect v4 beta and pins its peer dependencies to an exact version: `effect@4.0.0-beta.105` and `@effect/platform-browser@4.0.0-beta.105`. Stable Effect v3 does not satisfy the pin, so adding Foldkit to a project that already uses Effect v3 will produce peer dependency conflicts, and upgrading Foldkit can require upgrading the Effect beta in lockstep. Projects scaffolded with `create-foldkit-app` get the correct versions automatically.
+Foldkit is built on the Effect v4 release candidate and pins its `effect` peer dependency to an exact version: `effect@4.0.0-rc.109`. Stable Effect v3 does not satisfy the pin, so adding Foldkit to a project that already uses Effect v3 will produce peer dependency conflicts, and upgrading Foldkit can require upgrading the Effect release candidate in lockstep. Projects scaffolded with `create-foldkit-app` get the correct versions automatically.
 
-To add Foldkit to an existing project instead of scaffolding a new one, install it together with its pinned peer dependencies:
+To add Foldkit to an existing project instead of scaffolding a new one, install it together with its pinned peer dependency:
 
 ```sh
-npm install foldkit effect@4.0.0-beta.105 @effect/platform-browser@4.0.0-beta.105
+npm install foldkit effect@4.0.0-rc.109
+```
+
+`@effect/platform-browser` is a separate package, pinned to the same version when you need it. `@foldkit/devtools` declares it as a peer dependency, and Effect's browser services such as `BrowserKeyValueStore` and `BrowserCrypto` come from it:
+
+```sh
+npm install @effect/platform-browser@4.0.0-rc.109
 ```
 
 ## Quick Start

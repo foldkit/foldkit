@@ -10,7 +10,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { AsyncData, Command, Runtime, Subscription } from 'foldkit'
+import { AsyncData, Command, Runtime, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -158,41 +158,29 @@ const activateTab = (model: Model, tab: Tab): UpdateReturn => {
   )
 }
 
+const foldTabsOutMessage = M.type<Tabs.OutMessage<Tab>>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    Selected:
+      ({ value }) =>
+      model =>
+        activateTab(model, value),
+  }),
+)
+
+const foldTabs = Update.foldChild({
+  update: AppTabs.update,
+  read: (model: Model) => Option.some(model.tabs),
+  write: (model, nextTabs) => evo(model, { tabs: () => nextTabs }),
+  toParentMessage: message => GotTabsMessage({ message }),
+  foldOutMessage: foldTabsOutMessage,
+})
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     M.withReturnType<UpdateReturn>(),
     M.tagsExhaustive({
-      GotTabsMessage: ({ message }) => {
-        const [nextTabs, tabsCommands, maybeOutMessage] = AppTabs.update(
-          model.tabs,
-          message,
-        )
-
-        const tabsModel = evo(model, { tabs: () => nextTabs })
-        const mappedCommands = Command.mapMessages(tabsCommands, message =>
-          GotTabsMessage({ message }),
-        )
-
-        return Option.match(maybeOutMessage, {
-          onNone: () => [tabsModel, mappedCommands],
-          onSome: M.type<Tabs.OutMessage<Tab>>().pipe(
-            M.withReturnType<UpdateReturn>(),
-            M.tagsExhaustive({
-              Selected: ({ value }) => {
-                const [activatedModel, activationCommands] = activateTab(
-                  tabsModel,
-                  value,
-                )
-
-                return [
-                  activatedModel,
-                  Array.appendAll(mappedCommands, activationCommands),
-                ]
-              },
-            }),
-          ),
-        })
-      },
+      GotTabsMessage: ({ message }) => foldTabs(model, message),
 
       ClickedPost: ({ postId }) => {
         const selectedModel = evo(model, {

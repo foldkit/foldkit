@@ -4,7 +4,7 @@
 
 Animation is a CSS animation lifecycle coordinator that manages enter/leave phases via a state machine and data attributes. If you're coming from imperative animation libraries (for example GSAP, Framer Motion, or `element.animate()`), it will feel inverted: those libraries let you say "do this now" and give you a callback when it's done, while Foldkit is declarative. You dispatch Messages describing what happened, Animation turns the lifecycle into a sequence of more Messages, and your update function reacts at each step. The payoff is that every animation state transition is in your Model, observable in DevTools, testable without a DOM, and can't run outside your update loop.
 
-Concretely, Animation uses the [OutMessage](/core/submodel#surfacing-facts) pattern: your update function handles `StartedLeaveAnimating` (to provide settlement detection) and `TransitionedOut` (to unmount content). It's used internally by Dialog, Menu, Popover, Listbox, and Combobox when `isAnimated` is true, and works with both CSS transitions and CSS keyframe animations.
+Concretely, Animation uses the [OutMessage](/core/submodel#surfacing-facts) pattern: the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config handles `StartedLeaveAnimating` (to provide settlement detection) and `TransitionedOut` (to unmount content). It's used internally by Dialog, Menu, Popover, Listbox, and Combobox when `isAnimated` is true, and works with both CSS transitions and CSS keyframe animations.
 
 ## Why Does This Exist? {#why}
 
@@ -120,9 +120,9 @@ Configuration object passed to `Animation.view()`.
 
 ### OutMessages {#out-messages}
 
-OutMessages emitted from `Animation.update()`. Handle these in your parent update function.
+OutMessages emitted from `Animation.update()`. Fold these in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
 
-| Name                    | Type         | Default | Description                                                                                                                                       |
-| ----------------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `StartedLeaveAnimating` | `OutMessage` | —       | Emitted when the leave animation begins. Your update function should provide Animation.defaultLeaveCommand(model) to detect animation settlement. |
-| `TransitionedOut`       | `OutMessage` | —       | Emitted when the leave animation finishes. Use this to unmount content or update your Model.                                                      |
+| Name                    | Type         | Default | Description                                                                                                                                                                     |
+| ----------------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `StartedLeaveAnimating` | `OutMessage` | —       | Emitted when the leave animation begins. Return Animation.defaultLeaveCommand(model) from the fold, lifted with the fold context's liftCommand, to detect animation settlement. |
+| `TransitionedOut`       | `OutMessage` | —       | Emitted when the leave animation finishes. Use this to unmount content or update your Model.                                                                                    |

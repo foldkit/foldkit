@@ -485,6 +485,8 @@ Missing key
   it("optionalKey", () => {
     const schema = Schema.optionalKey(Schema.String)
     strictEqual(schema.ast.context?.isOptional, true)
+    strictEqual(Schema.optionalKey(Schema.String).ast, schema.ast)
+    strictEqual(Schema.optionalKey(schema).ast, schema.ast)
   })
 
   it("optionalKey & mutableKey", () => {
@@ -494,13 +496,18 @@ Missing key
   })
 
   it("optional", () => {
-    const schema = Schema.optionalKey(Schema.String)
+    const schema = Schema.optional(Schema.String)
     strictEqual(schema.ast.context?.isOptional, true)
+    strictEqual(Schema.optional(Schema.String).ast, schema.ast)
+    const nested = Schema.optional(schema)
+    strictEqual(Schema.required(nested), schema)
   })
 
   it("mutableKey", () => {
     const schema = Schema.mutableKey(Schema.String)
     strictEqual(schema.ast.context?.isMutable, true)
+    strictEqual(Schema.mutableKey(Schema.String).ast, schema.ast)
+    strictEqual(Schema.mutableKey(schema).ast, schema.ast)
   })
 
   it("mutableKey & optionalKey", () => {
@@ -4122,6 +4129,32 @@ Expected a value between -2147483648 and 2147483647`
       await decoding.fail(
         { kind: "a", status: "ready", value: "value" },
         "Expected exactly one member to match"
+      )
+    })
+
+    it(`mode: "oneOf" with nested and contradicted sentinels`, async () => {
+      const nested = Schema.Union([
+        Schema.Struct({ kind: Schema.Literal("a"), variant: Schema.Literal("x") }),
+        Schema.Struct({ kind: Schema.Literal("a"), variant: Schema.Literal("y") })
+      ])
+      const schema = Schema.Struct({
+        block: Schema.Union([
+          nested,
+          Schema.Struct({ kind: Schema.Literal("b") })
+        ], { mode: "oneOf" })
+      })
+      const decoding = new TestSchema.Asserts(schema).decoding()
+
+      await decoding.succeed({ block: { kind: "a", variant: "x" } })
+      await decoding.fail(
+        { block: { kind: "a", variant: "z" } },
+        `Expected { readonly "kind": "a", readonly "variant": "x", ... } | { readonly "kind": "a", readonly "variant": "y", ... }
+  at ["block"]`
+      )
+      await decoding.fail(
+        { block: { kind: "a", variant: undefined } },
+        `Expected { readonly "kind": "a", readonly "variant": "x", ... } | { readonly "kind": "a", readonly "variant": "y", ... }
+  at ["block"]`
       )
     })
 

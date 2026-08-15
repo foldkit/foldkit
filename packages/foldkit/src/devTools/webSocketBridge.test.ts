@@ -1,10 +1,13 @@
 import {
   Array,
   Effect,
+  Exit,
+  Function,
   Match,
   Number,
   Option,
   Schema,
+  Scope,
   SubscriptionRef,
 } from 'effect'
 import { describe, expect, it } from 'vitest'
@@ -12,6 +15,7 @@ import { describe, expect, it } from 'vitest'
 import { m } from '../message/index.js'
 import { evo } from '../struct/index.js'
 import {
+  EventFrame,
   MAX_DISPATCH_BATCH_SIZE,
   type Request,
   RequestDispatchMessage,
@@ -22,7 +26,11 @@ import {
   type CreateDevToolsStoreOptions,
   createDevToolsStore,
 } from './store.js'
-import { dispatchRequest } from './webSocketBridge.js'
+import {
+  EVENT_CHANNEL,
+  dispatchRequest,
+  startWebSocketBridge,
+} from './webSocketBridge.js'
 
 const CounterModel = Schema.Struct({ count: Schema.Number })
 type CounterModel = typeof CounterModel.Type
@@ -281,5 +289,113 @@ describe('dispatchRequest', () => {
       expect(dispatched).toEqual([])
       expect(recordedTags()).toEqual(['ClickedIncrement', 'ClickedIncrement'])
     })
+  })
+})
+
+const makeHotStub = () => {
+  const sentEventTags: Array<string> = []
+  const decodeEventFrame = Schema.decodeUnknownSync(EventFrame)
+
+  const hot: NonNullable<ImportMeta['hot']> = {
+    data: {},
+    accept: Function.constVoid,
+    acceptExports: Function.constVoid,
+    dispose: Function.constVoid,
+    prune: Function.constVoid,
+    invalidate: Function.constVoid,
+    on: Function.constVoid,
+    off: Function.constVoid,
+    send: (channel: string, payload: unknown) => {
+      if (channel === EVENT_CHANNEL) {
+        sentEventTags.push(decodeEventFrame(payload).event._tag)
+      }
+    },
+  }
+
+  return { hot, sentEventTags }
+}
+
+// NOTE: happy-dom has no `PageTransitionEvent` constructor, so the restore
+// flag goes onto a plain `pageshow` Event. Spreading the Event into an object
+// literal loses it: the fields are prototype accessors rather than own
+// properties, and `dispatchEvent` rejects anything that is not an Event.
+// Defining the property keeps the Event and needs no type assertion for a
+// field `Event` does not declare.
+const dispatchPageShow = (isRestoredFromBfcache: boolean): void => {
+  const event = new Event('pageshow')
+  Object.defineProperty(event, 'persisted', {
+    value: isRestoredFromBfcache,
+    configurable: true,
+  })
+  window.dispatchEvent(event)
+}
+
+const startBridgeInScope = (hot: NonNullable<ImportMeta['hot']>) => {
+  const scope = run(Scope.make())
+  run(
+    Effect.provideService(
+      startWebSocketBridge(
+        run(createDevToolsStore(makeBridge())),
+        hot,
+        () => Effect.void,
+        Option.some(CounterMessage),
+      ),
+      Scope.Scope,
+      scope,
+    ),
+  )
+  return { closeScope: () => run(Scope.close(scope, Exit.void)) }
+}
+
+// NOTE: the relay learns a page really went away from its Vite HMR socket
+// closing. `beforeunload` fires for events the document survives, so a bridge
+// that announced a disconnect there reported a live app as gone.
+describe('startWebSocketBridge', () => {
+  it('stays connected through a beforeunload the document survives', () => {
+    const { hot, sentEventTags } = makeHotStub()
+    const { closeScope } = startBridgeInScope(hot)
+
+    window.dispatchEvent(new Event('beforeunload'))
+
+    expect(sentEventTags).toEqual(['EventConnected'])
+
+    closeScope()
+  })
+
+  it('announces a disconnect when the runtime scope closes', () => {
+    const { hot, sentEventTags } = makeHotStub()
+    const { closeScope } = startBridgeInScope(hot)
+
+    closeScope()
+
+    expect(sentEventTags).toEqual(['EventConnected', 'EventDisconnected'])
+  })
+
+  // NOTE: the freeze into the back/forward cache closes the page's Vite HMR
+  // socket, and the relay prunes a runtime whose socket closed. The runtime
+  // outlives the freeze, so the restore has to reintroduce it.
+  it('announces the connection again when the page is restored from the back/forward cache', () => {
+    const { hot, sentEventTags } = makeHotStub()
+    const { closeScope } = startBridgeInScope(hot)
+
+    dispatchPageShow(false)
+
+    expect(sentEventTags).toEqual(['EventConnected'])
+
+    dispatchPageShow(true)
+
+    expect(sentEventTags).toEqual(['EventConnected', 'EventConnected'])
+
+    closeScope()
+  })
+
+  it('stops announcing once the runtime scope has closed', () => {
+    const { hot, sentEventTags } = makeHotStub()
+    const { closeScope } = startBridgeInScope(hot)
+
+    closeScope()
+    dispatchPageShow(true)
+
+    expect(sentEventTags).toEqual(['EventConnected', 'EventDisconnected'])
   })
 })

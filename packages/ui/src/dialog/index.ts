@@ -5,6 +5,7 @@ import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 import { defineView } from 'foldkit/submodel'
+import * as Update from 'foldkit/update'
 
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → dialog → animation.
@@ -215,41 +216,30 @@ export const ReleaseDialogResources = Command.define('ReleaseDialogResources', {
 const wrapAnimationMessage = (message: AnimationMessage): Message =>
   GotAnimationMessage({ message })
 
-const delegateToAnimation = (
-  model: Model,
-  animationMessage: AnimationMessage,
-): UpdateReturn => {
-  const [nextAnimation, animationCommands, maybeOutMessage] = animationUpdate(
-    model.animation,
-    animationMessage,
+const foldAnimationOutMessage: (
+  outMessage: AnimationOutMessage,
+  context: Update.FoldContext<AnimationMessage, Message>,
+) => Update.Step<Model, Message> = (outMessage, { liftCommand }) =>
+  M.value(outMessage).pipe(
+    M.withReturnType<Update.Step<Model, Message>>(),
+    M.tagsExhaustive({
+      StartedLeaveAnimating: () => model => [
+        model,
+        [liftCommand(animationDefaultLeaveCommand(model.animation))],
+      ],
+      TransitionedOut: () => model => [model, [CloseDialog({ id: model.id })]],
+    }),
   )
 
-  const mappedCommands = Command.mapMessages(
-    animationCommands,
-    wrapAnimationMessage,
-  )
-
-  const additionalCommands = Option.match(maybeOutMessage, {
-    onNone: () => [],
-    onSome: M.type<AnimationOutMessage>().pipe(
-      M.tagsExhaustive({
-        StartedLeaveAnimating: () => [
-          Command.mapMessage(
-            animationDefaultLeaveCommand(nextAnimation),
-            wrapAnimationMessage,
-          ),
-        ],
-        TransitionedOut: () => [CloseDialog({ id: model.id })],
-      }),
-    ),
-  })
-
-  return [
+const foldAnimation = Update.foldChild({
+  update: animationUpdate,
+  read: (model: Model) => Option.some(model.animation),
+  write: (model, nextAnimation) =>
     evo(model, { animation: () => nextAnimation }),
-    [...mappedCommands, ...additionalCommands],
-    Option.none(),
-  ]
-}
+  toParentMessage: wrapAnimationMessage,
+  toParentOutMessage: () => Option.none(),
+  foldOutMessage: foldAnimationOutMessage,
+})
 
 /** Processes a dialog message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn =>
@@ -273,7 +263,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           : Option.none()
 
         if (model.isAnimated) {
-          const [nextModel, animationCommands] = delegateToAnimation(
+          const [nextModel, animationCommands] = foldAnimation(
             model,
             AnimationShowed(),
           )
@@ -306,7 +296,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         const maybeOutMessage = wasOpen ? Option.some(Closed()) : Option.none()
 
         if (model.isAnimated) {
-          const [nextModel, animationCommands] = delegateToAnimation(
+          const [nextModel, animationCommands] = foldAnimation(
             evo(model, { isOpen: () => false }),
             AnimationHid(),
           )
@@ -327,7 +317,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotAnimationMessage: ({ message: animationMessage }) =>
-        delegateToAnimation(model, animationMessage),
+        foldAnimation(model, animationMessage),
 
       Unmounted: () => {
         const isHoldingResources =

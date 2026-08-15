@@ -92,7 +92,7 @@ describe('login', () => {
       Command.expectExact(SimulateAuthRequest),
       Command.resolve(
         SimulateAuthRequest,
-        FailedSimulateAuthRequest({ error: '' }),
+        FailedSimulateAuthRequest({ error: 'Invalid credentials' }),
       ),
     )
   })

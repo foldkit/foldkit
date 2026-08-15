@@ -1,6 +1,6 @@
-import { Schema as S } from 'effect'
+import { Option, Schema as S } from 'effect'
 
-import { Dialog, Listbox } from '@foldkit/ui'
+import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
 // CONSTANT
 
@@ -63,5 +63,17 @@ export const Model = S.Struct({
   gridSizeConfirmDialog: Dialog.Model,
   maybePendingGridSize: S.Option(S.Number),
   themeListbox: Listbox.Model,
+  toolRadioGroup: RadioGroup.Model,
+  gridSizeRadioGroup: RadioGroup.Model,
+  paletteRadioGroup: RadioGroup.Model,
 })
 export type Model = typeof Model.Type
+
+export const paletteIndexFromValue = (
+  value: string,
+  fallback: PaletteIndex,
+): PaletteIndex =>
+  Option.getOrElse(
+    S.decodeUnknownOption(PaletteIndex)(Number(value)),
+    () => fallback,
+  )

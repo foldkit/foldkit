@@ -1,5 +1,5 @@
 import { Match as M, Option } from 'effect'
-import { Command } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import {
@@ -18,27 +18,23 @@ type UpdateReturn = readonly [
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
+const foldLogin = Update.foldChild({
+  update: Login.update,
+  read: (model: Model) => Option.some(model.loginModel),
+  write: (model, nextLoginModel) =>
+    evo(model, { loginModel: () => nextLoginModel }),
+  toParentMessage: message => GotLoginMessage({ message }),
+  toParentOutMessage: M.type<Login.OutMessage>().pipe(
+    M.tagsExhaustive({
+      SucceededLogin: ({ session }) => Option.some(SucceededLogin({ session })),
+    }),
+  ),
+})
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      GotLoginMessage: ({ message }) => {
-        const [loginModel, commands, maybeOutMessage] = Login.update(
-          model.loginModel,
-          message,
-        )
-
-        const mappedCommands = Command.mapMessages(commands, message =>
-          GotLoginMessage({ message }),
-        )
-
-        return [
-          evo(model, { loginModel: () => loginModel }),
-          mappedCommands,
-          Option.map(maybeOutMessage, ({ session }) =>
-            SucceededLogin({ session }),
-          ),
-        ]
-      },
+      GotLoginMessage: ({ message }) => foldLogin(model, message),
     }),
   )

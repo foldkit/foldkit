@@ -1,5 +1,5 @@
 import { Match as M, Option, Schema as S } from 'effect'
-import { Command } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import {
   Field,
   NotValidated,
@@ -105,12 +105,27 @@ type UpdateReturn = readonly [
   Option.Option<OutMessage>,
 ]
 
-const mapGraduationYearListboxCommands = (
-  commands: ReadonlyArray<Command.Command<Listbox.Message>>,
-): ReadonlyArray<Command.Command<Message>> =>
-  Command.mapMessages(commands, message =>
-    GotGraduationYearListboxMessage({ message }),
-  )
+const foldGraduationYearListboxOutMessage = M.type<Listbox.OutMessage>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    Selected:
+      ({ value }) =>
+      model => [
+        evo(model, { maybeGraduationYear: () => Option.some(value) }),
+        [],
+      ],
+  }),
+)
+
+const foldGraduationYearListbox = Update.foldChild({
+  update: GraduationYearListbox.update,
+  read: (model: Model) => Option.some(model.graduationYearListbox),
+  write: (model, nextGraduationYearListbox) =>
+    evo(model, { graduationYearListbox: () => nextGraduationYearListbox }),
+  toParentMessage: message => GotGraduationYearListboxMessage({ message }),
+  toParentOutMessage: () => Option.none(),
+  foldOutMessage: foldGraduationYearListboxOutMessage,
+})
 
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
@@ -134,35 +149,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         Option.none(),
       ],
 
-      GotGraduationYearListboxMessage: ({ message: listboxMessage }) => {
-        const [nextListbox, commands, maybeOutMessage] =
-          GraduationYearListbox.update(
-            model.graduationYearListbox,
-            listboxMessage,
-          )
-        const mappedCommands = mapGraduationYearListboxCommands(commands)
-
-        return Option.match(maybeOutMessage, {
-          onNone: (): UpdateReturn => [
-            evo(model, { graduationYearListbox: () => nextListbox }),
-            mappedCommands,
-            Option.none(),
-          ],
-          onSome: M.type<Listbox.OutMessage>().pipe(
-            M.withReturnType<UpdateReturn>(),
-            M.tagsExhaustive({
-              Selected: ({ value }) => [
-                evo(model, {
-                  maybeGraduationYear: () => Option.some(value),
-                  graduationYearListbox: () => nextListbox,
-                }),
-                mappedCommands,
-                Option.none(),
-              ],
-            }),
-          ),
-        })
-      },
+      GotGraduationYearListboxMessage: ({ message }) =>
+        foldGraduationYearListbox(model, message),
 
       ToggledCurrentlyEnrolled: ({ isChecked }) => [
         evo(model, { isCurrentlyEnrolled: () => isChecked }),

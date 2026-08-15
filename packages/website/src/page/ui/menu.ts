@@ -39,7 +39,7 @@ const headingClassName =
 
 const ICON_SIZE = 'w-4 h-4'
 
-type MenuItem = 'Edit' | 'Duplicate' | 'Archive' | 'Move' | 'Delete'
+export type MenuItem = 'Edit' | 'Duplicate' | 'Archive' | 'Move' | 'Delete'
 
 export const DemoMenu = Menu.create<MenuItem>()
 

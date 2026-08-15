@@ -1,5 +1,5 @@
-import { Option, Schema as S } from 'effect'
-import type { Array } from 'effect'
+import { Function, Option, Predicate, Schema as S } from 'effect'
+import type { Array, SchemaAST } from 'effect'
 import { ts } from 'foldkit/schema'
 
 // INLINE
@@ -362,11 +362,42 @@ export type MarkdownDocument = typeof MarkdownDocument.Type
 /** The wire form of {@link MarkdownDocument}. */
 export type MarkdownDocumentEncoded = typeof MarkdownDocument.Encoded
 
+const decodeDocumentUncached = S.decodeUnknownSync(MarkdownDocument)
+
+const documentByWire = new WeakMap<object, MarkdownDocument>()
+
 /**
  * Decodes the default export of a compiled markdown module into a typed
  * {@link MarkdownDocument}. Throws on input outside the markdown vocabulary.
+ *
+ * Results are memoized on a `WeakMap` keyed by the wire object, so decoding the
+ * same compiled module again returns the document from the first decode. A
+ * module's wire object is immutable build output and the decode is
+ * deterministic, so a cached document can never disagree with a fresh one, and
+ * each entry is collected along with the module holding its key. Calling this
+ * from a view costs one decode per module rather than one per render.
+ *
+ * Passing `overrideOptions` bypasses the cache both ways: the decode ignores
+ * cached entries and its result is not stored, since a document decoded under
+ * one set of options cannot answer for another.
  */
-export const decodeDocument = S.decodeUnknownSync(MarkdownDocument)
+export const decodeDocument = (
+  wire: unknown,
+  overrideOptions?: SchemaAST.ParseOptions,
+): MarkdownDocument => {
+  if (overrideOptions === undefined && Predicate.isObject(wire)) {
+    return Option.match(Option.fromNullishOr(documentByWire.get(wire)), {
+      onNone: () => {
+        const document = decodeDocumentUncached(wire)
+        documentByWire.set(wire, document)
+        return document
+      },
+      onSome: Function.identity,
+    })
+  } else {
+    return decodeDocumentUncached(wire, overrideOptions)
+  }
+}
 
 /** Encodes a {@link MarkdownDocument} into its JSON-safe wire form. */
 export const encodeDocument = S.encodeSync(MarkdownDocument)

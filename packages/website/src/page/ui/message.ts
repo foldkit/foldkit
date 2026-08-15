@@ -12,13 +12,13 @@ import {
   Listbox,
   Menu,
   Popover,
+  RadioGroup,
   Slider,
   Tabs,
   Tooltip,
   VirtualList,
 } from '@foldkit/ui'
 
-import { Plan } from './model'
 import { Toast } from './toastModule'
 
 export const ClickedButtonDemo = m('ClickedButtonDemo')
@@ -153,12 +153,14 @@ export const GotPopoverNestedChildDemoMessage = m(
     message: Popover.Message,
   },
 )
-export const SelectedVerticalPlan = m('SelectedVerticalPlan', {
-  plan: Plan,
-})
-export const SelectedHorizontalPlan = m('SelectedHorizontalPlan', {
-  plan: Plan,
-})
+export const GotVerticalRadioGroupDemoMessage = m(
+  'GotVerticalRadioGroupDemoMessage',
+  { message: RadioGroup.Message },
+)
+export const GotHorizontalRadioGroupDemoMessage = m(
+  'GotHorizontalRadioGroupDemoMessage',
+  { message: RadioGroup.Message },
+)
 export const GotSliderRatingDemoMessage = m('GotSliderRatingDemoMessage', {
   message: Slider.Message,
 })
@@ -258,8 +260,8 @@ export const Message = S.Union([
   GotPopoverAnimatedDemoMessage,
   GotPopoverNestedParentDemoMessage,
   GotPopoverNestedChildDemoMessage,
-  SelectedVerticalPlan,
-  SelectedHorizontalPlan,
+  GotVerticalRadioGroupDemoMessage,
+  GotHorizontalRadioGroupDemoMessage,
   UpdatedSelectDemoValue,
   GotSliderRatingDemoMessage,
   GotSliderVolumeDemoMessage,

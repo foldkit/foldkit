@@ -27,12 +27,7 @@ import {
   WaitBeforeHidingRoomIdCopiedIndicator,
   WaitForExitCountdownInterval,
 } from '../command'
-import {
-  CompletedNavigateHome,
-  Message,
-  PressedKey,
-  SucceededJoinRoom,
-} from '../message'
+import { CompletedNavigateHome, Message, SucceededJoinRoom } from '../message'
 import { Model, RoomAsyncData } from '../model'
 import { validateUserTextInput } from '../userGameText'
 import { handleRoomUpdated } from './handleRoomUpdates'
@@ -289,14 +284,8 @@ const handleStartGame = (model: Model, room: Shared.Room) => (): UpdateReturn =>
     onNone: () => [model, []],
   })
 
-export const join = (
+export const informJoined = (
   model: Model,
   player: Shared.Player,
   context: Context,
 ): UpdateReturn => update(model, SucceededJoinRoom({ player }), context)
-
-export const informPressedKey = (
-  model: Model,
-  key: string,
-  context: Context,
-): UpdateReturn => update(model, PressedKey({ key }), context)

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Foldkit UI ships four Submodels for selecting one or more values from a set: [Listbox](/ui/listbox), [Combobox](/ui/combobox), [Tabs](/ui/tabs), and [Menu](/ui/menu). For example, a Listbox of plans, a Combobox of cities, a Tabs of view modes, or a Menu of actions. [RadioGroup](/ui/radio-group) is a stateless controlled render helper (like Select, Input, and Textarea), not a Submodel, so it is not covered here.
+Foldkit UI ships five Submodels for selecting one or more values from a set: [Listbox](/ui/listbox), [Combobox](/ui/combobox), [Tabs](/ui/tabs), [Menu](/ui/menu), and [RadioGroup](/ui/radio-group). For example, a Listbox of plans, a Combobox of cities, a Tabs of view modes, a Menu of actions, or a RadioGroup of pricing plans.
 
 Each exposes a `create<Item>()` factory that pairs the view and update behind a single type parameter, so the value type is fixed at the binding site and flows into the OutMessage.
 

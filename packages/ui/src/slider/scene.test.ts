@@ -143,6 +143,60 @@ describe('Slider', () => {
     })
   })
 
+  describe('read-only', () => {
+    it('marks the root, track, and thumb with data-readonly and the thumb with aria-readonly', () => {
+      Scene.scene(
+        { update, view: sceneView({ isReadOnly: true }) },
+        Scene.given(defaultModel),
+        Scene.expect(root).toHaveAttr('data-readonly', ''),
+        Scene.expect(track).toHaveAttr('data-readonly', ''),
+        Scene.expect(thumb).toHaveAttr('data-readonly', ''),
+        Scene.expect(thumb).toHaveAttr('aria-readonly', 'true'),
+        Scene.expect(thumb).not.toHaveAttr('aria-disabled'),
+        Scene.expect(thumb).not.toHaveAttr('data-disabled'),
+      )
+    })
+
+    it('emits both attribute sets when disabled and read-only are combined', () => {
+      Scene.scene(
+        {
+          update,
+          view: sceneView({ isDisabled: true, isReadOnly: true }),
+        },
+        Scene.given(defaultModel),
+        Scene.expect(thumb).toHaveAttr('aria-disabled', 'true'),
+        Scene.expect(thumb).toHaveAttr('data-disabled', ''),
+        Scene.expect(thumb).toHaveAttr('aria-readonly', 'true'),
+        Scene.expect(thumb).toHaveAttr('data-readonly', ''),
+      )
+    })
+
+    it('drops the track and thumb pointer handlers when read-only', () => {
+      Scene.scene(
+        { update, view: sceneView({ isReadOnly: true }) },
+        Scene.given(defaultModel),
+        Scene.expect(track).not.toHaveHandler('pointerdown'),
+        Scene.expect(thumb).not.toHaveHandler('pointerdown'),
+      )
+    })
+
+    it('drops the keyboard handler when read-only', () => {
+      Scene.scene(
+        { update, view: sceneView({ isReadOnly: true }) },
+        Scene.given(defaultModel),
+        Scene.expect(thumb).not.toHaveHandler('keydown'),
+      )
+    })
+
+    it('keeps the thumb focusable when read-only', () => {
+      Scene.scene(
+        { update, view: sceneView({ isReadOnly: true }) },
+        Scene.given(defaultModel),
+        Scene.expect(thumb).toHaveAttr('tabIndex', '0'),
+      )
+    })
+  })
+
   describe('hidden input', () => {
     it('is absent when no name is provided', () => {
       Scene.scene(

@@ -116,14 +116,29 @@ export const createLazy = (): (<Args extends ReadonlyArray<unknown>>(
     })
 }
 
-/** Creates a keyed memoization map for view functions rendered in a loop. Each
- *  key gets its own independent cache slot. On each render, only entries whose
- *  function reference, dispatch, or arguments have changed by reference are
- *  recomputed.
+/** Creates a keyed memoization map for one view function rendered under many
+ *  keys. Each key gets its own independent cache slot, compared exactly the way
+ *  `createLazy` compares its single slot: on each render, only the keys whose
+ *  function reference, dispatch, or arguments changed by reference are
+ *  recomputed. For example: a list rendering one row view per item, a detail
+ *  view rendering one entity per route, or one view function rendered at two
+ *  call sites.
+ *
+ *  Key by the identifier that already gives the rendered thing its DOM
+ *  identity. A row keyed `todo.id` through `h.keyed` memoizes under `todo.id`;
+ *  a detail page keyed `post.slug` memoizes under `post.slug`. Reusing that one
+ *  identifier keeps the memo and the DOM invalidating together.
+ *
+ *  Entries are never evicted, so keys are expected to be bounded, such as an
+ *  entity registry, a route table, or a fixed set of call sites. A key drawn
+ *  from something unbounded, such as a search query or a paged cursor, grows
+ *  the map for the lifetime of the page. If that becomes the shape an app
+ *  needs, the upgrade path is a variant that drops keys absent from the latest
+ *  render pass, not a cap on this one.
  *
  *  Like `createLazy`, each key's cached VNode must be rendered at a single
- *  position in the tree. If the same item needs to appear in multiple
- *  positions, create one keyed lazy per position. */
+ *  position in the tree. If the same content needs to appear in multiple
+ *  positions, give each position its own key. */
 export const createKeyedLazy = (): (<Args extends ReadonlyArray<unknown>>(
   key: PropertyKey,
   fn: (...args: Args) => VNode | null,

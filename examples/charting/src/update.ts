@@ -1,10 +1,23 @@
 import { Array, Match as M, Option, Result, pipe } from 'effect'
-import { AsyncData, Command } from 'foldkit'
+import { AsyncData, Command, Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
+import { RadioGroup } from '@foldkit/ui'
+
 import { FetchTelemetry, SyncChart } from './command'
-import { type Message } from './message'
+import type { ChartMode, PackageId, Period } from './domain'
+import {
+  GotChartModeRadioGroupMessage,
+  GotPackageRadioGroupMessage,
+  GotPeriodRadioGroupMessage,
+  type Message,
+} from './message'
 import { type Model, TelemetryAsyncData } from './model'
+import {
+  ChartModeRadioGroup,
+  PackageRadioGroup,
+  PeriodRadioGroup,
+} from './radioGroups'
 
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
@@ -43,44 +56,93 @@ const refetchTelemetry = (model: Model): UpdateReturn =>
     ],
   })
 
-const selectedControl = (
-  model: Model,
-  updateModel: (model: Model) => Model,
-): UpdateReturn => {
-  const nextModel = updateModel(
-    evo(model, { maybeSelectedDatumId: () => Option.none() }),
-  )
+const selectedControl =
+  (updateModel: (model: Model) => Model): Update.Step<Model, Message> =>
+  model => {
+    const nextModel = updateModel(
+      evo(model, { maybeSelectedDatumId: () => Option.none() }),
+    )
 
-  return [
-    nextModel,
-    syncChart({
-      maybeChartHostId: nextModel.maybeChartHostId,
-      telemetry: nextModel.telemetry,
-      chartMode: nextModel.chartMode,
-      selectedPackageId: nextModel.selectedPackageId,
-      period: nextModel.period,
-      maybeSelectedDatumId: nextModel.maybeSelectedDatumId,
-    }),
-  ]
-}
+    return [
+      nextModel,
+      syncChart({
+        maybeChartHostId: nextModel.maybeChartHostId,
+        telemetry: nextModel.telemetry,
+        chartMode: nextModel.chartMode,
+        selectedPackageId: nextModel.selectedPackageId,
+        period: nextModel.period,
+        maybeSelectedDatumId: nextModel.maybeSelectedDatumId,
+      }),
+    ]
+  }
+
+const foldChartModeRadioGroupOutMessage = M.type<
+  RadioGroup.OutMessage<ChartMode>
+>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    Selected: ({ value }) => selectedControl(evo({ chartMode: () => value })),
+  }),
+)
+
+const foldChartModeRadioGroup = Update.foldChild({
+  update: ChartModeRadioGroup.update,
+  read: (model: Model) => Option.some(model.chartModeRadioGroup),
+  write: (model, nextChartModeRadioGroup) =>
+    evo(model, { chartModeRadioGroup: () => nextChartModeRadioGroup }),
+  toParentMessage: message => GotChartModeRadioGroupMessage({ message }),
+  foldOutMessage: foldChartModeRadioGroupOutMessage,
+})
+
+const foldPeriodRadioGroupOutMessage = M.type<
+  RadioGroup.OutMessage<Period>
+>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    Selected: ({ value }) => selectedControl(evo({ period: () => value })),
+  }),
+)
+
+const foldPeriodRadioGroup = Update.foldChild({
+  update: PeriodRadioGroup.update,
+  read: (model: Model) => Option.some(model.periodRadioGroup),
+  write: (model, nextPeriodRadioGroup) =>
+    evo(model, { periodRadioGroup: () => nextPeriodRadioGroup }),
+  toParentMessage: message => GotPeriodRadioGroupMessage({ message }),
+  foldOutMessage: foldPeriodRadioGroupOutMessage,
+})
+
+const foldPackageRadioGroupOutMessage = M.type<
+  RadioGroup.OutMessage<PackageId>
+>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    Selected: ({ value }) =>
+      selectedControl(evo({ selectedPackageId: () => value })),
+  }),
+)
+
+const foldPackageRadioGroup = Update.foldChild({
+  update: PackageRadioGroup.update,
+  read: (model: Model) => Option.some(model.packageRadioGroup),
+  write: (model, nextPackageRadioGroup) =>
+    evo(model, { packageRadioGroup: () => nextPackageRadioGroup }),
+  toParentMessage: message => GotPackageRadioGroupMessage({ message }),
+  foldOutMessage: foldPackageRadioGroupOutMessage,
+})
 
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      SelectedChartMode: ({ chartMode }) =>
-        selectedControl(model, current =>
-          evo(current, {
-            chartMode: () => chartMode,
-          }),
-        ),
+      GotChartModeRadioGroupMessage: ({ message }) =>
+        foldChartModeRadioGroup(model, message),
 
-      SelectedPeriod: ({ period }) =>
-        selectedControl(model, current =>
-          evo(current, {
-            period: () => period,
-          }),
-        ),
+      GotPeriodRadioGroupMessage: ({ message }) =>
+        foldPeriodRadioGroup(model, message),
+
+      GotPackageRadioGroupMessage: ({ message }) =>
+        foldPackageRadioGroup(model, message),
 
       ClickedRefresh: () => refetchTelemetry(model),
 
@@ -160,12 +222,5 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         }),
         [],
       ],
-
-      SelectedPackage: ({ packageId }) =>
-        selectedControl(model, current =>
-          evo(current, {
-            selectedPackageId: () => packageId,
-          }),
-        ),
     }),
   )

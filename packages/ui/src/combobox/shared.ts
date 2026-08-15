@@ -14,6 +14,7 @@ import { m } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
 import { makeConstrainedEvo } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
+import * as Update from 'foldkit/update'
 
 import { AnchorConfig, anchorSetup, portalToContainingRoot } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
@@ -98,11 +99,15 @@ export const baseInit = (config: BaseInitConfig): BaseModel => ({
 export const Opened = m('Opened', {
   maybeActiveItemIndex: S.Option(S.Number),
 })
-/** Sent when the combobox closes via Escape key or backdrop click. `restingInputValue` is what the input returns to on close (the parent-owned selection's display text, or empty), computed by the view from `ViewInputs.restingInputValue`. */
-export const Closed = m('Closed', { restingInputValue: S.String })
-/** Sent when the combobox input loses focus. `restingInputValue` is what the input returns to on close (the parent-owned selection's display text, or empty), computed by the view from `ViewInputs.restingInputValue`. */
+/** Sent when the combobox closes via Escape key or backdrop click. `restingInputValue` is what the input returns to on close (the parent-owned selection's display text, or empty), computed by the view from `ViewInputs.restingInputValue`. `isClearable` carries whether this close may emit `ClearedSelection`, which a read-only combobox denies; the view holds `isReadOnly` and the update does not. */
+export const Closed = m('Closed', {
+  restingInputValue: S.String,
+  isClearable: S.Boolean,
+})
+/** Sent when the combobox input loses focus. `restingInputValue` is what the input returns to on close (the parent-owned selection's display text, or empty), computed by the view from `ViewInputs.restingInputValue`. `isClearable` carries whether this close may emit `ClearedSelection`, which a read-only combobox denies. */
 export const BlurredInput = m('BlurredInput', {
   restingInputValue: S.String,
+  isClearable: S.Boolean,
 })
 /** Sent when an item is highlighted via arrow keys or mouse hover. Includes activation trigger and optional immediate selection info. */
 export const ActivatedItem = m('ActivatedItem', {
@@ -128,6 +133,8 @@ export const MovedPointerOverItem = m('MovedPointerOverItem', {
 export const RequestedItemClick = m('RequestedItemClick', {
   index: S.Number,
 })
+/** Sent when Enter is pressed on the active item of a read-only combobox. Update no-ops; the Message exists so the keydown handler returns `Option.some` and calls `preventDefault`, which stops a surrounding form from submitting, and so the keypress stays visible for DevTools. */
+export const SuppressedItemCommit = m('SuppressedItemCommit')
 /** Sent when the scroll lock command completes. */
 export const CompletedLockScroll = m('CompletedLockScroll')
 /** Sent when the scroll unlock command completes. */
@@ -164,9 +171,10 @@ export const GotAnimationMessage = m('GotAnimationMessage', {
 export const UpdatedInputValue = m('UpdatedInputValue', {
   value: S.String,
 })
-/** Sent when the optional toggle button is clicked. `restingInputValue` is what the input returns to when the press closes the combobox (the parent-owned selection's display text, or empty), computed by the view from `ViewInputs.restingInputValue`. */
+/** Sent when the optional toggle button is clicked. `restingInputValue` is what the input returns to when the press closes the combobox (the parent-owned selection's display text, or empty), computed by the view from `ViewInputs.restingInputValue`. `isClearable` carries whether a close from this press may emit `ClearedSelection`, which a read-only combobox denies. */
 export const PressedToggleButton = m('PressedToggleButton', {
   restingInputValue: S.String,
+  isClearable: S.Boolean,
 })
 
 /** Union of all messages the combobox component can produce. */
@@ -180,6 +188,7 @@ export const Message: S.Union<
     typeof SelectedItem,
     typeof MovedPointerOverItem,
     typeof RequestedItemClick,
+    typeof SuppressedItemCommit,
     typeof CompletedLockScroll,
     typeof CompletedUnlockScroll,
     typeof CompletedInertOthers,
@@ -204,6 +213,7 @@ export const Message: S.Union<
   SelectedItem,
   MovedPointerOverItem,
   RequestedItemClick,
+  SuppressedItemCommit,
   CompletedLockScroll,
   CompletedUnlockScroll,
   CompletedInertOthers,
@@ -228,6 +238,7 @@ export type DeactivatedItem = typeof DeactivatedItem.Type
 export type SelectedItem = typeof SelectedItem.Type
 export type MovedPointerOverItem = typeof MovedPointerOverItem.Type
 export type RequestedItemClick = typeof RequestedItemClick.Type
+export type SuppressedItemCommit = typeof SuppressedItemCommit.Type
 export type CompletedLockScroll = typeof CompletedLockScroll.Type
 export type CompletedUnlockScroll = typeof CompletedUnlockScroll.Type
 export type CompletedInertOthers = typeof CompletedInertOthers.Type
@@ -390,48 +401,13 @@ export const DetectMovementOrAnimationEnd = Command.define(
   },
 )
 
-const delegateToAnimation = <Model extends BaseModel>(
-  model: Model,
-  animationMessage: AnimationMessage,
-): readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-] => {
-  const [nextAnimation, animationCommands, maybeOutMessage] = animationUpdate(
-    model.animation,
-    animationMessage,
-  )
-
-  const mappedCommands = Command.mapMessages(animationCommands, message =>
-    GotAnimationMessage({ message }),
-  )
-
-  const additionalCommands = Option.match(maybeOutMessage, {
-    onNone: () => [],
-    onSome: M.type<AnimationOutMessage>().pipe(
-      M.tagsExhaustive({
-        StartedLeaveAnimating: () => [
-          DetectMovementOrAnimationEnd({ id: model.id }),
-        ],
-        TransitionedOut: () => [],
-      }),
-    ),
-  })
-
-  return [
-    constrainedEvo(model, { animation: () => nextAnimation }),
-    [...mappedCommands, ...additionalCommands],
-    Option.none(),
-  ]
-}
-
 /** Creates a combobox update function from variant-specific handlers. Shared logic (open, close, activate, transition) is handled internally; only close, selection, and immediate-activation behavior varies by variant. */
 export const makeUpdate = <Model extends BaseModel>(
   handlers: Readonly<{
     handleClose: (
       model: Model,
       restingInputValue: string,
+      isClearable: boolean,
     ) => readonly [Model, Option.Option<OutMessage>]
     handleSelectedItem: (
       model: Model,
@@ -456,6 +432,27 @@ export const makeUpdate = <Model extends BaseModel>(
     Option.Option<OutMessage>,
   ]
   const withUpdateReturn = M.withReturnType<UpdateReturn>()
+
+  const foldAnimationOutMessage = M.type<AnimationOutMessage>().pipe(
+    M.withReturnType<Update.Step<Model, Message>>(),
+    M.tagsExhaustive({
+      StartedLeaveAnimating: () => model => [
+        model,
+        [DetectMovementOrAnimationEnd({ id: model.id })],
+      ],
+      TransitionedOut: () => model => [model, []],
+    }),
+  )
+
+  const foldAnimation = Update.foldChild({
+    update: animationUpdate,
+    read: (model: Model) => Option.some(model.animation),
+    write: (model, nextAnimation) =>
+      constrainedEvo(model, { animation: () => nextAnimation }),
+    toParentMessage: message => GotAnimationMessage({ message }),
+    toParentOutMessage: () => Option.none(),
+    foldOutMessage: foldAnimationOutMessage,
+  })
 
   const internalUpdate = (model: Model, message: Message): UpdateReturn => {
     const maybeLockScroll = OptionExt.when(model.isModal, LockScroll())
@@ -489,7 +486,7 @@ export const makeUpdate = <Model extends BaseModel>(
       const commands = didClose ? closeWithFocusCommands : [focusInput]
 
       if (didClose && model.isAnimated) {
-        const [transitionedModel, animationCommands] = delegateToAnimation(
+        const [transitionedModel, animationCommands] = foldAnimation(
           nextModel,
           AnimationHid(),
         )
@@ -505,7 +502,7 @@ export const makeUpdate = <Model extends BaseModel>(
 
     const openCombobox = (baseModel: Model): UpdateReturn => {
       if (model.isAnimated) {
-        const [nextModel, animationCommands] = delegateToAnimation(
+        const [nextModel, animationCommands] = foldAnimation(
           baseModel,
           AnimationShowed(),
         )
@@ -530,14 +527,16 @@ export const makeUpdate = <Model extends BaseModel>(
       baseModel: Model,
       commands: ReadonlyArray<Command.Command<Message>>,
       restingInputValue: string,
+      isClearable: boolean,
     ): UpdateReturn => {
       const [closed, maybeCloseOutMessage] = handlers.handleClose(
         baseModel,
         restingInputValue,
+        isClearable,
       )
 
       if (model.isAnimated) {
-        const [nextModel, animationCommands] = delegateToAnimation(
+        const [nextModel, animationCommands] = foldAnimation(
           closed,
           AnimationHid(),
         )
@@ -561,6 +560,7 @@ export const makeUpdate = <Model extends BaseModel>(
         'CompletedFocusInput',
         'CompletedScrollIntoView',
         'CompletedClickItem',
+        'SuppressedItemCommit',
         'CompletedAnchorCombobox',
         'CompletedAttachComboboxPreventBlur',
         'CompletedAttachComboboxSelectOnFocus',
@@ -585,14 +585,24 @@ export const makeUpdate = <Model extends BaseModel>(
         // render (a sub-frame blur after a selection already closed the
         // combobox) cannot rewrite inputValue with an outdated
         // restingInputValue or re-emit ClearedSelection while closed.
-        Closed: ({ restingInputValue }) =>
+        Closed: ({ restingInputValue, isClearable }) =>
           model.isOpen
-            ? closeCombobox(model, closeWithFocusCommands, restingInputValue)
+            ? closeCombobox(
+                model,
+                closeWithFocusCommands,
+                restingInputValue,
+                isClearable,
+              )
             : [model, [], Option.none()],
 
-        BlurredInput: ({ restingInputValue }) =>
+        BlurredInput: ({ restingInputValue, isClearable }) =>
           model.isOpen
-            ? closeCombobox(model, closeWithoutFocusCommands, restingInputValue)
+            ? closeCombobox(
+                model,
+                closeWithoutFocusCommands,
+                restingInputValue,
+                isClearable,
+              )
             : [model, [], Option.none()],
 
         ActivatedItem: ({
@@ -693,12 +703,13 @@ export const makeUpdate = <Model extends BaseModel>(
           )
         },
 
-        PressedToggleButton: ({ restingInputValue }) => {
+        PressedToggleButton: ({ restingInputValue, isClearable }) => {
           if (model.isOpen) {
             return closeCombobox(
               model,
               closeWithFocusCommands,
               restingInputValue,
+              isClearable,
             )
           }
 
@@ -714,7 +725,7 @@ export const makeUpdate = <Model extends BaseModel>(
         },
 
         GotAnimationMessage: ({ message: animationMessage }) =>
-          delegateToAnimation(model, animationMessage),
+          foldAnimation(model, animationMessage),
       }),
     )
   }
@@ -864,6 +875,9 @@ export type BaseViewInputsCommon<Item extends string> = Readonly<{
     context: Readonly<{
       isActive: boolean
       isDisabled: boolean
+      /** Mirrors the view input of the same name, so `itemToConfig` can
+       *  style items for read-only state without closing over `viewInputs`. */
+      isReadOnly: boolean
       isSelected: boolean
     }>,
   ) => ItemConfig
@@ -887,7 +901,21 @@ export type BaseViewInputsCommon<Item extends string> = Readonly<{
   buttonClassName?: string
   buttonAttributes?: ReadonlyArray<ChildAttribute>
   formName?: string
+  /** Marks the Combobox unavailable with `aria-disabled="true"` on the input
+   *  and the toggle button and `data-disabled` on both plus the wrapper, and
+   *  removes their handlers so the dropdown cannot be opened. */
   isDisabled?: boolean
+  /** Prevents committing a selection while exposing read-only semantics with
+   *  the native `readonly` attribute plus `aria-readonly="true"` on the input,
+   *  `aria-readonly="true"` on the items panel, and `data-readonly` on the
+   *  wrapper, input, toggle button, items panel, and every item. The Combobox
+   *  still opens, navigates, and closes, and the input still takes focus and
+   *  allows text selection and copying. Typing is frozen, since the input
+   *  value doubles as the display of the selection. Independent of
+   *  `isDisabled`: setting both emits both attribute sets, and `isDisabled`
+   *  still wins for interaction, since it drops every handler, so a Combobox
+   *  that is both read-only and disabled cannot be opened at all. */
+  isReadOnly?: boolean
   isInvalid?: boolean
   openOnFocus?: boolean
   itemGroupKey?: (item: Item, index: number) => string
@@ -958,6 +986,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         buttonAttributes = [],
         formName,
         isDisabled,
+        isReadOnly = false,
         isInvalid,
         openOnFocus,
         itemGroupKey,
@@ -1044,14 +1073,29 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
 
       const resolveImmediateSelection = (
         targetIndex: number,
-      ): Option.Option<{ item: string }> =>
-        pipe(
-          OptionExt.when(immediate, targetIndex),
-          Option.flatMap(index => Array.get(items, index)),
-          Option.map(targetItem => ({
-            item: itemToValue(targetItem, targetIndex),
-          })),
-        )
+      ): Option.Option<{ item: string }> => {
+        if (isReadOnly) {
+          return Option.none()
+        } else {
+          return pipe(
+            OptionExt.when(immediate, targetIndex),
+            Option.flatMap(index => Array.get(items, index)),
+            Option.map(targetItem => ({
+              item: itemToValue(targetItem, targetIndex),
+            })),
+          )
+        }
+      }
+
+      const resolveCommitMessage = (): Option.Option<Message> => {
+        if (isReadOnly) {
+          return Option.as(maybeActiveItemIndex, SuppressedItemCommit())
+        } else {
+          return Option.map(maybeActiveItemIndex, index =>
+            RequestedItemClick({ index }),
+          )
+        }
+      }
 
       const handleInputKeyDown = (key: string): Option.Option<Message> =>
         M.value(key).pipe(
@@ -1093,15 +1137,15 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
             if (!isOpen) {
               return Option.none()
             }
-            return Option.map(maybeActiveItemIndex, index =>
-              RequestedItemClick({ index }),
-            )
+            return resolveCommitMessage()
           }),
           M.when('Escape', () => {
             if (!isOpen) {
               return Option.none()
             }
-            return Option.some(Closed({ restingInputValue }))
+            return Option.some(
+              Closed({ restingInputValue, isClearable: !isReadOnly }),
+            )
           }),
           M.whenOr('Home', 'End', () => {
             if (!isOpen) {
@@ -1124,6 +1168,10 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         onSome: index => [h.AriaActiveDescendant(itemId(id, index))],
       })
 
+      const onInputAttributes = isReadOnly
+        ? []
+        : [h.OnInput(value => UpdatedInputValue({ value }))]
+
       const resolvedInputAttributes = [
         h.Id(`${id}-input`),
         h.Role('combobox'),
@@ -1139,13 +1187,22 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         ...(isDisabled
           ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
           : [
-              h.OnInput(value => UpdatedInputValue({ value })),
+              ...onInputAttributes,
               h.OnKeyDownPreventDefault(handleInputKeyDown),
-              h.OnBlur(BlurredInput({ restingInputValue })),
+              h.OnBlur(
+                BlurredInput({ restingInputValue, isClearable: !isReadOnly }),
+              ),
               ...(openOnFocus
                 ? [h.OnFocus(Opened({ maybeActiveItemIndex: Option.none() }))]
                 : []),
             ]),
+        ...(isReadOnly
+          ? [
+              h.Readonly(true),
+              h.AriaReadonly(true),
+              h.DataAttribute('readonly', ''),
+            ]
+          : []),
         ...(isInvalid
           ? [h.AriaInvalid(true), h.DataAttribute('invalid', '')]
           : []),
@@ -1177,6 +1234,9 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         ...(behavior.ariaMultiSelectable ? [h.AriaMultiSelectable(true)] : []),
         h.AriaLabelledBy(`${id}-input`),
         h.Tabindex(-1),
+        ...(isReadOnly
+          ? [h.AriaReadonly(true), h.DataAttribute('readonly', '')]
+          : []),
         ...anchorAttributes,
         ...animationAttributes,
         ...(itemsClassName ? [h.Class(itemsClassName)] : []),
@@ -1193,10 +1253,12 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         const itemConfig = itemToConfig(item, {
           isActive: isActiveItem,
           isDisabled: isDisabledItem,
+          isReadOnly,
           isSelected: isSelectedItem,
         })
 
-        const isInteractive = !isDisabledItem && !isLeaving
+        const isHoverable = !isDisabledItem && !isLeaving
+        const isClickable = isHoverable && !isReadOnly
 
         return h.keyed('div')(
           itemId(id, index),
@@ -1209,7 +1271,8 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
             ...(isDisabledItem
               ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
               : []),
-            ...(isInteractive
+            ...(isReadOnly ? [h.DataAttribute('readonly', '')] : []),
+            ...(isClickable
               ? [
                   h.OnClick(
                     SelectedItem({
@@ -1218,6 +1281,10 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
                       wasSelected: isValueSelected(itemToValue(item, index)),
                     }),
                   ),
+                ]
+              : []),
+            ...(isHoverable
+              ? [
                   ...(isActiveItem
                     ? []
                     : [
@@ -1311,7 +1378,13 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
 
       const backdrop = h.keyed('div')(`${id}-backdrop`, [
         h.OnMount(PortalComboboxBackdrop()),
-        ...(isLeaving ? [] : [h.OnClick(Closed({ restingInputValue }))]),
+        ...(isLeaving
+          ? []
+          : [
+              h.OnClick(
+                Closed({ restingInputValue, isClearable: !isReadOnly }),
+              ),
+            ]),
         ...(backdropClassName ? [h.Class(backdropClassName)] : []),
         ...backdropAttributes,
       ])
@@ -1362,7 +1435,15 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
                 h.Attribute('aria-haspopup', 'listbox'),
                 ...(isDisabled
                   ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
-                  : [h.OnClick(PressedToggleButton({ restingInputValue }))]),
+                  : [
+                      h.OnClick(
+                        PressedToggleButton({
+                          restingInputValue,
+                          isClearable: !isReadOnly,
+                        }),
+                      ),
+                    ]),
+                ...(isReadOnly ? [h.DataAttribute('readonly', '')] : []),
                 h.OnMount(AttachComboboxPreventBlur()),
                 ...(buttonClassName ? [h.Class(buttonClassName)] : []),
                 ...buttonAttributes,
@@ -1390,6 +1471,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         ...attributes,
         ...(isVisible ? [h.DataAttribute('open', '')] : []),
         ...(isDisabled ? [h.DataAttribute('disabled', '')] : []),
+        ...(isReadOnly ? [h.DataAttribute('readonly', '')] : []),
         ...(isInvalid ? [h.DataAttribute('invalid', '')] : []),
       ]
 

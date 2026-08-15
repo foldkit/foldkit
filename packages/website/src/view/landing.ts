@@ -1,4 +1,3 @@
-import { clsx } from 'clsx'
 import { Match as M, Option } from 'effect'
 import {
   Html,
@@ -15,6 +14,7 @@ import { Icon } from '../icon'
 import { Link } from '../link'
 import { type Model } from '../main'
 import {
+  ClickedOpenMobileMenu,
   GotAsyncCounterDemoMessage,
   GotDemoTabsMessage,
   GotNotePlayerDemoMessage,
@@ -29,7 +29,9 @@ import {
   findBySlug,
 } from '../page/example/meta'
 import { coreArchitectureRouter, homeRouter } from '../route'
+import { headerNavView } from './headerNav'
 import { betaTag, emailSignupContentView, skipNavLink } from './shared'
+import { mobileMenuView } from './sidebar'
 import { themeSelector } from './themeSelector'
 
 const PlaygroundMenu = Menu.create<ExampleSlug>()
@@ -42,13 +44,7 @@ const landingHeaderView = (model: Model, h: HtmlBuilder<Message>) =>
   h.header(
     [
       h.Class(
-        clsx(
-          'fixed top-0 inset-x-0 z-50 h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] bg-cream/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 md:px-6 flex items-center justify-between transition-transform duration-300',
-          {
-            '-translate-y-full': !model.isLandingHeaderVisible,
-            'translate-y-0': model.isLandingHeaderVisible,
-          },
-        ),
+        'fixed top-0 inset-x-0 z-50 h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] bg-cream/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 md:px-6 flex items-center justify-between',
       ),
     ],
     [
@@ -65,9 +61,14 @@ const landingHeaderView = (model: Model, h: HtmlBuilder<Message>) =>
           betaTag,
         ],
       ),
-      h.nav(
-        [h.AriaLabel('Main'), h.Class('flex items-center gap-3')],
+      h.div(
+        [h.Class('flex items-center gap-3')],
         [
+          headerNavView(
+            model.route,
+            'hidden sm:flex items-center gap-6 mr-4',
+            h,
+          ),
           h.div(
             [h.Class('hidden md:flex')],
             [themeSelector(model.themePreference, h)],
@@ -80,6 +81,17 @@ const landingHeaderView = (model: Model, h: HtmlBuilder<Message>) =>
               ),
             ],
             ['Dive In', Icon.arrowRight('w-4 h-4')],
+          ),
+          h.button(
+            [
+              h.Class(
+                'sm:hidden p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
+              ),
+              h.AriaExpanded(model.mobileMenuDialog.isOpen),
+              h.AriaLabel('Toggle menu'),
+              h.OnClick(ClickedOpenMobileMenu()),
+            ],
+            [Icon.menu('w-6 h-6')],
           ),
         ],
       ),
@@ -167,10 +179,23 @@ const lazyNotePlayerDemo = createLazy()
 
 // PLAYGROUND MENU
 
+const VIEWPORT_PADDING = 16
+
+// NOTE: mirrors the md+ CSS --header-height (4.5rem); the variable's
+// env(safe-area-inset-top) term is not readable from static config.
+const MD_HEADER_HEIGHT = 72
+
+const HEADER_CLEARANCE = MD_HEADER_HEIGHT + VIEWPORT_PADDING
+
 const PLAYGROUND_MENU_ANCHOR = {
   placement: 'bottom-start' as const,
   gap: 8,
-  padding: 16,
+  padding: {
+    top: HEADER_CLEARANCE,
+    right: VIEWPORT_PADDING,
+    bottom: VIEWPORT_PADDING,
+    left: VIEWPORT_PADDING,
+  },
 }
 
 const playgroundButtonClassName = 'cta-amber cursor-pointer'
@@ -348,8 +373,13 @@ export const landingView = (model: Model, h: HtmlBuilder<Message>) => {
     [
       skipNavLink,
       landingHeaderView(model, h),
+      mobileMenuView(model, h),
       h.main(
-        [h.Id('main-content'), PagefindBody, h.Class('flex-1')],
+        [
+          h.Id('main-content'),
+          PagefindBody,
+          h.Class('flex-1 pt-[var(--header-height)]'),
+        ],
         [
           Page.Landing.view(
             model.copiedSnippets,
@@ -373,11 +403,12 @@ export const newsletterView = (model: Model, h: HtmlBuilder<Message>) =>
     [
       skipNavLink,
       landingHeaderView(model, h),
+      mobileMenuView(model, h),
       h.main(
         [
           h.Id('main-content'),
           h.Class(
-            'flex-1 flex items-center justify-center px-6 py-20 md:px-12 lg:px-20',
+            'flex-1 flex items-center justify-center px-6 pb-20 pt-[calc(var(--header-height)+5rem)] md:px-12 lg:px-20',
           ),
         ],
         [

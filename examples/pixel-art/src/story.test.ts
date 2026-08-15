@@ -2,7 +2,7 @@ import { Equal, Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
-import { Dialog, Listbox } from '@foldkit/ui'
+import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
 import { ExportPng, SaveCanvas } from './command'
 import { createEmptyGrid } from './grid'
@@ -45,6 +45,9 @@ const emptyModel: Model = {
   gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
   maybePendingGridSize: Option.none(),
   themeListbox: Listbox.init({ id: 'theme-picker' }),
+  toolRadioGroup: RadioGroup.init({ id: 'tool-picker' }),
+  gridSizeRadioGroup: RadioGroup.init({ id: 'grid-size-picker' }),
+  paletteRadioGroup: RadioGroup.init({ id: 'palette-picker' }),
 }
 
 describe('brush tool', () => {

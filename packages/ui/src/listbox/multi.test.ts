@@ -181,6 +181,55 @@ describe('Listbox.Multi', () => {
       })
     })
 
+    describe('read-only', () => {
+      const itemsContainer = Scene.selector('#test-items')
+      const item = (index: number) => Scene.selector(`#test-item-${index}`)
+
+      it('emits aria-readonly alongside aria-multiselectable', () => {
+        Scene.scene(
+          { update, view: sceneView({ isReadOnly: true }) },
+          Scene.given(openMultiModel()),
+          Scene.expect(itemsContainer).toHaveAttr(
+            'aria-multiselectable',
+            'true',
+          ),
+          Scene.expect(itemsContainer).toHaveAttr('aria-readonly', 'true'),
+          Scene.expect(itemsContainer).toHaveAttr('data-readonly', ''),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
+      it('drops the item click handler so membership cannot be toggled', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({ isReadOnly: true, selectedValues: ['Apple'] }),
+          },
+          Scene.given(openMultiModel()),
+          Scene.expect(item(0)).not.toHaveHandler('click'),
+          Scene.expect(item(1)).not.toHaveHandler('click'),
+          Scene.expect(item(0)).toHaveAttr('aria-selected', 'true'),
+          Scene.expect(item(1)).toHaveAttr('aria-selected', 'false'),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
+      it('does not commit the active item on Enter', () => {
+        Scene.scene(
+          { update, view: sceneView({ isReadOnly: true }) },
+          Scene.given(openMultiModel()),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(itemsContainer, 'Enter'),
+          Scene.expectNoOutMessage(),
+          Scene.Command.expectNone(),
+          Scene.expect(itemsContainer).toExist(),
+        )
+      })
+    })
+
     describe('button labeling', () => {
       it('no aria-label or aria-labelledby on the trigger by default', () => {
         Scene.scene(

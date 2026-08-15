@@ -5,7 +5,7 @@ import { evo } from 'foldkit/struct'
 import { optionWhen } from '../../../optionWhen'
 import { RoomsClient } from '../../../rpc'
 import { FocusRoomIdInput, FocusUsernameInput, JoinRoom } from '../command'
-import { Message, type OutMessage, PressedKey } from '../message'
+import { Message, type OutMessage } from '../message'
 import { EnterRoomId, EnterUsername, Model, SelectAction } from '../model'
 import { handleKeyPressed } from './handleKeyPressed'
 
@@ -130,6 +130,3 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ],
     }),
   )
-
-export const informPressedKey = (model: Model, key: string): UpdateReturn =>
-  update(model, PressedKey({ key }))

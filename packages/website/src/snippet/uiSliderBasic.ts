@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit each into your own Model, init, Message,
 // update, view, and subscription definitions.
 import { Match as M, Option, Schema as S } from 'effect'
-import { Command, Subscription } from 'foldkit'
+import { Subscription, Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -38,39 +38,36 @@ const GotSliderMessage = m('GotSliderMessage', {
   message: Slider.Message,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate to
-// Slider.update. The OutMessage's `ChangedValue` carries the new
-// number. Lift it to domain state, validate, or persist on each commit.
-GotSliderMessage: ({ message }) => {
-  const [nextSlider, commands, maybeOutMessage] = Slider.update(
-    model.ratingDemo,
-    message,
-  )
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotSliderMessage({ message }),
-  )
+// At module scope, fold the OutMessage into your own Model. `ChangedValue`
+// carries the new number. Lift it to domain state, validate, or persist on
+// each commit. The arm returns an Update.Step over the parent Model, which
+// already has the next Slider Model written back:
+const foldSliderOutMessage = M.type<Slider.OutMessage>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    // The child has emitted `ChangedValue`. Store the new value in the field
+    // you own. This arm is also where the parent can validate, persist, or
+    // trigger a downstream Command.
+    ChangedValue:
+      ({ value }) =>
+      model => [evo(model, { ratingValue: () => value }), []],
+  }),
+)
 
-  return Option.match(maybeOutMessage, {
-    onNone: () => [
-      evo(model, { ratingDemo: () => nextSlider }),
-      mappedCommands,
-    ],
-    onSome: M.type<Slider.OutMessage>().pipe(
-      M.tagsExhaustive({
-        ChangedValue: ({ value }) => [
-          // The child has emitted `ChangedValue`. Store the new value
-          // in the field you own. This arm is also where the parent
-          // can validate, persist, or trigger a downstream Command.
-          evo(model, {
-            ratingValue: () => value,
-            ratingDemo: () => nextSlider,
-          }),
-          mappedCommands,
-        ],
-      }),
-    ),
-  })
-}
+// Update.foldChild wires the child into the parent: it runs Slider.update,
+// writes the next Slider Model back, maps the Submodel's Commands into your
+// Message type, and hands any OutMessage to foldOutMessage.
+const foldSlider = Update.foldChild({
+  update: Slider.update,
+  read: (model: Model) => Option.some(model.ratingDemo),
+  write: (model, nextRatingDemo) =>
+    evo(model, { ratingDemo: () => nextRatingDemo }),
+  toParentMessage: message => GotSliderMessage({ message }),
+  foldOutMessage: foldSliderOutMessage,
+})
+
+// Inside your update function's M.tagsExhaustive({...}), call the fold:
+GotSliderMessage: ({ message }) => foldSlider(model, message)
 
 // NOTE: wire BOTH dragPointer and dragEscape. Without dragEscape, pressing
 // Escape during a drag won't cancel back to the origin value, but every

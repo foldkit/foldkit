@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Match as M, Option } from 'effect'
-import { Command } from 'foldkit'
+import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -29,45 +29,38 @@ const GotPopoverMessage = m('GotPopoverMessage', {
   message: Popover.Message,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate to
-// Popover.update. The OutMessages `Opened` and `Closed` mark the
-// visibility transitions. Fire analytics, coordinate with other UI,
-// or clear ephemeral state on close.
-GotPopoverMessage: ({ message }) => {
-  const [nextPopover, commands, maybeOutMessage] = Popover.update(
-    model.popover,
-    message,
-  )
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotPopoverMessage({ message }),
-  )
+// At module scope, fold the OutMessage into your own Model. `Opened` and
+// `Closed` mark the visibility transitions. Fire analytics, coordinate with
+// other UI, or clear ephemeral state on close. Each arm returns an
+// Update.Step over the parent Model, which already has the next Popover Model
+// written back:
+const foldPopoverOutMessage = M.type<Popover.OutMessage>().pipe(
+  M.withReturnType<Update.Step<Model, Message>>(),
+  M.tagsExhaustive({
+    // The child has emitted `Opened`. In this arm the parent can update its
+    // own state or dispatch its own Commands, for example lazy-load panel
+    // content, log analytics, or trigger a downstream Command.
+    Opened: () => model => [model, []],
+    // The child has emitted `Closed`. In this arm the parent can update its
+    // own state or dispatch its own Commands, for example persist a draft,
+    // clear ephemeral state, or trigger a downstream Command.
+    Closed: () => model => [model, []],
+  }),
+)
 
-  return Option.match(maybeOutMessage, {
-    onNone: () => [evo(model, { popover: () => nextPopover }), mappedCommands],
-    onSome: M.type<Popover.OutMessage>().pipe(
-      M.tagsExhaustive({
-        Opened: () => [
-          // The child has emitted `Opened`. The body commits the
-          // child's next state as usual. In this arm the parent can
-          // also update its own state or dispatch its own Commands,
-          // for example lazy-load panel content, log analytics, or
-          // trigger a downstream Command.
-          evo(model, { popover: () => nextPopover }),
-          mappedCommands,
-        ],
-        Closed: () => [
-          // The child has emitted `Closed`. The body commits the
-          // child's next state as usual. In this arm the parent can
-          // also update its own state or dispatch its own Commands,
-          // for example persist a draft, clear ephemeral state, or
-          // trigger a downstream Command.
-          evo(model, { popover: () => nextPopover }),
-          mappedCommands,
-        ],
-      }),
-    ),
-  })
-}
+// Update.foldChild wires the child into the parent: it runs Popover.update,
+// writes the next Popover Model back, maps the Submodel's Commands into your
+// Message type, and hands any OutMessage to foldOutMessage.
+const foldPopover = Update.foldChild({
+  update: Popover.update,
+  read: (model: Model) => Option.some(model.popover),
+  write: (model, nextPopover) => evo(model, { popover: () => nextPopover }),
+  toParentMessage: message => GotPopoverMessage({ message }),
+  foldOutMessage: foldPopoverOutMessage,
+})
+
+// Inside your update function's M.tagsExhaustive({...}), call the fold:
+GotPopoverMessage: ({ message }) => foldPopover(model, message)
 
 // Inside your view function, embed the popover via h.submodel. Give the
 // trigger an accessible name: target the trigger id with

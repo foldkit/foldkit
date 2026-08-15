@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { bench, describe } from 'vitest'
 
-import { Dialog, Listbox } from '@foldkit/ui'
+import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
 import { createEmptyGrid } from './grid'
 import {
@@ -32,6 +32,9 @@ const initialModel: Model = {
   gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
   maybePendingGridSize: Option.none(),
   themeListbox: Listbox.init({ id: 'theme-picker' }),
+  toolRadioGroup: RadioGroup.init({ id: 'tool-picker' }),
+  gridSizeRadioGroup: RadioGroup.init({ id: 'grid-size-picker' }),
+  paletteRadioGroup: RadioGroup.init({ id: 'palette-picker' }),
 }
 
 const dispatch = (

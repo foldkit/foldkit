@@ -2,7 +2,7 @@ import { Option } from 'effect'
 import { Command, click, expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { Dialog, Listbox } from '@foldkit/ui'
+import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
 import { ExportPng, SaveCanvas } from './command'
 import { createEmptyGrid } from './grid'
@@ -14,6 +14,11 @@ import {
 import { type Model, type PaletteIndex } from './model'
 import { update } from './update'
 import { view } from './view'
+
+const resolveFocusOption = Command.resolve(
+  RadioGroup.FocusOption,
+  RadioGroup.CompletedFocusOption(),
+)
 
 const createTestModel = (): Model => ({
   grid: createEmptyGrid(4),
@@ -31,6 +36,9 @@ const createTestModel = (): Model => ({
   gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
   maybePendingGridSize: Option.none(),
   themeListbox: Listbox.init({ id: 'theme-picker' }),
+  toolRadioGroup: RadioGroup.init({ id: 'tool-picker' }),
+  gridSizeRadioGroup: RadioGroup.init({ id: 'grid-size-picker' }),
+  paletteRadioGroup: RadioGroup.init({ id: 'palette-picker' }),
 })
 
 const createPaintedModel = (): Model => ({
@@ -123,6 +131,7 @@ describe('toolbar', () => {
       { update, view },
       given(createTestModel()),
       click(role('radio', { name: /^Fill/ })),
+      resolveFocusOption,
       expect(role('radio', { name: /^Fill/, checked: true })).toExist(),
       expect(role('radio', { name: /^Brush/, checked: false })).toExist(),
     )
@@ -188,6 +197,7 @@ describe('grid size change', () => {
       { update, view },
       given(createPaintedModel()),
       click(role('radio', { name: '8' })),
+      resolveFocusOption,
       Command.resolve(Dialog.ShowDialog, Dialog.CompletedShowDialog()),
       expect(text('Change to 8\u00d78?')).toExist(),
       expect(

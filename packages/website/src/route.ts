@@ -6,6 +6,7 @@ import {
   parseUrlWithFallback,
   r,
   root,
+  schemaSegment,
   slash,
   string,
 } from 'foldkit/route'
@@ -114,6 +115,11 @@ export const AiMcpRoute = r('AiMcp')
 
 export const NewsletterRoute = r('Newsletter')
 
+export const BlogRoute = r('Blog')
+export type BlogRoute = typeof BlogRoute.Type
+export const BlogPostRoute = r('BlogPost', { postSlug: S.String })
+export type BlogPostRoute = typeof BlogPostRoute.Type
+
 export const NotFoundRoute = r('NotFound', { path: S.String })
 
 export const DocsRoute = S.Union([
@@ -211,6 +217,8 @@ export type DocsRoute = typeof DocsRoute.Type
 export const AppRoute = S.Union([
   HomeRoute,
   NewsletterRoute,
+  BlogRoute,
+  BlogPostRoute,
   PlaygroundRoute,
   DocsRoute,
 ])
@@ -218,6 +226,22 @@ export type AppRoute = typeof AppRoute.Type
 
 export const isPlaygroundRoute = (route: AppRoute): route is PlaygroundRoute =>
   route._tag === 'Playground'
+
+export const isBlogRoute = (
+  route: AppRoute,
+): route is BlogRoute | BlogPostRoute =>
+  route._tag === 'Blog' || route._tag === 'BlogPost'
+
+const isDocsUnionRoute = S.is(DocsRoute)
+
+/**
+ * Whether a route belongs to the documentation section, which is what the
+ * header's `Docs` link highlights on. Derived from `DocsRoute` so a new
+ * top-level route cannot silently join the section. `NotFound` is a member of
+ * the union so 404s render in the docs shell, but it belongs to no section.
+ */
+export const isDocsSectionRoute = (route: AppRoute): boolean =>
+  isDocsUnionRoute(route) && route._tag !== 'NotFound'
 
 // ROUTERS
 
@@ -568,15 +592,35 @@ const docsParser = oneOf(
 
 export const newsletterRouter = page('newsletter', NewsletterRoute)
 
+export const blogRouter = page('blog', BlogRoute)
+
+// NOTE: post slugs come from markdown filenames and stay kebab-case.
+// Constraining the segment keeps sibling static files like `/blog/rss.xml`
+// out of this route, so wherever the file itself is not served first (the dev
+// server, an SPA-first host) the path falls through to `NotFound` instead of
+// rendering a post shell around a missing post.
+export const BLOG_POST_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+export const blogPostRouter = pipe(
+  literal('blog'),
+  slash(
+    schemaSegment(
+      'postSlug',
+      S.String.check(S.isPattern(BLOG_POST_SLUG_PATTERN)),
+    ),
+  ),
+  mapTo(BlogPostRoute),
+)
+
+const blogParser = oneOf(blogPostRouter, blogRouter)
+
 export const routeParser = oneOf(
   docsParser,
   apiModuleRouter,
   newsletterRouter,
+  blogParser,
   playgroundRouter,
   homeRouter,
 )
 
 export const urlToAppRoute = parseUrlWithFallback(routeParser, NotFoundRoute)
-
-export const isLandingHeaderAlwaysVisible = (route: AppRoute) =>
-  route._tag === 'Newsletter'

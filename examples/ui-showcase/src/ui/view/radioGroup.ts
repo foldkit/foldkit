@@ -4,14 +4,13 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { RadioGroup } from '@foldkit/ui'
 
 import {
-  SelectedHorizontalPlan,
-  SelectedVerticalPlan,
+  GotHorizontalRadioGroupDemoMessage,
+  GotVerticalRadioGroupDemoMessage,
   type UiMessage,
 } from '../message'
 import { type Plan, type UiModel } from '../model'
 
-export const VERTICAL_RADIO_GROUP_ID = 'vertical-radio-group-demo'
-export const HORIZONTAL_RADIO_GROUP_ID = 'horizontal-radio-group-demo'
+export const PlanRadioGroup = RadioGroup.create<Plan>()
 
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 
@@ -76,13 +75,14 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
           [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
           ['Vertical'],
         ),
-        RadioGroup.view(
-          {
-            id: VERTICAL_RADIO_GROUP_ID,
+        h.submodel({
+          slotId: model.verticalRadioGroupDemo.id,
+          model: model.verticalRadioGroupDemo,
+          view: PlanRadioGroup.view,
+          viewInputs: {
             selectedValue: model.verticalRadioGroupDemoValue,
             options: plans,
             ariaLabel: 'Server plan',
-            onSelect: plan => SelectedVerticalPlan({ plan }),
             toView: ({ group, options }) =>
               h.div(
                 [...group, h.Class(verticalGroupClassName)],
@@ -129,21 +129,23 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                 }),
               ),
           },
-          h,
-        ),
+          toParentMessage: message =>
+            GotVerticalRadioGroupDemoMessage({ message }),
+        }),
 
         h.h3(
           [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
           ['Horizontal'],
         ),
-        RadioGroup.view(
-          {
-            id: HORIZONTAL_RADIO_GROUP_ID,
+        h.submodel({
+          slotId: model.horizontalRadioGroupDemo.id,
+          model: model.horizontalRadioGroupDemo,
+          view: PlanRadioGroup.view,
+          viewInputs: {
             selectedValue: model.horizontalRadioGroupDemoValue,
             options: plans,
             ariaLabel: 'Server plan',
             orientation: 'Horizontal',
-            onSelect: plan => SelectedHorizontalPlan({ plan }),
             toView: ({ group, options }) =>
               h.div(
                 [...group, h.Class(horizontalGroupClassName)],
@@ -185,8 +187,9 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                 }),
               ),
           },
-          h,
-        ),
+          toParentMessage: message =>
+            GotHorizontalRadioGroupDemoMessage({ message }),
+        }),
       ],
     )
   },

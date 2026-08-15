@@ -122,23 +122,3 @@ const urlToFoldkitUrl = (url: URL): Url => {
 }
 
 const locationToUrl = (): Url => urlToFoldkitUrl(new URL(window.location.href))
-
-// NOTE: a stable module-level handler keeps registration idempotent.
-// `addEventListener` discards a duplicate registration (same type, same
-// callback reference, same capture), so a page-owning runtime that
-// re-runs under HMR reuses the single listener instead of stacking
-// reloads.
-const reloadOnBfcacheRestore = ({
-  persisted: isRestoredFromBfcache,
-}: PageTransitionEvent): void => {
-  if (isRestoredFromBfcache) {
-    location.reload()
-  }
-}
-
-export const addBfcacheRestoreListener = (): (() => void) => {
-  window.addEventListener('pageshow', reloadOnBfcacheRestore)
-  return () => {
-    window.removeEventListener('pageshow', reloadOnBfcacheRestore)
-  }
-}
