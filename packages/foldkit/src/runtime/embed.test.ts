@@ -64,6 +64,7 @@ let isTickStreamActive = false
 let isMountActive = false
 
 const TICK_INTERVAL_MS = 5
+const FLAGS_STARTUP_FAILURE = 'flags blew up on embed startup'
 
 const subscriptions = Subscription.make<Model, Message>()(_entry => ({
   hostStep: Port.subscription(ports.inbound.stepChanged, step =>
@@ -313,15 +314,19 @@ describe('embed', () => {
     }
   })
 
-  it('leaves the container blank when flags fail before the first render', async () => {
+  it('logs a flags failure Cause and leaves the container blank', async () => {
     const Flags = S.Struct({ initialCount: S.Number })
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {})
 
     const handle = embed(
       makeElement({
         Model,
         Flags,
         flags: Effect.sync((): { initialCount: number } => {
-          throw new Error('flags blew up on embed startup')
+          throw new Error(FLAGS_STARTUP_FAILURE)
         }),
         init: flags => [{ count: flags.initialCount, step: 1 }, []],
         update,
@@ -335,6 +340,14 @@ describe('embed', () => {
     try {
       await awaitNoBodyText('count:')
       expect(container.childNodes.length).toBe(0)
+      await vi.waitFor(() => {
+        expect(
+          [...consoleLogSpy.mock.calls, ...consoleErrorSpy.mock.calls]
+            .flat()
+            .map(String)
+            .join('\n'),
+        ).toContain(FLAGS_STARTUP_FAILURE)
+      })
     } finally {
       handle.dispose()
     }
@@ -356,6 +369,26 @@ describe('embed', () => {
     })
     expect(document.getElementById('app')).toBe(container)
     expect(container.childNodes.length).toBe(0)
+  })
+
+  it('does not log when dispose interrupts a live embed', async () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {})
+    const handle = embed(makeWidget())
+
+    await awaitBodyText('count:0')
+    consoleLogSpy.mockClear()
+    consoleErrorSpy.mockClear()
+
+    handle.dispose()
+
+    await vi.waitFor(() => {
+      expect(isTickStreamActive).toBe(false)
+    })
+    expect(consoleLogSpy).not.toHaveBeenCalled()
+    expect(consoleErrorSpy).not.toHaveBeenCalled()
   })
 
   it('dispose is idempotent and silences the handle afterwards', async () => {

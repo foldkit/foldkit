@@ -16,18 +16,18 @@ const runWithCollectingLogger = async (
   return loggedCauses
 }
 
+const FLAGS_STARTUP_FAILURE = 'flags blew up on embed startup'
+
 describe('__reportUnhandledCause', () => {
   it('logs an unreported defect Cause', async () => {
-    const cause = Cause.die(new Error('flags blew up on embed startup'))
+    const cause = Cause.die(new Error(FLAGS_STARTUP_FAILURE))
 
     const loggedCauses = await runWithCollectingLogger(
       __reportUnhandledCause(cause),
     )
 
     expect(loggedCauses).toHaveLength(1)
-    expect(Cause.pretty(loggedCauses[0]!)).toContain(
-      'flags blew up on embed startup',
-    )
+    expect(Cause.pretty(loggedCauses[0]!)).toContain(FLAGS_STARTUP_FAILURE)
   })
 
   it('stays quiet for interrupt-only Causes', async () => {
