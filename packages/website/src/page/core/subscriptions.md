@@ -96,9 +96,21 @@ The helper returns a Stream, not a complete entry. Wrap it in `Stream.when` insi
 
 The `toMessage` mapper runs synchronously in the same call stack as the browser event, so it may call `event.preventDefault()` unless the listener is passive. Some browsers default wheel and touch listeners on global targets to passive, where cancellation is ignored. Pass `options: { passive: false }` when cancelling those events. Pass `target` as a thunk if it may not exist until the scope opens; pass always-present globals such as `window` and `document` directly.
 
-Use `Subscription.fromEventFilterMap` when only some events should dispatch. Its mapper returns `Option.some(message)` to emit or `Option.none()` to ignore the event. For a listener attached to one rendered element, use [Mount](/core/mount) instead.
+The target, the event name, and the event your mapper receives are one fact rather than three. `type` is constrained to the events the target declares, so a misspelled name is a compile error rather than a listener that never fires, and `event` follows from both: `window` plus `'keydown'` gives you a `KeyboardEvent` with no type argument to write. A target with no declared event map, such as a bare `EventTarget`, accepts any name and reports `Event`. Annotate one with `Subscription.TypedEventTarget` to have its own events resolved the same way, `CustomEvent` detail included:
 
-When a handled event should also cancel its default action, use `Subscription.fromEventFilterMapPreventDefault`. Its mapper returns `Option.some(message)` to handle the event or `Option.none()` to leave its default behavior intact. The helper evaluates the mapper, calls `preventDefault()`, and queues the Message before the native listener returns. It registers the listener with `passive: false` by default and rejects `passive: true`, which would make cancellation ineffective.
+```ts
+const slowWarningTarget: Subscription.TypedEventTarget<{
+  'foldkit:slow-warning': CustomEvent<SlowWarningReport>
+}> = new EventTarget()
+```
+
+Annotating a native target adds its declared events without losing the native ones. If a declared event uses the same name as a native event, the declared type takes precedence.
+
+When only some events should become Messages, use `Subscription.fromEventFilterMap`. Its `toMessage` returns `Option.some(message)` to emit a Message or `Option.none()` to ignore the event. A mapper that never emits produces a `Stream<never>`, which still composes wherever a Message-producing Stream is expected.
+
+When a handled event should also cancel its default action, use `Subscription.fromEventFilterMapPreventDefault`. Its mapper returns `Option.some(message)` to handle the event or `Option.none()` to leave its default behavior intact. The helper evaluates the mapper, calls `preventDefault()`, and queues the Message before the native listener returns. It registers the listener with `passive: false` by default and does not accept `passive: true`, which would make cancellation ineffective.
+
+For a listener attached to one rendered element, use [Mount](/core/mount) instead.
 
 ## Keep a Stream Alive Across Dependency Changes {#advanced}
 

@@ -46,7 +46,7 @@ const virtualListVariableDemoSubscriptions = Subscription.lift({
     Message.GotVirtualListVariableDemoMessage({ message }),
 })
 
-export const subscriptions = Subscription.aggregate<Model, Message>()(
+export const subscriptions = Subscription.aggregate(
   dragAndDropSubscriptions,
   sliderRatingSubscriptions,
   sliderVolumeSubscriptions,

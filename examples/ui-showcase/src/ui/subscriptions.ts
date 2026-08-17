@@ -46,7 +46,7 @@ const virtualListVariableDemoSubscriptions = Subscription.lift({
     UiMessage.GotVirtualListVariableDemoMessage({ message }),
 })
 
-export const subscriptions = Subscription.aggregate<UiModel, UiMessage>()(
+export const subscriptions = Subscription.aggregate(
   dragAndDropSubscriptions,
   sliderRatingSubscriptions,
   sliderVolumeSubscriptions,

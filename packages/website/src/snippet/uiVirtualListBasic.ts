@@ -68,7 +68,7 @@ const activityListSubscriptions = Subscription.lift({
   toParentMessage: message => Message.GotActivityListMessage({ message }),
 })
 
-const subscriptions = Subscription.aggregate<Model, Message>()(
+const subscriptions = Subscription.aggregate(
   activityListSubscriptions,
   // ...your other subscription records
 )

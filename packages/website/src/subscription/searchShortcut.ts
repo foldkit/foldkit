@@ -14,10 +14,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       }),
       dependenciesToStream: ({ isSearchAvailable }) =>
         Stream.when(
-          Subscription.fromEventFilterMapPreventDefault<
-            KeyboardEvent,
-            typeof Message.PressedSearchShortcut.Type
-          >({
+          Subscription.fromEventFilterMapPreventDefault({
             target: document,
             type: 'keydown',
             toMessage: event => {

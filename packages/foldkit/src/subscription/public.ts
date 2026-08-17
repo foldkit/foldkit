@@ -21,4 +21,5 @@ export type {
   FromEventConfig,
   FromEventFilterMapConfig,
   FromEventFilterMapPreventDefaultConfig,
+  TypedEventTarget,
 } from './fromEvent.js'

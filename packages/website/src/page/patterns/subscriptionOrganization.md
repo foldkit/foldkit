@@ -44,7 +44,7 @@ Three functions build the hierarchy.
 | ------------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
 | `Subscription.make`      | Declares local entries from dependency Schemas, `modelToDependencies`, and `dependenciesToStream`.     | The current level owns a Subscription.            |
 | `Subscription.lift`      | Reads a child Model and wraps each emitted child Message. An optional `when` adds a parent-owned gate. | A child exports a Subscriptions record.           |
-| `Subscription.aggregate` | Combines records and throws at startup when two entries use the same key.                              | A level has more than one local or lifted record. |
+| `Subscription.aggregate` | Combines records, infers their shared types, and rejects duplicate keys at startup.                    | A level has more than one local or lifted record. |
 
 ## Organization Principles
 

@@ -14,6 +14,4 @@ const settingsSubscriptions = Subscription.lift(Settings.subscriptions)<
   when: ({ route }) => route._tag === 'Settings',
 })
 
-export const subscriptions = Subscription.aggregate<Model, Message>()(
-  settingsSubscriptions,
-)
+export const subscriptions = Subscription.aggregate(settingsSubscriptions)

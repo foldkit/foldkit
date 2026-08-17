@@ -78,7 +78,7 @@ const sliderSubscriptions = Subscription.lift({
   toParentMessage: message => Message.GotSliderMessage({ message }),
 })
 
-const subscriptions = Subscription.aggregate<Model, Message>()(
+const subscriptions = Subscription.aggregate(
   sliderSubscriptions,
   // ...your other subscription records
 )

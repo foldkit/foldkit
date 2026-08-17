@@ -1,4 +1,5 @@
 import {
+  Array,
   Context,
   Data,
   Effect,
@@ -392,37 +393,134 @@ export const lift =
         config.toParentMessage(resource.onAcquireError(error)),
     })) as any
 
+type RuntimeKey<Key> = Key extends string
+  ? Key
+  : Key extends number
+    ? `${Key}`
+    : never
+
+type RuntimeEntries<RecordType> = {
+  readonly [Key in keyof RecordType as RuntimeKey<Key>]: RecordType[Key]
+}
+
 type MergeRecords<Records extends ReadonlyArray<unknown>> =
   Records extends readonly [infer Head, ...infer Rest]
-    ? Head & (Rest extends ReadonlyArray<unknown> ? MergeRecords<Rest> : {})
+    ? RuntimeEntries<Head> &
+        (Rest extends ReadonlyArray<unknown> ? MergeRecords<Rest> : {})
     : {}
+
+type AnyResources = Readonly<Record<string, Entry<any, any, any, any, any>>>
+
+// NOTE: requiring one record keeps `aggregate()` unambiguously curried.
+type AnyResourcesList = readonly [AnyResources, ...ReadonlyArray<AnyResources>]
+
+type EntriesOfRecord<ResourcesRecord> = ResourcesRecord extends unknown
+  ? ResourcesRecord[keyof ResourcesRecord]
+  : never
+
+type ModelOfEntry<AnyEntry> = [AnyEntry] extends [
+  Entry<infer Model, any, any, any, any>,
+]
+  ? unknown extends Model
+    ? never
+    : Model
+  : never
+
+type MessageOfEntry<AnyEntry> =
+  AnyEntry extends Entry<any, infer Message, any, any, any> ? Message : never
+
+type MessageOf<Records extends AnyResourcesList> = MessageOfEntry<
+  EntriesOfRecord<Records[number]>
+>
+
+// NOTE: anchoring compatibility to the first record makes an incompatible
+// later record produce the error at its own argument position.
+type ReferenceModel<Records extends ReadonlyArray<AnyResources>> =
+  Records extends readonly [
+    infer Head extends AnyResources,
+    ...infer Rest extends ReadonlyArray<AnyResources>,
+  ]
+    ? [ModelOfEntry<EntriesOfRecord<Head>>] extends [never]
+      ? ReferenceModel<Rest>
+      : ModelOfEntry<EntriesOfRecord<Head>>
+    : never
+
+type CompatibleResources<Records extends AnyResourcesList> = {
+  readonly [Index in keyof Records]: Records[Index] &
+    Readonly<
+      Record<
+        string,
+        Entry<ReferenceModel<Records>, MessageOf<Records>, any, any, any>
+      >
+    >
+}
+
+const mergeResources = (
+  records: ReadonlyArray<AnyResources>,
+): Record<string, Entry<any, any, any, any, any>> => {
+  const result: Record<string, Entry<any, any, any, any, any>> = {}
+  for (const record of records) {
+    for (const key of Object.keys(record)) {
+      if (Object.hasOwn(result, key)) {
+        throw new Error(
+          `ManagedResource.aggregate: duplicate key "${key}" across records`,
+        )
+      }
+      Object.defineProperty(result, key, {
+        configurable: true,
+        enumerable: true,
+        value: record[key],
+        writable: true,
+      })
+    }
+  }
+  return result
+}
 
 /**
  * Combines multiple Managed Resources records into one. Throws on duplicate
  * keys so a misconfigured aggregate fails loudly at startup rather than
  * silently overriding.
+ *
+ * Pass the records directly and the Model and Message are read off them. The
+ * Model of the first record is the one every later record is checked against,
+ * so a record from another Model universe fails at its own argument position.
+ * Message widens to the union across all records.
+ *
+ * The result keeps each record's keys, each entry's requirements schema and
+ * resource service, and the arity of each `onAcquired` handler. Read the
+ * service union off the result with {@link ServicesOf}.
+ *
+ * The curried form remains available for a record that has to be typed before
+ * its entries exist, such as a value annotated at a module boundary.
+ *
+ * @example
+ * ```ts
+ * const managedResources = ManagedResource.aggregate(
+ *   playgroundManagedResources,
+ *   notePlayerManagedResources,
+ * )
+ * ```
  */
-export const aggregate =
-  <Model, Message>() =>
-  <
+export const aggregate: {
+  <Model, Message>(): <
     Records extends ReadonlyArray<
       Record<string, Entry<Model, Message, any, any, any>>
     >,
   >(
     ...records: Records
-  ): MergeRecords<Records> => {
-    const result: Record<string, Entry<Model, Message, any, any, any>> = {}
-    for (const record of records) {
-      for (const key of Object.keys(record)) {
-        if (Object.hasOwn(result, key)) {
-          throw new Error(
-            `ManagedResource.aggregate: duplicate key "${key}" across records`,
-          )
-        }
-        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-        result[key] = record[key] as Entry<Model, Message, any, any, any>
-      }
-    }
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    return result as MergeRecords<Records>
-  }
+  ) => MergeRecords<Records>
+  <Records extends AnyResourcesList>(
+    ...records: CompatibleResources<Records>
+  ): MergeRecords<Records>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+} = ((...records: ReadonlyArray<AnyResources>) => {
+  return Array.match(records, {
+    onEmpty:
+      () =>
+      (...curriedRecords: ReadonlyArray<AnyResources>) =>
+        mergeResources(curriedRecords),
+    onNonEmpty: mergeResources,
+  })
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+}) as any

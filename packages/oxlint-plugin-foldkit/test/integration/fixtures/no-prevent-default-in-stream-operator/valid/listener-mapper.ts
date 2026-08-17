@@ -3,10 +3,7 @@ import { Subscription } from 'foldkit'
 
 import { Message } from './message'
 
-export const searchShortcut = Subscription.fromEventFilterMap<
-  KeyboardEvent,
-  Message
->({
+export const searchShortcut = Subscription.fromEventFilterMap({
   target: window,
   type: 'keydown',
   toMessage: event => {
