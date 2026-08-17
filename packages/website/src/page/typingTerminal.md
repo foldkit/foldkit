@@ -20,7 +20,7 @@ The repo splits into three packages.
 
 No new framework concepts are involved. The architecture is the same one [Counter](/example-apps/counter) uses. The interesting part is what falls out when that architecture meets a real backend: shared schemas across the wire, a typed RPC client without runtime decoders, a streaming [Subscription](/core/subscriptions) that owns reconnect logic, and [Commands](/core/commands) that map cleanly to RPC calls.
 
-## What’s in it {#whats-in-it}
+## What’s in it
 
 - Multiplayer rooms with hosts and joiners, joined by a short room code
 - A `Waiting | GetReady | Countdown | Playing | Finished` state machine modelled as a discriminated union on the server, mirrored on the client

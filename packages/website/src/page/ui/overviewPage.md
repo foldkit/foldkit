@@ -47,6 +47,8 @@ Stateless render helpers (Button, Input, Textarea, Select, Checkbox, Switch, Dis
 | [Date Picker](/ui/date-picker)     | Submodel | Input paired with a popover Calendar. Inherits the calendar’s constraint and keyboard-navigation support, with programmatic open/close and setters.                                                  |
 | [Animation](/ui/animation)         | Submodel | Coordinates CSS enter/leave animations via a state machine and data attributes. Works with both CSS transitions and CSS keyframe animations. Sends an OutMessage when the leave animation completes. |
 
+Underneath the floating components sits [Anchor](/ui/anchor), the positioning runtime Listbox, Combobox, Menu, Popover, Tooltip, and Date Picker share. It is neither a helper nor a Submodel, so it has no row above. Reach for it directly only when you are building an anchored component none of those cover.
+
 ## Showcase
 
 The [UI Showcase](/example-apps/ui-showcase) example demonstrates every component with styled, interactive examples. It’s a good reference for how to wire up component state, handle Messages, and compose views.

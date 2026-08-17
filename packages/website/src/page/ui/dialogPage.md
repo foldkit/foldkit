@@ -10,7 +10,7 @@ Check out how Dialog is wired up in a [real Foldkit app](https://github.com/fold
 
 ## Examples
 
-### Basic {#dialog-basic}
+### Basic
 
 Open the dialog from a trigger by dispatching your own Message and calling `Dialog.open(model)` in your update. Spread the `closeButton` bundle onto a Cancel button to dismiss it, or call `Dialog.close(model)` directly. Both return `[Model, Commands, Option<OutMessage>]`. Spread `...title` onto a heading element so the dialog is labeled for screen readers.
 
@@ -18,7 +18,7 @@ Open the dialog from a trigger by dispatching your own Message and calling `Dial
 
 ::Snippet{name="uiDialogBasic" label="dialog example"}
 
-### Animated {#dialog-animated}
+### Animated
 
 Pass `isAnimated: true` at init to coordinate animations. The component manages an Animation submodel internally. Apply transition classes using `data-closed` (e.g. `data-[closed]:opacity-0 data-[closed]:scale-95`).
 
@@ -26,7 +26,7 @@ Pass `isAnimated: true` at init to coordinate animations. The component manages 
 
 ::Snippet{name="uiDialogAnimated" label="animated dialog example"}
 
-### Field {#dialog-field}
+### Field
 
 A field inside a dialog can open its own overlay, like a Combobox or DatePicker. By default that overlay portals its panel to the document body, where the dialog renders on top of it. Pass `anchor: { portal: false }` so the panel stays inside the dialog and remains visible.
 
@@ -34,7 +34,7 @@ A field inside a dialog can open its own overlay, like a Combobox or DatePicker.
 
 ::Snippet{name="uiDialogOverlay" label="field dialog example"}
 
-### Stacked {#dialog-stacked}
+### Stacked
 
 Use a separate Dialog Model for each level and open the second from a button in the first. The framework stacks them by z-index, traps focus in the topmost, and closes them one at a time: Escape closes the top dialog before the one beneath it.
 

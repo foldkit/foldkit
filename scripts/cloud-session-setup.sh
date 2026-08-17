@@ -41,9 +41,17 @@ done
 echo "[setup] reconciling node_modules with pnpm-lock.yaml"
 pnpm install --frozen-lockfile
 
+# Every workspace package another package imports by name, because that import
+# resolves through the dependency's `exports` map into dist/. A package missing
+# from this list is a package the agent has to notice and build by hand, after
+# reading a "Cannot find module" or a wall of `never` and index-signature errors
+# that read like branch breakage. Packages nothing imports, such as the CLIs and
+# the typing game server, stay out: they are built by the tasks that need them.
 prerequisite_packages=(
   'foldkit:packages/foldkit'
   '@foldkit/markdown:packages/markdown'
+  '@foldkit/ui:packages/ui'
+  '@foldkit/devtools:packages/devtools'
   '@foldkit/vite-plugin:packages/vite-plugin-foldkit'
   '@foldkit/oxlint-plugin:packages/oxlint-plugin-foldkit'
   '@typing-game/shared:packages/typing-game/shared'

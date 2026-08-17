@@ -176,7 +176,7 @@ const wrapEffectAsStream =
  * )(({ buttonId, anchor }) => element =>
  *   Effect.gen(function* () {
  *     yield* Effect.acquireRelease(
- *       Effect.sync(() => anchorSetup({ buttonId, anchor })(element)),
+ *       Effect.sync(() => anchorSetup(element, { buttonId, anchor })),
  *       cleanup => Effect.sync(cleanup),
  *     )
  *     return CompletedAnchorPopover()

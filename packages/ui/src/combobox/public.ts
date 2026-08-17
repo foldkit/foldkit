@@ -53,6 +53,6 @@ export type {
 
 export type { Bundle, InitConfig, ViewInputs } from './single.js'
 
-export type { AnchorConfig } from '../anchor.js'
+export type { AnchorConfig } from '../anchor/index.js'
 
 export * as Multi from './multiPublic.js'

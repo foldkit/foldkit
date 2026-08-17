@@ -1,3 +1,4 @@
+export * as Anchor from './anchor/public.js'
 export * as Animation from './animation/public.js'
 export * as Button from './button/public.js'
 export * as Calendar from './calendar/public.js'

@@ -103,7 +103,7 @@ Attribute groups provided to the `toView` callback.
 | `label`       | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the visible label element. Carries the id the thumb’s aria-labelledby points to by default.                                                                                              |
 | `hiddenInput` | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto a hidden `<input>` for form submission. Only populated when the name prop is set.                                                                                                        |
 
-### OutMessage {#out-messages}
+### OutMessage {#out-message}
 
 Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Parents fold the OutMessage in the `foldOutMessage` of their [`Update.foldChild`](/core/submodel#fold-child) config.
 

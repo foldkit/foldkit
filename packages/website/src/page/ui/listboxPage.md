@@ -16,7 +16,7 @@ Check out how Listbox is wired up in a [real Foldkit app](https://github.com/fol
 
 ## Examples
 
-### Single-Select {#single-select-listbox}
+### Single-Select
 
 Pass an `itemToConfig` callback that maps each item to its content. The context provides `isSelected` and `isActive` for styling the highlighted and selected states.
 
@@ -24,7 +24,7 @@ Pass an `itemToConfig` callback that maps each item to its content. The context 
 
 ::Snippet{name="uiListboxBasic" label="listbox example"}
 
-### Multi-select {#multi-select-listbox}
+### Multi-select
 
 Use `Listbox.Multi` for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and folds each `Selected` OutMessage by toggling the value in its array.
 
@@ -32,7 +32,7 @@ Use `Listbox.Multi` for multi-selection. The dropdown stays open on selection an
 
 ::Snippet{name="uiListboxMulti" label="multi-select listbox example"}
 
-### Grouped {#grouped-listbox}
+### Grouped
 
 Pass `itemGroupKey` to group contiguous items by key, and `groupToHeading` to render section headers. Groups are separated automatically.
 
@@ -40,7 +40,7 @@ Pass `itemGroupKey` to group contiguous items by key, and `groupToHeading` to re
 
 ::Snippet{name="uiListboxGrouped" label="grouped listbox example"}
 
-## Read-Only {#read-only}
+## Read-Only
 
 `isReadOnly` keeps the Listbox browsable but not committable. It still opens from the button by click, `Enter`, `Space`, `Arrow Down`, and `Arrow Up`, and still closes by `Escape`, a backdrop click, and blur. Arrow, `Home`, `End`, `PageUp`, and `PageDown` navigation, typeahead search, and pointer hover all keep moving the active item. What a read-only Listbox never does is commit: items carry no click handler, and `Enter` or `Space` on the active item inside the items panel reports a `SuppressedItemCommit` Message that leaves the Model unchanged, so no `Selected` OutMessage ever reaches the parent. `Space` still types into a pending typeahead query, because there the key is a search character rather than a commit.
 

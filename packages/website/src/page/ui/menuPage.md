@@ -14,7 +14,7 @@ Check out how Menu is wired up in a [real Foldkit app](https://github.com/foldki
 
 ## Examples
 
-### Basic {#basic-menu}
+### Basic
 
 Pair `view` and `update` behind `Menu.create<Item>()` at module scope. The factory threads your item union through both, so `Selected({ value, index })` carries the picked value directly. Menu closes automatically after selection.
 
@@ -22,7 +22,7 @@ Pair `view` and `update` behind `Menu.create<Item>()` at module scope. The facto
 
 ::Snippet{name="uiMenuBasic" label="menu example"}
 
-### Animated {#animated-menu}
+### Animated
 
 Pass `isAnimated: true` at init for animation coordination.
 

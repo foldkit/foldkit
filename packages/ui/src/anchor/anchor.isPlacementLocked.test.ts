@@ -6,7 +6,7 @@ import type {
   Placement as FloatingPlacement,
 } from '@floating-ui/dom'
 
-import { type AnchorConfig, anchorSetup } from './anchor.js'
+import { type AnchorConfig, anchorSetup } from './index.js'
 
 type MockComputePositionReturn = {
   x: number
@@ -80,11 +80,12 @@ vi.mock('@floating-ui/dom', async importOriginal => {
   }
 })
 
-describe('anchorSetup isPlacementLocked', () => {
+describe('anchorSetup placement locking and position ticks', () => {
   afterEach(() => {
     computePositionMock.mockReset()
     updateCallbacks.length = 0
     document.body.replaceChildren()
+    vi.restoreAllMocks()
   })
 
   const optionsOfCall = (callIndex: number): Partial<ComputePositionConfig> =>
@@ -141,7 +142,7 @@ describe('anchorSetup isPlacementLocked', () => {
     button.id = BUTTON_ID
     const element = document.createElement('div')
     document.body.append(button, element)
-    const cleanup = anchorSetup({ buttonId: BUTTON_ID, anchor })(element)
+    const cleanup = anchorSetup(element, { buttonId: BUTTON_ID, anchor })
     return { element, cleanup }
   }
 
@@ -287,6 +288,105 @@ describe('anchorSetup isPlacementLocked', () => {
     secondTick.resolve({ x: 30, y: 40, placement: 'top-start' })
     await waitForPosition(element, 30, 40)
     expect(computePositionMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('coalesces ticks that arrive while positioning without isPlacementLocked', async () => {
+    const firstTick = deferPosition()
+    const secondTick = deferPosition()
+    computePositionMock
+      .mockReturnValueOnce(firstTick.promise)
+      .mockReturnValueOnce(secondTick.promise)
+    const { element } = mountAnchor({
+      placement: 'bottom-start',
+      portal: false,
+    })
+
+    triggerUpdate(0)
+    triggerUpdate(0)
+
+    expect(computePositionMock).toHaveBeenCalledTimes(1)
+
+    firstTick.resolve({ x: 5, y: 6, placement: 'bottom-start' })
+    await waitForPosition(element, 5, 6)
+
+    await vi.waitFor(() => {
+      expect(computePositionMock).toHaveBeenCalledTimes(2)
+    })
+
+    secondTick.resolve({ x: 30, y: 40, placement: 'bottom-start' })
+    await waitForPosition(element, 30, 40)
+    expect(computePositionMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('lets the coalesced tick win the last write without isPlacementLocked', async () => {
+    const firstTick = deferPosition()
+    const secondTick = deferPosition()
+    computePositionMock
+      .mockReturnValueOnce(firstTick.promise)
+      .mockReturnValueOnce(secondTick.promise)
+    const { element } = mountAnchor({
+      placement: 'bottom-start',
+      portal: false,
+    })
+
+    triggerUpdate(0)
+
+    secondTick.resolve({ x: 99, y: 99, placement: 'bottom-start' })
+    firstTick.resolve({ x: 10, y: 20, placement: 'bottom-start' })
+    await flushPromises()
+
+    expect(element.style.left).toBe('99px')
+    expect(element.style.top).toBe('99px')
+  })
+
+  it('reports once and leaves the panel hidden while ticks reject', async () => {
+    const reportError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(Function.constVoid)
+    computePositionMock
+      .mockRejectedValueOnce(new Error('measurement failed'))
+      .mockRejectedValueOnce(new Error('measurement failed again'))
+      .mockResolvedValueOnce({ x: 10, y: 20, placement: 'bottom-start' })
+    const { element } = mountAnchor({
+      placement: 'bottom-start',
+      portal: false,
+    })
+    element.style.visibility = 'hidden'
+
+    await flushPromises()
+    triggerUpdate(0)
+    await flushPromises()
+
+    expect(reportError).toHaveBeenCalledTimes(1)
+    expect(element.style.visibility).toBe('hidden')
+
+    triggerUpdate(0)
+    await waitForPosition(element, 10, 20)
+
+    expect(reportError).toHaveBeenCalledTimes(1)
+    expect(element.style.visibility).toBe('')
+  })
+
+  it('reports a fresh failure after a tick has recovered', async () => {
+    const reportError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(Function.constVoid)
+    computePositionMock
+      .mockRejectedValueOnce(new Error('measurement failed'))
+      .mockResolvedValueOnce({ x: 10, y: 20, placement: 'bottom-start' })
+      .mockRejectedValueOnce(new Error('measurement failed later'))
+    const { element } = mountAnchor({
+      placement: 'bottom-start',
+      portal: false,
+    })
+
+    await flushPromises()
+    triggerUpdate(0)
+    await waitForPosition(element, 10, 20)
+    triggerUpdate(0)
+    await flushPromises()
+
+    expect(reportError).toHaveBeenCalledTimes(2)
   })
 
   it('exposes a horizontal side, not only top and bottom', async () => {

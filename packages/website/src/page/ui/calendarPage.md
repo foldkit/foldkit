@@ -119,7 +119,7 @@ Attribute groups and derived data provided to the `toView` callback.
 | `weeks`                                 | `ReadonlyArray<Week<Message>>`                                             | —       | (Days only.) Six week rows. Each Week carries its own row attributes (role="row", aria-rowindex) and seven DayCells. DayCells carry cellAttributes (role="gridcell", aria-colindex), buttonAttributes (type="button", aria-label, click), the day label string, and state flags (isToday, isSelected, isFocused, isInViewMonth, isDisabled).                                                                                                                                                                                                             |
 | `cells`                                 | `ReadonlyArray<MonthCell<Message>> \| ReadonlyArray<YearCell<Message>>`    | —       | (Months, Years.) Twelve cells. In Months mode each cell carries the month number (1-12), the full localized name (label, e.g. "September"), and the localized abbreviation (shortLabel, e.g. "Sep"). Render whichever fits, never substring label to abbreviate. In Years mode each cell carries a year from the current 12-year window. Both expose cellAttributes (role="gridcell", aria-selected), buttonAttributes (click dispatches SelectedMonth/SelectedYear), and state flags (isSelected, isFocused, isCurrentMonth/isCurrentYear, isDisabled). |
 
-### OutMessage {#out-messages}
+### OutMessage {#out-message}
 
 Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Parents fold the OutMessage in the `foldOutMessage` of their [`Update.foldChild`](/core/submodel#fold-child) config.
 

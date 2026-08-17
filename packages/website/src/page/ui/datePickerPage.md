@@ -109,7 +109,7 @@ Configuration object passed to `DatePicker.view()`.
 
 The discriminated union passed to `toCalendarView`. Pattern-match on `_tag` (`'Days' | 'Months' | 'Years'`) with `M.tagsExhaustive` to render each grid. Each variant exposes a different shape: Days carries weeks plus a headingButton; Months carries 12 month cells plus a headingButton; Years carries 12 year cells plus prev/next page buttons. See [the Calendar page's CalendarAttributes section](/ui/calendar) for the full prop table. The type is the same.
 
-### OutMessage {#out-messages}
+### OutMessage {#out-message}
 
 Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
 

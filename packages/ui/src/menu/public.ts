@@ -54,4 +54,4 @@ export type {
   Bundle,
 } from './index.js'
 
-export type { AnchorConfig } from '../anchor.js'
+export type { AnchorConfig } from '../anchor/index.js'

@@ -62,6 +62,10 @@ Animation, Button, Calendar, Checkbox, Combobox, DatePicker, Dialog, Disclosure,
 
 See the [component documentation](https://foldkit.dev/ui/overview) for the full API and a live example of each.
 
+## Anchor
+
+`Anchor` is the positioning runtime the floating components share, exported at `@foldkit/ui/anchor`. It is neither a render helper nor a Submodel, so it is not in the list above. Reach for it when you need to anchor and portal a panel of your own from a Mount, and none of Listbox, Combobox, Menu, Popover, Tooltip, or DatePicker fits. See the [Anchor documentation](https://foldkit.dev/ui/anchor).
+
 ## License
 
 MIT

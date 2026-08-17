@@ -38,4 +38,4 @@ export {
 
 export type { InitConfig, ViewInputs, RenderInfo } from './index.js'
 
-export type { AnchorConfig } from '../anchor.js'
+export type { AnchorConfig } from '../anchor/index.js'

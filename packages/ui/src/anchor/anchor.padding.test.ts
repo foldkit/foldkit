@@ -6,7 +6,7 @@ import type {
   Placement as FloatingPlacement,
 } from '@floating-ui/dom'
 
-import { type AnchorConfig, anchorSetup } from './anchor.js'
+import { type AnchorConfig, anchorSetup } from './index.js'
 
 type MockComputePositionReturn = {
   x: number
@@ -92,7 +92,7 @@ describe('anchorSetup padding', () => {
     button.id = BUTTON_ID
     const element = document.createElement('div')
     document.body.append(button, element)
-    const cleanup = anchorSetup({ buttonId: BUTTON_ID, anchor })(element)
+    const cleanup = anchorSetup(element, { buttonId: BUTTON_ID, anchor })
     return { element, cleanup }
   }
 

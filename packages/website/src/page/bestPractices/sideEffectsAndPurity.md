@@ -62,7 +62,7 @@ This purity has a practical payoff: testing is trivial. Foldkit ships `foldkit/t
 
 A common mistake is computing random or time-based values directly in `update`. This breaks purity. Calling the function twice with the same inputs would return different results.
 
-### Don’t Compute in Update {#dont-compute-in-update}
+### Don’t Compute in Update
 
 ::Snippet{name="pureUpdateBad" label="bad example"}
 

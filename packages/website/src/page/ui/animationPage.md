@@ -118,9 +118,9 @@ Configuration object passed to `Animation.view()`.
 | `attributes`  | `ReadonlyArray<Attribute<Message>>` | —       | Additional attributes for the wrapper.                                                                                                             |
 | `element`     | `TagName`                           | `'div'` | The HTML element for the wrapper.                                                                                                                  |
 
-### OutMessages {#out-messages}
+### OutMessage
 
-OutMessages emitted from `Animation.update()`. Fold these in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
+Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
 
 | Name                    | Type         | Default | Description                                                                                                                                                                     |
 | ----------------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

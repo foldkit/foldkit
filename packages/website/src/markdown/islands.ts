@@ -1,15 +1,28 @@
 import { Option } from 'effect'
-import { inertHtml as ih } from 'foldkit/html'
+import { Html, inertHtml as ih } from 'foldkit/html'
 
 import * as Markdown from '@foldkit/markdown'
 
 import { ctaLinks, infoCalloutBlocks, warningCalloutBlocks } from '../prose'
 import { highlightedCodeBlock } from '../view/codeBlock'
+import type { DemoLabels } from './demoLabel'
 import { islandAttributes } from './islandAttributes'
 import { type Slots, renderFaqSection, resolveDemo } from './slots'
 import { lookupSnippet } from './snippets'
 
 // ISLANDS
+
+/**
+ * Renders a demo as a region labelled by the heading it sits under, so a page of
+ * near-identical demos is navigable: a screen reader user landing on one of the
+ * five comboboxes on the Combobox page hears which example they are in. A demo
+ * the document leaves unlabelled renders bare rather than as an unnamed region.
+ */
+const demoRegion = (demoLabels: DemoLabels, name: string, demo: Html): Html =>
+  Option.match(Option.fromNullishOr(demoLabels.get(name)), {
+    onNone: () => demo,
+    onSome: headingId => ih.section([ih.AriaLabelledBy(headingId)], [demo]),
+  })
 
 /**
  * The site's island views, paired with {@link islandAttributes} so attributes
@@ -25,7 +38,10 @@ import { lookupSnippet } from './snippets'
  * which the snippet registration test is there to catch. The views stay pure, so
  * a missing snippet reports at test time rather than warning from a render.
  */
-export const docIslands = (slots: Slots<string>): Markdown.Islands => {
+export const docIslands = (
+  slots: Slots<string>,
+  demoLabels: DemoLabels,
+): Markdown.Islands => {
   return Markdown.islandsFor(islandAttributes, {
     Snippet: ({ name, label, class: className }) =>
       Option.match(lookupSnippet(name), {
@@ -48,7 +64,7 @@ export const docIslands = (slots: Slots<string>): Markdown.Islands => {
 
     Cta: (_attributes, content) => ctaLinks(content),
 
-    Demo: ({ name }) => resolveDemo(slots, name),
+    Demo: ({ name }) => demoRegion(demoLabels, name, resolveDemo(slots, name)),
 
     Faq: ({ id, question }, content) =>
       renderFaqSection(slots, id, question, content),

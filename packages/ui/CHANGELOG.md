@@ -1,5 +1,62 @@
 # @foldkit/ui
 
+## 0.146.0
+
+### Minor Changes
+
+- ee7bdb6: Make the anchor positioning runtime public under a new `@foldkit/ui/anchor` subpath, so an application can build its own anchored component without rendering one of the six components that accept an `anchor` prop.
+
+  `AnchorConfig` was already re-exported as a type from `combobox`, `listbox`, `menu`, `popover` and `tooltip`, so a consumer could describe an anchor config but had no way to act on one. The subpath exports the runtime side alongside it:
+
+  ```ts
+  import {
+    AnchorConfig,
+    Padding,
+    Placement,
+    anchorSetup,
+    portalToContainingRoot,
+  } from '@foldkit/ui/anchor'
+  ```
+
+  `anchorSetup` and `portalToContainingRoot` are plain DOM functions that return a cleanup, meant to be called inside `Effect.sync` in a Mount and stashed in the Mount result. `AnchorConfig`, `Placement` and `Padding` are now available as Schema values, not only as types.
+
+  The module is also exported from the root barrel, as `import { Anchor } from '@foldkit/ui'`, and appears in the API reference as `Ui.Anchor`.
+
+  Nothing is removed or renamed. `src/anchor.ts` moved to `src/anchor/`, which is internal layout only.
+
+  Thanks @wmaurer for contributing this feature!
+
+- 7014ef6: Name the config `anchorSetup` takes, and give `Placement` and `Padding` type companions, so the `@foldkit/ui/anchor` surface can be described without reaching for `Parameters` or `typeof`.
+
+  ```ts
+  import type { Padding, Placement, SetupConfig } from '@foldkit/ui/anchor'
+  ```
+
+  `SetupConfig` matches the `InitConfig` and `ViewInputs` types the stateful components export. `Placement` and `Padding` each export a type of the same name alongside their Schema value, the way `AnchorConfig` already did.
+
+  `anchorSetup` takes the element first, as `anchorSetup(element, config)`, matching `portalToContainingRoot(element)`.
+
+- da05bfc: Bump Effect to `4.0.0-rc.109` (from `4.0.0-rc.108`). Foldkit's `effect` peer dependency now requires `4.0.0-rc.109`, and `@foldkit/devtools` pins its `@effect/platform-browser` peer dependency to the same version.
+
+  Pin your Effect packages to `4.0.0-rc.109` to match this release. While Effect v4 is in prerelease, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.109 @effect/platform-browser@4.0.0-rc.109
+  pnpm add -D @effect/vitest@4.0.0-rc.109
+  ```
+
+### Patch Changes
+
+- 4d9e0fb: Report a failed anchor positioning tick through `console.error` instead of letting it escape as an unhandled rejection, and apply the tick gate to every panel rather than only to placement-locked ones.
+
+  `anchorSetup` positions through a promise chain that had no rejection handler. `computePosition` awaits platform measurement and every middleware, so a throw in any of them rejects the tick, and that rejection reached the window unhandled.
+
+  It is now reported, rather than either escaping or being swallowed silently. A panel that never appears with nothing logged is the hard case to debug, since the caller renders `visibility: hidden` and only a successful tick clears it. A run of consecutive failures is reported once, because the panel repositions on every scroll and resize and a persistent failure would otherwise repeat on each one. A fresh failure after a recovery is reported again.
+
+  The gate that keeps at most one tick in flight, so the last write always wins, was conditional on `isPlacementLocked`. That tied a concurrency guard to an unrelated positioning flag. It now applies to every anchored panel. This part changes no behavior: with the current `@floating-ui/dom` a tick settles inside a microtask chain, and each `autoUpdate` callback returns through a microtask checkpoint, so two ticks are never in flight together and the gate does not engage. It makes the invariant hold by construction rather than by coincidence.
+
+  Placement locking is unchanged.
+
 ## 0.145.0
 
 ### Minor Changes

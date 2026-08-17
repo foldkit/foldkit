@@ -16,7 +16,11 @@ import { makeConstrainedEvo } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
-import { AnchorConfig, anchorSetup, portalToContainingRoot } from '../anchor.js'
+import {
+  AnchorConfig,
+  anchorSetup,
+  portalToContainingRoot,
+} from '../anchor/index.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → combobox → animation.
 // The barrel (../animation) imports from html, which starts the cycle.
@@ -757,11 +761,11 @@ export const AnchorCombobox = Mount.define(
             element.addEventListener('pointerdown', preventBlur, {
               capture: true,
             })
-            const teardownAnchor = anchorSetup({
+            const teardownAnchor = anchorSetup(element, {
               buttonId,
               anchor,
               interceptTab: false,
-            })(element)
+            })
             return () => {
               element.removeEventListener('pointerdown', preventBlur, {
                 capture: true,

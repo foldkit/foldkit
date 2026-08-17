@@ -797,6 +797,14 @@ export const docsView = (
           ]),
           Page.UiPages.SelectionSubmodelsPage.tableOfContents,
         ),
+      UiAnchor: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.UiPages.AnchorPage.view, [
+            model.copiedSnippets,
+            h,
+          ]),
+          Page.UiPages.AnchorPage.tableOfContents,
+        ),
       UiButton: () =>
         withTableOfContents(
           h.submodel({

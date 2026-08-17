@@ -85,6 +85,10 @@ export const foldkitAliases = (dirname: string) => ({
     '../../packages/foldkit/src/update/public',
   ),
   'foldkit/url': path.resolve(dirname, '../../packages/foldkit/src/url'),
+  '@foldkit/ui/anchor': path.resolve(
+    dirname,
+    '../../packages/ui/src/anchor/public',
+  ),
   '@foldkit/ui/animation': path.resolve(
     dirname,
     '../../packages/ui/src/animation/public',

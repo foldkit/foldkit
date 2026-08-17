@@ -1,21 +1,30 @@
-import { Array, Option, Result, String as String_ } from 'effect'
+import { Array, Match as M, Option, Result, String as String_ } from 'effect'
 import { inertHtml as ih } from 'foldkit/html'
 import { describe, expect, test } from 'vitest'
 
 import { parseMarkdown } from '@foldkit/markdown/vite'
 
+import { PostFrontmatter } from '../page/blog/frontmatter'
 import comingFromReactSource from '../page/comingFromReact/comingFromReact.md?raw'
 import { FAQ_IDS } from '../page/comingFromReact/faq'
 import commandsSource from '../page/core/commands.md?raw'
 import submodelSource from '../page/core/submodel.md?raw'
 import manifestoSource from '../page/manifesto.md?raw'
+import comboboxPageSource from '../page/ui/comboboxPage.md?raw'
+import { collectDemoLabels } from './demoLabel'
 import { islandAttributes } from './islandAttributes'
-import { slugify, stripHeadingIdMarker } from './slug'
+import { parseHeadingId, slugify, stripHeadingIdMarker } from './slug'
 import { collectHeadings } from './tableOfContents'
 
+// NOTE: mirrors the options the website's markdown plugin runs with, so a check
+// over every page's source reads the same documents the site builds.
+const markdownOptions = {
+  islands: islandAttributes,
+  frontmatter: PostFrontmatter,
+}
+
 const tocOf = (source: string) =>
-  collectHeadings(parseMarkdown(source, { islands: islandAttributes }))
-    .tableOfContents
+  collectHeadings(parseMarkdown(source, markdownOptions)).tableOfContents
 
 describe('slugify', () => {
   test('lowercases and dashes non-alphanumeric runs', () => {
@@ -25,6 +34,11 @@ describe('slugify', () => {
     expect(slugify('Build Your Product, Not Your Architecture')).toBe(
       'build-your-product-not-your-architecture',
     )
+  })
+
+  test('drops apostrophes instead of dashing them', () => {
+    expect(slugify('Don’t Compute in Update')).toBe('dont-compute-in-update')
+    expect(slugify("What's in it")).toBe('whats-in-it')
   })
 })
 
@@ -319,6 +333,12 @@ const markdownSources = import.meta.glob('../page/**/*.md', {
   eager: true,
 })
 
+const pageSources = import.meta.glob('../page/**/*.ts', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+})
+
 const COMING_FROM_REACT_PATH = '../page/comingFromReact/comingFromReact.md'
 
 const capturedNames = (
@@ -365,12 +385,6 @@ describe('faq island registration', () => {
 const DEMO_ISLAND_PATTERN = /::Demo\{name="([^"]+)"\}/g
 
 describe('demo island registration', () => {
-  const pageSources = import.meta.glob('../page/**/*.ts', {
-    query: '?raw',
-    import: 'default',
-    eager: true,
-  })
-
   const demoUsages = Array.filterMap(
     Object.entries(markdownSources),
     ([markdownPath, source]) => {
@@ -453,4 +467,107 @@ describe('snippet island registration', () => {
       expect(missing, `${markdownPath} references missing snippets`).toEqual([])
     },
   )
+})
+
+type HeadingOverride = Readonly<{ id: string; text: string }>
+
+const explicitHeadingIds = (source: string): ReadonlyArray<HeadingOverride> =>
+  Array.filterMap(parseMarkdown(source, markdownOptions).blocks, block =>
+    M.value(block).pipe(
+      M.withReturnType<Result.Result<HeadingOverride, void>>(),
+      M.tag('Heading', heading => {
+        const { maybeId, text } = parseHeadingId(heading.content)
+
+        return Result.fromOption(
+          Option.map(maybeId, id => ({ id, text })),
+          () => undefined,
+        )
+      }),
+      M.orElse(() => Result.failVoid),
+    ),
+  )
+
+// NOTE: a `{#id}` marker earns its place only when `slugify` would derive
+// something else, such as kebab-casing an identifier or pinning a short anchor
+// under a long heading. One that repeats the derived id reads as a convention
+// the next heading has to follow, and it silently stops matching the heading the
+// first time that heading is reworded.
+describe('heading id overrides', () => {
+  const overrideUsages = Array.filterMap(
+    Object.entries(markdownSources),
+    ([markdownPath, source]) =>
+      Array.match(explicitHeadingIds(String(source)), {
+        onEmpty: () => Result.failVoid,
+        onNonEmpty: overrides => Result.succeed({ markdownPath, overrides }),
+      }),
+  )
+
+  test('finds heading id overrides to check', () => {
+    expect(Array.isArrayNonEmpty(overrideUsages)).toBe(true)
+  })
+
+  test.each(overrideUsages)(
+    '$markdownPath overrides only the ids slugify would not derive',
+    ({ markdownPath, overrides }) => {
+      const redundant = overrides.filter(({ id, text }) => id === slugify(text))
+
+      expect(
+        redundant,
+        `${markdownPath} repeats the derived id in a {#id} marker`,
+      ).toEqual([])
+    },
+  )
+})
+
+// NOTE: every demo sits under a heading, so each one renders as a region named
+// by that heading. This walks the same documents the site builds and checks the
+// pairing holds, since a demo that drifts above its heading loses its accessible
+// name silently.
+describe('demo section labels', () => {
+  const labelUsages = Array.filterMap(
+    Object.entries(markdownSources),
+    ([markdownPath, source]) => {
+      const names = capturedNames(String(source), DEMO_ISLAND_PATTERN)
+
+      return Array.match(names, {
+        onEmpty: () => Result.failVoid,
+        onNonEmpty: presentNames =>
+          Result.succeed({ markdownPath, names: presentNames, source }),
+      })
+    },
+  )
+
+  test('finds demo islands to check', () => {
+    expect(Array.isArrayNonEmpty(labelUsages)).toBe(true)
+  })
+
+  test.each(labelUsages)(
+    '$markdownPath labels every demo with the heading above it',
+    ({ markdownPath, names, source }) => {
+      const document = parseMarkdown(String(source), markdownOptions)
+      const demoLabels = collectDemoLabels(
+        document,
+        collectHeadings(document).idByHeading,
+      )
+      const unlabeled = names.filter(name => demoLabels.get(name) === undefined)
+
+      expect(unlabeled, `${markdownPath} has demos with no heading`).toEqual([])
+    },
+  )
+
+  test('labels the combobox demos with their own section headings', () => {
+    const document = parseMarkdown(comboboxPageSource, markdownOptions)
+    const demoLabels = collectDemoLabels(
+      document,
+      collectHeadings(document).idByHeading,
+    )
+
+    expect(Object.fromEntries(demoLabels)).toEqual({
+      'single-select': 'single-select',
+      nullable: 'nullable',
+      'select-on-focus': 'select-on-focus',
+      'locked-placement': 'locked-placement',
+      multi: 'multi-select',
+    })
+  })
 })

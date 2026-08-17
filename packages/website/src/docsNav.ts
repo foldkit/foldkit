@@ -59,6 +59,7 @@ import {
   testingStoryRouter,
   toolingLintingRouter,
   typingTerminalRouter,
+  uiAnchorRouter,
   uiAnimationRouter,
   uiButtonRouter,
   uiCalendarRouter,
@@ -569,6 +570,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'UiAnimation',
           href: uiAnimationRouter(),
           label: 'Animation',
+        },
+        {
+          _tag: 'UiAnchor',
+          href: uiAnchorRouter(),
+          label: 'Anchor',
         },
         {
           _tag: 'UiVirtualList',

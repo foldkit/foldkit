@@ -10,7 +10,6 @@ import { Combobox } from '@foldkit/ui'
 import type { AnchorConfig } from '@foldkit/ui/combobox'
 
 import { Icon } from '../../icon'
-import type { TableOfContentsEntry } from '../../main'
 import {
   GotComboboxDemoMessage,
   GotComboboxMultiDemoMessage,
@@ -20,38 +19,6 @@ import {
   type Message,
 } from './message'
 import type { City } from './model'
-
-// TABLE OF CONTENTS
-
-export const singleSelectHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'combobox-single-select',
-  text: 'Single-Select',
-}
-
-export const nullableHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'combobox-nullable',
-  text: 'Nullable',
-}
-
-export const selectOnFocusHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'combobox-select-on-focus',
-  text: 'Select on Focus',
-}
-
-export const placementLockHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'combobox-locked-placement',
-  text: 'Locked Placement',
-}
-
-export const multiHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'combobox-multi',
-  text: 'Multi-Select',
-}
 
 // DEMO CONTENT
 

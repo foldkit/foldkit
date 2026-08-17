@@ -306,6 +306,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Selection Submodels',
     'How Foldkit UI components expose create<Item>() factories that pair view and update behind one type parameter so Item types cannot drift between the rendered list and the selection handler.',
   ),
+  UiAnchor: ui(
+    'Anchor',
+    'The Floating UI positioning runtime behind Foldkit UI’s floating components, exported so you can anchor and portal a panel of your own from a Mount.',
+  ),
   UiButton: ui(
     'Button',
     'A thin wrapper around the native button with accessibility attributes and styling hooks.',

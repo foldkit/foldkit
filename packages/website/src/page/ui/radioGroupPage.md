@@ -30,7 +30,7 @@ Pass `orientation: 'Horizontal'` in the view inputs to switch to left/right arro
 
 ::Demo{name="horizontal"}
 
-## Read-Only {#read-only}
+## Read-Only
 
 `isReadOnly` keeps the group navigable but not selectable. Arrow, `Home`, `End`, `PageUp`, and `PageDown` still move focus, and the group reports each move as a `FocusedOption` Message, so the focused option is stored in the RadioGroup Model rather than left as an untracked DOM detail. `data-active`, `isActive`, and `tabindex` all follow that modeled focus, which means a read-only group's focus ring lands where the keyboard actually is instead of staying pinned to the selection. Space and clicking do nothing, and no `Selected` OutMessage ever reaches the parent.
 

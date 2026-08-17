@@ -16,7 +16,7 @@ Check out how Combobox is wired up in a [real Foldkit app](https://github.com/fo
 
 ## Examples
 
-### Single-Select {#combobox-single-select}
+### Single-Select
 
 Pass `itemToValue` and `itemToDisplayText` to control how items map to values and what text appears in the input on selection. Filter the `items` array yourself based on `model.inputValue`.
 
@@ -24,7 +24,7 @@ Pass `itemToValue` and `itemToDisplayText` to control how items map to values an
 
 ::Snippet{name="uiComboboxBasic" label="combobox example"}
 
-### Nullable {#combobox-nullable}
+### Nullable
 
 Pass `nullable: true` at init to allow clearing the selection by clicking the selected item again, or by emptying the input and closing. Both paths reach the parent as OutMessages (`Selected` toggles, `ClearedSelection` clears), so the parent decides what an empty selection looks like.
 
@@ -32,13 +32,13 @@ Pass `nullable: true` at init to allow clearing the selection by clicking the se
 
 ::Demo{name="nullable"}
 
-### Select on Focus {#combobox-select-on-focus}
+### Select on Focus
 
 Pass `selectInputOnFocus: true` at init to highlight the input text when the combobox receives focus. Typing immediately replaces the current value, making it easy to start a new search.
 
 ::Demo{name="select-on-focus"}
 
-### Locked Placement {#combobox-locked-placement}
+### Locked Placement
 
 Set `anchor.isPlacementLocked` to `true` when a panel should keep the side chosen when it opens, even if its size changes. Focus the input, then type `Zurich`. The tall list initially opens above the input. After filtering, the list is short enough to fit below, but it stays above until it closes.
 
@@ -46,7 +46,7 @@ To make the behavior reproducible at any scroll position, this demo keeps the pa
 
 ::Demo{name="locked-placement"}
 
-### Multi-Select {#combobox-multi}
+### Multi-Select
 
 Use `Combobox.Multi` for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and folds each `Selected` OutMessage by toggling the value in its array.
 
@@ -54,7 +54,7 @@ Use `Combobox.Multi` for multi-selection. The dropdown stays open on selection a
 
 ::Snippet{name="uiComboboxMulti" label="multi-select combobox example"}
 
-## Read-Only {#read-only}
+## Read-Only
 
 `isReadOnly` keeps the Combobox browsable but not committable. It still opens from `Arrow Down`, `Arrow Up`, the toggle button, and `openOnFocus`, still navigates with `Arrow Down`, `Arrow Up`, `Home`, and `End`, still tracks the active item through `aria-activedescendant` and pointer hover, and still closes on `Escape`, blur, and a backdrop click. The input still takes focus, and its text can still be selected and copied.
 

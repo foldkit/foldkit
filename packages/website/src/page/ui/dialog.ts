@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import type { HtmlBuilder } from 'foldkit/html'
+import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Combobox, Dialog } from '@foldkit/ui'
 
@@ -44,8 +44,12 @@ const confirmPanelClassName =
 
 const titleClassName = 'text-lg font-normal text-gray-900 dark:text-white mb-2'
 
+const descriptionClassName = 'text-gray-600 dark:text-gray-300 mb-4'
+
 const dialogClassName =
   'bg-transparent p-0 open:flex items-center justify-center'
+
+const actionsClassName = 'flex gap-2 justify-end'
 
 const cancelButtonClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -63,6 +67,138 @@ const OVERLAY_COMBOBOX_ANCHOR = {
   portal: false,
 }
 
+// PANEL CONTENT
+
+const trigger = (label: string, message: Message, h: HtmlBuilder<Message>) =>
+  h.div(
+    [h.Class('flex gap-3')],
+    [h.button([h.Class(triggerClassName), h.OnClick(message)], [label])],
+  )
+
+const confirmContent = (
+  title: Dialog.RenderInfo['title'],
+  description: Dialog.RenderInfo['description'],
+  closeButton: Dialog.RenderInfo['closeButton'],
+  descriptionText: string,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
+    [],
+    [
+      h.h2([...title, h.Class(titleClassName)], ['Confirm Action']),
+      h.p([...description, h.Class(descriptionClassName)], [descriptionText]),
+      h.div(
+        [h.Class(actionsClassName)],
+        [
+          h.button(
+            [...closeButton, h.Class(cancelButtonClassName)],
+            ['Cancel'],
+          ),
+          h.button(
+            [...closeButton, h.Class(confirmButtonClassName)],
+            ['Confirm'],
+          ),
+        ],
+      ),
+    ],
+  )
+
+const editFiltersContent = (
+  title: Dialog.RenderInfo['title'],
+  description: Dialog.RenderInfo['description'],
+  comboboxModel: Combobox.Model,
+  maybeSelectedCity: Option.Option<City>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
+    [],
+    [
+      h.h2([...title, h.Class(titleClassName)], ['Edit filters']),
+      h.p(
+        [...description, h.Class(descriptionClassName)],
+        [
+          'With portal: false, the combobox panel stays inside the dialog instead of rendering behind it.',
+        ],
+      ),
+      h.submodel({
+        slotId: comboboxModel.id,
+        model: comboboxModel,
+        view: CityCombobox.view,
+        viewInputs: {
+          ...comboboxViewInputs({
+            inputValue: comboboxModel.inputValue,
+            restingInputValue: Option.getOrElse(maybeSelectedCity, () => ''),
+            anchor: OVERLAY_COMBOBOX_ANCHOR,
+            wrapperClass: 'relative w-full',
+          }),
+          maybeSelectedValue: maybeSelectedCity,
+        },
+        toParentMessage: message => GotOverlayComboboxDemoMessage({ message }),
+      }),
+    ],
+  )
+
+const projectSettingsContent = (
+  title: Dialog.RenderInfo['title'],
+  description: Dialog.RenderInfo['description'],
+  closeButton: Dialog.RenderInfo['closeButton'],
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
+    [],
+    [
+      h.h2([...title, h.Class(titleClassName)], ['Project settings']),
+      h.p(
+        [...description, h.Class(descriptionClassName)],
+        [
+          'Deleting the project removes all of its data. The confirmation opens as a second dialog stacked on top of this one.',
+        ],
+      ),
+      h.div(
+        [h.Class(actionsClassName)],
+        [
+          h.button([...closeButton, h.Class(cancelButtonClassName)], ['Close']),
+          h.button(
+            [h.Class(dangerButtonClassName), h.OnClick(ClickedDeleteProject())],
+            ['Delete project'],
+          ),
+        ],
+      ),
+    ],
+  )
+
+const deleteProjectContent = (
+  title: Dialog.RenderInfo['title'],
+  description: Dialog.RenderInfo['description'],
+  closeButton: Dialog.RenderInfo['closeButton'],
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
+    [],
+    [
+      h.h2([...title, h.Class(titleClassName)], ['Delete project?']),
+      h.p(
+        [...description, h.Class(descriptionClassName)],
+        [
+          'This permanently deletes the project and cannot be undone. Escape closes this confirmation first, then the settings dialog.',
+        ],
+      ),
+      h.div(
+        [h.Class(actionsClassName)],
+        [
+          h.button(
+            [...closeButton, h.Class(cancelButtonClassName)],
+            ['Cancel'],
+          ),
+          h.button(
+            [...closeButton, h.Class(dangerButtonClassName)],
+            ['Delete'],
+          ),
+        ],
+      ),
+    ],
+  )
+
 // VIEW
 
 export const dialogDemo = (
@@ -70,15 +206,7 @@ export const dialogDemo = (
   h: HtmlBuilder<Message>,
 ) => {
   return [
-    h.div(
-      [h.Class('flex gap-3')],
-      [
-        h.button(
-          [h.Class(triggerClassName), h.OnClick(ClickedOpenDialog())],
-          ['Open Dialog'],
-        ),
-      ],
-    ),
+    trigger('Open Dialog', ClickedOpenDialog(), h),
     h.submodel({
       slotId: dialogModel.id,
       model: dialogModel,
@@ -101,42 +229,12 @@ export const dialogDemo = (
                   h.div(
                     [...panel, h.Class(panelClassName)],
                     [
-                      h.div(
-                        [],
-                        [
-                          h.h2(
-                            [...title, h.Class(titleClassName)],
-                            ['Confirm Action'],
-                          ),
-                          h.p(
-                            [
-                              ...description,
-                              h.Class('text-gray-600 dark:text-gray-300 mb-4'),
-                            ],
-                            [
-                              'Are you sure you want to proceed? This action demonstrates the Dialog component with focus trapping, backdrop click, and Escape key handling.',
-                            ],
-                          ),
-                          h.div(
-                            [h.Class('flex gap-2 justify-end')],
-                            [
-                              h.button(
-                                [
-                                  ...closeButton,
-                                  h.Class(cancelButtonClassName),
-                                ],
-                                ['Cancel'],
-                              ),
-                              h.button(
-                                [
-                                  ...closeButton,
-                                  h.Class(confirmButtonClassName),
-                                ],
-                                ['Confirm'],
-                              ),
-                            ],
-                          ),
-                        ],
+                      confirmContent(
+                        title,
+                        description,
+                        closeButton,
+                        'Are you sure you want to proceed? This action demonstrates the Dialog component with focus trapping, backdrop click, and Escape key handling.',
+                        h,
                       ),
                     ],
                   ),
@@ -156,15 +254,7 @@ export const overlayDialogDemo = (
   h: HtmlBuilder<Message>,
 ) => {
   return [
-    h.div(
-      [h.Class('flex gap-3')],
-      [
-        h.button(
-          [h.Class(triggerClassName), h.OnClick(ClickedEditFilters())],
-          ['Edit filters'],
-        ),
-      ],
-    ),
+    trigger('Edit filters', ClickedEditFilters(), h),
     h.submodel({
       slotId: dialogModel.id,
       model: dialogModel,
@@ -179,42 +269,12 @@ export const overlayDialogDemo = (
                   h.div(
                     [...panel, h.Class(panelClassName)],
                     [
-                      h.div(
-                        [],
-                        [
-                          h.h2(
-                            [...title, h.Class(titleClassName)],
-                            ['Edit filters'],
-                          ),
-                          h.p(
-                            [
-                              ...description,
-                              h.Class('text-gray-600 dark:text-gray-300 mb-4'),
-                            ],
-                            [
-                              'With portal: false, the combobox panel stays inside the dialog instead of rendering behind it.',
-                            ],
-                          ),
-                          h.submodel({
-                            slotId: comboboxModel.id,
-                            model: comboboxModel,
-                            view: CityCombobox.view,
-                            viewInputs: {
-                              ...comboboxViewInputs({
-                                inputValue: comboboxModel.inputValue,
-                                restingInputValue: Option.getOrElse(
-                                  maybeSelectedCity,
-                                  () => '',
-                                ),
-                                anchor: OVERLAY_COMBOBOX_ANCHOR,
-                                wrapperClass: 'relative w-full',
-                              }),
-                              maybeSelectedValue: maybeSelectedCity,
-                            },
-                            toParentMessage: message =>
-                              GotOverlayComboboxDemoMessage({ message }),
-                          }),
-                        ],
+                      editFiltersContent(
+                        title,
+                        description,
+                        comboboxModel,
+                        maybeSelectedCity,
+                        h,
                       ),
                     ],
                   ),
@@ -233,15 +293,7 @@ export const nestedDialogDemo = (
   h: HtmlBuilder<Message>,
 ) => {
   return [
-    h.div(
-      [h.Class('flex gap-3')],
-      [
-        h.button(
-          [h.Class(triggerClassName), h.OnClick(ClickedOpenProjectSettings())],
-          ['Open project settings'],
-        ),
-      ],
-    ),
+    trigger('Open project settings', ClickedOpenProjectSettings(), h),
     h.submodel({
       slotId: parentDialogModel.id,
       model: parentDialogModel,
@@ -264,42 +316,11 @@ export const nestedDialogDemo = (
                   h.div(
                     [...panel, h.Class(settingsPanelClassName)],
                     [
-                      h.div(
-                        [],
-                        [
-                          h.h2(
-                            [...title, h.Class(titleClassName)],
-                            ['Project settings'],
-                          ),
-                          h.p(
-                            [
-                              ...description,
-                              h.Class('text-gray-600 dark:text-gray-300 mb-4'),
-                            ],
-                            [
-                              'Deleting the project removes all of its data. The confirmation opens as a second dialog stacked on top of this one.',
-                            ],
-                          ),
-                          h.div(
-                            [h.Class('flex gap-2 justify-end')],
-                            [
-                              h.button(
-                                [
-                                  ...closeButton,
-                                  h.Class(cancelButtonClassName),
-                                ],
-                                ['Close'],
-                              ),
-                              h.button(
-                                [
-                                  h.Class(dangerButtonClassName),
-                                  h.OnClick(ClickedDeleteProject()),
-                                ],
-                                ['Delete project'],
-                              ),
-                            ],
-                          ),
-                        ],
+                      projectSettingsContent(
+                        title,
+                        description,
+                        closeButton,
+                        h,
                       ),
                     ],
                   ),
@@ -330,45 +351,7 @@ export const nestedDialogDemo = (
                   h.div([...backdrop, h.Class(backdropClassName)]),
                   h.div(
                     [...panel, h.Class(confirmPanelClassName)],
-                    [
-                      h.div(
-                        [],
-                        [
-                          h.h2(
-                            [...title, h.Class(titleClassName)],
-                            ['Delete project?'],
-                          ),
-                          h.p(
-                            [
-                              ...description,
-                              h.Class('text-gray-600 dark:text-gray-300 mb-4'),
-                            ],
-                            [
-                              'This permanently deletes the project and cannot be undone. Escape closes this confirmation first, then the settings dialog.',
-                            ],
-                          ),
-                          h.div(
-                            [h.Class('flex gap-2 justify-end')],
-                            [
-                              h.button(
-                                [
-                                  ...closeButton,
-                                  h.Class(cancelButtonClassName),
-                                ],
-                                ['Cancel'],
-                              ),
-                              h.button(
-                                [
-                                  ...closeButton,
-                                  h.Class(dangerButtonClassName),
-                                ],
-                                ['Delete'],
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
+                    [deleteProjectContent(title, description, closeButton, h)],
                   ),
                 ]
               : [],
@@ -384,15 +367,7 @@ export const dialogAnimatedDemo = (
   h: HtmlBuilder<Message>,
 ) => {
   return [
-    h.div(
-      [h.Class('flex gap-3')],
-      [
-        h.button(
-          [h.Class(triggerClassName), h.OnClick(ClickedOpenAnimatedDialog())],
-          ['Open Animated Dialog'],
-        ),
-      ],
-    ),
+    trigger('Open Animated Dialog', ClickedOpenAnimatedDialog(), h),
     h.submodel({
       slotId: dialogModel.id,
       model: dialogModel,
@@ -415,42 +390,12 @@ export const dialogAnimatedDemo = (
                   h.div(
                     [...panel, h.Class(animatedPanelClassName)],
                     [
-                      h.div(
-                        [],
-                        [
-                          h.h2(
-                            [...title, h.Class(titleClassName)],
-                            ['Confirm Action'],
-                          ),
-                          h.p(
-                            [
-                              ...description,
-                              h.Class('text-gray-600 dark:text-gray-300 mb-4'),
-                            ],
-                            [
-                              'This dialog uses CSS transitions coordinated by the TransitionState machine: a fade on the backdrop and a scale-up on the panel. Content stays mounted during exit so both enter and leave transitions play smoothly.',
-                            ],
-                          ),
-                          h.div(
-                            [h.Class('flex gap-2 justify-end')],
-                            [
-                              h.button(
-                                [
-                                  ...closeButton,
-                                  h.Class(cancelButtonClassName),
-                                ],
-                                ['Cancel'],
-                              ),
-                              h.button(
-                                [
-                                  ...closeButton,
-                                  h.Class(confirmButtonClassName),
-                                ],
-                                ['Confirm'],
-                              ),
-                            ],
-                          ),
-                        ],
+                      confirmContent(
+                        title,
+                        description,
+                        closeButton,
+                        'This dialog uses CSS transitions coordinated by the TransitionState machine: a fade on the backdrop and a scale-up on the panel. Content stays mounted during exit so both enter and leave transitions play smoothly.',
+                        h,
                       ),
                     ],
                   ),

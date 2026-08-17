@@ -8,7 +8,7 @@ import { evo } from 'foldkit/struct'
 import { type Reflect, defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
-import type { AnchorConfig } from '../anchor.js'
+import type { AnchorConfig } from '../anchor/index.js'
 import * as UiCalendar from '../calendar/index.js'
 import { idSelector } from '../internal/selectors.js'
 import * as Popover from '../popover/index.js'

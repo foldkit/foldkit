@@ -7,6 +7,7 @@ import { type TableOfContentsEntry } from '../main'
 import { type Message } from '../message'
 import { defaultRenderHeadingLink } from '../prose'
 import { type CopiedSnippets, defaultRenderCopyButton } from '../view/codeBlock'
+import { type DemoLabels, collectDemoLabels } from './demoLabel'
 import { docIslands } from './islands'
 import { type Slots } from './slots'
 import { type HeadingIds, collectHeadings } from './tableOfContents'
@@ -18,6 +19,7 @@ const renderDocument = (
   document: Markdown.MarkdownDocument,
   pageId: string,
   idByHeading: HeadingIds,
+  demoLabels: DemoLabels,
   slots: Slots<string>,
 ): Html =>
   Markdown.view(document, {
@@ -27,7 +29,7 @@ const renderDocument = (
       renderCopyButton: slots.renderCopyButton,
       renderHeadingLink: slots.renderHeadingLink,
     }),
-    islands: docIslands(slots),
+    islands: docIslands(slots, demoLabels),
   })
 
 /**
@@ -69,10 +71,12 @@ export const slotDocPage = <DemoName extends string = never>(
 ): SlotDocPage<DemoName> => {
   const document = Markdown.decodeDocument(raw)
   const { tableOfContents, idByHeading } = collectHeadings(document)
+  const demoLabels = collectDemoLabels(document, idByHeading)
 
   return {
     tableOfContents,
-    view: slots => renderDocument(document, pageId, idByHeading, slots),
+    view: slots =>
+      renderDocument(document, pageId, idByHeading, demoLabels, slots),
   }
 }
 

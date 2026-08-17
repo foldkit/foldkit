@@ -40,11 +40,15 @@ export const inlineToText = (content: ReadonlyArray<Inline>): string =>
   )
 
 /**
- * Derives a URL fragment id from heading text: lowercased, with every run of
- * non-alphanumeric characters collapsed to a single dash and surrounding dashes
- * trimmed. `"HTTP Requests"` becomes `"http-requests"`.
+ * Derives a URL fragment id from heading text: lowercased, with apostrophes
+ * dropped, every run of non-alphanumeric characters collapsed to a single dash,
+ * and surrounding dashes trimmed. `"HTTP Requests"` becomes `"http-requests"`.
+ * Apostrophes go before the collapse so a contraction stays one word:
+ * `"Don’t Compute in Update"` becomes `"dont-compute-in-update"`, not
+ * `"don-t-compute-in-update"`.
  */
 export const slugify: (text: string) => string = flow(
+  String.replaceAll(/['’]/g, ''),
   String.toLowerCase,
   String.replaceAll(/[^a-z0-9]+/g, '-'),
   String.replaceAll(/^-+|-+$/g, ''),

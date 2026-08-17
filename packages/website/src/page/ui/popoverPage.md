@@ -12,7 +12,7 @@ Check out how Popover is wired up in a [real Foldkit app](https://github.com/fol
 
 ## Examples
 
-### Basic {#basic-popover}
+### Basic
 
 Pass `anchor` to position the panel relative to the button. The panel can hold any content: links, forms, or informational text.
 
@@ -20,13 +20,13 @@ Pass `anchor` to position the panel relative to the button. The panel can hold a
 
 ::Snippet{name="uiPopoverBasic" label="popover example"}
 
-### Animated {#animated-popover}
+### Animated
 
 Pass `isAnimated: true` at init for animation coordination.
 
 ::Demo{name="animated"}
 
-### Nested {#nested-popovers}
+### Nested
 
 Use a separate Popover Model for each level. For a parent panel that opens onto another Popover trigger, pass `contentFocus: true` at init and `focusSelector` in the view so focus lands on the nested trigger.
 

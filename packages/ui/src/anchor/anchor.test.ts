@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { portalToContainingRoot } from './anchor.js'
+import { portalToContainingRoot } from './index.js'
 
 const PORTAL_ROOT_ID = 'foldkit-portal-root'
 
