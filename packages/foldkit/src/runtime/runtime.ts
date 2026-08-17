@@ -3710,6 +3710,26 @@ const resolveHmrModel = (runtimeId: string): Effect.Effect<unknown> => {
   )
 }
 
+/**
+ * Logs unreported non-interrupt Causes; stays quiet on interrupt-only exits
+ * and on errors marked `[Runtime.errorReported]: false`. Shared by `run` and
+ * `embed` so both entrypoints use one reporting path.
+ */
+export const __reportUnhandledCause = <E>(
+  cause: Cause.Cause<E>,
+): Effect.Effect<void> => {
+  if (Cause.hasInterruptsOnly(cause)) {
+    return Effect.void
+  }
+  return Runtime.getErrorReported(Cause.squash(cause))
+    ? Effect.logError(cause)
+    : Effect.void
+}
+
+const withUnhandledCauseReporting = <A, E, R>(
+  effect: Effect.Effect<A, E, R>,
+): Effect.Effect<A, E, R> => Effect.tapCause(effect, __reportUnhandledCause)
+
 // NOTE: deliberately not `BrowserRuntime.runMain`, which interrupts the
 // runtime on `beforeunload`. `beforeunload` is a question, not a commitment:
 // the browser also fires it for a click on a download link, for a navigation
@@ -3718,8 +3738,10 @@ const resolveHmrModel = (runtimeId: string): Effect.Effect<unknown> => {
 // put the container element back empty, so the page is left alive with no app
 // in it. A page-owning runtime gains nothing from tearing itself down while
 // the document is on its way out, so it starts with no page-lifecycle
-// interrupt at all and lets the document take the runtime with it. Error
-// reporting and the keep-alive interval come from `makeRunMain` either way.
+// interrupt at all and lets the document take the runtime with it. The
+// keep-alive interval still comes from `makeRunMain`. Error reporting is
+// Foldkit's `withUnhandledCauseReporting` (shared with `embed`);
+// `disableErrorReporting` turns off `makeRunMain`'s copy of the same policy.
 const runMainWithoutUnloadInterrupt = Runtime.makeRunMain(Function.constVoid)
 
 /** Starts a Foldkit runtime that owns the page for the page's whole lifetime,
@@ -3727,9 +3749,12 @@ const runMainWithoutUnloadInterrupt = Runtime.makeRunMain(Function.constVoid)
  *  host-controlled lifecycle instead, use `embed`. */
 export const run = (program: MakeRuntimeReturn<Ports | undefined>): void => {
   runMainWithoutUnloadInterrupt(
-    provideBrowserScheduler(
-      Effect.flatMap(resolveHmrModel(program.runtimeId), program.start),
+    withUnhandledCauseReporting(
+      provideBrowserScheduler(
+        Effect.flatMap(resolveHmrModel(program.runtimeId), program.start),
+      ),
     ),
+    { disableErrorReporting: true },
   )
 }
 
@@ -3819,7 +3844,9 @@ export const embed = <P extends Ports | undefined = undefined>(
     ),
   )
 
-  const fiber = Effect.runFork(provideBrowserScheduler(startEffect))
+  const fiber = Effect.runFork(
+    withUnhandledCauseReporting(provideBrowserScheduler(startEffect)),
+  )
   internals.maybeActiveFiber = Option.some(fiber)
 
   let isHandleDisposed = false
