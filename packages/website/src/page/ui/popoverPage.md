@@ -36,7 +36,7 @@ Use a separate Popover Model for each level. For a parent panel that opens onto 
 
 ## Styling
 
-Popover is headless. The `toView` callback receives attribute bundles for the button, panel, and backdrop, and the consumer composes the markup.
+Popover is headless. The `toView` callback receives attribute bundles for the button, panel, backdrop, and arrow, and the consumer composes the markup.
 
 When `isAnimated` is true, enter/leave animations flow through the [Animation](/ui/animation) module. Style with CSS transitions or CSS keyframe animations. Animation advances once every animation on the element has settled.
 
@@ -69,9 +69,26 @@ When `isAnimated` is true, enter/leave animations flow through the [Animation](/
 .popover-panel[data-placement='bottom'] .popover-arrow {
   top: -4px;
 }
+
+.popover-panel[data-placement='left'] .popover-arrow {
+  right: -4px;
+}
+
+.popover-panel[data-placement='right'] .popover-arrow {
+  left: -4px;
+}
 ```
 
-`--arrow-x` and `--arrow-y` are the offset along the panel edge, so exactly one of them is set for any given placement. The side offset is yours: `data-placement` tells you which edge the panel currently sits on, and the rule for that side pins the arrow to it. Pass `arrowPadding` to keep the arrow clear of a rounded corner.
+`--arrow-x` and `--arrow-y` are the offset along the panel edge, so exactly one of them is set for any given placement. The side offset is yours: `data-placement` tells you which edge the panel currently sits on, and the rule for that side pins the arrow to it. Write a rule for all four sides. A panel placed on `bottom` can flip to `top` and shift to `left` or `right`, and the side with no rule leaves the arrow floating in the middle of the panel. Pass `arrowPadding` to keep the arrow clear of a rounded corner.
+
+An arrow sits half outside the panel, so a panel that scrolls would clip it away: `overflow-y: auto` makes `overflow-x` compute to `auto` too, and the panel then clips on every side. Anchor handles this by leaving the panel unclipped as soon as an arrow resolves. It still writes the `max-height`, so if your content can outgrow the viewport, put the scroll container inside the panel instead:
+
+```css
+.popover-content {
+  max-height: inherit;
+  overflow-y: auto;
+}
+```
 
 ## Keyboard Interaction
 
