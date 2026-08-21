@@ -3,9 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type {
   ComputePositionConfig,
+  Placement as FloatingPlacement,
   Middleware,
   MiddlewareData,
-  Placement as FloatingPlacement,
 } from '@floating-ui/dom'
 
 import { anchorSetup } from './index.js'
@@ -209,8 +209,12 @@ describe('anchorSetup arrow', () => {
 
   it('drops the previous axis when a later tick resolves the other one', async () => {
     computePositionMock
-      .mockResolvedValueOnce(positionWith({ arrow: { x: 42, centerOffset: 0 } }))
-      .mockResolvedValueOnce(positionWith({ arrow: { y: 17, centerOffset: 0 } }))
+      .mockResolvedValueOnce(
+        positionWith({ arrow: { x: 42, centerOffset: 0 } }),
+      )
+      .mockResolvedValueOnce(
+        positionWith({ arrow: { y: 17, centerOffset: 0 } }),
+      )
     const { element } = mountAnchor({ arrowId: ARROW_ID }, true)
 
     await vi.waitFor(() => {
