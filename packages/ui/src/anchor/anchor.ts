@@ -285,9 +285,11 @@ export const anchorSetup = (
         }),
         // NOTE: `arrow` runs last. Sitting after `shift` is the constraint: an
         // offset computed before `shift` would ignore the displacement `shift`
-        // applied, which is the case this hook exists to handle. Order against
-        // `size` is free, since `size.apply` writes the panel's maxHeight
-        // without rewriting the rects `arrow` reads.
+        // applied, which is the case this hook exists to handle. Running after
+        // `size` is safe for a different reason: when `size.apply` changes the
+        // panel's dimensions, `size` returns `reset: { rects: true }` and
+        // Floating UI reruns the whole chain, so `arrow` always resolves
+        // against the final rects rather than the ones `size` invalidated.
         ...arrowMiddleware,
       ],
     })
