@@ -13,7 +13,7 @@ const title = (model: Model): string =>
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: title(model),
   body: h.div(
-    [h.Class('min-h-screen bg-gray-100')],
+    [h.Class('min-h-screen bg-gray-50')],
     [
       M.value(model).pipe(
         M.tagsExhaustive({

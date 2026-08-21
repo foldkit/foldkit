@@ -1,2 +1,7 @@
 @import 'tailwindcss';
 @import 'maplibre-gl/dist/maplibre-gl.css';
+@import '../../shared/styles.css';
+
+:root {
+  --app-accent: #059669;
+}

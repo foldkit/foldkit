@@ -213,10 +213,14 @@ const navigationView = (
   h: HtmlBuilder<Message>,
 ): Html => {
   const navLinkClassName = (isActive: boolean) =>
-    `hover:bg-blue-600 font-medium px-3 py-1 rounded transition ${isActive ? 'bg-blue-700 bg-opacity-50' : ''}`
+    `hover:bg-orange-600 font-medium px-3 py-1.5 rounded-lg ${isActive ? 'bg-orange-800/60' : ''}`
 
   return h.nav(
-    [h.Class('bg-blue-500 text-white p-4 mb-6')],
+    [
+      h.Class(
+        'bg-orange-700/95 text-white px-4 py-3 mb-8 shadow-sm backdrop-blur',
+      ),
+    ],
     [
       h.ul(
         [h.Class('max-w-6xl mx-auto flex gap-6 justify-center list-none')],
@@ -319,7 +323,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   return {
     title: routeTitle(model.route),
     body: h.div(
-      [h.Class('min-h-screen bg-gray-100')],
+      [h.Class('min-h-screen bg-gray-50')],
       [
         h.header(
           [],

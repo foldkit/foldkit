@@ -35,7 +35,7 @@ export const sidebarView = (
   h: HtmlBuilder<Message>,
 ): Html =>
   h.aside(
-    [h.Class('flex flex-col gap-4')],
+    [h.Class('min-w-0 flex flex-col gap-4')],
     [
       Option.match(maybeBanner, {
         onNone: () => h.empty,
@@ -43,7 +43,7 @@ export const sidebarView = (
           h.div(
             [
               h.Class(
-                'rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950',
+                'min-w-0 break-words rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm leading-5 text-amber-950',
               ),
             ],
             [banner],
@@ -88,7 +88,7 @@ export const summaryGridView = (
     Array.map(summaries, summary =>
       h.keyed('div')(
         summary.id,
-        [h.Class('rounded-md border border-zinc-200 bg-white p-3')],
+        [h.Class('rounded-xl border border-zinc-200 bg-white p-4 shadow-sm')],
         [
           h.div(
             [h.Class('text-xs font-medium text-zinc-500')],
@@ -117,7 +117,7 @@ const radioOptionClassName = (isSelected: boolean): string =>
 
 export const controlPanelView = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.section(
-    [h.Class('rounded-md border border-zinc-200 bg-white p-3')],
+    [h.Class('rounded-xl border border-zinc-200 bg-white p-4 shadow-sm')],
     [
       h.h2([h.Class('text-sm font-semibold text-zinc-950')], ['View']),
       h.div(
@@ -203,7 +203,7 @@ export const packagePanelView = (
   h: HtmlBuilder<Message>,
 ): Html =>
   h.section(
-    [h.Class('rounded-md border border-zinc-200 bg-white p-3')],
+    [h.Class('rounded-xl border border-zinc-200 bg-white p-4 shadow-sm')],
     [
       h.h2([h.Class('text-sm font-semibold text-zinc-950')], ['Package']),
       h.div(
@@ -274,7 +274,7 @@ export const contributorsView = (
   h: HtmlBuilder<Message>,
 ): Html =>
   h.section(
-    [h.Class('rounded-md border border-zinc-200 bg-white p-3')],
+    [h.Class('rounded-xl border border-zinc-200 bg-white p-4 shadow-sm')],
     [
       h.div(
         [h.Class('flex items-center justify-between gap-3')],

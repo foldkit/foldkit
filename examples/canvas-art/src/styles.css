@@ -1,1 +1,7 @@
 @import 'tailwindcss';
+@import '../../shared/styles.css';
+
+:root {
+  --app-accent: #f59e0b;
+  --app-glow-strength: 20%;
+}

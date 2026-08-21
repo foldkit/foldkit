@@ -8,10 +8,14 @@ export const view = (h: HtmlBuilder<Message>): Html =>
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.div(
-        [h.Class('text-center py-16')],
+        [h.Class('text-center py-16 sm:py-20')],
         [
           h.h1(
-            [h.Class('text-5xl font-bold text-gray-800 mb-6')],
+            [
+              h.Class(
+                'text-4xl sm:text-6xl font-semibold tracking-tight text-gray-900 mb-6',
+              ),
+            ],
             ['Welcome to Auth Example'],
           ),
           h.p(
@@ -24,7 +28,7 @@ export const view = (h: HtmlBuilder<Message>): Html =>
             [
               h.Href(loginRouter()),
               h.Class(
-                'inline-block px-8 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition',
+                'inline-block px-8 py-3 bg-violet-700 text-white font-medium rounded-xl shadow-lg hover:bg-violet-800',
               ),
             ],
             ['Sign In'],
@@ -60,7 +64,11 @@ const featureCard = (
   h: HtmlBuilder<Message>,
 ): Html =>
   h.div(
-    [h.Class('bg-white rounded-lg shadow-md p-6')],
+    [
+      h.Class(
+        'bg-white rounded-2xl border border-gray-200/80 shadow-md p-6 text-left',
+      ),
+    ],
     [
       h.h2([h.Class('text-xl font-semibold text-gray-800 mb-3')], [title]),
       h.p([h.Class('text-gray-600')], [description]),

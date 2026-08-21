@@ -12,7 +12,11 @@ import {
 import * as echarts from 'echarts/core'
 import { LabelLayout, UniversalTransition } from 'echarts/features'
 import { CanvasRenderer } from 'echarts/renderers'
-import type { EChartsOption } from 'echarts/types/dist/shared'
+import type {
+  EChartsOption,
+  LineSeriesOption,
+  YAXisOption,
+} from 'echarts/types/dist/shared'
 import { Array, Match as M, Option, String, pipe } from 'effect'
 
 import {
@@ -146,80 +150,89 @@ const adoptionOption = (args: ChartOptionArgs): EChartsOption =>
       const weekLabels = Array.map(weeks, ({ weekStart }) =>
         weekLabel(weekStart),
       )
+      const subtitle =
+        args.telemetry.stargazerHistory === 'Available'
+          ? `${snapshot.displayName} downloads and GitHub stars`
+          : `${snapshot.displayName} downloads`
+      const downloadsYAxis = {
+        type: 'value',
+        name: 'downloads',
+        min: 0,
+        splitLine: { lineStyle: { color: '#e4e4e7' } },
+      } satisfies YAXisOption
+      const stargazerYAxes =
+        args.telemetry.stargazerHistory === 'Available'
+          ? [
+              {
+                type: 'value',
+                name: 'stars',
+                min: 0,
+                splitLine: { show: false },
+              } satisfies YAXisOption,
+            ]
+          : []
+      const downloadsSeries = {
+        name: 'npm downloads',
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: DEFAULT_SYMBOL_SIZE,
+        lineStyle: { width: 3, color: '#0891b2' },
+        itemStyle: { color: '#0891b2' },
+        areaStyle: { color: 'rgba(8, 145, 178, 0.12)' },
+        data: Array.map(weeks, week => {
+          const id = datumId('Adoption', snapshot.id, week.weekStart)
+          return {
+            id,
+            name: weekLabel(week.weekStart),
+            symbolSize: isSelected(args.maybeSelectedDatumId, id)
+              ? SELECTED_SYMBOL_SIZE
+              : DEFAULT_SYMBOL_SIZE,
+            value: downloadForWeek(snapshot, week.weekStart),
+          }
+        }),
+      } satisfies LineSeriesOption
+      const stargazerSeries =
+        args.telemetry.stargazerHistory === 'Available'
+          ? [
+              {
+                name: 'GitHub stars',
+                type: 'line',
+                smooth: true,
+                yAxisIndex: 1,
+                symbol: 'diamond',
+                symbolSize: DEFAULT_SYMBOL_SIZE,
+                lineStyle: { width: 3, color: '#7c3aed' },
+                itemStyle: { color: '#7c3aed' },
+                data: Array.map(weeks, week => {
+                  const id = datumId('Adoption', 'Stars', week.weekStart)
+                  return {
+                    id,
+                    name: weekLabel(week.weekStart),
+                    symbolSize: isSelected(args.maybeSelectedDatumId, id)
+                      ? SELECTED_SYMBOL_SIZE
+                      : DEFAULT_SYMBOL_SIZE,
+                    value: week.cumulativeStars,
+                  }
+                }),
+              } satisfies LineSeriesOption,
+            ]
+          : []
 
       return {
-        ...baseOption(
-          'Adoption',
-          `${snapshot.displayName} downloads and GitHub stars`,
-        ),
+        ...baseOption('Adoption', subtitle),
         xAxis: {
           type: 'category',
           boundaryGap: false,
           data: weekLabels,
         },
-        yAxis: [
-          {
-            type: 'value',
-            name: 'downloads',
-            min: 0,
-            splitLine: { lineStyle: { color: '#e4e4e7' } },
-          },
-          {
-            type: 'value',
-            name: 'stars',
-            min: 0,
-            splitLine: { show: false },
-          },
-        ],
+        yAxis: [downloadsYAxis, ...stargazerYAxes],
         dataZoom: [
           {
             type: 'inside',
           },
         ],
-        series: [
-          {
-            name: 'npm downloads',
-            type: 'line',
-            smooth: true,
-            symbol: 'circle',
-            symbolSize: DEFAULT_SYMBOL_SIZE,
-            lineStyle: { width: 3, color: '#0891b2' },
-            itemStyle: { color: '#0891b2' },
-            areaStyle: { color: 'rgba(8, 145, 178, 0.12)' },
-            data: Array.map(weeks, week => {
-              const id = datumId('Adoption', snapshot.id, week.weekStart)
-              return {
-                id,
-                name: weekLabel(week.weekStart),
-                symbolSize: isSelected(args.maybeSelectedDatumId, id)
-                  ? SELECTED_SYMBOL_SIZE
-                  : DEFAULT_SYMBOL_SIZE,
-                value: downloadForWeek(snapshot, week.weekStart),
-              }
-            }),
-          },
-          {
-            name: 'GitHub stars',
-            type: 'line',
-            smooth: true,
-            yAxisIndex: 1,
-            symbol: 'diamond',
-            symbolSize: DEFAULT_SYMBOL_SIZE,
-            lineStyle: { width: 3, color: '#7c3aed' },
-            itemStyle: { color: '#7c3aed' },
-            data: Array.map(weeks, week => {
-              const id = datumId('Adoption', 'Stars', week.weekStart)
-              return {
-                id,
-                name: weekLabel(week.weekStart),
-                symbolSize: isSelected(args.maybeSelectedDatumId, id)
-                  ? SELECTED_SYMBOL_SIZE
-                  : DEFAULT_SYMBOL_SIZE,
-                value: week.cumulativeStars,
-              }
-            }),
-          },
-        ],
+        series: [downloadsSeries, ...stargazerSeries],
       }
     },
   })
@@ -362,24 +375,33 @@ const packageSnapshotToDownloadDatumLabel =
 
 const weekToDatumLabels =
   (telemetry: Telemetry) =>
-  (week: WeeklyTelemetry): ReadonlyArray<DatumLabel> => [
-    ...Array.map(
-      telemetry.packages,
-      packageSnapshotToDownloadDatumLabel(week.weekStart),
-    ),
-    {
-      id: datumId('Adoption', 'Stars', week.weekStart),
-      label: `${week.weekStart}: ${week.cumulativeStars} stars`,
-    },
-    {
-      id: datumId('Velocity', 'Commits', week.weekStart),
-      label: `${week.weekStart}: ${week.commits} commits`,
-    },
-    {
-      id: datumId('Velocity', 'Releases', week.weekStart),
-      label: `${week.weekStart}: ${week.releases} releases`,
-    },
-  ]
+  (week: WeeklyTelemetry): ReadonlyArray<DatumLabel> => {
+    const maybeStargazerLabel =
+      telemetry.stargazerHistory === 'Available'
+        ? [
+            {
+              id: datumId('Adoption', 'Stars', week.weekStart),
+              label: `${week.weekStart}: ${week.cumulativeStars} stars`,
+            },
+          ]
+        : []
+
+    return [
+      ...Array.map(
+        telemetry.packages,
+        packageSnapshotToDownloadDatumLabel(week.weekStart),
+      ),
+      ...maybeStargazerLabel,
+      {
+        id: datumId('Velocity', 'Commits', week.weekStart),
+        label: `${week.weekStart}: ${week.commits} commits`,
+      },
+      {
+        id: datumId('Velocity', 'Releases', week.weekStart),
+        label: `${week.weekStart}: ${week.releases} releases`,
+      },
+    ]
+  }
 
 export const makeChartOption = (args: ChartOptionArgs) =>
   M.value(args.chartMode).pipe(

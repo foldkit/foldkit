@@ -40,13 +40,17 @@ const ghostElement = (model: Model, h: HtmlBuilder<Message>) =>
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Kanban Board',
   body: h.div(
-    [h.Class('flex flex-col min-h-screen bg-gray-100')],
+    [h.Class('flex flex-col min-h-screen bg-gray-50')],
     [
       h.div(
-        [h.Class('px-6 py-4 bg-white border-b border-gray-200')],
+        [
+          h.Class(
+            'sticky top-0 z-10 px-6 py-4 bg-white/90 border-b border-gray-200 backdrop-blur shadow-sm',
+          ),
+        ],
         [
           h.h1(
-            [h.Class('text-lg font-semibold text-gray-900')],
+            [h.Class('text-xl font-semibold tracking-tight text-gray-900')],
             ['Kanban Board'],
           ),
         ],
@@ -54,7 +58,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
       h.div(
         [
           h.Class(
-            'flex-1 p-6 grid grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] gap-6 items-start',
+            'flex-1 p-4 sm:p-6 grid grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] gap-5 items-start',
           ),
         ],
         Array.map(model.columns, column =>

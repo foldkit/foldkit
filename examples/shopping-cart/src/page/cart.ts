@@ -24,7 +24,7 @@ export const view = (cart: Cart.Cart, h: HtmlBuilder<Message>): Html =>
         ['Shopping Cart'],
       ),
       h.div(
-        [h.Class('bg-white rounded-lg shadow p-6')],
+        [h.Class('bg-white rounded-2xl border border-gray-200/80 shadow p-6')],
         [
           h.div(
             [],
@@ -41,7 +41,7 @@ export const view = (cart: Cart.Cart, h: HtmlBuilder<Message>): Html =>
                       [
                         h.Href(productsRouter({ searchText: Option.none() })),
                         h.Class(
-                          'bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium inline-block',
+                          'bg-orange-700 hover:bg-orange-800 text-white px-6 py-2.5 rounded-xl font-medium inline-block shadow-sm',
                         ),
                       ],
                       ['Continue Shopping'],
@@ -57,7 +57,7 @@ export const view = (cart: Cart.Cart, h: HtmlBuilder<Message>): Html =>
                       cartItem.item.id,
                       [
                         h.Class(
-                          'flex items-center justify-between p-4 border rounded-lg',
+                          'flex items-center justify-between p-4 border rounded-xl',
                         ),
                       ],
                       [
@@ -168,7 +168,7 @@ export const view = (cart: Cart.Cart, h: HtmlBuilder<Message>): Html =>
                       [
                         h.Href(productsRouter({ searchText: Option.none() })),
                         h.Class(
-                          'bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium',
+                          'bg-gray-600 hover:bg-gray-700 text-white px-6 py-2.5 rounded-xl font-medium',
                         ),
                       ],
                       ['Continue Shopping'],
@@ -181,7 +181,7 @@ export const view = (cart: Cart.Cart, h: HtmlBuilder<Message>): Html =>
                             [
                               ...attributes.button,
                               h.Class(
-                                'bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium',
+                                'bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-xl font-medium',
                               ),
                             ],
                             ['Clear Cart'],
@@ -193,7 +193,7 @@ export const view = (cart: Cart.Cart, h: HtmlBuilder<Message>): Html =>
                       [
                         h.Href(checkoutRouter()),
                         h.Class(
-                          'bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium',
+                          'bg-green-700 hover:bg-green-800 text-white px-6 py-2.5 rounded-xl font-medium shadow-sm',
                         ),
                       ],
                       ['Proceed to Checkout'],

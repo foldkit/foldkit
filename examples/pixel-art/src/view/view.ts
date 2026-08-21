@@ -41,7 +41,7 @@ const downloadIcon = (className: string, h: HtmlBuilder<Message>): Html =>
   )
 
 const secondaryButtonStyle =
-  'px-3 py-1.5 rounded text-sm bg-gray-800 text-gray-200 transition motion-reduce:transition-none'
+  'px-3 py-2 rounded-lg text-sm bg-gray-800 text-gray-200 transition motion-reduce:transition-none'
 
 const lazyHeader = createLazy()
 const lazyToolPanel = createLazy()
@@ -74,7 +74,7 @@ const headerView = (h: HtmlBuilder<Message>): Html =>
   h.div(
     [
       h.Class(
-        'flex items-center justify-between px-4 py-3 border-b border-gray-800',
+        'flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-950/70 backdrop-blur',
       ),
     ],
     [
@@ -82,7 +82,7 @@ const headerView = (h: HtmlBuilder<Message>): Html =>
         [h.Class('flex flex-col')],
         [
           h.h1(
-            [h.Class('text-lg font-bold tracking-tight leading-none mb-1')],
+            [h.Class('text-lg font-semibold tracking-tight leading-none mb-1')],
             ['PixelForge'],
           ),
           h.div(
