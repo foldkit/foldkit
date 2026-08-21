@@ -1,7 +1,8 @@
-import { Array, Function, Schema as S, String, pipe } from 'effect'
+import { Array, Function, Option, Schema as S, String, pipe } from 'effect'
 
 import {
   type Placement as FloatingPlacement,
+  arrow,
   autoUpdate,
   computePosition,
   flip,
@@ -120,13 +121,21 @@ const toSide = (placement: FloatingPlacement): string =>
  *  - `focusAfterPosition`: focuses the element once the first position
  *    resolves. Defaults to `false`.
  *  - `focusSelector`: focuses this descendant instead of the element itself.
- *    Read only when `focusAfterPosition` is true. */
+ *    Read only when `focusAfterPosition` is true.
+ *  - `arrowId`: id of an arrow element inside the panel, resolved through the
+ *    element's own root. When it resolves, the arrow's offset along the panel
+ *    edge is published as `--arrow-x` and `--arrow-y`.
+ *  - `arrowPadding`: distance in pixels the arrow keeps from the panel's
+ *    corners. Defaults to `0`. Separate from `anchor.padding`, which is the
+ *    viewport padding. */
 export type SetupConfig = Readonly<{
   buttonId: string
   anchor: AnchorConfig
   interceptTab?: boolean
   focusAfterPosition?: boolean
   focusSelector?: string
+  arrowId?: string
+  arrowPadding?: number
 }>
 
 /** Positions a floating element relative to its button using Floating UI, then
@@ -174,6 +183,19 @@ export const anchorSetup = (
   if (inShadow) {
     element.style.position = 'fixed'
   }
+
+  const maybeArrowElement = pipe(
+    Option.fromNullishOr(config.arrowId),
+    Option.flatMapNullishOr(arrowId => owner.getElementById(arrowId)),
+    Option.filter(candidate => candidate instanceof HTMLElement),
+  )
+
+  const arrowMiddleware = Option.match(maybeArrowElement, {
+    onNone: () => [],
+    onSome: arrowElement => [
+      arrow({ element: arrowElement, padding: config.arrowPadding ?? 0 }),
+    ],
+  })
 
   const {
     placement,
@@ -239,6 +261,12 @@ export const anchorSetup = (
             element.style.overscrollBehavior = 'none'
           },
         }),
+        // NOTE: `arrow` runs last. Sitting after `shift` is the constraint: an
+        // offset computed before `shift` would ignore the displacement `shift`
+        // applied, which is the case this hook exists to handle. Order against
+        // `size` is free, since `size.apply` writes the panel's maxHeight
+        // without rewriting the rects `arrow` reads.
+        ...arrowMiddleware,
       ],
     })
 
