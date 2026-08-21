@@ -47,6 +47,32 @@ When `isAnimated` is true, enter/leave animations flow through the [Animation](/
 | `data-closed`    | Present during close animation.                                                                                                                           |
 | `data-placement` | Present on the panel, set to the side it currently sits on: top, right, bottom, or left. Fixed to the first resolved side when isPlacementLocked is true. |
 
+### Drawing an Arrow
+
+`toView` receives an `arrow` bundle carrying the element's id. Popover does not draw the arrow. Spread the bundle onto your own element inside the panel and place it with the custom properties Anchor publishes:
+
+```css
+.popover-arrow {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: inherit;
+  transform: rotate(45deg);
+  left: var(--arrow-x);
+  top: var(--arrow-y);
+}
+
+.popover-panel[data-placement='top'] .popover-arrow {
+  bottom: -4px;
+}
+
+.popover-panel[data-placement='bottom'] .popover-arrow {
+  top: -4px;
+}
+```
+
+`--arrow-x` and `--arrow-y` are the offset along the panel edge, so exactly one of them is set for any given placement. The side offset is yours: `data-placement` tells you which edge the panel currently sits on, and the rule for that side pins the arrow to it. Pass `arrowPadding` to keep the arrow clear of a rounded corner.
+
 ## Keyboard Interaction
 
 By default, the panel receives `tabindex="0"` so it can receive focus. Tab navigates naturally through the panel content. Escape closes and returns focus to the button.
@@ -90,6 +116,7 @@ Configuration object passed to `Popover.view()`.
 | `toView`          | `(render: RenderInfo) => Html`                     | —       | Callback that receives the button, panel, and backdrop attribute bundles plus a derived `isVisible` flag, and returns the composed layout.                                                                |
 | `isDisabled`      | `boolean`                                          | `false` | Disables the trigger button.                                                                                                                                                                              |
 | `focusSelector`   | `string`                                           | —       | CSS selector for the element to focus after the panel is positioned. Defaults to the panel itself.                                                                                                        |
+| `arrowPadding`    | `number`                                           | `0`     | Distance in pixels the arrow keeps from the panel's corners.                                                                                                                                              |
 | `ariaLabel`       | `string`                                           | —       | Accessible name for the trigger button. Use for an icon-only trigger with no visible label. Applied as aria-label, and takes precedence over ariaLabelledBy.                                              |
 | `ariaLabelledBy`  | `string`                                           | —       | Id of an external element that labels the trigger button, applied as aria-labelledby. Pair with a visible label element.                                                                                  |
 
@@ -97,12 +124,13 @@ Configuration object passed to `Popover.view()`.
 
 Payload delivered to the `toView` callback each render.
 
-| Name        | Type                            | Default | Description                                                                                                                                                             |
-| ----------- | ------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `button`    | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the trigger button. Includes the button id, `aria-expanded`, `aria-controls`, and pointer/keyboard handlers.                                                |
-| `panel`     | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the floating panel. Includes the anchor Mount that positions the panel via Floating UI, ARIA linkage to the button, and panel keydown/blur handlers.        |
-| `backdrop`  | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the modal backdrop element. Includes the portal Mount that moves the backdrop to `document.body`. The backdrop's click handler dispatches `RequestedClose`. |
-| `isVisible` | `boolean`                       | —       | Derived from `isOpen` and the Animation `transitionState`. Render the panel and backdrop only while this is true.                                                       |
+| Name        | Type                            | Default | Description                                                                                                                                                               |
+| ----------- | ------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `button`    | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the trigger button. Includes the button id, `aria-expanded`, `aria-controls`, and pointer/keyboard handlers.                                                  |
+| `panel`     | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the floating panel. Includes the anchor Mount that positions the panel via Floating UI, ARIA linkage to the button, and panel keydown/blur handlers.          |
+| `backdrop`  | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the modal backdrop element. Includes the portal Mount that moves the backdrop to `document.body`. The backdrop's click handler dispatches `RequestedClose`.   |
+| `arrow`     | `ReadonlyArray<ChildAttribute>` | —       | Spread onto your arrow element inside the panel. Carries the id the anchor Mount resolves and `aria-hidden`. Nothing renders until you add the element and the CSS above. |
+| `isVisible` | `boolean`                       | —       | Derived from `isOpen` and the Animation `transitionState`. Render the panel and backdrop only while this is true.                                                         |
 
 ### OutMessage {#out-message}
 
