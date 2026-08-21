@@ -180,4 +180,65 @@ describe('anchorSetup arrow', () => {
       'arrow',
     ])
   })
+
+  const triggerUpdate = (callbackIndex: number): void => {
+    const update = pipe(
+      Array_.get(updateCallbacks, callbackIndex),
+      Option.getOrThrowWith(
+        () =>
+          new Error(
+            `Expected an autoUpdate callback at index ${callbackIndex}`,
+          ),
+      ),
+    )
+    update()
+  }
+
+  it('publishes the resolved axis and leaves the unset one absent', async () => {
+    computePositionMock.mockResolvedValue(
+      positionWith({ arrow: { x: 42, centerOffset: 0 } }),
+    )
+    const { element } = mountAnchor({ arrowId: ARROW_ID }, true)
+
+    await vi.waitFor(() => {
+      expect(element.style.getPropertyValue('--arrow-x')).toBe('42px')
+    })
+
+    expect(element.style.getPropertyValue('--arrow-y')).toBe('')
+  })
+
+  it('drops the previous axis when a later tick resolves the other one', async () => {
+    computePositionMock
+      .mockResolvedValueOnce(positionWith({ arrow: { x: 42, centerOffset: 0 } }))
+      .mockResolvedValueOnce(positionWith({ arrow: { y: 17, centerOffset: 0 } }))
+    const { element } = mountAnchor({ arrowId: ARROW_ID }, true)
+
+    await vi.waitFor(() => {
+      expect(element.style.getPropertyValue('--arrow-x')).toBe('42px')
+    })
+
+    triggerUpdate(0)
+
+    await vi.waitFor(() => {
+      expect(element.style.getPropertyValue('--arrow-y')).toBe('17px')
+    })
+
+    expect(element.style.getPropertyValue('--arrow-x')).toBe('')
+  })
+
+  it('removes both custom properties on cleanup', async () => {
+    computePositionMock.mockResolvedValue(
+      positionWith({ arrow: { x: 42, y: 17, centerOffset: 0 } }),
+    )
+    const { element, cleanup } = mountAnchor({ arrowId: ARROW_ID }, true)
+
+    await vi.waitFor(() => {
+      expect(element.style.getPropertyValue('--arrow-x')).toBe('42px')
+    })
+
+    cleanup()
+
+    expect(element.style.getPropertyValue('--arrow-x')).toBe('')
+    expect(element.style.getPropertyValue('--arrow-y')).toBe('')
+  })
 })

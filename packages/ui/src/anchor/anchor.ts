@@ -138,6 +138,18 @@ export type SetupConfig = Readonly<{
   arrowPadding?: number
 }>
 
+const setOrRemoveLength = (
+  element: HTMLElement,
+  property: string,
+  value: number | undefined,
+): void => {
+  if (value === undefined) {
+    element.style.removeProperty(property)
+  } else {
+    element.style.setProperty(property, `${value}px`)
+  }
+}
+
 /** Positions a floating element relative to its button using Floating UI, then
  *  returns a cleanup function. Designed to be called inside an `OnMount`
  *  action: the consumer wraps the call in `Effect.sync` and stashes the
@@ -274,7 +286,7 @@ export const anchorSetup = (
 
     tick
       .then(
-        ({ x, y, placement: resolvedPlacement }) => {
+        ({ x, y, placement: resolvedPlacement, middlewareData }) => {
           hasWarnedFailure = false
 
           if (!isActive) {
@@ -292,6 +304,12 @@ export const anchorSetup = (
             'data-placement',
             toSide(lockedPlacement ?? resolvedPlacement),
           )
+
+          if (Option.isSome(maybeArrowElement)) {
+            const { x: arrowX, y: arrowY } = middlewareData.arrow ?? {}
+            setOrRemoveLength(element, '--arrow-x', arrowX)
+            setOrRemoveLength(element, '--arrow-y', arrowY)
+          }
 
           if (isFirstUpdate) {
             isFirstUpdate = false
@@ -361,6 +379,8 @@ export const anchorSetup = (
     }
 
     element.removeAttribute('data-placement')
+    element.style.removeProperty('--arrow-x')
+    element.style.removeProperty('--arrow-y')
 
     portalCleanup?.()
   }
