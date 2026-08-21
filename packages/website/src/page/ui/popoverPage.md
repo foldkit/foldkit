@@ -20,6 +20,14 @@ Pass `anchor` to position the panel relative to the button. The panel can hold a
 
 ::Snippet{name="uiPopoverBasic" label="popover example"}
 
+### Arrow
+
+Popover does not draw an arrow. It positions one. Pass `arrowPadding`, spread the `arrow` bundle onto your own element inside the panel, and write the CSS in [Drawing an Arrow](#drawing-an-arrow) below.
+
+::Demo{name="arrow"}
+
+::Snippet{name="uiPopoverArrow" label="popover arrow example"}
+
 ### Animated
 
 Pass `isAnimated: true` at init for animation coordination.

@@ -77,9 +77,8 @@ const view = (h: HtmlBuilder<Message>) => {
     view: Popover.view,
     viewInputs: {
       ariaLabelledBy: labelId,
-      anchor: { placement: 'bottom-start', gap: 8, padding: 8 },
-      arrowPadding: 12,
-      toView: ({ button, panel, backdrop, arrow, isVisible }) =>
+      anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+      toView: ({ button, panel, backdrop, isVisible }) =>
         h.div(
           [h.Class('relative inline-block')],
           [
@@ -98,14 +97,8 @@ const view = (h: HtmlBuilder<Message>) => {
               ? [
                   h.div([...backdrop, h.Class('fixed inset-0')]),
                   h.div(
+                    [...panel, h.Class('rounded-lg border shadow-lg p-4 w-80')],
                     [
-                      ...panel,
-                      h.Class(
-                        'popover-panel rounded-lg border shadow-lg p-4 w-80',
-                      ),
-                    ],
-                    [
-                      h.div([...arrow, h.Class('popover-arrow')]),
                       h.h3([h.Class('font-medium')], ['Analytics']),
                       h.p(
                         [h.Class('text-sm text-gray-500')],

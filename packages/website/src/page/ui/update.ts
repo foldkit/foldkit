@@ -601,6 +601,15 @@ const foldPopoverAnimatedDemo = Update.foldChild({
   foldOutMessage: foldPopoverOutMessage,
 })
 
+const foldPopoverArrowDemo = Update.foldChild({
+  update: Popover.update,
+  read: (model: Model) => Option.some(model.popoverArrowDemo),
+  write: (model, nextPopoverArrowDemo) =>
+    evo(model, { popoverArrowDemo: () => nextPopoverArrowDemo }),
+  toParentMessage: message => Message.GotPopoverArrowDemoMessage({ message }),
+  foldOutMessage: foldPopoverOutMessage,
+})
+
 const foldPopoverNestedParentDemo = Update.foldChild({
   update: Popover.update,
   read: (model: Model) => Option.some(model.popoverNestedParentDemo),
@@ -1033,6 +1042,9 @@ export const update = (model: Model, message: Message) =>
 
     GotPopoverAnimatedDemoMessage: ({ message }) =>
       foldPopoverAnimatedDemo(model, message),
+
+    GotPopoverArrowDemoMessage: ({ message }) =>
+      foldPopoverArrowDemo(model, message),
 
     GotPopoverNestedParentDemoMessage: ({ message }) =>
       foldPopoverNestedParentDemo(model, message),
