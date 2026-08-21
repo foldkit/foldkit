@@ -7,7 +7,7 @@ import {
   String as Str,
   pipe,
 } from 'effect'
-import { AsyncData, Command } from 'foldkit'
+import { AsyncData, Command, type Update } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 
@@ -39,10 +39,7 @@ const NavigateHome = Command.define('NavigateHome', {
   ),
 })
 
-export type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message, never, RoomsClient>>,
-]
+export type UpdateReturn = Update.Return<Model, Message, RoomsClient>
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 /** Per-dispatch parent state the Room page needs from the root.
@@ -89,36 +86,38 @@ export const update = (model: Model, message: Message, context: Context) =>
         ),
       )
 
-      return [
-        evo(model, {
+      return {
+        model: evo(model, {
           userGameText: () => userGameText,
           charsTyped: () => nextCharsTyped,
         }),
-        Array.fromOption(commands),
-      ]
+        commands: Array.fromOption(commands),
+      }
     },
 
-    BlurredRoomPageUsernameInput: () => [model, [FocusRoomPageUsernameInput()]],
+    BlurredRoomPageUsernameInput: () => ({
+      model,
+      commands: [FocusRoomPageUsernameInput()],
+    }),
 
-    ChangedRoomPageUsername: ({ value }) => [
-      evo(model, {
+    ChangedRoomPageUsername: ({ value }) => ({
+      model: evo(model, {
         username: () => value,
       }),
-      [],
-    ],
+    }),
 
     SubmittedJoinRoomFromPage: () => {
       const maybeJoinRoom = optionWhen(Str.isNonEmpty(model.username), () =>
         JoinRoom({ username: model.username, roomId: context.roomId }),
       )
 
-      return [model, Array.fromOption(maybeJoinRoom)]
+      return { model, commands: Array.fromOption(maybeJoinRoom) }
     },
 
     UpdatedRoom: handleRoomUpdated(model),
 
     FailedStreamRoom: ({ error: _error }) => {
-      return [model, []]
+      return { model }
     },
 
     CompletedLoadSession: ({ maybeSession }) => {
@@ -126,51 +125,52 @@ export const update = (model: Model, message: Message, context: Context) =>
         Option.isNone(maybeSession) && AsyncData.isSuccess(model.roomAsyncData),
         () => FocusRoomPageUsernameInput(),
       )
-      return [
-        evo(model, {
+      return {
+        model: evo(model, {
           maybeSession: () => maybeSession,
         }),
-        Array.fromOption(maybeFocus),
-      ]
+        commands: Array.fromOption(maybeFocus),
+      }
     },
 
     SucceededFetchRoom: ({ room }) => {
       const maybeFocus = optionWhen(Option.isNone(model.maybeSession), () =>
         FocusRoomPageUsernameInput(),
       )
-      return [
-        evo(model, {
+      return {
+        model: evo(model, {
           roomAsyncData: () => RoomAsyncData.Success({ data: room }),
         }),
-        Array.fromOption(maybeFocus),
-      ]
+        commands: Array.fromOption(maybeFocus),
+      }
     },
 
-    FailedFetchRoom: () => [
-      evo(model, {
+    FailedFetchRoom: () => ({
+      model: evo(model, {
         roomAsyncData: () => RoomAsyncData.Failure({ error: 'Room not found' }),
       }),
-      [],
-    ],
+    }),
 
-    ClickedCopyRoomId: () => [model, [CopyRoomId({ roomId: context.roomId })]],
+    ClickedCopyRoomId: () => ({
+      model,
+      commands: [CopyRoomId({ roomId: context.roomId })],
+    }),
 
     SucceededCopyRoomId: () =>
       model.isRoomIdCopyIndicatorVisible
-        ? [model, []]
-        : [
-            evo(model, {
+        ? { model }
+        : {
+            model: evo(model, {
               isRoomIdCopyIndicatorVisible: () => true,
             }),
-            [WaitBeforeHidingRoomIdCopiedIndicator()],
-          ],
+            commands: [WaitBeforeHidingRoomIdCopiedIndicator()],
+          },
 
-    CompletedWaitBeforeHidingRoomIdCopiedIndicator: () => [
-      evo(model, {
+    CompletedWaitBeforeHidingRoomIdCopiedIndicator: () => ({
+      model: evo(model, {
         isRoomIdCopyIndicatorVisible: () => false,
       }),
-      [],
-    ],
+    }),
 
     CompletedWaitForExitCountdownInterval: () => {
       const nextSecondsLeft = Number.decrement(model.exitCountdownSecondsLeft)
@@ -178,46 +178,46 @@ export const update = (model: Model, message: Message, context: Context) =>
         WaitForExitCountdownInterval(),
       )
 
-      return [
-        evo(model, {
+      return {
+        model: evo(model, {
           exitCountdownSecondsLeft: () => nextSecondsLeft,
         }),
-        Array.fromOption(maybeTick),
-      ]
+        commands: Array.fromOption(maybeTick),
+      }
     },
 
     SucceededJoinRoom: ({ player }) => {
       const session = { roomId: context.roomId, player }
-      return [
-        evo(model, {
+      return {
+        model: evo(model, {
           maybeSession: () => Option.some(session),
         }),
-        [SavePlayerSession({ session })],
-      ]
+        commands: [SavePlayerSession({ session })],
+      }
     },
-    CompletedFocusRoomPageUsernameInput: () => [model, []],
-    CompletedFocusUserGameTextInput: () => [model, []],
-    CompletedNavigateHome: () => [model, []],
-    SucceededStartGame: () => [model, []],
-    FailedStartGame: () => [model, []],
-    CompletedUpdatePlayerProgress: () => [model, []],
-    CompletedSavePlayerSession: () => [model, []],
-    CompletedClearSession: () => [model, []],
-    FailedJoinRoom: () => [model, []],
-    FailedCopyRoomId: () => [model, []],
+    CompletedFocusRoomPageUsernameInput: () => ({ model }),
+    CompletedFocusUserGameTextInput: () => ({ model }),
+    CompletedNavigateHome: () => ({ model }),
+    SucceededStartGame: () => ({ model }),
+    FailedStartGame: () => ({ model }),
+    CompletedUpdatePlayerProgress: () => ({ model }),
+    CompletedSavePlayerSession: () => ({ model }),
+    CompletedClearSession: () => ({ model }),
+    FailedJoinRoom: () => ({ model }),
+    FailedCopyRoomId: () => ({ model }),
   })
 
 const handleKeyPressed =
   (model: Model) =>
   ({ key }: { key: string }): UpdateReturn =>
     Option.match(AsyncData.getData(model.roomAsyncData), {
-      onNone: () => [model, []],
+      onNone: () => ({ model }),
       onSome: room =>
         M.value(room.status).pipe(
           withUpdateReturn,
           M.tag('Waiting', () => whenWaiting(model, key, room)),
           M.tag('Finished', () => whenFinished(model, key, room)),
-          M.orElse(() => [model, []]),
+          M.orElse(() => ({ model })),
         ),
     })
 
@@ -230,7 +230,7 @@ const whenWaiting = (
     withUpdateReturn,
     M.when('Backspace', () => leaveRoom(model)),
     M.when('Enter', handleStartGame(model, room)),
-    M.orElse(() => [model, []]),
+    M.orElse(() => ({ model })),
   )
 
 const whenFinished = (
@@ -241,19 +241,19 @@ const whenFinished = (
   M.value(key).pipe(
     withUpdateReturn,
     M.when('Backspace', () =>
-      model.exitCountdownSecondsLeft === 0 ? leaveRoom(model) : [model, []],
+      model.exitCountdownSecondsLeft === 0 ? leaveRoom(model) : { model },
     ),
     M.when('Enter', handleStartGame(model, room)),
-    M.orElse(() => [model, []]),
+    M.orElse(() => ({ model })),
   )
 
-const leaveRoom = (model: Model): UpdateReturn => [
-  evo(model, {
+const leaveRoom = (model: Model): UpdateReturn => ({
+  model: evo(model, {
     maybeSession: () => Option.none(),
     roomAsyncData: () => RoomAsyncData.Loading(),
   }),
-  [ClearSession(), NavigateHome()],
-]
+  commands: [ClearSession(), NavigateHome()],
+})
 
 const handleStartGame = (model: Model, room: Shared.Room) => (): UpdateReturn =>
   Option.match(model.maybeSession, {
@@ -262,9 +262,12 @@ const handleStartGame = (model: Model, room: Shared.Room) => (): UpdateReturn =>
       const maybeStartGame = optionWhen(isHost, () =>
         StartGame({ roomId: room.id, playerId: session.player.id }),
       )
-      return [model, Array.fromOption(maybeStartGame)]
+      return Array.match(Array.fromOption(maybeStartGame), {
+        onEmpty: () => ({ model }),
+        onNonEmpty: commands => ({ model, commands }),
+      })
     },
-    onNone: () => [model, []],
+    onNone: () => ({ model }),
   })
 
 export const informJoined = (

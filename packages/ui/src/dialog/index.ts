@@ -1,4 +1,4 @@
-import { Effect, Match as M, Option, Schema as S } from 'effect'
+import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
@@ -117,11 +117,7 @@ export const initialFocusMarkerAttribute = 'foldkit-dialog-initial-focus'
  *  dialog when no `focusSelector` is configured. */
 export const initialFocusMarkerSelector = `[data-${initialFocusMarkerAttribute}]`
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 
 /** Locks page scroll and opens the native dialog element through
  *  `Dom.showDialog`, which calls `show()` (not native `showModal()`) so other
@@ -175,11 +171,14 @@ const foldAnimationOutMessage: (
   context: Update.FoldContext<AnimationMessage, Message>,
 ) => Update.Step<Model, Message> = (outMessage, { liftCommand }) =>
   AnimationOutMessage.match<Update.Step<Model, Message>>(outMessage, {
-    StartedLeaveAnimating: () => model => [
+    StartedLeaveAnimating: () => model => ({
       model,
-      [liftCommand(animationDefaultLeaveCommand(model.animation))],
-    ],
-    TransitionedOut: () => model => [model, [CloseDialog({ id: model.id })]],
+      commands: [liftCommand(animationDefaultLeaveCommand(model.animation))],
+    }),
+    TransitionedOut: () => model => ({
+      model,
+      commands: [CloseDialog({ id: model.id })],
+    }),
   })
 
 const foldAnimation = Update.foldChild({
@@ -188,7 +187,7 @@ const foldAnimation = Update.foldChild({
   write: (model, nextAnimation) =>
     evo(model, { animation: () => nextAnimation }),
   toParentMessage: wrapAnimationMessage,
-  toParentOutMessage: () => Option.none(),
+  toParentOutMessage: () => undefined,
   foldOutMessage: foldAnimationOutMessage,
 })
 
@@ -207,28 +206,35 @@ export const update = (model: Model, message: Message) =>
         }),
         () => wasClosed,
       )
-      const maybeOutMessage = wasClosed
-        ? Option.some(OutMessage.Opened())
-        : Option.none()
-
       if (model.isAnimated) {
-        const [nextModel, animationCommands] = foldAnimation(
+        const foldAnimationResult = foldAnimation(
           model,
           AnimationMessage.Showed(),
         )
-
-        return [
-          evo(nextModel, { isOpen: () => true }),
-          [...Option.toArray(maybeShow), ...animationCommands],
-          maybeOutMessage,
+        const commands = [
+          ...Option.toArray(maybeShow),
+          ...(foldAnimationResult.commands ?? []),
         ]
+        const updateResult: UpdateReturn = Array.isArrayNonEmpty(commands)
+          ? {
+              model: evo(foldAnimationResult.model, { isOpen: () => true }),
+              commands,
+            }
+          : {
+              model: evo(foldAnimationResult.model, { isOpen: () => true }),
+            }
+        return wasClosed
+          ? { ...updateResult, outMessage: OutMessage.Opened() }
+          : updateResult
       }
 
-      return [
-        evo(model, { isOpen: () => true }),
-        Option.toArray(maybeShow),
-        maybeOutMessage,
-      ]
+      const commands = Option.toArray(maybeShow)
+      const updateResult: UpdateReturn = Array.isArrayNonEmpty(commands)
+        ? { model: evo(model, { isOpen: () => true }), commands }
+        : { model: evo(model, { isOpen: () => true }) }
+      return wasClosed
+        ? { ...updateResult, outMessage: OutMessage.Opened() }
+        : updateResult
     },
 
     RequestedClose: () => {
@@ -237,21 +243,18 @@ export const update = (model: Model, message: Message) =>
         transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
 
       if (isLeaving) {
-        return [model, [], Option.none()]
+        return { model }
       }
 
       const wasOpen = model.isOpen
-      const maybeOutMessage = wasOpen
-        ? Option.some(OutMessage.Closed())
-        : Option.none()
-
       if (model.isAnimated) {
-        const [nextModel, animationCommands] = foldAnimation(
+        const closeAnimation = foldAnimation(
           evo(model, { isOpen: () => false }),
           AnimationMessage.Hid(),
         )
-
-        return [nextModel, animationCommands, maybeOutMessage]
+        return wasOpen
+          ? { ...closeAnimation, outMessage: OutMessage.Closed() }
+          : closeAnimation
       }
 
       const maybeClose = Option.liftPredicate(
@@ -259,11 +262,13 @@ export const update = (model: Model, message: Message) =>
         () => wasOpen,
       )
 
-      return [
-        evo(model, { isOpen: () => false }),
-        Option.toArray(maybeClose),
-        maybeOutMessage,
-      ]
+      const commands = Option.toArray(maybeClose)
+      const updateResult: UpdateReturn = Array.isArrayNonEmpty(commands)
+        ? { model: evo(model, { isOpen: () => false }), commands }
+        : { model: evo(model, { isOpen: () => false }) }
+      return wasOpen
+        ? { ...updateResult, outMessage: OutMessage.Closed() }
+        : updateResult
     },
 
     GotAnimationMessage: ({ message: animationMessage }) =>
@@ -279,19 +284,18 @@ export const update = (model: Model, message: Message) =>
           animation: () => animationInit({ id: `${model.id}-panel` }),
         })
 
-        return [
-          nextModel,
-          [ReleaseDialogResources({ id: model.id })],
-          Option.none(),
-        ]
+        return {
+          model: nextModel,
+          commands: [ReleaseDialogResources({ id: model.id })],
+        }
       } else {
-        return [model, [], Option.none()]
+        return { model }
       }
     },
 
-    CompletedShowDialog: () => [model, [], Option.none()],
-    CompletedCloseDialog: () => [model, [], Option.none()],
-    CompletedReleaseDialogResources: () => [model, [], Option.none()],
+    CompletedShowDialog: () => ({ model }),
+    CompletedCloseDialog: () => ({ model }),
+    CompletedReleaseDialogResources: () => ({ model }),
   })
 
 /** Programmatically opens the dialog. */

@@ -1,5 +1,5 @@
 import { Effect } from 'effect'
-import { Command } from 'foldkit'
+import { Command, type Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
@@ -21,11 +21,10 @@ const DelayReset = Command.define(
   },
 )
 
+type UpdateReturn = Update.Return<Model, Message>
+
 const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      ClickedResetAfterDelay: () => [model, [DelayReset()]],
-      CompletedDelayReset: () => [evo(model, { count: () => 0 }), []],
-    },
-  )
+  Message.match<UpdateReturn>(message, {
+    ClickedResetAfterDelay: () => ({ model, commands: [DelayReset()] }),
+    CompletedDelayReset: () => ({ model: evo(model, { count: () => 0 }) }),
+  })

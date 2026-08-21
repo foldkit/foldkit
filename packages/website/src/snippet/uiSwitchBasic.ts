@@ -15,13 +15,12 @@ const Model = S.Struct({
 })
 
 // In your init function, start it off:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     notificationsEnabled: false,
     // ...your other fields
   },
-  [],
-]
+})
 
 // A verb-first, past-tense Message carries the new checked state:
 
@@ -32,10 +31,9 @@ const Message = defineMessageUnion({
 // Inside your update function's Message.match({...}), store the value.
 // This is the moment to persist the preference, sync to a backend, or fire
 // analytics.
-ToggledNotifications: ({ isChecked }) => [
-  evo(model, { notificationsEnabled: () => isChecked }),
-  [],
-]
+ToggledNotifications: ({ isChecked }) => ({
+  model: evo(model, { notificationsEnabled: () => isChecked }),
+})
 
 // Inside your view function, render the switch with Switch.view. It reads the
 // checked state from your Model and calls onToggle with the new state. The

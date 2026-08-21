@@ -41,16 +41,15 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => {
     onSome: ({ columns }) => columns,
   })
 
-  return [
-    {
+  return {
+    model: {
       columns,
       dragAndDrop: DragAndDrop.init({ id: 'kanban' }),
       maybeNewCardColumnId: Option.none(),
       newCardTitle: '',
       announcement: '',
     },
-    [],
-  ]
+  }
 }
 
 export { Message, Model, subscriptions, update, view }

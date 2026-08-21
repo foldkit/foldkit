@@ -16,13 +16,12 @@ const Model = S.Struct({
 })
 
 // In your init function, initialize the Menu Submodel with a unique id:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     menu: Menu.init({ id: 'actions' }),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Embed the Menu Message in your parent Message:
 const Message = defineMessageUnion({
@@ -49,7 +48,7 @@ const foldMenuOutMessage = M.type<Menu.OutMessage<Action>>().pipe(
     // The child has emitted `Selected`. In this arm the parent can update
     // its own state or dispatch its own Commands, for example transition a
     // page, mutate domain state, or trigger a downstream Command.
-    Selected: () => model => [model, []],
+    Selected: () => model => ({ model }),
   }),
 )
 

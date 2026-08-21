@@ -173,10 +173,16 @@ type Model = typeof Model.Type
 
 const h = __htmlBuilder<Message>()
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command<Message>>
+  outMessage?: never
+}>
+
 const update = (_model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command<Message>>]>(message, {
-    ClickedTransition: () => [{ label: 'transitioned' }, []],
-    ClickedPlain: () => [{ label: 'plain' }, []],
+  Message.match<UpdateReturn>(message, {
+    ClickedTransition: () => ({ model: { label: 'transitioned' } }),
+    ClickedPlain: () => ({ model: { label: 'plain' } }),
   })
 
 describe('makeElement with viewTransition', () => {
@@ -225,7 +231,7 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model =>
         h.div(
@@ -294,7 +300,7 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model =>
         h.div(
@@ -359,7 +365,7 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model =>
         h.div(
@@ -415,7 +421,7 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model =>
         h.div(
@@ -477,7 +483,7 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model =>
         h.div(
@@ -526,7 +532,7 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model => {
         if (model.label === 'plain') {
@@ -580,7 +586,7 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model =>
         h.div(
@@ -628,7 +634,7 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model =>
         h.div(
@@ -684,7 +690,7 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model =>
         h.div(

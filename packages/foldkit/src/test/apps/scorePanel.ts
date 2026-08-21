@@ -24,9 +24,17 @@ export const initialModel = Model.make({ score: 0 })
 
 // UPDATE
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<never>
+  outMessage?: never
+}>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<never>]>(message, {
-    ClickedIncrement: () => [evo(model, { score: Number.increment }), []],
+  Message.match<UpdateReturn>(message, {
+    ClickedIncrement: () => ({
+      model: evo(model, { score: Number.increment }),
+    }),
   })
 
 // VIEW

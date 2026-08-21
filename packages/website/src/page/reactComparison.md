@@ -96,7 +96,7 @@ For a given Message, Foldkit update returns both the next Model and the Commands
 
 ### Foldkit update (state + side effects) {#foldkit-update}
 
-The return type is `[Model, Command[]]`:
+The return type is `{ model, commands? }`:
 
 ::Snippet{name="comparisonFoldkitUpdate" label="Foldkit update"}
 

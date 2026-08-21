@@ -67,15 +67,26 @@ export const initialModel = Model.make({
 
 // UPDATE
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<never>
+  outMessage?: never
+}>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<never>]>(message, {
-    ClickedToggleFeed: () => [evo(model, { isFeedOpen: Boolean.not }), []],
-    AcquiredFeedSocket: () => [evo(model, { status: () => 'Connected' }), []],
-    ReleasedFeedSocket: () => [
-      evo(model, { status: () => 'Disconnected' }),
-      [],
-    ],
-    FailedAcquireFeedSocket: () => [evo(model, { status: () => 'Failed' }), []],
+  Message.match<UpdateReturn>(message, {
+    ClickedToggleFeed: () => ({
+      model: evo(model, { isFeedOpen: Boolean.not }),
+    }),
+    AcquiredFeedSocket: () => ({
+      model: evo(model, { status: () => 'Connected' }),
+    }),
+    ReleasedFeedSocket: () => ({
+      model: evo(model, { status: () => 'Disconnected' }),
+    }),
+    FailedAcquireFeedSocket: () => ({
+      model: evo(model, { status: () => 'Failed' }),
+    }),
   })
 
 // VIEW

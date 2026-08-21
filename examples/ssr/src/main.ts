@@ -1,5 +1,5 @@
 import { Effect, Schema as S } from 'effect'
-import { Command, Runtime } from 'foldkit'
+import { Command, Runtime, type Update } from 'foldkit'
 import { type Document, type Html, type HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -38,27 +38,26 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
+type UpdateReturn = Update.Return<Model, Message>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      ClickedDecrement: () => {
-        const nextCount = model.count - 1
-        return [
-          evo(model, { count: () => nextCount }),
-          [PersistCount({ count: nextCount })],
-        ]
-      },
-      ClickedIncrement: () => {
-        const nextCount = model.count + 1
-        return [
-          evo(model, { count: () => nextCount }),
-          [PersistCount({ count: nextCount })],
-        ]
-      },
-      CompletedPersistCount: () => [model, []],
+  Message.match<UpdateReturn>(message, {
+    ClickedDecrement: () => {
+      const nextCount = model.count - 1
+      return {
+        model: evo(model, { count: () => nextCount }),
+        commands: [PersistCount({ count: nextCount })],
+      }
     },
-  )
+    ClickedIncrement: () => {
+      const nextCount = model.count + 1
+      return {
+        model: evo(model, { count: () => nextCount }),
+        commands: [PersistCount({ count: nextCount })],
+      }
+    },
+    CompletedPersistCount: () => ({ model }),
+  })
 
 // COMMAND
 
@@ -78,14 +77,13 @@ export const PersistCount = Command.define('PersistCount', {
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
+  model: {
     count: flags.initialCount,
     renderedAt: flags.renderedAt,
     renderedOn: flags.renderedOn,
   },
-  [],
-]
+})
 
 // VIEW
 

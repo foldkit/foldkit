@@ -19,16 +19,15 @@ const Model = S.Struct({
 
 // In your init function, give the list a unique id and a row height in
 // pixels. All rows share this height:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     activityList: VirtualList.init({
       id: 'activity-list',
       rowHeightPx: 56,
     }),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Embed the VirtualList Message in your parent Message:
 const Message = defineMessageUnion({
@@ -38,14 +37,14 @@ const Message = defineMessageUnion({
 // Inside your update function's Message.match({...}), delegate to
 // VirtualList.update:
 GotActivityListMessage: ({ message }) => {
-  const [nextList, commands] = VirtualList.update(model.activityList, message)
+  const activityListUpdate = VirtualList.update(model.activityList, message)
 
-  return [
-    evo(model, { activityList: () => nextList }),
-    Command.mapMessages(commands, message =>
+  return {
+    model: evo(model, { activityList: () => activityListUpdate.model }),
+    commands: Command.mapMessages(activityListUpdate.commands ?? [], message =>
       Message.GotActivityListMessage({ message }),
     ),
-  ]
+  }
 }
 
 // Wire the VirtualList container subscription into your app's
@@ -102,7 +101,7 @@ const view = (model: Model, h: HtmlBuilder<Message>) =>
     toParentMessage: message => Message.GotActivityListMessage({ message }),
   })
 
-// Programmatic scrolling. Returns [Model, Commands] in the same shape as
+// Programmatic scrolling. Returns { model, commands? } in the same shape as
 // update. Stale completions are version-cancelled, so rapid successive
 // calls do not fight each other:
-const [nextList, commands] = VirtualList.scrollToIndex(model.activityList, 500)
+const listScroll = VirtualList.scrollToIndex(model.activityList, 500)

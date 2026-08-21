@@ -18,10 +18,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => [
-  {
+const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
+  model: {
     count: Option.getOrElse(flags.savedCount, () => 0),
     startingCount: flags.savedCount,
   },
-  [],
-]
+})

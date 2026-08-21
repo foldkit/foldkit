@@ -7,9 +7,13 @@ import { Model } from './model'
 // UPDATE
 
 export const update = (model: Model, message: Child.Message) => {
-  const [childModel, childCommands] = Child.update(model.child, message)
-  const commands = Command.mapMessages(childCommands, (childMessage) =>
-    GotChildMessage({ message: childMessage }),
+  const childUpdate = Child.update(model.child, message)
+  const commands = Command.mapMessages(
+    childUpdate.commands ?? [],
+    childMessage => GotChildMessage({ message: childMessage }),
   )
-  return [evo(model, { child: () => childModel }), commands]
+  return {
+    model: evo(model, { child: () => childUpdate.model }),
+    commands,
+  }
 }

@@ -105,11 +105,7 @@ export const init = (config: InitConfig): Model => ({
 
 // UPDATE
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 
 const mapCalendarCommands = (
   commands: ReadonlyArray<Command.Command<UiCalendar.Message>>,
@@ -125,10 +121,9 @@ const mapPopoverCommands = (
     Message.GotPopoverMessage({ message }),
   )
 
-const dropCalendarToDays: Update.Step<Model, Message> = model => [
-  evo(model, { calendar: () => UiCalendar.dropToDays(model.calendar) }),
-  [],
-]
+const dropCalendarToDays: Update.Step<Model, Message> = model => ({
+  model: evo(model, { calendar: () => UiCalendar.dropToDays(model.calendar) }),
+})
 
 const readPopover = (model: Model): Option.Option<Popover.Model> =>
   Option.some(model.popover)
@@ -152,7 +147,7 @@ const foldPopover = Update.foldChild({
   read: readPopover,
   write: writePopover,
   toParentMessage: toGotPopoverMessage,
-  toParentOutMessage: () => Option.none(),
+  toParentOutMessage: () => undefined,
   foldOutMessage: foldPopoverOutMessage,
 })
 
@@ -175,19 +170,19 @@ const foldPopoverClose = Update.foldChildStep({
 const foldCalendarOutMessage = M.type<UiCalendar.OutMessage>().pipe(
   M.withReturnType<Update.Step<Model, Message>>(),
   M.tagsExhaustive({
-    ChangedViewMonth: () => model => [model, []],
+    ChangedViewMonth: () => model => ({ model }),
     SelectedDate: () => foldPopoverClose,
   }),
 )
 
 const toDatePickerOutMessage: (
   outMessage: UiCalendar.OutMessage,
-) => Option.Option<OutMessage> = M.type<UiCalendar.OutMessage>().pipe(
-  M.withReturnType<Option.Option<OutMessage>>(),
+) => OutMessage = M.type<UiCalendar.OutMessage>().pipe(
+  M.withReturnType<OutMessage>(),
   M.tagsExhaustive({
     ChangedViewMonth: ({ year, month }) =>
-      Option.some(OutMessage.ChangedViewMonth({ year, month })),
-    SelectedDate: ({ date }) => Option.some(OutMessage.SelectedDate({ date })),
+      OutMessage.ChangedViewMonth({ year, month }),
+    SelectedDate: ({ date }) => OutMessage.SelectedDate({ date }),
   }),
 )
 
@@ -210,36 +205,30 @@ export const update = (model: Model, message: Message) =>
     GotPopoverMessage: ({ message: popoverMessage }) =>
       foldPopover(model, popoverMessage),
 
-    Opened: () => [
-      ...Update.combine(model, [foldPopoverOpen, dropCalendarToDays]),
-      Option.none(),
-    ],
+    Opened: () => Update.combine(model, [foldPopoverOpen, dropCalendarToDays]),
 
-    Closed: () => [
-      ...Update.combine(model, [foldPopoverClose, dropCalendarToDays]),
-      Option.none(),
-    ],
+    Closed: () => Update.combine(model, [foldPopoverClose, dropCalendarToDays]),
 
     RequestedSelectDate: ({ date }) => {
-      const [nextCalendar, calendarCommands] = UiCalendar.selectDate(
+      const uiCalendarSelectDateResult = UiCalendar.selectDate(
         model.calendar,
         date,
       )
-      const [nextPopover, popoverCommands] = Popover.close(model.popover)
-      return [
-        evo(model, {
-          calendar: () => nextCalendar,
-          popover: () => nextPopover,
+      const popoverCloseResult = Popover.close(model.popover)
+      return {
+        model: evo(model, {
+          calendar: () => uiCalendarSelectDateResult.model,
+          popover: () => popoverCloseResult.model,
         }),
-        [
-          ...mapCalendarCommands(calendarCommands),
-          ...mapPopoverCommands(popoverCommands),
+        commands: [
+          ...mapCalendarCommands(uiCalendarSelectDateResult.commands ?? []),
+          ...mapPopoverCommands(popoverCloseResult.commands ?? []),
         ],
-        Option.some(OutMessage.SelectedDate({ date })),
-      ]
+        outMessage: OutMessage.SelectedDate({ date }),
+      }
     },
 
-    Cleared: () => [model, [], Option.some(OutMessage.ClearedDate())],
+    Cleared: () => ({ model, outMessage: OutMessage.ClearedDate() }),
   })
 
 /** Programmatically opens the date picker, updating the model and returning
@@ -358,7 +347,7 @@ const encodeIsoDate = S.encodeSync(Calendar.CalendarDateFromIsoString)
  *
  *  The DatePicker emits a `SelectedDate({ date })` OutMessage when the
  *  user commits a date. Consumers pattern-match this in their
- *  `GotDatePickerMessage` handler (third tuple element of
+ *  `GotDatePickerMessage` handler (the optional `outMessage` field of
  *  `DatePicker.update`'s return) to lift the date into domain state. */
 export type ViewInputs = Readonly<{
   anchor: AnchorConfig

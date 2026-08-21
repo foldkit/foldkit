@@ -1,4 +1,5 @@
-import { Effect, Match as M, Option, Schema as S } from 'effect'
+import { Effect, Match as M, Schema as S } from 'effect'
+import { type Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 import * as Render from 'foldkit/render'
@@ -11,11 +12,7 @@ import { Message, type Model, OutMessage } from './schema.js'
 
 const elementSelector = (id: string): string => idSelector(id)
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 /** Waits for paint via double-rAF before the enter/leave lifecycle advances. */
@@ -43,17 +40,16 @@ export const update = (model: Model, message: Message) => {
   return Message.match<UpdateReturn>(message, {
     Showed: () => {
       if (model.isShowing) {
-        return [model, [], Option.none()]
+        return { model }
       }
 
-      return [
-        evo(model, {
+      return {
+        model: evo(model, {
           isShowing: () => true,
           transitionState: () => 'EnterStart',
         }),
-        [maybeNextFrame],
-        Option.none(),
-      ]
+        commands: [maybeNextFrame],
+      }
     },
 
     Hid: () => {
@@ -62,49 +58,43 @@ export const update = (model: Model, message: Message) => {
         model.transitionState === 'LeaveAnimating'
 
       if (isLeaving || !model.isShowing) {
-        return [model, [], Option.none()]
+        return { model }
       }
 
-      return [
-        evo(model, {
+      return {
+        model: evo(model, {
           isShowing: () => false,
           transitionState: () => 'LeaveStart',
         }),
-        [maybeNextFrame],
-        Option.none(),
-      ]
+        commands: [maybeNextFrame],
+      }
     },
 
     CompletedWaitForPaint: () =>
       M.value(model.transitionState).pipe(
         withUpdateReturn,
-        M.when('EnterStart', () => [
-          evo(model, { transitionState: () => 'EnterAnimating' }),
-          [WaitForAnimationSettled({ id: model.id })],
-          Option.none(),
-        ]),
-        M.when('LeaveStart', () => [
-          evo(model, { transitionState: () => 'LeaveAnimating' }),
-          [],
-          Option.some(OutMessage.StartedLeaveAnimating()),
-        ]),
-        M.orElse(() => [model, [], Option.none()]),
+        M.when('EnterStart', () => ({
+          model: evo(model, { transitionState: () => 'EnterAnimating' }),
+          commands: [WaitForAnimationSettled({ id: model.id })],
+        })),
+        M.when('LeaveStart', () => ({
+          model: evo(model, { transitionState: () => 'LeaveAnimating' }),
+          outMessage: OutMessage.StartedLeaveAnimating(),
+        })),
+        M.orElse(() => ({ model })),
       ),
 
     EndedAnimation: () =>
       M.value(model.transitionState).pipe(
         withUpdateReturn,
-        M.when('EnterAnimating', () => [
-          evo(model, { transitionState: () => 'Idle' }),
-          [],
-          Option.none(),
-        ]),
-        M.when('LeaveAnimating', () => [
-          evo(model, { transitionState: () => 'Idle' }),
-          [],
-          Option.some(OutMessage.TransitionedOut()),
-        ]),
-        M.orElse(() => [model, [], Option.none()]),
+        M.when('EnterAnimating', () => ({
+          model: evo(model, { transitionState: () => 'Idle' }),
+        })),
+        M.when('LeaveAnimating', () => ({
+          model: evo(model, { transitionState: () => 'Idle' }),
+          outMessage: OutMessage.TransitionedOut(),
+        })),
+        M.orElse(() => ({ model })),
       ),
   })
 }

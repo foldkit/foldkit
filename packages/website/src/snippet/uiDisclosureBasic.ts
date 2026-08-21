@@ -15,13 +15,12 @@ const Model = S.Struct({
 })
 
 // In your init function, start it closed:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     isFaqOpen: false,
     // ...your other fields
   },
-  [],
-]
+})
 
 // A verb-first, past-tense Message carries the new open state:
 
@@ -32,7 +31,7 @@ const Message = defineMessageUnion({
 // Inside your update function's Message.match({...}), store the value.
 // This is the moment to persist the open state, lazy-load panel content, or
 // log analytics.
-ToggledFaq: ({ isOpen }) => [evo(model, { isFaqOpen: () => isOpen }), []]
+ToggledFaq: ({ isOpen }) => ({ model: evo(model, { isFaqOpen: () => isOpen }) })
 
 // Inside your view function, render the disclosure with Disclosure.view.
 // Render the panel unconditionally and pass it through animatePanel: the

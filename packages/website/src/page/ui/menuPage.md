@@ -4,7 +4,7 @@
 
 A dropdown menu for actions, like a macOS context menu. Menu is fire-and-forget: each activation is an action, not a choice that persists (use Listbox for selection, where the parent owns the selected value). It supports typeahead search, drag-to-select, keyboard navigation, grouped items, and anchor positioning.
 
-For programmatic control in update functions, use the factory’s `open(model)`, `close(model)`, and `selectItem(model, item, index)` methods. Each returns the same `[Model, Commands, Option<OutMessage>]` tuple as `update`.
+For programmatic control in update functions, use the factory’s `open(model)`, `close(model)`, and `selectItem(model, item, index)` methods. Each returns the same `{ model, commands?, outMessage? }` record as `update`.
 
 What `Menu.create<Item>()` returns is typed [`Menu.Bundle<Item>`](/ui/selection-submodels#bundle-type), for the cases where a created bundle has to be named rather than called directly.
 
@@ -115,7 +115,7 @@ Configuration object passed to `Menu.view()`.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
+Messages emitted to the parent through the optional `outMessage` field. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
 
 | Name       | Type                             | Default | Description                                                                                                                                                                                                                                                                                                                                                    |
 | ---------- | -------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

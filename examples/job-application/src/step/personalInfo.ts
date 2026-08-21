@@ -162,17 +162,16 @@ export const ValidateEmailAsync = Command.define('ValidateEmailAsync', {
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 const foldPronounsOutMessage = M.type<Listbox.OutMessage>().pipe(
   M.withReturnType<Update.Step<Model, Message>>(),
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [
-        evo(model, { maybeSelectedPronoun: () => Option.some(value) }),
-        [],
-      ],
+      model => ({
+        model: evo(model, { maybeSelectedPronoun: () => Option.some(value) }),
+      }),
   }),
 )
 
@@ -189,15 +188,13 @@ const foldAvailableDateOutMessage = M.type<DatePicker.OutMessage>().pipe(
   M.tagsExhaustive({
     SelectedDate:
       ({ date }) =>
-      model => [
-        evo(model, { maybeAvailableDate: () => Option.some(date) }),
-        [],
-      ],
-    ClearedDate: () => model => [
-      evo(model, { maybeAvailableDate: () => Option.none() }),
-      [],
-    ],
-    ChangedViewMonth: () => model => [model, []],
+      model => ({
+        model: evo(model, { maybeAvailableDate: () => Option.some(date) }),
+      }),
+    ClearedDate: () => model => ({
+      model: evo(model, { maybeAvailableDate: () => Option.none() }),
+    }),
+    ChangedViewMonth: () => model => ({ model }),
   }),
 )
 
@@ -212,63 +209,57 @@ const foldAvailableDate = Update.foldChild({
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    UpdatedFirstName: ({ value }) => [
-      evo(model, { firstName: () => validateFirstName(value) }),
-      [],
-    ],
+    UpdatedFirstName: ({ value }) => ({
+      model: evo(model, { firstName: () => validateFirstName(value) }),
+    }),
 
-    UpdatedLastName: ({ value }) => [
-      evo(model, { lastName: () => validateLastName(value) }),
-      [],
-    ],
+    UpdatedLastName: ({ value }) => ({
+      model: evo(model, { lastName: () => validateLastName(value) }),
+    }),
 
     UpdatedEmail: ({ value }) => {
       const validationId = Number.increment(model.emailValidationId)
       return M.value(validateEmail(value)).pipe(
         M.withReturnType<UpdateReturn>(),
-        M.tag('Valid', () => [
-          evo(model, {
+        M.tag('Valid', () => ({
+          model: evo(model, {
             email: () => Validating({ value }),
             emailValidationId: () => validationId,
           }),
-          [ValidateEmailAsync({ emailInput: value, validationId })],
-        ]),
-        M.orElse(syncResult => [
-          evo(model, {
+          commands: [ValidateEmailAsync({ emailInput: value, validationId })],
+        })),
+        M.orElse(syncResult => ({
+          model: evo(model, {
             email: () => syncResult,
             emailValidationId: () => validationId,
           }),
-          [],
-        ]),
+        })),
       )
     },
 
     CompletedValidateEmailAsync: ({ validationId, field }) => {
       if (validationId === model.emailValidationId) {
-        return [evo(model, { email: () => field }), []]
+        return { model: evo(model, { email: () => field }) }
       } else {
-        return [model, []]
+        return { model }
       }
     },
 
-    UpdatedPhone: ({ value }) => [
-      evo(model, { phone: () => validatePhone(value) }),
-      [],
-    ],
+    UpdatedPhone: ({ value }) => ({
+      model: evo(model, { phone: () => validatePhone(value) }),
+    }),
 
     GotPronounsMessage: ({ message }) => foldPronouns(model, message),
 
-    UpdatedCustomPronouns: ({ value }) => [
-      evo(model, { customPronouns: () => value }),
-      [],
-    ],
+    UpdatedCustomPronouns: ({ value }) => ({
+      model: evo(model, { customPronouns: () => value }),
+    }),
 
-    UpdatedPortfolioUrl: ({ value }) => [
-      evo(model, {
+    UpdatedPortfolioUrl: ({ value }) => ({
+      model: evo(model, {
         portfolioUrl: () => validatePortfolioUrl(value),
       }),
-      [],
-    ],
+    }),
 
     GotAvailableDateMessage: ({ message }) => foldAvailableDate(model, message),
   })

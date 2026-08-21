@@ -1,5 +1,4 @@
 import { Match as M, Option, Schema as S } from 'effect'
-import * as Command from 'foldkit/command'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -36,8 +35,8 @@ export const initialModel: Model = {
 const foldDialogOutMessage = M.type<Dialog.OutMessage>().pipe(
   M.withReturnType<Update.Step<Model, Message>>(),
   M.tagsExhaustive({
-    Opened: () => model => [model, []],
-    Closed: () => model => [model, []],
+    Opened: () => model => ({ model }),
+    Closed: () => model => ({ model }),
   }),
 )
 
@@ -49,16 +48,15 @@ const foldDialog = Update.foldChild({
   foldOutMessage: foldDialogOutMessage,
 })
 
+type UpdateReturn = Update.Return<Model, Message>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      ClickedToggle: () => [{ ...model, isEnabled: !model.isEnabled }, []],
-      ClickedSubmit: () => [model, []],
-      GotDialogMessage: ({ message: dialogMessage }) =>
-        foldDialog(model, dialogMessage),
-    },
-  )
+  Message.match<UpdateReturn>(message, {
+    ClickedToggle: () => ({ model: { ...model, isEnabled: !model.isEnabled } }),
+    ClickedSubmit: () => ({ model }),
+    GotDialogMessage: ({ message: dialogMessage }) =>
+      foldDialog(model, dialogMessage),
+  })
 
 // VIEW
 

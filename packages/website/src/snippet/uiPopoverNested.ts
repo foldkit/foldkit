@@ -17,8 +17,8 @@ const Model = S.Struct({
 
 // The parent uses contentFocus so focus can move into its nested trigger
 // instead of staying on the panel:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     accountPopover: Popover.init({
       id: 'account-popover',
       contentFocus: true,
@@ -26,8 +26,7 @@ const init = () => [
     accountDetailsPopover: Popover.init({ id: 'account-details-popover' }),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Embed each Popover Message in your parent Message:
 const Message = defineMessageUnion({
@@ -38,31 +37,34 @@ const Message = defineMessageUnion({
 // Inside your update function's Message.match({...}), delegate each
 // Popover to its own Model field:
 GotAccountPopoverMessage: ({ message }) => {
-  const [nextAccountPopover, commands] = Popover.update(
-    model.accountPopover,
-    message,
-  )
+  const accountPopoverUpdate = Popover.update(model.accountPopover, message)
 
-  return [
-    evo(model, { accountPopover: () => nextAccountPopover }),
-    Command.mapMessages(commands, message =>
-      Message.GotAccountPopoverMessage({ message }),
+  return {
+    model: evo(model, {
+      accountPopover: () => accountPopoverUpdate.model,
+    }),
+    commands: Command.mapMessages(
+      accountPopoverUpdate.commands ?? [],
+      message => Message.GotAccountPopoverMessage({ message }),
     ),
-  ]
+  }
 }
 
 GotAccountDetailsPopoverMessage: ({ message }) => {
-  const [nextAccountDetailsPopover, commands] = Popover.update(
+  const accountDetailsPopoverUpdate = Popover.update(
     model.accountDetailsPopover,
     message,
   )
 
-  return [
-    evo(model, { accountDetailsPopover: () => nextAccountDetailsPopover }),
-    Command.mapMessages(commands, message =>
-      Message.GotAccountDetailsPopoverMessage({ message }),
+  return {
+    model: evo(model, {
+      accountDetailsPopover: () => accountDetailsPopoverUpdate.model,
+    }),
+    commands: Command.mapMessages(
+      accountDetailsPopoverUpdate.commands ?? [],
+      message => Message.GotAccountDetailsPopoverMessage({ message }),
     ),
-  ]
+  }
 }
 
 // Inside your view function, render the child Popover inside the parent

@@ -8,7 +8,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { AsyncData, Command, Mount, Submodel } from 'foldkit'
+import { AsyncData, Command, Mount, Submodel, type Update } from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -134,108 +134,118 @@ const ObserveExampleUrlMessages = Mount.defineStream(
 
 // INIT
 
-export const init = (): readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-] => [
-  {
+export const init = (): Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command.Command<Message>>
+  outMessage?: never
+}> => ({
+  model: {
     sourceFileTabs: Tabs.init({ id: 'source-file-tabs' }),
     maybeActiveSourceFilePath: Option.none(),
     maybeExampleUrl: Option.none(),
     isLivePreviewOpen: true,
     currentSources: CurrentSourcesAsyncData.Idle(),
   },
-  [],
-]
+})
 
 export const boot = (
   maybeInitialSlug: Option.Option<string>,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
-  const [model, initCommands] = init()
+): Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command.Command<Message>>
+  outMessage?: never
+}> => {
+  const initResult = init()
   return Option.match(maybeInitialSlug, {
-    onNone: () => [model, initCommands],
+    onNone: () => initResult,
     onSome: slug => {
-      const [bootedModel, bootCommands] = update(
-        model,
+      const updateResult = update(
+        initResult.model,
         Message.RequestedExampleSources({ slug }),
       )
-      return [bootedModel, [...initCommands, ...bootCommands]]
+      return {
+        model: updateResult.model,
+        commands: [
+          ...(initResult.commands ?? []),
+          ...(updateResult.commands ?? []),
+        ],
+      }
     },
   })
 }
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      GotSourceFileTabsMessage: ({ message }) => {
-        const [nextTabs, tabsCommands, maybeOutMessage] = SourceFileTabs.update(
-          model.sourceFileTabs,
-          message,
-        )
+type UpdateReturn = Update.Return<Model, Message>
 
-        const nextMaybeActiveSourceFilePath = Option.match(maybeOutMessage, {
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    GotSourceFileTabsMessage: ({ message }) => {
+      const sourceFileTabsUpdate = SourceFileTabs.update(
+        model.sourceFileTabs,
+        message,
+      )
+
+      const nextMaybeActiveSourceFilePath = Option.fromNullishOr(
+        sourceFileTabsUpdate.outMessage,
+      ).pipe(
+        Option.match({
           onNone: () => model.maybeActiveSourceFilePath,
           onSome: M.type<Tabs.OutMessage>().pipe(
             M.tagsExhaustive({
               Selected: ({ value }) => Option.some(value),
             }),
           ),
-        })
-
-        return [
-          evo(model, {
-            sourceFileTabs: () => nextTabs,
-            maybeActiveSourceFilePath: () => nextMaybeActiveSourceFilePath,
-          }),
-          Command.mapMessages(tabsCommands, message =>
-            Message.GotSourceFileTabsMessage({ message }),
-          ),
-        ]
-      },
-      ChangedExampleUrl: ({ url }) => [
-        evo(model, { maybeExampleUrl: () => Option.some(url) }),
-        [],
-      ],
-      ToggledLivePreview: ({ isOpen }) => [
-        evo(model, { isLivePreviewOpen: () => isOpen }),
-        [],
-      ],
-
-      RequestedExampleSources: ({ slug }) => [
-        evo(model, {
-          sourceFileTabs: () => Tabs.init({ id: 'source-file-tabs' }),
-          maybeActiveSourceFilePath: () => Option.none(),
-          maybeExampleUrl: () => Option.none(),
-          currentSources: () => CurrentSourcesAsyncData.Loading(),
         }),
-        [LoadExampleSources({ slug })],
-      ],
+      )
 
-      SucceededLoadExampleSources: ({ sources }) => [
-        evo(model, {
-          maybeActiveSourceFilePath: () =>
-            pipe(
-              sources.files,
-              Array.head,
-              Option.map(file => file.path),
-            ),
-          currentSources: () =>
-            CurrentSourcesAsyncData.Success({ data: sources }),
+      return {
+        model: evo(model, {
+          sourceFileTabs: () => sourceFileTabsUpdate.model,
+          maybeActiveSourceFilePath: () => nextMaybeActiveSourceFilePath,
         }),
-        [],
-      ],
-
-      FailedLoadExampleSources: ({ error }) => [
-        evo(model, {
-          currentSources: () => CurrentSourcesAsyncData.Failure({ error }),
-        }),
-        [],
-      ],
+        commands: Command.mapMessages(
+          sourceFileTabsUpdate.commands ?? [],
+          message => Message.GotSourceFileTabsMessage({ message }),
+        ),
+      }
     },
-  )
+    ChangedExampleUrl: ({ url }) => ({
+      model: evo(model, { maybeExampleUrl: () => Option.some(url) }),
+    }),
+    ToggledLivePreview: ({ isOpen }) => ({
+      model: evo(model, { isLivePreviewOpen: () => isOpen }),
+    }),
+
+    RequestedExampleSources: ({ slug }) => ({
+      model: evo(model, {
+        sourceFileTabs: () => Tabs.init({ id: 'source-file-tabs' }),
+        maybeActiveSourceFilePath: () => Option.none(),
+        maybeExampleUrl: () => Option.none(),
+        currentSources: () => CurrentSourcesAsyncData.Loading(),
+      }),
+      commands: [LoadExampleSources({ slug })],
+    }),
+
+    SucceededLoadExampleSources: ({ sources }) => ({
+      model: evo(model, {
+        maybeActiveSourceFilePath: () =>
+          pipe(
+            sources.files,
+            Array.head,
+            Option.map(file => file.path),
+          ),
+        currentSources: () =>
+          CurrentSourcesAsyncData.Success({ data: sources }),
+      }),
+    }),
+
+    FailedLoadExampleSources: ({ error }) => ({
+      model: evo(model, {
+        currentSources: () => CurrentSourcesAsyncData.Failure({ error }),
+      }),
+    }),
+  })
 
 export const informRouteChanged = (model: Model, slug: string) =>
   update(model, Message.RequestedExampleSources({ slug }))

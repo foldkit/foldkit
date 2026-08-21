@@ -26,10 +26,11 @@ const LoadExternal = Command.define('LoadExternal', {
     load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 })
 
-export type UpdateReturn<Model, Message> = readonly [
+export type UpdateReturn<Model, Message> = Update.Return<
   Model,
-  ReadonlyArray<Command.Command<Message, never, RoomsClient>>,
-]
+  Message,
+  RoomsClient
+>
 const withUpdateReturn = M.withReturnType<UpdateReturn<Model, Message>>()
 
 type UpdateStep = Update.Step<Model, Message, RoomsClient>
@@ -54,7 +55,7 @@ const toGotRoomMessage = (message: Room.Message): Message =>
 
 const navigateToRoom =
   (roomId: string): UpdateStep =>
-  model => [model, [NavigateToRoom({ roomId })]]
+  model => ({ model, commands: [NavigateToRoom({ roomId })] })
 
 const enterJoinedRoom = (roomId: string, player: Shared.Player): UpdateStep =>
   Update.combine([
@@ -97,20 +98,22 @@ export const update = (model: Model, message: Message) =>
       M.value(request).pipe(
         withUpdateReturn,
         M.tagsExhaustive({
-          Internal: ({ url }) => [
+          Internal: ({ url }) => ({
             model,
-            [NavigateInternal({ url: Url.toString(url) })],
-          ],
-          External: ({ href }) => [model, [LoadExternal({ href })]],
+            commands: [NavigateInternal({ url: Url.toString(url) })],
+          }),
+          External: ({ href }) => ({
+            model,
+            commands: [LoadExternal({ href })],
+          }),
         }),
       ),
 
-    ChangedUrl: ({ url }) => [
-      evo(model, {
+    ChangedUrl: ({ url }) => ({
+      model: evo(model, {
         route: () => urlToAppRoute(url),
       }),
-      [],
-    ],
+    }),
 
     GotHomeMessage: ({ message }) => foldHomeMessage(model, message),
 
@@ -118,9 +121,9 @@ export const update = (model: Model, message: Message) =>
       M.value(model.route).pipe(
         withUpdateReturn,
         M.tag('Room', ({ roomId }) => foldRoomMessage(roomId)(model, message)),
-        M.orElse(() => [model, []]),
+        M.orElse(() => ({ model })),
       ),
-    CompletedNavigateInternal: () => [model, []],
-    CompletedLoadExternal: () => [model, []],
-    CompletedNavigateToRoom: () => [model, []],
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
+    CompletedNavigateToRoom: () => ({ model }),
   })

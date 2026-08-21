@@ -1,16 +1,16 @@
 import { Option } from 'effect'
-import { Command } from 'foldkit'
+import { type Update } from 'foldkit'
 
 import { FocusUsernameInput } from './command'
 import { Message } from './message'
 import { EnterUsername, Model } from './model'
 
-export type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+export type InitReturn = Update.Return<Model, Message>
 
-export const init = (): InitReturn => [
-  {
+export const init = (): InitReturn => ({
+  model: {
     homeStep: EnterUsername({ username: '' }),
     formError: Option.none(),
   },
-  [FocusUsernameInput()],
-]
+  commands: [FocusUsernameInput()],
+})

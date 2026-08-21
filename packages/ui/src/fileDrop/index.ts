@@ -1,5 +1,5 @@
-import { Array, Option, Schema as S } from 'effect'
-import * as Command from 'foldkit/command'
+import { Array, Schema as S } from 'effect'
+import { type Update } from 'foldkit'
 import * as File from 'foldkit/file'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -56,36 +56,22 @@ export const init = (config: InitConfig): Model => ({
 
 // UPDATE
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 
 /** Processes a file-drop message and returns the next model, commands,
  * and optional OutMessage. */
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    EnteredDragZone: () => [
-      evo(model, { isDragOver: () => true }),
-      [],
-      Option.none(),
-    ],
-    LeftDragZone: () => [
-      evo(model, { isDragOver: () => false }),
-      [],
-      Option.none(),
-    ],
-    DroppedFiles: ({ files }) => [
-      evo(model, { isDragOver: () => false }),
-      [],
-      Option.some(OutMessage.ReceivedFiles({ files })),
-    ],
-    DroppedNonFiles: () => [
-      evo(model, { isDragOver: () => false }),
-      [],
-      Option.some(OutMessage.RejectedNonFiles()),
-    ],
+    EnteredDragZone: () => ({ model: evo(model, { isDragOver: () => true }) }),
+    LeftDragZone: () => ({ model: evo(model, { isDragOver: () => false }) }),
+    DroppedFiles: ({ files }) => ({
+      model: evo(model, { isDragOver: () => false }),
+      outMessage: OutMessage.ReceivedFiles({ files }),
+    }),
+    DroppedNonFiles: () => ({
+      model: evo(model, { isDragOver: () => false }),
+      outMessage: OutMessage.RejectedNonFiles(),
+    }),
   })
 
 // VIEW

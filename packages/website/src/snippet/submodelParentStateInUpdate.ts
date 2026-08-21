@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { type Command, Update } from 'foldkit'
+import { Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { Message } from '../../message'
@@ -12,10 +12,7 @@ type Context = Readonly<{
   currentUser: User
 }>
 
-type UpdateReturn = readonly [
-  SettingsModel,
-  ReadonlyArray<Command.Command<SettingsMessage>>,
-]
+type UpdateReturn = Update.Return<SettingsModel, SettingsMessage>
 
 export const update = (
   model: SettingsModel,
@@ -23,10 +20,10 @@ export const update = (
   context: Context,
 ) =>
   SettingsMessage.match<UpdateReturn>(message, {
-    ChangedTheme: ({ theme }) => [
-      evo(model, { theme: () => theme }),
-      [PersistSettings({ userId: context.currentUser.id, theme })],
-    ],
+    ChangedTheme: ({ theme }) => ({
+      model: evo(model, { theme: () => theme }),
+      commands: [PersistSettings({ userId: context.currentUser.id, theme })],
+    }),
     // ...other arms
   })
 

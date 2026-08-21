@@ -8,7 +8,7 @@ import {
   Option,
   Schema as S,
 } from 'effect'
-import { Command, ManagedResource, Runtime } from 'foldkit'
+import { Command, ManagedResource, Runtime, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -100,54 +100,52 @@ export const Compute = Command.define('Compute', {
 
 // UPDATE
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message, never, EngineService>>,
-]
+type UpdateReturn = Update.Return<Model, Message, EngineService>
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    ClickedStartEngine: () => [
-      evo(model, { engine: () => EngineBooting() }),
-      [],
-    ],
+    ClickedStartEngine: () => ({
+      model: evo(model, { engine: () => EngineBooting() }),
+    }),
 
-    ClickedStopEngine: () => [evo(model, { engine: () => EngineOff() }), []],
+    ClickedStopEngine: () => ({
+      model: evo(model, { engine: () => EngineOff() }),
+    }),
 
-    StartedEngine: ({ engineId }) => [
-      evo(model, { engine: () => EngineReady({ engineId }) }),
-      [],
-    ],
+    StartedEngine: ({ engineId }) => ({
+      model: evo(model, { engine: () => EngineReady({ engineId }) }),
+    }),
 
-    StoppedEngine: () => [model, []],
+    StoppedEngine: () => ({ model }),
 
-    FailedStartEngine: ({ reason }) => [
-      evo(model, { engine: () => EngineFailed({ reason }) }),
-      [],
-    ],
+    FailedStartEngine: ({ reason }) => ({
+      model: evo(model, { engine: () => EngineFailed({ reason }) }),
+    }),
 
     ClickedCompute: () => {
       const nextComputeCount = Number.increment(model.computeCount)
-      return [
-        evo(model, { computeCount: () => nextComputeCount }),
-        [Compute({ value: nextComputeCount })],
-      ]
+      return {
+        model: evo(model, { computeCount: () => nextComputeCount }),
+        commands: [Compute({ value: nextComputeCount })],
+      }
     },
 
-    CompletedCompute: ({ result }) => [
-      evo(model, { maybeSquareResult: () => Option.some(result) }),
-      [],
-    ],
+    CompletedCompute: ({ result }) => ({
+      model: evo(model, { maybeSquareResult: () => Option.some(result) }),
+    }),
 
-    SkippedCompute: () => [model, []],
+    SkippedCompute: () => ({ model }),
   })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  { engine: EngineOff(), computeCount: 0, maybeSquareResult: Option.none() },
-  [],
-]
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
+    engine: EngineOff(),
+    computeCount: 0,
+    maybeSquareResult: Option.none(),
+  },
+})
 
 // MANAGED RESOURCE
 

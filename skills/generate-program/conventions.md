@@ -170,13 +170,15 @@ Array.fromOption(maybeCommand) // 0 or 1 command based on Option
 // WRONG
 switch (message._tag) {
   case 'ClickedSubmit':
-    return [model, []]
+    return { model }
 }
 
 // RIGHT
 Message.match<UpdateReturn>(message, {
-  ClickedSubmit: () => [model, []],
-  UpdatedEmail: ({ value }) => [evo(model, { email: () => value }), []],
+  ClickedSubmit: () => ({ model }),
+  UpdatedEmail: ({ value }) => ({
+    model: evo(model, { email: () => value }),
+  }),
 })
 ```
 

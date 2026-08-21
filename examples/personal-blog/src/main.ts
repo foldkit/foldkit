@@ -40,7 +40,7 @@ export type Message = typeof Message.Type
 
 export const init: Runtime.RoutingApplicationInit<Model, Message> = (
   url: Url,
-) => [{ route: Route.urlToAppRoute(url), counter: Counter.init }, []]
+) => ({ model: { route: Route.urlToAppRoute(url), counter: Counter.init } })
 
 // COMMAND
 
@@ -60,7 +60,7 @@ const LoadExternal = Command.define('LoadExternal', {
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const foldCounter = Update.foldChild({
@@ -70,35 +70,32 @@ const foldCounter = Update.foldChild({
   toParentMessage: message => Message.GotCounterMessage({ message }),
 })
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tags({
-      ClickedLink: ({ request }) =>
-        M.value(request).pipe(
-          withUpdateReturn,
-          M.tagsExhaustive({
-            Internal: ({ url }) => [
-              model,
-              [NavigateInternal({ url: urlToString(url) })],
-            ],
-            External: ({ href }) => [model, [LoadExternal({ href })]],
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    ClickedLink: ({ request }) =>
+      M.value(request).pipe(
+        withUpdateReturn,
+        M.tagsExhaustive({
+          Internal: ({ url }) => ({
+            model,
+            commands: [NavigateInternal({ url: urlToString(url) })],
           }),
-        ),
+          External: ({ href }) => ({
+            model,
+            commands: [LoadExternal({ href })],
+          }),
+        }),
+      ),
 
-      ChangedUrl: ({ url }) => {
-        const nextRoute = Route.urlToAppRoute(url)
-        return [evo(model, { route: () => nextRoute }), []]
-      },
+    ChangedUrl: ({ url }) => {
+      const nextRoute = Route.urlToAppRoute(url)
+      return { model: evo(model, { route: () => nextRoute }) }
+    },
 
-      GotCounterMessage: ({ message }) => foldCounter(model, message),
-    }),
-    M.tag('CompletedNavigateInternal', 'CompletedLoadExternal', () => [
-      model,
-      [],
-    ]),
-    M.exhaustive,
-  )
+    GotCounterMessage: ({ message }) => foldCounter(model, message),
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
+  })
 
 // VIEW
 

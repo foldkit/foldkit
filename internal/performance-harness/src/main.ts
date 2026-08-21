@@ -1,5 +1,5 @@
 import { Array, Effect, Number, Schema as S } from 'effect'
-import { Command, Runtime } from 'foldkit'
+import { Command, Runtime, type Update } from 'foldkit'
 import { Document, type HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -59,46 +59,46 @@ const FillHistoryStep = Command.define('FillHistoryStep', {
 
 // UPDATE
 
+type UpdateReturn = Update.Return<Model, Message>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      ClickedTick: () => [
-        evo(model, { tickCount: tickCount => tickCount + 1 }),
-        [],
-      ],
-      ClickedDispatchLargeMessage: ({ payload }) => [
-        evo(model, { lastReceivedPayloadSize: () => payload.length }),
-        [],
-      ],
-      ClickedFillLargeModel: ({ items }) => [
-        evo(model, { largeArray: () => items }),
-        [],
-      ],
-      ClickedClearLargeModel: () => [evo(model, { largeArray: () => [] }), []],
-      ClickedFillHistory: () => [
-        model,
-        [FillHistoryStep({ remaining: HISTORY_FILL_COUNT })],
-      ],
-      CompletedFillHistoryStep: ({ remaining }) => [
-        evo(model, { tickCount: tickCount => Number.increment(tickCount) }),
+  Message.match<UpdateReturn>(message, {
+    ClickedTick: () => ({
+      model: evo(model, { tickCount: tickCount => tickCount + 1 }),
+    }),
+    ClickedDispatchLargeMessage: ({ payload }) => ({
+      model: evo(model, { lastReceivedPayloadSize: () => payload.length }),
+    }),
+    ClickedFillLargeModel: ({ items }) => ({
+      model: evo(model, { largeArray: () => items }),
+    }),
+    ClickedClearLargeModel: () => ({
+      model: evo(model, { largeArray: () => [] }),
+    }),
+    ClickedFillHistory: () => ({
+      model,
+      commands: [FillHistoryStep({ remaining: HISTORY_FILL_COUNT })],
+    }),
+    CompletedFillHistoryStep: ({ remaining }) => ({
+      model: evo(model, {
+        tickCount: tickCount => Number.increment(tickCount),
+      }),
+      commands:
         remaining > 1
           ? [FillHistoryStep({ remaining: Number.decrement(remaining) })]
           : [],
-      ],
-    },
-  )
+    }),
+  })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     tickCount: 0,
     lastReceivedPayloadSize: 0,
     largeArray: [],
   },
-  [],
-]
+})
 
 // VIEW
 

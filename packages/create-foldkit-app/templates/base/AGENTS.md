@@ -33,14 +33,16 @@ If `foldkit-skills` is installed as a Claude Code plugin, the `generate-program`
 
 ### Update
 
-`init` and `update` both return `[Model, ReadonlyArray<Command<Message>>]`:
+`init` and `update` both return a record with the next Model and optional Commands:
 
 ```ts
-type UpdateReturn = readonly [Model, ReadonlyArray<Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    ClickedIncrement: () => [evo(model, { count: count => count + 1 }), []],
+    ClickedIncrement: () => ({
+      model: evo(model, { count: count => count + 1 }),
+    }),
   })
 ```
 
@@ -83,7 +85,7 @@ Scene runs at any level, since a page's own `update`/`view` pair drops into `sce
 ## Code Style
 
 - Encode state in discriminated unions, not booleans or nullable fields. `Idle | Loading | Error | Ok`, not `isLoading: boolean`. Make impossible states unrepresentable.
-- Use `Option` instead of `null` or `undefined`. Prefix Option-typed values with `maybe*`. Match with `Option.match`; don't unwrap with `Option.map(...)` + `Option.getOrElse(...)` when you can just match.
+- Use `Option` for absence in the Model and domain values instead of `null` or `undefined`. Foldkit return records are the framework-boundary exception: omit `commands` and `outMessage` when absent, and return `undefined` from `toParentOutMessage` when nothing passes upward. Prefix Option-typed values with `maybe*`. Match with `Option.match`; don't unwrap with `Option.map(...)` + `Option.getOrElse(...)` when you can just match.
 - Use Effect modules over native methods in `pipe` chains (`Array.map`, `String.startsWith`, `Array.findFirst`). Native methods are fine when calling directly on a named variable.
 - Never cast Schema values with `as Type`. Use the callable constructor: `Message.SucceededLogin({ sessionId })`, not `{ _tag: 'SucceededLogin', sessionId } as Message`.
 - Always `Array.isArrayEmpty` / `Array.isArrayNonEmpty` (not `.length === 0` / `.length > 0`). Use `Array.match` when handling both empty and non-empty cases.

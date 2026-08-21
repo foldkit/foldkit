@@ -100,11 +100,13 @@ for f in $(grep -rl "HttpClient" src/); do
 done
 
 # Update return type written inline at a match site instead of aliased once
-# per file. The alias itself is fine (most examples spell it by hand);
-# repeating the tuple inline is the finding. Two alternatives on purpose:
-# `withReturnType<$` catches the wrapped form where the tuple sits on the next
-# line, and `withReturnType<readonly [` catches the single-line form. Keep both.
-grep -rn "withReturnType<\s*$\|withReturnType<readonly \[" src/
+# per file. Check Message.match and Effect Match sites, including wrapped
+# generics. Every hit is an inline record to replace or a wrapped alias to
+# inspect. Also inspect every hand-written UpdateReturn record: a plain return
+# must include outMessage?: never, while an OutMessage return names its channel.
+grep -rn "Message\.match<\s*$\|Message\.match<Readonly<{" src/
+grep -rn "withReturnType<\s*$\|withReturnType<Readonly<{" src/
+grep -rn "type UpdateReturn = Readonly<{" src/
 
 # T[] syntax in the return type: use ReadonlyArray<Command<Message>>
 grep -rn "readonly Command<.*>\[\]" src/
@@ -269,7 +271,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 
 Foldkit ships these; reaching past them is a finding, not a style choice.
 
-- [ ] Update return type is aliased once per file and passed to `Message.match<UpdateReturn>`. The update signature does not repeat `: UpdateReturn`. Use `M.withReturnType<UpdateReturn>()` only for an Effect `Match` over another tagged union inside a handler. `Update.Return<Model, Message>` (or `Update.ReturnWithOutMessage<Model, Message, OutMessage>`) is the preferred alias; a hand-written tuple alias is not itself a finding
+- [ ] Update return type is aliased once per file and passed to `Message.match<UpdateReturn>`. The update signature does not repeat `: UpdateReturn`. Use `M.withReturnType<UpdateReturn>()` only for an Effect `Match` over another tagged union inside a handler. `Update.Return<Model, Message>` (or `Update.ReturnWithOutMessage<Model, Message, OutMessage>`) is the preferred alias. A hand-written plain-return alias must include `outMessage?: never`
 - [ ] Multi-step post-mutation handlers use `Update.combine(model, [...])` and `Update.refresh({ read, revalidate, write, load })` rather than hand-threaded `evo` chains and conditional Command arrays
 - [ ] Child Submodel Commands are re-tagged with `Command.mapMessages(commands, toParentMessage)`
 - [ ] HTTP uses `HttpClient` / `HttpClientRequest` from `effect/unstable/http`, with `Effect.provide(effect, Http.layer)` to supply the client. Not `@effect/platform` (`@effect/platform-browser` is separate and is for `BrowserKeyValueStore` / `BrowserCrypto`)

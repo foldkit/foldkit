@@ -1,5 +1,5 @@
 import { Effect, Match as M, Schema as S } from 'effect'
-import { Command, Runtime } from 'foldkit'
+import { Command, Runtime, type Update } from 'foldkit'
 import { type Document, type Html, type HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
@@ -30,10 +30,9 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init: Runtime.RoutingApplicationInit<Model, Message> = url => [
-  { route: urlToAppRoute(url), count: 0 },
-  [],
-]
+export const init: Runtime.RoutingApplicationInit<Model, Message> = url => ({
+  model: { route: urlToAppRoute(url), count: 0 },
+})
 
 // COMMAND
 
@@ -53,29 +52,33 @@ const LoadExternal = Command.define('LoadExternal', {
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    ClickedIncrement: () => [evo(model, { count: count => count + 1 }), []],
+    ClickedIncrement: () => ({
+      model: evo(model, { count: count => count + 1 }),
+    }),
     ClickedLink: ({ request }) =>
       M.value(request).pipe(
         withUpdateReturn,
         M.tagsExhaustive({
-          Internal: ({ url }) => [
+          Internal: ({ url }) => ({
             model,
-            [NavigateInternal({ url: urlToString(url) })],
-          ],
-          External: ({ href }) => [model, [LoadExternal({ href })]],
+            commands: [NavigateInternal({ url: urlToString(url) })],
+          }),
+          External: ({ href }) => ({
+            model,
+            commands: [LoadExternal({ href })],
+          }),
         }),
       ),
-    ChangedUrl: ({ url }) => [
-      evo(model, { route: () => urlToAppRoute(url) }),
-      [],
-    ],
-    CompletedNavigateInternal: () => [model, []],
-    CompletedLoadExternal: () => [model, []],
+    ChangedUrl: ({ url }) => ({
+      model: evo(model, { route: () => urlToAppRoute(url) }),
+    }),
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
   })
 
 // VIEW

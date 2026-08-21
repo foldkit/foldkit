@@ -1,5 +1,5 @@
 import { Duration, Effect, Schema as S, Stream } from 'effect'
-import { Command, Port, Runtime, Subscription } from 'foldkit'
+import { Command, Port, Runtime, Subscription, type Update } from 'foldkit'
 import { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -34,10 +34,9 @@ export const ports = {
 export const Flags = S.Struct({ initialCount: S.Number })
 export type Flags = typeof Flags.Type
 
-export const init: Runtime.ElementInit<Model, Message, Flags> = flags => [
-  { count: flags.initialCount, step: 1 },
-  [],
-]
+export const init: Runtime.ElementInit<Model, Message, Flags> = flags => ({
+  model: { count: flags.initialCount, step: 1 },
+})
 
 // COMMAND
 
@@ -52,19 +51,22 @@ export const ReportCount = Command.define('ReportCount', {
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 const advance = (model: Model): UpdateReturn => {
   const count = model.count + model.step
-  return [evo(model, { count: () => count }), [ReportCount({ count })]]
+  return {
+    model: evo(model, { count: () => count }),
+    commands: [ReportCount({ count })],
+  }
 }
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     Ticked: () => advance(model),
     ClickedAdvance: () => advance(model),
-    ChangedStep: ({ step }) => [evo(model, { step: () => step }), []],
-    CompletedReportCount: () => [model, []],
+    ChangedStep: ({ step }) => ({ model: evo(model, { step: () => step }) }),
+    CompletedReportCount: () => ({ model }),
   })
 
 // SUBSCRIPTION

@@ -18,7 +18,7 @@ Calendar owns navigation state, including the visible month, active grid, and ke
 
 Initialize the Calendar with `Calendar.init()`, store its Model in your parent Model, and delegate its Messages with [`Update.foldChild`](/core/submodel#fold-child). Render it through `h.submodel` with `Calendar.view`.
 
-Pass the parent-owned selection into `viewInputs.maybeSelectedDate` on every render. When Calendar emits `SelectedDate`, fold that OutMessage into the parent's selected-date field. `Calendar.update` returns `[Model, Commands, Option<OutMessage>]`, so the same fold can handle `ChangedViewMonth` when your application needs month-scoped data.
+Pass the parent-owned selection into `viewInputs.maybeSelectedDate` on every render. When Calendar emits `SelectedDate`, fold that OutMessage into the parent's selected-date field. `Calendar.update` returns `{ model, commands?, outMessage? }`, so the same fold can handle `ChangedViewMonth` when your application needs month-scoped data.
 
 :::Info{label="See it in an app"}
 See the complete Calendar integration in the [UI Showcase](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/calendar.ts).
@@ -165,7 +165,7 @@ Month cells expose `isSelected`, `isFocused`, `isCurrentMonth`, and `isDisabled`
 
 ### OutMessage {#out-message}
 
-Calendar returns an optional OutMessage as the third element of `[Model, Commands, Option<OutMessage>]`. Match on its tag in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) configuration.
+Calendar returns an optional OutMessage in the `outMessage` field. Match on its tag in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) configuration.
 
 | Name               | Payload                           | Emitted when                                                                                                                                                                       |
 | ------------------ | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -178,12 +178,12 @@ Use `SelectedDate` to update the parent-owned selection. Use `ChangedViewMonth` 
 
 Call these helpers from parent update handlers when a domain event needs to drive Calendar state.
 
-| Name         | Type                                                                          | Behavior                                                                                                                  |
-| ------------ | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `selectDate` | `(model: Model, date: CalendarDate) => [Model, Commands, Option<OutMessage>]` | Moves the view and cursor to the date and emits `SelectedDate`. Fold the OutMessage to update the parent-owned selection. |
-| `focusDate`  | `(model: Model, date: CalendarDate) => Model`                                 | Moves the view and cursor without selecting. Use it when an external value should determine which month opens.            |
-| `FocusGrid`  | `(args: { id: string }) => Command`                                           | Focuses the Calendar grid. A parent such as DatePicker can dispatch it after opening.                                     |
-| `dropToDays` | `(model: Model) => Model`                                                     | Returns to Days mode and reconciles the cursor with the visible month.                                                    |
+| Name         | Type                                                                      | Behavior                                                                                                                  |
+| ------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `selectDate` | `(model: Model, date: CalendarDate) => { model, commands?, outMessage? }` | Moves the view and cursor to the date and emits `SelectedDate`. Fold the OutMessage to update the parent-owned selection. |
+| `focusDate`  | `(model: Model, date: CalendarDate) => Model`                             | Moves the view and cursor without selecting. Use it when an external value should determine which month opens.            |
+| `FocusGrid`  | `(args: { id: string }) => Command`                                       | Focuses the Calendar grid. A parent such as DatePicker can dispatch it after opening.                                     |
+| `dropToDays` | `(model: Model) => Model`                                                 | Returns to Days mode and reconciles the cursor with the visible month.                                                    |
 
 The reflection helpers update constraints already stored in the Calendar Model. They emit no OutMessage and do not reconcile the parent-owned selection. If a new constraint invalidates that value, update the selection explicitly in the same parent handler.
 

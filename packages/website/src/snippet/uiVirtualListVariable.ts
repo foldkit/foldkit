@@ -10,16 +10,15 @@ import { VirtualList } from '@foldkit/ui'
 // `rowHeightPx` to `init`; it remains the uniform default for the
 // `scrollToIndex` initial-apply path on the first measurement, and the
 // fallback for any item the variable callback doesn't cover:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     activityList: VirtualList.init({
       id: 'activity-list',
       rowHeightPx: 56,
     }),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Provide an `itemToRowHeightPx` callback on `view`. Each row wrapper is
 // sized to the height the callback returns for that item. Slice and spacer
@@ -82,7 +81,7 @@ const view = (h: HtmlBuilder<Message>) =>
 // `view` so the math agrees:
 const itemToRowHeightPx = (activity, index) => (activity.hasSummary ? 104 : 56)
 
-const [nextList, commands] = VirtualList.scrollToIndexVariable(
+const listScroll = VirtualList.scrollToIndexVariable(
   model.activityList,
   model.activities,
   itemToRowHeightPx,

@@ -9,7 +9,9 @@ const foldSettings = Update.foldChild({
   toParentMessage: message => GotSettingsMessage({ message }),
 })
 
+type UpdateReturn = Update.Return<Model, Message>
+
 export const update = (model: Model, message: Message) =>
-  Message.match(message, {
+  Message.match<UpdateReturn>(message, {
     GotSettingsMessage: ({ message }) => foldSettings(model, message),
   })

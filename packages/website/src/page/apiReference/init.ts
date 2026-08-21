@@ -1,21 +1,26 @@
-import { Command } from 'foldkit'
+import { type Update } from 'foldkit'
 
 import { Message } from './message'
 import { ApiDataAsyncData, type Model } from './model'
 import { update } from './update'
 
-export type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+export type InitReturn = Update.Return<Model, Message>
 
-export const init = (): InitReturn => [
-  {
+export const init = (): InitReturn => ({
+  model: {
     apiData: ApiDataAsyncData.Idle(),
     disclosures: {},
   },
-  [],
-]
+})
 
 export const boot = (): InitReturn => {
-  const [model, initCommands] = init()
-  const [bootedModel, bootCommands] = update(model, Message.RequestedApiData())
-  return [bootedModel, [...initCommands, ...bootCommands]]
+  const initResult = init()
+  const updateResult = update(initResult.model, Message.RequestedApiData())
+  return {
+    model: updateResult.model,
+    commands: [
+      ...(initResult.commands ?? []),
+      ...(updateResult.commands ?? []),
+    ],
+  }
 }

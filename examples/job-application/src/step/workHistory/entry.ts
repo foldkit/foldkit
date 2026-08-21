@@ -1,5 +1,5 @@
 import { Match as M, Option, Schema as S } from 'effect'
-import { Command, Update } from 'foldkit'
+import { Update } from 'foldkit'
 import { CalendarDate } from 'foldkit/calendar'
 import {
   Field,
@@ -84,32 +84,26 @@ export const init = (entryId: string, today: CalendarDate): Model => ({
 
 // UPDATE
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 
 const foldStartDateOutMessage = M.type<DatePicker.OutMessage>().pipe(
   M.withReturnType<Update.Step<Model, Message>>(),
   M.tagsExhaustive({
-    ChangedViewMonth: () => model => [model, []],
+    ChangedViewMonth: () => model => ({ model }),
     SelectedDate:
       ({ date }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           maybeStartDate: () => Option.some(date),
           endDate: DatePicker.reflectMinDate(Option.some(date)),
         }),
-        [],
-      ],
-    ClearedDate: () => model => [
-      evo(model, {
+      }),
+    ClearedDate: () => model => ({
+      model: evo(model, {
         maybeStartDate: () => Option.none(),
         endDate: DatePicker.reflectMinDate(Option.none()),
       }),
-      [],
-    ],
+    }),
   }),
 )
 
@@ -119,30 +113,28 @@ const foldStartDate = Update.foldChild({
   write: (model, nextStartDate) =>
     evo(model, { startDate: () => nextStartDate }),
   toParentMessage: message => Message.GotStartDateMessage({ message }),
-  toParentOutMessage: () => Option.none(),
+  toParentOutMessage: () => undefined,
   foldOutMessage: foldStartDateOutMessage,
 })
 
 const foldEndDateOutMessage = M.type<DatePicker.OutMessage>().pipe(
   M.withReturnType<Update.Step<Model, Message>>(),
   M.tagsExhaustive({
-    ChangedViewMonth: () => model => [model, []],
+    ChangedViewMonth: () => model => ({ model }),
     SelectedDate:
       ({ date }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           maybeEndDate: () => Option.some(date),
           startDate: DatePicker.reflectMaxDate(Option.some(date)),
         }),
-        [],
-      ],
-    ClearedDate: () => model => [
-      evo(model, {
+      }),
+    ClearedDate: () => model => ({
+      model: evo(model, {
         maybeEndDate: () => Option.none(),
         startDate: DatePicker.reflectMaxDate(Option.none()),
       }),
-      [],
-    ],
+    }),
   }),
 )
 
@@ -151,41 +143,33 @@ const foldEndDate = Update.foldChild({
   read: (model: Model) => Option.some(model.endDate),
   write: (model, nextEndDate) => evo(model, { endDate: () => nextEndDate }),
   toParentMessage: message => Message.GotEndDateMessage({ message }),
-  toParentOutMessage: () => Option.none(),
+  toParentOutMessage: () => undefined,
   foldOutMessage: foldEndDateOutMessage,
 })
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    UpdatedCompany: ({ value }) => [
-      evo(model, { company: () => validateCompany(value) }),
-      [],
-      Option.none(),
-    ],
+    UpdatedCompany: ({ value }) => ({
+      model: evo(model, { company: () => validateCompany(value) }),
+    }),
 
-    UpdatedTitle: ({ value }) => [
-      evo(model, { title: () => validateTitle(value) }),
-      [],
-      Option.none(),
-    ],
+    UpdatedTitle: ({ value }) => ({
+      model: evo(model, { title: () => validateTitle(value) }),
+    }),
 
     GotStartDateMessage: ({ message }) => foldStartDate(model, message),
 
     GotEndDateMessage: ({ message }) => foldEndDate(model, message),
 
-    ToggledCurrentlyEmployed: ({ isChecked }) => [
-      evo(model, { isCurrentlyEmployed: () => isChecked }),
-      [],
-      Option.none(),
-    ],
+    ToggledCurrentlyEmployed: ({ isChecked }) => ({
+      model: evo(model, { isCurrentlyEmployed: () => isChecked }),
+    }),
 
-    UpdatedDescription: ({ value }) => [
-      evo(model, { description: () => value }),
-      [],
-      Option.none(),
-    ],
+    UpdatedDescription: ({ value }) => ({
+      model: evo(model, { description: () => value }),
+    }),
 
-    ClickedRemoveSelf: () => [model, [], Option.some(OutMessage.Removed())],
+    ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
   })
 
 // VALIDATION SUMMARY

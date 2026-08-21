@@ -136,7 +136,7 @@ const grid = Scene.role('grid')
 const hiddenInput = Scene.selector('input[type="hidden"]')
 
 const closedModel = init({ id: 'picker', today })
-const [openModel] = update(closedModel, Message.Opened())
+const updateResult = update(closedModel, Message.Opened())
 
 describe('DatePicker', () => {
   describe('rendering', () => {
@@ -181,7 +181,7 @@ describe('DatePicker', () => {
     it('renders the calendar grid inside the popover panel when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(openModel),
+        Scene.given(updateResult.model),
         Scene.expect(panel).toExist(),
         Scene.expect(grid).toExist(),
         acknowledgeAnchorPopover,
@@ -194,7 +194,7 @@ describe('DatePicker', () => {
     it('does not put tabindex on the popover panel when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(openModel),
+        Scene.given(updateResult.model),
         Scene.expect(panel).not.toHaveAttr('tabIndex'),
         acknowledgeAnchorPopover,
         acknowledgePopoverBackdrop,
@@ -204,7 +204,7 @@ describe('DatePicker', () => {
     it('does not attach a blur handler to the popover panel when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(openModel),
+        Scene.given(updateResult.model),
         Scene.expect(panel).not.toHaveHandler('blur'),
         acknowledgeAnchorPopover,
         acknowledgePopoverBackdrop,
@@ -217,7 +217,7 @@ describe('DatePicker', () => {
       // Removing this while retaining contentFocus would break Escape-to-close.
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(openModel),
+        Scene.given(updateResult.model),
         Scene.expect(panel).toHaveHandler('keydown'),
         acknowledgeAnchorPopover,
         acknowledgePopoverBackdrop,

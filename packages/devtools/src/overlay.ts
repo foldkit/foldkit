@@ -19,6 +19,7 @@ import {
   pipe,
 } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
+import { type Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import {
   type CommandRecord,
@@ -323,7 +324,7 @@ const collapsedPreview = (value: unknown): string =>
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 class StoreService extends Context.Service<StoreService, DevToolsStore>()(
   'foldkit/DevToolsStore',
@@ -494,319 +495,325 @@ const makeUpdate = (
   const inspectState = (index: number) =>
     Command.mapEffect(InspectState({ index }), provideContext)
 
-  return (model: Model, message: Message): UpdateReturn =>
-    M.value(message).pipe(
-      M.withReturnType<UpdateReturn>(),
-      M.tags({
-        ClickedToggle: () => {
-          const nextIsOpen = !model.isOpen
-          return [
-            evo(model, { isOpen: () => nextIsOpen }),
-            [
-              ...Option.toArray(
-                maybeToggleScrollLock(model.isMobile, nextIsOpen),
-              ),
-              PersistDevToolsState({
-                isOpen: nextIsOpen,
-                isFlattened: model.isFlattened,
-              }),
-            ],
-          ]
-        },
-        ClickedSettingsToggle: () => [
-          evo(model, {
-            screen: currentScreen =>
-              M.value(currentScreen).pipe(
-                M.withReturnType<Screen>(),
-                M.when('Messages', () => 'Settings'),
-                M.when('Settings', () => 'Messages'),
-                M.exhaustive,
-              ),
-          }),
-          [],
-        ],
-        ToggledFlatten: ({ isFlattened }) => [
-          evo(model, { isFlattened: () => isFlattened }),
-          [PersistDevToolsState({ isOpen: model.isOpen, isFlattened })],
-        ],
-        CrossedMobileBreakpoint: ({ isMobile }) => [
-          evo(model, { isMobile: () => isMobile }),
-          Option.toArray(maybeToggleScrollLock(model.isOpen, isMobile)),
-        ],
-        ClickedRow: ({ index }) =>
-          M.value(mode).pipe(
-            M.withReturnType<
-              [Model, ReadonlyArray<Command.Command<Message>>]
-            >(),
-            M.when('TimeTravel', () => [model, [jumpToAndInspect(index)]]),
-            M.when('Inspect', () => [
-              evo(model, {
-                selectedIndex: () => index,
-                isFollowingLatest: () => false,
-              }),
-              [inspectState(index)],
-            ]),
-            M.exhaustive,
-          ),
-        ClickedResume: () => [
-          evo(model, {
-            isFollowingTop: () => true,
-            expandedPaths: () => HashSet.empty<string>(),
-            changedPaths: () => HashSet.empty<string>(),
-            affectedPaths: () => HashSet.empty<string>(),
-          }),
-          [resume, inspectLatest, scrollToTop],
-        ],
-        ClickedClear: () => [
-          evo(model, {
-            selectedIndex: () => INIT_INDEX,
+  return (model: Model, message: Message) =>
+    Message.match<UpdateReturn>(message, {
+      ClickedToggle: () => {
+        const nextIsOpen = !model.isOpen
+        return {
+          model: evo(model, { isOpen: () => nextIsOpen }),
+          commands: [
+            ...Option.toArray(
+              maybeToggleScrollLock(model.isMobile, nextIsOpen),
+            ),
+            PersistDevToolsState({
+              isOpen: nextIsOpen,
+              isFlattened: model.isFlattened,
+            }),
+          ],
+        }
+      },
+      ClickedSettingsToggle: () => ({
+        model: evo(model, {
+          screen: currentScreen =>
+            M.value(currentScreen).pipe(
+              M.withReturnType<Screen>(),
+              M.when('Messages', () => 'Settings'),
+              M.when('Settings', () => 'Messages'),
+              M.exhaustive,
+            ),
+        }),
+      }),
+      ToggledFlatten: ({ isFlattened }) => ({
+        model: evo(model, { isFlattened: () => isFlattened }),
+        commands: [PersistDevToolsState({ isOpen: model.isOpen, isFlattened })],
+      }),
+      CrossedMobileBreakpoint: ({ isMobile }) => ({
+        model: evo(model, { isMobile: () => isMobile }),
+        commands: Option.toArray(maybeToggleScrollLock(model.isOpen, isMobile)),
+      }),
+      ClickedRow: ({ index }) =>
+        M.value(mode).pipe(
+          M.withReturnType<UpdateReturn>(),
+          M.when('TimeTravel', () => ({
+            model,
+            commands: [jumpToAndInspect(index)],
+          })),
+          M.when('Inspect', () => ({
+            model: evo(model, {
+              selectedIndex: () => index,
+              isFollowingLatest: () => false,
+            }),
+            commands: [inspectState(index)],
+          })),
+          M.exhaustive,
+        ),
+      ClickedResume: () => ({
+        model: evo(model, {
+          isFollowingTop: () => true,
+          expandedPaths: () => HashSet.empty<string>(),
+          changedPaths: () => HashSet.empty<string>(),
+          affectedPaths: () => HashSet.empty<string>(),
+        }),
+        commands: [resume, inspectLatest, scrollToTop],
+      }),
+      ClickedClear: () => ({
+        model: evo(model, {
+          selectedIndex: () => INIT_INDEX,
+          isFollowingLatest: () => true,
+          isFollowingTop: () => true,
+          maybeSubmodelFilter: () => Option.none(),
+          expandedPaths: () => HashSet.empty<string>(),
+          changedPaths: () => HashSet.empty<string>(),
+          affectedPaths: () => HashSet.empty<string>(),
+        }),
+        commands: [clear, inspectLatest, scrollToTop],
+      }),
+      ClickedFollowLatest: () => {
+        const latestIndex = Array_.match(model.entries, {
+          onEmpty: () => INIT_INDEX,
+          onNonEmpty: () => model.startIndex + model.entries.length - 1,
+        })
+
+        return {
+          model: evo(model, {
+            selectedIndex: () => latestIndex,
             isFollowingLatest: () => true,
             isFollowingTop: () => true,
-            maybeSubmodelFilter: () => Option.none(),
             expandedPaths: () => HashSet.empty<string>(),
             changedPaths: () => HashSet.empty<string>(),
             affectedPaths: () => HashSet.empty<string>(),
           }),
-          [clear, inspectLatest, scrollToTop],
-        ],
-        ClickedFollowLatest: () => {
-          const latestIndex = Array_.match(model.entries, {
-            onEmpty: () => INIT_INDEX,
-            onNonEmpty: () => model.startIndex + model.entries.length - 1,
-          })
-
-          return [
-            evo(model, {
-              selectedIndex: () => latestIndex,
-              isFollowingLatest: () => true,
-              isFollowingTop: () => true,
-              expandedPaths: () => HashSet.empty<string>(),
-              changedPaths: () => HashSet.empty<string>(),
-              affectedPaths: () => HashSet.empty<string>(),
-            }),
-            [inspectLatest, scrollToTop],
-          ]
-        },
-        ClickedScrollToTopPill: () => [
-          evo(model, {
-            isFollowingTop: () => true,
-          }),
-          [scrollToTop],
-        ],
-        ScrolledMessageList: ({ scrollTop }) => {
-          const isAtTop = scrollTop <= SCROLL_FOLLOW_THRESHOLD_PX
-          return isAtTop === model.isFollowingTop
-            ? [model, []]
-            : [evo(model, { isFollowingTop: () => isAtTop }), []]
-        },
-        ReceivedInspectedState: ({
-          model: inspectedModel,
-          maybeMessage,
-          changedPaths,
-          affectedPaths,
-        }) => [
-          evo(model, {
-            maybeInspectedModel: () => Option.some(inspectedModel),
-            maybeInspectedMessage: () => maybeMessage,
-            changedPaths: () => changedPaths,
-            affectedPaths: () => affectedPaths,
-          }),
-          [],
-        ],
-        GotInspectorTabsMessage: ({ message: tabsMessage }) => {
-          const [nextTabsModel, tabsCommands, maybeOutMessage] =
-            InspectorTabs.update(model.inspectorTabs, tabsMessage)
-
-          const nextActiveInspectorTab = Option.match(maybeOutMessage, {
-            onNone: () => model.activeInspectorTab,
-            onSome: M.type<Tabs.OutMessage<InspectorTab>>().pipe(
-              M.tagsExhaustive({
-                Selected: ({ value }) => value,
-              }),
-            ),
-          })
-
-          return [
-            evo(model, {
-              inspectorTabs: () => nextTabsModel,
-              activeInspectorTab: () => nextActiveInspectorTab,
-            }),
-            Command.mapMessages(tabsCommands, message =>
-              Message.GotInspectorTabsMessage({ message }),
-            ),
-          ]
-        },
-        ToggledTreeNode: ({ path }) => [
-          evo(model, {
-            expandedPaths: paths =>
-              HashSet.has(paths, path)
-                ? HashSet.remove(paths, path)
-                : HashSet.add(paths, path),
-          }),
-          [],
-        ],
-        ReceivedStoreUpdate: ({
-          entries,
-          initCommands,
-          initMountStarts,
-          startIndex,
-          isPaused,
-          pausedAtIndex,
-        }) => {
-          const shouldFollowSelection = M.value(mode).pipe(
-            M.when('TimeTravel', () => !isPaused),
-            M.when('Inspect', () => model.isFollowingLatest),
-            M.exhaustive,
-          )
-
-          const shouldFollowScroll = M.value(mode).pipe(
-            M.when('TimeTravel', () => !isPaused && model.isFollowingTop),
-            M.when('Inspect', () => model.isFollowingTop),
-            M.exhaustive,
-          )
-
-          const latestIndex = Array_.match(entries, {
-            onEmpty: () => INIT_INDEX,
-            onNonEmpty: () => startIndex + entries.length - 1,
-          })
-
-          const nextSubmodelTags = computeSubmodelTags(entries)
-          const isFilterStale = Option.exists(
-            model.maybeSubmodelFilter,
-            filterTag => !Array_.contains(nextSubmodelTags, filterTag),
-          )
-
-          const sliderMax = entries.length
-          const targetSliderValue = isPaused
-            ? hostIndexToSliderValue(pausedAtIndex, startIndex)
-            : sliderMax
-
-          return [
-            evo(model, {
-              entries: () => entries,
-              initCommands: () => initCommands,
-              initMountStarts: () => initMountStarts,
-              startIndex: () => startIndex,
-              isPaused: () => isPaused,
-              pausedAtIndex: () => pausedAtIndex,
-              submodelTags: () => nextSubmodelTags,
-              maybeSubmodelFilter: current =>
-                isFilterStale ? Option.none() : current,
-              selectedIndex: current =>
-                shouldFollowSelection ? latestIndex : current,
-              scrubberSlider: current =>
-                Slider.reflectRange(current, { min: 0, max: sliderMax }),
-              scrubberValue: current =>
-                M.value(model.scrubberSlider.dragState).pipe(
-                  M.tag('Dragging', () =>
-                    Slider.snapAndClamp(current, 0, sliderMax, 1),
-                  ),
-                  M.orElse(() =>
-                    Slider.snapAndClamp(targetSliderValue, 0, sliderMax, 1),
-                  ),
-                ),
-            }),
-            [
-              ...(shouldFollowSelection ? [inspectLatest] : []),
-              ...(shouldFollowScroll ? [scrollToTop] : []),
-            ],
-          ]
-        },
-        GotSubmodelFilterMessage: ({ message: listboxMessage }) => {
-          const [nextListboxModel, listboxCommands, maybeOutMessage] =
-            SubmodelFilterListbox.update(
-              model.submodelFilterListbox,
-              listboxMessage,
-            )
-          const mappedCommands = Command.mapMessages(listboxCommands, message =>
-            Message.GotSubmodelFilterMessage({ message }),
-          )
-
-          return Option.match(maybeOutMessage, {
-            onNone: (): UpdateReturn => [
-              evo(model, { submodelFilterListbox: () => nextListboxModel }),
-              mappedCommands,
-            ],
-            onSome: M.type<Listbox.OutMessage>().pipe(
-              M.withReturnType<UpdateReturn>(),
-              M.tagsExhaustive({
-                Selected: ({ value }) => [
-                  evo(model, {
-                    maybeSubmodelFilter: () =>
-                      Option.liftPredicate(value, String_.isNonEmpty),
-                    submodelFilterListbox: () => nextListboxModel,
-                  }),
-                  mappedCommands,
-                ],
-              }),
-            ),
-          })
-        },
-        GotScrubberSliderMessage: ({ message: sliderMessage }) => {
-          const [nextSlider, sliderCommands, maybeOutMessage] = Slider.update(
-            model.scrubberSlider,
-            sliderMessage,
-          )
-
-          const mappedSliderCommands = Command.mapMessages(
-            sliderCommands,
-            message => Message.GotScrubberSliderMessage({ message }),
-          )
-
-          // NOTE: the thumb tracks every pointermove (cheap, model-only via
-          // `nextSlider`), but the heavy jump-plus-inspect is coalesced to one
-          // navigation per animation frame. Each `ChangedValue` overwrites the
-          // pending host index; the `TickedScrubFrame` subscription flushes the
-          // latest on the next frame, so a fast drag can't enqueue jumps faster
-          // than they complete.
-          const nextMaybePendingScrubIndex = Option.match(maybeOutMessage, {
-            onNone: () => model.maybePendingScrubIndex,
-            onSome: M.type<Slider.OutMessage>().pipe(
-              M.tagsExhaustive({
-                ChangedValue: ({ value }) =>
-                  Option.some(sliderValueToHostIndex(value, model.startIndex)),
-              }),
-            ),
-          })
-
-          const nextScrubberValue = Option.match(maybeOutMessage, {
-            onNone: () => model.scrubberValue,
-            onSome: M.type<Slider.OutMessage>().pipe(
-              M.tagsExhaustive({
-                ChangedValue: ({ value }) => value,
-              }),
-            ),
-          })
-
-          return [
-            evo(model, {
-              scrubberSlider: () => nextSlider,
-              scrubberValue: () => nextScrubberValue,
-              maybePendingScrubIndex: () => nextMaybePendingScrubIndex,
-            }),
-            mappedSliderCommands,
-          ]
-        },
-        TickedScrubFrame: () =>
-          Option.match(model.maybePendingScrubIndex, {
-            onNone: (): UpdateReturn => [model, []],
-            onSome: (hostIndex): UpdateReturn => [
-              evo(model, { maybePendingScrubIndex: () => Option.none() }),
-              [jumpToAndInspect(hostIndex)],
-            ],
-          }),
+          commands: [inspectLatest, scrollToTop],
+        }
+      },
+      ClickedScrollToTopPill: () => ({
+        model: evo(model, {
+          isFollowingTop: () => true,
+        }),
+        commands: [scrollToTop],
       }),
-      M.tag(
-        'CompletedResume',
-        'CompletedClear',
-        'CompletedPersistDevToolsState',
-        'CompletedLockScroll',
-        'CompletedUnlockScroll',
-        'CompletedScrollToTop',
-        () => [model, []],
-      ),
-      M.exhaustive,
-    )
+      ScrolledMessageList: ({ scrollTop }) => {
+        const isAtTop = scrollTop <= SCROLL_FOLLOW_THRESHOLD_PX
+        return isAtTop === model.isFollowingTop
+          ? { model }
+          : { model: evo(model, { isFollowingTop: () => isAtTop }) }
+      },
+      ReceivedInspectedState: ({
+        model: inspectedModel,
+        maybeMessage,
+        changedPaths,
+        affectedPaths,
+      }) => ({
+        model: evo(model, {
+          maybeInspectedModel: () => Option.some(inspectedModel),
+          maybeInspectedMessage: () => maybeMessage,
+          changedPaths: () => changedPaths,
+          affectedPaths: () => affectedPaths,
+        }),
+      }),
+      GotInspectorTabsMessage: ({ message: tabsMessage }) => {
+        const tabsUpdate = InspectorTabs.update(
+          model.inspectorTabs,
+          tabsMessage,
+        )
+        const nextActiveInspectorTab =
+          tabsUpdate.outMessage === undefined
+            ? model.activeInspectorTab
+            : M.type<Tabs.OutMessage<InspectorTab>>().pipe(
+                M.tagsExhaustive({
+                  Selected: ({ value }) => value,
+                }),
+              )(tabsUpdate.outMessage)
+        const commands = Command.mapMessages(
+          tabsUpdate.commands ?? [],
+          message => Message.GotInspectorTabsMessage({ message }),
+        )
+
+        return {
+          model: evo(model, {
+            inspectorTabs: () => tabsUpdate.model,
+            activeInspectorTab: () => nextActiveInspectorTab,
+          }),
+          ...Array_.match(commands, {
+            onEmpty: () => ({}),
+            onNonEmpty: commands => ({ commands }),
+          }),
+        }
+      },
+      ToggledTreeNode: ({ path }) => ({
+        model: evo(model, {
+          expandedPaths: paths =>
+            HashSet.has(paths, path)
+              ? HashSet.remove(paths, path)
+              : HashSet.add(paths, path),
+        }),
+      }),
+      ReceivedStoreUpdate: ({
+        entries,
+        initCommands,
+        initMountStarts,
+        startIndex,
+        isPaused,
+        pausedAtIndex,
+      }) => {
+        const shouldFollowSelection = M.value(mode).pipe(
+          M.when('TimeTravel', () => !isPaused),
+          M.when('Inspect', () => model.isFollowingLatest),
+          M.exhaustive,
+        )
+
+        const shouldFollowScroll = M.value(mode).pipe(
+          M.when('TimeTravel', () => !isPaused && model.isFollowingTop),
+          M.when('Inspect', () => model.isFollowingTop),
+          M.exhaustive,
+        )
+
+        const latestIndex = Array_.match(entries, {
+          onEmpty: () => INIT_INDEX,
+          onNonEmpty: () => startIndex + entries.length - 1,
+        })
+
+        const nextSubmodelTags = computeSubmodelTags(entries)
+        const isFilterStale = Option.exists(
+          model.maybeSubmodelFilter,
+          filterTag => !Array_.contains(nextSubmodelTags, filterTag),
+        )
+
+        const sliderMax = entries.length
+        const targetSliderValue = isPaused
+          ? hostIndexToSliderValue(pausedAtIndex, startIndex)
+          : sliderMax
+
+        return {
+          model: evo(model, {
+            entries: () => entries,
+            initCommands: () => initCommands,
+            initMountStarts: () => initMountStarts,
+            startIndex: () => startIndex,
+            isPaused: () => isPaused,
+            pausedAtIndex: () => pausedAtIndex,
+            submodelTags: () => nextSubmodelTags,
+            maybeSubmodelFilter: current =>
+              isFilterStale ? Option.none() : current,
+            selectedIndex: current =>
+              shouldFollowSelection ? latestIndex : current,
+            scrubberSlider: current =>
+              Slider.reflectRange(current, { min: 0, max: sliderMax }),
+            scrubberValue: current =>
+              M.value(model.scrubberSlider.dragState).pipe(
+                M.tag('Dragging', () =>
+                  Slider.snapAndClamp(current, 0, sliderMax, 1),
+                ),
+                M.orElse(() =>
+                  Slider.snapAndClamp(targetSliderValue, 0, sliderMax, 1),
+                ),
+              ),
+          }),
+          commands: [
+            ...(shouldFollowSelection ? [inspectLatest] : []),
+            ...(shouldFollowScroll ? [scrollToTop] : []),
+          ],
+        }
+      },
+      GotSubmodelFilterMessage: ({ message: listboxMessage }) => {
+        const listboxUpdate = SubmodelFilterListbox.update(
+          model.submodelFilterListbox,
+          listboxMessage,
+        )
+        const mappedCommands = Command.mapMessages(
+          listboxUpdate.commands ?? [],
+          message => Message.GotSubmodelFilterMessage({ message }),
+        )
+        const updateResult: UpdateReturn = {
+          model: evo(model, {
+            submodelFilterListbox: () => listboxUpdate.model,
+          }),
+          ...Array_.match(mappedCommands, {
+            onEmpty: () => ({}),
+            onNonEmpty: commands => ({ commands }),
+          }),
+        }
+
+        if (listboxUpdate.outMessage === undefined) {
+          return updateResult
+        } else {
+          return Listbox.OutMessage.match<UpdateReturn>(
+            listboxUpdate.outMessage,
+            {
+              Selected: ({ value }) => ({
+                ...updateResult,
+                model: evo(updateResult.model, {
+                  maybeSubmodelFilter: () =>
+                    Option.liftPredicate(value, String_.isNonEmpty),
+                }),
+              }),
+            },
+          )
+        }
+      },
+      GotScrubberSliderMessage: ({ message: sliderMessage }) => {
+        const sliderUpdate = Slider.update(model.scrubberSlider, sliderMessage)
+
+        const mappedSliderCommands = Command.mapMessages(
+          sliderUpdate.commands ?? [],
+          message => Message.GotScrubberSliderMessage({ message }),
+        )
+
+        // NOTE: the thumb tracks every pointermove (cheap, model-only via
+        // `nextSlider`), but the heavy jump-plus-inspect is coalesced to one
+        // navigation per animation frame. Each `ChangedValue` overwrites the
+        // pending host index; the `TickedScrubFrame` subscription flushes the
+        // latest on the next frame, so a fast drag can't enqueue jumps faster
+        // than they complete.
+        const nextMaybePendingScrubIndex =
+          sliderUpdate.outMessage === undefined
+            ? model.maybePendingScrubIndex
+            : Slider.OutMessage.match<Option.Option<number>>(
+                sliderUpdate.outMessage,
+                {
+                  ChangedValue: ({ value }) =>
+                    Option.some(
+                      sliderValueToHostIndex(value, model.startIndex),
+                    ),
+                },
+              )
+
+        const nextScrubberValue =
+          sliderUpdate.outMessage === undefined
+            ? model.scrubberValue
+            : Slider.OutMessage.match<number>(sliderUpdate.outMessage, {
+                ChangedValue: ({ value }) => value,
+              })
+
+        return {
+          model: evo(model, {
+            scrubberSlider: () => sliderUpdate.model,
+            scrubberValue: () => nextScrubberValue,
+            maybePendingScrubIndex: () => nextMaybePendingScrubIndex,
+          }),
+          ...Array_.match(mappedSliderCommands, {
+            onEmpty: () => ({}),
+            onNonEmpty: commands => ({ commands }),
+          }),
+        }
+      },
+      TickedScrubFrame: () =>
+        Option.match(model.maybePendingScrubIndex, {
+          onNone: (): UpdateReturn => ({ model }),
+          onSome: (hostIndex): UpdateReturn => ({
+            model: evo(model, {
+              maybePendingScrubIndex: () => Option.none(),
+            }),
+            commands: [jumpToAndInspect(hostIndex)],
+          }),
+        }),
+      CompletedResume: () => ({ model }),
+      CompletedClear: () => ({ model }),
+      CompletedPersistDevToolsState: () => ({ model }),
+      CompletedLockScroll: () => ({ model }),
+      CompletedUnlockScroll: () => ({ model }),
+      CompletedScrollToTop: () => ({ model }),
+    })
 }
 
 // SUBSCRIPTION
@@ -2569,8 +2576,8 @@ export const createOverlay = (
         ? hostIndexToSliderValue(flags.pausedAtIndex, flags.startIndex)
         : sliderMax
 
-      return [
-        {
+      return {
+        model: {
           screen: 'Messages',
           ...displayFlags,
           isFlattened,
@@ -2603,8 +2610,8 @@ export const createOverlay = (
             1,
           ),
         },
-        Option.toArray(maybeLockScroll(flags.isOpen, flags.isMobile)),
-      ]
+        commands: Option.toArray(maybeLockScroll(flags.isOpen, flags.isMobile)),
+      }
     }
 
     const overlayRuntime = makeElement({

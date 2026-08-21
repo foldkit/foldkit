@@ -7,7 +7,10 @@ const foldLoginOutMessage = M.type<Login.OutMessage>().pipe(
   M.tagsExhaustive({
     SucceededLogin:
       ({ sessionId }) =>
-      () => [LoggedIn({ sessionId }), [SaveSession(sessionId)]],
+      () => ({
+        model: LoggedIn({ sessionId }),
+        commands: [SaveSession(sessionId)],
+      }),
   }),
 )
 
@@ -19,7 +22,9 @@ const foldLogin = Update.foldChild({
   foldOutMessage: foldLoginOutMessage,
 })
 
+type UpdateReturn = Update.Return<Model, Message>
+
 export const update = (model: Model, message: Message) =>
-  Message.match(message, {
+  Message.match<UpdateReturn>(message, {
     GotLoginMessage: ({ message }) => foldLogin(model, message),
   })

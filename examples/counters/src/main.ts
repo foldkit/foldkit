@@ -1,5 +1,5 @@
 import { Array, Option, Schema as S, pipe } from 'effect'
-import { Command, Runtime, Update } from 'foldkit'
+import { Runtime, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -54,34 +54,31 @@ const foldCounter = (id: string) =>
     toParentMessage: message => Message.GotCounterMessage({ id, message }),
   })
 
+type UpdateReturn = Update.Return<Model, Message>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      ClickedAddRow: () => [
-        evo(model, {
-          rows: Array.append({
-            id: `counter-${model.nextRowId}`,
-            counter: Counter.init,
-          }),
-          nextRowId: nextRowId => nextRowId + 1,
+  Message.match<UpdateReturn>(message, {
+    ClickedAddRow: () => ({
+      model: evo(model, {
+        rows: Array.append({
+          id: `counter-${model.nextRowId}`,
+          counter: Counter.init,
         }),
-        [],
-      ],
-      ClickedRemoveRow: ({ id }) => [
-        evo(model, {
-          rows: Array.filter(row => row.id !== id),
-        }),
-        [],
-      ],
-      GotCounterMessage: ({ id, message }) => foldCounter(id)(model, message),
-    },
-  )
+        nextRowId: nextRowId => nextRowId + 1,
+      }),
+    }),
+    ClickedRemoveRow: ({ id }) => ({
+      model: evo(model, {
+        rows: Array.filter(row => row.id !== id),
+      }),
+    }),
+    GotCounterMessage: ({ id, message }) => foldCounter(id)(model, message),
+  })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     rows: [
       { id: 'counter-0', counter: Counter.init },
       { id: 'counter-1', counter: Counter.init },
@@ -89,8 +86,7 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => [
     ],
     nextRowId: 3,
   },
-  [],
-]
+})
 
 // VIEW
 

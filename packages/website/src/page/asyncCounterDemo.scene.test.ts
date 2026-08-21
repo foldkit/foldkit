@@ -10,7 +10,7 @@ import {
   view,
 } from './asyncCounterDemo'
 
-const [initialModel] = init()
+const initResult = init()
 
 const INCREMENT_PHASE_STEPS = 3
 const DURATION_PHASE_STEPS = 3
@@ -28,7 +28,7 @@ describe('async counter demo view', () => {
   test('Add 1 renders the new count', () => {
     scene(
       { update, view },
-      given(initialModel),
+      given(initResult.model),
       expect(text('0')).toExist(),
       click(role('button', { name: 'Add 1' })),
       expect(text('1')).toExist(),
@@ -40,7 +40,7 @@ describe('async counter demo view', () => {
   test('the reset button reports the delay and disables while resetting', () => {
     scene(
       { update, view },
-      given(initialModel),
+      given(initResult.model),
       expect(role('button', { name: 'Reset after 2 seconds' })).toExist(),
       click(role('button', { name: 'Reset after 2 seconds' })),
       expect(role('button', { name: 'Resetting...' })).toExist(),
@@ -52,7 +52,7 @@ describe('async counter demo view', () => {
   test('a reset renders its way back to zero', () => {
     scene(
       { update, view },
-      given(initialModel),
+      given(initResult.model),
       click(role('button', { name: 'Add 1' })),
       ...advancePhases(INCREMENT_PHASE_STEPS, 1),
       expect(text('1')).toExist(),
@@ -65,7 +65,7 @@ describe('async counter demo view', () => {
   test('Add 1 and the stepper are disabled while a reset is in flight', () => {
     scene(
       { update, view },
-      given(initialModel),
+      given(initResult.model),
       expect(role('button', { name: 'Add 1', disabled: false })).toExist(),
       click(role('button', { name: 'Reset after 2 seconds' })),
       expect(role('button', { name: 'Add 1', disabled: true })).toExist(),
@@ -86,7 +86,7 @@ describe('async counter demo view', () => {
   test('the stepper raises the delay the reset button reports', () => {
     scene(
       { update, view },
-      given(initialModel),
+      given(initResult.model),
       click(role('button', { name: 'Increase reset delay' })),
       expect(role('button', { name: 'Reset after 3 seconds' })).toExist(),
       ...advancePhases(DURATION_PHASE_STEPS, 1),
@@ -99,7 +99,7 @@ describe('async counter demo view', () => {
   test('the stepper stops at the low end of the allowed range', () => {
     scene(
       { update, view },
-      given({ ...initialModel, resetDuration: 1 }),
+      given({ ...initResult.model, resetDuration: 1 }),
       expect(
         role('button', { name: 'Decrease reset delay', disabled: true }),
       ).toExist(),
@@ -116,7 +116,7 @@ describe('async counter demo view', () => {
   test('the stepper stops at the high end of the allowed range', () => {
     scene(
       { update, view },
-      given({ ...initialModel, resetDuration: 5 }),
+      given({ ...initResult.model, resetDuration: 5 }),
       expect(
         role('button', { name: 'Increase reset delay', disabled: true }),
       ).toExist(),
@@ -133,7 +133,7 @@ describe('async counter demo view', () => {
   test('the delay is shown as text, not an editable field', () => {
     scene(
       { update, view },
-      given({ ...initialModel, resetDuration: 4 }),
+      given({ ...initResult.model, resetDuration: 4 }),
       expect(role('spinbutton')).not.toExist(),
       expect(role('textbox')).not.toExist(),
       expect(role('group', { name: 'Reset Delay (seconds)' })).toExist(),

@@ -119,13 +119,13 @@ describe('Slider', () => {
 
   describe('state attributes', () => {
     it('marks the root, track, and thumb with data-dragging while Dragging', () => {
-      const [draggingModel] = update(
+      const updateResult = update(
         defaultModel,
         Message.PressedThumb({ originValue: 5 }),
       )
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(draggingModel),
+        Scene.given(updateResult.model),
         Scene.expect(root).toHaveAttr('data-dragging', ''),
         Scene.expect(track).toHaveAttr('data-dragging', ''),
         Scene.expect(thumb).toHaveAttr('data-dragging', ''),

@@ -1,6 +1,6 @@
 import { Array, Effect, Match as M, Option, Schema as S, String } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
-import { AsyncData, Command, Http, Runtime } from 'foldkit'
+import { AsyncData, Command, Http, Runtime, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -39,54 +39,49 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
+type UpdateReturn = Update.Return<Model, Message>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      UpdatedZipCodeInput: ({ value }) => [
-        evo(model, {
-          zipCodeInput: () => value,
-        }),
-        [],
-      ],
+  Message.match<UpdateReturn>(message, {
+    UpdatedZipCodeInput: ({ value }) => ({
+      model: evo(model, {
+        zipCodeInput: () => value,
+      }),
+    }),
 
-      SubmittedWeatherForm: () => {
-        if (AsyncData.isPending(model.weather)) {
-          return [model, []]
-        }
-        return [
-          evo(model, {
-            weather: () => WeatherAsyncData.Loading(),
-          }),
-          [FetchWeather({ zipCode: model.zipCodeInput })],
-        ]
-      },
-
-      SucceededFetchWeather: ({ weather }) => [
-        evo(model, {
-          weather: () => WeatherAsyncData.Success({ data: weather }),
+    SubmittedWeatherForm: () => {
+      if (AsyncData.isPending(model.weather)) {
+        return { model }
+      }
+      return {
+        model: evo(model, {
+          weather: () => WeatherAsyncData.Loading(),
         }),
-        [],
-      ],
-
-      FailedFetchWeather: ({ error }) => [
-        evo(model, {
-          weather: () => WeatherAsyncData.Failure({ error }),
-        }),
-        [],
-      ],
+        commands: [FetchWeather({ zipCode: model.zipCodeInput })],
+      }
     },
-  )
+
+    SucceededFetchWeather: ({ weather }) => ({
+      model: evo(model, {
+        weather: () => WeatherAsyncData.Success({ data: weather }),
+      }),
+    }),
+
+    FailedFetchWeather: ({ error }) => ({
+      model: evo(model, {
+        weather: () => WeatherAsyncData.Failure({ error }),
+      }),
+    }),
+  })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     zipCodeInput: '',
     weather: WeatherAsyncData.Idle(),
   },
-  [],
-]
+})
 
 // COMMAND
 

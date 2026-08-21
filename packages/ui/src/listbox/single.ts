@@ -1,4 +1,5 @@
 import { Option, Schema as S } from 'effect'
+import { type Update } from 'foldkit'
 import type * as Command from 'foldkit/command'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
@@ -35,10 +36,7 @@ export const init = (config: InitConfig): Model => baseInit(config)
 
 /** Processes a listbox message and returns the next model, commands, and optional OutMessage. Closes the listbox on selection (single-select behavior); emits a `Selected({ value })` OutMessage the parent stores as the selection. */
 export const update = makeUpdate<Model>((model, item, context) =>
-  context.closeWithFocus(
-    model,
-    Option.some(OutMessage.Selected({ value: item })),
-  ),
+  context.closeWithFocus(model, OutMessage.Selected({ value: item })),
 )
 
 type UpdateReturn = ReturnType<typeof update>
@@ -105,33 +103,29 @@ export type Bundle<
   update: (
     model: Model,
     message: Message,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
+  ) => Readonly<{
+    model: Model
+    commands?: ReadonlyArray<Command.Command<Message>>
+    outMessage?: OutMessage<Value>
+  }>
   selectItem: (
     model: Model,
     item: Value,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
-  open: (
-    model: Model,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
-  close: (
-    model: Model,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
+  ) => Readonly<{
+    model: Model
+    commands?: ReadonlyArray<Command.Command<Message>>
+    outMessage?: OutMessage<Value>
+  }>
+  open: (model: Model) => Readonly<{
+    model: Model
+    commands?: ReadonlyArray<Command.Command<Message>>
+    outMessage?: OutMessage<Value>
+  }>
+  close: (model: Model) => Readonly<{
+    model: Model
+    commands?: ReadonlyArray<Command.Command<Message>>
+    outMessage?: OutMessage<Value>
+  }>
 }>
 
 /** Pairs the single-select listbox's `view` and `update` (and programmatic
@@ -146,8 +140,8 @@ export type Bundle<
  *  h.submodel({ view: ColorListbox.view, ... })
  *
  *  // In update:
- *  const [next, commands, maybeOutMessage] = ColorListbox.update(model, message)
- *  // maybeOutMessage: Option<Listbox.OutMessage<Color>>
+ *  const colorListboxUpdate = ColorListbox.update(model, message)
+ *  // colorListboxUpdate.outMessage: Listbox.OutMessage<Color> | undefined
  *  ```
  *
  *  Two type params support object-typed items with an `itemToValue`
@@ -158,11 +152,11 @@ export const create = <
   Item = string,
   Value extends string = Item extends string ? Item : string,
 >(): Bundle<Item, Value> => {
-  type UpdateReturn = readonly [
+  type UpdateReturn = Update.ReturnWithOutMessage<
     Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
+    Message,
+    OutMessage<Value>
+  >
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const typedUpdate = update as (model: Model, message: Message) => UpdateReturn
   const view =

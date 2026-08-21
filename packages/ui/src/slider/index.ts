@@ -9,7 +9,7 @@ import {
   String as String_,
   pipe,
 } from 'effect'
-import type { Command } from 'foldkit/command'
+import { type Update } from 'foldkit'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -180,20 +180,23 @@ const nextValueForDirection = (
 
 // UPDATE
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command<Message>>,
-  Option.Option<OutMessage>,
-]
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-const changedValueOption = (
+const withChangedValue = (
+  model: Model,
   currentValue: number,
   nextValue: number,
-): Option.Option<OutMessage> =>
-  nextValue === currentValue
-    ? Option.none()
-    : Option.some(OutMessage.ChangedValue({ value: nextValue }))
+): UpdateReturn => {
+  if (nextValue === currentValue) {
+    return { model }
+  } else {
+    return {
+      model,
+      outMessage: OutMessage.ChangedValue({ value: nextValue }),
+    }
+  }
+}
 
 /** Processes a slider message and returns the next model, commands, and an
  *  optional out-message for the parent. The value lives in the parent Model:
@@ -204,12 +207,10 @@ export const update = (model: Model, message: Message) =>
     PressedThumb: ({ originValue }) =>
       M.value(model.dragState).pipe(
         withUpdateReturn,
-        M.tag('Dragging', () => [model, [], Option.none()]),
-        M.orElse(() => [
-          evo(model, { dragState: () => Dragging({ originValue }) }),
-          [],
-          Option.none(),
-        ]),
+        M.tag('Dragging', () => ({ model })),
+        M.orElse(() => ({
+          model: evo(model, { dragState: () => Dragging({ originValue }) }),
+        })),
       ),
 
     // NOTE: the pointerdown event on the thumb bubbles to the track, so a
@@ -221,58 +222,51 @@ export const update = (model: Model, message: Message) =>
     PressedPointer: ({ value, originValue }) =>
       M.value(model.dragState).pipe(
         withUpdateReturn,
-        M.tag('Dragging', () => [model, [], Option.none()]),
+        M.tag('Dragging', () => ({ model })),
         M.orElse(() => {
           const snapped = snapAndClamp(value, model.min, model.max, model.step)
-          return [
+          return withChangedValue(
             evo(model, { dragState: () => Dragging({ originValue }) }),
-            [],
-            changedValueOption(originValue, snapped),
-          ]
+            originValue,
+            snapped,
+          )
         }),
       ),
 
     MovedDragPointer: ({ value }) =>
       M.value(model.dragState).pipe(
         withUpdateReturn,
-        M.tag('Dragging', () => [
+        M.tag('Dragging', () => ({
           model,
-          [],
-          Option.some(
-            OutMessage.ChangedValue({
-              value: snapAndClamp(value, model.min, model.max, model.step),
-            }),
-          ),
-        ]),
-        M.orElse(() => [model, [], Option.none()]),
+          outMessage: OutMessage.ChangedValue({
+            value: snapAndClamp(value, model.min, model.max, model.step),
+          }),
+        })),
+        M.orElse(() => ({ model })),
       ),
 
     ReleasedDragPointer: () =>
       M.value(model.dragState).pipe(
         withUpdateReturn,
-        M.tag('Dragging', () => [
-          evo(model, { dragState: () => Idle() }),
-          [],
-          Option.none(),
-        ]),
-        M.orElse(() => [model, [], Option.none()]),
+        M.tag('Dragging', () => ({
+          model: evo(model, { dragState: () => Idle() }),
+        })),
+        M.orElse(() => ({ model })),
       ),
 
     CancelledDrag: () =>
       M.value(model.dragState).pipe(
         withUpdateReturn,
-        M.tag('Dragging', ({ originValue }) => [
-          evo(model, { dragState: () => Idle() }),
-          [],
-          Option.some(OutMessage.ChangedValue({ value: originValue })),
-        ]),
-        M.orElse(() => [model, [], Option.none()]),
+        M.tag('Dragging', ({ originValue }) => ({
+          model: evo(model, { dragState: () => Idle() }),
+          outMessage: OutMessage.ChangedValue({ value: originValue }),
+        })),
+        M.orElse(() => ({ model })),
       ),
 
-    PressedKeyboardNavigation: ({ direction, value }) => [
-      model,
-      [],
-      changedValueOption(
+    PressedKeyboardNavigation: ({ direction, value }) =>
+      withChangedValue(
+        model,
         value,
         nextValueForDirection(
           value,
@@ -282,7 +276,6 @@ export const update = (model: Model, message: Message) =>
           direction,
         ),
       ),
-    ],
   })
 
 /** Reflects an externally-driven range onto the slider. Use this when min/max

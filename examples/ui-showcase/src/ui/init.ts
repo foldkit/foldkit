@@ -25,8 +25,12 @@ import { Toast } from './toast'
 
 export const uiInit = (
   today: Calendar.CalendarDate,
-): [UiModel, ReadonlyArray<Command.Command<UiMessage>>] => [
-  {
+): Readonly<{
+  model: UiModel
+  commands?: ReadonlyArray<Command.Command<UiMessage>>
+  outMessage?: never
+}> => ({
+  model: {
     mobileMenuDialog: Dialog.init({ id: 'mobile-menu' }),
     buttonClickCount: 0,
     inputDemoValue: '',
@@ -181,5 +185,4 @@ export const uiInit = (
       rowHeightPx: 56,
     }),
   },
-  [],
-]
+})

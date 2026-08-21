@@ -30,13 +30,20 @@ export const initialModel: Model = {
 
 // UPDATE
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<never>
+  outMessage?: never
+}>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<never>]>(message, {
-    PressedKey: ({ key }) => [{ ...model, lastKey: key, isShifted: false }, []],
-    PressedShiftKey: ({ key }) => [
-      { ...model, lastKey: key, isShifted: true },
-      [],
-    ],
+  Message.match<UpdateReturn>(message, {
+    PressedKey: ({ key }) => ({
+      model: { ...model, lastKey: key, isShifted: false },
+    }),
+    PressedShiftKey: ({ key }) => ({
+      model: { ...model, lastKey: key, isShifted: true },
+    }),
   })
 
 // VIEW

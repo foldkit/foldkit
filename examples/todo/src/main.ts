@@ -10,7 +10,7 @@ import {
   String,
 } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
-import { Command, Runtime } from 'foldkit'
+import { Command, Runtime, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -88,198 +88,190 @@ export type Flags = typeof Flags.Type
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
+  model: {
     todos: Option.getOrElse(flags.todos, () => []),
     newTodoText: '',
     filter: 'All',
     editing: NotEditing(),
   },
-  [],
-]
+})
 
 // UPDATE
 
+type UpdateReturn = Update.Return<Model, Message>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      UpdatedNewTodo: ({ text }) => [
-        evo(model, {
-          newTodoText: () => text,
-        }),
-        [],
-      ],
+  Message.match<UpdateReturn>(message, {
+    UpdatedNewTodo: ({ text }) => ({
+      model: evo(model, {
+        newTodoText: () => text,
+      }),
+    }),
 
-      UpdatedEditingTodo: ({ text }) => [
-        evo(model, {
+    UpdatedEditingTodo: ({ text }) => ({
+      model: evo(model, {
+        editing: () =>
+          M.value(model.editing).pipe(
+            M.tagsExhaustive({
+              NotEditing: () => model.editing,
+              Editing: ({ id }) => Editing({ id, text }),
+            }),
+          ),
+      }),
+    }),
+
+    AddedTodo: () => {
+      if (String.isEmpty(String.trim(model.newTodoText))) {
+        return { model }
+      }
+
+      return {
+        model,
+        commands: [GenerateTodo({ text: String.trim(model.newTodoText) })],
+      }
+    },
+
+    CompletedGenerateTodo: ({ id, timestamp, text }) => {
+      const newTodo: Todo = {
+        id,
+        text,
+        completed: false,
+        createdAt: timestamp,
+      }
+
+      const updatedTodos = [...model.todos, newTodo]
+
+      return {
+        model: evo(model, {
+          todos: () => updatedTodos,
+          newTodoText: () => '',
+        }),
+        commands: [SaveTodos({ todos: updatedTodos })],
+      }
+    },
+
+    DeletedTodo: ({ id }) => {
+      const updatedTodos = Array.filter(model.todos, todo => todo.id !== id)
+
+      return {
+        model: evo(model, {
+          todos: () => updatedTodos,
+        }),
+        commands: [SaveTodos({ todos: updatedTodos })],
+      }
+    },
+
+    ToggledTodo: ({ id }) => {
+      const updatedTodos = Array.map(model.todos, todo =>
+        todo.id === id
+          ? evo(todo, { completed: completed => !completed })
+          : todo,
+      )
+
+      return {
+        model: evo(model, {
+          todos: () => updatedTodos,
+        }),
+        commands: [SaveTodos({ todos: updatedTodos })],
+      }
+    },
+
+    StartedEditing: ({ id }) => {
+      const maybeTodo = Array.findFirst(model.todos, todo => todo.id === id)
+      return {
+        model: evo(model, {
           editing: () =>
-            M.value(model.editing).pipe(
-              M.tagsExhaustive({
-                NotEditing: () => model.editing,
-                Editing: ({ id }) => Editing({ id, text }),
+            Editing({
+              id,
+              text: Option.match(maybeTodo, {
+                onNone: () => '',
+                onSome: todo => todo.text,
               }),
-            ),
+            }),
         }),
-        [],
-      ],
+      }
+    },
 
-      AddedTodo: () => {
-        if (String.isEmpty(String.trim(model.newTodoText))) {
-          return [model, []]
-        }
+    SavedEdit: () =>
+      M.value(model.editing).pipe(
+        M.withReturnType<UpdateReturn>(),
+        M.tagsExhaustive({
+          NotEditing: () => ({ model }),
 
-        return [model, [GenerateTodo({ text: String.trim(model.newTodoText) })]]
-      },
-
-      CompletedGenerateTodo: ({ id, timestamp, text }) => {
-        const newTodo: Todo = {
-          id,
-          text,
-          completed: false,
-          createdAt: timestamp,
-        }
-
-        const updatedTodos = [...model.todos, newTodo]
-
-        return [
-          evo(model, {
-            todos: () => updatedTodos,
-            newTodoText: () => '',
-          }),
-          [SaveTodos({ todos: updatedTodos })],
-        ]
-      },
-
-      DeletedTodo: ({ id }) => {
-        const updatedTodos = Array.filter(model.todos, todo => todo.id !== id)
-
-        return [
-          evo(model, {
-            todos: () => updatedTodos,
-          }),
-          [SaveTodos({ todos: updatedTodos })],
-        ]
-      },
-
-      ToggledTodo: ({ id }) => {
-        const updatedTodos = Array.map(model.todos, todo =>
-          todo.id === id
-            ? evo(todo, { completed: completed => !completed })
-            : todo,
-        )
-
-        return [
-          evo(model, {
-            todos: () => updatedTodos,
-          }),
-          [SaveTodos({ todos: updatedTodos })],
-        ]
-      },
-
-      StartedEditing: ({ id }) => {
-        const maybeTodo = Array.findFirst(model.todos, todo => todo.id === id)
-        return [
-          evo(model, {
-            editing: () =>
-              Editing({
-                id,
-                text: Option.match(maybeTodo, {
-                  onNone: () => '',
-                  onSome: todo => todo.text,
-                }),
-              }),
-          }),
-          [],
-        ]
-      },
-
-      SavedEdit: () =>
-        M.value(model.editing).pipe(
-          M.withReturnType<
-            readonly [Model, ReadonlyArray<Command.Command<Message>>]
-          >(),
-          M.tagsExhaustive({
-            NotEditing: () => [model, []],
-
-            Editing: ({ id, text }) => {
-              if (String.isEmpty(String.trim(text))) {
-                return [
-                  evo(model, {
-                    editing: () => NotEditing(),
-                  }),
-                  [],
-                ]
-              }
-
-              const updatedTodos = Array.map(model.todos, todo =>
-                todo.id === id
-                  ? evo(todo, { text: () => String.trim(text) })
-                  : todo,
-              )
-
-              return [
-                evo(model, {
-                  todos: () => updatedTodos,
+          Editing: ({ id, text }) => {
+            if (String.isEmpty(String.trim(text))) {
+              return {
+                model: evo(model, {
                   editing: () => NotEditing(),
                 }),
-                [SaveTodos({ todos: updatedTodos })],
-              ]
-            },
-          }),
-        ),
+              }
+            }
 
-      CancelledEdit: () => [
-        evo(model, {
-          editing: () => NotEditing(),
+            const updatedTodos = Array.map(model.todos, todo =>
+              todo.id === id
+                ? evo(todo, { text: () => String.trim(text) })
+                : todo,
+            )
+
+            return {
+              model: evo(model, {
+                todos: () => updatedTodos,
+                editing: () => NotEditing(),
+              }),
+              commands: [SaveTodos({ todos: updatedTodos })],
+            }
+          },
         }),
-        [],
-      ],
+      ),
 
-      ToggledAll: () => {
-        const allCompleted = Array.every(model.todos, todo => todo.completed)
-        const updatedTodos = Array.map(model.todos, todo =>
-          evo(todo, {
-            completed: () => !allCompleted,
-          }),
-        )
+    CancelledEdit: () => ({
+      model: evo(model, {
+        editing: () => NotEditing(),
+      }),
+    }),
 
-        return [
-          evo(model, {
-            todos: () => updatedTodos,
-          }),
-          [SaveTodos({ todos: updatedTodos })],
-        ]
-      },
-
-      ClearedCompleted: () => {
-        const updatedTodos = Array.filter(model.todos, todo => !todo.completed)
-
-        return [
-          evo(model, {
-            todos: () => updatedTodos,
-          }),
-          [SaveTodos({ todos: updatedTodos })],
-        ]
-      },
-
-      SelectedFilter: ({ filter }) => [
-        evo(model, {
-          filter: () => filter,
+    ToggledAll: () => {
+      const allCompleted = Array.every(model.todos, todo => todo.completed)
+      const updatedTodos = Array.map(model.todos, todo =>
+        evo(todo, {
+          completed: () => !allCompleted,
         }),
-        [],
-      ],
+      )
 
-      SucceededSaveTodos: ({ todos }) => [
-        evo(model, {
-          todos: () => todos,
+      return {
+        model: evo(model, {
+          todos: () => updatedTodos,
         }),
-        [],
-      ],
-
-      FailedSaveTodos: () => [model, []],
+        commands: [SaveTodos({ todos: updatedTodos })],
+      }
     },
-  )
+
+    ClearedCompleted: () => {
+      const updatedTodos = Array.filter(model.todos, todo => !todo.completed)
+
+      return {
+        model: evo(model, {
+          todos: () => updatedTodos,
+        }),
+        commands: [SaveTodos({ todos: updatedTodos })],
+      }
+    },
+
+    SelectedFilter: ({ filter }) => ({
+      model: evo(model, {
+        filter: () => filter,
+      }),
+    }),
+
+    SucceededSaveTodos: ({ todos }) => ({
+      model: evo(model, {
+        todos: () => todos,
+      }),
+    }),
+
+    FailedSaveTodos: () => ({ model }),
+  })
 
 // COMMAND
 

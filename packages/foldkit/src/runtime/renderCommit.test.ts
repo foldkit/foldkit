@@ -143,17 +143,20 @@ const ProbeCommittedDom = Command.define('ProbeCommittedDom', {
   }),
 })
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command.Command<Message>>
+  outMessage?: never
+}>
+
 const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      ClickedTransition: () => [
-        { label: 'transitioned' },
-        [ProbeCommittedDom()],
-      ],
-      CompletedProbeCommittedDom: () => [model, []],
-    },
-  )
+  Message.match<UpdateReturn>(message, {
+    ClickedTransition: () => ({
+      model: { label: 'transitioned' },
+      commands: [ProbeCommittedDom()],
+    }),
+    CompletedProbeCommittedDom: () => ({ model }),
+  })
 
 describe('Render.afterCommit inside a View Transition', () => {
   let container: HTMLElement
@@ -174,7 +177,7 @@ describe('Render.afterCommit inside a View Transition', () => {
     Effect.runFork(
       makeElement({
         Model,
-        init: () => [{ label: 'initial' }, []],
+        init: () => ({ model: { label: 'initial' } }),
         update,
         view: model =>
           h.div(
@@ -282,7 +285,7 @@ describe('Render.afterCommit inside a View Transition', () => {
     const fiber = Effect.runFork(
       makeElement({
         Model,
-        init: () => [{ label: 'initial' }, []],
+        init: () => ({ model: { label: 'initial' } }),
         update,
         view: model =>
           h.div(
@@ -338,7 +341,7 @@ describe('a frame that abandons its render', () => {
     const fiber = Effect.runFork(
       makeElement({
         Model,
-        init: () => [{ label: 'initial' }, []],
+        init: () => ({ model: { label: 'initial' } }),
         update,
         view: model => {
           if (model.label === 'transitioned') {
@@ -384,7 +387,7 @@ describe('a frame that abandons its render', () => {
     const fiber = Effect.runFork(
       makeElement({
         Model,
-        init: () => [{ label: 'initial' }, []],
+        init: () => ({ model: { label: 'initial' } }),
         update,
         view: model =>
           h.div(

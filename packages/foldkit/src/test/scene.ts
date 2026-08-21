@@ -169,7 +169,7 @@ export type SceneSimulation<Model, Message, OutMessage = undefined> = Readonly<{
   _phantom: [Model, Message]
   commands: ReadonlyArray<AnyCommand>
   mounts: ReadonlyArray<PendingMount>
-  outMessage: OutMessage
+  outMessage: OutMessage | undefined
   html: VNode
 }>
 
@@ -219,8 +219,16 @@ type IgnoredInteraction = Readonly<{
 }>
 
 type UpdateResult<Model, OutMessage> =
-  | readonly [Model, ReadonlyArray<AnyCommand>]
-  | readonly [Model, ReadonlyArray<AnyCommand>, OutMessage]
+  | Readonly<{
+      model: Model
+      commands?: ReadonlyArray<AnyCommand>
+      outMessage?: never
+    }>
+  | Readonly<{
+      model: Model
+      commands?: ReadonlyArray<AnyCommand>
+      outMessage?: OutMessage
+    }>
 
 type MountStatus =
   | Readonly<{ _tag: 'Pending' }>
@@ -1008,15 +1016,14 @@ const applyExternalMessage = <Model, Message, OutMessage>(
 
   /* eslint-disable @typescript-eslint/consistent-type-assertions */
   const messageAsParent = message as unknown as Message
-  const result = internal.updateFn(internal.model, messageAsParent)
-  const [nextModel, commands] = result
-  const outMessage = result.length === 3 ? result[2] : internal.outMessage
+  const updateResult = internal.updateFn(internal.model, messageAsParent)
+  const outMessage = updateResult.outMessage
 
   return {
     ...internal,
-    model: nextModel,
+    model: updateResult.model,
     message: messageAsParent,
-    commands: Array.appendAll(internal.commands, commands),
+    commands: Array.appendAll(internal.commands, updateResult.commands ?? []),
     outMessage,
   } as unknown as SceneSimulation<Model, Message, OutMessage>
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
@@ -1321,53 +1328,34 @@ export const CustomElement = {
   emit: emitCustomElementEvent,
 } as const
 
-/** Asserts that the OutMessage is Some with the expected value.
- *
- *  The tracked OutMessage is the third element of the most recent update
- *  result that had one. An update branch that returns a two-tuple leaves
- *  the previous value latched in place, so keep every branch of an
- *  OutMessage-returning update on the three-tuple shape, returning
- *  `Option.none()` when there is nothing to report. */
+/** Asserts that update emitted the expected OutMessage. */
 export const expectOutMessage =
   <Expected>(expected: Expected) =>
   <Model, Message, OutMessage>(
-    simulation: SceneSimulation<Model, Message, Option.Option<OutMessage>>,
-  ): SceneSimulation<Model, Message, Option.Option<OutMessage>> => {
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
     const internal = toInternal(simulation)
     const outMessage = internal.outMessage
 
-    if (
-      !Option.isOption(outMessage) ||
-      Option.isNone(outMessage) ||
-      !Equal.equals(outMessage.value, expected)
-    ) {
+    if (outMessage === undefined || !Equal.equals(outMessage, expected)) {
       throw new Error(
-        `Expected OutMessage:\n\n    Some(${JSON.stringify(expected)})\n\nBut got:\n\n    ${JSON.stringify(outMessage)}`,
+        `Expected OutMessage:\n\n    ${JSON.stringify(expected)}\n\nBut got:\n\n    ${JSON.stringify(outMessage)}`,
       )
     }
 
     return simulation
   }
 
-/** Asserts that the OutMessage is None.
- *
- *  The tracked OutMessage is the third element of the most recent update
- *  result that had one. An update branch that returns a two-tuple leaves
- *  the previous value latched in place, so keep every branch of an
- *  OutMessage-returning update on the three-tuple shape, returning
- *  `Option.none()` when there is nothing to report. */
+/** Asserts that update emitted no OutMessage. */
 export const expectNoOutMessage =
   () =>
   <Model, Message, OutMessage>(
-    simulation: SceneSimulation<Model, Message, Option.Option<OutMessage>>,
-  ): SceneSimulation<Model, Message, Option.Option<OutMessage>> => {
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
     const internal = toInternal(simulation)
     const outMessage = internal.outMessage
 
-    if (
-      !Predicate.isUndefined(outMessage) &&
-      !(Option.isOption(outMessage) && Option.isNone(outMessage))
-    ) {
+    if (!Predicate.isUndefined(outMessage)) {
       throw new Error(
         `Expected no OutMessage but got:\n\n    ${JSON.stringify(outMessage)}`,
       )
@@ -2587,7 +2575,11 @@ export const scene: {
       update: (
         model: Model,
         message: Message,
-      ) => readonly [Model, ReadonlyArray<AnyCommand>, OutMessage]
+      ) => Readonly<{
+        model: Model
+        commands?: ReadonlyArray<AnyCommand>
+        outMessage?: OutMessage
+      }>
       view: (model: Model, h: HtmlBuilder<Message>) => Html | Document
     }>,
     ...steps: ReadonlyArray<SceneStep<Model, Message, OutMessage>>
@@ -2597,7 +2589,11 @@ export const scene: {
       update: (
         model: Model,
         message: Message,
-      ) => readonly [Model, ReadonlyArray<AnyCommand>]
+      ) => Readonly<{
+        model: Model
+        commands?: ReadonlyArray<AnyCommand>
+        outMessage?: never
+      }>
       view: (model: Model, h: HtmlBuilder<Message>) => Html | Document
     }>,
     ...steps: ReadonlyArray<SceneStep<Model, Message, undefined>>
@@ -2618,7 +2614,7 @@ export const scene: {
     commands: [],
     mounts: [],
     mountSlots: [],
-    outMessage: undefined as unknown,
+    outMessage: undefined,
     updateFn: config.update,
     resolvers: [],
     html: undefined as unknown,

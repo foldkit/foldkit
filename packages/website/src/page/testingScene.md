@@ -219,11 +219,11 @@ The target must be in the rendered tree with that event handler attached. A miss
 
 ## OutMessages
 
-When the update under test returns a Submodel's three-tuple, Scene tracks its `Option<OutMessage>`. `expectOutMessage(expected)` asserts `Some(expected)`. `expectNoOutMessage()` asserts `None`.
+When the update under test can return an OutMessage, Scene tracks the optional `outMessage` field. `expectOutMessage(expected)` asserts the emitted value. `expectNoOutMessage()` asserts that the field was absent.
 
 ::Snippet{name="sceneOutMessageAssertions" label="OutMessage assertions example"}
 
-Scene keeps the third element of the most recent update result that included one. A two-tuple branch leaves the previous OutMessage in place. Keep every branch of an OutMessage-returning update on the three-tuple shape, and return `Option.none()` when there is nothing to report.
+Scene replaces the tracked OutMessage after every update. A branch with no `outMessage` clears the previous value, so `expectNoOutMessage()` describes the current transition instead of inheriting an earlier result.
 
 ## Submodels with ViewInputs
 

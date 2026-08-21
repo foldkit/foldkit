@@ -1,5 +1,5 @@
 import { Array, Effect, Option, Schema as S } from 'effect'
-import { Command, Submodel } from 'foldkit'
+import { Command, Submodel, type Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { replaceUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
@@ -61,45 +61,37 @@ const ReplaceSearchUrl = Command.define('ReplaceSearchUrl', {
 
 // UPDATE
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    CompletedReplaceSearchUrl: () => [model, [], Option.none()],
+    CompletedReplaceSearchUrl: () => ({ model }),
 
-    ChangedSearchInput: ({ value }) => [
-      evo(model, { searchText: () => value }),
-      [
+    ChangedSearchInput: ({ value }) => ({
+      model: evo(model, { searchText: () => value }),
+      commands: [
         ReplaceSearchUrl({
           url: productsRouter({
             searchText: Option.fromNullishOr(value || null),
           }),
         }),
       ],
-      Option.none(),
-    ],
+    }),
 
-    ClickedAddToCart: ({ item }) => [
+    ClickedAddToCart: ({ item }) => ({
       model,
-      [],
-      Option.some(OutMessage.AddedToCart({ item })),
-    ],
+      outMessage: OutMessage.AddedToCart({ item }),
+    }),
 
-    ClickedIncrementQuantity: ({ itemId }) => [
+    ClickedIncrementQuantity: ({ itemId }) => ({
       model,
-      [],
-      Option.some(OutMessage.IncrementedQuantity({ itemId })),
-    ],
+      outMessage: OutMessage.IncrementedQuantity({ itemId }),
+    }),
 
-    ClickedDecrementQuantity: ({ itemId }) => [
+    ClickedDecrementQuantity: ({ itemId }) => ({
       model,
-      [],
-      Option.some(OutMessage.DecrementedQuantity({ itemId })),
-    ],
+      outMessage: OutMessage.DecrementedQuantity({ itemId }),
+    }),
   })
 
 // VIEW

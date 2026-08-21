@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest'
 
 import { DelayAdvancePhase, Message, init, update } from './asyncCounterDemo'
 
-const [initialModel] = init()
+const initResult = init()
 
 const INCREMENT_PHASE_STEPS = 3
 const DURATION_PHASE_STEPS = 3
@@ -25,7 +25,7 @@ describe('async counter demo', () => {
   test('Add 1 runs the increment animation and keeps the count', () => {
     story(
       update,
-      given(initialModel),
+      given(initResult.model),
       message(Message.ClickedDemoIncrement()),
       model(model => {
         expect(model.count).toBe(1)
@@ -44,7 +44,7 @@ describe('async counter demo', () => {
   test('a reset holds isResetting until the delay lands, then zeroes', () => {
     story(
       update,
-      given(initialModel),
+      given(initResult.model),
       message(Message.ClickedDemoIncrement()),
       Command.resolveAll(...advancePhases(INCREMENT_PHASE_STEPS, 1)),
       message(Message.ClickedDemoReset()),
@@ -65,7 +65,7 @@ describe('async counter demo', () => {
   test('changing the delay runs its own Message animation', () => {
     story(
       update,
-      given(initialModel),
+      given(initResult.model),
       message(Message.ChangedDemoResetDuration({ seconds: 4 })),
       model(model => {
         expect(model.resetDuration).toBe(4)
@@ -85,7 +85,7 @@ describe('async counter demo', () => {
   test('a delay below the allowed range is clamped before it reaches the Model', () => {
     story(
       update,
-      given(initialModel),
+      given(initResult.model),
       message(Message.ChangedDemoResetDuration({ seconds: 0 })),
       model(model => {
         expect(model.resetDuration).toBe(1)
@@ -97,7 +97,7 @@ describe('async counter demo', () => {
   test('a delay above the allowed range is clamped before it reaches the Model', () => {
     story(
       update,
-      given(initialModel),
+      given(initResult.model),
       message(Message.ChangedDemoResetDuration({ seconds: 99 })),
       model(model => {
         expect(model.resetDuration).toBe(5)
@@ -109,7 +109,7 @@ describe('async counter demo', () => {
   test('the reset Command waits the delay the Model reports', () => {
     story(
       update,
-      given(initialModel),
+      given(initResult.model),
       message(Message.ChangedDemoResetDuration({ seconds: 0 })),
       model(model => {
         expect(model.resetDuration).toBe(1)
@@ -139,7 +139,7 @@ describe('async counter demo', () => {
   test('a stale phase Message from a superseded interaction is ignored', () => {
     story(
       update,
-      given(initialModel),
+      given(initResult.model),
       message(Message.ClickedDemoIncrement()),
       Command.resolveAll(...advancePhases(INCREMENT_PHASE_STEPS, 1)),
       message(Message.ClickedDemoReset()),

@@ -7,7 +7,7 @@ import { Message } from './message'
 import { Ok } from './model'
 import { update } from './update'
 
-const [initialModel] = init()
+const initResult = init()
 
 const searchResults = [
   {
@@ -30,7 +30,7 @@ describe('search', () => {
   test('typing a query starts a search', () => {
     story(
       update,
-      given(initialModel),
+      given(initResult.model),
       message(Message.UpdatedSearchQuery({ query: 'routing' })),
       model(model => {
         expect(model.query).toBe('routing')
@@ -57,7 +57,7 @@ describe('search', () => {
   test('clearing the query resets to Idle', () => {
     story(
       update,
-      given({ ...initialModel, query: 'routing' }),
+      given({ ...initResult.model, query: 'routing' }),
       message(Message.UpdatedSearchQuery({ query: '' })),
       model(model => {
         expect(model.query).toBe('')
@@ -71,7 +71,7 @@ describe('search', () => {
   test('same query is ignored', () => {
     story(
       update,
-      given({ ...initialModel, query: 'routing' }),
+      given({ ...initResult.model, query: 'routing' }),
       message(Message.UpdatedSearchQuery({ query: 'routing' })),
       model(model => {
         expect(model.searchState._tag).toBe('Idle')
@@ -84,7 +84,7 @@ describe('search', () => {
     story(
       update,
       given({
-        ...initialModel,
+        ...initResult.model,
         query: 'routing',
         searchState: Ok({ results: searchResults }),
       }),
@@ -107,7 +107,7 @@ describe('search', () => {
   test('stale results are ignored', () => {
     story(
       update,
-      given({ ...initialModel, query: 'testing' }),
+      given({ ...initResult.model, query: 'testing' }),
       message(
         Message.CompletedFetchSearchResults({
           results: searchResults,
@@ -123,7 +123,7 @@ describe('search', () => {
   test('selecting a result navigates and resets', () => {
     story(
       update,
-      given(initialModel),
+      given(initResult.model),
       message(Message.SelectedSearchResult({ url: '/docs/commands' })),
       model(model => {
         expect(model.query).toBe('')
@@ -139,7 +139,7 @@ describe('search', () => {
 
   test('arrow keys cycle through results', () => {
     const modelWithResults = {
-      ...initialModel,
+      ...initResult.model,
       searchState: Ok({ results: searchResults }),
       activeResultIndex: 0,
     }
@@ -170,7 +170,7 @@ describe('search', () => {
     story(
       update,
       given({
-        ...initialModel,
+        ...initResult.model,
         query: 'routing',
         searchState: Ok({ results: searchResults }),
         activeResultIndex: 1,

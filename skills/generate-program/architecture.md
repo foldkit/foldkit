@@ -36,7 +36,7 @@ There are no escape hatches:
 
 - **Model** is the single source of truth: an Effect Schema struct
 - **Messages** are facts about what happened: past-tense, never imperative
-- **update** is a pure function: `(model, message) → [nextModel, commands]`
+- **update** is a pure function: `(model, message) → { model, commands? }`
 - **view** is a pure function: `(model, h) → Html`, where `h` is the builder the runtime supplies
 - **Commands** are the only place side effects happen. They return Messages
 
@@ -172,14 +172,14 @@ const update = (model: Model, message: Message) =>
   })
 ```
 
-`Update.ReturnWithOutMessage<Model, Message, OutMessage>` is the Submodel counterpart, adding the `Option<OutMessage>` third element.
+`Update.ReturnWithOutMessage<Model, Message, OutMessage>` is the Submodel counterpart, adding an optional `outMessage` field.
 
-The rule that matters is **name the alias once per file**. Several examples still spell the tuple out by hand (`type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]`) and that reads fine; `Update.Return` is the tidier spelling and the right default for new code. `Message.match<UpdateReturn>` constrains the whole function, so do not repeat `: UpdateReturn` on the update signature. Use `M.withReturnType<UpdateReturn>()` only when an Effect `Match` over some other tagged union inside a handler needs the same constraint.
+The rule that matters is **name the alias once per file**. `Update.Return` is the clearest spelling and the right default for new code. Its `outMessage?: never` guard prevents an OutMessage-bearing return from flowing into a plain update and being silently discarded. A hand-written plain-return alias is equivalent only when it includes that guard. `Message.match<UpdateReturn>` constrains the whole function, so do not repeat `: UpdateReturn` on the update signature. Use `M.withReturnType<UpdateReturn>()` only when an Effect `Match` over some other tagged union inside a handler needs the same constraint.
 
 The module also carries two combinators for handlers that fan out after a mutation succeeds:
 
 - `Update.combine(model, [step, step, ...])` sequences update steps over one Model, threading the Model through and collecting the Commands.
-- `Update.refresh({ read, revalidate, write, load })` builds a step that reloads a cache **only when it already holds data**. A cache sitting at `Idle` returns `[model, []]`. That one rule is what makes blanket revalidation safe: a `Succeeded*` handler can list every cache that might be affected without refetching ones nobody has looked at.
+- `Update.refresh({ read, revalidate, write, load })` builds a step that reloads a cache **only when it already holds data**. A cache sitting at `Idle` returns `{ model }`. That one rule is what makes blanket revalidation safe: a `Succeeded*` handler can list every cache that might be affected without refetching ones nobody has looked at.
 
 ```ts
 SucceededUpdateNote: ({ note }) =>
@@ -200,7 +200,7 @@ When the initial Model needs data from a side effect (current time, localStorage
 ```ts
 // WRONG: module-level side effect (stale on HMR, non-deterministic, untestable)
 const now = Date.now()
-const init = () => [{ createdAt: now }, []]
+const init = () => ({ model: { createdAt: now } })
 
 // RIGHT: Flags run as an Effect before init, result passed in
 const Flags = S.Struct({
@@ -212,10 +212,9 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   return Flags({ createdAt: now })
 })
 
-const init: Runtime.ApplicationInit<Model, Message, Flags> = (flags) => [
-  { createdAt: flags.createdAt },
-  [],
-]
+const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
+  model: { createdAt: flags.createdAt },
+})
 ```
 
 For a fresh browser boot, Flags are produced by an `Effect<Flags>`. The runtime executes it once before init and passes the result in. This keeps init pure while still allowing side effects to populate the initial Model. Common uses:
@@ -249,41 +248,45 @@ When a module grows too large, extract a Submodel: a child module with its own M
 ### Communication
 
 Parent → Child: the parent calls the child's update with child Messages
-Child → Parent: the child returns an `Option<OutMessage>` as a third tuple element
+Child → Parent: the child returns a record with an optional `outMessage`
 
 ```ts
 // Child update return type
 type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 
 // Child signals to parent
-CreatedRoom: ({ roomId, player }) => [
+CreatedRoom: ({ roomId, player }) => ({
   model,
-  [],
-  Option.some(OutMessage.SucceededCreateRoom({ roomId, player })),
-]
+  outMessage: OutMessage.SucceededCreateRoom({ roomId, player }),
+})
 
-// Parent handles OutMessage
-GotChildMessage: ({ message }) => {
-  const [nextChildModel, childCommands, maybeOutMessage] = Child.update(
-    model.child,
-    message,
-  )
-
-  const mappedCommands = Command.mapMessages(childCommands, message =>
-    Message.GotChildMessage({ message }),
-  )
-
-  return Option.match(maybeOutMessage, {
-    onNone: () => [evo(model, { child: () => nextChildModel }), mappedCommands],
-    onSome: outMessage =>
-      Child.OutMessage.match<UpdateReturn>(outMessage, {
-        SucceededCreateRoom: ({ roomId }) => [
-          evo(model, { child: () => nextChildModel }),
-          [...mappedCommands, navigateToRoom(roomId)],
-        ],
+// Parent folds the child update and handles its OutMessage
+const foldChildOutMessage = M.type<Child.OutMessage>().pipe(
+  M.withReturnType<Update.Step<ParentModel, ParentMessage>>(),
+  M.tagsExhaustive({
+    SucceededCreateRoom:
+      ({ roomId }) =>
+      model => ({
+        model,
+        commands: [navigateToRoom(roomId)],
       }),
+  }),
+)
+
+const foldChild = Update.foldChild({
+  update: Child.update,
+  read: (model: ParentModel) => Option.some(model.child),
+  write: (model, nextChild) => evo(model, { child: () => nextChild }),
+  toParentMessage: message => ParentMessage.GotChildMessage({ message }),
+  foldOutMessage: foldChildOutMessage,
+})
+
+type ParentUpdateReturn = Update.Return<ParentModel, ParentMessage>
+
+const update = (model: ParentModel, message: ParentMessage) =>
+  ParentMessage.match<ParentUpdateReturn>(message, {
+    GotChildMessage: ({ message }) => foldChild(model, message),
   })
-}
 ```
 
 ### View Delegation

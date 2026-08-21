@@ -15,13 +15,12 @@ const Model = S.Struct({
 })
 
 // In your init function, start it unchecked:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     acceptedTerms: false,
     // ...your other fields
   },
-  [],
-]
+})
 
 // A verb-first, past-tense Message carries the new checked state:
 
@@ -32,10 +31,9 @@ const Message = defineMessageUnion({
 // Inside your update function's Message.match({...}), store the value.
 // This is the moment to fire analytics, validate a form, or push the value
 // to a backend.
-ToggledTerms: ({ isChecked }) => [
-  evo(model, { acceptedTerms: () => isChecked }),
-  [],
-]
+ToggledTerms: ({ isChecked }) => ({
+  model: evo(model, { acceptedTerms: () => isChecked }),
+})
 
 // Inside your view function, render the checkbox with Checkbox.view. It reads
 // the checked state from your Model and calls onToggle with the new state.

@@ -74,17 +74,17 @@ Configuration object passed to `Toast.view()`.
 
 ### Programmatic Helpers
 
-Helper functions for driving toasts from parent update handlers, returning `[Model, Commands]`.
+Helper functions for driving toasts from parent update handlers, returning `{ model, commands? }`.
 
-| Name         | Type                                                    | Default | Description                                                                                                                                                                                     |
-| ------------ | ------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `show`       | `(model: Model, input: ShowInput) => [Model, Commands]` | —       | Adds a new toast entry. Call this from any parent update handler that needs to surface a notification. Returns the next model plus commands for the enter animation and the auto-dismiss timer. |
-| `dismiss`    | `(model: Model, entryId: string) => [Model, Commands]`  | —       | Begins dismissing a specific entry. Safe to call for an entry that is already leaving or has been removed.                                                                                      |
-| `dismissAll` | `(model: Model) => [Model, Commands]`                   | —       | Begins dismissing every currently-visible entry.                                                                                                                                                |
+| Name         | Type                                                       | Default | Description                                                                                                                                                                                     |
+| ------------ | ---------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `show`       | `(model: Model, input: ShowInput) => { model, commands? }` | —       | Adds a new toast entry. Call this from any parent update handler that needs to surface a notification. Returns the next Model plus Commands for the enter animation and the auto-dismiss timer. |
+| `dismiss`    | `(model: Model, entryId: string) => { model, commands? }`  | —       | Begins dismissing a specific entry. Safe to call for an entry that is already leaving or has been removed.                                                                                      |
+| `dismissAll` | `(model: Model) => { model, commands? }`                   | —       | Begins dismissing every currently-visible entry.                                                                                                                                                |
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
+Messages emitted to the parent through the optional `outMessage` field. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
 
 | Name             | Type                   | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ---------------- | ---------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

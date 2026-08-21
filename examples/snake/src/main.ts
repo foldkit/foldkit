@@ -7,7 +7,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Command, Runtime, Subscription } from 'foldkit'
+import { Command, Runtime, Subscription, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -53,8 +53,8 @@ export type Message = typeof Message.Type
 export const init: Runtime.ApplicationInit<Model, Message> = () => {
   const snake = Snake.create(GAME.INITIAL_POSITION)
 
-  return [
-    {
+  return {
+    model: {
       snake,
       apple: { x: 15, y: 15 },
       direction: GAME.INITIAL_DIRECTION,
@@ -63,161 +63,153 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => {
       points: 0,
       highScore: 0,
     },
-    [GenerateApplePosition({ snake: snake })],
-  ]
+    commands: [GenerateApplePosition({ snake: snake })],
+  }
 }
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      PressedKey: ({ key }) =>
-        M.value(key).pipe(
-          M.withReturnType<
-            readonly [Model, ReadonlyArray<Command.Command<Message>>]
-          >(),
-          M.whenOr(
-            'ArrowUp',
-            'ArrowDown',
-            'ArrowLeft',
-            'ArrowRight',
-            'w',
-            'a',
-            's',
-            'd',
-            moveKey => {
-              const nextDirection = M.value(moveKey).pipe(
-                M.withReturnType<Direction.Direction>(),
-                M.whenOr('ArrowUp', 'w', () => 'Up'),
-                M.whenOr('ArrowDown', 's', () => 'Down'),
-                M.whenOr('ArrowLeft', 'a', () => 'Left'),
-                M.whenOr('ArrowRight', 'd', () => 'Right'),
-                M.exhaustive,
-              )
+type UpdateReturn = Update.Return<Model, Message>
 
-              if (model.gameState === 'Playing') {
-                return [
-                  evo(model, {
-                    nextDirection: () => nextDirection,
-                  }),
-                  [],
-                ]
-              } else {
-                return [model, []]
-              }
-            },
-          ),
-          M.when(' ', () => {
-            const nextGameState = M.value(model.gameState).pipe(
-              M.withReturnType<GameState>(),
-              M.when('NotStarted', () => 'Playing'),
-              M.when('Playing', () => 'Paused'),
-              M.when('Paused', () => 'Playing'),
-              M.when('GameOver', () => 'GameOver'),
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    PressedKey: ({ key }) =>
+      M.value(key).pipe(
+        M.withReturnType<UpdateReturn>(),
+        M.whenOr(
+          'ArrowUp',
+          'ArrowDown',
+          'ArrowLeft',
+          'ArrowRight',
+          'w',
+          'a',
+          's',
+          'd',
+          moveKey => {
+            const nextDirection = M.value(moveKey).pipe(
+              M.withReturnType<Direction.Direction>(),
+              M.whenOr('ArrowUp', 'w', () => 'Up'),
+              M.whenOr('ArrowDown', 's', () => 'Down'),
+              M.whenOr('ArrowLeft', 'a', () => 'Left'),
+              M.whenOr('ArrowRight', 'd', () => 'Right'),
               M.exhaustive,
             )
-            return [
-              evo(model, {
-                gameState: () => nextGameState,
-              }),
-              [],
-            ]
-          }),
-          M.when('r', () => {
-            const nextSnake = Snake.create(GAME.INITIAL_POSITION)
 
-            return [
-              evo(model, {
-                snake: () => nextSnake,
-                direction: () => GAME.INITIAL_DIRECTION,
-                nextDirection: () => GAME.INITIAL_DIRECTION,
-                gameState: () => 'NotStarted',
-                points: () => 0,
-              }),
-              [GenerateApplePosition({ snake: nextSnake })],
-            ]
-          }),
-          M.orElse(() => [model, []]),
+            if (model.gameState === 'Playing') {
+              return {
+                model: evo(model, {
+                  nextDirection: () => nextDirection,
+                }),
+              }
+            } else {
+              return { model }
+            }
+          },
         ),
-
-      TickedClock: () => {
-        if (model.gameState !== 'Playing') {
-          return [model, []]
-        }
-
-        const currentDirection = Direction.isOpposite(
-          model.direction,
-          model.nextDirection,
-        )
-          ? model.direction
-          : model.nextDirection
-
-        const newHead = Position.move(model.snake[0], currentDirection)
-        const willEatApple = Position.equivalence(newHead, model.apple)
-
-        const nextSnake = willEatApple
-          ? Snake.grow(model.snake, currentDirection)
-          : Snake.move(model.snake, currentDirection)
-
-        if (Snake.hasCollision(nextSnake)) {
-          return [
-            evo(model, {
-              gameState: () => 'GameOver',
-              highScore: highScore => Math.max(model.points, highScore),
+        M.when(' ', () => {
+          const nextGameState = M.value(model.gameState).pipe(
+            M.withReturnType<GameState>(),
+            M.when('NotStarted', () => 'Playing'),
+            M.when('Playing', () => 'Paused'),
+            M.when('Paused', () => 'Playing'),
+            M.when('GameOver', () => 'GameOver'),
+            M.exhaustive,
+          )
+          return {
+            model: evo(model, {
+              gameState: () => nextGameState,
             }),
-            [],
-          ]
+          }
+        }),
+        M.when('r', () => {
+          const nextSnake = Snake.create(GAME.INITIAL_POSITION)
+
+          return {
+            model: evo(model, {
+              snake: () => nextSnake,
+              direction: () => GAME.INITIAL_DIRECTION,
+              nextDirection: () => GAME.INITIAL_DIRECTION,
+              gameState: () => 'NotStarted',
+              points: () => 0,
+            }),
+            commands: [GenerateApplePosition({ snake: nextSnake })],
+          }
+        }),
+        M.orElse(() => ({ model })),
+      ),
+
+    TickedClock: () => {
+      if (model.gameState !== 'Playing') {
+        return { model }
+      }
+
+      const currentDirection = Direction.isOpposite(
+        model.direction,
+        model.nextDirection,
+      )
+        ? model.direction
+        : model.nextDirection
+
+      const newHead = Position.move(model.snake[0], currentDirection)
+      const willEatApple = Position.equivalence(newHead, model.apple)
+
+      const nextSnake = willEatApple
+        ? Snake.grow(model.snake, currentDirection)
+        : Snake.move(model.snake, currentDirection)
+
+      if (Snake.hasCollision(nextSnake)) {
+        return {
+          model: evo(model, {
+            gameState: () => 'GameOver',
+            highScore: highScore => Math.max(model.points, highScore),
+          }),
         }
+      }
 
-        const commands = willEatApple
-          ? [GenerateApplePosition({ snake: nextSnake })]
-          : []
+      const commands = willEatApple
+        ? [GenerateApplePosition({ snake: nextSnake })]
+        : []
 
-        return [
-          evo(model, {
-            snake: () => nextSnake,
-            direction: () => currentDirection,
-            points: points =>
-              willEatApple ? points + GAME.POINTS_PER_APPLE : points,
-          }),
-          commands,
-        ]
-      },
-
-      PausedGame: () => [
-        evo(model, {
-          gameState: gameState =>
-            gameState === 'Playing' ? 'Paused' : 'Playing',
+      return {
+        model: evo(model, {
+          snake: () => nextSnake,
+          direction: () => currentDirection,
+          points: points =>
+            willEatApple ? points + GAME.POINTS_PER_APPLE : points,
         }),
-        [],
-      ],
-
-      RestartedGame: () => {
-        const startPos: Position.Position = { x: 10, y: 10 }
-        const nextSnake = Snake.create(startPos)
-
-        return [
-          evo(model, {
-            snake: () => nextSnake,
-            direction: () => 'Right',
-            nextDirection: () => 'Right',
-            gameState: () => 'NotStarted',
-            points: () => 0,
-          }),
-          [GenerateApplePosition({ snake: nextSnake })],
-        ]
-      },
-
-      CompletedGenerateApplePosition: ({ position }) => [
-        evo(model, {
-          apple: () => position,
-        }),
-        [],
-      ],
+        commands,
+      }
     },
-  )
+
+    PausedGame: () => ({
+      model: evo(model, {
+        gameState: gameState =>
+          gameState === 'Playing' ? 'Paused' : 'Playing',
+      }),
+    }),
+
+    RestartedGame: () => {
+      const startPos: Position.Position = { x: 10, y: 10 }
+      const nextSnake = Snake.create(startPos)
+
+      return {
+        model: evo(model, {
+          snake: () => nextSnake,
+          direction: () => 'Right',
+          nextDirection: () => 'Right',
+          gameState: () => 'NotStarted',
+          points: () => 0,
+        }),
+        commands: [GenerateApplePosition({ snake: nextSnake })],
+      }
+    },
+
+    CompletedGenerateApplePosition: ({ position }) => ({
+      model: evo(model, {
+        apple: () => position,
+      }),
+    }),
+  })
 
 // COMMAND
 

@@ -23,13 +23,19 @@ export type Message = typeof Message.Type
 export const update = (
   _model: Model,
   _message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
+): Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command.Command<Message>>
+  outMessage?: never
+}> => {
   throw new Error('This is a simulated crash!')
 }
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [null, []]
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: null,
+})
 
 // VIEW
 

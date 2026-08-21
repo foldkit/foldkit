@@ -17,15 +17,14 @@ const Model = S.Struct({
   // ...your other fields
 })
 
-const init = () => [
-  {
+const init = () => ({
+  model: {
     dialog: Dialog.init({ id: 'edit-filters' }),
     combobox: Combobox.init({ id: 'city' }),
     maybeCity: Option.none(),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Embed each submodel's Message in your parent Message and delegate both to
 // their own update (see the Dialog and Combobox examples for the delegation).

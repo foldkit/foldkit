@@ -219,20 +219,20 @@ export const closedModel = <Model extends BaseModel>(model: Model): Model =>
 type SelectedItemContext<Model extends BaseModel> = Readonly<{
   closeWithFocus: (
     model: Model,
-    maybeOutMessage?: Option.Option<OutMessage>,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage>,
-  ]
+    outMessage?: OutMessage,
+  ) => Readonly<{
+    model: Model
+    commands?: ReadonlyArray<Command.Command<Message>>
+    outMessage?: OutMessage
+  }>
   closeWithoutFocus: (
     model: Model,
-    maybeOutMessage?: Option.Option<OutMessage>,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage>,
-  ]
+    outMessage?: OutMessage,
+  ) => Readonly<{
+    model: Model
+    commands?: ReadonlyArray<Command.Command<Message>>
+    outMessage?: OutMessage
+  }>
 }>
 
 /** Prevents page scrolling while the listbox is open in modal mode. */
@@ -341,27 +341,32 @@ export const makeUpdate = <Model extends BaseModel>(
     model: Model,
     item: string,
     context: SelectedItemContext<Model>,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage>,
-  ],
+  ) => Readonly<{
+    model: Model
+    commands?: ReadonlyArray<Command.Command<Message>>
+    outMessage?: OutMessage
+  }>,
 ) => {
-  type UpdateReturn = readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage>,
-  ]
-  const withUpdateReturn = M.withReturnType<UpdateReturn>()
+  type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
+  const appendOutMessage = (
+    updateReturn: UpdateReturn,
+    outMessage: OutMessage | undefined,
+  ): UpdateReturn => {
+    if (outMessage === undefined) {
+      return updateReturn
+    } else {
+      return { ...updateReturn, outMessage }
+    }
+  }
 
   const foldAnimationOutMessage = M.type<AnimationOutMessage>().pipe(
     M.withReturnType<Update.Step<Model, Message>>(),
     M.tagsExhaustive({
-      StartedLeaveAnimating: () => model => [
+      StartedLeaveAnimating: () => model => ({
         model,
-        [DetectMovementOrAnimationEnd({ id: model.id })],
-      ],
-      TransitionedOut: () => model => [model, []],
+        commands: [DetectMovementOrAnimationEnd({ id: model.id })],
+      }),
+      TransitionedOut: () => model => ({ model }),
     }),
   )
 
@@ -371,7 +376,7 @@ export const makeUpdate = <Model extends BaseModel>(
     write: (model, nextAnimation) =>
       constrainedEvo(model, { animation: () => nextAnimation }),
     toParentMessage: message => Message.GotAnimationMessage({ message }),
-    toParentOutMessage: () => Option.none(),
+    toParentOutMessage: () => undefined,
     foldOutMessage: foldAnimationOutMessage,
   })
 
@@ -380,44 +385,47 @@ export const makeUpdate = <Model extends BaseModel>(
     openCommands: ReadonlyArray<Command.Command<Message>>,
   ): UpdateReturn => {
     if (baseModel.isAnimated) {
-      const [nextModel, animationCommands] = foldAnimation(
+      const foldAnimationResult = foldAnimation(
         baseModel,
         AnimationMessage.Showed(),
       )
-      return [
-        constrainedEvo(nextModel, { isOpen: () => true }),
-        [...openCommands, ...animationCommands],
-        Option.none(),
-      ]
+      return {
+        model: constrainedEvo(foldAnimationResult.model, {
+          isOpen: () => true,
+        }),
+        commands: [...openCommands, ...(foldAnimationResult.commands ?? [])],
+      }
     }
 
-    return [
-      constrainedEvo(baseModel, { isOpen: () => true }),
-      openCommands,
-      Option.none(),
-    ]
+    return {
+      model: constrainedEvo(baseModel, { isOpen: () => true }),
+      commands: openCommands,
+    }
   }
 
   const closeListbox = (
     baseModel: Model,
     commands: ReadonlyArray<Command.Command<Message>>,
-    maybeOutMessage: Option.Option<OutMessage> = Option.none(),
+    outMessage?: OutMessage,
   ): UpdateReturn => {
     if (!baseModel.isOpen) {
-      return [baseModel, [], maybeOutMessage]
+      return appendOutMessage({ model: baseModel }, outMessage)
     }
 
     const closed = closedModel(baseModel)
 
     if (baseModel.isAnimated) {
-      const [nextModel, animationCommands] = foldAnimation(
-        closed,
-        AnimationMessage.Hid(),
+      const closeAnimation = foldAnimation(closed, AnimationMessage.Hid())
+      return appendOutMessage(
+        {
+          model: closeAnimation.model,
+          commands: [...commands, ...(closeAnimation.commands ?? [])],
+        },
+        outMessage,
       )
-      return [nextModel, [...commands, ...animationCommands], maybeOutMessage]
     }
 
-    return [closed, commands, maybeOutMessage]
+    return appendOutMessage({ model: closed, commands }, outMessage)
   }
 
   const internalUpdate = (model: Model, message: Message): UpdateReturn => {
@@ -450,195 +458,166 @@ export const makeUpdate = <Model extends BaseModel>(
       maybeRestoreInert,
     ])
 
-    return M.value(message).pipe(
-      withUpdateReturn,
-      M.tag(
-        'CompletedLockScroll',
-        'CompletedUnlockScroll',
-        'CompletedInertOthers',
-        'CompletedRestoreInert',
-        'CompletedFocusButton',
-        'CompletedFocusItems',
-        'CompletedScrollIntoView',
-        'CompletedClickItem',
-        'SuppressedSpaceScroll',
-        'SuppressedItemCommit',
-        'CompletedAnchorListbox',
-        'CompletedPortalListboxBackdrop',
-        () => [model, [], Option.none()],
-      ),
-      M.tagsExhaustive({
-        Opened: ({ maybeActiveItemIndex }) =>
-          openListbox(
-            constrainedEvo(model, {
-              maybeActiveItemIndex: () => maybeActiveItemIndex,
-              activationTrigger: () =>
-                Option.match(maybeActiveItemIndex, {
-                  onNone: () => 'Pointer' as const,
-                  onSome: () => 'Keyboard' as const,
-                }),
-              searchQuery: () => '',
-              searchVersion: () => 0,
-              maybeLastPointerPosition: () => Option.none(),
-            }),
-            openCommands,
-          ),
-
-        Closed: () => closeListbox(model, closeWithFocusCommands),
-
-        BlurredItems: () => {
-          if (
-            Option.exists(
-              model.maybeLastButtonPointerType,
-              Equal.equals('mouse'),
-            )
-          ) {
-            return [model, [], Option.none()]
-          }
-
-          return closeListbox(model, closeWithoutFocusCommands)
-        },
-
-        ActivatedItem: ({ index, activationTrigger }) => [
+    return Message.match<UpdateReturn>(message, {
+      CompletedLockScroll: () => ({ model }),
+      CompletedUnlockScroll: () => ({ model }),
+      CompletedInertOthers: () => ({ model }),
+      CompletedRestoreInert: () => ({ model }),
+      CompletedFocusButton: () => ({ model }),
+      CompletedFocusItems: () => ({ model }),
+      CompletedScrollIntoView: () => ({ model }),
+      CompletedClickItem: () => ({ model }),
+      SuppressedSpaceScroll: () => ({ model }),
+      SuppressedItemCommit: () => ({ model }),
+      CompletedAnchorListbox: () => ({ model }),
+      CompletedPortalListboxBackdrop: () => ({ model }),
+      Opened: ({ maybeActiveItemIndex }) =>
+        openListbox(
           constrainedEvo(model, {
-            maybeActiveItemIndex: () => Option.some(index),
-            activationTrigger: () => activationTrigger,
+            maybeActiveItemIndex: () => maybeActiveItemIndex,
+            activationTrigger: () =>
+              Option.match(maybeActiveItemIndex, {
+                onNone: () => 'Pointer' as const,
+                onSome: () => 'Keyboard' as const,
+              }),
+            searchQuery: () => '',
+            searchVersion: () => 0,
+            maybeLastPointerPosition: () => Option.none(),
           }),
+          openCommands,
+        ),
+
+      Closed: () => closeListbox(model, closeWithFocusCommands),
+
+      BlurredItems: () => {
+        if (
+          Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
+        ) {
+          return { model }
+        }
+
+        return closeListbox(model, closeWithoutFocusCommands)
+      },
+
+      ActivatedItem: ({ index, activationTrigger }) => ({
+        model: constrainedEvo(model, {
+          maybeActiveItemIndex: () => Option.some(index),
+          activationTrigger: () => activationTrigger,
+        }),
+        commands:
           activationTrigger === 'Keyboard'
             ? [ScrollIntoView({ id: model.id, index })]
             : [],
-          Option.none(),
-        ],
-
-        MovedPointerOverItem: ({ index, screenX, screenY }) => {
-          const isSamePosition = Option.exists(
-            model.maybeLastPointerPosition,
-            position =>
-              position.screenX === screenX && position.screenY === screenY,
-          )
-
-          if (isSamePosition) {
-            return [model, [], Option.none()]
-          }
-
-          return [
-            constrainedEvo(model, {
-              maybeActiveItemIndex: () => Option.some(index),
-              activationTrigger: () => 'Pointer' as const,
-              maybeLastPointerPosition: () => Option.some({ screenX, screenY }),
-            }),
-            [],
-            Option.none(),
-          ]
-        },
-
-        DeactivatedItem: () =>
-          model.activationTrigger === 'Pointer'
-            ? [
-                constrainedEvo(model, {
-                  maybeActiveItemIndex: () => Option.none(),
-                }),
-                [],
-                Option.none(),
-              ]
-            : [model, [], Option.none()],
-
-        SelectedItem: ({ item }) =>
-          handleSelectedItem(model, item, {
-            closeWithFocus: (closeModel, maybeOutMessage = Option.none()) =>
-              closeListbox(closeModel, closeWithFocusCommands, maybeOutMessage),
-            closeWithoutFocus: (closeModel, maybeOutMessage = Option.none()) =>
-              closeListbox(
-                closeModel,
-                closeWithoutFocusCommands,
-                maybeOutMessage,
-              ),
-          }),
-
-        RequestedItemClick: ({ index }) => [
-          model,
-          [ClickItem({ id: model.id, index })],
-          Option.none(),
-        ],
-
-        Searched: ({ key, maybeTargetIndex }) => {
-          const nextSearchQuery = model.searchQuery + key
-          const nextSearchVersion = model.searchVersion + 1
-
-          return [
-            constrainedEvo(model, {
-              searchQuery: () => nextSearchQuery,
-              searchVersion: () => nextSearchVersion,
-              maybeActiveItemIndex: () =>
-                Option.orElse(
-                  maybeTargetIndex,
-                  () => model.maybeActiveItemIndex,
-                ),
-            }),
-            [DelayClearSearch({ version: nextSearchVersion })],
-            Option.none(),
-          ]
-        },
-
-        CompletedDelayClearSearch: ({ version }) => {
-          if (version !== model.searchVersion) {
-            return [model, [], Option.none()]
-          }
-
-          return [
-            constrainedEvo(model, { searchQuery: () => '' }),
-            [],
-            Option.none(),
-          ]
-        },
-
-        GotAnimationMessage: ({ message: animationMessage }) =>
-          foldAnimation(model, animationMessage),
-
-        PressedPointerOnButton: ({ pointerType, button }) => {
-          const withPointerType = constrainedEvo(model, {
-            maybeLastButtonPointerType: () => Option.some(pointerType),
-          })
-
-          if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
-            return [withPointerType, [], Option.none()]
-          }
-
-          if (model.isOpen) {
-            const [closed, commands] = closeListbox(
-              withPointerType,
-              closeWithFocusCommands,
-            )
-            return [
-              constrainedEvo(closed, {
-                maybeLastButtonPointerType: () => Option.some(pointerType),
-              }),
-              commands,
-              Option.none(),
-            ]
-          }
-
-          return openListbox(
-            constrainedEvo(withPointerType, {
-              maybeActiveItemIndex: () => Option.none(),
-              activationTrigger: () => 'Pointer' as const,
-              searchQuery: () => '',
-              searchVersion: () => 0,
-              maybeLastPointerPosition: () => Option.none(),
-            }),
-            openCommands,
-          )
-        },
-
-        IgnoredMouseClick: () => [
-          constrainedEvo(model, {
-            maybeLastButtonPointerType: () => Option.none(),
-          }),
-          [],
-          Option.none(),
-        ],
       }),
-    )
+
+      MovedPointerOverItem: ({ index, screenX, screenY }) => {
+        const isSamePosition = Option.exists(
+          model.maybeLastPointerPosition,
+          position =>
+            position.screenX === screenX && position.screenY === screenY,
+        )
+
+        if (isSamePosition) {
+          return { model }
+        }
+
+        return {
+          model: constrainedEvo(model, {
+            maybeActiveItemIndex: () => Option.some(index),
+            activationTrigger: () => 'Pointer' as const,
+            maybeLastPointerPosition: () => Option.some({ screenX, screenY }),
+          }),
+        }
+      },
+
+      DeactivatedItem: () =>
+        model.activationTrigger === 'Pointer'
+          ? {
+              model: constrainedEvo(model, {
+                maybeActiveItemIndex: () => Option.none(),
+              }),
+            }
+          : { model },
+
+      SelectedItem: ({ item }) =>
+        handleSelectedItem(model, item, {
+          closeWithFocus: (closeModel, outMessage) =>
+            closeListbox(closeModel, closeWithFocusCommands, outMessage),
+          closeWithoutFocus: (closeModel, outMessage) =>
+            closeListbox(closeModel, closeWithoutFocusCommands, outMessage),
+        }),
+
+      RequestedItemClick: ({ index }) => ({
+        model,
+        commands: [ClickItem({ id: model.id, index })],
+      }),
+
+      Searched: ({ key, maybeTargetIndex }) => {
+        const nextSearchQuery = model.searchQuery + key
+        const nextSearchVersion = model.searchVersion + 1
+
+        return {
+          model: constrainedEvo(model, {
+            searchQuery: () => nextSearchQuery,
+            searchVersion: () => nextSearchVersion,
+            maybeActiveItemIndex: () =>
+              Option.orElse(maybeTargetIndex, () => model.maybeActiveItemIndex),
+          }),
+          commands: [DelayClearSearch({ version: nextSearchVersion })],
+        }
+      },
+
+      CompletedDelayClearSearch: ({ version }) => {
+        if (version !== model.searchVersion) {
+          return { model }
+        }
+
+        return { model: constrainedEvo(model, { searchQuery: () => '' }) }
+      },
+
+      GotAnimationMessage: ({ message: animationMessage }) =>
+        foldAnimation(model, animationMessage),
+
+      PressedPointerOnButton: ({ pointerType, button }) => {
+        const withPointerType = constrainedEvo(model, {
+          maybeLastButtonPointerType: () => Option.some(pointerType),
+        })
+
+        if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
+          return { model: withPointerType }
+        }
+
+        if (model.isOpen) {
+          const closeListboxResult = closeListbox(
+            withPointerType,
+            closeWithFocusCommands,
+          )
+          return {
+            ...closeListboxResult,
+            model: constrainedEvo(closeListboxResult.model, {
+              maybeLastButtonPointerType: () => Option.some(pointerType),
+            }),
+          }
+        }
+
+        return openListbox(
+          constrainedEvo(withPointerType, {
+            maybeActiveItemIndex: () => Option.none(),
+            activationTrigger: () => 'Pointer' as const,
+            searchQuery: () => '',
+            searchVersion: () => 0,
+            maybeLastPointerPosition: () => Option.none(),
+          }),
+          openCommands,
+        )
+      },
+
+      IgnoredMouseClick: () => ({
+        model: constrainedEvo(model, {
+          maybeLastButtonPointerType: () => Option.none(),
+        }),
+      }),
+    })
   }
 
   return internalUpdate

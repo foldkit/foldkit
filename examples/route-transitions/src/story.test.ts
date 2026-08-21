@@ -40,26 +40,29 @@ const modelOn = (route: AppRoute): Model =>
 
 describe('init', () => {
   test('a cold load into the gallery logs the transition and loads the catalog', () => {
-    const [model, commands] = init(urlOrThrow('http://localhost/gallery'))
+    const initResult = init(urlOrThrow('http://localhost/gallery'))
 
-    expect(model.route._tag).toBe('Gallery')
-    expect(model.catalogStatus).toBe('Loading')
-    expect(model.transitionLog).toHaveLength(1)
+    expect(initResult.model.route._tag).toBe('Gallery')
+    expect(initResult.model.catalogStatus).toBe('Loading')
+    expect(initResult.model.transitionLog).toHaveLength(1)
     expect(
-      Array.map(model.transitionLog, entry => entry.maybePreviousRoute),
+      Array.map(
+        initResult.model.transitionLog,
+        entry => entry.maybePreviousRoute,
+      ),
     ).toStrictEqual([Option.none()])
-    expect(Array.map(commands, command => command.name)).toContain(
-      'LoadCatalog',
-    )
+    expect(
+      Array.map(initResult.commands ?? [], command => command.name),
+    ).toContain('LoadCatalog')
   })
 
   test('a cold load into the home route loads nothing', () => {
-    const [model, commands] = init(urlOrThrow('http://localhost/'))
+    const homeInit = init(urlOrThrow('http://localhost/'))
 
-    expect(model.route._tag).toBe('Home')
-    expect(model.catalogStatus).toBe('Idle')
-    expect(model.transitionLog).toHaveLength(1)
-    expect(commands).toStrictEqual([])
+    expect(homeInit.model.route._tag).toBe('Home')
+    expect(homeInit.model.catalogStatus).toBe('Idle')
+    expect(homeInit.model.transitionLog).toHaveLength(1)
+    expect(homeInit.commands ?? []).toStrictEqual([])
   })
 })
 

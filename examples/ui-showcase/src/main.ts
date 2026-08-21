@@ -211,17 +211,17 @@ export const init: Runtime.RoutingApplicationInit<Model, Message, Flags> = (
   flags: Flags,
   url: Url,
 ) => {
-  const [initialUiModel, uiCommands] = uiInit(flags.today)
+  const uiInitResult = uiInit(flags.today)
 
-  return [
-    {
+  return {
+    model: {
       route: urlToAppRoute(url),
-      uiModel: initialUiModel,
+      uiModel: uiInitResult.model,
     },
-    Command.mapMessages(uiCommands, message =>
+    commands: Command.mapMessages(uiInitResult.commands ?? [], message =>
       Message.GotUiMessage({ message }),
     ),
-  ]
+  }
 }
 
 // UPDATE
@@ -241,58 +241,60 @@ const foldUi = Update.foldChild({
   toParentMessage: toUiMessage,
 })
 
+type UpdateReturn = Update.Return<Model, Message>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      CompletedNavigateInternal: () => [model, []],
-      CompletedLoadExternal: () => [model, []],
+  Message.match<UpdateReturn>(message, {
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
 
-      ClickedLink: ({ request }) =>
-        M.value(request).pipe(
-          M.tagsExhaustive({
-            Internal: ({
-              url,
-            }): [
-              Model,
-              ReadonlyArray<
-                Command.Command<typeof Message.CompletedNavigateInternal>
-              >,
-            ] => [model, [NavigateInternal({ url: urlToString(url) })]],
-            External: ({
-              href,
-            }): [
-              Model,
-              ReadonlyArray<
-                Command.Command<typeof Message.CompletedLoadExternal>
-              >,
-            ] => [model, [LoadExternal({ href })]],
+    ClickedLink: ({ request }) =>
+      M.value(request).pipe(
+        M.tagsExhaustive({
+          Internal: ({
+            url,
+          }): Readonly<{
+            model: Model
+            commands?: ReadonlyArray<
+              Command.Command<typeof Message.CompletedNavigateInternal>
+            >
+            outMessage?: never
+          }> => ({
+            model,
+            commands: [NavigateInternal({ url: urlToString(url) })],
           }),
+          External: ({
+            href,
+          }): Readonly<{
+            model: Model
+            commands?: ReadonlyArray<
+              Command.Command<typeof Message.CompletedLoadExternal>
+            >
+            outMessage?: never
+          }> => ({ model, commands: [LoadExternal({ href })] }),
+        }),
+      ),
+
+    ChangedUrl: ({ url }) => {
+      const dialogClose = Dialog.close(model.uiModel.mobileMenuDialog)
+
+      return {
+        model: evo(model, {
+          route: () => urlToAppRoute(url),
+          uiModel: uiModel =>
+            evo(uiModel, {
+              mobileMenuDialog: () => dialogClose.model,
+            }),
+        }),
+        commands: Command.mapMessages(
+          dialogClose.commands ?? [],
+          toMobileMenuDialogMessage,
         ),
-
-      ChangedUrl: ({ url }) => {
-        const [nextMobileMenuDialog, mobileMenuDialogCommands] = Dialog.close(
-          model.uiModel.mobileMenuDialog,
-        )
-
-        return [
-          evo(model, {
-            route: () => urlToAppRoute(url),
-            uiModel: uiModel =>
-              evo(uiModel, {
-                mobileMenuDialog: () => nextMobileMenuDialog,
-              }),
-          }),
-          Command.mapMessages(
-            mobileMenuDialogCommands,
-            toMobileMenuDialogMessage,
-          ),
-        ]
-      },
-
-      GotUiMessage: ({ message }) => foldUi(model, message),
+      }
     },
-  )
+
+    GotUiMessage: ({ message }) => foldUi(model, message),
+  })
 
 // VIEW
 

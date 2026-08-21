@@ -22,9 +22,15 @@ export const initialModel: Model = { clicks: 0 }
 
 // UPDATE
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<never>
+  outMessage?: never
+}>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<never>]>(message, {
-    ClickedFallback: () => [{ ...model, clicks: model.clicks + 1 }, []],
+  Message.match<UpdateReturn>(message, {
+    ClickedFallback: () => ({ model: { ...model, clicks: model.clicks + 1 } }),
   })
 
 // VIEW

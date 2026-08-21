@@ -51,16 +51,15 @@ export type Message = typeof Message.Type
 export const init: Runtime.RoutingApplicationInit<Model, Message> = (
   url: Url,
 ) => {
-  return [
-    {
+  return {
+    model: {
       route: urlToAppRoute(url),
       cart: [],
       deliveryInstructions: '',
       orderPlaced: false,
       productsPage: Products.init(products),
     },
-    [],
-  ]
+  }
 }
 
 // COMMAND
@@ -81,7 +80,7 @@ const LoadExternal = Command.define('LoadExternal', {
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const foldProductsOutMessage = M.type<Products.OutMessage>().pipe(
@@ -89,13 +88,17 @@ const foldProductsOutMessage = M.type<Products.OutMessage>().pipe(
   M.tagsExhaustive({
     AddedToCart:
       ({ item }) =>
-      model => [evo(model, { cart: Cart.addItem(item) }), []],
+      model => ({ model: evo(model, { cart: Cart.addItem(item) }) }),
     IncrementedQuantity:
       ({ itemId }) =>
-      model => [evo(model, { cart: Cart.incrementQuantity(itemId) }), []],
+      model => ({
+        model: evo(model, { cart: Cart.incrementQuantity(itemId) }),
+      }),
     DecrementedQuantity:
       ({ itemId }) =>
-      model => [evo(model, { cart: Cart.decrementQuantity(itemId) }), []],
+      model => ({
+        model: evo(model, { cart: Cart.decrementQuantity(itemId) }),
+      }),
   }),
 )
 
@@ -110,74 +113,70 @@ const foldProducts = Update.foldChild({
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    CompletedNavigateInternal: () => [model, []],
-    CompletedLoadExternal: () => [model, []],
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
 
     ClickedLink: ({ request }) =>
       M.value(request).pipe(
         withUpdateReturn,
         M.tagsExhaustive({
-          Internal: ({ url }) => [
+          Internal: ({ url }) => ({
             model,
-            [NavigateInternal({ url: urlToString(url) })],
-          ],
+            commands: [NavigateInternal({ url: urlToString(url) })],
+          }),
 
-          External: ({ href }) => [model, [LoadExternal({ href })]],
+          External: ({ href }) => ({
+            model,
+            commands: [LoadExternal({ href })],
+          }),
         }),
       ),
 
-    ChangedUrl: ({ url }) => [
-      evo(model, {
+    ChangedUrl: ({ url }) => ({
+      model: evo(model, {
         route: () => urlToAppRoute(url),
       }),
-      [],
-    ],
+    }),
 
     GotProductsMessage: ({ message }) => foldProducts(model, message),
 
-    ClickedIncrementQuantity: ({ itemId }) => [
-      evo(model, {
+    ClickedIncrementQuantity: ({ itemId }) => ({
+      model: evo(model, {
         cart: Cart.incrementQuantity(itemId),
       }),
-      [],
-    ],
+    }),
 
-    ClickedDecrementQuantity: ({ itemId }) => [
-      evo(model, {
+    ClickedDecrementQuantity: ({ itemId }) => ({
+      model: evo(model, {
         cart: Cart.decrementQuantity(itemId),
       }),
-      [],
-    ],
+    }),
 
-    ClickedRemoveCartItem: ({ itemId }) => [
-      evo(model, {
+    ClickedRemoveCartItem: ({ itemId }) => ({
+      model: evo(model, {
         cart: Cart.removeItem(itemId),
       }),
-      [],
-    ],
+    }),
 
-    ClickedClearCart: () => [
-      evo(model, {
+    ClickedClearCart: () => ({
+      model: evo(model, {
         cart: () => [],
       }),
-      [],
-    ],
+    }),
 
-    UpdatedDeliveryInstructions: ({ value }) => [
-      evo(model, {
+    UpdatedDeliveryInstructions: ({ value }) => ({
+      model: evo(model, {
         deliveryInstructions: () => value,
       }),
-      [],
-    ],
+    }),
 
-    ClickedPlaceOrder: () => [
-      evo(model, {
+    ClickedPlaceOrder: () => ({
+      model: evo(model, {
         orderPlaced: () => true,
         cart: () => [],
         deliveryInstructions: () => '',
       }),
-      [],
-    ],
+    }),
   })
 
 // VIEW

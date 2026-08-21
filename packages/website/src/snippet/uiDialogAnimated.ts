@@ -15,13 +15,12 @@ const Model = S.Struct({
 })
 
 // In your init function, set isAnimated: true to coordinate CSS transitions:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     dialog: Dialog.init({ id: 'confirm', isAnimated: true }),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Embed the Dialog Message in your parent Message and delegate to
 // Dialog.update (open from a trigger with a fact and Dialog.open, as in
@@ -31,13 +30,13 @@ const Message = defineMessageUnion({
 })
 
 GotDialogMessage: ({ message }) => {
-  const [nextDialog, dialogCommands] = Dialog.update(model.dialog, message)
-  return [
-    evo(model, { dialog: () => nextDialog }),
-    Command.mapMessages(dialogCommands, message =>
+  const dialogUpdate = Dialog.update(model.dialog, message)
+  return {
+    model: evo(model, { dialog: () => dialogUpdate.model }),
+    commands: Command.mapMessages(dialogUpdate.commands ?? [], message =>
       Message.GotDialogMessage({ message }),
     ),
-  ]
+  }
 }
 
 // Inside your view function, use data-[closed] for enter/leave transitions and

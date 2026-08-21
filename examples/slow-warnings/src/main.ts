@@ -7,7 +7,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Command, Runtime, Subscription } from 'foldkit'
+import { Runtime, Subscription, type Update } from 'foldkit'
 import { type Document, type Html, HtmlBuilder, createLazy } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -160,76 +160,69 @@ const prependWarning =
   (warnings: ReadonlyArray<SlowWarning>): ReadonlyArray<SlowWarning> =>
     pipe(warnings, Array.prepend(warning), Array.take(MAX_WARNING_COUNT))
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     ClickedRunUpdateWork: () => {
       burnCpu(UPDATE_WORK_MS)
 
-      return [
-        evo(model, {
+      return {
+        model: evo(model, {
           activeWorkload: () => 'Update',
         }),
-        [],
-      ]
+      }
     },
-    ClickedRunViewWork: () => [
-      evo(model, {
+    ClickedRunViewWork: () => ({
+      model: evo(model, {
         activeWorkload: () => 'View',
       }),
-      [],
-    ],
-    ClickedRunPatchWork: () => [
-      evo(model, {
+    }),
+    ClickedRunPatchWork: () => ({
+      model: evo(model, {
         activeWorkload: () => 'Patch',
         patchRows: () => PATCH_ROW_COUNT,
         patchRun: Number.increment,
       }),
-      [],
-    ],
-    ClickedRunSubscriptionDependenciesWork: () => [
-      evo(model, {
+    }),
+    ClickedRunSubscriptionDependenciesWork: () => ({
+      model: evo(model, {
         activeWorkload: () => 'SubscriptionDependencies',
       }),
-      [],
-    ],
-    ClickedClearWarnings: () => [
-      evo(model, {
+    }),
+    ClickedClearWarnings: () => ({
+      model: evo(model, {
         activeWorkload: () => 'Idle',
         warnings: () => [],
       }),
-      [],
-    ],
+    }),
     RecordedSlowWarning: ({ report }) => {
       const warning: SlowWarning = {
         id: model.nextWarningId,
         ...report,
       }
 
-      return [
-        evo(model, {
+      return {
+        model: evo(model, {
           activeWorkload: () => 'Idle',
           nextWarningId: Number.increment,
           warnings: prependWarning(warning),
         }),
-        [],
-      ]
+      }
     },
   })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     activeWorkload: 'Idle',
     nextWarningId: 1,
     warnings: [],
     patchRows: 0,
     patchRun: 0,
   },
-  [],
-]
+})
 
 // SUBSCRIPTION
 

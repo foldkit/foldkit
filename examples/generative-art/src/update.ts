@@ -35,7 +35,7 @@ import { Message } from './message'
 import { Model, Particle, Point } from './model'
 import { fractalNoise } from './noise'
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 const computeFieldAngle = (
   point: Point,
@@ -215,13 +215,12 @@ const appendGeneratedParticle =
       initialAngle: generatedParticle.initialAngle,
       initialSpeedScale: generatedParticle.initialSpeedScale,
     }
-    return [
-      evo(model, {
+    return {
+      model: evo(model, {
         particles: Array.append(newParticle),
         nextId: Number.increment,
       }),
-      [],
-    ]
+    }
   }
 
 const foldFlowStrengthSliderOutMessage = M.type<Slider.OutMessage>().pipe(
@@ -229,7 +228,7 @@ const foldFlowStrengthSliderOutMessage = M.type<Slider.OutMessage>().pipe(
   M.tagsExhaustive({
     ChangedValue:
       ({ value }) =>
-      model => [evo(model, { flowStrength: () => value }), []],
+      model => ({ model: evo(model, { flowStrength: () => value }) }),
   }),
 )
 
@@ -247,7 +246,7 @@ const foldNoiseScaleSliderOutMessage = M.type<Slider.OutMessage>().pipe(
   M.tagsExhaustive({
     ChangedValue:
       ({ value }) =>
-      model => [evo(model, { noiseScale: () => value }), []],
+      model => ({ model: evo(model, { noiseScale: () => value }) }),
   }),
 )
 
@@ -279,37 +278,41 @@ export const update = (model: Model, message: Message) =>
         particles: () => advancedParticles,
         elapsedSeconds: () => nextElapsedSeconds,
       })
-      return [nextModel, spawnAmbientParticles(advancedParticles.length)]
+      return {
+        model: nextModel,
+        commands: spawnAmbientParticles(advancedParticles.length),
+      }
     },
 
     CompletedGenerateAmbientParticle: appendGeneratedParticle(model),
 
     CompletedGenerateBurstParticle: appendGeneratedParticle(model),
 
-    PressedCanvas: ({ x, y }) => [
+    PressedCanvas: ({ x, y }) => ({
       model,
-      spawnBurstParticles(x, y, computeBurstHueAnchor(model.elapsedSeconds)),
-    ],
+      commands: spawnBurstParticles(
+        x,
+        y,
+        computeBurstHueAnchor(model.elapsedSeconds),
+      ),
+    }),
 
-    MovedPointer: ({ x, y }) => [
-      evo(model, {
+    MovedPointer: ({ x, y }) => ({
+      model: evo(model, {
         maybeMousePosition: () => Option.some(Point.make({ x, y })),
       }),
-      [],
-    ],
+    }),
 
-    ClickedTogglePlay: () => [
-      evo(model, { isRunning: running => !running }),
-      [],
-    ],
+    ClickedTogglePlay: () => ({
+      model: evo(model, { isRunning: running => !running }),
+    }),
 
-    ClickedReset: () => [
-      evo(model, {
+    ClickedReset: () => ({
+      model: evo(model, {
         particles: () => [],
         maybeMousePosition: () => Option.none(),
       }),
-      [],
-    ],
+    }),
 
     GotFlowStrengthSliderMessage: ({ message }) =>
       foldFlowStrengthSlider(model, message),

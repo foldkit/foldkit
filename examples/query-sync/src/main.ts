@@ -190,14 +190,13 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (
 ) => {
   const route = urlToAppRoute(url)
 
-  return [
-    {
+  return {
+    model: {
       route,
       dietListbox: Listbox.init({ id: 'diet-filter' }),
       periodListbox: Listbox.init({ id: 'period-filter' }),
     },
-    [],
-  ]
+  }
 }
 
 // UPDATE
@@ -267,7 +266,7 @@ const LoadExternal = Command.define('LoadExternal', {
     load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 })
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const DietListbox = Listbox.create<string>()
@@ -282,15 +281,15 @@ const foldDietListboxOutMessage: (
       ({ value }) =>
       model => {
         const fields = routeToBrowseFields(model.route)
-        return [
+        return {
           model,
-          [
+          commands: [
             ReplaceFilters({
               ...fields,
               diet: selectionToParam(Option.some(value), Diet),
             }),
           ],
-        ]
+        }
       },
   }),
 )
@@ -313,15 +312,15 @@ const foldPeriodListboxOutMessage: (
       ({ value }) =>
       model => {
         const fields = routeToBrowseFields(model.route)
-        return [
+        return {
           model,
-          [
+          commands: [
             ReplaceFilters({
               ...fields,
               period: selectionToParam(Option.some(value), Period),
             }),
           ],
-        ]
+        }
       },
   }),
 )
@@ -337,54 +336,57 @@ const foldPeriodListbox = Update.foldChild({
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    CompletedNavigateInternal: () => [model, []],
-    CompletedLoadExternal: () => [model, []],
-    CompletedReplaceFilters: () => [model, []],
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
+    CompletedReplaceFilters: () => ({ model }),
 
     ClickedLink: ({ request }) =>
       M.value(request).pipe(
         withUpdateReturn,
         M.tagsExhaustive({
-          Internal: ({ url }) => [
+          Internal: ({ url }) => ({
             model,
-            [NavigateInternal({ url: urlToString(url) })],
-          ],
-          External: ({ href }) => [model, [LoadExternal({ href })]],
+            commands: [NavigateInternal({ url: urlToString(url) })],
+          }),
+          External: ({ href }) => ({
+            model,
+            commands: [LoadExternal({ href })],
+          }),
         }),
       ),
 
     ChangedUrl: ({ url }) => {
       const nextRoute = urlToAppRoute(url)
 
-      return [evo(model, { route: () => nextRoute }), []]
+      return { model: evo(model, { route: () => nextRoute }) }
     },
 
     ChangedSearchInput: ({ value }) => {
       const fields = routeToBrowseFields(model.route)
 
-      return [
+      return {
         model,
-        [
+        commands: [
           ReplaceFilters({
             ...fields,
             search: Option.liftPredicate(value, String.isNonEmpty),
           }),
         ],
-      ]
+      }
     },
 
     ClickedColumnHeader: ({ column }) => {
       const fields = routeToBrowseFields(model.route)
 
-      return [
+      return {
         model,
-        [
+        commands: [
           ReplaceFilters({
             ...fields,
             sorting: nextSorting(fields.sorting, column),
           }),
         ],
-      ]
+      }
     },
 
     GotDietListboxMessage: ({ message }) => foldDietListbox(model, message),

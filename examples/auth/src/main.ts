@@ -1,6 +1,6 @@
 import { Effect, Match as M, Option, Schema as S } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
-import { Command, Runtime } from 'foldkit'
+import { Runtime, type Update } from 'foldkit'
 import { Url } from 'foldkit/url'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
@@ -39,7 +39,7 @@ export type Flags = typeof Flags.Type
 
 // INIT
 
-type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+type InitReturn = Update.Return<Model, Message>
 const withInitReturn = M.withReturnType<InitReturn>()
 
 export const init: Runtime.RoutingApplicationInit<Model, Message, Flags> = (
@@ -52,24 +52,25 @@ export const init: Runtime.RoutingApplicationInit<Model, Message, Flags> = (
     onNone: () =>
       M.value(route).pipe(
         withInitReturn,
-        M.tag('Home', 'Login', 'NotFound', route => [
-          LoggedOut.init(route),
-          [],
-        ]),
-        M.orElse(() => [LoggedOut.init(LoginRoute()), [RedirectToLogin()]]),
+        M.tag('Home', 'Login', 'NotFound', route => ({
+          model: LoggedOut.init(route),
+        })),
+        M.orElse(() => ({
+          model: LoggedOut.init(LoginRoute()),
+          commands: [RedirectToLogin()],
+        })),
       ),
 
     onSome: session =>
       M.value(route).pipe(
         withInitReturn,
-        M.tag('Dashboard', 'Settings', 'NotFound', route => [
-          LoggedIn.init(route, session),
-          [],
-        ]),
-        M.orElse(() => [
-          LoggedIn.init(DashboardRoute(), session),
-          [RedirectToDashboard()],
-        ]),
+        M.tag('Dashboard', 'Settings', 'NotFound', route => ({
+          model: LoggedIn.init(route, session),
+        })),
+        M.orElse(() => ({
+          model: LoggedIn.init(DashboardRoute(), session),
+          commands: [RedirectToDashboard()],
+        })),
       ),
   })
 }

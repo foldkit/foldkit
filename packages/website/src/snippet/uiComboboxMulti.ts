@@ -25,14 +25,13 @@ const Model = S.Struct({
 })
 
 // In your init function, initialize the Combobox Submodel with a unique id:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     selectedCities: [],
     comboboxMulti: Combobox.Multi.init({ id: 'cities-multi' }),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Wrap Combobox's Messages so they can flow through your update:
 const Message = defineMessageUnion({
@@ -50,16 +49,15 @@ const foldComboboxMultiOutMessage = M.type<Combobox.OutMessage<City>>().pipe(
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           selectedCities: () =>
             Array.contains(model.selectedCities, value)
               ? Array.filter(model.selectedCities, city => city !== value)
               : Array.append(model.selectedCities, value),
         }),
-        [],
-      ],
-    ClearedSelection: () => model => [model, []],
+      }),
+    ClearedSelection: () => model => ({ model }),
   }),
 )
 

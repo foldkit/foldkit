@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { Calendar, Command } from 'foldkit'
+import { Calendar, type Update } from 'foldkit'
 
 import {
   Animation,
@@ -23,10 +23,10 @@ import type { Message } from './message'
 import type { Model } from './model'
 import { Toast } from './toastModule'
 
-export type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+export type InitReturn = Update.Return<Model, Message>
 
-export const init = (today: Calendar.CalendarDate): InitReturn => [
-  {
+export const init = (today: Calendar.CalendarDate): InitReturn => ({
+  model: {
     buttonClickCount: 0,
     inputDemoValue: '',
     textareaDemoValue: '',
@@ -177,5 +177,4 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
       },
     ],
   },
-  [],
-]
+})

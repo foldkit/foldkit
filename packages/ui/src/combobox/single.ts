@@ -1,4 +1,5 @@
 import { Option, Schema as S } from 'effect'
+import { type Update } from 'foldkit'
 import type * as Command from 'foldkit/command'
 import { evo } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
@@ -38,16 +39,17 @@ export const init = (config: InitConfig): Model => baseInit(config)
 export const update = makeUpdate<Model>({
   handleClose: (model, restingInputValue, isClearable) => {
     if (isClearable && model.nullable && model.inputValue === '') {
-      return [
-        evo(closedBaseModel(model), { inputValue: () => '' }),
-        Option.some(OutMessage.ClearedSelection()),
-      ]
+      return {
+        model: evo(closedBaseModel(model), { inputValue: () => '' }),
+        outMessage: OutMessage.ClearedSelection(),
+      }
     }
 
-    return [
-      evo(closedBaseModel(model), { inputValue: () => restingInputValue }),
-      Option.none(),
-    ]
+    return {
+      model: evo(closedBaseModel(model), {
+        inputValue: () => restingInputValue,
+      }),
+    }
   },
 
   handleSelectedItem: (model, item, displayText, wasSelected, context) => {
@@ -57,14 +59,14 @@ export const update = makeUpdate<Model>({
       evo(closedBaseModel(model), {
         inputValue: () => (nullableDeselect ? '' : displayText),
       }),
-      Option.some(OutMessage.Selected({ value: item })),
+      OutMessage.Selected({ value: item }),
     )
   },
 
-  handleImmediateActivation: (model, item) => [
+  handleImmediateActivation: (model, item) => ({
     model,
-    Option.some(OutMessage.Selected({ value: item })),
-  ],
+    outMessage: OutMessage.Selected({ value: item }),
+  }),
 })
 
 type UpdateReturn = ReturnType<typeof update>
@@ -118,35 +120,33 @@ export type Bundle<Item extends string = string> = Readonly<{
   update: (
     model: Model,
     message: Message,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
+  ) => Readonly<{
+    model: Model
+    commands?: ReadonlyArray<Command.Command<Message>>
+    outMessage?: OutMessage<Item>
+  }>
   selectItem: (
     model: Model,
     item: Item,
     displayText: string,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
-  open: (
-    model: Model,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
+  ) => Readonly<{
+    model: Model
+    commands?: ReadonlyArray<Command.Command<Message>>
+    outMessage?: OutMessage<Item>
+  }>
+  open: (model: Model) => Readonly<{
+    model: Model
+    commands?: ReadonlyArray<Command.Command<Message>>
+    outMessage?: OutMessage<Item>
+  }>
   close: (
     model: Model,
     restingInputValue: string,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
+  ) => Readonly<{
+    model: Model
+    commands?: ReadonlyArray<Command.Command<Message>>
+    outMessage?: OutMessage<Item>
+  }>
 }>
 
 /** Pairs the single-select combobox's `view` and `update` (and programmatic
@@ -156,11 +156,11 @@ export type Bundle<Item extends string = string> = Readonly<{
  *  `Selected({ value })` with the input resting on `displayText`; what the
  *  selection becomes is the parent's fold to decide. */
 export const create = <Item extends string = string>(): Bundle<Item> => {
-  type UpdateReturn = readonly [
+  type UpdateReturn = Update.ReturnWithOutMessage<
     Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
+    Message,
+    OutMessage<Item>
+  >
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const typedUpdate = update as (model: Model, message: Message) => UpdateReturn
   const arrayBasedView = internalView<Item>()

@@ -9,6 +9,7 @@ import {
   Predicate,
   Schema as S,
 } from 'effect'
+import { type Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import * as Mount from 'foldkit/mount'
@@ -72,10 +73,7 @@ export const init = (config: InitConfig): Model => ({
 
 // UPDATE
 
-type InnerUpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-]
+type InnerUpdateReturn = Update.Return<Model, Message>
 
 /** Waits for the tooltip's show delay before emitting
  *  `CompletedWaitBeforeShowing`. */
@@ -115,28 +113,29 @@ const computeUpdate = (model: Model, message: Message) =>
   Message.match<InnerUpdateReturn>(message, {
     EnteredTrigger: () => {
       if (model.isOpen || model.isDismissed) {
-        return [evo(model, { isHovered: () => true }), []]
+        return { model: evo(model, { isHovered: () => true }) }
       }
 
       const nextVersion = Number.increment(model.pendingShowVersion)
-      return [
-        evo(model, {
+      return {
+        model: evo(model, {
           isHovered: () => true,
           pendingShowVersion: () => nextVersion,
         }),
-        [WaitBeforeShowing({ delay: model.showDelay, version: nextVersion })],
-      ]
+        commands: [
+          WaitBeforeShowing({ delay: model.showDelay, version: nextVersion }),
+        ],
+      }
     },
 
-    LeftTrigger: () => [
-      evo(model, {
+    LeftTrigger: () => ({
+      model: evo(model, {
         isHovered: () => false,
         isOpen: () => model.isFocused && model.isOpen,
         isDismissed: () => false,
         pendingShowVersion: Number.increment,
       }),
-      [],
-    ],
+    }),
 
     FocusedTrigger: () => {
       const isFromMousePress = Option.exists(
@@ -145,92 +144,82 @@ const computeUpdate = (model: Model, message: Message) =>
       )
 
       if (isFromMousePress) {
-        return [
-          evo(model, {
+        return {
+          model: evo(model, {
             maybeLastPointerType: () => Option.none(),
           }),
-          [],
-        ]
+        }
       }
 
       if (model.isDismissed) {
-        return [
-          evo(model, {
+        return {
+          model: evo(model, {
             isFocused: () => true,
             maybeLastPointerType: () => Option.none(),
           }),
-          [],
-        ]
+        }
       }
 
-      return [
-        evo(model, {
+      return {
+        model: evo(model, {
           isFocused: () => true,
           isOpen: () => true,
           pendingShowVersion: Number.increment,
         }),
-        [],
-      ]
+      }
     },
 
-    BlurredTrigger: () => [
-      evo(model, {
+    BlurredTrigger: () => ({
+      model: evo(model, {
         isFocused: () => false,
         isOpen: () => model.isHovered && model.isOpen,
         isDismissed: () => false,
         pendingShowVersion: Number.increment,
         maybeLastPointerType: () => Option.none(),
       }),
-      [],
-    ],
+    }),
 
-    PressedEscape: () => [
-      evo(model, {
+    PressedEscape: () => ({
+      model: evo(model, {
         isOpen: () => false,
         isDismissed: () => true,
         pendingShowVersion: Number.increment,
       }),
-      [],
-    ],
+    }),
 
-    PressedPointerOnTrigger: ({ pointerType }) => [
-      evo(model, {
+    PressedPointerOnTrigger: ({ pointerType }) => ({
+      model: evo(model, {
         maybeLastPointerType: () => Option.some(pointerType),
       }),
-      [],
-    ],
+    }),
 
     CompletedWaitBeforeShowing: ({ version }) => {
       if (version !== model.pendingShowVersion) {
-        return [model, []]
+        return { model }
       }
 
       if (!model.isHovered) {
-        return [model, []]
+        return { model }
       }
 
-      return [evo(model, { isOpen: () => true }), []]
+      return { model: evo(model, { isOpen: () => true }) }
     },
 
-    CompletedAnchorTooltip: () => [model, []],
+    CompletedAnchorTooltip: () => ({ model }),
   })
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 
-const toMaybeVisibilityOutMessage = (
+const toVisibilityOutMessage = (
   isOpen: boolean,
   isNextOpen: boolean,
-): Option.Option<OutMessage> => {
+): OutMessage | undefined => {
   if (!isOpen && isNextOpen) {
-    return Option.some(OutMessage.Shown())
+    return OutMessage.Shown()
   } else if (isOpen && !isNextOpen) {
-    return Option.some(OutMessage.Hidden())
+    return OutMessage.Hidden()
   } else {
-    return Option.none()
+    return undefined
   }
 }
 
@@ -239,12 +228,16 @@ const toMaybeVisibilityOutMessage = (
  *  transitions, so consumers don't get spurious events for messages that
  *  only update hover/focus/delay state without changing visibility. */
 export const update = (model: Model, message: Message): UpdateReturn => {
-  const [nextModel, commands] = computeUpdate(model, message)
-  const maybeOutMessage = toMaybeVisibilityOutMessage(
+  const computeUpdateResult = computeUpdate(model, message)
+  const outMessage = toVisibilityOutMessage(
     model.isOpen,
-    nextModel.isOpen,
+    computeUpdateResult.model.isOpen,
   )
-  return [nextModel, commands, maybeOutMessage]
+  if (outMessage === undefined) {
+    return computeUpdateResult
+  } else {
+    return { ...computeUpdateResult, outMessage }
+  }
 }
 
 /** Reflects an externally-sourced hover show-delay onto the model without

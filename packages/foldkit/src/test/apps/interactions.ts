@@ -39,17 +39,22 @@ export const initialModel: Model = {
 
 // UPDATE
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<never>
+  outMessage?: never
+}>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<never>]>(message, {
-    ClickedButton: () => [{ ...model, clicks: model.clicks + 1 }, []],
-    DoubleClickedButton: () => [
-      { ...model, doubleClicks: model.doubleClicks + 1 },
-      [],
-    ],
-    HoveredTarget: () => [{ ...model, hovered: true }, []],
-    FocusedInput: () => [{ ...model, focused: true }, []],
-    BlurredInput: () => [{ ...model, focused: false }, []],
-    ChangedSelect: ({ value }) => [{ ...model, changed: value }, []],
+  Message.match<UpdateReturn>(message, {
+    ClickedButton: () => ({ model: { ...model, clicks: model.clicks + 1 } }),
+    DoubleClickedButton: () => ({
+      model: { ...model, doubleClicks: model.doubleClicks + 1 },
+    }),
+    HoveredTarget: () => ({ model: { ...model, hovered: true } }),
+    FocusedInput: () => ({ model: { ...model, focused: true } }),
+    BlurredInput: () => ({ model: { ...model, focused: false } }),
+    ChangedSelect: ({ value }) => ({ model: { ...model, changed: value } }),
   })
 
 // VIEW

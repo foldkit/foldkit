@@ -9,7 +9,7 @@ import {
   Schema as S,
   pipe,
 } from 'effect'
-import { Command, Runtime } from 'foldkit'
+import { Command, Runtime, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -56,10 +56,9 @@ export const initialModel: Model = {
   uploads: [],
 }
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  initialModel,
-  [],
-]
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: initialModel,
+})
 
 // FAKE FILES
 
@@ -116,81 +115,85 @@ const setStatusForId = (uploadId: number, status: UploadStatus) =>
     upload.id === uploadId ? evo(upload, { status: () => status }) : upload,
   )
 
+type UpdateReturn = Update.Return<Model, Message>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      ClickedStartUpload: () => {
-        const fakeFile = fakeFileForUpload(model.uploadId)
-        const startedUpload = Upload.make({
-          id: model.uploadId,
-          fileName: fakeFile.name,
-          sizeMegabytes: fakeFile.sizeMegabytes,
-          status: 'Uploading',
-        })
-        return [
-          evo(model, {
-            uploadId: Number.increment,
-            uploads: Array.append(startedUpload),
+  Message.match<UpdateReturn>(message, {
+    ClickedStartUpload: () => {
+      const fakeFile = fakeFileForUpload(model.uploadId)
+      const startedUpload = Upload.make({
+        id: model.uploadId,
+        fileName: fakeFile.name,
+        sizeMegabytes: fakeFile.sizeMegabytes,
+        status: 'Uploading',
+      })
+      return {
+        model: evo(model, {
+          uploadId: Number.increment,
+          uploads: Array.append(startedUpload),
+        }),
+        commands: [
+          UploadFile({
+            uploadId: startedUpload.id,
+            sizeMegabytes: startedUpload.sizeMegabytes,
           }),
-          [
-            UploadFile({
-              uploadId: startedUpload.id,
-              sizeMegabytes: startedUpload.sizeMegabytes,
-            }),
-          ],
-        ]
-      },
-
-      ClickedCancelUpload: ({ uploadId }) => [
-        model,
-        [CancelUploadFile({ uploadId })],
-      ],
-
-      ClickedCancelAllUploads: () => [
-        model,
-        pipe(
-          model.uploads,
-          Array.filter(upload => upload.status === 'Uploading'),
-          Array.map(upload => CancelUploadFile({ uploadId: upload.id })),
-        ),
-      ],
-
-      ClickedRestartUpload: ({ uploadId }) =>
-        pipe(
-          model.uploads,
-          Array.findFirst(
-            upload => upload.id === uploadId && upload.status === 'Cancelled',
-          ),
-          Option.match({
-            onNone: () => [model, []],
-            onSome: upload => [
-              evo(model, { uploads: setStatusForId(uploadId, 'Uploading') }),
-              [UploadFile({ uploadId, sizeMegabytes: upload.sizeMegabytes })],
-            ],
-          }),
-        ),
-
-      SucceededUploadFile: ({ uploadId }) => [
-        evo(model, { uploads: setStatusForId(uploadId, 'Done') }),
-        [],
-      ],
-
-      CompletedCancelUploadFile: ({ uploadId, outcome }) =>
-        M.value(outcome).pipe(
-          M.withReturnType<
-            readonly [Model, ReadonlyArray<Command.Command<Message>>]
-          >(),
-          M.tagsExhaustive({
-            Interrupted: () => [
-              evo(model, { uploads: setStatusForId(uploadId, 'Cancelled') }),
-              [],
-            ],
-            NotFound: () => [model, []],
-          }),
-        ),
+        ],
+      }
     },
-  )
+
+    ClickedCancelUpload: ({ uploadId }) => ({
+      model,
+      commands: [CancelUploadFile({ uploadId })],
+    }),
+
+    ClickedCancelAllUploads: () => {
+      const commands = pipe(
+        model.uploads,
+        Array.filter(upload => upload.status === 'Uploading'),
+        Array.map(upload => CancelUploadFile({ uploadId: upload.id })),
+      )
+      return Array.match(commands, {
+        onEmpty: () => ({ model }),
+        onNonEmpty: commands => ({ model, commands }),
+      })
+    },
+
+    ClickedRestartUpload: ({ uploadId }) =>
+      pipe(
+        model.uploads,
+        Array.findFirst(
+          upload => upload.id === uploadId && upload.status === 'Cancelled',
+        ),
+        Option.match({
+          onNone: () => ({ model }),
+          onSome: upload => ({
+            model: evo(model, {
+              uploads: setStatusForId(uploadId, 'Uploading'),
+            }),
+            commands: [
+              UploadFile({ uploadId, sizeMegabytes: upload.sizeMegabytes }),
+            ],
+          }),
+        }),
+      ),
+
+    SucceededUploadFile: ({ uploadId }) => ({
+      model: evo(model, { uploads: setStatusForId(uploadId, 'Done') }),
+    }),
+
+    CompletedCancelUploadFile: ({ uploadId, outcome }) =>
+      M.value(outcome).pipe(
+        M.withReturnType<UpdateReturn>(),
+        M.tagsExhaustive({
+          Interrupted: () => ({
+            model: evo(model, {
+              uploads: setStatusForId(uploadId, 'Cancelled'),
+            }),
+          }),
+          NotFound: () => ({ model }),
+        }),
+      ),
+  })
 
 // VIEW
 

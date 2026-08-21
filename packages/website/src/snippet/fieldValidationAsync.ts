@@ -1,9 +1,11 @@
 import { Effect, Match as M, Number, Schema as S } from 'effect'
-import { Command } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { Invalid, Valid, Validating, validate } from 'foldkit/fieldValidation'
 import { evo } from 'foldkit/struct'
 
 const validateEmail = validate(emailRules)
+
+type UpdateReturn = Update.Return<Model, Message>
 
 const CheckEmailAvailable = Command.define('CheckEmailAvailable', {
   args: { email: S.String, validationId: S.Number },
@@ -36,34 +38,33 @@ const CheckEmailAvailable = Command.define('CheckEmailAvailable', {
 })
 
 const update = (model: Model, message: Message) =>
-  Message.match(message, {
+  Message.match<UpdateReturn>(message, {
     ChangedEmail: ({ value }) => {
       const syncResult = validateEmail(value)
       const validationId = Number.increment(model.emailValidationId)
 
       return M.value(syncResult).pipe(
-        M.tag('Valid', () => [
-          evo(model, {
+        M.tag('Valid', () => ({
+          model: evo(model, {
             email: () => Validating({ value }),
             emailValidationId: () => validationId,
           }),
-          [CheckEmailAvailable({ email: value, validationId })],
-        ]),
-        M.orElse(() => [
-          evo(model, {
+          commands: [CheckEmailAvailable({ email: value, validationId })],
+        })),
+        M.orElse(() => ({
+          model: evo(model, {
             email: () => syncResult,
             emailValidationId: () => validationId,
           }),
-          [],
-        ]),
+        })),
       )
     },
 
     CompletedCheckEmailAvailable: ({ validationId, field }) => {
       if (validationId === model.emailValidationId) {
-        return [evo(model, { email: () => field }), []]
+        return { model: evo(model, { email: () => field }) }
       } else {
-        return [model, []]
+        return { model }
       }
     },
   })

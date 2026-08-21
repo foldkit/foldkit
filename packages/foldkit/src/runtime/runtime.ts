@@ -24,7 +24,6 @@ import {
 } from 'effect'
 
 import { HYDRATION_BUILD_ATTRIBUTE } from '../buildToken.js'
-import type { Command } from '../command/index.js'
 import {
   __CurrentRegistry as __CurrentInterruptRegistry,
   __makeRegistry as __makeInterruptRegistry,
@@ -72,6 +71,7 @@ import {
 } from '../port/index.js'
 import { RenderCommit, createCommitNotifier } from '../render/commit.js'
 import type { Subscriptions } from '../subscription/subscription.js'
+import type { Return as UpdateReturn } from '../update/index.js'
 import { Url, fromString as urlFromString } from '../url/index.js'
 import { VNode, __patchVNode } from '../vdom.js'
 import { addNavigationEventListeners } from './browserListeners.js'
@@ -1003,17 +1003,11 @@ type RuntimeConfig<
   init: (
     flags: Flags,
     url?: Url,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
-  ]
+  ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
   update: (
     model: Model,
     message: Message,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
-  ]
+  ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
   view: (model: Model, h: HtmlBuilder<Message>) => Document
   /**
    * Whether the runtime owns document-level state. When `true`, each render
@@ -1147,10 +1141,7 @@ type BaseApplicationConfig<
   update: (
     model: Model,
     message: Message,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
-  ]
+  ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
   view: (model: Model, h: HtmlBuilder<Message>) => Document
   subscriptions?: Subscriptions<
     Model,
@@ -1199,12 +1190,7 @@ export type RoutingApplicationConfigWithFlags<
     init: (
       flags: Flags,
       url: Url,
-    ) => readonly [
-      Model,
-      ReadonlyArray<
-        Command<Message, never, Resources | ManagedResourceServices>
-      >,
-    ]
+    ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
   }>
 
 /** Configuration for `makeApplication` with URL routing but no Flags. */
@@ -1225,12 +1211,7 @@ export type RoutingApplicationConfig<
     routing: RoutingConfig<Message>
     init: (
       url: Url,
-    ) => readonly [
-      Model,
-      ReadonlyArray<
-        Command<Message, never, Resources | ManagedResourceServices>
-      >,
-    ]
+    ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
   }>
 
 /** Configuration for `makeApplication` with Flags but no URL routing. */
@@ -1252,12 +1233,7 @@ export type ApplicationConfigWithFlags<
   Readonly<{
     init: (
       flags: Flags,
-    ) => readonly [
-      Model,
-      ReadonlyArray<
-        Command<Message, never, Resources | ManagedResourceServices>
-      >,
-    ]
+    ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
   }>
 
 /** Configuration for `makeApplication` without Flags or URL routing. */
@@ -1275,12 +1251,11 @@ export type ApplicationConfig<
   P
 > &
   Readonly<{
-    init: () => readonly [
+    init: () => UpdateReturn<
       Model,
-      ReadonlyArray<
-        Command<Message, never, Resources | ManagedResourceServices>
-      >,
-    ]
+      Message,
+      Resources | ManagedResourceServices
+    >
   }>
 
 /** Configuration for crash handling in a `makeElement` app. The crash view
@@ -1302,10 +1277,7 @@ type BaseElementConfig<
   update: (
     model: Model,
     message: Message,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
-  ]
+  ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
   view: (model: Model, h: HtmlBuilder<Message>) => Html
   subscriptions?: Subscriptions<
     Model,
@@ -1345,12 +1317,7 @@ export type ElementConfigWithFlags<
     flags: Effect.Effect<Flags, never, NoInfer<Resources>>
     init: (
       flags: Flags,
-    ) => readonly [
-      Model,
-      ReadonlyArray<
-        Command<Message, never, Resources | ManagedResourceServices>
-      >,
-    ]
+    ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
   }>
 
 /** Configuration for `makeElement` without Flags. */
@@ -1362,12 +1329,11 @@ export type ElementConfig<
   P extends Ports | undefined = undefined,
 > = BaseElementConfig<Model, Message, Resources, ManagedResourceServices, P> &
   Readonly<{
-    init: () => readonly [
+    init: () => UpdateReturn<
       Model,
-      ReadonlyArray<
-        Command<Message, never, Resources | ManagedResourceServices>
-      >,
-    ]
+      Message,
+      Resources | ManagedResourceServices
+    >
   }>
 
 /** The `init` function type for a `makeApplication` app without URL routing. */
@@ -1378,20 +1344,10 @@ export type ApplicationInit<
   Resources = never,
   ManagedResourceServices = never,
 > = Flags extends void
-  ? () => readonly [
-      Model,
-      ReadonlyArray<
-        Command<Message, never, Resources | ManagedResourceServices>
-      >,
-    ]
+  ? () => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
   : (
       flags: Flags,
-    ) => readonly [
-      Model,
-      ReadonlyArray<
-        Command<Message, never, Resources | ManagedResourceServices>
-      >,
-    ]
+    ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
 
 /** The `init` function type for a `makeApplication` app with URL routing, receives the current URL and optional Flags. */
 export type RoutingApplicationInit<
@@ -1403,21 +1359,11 @@ export type RoutingApplicationInit<
 > = Flags extends void
   ? (
       url: Url,
-    ) => readonly [
-      Model,
-      ReadonlyArray<
-        Command<Message, never, Resources | ManagedResourceServices>
-      >,
-    ]
+    ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
   : (
       flags: Flags,
       url: Url,
-    ) => readonly [
-      Model,
-      ReadonlyArray<
-        Command<Message, never, Resources | ManagedResourceServices>
-      >,
-    ]
+    ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
 
 /** The `init` function type for a `makeElement` app. A scoped app never owns
  *  the URL, so its `init` has the same shape as a non-routing
@@ -2297,13 +2243,15 @@ const makeRuntime = <
           flags => init(flags, Option.getOrUndefined(currentUrl)),
         )
 
-        const [initModelRaw, initCommands] = yield* hmrModel !== undefined
+        const initResult = yield* hmrModel !== undefined
           ? Exit.match(decodeHmrModel(hmrModel), {
               onFailure: () => runInit,
               onSuccess: restoredModel =>
-                Effect.succeed<InitResult>([restoredModel, []]),
+                Effect.succeed<InitResult>({ model: restoredModel }),
             })
           : runInit
+        const initModelRaw = initResult.model
+        const initCommands = initResult.commands ?? []
 
         // NOTE: keep `encodeHmrModel` off the dispatch hot path. It walks
         // the entire Model graph (O(modelSize) per call) and blocks input
@@ -2678,10 +2626,12 @@ const makeRuntime = <
         const processMessagePlain = (message: Message): void => {
           const currentModel = liveModel
 
-          const [[nextModelRaw, commands], maybeUpdateDuration] =
-            measureSlowPhase(resolvedSlowUpdate, () =>
-              update(currentModel, message),
-            )
+          const [updateResult, maybeUpdateDuration] = measureSlowPhase(
+            resolvedSlowUpdate,
+            () => update(currentModel, message),
+          )
+          const nextModelRaw = updateResult.model
+          const commands = updateResult.commands ?? []
           const nextModel = maybeFreezeModel(nextModelRaw)
 
           reportSlowPhase<SlowUpdateContext<Model, Message>>(
@@ -3025,10 +2975,10 @@ const makeRuntime = <
             {
               /* eslint-disable @typescript-eslint/consistent-type-assertions */
               replay: (model, message) => {
-                const [updatedModel] = update(
+                const updatedModel = update(
                   model as Model,
                   message as Message,
-                )
+                ).model
                 return maybeFreezeModel(updatedModel)
               },
               /* eslint-enable @typescript-eslint/consistent-type-assertions */

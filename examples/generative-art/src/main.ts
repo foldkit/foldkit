@@ -21,8 +21,8 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     particles: [],
     nextId: 0,
     elapsedSeconds: 0,
@@ -53,7 +53,9 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => [
       step: NOISE_SCALE_STEP,
     }),
   },
-  Array.makeBy(INITIAL_PARTICLE_COUNT, () => GenerateAmbientParticle()),
-]
+  commands: Array.makeBy(INITIAL_PARTICLE_COUNT, () =>
+    GenerateAmbientParticle(),
+  ),
+})
 
 export { Message, Model, subscriptions, update, view }

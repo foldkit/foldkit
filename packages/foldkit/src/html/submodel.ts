@@ -167,9 +167,9 @@ type ViewMessageOf<View extends AnySubmodelView> = View extends {
  *
  *  High-level events the parent handles declaratively flow through
  *  each Submodel's `OutMessage`. The parent's `GotChildMessage`
- *  handler unpacks the third tuple element of the child's `update`
- *  return and pattern-matches on `Option<OutMessage>`. See `Menu`,
- *  `Listbox`, etc., for examples. */
+ *  handler reads the optional `outMessage` field from the child's
+ *  update return and pattern-matches on its tag. See `Menu`, `Listbox`,
+ *  etc., for examples. */
 export type SubmodelConfig<
   View extends AnySubmodelView,
   ParentMessage,

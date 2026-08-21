@@ -80,48 +80,45 @@ const reorderColumns = (
   })
 }
 
-export type UiUpdateReturn = readonly [
-  UiModel,
-  ReadonlyArray<Command.Command<UiMessage>>,
-]
+export type UiUpdateReturn = Update.Return<UiModel, UiMessage>
 
 const DemoMenu = Menu.create<string>()
 
 const foldDialogOutMessage = M.type<Dialog.OutMessage>().pipe(
   M.withReturnType<Update.Step<UiModel, UiMessage>>(),
   M.tagsExhaustive({
-    Opened: () => model => [model, []],
-    Closed: () => model => [model, []],
+    Opened: () => model => ({ model }),
+    Closed: () => model => ({ model }),
   }),
 )
 
 const foldMenuOutMessage = M.type<Menu.OutMessage<string>>().pipe(
   M.withReturnType<Update.Step<UiModel, UiMessage>>(),
   M.tagsExhaustive({
-    Selected: () => model => [model, []],
+    Selected: () => model => ({ model }),
   }),
 )
 
 const foldPopoverOutMessage = M.type<Popover.OutMessage>().pipe(
   M.withReturnType<Update.Step<UiModel, UiMessage>>(),
   M.tagsExhaustive({
-    Opened: () => model => [model, []],
-    Closed: () => model => [model, []],
+    Opened: () => model => ({ model }),
+    Closed: () => model => ({ model }),
   }),
 )
 
 const foldToastOutMessage = M.type<typeof Toast.OutMessage.Type>().pipe(
   M.withReturnType<Update.Step<UiModel, UiMessage>>(),
   M.tagsExhaustive({
-    DismissedToast: () => model => [model, []],
+    DismissedToast: () => model => ({ model }),
   }),
 )
 
 const foldTooltipOutMessage = M.type<Tooltip.OutMessage>().pipe(
   M.withReturnType<Update.Step<UiModel, UiMessage>>(),
   M.tagsExhaustive({
-    Shown: () => model => [model, []],
-    Hidden: () => model => [model, []],
+    Shown: () => model => ({ model }),
+    Hidden: () => model => ({ model }),
   }),
 )
 
@@ -139,13 +136,12 @@ const foldComboboxDemoOutMessage = M.type<Combobox.OutMessage<City>>().pipe(
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           maybeComboboxDemoSelectedCity: () => Option.some(value),
         }),
-        [],
-      ],
-    ClearedSelection: () => model => [model, []],
+      }),
+    ClearedSelection: () => model => ({ model }),
   }),
 )
 
@@ -165,21 +161,19 @@ const foldComboboxNullableDemoOutMessage = M.type<
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           maybeComboboxNullableDemoSelectedCity: () =>
             Option.contains(model.maybeComboboxNullableDemoSelectedCity, value)
               ? Option.none()
               : Option.some(value),
         }),
-        [],
-      ],
-    ClearedSelection: () => model => [
-      evo(model, {
+      }),
+    ClearedSelection: () => model => ({
+      model: evo(model, {
         maybeComboboxNullableDemoSelectedCity: () => Option.none(),
       }),
-      [],
-    ],
+    }),
   }),
 )
 
@@ -200,8 +194,8 @@ const foldComboboxMultiDemoOutMessage = M.type<
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           comboboxMultiDemoSelectedCities: () =>
             Array.contains(model.comboboxMultiDemoSelectedCities, value)
               ? Array.filter(
@@ -210,9 +204,8 @@ const foldComboboxMultiDemoOutMessage = M.type<
                 )
               : Array.append(model.comboboxMultiDemoSelectedCities, value),
         }),
-        [],
-      ],
-    ClearedSelection: () => model => [model, []],
+      }),
+    ClearedSelection: () => model => ({ model }),
   }),
 )
 
@@ -233,13 +226,12 @@ const foldComboboxPlacementLockDemoOutMessage = M.type<
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           maybeComboboxPlacementLockDemoSelectedCity: () => Option.some(value),
         }),
-        [],
-      ],
-    ClearedSelection: () => model => [model, []],
+      }),
+    ClearedSelection: () => model => ({ model }),
   }),
 )
 
@@ -262,13 +254,12 @@ const foldComboboxSelectOnFocusDemoOutMessage = M.type<
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           maybeComboboxSelectOnFocusDemoSelectedCity: () => Option.some(value),
         }),
-        [],
-      ],
-    ClearedSelection: () => model => [model, []],
+      }),
+    ClearedSelection: () => model => ({ model }),
   }),
 )
 
@@ -320,13 +311,12 @@ const foldOverlayComboboxDemoOutMessage = M.type<
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           maybeOverlayComboboxDemoSelectedCity: () => Option.some(value),
         }),
-        [],
-      ],
-    ClearedSelection: () => model => [model, []],
+      }),
+    ClearedSelection: () => model => ({ model }),
   }),
 )
 
@@ -365,13 +355,12 @@ const foldCalendarBasicDemoOutMessage = M.type<Calendar.OutMessage>().pipe(
   M.tagsExhaustive({
     SelectedDate:
       ({ date }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           maybeCalendarBasicDemoSelectedDate: () => Option.some(date),
         }),
-        [],
-      ],
-    ChangedViewMonth: () => model => [model, []],
+      }),
+    ChangedViewMonth: () => model => ({ model }),
   }),
 )
 
@@ -390,19 +379,17 @@ const foldDatePickerBasicDemoOutMessage = M.type<DatePicker.OutMessage>().pipe(
   M.tagsExhaustive({
     SelectedDate:
       ({ date }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           maybeDatePickerBasicDemoSelectedDate: () => Option.some(date),
         }),
-        [],
-      ],
-    ClearedDate: () => model => [
-      evo(model, {
+      }),
+    ClearedDate: () => model => ({
+      model: evo(model, {
         maybeDatePickerBasicDemoSelectedDate: () => Option.none(),
       }),
-      [],
-    ],
-    ChangedViewMonth: () => model => [model, []],
+    }),
+    ChangedViewMonth: () => model => ({ model }),
   }),
 )
 
@@ -421,8 +408,8 @@ const foldDragAndDropDemoOutMessage = M.type<DragAndDrop.OutMessage>().pipe(
   M.tagsExhaustive({
     Reordered:
       ({ itemId, fromContainerId, toContainerId, toIndex }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           dragAndDropDemoColumns: () =>
             reorderColumns(
               model.dragAndDropDemoColumns,
@@ -432,9 +419,8 @@ const foldDragAndDropDemoOutMessage = M.type<DragAndDrop.OutMessage>().pipe(
               toIndex,
             ),
         }),
-        [],
-      ],
-    Cancelled: () => model => [model, []],
+      }),
+    Cancelled: () => model => ({ model }),
   }),
 )
 
@@ -452,16 +438,15 @@ const foldFileDropBasicDemoOutMessage = M.type<FileDrop.OutMessage>().pipe(
   M.tagsExhaustive({
     ReceivedFiles:
       ({ files }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           fileDropBasicDemoFiles: () => [
             ...model.fileDropBasicDemoFiles,
             ...files,
           ],
         }),
-        [],
-      ],
-    RejectedNonFiles: () => model => [model, []],
+      }),
+    RejectedNonFiles: () => model => ({ model }),
   }),
 )
 
@@ -482,12 +467,11 @@ const foldListboxDemoOutMessage = M.type<
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           maybeListboxDemoSelectedItem: () => Option.some(value),
         }),
-        [],
-      ],
+      }),
   }),
 )
 
@@ -509,8 +493,8 @@ const foldListboxMultiDemoOutMessage: (
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           listboxMultiDemoSelectedItems: () =>
             Array.contains(model.listboxMultiDemoSelectedItems, value)
               ? Array.filter(
@@ -519,8 +503,7 @@ const foldListboxMultiDemoOutMessage: (
                 )
               : Array.append(model.listboxMultiDemoSelectedItems, value),
         }),
-        [],
-      ],
+      }),
   }),
 )
 
@@ -538,12 +521,11 @@ const foldListboxGroupedDemoOutMessage = M.type<Listbox.OutMessage>().pipe(
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           maybeListboxGroupedDemoSelectedItem: () => Option.some(value),
         }),
-        [],
-      ],
+      }),
   }),
 )
 
@@ -621,10 +603,11 @@ const foldVerticalRadioGroupDemoOutMessage = M.type<
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [
-        evo(model, { verticalRadioGroupDemoValue: () => Option.some(value) }),
-        [],
-      ],
+      model => ({
+        model: evo(model, {
+          verticalRadioGroupDemoValue: () => Option.some(value),
+        }),
+      }),
   }),
 )
 
@@ -645,10 +628,11 @@ const foldHorizontalRadioGroupDemoOutMessage = M.type<
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [
-        evo(model, { horizontalRadioGroupDemoValue: () => Option.some(value) }),
-        [],
-      ],
+      model => ({
+        model: evo(model, {
+          horizontalRadioGroupDemoValue: () => Option.some(value),
+        }),
+      }),
   }),
 )
 
@@ -669,7 +653,7 @@ const foldSliderRatingDemoOutMessage = M.type<Slider.OutMessage>().pipe(
   M.tagsExhaustive({
     ChangedValue:
       ({ value }) =>
-      model => [evo(model, { sliderRatingValue: () => value }), []],
+      model => ({ model: evo(model, { sliderRatingValue: () => value }) }),
   }),
 )
 
@@ -687,7 +671,7 @@ const foldSliderVolumeDemoOutMessage = M.type<Slider.OutMessage>().pipe(
   M.tagsExhaustive({
     ChangedValue:
       ({ value }) =>
-      model => [evo(model, { sliderVolumeValue: () => value }), []],
+      model => ({ model: evo(model, { sliderVolumeValue: () => value }) }),
   }),
 )
 
@@ -707,7 +691,7 @@ const foldHorizontalTabsDemoOutMessage = M.type<
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [evo(model, { horizontalTabsDemoTab: () => value }), []],
+      model => ({ model: evo(model, { horizontalTabsDemoTab: () => value }) }),
   }),
 )
 
@@ -726,7 +710,7 @@ const foldVerticalTabsDemoOutMessage = M.type<Tabs.OutMessage<DemoTab>>().pipe(
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [evo(model, { verticalTabsDemoTab: () => value }), []],
+      model => ({ model: evo(model, { verticalTabsDemoTab: () => value }) }),
   }),
 )
 
@@ -772,11 +756,13 @@ const foldAnimationDemoOutMessage: (
   context: Update.FoldContext<Animation.Message, UiMessage>,
 ) => Update.Step<UiModel, UiMessage> = (outMessage, { liftCommand }) =>
   Animation.OutMessage.match<Update.Step<UiModel, UiMessage>>(outMessage, {
-    StartedLeaveAnimating: () => model => [
+    StartedLeaveAnimating: () => model => ({
       model,
-      [liftCommand(Animation.defaultLeaveCommand(model.animationDemo))],
-    ],
-    TransitionedOut: () => model => [model, []],
+      commands: [
+        liftCommand(Animation.defaultLeaveCommand(model.animationDemo)),
+      ],
+    }),
+    TransitionedOut: () => model => ({ model }),
   })
 
 const foldAnimationDemo = Update.foldChild({
@@ -805,93 +791,80 @@ const foldVirtualListVariableDemo = Update.foldChild({
     UiMessage.GotVirtualListVariableDemoMessage({ message }),
 })
 
-export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
+export const uiUpdate = (model: UiModel, message: UiMessage) =>
   UiMessage.match<UiUpdateReturn>(message, {
     ClickedOpenMobileMenu: () => {
-      const [nextMobileMenuDialog, mobileMenuDialogCommands] = Dialog.open(
-        model.mobileMenuDialog,
-      )
+      const dialogOpen = Dialog.open(model.mobileMenuDialog)
 
-      return [
-        evo(model, {
-          mobileMenuDialog: () => nextMobileMenuDialog,
+      return {
+        model: evo(model, {
+          mobileMenuDialog: () => dialogOpen.model,
         }),
-        Command.mapMessages(mobileMenuDialogCommands, message =>
+        commands: Command.mapMessages(dialogOpen.commands ?? [], message =>
           UiMessage.GotMobileMenuDialogMessage({ message }),
         ),
-      ]
+      }
     },
 
     GotMobileMenuDialogMessage: ({ message }) =>
       foldMobileMenuDialog(model, message),
 
-    UpdatedInputDemoValue: ({ value }) => [
-      evo(model, { inputDemoValue: () => value }),
-      [],
-    ],
+    UpdatedInputDemoValue: ({ value }) => ({
+      model: evo(model, { inputDemoValue: () => value }),
+    }),
 
-    UpdatedTextareaDemoValue: ({ value }) => [
-      evo(model, { textareaDemoValue: () => value }),
-      [],
-    ],
+    UpdatedTextareaDemoValue: ({ value }) => ({
+      model: evo(model, { textareaDemoValue: () => value }),
+    }),
 
-    UpdatedFieldsetInputValue: ({ value }) => [
-      evo(model, { fieldsetInputValue: () => value }),
-      [],
-    ],
+    UpdatedFieldsetInputValue: ({ value }) => ({
+      model: evo(model, { fieldsetInputValue: () => value }),
+    }),
 
-    UpdatedFieldsetTextareaValue: ({ value }) => [
-      evo(model, { fieldsetTextareaValue: () => value }),
-      [],
-    ],
+    UpdatedFieldsetTextareaValue: ({ value }) => ({
+      model: evo(model, { fieldsetTextareaValue: () => value }),
+    }),
 
-    UpdatedSelectDemoValue: ({ value }) => [
-      evo(model, { selectDemoValue: () => value }),
-      [],
-    ],
+    UpdatedSelectDemoValue: ({ value }) => ({
+      model: evo(model, { selectDemoValue: () => value }),
+    }),
 
-    ToggledFieldsetCheckboxDemo: ({ isChecked }) => [
-      evo(model, {
+    ToggledFieldsetCheckboxDemo: ({ isChecked }) => ({
+      model: evo(model, {
         isFieldsetCheckboxDemoChecked: () => isChecked,
       }),
-      [],
-    ],
+    }),
 
-    ClickedButtonDemo: () => [
-      evo(model, {
+    ClickedButtonDemo: () => ({
+      model: evo(model, {
         buttonClickCount: Number.increment,
       }),
-      [],
-    ],
+    }),
 
-    ToggledCheckboxBasicDemo: ({ isChecked }) => [
-      evo(model, {
+    ToggledCheckboxBasicDemo: ({ isChecked }) => ({
+      model: evo(model, {
         isCheckboxBasicDemoChecked: () => isChecked,
       }),
-      [],
-    ],
+    }),
 
-    ToggledCheckboxAllDemo: ({ isChecked }) => [
-      evo(model, {
+    ToggledCheckboxAllDemo: ({ isChecked }) => ({
+      model: evo(model, {
         isCheckboxOptionADemoChecked: () => isChecked,
         isCheckboxOptionBDemoChecked: () => isChecked,
       }),
-      [],
-    ],
+    }),
 
-    ToggledCheckboxOptionADemo: ({ isChecked }) => [
-      evo(model, {
+    ToggledCheckboxOptionADemo: ({ isChecked }) => ({
+      model: evo(model, {
         isCheckboxOptionADemoChecked: () => isChecked,
       }),
-      [],
-    ],
+    }),
 
-    ToggledCheckboxOptionBDemo: ({ isChecked }) => [
-      evo(model, {
+    ToggledCheckboxOptionBDemo: ({ isChecked }) => ({
+      model: evo(model, {
         isCheckboxOptionBDemoChecked: () => isChecked,
       }),
-      [],
-    ],
+    }),
 
     GotComboboxDemoMessage: ({ message }) => foldComboboxDemo(model, message),
 
@@ -925,83 +898,75 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       foldNestedDialogChildDemo(model, message),
 
     ClickedDeleteProject: () => {
-      const [nextNestedDialogChildDemo, nestedDialogChildCommands] =
-        Dialog.open(model.nestedDialogChildDemo)
+      const dialogOpen = Dialog.open(model.nestedDialogChildDemo)
 
-      return [
-        evo(model, {
-          nestedDialogChildDemo: () => nextNestedDialogChildDemo,
+      return {
+        model: evo(model, {
+          nestedDialogChildDemo: () => dialogOpen.model,
         }),
-        Command.mapMessages(nestedDialogChildCommands, message =>
+        commands: Command.mapMessages(dialogOpen.commands ?? [], message =>
           UiMessage.GotNestedDialogChildDemoMessage({ message }),
         ),
-      ]
+      }
     },
 
     ClickedOpenDialog: () => {
-      const [nextDialogDemo, dialogCommands] = Dialog.open(model.dialogDemo)
+      const dialogOpen = Dialog.open(model.dialogDemo)
 
-      return [
-        evo(model, { dialogDemo: () => nextDialogDemo }),
-        Command.mapMessages(dialogCommands, message =>
+      return {
+        model: evo(model, { dialogDemo: () => dialogOpen.model }),
+        commands: Command.mapMessages(dialogOpen.commands ?? [], message =>
           UiMessage.GotDialogDemoMessage({ message }),
         ),
-      ]
+      }
     },
 
     ClickedOpenAnimatedDialog: () => {
-      const [nextDialogAnimatedDemo, dialogAnimatedCommands] = Dialog.open(
-        model.dialogAnimatedDemo,
-      )
+      const dialogOpen = Dialog.open(model.dialogAnimatedDemo)
 
-      return [
-        evo(model, { dialogAnimatedDemo: () => nextDialogAnimatedDemo }),
-        Command.mapMessages(dialogAnimatedCommands, message =>
+      return {
+        model: evo(model, { dialogAnimatedDemo: () => dialogOpen.model }),
+        commands: Command.mapMessages(dialogOpen.commands ?? [], message =>
           UiMessage.GotDialogAnimatedDemoMessage({ message }),
         ),
-      ]
+      }
     },
 
     ClickedEditFilters: () => {
-      const [nextOverlayDialogDemo, overlayDialogCommands] = Dialog.open(
-        model.overlayDialogDemo,
-      )
+      const dialogOpen = Dialog.open(model.overlayDialogDemo)
 
-      return [
-        evo(model, { overlayDialogDemo: () => nextOverlayDialogDemo }),
-        Command.mapMessages(overlayDialogCommands, message =>
+      return {
+        model: evo(model, { overlayDialogDemo: () => dialogOpen.model }),
+        commands: Command.mapMessages(dialogOpen.commands ?? [], message =>
           UiMessage.GotOverlayDialogDemoMessage({ message }),
         ),
-      ]
+      }
     },
 
     ClickedOpenProjectSettings: () => {
-      const [nextNestedDialogParentDemo, nestedDialogParentCommands] =
-        Dialog.open(model.nestedDialogParentDemo)
+      const dialogOpen = Dialog.open(model.nestedDialogParentDemo)
 
-      return [
-        evo(model, {
-          nestedDialogParentDemo: () => nextNestedDialogParentDemo,
+      return {
+        model: evo(model, {
+          nestedDialogParentDemo: () => dialogOpen.model,
         }),
-        Command.mapMessages(nestedDialogParentCommands, message =>
+        commands: Command.mapMessages(dialogOpen.commands ?? [], message =>
           UiMessage.GotNestedDialogParentDemoMessage({ message }),
         ),
-      ]
+      }
     },
 
-    ToggledDisclosureBasicDemo: ({ isOpen }) => [
-      evo(model, {
+    ToggledDisclosureBasicDemo: ({ isOpen }) => ({
+      model: evo(model, {
         isDisclosureBasicDemoOpen: () => isOpen,
       }),
-      [],
-    ],
+    }),
 
-    ToggledDisclosureAnimatedDemo: ({ isOpen }) => [
-      evo(model, {
+    ToggledDisclosureAnimatedDemo: ({ isOpen }) => ({
+      model: evo(model, {
         isDisclosureAnimatedDemoOpen: () => isOpen,
       }),
-      [],
-    ],
+    }),
 
     GotCalendarBasicDemoMessage: ({ message }) =>
       foldCalendarBasicDemo(model, message),
@@ -1015,13 +980,12 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
     GotFileDropBasicDemoMessage: ({ message }) =>
       foldFileDropBasicDemo(model, message),
 
-    ClickedRemoveFileDropDemoFile: ({ fileIndex }) => [
-      evo(model, {
+    ClickedRemoveFileDropDemoFile: ({ fileIndex }) => ({
+      model: evo(model, {
         fileDropBasicDemoFiles: () =>
           Array.remove(model.fileDropBasicDemoFiles, fileIndex),
       }),
-      [],
-    ],
+    }),
 
     GotListboxDemoMessage: ({ message }) => foldListboxDemo(model, message),
 
@@ -1060,12 +1024,11 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
     GotSliderVolumeDemoMessage: ({ message }) =>
       foldSliderVolumeDemo(model, message),
 
-    ToggledSwitchDemo: ({ isChecked }) => [
-      evo(model, {
+    ToggledSwitchDemo: ({ isChecked }) => ({
+      model: evo(model, {
         isSwitchDemoChecked: () => isChecked,
       }),
-      [],
-    ],
+    }),
 
     GotHorizontalTabsDemoMessage: ({ message }) =>
       foldHorizontalTabsDemo(model, message),
@@ -1076,7 +1039,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
     GotToastDemoMessage: ({ message }) => foldToastDemo(model, message),
 
     ClickedShowInfoToast: () => {
-      const [nextToastDemo, toastCommands] = Toast.show(model.toastDemo, {
+      const toastShow = Toast.show(model.toastDemo, {
         variant: 'Info',
         payload: {
           title: 'Changes saved',
@@ -1084,16 +1047,16 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
         },
       })
 
-      return [
-        evo(model, { toastDemo: () => nextToastDemo }),
-        Command.mapMessages(toastCommands, message =>
+      return {
+        model: evo(model, { toastDemo: () => toastShow.model }),
+        commands: Command.mapMessages(toastShow.commands ?? [], message =>
           UiMessage.GotToastDemoMessage({ message }),
         ),
-      ]
+      }
     },
 
     ClickedShowSuccessToast: () => {
-      const [nextToastDemo, toastCommands] = Toast.show(model.toastDemo, {
+      const toastShow = Toast.show(model.toastDemo, {
         variant: 'Success',
         payload: {
           title: 'Uploaded successfully',
@@ -1101,16 +1064,16 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
         },
       })
 
-      return [
-        evo(model, { toastDemo: () => nextToastDemo }),
-        Command.mapMessages(toastCommands, message =>
+      return {
+        model: evo(model, { toastDemo: () => toastShow.model }),
+        commands: Command.mapMessages(toastShow.commands ?? [], message =>
           UiMessage.GotToastDemoMessage({ message }),
         ),
-      ]
+      }
     },
 
     ClickedShowWarningToast: () => {
-      const [nextToastDemo, toastCommands] = Toast.show(model.toastDemo, {
+      const toastShow = Toast.show(model.toastDemo, {
         variant: 'Warning',
         payload: {
           title: 'Network slow',
@@ -1120,16 +1083,16 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
         },
       })
 
-      return [
-        evo(model, { toastDemo: () => nextToastDemo }),
-        Command.mapMessages(toastCommands, message =>
+      return {
+        model: evo(model, { toastDemo: () => toastShow.model }),
+        commands: Command.mapMessages(toastShow.commands ?? [], message =>
           UiMessage.GotToastDemoMessage({ message }),
         ),
-      ]
+      }
     },
 
     ClickedShowErrorToast: () => {
-      const [nextToastDemo, toastCommands] = Toast.show(model.toastDemo, {
+      const toastShow = Toast.show(model.toastDemo, {
         variant: 'Error',
         payload: {
           title: 'Failed to save',
@@ -1137,16 +1100,16 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
         },
       })
 
-      return [
-        evo(model, { toastDemo: () => nextToastDemo }),
-        Command.mapMessages(toastCommands, message =>
+      return {
+        model: evo(model, { toastDemo: () => toastShow.model }),
+        commands: Command.mapMessages(toastShow.commands ?? [], message =>
           UiMessage.GotToastDemoMessage({ message }),
         ),
-      ]
+      }
     },
 
     ClickedShowStickyToast: () => {
-      const [nextToastDemo, toastCommands] = Toast.show(model.toastDemo, {
+      const toastShow = Toast.show(model.toastDemo, {
         variant: 'Info',
         payload: {
           title: 'Review pending',
@@ -1157,23 +1120,23 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
         sticky: true,
       })
 
-      return [
-        evo(model, { toastDemo: () => nextToastDemo }),
-        Command.mapMessages(toastCommands, message =>
+      return {
+        model: evo(model, { toastDemo: () => toastShow.model }),
+        commands: Command.mapMessages(toastShow.commands ?? [], message =>
           UiMessage.GotToastDemoMessage({ message }),
         ),
-      ]
+      }
     },
 
     ClickedDismissAllToasts: () => {
-      const [nextToastDemo, toastCommands] = Toast.dismissAll(model.toastDemo)
+      const toastsDismiss = Toast.dismissAll(model.toastDemo)
 
-      return [
-        evo(model, { toastDemo: () => nextToastDemo }),
-        Command.mapMessages(toastCommands, message =>
+      return {
+        model: evo(model, { toastDemo: () => toastsDismiss.model }),
+        commands: Command.mapMessages(toastsDismiss.commands ?? [], message =>
           UiMessage.GotToastDemoMessage({ message }),
         ),
-      ]
+      }
     },
 
     GotTooltipBasicDemoMessage: ({ message }) =>
@@ -1196,39 +1159,41 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       foldVirtualListDemo(model, message),
 
     ClickedVirtualListScrollToMiddle: () => {
-      const [nextVirtualListDemo, virtualListCommands] =
-        VirtualList.scrollToIndex(
-          model.virtualListDemo,
-          Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
-        )
+      const virtualListScroll = VirtualList.scrollToIndex(
+        model.virtualListDemo,
+        Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
+      )
 
-      return [
-        evo(model, { virtualListDemo: () => nextVirtualListDemo }),
-        Command.mapMessages(virtualListCommands, message =>
-          UiMessage.GotVirtualListDemoMessage({ message }),
+      return {
+        model: evo(model, {
+          virtualListDemo: () => virtualListScroll.model,
+        }),
+        commands: Command.mapMessages(
+          virtualListScroll.commands ?? [],
+          message => UiMessage.GotVirtualListDemoMessage({ message }),
         ),
-      ]
+      }
     },
 
     GotVirtualListVariableDemoMessage: ({ message }) =>
       foldVirtualListVariableDemo(model, message),
 
     ClickedVirtualListVariableScrollToMiddle: () => {
-      const [nextVirtualListVariableDemo, virtualListCommands] =
-        VirtualList.scrollToIndexVariable(
-          model.virtualListVariableDemo,
-          variableActivities,
-          variableRowHeightPx,
-          Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
-        )
+      const virtualListScroll = VirtualList.scrollToIndexVariable(
+        model.virtualListVariableDemo,
+        variableActivities,
+        variableRowHeightPx,
+        Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
+      )
 
-      return [
-        evo(model, {
-          virtualListVariableDemo: () => nextVirtualListVariableDemo,
+      return {
+        model: evo(model, {
+          virtualListVariableDemo: () => virtualListScroll.model,
         }),
-        Command.mapMessages(virtualListCommands, message =>
-          UiMessage.GotVirtualListVariableDemoMessage({ message }),
+        commands: Command.mapMessages(
+          virtualListScroll.commands ?? [],
+          message => UiMessage.GotVirtualListVariableDemoMessage({ message }),
         ),
-      ]
+      }
     },
   })

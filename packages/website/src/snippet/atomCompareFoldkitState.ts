@@ -1,5 +1,5 @@
 import { Array, Schema as S } from 'effect'
-import { Command } from 'foldkit'
+import { type Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 // MODEL
@@ -23,18 +23,17 @@ type Message = typeof Message.Type
 
 // UPDATE
 
+type UpdateReturn = Update.Return<Model, Message>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      AddedTodo: () => [evo(model, { todos: Array.append(emptyTodo()) }), []],
-      ClearedDoneTodos: () => [
-        evo(model, { todos: Array.filter(todo => !todo.done) }),
-        [],
-      ],
-      SelectedFilter: ({ filter }) => [
-        evo(model, { filter: () => filter }),
-        [],
-      ],
-    },
-  )
+  Message.match<UpdateReturn>(message, {
+    AddedTodo: () => ({
+      model: evo(model, { todos: Array.append(emptyTodo()) }),
+    }),
+    ClearedDoneTodos: () => ({
+      model: evo(model, { todos: Array.filter(todo => !todo.done) }),
+    }),
+    SelectedFilter: ({ filter }) => ({
+      model: evo(model, { filter: () => filter }),
+    }),
+  })

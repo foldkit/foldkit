@@ -60,8 +60,9 @@ const buildFoldkitHistory = (steps: number): Model => {
   for (let i = 0; i < steps; i++) {
     const x = i % GRID_SIZE
     const y = Math.floor(i / GRID_SIZE) % GRID_SIZE
-    ;[model] = update(model, Message.PressedCell({ x, y }))
-    ;[model] = update(model, Message.ReleasedMouse())
+    const pressedCell = update(model, Message.PressedCell({ x, y }))
+    const releasedMouse = update(pressedCell.model, Message.ReleasedMouse())
+    model = releasedMouse.model
   }
   return model
 }
@@ -112,8 +113,11 @@ test('benchmark', () => {
     {
       name: 'Brush stroke',
       foldkit: () => {
-        const [m] = update(foldkitModel, Message.PressedCell({ x: 5, y: 5 }))
-        update(m, Message.ReleasedMouse())
+        const pressedCell = update(
+          foldkitModel,
+          Message.PressedCell({ x: 5, y: 5 }),
+        )
+        update(pressedCell.model, Message.ReleasedMouse())
       },
       react: () => {
         const s = reducer(reactState, { type: 'PressedCell', x: 5, y: 5 })
@@ -123,12 +127,27 @@ test('benchmark', () => {
     {
       name: 'Brush drag (5 cells)',
       foldkit: () => {
-        let [m] = update(foldkitModel, Message.PressedCell({ x: 0, y: 0 }))
-        ;[m] = update(m, Message.EnteredCell({ x: 1, y: 0 }))
-        ;[m] = update(m, Message.EnteredCell({ x: 2, y: 0 }))
-        ;[m] = update(m, Message.EnteredCell({ x: 3, y: 0 }))
-        ;[m] = update(m, Message.EnteredCell({ x: 4, y: 0 }))
-        update(m, Message.ReleasedMouse())
+        let brushUpdate = update(
+          foldkitModel,
+          Message.PressedCell({ x: 0, y: 0 }),
+        )
+        brushUpdate = update(
+          brushUpdate.model,
+          Message.EnteredCell({ x: 1, y: 0 }),
+        )
+        brushUpdate = update(
+          brushUpdate.model,
+          Message.EnteredCell({ x: 2, y: 0 }),
+        )
+        brushUpdate = update(
+          brushUpdate.model,
+          Message.EnteredCell({ x: 3, y: 0 }),
+        )
+        brushUpdate = update(
+          brushUpdate.model,
+          Message.EnteredCell({ x: 4, y: 0 }),
+        )
+        update(brushUpdate.model, Message.ReleasedMouse())
       },
       react: () => {
         let s = reducer(reactState, { type: 'PressedCell', x: 0, y: 0 })
@@ -162,12 +181,14 @@ test('benchmark', () => {
     {
       name: '5\u00d7 undo + 5\u00d7 redo',
       foldkit: () => {
-        let m = foldkitWith20
+        let model = foldkitWith20
         for (let i = 0; i < 5; i++) {
-          ;[m] = update(m, Message.ClickedUndo())
+          const undo = update(model, Message.ClickedUndo())
+          model = undo.model
         }
         for (let i = 0; i < 5; i++) {
-          ;[m] = update(m, Message.ClickedRedo())
+          const redo = update(model, Message.ClickedRedo())
+          model = redo.model
         }
       },
       react: () => {

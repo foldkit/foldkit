@@ -23,12 +23,18 @@ type Message = typeof Message.Type
 const Model = S.Struct({ count: S.Number })
 type Model = typeof Model.Type
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command<Message>>]
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command<Message>>
+  outMessage?: never
+}>
 
 const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    ClickedIncrement: () => [evo(model, { count: Number.increment }), []],
-    ClickedKeptModel: () => [model, []],
+    ClickedIncrement: () => ({
+      model: evo(model, { count: Number.increment }),
+    }),
+    ClickedKeptModel: () => ({ model }),
   })
 
 const view = (model: Model) => {
@@ -169,7 +175,7 @@ describe('slow warnings', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ count: 0 }, []],
+      init: () => ({ model: { count: 0 } }),
       update,
       view,
       subscriptions,
@@ -229,7 +235,7 @@ describe('slow warnings', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ count: 0 }, []],
+      init: () => ({ model: { count: 0 } }),
       update,
       view,
       subscriptions,
@@ -267,7 +273,7 @@ describe('slow warnings', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ count: 0 }, []],
+      init: () => ({ model: { count: 0 } }),
       update,
       view: sameModelReferenceView,
       subscriptions,

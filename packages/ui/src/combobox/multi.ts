@@ -1,4 +1,5 @@
 import { Option, Schema as S } from 'effect'
+import { type Update } from 'foldkit'
 import type * as Command from 'foldkit/command'
 import { evo } from 'foldkit/struct'
 import type { View as SubmodelView } from 'foldkit/submodel'
@@ -36,21 +37,19 @@ export const init = (config: InitConfig): Model => baseInit(config)
 
 /** Processes a combobox message and returns the next model, commands, and optional OutMessage. Stays open on selection (multi-select behavior) and emits a `Selected({ value })` OutMessage the parent folds by toggling the value's membership. Closing never emits `ClearedSelection`: the multi-select input rests empty by design, so an empty input on close carries no intent to clear. Clearing a multi-select is toggling its values off, one `Selected` at a time. The input always rests empty on close, so this ignores the message's `restingInputValue`; multi consumers pass `''`. */
 export const update = makeUpdate<Model>({
-  handleClose: model => [
-    evo(closedBaseModel(model), { inputValue: () => '' }),
-    Option.none(),
-  ],
+  handleClose: model => ({
+    model: evo(closedBaseModel(model), { inputValue: () => '' }),
+  }),
 
-  handleSelectedItem: (model, item) => [
+  handleSelectedItem: (model, item) => ({
     model,
-    [],
-    Option.some(OutMessage.Selected({ value: item })),
-  ],
+    outMessage: OutMessage.Selected({ value: item }),
+  }),
 
-  handleImmediateActivation: (model, item) => [
+  handleImmediateActivation: (model, item) => ({
     model,
-    Option.some(OutMessage.Selected({ value: item })),
-  ],
+    outMessage: OutMessage.Selected({ value: item }),
+  }),
 })
 
 type UpdateReturn = ReturnType<typeof update>
@@ -91,44 +90,40 @@ export type Bundle<Item extends string = string> = Readonly<{
   update: (
     model: Model,
     message: Message,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
+  ) => Readonly<{
+    model: Model
+    commands?: ReadonlyArray<Command.Command<Message>>
+    outMessage?: OutMessage<Item>
+  }>
   selectItem: (
     model: Model,
     item: Item,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
-  open: (
-    model: Model,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
-  close: (
-    model: Model,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
+  ) => Readonly<{
+    model: Model
+    commands?: ReadonlyArray<Command.Command<Message>>
+    outMessage?: OutMessage<Item>
+  }>
+  open: (model: Model) => Readonly<{
+    model: Model
+    commands?: ReadonlyArray<Command.Command<Message>>
+    outMessage?: OutMessage<Item>
+  }>
+  close: (model: Model) => Readonly<{
+    model: Model
+    commands?: ReadonlyArray<Command.Command<Message>>
+    outMessage?: OutMessage<Item>
+  }>
 }>
 
 /** Pairs the multi-select combobox's `view` and `update` (and programmatic
  *  helpers) behind a single Item-typed entry point. `selectItem` emits
  *  `Selected({ value })`; the parent toggles the value's membership. */
 export const create = <Item extends string = string>(): Bundle<Item> => {
-  type UpdateReturn = readonly [
+  type UpdateReturn = Update.ReturnWithOutMessage<
     Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
+    Message,
+    OutMessage<Item>
+  >
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const typedUpdate = update as (model: Model, message: Message) => UpdateReturn
   return {

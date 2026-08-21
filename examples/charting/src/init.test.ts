@@ -5,10 +5,13 @@ import { FetchTelemetry } from './command'
 import { init } from './init'
 
 test('seeds loading state and queues a telemetry fetch', () => {
-  const [model, commands] = init()
+  const initResult = init()
 
-  expect(model.telemetry._tag).toBe('Loading')
+  expect(initResult.model.telemetry._tag).toBe('Loading')
   expect(
-    Array.some(commands, command => command.name === FetchTelemetry.name),
+    Array.some(
+      initResult.commands ?? [],
+      command => command.name === FetchTelemetry.name,
+    ),
   ).toBe(true)
 })

@@ -13,4 +13,6 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const init: Runtime.ApplicationInit<Model, Message> = () => [{ count: 0 }, []]
+const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: { count: 0 },
+})

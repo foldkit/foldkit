@@ -19,8 +19,8 @@ const Model = S.Struct({
 
 // In your init function, seed the value (snapped to the range) and initialize
 // the Slider Submodel with min / max / step and a unique id:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     ratingValue: Slider.snapAndClamp(3, 0, 10, 1),
     ratingDemo: Slider.init({
       id: 'rating',
@@ -30,8 +30,7 @@ const init = () => [
     }),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Embed the Slider Message in your parent Message:
 const Message = defineMessageUnion({
@@ -50,7 +49,7 @@ const foldSliderOutMessage = M.type<Slider.OutMessage>().pipe(
     // trigger a downstream Command.
     ChangedValue:
       ({ value }) =>
-      model => [evo(model, { ratingValue: () => value }), []],
+      model => ({ model: evo(model, { ratingValue: () => value }) }),
   }),
 )
 

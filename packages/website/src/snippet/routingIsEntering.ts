@@ -12,14 +12,17 @@ const commandsForTransition = (
 // ...init builds the cold load transition, which counts as an entry...
 const init: Runtime.RoutingApplicationInit<Model, Message> = (url: Url) => {
   const route = urlToAppRoute(url)
-  return [{ route }, commandsForTransition(Transition.coldLoad(route))]
+  return {
+    model: { route },
+    commands: commandsForTransition(Transition.coldLoad(route)),
+  }
 }
 
 // ...and the ChangedUrl handler transitions from the route the Model holds:
 ChangedUrl: ({ url }) => {
   const nextRoute = urlToAppRoute(url)
-  return [
-    evo(model, { route: () => nextRoute }),
-    commandsForTransition(Transition.make(model.route, nextRoute)),
-  ]
+  return {
+    model: evo(model, { route: () => nextRoute }),
+    commands: commandsForTransition(Transition.make(model.route, nextRoute)),
+  }
 }

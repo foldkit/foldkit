@@ -20,5 +20,8 @@ export const ReportCount = Command.define('ReportCount', {
 // In update, emitting is just returning the Command:
 const handleAdvance = (model: Model): UpdateReturn => {
   const count = model.count + model.step
-  return [evo(model, { count: () => count }), [ReportCount({ count })]]
+  return {
+    model: evo(model, { count: () => count }),
+    commands: [ReportCount({ count })],
+  }
 }

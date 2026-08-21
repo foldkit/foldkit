@@ -1,5 +1,5 @@
 import { Array, Match as M, Option, Schema as S, pipe } from 'effect'
-import { Command, File, Update } from 'foldkit'
+import { File, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
@@ -37,15 +37,15 @@ export const init = (): Model => ({
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 const foldResumeDropOutMessage = M.type<FileDrop.OutMessage>().pipe(
   M.withReturnType<Update.Step<Model, Message>>(),
   M.tagsExhaustive({
     ReceivedFiles:
       ({ files }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           maybeResume: () =>
             pipe(
               files,
@@ -53,9 +53,8 @@ const foldResumeDropOutMessage = M.type<FileDrop.OutMessage>().pipe(
               Option.orElse(() => model.maybeResume),
             ),
         }),
-        [],
-      ],
-    RejectedNonFiles: () => model => [model, []],
+      }),
+    RejectedNonFiles: () => model => ({ model }),
   }),
 )
 
@@ -73,13 +72,12 @@ const foldAdditionalFilesDropOutMessage = M.type<FileDrop.OutMessage>().pipe(
   M.tagsExhaustive({
     ReceivedFiles:
       ({ files }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           additionalFiles: Array.appendAll(files),
         }),
-        [],
-      ],
-    RejectedNonFiles: () => model => [model, []],
+      }),
+    RejectedNonFiles: () => model => ({ model }),
   }),
 )
 
@@ -100,12 +98,13 @@ export const update = (model: Model, message: Message) =>
     GotAdditionalFilesDropMessage: ({ message }) =>
       foldAdditionalFilesDrop(model, message),
 
-    RemovedResume: () => [evo(model, { maybeResume: () => Option.none() }), []],
+    RemovedResume: () => ({
+      model: evo(model, { maybeResume: () => Option.none() }),
+    }),
 
-    RemovedAdditionalFile: ({ fileIndex }) => [
-      evo(model, {
+    RemovedAdditionalFile: ({ fileIndex }) => ({
+      model: evo(model, {
         additionalFiles: Array.remove(fileIndex),
       }),
-      [],
-    ],
+    }),
   })

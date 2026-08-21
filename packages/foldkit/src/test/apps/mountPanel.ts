@@ -71,17 +71,22 @@ export const initialModel: Model = {
 
 // UPDATE
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<never>
+  outMessage?: never
+}>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<never>]>(message, {
-    ClickedToggle: () => [{ ...model, isOpen: !model.isOpen }, []],
-    MeasuredPanel: ({ width }) => [
-      { ...model, measuredWidth: Option.some(width) },
-      [],
-    ],
-    CompletedFocusButton: () => [model, []],
-    FailedMountSidebar: () => [model, []],
-    ClickedIncrement: () => [{ ...model, count: model.count + 1 }, []],
-    ScrolledTo: () => [model, []],
+  Message.match<UpdateReturn>(message, {
+    ClickedToggle: () => ({ model: { ...model, isOpen: !model.isOpen } }),
+    MeasuredPanel: ({ width }) => ({
+      model: { ...model, measuredWidth: Option.some(width) },
+    }),
+    CompletedFocusButton: () => ({ model }),
+    FailedMountSidebar: () => ({ model }),
+    ClickedIncrement: () => ({ model: { ...model, count: model.count + 1 } }),
+    ScrolledTo: () => ({ model }),
   })
 
 // VIEW
