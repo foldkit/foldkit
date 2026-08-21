@@ -80,15 +80,32 @@ describe('anchorSetup arrow', () => {
       Array_.flatMap(middleware => (middleware ? [middleware.name] : [])),
     )
 
-  const arrowMiddlewareOfCall = (callIndex: number): Middleware =>
+  const middlewareOfCall = (callIndex: number, name: string): Middleware =>
     pipe(
       optionsOfCall(callIndex).middleware ?? [],
       Array_.flatMap(middleware => (middleware ? [middleware] : [])),
-      Array_.findFirst(({ name }) => name === 'arrow'),
+      Array_.findFirst(middleware => middleware.name === name),
       Option.getOrThrowWith(
-        () => new Error(`Expected arrow middleware at call index ${callIndex}`),
+        () =>
+          new Error(`Expected ${name} middleware at call index ${callIndex}`),
       ),
     )
+
+  const arrowMiddlewareOfCall = (callIndex: number): Middleware =>
+    middlewareOfCall(callIndex, 'arrow')
+
+  const applySize = (callIndex: number, availableHeight: number): void => {
+    const apply = middlewareOfCall(callIndex, 'size').options?.apply
+
+    if (typeof apply !== 'function') {
+      throw new Error('Expected the size middleware to carry an apply option')
+    }
+
+    apply({
+      rects: { reference: { width: 120 } },
+      availableHeight,
+    })
+  }
 
   const positionWith = (
     middlewareData: MiddlewareData,
@@ -228,6 +245,30 @@ describe('anchorSetup arrow', () => {
     })
 
     expect(element.style.getPropertyValue('--arrow-x')).toBe('')
+  })
+
+  it('makes the panel a scroll container when no arrow is rendered', () => {
+    computePositionMock.mockResolvedValue(positionWith({}))
+    const { element } = mountAnchor({}, false)
+
+    applySize(0, 200)
+
+    expect(element.style.maxHeight).toBe('200px')
+    expect(element.style.overflowY).toBe('auto')
+    expect(element.style.overscrollBehavior).toBe('none')
+  })
+
+  // NOTE: a scrolling panel clips on both axes, so it would erase the arrow it
+  // just positioned. See the `size.apply` guard in anchor.ts.
+  it('leaves the panel unclipped when an arrow is rendered', () => {
+    computePositionMock.mockResolvedValue(positionWith({}))
+    const { element } = mountAnchor({ arrowId: ARROW_ID }, true)
+
+    applySize(0, 200)
+
+    expect(element.style.maxHeight).toBe('200px')
+    expect(element.style.overflowY).toBe('')
+    expect(element.style.overscrollBehavior).toBe('')
   })
 
   it('removes both custom properties on cleanup', async () => {

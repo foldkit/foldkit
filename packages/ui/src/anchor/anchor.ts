@@ -124,7 +124,9 @@ const toSide = (placement: FloatingPlacement): string =>
  *    Read only when `focusAfterPosition` is true.
  *  - `arrowId`: id of an arrow element inside the panel, resolved through the
  *    element's own root. When it resolves, the arrow's offset along the panel
- *    edge is published as `--arrow-x` and `--arrow-y`.
+ *    edge is published as `--arrow-x` and `--arrow-y`, and the panel is no
+ *    longer made a scroll container, since scrolling clips on both axes and
+ *    an arrow sits half outside the panel's box.
  *  - `arrowPadding`: distance in pixels the arrow keeps from the panel's
  *    corners. Defaults to `0`. Separate from `anchor.padding`, which is the
  *    viewport padding. */
@@ -269,8 +271,16 @@ export const anchorSetup = (
               `${rects.reference.width}px`,
             )
             element.style.maxHeight = `${Math.max(0, availableHeight)}px`
-            element.style.overflowY = 'auto'
-            element.style.overscrollBehavior = 'none'
+
+            // NOTE: `overflow-y: auto` makes `overflow-x` compute to `auto`
+            // too, so a scrolling panel clips on every side. An arrow sits
+            // half outside the panel's padding box, so it would be clipped
+            // away entirely. A panel with an arrow keeps its scroll container
+            // inside itself instead.
+            if (Option.isNone(maybeArrowElement)) {
+              element.style.overflowY = 'auto'
+              element.style.overscrollBehavior = 'none'
+            }
           },
         }),
         // NOTE: `arrow` runs last. Sitting after `shift` is the constraint: an
