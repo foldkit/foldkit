@@ -75,7 +75,8 @@ const view = (h: HtmlBuilder<Message>) => {
     view: Popover.view,
     viewInputs: {
       anchor: { placement: 'right-start', gap: 8, padding: 8 },
-      toView: ({ button, panel, backdrop, isVisible }) =>
+      arrowPadding: 12,
+      toView: ({ button, panel, backdrop, arrow, isVisible }) =>
         h.div(
           [h.Class('relative inline-block')],
           [
@@ -90,8 +91,14 @@ const view = (h: HtmlBuilder<Message>) => {
               ? [
                   h.div([...backdrop, h.Class('fixed inset-0')]),
                   h.div(
-                    [...panel, h.Class('rounded-lg border shadow-lg p-4 w-64')],
                     [
+                      ...panel,
+                      h.Class(
+                        'popover-panel rounded-lg border shadow-lg p-4 w-64',
+                      ),
+                    ],
+                    [
+                      h.div([...arrow, h.Class('popover-arrow')]),
                       h.p([h.Class('font-medium')], ['Permissions']),
                       h.p(
                         [h.Class('text-sm text-gray-500')],
@@ -115,9 +122,10 @@ const view = (h: HtmlBuilder<Message>) => {
     model: model.accountPopover,
     view: Popover.view,
     viewInputs: {
-      anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+      anchor: { placement: 'bottom-start', gap: 8, padding: 8 },
+      arrowPadding: 12,
       focusSelector: '#account-details-popover-button',
-      toView: ({ button, panel, backdrop, isVisible }) =>
+      toView: ({ button, panel, backdrop, arrow, isVisible }) =>
         h.div(
           [h.Class('relative inline-block')],
           [
@@ -132,8 +140,14 @@ const view = (h: HtmlBuilder<Message>) => {
               ? [
                   h.div([...backdrop, h.Class('fixed inset-0')]),
                   h.div(
-                    [...panel, h.Class('rounded-lg border shadow-lg p-4 w-72')],
                     [
+                      ...panel,
+                      h.Class(
+                        'popover-panel rounded-lg border shadow-lg p-4 w-72',
+                      ),
+                    ],
+                    [
+                      h.div([...arrow, h.Class('popover-arrow')]),
                       h.p([], ['Manage account settings from this panel.']),
                       detailsPopover,
                     ],

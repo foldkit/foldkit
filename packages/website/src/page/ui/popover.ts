@@ -165,7 +165,8 @@ const nestedChildPopover = (
     viewInputs: {
       ariaLabel: 'Advanced settings',
       anchor: NESTED_POPOVER_ANCHOR,
-      toView: ({ button, panel, backdrop, isVisible }) =>
+      arrowPadding: POPOVER_ARROW_PADDING,
+      toView: ({ button, panel, backdrop, arrow, isVisible }) =>
         h.div(
           [h.Class(wrapperClassName)],
           [
@@ -179,6 +180,7 @@ const nestedChildPopover = (
                   h.div(
                     [...panel, h.Class(basicPanelClassName)],
                     [
+                      h.div([...arrow, h.Class('popover-arrow')]),
                       h.p(
                         [
                           h.Class(
@@ -229,8 +231,9 @@ export const nestedDemo = (
               view: Popover.view,
               viewInputs: {
                 anchor: POPOVER_ANCHOR,
+                arrowPadding: POPOVER_ARROW_PADDING,
                 focusSelector: nestedChildButtonSelector,
-                toView: ({ button, panel, backdrop, isVisible }) =>
+                toView: ({ button, panel, backdrop, arrow, isVisible }) =>
                   h.div(
                     [h.Class(wrapperClassName)],
                     [
@@ -244,6 +247,7 @@ export const nestedDemo = (
                             h.div(
                               [...panel, h.Class(basicPanelClassName)],
                               [
+                                h.div([...arrow, h.Class('popover-arrow')]),
                                 h.div(
                                   [h.Class('flex flex-col gap-4')],
                                   [
