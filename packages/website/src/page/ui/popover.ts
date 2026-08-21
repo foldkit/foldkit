@@ -11,10 +11,10 @@ const triggerClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 dark:border-gray-700 bg-cream dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 select-none'
 
 const basicPanelClassName =
-  'w-64 rounded-lg border border-gray-200 dark:border-gray-700 bg-cream dark:bg-gray-800 shadow-lg p-4 z-10 outline-none'
+  'popover-panel w-64 rounded-lg border border-gray-200 dark:border-gray-700 bg-cream dark:bg-gray-800 shadow-lg p-4 z-10 outline-none'
 
 const animatedPanelClassName =
-  'w-64 rounded-lg border border-gray-200 dark:border-gray-700 bg-cream dark:bg-gray-800 shadow-lg p-4 z-10 outline-none transition duration-200 ease-out data-[closed]:scale-95 data-[closed]:opacity-0'
+  'popover-panel w-64 rounded-lg border border-gray-200 dark:border-gray-700 bg-cream dark:bg-gray-800 shadow-lg p-4 z-10 outline-none transition duration-200 ease-out data-[closed]:scale-95 data-[closed]:opacity-0'
 
 const backdropClassName = 'fixed inset-0 z-0'
 
@@ -24,9 +24,11 @@ const wrapperClassName = 'relative inline-block'
 
 const POPOVER_ANCHOR: AnchorConfig = {
   placement: 'bottom-start',
-  gap: 4,
+  gap: 8,
   padding: 8,
 }
+
+const POPOVER_ARROW_PADDING = 12
 
 const NESTED_POPOVER_ANCHOR: AnchorConfig = {
   placement: 'right-start',
@@ -63,7 +65,8 @@ const popoverDemo = (
     view: Popover.view,
     viewInputs: {
       anchor: POPOVER_ANCHOR,
-      toView: ({ button, panel, backdrop, isVisible }) =>
+      arrowPadding: POPOVER_ARROW_PADDING,
+      toView: ({ button, panel, backdrop, arrow, isVisible }) =>
         h.div(
           [h.Class(wrapperClassName)],
           [
@@ -76,7 +79,10 @@ const popoverDemo = (
                   h.div([...backdrop, h.Class(backdropClassName)]),
                   h.div(
                     [...panel, h.Class(panelClassNameValue)],
-                    [panelContent()],
+                    [
+                      h.div([...arrow, h.Class('popover-arrow')]),
+                      panelContent(),
+                    ],
                   ),
                 ]
               : []),
