@@ -1,5 +1,57 @@
 # foldkit
 
+## 0.149.0
+
+### Minor Changes
+
+- 504344b: Replace `m` with `defineMessageUnion` in `foldkit/message`. `defineMessageUnion` declares a whole Message union from one record of fields per variant instead of naming each variant once as a constructor and again in the union list.
+
+  The result is a Schema, so it decodes and nests in a Model. Its focused Message surface is exhaustive `match` plus one callable constructor per variant. Each constructor is itself a schema, which is what `Command.define` needs for its `messages` list. Use `Message.match` for exhaustive dispatch. Effect `Match` remains available for partial matching, fallbacks, and one handler shared across several tags.
+
+  This removes the `m` export. Declare Message and OutMessage as separate `defineMessageUnion()` unions, even when two variants happen to carry the same fields. Constructors stay on their owning union namespace rather than being exported as sibling bindings.
+
+  Update `@foldkit/oxlint-plugin` to recognize `defineMessageUnion()` declarations in the Message naming rules. Remove `message-binding-matches-tag`, since variants no longer have separate constructor bindings whose names can drift from their tags.
+
+  Update `create-foldkit-app` templates to declare and match Messages with the new API.
+
+  ```typescript
+  import { Schema as S } from 'effect'
+  import { Update } from 'foldkit'
+  import { defineMessageUnion } from 'foldkit/message'
+  import { evo } from 'foldkit/struct'
+
+  const Model = S.Struct({ count: S.Number })
+  type Model = typeof Model.Type
+
+  export const Message = defineMessageUnion({
+    ClickedReset: {},
+    ChangedCount: { count: S.Number },
+  })
+  export type Message = typeof Message.Type
+
+  type UpdateReturn = Update.Return<Model, Message>
+
+  export const update = (model: Model, message: Message) =>
+    Message.match<UpdateReturn>(message, {
+      ClickedReset: () => [evo(model, { count: () => 0 }), []],
+      ChangedCount: ({ count }) => [evo(model, { count: () => count }), []],
+    })
+  ```
+
+### Patch Changes
+
+- a477ac8: Speed up callable tagged constructors whose type-side fields can be copied directly, such as primitives, literals, and unions of those identity types. Structs, Arrays, child Messages, checked fields, contextual fields, opaque schemas, oneOf unions, schemas that redefine `_tag`, and other composite fields continue through Schema validation. In a warmed Node 22.22.3 benchmark on Effect 4.0.0-rc.109, `ClickedReset()` fell from 177.8 ns to 30.5 ns per call and `ClickedItem({ id })` fell from 257.5 ns to 73.7 ns per call.
+
+  The Vite plugin now includes SchemaAST in its forced Effect prebundle for this runtime dependency.
+
+  The fast path assumes typed object inputs whose provided payload fields are own data properties. Primitive inputs, payload accessors, and inherited payload fields fall back to Schema validation. Both paths ignore an inherited `_tag`. Calls that bypass TypeScript can now construct eligible variants with wrong primitive field types or missing required fields. Stateful accessor Proxy traps are outside the fast-path equivalence boundary. Decode untrusted input through the Schema as before.
+
+- aa10342: Let a consumer export a program whose type comes from `makeElement` or `makeApplication`.
+
+  `MakeRuntimeReturn` has a hidden field that carries Flags, Resources and Kind. Its key was a `unique symbol` that Foldkit did not export. TypeScript had to write that key into the `.d.ts` file, but it had no name for it, so it failed with `TS4023: ... has or is using name 'RuntimeBootTypeId' ... but cannot be named`. This hit any package that builds a program in one module and exports it, as soon as that package turned on declaration emit.
+
+  The key is now a normal property, `'~foldkit/RuntimeBoot'`. Consumers need to do nothing. The field is still internal and still has no runtime representation.
+
 ## 0.148.2
 
 ### Patch Changes
