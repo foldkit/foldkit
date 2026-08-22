@@ -168,8 +168,16 @@ export const formatMountMatcher = (matcher: MountMatcher): string =>
     : `${matcher.name}${formatArgs(matcher.args)}`
 
 type UpdateResult<Model, OutMessage> =
-  | readonly [Model, ReadonlyArray<AnyCommand>]
-  | readonly [Model, ReadonlyArray<AnyCommand>, OutMessage]
+  | Readonly<{
+      model: Model
+      commands?: ReadonlyArray<AnyCommand>
+      outMessage?: never
+    }>
+  | Readonly<{
+      model: Model
+      commands?: ReadonlyArray<AnyCommand>
+      outMessage?: OutMessage
+    }>
 
 /** A Command matcher (Definition or Instance) paired with the raw result
  *  Message to resolve a pending Command with. Definition matchers resolve by
@@ -212,7 +220,7 @@ export type BaseInternal<Model, Message, OutMessage = undefined> = Readonly<{
   model: Model
   message: Message | undefined
   commands: ReadonlyArray<AnyCommand>
-  outMessage: OutMessage
+  outMessage: OutMessage | undefined
   updateFn: (model: Model, message: Message) => UpdateResult<Model, OutMessage>
   resolvers: ReadonlyArray<ResolverEntry>
 }>
@@ -273,20 +281,20 @@ export const resolveByMatcher = <Model, Message, OutMessage>(
             Array.remove(internal.commands, commandIndex),
             matchedCommand,
           )
-          const [nextModel, newCommands, ...rest] = internal.updateFn(
+          const updateResult = internal.updateFn(
             internal.model,
             resolverMessage,
           )
-          const outMessage = Array.matchLeft(rest, {
-            onEmpty: () => internal.outMessage,
-            onNonEmpty: firstOutMessage => firstOutMessage,
-          })
+          const outMessage = updateResult.outMessage
 
           return {
             ...internal,
-            model: nextModel,
+            model: updateResult.model,
             message: resolverMessage,
-            commands: Array.appendAll(remainingCommands, newCommands),
+            commands: Array.appendAll(
+              remainingCommands,
+              updateResult.commands ?? [],
+            ),
             outMessage,
           }
         }),
@@ -660,20 +668,20 @@ export const resolveMountByMatcher = <Model, Message>(
             resultMessage,
           ) as Message
           const remaining = Array.remove(pendingMounts, index)
-          const [nextModel, newCommands, ...rest] = internal.updateFn(
+          const updateResult = internal.updateFn(
             internal.model,
             resolverMessage,
           )
-          const outMessage = Array.matchLeft(rest, {
-            onEmpty: () => internal.outMessage,
-            onNonEmpty: firstOutMessage => firstOutMessage,
-          })
+          const outMessage = updateResult.outMessage
           return {
             internal: {
               ...internal,
-              model: nextModel,
+              model: updateResult.model,
               message: resolverMessage,
-              commands: Array.appendAll(internal.commands, newCommands),
+              commands: Array.appendAll(
+                internal.commands,
+                updateResult.commands ?? [],
+              ),
               outMessage,
             },
             pendingMounts: remaining,

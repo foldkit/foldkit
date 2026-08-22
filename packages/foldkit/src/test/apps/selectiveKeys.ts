@@ -34,13 +34,20 @@ export const initialModel: Model = { commits: 0 }
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command.Command<Message>>
+  outMessage?: never
+}>
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    Committed: () => [evo(model, { commits: Number.increment }), []],
-    Reset: () => [evo(model, { commits: () => 0 }), [RecordReset()]],
-    CompletedRecordReset: () => [model, []],
+    Committed: () => ({ model: evo(model, { commits: Number.increment }) }),
+    Reset: () => ({
+      model: evo(model, { commits: () => 0 }),
+      commands: [RecordReset()],
+    }),
+    CompletedRecordReset: () => ({ model }),
   })
 
 // VIEW

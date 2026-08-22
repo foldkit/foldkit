@@ -84,7 +84,10 @@ export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-/** Union of out-messages the popover component can produce. Parents reacting to open/close transitions (e.g. to reset related state, fire analytics) read this from the third element of `update`'s return tuple. */
+/** Union of OutMessages the popover component can produce. Parents reacting
+ *  to open/close transitions (for example, to reset related state or fire
+ *  analytics) read this from the optional `outMessage` field of `update`'s
+ *  return. */
 export const OutMessage = defineMessageUnion({
   Opened: {},
   Closed: {},
@@ -134,11 +137,7 @@ const panelSelector = (id: string): string => idSelector(`${id}-panel`)
  *  `aria-labelledby` reference. */
 export const buttonId = (id: string): string => `${id}-button`
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 
 /** Prevents page scrolling while the popover is open in modal mode. */
 export const LockScroll = Command.define('LockScroll', {
@@ -215,11 +214,11 @@ export const DetectMovementOrAnimationEnd = Command.define(
 const foldAnimationOutMessage = M.type<AnimationOutMessage>().pipe(
   M.withReturnType<Update.Step<Model, Message>>(),
   M.tagsExhaustive({
-    StartedLeaveAnimating: () => model => [
+    StartedLeaveAnimating: () => model => ({
       model,
-      [DetectMovementOrAnimationEnd({ id: model.id })],
-    ],
-    TransitionedOut: () => model => [model, []],
+      commands: [DetectMovementOrAnimationEnd({ id: model.id })],
+    }),
+    TransitionedOut: () => model => ({ model }),
   }),
 )
 
@@ -229,7 +228,7 @@ const foldAnimation = Update.foldChild({
   write: (model, nextAnimation) =>
     evo(model, { animation: () => nextAnimation }),
   toParentMessage: message => Message.GotAnimationMessage({ message }),
-  toParentOutMessage: () => Option.none(),
+  toParentOutMessage: () => undefined,
   foldOutMessage: foldAnimationOutMessage,
 })
 
@@ -262,22 +261,22 @@ export const update = (model: Model, message: Message) => {
 
   const openPopover = (baseModel: Model): UpdateReturn => {
     if (model.isAnimated) {
-      const [nextModel, animationCommands] = foldAnimation(
+      const foldAnimationResult = foldAnimation(
         baseModel,
         AnimationMessage.Showed(),
       )
-      return [
-        evo(nextModel, { isOpen: () => true }),
-        [...openCommands, ...animationCommands],
-        Option.some(OutMessage.Opened()),
-      ]
+      return {
+        model: evo(foldAnimationResult.model, { isOpen: () => true }),
+        commands: [...openCommands, ...(foldAnimationResult.commands ?? [])],
+        outMessage: OutMessage.Opened(),
+      }
     }
 
-    return [
-      evo(baseModel, { isOpen: () => true }),
-      openCommands,
-      Option.some(OutMessage.Opened()),
-    ]
+    return {
+      model: evo(baseModel, { isOpen: () => true }),
+      commands: openCommands,
+      outMessage: OutMessage.Opened(),
+    }
   }
 
   const closePopover = (
@@ -285,23 +284,20 @@ export const update = (model: Model, message: Message) => {
     commands: ReadonlyArray<Command.Command<Message>>,
   ): UpdateReturn => {
     if (!baseModel.isOpen) {
-      return [baseModel, [], Option.none()]
+      return { model: baseModel }
     }
     const closed = closedModel(baseModel)
 
     if (model.isAnimated) {
-      const [nextModel, animationCommands] = foldAnimation(
-        closed,
-        AnimationMessage.Hid(),
-      )
-      return [
-        nextModel,
-        [...commands, ...animationCommands],
-        Option.some(OutMessage.Closed()),
-      ]
+      const closeAnimation = foldAnimation(closed, AnimationMessage.Hid())
+      return {
+        model: closeAnimation.model,
+        commands: [...commands, ...(closeAnimation.commands ?? [])],
+        outMessage: OutMessage.Closed(),
+      }
     }
 
-    return [closed, commands, Option.some(OutMessage.Closed())]
+    return { model: closed, commands, outMessage: OutMessage.Closed() }
   }
 
   return Message.match<UpdateReturn>(message, {
@@ -313,7 +309,7 @@ export const update = (model: Model, message: Message) => {
       if (
         Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
       ) {
-        return [model, [], Option.none()]
+        return { model }
       }
 
       return closePopover(model, closeWithoutFocusCommands)
@@ -325,21 +321,20 @@ export const update = (model: Model, message: Message) => {
       })
 
       if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
-        return [withPointerType, [], Option.none()]
+        return { model: withPointerType }
       }
 
       if (model.isOpen) {
-        const [closed, commands, maybeOutMessage] = closePopover(
+        const closePopoverResult = closePopover(
           withPointerType,
           closeWithFocusCommands,
         )
-        return [
-          evo(closed, {
+        return {
+          ...closePopoverResult,
+          model: evo(closePopoverResult.model, {
             maybeLastButtonPointerType: () => Option.some(pointerType),
           }),
-          commands,
-          maybeOutMessage,
-        ]
+        }
       }
 
       return openPopover(withPointerType)
@@ -348,20 +343,18 @@ export const update = (model: Model, message: Message) => {
     GotAnimationMessage: ({ message: animationMessage }) =>
       foldAnimation(model, animationMessage),
 
-    CompletedFocusPanel: () => [model, [], Option.none()],
-    CompletedFocusButton: () => [model, [], Option.none()],
-    CompletedLockScroll: () => [model, [], Option.none()],
-    CompletedUnlockScroll: () => [model, [], Option.none()],
-    CompletedInertOthers: () => [model, [], Option.none()],
-    CompletedRestoreInert: () => [model, [], Option.none()],
-    IgnoredMouseClick: () => [
-      evo(model, { maybeLastButtonPointerType: () => Option.none() }),
-      [],
-      Option.none(),
-    ],
-    SuppressedSpaceScroll: () => [model, [], Option.none()],
-    CompletedAnchorPopover: () => [model, [], Option.none()],
-    CompletedPortalPopoverBackdrop: () => [model, [], Option.none()],
+    CompletedFocusPanel: () => ({ model }),
+    CompletedFocusButton: () => ({ model }),
+    CompletedLockScroll: () => ({ model }),
+    CompletedUnlockScroll: () => ({ model }),
+    CompletedInertOthers: () => ({ model }),
+    CompletedRestoreInert: () => ({ model }),
+    IgnoredMouseClick: () => ({
+      model: evo(model, { maybeLastButtonPointerType: () => Option.none() }),
+    }),
+    SuppressedSpaceScroll: () => ({ model }),
+    CompletedAnchorPopover: () => ({ model }),
+    CompletedPortalPopoverBackdrop: () => ({ model }),
   })
 }
 

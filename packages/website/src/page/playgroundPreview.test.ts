@@ -19,8 +19,9 @@ const Message = defineMessageUnion({ LoadedPreview: {} })
 type Message = typeof Message.Type
 
 const previewApp = {
-  update: (state: PlaygroundPreview.State, _message: Message) =>
-    [state, []] as const,
+  update: (state: PlaygroundPreview.State, _message: Message) => ({
+    model: state,
+  }),
   view: (state: PlaygroundPreview.State, h: HtmlBuilder<Message>) =>
     PlaygroundPreview.view(
       state,

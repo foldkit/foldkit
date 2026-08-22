@@ -1,4 +1,4 @@
-import { Option, Schema as S } from 'effect'
+import { Schema as S } from 'effect'
 
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
@@ -31,12 +31,16 @@ export const initialModel: Model = { label: 'Log out' }
 
 // UPDATE
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<never>
+  outMessage?: OutMessage
+}>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<
-    readonly [Model, ReadonlyArray<never>, Option.Option<OutMessage>]
-  >(message, {
-    ClickedLogout: () => [model, [], Option.some(OutMessage.RequestedLogout())],
-    CompletedAction: () => [model, [], Option.none()],
+  Message.match<UpdateReturn>(message, {
+    ClickedLogout: () => ({ model, outMessage: OutMessage.RequestedLogout() }),
+    CompletedAction: () => ({ model }),
   })
 
 // VIEW

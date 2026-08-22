@@ -28,13 +28,18 @@ export const initialModel: Model = {
 
 // UPDATE
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<never>
+  outMessage?: never
+}>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<never>]>(message, {
-    ClickedContainer: () => [{ ...model, clicks: model.clicks + 1 }, []],
-    DoubleClickedContainer: () => [
-      { ...model, doubleClicks: model.doubleClicks + 1 },
-      [],
-    ],
+  Message.match<UpdateReturn>(message, {
+    ClickedContainer: () => ({ model: { ...model, clicks: model.clicks + 1 } }),
+    DoubleClickedContainer: () => ({
+      model: { ...model, doubleClicks: model.doubleClicks + 1 },
+    }),
   })
 
 // VIEW

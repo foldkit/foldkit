@@ -18,13 +18,12 @@ const Model = S.Struct({
 })
 
 // In your init function, initialize the Animation Submodel with a unique id:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     animation: Animation.init({ id: 'content' }),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Embed the Animation Message in your parent Message:
 const Message = defineMessageUnion({
@@ -52,10 +51,10 @@ const foldAnimationOutMessage = (
     // waits for every CSS transition and keyframe animation on the
     // element to settle, then dispatches EndedAnimation back into
     // Animation.update. Use it unless you need a custom strategy.
-    StartedLeaveAnimating: () => model => [
+    StartedLeaveAnimating: () => model => ({
       model,
-      [liftCommand(Animation.defaultLeaveCommand(model.animation))],
-    ],
+      commands: [liftCommand(Animation.defaultLeaveCommand(model.animation))],
+    }),
     // TransitionedOut is Animation's signal that the leave has fully
     // settled (your leave Command's EndedAnimation message has been
     // processed). Return Commands for any post-animation work, for
@@ -63,7 +62,7 @@ const foldAnimationOutMessage = (
     // release a resource. No Commands here because animateSize keeps the
     // element mounted (collapsed to zero height) so there's nothing to
     // tear down.
-    TransitionedOut: () => model => [model, []],
+    TransitionedOut: () => model => ({ model }),
   })
 
 // Update.foldChild wires the child into the parent: it runs Animation.update,

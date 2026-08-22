@@ -1,5 +1,5 @@
 import { Array, Match as M, Option, String as Str } from 'effect'
-import { Command } from 'foldkit'
+import { type Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { optionWhen } from '../../../optionWhen'
@@ -9,18 +9,19 @@ import { Message, OutMessage } from '../message'
 import { EnterRoomId, EnterUsername, Model, SelectAction } from '../model'
 import { handleKeyPressed } from './handleKeyPressed'
 
-export type UpdateReturn = readonly [
+export type UpdateReturn = Update.ReturnWithOutMessage<
   Model,
-  ReadonlyArray<Command.Command<Message, never, RoomsClient>>,
-  Option.Option<OutMessage>,
-]
+  Message,
+  OutMessage,
+  RoomsClient
+>
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    CompletedFocusUsernameInput: () => [model, [], Option.none()],
+    CompletedFocusUsernameInput: () => ({ model }),
 
-    CompletedFocusRoomIdInput: () => [model, [], Option.none()],
+    CompletedFocusRoomIdInput: () => ({ model }),
 
     SubmittedUsernameForm: () =>
       M.value(model.homeStep).pipe(
@@ -33,36 +34,34 @@ export const update = (model: Model, message: Message) =>
               })
             : model
 
-          return [nextModel, [], Option.none()]
+          return { model: nextModel }
         }),
-        M.orElse(() => [model, [], Option.none()]),
+        M.orElse(() => ({ model })),
       ),
 
-    PressedKey: message => [...handleKeyPressed(model)(message), Option.none()],
+    PressedKey: message => handleKeyPressed(model)(message),
 
     ChangedUsername: ({ value }) =>
       M.value(model.homeStep).pipe(
         withUpdateReturn,
-        M.tag('EnterUsername', () => [
-          evo(model, {
+        M.tag('EnterUsername', () => ({
+          model: evo(model, {
             homeStep: () => EnterUsername({ username: value }),
             formError: () => Option.none(),
           }),
-          [],
-          Option.none(),
-        ]),
-        M.orElse(() => [model, [], Option.none()]),
+        })),
+        M.orElse(() => ({ model })),
       ),
 
-    BlurredUsernameInput: () => [model, [FocusUsernameInput()], Option.none()],
+    BlurredUsernameInput: () => ({ model, commands: [FocusUsernameInput()] }),
 
-    BlurredRoomIdInput: () => [model, [FocusRoomIdInput()], Option.none()],
+    BlurredRoomIdInput: () => ({ model, commands: [FocusRoomIdInput()] }),
 
     ChangedRoomId: ({ value }) =>
       M.value(model.homeStep).pipe(
         withUpdateReturn,
-        M.tag('EnterRoomId', ({ username }) => [
-          evo(model, {
+        M.tag('EnterRoomId', ({ username }) => ({
+          model: evo(model, {
             homeStep: () =>
               EnterRoomId({
                 username,
@@ -70,10 +69,8 @@ export const update = (model: Model, message: Message) =>
               }),
             formError: () => Option.none(),
           }),
-          [],
-          Option.none(),
-        ]),
-        M.orElse(() => [model, [], Option.none()]),
+        })),
+        M.orElse(() => ({ model })),
       ),
 
     SubmittedJoinRoomForm: () =>
@@ -81,50 +78,42 @@ export const update = (model: Model, message: Message) =>
         withUpdateReturn,
         M.tag('EnterRoomId', ({ username, roomId }) => {
           if (roomId === 'exit') {
-            return [
-              evo(model, {
+            return {
+              model: evo(model, {
                 homeStep: () =>
                   SelectAction({ username, selectedAction: 'JoinRoom' }),
               }),
-              [],
-              Option.none(),
-            ]
+            }
           }
 
           const maybeJoin = optionWhen(Str.isNonEmpty(roomId), () =>
             JoinRoom({ username, roomId }),
           )
 
-          return [model, Array.fromOption(maybeJoin), Option.none()]
+          return { model, commands: Array.fromOption(maybeJoin) }
         }),
-        M.orElse(() => [model, [], Option.none()]),
+        M.orElse(() => ({ model })),
       ),
 
-    SucceededCreateRoom: ({ roomId, player }) => [
+    SucceededCreateRoom: ({ roomId, player }) => ({
       model,
-      [],
-      Option.some(OutMessage.CreatedRoom({ roomId, player })),
-    ],
+      outMessage: OutMessage.CreatedRoom({ roomId, player }),
+    }),
 
-    SucceededJoinRoom: ({ roomId, player }) => [
+    SucceededJoinRoom: ({ roomId, player }) => ({
       model,
-      [],
-      Option.some(OutMessage.JoinedRoom({ roomId, player })),
-    ],
+      outMessage: OutMessage.JoinedRoom({ roomId, player }),
+    }),
 
-    FailedCreateRoom: ({ error }) => [
-      evo(model, {
+    FailedCreateRoom: ({ error }) => ({
+      model: evo(model, {
         formError: () => Option.some(error),
       }),
-      [],
-      Option.none(),
-    ],
+    }),
 
-    FailedJoinRoom: ({ error }) => [
-      evo(model, {
+    FailedJoinRoom: ({ error }) => ({
+      model: evo(model, {
         formError: () => Option.some(error),
       }),
-      [],
-      Option.none(),
-    ],
+    }),
   })

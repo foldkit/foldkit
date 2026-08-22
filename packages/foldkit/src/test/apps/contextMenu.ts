@@ -39,15 +39,20 @@ export const initialModel = Model.make({
 
 // UPDATE
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<never>
+  outMessage?: never
+}>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<never>]>(message, {
-    OpenedContextMenu: ({ source }) => [
-      evo(model, {
+  Message.match<UpdateReturn>(message, {
+    OpenedContextMenu: ({ source }) => ({
+      model: evo(model, {
         contextMenu: () => Open({ source }),
         openCount: Number.increment,
       }),
-      [],
-    ],
+    }),
   })
 
 // VIEW

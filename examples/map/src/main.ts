@@ -11,7 +11,7 @@ import {
   Stream,
   String,
 } from 'effect'
-import { Command, Mount, Runtime, Subscription } from 'foldkit'
+import { Command, Mount, Runtime, Subscription, type Update } from 'foldkit'
 import * as Dom from 'foldkit/dom'
 import type { Document, Html } from 'foldkit/html'
 import { HtmlBuilder } from 'foldkit/html'
@@ -205,7 +205,7 @@ export const UnlockBodyScroll = Command.define('UnlockBodyScroll', {
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 const findLocation = (
   model: Model,
@@ -215,67 +215,62 @@ const findLocation = (
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    SucceededMountMap: ({ hostId }) => [
-      evo(model, { maybeMapHostId: () => Option.some(hostId) }),
-      [],
-    ],
+    SucceededMountMap: ({ hostId }) => ({
+      model: evo(model, { maybeMapHostId: () => Option.some(hostId) }),
+    }),
 
-    FailedMountMap: ({ reason }) => [
-      evo(model, { maybeMapError: () => Option.some(reason) }),
-      [],
-    ],
+    FailedMountMap: ({ reason }) => ({
+      model: evo(model, { maybeMapError: () => Option.some(reason) }),
+    }),
 
-    MovedMap: ({ bounds }) => [
-      evo(model, { maybeBounds: () => Option.some(bounds) }),
-      [],
-    ],
+    MovedMap: ({ bounds }) => ({
+      model: evo(model, { maybeBounds: () => Option.some(bounds) }),
+    }),
 
-    ClickedMarker: ({ locationId }) => [
-      evo(model, {
+    ClickedMarker: ({ locationId }) => ({
+      model: evo(model, {
         maybeSelectedLocationId: () => Option.some(locationId),
       }),
-      [],
-    ],
+    }),
 
     ClickedLocation: ({ locationId }) =>
       Option.match(findLocation(model, locationId), {
-        onNone: () => [model, []],
-        onSome: ({ lng, lat }) => [
-          evo(model, {
+        onNone: () => ({ model }),
+        onSome: ({ lng, lat }) => ({
+          model: evo(model, {
             maybeSelectedLocationId: () => Option.some(locationId),
           }),
-          [
+          commands: [
             FlyTo({
               maybeHostId: model.maybeMapHostId,
-              lng: lng,
-              lat: lat,
+              lng,
+              lat,
               zoom: SELECTED_LOCATION_ZOOM,
             }),
           ],
-        ],
+        }),
       }),
 
-    UpdatedSearchQuery: ({ value }) => [
-      evo(model, { searchQuery: () => value }),
-      [],
-    ],
+    UpdatedSearchQuery: ({ value }) => ({
+      model: evo(model, { searchQuery: () => value }),
+    }),
 
-    ClickedFindMe: () => [
-      evo(model, { geolocateState: () => GeolocateLocating() }),
-      [LockBodyScroll(), Geolocate()],
-    ],
+    ClickedFindMe: () => ({
+      model: evo(model, { geolocateState: () => GeolocateLocating() }),
+      commands: [LockBodyScroll(), Geolocate()],
+    }),
 
-    DismissedGeolocate: () => [
-      evo(model, { geolocateState: () => GeolocateIdle() }),
-      [UnlockBodyScroll()],
-    ],
+    DismissedGeolocate: () => ({
+      model: evo(model, { geolocateState: () => GeolocateIdle() }),
+      commands: [UnlockBodyScroll()],
+    }),
 
-    SucceededGeolocate: ({ lng, lat }) => [
-      evo(model, {
+    SucceededGeolocate: ({ lng, lat }) => ({
+      model: evo(model, {
         maybeUserLocation: () => Option.some({ lng, lat }),
         geolocateState: () => GeolocateIdle(),
       }),
-      [
+      commands: [
         UnlockBodyScroll(),
         FlyTo({
           maybeHostId: model.maybeMapHostId,
@@ -284,24 +279,23 @@ export const update = (model: Model, message: Message) =>
           zoom: USER_LOCATION_ZOOM,
         }),
       ],
-    ],
+    }),
 
-    FailedGeolocate: ({ reason }) => [
-      evo(model, { geolocateState: () => GeolocateFailed({ reason }) }),
-      [],
-    ],
+    FailedGeolocate: ({ reason }) => ({
+      model: evo(model, { geolocateState: () => GeolocateFailed({ reason }) }),
+    }),
 
-    SucceededFlyTo: () => [model, []],
-    FailedFlyTo: () => [model, []],
-    CompletedFocusSearchInput: () => [model, []],
-    CompletedLockBodyScroll: () => [model, []],
-    CompletedUnlockBodyScroll: () => [model, []],
+    SucceededFlyTo: () => ({ model }),
+    FailedFlyTo: () => ({ model }),
+    CompletedFocusSearchInput: () => ({ model }),
+    CompletedLockBodyScroll: () => ({ model }),
+    CompletedUnlockBodyScroll: () => ({ model }),
   })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     locations: featuredLocations,
     searchQuery: '',
     maybeMapHostId: Option.none(),
@@ -311,8 +305,8 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => [
     maybeUserLocation: Option.none(),
     geolocateState: GeolocateIdle(),
   },
-  [FocusSearchInput()],
-]
+  commands: [FocusSearchInput()],
+})
 
 // MAP MOUNT
 

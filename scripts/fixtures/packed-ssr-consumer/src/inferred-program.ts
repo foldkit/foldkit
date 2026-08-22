@@ -1,5 +1,5 @@
 import { Schema as S } from 'effect'
-import { Runtime } from 'foldkit'
+import { Runtime, type Update } from 'foldkit'
 import type { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -9,11 +9,11 @@ type InferredModel = typeof InferredModel.Type
 const Message = defineMessageUnion({ Ticked: {} })
 type InferredMessage = typeof Message.Type
 
-type InferredStep = readonly [InferredModel, ReadonlyArray<never>]
+type InferredStep = Update.Return<InferredModel, InferredMessage>
 
-const init = (): InferredStep => [{ count: 0 }, []]
+const init = (): InferredStep => ({ model: { count: 0 } })
 
-const update = (model: InferredModel): InferredStep => [model, []]
+const update = (model: InferredModel): InferredStep => ({ model })
 
 const elementView = (
   model: InferredModel,

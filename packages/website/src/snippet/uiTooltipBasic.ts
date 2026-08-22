@@ -16,13 +16,12 @@ const Model = S.Struct({
 })
 
 // In your init function, initialize the Tooltip Submodel with a unique id:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     tooltip: Tooltip.init({ id: 'save-button' }),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Embed the Tooltip Message in your parent Message:
 const Message = defineMessageUnion({
@@ -39,11 +38,11 @@ const foldTooltipOutMessage = M.type<Tooltip.OutMessage>().pipe(
     // The child has emitted `Shown`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example log analytics,
     // prefetch content, or trigger a downstream Command.
-    Shown: () => model => [model, []],
+    Shown: () => model => ({ model }),
     // The child has emitted `Hidden`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example clear ephemeral
     // state, fire analytics, or trigger a downstream Command.
-    Hidden: () => model => [model, []],
+    Hidden: () => model => ({ model }),
   }),
 )
 

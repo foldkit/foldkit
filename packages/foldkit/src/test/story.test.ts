@@ -894,7 +894,7 @@ describe('type safety', () => {
     expectTypeOf(step).toMatchTypeOf<Story.GivenStep<{ count: number }>>()
   })
 
-  test('story infers OutMessage from a 3-tuple update', () => {
+  test('story infers OutMessage from an update return', () => {
     Story.story(
       childUpdate,
       Story.given({ status: 'Idle' }),

@@ -4,7 +4,7 @@
 
 An anchored floating panel with natural Tab navigation. Unlike Dialog (which is modal and traps focus) or Menu (which uses aria-activedescendant for item navigation), Popover holds arbitrary content and uses the disclosure ARIA pattern. Focus flows naturally through the panel content.
 
-For programmatic control in update functions, use `Popover.open(model)` and `Popover.close(model)` which return `[Model, Commands, Option<OutMessage>]` directly.
+For programmatic control in update functions, use `Popover.open(model)` and `Popover.close(model)`, which return `{ model, commands?, outMessage? }` directly.
 
 :::Info{label="See it in an app"}
 Check out how Popover is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/popover.ts).
@@ -106,7 +106,7 @@ Payload delivered to the `toView` callback each render.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
+Messages emitted to the parent through the optional `outMessage` field. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
 
 | Name     | Type | Default | Description                                                                                                                                    |
 | -------- | ---- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |

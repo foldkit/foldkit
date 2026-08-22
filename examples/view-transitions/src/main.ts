@@ -1,5 +1,5 @@
 import { Array, Effect, Match as M, Option, Schema as S, String } from 'effect'
-import { Command, Runtime } from 'foldkit'
+import { Command, Runtime, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
@@ -36,7 +36,7 @@ export type Message = typeof Message.Type
 
 export const init: Runtime.RoutingApplicationInit<Model, Message> = (
   url: Url,
-) => [{ route: urlToAppRoute(url), filterText: '' }, []]
+) => ({ model: { route: urlToAppRoute(url), filterText: '' } })
 
 // COMMAND
 
@@ -56,35 +56,36 @@ const LoadExternal = Command.define('LoadExternal', {
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    CompletedNavigateInternal: () => [model, []],
-    CompletedLoadExternal: () => [model, []],
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
 
     ClickedLink: ({ request }) =>
       M.value(request).pipe(
         withUpdateReturn,
         M.tagsExhaustive({
-          Internal: ({ url }) => [
+          Internal: ({ url }) => ({
             model,
-            [NavigateInternal({ url: urlToString(url) })],
-          ],
-          External: ({ href }) => [model, [LoadExternal({ href })]],
+            commands: [NavigateInternal({ url: urlToString(url) })],
+          }),
+          External: ({ href }) => ({
+            model,
+            commands: [LoadExternal({ href })],
+          }),
         }),
       ),
 
-    ChangedUrl: ({ url }) => [
-      evo(model, { route: () => urlToAppRoute(url) }),
-      [],
-    ],
+    ChangedUrl: ({ url }) => ({
+      model: evo(model, { route: () => urlToAppRoute(url) }),
+    }),
 
-    UpdatedFilterText: ({ filterText }) => [
-      evo(model, { filterText: () => filterText }),
-      [],
-    ],
+    UpdatedFilterText: ({ filterText }) => ({
+      model: evo(model, { filterText: () => filterText }),
+    }),
   })
 
 // NOTE: every arm past the guard is a navigation, so none return `false`.

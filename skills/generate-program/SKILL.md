@@ -381,7 +381,7 @@ h: HtmlBuilder<Message> (view parameter, supplied by the runtime): { div, input 
 Route.mapTo(schema)(parser): curried
 pushUrl(path): Effect<void>  // NOT fallible, no Effect.ignore needed
 urlToString(url: Url): string
-Update.Return<Model, Message>: readonly [Model, ReadonlyArray<Command<Message>>]
+Update.Return<Model, Message>: { model: Model; commands?: ReadonlyArray<Command<Message>> }
 Command.mapMessages(commands, toParentMessage): re-tag a child's Commands
 AsyncData.Schema(DataSchema, ErrorSchema): { schema, Idle(), Loading(), Success({data}), Failure({error}), ... }
 AsyncData.match(value, { onIdle, onLoading, onRefreshing, onFailure, onStale, onSuccess })
@@ -426,7 +426,7 @@ Record these in the crib and keep them visible while generating:
 - **UI components come from `@foldkit/ui`, not from a `Ui` namespace on `foldkit`.** `import { Dialog, Input } from '@foldkit/ui'`, then `Dialog.view(...)`. There is no `Ui` export on the `foldkit` package.
 - **`HttpClient` and `HttpClientRequest` come from `effect/unstable/http`**, not `@effect/platform`. Provide the client to the Command's Effect with `Effect.provide(effect, Http.layer)`, where `Http` is imported from `foldkit`. `@effect/platform-browser` is a different thing, used for `BrowserKeyValueStore` and `BrowserCrypto`.
 - **Map a child Submodel's Commands with `Command.mapMessages(childCommands, message => Message.GotChildMessage({ message }))`.** Not `Command.mapEffect`.
-- **Name the update return type once per file**, and prefer `Update.Return<Model, Message>` from `foldkit/update` for the alias. Spelling the tuple out by hand is fine. Pass the alias to `Message.match<UpdateReturn>` and omit a redundant `: UpdateReturn` annotation from update. Use `M.withReturnType<UpdateReturn>()` only for an Effect `Match` over a different tagged union inside a handler.
+- **Name the update return type once per file**, and prefer `Update.Return<Model, Message>` from `foldkit/update` for the alias. A hand-written plain-return alias is equivalent only when it includes the load-bearing `outMessage?: never` guard. Pass the alias to `Message.match<UpdateReturn>` and omit a redundant `: UpdateReturn` annotation from update. Use `M.withReturnType<UpdateReturn>()` only for an Effect `Match` over a different tagged union inside a handler.
 - **Branch on a Model array with `Array.match`, not the predicates.** `Array.isArrayEmpty` and `Array.isArrayNonEmpty` (note the names: not `isEmptyArray` / `isNonEmptyArray`) take a mutable `Array<A>`, so neither compiles against the `ReadonlyArray` an `S.Array(...)` field decodes to. `Array.match` takes `ReadonlyArray` and is what the exemplars use.
 - **`empty` and `keyed` are properties on `h`**, so they are never in the `foldkit/html` import list. Import the types (`import type { Document, Html, HtmlBuilder } from 'foldkit/html'`) and reach for `h.empty` / `h.keyed` off the view's builder.
 
@@ -488,8 +488,8 @@ Every message must carry meaning. No `NoOp`.
 
 ### Init
 
-- Return `[Model, ReadonlyArray<Command<Message>>]`
-- If Flags are used, accept them as the first parameter: `(flags: Flags) => [Model, Commands]` or `(flags: Flags, url: Url) => [Model, Commands]`
+- Return `{ model, commands? }`. Omit `commands` when there are none
+- If Flags are used, accept them as the first parameter. For example: `(flags: Flags) => ({ model: initialModel(flags) })` or `(flags: Flags, url: Url) => ({ model: initialModel(flags, url) })`
 - Include startup Commands (initial fetch, focus first input, etc.)
 - Use callable Schema constructors for the initial Model: `Model({ field: value })`
 
@@ -501,15 +501,15 @@ Every message must carry meaning. No `NoOp`.
   type UpdateReturn = Update.Return<Model, Message>
   ```
 
-  `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is the Submodel counterpart. `Update.Return` is the preferred spelling; a hand-written tuple alias is what most examples still use and is fine.
+  `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is the Submodel counterpart. Prefer the framework aliases. A hand-written plain-return alias is equivalent only when it includes `outMessage?: never`.
 
 - Use `Message.match<UpdateReturn>(message, {...})`. Never switch. Keep Effect `Match` for other tagged unions, partial matches with fallbacks, and handlers shared across several tags
 - Use `evo(model, { field: () => newValue })` for immutable updates
 - When a `Succeeded*` handler has to write several caches and kick off refetches, sequence them with `Update.combine(model, [step, step, ...])` and build the refetch steps with `Update.refresh({ read, revalidate, write, load })`, which reloads a cache only when it actually holds data. `examples/route-transitions/src/main.ts` shows both
 - In `evo`, use point-free field transformers when the update only depends on that field's current value: `items: Array.map(updateItem)`, `count: Number.increment`, `priceSlider: Slider.reflectRange({ min: minPrice, max: maxPrice })`. Use `() => value` for replacement values from Messages, child updates, Commands, or other Model fields.
 - Extract complex handlers to separate functions when a case exceeds ~15 lines
-- For Submodels: return `[Model, ReadonlyArray<Command<Message>>, Option.Option<OutMessage>]`
-- See the OutMessage pattern in [architecture.md](architecture.md). Child modules signal to parents via `Option.some(OutMessage)`, parents handle with `Got*` Messages and `Message.match`
+- For Submodels, return `{ model, commands?, outMessage? }`. Omit `outMessage` when there is nothing to report
+- See the OutMessage pattern in [architecture.md](architecture.md). Child modules signal to parents through `outMessage`; parents handle the value through `foldOutMessage` on `Update.foldChild`
 
 ### Commands
 

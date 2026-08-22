@@ -978,17 +978,17 @@ describe('Calendar', () => {
     describe('dropToDays', () => {
       it('returns the calendar to Days mode from Months mode', () => {
         const model = init({ id: 'test', today })
-        const inMonths = update(model, Message.ClickedHeading())[0]
+        const headingUpdate = update(model, Message.ClickedHeading())
+        const inMonths = headingUpdate.model
         expect(inMonths.viewMode).toBe('Months')
         expect(dropToDays(inMonths).viewMode).toBe('Days')
       })
 
       it('returns the calendar to Days mode from Years mode (skips Months)', () => {
         const model = init({ id: 'test', today })
-        const inYears = update(
-          update(model, Message.ClickedHeading())[0],
-          Message.ClickedHeading(),
-        )[0]
+        const monthsUpdate = update(model, Message.ClickedHeading())
+        const yearsUpdate = update(monthsUpdate.model, Message.ClickedHeading())
+        const inYears = yearsUpdate.model
         expect(inYears.viewMode).toBe('Years')
         expect(dropToDays(inYears).viewMode).toBe('Days')
       })
@@ -1000,12 +1000,12 @@ describe('Calendar', () => {
 
       it('reconciles maybeFocusedDate to a date inside the visible Days grid after Years-mode paging', () => {
         const model = init({ id: 'test', today })
-        const inYears = update(
-          update(model, Message.ClickedHeading())[0],
-          Message.ClickedHeading(),
-        )[0]
+        const monthsUpdate = update(model, Message.ClickedHeading())
+        const yearsUpdate = update(monthsUpdate.model, Message.ClickedHeading())
+        const inYears = yearsUpdate.model
         expect(inYears.viewMode).toBe('Years')
-        const paged = update(inYears, Message.PagedYears({ direction: 1 }))[0]
+        const pagedYears = update(inYears, Message.PagedYears({ direction: 1 }))
+        const paged = pagedYears.model
         expect(paged.maybeFocusedDate).toStrictEqual(
           Option.some(Calendar.make(2038, 4, 13)),
         )
@@ -1019,16 +1019,17 @@ describe('Calendar', () => {
 
       it('an ArrowLeft after dropToDays does not drift the calendar to the cursor year', () => {
         const model = init({ id: 'test', today })
-        const inYears = update(
-          update(model, Message.ClickedHeading())[0],
-          Message.ClickedHeading(),
-        )[0]
-        const paged = update(inYears, Message.PagedYears({ direction: 1 }))[0]
+        const monthsUpdate = update(model, Message.ClickedHeading())
+        const yearsUpdate = update(monthsUpdate.model, Message.ClickedHeading())
+        const inYears = yearsUpdate.model
+        const pagedYears = update(inYears, Message.PagedYears({ direction: 1 }))
+        const paged = pagedYears.model
         const dropped = dropToDays(paged)
-        const afterArrow = update(
+        const arrowUpdate = update(
           dropped,
           Message.PressedKeyOnGrid({ key: 'ArrowLeft', isShift: false }),
-        )[0]
+        )
+        const afterArrow = arrowUpdate.model
         expect(afterArrow.viewYear).toBe(2026)
         expect(afterArrow.viewMonth).toBe(4)
       })
@@ -1036,16 +1037,16 @@ describe('Calendar', () => {
       it('clamps the focused day to the days-in-month when reconciling', () => {
         const today31 = Calendar.make(2026, 1, 31)
         const model = init({ id: 'test', today: today31 })
-        const movedToFebruary = update(
+        const pageDownUpdate = update(
           model,
           Message.PressedKeyOnGrid({ key: 'PageDown', isShift: false }),
-        )[0]
+        )
+        const movedToFebruary = pageDownUpdate.model
         expect(movedToFebruary.viewYear).toBe(2026)
         expect(movedToFebruary.viewMonth).toBe(2)
-        const inYears = update(
-          update(movedToFebruary, Message.ClickedHeading())[0],
-          Message.ClickedHeading(),
-        )[0]
+        const monthsUpdate = update(movedToFebruary, Message.ClickedHeading())
+        const yearsUpdate = update(monthsUpdate.model, Message.ClickedHeading())
+        const inYears = yearsUpdate.model
         const dropped = dropToDays(inYears)
         expect(dropped.maybeFocusedDate).toStrictEqual(
           Option.some(Calendar.make(2026, 2, 28)),

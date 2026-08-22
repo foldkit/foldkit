@@ -22,7 +22,7 @@ const foldPeopleRouteChanged = Update.foldChild({
 
 const setRoute =
   (nextRoute: AppRoute): Update.Step<Model, Message> =>
-  model => [evo(model, { route: () => nextRoute }), []]
+  model => ({ model: evo(model, { route: () => nextRoute }) })
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {

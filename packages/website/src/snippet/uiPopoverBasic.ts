@@ -16,13 +16,12 @@ const Model = S.Struct({
 })
 
 // In your init function, initialize the Popover Submodel with a unique id:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     popover: Popover.init({ id: 'info' }),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Embed the Popover Message in your parent Message:
 const Message = defineMessageUnion({
@@ -40,11 +39,11 @@ const foldPopoverOutMessage = M.type<Popover.OutMessage>().pipe(
     // The child has emitted `Opened`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example lazy-load panel
     // content, log analytics, or trigger a downstream Command.
-    Opened: () => model => [model, []],
+    Opened: () => model => ({ model }),
     // The child has emitted `Closed`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example persist a draft,
     // clear ephemeral state, or trigger a downstream Command.
-    Closed: () => model => [model, []],
+    Closed: () => model => ({ model }),
   }),
 )
 

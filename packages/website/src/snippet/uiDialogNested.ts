@@ -15,14 +15,13 @@ const Model = S.Struct({
   // ...your other fields
 })
 
-const init = () => [
-  {
+const init = () => ({
+  model: {
     settingsDialog: Dialog.init({ id: 'settings' }),
     confirmDialog: Dialog.init({ id: 'confirm-delete' }),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Embed each Dialog Message in your parent Message and delegate each to its
 // own Dialog.update (see the basic Dialog example for the delegation).
@@ -39,30 +38,26 @@ const Message = defineMessageUnion({
 
 // ...in your update's Message.match({...}):
 ClickedDeleteProject: () => {
-  const [nextConfirmDialog, confirmDialogCommands] = Dialog.open(
-    model.confirmDialog,
-  )
-  return [
-    evo(model, { confirmDialog: () => nextConfirmDialog }),
-    Command.mapMessages(confirmDialogCommands, message =>
+  const confirmDialogOpen = Dialog.open(model.confirmDialog)
+  return {
+    model: evo(model, { confirmDialog: () => confirmDialogOpen.model }),
+    commands: Command.mapMessages(confirmDialogOpen.commands ?? [], message =>
       Message.GotConfirmDialogMessage({ message }),
     ),
-  ]
+  }
 }
 
 // Confirming runs the deletion, then closes the confirmation through
 // Dialog.close, the same API the opening fact used.
 ConfirmedDeleteProject: () => {
   // ...run the deletion here, then:
-  const [nextConfirmDialog, confirmDialogCommands] = Dialog.close(
-    model.confirmDialog,
-  )
-  return [
-    evo(model, { confirmDialog: () => nextConfirmDialog }),
-    Command.mapMessages(confirmDialogCommands, message =>
+  const confirmDialogClose = Dialog.close(model.confirmDialog)
+  return {
+    model: evo(model, { confirmDialog: () => confirmDialogClose.model }),
+    commands: Command.mapMessages(confirmDialogClose.commands ?? [], message =>
       Message.GotConfirmDialogMessage({ message }),
     ),
-  ]
+  }
 }
 
 // Each dialog is its own submodel; the framework stacks them by z-index, traps

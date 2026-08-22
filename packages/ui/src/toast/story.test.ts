@@ -83,58 +83,60 @@ describe('Toast', () => {
   describe('show', () => {
     it('appends an entry and schedules enter + dismiss commands', () => {
       const initial = Toast.init({ id: 'test' })
-      const [nextModel, commands] = Toast.show(initial, {
+      const toastShowResult = Toast.show(initial, {
         payload: { body: 'Saved' },
       })
 
-      expect(nextModel.entries).toHaveLength(1)
-      const [entry] = nextModel.entries
+      expect(toastShowResult.model.entries).toHaveLength(1)
+      const [entry] = toastShowResult.model.entries
       expect(entry?.id).toBe(firstEntryId)
       expect(entry?.payload).toStrictEqual({ body: 'Saved' })
       expect(entry?.variant).toBe('Info')
       expect(entry?.animation.transitionState).toBe('EnterStart')
-      expect(nextModel.nextEntryKey).toBe(1)
-      expect(commands).toHaveLength(2)
+      expect(toastShowResult.model.nextEntryKey).toBe(1)
+      expect(toastShowResult.commands ?? []).toHaveLength(2)
     })
 
     it('does not schedule a dismiss command when sticky', () => {
-      const [nextModel, commands] = Toast.show(Toast.init({ id: 'test' }), {
+      const toastShow = Toast.show(Toast.init({ id: 'test' }), {
         payload: { body: 'Sticky' },
         sticky: true,
       })
-      const [entry] = nextModel.entries
+      const [entry] = toastShow.model.entries
       expect(entry?.maybeDuration).toStrictEqual(Option.none())
-      expect(commands).toHaveLength(1)
+      expect(toastShow.commands ?? []).toHaveLength(1)
     })
 
     it('uses a caller-provided duration over the default', () => {
-      const [nextModel] = Toast.show(Toast.init({ id: 'test' }), {
+      const toastShow = Toast.show(Toast.init({ id: 'test' }), {
         payload: { body: 'Quick' },
         duration: 100,
       })
-      const [entry] = nextModel.entries
+      const [entry] = toastShow.model.entries
       expect(entry?.maybeDuration).toStrictEqual(
         Option.some(Duration.millis(100)),
       )
     })
 
     it('generates sequential entry ids using nextEntryKey', () => {
-      const [after1] = Toast.show(Toast.init({ id: 'test' }), {
+      const firstShow = Toast.show(Toast.init({ id: 'test' }), {
         payload: { body: 'One' },
       })
-      const [after2] = Toast.show(after1, { payload: { body: 'Two' } })
-      const ids = after2.entries.map((entry: Entry) => entry.id)
+      const secondShow = Toast.show(firstShow.model, {
+        payload: { body: 'Two' },
+      })
+      const ids = secondShow.model.entries.map((entry: Entry) => entry.id)
       expect(ids).toStrictEqual(['test-entry-0', 'test-entry-1'])
-      expect(after2.nextEntryKey).toBe(2)
+      expect(secondShow.model.nextEntryKey).toBe(2)
     })
 
     it('sticky wins over an explicit duration', () => {
-      const [nextModel] = Toast.show(Toast.init({ id: 'test' }), {
+      const toastShow = Toast.show(Toast.init({ id: 'test' }), {
         payload: { body: 'Sticky beats duration' },
         sticky: true,
         duration: 100,
       })
-      const [entry] = nextModel.entries
+      const [entry] = toastShow.model.entries
       expect(entry?.maybeDuration).toStrictEqual(Option.none())
     })
   })
@@ -534,8 +536,10 @@ describe('Toast', () => {
         entries: [makeSettledEntry()],
         nextEntryKey: 1,
       }
-      const [next] = Toast.dismiss(model, firstEntryId)
-      expect(next.entries[0]?.animation.transitionState).toBe('LeaveStart')
+      const toastDismissResult = Toast.dismiss(model, firstEntryId)
+      expect(
+        toastDismissResult.model.entries[0]?.animation.transitionState,
+      ).toBe('LeaveStart')
     })
 
     it('dismissAll(model) dispatches DismissedAll', () => {
@@ -547,8 +551,8 @@ describe('Toast', () => {
         ],
         nextEntryKey: 2,
       }
-      const [next] = Toast.dismissAll(model)
-      next.entries.forEach((entry: Entry) => {
+      const toastDismissAllResult = Toast.dismissAll(model)
+      toastDismissAllResult.model.entries.forEach((entry: Entry) => {
         expect(entry.animation.transitionState).toBe('LeaveStart')
       })
     })

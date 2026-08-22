@@ -1,5 +1,5 @@
 import { Duration, Effect, Schema as S, Stream } from 'effect'
-import { Command, Subscription } from 'foldkit'
+import { Subscription, type Update } from 'foldkit'
 import type { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -47,22 +47,22 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    ClickedIncrement: () => [
-      evo(model, { count: count => count + model.step }),
-      [],
-    ],
-    ClickedToggleAutoCount: () => [
-      evo(model, {
+    ClickedIncrement: () => ({
+      model: evo(model, { count: count => count + model.step }),
+    }),
+    ClickedToggleAutoCount: () => ({
+      model: evo(model, {
         isAutoCounting: isAutoCounting => !isAutoCounting,
       }),
-      [],
-    ],
-    ChangedStep: ({ step }) => [evo(model, { step: () => step }), []],
-    Ticked: () => [evo(model, { count: count => count + model.step }), []],
+    }),
+    ChangedStep: ({ step }) => ({ model: evo(model, { step: () => step }) }),
+    Ticked: () => ({
+      model: evo(model, { count: count => count + model.step }),
+    }),
   })
 
 // VIEW

@@ -1,3 +1,4 @@
+import { Update } from 'foldkit'
 import {
   type Field,
   Invalid,
@@ -14,6 +15,8 @@ const passwordRules = makeRules({
 
 const validatePassword = validate(passwordRules)
 
+type UpdateReturn = Update.Return<Model, Message>
+
 const validateConfirmPassword = (
   password: string,
   confirmPassword: string,
@@ -29,23 +32,21 @@ const validateConfirmPassword = (
 }
 
 const update = (model: Model, message: Message) =>
-  Message.match(message, {
-    ChangedPassword: ({ value }) => [
-      evo(model, {
+  Message.match<UpdateReturn>(message, {
+    ChangedPassword: ({ value }) => ({
+      model: evo(model, {
         password: () => validatePassword(value),
         confirmPassword: confirmPassword =>
           confirmPassword._tag === 'NotValidated'
             ? confirmPassword
             : validateConfirmPassword(value, confirmPassword.value),
       }),
-      [],
-    ],
+    }),
 
-    ChangedConfirmPassword: ({ value }) => [
-      evo(model, {
+    ChangedConfirmPassword: ({ value }) => ({
+      model: evo(model, {
         confirmPassword: () =>
           validateConfirmPassword(model.password.value, value),
       }),
-      [],
-    ],
+    }),
   })

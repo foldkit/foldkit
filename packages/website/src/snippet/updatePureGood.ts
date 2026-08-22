@@ -1,12 +1,12 @@
 import { Effect } from 'effect'
-import { Command } from 'foldkit'
+import { Command, type Update } from 'foldkit'
 import * as Dom from 'foldkit/dom'
 import { evo } from 'foldkit/struct'
 
 import { Message } from './message'
 import type { Model } from './model'
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 const FocusSearchInput = Command.define('FocusSearchInput', {
   messages: [Message.CompletedFocusSearchInput],
@@ -19,9 +19,9 @@ const FocusSearchInput = Command.define('FocusSearchInput', {
 // ✅ Return the next Model and a Command
 const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    OpenedDialog: () => [
-      evo(model, { dialogState: () => 'Open' }),
-      [FocusSearchInput()],
-    ],
-    CompletedFocusSearchInput: () => [model, []],
+    OpenedDialog: () => ({
+      model: evo(model, { dialogState: () => 'Open' }),
+      commands: [FocusSearchInput()],
+    }),
+    CompletedFocusSearchInput: () => ({ model }),
   })

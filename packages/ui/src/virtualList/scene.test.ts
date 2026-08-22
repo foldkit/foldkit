@@ -52,11 +52,11 @@ const sceneView =
 const unmeasuredModel = init({ id: 'test', rowHeightPx: ROW_HEIGHT })
 
 const measuredModel = (() => {
-  const [model] = update(
+  const updateResult = update(
     unmeasuredModel,
     Message.MeasuredContainer({ containerHeight: 90 }),
   )
-  return model
+  return updateResult.model
 })()
 
 const container = Scene.selector('ul[data-virtual-list-id="test"]')
@@ -162,13 +162,13 @@ describe('VirtualList', () => {
     })
 
     it('sets aria-posinset using the logical (data) index, not the slice index, when scrolled', () => {
-      const [scrolled] = update(
+      const scrolledUpdate = update(
         measuredModel,
         Message.ScrolledContainer({ scrollTop: 90 }),
       )
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(scrolled),
+        Scene.given(scrolledUpdate.model),
         Scene.expect(
           Scene.selector('li[data-virtual-list-item-index="3"]'),
         ).toHaveAttr('aria-posinset', '4'),
@@ -199,11 +199,11 @@ describe('VirtualList', () => {
       item.id % 2 === 0 ? 60 : 20
 
     const variableMeasuredModel = (() => {
-      const [model] = update(
+      const measuredUpdate = update(
         unmeasuredModel,
         Message.MeasuredContainer({ containerHeight: 90 }),
       )
-      return model
+      return measuredUpdate.model
     })()
 
     it('renders each row at the height returned by itemToRowHeightPx', () => {

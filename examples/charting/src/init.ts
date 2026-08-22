@@ -12,8 +12,8 @@ import {
   PERIOD_RADIO_GROUP_ID,
 } from './radioGroups'
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     telemetry: TelemetryAsyncData.Loading(),
     chartMode: 'Adoption',
     chartModeRadioGroup: RadioGroup.init({ id: CHART_MODE_RADIO_GROUP_ID }),
@@ -25,5 +25,5 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => [
     maybeChartError: Option.none(),
     maybeSelectedDatumId: Option.none(),
   },
-  [FetchTelemetry()],
-]
+  commands: [FetchTelemetry()],
+})

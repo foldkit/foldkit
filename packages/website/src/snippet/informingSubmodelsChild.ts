@@ -1,5 +1,5 @@
 import { Option, Schema as S, String } from 'effect'
-import { Command } from 'foldkit'
+import { type Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
@@ -22,18 +22,17 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    ChangedSearchInput: ({ value }) => [
-      evo(model, { searchInput: () => value }),
-      [],
-    ],
+    ChangedSearchInput: ({ value }) => ({
+      model: evo(model, { searchInput: () => value }),
+    }),
 
-    SubmittedSearch: () => [
+    SubmittedSearch: () => ({
       model,
-      [
+      commands: [
         PushSearchUrl({
           searchText: Option.liftPredicate(
             model.searchInput,
@@ -41,25 +40,24 @@ export const update = (model: Model, message: Message) =>
           ),
         }),
       ],
-    ],
+    }),
 
     ChangedRoute: ({ route }) => {
       const searchText = Option.getOrElse(route.searchText, () => '')
-      return [
-        evo(model, {
+      return {
+        model: evo(model, {
           searchInput: () => searchText,
           searchHistory: searchHistory =>
             addSearchToHistory(searchHistory, searchText),
           results: () => SearchLoading(),
         }),
-        [FetchPeople({ searchText })],
-      ]
+        commands: [FetchPeople({ searchText })],
+      }
     },
 
-    SucceededFetchPeople: ({ query, people }) => [
-      evo(model, { results: () => SearchLoaded({ query, people }) }),
-      [],
-    ],
+    SucceededFetchPeople: ({ query, people }) => ({
+      model: evo(model, { results: () => SearchLoaded({ query, people }) }),
+    }),
   })
 
 export const informRouteChanged = (model: Model, route: PeopleRoute) =>

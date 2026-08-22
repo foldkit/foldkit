@@ -15,13 +15,12 @@ const Model = S.Struct({
 })
 
 // In your init function, initialize the Dialog Submodel with a unique id:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     dialog: Dialog.init({ id: 'confirm' }),
     // ...your other fields
   },
-  [],
-]
+})
 
 // A fact for the trigger, plus the Dialog Message embedded in your parent
 // Message for the submodel delegation:
@@ -32,26 +31,26 @@ const Message = defineMessageUnion({
 
 // Open the dialog from your update with Dialog.open. Escape, the backdrop,
 // and the closeButton bundle all flow back through GotDialogMessage, where you
-// delegate to Dialog.update. (Both return an Option<OutMessage> as the
-// third element; match Opened/Closed there to react to the transitions.)
+// delegate to Dialog.update. Both may return an `outMessage`; match
+// Opened/Closed there to react to the transitions.
 ClickedOpenDialog: () => {
-  const [nextDialog, dialogCommands] = Dialog.open(model.dialog)
-  return [
-    evo(model, { dialog: () => nextDialog }),
-    Command.mapMessages(dialogCommands, message =>
+  const dialogOpen = Dialog.open(model.dialog)
+  return {
+    model: evo(model, { dialog: () => dialogOpen.model }),
+    commands: Command.mapMessages(dialogOpen.commands ?? [], message =>
       Message.GotDialogMessage({ message }),
     ),
-  ]
+  }
 }
 
 GotDialogMessage: ({ message }) => {
-  const [nextDialog, dialogCommands] = Dialog.update(model.dialog, message)
-  return [
-    evo(model, { dialog: () => nextDialog }),
-    Command.mapMessages(dialogCommands, message =>
+  const dialogUpdate = Dialog.update(model.dialog, message)
+  return {
+    model: evo(model, { dialog: () => dialogUpdate.model }),
+    commands: Command.mapMessages(dialogUpdate.commands ?? [], message =>
       Message.GotDialogMessage({ message }),
     ),
-  ]
+  }
 }
 
 // In your view, open from a trigger with the fact, and dismiss from a Cancel

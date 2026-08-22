@@ -30,24 +30,28 @@ export const initialModel: Model = {
 
 // UPDATE
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<never>
+  outMessage?: never
+}>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<never>]>(message, {
-    PressedPointerDown: ({ pointerType }) => [
-      {
+  Message.match<UpdateReturn>(message, {
+    PressedPointerDown: ({ pointerType }) => ({
+      model: {
         ...model,
         pointerDownCount: model.pointerDownCount + 1,
         lastPointerType: pointerType,
       },
-      [],
-    ],
-    ReleasedPointerUp: ({ pointerType }) => [
-      {
+    }),
+    ReleasedPointerUp: ({ pointerType }) => ({
+      model: {
         ...model,
         pointerUpCount: model.pointerUpCount + 1,
         lastPointerType: pointerType,
       },
-      [],
-    ],
+    }),
   })
 
 // VIEW

@@ -22,9 +22,17 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<never>
+  outMessage?: never
+}>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<never>]>(message, {
-    ReceivedFiles: ({ files }) => [{ ...model, receivedFiles: files }, []],
+  Message.match<UpdateReturn>(message, {
+    ReceivedFiles: ({ files }) => ({
+      model: { ...model, receivedFiles: files },
+    }),
   })
 
 // VIEW

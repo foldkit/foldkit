@@ -218,10 +218,11 @@ const AppModel = S.Struct({
 })
 type AppModel = typeof AppModel.Type
 
-type AppUpdateReturn = [
-  AppModel,
-  ReadonlyArray<Command.Command<ConnectionMessage>>,
-]
+type AppUpdateReturn = Readonly<{
+  model: AppModel
+  commands?: ReadonlyArray<Command.Command<ConnectionMessage>>
+  outMessage?: never
+}>
 const withAppUpdateReturn = M.withReturnType<AppUpdateReturn>()
 
 const update = (model: AppModel, message: ConnectionMessage): AppUpdateReturn =>
@@ -239,10 +240,13 @@ const update = (model: AppModel, message: ConnectionMessage): AppUpdateReturn =>
           model.connection,
           connectionMessage,
         )
-        return [evo(model, { connection: () => nextConnection }), commands]
+        return {
+          model: evo(model, { connection: () => nextConnection }),
+          commands,
+        }
       },
     ),
-    M.tag('ReleasedSocket', 'CompletedLogTransition', () => [model, []]),
+    M.tag('ReleasedSocket', 'CompletedLogTransition', () => ({ model })),
     M.exhaustive,
   )
 
@@ -1004,20 +1008,16 @@ describe('integration', () => {
       isDebugPanelOpen: false,
     }
 
-    const [nextModel, commands] = update(
-      model,
-      ConnectionMessage.ClickedConnect(),
+    const updateResult = update(model, ConnectionMessage.ClickedConnect())
+    expect(updateResult.model.connection).toStrictEqual(
+      Connecting({ attemptCount: 1 }),
     )
-    expect(nextModel.connection).toStrictEqual(Connecting({ attemptCount: 1 }))
-    expect(nextModel.isDebugPanelOpen).toBe(false)
-    expect(commands).toEqual([])
+    expect(updateResult.model.isDebugPanelOpen).toBe(false)
+    expect(updateResult.commands ?? []).toEqual([])
 
-    const [unchangedModel, ignoredCommands] = update(
-      model,
-      ConnectionMessage.ReleasedSocket(),
-    )
-    expect(unchangedModel).toBe(model)
-    expect(ignoredCommands).toEqual([])
+    const releaseUpdate = update(model, ConnectionMessage.ReleasedSocket())
+    expect(releaseUpdate.model).toBe(model)
+    expect(releaseUpdate.commands ?? []).toEqual([])
   })
 
   it('wires the gating sketch records', () => {

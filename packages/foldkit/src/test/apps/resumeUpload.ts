@@ -63,36 +63,40 @@ export const initialModel: Model = {
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command.Command<Message>>
+  outMessage?: never
+}>
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    ClickedChooseResume: () => [model, [SelectResume()]],
-    CompletedSelectResume: ({ file }) => [
-      evo(model, {
+    ClickedChooseResume: () => ({ model, commands: [SelectResume()] }),
+    CompletedSelectResume: ({ file }) => ({
+      model: evo(model, {
         maybeResume: () => Option.some(file),
         maybePreviewDataUrl: () => Option.none(),
         readStatus: () => 'Reading',
       }),
-      [ReadResumePreview({ file })],
-    ],
-    CancelledSelectResume: () => [model, []],
-    SucceededReadPreview: ({ dataUrl }) => [
-      evo(model, {
+      commands: [ReadResumePreview({ file })],
+    }),
+    CancelledSelectResume: () => ({ model }),
+    SucceededReadPreview: ({ dataUrl }) => ({
+      model: evo(model, {
         maybePreviewDataUrl: () => Option.some(dataUrl),
         readStatus: () => 'Idle',
       }),
-      [],
-    ],
-    FailedReadPreview: () => [evo(model, { readStatus: () => 'Failed' }), []],
-    ClickedRemoveResume: () => [
-      evo(model, {
+    }),
+    FailedReadPreview: () => ({
+      model: evo(model, { readStatus: () => 'Failed' }),
+    }),
+    ClickedRemoveResume: () => ({
+      model: evo(model, {
         maybeResume: () => Option.none(),
         maybePreviewDataUrl: () => Option.none(),
         readStatus: () => 'Idle',
       }),
-      [],
-    ],
+    }),
   })
 
 // VIEW

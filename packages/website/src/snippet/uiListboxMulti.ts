@@ -25,14 +25,13 @@ const Model = S.Struct({
 })
 
 // In your init function, initialize the Listbox Submodel with a unique id:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     selectedPeople: [],
     listboxMulti: Listbox.Multi.init({ id: 'people' }),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Wrap Listbox's Messages so they can flow through your update:
 const Message = defineMessageUnion({
@@ -49,15 +48,14 @@ const foldListboxMultiOutMessage = M.type<Listbox.OutMessage<Person>>().pipe(
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           selectedPeople: () =>
             Array.contains(model.selectedPeople, value)
               ? Array.filter(model.selectedPeople, person => person !== value)
               : Array.append(model.selectedPeople, value),
         }),
-        [],
-      ],
+      }),
   }),
 )
 

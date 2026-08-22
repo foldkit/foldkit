@@ -34,7 +34,9 @@ type UpdateReturn = Update.Return<Model, Message>
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    ClickedReset: () => [evo(model, { count: () => 0 }), []],
-    ChangedCount: ({ count }) => [evo(model, { count: () => count }), []],
+    ClickedReset: () => ({ model: evo(model, { count: () => 0 }) }),
+    ChangedCount: ({ count }) => ({
+      model: evo(model, { count: () => count }),
+    }),
   })
 ```

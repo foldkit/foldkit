@@ -31,15 +31,14 @@ const FetchPosts = Command.define('FetchPosts', {
 M.tagsExhaustive({
   EnteredPostsRoute: () =>
     Option.match(AsyncData.revalidateOrLoad(model.posts), {
-      onNone: () => [model, []],
-      onSome: nextPosts => [
-        evo(model, { posts: () => nextPosts }),
-        [FetchPosts()],
-      ],
+      onNone: () => ({ model }),
+      onSome: nextPosts => ({
+        model: evo(model, { posts: () => nextPosts }),
+        commands: [FetchPosts()],
+      }),
     }),
 
-  SettledFetchPosts: ({ result }) => [
-    evo(model, { posts: AsyncData.settle(result) }),
-    [],
-  ],
+  SettledFetchPosts: ({ result }) => ({
+    model: evo(model, { posts: AsyncData.settle(result) }),
+  }),
 })

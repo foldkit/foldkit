@@ -270,8 +270,8 @@ const reflectAsyncCounterDemoPresence = (
 ): Option.Option<Page.AsyncCounterDemo.Model> => {
   if (isPresent) {
     return Option.orElse(maybeAsyncCounterDemo, () => {
-      const [asyncCounterDemo] = Page.AsyncCounterDemo.init()
-      return Option.some(asyncCounterDemo)
+      const asyncCounterDemoInitResult = Page.AsyncCounterDemo.init()
+      return Option.some(asyncCounterDemoInitResult.model)
     })
   } else {
     return Option.none()
@@ -290,8 +290,8 @@ const reflectNotePlayerDemoPresence = (
 ): Option.Option<Page.NotePlayerDemo.Model> => {
   if (isPresent) {
     return Option.orElse(maybeNotePlayerDemo, () => {
-      const [notePlayerDemo] = Page.NotePlayerDemo.init()
-      return Option.some(notePlayerDemo)
+      const notePlayerDemoInitResult = Page.NotePlayerDemo.init()
+      return Option.some(notePlayerDemoInitResult.model)
     })
   } else {
     return Option.none()
@@ -301,18 +301,21 @@ const reflectNotePlayerDemoPresence = (
 const initApiReference = (
   maybeApiData: Option.Option<typeof ApiData.Type>,
 ): ReturnType<typeof Page.ApiReference.boot> => {
-  const [apiReference, apiReferenceCommands] = Page.ApiReference.boot()
+  const apiReferenceBootResult = Page.ApiReference.boot()
   return Option.match(maybeApiData, {
-    onNone: () => [apiReference, apiReferenceCommands],
+    onNone: () => apiReferenceBootResult,
     onSome: apiData => {
-      const [seededApiReference] = Page.ApiReference.update(
-        apiReference,
+      const apiReferenceUpdateResult = Page.ApiReference.update(
+        apiReferenceBootResult.model,
         ApiReferenceMessage.SucceededLoadApiData({ apiData }),
       )
       // NOTE: prerendered module pages seed a per-module slice of the API
       // data, so the boot Commands still run: the full reference replaces
       // the slice after hydration, keeping cross-module navigation working.
-      return [seededApiReference, apiReferenceCommands]
+      return {
+        ...apiReferenceBootResult,
+        model: apiReferenceUpdateResult.model,
+      }
     },
   })
 }
@@ -321,16 +324,16 @@ const initExampleDetail = (
   maybeInitialSlug: Option.Option<string>,
   maybeExampleSources: Option.Option<typeof ExampleSources.Type>,
 ): ReturnType<typeof Page.Example.ExampleDetail.boot> => {
-  const [exampleDetail, exampleDetailCommands] =
+  const exampleDetailBootResult =
     Page.Example.ExampleDetail.boot(maybeInitialSlug)
   return Option.match(maybeExampleSources, {
-    onNone: () => [exampleDetail, exampleDetailCommands],
+    onNone: () => exampleDetailBootResult,
     onSome: sources => {
-      const [seededExampleDetail] = Page.Example.ExampleDetail.update(
-        exampleDetail,
+      const exampleDetailUpdateResult = Page.Example.ExampleDetail.update(
+        exampleDetailBootResult.model,
         ExampleDetailMessage.SucceededLoadExampleSources({ sources }),
       )
-      return [seededExampleDetail, []]
+      return { model: exampleDetailUpdateResult.model }
     },
   })
 }
@@ -357,8 +360,8 @@ export const init: Runtime.RoutingApplicationInit<
     isAnimated: true,
   })
 
-  const [uiPages, uiPagesCommands] = Page.UiPages.init(flags.today)
-  const [comingFromReact, comingFromReactCommands] = Page.ComingFromReact.init()
+  const uiPagesInitResult = Page.UiPages.init(flags.today)
+  const comingFromReactInitResult = Page.ComingFromReact.init()
   const initialRoute = urlToAppRoute(url)
 
   const asyncCounterDemo = reflectAsyncCounterDemoPresence(
@@ -376,11 +379,9 @@ export const init: Runtime.RoutingApplicationInit<
     Option.liftPredicate(route => route._tag === 'ExampleDetail'),
     Option.map(({ exampleSlug }) => exampleSlug),
   )
-  const [apiReference, apiReferenceCommands] = initApiReference(
-    flags.maybeApiData,
-  )
+  const initApiReferenceResult = initApiReference(flags.maybeApiData)
 
-  const [exampleDetail, exampleDetailCommands] = initExampleDetail(
+  const initExampleDetailResult = initExampleDetail(
     maybeInitialExampleSlug,
     flags.maybeExampleSources,
   )
@@ -390,22 +391,23 @@ export const init: Runtime.RoutingApplicationInit<
     maybeInitialExampleSlug,
   )
 
-  const mappedUiPagesCommands = Command.mapMessages(uiPagesCommands, message =>
-    Message.GotUiPageMessage({ message }),
+  const mappedUiPagesCommands = Command.mapMessages(
+    uiPagesInitResult.commands ?? [],
+    message => Message.GotUiPageMessage({ message }),
   )
 
   const mappedComingFromReactCommands = Command.mapMessages(
-    comingFromReactCommands,
+    comingFromReactInitResult.commands ?? [],
     message => Message.GotComingFromReactMessage({ message }),
   )
 
   const mappedApiReferenceCommands = Command.mapMessages(
-    apiReferenceCommands,
+    initApiReferenceResult.commands ?? [],
     message => Message.GotApiReferenceMessage({ message }),
   )
 
   const mappedExampleDetailCommands = Command.mapMessages(
-    exampleDetailCommands,
+    initExampleDetailResult.commands ?? [],
     message => Message.GotExampleDetailMessage({ message }),
   )
 
@@ -413,8 +415,8 @@ export const init: Runtime.RoutingApplicationInit<
     ? [InjectAnalytics(), InjectSpeedInsights()]
     : []
 
-  return [
-    {
+  return {
+    model: {
       route: initialRoute,
       url,
       deployment: flags.deployment,
@@ -445,13 +447,13 @@ export const init: Runtime.RoutingApplicationInit<
       playgroundMenu,
       asyncCounterDemo,
       notePlayerDemo,
-      uiPages,
-      comingFromReact,
-      apiReference,
-      exampleDetail,
-      search: Search.init()[0],
+      uiPages: uiPagesInitResult.model,
+      comingFromReact: comingFromReactInitResult.model,
+      apiReference: initApiReferenceResult.model,
+      exampleDetail: initExampleDetailResult.model,
+      search: Search.init().model,
     },
-    [
+    commands: [
       LoadBrowserEnvironment(),
       ...analyticsCommands,
       ...mappedUiPagesCommands,
@@ -464,7 +466,7 @@ export const init: Runtime.RoutingApplicationInit<
         onSome: hash => [ScrollToAnchor({ hash })],
       }),
     ],
-  ]
+  }
 }
 
 // UPDATE
@@ -480,8 +482,8 @@ const isPathnameEqual = (a: Url, b: Url): boolean => a.pathname === b.pathname
 const foldMobileMenuDialogOutMessage = M.type<Dialog.OutMessage>().pipe(
   M.withReturnType<Update.Step<Model, Message>>(),
   M.tagsExhaustive({
-    Opened: () => model => [model, []],
-    Closed: () => model => [model, []],
+    Opened: () => model => ({ model }),
+    Closed: () => model => ({ model }),
   }),
 )
 
@@ -517,8 +519,8 @@ const foldDemoTabsOutMessage = M.type<Tabs.OutMessage<DemoTab.Tab>>().pipe(
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           activeDemoTab: () => value,
           asyncCounterDemo: () =>
             reflectAsyncCounterDemoPresence(
@@ -531,8 +533,7 @@ const foldDemoTabsOutMessage = M.type<Tabs.OutMessage<DemoTab.Tab>>().pipe(
               isNotePlayerDemoVisible(model.route, value),
             ),
         }),
-        [],
-      ],
+      }),
   }),
 )
 
@@ -557,10 +558,12 @@ const foldPlaygroundMenuOutMessage: (
     // a fresh document load.
     Selected:
       ({ value }) =>
-      model => [
+      model => ({
         model,
-        [LoadExternal({ href: playgroundRouter({ exampleSlug: value }) })],
-      ],
+        commands: [
+          LoadExternal({ href: playgroundRouter({ exampleSlug: value }) }),
+        ],
+      }),
   }),
 )
 
@@ -690,363 +693,347 @@ const foldPlayground = Update.foldChild({
   toParentMessage: message => Message.GotPlaygroundMessage({ message }),
 })
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [
+type UpdateReturn = Update.Return<
   Model,
-  ReadonlyArray<
-    Command.Command<Message, never, AppResources | AppManagedResources>
-  >,
-] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [
-        Model,
-        ReadonlyArray<
-          Command.Command<Message, never, AppResources | AppManagedResources>
-        >,
-      ]
-    >(),
-    M.tags({
-      ClickedLink: ({ request }) =>
-        M.value(request).pipe(
-          M.tagsExhaustive({
-            Internal: ({
-              url,
-            }): [
-              Model,
-              ReadonlyArray<
-                Command.Command<
-                  | typeof Message.CompletedNavigateInternal
-                  | typeof Message.CompletedLoadExternal
-                >
-              >,
-            ] => {
-              // NOTE: WebContainer requires `window.crossOriginIsolated`,
-              // which only becomes true when the document is loaded with
-              // the COEP/COOP response headers set in deploy-website.yml
-              // and vite.config.ts. SPA navigation reuses the previous
-              // page's document (no headers), so we navigate to playground
-              // URLs by loading a fresh document instead.
-              if (isPlaygroundRoute(urlToAppRoute(url))) {
-                return [model, [LoadExternal({ href: urlToString(url) })]]
+  Message,
+  AppResources | AppManagedResources
+>
+
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    ClickedLink: ({ request }) =>
+      M.value(request).pipe(
+        M.tagsExhaustive({
+          Internal: ({
+            url,
+          }): Readonly<{
+            model: Model
+            commands?: ReadonlyArray<
+              Command.Command<
+                | typeof Message.CompletedNavigateInternal
+                | typeof Message.CompletedLoadExternal
+              >
+            >
+            outMessage?: never
+          }> => {
+            // NOTE: WebContainer requires `window.crossOriginIsolated`,
+            // which only becomes true when the document is loaded with
+            // the COEP/COOP response headers set in deploy-website.yml
+            // and vite.config.ts. SPA navigation reuses the previous
+            // page's document (no headers), so we navigate to playground
+            // URLs by loading a fresh document instead.
+            if (isPlaygroundRoute(urlToAppRoute(url))) {
+              return {
+                model,
+                commands: [LoadExternal({ href: urlToString(url) })],
               }
-              return [model, [NavigateInternal({ url: urlToString(url) })]]
-            },
-            External: ({
-              href,
-            }): [
-              Model,
-              ReadonlyArray<
-                Command.Command<typeof Message.CompletedLoadExternal>
-              >,
-            ] => [model, [LoadExternal({ href })]],
-          }),
-        ),
+            }
+            return {
+              model,
+              commands: [NavigateInternal({ url: urlToString(url) })],
+            }
+          },
+          External: ({
+            href,
+          }): Readonly<{
+            model: Model
+            commands?: ReadonlyArray<
+              Command.Command<typeof Message.CompletedLoadExternal>
+            >
+            outMessage?: never
+          }> => ({ model, commands: [LoadExternal({ href })] }),
+        }),
+      ),
 
-      ChangedUrl: ({ url }) => {
-        const nextRoute = urlToAppRoute(url)
+    ChangedUrl: ({ url }) => {
+      const nextRoute = urlToAppRoute(url)
 
-        const maybeNextExampleSlug = pipe(
-          nextRoute,
-          Option.liftPredicate(route => route._tag === 'ExampleDetail'),
-          Option.map(({ exampleSlug }) => exampleSlug),
-        )
+      const maybeNextExampleSlug = pipe(
+        nextRoute,
+        Option.liftPredicate(route => route._tag === 'ExampleDetail'),
+        Option.map(({ exampleSlug }) => exampleSlug),
+      )
 
-        const maybeNextActiveSectionKey = findActiveSectionKey(
-          nextRoute._tag,
-          maybeNextExampleSlug,
-        )
+      const maybeNextActiveSectionKey = findActiveSectionKey(
+        nextRoute._tag,
+        maybeNextExampleSlug,
+      )
 
-        const nextSidebarGroups = Option.match(maybeNextActiveSectionKey, {
-          onNone: () => model.sidebarGroups,
-          onSome: activeSectionKey =>
-            model.sidebarGroups[activeSectionKey]
-              ? model.sidebarGroups
-              : Record_.set(model.sidebarGroups, activeSectionKey, true),
-        })
+      const nextSidebarGroups = Option.match(maybeNextActiveSectionKey, {
+        onNone: () => model.sidebarGroups,
+        onSome: activeSectionKey =>
+          model.sidebarGroups[activeSectionKey]
+            ? model.sidebarGroups
+            : Record_.set(model.sidebarGroups, activeSectionKey, true),
+      })
 
-        const routeSteps = M.value(nextRoute).pipe(
-          M.withReturnType<ReadonlyArray<UpdateStep>>(),
-          M.tag('ApiModule', () => [foldApiReferenceRouteChanged]),
-          M.tag('ExampleDetail', ({ exampleSlug }) => [
-            foldExampleDetailRouteChanged(exampleSlug),
-          ]),
-          M.orElse(() => []),
-        )
+      const routeSteps = M.value(nextRoute).pipe(
+        M.withReturnType<ReadonlyArray<UpdateStep>>(),
+        M.tag('ApiModule', () => [foldApiReferenceRouteChanged]),
+        M.tag('ExampleDetail', ({ exampleSlug }) => [
+          foldExampleDetailRouteChanged(exampleSlug),
+        ]),
+        M.orElse(() => []),
+      )
 
-        const maybeScrollSidebar = Option.liftPredicate(
-          ScrollSidebarActiveLinkIntoView(),
-          () => !isPathnameEqual(model.url, url),
-        )
+      const maybeScrollSidebar = Option.liftPredicate(
+        ScrollSidebarActiveLinkIntoView(),
+        () => !isPathnameEqual(model.url, url),
+      )
 
-        const maybeScrollToTop = Option.liftPredicate(
-          ScrollToTop(),
-          () => !isPathnameEqual(model.url, url),
-        )
+      const maybeScrollToTop = Option.liftPredicate(
+        ScrollToTop(),
+        () => !isPathnameEqual(model.url, url),
+      )
 
-        const nextAsyncCounterDemo = reflectAsyncCounterDemoPresence(
-          model.asyncCounterDemo,
-          isAsyncCounterDemoVisible(nextRoute, model.activeDemoTab),
-        )
+      const nextAsyncCounterDemo = reflectAsyncCounterDemoPresence(
+        model.asyncCounterDemo,
+        isAsyncCounterDemoVisible(nextRoute, model.activeDemoTab),
+      )
 
-        const nextNotePlayerDemo = reflectNotePlayerDemoPresence(
-          model.notePlayerDemo,
-          isNotePlayerDemoVisible(nextRoute, model.activeDemoTab),
-        )
+      const nextNotePlayerDemo = reflectNotePlayerDemoPresence(
+        model.notePlayerDemo,
+        isNotePlayerDemoVisible(nextRoute, model.activeDemoTab),
+      )
 
-        const nextPlaygroundRoute = pipe(
-          nextRoute,
-          Option.liftPredicate(isPlaygroundRoute),
-          Option.map(({ exampleSlug }) => Page.Playground.init(exampleSlug)),
-        )
+      const nextPlaygroundRoute = pipe(
+        nextRoute,
+        Option.liftPredicate(isPlaygroundRoute),
+        Option.map(({ exampleSlug }) => Page.Playground.init(exampleSlug)),
+      )
 
-        const writeRouteFields: UpdateStep = model => [
-          evo(model, {
-            route: () => nextRoute,
-            url: () => url,
-            asyncCounterDemo: () => nextAsyncCounterDemo,
-            notePlayerDemo: () => nextNotePlayerDemo,
-            playground: () => nextPlaygroundRoute,
-            sidebarGroups: () => nextSidebarGroups,
-          }),
-          [],
-        ]
+      const writeRouteFields: UpdateStep = model => ({
+        model: evo(model, {
+          route: () => nextRoute,
+          url: () => url,
+          asyncCounterDemo: () => nextAsyncCounterDemo,
+          notePlayerDemo: () => nextNotePlayerDemo,
+          playground: () => nextPlaygroundRoute,
+          sidebarGroups: () => nextSidebarGroups,
+        }),
+      })
 
-        const scrollToRoute: UpdateStep = model => [
-          model,
-          [
-            ...Option.match(url.hash, {
-              onNone: () => Option.toArray(maybeScrollToTop),
-              onSome: hash => [ScrollToAnchor({ hash })],
-            }),
-            ...Option.toArray(maybeScrollSidebar),
-          ],
-        ]
-
-        return Update.combine(model, [
-          writeRouteFields,
-          foldMobileMenuDialogClose,
-          foldSearchRouteChanged,
-          ...routeSteps,
-          scrollToRoute,
-        ])
-      },
-
-      ClickedCopySnippet: ({ text }) => [model, [CopySnippet({ text })]],
-
-      ClickedCopyLink: ({ hash }) => [
+      const scrollToRoute: UpdateStep = model => ({
         model,
-        [
-          CopyLink({
-            url: urlToString({ ...model.url, hash: Option.some(hash) }),
+        commands: [
+          ...Option.match(url.hash, {
+            onNone: () => Option.toArray(maybeScrollToTop),
+            onSome: hash => [ScrollToAnchor({ hash })],
           }),
+          ...Option.toArray(maybeScrollSidebar),
         ],
-      ],
+      })
 
-      SucceededCopySnippet: ({ text }) =>
-        HashSet.has(model.copiedSnippets, text)
-          ? [model, []]
-          : [
-              evo(model, {
-                copiedSnippets: HashSet.add(text),
-              }),
-              [WaitBeforeHidingCopiedIndicator({ text })],
-            ],
+      return Update.combine(model, [
+        writeRouteFields,
+        foldMobileMenuDialogClose,
+        foldSearchRouteChanged,
+        ...routeSteps,
+        scrollToRoute,
+      ])
+    },
 
-      CompletedWaitBeforeHidingCopiedIndicator: ({ text }) => [
-        evo(model, {
-          copiedSnippets: HashSet.remove(text),
-        }),
-        [],
-      ],
-
-      ClickedOpenMobileMenu: () => {
-        const [nextMobileMenuDialog, mobileMenuDialogCommands] = Dialog.open(
-          model.mobileMenuDialog,
-        )
-
-        return [
-          evo(model, {
-            mobileMenuDialog: () => nextMobileMenuDialog,
-          }),
-          [
-            ...Command.mapMessages(mobileMenuDialogCommands, message =>
-              Message.GotMobileMenuDialogMessage({ message }),
-            ),
-            ScrollMobileMenuActiveLinkIntoView(),
-          ],
-        ]
-      },
-
-      GotMobileMenuDialogMessage: ({ message }) =>
-        foldMobileMenuDialog(model, message),
-
-      ToggledMobileTableOfContents: ({ isOpen }) => [
-        evo(model, { isMobileTableOfContentsOpen: () => isOpen }),
-        [],
-      ],
-
-      ClickedMobileTableOfContentsLink: ({ sectionId }) => [
-        evo(model, {
-          isMobileTableOfContentsOpen: () => false,
-          activeSection: () => Option.some(sectionId),
-        }),
-        [],
-      ],
-
-      ChangedActiveSection: ({ sectionId }) => [
-        evo(model, {
-          activeSection: () => Option.some(sectionId),
-        }),
-        [],
-      ],
-
-      ChangedViewportWidth: ({ isNarrow }) => [
-        evo(model, { isNarrowViewport: () => isNarrow }),
-        [],
-      ],
-
-      CompletedLoadBrowserEnvironment: ({
-        maybeThemePreference,
-        maybeSidebarState,
-        systemTheme,
-        isNarrowViewport,
-        isChromium,
-        currentYear,
-        today,
-      }) => {
-        const themePreference: ThemePreference = Option.getOrElse(
-          maybeThemePreference,
-          () => 'System',
-        )
-        const resolvedTheme = resolveTheme(themePreference, systemTheme)
-        const maybeExampleSlug = pipe(
-          model.route,
-          Option.liftPredicate(route => route._tag === 'ExampleDetail'),
-          Option.map(({ exampleSlug }) => exampleSlug),
-        )
-        const maybeActiveSectionKey = findActiveSectionKey(
-          model.route._tag,
-          maybeExampleSlug,
-        )
-        const [uiPages, uiPagesCommands] = Page.UiPages.init(today)
-
-        return [
-          evo(model, {
-            currentYear: () => currentYear,
-            isNarrowViewport: () => isNarrowViewport,
-            maybeIsChromium: () => Option.some(isChromium),
-            sidebarGroups: () =>
-              initialSidebarGroups(maybeSidebarState, maybeActiveSectionKey),
-            maybeThemePreference: () => Option.some(themePreference),
-            systemTheme: () => systemTheme,
-            resolvedTheme: () => resolvedTheme,
-            uiPages: () => uiPages,
-          }),
-          [
-            ApplyTheme({ theme: resolvedTheme }),
-            ...Command.mapMessages(uiPagesCommands, message =>
-              Message.GotUiPageMessage({ message }),
-            ),
-          ],
-        ]
-      },
-
-      ToggledAiHeading: () => [
-        evo(model, {
-          aiHeadingToggleCount: Number_.increment,
-        }),
-        [],
-      ],
-
-      SelectedThemePreference: ({ preference }) => {
-        const resolvedTheme = resolveTheme(preference, model.systemTheme)
-
-        return [
-          evo(model, {
-            maybeThemePreference: () => Option.some(preference),
-            resolvedTheme: () => resolvedTheme,
-          }),
-          [
-            ApplyTheme({ theme: resolvedTheme }),
-            SaveThemePreference({ preference }),
-          ],
-        ]
-      },
-
-      GotDemoTabsMessage: ({ message }) => foldDemoTabs(model, message),
-
-      GotPlaygroundMenuMessage: ({ message }) =>
-        foldPlaygroundMenu(model, message),
-
-      GotAsyncCounterDemoMessage: ({ message }) =>
-        foldAsyncCounterDemo(model, message),
-
-      GotNotePlayerDemoMessage: ({ message }) =>
-        foldNotePlayerDemo(model, message),
-
-      ChangedSystemTheme: ({ theme }) => {
-        const resolvedTheme = resolveTheme(
-          Option.getOrElse(model.maybeThemePreference, () => 'System'),
-          theme,
-        )
-
-        return [
-          evo(model, {
-            systemTheme: () => theme,
-            resolvedTheme: () => resolvedTheme,
-          }),
-          [ApplyTheme({ theme: resolvedTheme })],
-        ]
-      },
-
-      GotComingFromReactMessage: ({ message }) =>
-        foldComingFromReact(model, message),
-
-      GotApiReferenceMessage: ({ message }) => foldApiReference(model, message),
-
-      GotUiPageMessage: ({ message }) => foldUiPages(model, message),
-
-      ToggledSidebarGroup: ({ key, isOpen }) => {
-        const nextModel = evo(model, {
-          sidebarGroups: Record_.set(key, isOpen),
-        })
-        return [nextModel, [saveSidebarState(nextModel)]]
-      },
-
-      ToggledMapMessagesUnderHood: ({ isOpen }) => [
-        evo(model, { isMapMessagesUnderHoodOpen: () => isOpen }),
-        [],
-      ],
-
-      GotExampleDetailMessage: ({ message }) =>
-        foldExampleDetail(model, message),
-
-      GotSearchMessage: ({ message }) => foldSearch(model, message),
-
-      GotPlaygroundMessage: ({ message }) => foldPlayground(model, message),
+    ClickedCopySnippet: ({ text }) => ({
+      model,
+      commands: [CopySnippet({ text })],
     }),
-    M.tag(
-      'CompletedNavigateInternal',
-      'CompletedLoadExternal',
-      'CompletedInjectAnalytics',
-      'CompletedInjectSpeedInsights',
-      'CompletedScrollToTop',
-      'CompletedScrollToAnchor',
-      'CompletedScrollSidebarActiveLinkIntoView',
-      'CompletedScrollMobileMenuActiveLinkIntoView',
-      'CompletedApplyTheme',
-      'CompletedSaveThemePreference',
-      'CompletedSaveSidebarState',
-      'SucceededCopyLink',
-      'FailedCopyLink',
-      'FailedCopySnippet',
-      () => [model, []],
-    ),
-    M.exhaustive,
-  )
+
+    ClickedCopyLink: ({ hash }) => ({
+      model,
+      commands: [
+        CopyLink({
+          url: urlToString({ ...model.url, hash: Option.some(hash) }),
+        }),
+      ],
+    }),
+
+    SucceededCopySnippet: ({ text }) =>
+      HashSet.has(model.copiedSnippets, text)
+        ? { model }
+        : {
+            model: evo(model, {
+              copiedSnippets: HashSet.add(text),
+            }),
+            commands: [WaitBeforeHidingCopiedIndicator({ text })],
+          },
+
+    CompletedWaitBeforeHidingCopiedIndicator: ({ text }) => ({
+      model: evo(model, {
+        copiedSnippets: HashSet.remove(text),
+      }),
+    }),
+
+    ClickedOpenMobileMenu: () => {
+      const mobileMenuDialogOpen = Dialog.open(model.mobileMenuDialog)
+
+      return {
+        model: evo(model, {
+          mobileMenuDialog: () => mobileMenuDialogOpen.model,
+        }),
+        commands: [
+          ...Command.mapMessages(mobileMenuDialogOpen.commands ?? [], message =>
+            Message.GotMobileMenuDialogMessage({ message }),
+          ),
+          ScrollMobileMenuActiveLinkIntoView(),
+        ],
+      }
+    },
+
+    GotMobileMenuDialogMessage: ({ message }) =>
+      foldMobileMenuDialog(model, message),
+
+    ToggledMobileTableOfContents: ({ isOpen }) => ({
+      model: evo(model, { isMobileTableOfContentsOpen: () => isOpen }),
+    }),
+
+    ClickedMobileTableOfContentsLink: ({ sectionId }) => ({
+      model: evo(model, {
+        isMobileTableOfContentsOpen: () => false,
+        activeSection: () => Option.some(sectionId),
+      }),
+    }),
+
+    ChangedActiveSection: ({ sectionId }) => ({
+      model: evo(model, {
+        activeSection: () => Option.some(sectionId),
+      }),
+    }),
+
+    ChangedViewportWidth: ({ isNarrow }) => ({
+      model: evo(model, { isNarrowViewport: () => isNarrow }),
+    }),
+
+    CompletedLoadBrowserEnvironment: ({
+      maybeThemePreference,
+      maybeSidebarState,
+      systemTheme,
+      isNarrowViewport,
+      isChromium,
+      currentYear,
+      today,
+    }) => {
+      const themePreference: ThemePreference = Option.getOrElse(
+        maybeThemePreference,
+        () => 'System',
+      )
+      const resolvedTheme = resolveTheme(themePreference, systemTheme)
+      const maybeExampleSlug = pipe(
+        model.route,
+        Option.liftPredicate(route => route._tag === 'ExampleDetail'),
+        Option.map(({ exampleSlug }) => exampleSlug),
+      )
+      const maybeActiveSectionKey = findActiveSectionKey(
+        model.route._tag,
+        maybeExampleSlug,
+      )
+      const browserUiPagesInit = Page.UiPages.init(today)
+
+      return {
+        model: evo(model, {
+          currentYear: () => currentYear,
+          isNarrowViewport: () => isNarrowViewport,
+          maybeIsChromium: () => Option.some(isChromium),
+          sidebarGroups: () =>
+            initialSidebarGroups(maybeSidebarState, maybeActiveSectionKey),
+          maybeThemePreference: () => Option.some(themePreference),
+          systemTheme: () => systemTheme,
+          resolvedTheme: () => resolvedTheme,
+          uiPages: () => browserUiPagesInit.model,
+        }),
+        commands: [
+          ApplyTheme({ theme: resolvedTheme }),
+          ...Command.mapMessages(browserUiPagesInit.commands ?? [], message =>
+            Message.GotUiPageMessage({ message }),
+          ),
+        ],
+      }
+    },
+
+    ToggledAiHeading: () => ({
+      model: evo(model, {
+        aiHeadingToggleCount: Number_.increment,
+      }),
+    }),
+
+    SelectedThemePreference: ({ preference }) => {
+      const resolvedTheme = resolveTheme(preference, model.systemTheme)
+
+      return {
+        model: evo(model, {
+          maybeThemePreference: () => Option.some(preference),
+          resolvedTheme: () => resolvedTheme,
+        }),
+        commands: [
+          ApplyTheme({ theme: resolvedTheme }),
+          SaveThemePreference({ preference }),
+        ],
+      }
+    },
+
+    GotDemoTabsMessage: ({ message }) => foldDemoTabs(model, message),
+
+    GotPlaygroundMenuMessage: ({ message }) =>
+      foldPlaygroundMenu(model, message),
+
+    GotAsyncCounterDemoMessage: ({ message }) =>
+      foldAsyncCounterDemo(model, message),
+
+    GotNotePlayerDemoMessage: ({ message }) =>
+      foldNotePlayerDemo(model, message),
+
+    ChangedSystemTheme: ({ theme }) => {
+      const resolvedTheme = resolveTheme(
+        Option.getOrElse(model.maybeThemePreference, () => 'System'),
+        theme,
+      )
+
+      return {
+        model: evo(model, {
+          systemTheme: () => theme,
+          resolvedTheme: () => resolvedTheme,
+        }),
+        commands: [ApplyTheme({ theme: resolvedTheme })],
+      }
+    },
+
+    GotComingFromReactMessage: ({ message }) =>
+      foldComingFromReact(model, message),
+
+    GotApiReferenceMessage: ({ message }) => foldApiReference(model, message),
+
+    GotUiPageMessage: ({ message }) => foldUiPages(model, message),
+
+    ToggledSidebarGroup: ({ key, isOpen }) => {
+      const nextModel = evo(model, {
+        sidebarGroups: Record_.set(key, isOpen),
+      })
+      return { model: nextModel, commands: [saveSidebarState(nextModel)] }
+    },
+
+    ToggledMapMessagesUnderHood: ({ isOpen }) => ({
+      model: evo(model, { isMapMessagesUnderHoodOpen: () => isOpen }),
+    }),
+
+    GotExampleDetailMessage: ({ message }) => foldExampleDetail(model, message),
+
+    GotSearchMessage: ({ message }) => foldSearch(model, message),
+
+    GotPlaygroundMessage: ({ message }) => foldPlayground(model, message),
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
+    CompletedInjectAnalytics: () => ({ model }),
+    CompletedInjectSpeedInsights: () => ({ model }),
+    CompletedScrollToTop: () => ({ model }),
+    CompletedScrollToAnchor: () => ({ model }),
+    CompletedScrollSidebarActiveLinkIntoView: () => ({ model }),
+    CompletedScrollMobileMenuActiveLinkIntoView: () => ({ model }),
+    CompletedApplyTheme: () => ({ model }),
+    CompletedSaveThemePreference: () => ({ model }),
+    CompletedSaveSidebarState: () => ({ model }),
+    SucceededCopyLink: () => ({ model }),
+    FailedCopyLink: () => ({ model }),
+    FailedCopySnippet: () => ({ model }),
+  })
 
 // COMMAND
 

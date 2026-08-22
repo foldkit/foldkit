@@ -14,9 +14,17 @@ type Message = typeof Message.Type
 const Model = S.Struct({ count: S.Number })
 type Model = typeof Model.Type
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<never>
+  outMessage?: never
+}>
+
 const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<never>]>(message, {
-    ClickedIncrement: () => [evo(model, { count: Number.increment }), []],
+  Message.match<UpdateReturn>(message, {
+    ClickedIncrement: () => ({
+      model: evo(model, { count: Number.increment }),
+    }),
   })
 
 const APP_TEXT = 'page-lifecycle-app-content'
@@ -68,7 +76,7 @@ describe('run + page lifecycle events', () => {
     run(
       makeApplication({
         Model,
-        init: () => [{ count: 0 }, []],
+        init: () => ({ model: { count: 0 } }),
         update,
         view,
         container,

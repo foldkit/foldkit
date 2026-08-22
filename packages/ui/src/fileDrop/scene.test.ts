@@ -26,7 +26,7 @@ const dropZone = Scene.selector('label')
 const fileInput = Scene.selector('input[type="file"]')
 
 const initialModel = init({ id: 'uploader' })
-const [dragOverModel] = update(initialModel, Message.EnteredDragZone())
+const updateResult = update(initialModel, Message.EnteredDragZone())
 
 describe('FileDrop', () => {
   describe('rendering', () => {
@@ -85,7 +85,7 @@ describe('FileDrop', () => {
     it('sets data-drag-over on the root after EnteredDragZone', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(dragOverModel),
+        Scene.given(updateResult.model),
         Scene.expect(dropZone).toHaveAttr('data-drag-over'),
       )
     })

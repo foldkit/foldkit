@@ -9,6 +9,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
+import { type Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import {
   type ChildAttribute,
@@ -109,76 +110,79 @@ export const ApplyScroll = Command.define('ApplyScroll', {
 })
 
 /** Processes a virtual list message and returns the next model and commands. */
+type UpdateReturn = Update.Return<Model, Message>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      ScrolledContainer: ({ scrollTop }) => [
-        evo(model, { scrollTop: () => scrollTop }),
-        [],
-      ],
+  Message.match<UpdateReturn>(message, {
+    ScrolledContainer: ({ scrollTop }) => ({
+      model: evo(model, { scrollTop: () => scrollTop }),
+    }),
 
-      MeasuredContainer: ({ containerHeight }) => {
-        const wasUnmeasured = model.measurement._tag === 'Unmeasured'
-        const needsInitialApply = wasUnmeasured && model.scrollTop !== 0
+    MeasuredContainer: ({ containerHeight }) => {
+      const wasUnmeasured = model.measurement._tag === 'Unmeasured'
+      const needsInitialApply = wasUnmeasured && model.scrollTop !== 0
 
-        if (needsInitialApply) {
-          const nextVersion = Number.increment(model.pendingScrollVersion)
-          return [
-            evo(model, {
-              measurement: () => Measured({ containerHeight }),
-              pendingScrollVersion: () => nextVersion,
-              pendingScroll: () =>
-                ScrollingToIndex({
-                  index: Math.floor(model.scrollTop / model.rowHeightPx),
-                  version: nextVersion,
-                }),
-            }),
-            [
-              ApplyScroll({
-                id: model.id,
-                scrollTop: model.scrollTop,
+      if (needsInitialApply) {
+        const nextVersion = Number.increment(model.pendingScrollVersion)
+        return {
+          model: evo(model, {
+            measurement: () => Measured({ containerHeight }),
+            pendingScrollVersion: () => nextVersion,
+            pendingScroll: () =>
+              ScrollingToIndex({
+                index: Math.floor(model.scrollTop / model.rowHeightPx),
                 version: nextVersion,
               }),
-            ],
-          ]
-        } else {
-          return [
-            evo(model, { measurement: () => Measured({ containerHeight }) }),
-            [],
-          ]
+          }),
+          commands: [
+            ApplyScroll({
+              id: model.id,
+              scrollTop: model.scrollTop,
+              version: nextVersion,
+            }),
+          ],
         }
-      },
-
-      CompletedApplyScroll: ({ version }) => {
-        if (version !== model.pendingScrollVersion) {
-          return [model, []]
-        } else {
-          return [evo(model, { pendingScroll: () => Idle() }), []]
+      } else {
+        return {
+          model: evo(model, {
+            measurement: () => Measured({ containerHeight }),
+          }),
         }
-      },
+      }
     },
-  )
+
+    CompletedApplyScroll: ({ version }) => {
+      if (version !== model.pendingScrollVersion) {
+        return { model }
+      } else {
+        return { model: evo(model, { pendingScroll: () => Idle() }) }
+      }
+    },
+  })
 
 const buildScrollToIndex = (
   model: Model,
   index: number,
   targetScrollTop: number,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
+): Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command.Command<Message>>
+  outMessage?: never
+}> => {
   const nextVersion = Number.increment(model.pendingScrollVersion)
-  return [
-    evo(model, {
+  return {
+    model: evo(model, {
       pendingScrollVersion: () => nextVersion,
       pendingScroll: () => ScrollingToIndex({ index, version: nextVersion }),
     }),
-    [
+    commands: [
       ApplyScroll({
         id: model.id,
         scrollTop: targetScrollTop,
         version: nextVersion,
       }),
     ],
-  ]
+  }
 }
 
 /** Programmatically scrolls the container so the row at `index` is visible.
@@ -200,8 +204,11 @@ const buildScrollToIndex = (
 export const scrollToIndex = (
   model: Model,
   index: number,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  buildScrollToIndex(model, index, index * model.rowHeightPx)
+): Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command.Command<Message>>
+  outMessage?: never
+}> => buildScrollToIndex(model, index, index * model.rowHeightPx)
 
 /** Variable-height counterpart of `scrollToIndex`. Walks the heights of items
  *  before `index` to compute the target `scrollTop`. Use this when rendering
@@ -221,7 +228,11 @@ export const scrollToIndexVariable = <Item>(
   items: ReadonlyArray<Item>,
   itemToRowHeightPx: (item: Item, index: number) => number,
   index: number,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
+): Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command.Command<Message>>
+  outMessage?: never
+}> => {
   const cumulativeOffsets = prefixSum(items, itemToRowHeightPx)
   const targetScrollTop = pipe(
     cumulativeOffsets,

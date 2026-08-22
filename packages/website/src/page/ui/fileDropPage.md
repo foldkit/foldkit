@@ -4,7 +4,7 @@
 
 A file drop zone that accepts files via both drag-and-drop and a hidden `<input type="file">`. FileDrop is headless. The component owns drag state and file-arrival events; your `toView` callback owns the visual.
 
-FileDrop uses the Submodel pattern: initialize with `FileDrop.init()`, wire Messages through [`Update.foldChild`](/core/submodel#fold-child) in your parent update, and render with `FileDrop.view()`. The update function returns `[Model, Commands, Option<OutMessage>]`. `ReceivedFiles` fires when files arrive with a guaranteed non-empty list; `RejectedNonFiles` fires when a drop or change event produced no files (e.g. a drag of non-file data). Match both in the fold's `foldOutMessage`.
+FileDrop uses the Submodel pattern: initialize with `FileDrop.init()`, wire Messages through [`Update.foldChild`](/core/submodel#fold-child) in your parent update, and render with `FileDrop.view()`. The update function returns `{ model, commands?, outMessage? }`. `ReceivedFiles` fires when files arrive with a guaranteed non-empty list; `RejectedNonFiles` fires when a drop or change event produced no files (e.g. a drag of non-file data). Match both in the fold's `foldOutMessage`.
 
 :::Info{label="See it in an app"}
 Check out how FileDrop is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/fileDrop.ts).
@@ -65,7 +65,7 @@ Attribute groups provided to the `toView` callback.
 
 ### OutMessage {#out-message}
 
-The third element of the update tuple (`[Model, Commands, Option<OutMessage>]`). Fold it in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config to process arriving files.
+The optional `outMessage` field of the update record. Fold it in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config to process arriving files.
 
 | Name               | Type                                     | Default | Description                                                                                                                                                                                                                                |
 | ------------------ | ---------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

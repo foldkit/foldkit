@@ -7,7 +7,7 @@ import {
   Random,
   Schema as S,
 } from 'effect'
-import { Command, Runtime } from 'foldkit'
+import { Command, Runtime, type Update } from 'foldkit'
 import {
   Field,
   Invalid,
@@ -86,10 +86,9 @@ export const initialModel: Model = {
   submission: NotSubmitted(),
 }
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  initialModel,
-  [],
-]
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: initialModel,
+})
 
 // FIELD VALIDATION
 
@@ -136,102 +135,95 @@ const isFormValid = (model: Model): boolean =>
 
 // UPDATE
 
+type UpdateReturn = Update.Return<Model, Message>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      UpdatedName: ({ value }) => [
-        evo(model, {
-          name: () => validateName(value),
-        }),
-        [],
-      ],
+  Message.match<UpdateReturn>(message, {
+    UpdatedName: ({ value }) => ({
+      model: evo(model, {
+        name: () => validateName(value),
+      }),
+    }),
 
-      UpdatedEmail: ({ value }) => {
-        const validateEmailResult = validateEmail(value)
+    UpdatedEmail: ({ value }) => {
+      const validateEmailResult = validateEmail(value)
 
-        if (validateEmailResult._tag === 'Valid') {
-          return [
-            evo(model, {
-              email: () => Validating({ value }),
-            }),
-            [ValidateEmail({ email: value })],
-          ]
-        } else {
-          return [
-            evo(model, {
-              email: () => validateEmailResult,
-            }),
-            [],
-          ]
-        }
-      },
-
-      CompletedValidateEmail: ({ field }) => {
-        if (field.value === model.email.value) {
-          return [
-            evo(model, {
-              email: () => field,
-            }),
-            [],
-          ]
-        } else {
-          return [model, []]
-        }
-      },
-
-      UpdatedMessageText: ({ value }) => [
-        evo(model, {
-          messageText: () => Valid({ value }),
-        }),
-        [],
-      ],
-
-      ClickedFormSubmit: () => {
-        if (model.submission._tag === 'Submitting') {
-          return [model, []]
-        }
-
-        if (!isFormValid(model)) {
-          return [model, []]
-        }
-
-        return [
-          evo(model, {
-            submission: () => Submitting(),
+      if (validateEmailResult._tag === 'Valid') {
+        return {
+          model: evo(model, {
+            email: () => Validating({ value }),
           }),
-          [
-            SubmitForm({
-              name: model.name.value,
-              email: model.email.value,
-              messageText: model.messageText.value,
-            }),
-          ],
-        ]
-      },
-
-      SucceededSubmitForm: ({ name }) => [
-        evo(model, {
-          submission: () =>
-            SubmitSuccess({
-              confirmationText: `Welcome to the waitlist, ${name}! We'll be in touch soon.`,
-            }),
-        }),
-        [],
-      ],
-
-      FailedSubmitForm: () => [
-        evo(model, {
-          submission: () =>
-            SubmitError({
-              error:
-                'Sorry, there was an error adding you to the waitlist. Please try again.',
-            }),
-        }),
-        [],
-      ],
+          commands: [ValidateEmail({ email: value })],
+        }
+      } else {
+        return {
+          model: evo(model, {
+            email: () => validateEmailResult,
+          }),
+        }
+      }
     },
-  )
+
+    CompletedValidateEmail: ({ field }) => {
+      if (field.value === model.email.value) {
+        return {
+          model: evo(model, {
+            email: () => field,
+          }),
+        }
+      } else {
+        return { model }
+      }
+    },
+
+    UpdatedMessageText: ({ value }) => ({
+      model: evo(model, {
+        messageText: () => Valid({ value }),
+      }),
+    }),
+
+    ClickedFormSubmit: () => {
+      if (model.submission._tag === 'Submitting') {
+        return { model }
+      }
+
+      if (!isFormValid(model)) {
+        return { model }
+      }
+
+      return {
+        model: evo(model, {
+          submission: () => Submitting(),
+        }),
+        commands: [
+          SubmitForm({
+            name: model.name.value,
+            email: model.email.value,
+            messageText: model.messageText.value,
+          }),
+        ],
+      }
+    },
+
+    SucceededSubmitForm: ({ name }) => ({
+      model: evo(model, {
+        submission: () =>
+          SubmitSuccess({
+            confirmationText: `Welcome to the waitlist, ${name}! We'll be in touch soon.`,
+          }),
+      }),
+    }),
+
+    FailedSubmitForm: () => ({
+      model: evo(model, {
+        submission: () =>
+          SubmitError({
+            error:
+              'Sorry, there was an error adding you to the waitlist. Please try again.',
+          }),
+      }),
+    }),
+  })
 
 // COMMAND
 

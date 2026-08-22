@@ -7,7 +7,7 @@ import {
   Schema as S,
   pipe,
 } from 'effect'
-import { Canvas, Command, Runtime, Subscription } from 'foldkit'
+import { Canvas, Command, Runtime, Subscription, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -75,10 +75,9 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  { balls: [], nextId: 0, isRunning: true },
-  [],
-]
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: { balls: [], nextId: 0, isRunning: true },
+})
 
 // COMMAND
 
@@ -130,38 +129,37 @@ const advanceBall =
     })
   }
 
+type UpdateReturn = Update.Return<Model, Message>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      TickedFrame: ({ deltaTime }) => [
-        evo(model, {
-          balls: Array.map(advanceBall(deltaTime / MS_PER_SECOND)),
-        }),
-        [],
-      ],
+  Message.match<UpdateReturn>(message, {
+    TickedFrame: ({ deltaTime }) => ({
+      model: evo(model, {
+        balls: Array.map(advanceBall(deltaTime / MS_PER_SECOND)),
+      }),
+    }),
 
-      ClickedCanvas: ({ x, y }) => [model, [GenerateBall({ x, y })]],
+    ClickedCanvas: ({ x, y }) => ({
+      model,
+      commands: [GenerateBall({ x, y })],
+    }),
 
-      CompletedGenerateBall: ({ x, y, vx, vy, radius, color }) => [
-        evo(model, {
-          balls: balls => [
-            ...balls,
-            { id: model.nextId, x, y, vx, vy, radius, color },
-          ],
-          nextId: Number.increment,
-        }),
-        [],
-      ],
+    CompletedGenerateBall: ({ x, y, vx, vy, radius, color }) => ({
+      model: evo(model, {
+        balls: balls => [
+          ...balls,
+          { id: model.nextId, x, y, vx, vy, radius, color },
+        ],
+        nextId: Number.increment,
+      }),
+    }),
 
-      ClickedClear: () => [evo(model, { balls: () => [] }), []],
+    ClickedClear: () => ({ model: evo(model, { balls: () => [] }) }),
 
-      ClickedTogglePlay: () => [
-        evo(model, { isRunning: running => !running }),
-        [],
-      ],
-    },
-  )
+    ClickedTogglePlay: () => ({
+      model: evo(model, { isRunning: running => !running }),
+    }),
+  })
 
 // SUBSCRIPTION
 

@@ -8,7 +8,7 @@ import {
   flow,
   pipe,
 } from 'effect'
-import { Command, Runtime, Subscription } from 'foldkit'
+import { Command, Runtime, Subscription, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -63,63 +63,57 @@ export const DetermineTickTime = Command.define('DetermineTickTime', {
 
 // UPDATE
 
+type UpdateReturn = Update.Return<Model, Message>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      ClickedStart: () => [
-        model,
-        [DetermineStartTime({ elapsedMs: model.elapsedMs })],
-      ],
+  Message.match<UpdateReturn>(message, {
+    ClickedStart: () => ({
+      model,
+      commands: [DetermineStartTime({ elapsedMs: model.elapsedMs })],
+    }),
 
-      CompletedDetermineStartTime: ({ startTime }) => [
-        evo(model, {
-          isRunning: () => true,
-          startTime: () => startTime,
-        }),
-        [],
-      ],
+    CompletedDetermineStartTime: ({ startTime }) => ({
+      model: evo(model, {
+        isRunning: () => true,
+        startTime: () => startTime,
+      }),
+    }),
 
-      ClickedStop: () => [
-        evo(model, {
-          isRunning: () => false,
-        }),
-        [],
-      ],
+    ClickedStop: () => ({
+      model: evo(model, {
+        isRunning: () => false,
+      }),
+    }),
 
-      ClickedReset: () => [
-        evo(model, {
-          elapsedMs: () => 0,
-          isRunning: () => false,
-          startTime: () => 0,
-        }),
-        [],
-      ],
+    ClickedReset: () => ({
+      model: evo(model, {
+        elapsedMs: () => 0,
+        isRunning: () => false,
+        startTime: () => 0,
+      }),
+    }),
 
-      Ticked: () => [
-        model,
-        [DetermineTickTime({ startTime: model.startTime })],
-      ],
+    Ticked: () => ({
+      model,
+      commands: [DetermineTickTime({ startTime: model.startTime })],
+    }),
 
-      CompletedDetermineTickTime: ({ elapsedMs }) => [
-        evo(model, {
-          elapsedMs: () => elapsedMs,
-        }),
-        [],
-      ],
-    },
-  )
+    CompletedDetermineTickTime: ({ elapsedMs }) => ({
+      model: evo(model, {
+        elapsedMs: () => elapsedMs,
+      }),
+    }),
+  })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     elapsedMs: 0,
     isRunning: false,
     startTime: 0,
   },
-  [],
-]
+})
 
 // SUBSCRIPTION
 

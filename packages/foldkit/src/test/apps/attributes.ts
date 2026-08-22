@@ -19,9 +19,15 @@ export type Model = Readonly<{
 
 // UPDATE
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<never>
+  outMessage?: never
+}>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<never>]>(message, {
-    IgnoredInteraction: () => [model, []],
+  Message.match<UpdateReturn>(message, {
+    IgnoredInteraction: () => ({ model }),
   })
 
 // VIEW

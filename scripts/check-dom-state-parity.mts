@@ -845,7 +845,7 @@ const renderCase = async (parityCase: ParityCase): Promise<RenderedCase> => {
   const rendered = await Effect.runPromise(
     Server.renderToString(
       {
-        init: () => [null, []],
+        init: () => ({ model: null }),
         view: (_model: null, h: HtmlBuilder<never>) => {
           const element = parityCase.build(h)
           captured = element?.data ?? {}
@@ -1099,7 +1099,7 @@ const runSerializeRefusals = async (): Promise<void> => {
       Effect.result(
         Server.renderToString(
           {
-            init: () => [null, []],
+            init: () => ({ model: null }),
             view: (_model: null, h: HtmlBuilder<never>) => ({
               title: 'dom state parity',
               body: h.div([], [refusal.build(h)]),
@@ -1129,7 +1129,7 @@ const main = async (): Promise<void> => {
   await Effect.runPromise(
     Server.renderToString(
       {
-        init: () => [null, []],
+        init: () => ({ model: null }),
         view: (_model: null, h: HtmlBuilder<never>) => {
           builder = h
           return { title: 'dom state parity', body: h.div([], ['x']) }

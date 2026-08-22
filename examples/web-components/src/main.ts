@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Schema as S } from 'effect'
-import { Command, CustomElement, Runtime } from 'foldkit'
+import { CustomElement, Runtime, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -34,30 +34,29 @@ const DEFAULT_CONTENT = 'https://foldkit.dev'
 const DEFAULT_FILL_COLOR = '#1e1b4b'
 const DEFAULT_BACKGROUND_COLOR = '#fef3c7'
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     content: DEFAULT_CONTENT,
     fillColor: DEFAULT_FILL_COLOR,
     backgroundColor: DEFAULT_BACKGROUND_COLOR,
   },
-  [],
-]
+})
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    UpdatedContent: ({ value }) => [evo(model, { content: () => value }), []],
-    ChangedFillColor: ({ value }) => [
-      evo(model, { fillColor: () => value }),
-      [],
-    ],
-    ChangedBackgroundColor: ({ value }) => [
-      evo(model, { backgroundColor: () => value }),
-      [],
-    ],
+    UpdatedContent: ({ value }) => ({
+      model: evo(model, { content: () => value }),
+    }),
+    ChangedFillColor: ({ value }) => ({
+      model: evo(model, { fillColor: () => value }),
+    }),
+    ChangedBackgroundColor: ({ value }) => ({
+      model: evo(model, { backgroundColor: () => value }),
+    }),
   })
 
 // WEB COMPONENT

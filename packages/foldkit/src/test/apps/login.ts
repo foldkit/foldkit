@@ -50,30 +50,36 @@ export const initialModel: Model = {
 
 // UPDATE
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command.Command<Message>>
+  outMessage?: never
+}>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      UpdatedEmail: ({ value }) => [{ ...model, email: value }, []],
-      UpdatedPassword: ({ value }) => [{ ...model, password: value }, []],
-      SubmittedLogin: () => [
-        { ...model, status: 'Submitting' },
-        [Authenticate()],
-      ],
-      SucceededAuthenticate: ({ username }) => [
-        { ...model, status: 'LoggedIn', username },
-        [],
-      ],
-      FailedAuthenticate: ({ error }) => [
-        { ...model, status: 'Error', error },
-        [],
-      ],
-      ClickedLogout: () => [
-        { ...model, status: 'Idle', username: '', email: '', password: '' },
-        [],
-      ],
-    },
-  )
+  Message.match<UpdateReturn>(message, {
+    UpdatedEmail: ({ value }) => ({ model: { ...model, email: value } }),
+    UpdatedPassword: ({ value }) => ({ model: { ...model, password: value } }),
+    SubmittedLogin: () => ({
+      model: { ...model, status: 'Submitting' },
+      commands: [Authenticate()],
+    }),
+    SucceededAuthenticate: ({ username }) => ({
+      model: { ...model, status: 'LoggedIn', username },
+    }),
+    FailedAuthenticate: ({ error }) => ({
+      model: { ...model, status: 'Error', error },
+    }),
+    ClickedLogout: () => ({
+      model: {
+        ...model,
+        status: 'Idle',
+        username: '',
+        email: '',
+        password: '',
+      },
+    }),
+  })
 
 // VIEW
 

@@ -73,27 +73,32 @@ const ReadEngine = Command.define('ReadEngine', {
   ),
 })
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message, never, EngineServiceId>>,
-]
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command.Command<Message, never, EngineServiceId>>
+  outMessage?: never
+}>
 
 const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    RequestedEngine: ({ id }) => [
-      evo(model, { requested: () => Option.some(id) }),
-      [],
-    ],
-    StoppedEngine: () => [evo(model, { requested: () => Option.none() }), []],
-    AcquiredEngine: () => [evo(model, { status: () => 'acquired' }), []],
-    ReleasedEngine: () => [evo(model, { status: () => 'released' }), []],
-    FailedEngine: ({ error }) => [
-      evo(model, { status: () => `failed:${error}` }),
-      [],
-    ],
-    ClickedRead: () => [model, [ReadEngine()]],
-    SucceededRead: ({ value }) => [evo(model, { readValue: () => value }), []],
-    FailedRead: () => [evo(model, { readValue: () => 'unavailable' }), []],
+    RequestedEngine: ({ id }) => ({
+      model: evo(model, { requested: () => Option.some(id) }),
+    }),
+    StoppedEngine: () => ({
+      model: evo(model, { requested: () => Option.none() }),
+    }),
+    AcquiredEngine: () => ({ model: evo(model, { status: () => 'acquired' }) }),
+    ReleasedEngine: () => ({ model: evo(model, { status: () => 'released' }) }),
+    FailedEngine: ({ error }) => ({
+      model: evo(model, { status: () => `failed:${error}` }),
+    }),
+    ClickedRead: () => ({ model, commands: [ReadEngine()] }),
+    SucceededRead: ({ value }) => ({
+      model: evo(model, { readValue: () => value }),
+    }),
+    FailedRead: () => ({
+      model: evo(model, { readValue: () => 'unavailable' }),
+    }),
   })
 
 const managedResources = make<Model, Message>()(entry => ({
@@ -155,10 +160,13 @@ afterEach(() => {
 const startEngineApp = (initialId: string) =>
   makeElement({
     Model,
-    init: () => [
-      { requested: Option.some(initialId), status: 'idle', readValue: 'none' },
-      [],
-    ],
+    init: () => ({
+      model: {
+        requested: Option.some(initialId),
+        status: 'idle',
+        readValue: 'none',
+      },
+    }),
     update,
     view,
     crash,

@@ -48,8 +48,8 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = ({
   initialWorkHistoryEntryId,
   initialEducationEntryId,
   initialSkillsEntryId,
-}) => [
-  {
+}) => ({
+  model: {
     currentStep: 'PersonalInfo',
     personalInfo: PersonalInfo.init(today),
     workHistory: WorkHistory.init(today, initialWorkHistoryEntryId),
@@ -63,7 +63,6 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = ({
     stepTabs: Tabs.init({ id: 'step-tabs' }),
     isSubmitAttempted: false,
   },
-  [],
-]
+})
 
 export { Message, Model, update, view }

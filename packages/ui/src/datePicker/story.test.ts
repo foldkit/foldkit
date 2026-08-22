@@ -353,24 +353,24 @@ describe('DatePicker', () => {
   describe('programmatic helpers', () => {
     it('open(model) behaves like dispatching Opened', () => {
       const model = init({ id: 'picker', today })
-      const [nextModel] = open(model)
-      expect(nextModel.popover.isOpen).toBe(true)
+      const openResult = open(model)
+      expect(openResult.model.popover.isOpen).toBe(true)
     })
 
     it('close(model) behaves like dispatching Closed', () => {
-      const [openedModel] = open(init({ id: 'picker', today }))
-      const [nextModel, commands] = close(openedModel)
-      expect(nextModel.popover.isOpen).toBe(false)
-      expect(commands.length).toBeGreaterThan(0)
+      const openResult = open(init({ id: 'picker', today }))
+      const closeResult = close(openResult.model)
+      expect(closeResult.model.popover.isOpen).toBe(false)
+      expect((closeResult.commands ?? []).length).toBeGreaterThan(0)
     })
 
     it('selectDate(model, date) commits the date, closes the popover, and emits SelectedDate', () => {
       const target = Calendar.make(2026, 4, 20)
-      const [openedModel] = open(init({ id: 'picker', today }))
-      const [nextModel, , maybeOutMessage] = selectDate(openedModel, target)
-      expect(nextModel.popover.isOpen).toBe(false)
-      expect(maybeOutMessage).toStrictEqual(
-        Option.some(OutMessage.SelectedDate({ date: target })),
+      const openResult = open(init({ id: 'picker', today }))
+      const selectDateResult = selectDate(openResult.model, target)
+      expect(selectDateResult.model.popover.isOpen).toBe(false)
+      expect(selectDateResult.outMessage).toStrictEqual(
+        OutMessage.SelectedDate({ date: target }),
       )
     })
 
@@ -380,10 +380,8 @@ describe('DatePicker', () => {
         today,
         initialViewDate: Calendar.make(2026, 4, 20),
       })
-      const [, , maybeOutMessage] = clear(seeded)
-      expect(maybeOutMessage).toStrictEqual(
-        Option.some(OutMessage.ClearedDate()),
-      )
+      const clearResult = clear(seeded)
+      expect(clearResult.outMessage).toStrictEqual(OutMessage.ClearedDate())
     })
 
     it('reflectMinDate(model, minDate) forwards to the embedded calendar', () => {

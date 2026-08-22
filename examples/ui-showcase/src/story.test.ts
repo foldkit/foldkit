@@ -11,11 +11,11 @@ import { HomeRoute, Message, type Model, update } from './main'
 import { uiInit } from './ui/init'
 
 const today = Calendar.make(2026, 4, 16)
-const [initialUiModel] = uiInit(today)
+const uiInitResult = uiInit(today)
 
 const initialModel: Model = {
   route: HomeRoute(),
-  uiModel: initialUiModel,
+  uiModel: uiInitResult.model,
 }
 
 const urlOrThrow = (raw: string) =>

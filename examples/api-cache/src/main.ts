@@ -90,18 +90,18 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 const applyPostsTransition = (
   model: Model,
   maybeNextPosts: Option.Option<PostsData>,
 ): UpdateReturn =>
   Option.match(maybeNextPosts, {
-    onNone: () => [model, []],
-    onSome: nextPosts => [
-      evo(model, { posts: () => nextPosts }),
-      [FetchPosts()],
-    ],
+    onNone: () => ({ model }),
+    onSome: nextPosts => ({
+      model: evo(model, { posts: () => nextPosts }),
+      commands: [FetchPosts()],
+    }),
   })
 
 const applyStatsTransition = (
@@ -109,11 +109,11 @@ const applyStatsTransition = (
   maybeNextStats: Option.Option<StatsData>,
 ): UpdateReturn =>
   Option.match(maybeNextStats, {
-    onNone: () => [model, []],
-    onSome: nextStats => [
-      evo(model, { stats: () => nextStats }),
-      [FetchStats()],
-    ],
+    onNone: () => ({ model }),
+    onSome: nextStats => ({
+      model: evo(model, { stats: () => nextStats }),
+      commands: [FetchStats()],
+    }),
   })
 
 const setPostDetail = (postId: string, postDetail: PostDetailData) =>
@@ -168,20 +168,19 @@ export const update = (model: Model, message: Message) =>
       })
 
       return Option.match(HashMap.get(model.postDetailById, postId), {
-        onNone: () => [
-          evo(selectedModel, {
+        onNone: () => ({
+          model: evo(selectedModel, {
             postDetailById: setPostDetail(postId, PostDetailData.Loading()),
           }),
-          [FetchPostDetail({ postId })],
-        ],
-        onSome: () => [selectedModel, []],
+          commands: [FetchPostDetail({ postId })],
+        }),
+        onSome: () => ({ model: selectedModel }),
       })
     },
 
-    ClickedBackToPosts: () => [
-      evo(model, { maybeSelectedPostId: () => Option.none() }),
-      [],
-    ],
+    ClickedBackToPosts: () => ({
+      model: evo(model, { maybeSelectedPostId: () => Option.none() }),
+    }),
 
     ClickedInvalidatePosts: () =>
       applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
@@ -189,12 +188,12 @@ export const update = (model: Model, message: Message) =>
     ClickedRetryPosts: () =>
       applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
 
-    ClickedRetryPostDetail: ({ postId }) => [
-      evo(model, {
+    ClickedRetryPostDetail: ({ postId }) => ({
+      model: evo(model, {
         postDetailById: setPostDetail(postId, PostDetailData.Loading()),
       }),
-      [FetchPostDetail({ postId })],
-    ],
+      commands: [FetchPostDetail({ postId })],
+    }),
 
     ClickedRefreshStats: () =>
       applyStatsTransition(model, AsyncData.revalidateOrLoad(model.stats)),
@@ -205,28 +204,25 @@ export const update = (model: Model, message: Message) =>
     TickedRevalidateStats: () =>
       applyStatsTransition(model, AsyncData.revalidate(model.stats)),
 
-    SettledFetchPosts: ({ result }) => [
-      evo(model, { posts: AsyncData.settle(result) }),
-      [],
-    ],
+    SettledFetchPosts: ({ result }) => ({
+      model: evo(model, { posts: AsyncData.settle(result) }),
+    }),
 
-    SettledFetchPostDetail: ({ postId, result }) => [
-      evo(model, {
+    SettledFetchPostDetail: ({ postId, result }) => ({
+      model: evo(model, {
         postDetailById: HashMap.modify(postId, AsyncData.settle(result)),
       }),
-      [],
-    ],
+    }),
 
-    SettledFetchStats: ({ result }) => [
-      evo(model, { stats: AsyncData.settle(result) }),
-      [],
-    ],
+    SettledFetchStats: ({ result }) => ({
+      model: evo(model, { stats: AsyncData.settle(result) }),
+    }),
   })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     tabs: Tabs.init({ id: TABS_ID }),
     activeTab: 'Posts',
     posts: PostsData.Loading(),
@@ -234,8 +230,8 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => [
     maybeSelectedPostId: Option.none(),
     stats: StatsData.Idle(),
   },
-  [FetchPosts()],
-]
+  commands: [FetchPosts()],
+})
 
 // COMMAND
 

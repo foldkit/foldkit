@@ -225,12 +225,17 @@ export const closedBaseModel = <Model extends BaseModel>(model: Model): Model =>
 type SelectedItemContext<Model extends BaseModel> = Readonly<{
   closeWithFocus: (
     model: Model,
-    maybeOutMessage?: Option.Option<OutMessage>,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage>,
-  ]
+    outMessage?: OutMessage,
+  ) => Readonly<{
+    model: Model
+    commands?: ReadonlyArray<Command.Command<Message>>
+    outMessage?: OutMessage
+  }>
+}>
+
+type HandlerReturn<Model> = Readonly<{
+  model: Model
+  outMessage?: OutMessage
 }>
 
 /** Prevents page scrolling while the combobox popup is open in modal mode. */
@@ -322,39 +327,44 @@ export const makeUpdate = <Model extends BaseModel>(
       model: Model,
       restingInputValue: string,
       isClearable: boolean,
-    ) => readonly [Model, Option.Option<OutMessage>]
+    ) => HandlerReturn<Model>
     handleSelectedItem: (
       model: Model,
       item: string,
       displayText: string,
       wasSelected: boolean,
       context: SelectedItemContext<Model>,
-    ) => readonly [
-      Model,
-      ReadonlyArray<Command.Command<Message>>,
-      Option.Option<OutMessage>,
-    ]
+    ) => Readonly<{
+      model: Model
+      commands?: ReadonlyArray<Command.Command<Message>>
+      outMessage?: OutMessage
+    }>
     handleImmediateActivation: (
       model: Model,
       item: string,
-    ) => readonly [Model, Option.Option<OutMessage>]
+    ) => HandlerReturn<Model>
   }>,
 ) => {
-  type UpdateReturn = readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage>,
-  ]
-  const withUpdateReturn = M.withReturnType<UpdateReturn>()
+  type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
+  const appendOutMessage = (
+    updateReturn: UpdateReturn,
+    outMessage: OutMessage | undefined,
+  ): UpdateReturn => {
+    if (outMessage === undefined) {
+      return updateReturn
+    } else {
+      return { ...updateReturn, outMessage }
+    }
+  }
 
   const foldAnimationOutMessage = M.type<AnimationOutMessage>().pipe(
     M.withReturnType<Update.Step<Model, Message>>(),
     M.tagsExhaustive({
-      StartedLeaveAnimating: () => model => [
+      StartedLeaveAnimating: () => model => ({
         model,
-        [DetectMovementOrAnimationEnd({ id: model.id })],
-      ],
-      TransitionedOut: () => model => [model, []],
+        commands: [DetectMovementOrAnimationEnd({ id: model.id })],
+      }),
+      TransitionedOut: () => model => ({ model }),
     }),
   )
 
@@ -364,7 +374,7 @@ export const makeUpdate = <Model extends BaseModel>(
     write: (model, nextAnimation) =>
       constrainedEvo(model, { animation: () => nextAnimation }),
     toParentMessage: message => Message.GotAnimationMessage({ message }),
-    toParentOutMessage: () => Option.none(),
+    toParentOutMessage: () => undefined,
     foldOutMessage: foldAnimationOutMessage,
   })
 
@@ -394,47 +404,48 @@ export const makeUpdate = <Model extends BaseModel>(
 
     const closeSelectedItemWithFocus = (
       nextModel: Model,
-      maybeOutMessage: Option.Option<OutMessage> = Option.none(),
+      outMessage?: OutMessage,
     ): UpdateReturn => {
       const didClose = model.isOpen && !nextModel.isOpen
       const commands = didClose ? closeWithFocusCommands : [focusInput]
 
       if (didClose && model.isAnimated) {
-        const [transitionedModel, animationCommands] = foldAnimation(
+        const foldAnimationResult = foldAnimation(
           nextModel,
           AnimationMessage.Hid(),
         )
-        return [
-          transitionedModel,
-          [...commands, ...animationCommands],
-          maybeOutMessage,
-        ]
+        const updateResult = {
+          model: foldAnimationResult.model,
+          commands: [...commands, ...(foldAnimationResult.commands ?? [])],
+        }
+        return appendOutMessage(updateResult, outMessage)
       }
 
-      return [nextModel, commands, maybeOutMessage]
+      const updateResult = { model: nextModel, commands }
+      return appendOutMessage(updateResult, outMessage)
     }
 
     const openCombobox = (baseModel: Model): UpdateReturn => {
       if (model.isAnimated) {
-        const [nextModel, animationCommands] = foldAnimation(
+        const openAnimation = foldAnimation(
           baseModel,
           AnimationMessage.Showed(),
         )
-        return [
-          constrainedEvo(nextModel, { isOpen: () => true }),
-          [
+        return {
+          model: constrainedEvo(openAnimation.model, {
+            isOpen: () => true,
+          }),
+          commands: [
             ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
-            ...animationCommands,
+            ...(openAnimation.commands ?? []),
           ],
-          Option.none(),
-        ]
+        }
       }
 
-      return [
-        constrainedEvo(baseModel, { isOpen: () => true }),
-        Array.getSomes([maybeLockScroll, maybeInertOthers]),
-        Option.none(),
-      ]
+      return {
+        model: constrainedEvo(baseModel, { isOpen: () => true }),
+        commands: Array.getSomes([maybeLockScroll, maybeInertOthers]),
+      }
     }
 
     const closeCombobox = (
@@ -443,205 +454,194 @@ export const makeUpdate = <Model extends BaseModel>(
       restingInputValue: string,
       isClearable: boolean,
     ): UpdateReturn => {
-      const [closed, maybeCloseOutMessage] = handlers.handleClose(
+      const handleCloseResult = handlers.handleClose(
         baseModel,
         restingInputValue,
         isClearable,
       )
 
       if (model.isAnimated) {
-        const [nextModel, animationCommands] = foldAnimation(
-          closed,
+        const closeAnimation = foldAnimation(
+          handleCloseResult.model,
           AnimationMessage.Hid(),
         )
-        return [
-          nextModel,
-          [...commands, ...animationCommands],
-          maybeCloseOutMessage,
-        ]
+        return {
+          ...handleCloseResult,
+          model: closeAnimation.model,
+          commands: [...commands, ...(closeAnimation.commands ?? [])],
+        }
       }
 
-      return [closed, commands, maybeCloseOutMessage]
+      return { ...handleCloseResult, commands }
     }
 
-    return M.value(message).pipe(
-      withUpdateReturn,
-      M.tag(
-        'CompletedLockScroll',
-        'CompletedUnlockScroll',
-        'CompletedInertOthers',
-        'CompletedRestoreInert',
-        'CompletedFocusInput',
-        'CompletedScrollIntoView',
-        'CompletedClickItem',
-        'SuppressedItemCommit',
-        'CompletedAnchorCombobox',
-        'CompletedAttachComboboxPreventBlur',
-        'CompletedAttachComboboxSelectOnFocus',
-        'CompletedPortalComboboxBackdrop',
-        () => [model, [], Option.none()],
-      ),
-      M.tagsExhaustive({
-        Opened: ({ maybeActiveItemIndex }) =>
-          openCombobox(
-            constrainedEvo(model, {
-              maybeActiveItemIndex: () => maybeActiveItemIndex,
-              activationTrigger: () =>
-                Option.match(maybeActiveItemIndex, {
-                  onNone: () => 'Pointer' as const,
-                  onSome: () => 'Keyboard' as const,
-                }),
-              maybeLastPointerPosition: () => Option.none(),
-            }),
-          ),
-
-        // NOTE: guard on isOpen so a close-path message baked from a stale
-        // render (a sub-frame blur after a selection already closed the
-        // combobox) cannot rewrite inputValue with an outdated
-        // restingInputValue or re-emit ClearedSelection while closed.
-        Closed: ({ restingInputValue, isClearable }) =>
-          model.isOpen
-            ? closeCombobox(
-                model,
-                closeWithFocusCommands,
-                restingInputValue,
-                isClearable,
-              )
-            : [model, [], Option.none()],
-
-        BlurredInput: ({ restingInputValue, isClearable }) =>
-          model.isOpen
-            ? closeCombobox(
-                model,
-                closeWithoutFocusCommands,
-                restingInputValue,
-                isClearable,
-              )
-            : [model, [], Option.none()],
-
-        ActivatedItem: ({
-          index,
-          activationTrigger,
-          maybeImmediateSelection,
-        }) => {
-          const highlightedModel = constrainedEvo(model, {
-            maybeActiveItemIndex: () => Option.some(index),
-            activationTrigger: () => activationTrigger,
-          })
-
-          const skippedActivation: readonly [Model, Option.Option<OutMessage>] =
-            [highlightedModel, Option.none()]
-
-          const [nextModel, maybeOutMessage] = Option.match(
-            maybeImmediateSelection,
-            {
-              onNone: () => skippedActivation,
-              onSome: ({ item }) =>
-                handlers.handleImmediateActivation(highlightedModel, item),
-            },
-          )
-
-          return [
-            nextModel,
-            activationTrigger === 'Keyboard'
-              ? [ScrollIntoView({ id: model.id, index })]
-              : [],
-            maybeOutMessage,
-          ]
-        },
-
-        MovedPointerOverItem: ({ index, screenX, screenY }) => {
-          const isSamePosition = Option.exists(
-            model.maybeLastPointerPosition,
-            position =>
-              position.screenX === screenX && position.screenY === screenY,
-          )
-
-          if (isSamePosition) {
-            return [model, [], Option.none()]
-          }
-
-          return [
-            constrainedEvo(model, {
-              maybeActiveItemIndex: () => Option.some(index),
-              activationTrigger: () => 'Pointer' as const,
-              maybeLastPointerPosition: () => Option.some({ screenX, screenY }),
-            }),
-            [],
-            Option.none(),
-          ]
-        },
-
-        DeactivatedItem: () =>
-          model.activationTrigger === 'Pointer'
-            ? [
-                constrainedEvo(model, {
-                  maybeActiveItemIndex: () => Option.none(),
-                }),
-                [],
-                Option.none(),
-              ]
-            : [model, [], Option.none()],
-
-        SelectedItem: ({ item, displayText, wasSelected }) =>
-          handlers.handleSelectedItem(model, item, displayText, wasSelected, {
-            closeWithFocus: closeSelectedItemWithFocus,
-          }),
-
-        RequestedItemClick: ({ index }) => [
-          model,
-          [ClickItem({ id: model.id, index })],
-          Option.none(),
-        ],
-
-        UpdatedInputValue: ({ value }) => {
-          if (model.isOpen) {
-            return [
-              constrainedEvo(model, {
-                inputValue: () => value,
-                maybeActiveItemIndex: () => Option.some(0),
-                activationTrigger: () => 'Keyboard' as const,
+    return Message.match<UpdateReturn>(message, {
+      CompletedLockScroll: () => ({ model }),
+      CompletedUnlockScroll: () => ({ model }),
+      CompletedInertOthers: () => ({ model }),
+      CompletedRestoreInert: () => ({ model }),
+      CompletedFocusInput: () => ({ model }),
+      CompletedScrollIntoView: () => ({ model }),
+      CompletedClickItem: () => ({ model }),
+      SuppressedItemCommit: () => ({ model }),
+      CompletedAnchorCombobox: () => ({ model }),
+      CompletedAttachComboboxPreventBlur: () => ({ model }),
+      CompletedAttachComboboxSelectOnFocus: () => ({ model }),
+      CompletedPortalComboboxBackdrop: () => ({ model }),
+      Opened: ({ maybeActiveItemIndex }) =>
+        openCombobox(
+          constrainedEvo(model, {
+            maybeActiveItemIndex: () => maybeActiveItemIndex,
+            activationTrigger: () =>
+              Option.match(maybeActiveItemIndex, {
+                onNone: () => 'Pointer' as const,
+                onSome: () => 'Keyboard' as const,
               }),
-              [],
-              Option.none(),
-            ]
-          }
+            maybeLastPointerPosition: () => Option.none(),
+          }),
+        ),
 
-          return openCombobox(
-            constrainedEvo(model, {
-              inputValue: () => value,
-              maybeActiveItemIndex: () => Option.some(0),
-              activationTrigger: () => 'Keyboard' as const,
-              maybeLastPointerPosition: () => Option.none(),
-            }),
-          )
-        },
-
-        PressedToggleButton: ({ restingInputValue, isClearable }) => {
-          if (model.isOpen) {
-            return closeCombobox(
+      // NOTE: guard on isOpen so a close-path message baked from a stale
+      // render (a sub-frame blur after a selection already closed the
+      // combobox) cannot rewrite inputValue with an outdated
+      // restingInputValue or re-emit ClearedSelection while closed.
+      Closed: ({ restingInputValue, isClearable }) =>
+        model.isOpen
+          ? closeCombobox(
               model,
               closeWithFocusCommands,
               restingInputValue,
               isClearable,
             )
+          : { model },
+
+      BlurredInput: ({ restingInputValue, isClearable }) =>
+        model.isOpen
+          ? closeCombobox(
+              model,
+              closeWithoutFocusCommands,
+              restingInputValue,
+              isClearable,
+            )
+          : { model },
+
+      ActivatedItem: ({
+        index,
+        activationTrigger,
+        maybeImmediateSelection,
+      }) => {
+        const highlightedModel = constrainedEvo(model, {
+          maybeActiveItemIndex: () => Option.some(index),
+          activationTrigger: () => activationTrigger,
+        })
+
+        const skippedActivation: HandlerReturn<Model> = {
+          model: highlightedModel,
+        }
+
+        const activationResult = Option.match(maybeImmediateSelection, {
+          onNone: () => skippedActivation,
+          onSome: ({ item }) =>
+            handlers.handleImmediateActivation(highlightedModel, item),
+        })
+
+        if (activationTrigger === 'Keyboard') {
+          return {
+            ...activationResult,
+            commands: [ScrollIntoView({ id: model.id, index })],
           }
+        } else {
+          return activationResult
+        }
+      },
 
-          const [nextModel, commands] = openCombobox(
-            constrainedEvo(model, {
-              maybeActiveItemIndex: () => Option.none(),
-              activationTrigger: () => 'Pointer' as const,
-              maybeLastPointerPosition: () => Option.none(),
-            }),
-          )
+      MovedPointerOverItem: ({ index, screenX, screenY }) => {
+        const isSamePosition = Option.exists(
+          model.maybeLastPointerPosition,
+          position =>
+            position.screenX === screenX && position.screenY === screenY,
+        )
 
-          return [nextModel, [focusInput, ...commands], Option.none()]
-        },
+        if (isSamePosition) {
+          return { model }
+        }
 
-        GotAnimationMessage: ({ message: animationMessage }) =>
-          foldAnimation(model, animationMessage),
+        return {
+          model: constrainedEvo(model, {
+            maybeActiveItemIndex: () => Option.some(index),
+            activationTrigger: () => 'Pointer' as const,
+            maybeLastPointerPosition: () => Option.some({ screenX, screenY }),
+          }),
+        }
+      },
+
+      DeactivatedItem: () =>
+        model.activationTrigger === 'Pointer'
+          ? {
+              model: constrainedEvo(model, {
+                maybeActiveItemIndex: () => Option.none(),
+              }),
+            }
+          : { model },
+
+      SelectedItem: ({ item, displayText, wasSelected }) =>
+        handlers.handleSelectedItem(model, item, displayText, wasSelected, {
+          closeWithFocus: closeSelectedItemWithFocus,
+        }),
+
+      RequestedItemClick: ({ index }) => ({
+        model,
+        commands: [ClickItem({ id: model.id, index })],
       }),
-    )
+
+      UpdatedInputValue: ({ value }) => {
+        if (model.isOpen) {
+          return {
+            model: constrainedEvo(model, {
+              inputValue: () => value,
+              maybeActiveItemIndex: () => Option.some(0),
+              activationTrigger: () => 'Keyboard' as const,
+            }),
+          }
+        }
+
+        return openCombobox(
+          constrainedEvo(model, {
+            inputValue: () => value,
+            maybeActiveItemIndex: () => Option.some(0),
+            activationTrigger: () => 'Keyboard' as const,
+            maybeLastPointerPosition: () => Option.none(),
+          }),
+        )
+      },
+
+      PressedToggleButton: ({ restingInputValue, isClearable }) => {
+        if (model.isOpen) {
+          return closeCombobox(
+            model,
+            closeWithFocusCommands,
+            restingInputValue,
+            isClearable,
+          )
+        }
+
+        const openComboboxResult = openCombobox(
+          constrainedEvo(model, {
+            maybeActiveItemIndex: () => Option.none(),
+            activationTrigger: () => 'Pointer' as const,
+            maybeLastPointerPosition: () => Option.none(),
+          }),
+        )
+
+        return {
+          model: openComboboxResult.model,
+          commands: [focusInput, ...(openComboboxResult.commands ?? [])],
+        }
+      },
+
+      GotAnimationMessage: ({ message: animationMessage }) =>
+        foldAnimation(model, animationMessage),
+    })
   }
 
   return internalUpdate

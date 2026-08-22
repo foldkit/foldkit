@@ -1,5 +1,5 @@
 import { Array, Match as M, Option, String, pipe } from 'effect'
-import { Command, Update } from 'foldkit'
+import { Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { DragAndDrop } from '@foldkit/ui'
@@ -9,7 +9,7 @@ import { Column } from './domain'
 import { Message } from './message'
 import type { Model } from './model'
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 const findCardTitle = (
   columns: ReadonlyArray<Column.Column>,
@@ -106,22 +106,21 @@ const foldDragAndDropOutMessage: (
           toContainerId,
           toIndex,
         )
-        return [
-          evo(model, {
+        return {
+          model: evo(model, {
             columns: () => nextColumns,
             announcement: () =>
               screenReaderTextForDrop(previousModel, outMessage),
           }),
-          [SaveBoard({ columns: nextColumns })],
-        ]
+          commands: [SaveBoard({ columns: nextColumns })],
+        }
       },
-      Cancelled: () => [
-        evo(model, {
+      Cancelled: () => ({
+        model: evo(model, {
           announcement: () =>
             screenReaderTextForDrop(previousModel, outMessage),
         }),
-        [],
-      ],
+      }),
     })
 
 const foldDragAndDrop = (previousModel: Model) =>
@@ -142,29 +141,31 @@ export const update = (model: Model, message: Message) =>
     GotDragAndDropMessage: ({ message }) =>
       foldDragAndDrop(model)(model, message),
 
-    ClickedAddCard: ({ columnId }) => [
-      evo(model, {
+    ClickedAddCard: ({ columnId }) => ({
+      model: evo(model, {
         maybeNewCardColumnId: () => Option.some(columnId),
         newCardTitle: () => '',
       }),
-      [FocusAddCardInput()],
-    ],
+      commands: [FocusAddCardInput()],
+    }),
 
-    ChangedNewCardTitle: ({ value }) => [
-      evo(model, { newCardTitle: () => value }),
-      [],
-    ],
+    ChangedNewCardTitle: ({ value }) => ({
+      model: evo(model, { newCardTitle: () => value }),
+    }),
 
     SubmittedNewCard: () =>
       Option.match(model.maybeNewCardColumnId, {
-        onNone: () => [model, []],
+        onNone: () => ({ model }),
         onSome: columnId => {
           const title = String.trim(model.newCardTitle)
           if (String.isEmpty(title)) {
-            return [model, []]
+            return { model }
           }
 
-          return [model, [GenerateCardId({ columnId: columnId, title: title })]]
+          return {
+            model,
+            commands: [GenerateCardId({ columnId, title })],
+          }
         },
       }),
 
@@ -181,25 +182,24 @@ export const update = (model: Model, message: Message) =>
         })
       })
 
-      return [
-        evo(model, {
+      return {
+        model: evo(model, {
           columns: () => nextColumns,
           maybeNewCardColumnId: () => Option.none(),
           newCardTitle: () => '',
         }),
-        [SaveBoard({ columns: nextColumns })],
-      ]
+        commands: [SaveBoard({ columns: nextColumns })],
+      }
     },
 
-    CancelledNewCard: () => [
-      evo(model, {
+    CancelledNewCard: () => ({
+      model: evo(model, {
         maybeNewCardColumnId: () => Option.none(),
         newCardTitle: () => '',
       }),
-      [],
-    ],
+    }),
 
-    CompletedSaveBoard: () => [model, []],
+    CompletedSaveBoard: () => ({ model }),
 
-    CompletedFocusAddCardInput: () => [model, []],
+    CompletedFocusAddCardInput: () => ({ model }),
   })

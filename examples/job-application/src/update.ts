@@ -1,5 +1,5 @@
 import { Array, Match as M, Option, pipe } from 'effect'
-import { Command, Update } from 'foldkit'
+import { Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { Menu, Tabs } from '@foldkit/ui'
@@ -26,7 +26,7 @@ const isApplicationComplete = (model: Model): boolean =>
   Education.isComplete(model.education) &&
   Skills.isComplete(model.skills)
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 const toNextStep = (current: Step.Step): Step.Step =>
   pipe(
@@ -94,7 +94,7 @@ const foldStepMenuOutMessage = M.type<Menu.OutMessage<Step.Step>>().pipe(
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [evo(model, { currentStep: () => value }), []],
+      model => ({ model: evo(model, { currentStep: () => value }) }),
   }),
 )
 
@@ -111,7 +111,7 @@ const foldStepTabsOutMessage = M.type<Tabs.OutMessage<Step.Step>>().pipe(
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [evo(model, { currentStep: () => value }), []],
+      model => ({ model: evo(model, { currentStep: () => value }) }),
   }),
 )
 
@@ -141,18 +141,18 @@ export const update = (model: Model, message: Message) =>
 
     GotStepTabsMessage: ({ message }) => foldStepTabs(model, message),
 
-    NavigatedToStep: ({ step }) => [
-      evo(model, { currentStep: () => step }),
-      [],
-    ],
+    NavigatedToStep: ({ step }) => ({
+      model: evo(model, { currentStep: () => step }),
+    }),
 
-    ClickedNext: () => [evo(model, { currentStep: toNextStep }), []],
+    ClickedNext: () => ({ model: evo(model, { currentStep: toNextStep }) }),
 
-    ClickedPrevious: () => [evo(model, { currentStep: toPreviousStep }), []],
-    ToggledPreview: () => [
-      evo(model, { isPreviewVisible: isVisible => !isVisible }),
-      [],
-    ],
+    ClickedPrevious: () => ({
+      model: evo(model, { currentStep: toPreviousStep }),
+    }),
+    ToggledPreview: () => ({
+      model: evo(model, { isPreviewVisible: isVisible => !isVisible }),
+    }),
 
     ClickedSubmit: () => {
       const revealedModel = evo(model, {
@@ -163,21 +163,19 @@ export const update = (model: Model, message: Message) =>
         isSubmitAttempted: () => true,
       })
       if (isApplicationComplete(revealedModel)) {
-        return [
-          evo(revealedModel, { submission: () => Submitting() }),
-          [SubmitApplication()],
-        ]
+        return {
+          model: evo(revealedModel, { submission: () => Submitting() }),
+          commands: [SubmitApplication()],
+        }
       }
-      return [revealedModel, []]
+      return { model: revealedModel }
     },
 
-    SucceededSubmitApplication: () => [
-      evo(model, { submission: () => SubmitSuccess() }),
-      [],
-    ],
+    SucceededSubmitApplication: () => ({
+      model: evo(model, { submission: () => SubmitSuccess() }),
+    }),
 
-    FailedSubmitApplication: ({ error }) => [
-      evo(model, { submission: () => SubmitError({ error }) }),
-      [],
-    ],
+    FailedSubmitApplication: ({ error }) => ({
+      model: evo(model, { submission: () => SubmitError({ error }) }),
+    }),
   })

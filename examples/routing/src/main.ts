@@ -69,14 +69,19 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (
     M.orElse(() => PeopleRoute({ searchText: Option.none() })),
   )
 
-  const [peoplePage, peopleCommands] = People.init(initialPeopleRoute)
+  const peopleInitResult = People.init(initialPeopleRoute)
+  const commands = Command.mapMessages(
+    peopleInitResult.commands ?? [],
+    childMessage => Message.GotPeopleMessage({ message: childMessage }),
+  )
 
-  return [
-    { route, peoplePage },
-    Command.mapMessages(peopleCommands, childMessage =>
-      Message.GotPeopleMessage({ message: childMessage }),
-    ),
-  ]
+  return Array.match(commands, {
+    onEmpty: () => ({ model: { route, peoplePage: peopleInitResult.model } }),
+    onNonEmpty: commands => ({
+      model: { route, peoplePage: peopleInitResult.model },
+      commands,
+    }),
+  })
 }
 
 // COMMAND
@@ -97,7 +102,7 @@ const LoadExternal = Command.define('LoadExternal', {
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const foldPeopleEntry = <Input>(
@@ -117,22 +122,25 @@ const foldPeopleRouteChanged = foldPeopleEntry(People.informRouteChanged)
 
 const setRoute =
   (nextRoute: AppRoute): Update.Step<Model, Message> =>
-  model => [evo(model, { route: () => nextRoute }), []]
+  model => ({ model: evo(model, { route: () => nextRoute }) })
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    CompletedNavigateInternal: () => [model, []],
-    CompletedLoadExternal: () => [model, []],
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
 
     ClickedLink: ({ request }) =>
       M.value(request).pipe(
         withUpdateReturn,
         M.tagsExhaustive({
-          Internal: ({ url }) => [
+          Internal: ({ url }) => ({
             model,
-            [NavigateInternal({ url: urlToString(url) })],
-          ],
-          External: ({ href }) => [model, [LoadExternal({ href })]],
+            commands: [NavigateInternal({ url: urlToString(url) })],
+          }),
+          External: ({ href }) => ({
+            model,
+            commands: [LoadExternal({ href })],
+          }),
         }),
       ),
 

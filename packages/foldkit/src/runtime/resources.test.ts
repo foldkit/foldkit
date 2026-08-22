@@ -48,18 +48,21 @@ const FailingResourceLive = Layer.sync(ResourceService, (): ResourceShape => {
   throw new Error(LAYER_BUILD_ERROR)
 })
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message, never, ResourceService>>,
-]
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command.Command<Message, never, ResourceService>>
+  outMessage?: never
+}>
 
 const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    ClickedReadValue: () => [{ label: 'reading' }, [ReadValue()]],
-    SucceededReadValue: ({ value }) => [
-      { label: `${model.label} ${value}` },
-      [],
-    ],
+    ClickedReadValue: () => ({
+      model: { label: 'reading' },
+      commands: [ReadValue()],
+    }),
+    SucceededReadValue: ({ value }) => ({
+      model: { label: `${model.label} ${value}` },
+    }),
   })
 
 const h = __htmlBuilder<Message>()
@@ -107,7 +110,7 @@ describe('resources', () => {
   it('renders the crash view when the Layer fails to build for an init Command', async () => {
     const element = makeElement({
       Model,
-      init: () => [{ label: 'ready' }, [ReadValue()]],
+      init: () => ({ model: { label: 'ready' }, commands: [ReadValue()] }),
       update,
       view,
       crash,
@@ -127,7 +130,7 @@ describe('resources', () => {
   it('keeps the crash view visible when the crashing Message also dirtied the model', async () => {
     const element = makeElement({
       Model,
-      init: () => [{ label: 'ready' }, []],
+      init: () => ({ model: { label: 'ready' } }),
       update,
       view,
       crash,
@@ -161,7 +164,10 @@ describe('resources', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'ready' }, [ReadValue(), ReadValue()]],
+      init: () => ({
+        model: { label: 'ready' },
+        commands: [ReadValue(), ReadValue()],
+      }),
       update,
       view,
       crash: { ...crash, report },
@@ -197,7 +203,7 @@ describe('resources', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'ready' }, []],
+      init: () => ({ model: { label: 'ready' } }),
       update,
       view,
       subscriptions,
@@ -235,7 +241,7 @@ describe('resources', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'start' }, [ReadValue()]],
+      init: () => ({ model: { label: 'start' }, commands: [ReadValue()] }),
       update,
       view,
       crash,
@@ -289,7 +295,10 @@ describe('resources', () => {
       Model,
       Flags,
       flags,
-      init: ({ initialLabel }) => [{ label: initialLabel }, [ReadValue()]],
+      init: ({ initialLabel }) => ({
+        model: { label: initialLabel },
+        commands: [ReadValue()],
+      }),
       update,
       view,
       crash,
@@ -325,7 +334,7 @@ describe('resources', () => {
       Model,
       Flags,
       flags: Effect.succeed({ initialLabel: 'fresh' }),
-      init: ({ initialLabel }) => [{ label: initialLabel }, []],
+      init: ({ initialLabel }) => ({ model: { label: initialLabel } }),
       update,
       view,
       crash,
@@ -353,7 +362,7 @@ describe('resources', () => {
         flagsRunCount += 1
         return { initialLabel: 'fresh' }
       }),
-      init: ({ initialLabel }) => [{ label: initialLabel }, []],
+      init: ({ initialLabel }) => ({ model: { label: initialLabel } }),
       update,
       view,
       crash,
@@ -385,7 +394,7 @@ describe('resources', () => {
       Model,
       Flags,
       flags: Effect.succeed({ initialLabel: 'fresh' }),
-      init: ({ initialLabel }) => [{ label: initialLabel }, []],
+      init: ({ initialLabel }) => ({ model: { label: initialLabel } }),
       update,
       view,
       crash,
@@ -408,7 +417,10 @@ describe('resources', () => {
       Model,
       Flags,
       flags: Effect.succeed({ initialLabel: 'ready' }),
-      init: ({ initialLabel }) => [{ label: initialLabel }, [ReadValue()]],
+      init: ({ initialLabel }) => ({
+        model: { label: initialLabel },
+        commands: [ReadValue()],
+      }),
       update,
       view,
       crash,
@@ -434,7 +446,7 @@ describe('resources', () => {
       flags: Effect.sync((): Flags => {
         throw new Error(FLAGS_ERROR)
       }),
-      init: ({ initialLabel }) => [{ label: initialLabel }, []],
+      init: ({ initialLabel }) => ({ model: { label: initialLabel } }),
       update,
       view,
       crash,
@@ -462,7 +474,7 @@ describe('resources', () => {
       Model,
       Flags,
       flags,
-      init: ({ initialLabel }) => [{ label: initialLabel }, []],
+      init: ({ initialLabel }) => ({ model: { label: initialLabel } }),
       update,
       view,
       crash,
@@ -492,7 +504,7 @@ describe('resources', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'ready' }, []],
+      init: () => ({ model: { label: 'ready' } }),
       update,
       view,
       crash,
@@ -524,14 +536,19 @@ describe('resources', () => {
 
     const resourceFreeUpdate = (
       model: Model,
-    ): readonly [Model, ReadonlyArray<never>] => [model, []]
+    ): Readonly<{
+      model: Model
+      commands?: ReadonlyArray<never>
+      outMessage?: never
+    }> => ({ model })
 
     const resourceFreeInit = (
       flags: Flags,
-    ): readonly [Model, ReadonlyArray<never>] => [
-      { label: flags.initialLabel },
-      [],
-    ]
+    ): Readonly<{
+      model: Model
+      commands?: ReadonlyArray<never>
+      outMessage?: never
+    }> => ({ model: { label: flags.initialLabel } })
 
     expect(Effect.isEffect(flagsNeedingResource)).toBe(true)
 
@@ -568,7 +585,10 @@ describe('resources', () => {
       const application = makeApplication({
         Model,
         Flags,
-        init: ({ initialLabel }) => [{ label: initialLabel }, [ReadValue()]],
+        init: ({ initialLabel }) => ({
+          model: { label: initialLabel },
+          commands: [ReadValue()],
+        }),
         update,
         view: documentView,
         container,

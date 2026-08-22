@@ -1074,7 +1074,11 @@ export type RenderError =
   | InvalidRuntimeId
   | InvalidHydrationRoot
 
-type InitReturn<Model> = readonly [Model, ReadonlyArray<unknown>]
+type InitReturn<Model> = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<unknown>
+  outMessage?: never
+}>
 
 /** Server-side subset of a routing `makeApplication` config with Flags. The
  *  full application config is structurally assignable; `container`, `update`,
@@ -1441,9 +1445,7 @@ export function renderToString(
       }
       return hasRouting ? config.init(url) : config.init()
     })()
-    const [model] = initReturn
-
-    const nextDocument = runView(config.view, model)
+    const nextDocument = runView(config.view, initReturn.model)
 
     if (isHydratable) {
       yield* validateHydrationRoot(nextDocument.body)

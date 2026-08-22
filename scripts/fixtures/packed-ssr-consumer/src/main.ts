@@ -1,5 +1,5 @@
 import { Schema as S } from 'effect'
-import { CustomElement, type Runtime } from 'foldkit'
+import { CustomElement, type Runtime, type Update } from 'foldkit'
 import { type Document, type HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -19,17 +19,20 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => [
-  { count: flags.start, formState: 'Controlled' },
-  [],
-]
+export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
+  model: { count: flags.start, formState: 'Controlled' },
+})
 
-type UpdateReturn = readonly [Model, ReadonlyArray<never>]
+type UpdateReturn = Update.Return<Model, Message>
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    ClickedIncrement: () => [evo(model, { count: count => count + 1 }), []],
-    ClickedRelease: () => [evo(model, { formState: () => 'Released' }), []],
+    ClickedIncrement: () => ({
+      model: evo(model, { count: count => count + 1 }),
+    }),
+    ClickedRelease: () => ({
+      model: evo(model, { formState: () => 'Released' }),
+    }),
   })
 
 const serverOnlyPin = import.meta.env.SSR ? '{{SERVER_ONLY_PIN}}' : ''

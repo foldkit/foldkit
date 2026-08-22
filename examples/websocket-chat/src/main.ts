@@ -10,7 +10,13 @@ import {
   Stream,
   String,
 } from 'effect'
-import { Command, ManagedResource, Runtime, Subscription } from 'foldkit'
+import {
+  Command,
+  ManagedResource,
+  Runtime,
+  Subscription,
+  type Update,
+} from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -81,102 +87,90 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
+type UpdateReturn = Update.Return<Model, Message, ChatSocketService>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<
-    [Model, ReadonlyArray<Command.Command<Message, never, ChatSocketService>>]
-  >(message, {
-    ClickedConnect: () => [
-      evo(model, {
+  Message.match<UpdateReturn>(message, {
+    ClickedConnect: () => ({
+      model: evo(model, {
         connection: () => ConnectionConnecting(),
       }),
-      [],
-    ],
+    }),
 
-    Connected: () => [
-      evo(model, {
+    Connected: () => ({
+      model: evo(model, {
         connection: () => ConnectionConnected(),
       }),
-      [],
-    ],
+    }),
 
-    Disconnected: () => [
-      evo(model, {
+    Disconnected: () => ({
+      model: evo(model, {
         connection: () => ConnectionDisconnected(),
         messages: () => [],
       }),
-      [],
-    ],
+    }),
 
-    FailedConnect: ({ error }) => [
-      evo(model, {
+    FailedConnect: ({ error }) => ({
+      model: evo(model, {
         connection: () => ConnectionError({ error }),
       }),
-      [],
-    ],
+    }),
 
-    UpdatedMessageInput: ({ value }) => [
-      evo(model, {
+    UpdatedMessageInput: ({ value }) => ({
+      model: evo(model, {
         messageInput: () => value,
       }),
-      [],
-    ],
+    }),
 
     SubmittedMessage: () => {
       const trimmedMessage = model.messageInput.trim()
 
       if (String.isEmpty(trimmedMessage)) {
-        return [model, []]
+        return { model }
       }
 
       return M.value(model.connection).pipe(
-        M.withReturnType<
-          [
-            Model,
-            ReadonlyArray<Command.Command<Message, never, ChatSocketService>>,
-          ]
-        >(),
-        M.tag('ConnectionConnected', () => [
-          evo(model, {
+        M.withReturnType<UpdateReturn>(),
+        M.tag('ConnectionConnected', () => ({
+          model: evo(model, {
             messageInput: () => '',
           }),
-          [SendMessage({ text: trimmedMessage })],
-        ]),
-        M.orElse(() => [model, []]),
+          commands: [SendMessage({ text: trimmedMessage })],
+        })),
+        M.orElse(() => ({ model })),
       )
     },
 
-    SucceededSendMessage: ({ text }) => [
+    SucceededSendMessage: ({ text }) => ({
       model,
-      [TimestampSentMessage({ text })],
-    ],
+      commands: [TimestampSentMessage({ text })],
+    }),
 
-    ReceivedMessage: ({ text }) => [
+    ReceivedMessage: ({ text }) => ({
       model,
-      [TimestampReceivedMessage({ text })],
-    ],
+      commands: [TimestampReceivedMessage({ text })],
+    }),
 
     TimestampedMessage: ({ text, zoned, isSent }) => {
       const newMessage = ChatMessage.make({ text, zoned, isSent })
 
-      return [
-        evo(model, {
+      return {
+        model: evo(model, {
           messages: messages => [...messages, newMessage],
         }),
-        [],
-      ]
+      }
     },
   })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     connection: ConnectionDisconnected(),
     messages: [],
     messageInput: '',
   },
-  [],
-]
+})
 
 // COMMAND
 

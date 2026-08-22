@@ -1,5 +1,5 @@
 import { Effect, Match as M, Schema as S, pipe } from 'effect'
-import { Command, Navigation, Route, Url } from 'foldkit'
+import { Command, Navigation, Route, type Update, Url } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { int, literal, r, slash } from 'foldkit/route'
 import { evo } from 'foldkit/struct'
@@ -56,36 +56,31 @@ const LoadExternal = Command.define('LoadExternal', {
 
 // UPDATE
 
+type UpdateReturn = Update.Return<Model, Message>
+
 const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      CompletedNavigateInternal: () => [model, []],
-      CompletedLoadExternal: () => [model, []],
+  Message.match<UpdateReturn>(message, {
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
 
-      ClickedLink: ({ request }) =>
-        M.value(request).pipe(
-          M.tagsExhaustive({
-            Internal: ({
-              url,
-            }): readonly [Model, ReadonlyArray<Command.Command<Message>>] => [
-              model,
-              [NavigateInternal({ url: Url.toString(url) })],
-            ],
-            External: ({
-              href,
-            }): readonly [Model, ReadonlyArray<Command.Command<Message>>] => [
-              model,
-              [LoadExternal({ href })],
-            ],
+    ClickedLink: ({ request }) =>
+      M.value(request).pipe(
+        M.withReturnType<UpdateReturn>(),
+        M.tagsExhaustive({
+          Internal: ({ url }) => ({
+            model,
+            commands: [NavigateInternal({ url: Url.toString(url) })],
           }),
-        ),
-
-      ChangedUrl: ({ url }) => [
-        evo(model, {
-          route: () => urlToAppRoute(url),
+          External: ({ href }) => ({
+            model,
+            commands: [LoadExternal({ href })],
+          }),
         }),
-        [],
-      ],
-    },
-  )
+      ),
+
+    ChangedUrl: ({ url }) => ({
+      model: evo(model, {
+        route: () => urlToAppRoute(url),
+      }),
+    }),
+  })

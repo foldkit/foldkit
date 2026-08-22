@@ -10,13 +10,12 @@ import { Menu } from '@foldkit/ui'
 // view uses data-[closed] selectors for enter/leave transitions.
 
 // In your init function, set isAnimated: true to coordinate CSS transitions:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     menu: Menu.init({ id: 'actions', isAnimated: true }),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Embed the Menu Message in your parent Message:
 const Message = defineMessageUnion({

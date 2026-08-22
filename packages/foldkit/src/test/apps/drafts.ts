@@ -44,17 +44,22 @@ export const initialModel: Model = { revision: 0, status: 'Editing' }
 
 // UPDATE
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command.Command<Message>>
+  outMessage?: never
+}>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      ClickedSaveDraft: () => [
-        evo(model, { status: () => 'Saving' }),
-        [SaveDraft({ revision: model.revision })],
-      ],
-      SucceededSaveDraft: () => [evo(model, { status: () => 'Saved' }), []],
-    },
-  )
+  Message.match<UpdateReturn>(message, {
+    ClickedSaveDraft: () => ({
+      model: evo(model, { status: () => 'Saving' }),
+      commands: [SaveDraft({ revision: model.revision })],
+    }),
+    SucceededSaveDraft: () => ({
+      model: evo(model, { status: () => 'Saved' }),
+    }),
+  })
 
 // VIEW
 

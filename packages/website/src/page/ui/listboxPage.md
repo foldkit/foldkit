@@ -6,7 +6,7 @@ A custom select dropdown with keyboard navigation, typeahead search, and anchor 
 
 Embed Listbox via the [`create<Item, Value?>()` factory](/ui/selection-submodels) at module scope: `const PlanListbox = Listbox.create<Plan>()`. The factory binds the view, update, and imperative helpers to the same `Item` type so the selected value flows through the OutMessage typed end-to-end.
 
-For programmatic control in update functions, use the factory instance helpers `PlanListbox.open(model)`, `PlanListbox.close(model)`, and `PlanListbox.selectItem(model, item)`. Each returns `[Model, Commands, Option<OutMessage>]` directly.
+For programmatic control in update functions, use the factory instance helpers `PlanListbox.open(model)`, `PlanListbox.close(model)`, and `PlanListbox.selectItem(model, item)`. Each returns `{ model, commands?, outMessage? }` directly.
 
 What the factory returns is typed [`Listbox.Bundle<Item, Value>`](/ui/selection-submodels#bundle-type) (`Listbox.Multi.Bundle` for the multi-select variant), for the cases where a created bundle has to be named rather than called directly.
 
@@ -134,7 +134,7 @@ Configuration object passed to the view returned by `Listbox.create()`. The same
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config. The same shape applies to the update returned by `Listbox.Multi.create()`, as in `PeopleListbox.update`.
+Messages emitted to the parent through the optional `outMessage` field. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config. The same shape applies to the update returned by `Listbox.Multi.create()`, as in `PeopleListbox.update`.
 
 | Name       | Type               | Default | Description                                                                                                                                                                                                                                                                                                                                                                      |
 | ---------- | ------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

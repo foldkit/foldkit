@@ -6,5 +6,5 @@ import { Model } from './model'
 
 export const update = (model: Model) => {
   const command = GotChildMessage({ message: Child.Message.ClickedSave() })
-  return [model, command]
+  return { model, commands: [command] }
 }

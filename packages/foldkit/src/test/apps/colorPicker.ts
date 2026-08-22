@@ -36,9 +36,17 @@ export const initialModel = Model.make({ color: '#000000' })
 
 // UPDATE
 
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<never>
+  outMessage?: never
+}>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<never>]>(message, {
-    ChangedColor: ({ value }) => [evo(model, { color: () => value }), []],
+  Message.match<UpdateReturn>(message, {
+    ChangedColor: ({ value }) => ({
+      model: evo(model, { color: () => value }),
+    }),
   })
 
 // VIEW

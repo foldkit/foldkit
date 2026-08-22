@@ -1,22 +1,15 @@
-import { Option } from 'effect'
-import { Command } from 'foldkit'
+import { type Update } from 'foldkit'
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    SubmittedLoginForm: () => [
+    SubmittedLoginForm: () => ({
       model,
-      [Authenticate(model.email, model.password)],
-      Option.none(),
-    ],
-    SucceededAuthenticate: ({ sessionId }) => [
+      commands: [Authenticate(model.email, model.password)],
+    }),
+    SucceededAuthenticate: ({ sessionId }) => ({
       model,
-      [],
-      Option.some(OutMessage.SucceededLogin({ sessionId })),
-    ],
+      outMessage: OutMessage.SucceededLogin({ sessionId }),
+    }),
   })

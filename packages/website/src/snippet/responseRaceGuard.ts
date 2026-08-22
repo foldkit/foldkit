@@ -1,6 +1,6 @@
 import { Effect, Schema as S, pipe } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
-import { AsyncData, Command, Http } from 'foldkit'
+import { AsyncData, Command, Http, type Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
@@ -53,23 +53,22 @@ const Search = Command.define('Search', {
 
 // UPDATE
 
-const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      UpdatedQuery: ({ query }) => [
-        evo(model, {
-          queryInput: () => query,
-          searchResults: () => SearchResultsData.Loading(),
-        }),
-        [Search({ query })],
-      ],
+type UpdateReturn = Update.Return<Model, Message>
 
-      SettledSearch: ({ query, result }) => {
-        if (query !== model.queryInput) {
-          return [model, []]
-        }
-        return [evo(model, { searchResults: AsyncData.settle(result) }), []]
-      },
+const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    UpdatedQuery: ({ query }) => ({
+      model: evo(model, {
+        queryInput: () => query,
+        searchResults: () => SearchResultsData.Loading(),
+      }),
+      commands: [Search({ query })],
+    }),
+
+    SettledSearch: ({ query, result }) => {
+      if (query !== model.queryInput) {
+        return { model }
+      }
+      return { model: evo(model, { searchResults: AsyncData.settle(result) }) }
     },
-  )
+  })

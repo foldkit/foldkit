@@ -457,13 +457,13 @@ describe('Slider', () => {
     })
 
     it('updates the range even while Dragging', () => {
-      const [draggingModel] = update(
+      const updateResult = update(
         defaultInit(),
         Message.PressedThumb({ originValue: 5 }),
       )
-      expect(draggingModel.dragState._tag).toBe('Dragging')
+      expect(updateResult.model.dragState._tag).toBe('Dragging')
 
-      const after = reflectRange(draggingModel, { min: 7, max: 10 })
+      const after = reflectRange(updateResult.model, { min: 7, max: 10 })
       expect(after.min).toBe(7)
       expect(after.max).toBe(10)
       expect(after.dragState._tag).toBe('Dragging')

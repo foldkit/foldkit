@@ -14,7 +14,7 @@ import {
   PeriodRadioGroup,
 } from './radioGroups'
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 const syncChart = (args: {
   maybeChartHostId: Model['maybeChartHostId']
@@ -43,11 +43,11 @@ const syncChart = (args: {
 
 const refetchTelemetry = (model: Model): UpdateReturn =>
   Option.match(AsyncData.revalidateOrLoad(model.telemetry), {
-    onNone: () => [model, []],
-    onSome: nextTelemetry => [
-      evo(model, { telemetry: () => nextTelemetry }),
-      [FetchTelemetry()],
-    ],
+    onNone: () => ({ model }),
+    onSome: nextTelemetry => ({
+      model: evo(model, { telemetry: () => nextTelemetry }),
+      commands: [FetchTelemetry()],
+    }),
   })
 
 const selectedControl =
@@ -57,17 +57,18 @@ const selectedControl =
       evo(model, { maybeSelectedDatumId: () => Option.none() }),
     )
 
-    return [
-      nextModel,
-      syncChart({
-        maybeChartHostId: nextModel.maybeChartHostId,
-        telemetry: nextModel.telemetry,
-        chartMode: nextModel.chartMode,
-        selectedPackageId: nextModel.selectedPackageId,
-        period: nextModel.period,
-        maybeSelectedDatumId: nextModel.maybeSelectedDatumId,
-      }),
-    ]
+    const commands = syncChart({
+      maybeChartHostId: nextModel.maybeChartHostId,
+      telemetry: nextModel.telemetry,
+      chartMode: nextModel.chartMode,
+      selectedPackageId: nextModel.selectedPackageId,
+      period: nextModel.period,
+      maybeSelectedDatumId: nextModel.maybeSelectedDatumId,
+    })
+    return Array.match(commands, {
+      onEmpty: () => ({ model: nextModel }),
+      onNonEmpty: commands => ({ model: nextModel, commands }),
+    })
   }
 
 const foldChartModeRadioGroupOutMessage = M.type<
@@ -141,11 +142,11 @@ export const update = (model: Model, message: Message) =>
 
     ClickedRetry: () => refetchTelemetry(model),
 
-    ClickedChartDatum: ({ datumId }) => [
-      evo(model, {
+    ClickedChartDatum: ({ datumId }) => ({
+      model: evo(model, {
         maybeSelectedDatumId: () => Option.some(datumId),
       }),
-      syncChart({
+      commands: syncChart({
         maybeChartHostId: model.maybeChartHostId,
         telemetry: model.telemetry,
         chartMode: model.chartMode,
@@ -153,15 +154,15 @@ export const update = (model: Model, message: Message) =>
         period: model.period,
         maybeSelectedDatumId: Option.some(datumId),
       }),
-    ],
+    }),
 
     SucceededFetchTelemetry: ({ telemetry }) => {
       const nextModel = evo(model, {
         telemetry: () => TelemetryAsyncData.Success({ data: telemetry }),
       })
-      return [
-        nextModel,
-        syncChart({
+      return {
+        model: nextModel,
+        commands: syncChart({
           maybeChartHostId: nextModel.maybeChartHostId,
           telemetry: nextModel.telemetry,
           chartMode: nextModel.chartMode,
@@ -169,22 +170,21 @@ export const update = (model: Model, message: Message) =>
           period: nextModel.period,
           maybeSelectedDatumId: nextModel.maybeSelectedDatumId,
         }),
-      ]
+      }
     },
 
-    FailedFetchTelemetry: ({ error }) => [
-      evo(model, {
+    FailedFetchTelemetry: ({ error }) => ({
+      model: evo(model, {
         telemetry: () => AsyncData.settle(model.telemetry, Result.fail(error)),
       }),
-      [],
-    ],
+    }),
 
-    SucceededMountChart: ({ hostId }) => [
-      evo(model, {
+    SucceededMountChart: ({ hostId }) => ({
+      model: evo(model, {
         maybeChartHostId: () => Option.some(hostId),
         maybeChartError: () => Option.none(),
       }),
-      syncChart({
+      commands: syncChart({
         maybeChartHostId: Option.some(hostId),
         telemetry: model.telemetry,
         chartMode: model.chartMode,
@@ -192,26 +192,23 @@ export const update = (model: Model, message: Message) =>
         period: model.period,
         maybeSelectedDatumId: model.maybeSelectedDatumId,
       }),
-    ],
+    }),
 
-    FailedMountChart: ({ reason }) => [
-      evo(model, {
+    FailedMountChart: ({ reason }) => ({
+      model: evo(model, {
         maybeChartError: () => Option.some(reason),
       }),
-      [],
-    ],
+    }),
 
-    SucceededSyncChart: () => [
-      evo(model, {
+    SucceededSyncChart: () => ({
+      model: evo(model, {
         maybeChartError: () => Option.none(),
       }),
-      [],
-    ],
+    }),
 
-    FailedSyncChart: ({ reason }) => [
-      evo(model, {
+    FailedSyncChart: ({ reason }) => ({
+      model: evo(model, {
         maybeChartError: () => Option.some(reason),
       }),
-      [],
-    ],
+    }),
   })

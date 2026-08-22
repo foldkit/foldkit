@@ -8,9 +8,8 @@ import {
   scene,
 } from 'foldkit/scene'
 
-// A Submodel's update returns [Model, Commands, Option<OutMessage>]. Scene
-// tracks the third element, so a page-level test asserts what the child
-// announced to its parent.
+// A Submodel's update can return an optional OutMessage. Scene tracks that
+// field, so a page-level test asserts what the child announced to its parent.
 scene(
   { update, view },
   given(initialModel),

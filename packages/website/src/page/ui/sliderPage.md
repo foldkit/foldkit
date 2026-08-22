@@ -105,7 +105,7 @@ Attribute groups provided to the `toView` callback.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Parents fold the OutMessage in the `foldOutMessage` of their [`Update.foldChild`](/core/submodel#fold-child) config.
+Messages emitted to the parent through the optional `outMessage` field. Parents fold the OutMessage in the `foldOutMessage` of their [`Update.foldChild`](/core/submodel#fold-child) config.
 
 | Name           | Type                | Default | Description                                                                                                                                                                                                                         |
 | -------------- | ------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -1,5 +1,5 @@
 import { Array, Option, Record, pipe } from 'effect'
-import { AsyncData, Command } from 'foldkit'
+import { AsyncData, type Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { LoadApiData } from './command'
@@ -16,10 +16,7 @@ import {
   type Model,
 } from './model'
 
-export type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-]
+export type UpdateReturn = Update.Return<Model, Message>
 
 const disclosuresForApiData = (apiData: ApiData): Disclosures =>
   pipe(
@@ -44,34 +41,31 @@ export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     RequestedApiData: () =>
       Option.match(AsyncData.loadIfMissing(model.apiData), {
-        onNone: () => [model, []],
-        onSome: apiData => [
-          evo(model, { apiData: () => apiData }),
-          [LoadApiData()],
-        ],
+        onNone: () => ({ model }),
+        onSome: apiData => ({
+          model: evo(model, { apiData: () => apiData }),
+          commands: [LoadApiData()],
+        }),
       }),
 
-    SucceededLoadApiData: ({ apiData }) => [
-      evo(model, {
+    SucceededLoadApiData: ({ apiData }) => ({
+      model: evo(model, {
         apiData: () => ApiDataAsyncData.Success({ data: apiData }),
         disclosures: () => disclosuresForApiData(apiData),
       }),
-      [],
-    ],
+    }),
 
-    FailedLoadApiData: ({ error }) => [
-      evo(model, {
+    FailedLoadApiData: ({ error }) => ({
+      model: evo(model, {
         apiData: () => ApiDataAsyncData.Failure({ error }),
       }),
-      [],
-    ],
+    }),
 
-    ToggledSignature: ({ id, isOpen }) => [
-      evo(model, {
+    ToggledSignature: ({ id, isOpen }) => ({
+      model: evo(model, {
         disclosures: disclosures => Record.set(disclosures, id, isOpen),
       }),
-      [],
-    ],
+    }),
   })
 
 export const informRouteChanged = (model: Model) =>

@@ -12,6 +12,7 @@ export type {
   ChildFoldWithParentOutMessage,
   ChildStepFold,
   ChildStepFoldWithOutMessage,
+  ChildStepFoldWithParentOutMessage,
   FoldContext,
   Fold,
   FoldWithOutMessage,

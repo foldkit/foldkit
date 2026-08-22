@@ -1,15 +1,21 @@
-import { Command } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-export const update = (model: Model, message: Message) =>
-  Message.match(message, {
-    GotSettingsMessage: ({ message }) => {
-      const [nextSettings, commands] = Settings.update(model.settings, message)
+type UpdateReturn = Update.Return<Model, Message>
 
-      const mappedCommands = Command.mapMessages(commands, message =>
-        GotSettingsMessage({ message }),
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    GotSettingsMessage: ({ message }) => {
+      const settingsUpdate = Settings.update(model.settings, message)
+
+      const mappedCommands = Command.mapMessages(
+        settingsUpdate.commands ?? [],
+        message => GotSettingsMessage({ message }),
       )
 
-      return [evo(model, { settings: () => nextSettings }), mappedCommands]
+      return {
+        model: evo(model, { settings: () => settingsUpdate.model }),
+        commands: mappedCommands,
+      }
     },
   })

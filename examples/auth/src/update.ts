@@ -51,7 +51,7 @@ const RedirectToHome = Command.define('RedirectToHome', {
   ),
 })
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const foldLoggedOutOutMessage: (
@@ -61,10 +61,10 @@ const foldLoggedOutOutMessage: (
   M.tagsExhaustive({
     SucceededLogin:
       ({ session }) =>
-      () => [
-        LoggedIn.init(DashboardRoute(), session),
-        [SaveSession({ session }), RedirectToDashboard()],
-      ],
+      () => ({
+        model: LoggedIn.init(DashboardRoute(), session),
+        commands: [SaveSession({ session }), RedirectToDashboard()],
+      }),
   }),
 )
 
@@ -87,10 +87,10 @@ const foldLoggedInOutMessage: (
 ) => Update.Step<Model, Message> = M.type<LoggedIn.OutMessage>().pipe(
   M.withReturnType<Update.Step<Model, Message>>(),
   M.tagsExhaustive({
-    RequestedLogout: () => () => [
-      LoggedOut.init(HomeRoute()),
-      [ClearSession(), RedirectToHome()],
-    ],
+    RequestedLogout: () => () => ({
+      model: LoggedOut.init(HomeRoute()),
+      commands: [ClearSession(), RedirectToHome()],
+    }),
   }),
 )
 
@@ -108,72 +108,66 @@ const foldLoggedIn = Update.foldChild({
   foldOutMessage: foldLoggedInOutMessage,
 })
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tags({
-      ClickedLink: ({ request }) =>
-        M.value(request).pipe(
-          withUpdateReturn,
-          M.tagsExhaustive({
-            Internal: ({ url }) => [
-              model,
-              [NavigateInternal({ url: urlToString(url) })],
-            ],
-            External: ({ href }) => [model, [LoadExternal({ href })]],
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    ClickedLink: ({ request }) =>
+      M.value(request).pipe(
+        withUpdateReturn,
+        M.tagsExhaustive({
+          Internal: ({ url }) => ({
+            model,
+            commands: [NavigateInternal({ url: urlToString(url) })],
           }),
-        ),
-
-      ChangedUrl: ({ url }) => {
-        const route = urlToAppRoute(url)
-
-        return M.value(model).pipe(
-          withUpdateReturn,
-          M.tagsExhaustive({
-            LoggedOut: loggedOutModel =>
-              M.value(route).pipe(
-                withUpdateReturn,
-                M.tag('Home', 'Login', 'NotFound', route => [
-                  evo(loggedOutModel, { route: () => route }),
-                  [],
-                ]),
-                M.orElse(() => [model, [RedirectToLogin()]]),
-              ),
-
-            LoggedIn: loggedInModel =>
-              M.value(route).pipe(
-                withUpdateReturn,
-                M.tag('Dashboard', 'Settings', 'NotFound', route => [
-                  evo(loggedInModel, { route: () => route }),
-                  [],
-                ]),
-                M.orElse(() => [model, [RedirectToDashboard()]]),
-              ),
+          External: ({ href }) => ({
+            model,
+            commands: [LoadExternal({ href })],
           }),
-        )
-      },
+        }),
+      ),
 
-      FailedSaveSession: ({ error }) => [
-        model,
-        [LogError({ entries: ['Failed to save session:', error] })],
-      ],
+    ChangedUrl: ({ url }) => {
+      const route = urlToAppRoute(url)
 
-      FailedClearSession: ({ error }) => [
-        model,
-        [LogError({ entries: ['Failed to clear session:', error] })],
-      ],
+      return M.value(model).pipe(
+        withUpdateReturn,
+        M.tagsExhaustive({
+          LoggedOut: loggedOutModel =>
+            M.value(route).pipe(
+              withUpdateReturn,
+              M.tag('Home', 'Login', 'NotFound', route => ({
+                model: evo(loggedOutModel, { route: () => route }),
+              })),
+              M.orElse(() => ({ model, commands: [RedirectToLogin()] })),
+            ),
 
-      GotLoggedOutMessage: ({ message }) => foldLoggedOut(model, message),
+          LoggedIn: loggedInModel =>
+            M.value(route).pipe(
+              withUpdateReturn,
+              M.tag('Dashboard', 'Settings', 'NotFound', route => ({
+                model: evo(loggedInModel, { route: () => route }),
+              })),
+              M.orElse(() => ({ model, commands: [RedirectToDashboard()] })),
+            ),
+        }),
+      )
+    },
 
-      GotLoggedInMessage: ({ message }) => foldLoggedIn(model, message),
+    FailedSaveSession: ({ error }) => ({
+      model,
+      commands: [LogError({ entries: ['Failed to save session:', error] })],
     }),
-    M.tag(
-      'CompletedNavigateInternal',
-      'CompletedLoadExternal',
-      'CompletedLogError',
-      'SucceededSaveSession',
-      'SucceededClearSession',
-      () => [model, []],
-    ),
-    M.exhaustive,
-  )
+
+    FailedClearSession: ({ error }) => ({
+      model,
+      commands: [LogError({ entries: ['Failed to clear session:', error] })],
+    }),
+
+    GotLoggedOutMessage: ({ message }) => foldLoggedOut(model, message),
+
+    GotLoggedInMessage: ({ message }) => foldLoggedIn(model, message),
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
+    CompletedLogError: () => ({ model }),
+    SucceededSaveSession: () => ({ model }),
+    SucceededClearSession: () => ({ model }),
+  })

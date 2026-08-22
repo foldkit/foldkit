@@ -8,7 +8,7 @@ import {
   String,
   pipe,
 } from 'effect'
-import { Command, Submodel } from 'foldkit'
+import { Command, Submodel, type Update } from 'foldkit'
 import { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { pushUrl } from 'foldkit/navigation'
@@ -112,16 +112,20 @@ export type Message = typeof Message.Type
 
 export const init = (
   route: PeopleRoute,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
+): Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command.Command<Message>>
+  outMessage?: never
+}> => {
   const searchText = routeSearchText(route)
-  return [
-    {
+  return {
+    model: {
       searchInput: searchText,
       searchHistory: addSearchToHistory([], searchText),
       results: SearchLoading(),
     },
-    [FetchPeople({ searchText })],
-  ]
+    commands: [FetchPeople({ searchText })],
+  }
 }
 
 // COMMAND
@@ -151,48 +155,43 @@ export const FetchPeople = Command.define('FetchPeople', {
 
 // UPDATE
 
-export type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-]
+export type UpdateReturn = Update.Return<Model, Message>
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    ChangedSearchInput: ({ value }) => [
-      evo(model, { searchInput: () => value }),
-      [],
-    ],
+    ChangedSearchInput: ({ value }) => ({
+      model: evo(model, { searchInput: () => value }),
+    }),
 
-    SubmittedSearch: () => [
+    SubmittedSearch: () => ({
       model,
-      [
+      commands: [
         PushSearchUrl({
           searchText: Option.fromNullishOr(model.searchInput || null),
         }),
       ],
-    ],
+    }),
 
     ChangedRoute: ({ route }) => {
       const searchText = routeSearchText(route)
-      return [
-        evo(model, {
+      return {
+        model: evo(model, {
           searchInput: () => searchText,
           searchHistory: searchHistory =>
             addSearchToHistory(searchHistory, searchText),
           results: () => SearchLoading(),
         }),
-        [FetchPeople({ searchText })],
-      ]
+        commands: [FetchPeople({ searchText })],
+      }
     },
 
-    SucceededFetchPeople: ({ query, people: fetchedPeople }) => [
-      evo(model, {
+    SucceededFetchPeople: ({ query, people: fetchedPeople }) => ({
+      model: evo(model, {
         results: () => SearchLoaded({ query, people: fetchedPeople }),
       }),
-      [],
-    ],
+    }),
 
-    CompletedPushSearchUrl: () => [model, []],
+    CompletedPushSearchUrl: () => ({ model }),
   })
 
 /** Tells the People page that the route changed. People does not own the

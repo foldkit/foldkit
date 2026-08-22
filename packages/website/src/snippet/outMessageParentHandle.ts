@@ -1,28 +1,30 @@
-import { Option } from 'effect'
-import { Command } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
+type UpdateReturn = Update.Return<Model, Message>
+
 export const update = (model: Model, message: Message) =>
-  Message.match(message, {
+  Message.match<UpdateReturn>(message, {
     GotLoginMessage: ({ message }) => {
-      const [nextLogin, commands, maybeOutMessage] = Login.update(
-        model.login,
-        message,
+      const loginUpdate = Login.update(model.login, message)
+
+      const mappedCommands = Command.mapMessages(
+        loginUpdate.commands ?? [],
+        message => Message.GotLoginMessage({ message }),
       )
 
-      const mappedCommands = Command.mapMessages(commands, message =>
-        Message.GotLoginMessage({ message }),
-      )
-
-      return Option.match(maybeOutMessage, {
-        onNone: () => [evo(model, { login: () => nextLogin }), mappedCommands],
-        onSome: outMessage =>
-          Login.OutMessage.match(outMessage, {
-            SucceededLogin: ({ sessionId }) => [
-              LoggedIn({ sessionId }),
-              [...mappedCommands, SaveSession(sessionId)],
-            ],
+      if (loginUpdate.outMessage === undefined) {
+        return {
+          model: evo(model, { login: () => loginUpdate.model }),
+          commands: mappedCommands,
+        }
+      } else {
+        return Login.OutMessage.match<UpdateReturn>(loginUpdate.outMessage, {
+          SucceededLogin: ({ sessionId }) => ({
+            model: LoggedIn({ sessionId }),
+            commands: [...mappedCommands, SaveSession(sessionId)],
           }),
-      })
+        })
+      }
     },
   })

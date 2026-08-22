@@ -20,7 +20,7 @@ Most concepts translate directly:
 | ------------- | --------------------------------------------- | ---------------------------------------------------------------- |
 | State         | `Model`                                       | Model declared with Schema                                       |
 | Events        | `Msg` custom type                             | Message Schema union                                             |
-| Transitions   | `update : Msg -> Model -> ( Model, Cmd Msg )` | `update(model, message): [Model, Command[]]`                     |
+| Transitions   | `update : Msg -> Model -> ( Model, Cmd Msg )` | `update(model, message): { model: Model; commands?: Commands }`  |
 | Side effects  | `Cmd Msg`                                     | Command for Message-driven work, plus other lifecycle primitives |
 | Event streams | `Sub Msg`                                     | Subscription backed by an Effect Stream                          |
 | Boot data     | Flags decoded or accepted by `init`           | [Flags](/core/init-and-flags) Schema supplied at boot            |
@@ -57,7 +57,7 @@ The update functions have the same shape.
 
 ::Snippet{name="comparisonFoldkitUpdate" label="Foldkit update"}
 
-`case msg of` becomes `Message.match`. Elm record updates become `evo` transformations. `( model, Cmd.none )` becomes `[model, []]`.
+`case msg of` becomes `Message.match`. Elm record updates become `evo` transformations. `( model, Cmd.none )` becomes `{ model }`.
 
 Elm enforces exhaustive pattern matching as part of the language. Foldkit obtains the same compile-time failure at a match written with `Message.match`. That is the required Foldkit update style, but TypeScript itself does not prevent someone from writing a non-exhaustive alternative.
 

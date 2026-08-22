@@ -24,14 +24,13 @@ type Model = typeof Model.Type
 
 // In your init function, initialize the RadioGroup Submodel with a unique
 // id and start with nothing selected:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     planRadioGroup: RadioGroup.init({ id: 'plan' }),
     maybePlan: Option.none(),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Embed the RadioGroup Message in your parent Message:
 const Message = defineMessageUnion({
@@ -62,7 +61,7 @@ const foldPlanRadioGroupOutMessage = M.type<RadioGroup.OutMessage<Plan>>().pipe(
   M.tagsExhaustive({
     Selected:
       ({ value }) =>
-      model => [evo(model, { maybePlan: () => Option.some(value) }), []],
+      model => ({ model: evo(model, { maybePlan: () => Option.some(value) }) }),
   }),
 )
 

@@ -36,7 +36,7 @@ const dispatch = (
   ...messages: ReadonlyArray<Parameters<typeof update>[1]>
 ): Model =>
   messages.reduce<Model>(
-    (currentModel, message) => update(currentModel, message)[0],
+    (currentModel, message) => update(currentModel, message).model,
     model,
   )
 
@@ -96,10 +96,10 @@ describe('update: undo/redo with history', () => {
   bench('5x undo then 5x redo', () => {
     let model = modelWith10Steps
     for (let i = 0; i < 5; i++) {
-      model = update(model, Message.ClickedUndo())[0]
+      model = update(model, Message.ClickedUndo()).model
     }
     for (let i = 0; i < 5; i++) {
-      model = update(model, Message.ClickedRedo())[0]
+      model = update(model, Message.ClickedRedo()).model
     }
   })
 })

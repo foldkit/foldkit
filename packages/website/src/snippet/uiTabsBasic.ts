@@ -23,14 +23,13 @@ const Model = S.Struct({
 
 // In your init function, initialize the Tabs Submodel with a unique id and
 // pick the starting active tab:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     tabs: Tabs.init({ id: 'framework-tabs' }),
     activeFramework: 'Foldkit',
     // ...your other fields
   },
-  [],
-]
+})
 
 // Embed the Tabs Message in your parent Message:
 const Message = defineMessageUnion({
@@ -64,7 +63,7 @@ const foldTabsOutMessage = M.type<Tabs.OutMessage<Framework>>().pipe(
     // selection, or trigger a panel content fetch.
     Selected:
       ({ value }) =>
-      model => [evo(model, { activeFramework: () => value }), []],
+      model => ({ model: evo(model, { activeFramework: () => value }) }),
   }),
 )
 

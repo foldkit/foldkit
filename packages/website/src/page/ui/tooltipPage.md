@@ -79,7 +79,7 @@ Payload delivered to the `toView` callback each render.
 
 ### Programmatic Helpers
 
-Helper functions for driving the tooltip from parent update handlers, returning `[Model, Commands]`.
+Helper functions for driving the tooltip from parent update handlers, returning `{ model, commands? }`.
 
 | Name               | Type                                                 | Default | Description                                                                                                                                                                                                                                                                                                             |
 | ------------------ | ---------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -87,7 +87,7 @@ Helper functions for driving the tooltip from parent update handlers, returning 
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Fire only on visibility transitions, so consumers don’t see spurious events for Messages that only update internal hover/focus/delay state.
+Messages emitted to the parent through the optional `outMessage` field. They fire only on visibility transitions, so consumers don’t see spurious events for Messages that only update internal hover/focus/delay state.
 
 | Name     | Type | Default | Description                                                                                                                                                                                                           |
 | -------- | ---- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

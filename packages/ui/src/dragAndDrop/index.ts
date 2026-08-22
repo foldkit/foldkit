@@ -10,6 +10,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
+import { type Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 import { type Attribute, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
@@ -303,18 +304,14 @@ export const ResolveKeyboardMove = Command.define('ResolveKeyboardMove', {
 
 // UPDATE
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 /** Processes a drag-and-drop message and returns the next model, commands, and an optional out-message for the parent. */
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    PressedDraggable: ({ itemId, containerId, index, screenX, screenY }) => [
-      evo(model, {
+    PressedDraggable: ({ itemId, containerId, index, screenX, screenY }) => ({
+      model: evo(model, {
         dragState: () =>
           Pending({
             itemId,
@@ -323,9 +320,7 @@ export const update = (model: Model, message: Message) =>
             origin: { screenX, screenY },
           }),
       }),
-      [],
-      Option.none(),
-    ],
+    }),
 
     MovedPointer: ({ screenX, screenY, clientX, clientY, maybeDropTarget }) =>
       M.value(model.dragState).pipe(
@@ -336,11 +331,11 @@ export const update = (model: Model, message: Message) =>
           const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
 
           if (distance < model.activationThreshold) {
-            return [model, [], Option.none()]
+            return { model }
           }
 
-          return [
-            evo(model, {
+          return {
+            model: evo(model, {
               dragState: () =>
                 Dragging({
                   itemId: pending.itemId,
@@ -351,12 +346,10 @@ export const update = (model: Model, message: Message) =>
                   maybeDropTarget,
                 }),
             }),
-            [],
-            Option.none(),
-          ]
+          }
         }),
-        M.tag('Dragging', dragging => [
-          evo(model, {
+        M.tag('Dragging', dragging => ({
+          model: evo(model, {
             dragState: () =>
               Dragging({
                 ...dragging,
@@ -364,43 +357,35 @@ export const update = (model: Model, message: Message) =>
                 maybeDropTarget,
               }),
           }),
-          [],
-          Option.none(),
-        ]),
-        M.orElse(() => [model, [], Option.none()]),
+        })),
+        M.orElse(() => ({ model })),
       ),
 
     ReleasedPointer: () =>
       M.value(model.dragState).pipe(
         withUpdateReturn,
-        M.tag('Pending', () => [
-          evo(model, { dragState: () => Idle() }),
-          [],
-          Option.none(),
-        ]),
+        M.tag('Pending', () => ({
+          model: evo(model, { dragState: () => Idle() }),
+        })),
         M.tag('Dragging', dragging =>
           Option.match(dragging.maybeDropTarget, {
-            onNone: () => [
-              evo(model, { dragState: () => Idle() }),
-              [],
-              Option.some(OutMessage.Cancelled()),
-            ],
-            onSome: dropTarget => [
-              evo(model, { dragState: () => Idle() }),
-              [],
-              Option.some(
-                OutMessage.Reordered({
-                  itemId: dragging.itemId,
-                  fromContainerId: dragging.sourceContainerId,
-                  fromIndex: dragging.sourceIndex,
-                  toContainerId: dropTarget.containerId,
-                  toIndex: dropTarget.index,
-                }),
-              ),
-            ],
+            onNone: () => ({
+              model: evo(model, { dragState: () => Idle() }),
+              outMessage: OutMessage.Cancelled(),
+            }),
+            onSome: dropTarget => ({
+              model: evo(model, { dragState: () => Idle() }),
+              outMessage: OutMessage.Reordered({
+                itemId: dragging.itemId,
+                fromContainerId: dragging.sourceContainerId,
+                fromIndex: dragging.sourceIndex,
+                toContainerId: dropTarget.containerId,
+                toIndex: dropTarget.index,
+              }),
+            }),
           }),
         ),
-        M.orElse(() => [model, [], Option.none()]),
+        M.orElse(() => ({ model })),
       ),
 
     CancelledDrag: () => {
@@ -414,15 +399,21 @@ export const update = (model: Model, message: Message) =>
         _tag => _tag === 'Dragging' || _tag === 'KeyboardDragging',
       ).pipe(Option.map(() => OutMessage.Cancelled()))
 
-      return [
-        evo(model, { dragState: () => Idle() }),
-        Option.toArray(maybeFocusCommand),
-        maybeOutMessage,
-      ]
+      const commands = Option.toArray(maybeFocusCommand)
+      const updateResult: UpdateReturn = Array.isArrayNonEmpty(commands)
+        ? {
+            model: evo(model, { dragState: () => Idle() }),
+            commands,
+          }
+        : { model: evo(model, { dragState: () => Idle() }) }
+      return Option.match(maybeOutMessage, {
+        onNone: () => updateResult,
+        onSome: outMessage => ({ ...updateResult, outMessage }),
+      })
     },
 
-    ActivatedKeyboardDrag: ({ itemId, containerId, index }) => [
-      evo(model, {
+    ActivatedKeyboardDrag: ({ itemId, containerId, index }) => ({
+      model: evo(model, {
         dragState: () =>
           KeyboardDragging({
             itemId,
@@ -432,15 +423,13 @@ export const update = (model: Model, message: Message) =>
             targetIndex: index,
           }),
       }),
-      [],
-      Option.none(),
-    ],
+    }),
 
     CompletedResolveKeyboardMove: ({ targetContainerId, targetIndex }) =>
       M.value(model.dragState).pipe(
         withUpdateReturn,
-        M.tag('KeyboardDragging', keyboardDragging => [
-          evo(model, {
+        M.tag('KeyboardDragging', keyboardDragging => ({
+          model: evo(model, {
             dragState: () =>
               KeyboardDragging({
                 ...keyboardDragging,
@@ -448,37 +437,34 @@ export const update = (model: Model, message: Message) =>
                 targetIndex,
               }),
           }),
-          [FocusItem({ itemId: keyboardDragging.itemId })],
-          Option.none(),
-        ]),
-        M.orElse(() => [model, [], Option.none()]),
+          commands: [FocusItem({ itemId: keyboardDragging.itemId })],
+        })),
+        M.orElse(() => ({ model })),
       ),
 
     ConfirmedKeyboardDrop: () =>
       M.value(model.dragState).pipe(
         withUpdateReturn,
-        M.tag('KeyboardDragging', keyboardDragging => [
-          evo(model, { dragState: () => Idle() }),
-          [FocusItem({ itemId: keyboardDragging.itemId })],
-          Option.some(
-            OutMessage.Reordered({
-              itemId: keyboardDragging.itemId,
-              fromContainerId: keyboardDragging.sourceContainerId,
-              fromIndex: keyboardDragging.sourceIndex,
-              toContainerId: keyboardDragging.targetContainerId,
-              toIndex: keyboardDragging.targetIndex,
-            }),
-          ),
-        ]),
-        M.orElse(() => [model, [], Option.none()]),
+        M.tag('KeyboardDragging', keyboardDragging => ({
+          model: evo(model, { dragState: () => Idle() }),
+          commands: [FocusItem({ itemId: keyboardDragging.itemId })],
+          outMessage: OutMessage.Reordered({
+            itemId: keyboardDragging.itemId,
+            fromContainerId: keyboardDragging.sourceContainerId,
+            fromIndex: keyboardDragging.sourceIndex,
+            toContainerId: keyboardDragging.targetContainerId,
+            toIndex: keyboardDragging.targetIndex,
+          }),
+        })),
+        M.orElse(() => ({ model })),
       ),
 
     PressedArrowKey: ({ direction }) =>
       M.value(model.dragState).pipe(
         withUpdateReturn,
-        M.tag('KeyboardDragging', keyboardDragging => [
+        M.tag('KeyboardDragging', keyboardDragging => ({
           model,
-          [
+          commands: [
             ResolveKeyboardMove({
               itemId: keyboardDragging.itemId,
               currentContainerId: keyboardDragging.targetContainerId,
@@ -486,14 +472,13 @@ export const update = (model: Model, message: Message) =>
               direction,
             }),
           ],
-          Option.none(),
-        ]),
-        M.orElse(() => [model, [], Option.none()]),
+        })),
+        M.orElse(() => ({ model })),
       ),
 
-    AdvancedAutoScrollFrame: () => [model, [], Option.none()],
+    AdvancedAutoScrollFrame: () => ({ model }),
 
-    CompletedFocusItem: () => [model, [], Option.none()],
+    CompletedFocusItem: () => ({ model }),
   })
 
 // SUBSCRIPTION

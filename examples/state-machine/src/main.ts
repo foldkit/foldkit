@@ -334,14 +334,13 @@ export const initialModel = Model.make({
   nextTransitionLogId: 0,
 })
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  initialModel,
-  [],
-]
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: initialModel,
+})
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 export const TRANSITION_LOG_LIMIT = 20
 
@@ -376,8 +375,8 @@ const stepMachine =
       summary: resultToTransitionSummary(result),
     }
 
-    return [
-      evo(model, {
+    return {
+      model: evo(model, {
         checkout: () => nextCheckout,
         transitionLog: flow(
           Array.prepend(transitionLogEntry),
@@ -385,8 +384,8 @@ const stepMachine =
         ),
         nextTransitionLogId: Number.increment,
       }),
-      transitionCommands,
-    ]
+      commands: transitionCommands,
+    }
   }
 
 const foldEditionRadioGroupOutMessage = M.type<RadioGroup.OutMessage>().pipe(
@@ -410,11 +409,22 @@ const foldEditionRadioGroup = Update.foldChild({
   foldOutMessage: foldEditionRadioGroupOutMessage,
 })
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    M.withReturnType<UpdateReturn>(),
-    M.tag('GotEditionRadioGroupMessage', ({ message }) =>
+export const update = (model: Model, message: Message) => {
+  const runMachine = () => stepMachine(message)(model)
+
+  return Message.match<UpdateReturn>(message, {
+    ClickedContinue: runMachine,
+    ClickedBack: runMachine,
+    ClickedCancel: runMachine,
+    ClickedPlaceOrder: runMachine,
+    ClickedStartOver: runMachine,
+    ToggledPaymentMethod: runMachine,
+    SelectedEdition: runMachine,
+    GotEditionRadioGroupMessage: ({ message }) =>
       foldEditionRadioGroup(model, message),
-    ),
-    M.orElse(() => stepMachine(message)(model)),
-  )
+    ToggledTermsAccepted: runMachine,
+    UpdatedPromoCode: runMachine,
+    SubmittedPromoCode: runMachine,
+    SucceededPlaceOrder: runMachine,
+  })
+}

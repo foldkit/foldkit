@@ -23,14 +23,21 @@ const h = __htmlBuilder<Message>()
 
 const init = (
   flags: Flags,
-): readonly [Model, ReadonlyArray<Command<Message>>] => [
-  Model.make({ count: flags.start }),
-  [],
-]
+): Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command<Message>>
+  outMessage?: never
+}> => ({ model: Model.make({ count: flags.start }) })
+
+type UpdateReturn = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<Command<Message>>
+  outMessage?: never
+}>
 
 const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command<Message>>]>(message, {
-    ClickedIncrement: () => [Model.make({ count: model.count + 1 }), []],
+  Message.match<UpdateReturn>(message, {
+    ClickedIncrement: () => ({ model: Model.make({ count: model.count + 1 }) }),
   })
 
 const view = (model: Model): Document => ({
@@ -193,10 +200,13 @@ describe('hydrating boot', () => {
     type OptionalFlags = typeof OptionalFlags.Type
     const optionalInit = (
       flags: OptionalFlags,
-    ): readonly [Model, ReadonlyArray<Command<Message>>] => [
-      Model.make({ count: Option.getOrElse(flags.maybeStart, () => 0) }),
-      [],
-    ]
+    ): Readonly<{
+      model: Model
+      commands?: ReadonlyArray<Command<Message>>
+      outMessage?: never
+    }> => ({
+      model: Model.make({ count: Option.getOrElse(flags.maybeStart, () => 0) }),
+    })
     const rendered = await Effect.runPromise(
       renderToString(
         { Flags: OptionalFlags, init: optionalInit, view },
@@ -327,7 +337,7 @@ describe('hydrating boot', () => {
     expect(() =>
       makeApplication({
         Model,
-        init: () => [Model.make({ count: 0 }), []],
+        init: () => ({ model: Model.make({ count: 0 }) }),
         update,
         view,
         container: nullContainer(),
@@ -475,7 +485,7 @@ describe('hydrating boot', () => {
     expect(() =>
       makeApplication({
         Model,
-        init: () => [Model.make({ count: 0 }), []],
+        init: () => ({ model: Model.make({ count: 0 }) }),
         update,
         view,
         container: nullContainer(),
@@ -488,7 +498,7 @@ describe('hydrating boot', () => {
 
     const application = makeApplication({
       Model,
-      init: () => [Model.make({ count: 0 }), []],
+      init: () => ({ model: Model.make({ count: 0 }) }),
       update,
       view,
       container: document.getElementById('alpha'),
@@ -649,9 +659,13 @@ describe('hydrating boot', () => {
     const started: Array<number> = []
     const recordingInit = (
       flags: Flags,
-    ): readonly [Model, ReadonlyArray<Command<Message>>] => {
+    ): Readonly<{
+      model: Model
+      commands?: ReadonlyArray<Command<Message>>
+      outMessage?: never
+    }> => {
       started.push(flags.start)
-      return [Model.make({ count: flags.start }), []]
+      return { model: Model.make({ count: flags.start }) }
     }
     await renderServerPage({ start: 5 })
     const servedRoot = document.querySelector('[data-foldkit-app]')
@@ -753,7 +767,11 @@ describe('hydrating boot', () => {
       Flags,
       init: (
         flags: Flags,
-      ): readonly [Model, ReadonlyArray<Command<Message>>] => {
+      ): Readonly<{
+        model: Model
+        commands?: ReadonlyArray<Command<Message>>
+        outMessage?: never
+      }> => {
         initAttempts.push(flags.start)
         throw new Error('the invalid handoff reached init')
       },
@@ -904,7 +922,7 @@ describe('hydrating boot', () => {
       const servedRoot = document.querySelector('[data-foldkit-app]')
       const application = makeApplication({
         Model,
-        init: () => [Model.make({ count: 0 }), []],
+        init: () => ({ model: Model.make({ count: 0 }) }),
         update,
         view,
         container: nullContainer(),

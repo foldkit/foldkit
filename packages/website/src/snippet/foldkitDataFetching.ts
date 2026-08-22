@@ -1,5 +1,5 @@
 import { Effect, Schema as S } from 'effect'
-import { Command } from 'foldkit'
+import { Command, type Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
@@ -49,21 +49,18 @@ const FetchUser = Command.define('FetchUser', {
 
 // UPDATE
 
+type UpdateReturn = Update.Return<Model, Message>
+
 const update = (model: Model, message: Message) =>
-  Message.match<readonly [Model, ReadonlyArray<Command.Command<Message>>]>(
-    message,
-    {
-      ClickedFetchUser: ({ userId }) => [
-        evo(model, { user: () => UserLoading() }),
-        [FetchUser({ userId })],
-      ],
-      SucceededFetchUser: ({ data }) => [
-        evo(model, { user: () => UserSuccess({ data }) }),
-        [],
-      ],
-      FailedFetchUser: ({ error }) => [
-        evo(model, { user: () => UserFailure({ error }) }),
-        [],
-      ],
-    },
-  )
+  Message.match<UpdateReturn>(message, {
+    ClickedFetchUser: ({ userId }) => ({
+      model: evo(model, { user: () => UserLoading() }),
+      commands: [FetchUser({ userId })],
+    }),
+    SucceededFetchUser: ({ data }) => ({
+      model: evo(model, { user: () => UserSuccess({ data }) }),
+    }),
+    FailedFetchUser: ({ error }) => ({
+      model: evo(model, { user: () => UserFailure({ error }) }),
+    }),
+  })

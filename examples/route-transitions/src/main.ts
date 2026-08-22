@@ -147,8 +147,8 @@ const nextSequenceNumber = (
 
 const logTransition =
   (transition: AppTransition): Step =>
-  model => [
-    evo(model, {
+  model => ({
+    model: evo(model, {
       transitionLog: transitionLog =>
         pipe(
           transitionLog,
@@ -160,54 +160,58 @@ const logTransition =
           Array.take(MAX_LOGGED_TRANSITIONS),
         ),
     }),
-    [],
-  ]
+  })
 
 const loadCatalogOnGalleryEntry =
   (transition: AppTransition): Step =>
   model =>
     Transition.isEntering(transition, 'Gallery') &&
     model.catalogStatus !== 'Loading'
-      ? [evo(model, { catalogStatus: () => 'Loading' }), [LoadCatalog()]]
-      : [model, []]
+      ? {
+          model: evo(model, { catalogStatus: () => 'Loading' }),
+          commands: [LoadCatalog()],
+        }
+      : { model }
 
 const loadPaintingOnEntry =
   (transition: AppTransition): Step =>
   model =>
     Option.match(Transition.entered(transition, 'Painting'), {
-      onNone: () => [model, []],
-      onSome: ({ paintingId }) => [
-        evo(model, { paintingStatus: () => PaintingLoading({ paintingId }) }),
-        [LoadPainting({ paintingId })],
-      ],
+      onNone: () => ({ model }),
+      onSome: ({ paintingId }) => ({
+        model: evo(model, {
+          paintingStatus: () => PaintingLoading({ paintingId }),
+        }),
+        commands: [LoadPainting({ paintingId })],
+      }),
     })
 
 const reloadPaintingOnIdChange =
   (transition: AppTransition): Step =>
   model =>
     Option.match(Transition.stayed(transition, 'Painting'), {
-      onNone: () => [model, []],
+      onNone: () => ({ model }),
       onSome: ({ previousRoute, nextRoute }) =>
         previousRoute.paintingId === nextRoute.paintingId
-          ? [model, []]
-          : [
-              evo(model, {
+          ? { model }
+          : {
+              model: evo(model, {
                 paintingStatus: () =>
                   PaintingLoading({ paintingId: nextRoute.paintingId }),
               }),
-              [LoadPainting({ paintingId: nextRoute.paintingId })],
-            ],
+              commands: [LoadPainting({ paintingId: nextRoute.paintingId })],
+            },
     })
 
 const saveDraftOnStudioExit =
   (transition: AppTransition): Step =>
   model =>
     Option.match(Transition.exited(transition, 'Studio'), {
-      onNone: () => [model, []],
+      onNone: () => ({ model }),
       onSome: () =>
         model.studioDraft === ''
-          ? [model, []]
-          : [model, [SaveDraft({ draft: model.studioDraft })]],
+          ? { model }
+          : { model, commands: [SaveDraft({ draft: model.studioDraft })] },
     })
 
 const handleTransition = (
@@ -224,18 +228,21 @@ const handleTransition = (
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    CompletedNavigateInternal: () => [model, []],
-    CompletedLoadExternal: () => [model, []],
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
 
     ClickedLink: ({ request }) =>
       M.value(request).pipe(
         withUpdateReturn,
         M.tagsExhaustive({
-          Internal: ({ url }) => [
+          Internal: ({ url }) => ({
             model,
-            [NavigateInternal({ url: urlToString(url) })],
-          ],
-          External: ({ href }) => [model, [LoadExternal({ href })]],
+            commands: [NavigateInternal({ url: urlToString(url) })],
+          }),
+          External: ({ href }) => ({
+            model,
+            commands: [LoadExternal({ href })],
+          }),
         }),
       ),
 
@@ -248,31 +255,27 @@ export const update = (model: Model, message: Message) =>
       )
     },
 
-    SucceededLoadCatalog: () => [
-      evo(model, { catalogStatus: () => 'Ready' }),
-      [],
-    ],
+    SucceededLoadCatalog: () => ({
+      model: evo(model, { catalogStatus: () => 'Ready' }),
+    }),
 
     SucceededLoadPainting: ({ paintingId }) =>
       model.paintingStatus._tag === 'PaintingLoading' &&
       model.paintingStatus.paintingId === paintingId
-        ? [
-            evo(model, {
+        ? {
+            model: evo(model, {
               paintingStatus: () => PaintingReady({ paintingId }),
             }),
-            [],
-          ]
-        : [model, []],
+          }
+        : { model },
 
-    UpdatedStudioDraft: ({ value }) => [
-      evo(model, { studioDraft: () => value }),
-      [],
-    ],
+    UpdatedStudioDraft: ({ value }) => ({
+      model: evo(model, { studioDraft: () => value }),
+    }),
 
-    SucceededSaveDraft: ({ draft }) => [
-      evo(model, { maybeSavedDraft: () => Option.some(draft) }),
-      [],
-    ],
+    SucceededSaveDraft: ({ draft }) => ({
+      model: evo(model, { maybeSavedDraft: () => Option.some(draft) }),
+    }),
   })
 
 // INIT

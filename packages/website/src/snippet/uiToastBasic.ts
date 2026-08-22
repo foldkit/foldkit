@@ -32,14 +32,13 @@ const Model = S.Struct({
 })
 
 // In your init function, initialize it:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     toast: Toast.init({ id: 'app-toast' }),
     maybeLastDismissedBody: Option.none(),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Embed the Toast Message in your parent Message, plus any domain Messages
 // that should push a toast:
@@ -56,12 +55,11 @@ const foldToastOutMessage = M.type<typeof Toast.OutMessage.Type>().pipe(
   M.tagsExhaustive({
     DismissedToast:
       ({ payload }) =>
-      model => [
-        evo(model, {
+      model => ({
+        model: evo(model, {
           maybeLastDismissedBody: () => Option.some(payload.bodyText),
         }),
-        [],
-      ],
+      }),
   }),
 )
 
@@ -81,7 +79,7 @@ const foldToast = Update.foldChild({
 GotToastMessage: ({ message }) => foldToast(model, message)
 
 ClickedSave: () => {
-  const [nextToast, commands] = Toast.show(model.toast, {
+  const toastShow = Toast.show(model.toast, {
     variant: 'Success',
     payload: {
       bodyText: 'Changes saved',
@@ -92,12 +90,12 @@ ClickedSave: () => {
     },
   })
 
-  return [
-    evo(model, { toast: () => nextToast }),
-    Command.mapMessages(commands, message =>
+  return {
+    model: evo(model, { toast: () => toastShow.model }),
+    commands: Command.mapMessages(toastShow.commands ?? [], message =>
       Message.GotToastMessage({ message }),
     ),
-  ]
+  }
 }
 
 // In your view, embed Toast via h.submodel once at the app root. The

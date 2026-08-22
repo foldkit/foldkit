@@ -18,11 +18,14 @@ const commandsForRoute = (
 // ...which init calls for the cold load...
 const init: Runtime.RoutingApplicationInit<Model, Message> = (url: Url) => {
   const route = urlToAppRoute(url)
-  return [{ route }, commandsForRoute(route)]
+  return { model: { route }, commands: commandsForRoute(route) }
 }
 
 // ...and the ChangedUrl handler calls for in-app navigation:
 ChangedUrl: ({ url }) => {
   const route = urlToAppRoute(url)
-  return [evo(model, { route: () => route }), commandsForRoute(route)]
+  return {
+    model: evo(model, { route: () => route }),
+    commands: commandsForRoute(route),
+  }
 }

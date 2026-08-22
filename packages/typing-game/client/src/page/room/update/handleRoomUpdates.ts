@@ -70,8 +70,8 @@ export const handleRoomUpdated =
       FocusUserGameTextInput(),
     )
 
-    return [
-      evo(model, {
+    return {
+      model: evo(model, {
         roomAsyncData: () => RoomAsyncData.Success({ data: room }),
         userGameText: () => nextUserGameText,
         charsTyped: () => nextCharsTyped,
@@ -80,11 +80,11 @@ export const handleRoomUpdated =
             ? EXIT_COUNTDOWN_SECONDS
             : model.exitCountdownSecondsLeft,
       }),
-      Array.appendAll(
+      commands: Array.appendAll(
         Array.fromOption(maybeExitCountdown),
         Array.fromOption(maybeFocusUserGameText),
       ),
-    ]
+    }
   }
 
 type PlayerProgressAction = Data.TaggedEnum<{

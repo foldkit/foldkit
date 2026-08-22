@@ -16,14 +16,13 @@ const Model = S.Struct({
 })
 
 // In your init function, start each unchecked:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     optionA: false,
     optionB: false,
     // ...your other fields
   },
-  [],
-]
+})
 
 // One Message per child, plus one for the "Select All" parent. Each carries
 // the new checked state:
@@ -36,13 +35,12 @@ const Message = defineMessageUnion({
 
 // Inside your update function's Message.match({...}), toggling "Select All"
 // writes the same value to every child:
-ToggledSelectAll: ({ isChecked }) => [
-  evo(model, {
+ToggledSelectAll: ({ isChecked }) => ({
+  model: evo(model, {
     optionA: () => isChecked,
     optionB: () => isChecked,
   }),
-  [],
-]
+})
 
 // Inside your view function, compute the parent's checked and indeterminate
 // state from the children and pass isIndeterminate straight to Checkbox.view:

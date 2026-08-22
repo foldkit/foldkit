@@ -36,9 +36,9 @@ Fields computable from other fields. `endTime` AND `remainingMs` on the same sta
 
 ### `dead-variants-and-noop-commands`
 
-Variants set but never observed by the view or other updates. Fields written but never read. Commands whose result Message handler is `[model, []]`.
+Variants set but never observed by the view or other updates. Fields written but never read. Commands whose result Message handler is `{ model }`.
 
-The **no-op startup Command**: `init` returns `[DEFAULT_MODEL, [triggerApplicationStarted]]`, the Command resolves to `ApplicationStarted()`, and the handler is `ApplicationStarted: () => [model, []]`. Give the Command real work (load preferences, fetch initial data, focus first input, restore session) or delete the Command and the Message together.
+The **no-op startup Command**: `init` returns `{ model: DEFAULT_MODEL, commands: [triggerApplicationStarted] }`, the Command resolves to `ApplicationStarted()`, and the handler is `ApplicationStarted: () => ({ model })`. Give the Command real work (load preferences, fetch initial data, focus first input, restore session) or delete the Command and the Message together.
 
 The **navigate-before-save**: a handler returning BOTH a save Command and a navigation Command races the save against the navigation. (`pushUrl` is an `Effect`, not a Command; it reaches a handler wrapped in one, as `Command.define('PushUrl', { args: { url: S.String }, messages: [Message.CompletedPushUrl], execute: ({ url }) => pushUrl(url).pipe(Effect.as(Message.CompletedPushUrl())) })`.) Which one lands first is timing, not something the handler decides, and a navigation is local while a save is a round trip, so the route has almost always changed by the time the save resolves. The failure Message still arrives and the handler still runs; the error just renders on a route the user didn't submit from, or on one whose view doesn't render it at all. Idiomatic: emit the save only, then navigate in the `Succeeded*` handler, so errors surface on the page the user is still looking at.
 
@@ -63,7 +63,7 @@ const update = (model: Model, message: Message) =>
 
 `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is the Submodel counterpart.
 
-**Flag the repetition, not the spelling.** Writing the tuple out as `type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]` is what most examples still do (kanban, auth, job-application); `Update.Return` is the tidier spelling and the right default for new code, but a hand-written alias is not a finding. What is a finding: no alias at all, with the full tuple repeated at the signature and again inside `Message.match<...>()`, or `: UpdateReturn` repeated on an update already constrained by `Message.match<UpdateReturn>`.
+**Flag the repetition and a missing guard, not the spelling.** `Update.Return` is the clearest spelling and the right default for new code. A hand-written plain-return alias is equivalent only when it includes `outMessage?: never`; without that guard, an OutMessage-bearing return can flow into the plain update and be silently discarded. Also flag no alias at all, with the full record repeated at the signature and again inside `Message.match<...>()`, or `: UpdateReturn` repeated on an update already constrained by `Message.match<UpdateReturn>`.
 
 ### `functions-doing-two-things`
 

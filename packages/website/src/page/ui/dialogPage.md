@@ -12,7 +12,7 @@ Check out how Dialog is wired up in a [real Foldkit app](https://github.com/fold
 
 ### Basic
 
-Open the dialog from a trigger by dispatching your own Message and calling `Dialog.open(model)` in your update. Spread the `closeButton` bundle onto a Cancel button to dismiss it, or call `Dialog.close(model)` directly. Both return `[Model, Commands, Option<OutMessage>]`. Spread `...title` onto a heading element so the dialog is labeled for screen readers.
+Open the dialog from a trigger by dispatching your own Message and calling `Dialog.open(model)` in your update. Spread the `closeButton` bundle onto a Cancel button to dismiss it, or call `Dialog.close(model)` directly. Both return `{ model, commands?, outMessage? }`. Spread `...title` onto a heading element so the dialog is labeled for screen readers.
 
 ::Demo{name="dialog"}
 
@@ -109,7 +109,7 @@ Payload delivered to the `toView` callback each render.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Pattern-match on the OutMessage in your update handler.
+Messages emitted to the parent through the optional `outMessage` field. Pattern-match on the OutMessage in your update handler.
 
 | Name     | Type | Default | Description                                                                                                                                                                                                      |
 | -------- | ---- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
