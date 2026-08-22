@@ -707,6 +707,7 @@ describe('remote data machine', () => {
       stateTag: 'Idle',
       messageTag: 'ClickedRetry',
       state: Idle(),
+      reason: 'NotApplicable',
     })
 
     const [unchanged, commands] = remoteDataMachine.transition(
@@ -843,6 +844,7 @@ describe('connection machine', () => {
       stateTag: 'Disconnected',
       messageTag: 'TimedOutBackoff',
       state: Disconnected(),
+      reason: 'NotApplicable',
     })
   })
 
@@ -930,6 +932,7 @@ describe('guard lists', () => {
       stateTag: 'Connecting',
       messageTag: 'SocketErrored',
       state: atLimit,
+      reason: 'GuardsFellThrough',
     })
 
     const [unchanged, commands] = guardValueMachine.transition(
@@ -938,6 +941,36 @@ describe('guard lists', () => {
     )
     expect(unchanged).toBe(atLimit)
     expect(commands).toEqual([])
+  })
+})
+
+describe('ignored reasons', () => {
+  it('reports a message that appears in no state entry as OutOfAlphabet', () => {
+    const result = connectionMachine.step(
+      Disconnected(),
+      CompletedLogTransition(),
+    )
+    expect(result).toEqual({
+      _tag: 'Ignored',
+      stateTag: 'Disconnected',
+      messageTag: 'CompletedLogTransition',
+      state: Disconnected(),
+      reason: 'OutOfAlphabet',
+    })
+  })
+
+  it('reports a state with no table entry as NotApplicable when the message is in the alphabet', () => {
+    const result = narrowingMachine.step(
+      Disconnected(),
+      SocketErrored({ reason: 'boom' }),
+    )
+    expect(result).toEqual({
+      _tag: 'Ignored',
+      stateTag: 'Disconnected',
+      messageTag: 'SocketErrored',
+      state: Disconnected(),
+      reason: 'NotApplicable',
+    })
   })
 })
 
