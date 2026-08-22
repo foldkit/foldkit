@@ -210,6 +210,30 @@ const connectionMachine = define({
   },
 })
 
+const extraRootsMachine = define({
+  state: ConnectionState,
+  message: ConnectionMessage,
+})({
+  initial: Disconnected(),
+  states: {
+    Disconnected: {
+      on: {
+        ClickedConnect: to('Connecting', () => Connecting({ attemptCount: 1 })),
+      },
+    },
+    Suspended: {
+      on: {
+        SocketErrored: to('Failed', ({ message }) =>
+          Failed({
+            attemptCount: MAX_CONNECT_ATTEMPTS,
+            reason: message.reason,
+          }),
+        ),
+      },
+    },
+  },
+})
+
 // INTEGRATION
 
 const AppModel = S.Struct({
@@ -871,6 +895,44 @@ describe('connection machine', () => {
         reason: 'UnreachableSource',
       },
     ])
+  })
+
+  it('clears the Suspended findings when Suspended is an extra walk root', () => {
+    expect(connectionMachine.unreachableStates(['Suspended'])).toEqual([])
+    expect(connectionMachine.deadTransitions(['Suspended'])).toEqual([])
+  })
+
+  it('adds extra roots to the walk without dropping initial as a root', () => {
+    expect(extraRootsMachine.reachableFrom('Disconnected')).toEqual(
+      new Set(['Disconnected', 'Connecting']),
+    )
+    expect(extraRootsMachine.reachableFrom('Suspended')).toEqual(
+      new Set(['Suspended', 'Failed']),
+    )
+
+    expect(extraRootsMachine.unreachableStates()).toEqual([
+      'Connected',
+      'Reconnecting',
+      'Failed',
+      'Suspended',
+    ])
+    expect(extraRootsMachine.unreachableStates(['Suspended'])).toEqual([
+      'Connected',
+      'Reconnecting',
+    ])
+
+    expect(extraRootsMachine.deadTransitions()).toEqual([
+      {
+        edge: {
+          from: 'Suspended',
+          messageTag: 'SocketErrored',
+          target: 'Failed',
+          guard: { _tag: 'Unguarded' },
+        },
+        reason: 'UnreachableSource',
+      },
+    ])
+    expect(extraRootsMachine.deadTransitions(['Suspended'])).toEqual([])
   })
 
   it('emits a Mermaid state diagram with guard labels', () => {

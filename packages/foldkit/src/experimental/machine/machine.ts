@@ -357,10 +357,15 @@ export type EdgeSummary<
   guard: EdgeGuard
 }>
 
-/** Why a transition can never fire. */
+/**
+ * Why an Edge cannot fire in a walk of the declared Edge set:
+ * `UnreachableSource` means no path from the walk roots reaches the Edge's
+ * source state, and `ShadowedByOtherwise` means an earlier `otherwise` in the
+ * Edge's guard list always fires first.
+ */
 export type DeadTransitionReason = 'UnreachableSource' | 'ShadowedByOtherwise'
 
-/** An Edge that can never fire, with the reason. */
+/** An Edge that cannot fire in a walk of the declared Edge set, with the reason. */
 export type DeadTransition<
   State extends Tagged,
   Message extends Tagged,
@@ -388,9 +393,32 @@ export type Machine<
     message: Message,
   ) => [State, ReadonlyArray<Command<Message, never, R>>]
   step: (state: State, message: Message) => TransitionResult<State, Message, R>
+  /** The state tags a walk of the declared Edge set visits starting from `tag`. */
   reachableFrom: (tag: TagOf<State>) => ReadonlySet<TagOf<State>>
-  unreachableStates: () => ReadonlyArray<TagOf<State>>
-  deadTransitions: () => ReadonlyArray<DeadTransition<State, Message>>
+  /**
+   * The state tags a walk of the declared Edge set never visits, starting
+   * from the initial state's tag plus `extraRoots`. The walk sees only the
+   * declared Edges, so state changes made outside `transition` and `step`
+   * are invisible to it, and it always starts at `initial`. Entry points
+   * other than `initial`, such as restored persistence, deep links, or SSR
+   * hydration, must be passed as `extraRoots`, or the states they enter are
+   * reported unreachable even though the running program visits them.
+   */
+  unreachableStates: (
+    extraRoots?: ReadonlyArray<TagOf<State>>,
+  ) => ReadonlyArray<TagOf<State>>
+  /**
+   * The Edges that cannot fire in a walk of the declared Edge set starting
+   * from the initial state's tag plus `extraRoots`, each with its
+   * {@link DeadTransitionReason}. The same assumptions as
+   * `unreachableStates` apply: the walk cannot see state changes made
+   * outside `transition` and `step`, and entry points other than `initial`
+   * must be passed as `extraRoots`, or their outgoing Edges are reported as
+   * `UnreachableSource` even though the running program fires them.
+   */
+  deadTransitions: (
+    extraRoots?: ReadonlyArray<TagOf<State>>,
+  ) => ReadonlyArray<DeadTransition<State, Message>>
   toMermaid: () => string
 }>
 
@@ -714,7 +742,9 @@ export const define =
         Array.map(edgeSummary => edgeSummary.target),
       )
 
-    const reachableFrom = (tag: TagOf<State>): ReadonlySet<TagOf<State>> => {
+    const reachableFromRoots = (
+      roots: ReadonlyArray<TagOf<State>>,
+    ): ReadonlySet<TagOf<State>> => {
       const visit = (
         frontier: ReadonlyArray<TagOf<State>>,
         visited: ReadonlySet<TagOf<State>>,
@@ -730,11 +760,16 @@ export const define =
                 ),
         })
 
-      return visit([tag], new Set())
+      return visit(roots, new Set())
     }
 
-    const unreachableStates = (): ReadonlyArray<TagOf<State>> => {
-      const reachable = reachableFrom(initialTag)
+    const reachableFrom = (tag: TagOf<State>): ReadonlySet<TagOf<State>> =>
+      reachableFromRoots([tag])
+
+    const unreachableStates = (
+      extraRoots: ReadonlyArray<TagOf<State>> = [],
+    ): ReadonlyArray<TagOf<State>> => {
+      const reachable = reachableFromRoots([initialTag, ...extraRoots])
       return Array.filter(stateTags, stateTag => !reachable.has(stateTag))
     }
 
@@ -785,10 +820,10 @@ export const define =
         }),
       )
 
-    const deadTransitions = (): ReadonlyArray<
-      DeadTransition<State, Message>
-    > => {
-      const reachable = reachableFrom(initialTag)
+    const deadTransitions = (
+      extraRoots: ReadonlyArray<TagOf<State>> = [],
+    ): ReadonlyArray<DeadTransition<State, Message>> => {
+      const reachable = reachableFromRoots([initialTag, ...extraRoots])
 
       const unreachableSourceEdges = pipe(
         edges,
