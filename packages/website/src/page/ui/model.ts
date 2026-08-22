@@ -103,6 +103,7 @@ export const Model = S.Struct({
   menuAnimatedDemo: Menu.Model,
   popoverBasicDemo: Popover.Model,
   popoverAnimatedDemo: Popover.Model,
+  popoverArrowDemo: Popover.Model,
   popoverNestedParentDemo: Popover.Model,
   popoverNestedChildDemo: Popover.Model,
   verticalRadioGroupDemo: RadioGroup.Model,

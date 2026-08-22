@@ -439,6 +439,33 @@
     border-left-color: theme(--color-violet-400);
   }
 
+  .popover-arrow {
+    @apply absolute w-2 h-2 rotate-45 border-gray-200 dark:border-gray-700;
+    background: inherit;
+    left: var(--arrow-x);
+    top: var(--arrow-y);
+  }
+
+  .popover-panel[data-placement='top'] .popover-arrow {
+    @apply border-r border-b;
+    bottom: -4px;
+  }
+
+  .popover-panel[data-placement='bottom'] .popover-arrow {
+    @apply border-t border-l;
+    top: -4px;
+  }
+
+  .popover-panel[data-placement='left'] .popover-arrow {
+    @apply border-t border-r;
+    right: -4px;
+  }
+
+  .popover-panel[data-placement='right'] .popover-arrow {
+    @apply border-b border-l;
+    left: -4px;
+  }
+
   @keyframes demo-pulse {
     0%,
     100% {

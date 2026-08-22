@@ -103,6 +103,7 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
       id: 'popover-animated-demo',
       isAnimated: true,
     }),
+    popoverArrowDemo: Popover.init({ id: 'popover-arrow-demo' }),
     popoverNestedParentDemo: Popover.init({
       id: 'popover-nested-parent-demo',
       contentFocus: true,

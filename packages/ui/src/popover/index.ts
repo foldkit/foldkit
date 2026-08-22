@@ -374,10 +374,12 @@ export const AnchorPopover = Mount.define(
     buttonId: S.String,
     anchor: AnchorConfig,
     focusSelector: S.optional(S.String),
+    arrowId: S.optional(S.String),
+    arrowPadding: S.optional(S.Number),
   },
   Message.CompletedAnchorPopover,
 )(
-  ({ buttonId, anchor, focusSelector }) =>
+  ({ buttonId, anchor, focusSelector, arrowId, arrowPadding }) =>
     element =>
       Effect.gen(function* () {
         yield* Effect.acquireRelease(
@@ -388,6 +390,8 @@ export const AnchorPopover = Mount.define(
               interceptTab: false,
               focusAfterPosition: true,
               ...(focusSelector !== undefined && { focusSelector }),
+              ...(arrowId !== undefined && { arrowId }),
+              ...(arrowPadding !== undefined && { arrowPadding }),
             }),
           ),
           cleanup => Effect.sync(cleanup),
@@ -434,6 +438,11 @@ export const close = (model: Model): UpdateReturn =>
  *  - `backdrop`: attribute bundle for the modal backdrop. Includes the
  *    portal Mount that moves the backdrop to document.body. The
  *    backdrop's OnClick closes the popover.
+ *  - `arrow`: attribute bundle for an arrow element inside the panel.
+ *    Carries the id the anchor Mount resolves and hides the element from
+ *    assistive technology. Spread it onto your own element and place it
+ *    with the `--arrow-x` and `--arrow-y` custom properties Anchor
+ *    publishes on the panel. Nothing renders until you do.
  *  - `isVisible`: derived from `isOpen` and the Animation
  *    `transitionState`. The consumer renders the panel + backdrop only
  *    while this is true. */
@@ -441,6 +450,7 @@ export type RenderInfo = Readonly<{
   button: ReadonlyArray<ChildAttribute>
   panel: ReadonlyArray<ChildAttribute>
   backdrop: ReadonlyArray<ChildAttribute>
+  arrow: ReadonlyArray<ChildAttribute>
   isVisible: boolean
 }>
 
@@ -450,6 +460,7 @@ export type ViewInputs = Readonly<{
   toView: (render: RenderInfo) => Html
   isDisabled?: boolean
   focusSelector?: string
+  arrowPadding?: number
   ariaLabel?: string
   ariaLabelledBy?: string
 }>
@@ -469,6 +480,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       toView,
       isDisabled,
       focusSelector,
+      arrowPadding,
       ariaLabel,
       ariaLabelledBy,
     } = viewInputs
@@ -592,6 +604,8 @@ export const view = defineView<Model, Message, ViewInputs>(
           buttonId: `${id}-button`,
           anchor,
           ...(focusSelector !== undefined && { focusSelector }),
+          arrowId: `${id}-arrow`,
+          ...(arrowPadding !== undefined && { arrowPadding }),
         }),
       ),
       ...animationAttributes,
@@ -608,10 +622,13 @@ export const view = defineView<Model, Message, ViewInputs>(
       ...(isLeaving ? [] : [h.OnClick(Message.RequestedClose())]),
     ]
 
+    const arrowAttributes = [h.Id(`${id}-arrow`), h.AriaHidden(true)]
+
     return toView({
       button: childAttributes(buttonAttributes),
       panel: childAttributes(panelAttributes),
       backdrop: childAttributes(backdropAttributes),
+      arrow: childAttributes(arrowAttributes),
       isVisible,
     })
   },

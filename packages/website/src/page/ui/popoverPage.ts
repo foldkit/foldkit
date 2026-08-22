@@ -10,7 +10,7 @@ import * as Popover from './popover'
 import raw from './popoverPage.md'
 
 const { tableOfContents, view: renderPage } = slotDocPage<
-  'basic' | 'animated' | 'nested'
+  'basic' | 'arrow' | 'animated' | 'nested'
 >(raw, 'ui/popover')
 
 export { tableOfContents }
@@ -25,6 +25,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
     renderPage({
       demos: {
         basic: demoContainer(...Popover.basicDemo(model.popoverBasicDemo, h)),
+        arrow: demoContainer(...Popover.arrowDemo(model.popoverArrowDemo, h)),
         animated: demoContainer(
           ...Popover.animatedDemo(model.popoverAnimatedDemo, h),
         ),

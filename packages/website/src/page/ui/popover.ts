@@ -16,6 +16,8 @@ const basicPanelClassName =
 const animatedPanelClassName =
   'w-64 rounded-lg border border-gray-200 dark:border-gray-700 bg-cream dark:bg-gray-800 shadow-lg p-4 z-10 outline-none transition duration-200 ease-out data-[closed]:scale-95 data-[closed]:opacity-0'
 
+const arrowPanelClassName = `popover-panel ${basicPanelClassName}`
+
 const backdropClassName = 'fixed inset-0 z-0'
 
 const wrapperClassName = 'relative inline-block'
@@ -27,6 +29,14 @@ const POPOVER_ANCHOR: AnchorConfig = {
   gap: 4,
   padding: 8,
 }
+
+const POPOVER_ARROW_ANCHOR: AnchorConfig = {
+  placement: 'bottom-start',
+  gap: 8,
+  padding: 8,
+}
+
+const POPOVER_ARROW_PADDING = 12
 
 const NESTED_POPOVER_ANCHOR: AnchorConfig = {
   placement: 'right-start',
@@ -55,6 +65,7 @@ const popoverDemo = (
   popoverModel: Popover.Model,
   toMessage: (message: Popover.Message) => Message,
   panelClassNameValue: string,
+  isArrowDrawn: boolean,
   h: HtmlBuilder<Message>,
 ): Html =>
   h.submodel({
@@ -62,8 +73,9 @@ const popoverDemo = (
     model: popoverModel,
     view: Popover.view,
     viewInputs: {
-      anchor: POPOVER_ANCHOR,
-      toView: ({ button, panel, backdrop, isVisible }) =>
+      anchor: isArrowDrawn ? POPOVER_ARROW_ANCHOR : POPOVER_ANCHOR,
+      arrowPadding: POPOVER_ARROW_PADDING,
+      toView: ({ button, panel, backdrop, arrow, isVisible }) =>
         h.div(
           [h.Class(wrapperClassName)],
           [
@@ -76,7 +88,12 @@ const popoverDemo = (
                   h.div([...backdrop, h.Class(backdropClassName)]),
                   h.div(
                     [...panel, h.Class(panelClassNameValue)],
-                    [panelContent()],
+                    [
+                      ...(isArrowDrawn
+                        ? [h.div([...arrow, h.Class('popover-arrow')])]
+                        : []),
+                      panelContent(),
+                    ],
                   ),
                 ]
               : []),
@@ -108,6 +125,7 @@ export const basicDemo = (
               popoverModel,
               message => Message.GotPopoverBasicDemoMessage({ message }),
               basicPanelClassName,
+              false,
               h,
             ),
           ],
@@ -139,6 +157,39 @@ export const animatedDemo = (
               popoverModel,
               message => Message.GotPopoverAnimatedDemoMessage({ message }),
               animatedPanelClassName,
+              false,
+              h,
+            ),
+          ],
+        ),
+      ],
+    ),
+  ]
+}
+
+export const arrowDemo = (
+  popoverModel: Popover.Model,
+  h: HtmlBuilder<Message>,
+) => {
+  return [
+    h.div(
+      [h.Class('flex flex-col gap-1.5')],
+      [
+        h.label(
+          [
+            h.For(Popover.buttonId(popoverModel.id)),
+            h.Class('text-sm font-medium text-gray-900 dark:text-white'),
+          ],
+          ['Product menu'],
+        ),
+        h.div(
+          [h.Class('relative')],
+          [
+            popoverDemo(
+              popoverModel,
+              message => Message.GotPopoverArrowDemoMessage({ message }),
+              arrowPanelClassName,
+              true,
               h,
             ),
           ],

@@ -31,7 +31,7 @@ const sceneView =
       model,
       {
         anchor: { placement: 'bottom-start' },
-        toView: ({ button, panel, backdrop, isVisible }) =>
+        toView: ({ button, panel, backdrop, arrow, isVisible }) =>
           h.div(
             [],
             [
@@ -39,7 +39,11 @@ const sceneView =
               ...(isVisible
                 ? [
                     h.keyed('div')('test-backdrop', [...backdrop]),
-                    h.keyed('div')('test-panel-container', [...panel]),
+                    h.keyed('div')(
+                      'test-panel-container',
+                      [...panel],
+                      [h.keyed('div')('test-arrow', [...arrow])],
+                    ),
                   ]
                 : []),
             ],
@@ -52,6 +56,7 @@ const sceneView =
 const button = Scene.selector('[key="test-button"]')
 const panel = Scene.selector('[key="test-panel-container"]')
 const backdrop = Scene.selector('[key="test-backdrop"]')
+const arrow = Scene.selector('[key="test-arrow"]')
 
 const closedModel = init({ id: 'test' })
 const [openModel] = update(init({ id: 'test' }), Message.RequestedOpen())
@@ -139,6 +144,50 @@ describe('Popover', () => {
         Scene.expect(panel).toHaveStyle('visibility', 'hidden'),
         Scene.expect(panel).toHaveHook('insert'),
         Scene.expect(panel).toHaveHook('destroy'),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
+      )
+    })
+
+    it('renders the arrow slot with a derived id and hides it from assistive tech', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openModel),
+        Scene.expect(arrow).toHaveAttr('id', 'test-arrow'),
+        Scene.expect(arrow).toHaveAttr('aria-hidden', 'true'),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
+      )
+    })
+
+    it('passes the arrow id to the anchor Mount', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openModel),
+        Scene.Mount.expectHas(
+          AnchorPopover({
+            buttonId: 'test-button',
+            anchor: { placement: 'bottom-start' },
+            arrowId: 'test-arrow',
+          }),
+        ),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
+      )
+    })
+
+    it('passes the arrow padding to the anchor Mount when given', () => {
+      Scene.scene(
+        { update, view: sceneView({ arrowPadding: 8 }) },
+        Scene.given(openModel),
+        Scene.Mount.expectHas(
+          AnchorPopover({
+            buttonId: 'test-button',
+            anchor: { placement: 'bottom-start' },
+            arrowId: 'test-arrow',
+            arrowPadding: 8,
+          }),
+        ),
         acknowledgeAnchor,
         acknowledgeBackdrop,
       )
