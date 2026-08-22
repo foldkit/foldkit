@@ -9,7 +9,7 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     pool: 'forks',
-    forks: { singleFork: true },
+    maxWorkers: 1,
     isolate: false,
   },
 })
