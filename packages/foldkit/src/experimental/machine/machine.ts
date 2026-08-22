@@ -26,8 +26,6 @@ export type Variant<Union extends Tagged, Tag extends TagOf<Union>> = Extract<
 
 // EDGE
 
-declare const EdgeGuardValueTypeId: unique symbol
-
 /**
  * The single argument an Edge's `build` and `commands` callbacks receive:
  * the source state, the triggering Message, and the guard value produced by
@@ -73,7 +71,7 @@ export type Edge<
       input: EdgeInput<SourceState, TriggerMessage, unknown>,
     ) => ReadonlyArray<Command<Message, never, R>>
   >
-  readonly [EdgeGuardValueTypeId]?: GuardValue
+  readonly '~foldkit/EdgeGuardValue'?: GuardValue
 }>
 
 /** A guarded Edge that fires only when its guard passes. Construct with {@link when}. */

@@ -9,5 +9,9 @@
     "lib": ["esnext", "dom"],
     "types": []
   },
-  "include": ["src/packed-types.ts", "src/inferred-program.ts"]
+  "include": [
+    "src/packed-types.ts",
+    "src/inferred-program.ts",
+    "src/inferred-machine-edge.ts"
+  ]
 }
