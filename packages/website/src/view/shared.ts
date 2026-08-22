@@ -24,10 +24,6 @@ export const canaryBanner = (commit: string): Html => {
         ],
         [shortCommit],
       ),
-      ih.span(
-        [ih.Class('hidden sm:inline')],
-        [' · Playgrounds install the published release'],
-      ),
     ],
   )
 }
