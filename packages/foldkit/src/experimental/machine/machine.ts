@@ -1,5 +1,5 @@
 import {
-  Array,
+  Array as Array_,
   Match as M,
   Option,
   Predicate,
@@ -461,7 +461,7 @@ const isGuardList = <State extends Tagged, Message extends Tagged, R>(
     | LooseEdge<State, Message, R>
     | ReadonlyArray<LooseGuardedEdge<State, Message, R>>,
 ): edgeOrGuardedEdges is ReadonlyArray<LooseGuardedEdge<State, Message, R>> =>
-  globalThis.Array.isArray(edgeOrGuardedEdges)
+  Array.isArray(edgeOrGuardedEdges)
 
 const extractLiteralTag = (tagField: unknown): Option.Option<string> => {
   if (
@@ -483,6 +483,15 @@ const extractMemberTag = (member: unknown): Option.Option<string> =>
     Option.map(struct => struct.fields),
     Option.filter(Predicate.hasProperty('_tag')),
     Option.flatMap(fields => extractLiteralTag(fields._tag)),
+  )
+
+const flattenUnionMembers = (
+  members: ReadonlyArray<unknown>,
+): ReadonlyArray<unknown> =>
+  Array_.flatMap(members, member =>
+    Predicate.hasProperty(member, 'members') && Array.isArray(member.members)
+      ? flattenUnionMembers(member.members)
+      : [member],
   )
 
 /**
@@ -546,7 +555,8 @@ export const define =
 
     const stateTags = pipe(
       schemas.state.members,
-      Array.map(member =>
+      flattenUnionMembers,
+      Array_.map(member =>
         Option.getOrThrowWith(
           extractMemberTag(member),
           () =>
@@ -574,7 +584,7 @@ export const define =
         | ReadonlyArray<LooseGuardedEdge<State, Message, R>>,
     ): ReadonlyArray<EdgeSummary<State, Message>> =>
       isGuardList(edgeOrGuardedEdges)
-        ? Array.map(edgeOrGuardedEdges, (guardedEdge, position) =>
+        ? Array_.map(edgeOrGuardedEdges, (guardedEdge, position) =>
             guardedEdge._tag === 'When'
               ? makeEdgeSummary(from, messageTag, guardedEdge.edge.target, {
                   _tag: 'When',
@@ -593,10 +603,10 @@ export const define =
 
     const edges: ReadonlyArray<EdgeSummary<State, Message>> = pipe(
       Record.toEntries(looseStates),
-      Array.flatMap(([sourceTag, stateEntry]) =>
+      Array_.flatMap(([sourceTag, stateEntry]) =>
         pipe(
           Record.toEntries(stateEntry.on),
-          Array.flatMap(([messageTag, edgeOrGuardedEdges]) =>
+          Array_.flatMap(([messageTag, edgeOrGuardedEdges]) =>
             summarizeEntry(sourceTag, messageTag, edgeOrGuardedEdges),
           ),
         ),
@@ -608,7 +618,7 @@ export const define =
       state: State,
       message: Message,
     ): Option.Option<SelectedEdge<State, Message, R>> =>
-      Array.matchLeft(guardedEdges, {
+      Array_.matchLeft(guardedEdges, {
         onEmpty: () => Option.none(),
         onNonEmpty: (guardedEdge, rest) => {
           if (guardedEdge._tag === 'When') {
@@ -710,8 +720,8 @@ export const define =
     const targetsFrom = (tag: TagOf<State>): ReadonlyArray<TagOf<State>> =>
       pipe(
         edges,
-        Array.filter(edgeSummary => edgeSummary.from === tag),
-        Array.map(edgeSummary => edgeSummary.target),
+        Array_.filter(edgeSummary => edgeSummary.from === tag),
+        Array_.map(edgeSummary => edgeSummary.target),
       )
 
     const reachableFrom = (tag: TagOf<State>): ReadonlySet<TagOf<State>> => {
@@ -719,7 +729,7 @@ export const define =
         frontier: ReadonlyArray<TagOf<State>>,
         visited: ReadonlySet<TagOf<State>>,
       ): ReadonlySet<TagOf<State>> =>
-        Array.matchLeft(frontier, {
+        Array_.matchLeft(frontier, {
           onEmpty: () => visited,
           onNonEmpty: (head, tail) =>
             visited.has(head)
@@ -735,7 +745,7 @@ export const define =
 
     const unreachableStates = (): ReadonlyArray<TagOf<State>> => {
       const reachable = reachableFrom(initialTag)
-      return Array.filter(stateTags, stateTag => !reachable.has(stateTag))
+      return Array_.filter(stateTags, stateTag => !reachable.has(stateTag))
     }
 
     const makeDeadTransition = (
@@ -753,14 +763,14 @@ export const define =
     const shadowedEdges = (): ReadonlyArray<DeadTransition<State, Message>> =>
       pipe(
         edges,
-        Array.groupBy(
+        Array_.groupBy(
           edgeSummary => `${edgeSummary.from}|${edgeSummary.messageTag}`,
         ),
         Record.values,
-        Array.flatMap(group => {
+        Array_.flatMap(group => {
           const maybeOtherwisePosition = pipe(
             group,
-            Array.findFirst(
+            Array_.findFirst(
               edgeSummary => edgeSummary.guard._tag === 'Otherwise',
             ),
             Option.flatMap(guardPosition),
@@ -771,13 +781,13 @@ export const define =
             onSome: otherwisePosition =>
               pipe(
                 group,
-                Array.filter(edgeSummary =>
+                Array_.filter(edgeSummary =>
                   Option.match(guardPosition(edgeSummary), {
                     onNone: () => false,
                     onSome: position => position > otherwisePosition,
                   }),
                 ),
-                Array.map(edgeSummary =>
+                Array_.map(edgeSummary =>
                   makeDeadTransition(edgeSummary, 'ShadowedByOtherwise'),
                 ),
               ),
@@ -792,8 +802,8 @@ export const define =
 
       const unreachableSourceEdges = pipe(
         edges,
-        Array.filter(edgeSummary => !reachable.has(edgeSummary.from)),
-        Array.map(edgeSummary =>
+        Array_.filter(edgeSummary => !reachable.has(edgeSummary.from)),
+        Array_.map(edgeSummary =>
           makeDeadTransition(edgeSummary, 'UnreachableSource'),
         ),
       )
@@ -811,15 +821,15 @@ export const define =
           }),
         )
 
-      const stateLines = Array.map(stateTags, stateTag => `  ${stateTag}`)
+      const stateLines = Array_.map(stateTags, stateTag => `  ${stateTag}`)
 
-      const transitionLines = Array.map(
+      const transitionLines = Array_.map(
         edges,
         edgeSummary =>
           `  ${edgeSummary.from} --> ${edgeSummary.target}: ${edgeSummary.messageTag}${guardLabel(edgeSummary.guard)}`,
       )
 
-      return Array.join(
+      return Array_.join(
         [
           'stateDiagram-v2',
           ...stateLines,

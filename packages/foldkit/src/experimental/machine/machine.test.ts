@@ -503,6 +503,43 @@ const plainTagMachine = define({
   },
 })
 
+const NestedIdle = ts('NestedIdle')
+const NestedLoading = ts('NestedLoading')
+const NestedOk = ts('NestedOk', { data: S.String })
+
+const NestedActive = S.Union([NestedLoading, NestedOk])
+const NestedState = S.Union([NestedIdle, NestedActive])
+type NestedState = typeof NestedState.Type
+
+const nestedUnionMachine = define({
+  state: NestedState,
+  message: RemoteDataMessage,
+})({
+  initial: NestedIdle(),
+  states: {
+    NestedIdle: {
+      on: {
+        ClickedFetch: to('NestedLoading', () => NestedLoading()),
+      },
+    },
+    NestedLoading: {
+      on: {
+        SucceededFetch: to('NestedOk', ({ message }) =>
+          NestedOk({ data: message.data }),
+        ),
+      },
+    },
+    NestedOk: {
+      on: {
+        ClickedRetry: to('NestedIdle', () => NestedIdle()),
+      },
+    },
+  },
+})
+
+const UntaggedMember = S.Struct({ _tag: S.String })
+const UntaggedState = S.Union([PlainIdle, UntaggedMember])
+
 // REQUIREMENTS
 
 type UploadsShape = Readonly<{ presign: Effect.Effect<string> }>
@@ -950,6 +987,46 @@ describe('state tag extraction', () => {
       RemoteDataMessage.ClickedFetch(),
     )
     expect(active).toStrictEqual({ _tag: 'PlainActive' })
+  })
+
+  it('flattens nested state unions into depth-first tag order', () => {
+    expect(nestedUnionMachine.initial).toStrictEqual(NestedIdle())
+    expect(nestedUnionMachine.stateTags).toEqual([
+      'NestedIdle',
+      'NestedLoading',
+      'NestedOk',
+    ])
+  })
+
+  it('transitions into and out of a nested union member', () => {
+    const [loading] = nestedUnionMachine.transition(
+      NestedIdle(),
+      ClickedFetch(),
+    )
+    expect(loading).toStrictEqual(NestedLoading())
+
+    const [ok] = nestedUnionMachine.transition(
+      NestedLoading(),
+      SucceededFetch({ data: 'payload' }),
+    )
+    expect(ok).toStrictEqual(NestedOk({ data: 'payload' }))
+
+    const [idleAgain] = nestedUnionMachine.transition(
+      NestedOk({ data: 'payload' }),
+      ClickedRetry(),
+    )
+    expect(idleAgain).toStrictEqual(NestedIdle())
+  })
+
+  it('throws when a member is neither a nested union nor a Struct with a literal _tag', () => {
+    expect(() =>
+      define({ state: UntaggedState, message: RemoteDataMessage })({
+        initial: { _tag: 'PlainIdle' },
+        states: {},
+      }),
+    ).toThrow(
+      'Machine.define: every member of the state union Schema must be a Struct with a literal _tag field',
+    )
   })
 })
 
