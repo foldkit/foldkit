@@ -55,18 +55,18 @@ The generated project also includes `lint` and `format` scripts. Run them with y
 
 Skip this section if you used `create-foldkit-app`. Scaffolded projects already receive compatible package versions.
 
-Foldkit currently uses the Effect v4 release candidate and pins its `effect` peer dependency to an exact version: `effect@4.0.0-rc.109`. Stable Effect v3 does not satisfy that pin. Adding Foldkit to an Effect v3 project produces peer dependency conflicts. When Foldkit moves to a new release candidate, an existing project may need to upgrade Effect at the same time.
+Foldkit currently uses the Effect v4 release candidate and pins its `effect` peer dependency to an exact version: `effect@4.0.0-rc.111`. Stable Effect v3 does not satisfy that pin. Adding Foldkit to an Effect v3 project produces peer dependency conflicts. When Foldkit moves to a new release candidate, an existing project may need to upgrade Effect at the same time.
 
 Install Foldkit together with its pinned peer dependency:
 
 ```sh
-npm install foldkit effect@4.0.0-rc.109
+npm install foldkit effect@4.0.0-rc.111
 ```
 
 `@effect/platform-browser` is a separate package pinned to the same version. Install it when you use `@foldkit/devtools`, which declares it as a peer dependency, or when you need Effect browser services such as `BrowserKeyValueStore` and `BrowserCrypto`:
 
 ```sh
-npm install @effect/platform-browser@4.0.0-rc.109
+npm install @effect/platform-browser@4.0.0-rc.111
 ```
 
 ## Where to Go Next

@@ -11,10 +11,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-rc.109",
-    "@effect/platform-node": "4.0.0-rc.109",
+    "@effect/platform-browser": "4.0.0-rc.111",
+    "@effect/platform-node": "4.0.0-rc.111",
     "@foldkit/ui": "workspace:*",
-    "effect": "4.0.0-rc.109",
+    "effect": "4.0.0-rc.111",
     "foldkit": "workspace:*"
   },
   "devDependencies": {

@@ -10,9 +10,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@effect/platform-node": "4.0.0-rc.109",
+    "@effect/platform-node": "4.0.0-rc.111",
     "@typing-game/shared": "workspace:*",
-    "effect": "4.0.0-rc.109"
+    "effect": "4.0.0-rc.111"
   },
   "devDependencies": {
     "@types/node": "^25.9.3",

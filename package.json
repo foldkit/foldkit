@@ -91,7 +91,7 @@
     "@foldkit/oxlint-plugin": "workspace:*",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/node": "^25.9.3",
-    "effect": "4.0.0-rc.109",
+    "effect": "4.0.0-rc.111",
     "foldkit": "workspace:*",
     "knip": "^6.12.2",
     "madge": "^8.0.0",

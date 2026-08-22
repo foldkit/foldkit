@@ -10,10 +10,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-rc.109",
-    "@effect/platform-node": "4.0.0-rc.109",
+    "@effect/platform-browser": "4.0.0-rc.111",
+    "@effect/platform-node": "4.0.0-rc.111",
     "@tailwindcss/vite": "^4.3.1",
-    "effect": "4.0.0-rc.109",
+    "effect": "4.0.0-rc.111",
     "foldkit": "workspace:*",
     "tailwindcss": "^4.3.1"
   },

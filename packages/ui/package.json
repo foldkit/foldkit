@@ -126,16 +126,16 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "effect": "4.0.0-rc.109",
+    "effect": "4.0.0-rc.111",
     "foldkit": "workspace:^0"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.7.6"
   },
   "devDependencies": {
-    "@effect/vitest": "4.0.0-rc.109",
+    "@effect/vitest": "4.0.0-rc.111",
     "@foldkit/vite-plugin": "workspace:*",
-    "effect": "4.0.0-rc.109",
+    "effect": "4.0.0-rc.111",
     "foldkit": "workspace:*",
     "happy-dom": "^20.10.4",
     "rimraf": "^6.1.3",
