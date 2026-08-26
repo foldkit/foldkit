@@ -10,6 +10,7 @@ import {
   slash,
   string,
 } from 'foldkit/route'
+import type { CallableTaggedStruct } from 'foldkit/schema'
 
 // ROUTE SCHEMAS
 
@@ -256,12 +257,14 @@ export const isDocsSectionRoute = (route: AppRoute): boolean =>
 
 // ROUTERS
 
-const page = <T>(slug: string, route: { make: (input: {}) => T }) =>
+type PayloadFreeRoute<Tag extends string> = CallableTaggedStruct<Tag, {}>
+
+const page = <Tag extends string>(slug: string, route: PayloadFreeRoute<Tag>) =>
   pipe(literal(slug), mapTo(route))
 
 const section =
   (sectionSlug: string) =>
-  <T>(pageSlug: string, route: { make: (input: {}) => T }) =>
+  <Tag extends string>(pageSlug: string, route: PayloadFreeRoute<Tag>) =>
     pipe(literal(sectionSlug), slash(literal(pageSlug)), mapTo(route))
 
 const getStarted = section('get-started')
