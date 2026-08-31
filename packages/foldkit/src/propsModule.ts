@@ -13,6 +13,7 @@ import {
   hasTrustedInnerHtml,
   isClientOnlyProperty,
 } from './propertyProvenance.js'
+import { markDirty } from './snabbdom/dirtyFlag.js'
 import type { Module } from './snabbdom/index.js'
 import { VNodeDataMask } from './snabbdom/vnode.js'
 
@@ -120,8 +121,10 @@ function updateProps(
       ) {
         if (hasTrustedInnerHtml(oldProps)) {
           writeNativeInnerHtml(elm, '')
+          markDirty()
         } else {
           resetProperty(elm, key, oldProps[key])
+          markDirty()
         }
       }
       if (
@@ -130,6 +133,7 @@ function updateProps(
         isClientOnlyProperty(props, key)
       ) {
         clearControlledDefault(elm, key)
+        markDirty()
         if (isNativeCustomElementAttribute(elm, oldProps, key)) {
           const attributeName = reflectedAttributeName(key)
           if (attributeName !== undefined) {
@@ -143,6 +147,7 @@ function updateProps(
         isNativeCustomElementAttribute(elm, props, key)
       ) {
         resetProperty(elm, key, oldProps[key])
+        markDirty()
       }
     }
   }
@@ -162,13 +167,16 @@ function updateProps(
         hasTrustedInnerHtml(props)
       ) {
         writeNativeInnerHtml(elm, String(cur))
+        markDirty()
       } else if (
         elm instanceof Element &&
         isNativeCustomElementAttribute(elm, props, key)
       ) {
         writeAttribute(elm, key, cur)
+        markDirty()
       } else {
         writeProperty(elm, key, cur)
+        markDirty()
       }
     }
   }
@@ -182,6 +190,7 @@ function updateProps(
         hasTrustedInnerHtml(oldProps)
       ) {
         writeNativeInnerHtml(elm, '')
+        markDirty()
         continue
       }
       if (
@@ -191,6 +200,7 @@ function updateProps(
         const attributeName = reflectedAttributeName(key)
         if (attributeName !== undefined) {
           elm.removeAttribute(attributeName)
+          markDirty()
         }
         continue
       }
@@ -216,16 +226,19 @@ function updateProps(
           htmlAttributeValue(vnode.data?.attrs, attributeName) !== undefined
         ) {
           restoreControlledStateFromRawAttribute(elm, key)
+          markDirty()
           continue
         }
         clearControlledDefault(elm, key)
         elm.removeAttribute(attributeName)
+        markDirty()
         continue
       }
       if (elm instanceof Element) {
         clearControlledDefault(elm, key)
       }
       resetProperty(elm, key, old)
+      markDirty()
     }
   }
 }

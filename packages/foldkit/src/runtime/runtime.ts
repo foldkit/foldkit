@@ -36,6 +36,11 @@ import {
 } from '../devTools/store.js'
 import { startWebSocketBridge } from '../devTools/webSocketBridge.js'
 import {
+  drainOutlines,
+  drainPatchOutlines,
+  shouldRecordOutline,
+} from '../html/boundary.js'
+import {
   type BoundaryRegistry,
   Document,
   Html,
@@ -49,6 +54,7 @@ import {
   __setRuntime as setHtmlRuntime,
   textDirectionToAttribute,
 } from '../html/index.js'
+import { DEVTOOLS_OVERLAY_RUNTIME_ID } from '../html/index.js'
 import { __hydrateVNode } from '../hydrate.js'
 import {
   FOLDKIT_APP_ATTRIBUTE,
@@ -60,6 +66,7 @@ import type {
 } from '../managedResource/index.js'
 import { MountTracker } from '../mount/index.js'
 import { UrlRequest } from '../navigation/urlRequest.js'
+import { OUTLINE_CUSTOM_EVENT, type OutlineRect } from '../outline/public.js'
 import {
   type Inbound,
   type Outbound,
@@ -73,7 +80,12 @@ import { RenderCommit, createCommitNotifier } from '../render/commit.js'
 import type { Subscriptions } from '../subscription/subscription.js'
 import type { Return as UpdateReturn } from '../update/index.js'
 import { Url, fromString as urlFromString } from '../url/index.js'
-import { VNode, __patchVNode } from '../vdom.js'
+import {
+  VNode,
+  __clearPatchOutlineRegistry,
+  __patchVNode,
+  __setPatchOutlineRegistry,
+} from '../vdom.js'
 import { addNavigationEventListeners } from './browserListeners.js'
 import { defaultCrashView, noOpDispatch } from './crashUI.js'
 import { deepFreeze } from './deepFreeze.js'
@@ -2889,12 +2901,18 @@ const makeRuntime = <
                     buildId ?? '',
                   )
                 }
-                return __patchVNode(
-                  maybeCurrentVNode,
-                  nextVNode,
-                  container,
-                  boundaryRegistry.dedupeSeen,
-                )
+                __setPatchOutlineRegistry(boundaryRegistry)
+                try {
+                  return __patchVNode(
+                    maybeCurrentVNode,
+                    nextVNode,
+                    container,
+                    boundaryRegistry.dedupeSeen,
+                    boundaryRegistry,
+                  )
+                } finally {
+                  __clearPatchOutlineRegistry()
+                }
               }),
             )
             vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
@@ -2994,6 +3012,8 @@ const makeRuntime = <
                     'Replay',
                   )
                   drainMountEvents()
+                  drainOutlines(boundaryRegistry)
+                  drainPatchOutlines(boundaryRegistry)
                   // NOTE: a replay paints a past Model, so it owns the DOM on
                   // screen until the next live frame. Leaving
                   // `lastRenderedModel` on the pre-pause Model would hand the
@@ -3117,6 +3137,120 @@ const makeRuntime = <
             // Model still on screen, and before `drainPendingMessages` below,
             // whose handlers can advance `liveModel` again.
             lastRenderedModel = renderedModel
+            {
+              const explicit = drainOutlines(boundaryRegistry)
+              const patched = drainPatchOutlines(boundaryRegistry)
+              const isOutlineEnabled =
+                shouldRecordOutline() &&
+                runtimeId !== DEVTOOLS_OVERLAY_RUNTIME_ID
+              if (isOutlineEnabled) {
+                const getTag = (value: unknown): string | undefined => {
+                  try {
+                    if (typeof value !== 'object' || value === null) {
+                      return undefined
+                    }
+                    if (!('_tag' in value)) {
+                      return undefined
+                    }
+                    const tag = Reflect.get(value, '_tag')
+                    return typeof tag === 'string' ? tag : undefined
+                  } catch (error) {
+                    void error
+                    return undefined
+                  }
+                }
+                const cause = Option.match(maybeLastDirtyMessage, {
+                  onNone: () => undefined,
+                  onSome: getTag,
+                })
+                const rects: Array<OutlineRect> = []
+                const all =
+                  explicit.length !== 0
+                    ? patched.length !== 0
+                      ? [...explicit, ...patched]
+                      : explicit
+                    : patched
+                for (const entry of all) {
+                  let elm: Element | null = null
+                  const rawElm = entry.vnode.elm
+                  if (rawElm instanceof Element) {
+                    elm = rawElm
+                  } else if (rawElm instanceof Text) {
+                    elm = rawElm.parentElement
+                  } else if (rawElm instanceof Node) {
+                    const rawChildren = entry.vnode.children
+                    const children: ReadonlyArray<unknown> = Array.isArray(
+                      rawChildren,
+                    )
+                      ? rawChildren
+                      : []
+                    for (const child of children) {
+                      if (typeof child !== 'object' || child === null) {
+                        continue
+                      }
+                      if (!('elm' in child)) {
+                        continue
+                      }
+                      const childElm = Reflect.get(child, 'elm')
+                      if (childElm instanceof Element) {
+                        elm = childElm
+                        break
+                      }
+                    }
+                  }
+                  if (!elm || !elm.isConnected) {
+                    continue
+                  }
+                  const rect = elm.getBoundingClientRect()
+                  if (rect.width === 0 && rect.height === 0) {
+                    continue
+                  }
+                  const id =
+                    'patchId' in entry ? entry.patchId : entry.boundaryId
+                  rects.push({
+                    id,
+                    label: entry.label,
+                    x: rect.x,
+                    y: rect.y,
+                    width: rect.width,
+                    height: rect.height,
+                    ...(cause !== undefined ? { cause } : {}),
+                  })
+                }
+                if (rects.length === 0) {
+                  const maybeRootElm = Option.flatMap(
+                    vnodeSlot.maybeCurrentVNode,
+                    vnode => {
+                      const elm = vnode.elm
+                      return elm instanceof Element
+                        ? Option.some(elm)
+                        : Option.none<Element>()
+                    },
+                  )
+                  const rootElm = Option.getOrElse(
+                    maybeRootElm,
+                    () => container,
+                  )
+                  const rect = rootElm.getBoundingClientRect()
+                  if (rect.width !== 0 || rect.height !== 0) {
+                    rects.push({
+                      id: `root:${runtimeId}`,
+                      label: 'root',
+                      x: rect.x,
+                      y: rect.y,
+                      width: rect.width,
+                      height: rect.height,
+                      ...(cause !== undefined ? { cause } : {}),
+                    })
+                  }
+                }
+                if (rects.length > 0) {
+                  window.dispatchEvent(
+                    new CustomEvent(OUTLINE_CUSTOM_EVENT, { detail: rects }),
+                  )
+                }
+              }
+            }
             if (devToolsStore !== null) {
               const mountEvents = drainMountEvents()
               Effect.runFork(
@@ -3273,13 +3407,20 @@ const makeRuntime = <
           const maybeCurrentVNode = vnodeSlot.maybeCurrentVNode
           const [patchedVNode, maybePatchDuration] = measureSlowPhase(
             resolvedSlowPatch,
-            () =>
-              __patchVNode(
-                maybeCurrentVNode,
-                nextDocument.body,
-                container,
-                boundaryRegistry.dedupeSeen,
-              ),
+            () => {
+              __setPatchOutlineRegistry(boundaryRegistry)
+              try {
+                return __patchVNode(
+                  maybeCurrentVNode,
+                  nextDocument.body,
+                  container,
+                  boundaryRegistry.dedupeSeen,
+                  boundaryRegistry,
+                )
+              } finally {
+                __clearPatchOutlineRegistry()
+              }
+            },
           )
           vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
           reportSlowPhase<SlowPatchContext<Model, Message>>(

@@ -23,7 +23,11 @@ import {
   SVG_NAMESPACE,
   parsedAttributeName,
 } from '../../domReflection.js'
-import { beginRender, createBoundaryRegistry } from '../../html/boundary.js'
+import {
+  beginRender,
+  createBoundaryRegistry,
+  drainPatchOutlines,
+} from '../../html/boundary.js'
 import {
   type Document,
   type HtmlBuilder,
@@ -1220,7 +1224,9 @@ const runView = <Model>(
   beginRender(boundaryRegistry)
   setRuntime(noOpDispatch, Context.empty(), boundaryRegistry)
   try {
-    return view(model, htmlBuilderFor())
+    const doc = view(model, htmlBuilderFor())
+    void drainPatchOutlines(boundaryRegistry)
+    return doc
   } finally {
     clearRuntime()
   }

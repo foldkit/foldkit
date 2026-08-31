@@ -110,6 +110,11 @@ export const __requireDispatch = requireDispatch
  */
 export const DEVTOOLS_HOST_ID = 'foldkit-devtools'
 
+/** `id` on the DevTools overlay runtime container. Matches the value passed to
+ *  `makeApplication`'s `container.id`, so outline emission can skip the
+ *  overlay's own FPS and inspector renders. */
+export const DEVTOOLS_OVERLAY_RUNTIME_ID = '__foldkit_devtools_overlay__'
+
 /**
  * Tag symbol attached to file-aware event handler functions so Scene test
  * helpers can distinguish `OnFileChange` from `OnChange` (both register on

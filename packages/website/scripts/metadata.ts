@@ -35,6 +35,9 @@ const docs = (
 const core = (title: string, description: string): PageMetadata =>
   docs(title, description, 'Core Concepts')
 
+const devtools = (title: string, description: string): PageMetadata =>
+  docs(title, description, 'DevTools')
+
 const ui = (title: string, description: string): PageMetadata =>
   docs(title, description, 'Foldkit UI')
 
@@ -249,9 +252,13 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Managed Resources',
     'Acquire a stateful handle while a Model condition holds, expose it to Commands, and release it when dependencies change. Covers Layers and Submodel lifting.',
   ),
-  CoreDevTools: core(
+  DevToolsOverview: devtools(
     'DevTools',
     'Inspect Message history, Model changes, Commands, and Mounts in the development overlay. Configure time travel, filtering, history limits, and AI dispatch.',
+  ),
+  DevToolsReRenderOutlines: devtools(
+    'Re-render Outlines',
+    'Highlight re-rendered boundaries with fading outlines, read the overlay, and fix over-rendering with memoization.',
   ),
   CoreCrashView: core(
     'Crash View',

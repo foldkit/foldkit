@@ -38,6 +38,7 @@ const GROUP_ID: Record<GroupKey, string> = {
   tooling: 'tooling-group',
   foldkitUi: 'foldkit-ui-group',
   ai: 'ai-group',
+  devtools: 'devtools-group',
   examples: 'examples-group',
   apiReference: 'api-reference-group',
 }

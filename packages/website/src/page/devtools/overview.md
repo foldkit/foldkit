@@ -19,6 +19,10 @@ The `Live` badge tells you whether the inspector shows the latest state or a pas
 Foldkit also exposes DevTools to AI agents over the Model Context Protocol. See the [DevTools MCP](/ai/mcp) page for setup.
 :::
 
+## Settings
+
+The Settings tab includes Highlight re-renders. It draws fading outlines around the boundaries that rendered on the last frame so you can spot over-rendering directly in the page. The toggle is off by default and persists through `KeyValueStore`. See [Re-render Outlines](/devtools/re-render-outlines) for enablement, how to read the overlay, and how it compares to React Scan.
+
 ## Development and Production
 
 DevTools are enabled by default in development. Recording and the MCP bridge live in the core runtime. The browser overlay ships separately in `@foldkit/devtools`. When that package is installed as a development dependency, `@foldkit/vite-plugin` mounts the overlay automatically during development. Production builds omit it without an application-level environment check.

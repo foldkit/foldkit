@@ -75,6 +75,10 @@
       "types": "./dist/navigation/public.d.ts",
       "import": "./dist/navigation/public.js"
     },
+    "./outline": {
+      "types": "./dist/outline/public.d.ts",
+      "import": "./dist/outline/public.js"
+    },
     "./port": {
       "types": "./dist/port/public.d.ts",
       "import": "./dist/port/public.js"

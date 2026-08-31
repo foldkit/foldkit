@@ -94,7 +94,9 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             CoreSlowWarnings: () => Page.Core.Slow.tableOfContents,
             CoreFreezeModel: () => Page.Core.FreezeModel.tableOfContents,
             CorePreserveScroll: () => Page.Core.PreserveScroll.tableOfContents,
-            CoreDevTools: () => Page.Core.DevTools.tableOfContents,
+            DevToolsOverview: () => Page.DevTools.Overview.tableOfContents,
+            DevToolsReRenderOutlines: () =>
+              Page.DevTools.ReRenderOutlines.tableOfContents,
             CoreSubmodel: () => Page.Core.Submodel.tableOfContents,
             AsyncData: () => Page.AsyncData.tableOfContents,
             PatternsInformingSubmodels: () =>

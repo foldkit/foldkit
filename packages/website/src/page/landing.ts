@@ -10,11 +10,11 @@ import {
   aiOverviewRouter,
   comingFromReactRouter,
   coreArchitectureRouter,
-  coreDevToolsRouter,
   coreEmbeddingRouter,
   coreManagedResourcesRouter,
   coreServerRenderingRouter,
   coreSubmodelRouter,
+  devToolsOverviewRouter,
   effectAtomComparisonRouter,
   exampleDetailRouter,
   examplesRouter,
@@ -825,7 +825,7 @@ const devToolsSection = (): Html =>
             ],
           ),
           ih.a(
-            [ih.Href(coreDevToolsRouter()), ih.Class('cta-secondary mb-8')],
+            [ih.Href(devToolsOverviewRouter()), ih.Class('cta-secondary mb-8')],
             ['Learn about DevTools', Icon.arrowRight('w-5 h-5')],
           ),
           ih.div(

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import { parsedAttributeName } from '../domReflection.js'
+import { markDirty } from './dirtyFlag.js'
 import type { Module } from './module.js'
 import { type VNode, type VNodeData, VNodeDataMask } from './vnode.js'
 
@@ -91,12 +92,14 @@ function updateAttrs(oldVnode: VNode, vnode: VNode): void {
     const old = normalizedOld.get(name)
     if (old !== cur) {
       setAttribute(elm, name, cur)
+      markDirty()
     }
   }
 
   for (const name of normalizedOld.keys()) {
     if (!normalizedNext.has(name)) {
       setAttribute(elm, name, false)
+      markDirty()
     }
   }
 }

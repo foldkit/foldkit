@@ -688,10 +688,21 @@ export const docsView = (
           ]),
           Page.Core.ManagedResources.tableOfContents,
         ),
-      CoreDevTools: () =>
+      DevToolsOverview: () =>
         withTableOfContents(
-          lazyDocsContent(Page.Core.DevTools.view, [model.copiedSnippets, h]),
-          Page.Core.DevTools.tableOfContents,
+          lazyDocsContent(Page.DevTools.Overview.view, [
+            model.copiedSnippets,
+            h,
+          ]),
+          Page.DevTools.Overview.tableOfContents,
+        ),
+      DevToolsReRenderOutlines: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.DevTools.ReRenderOutlines.view, [
+            model.copiedSnippets,
+            h,
+          ]),
+          Page.DevTools.ReRenderOutlines.tableOfContents,
         ),
       CoreCrashView: () =>
         withTableOfContents(

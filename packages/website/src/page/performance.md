@@ -60,7 +60,7 @@ Elm is the proof of what this architecture can do. Elm renders a pure view into 
 The dev server runs several systems that production builds strip entirely:
 
 - [Freeze Model](/core/freeze-model) deep-freezes the Model after every update to catch accidental mutation at the write site.
-- [DevTools](/core/devtools) records each Message with Model snapshots and diffs for time travel.
+- [DevTools](/devtools) records each Message with Model snapshots and diffs for time travel.
 - The [Slow Warnings](/core/slow-warnings) can time update, subscriptions, view, and patch work against phase budgets.
 - HMR Model preservation encodes the Model so state survives hot reloads.
 
@@ -75,6 +75,8 @@ When something is slow, work through this list in order:
 - [Key](/best-practices/keying) mapped list items by stable Model ids, the one identity only your data can provide, so the differ moves nodes instead of rebuilding them. Branching views need no keys when built with `@foldkit/vite-plugin`: view functions carry identity, and the differ replaces DOM when a position’s identity changes. Without the plugin, branch identity falls back to positional-plus-key semantics and each branch point needs an explicit key.
 - Cache expensive derived data on the Model when memoization cannot cover it. The view recomputes a derived value on every render whether or not its inputs changed; update can compute it once, in the branches that change those inputs. The price is a derived field every such branch must keep in sync, so reach for this after `createLazy`, not before.
 - Render long lists with [Virtual List](/ui/virtual-list) so only visible items mount.
+
+Use [Re-render Outlines](/devtools/re-render-outlines) to spot over-rendering before adding memoization.
 
 ## Bundle size and code splitting
 

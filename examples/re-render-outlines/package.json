@@ -1,0 +1,28 @@
+{
+  "name": "re-render-outlines-example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@effect/platform-browser": "4.0.0-rc.112",
+    "effect": "4.0.0-rc.112",
+    "foldkit": "workspace:*"
+  },
+  "devDependencies": {
+    "@foldkit/devtools": "workspace:*",
+    "@foldkit/vite-plugin": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
+    "happy-dom": "^20.11.7",
+    "prettier": "^3.9.6",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
+  }
+}

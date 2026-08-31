@@ -4,7 +4,11 @@ import {
   type WrapDescriptor,
   composeBoundary,
   deregisterBoundaryWrap,
+  hasNestedOutlineForSubtree,
   registerBoundaryWrap,
+  shouldRecordOutline,
+  submodelModelChanged,
+  trackOutline,
 } from './boundary.js'
 import { isChildAttribute } from './childAttribute.js'
 import type { HtmlBuilder } from './index.js'
@@ -226,10 +230,7 @@ const walkForFunctions = (
     const nextPath = [...path, segment]
     if (typeof value === 'function') {
       throw new Error(
-        `Foldkit: h.submodel \`viewInputs\` may only contain functions at the ` +
-          `top level. Found a function at \`viewInputs.${nextPath.join('.')}\`. ` +
-          `Lift it to the top level of \`viewInputs\` so it can be auto-scoped to ` +
-          `the parent boundary, or pass the value as primitive data.`,
+        `Foldkit: h.submodel \`viewInputs\` may only contain functions at the top level. Found a function at \`viewInputs.${nextPath.join('.')}\`. Lift it to the top level of \`viewInputs\` so it can be auto-scoped to the parent boundary, or pass the value as primitive data.`,
       )
     }
     if (isFrameworkBranded(value)) {
@@ -340,6 +341,12 @@ const withBoundaryCleanup = (
   if (memoizedVNodes.has(vnode)) {
     memoizedVNodes.add(wrapped)
   }
+  for (let index = 0; index < registry.outlineBuffer.length; index++) {
+    const entry = registry.outlineBuffer[index]
+    if (entry !== undefined && entry.vnode === vnode) {
+      registry.outlineBuffer[index] = { ...entry, vnode: wrapped }
+    }
+  }
   return wrapped
 }
 
@@ -417,5 +424,14 @@ export const submodel = <View extends AnySubmodelView>(
     return null
   }
 
-  return withBoundaryCleanup(vnode, registry, childBoundaryId)
+  const wrapped = withBoundaryCleanup(vnode, registry, childBoundaryId)
+  if (shouldRecordOutline()) {
+    if (
+      submodelModelChanged(registry, childBoundaryId, config.model) &&
+      !hasNestedOutlineForSubtree(registry, wrapped)
+    ) {
+      trackOutline(registry, childBoundaryId, childBoundaryId, wrapped)
+    }
+  }
+  return wrapped
 }

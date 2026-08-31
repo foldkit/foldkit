@@ -23,7 +23,7 @@ Here is how common TanStack Query concepts map onto Foldkit:
 | `invalidateQueries`                                        | `AsyncData.revalidateOrLoad` plus the fetch Command, returned from `update`                   |
 | `useMutation`                                              | A Message and a Command, like any other effect                                                |
 | Retries                                                    | Effect’s `retry` and `Schedule`                                                               |
-| TanStack Query Devtools                                    | [Foldkit DevTools](/core/devtools), which inspects the Model and Message timeline             |
+| TanStack Query Devtools                                    | [Foldkit DevTools](/devtools), which inspects the Model and Message timeline                  |
 
 ## Async State Is Model State
 
