@@ -1,5 +1,6 @@
 import { Duration, Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
+import { defineTaggedUnion } from 'foldkit/schema'
 
 import * as Animation from '../animation/schema.js'
 
@@ -45,6 +46,21 @@ export const makeEntry = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
     payload: payloadSchema,
   })
 
+// SWIPE
+
+/** Tracks the active swipe gesture. Only one toast can be swiped at a time. */
+export const SwipeState = defineTaggedUnion({
+  Idle: {},
+  Dragging: {
+    entryId: Schema.String,
+    startX: Schema.Number,
+    currentX: Schema.Number,
+  },
+})
+export type SwipeState = typeof SwipeState.Type
+
+export const DEFAULT_SWIPE_THRESHOLD = 80
+
 // MODEL
 
 /** Schema factory for the toast container's state. `nextEntryKey` is a
@@ -58,6 +74,8 @@ export const makeModel = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
     defaultDuration: Schema.DurationFromMillis,
     entries: Schema.Array(makeEntry(payloadSchema)),
     nextEntryKey: Schema.Number,
+    swipeState: SwipeState,
+    swipeThreshold: Schema.Number,
   })
 
 // MESSAGE
@@ -76,6 +94,10 @@ export const Message = defineMessageUnion({
     entryId: Schema.String,
     message: Animation.Message,
   },
+  PressedEntryPointer: { entryId: Schema.String, clientX: Schema.Number },
+  MovedSwipePointer: { clientX: Schema.Number },
+  ReleasedSwipePointer: { clientX: Schema.Number },
+  CancelledSwipe: {},
 })
 
 export type Dismissed = typeof Message.Dismissed.Type
@@ -85,6 +107,10 @@ export type CompletedWaitBeforeDismissal =
 export type HoveredEntry = typeof Message.HoveredEntry.Type
 export type LeftEntry = typeof Message.LeftEntry.Type
 export type GotAnimationMessage = typeof Message.GotAnimationMessage.Type
+export type PressedEntryPointer = typeof Message.PressedEntryPointer.Type
+export type MovedSwipePointer = typeof Message.MovedSwipePointer.Type
+export type ReleasedSwipePointer = typeof Message.ReleasedSwipePointer.Type
+export type CancelledSwipe = typeof Message.CancelledSwipe.Type
 
 /** Factory for the union of all messages the toast component can produce. */
 export const makeMessage = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
@@ -102,6 +128,10 @@ export const makeMessage = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
       entryId: Schema.String,
       message: Animation.Message,
     },
+    PressedEntryPointer: { entryId: Schema.String, clientX: Schema.Number },
+    MovedSwipePointer: { clientX: Schema.Number },
+    ReleasedSwipePointer: { clientX: Schema.Number },
+    CancelledSwipe: {},
   })
 
 /** Factory for the union of out-messages the toast component can produce. */
@@ -117,6 +147,7 @@ export const makeOutMessage = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
 export type InitConfig = Readonly<{
   id: string
   defaultDuration?: Duration.Input
+  swipeThreshold?: number
 }>
 
 export const DEFAULT_DURATION = Duration.seconds(4)

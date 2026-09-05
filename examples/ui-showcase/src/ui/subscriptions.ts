@@ -4,6 +4,7 @@ import { DragAndDrop, Slider, VirtualList } from '@foldkit/ui'
 
 import { Message as UiMessage } from './message'
 import type { UiModel } from './model'
+import { Toast } from './toast'
 
 const dragAndDropSubscriptions = Subscription.lift({
   dragPointer: DragAndDrop.subscriptions.documentPointer,
@@ -46,10 +47,19 @@ const virtualListVariableDemoSubscriptions = Subscription.lift({
     UiMessage.GotVirtualListVariableDemoMessage({ message }),
 })
 
+const toastDemoSubscriptions = Subscription.lift(Toast.subscriptions)<
+  UiModel,
+  UiMessage
+>({
+  toChildModel: model => model.toastDemo,
+  toParentMessage: message => UiMessage.GotToastDemoMessage({ message }),
+})
+
 export const subscriptions = Subscription.aggregate<UiModel, UiMessage>()(
   dragAndDropSubscriptions,
   sliderRatingSubscriptions,
   sliderVolumeSubscriptions,
   virtualListDemoSubscriptions,
   virtualListVariableDemoSubscriptions,
+  toastDemoSubscriptions,
 )

@@ -7,6 +7,7 @@ import { describe, it } from '@effect/vitest'
 import * as Animation from '../animation/index.js'
 import {
   Message,
+  SwipeState,
   WaitBeforeDismissal,
   make,
   test as toastTest,
@@ -62,6 +63,8 @@ describe('Toast', () => {
         defaultDuration: Duration.seconds(4),
         entries: [],
         nextEntryKey: 0,
+        swipeState: SwipeState.Idle(),
+        swipeThreshold: 80,
       })
     })
 
@@ -76,6 +79,24 @@ describe('Toast', () => {
         defaultDuration: Duration.millis(1000),
         entries: [],
         nextEntryKey: 0,
+        swipeState: SwipeState.Idle(),
+        swipeThreshold: 80,
+      })
+    })
+
+    it('accepts a custom swipeThreshold', () => {
+      expect(
+        Toast.init({
+          id: 'test',
+          swipeThreshold: 120,
+        }),
+      ).toStrictEqual({
+        id: 'test',
+        defaultDuration: Duration.seconds(4),
+        entries: [],
+        nextEntryKey: 0,
+        swipeState: SwipeState.Idle(),
+        swipeThreshold: 120,
       })
     })
   })
@@ -522,6 +543,244 @@ describe('Toast', () => {
         givenEmpty,
         Story.message(Toast.Added({ entry })),
         toastTest.drainEntry({ entryId: firstEntryId }),
+        Story.model((next: Model) => {
+          expect(next.entries).toHaveLength(0)
+        }),
+      )
+    })
+  })
+
+  describe('swipe', () => {
+    it('PressedEntryPointer starts dragging and bumps dismiss version', () => {
+      const model: Model = {
+        ...Toast.init({ id: 'test' }),
+        entries: [makeSettledEntry()],
+        nextEntryKey: 1,
+      }
+      Story.story(
+        Toast.update,
+        Story.given(model),
+        Story.message(
+          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 100 }),
+        ),
+        Story.model((next: Model) => {
+          expect(next.swipeState).toStrictEqual(
+            SwipeState.Dragging({
+              entryId: firstEntryId,
+              startX: 100,
+              currentX: 100,
+            }),
+          )
+          expect(next.entries[0]?.pendingDismissVersion).toBe(1)
+        }),
+        Story.Command.expectNone(),
+      )
+    })
+
+    it('MovedSwipePointer tracks currentX while dragging', () => {
+      const model: Model = {
+        ...Toast.init({ id: 'test' }),
+        entries: [makeSettledEntry()],
+        nextEntryKey: 1,
+      }
+      Story.story(
+        Toast.update,
+        Story.given(model),
+        Story.message(
+          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 100 }),
+        ),
+        Story.message(Message.MovedSwipePointer({ clientX: 150 })),
+        Story.model((next: Model) => {
+          expect(next.swipeState).toStrictEqual(
+            SwipeState.Dragging({
+              entryId: firstEntryId,
+              startX: 100,
+              currentX: 150,
+            }),
+          )
+        }),
+      )
+    })
+
+    it('ReleasedSwipePointer below threshold snaps back and reschedules dismiss', () => {
+      const model: Model = {
+        ...Toast.init({ id: 'test' }),
+        entries: [makeSettledEntry()],
+        nextEntryKey: 1,
+      }
+      Story.story(
+        Toast.update,
+        Story.given(model),
+        Story.message(
+          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 100 }),
+        ),
+        Story.message(Message.MovedSwipePointer({ clientX: 130 })),
+        Story.message(Message.ReleasedSwipePointer({ clientX: 130 })),
+        Story.model((next: Model) => {
+          expect(next.swipeState).toStrictEqual(SwipeState.Idle())
+          expect(next.entries[0]?.pendingDismissVersion).toBe(2)
+          expect(next.entries[0]?.animation.transitionState).toBe('Idle')
+        }),
+        Story.Command.resolve(
+          WaitBeforeDismissal,
+          Message.CompletedWaitBeforeDismissal({
+            entryId: firstEntryId,
+            version: STALE_VERSION,
+          }),
+        ),
+        Story.model((next: Model) => {
+          expect(next.entries[0]?.animation.transitionState).toBe('Idle')
+        }),
+      )
+    })
+
+    it('ReleasedSwipePointer beyond threshold dismisses the entry', () => {
+      const model: Model = {
+        ...Toast.init({ id: 'test' }),
+        entries: [makeSettledEntry()],
+        nextEntryKey: 1,
+      }
+      Story.story(
+        Toast.update,
+        Story.given(model),
+        Story.message(
+          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 100 }),
+        ),
+        Story.message(Message.MovedSwipePointer({ clientX: 200 })),
+        Story.message(Message.ReleasedSwipePointer({ clientX: 200 })),
+        Story.model((next: Model) => {
+          expect(next.swipeState).toStrictEqual(SwipeState.Idle())
+          expect(next.entries[0]?.animation.transitionState).toBe('LeaveStart')
+        }),
+        Story.Command.resolveAll(
+          [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
+          [
+            Animation.WaitForAnimationSettled,
+            Animation.Message.EndedAnimation(),
+          ],
+        ),
+        Story.model((next: Model) => {
+          expect(next.entries).toHaveLength(0)
+        }),
+      )
+    })
+
+    it('CancelledSwipe snaps back without dismissing', () => {
+      const model: Model = {
+        ...Toast.init({ id: 'test' }),
+        entries: [makeSettledEntry()],
+        nextEntryKey: 1,
+      }
+      Story.story(
+        Toast.update,
+        Story.given(model),
+        Story.message(
+          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 100 }),
+        ),
+        Story.message(Message.MovedSwipePointer({ clientX: 180 })),
+        Story.message(Message.CancelledSwipe()),
+        Story.model((next: Model) => {
+          expect(next.swipeState).toStrictEqual(SwipeState.Idle())
+          expect(next.entries[0]?.animation.transitionState).toBe('Idle')
+          expect(next.entries[0]?.pendingDismissVersion).toBe(2)
+        }),
+        Story.Command.resolve(
+          WaitBeforeDismissal,
+          Message.CompletedWaitBeforeDismissal({
+            entryId: firstEntryId,
+            version: STALE_VERSION,
+          }),
+        ),
+        Story.model((next: Model) => {
+          expect(next.entries[0]?.animation.transitionState).toBe('Idle')
+        }),
+      )
+    })
+
+    it('ignores PressedEntryPointer when already dragging another entry', () => {
+      const entryOne = makeSettledEntry({ id: 'test-entry-0' })
+      const entryTwo = makeSettledEntry({ id: 'test-entry-1' })
+      const model: Model = {
+        ...Toast.init({ id: 'test' }),
+        entries: [entryOne, entryTwo],
+        nextEntryKey: 2,
+        swipeState: SwipeState.Dragging({
+          entryId: 'test-entry-0',
+          startX: 100,
+          currentX: 120,
+        }),
+        swipeThreshold: 80,
+      }
+      Story.story(
+        Toast.update,
+        Story.given(model),
+        Story.message(
+          Message.PressedEntryPointer({
+            entryId: 'test-entry-1',
+            clientX: 200,
+          }),
+        ),
+        Story.model((next: Model) => {
+          expect(next.swipeState).toStrictEqual(
+            SwipeState.Dragging({
+              entryId: 'test-entry-0',
+              startX: 100,
+              currentX: 120,
+            }),
+          )
+        }),
+      )
+    })
+
+    it('ignores PressedEntryPointer for a leaving entry', () => {
+      const leavingEntry = makeSettledEntry({
+        animation: {
+          id: firstEntryId,
+          isShowing: false,
+          transitionState: 'LeaveAnimating',
+        },
+      })
+      const model: Model = {
+        ...Toast.init({ id: 'test' }),
+        entries: [leavingEntry],
+        nextEntryKey: 1,
+      }
+      Story.story(
+        Toast.update,
+        Story.given(model),
+        Story.message(
+          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 100 }),
+        ),
+        Story.model((next: Model) => {
+          expect(next.swipeState).toStrictEqual(SwipeState.Idle())
+        }),
+      )
+    })
+
+    it('swipe beyond threshold in opposite direction also dismisses', () => {
+      const model: Model = {
+        ...Toast.init({ id: 'test' }),
+        entries: [makeSettledEntry()],
+        nextEntryKey: 1,
+      }
+      Story.story(
+        Toast.update,
+        Story.given(model),
+        Story.message(
+          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 200 }),
+        ),
+        Story.message(Message.MovedSwipePointer({ clientX: 50 })),
+        Story.message(Message.ReleasedSwipePointer({ clientX: 50 })),
+        Story.model((next: Model) => {
+          expect(next.entries[0]?.animation.transitionState).toBe('LeaveStart')
+        }),
+        Story.Command.resolveAll(
+          [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
+          [
+            Animation.WaitForAnimationSettled,
+            Animation.Message.EndedAnimation(),
+          ],
+        ),
         Story.model((next: Model) => {
           expect(next.entries).toHaveLength(0)
         }),

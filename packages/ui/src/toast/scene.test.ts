@@ -5,7 +5,7 @@ import * as Scene from 'foldkit/scene'
 import { describe, it } from '@effect/vitest'
 
 import * as Animation from '../animation/index.js'
-import { type EntryHandlers, type Variant, make } from './index.js'
+import { type EntryHandlers, SwipeState, type Variant, make } from './index.js'
 
 const TestPayload = Schema.Struct({ body: Schema.String })
 type TestPayload = typeof TestPayload.Type
@@ -162,6 +162,42 @@ describe('Toast', () => {
         { update: Toast.update, view: sceneView({ ariaLabel: 'Toasts' }) },
         Scene.given(Toast.init({ id: 'test' })),
         Scene.expect(container).toHaveAttr('aria-label', 'Toasts'),
+      )
+    })
+
+    it('attaches pointerdown handler for swipe', () => {
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(withEntry()),
+        Scene.expect(entryZero).toHaveHandler('pointerdown'),
+      )
+    })
+
+    it('adds data-swipe=move and translateX when dragging', () => {
+      const model: Model = {
+        ...Toast.init({ id: 'test' }),
+        entries: [makeSettledEntry()],
+        nextEntryKey: 1,
+        swipeState: SwipeState.Dragging({
+          entryId: 'test-entry-0',
+          startX: 100,
+          currentX: 180,
+        }),
+        swipeThreshold: 80,
+      }
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(model),
+        Scene.expect(entryZero).toHaveAttr('data-swipe', 'move'),
+        Scene.expect(entryZero).toHaveStyle('transform', 'translateX(80px)'),
+      )
+    })
+
+    it('does not add data-swipe when idle', () => {
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(withEntry()),
+        Scene.expect(entryZero).not.toHaveAttr('data-swipe'),
       )
     })
   })

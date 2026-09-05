@@ -3,6 +3,10 @@
 // update, and view definitions.
 import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
+// Wire pointer subscriptions once at the app root so swipe tracking
+// continues when the pointer leaves the entry. Without this lift the
+// view still sets data-swipe on pointerdown but never receives move/up.
+import { Subscription } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -34,10 +38,10 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize it:
+// In your init function, initialize it. Tune swipeThreshold for a tighter or looser stack:
 const init = () => ({
   model: {
-    toast: Toast.init({ id: 'app-toast' }),
+    toast: Toast.init({ id: 'app-toast', swipeThreshold: 80 }),
     maybeLastDismissedBody: Option.none(),
     // ...your other fields
   },
@@ -101,10 +105,23 @@ ClickedSave: () =>
     },
   })
 
+export const subscriptions = Subscription.lift(Toast.subscriptions)<
+  Model,
+  Message
+>({
+  toChildModel: model => model.toast,
+  toParentMessage: message => Message.GotToastMessage({ message }),
+})
+
+// Custom renderers (for example a foldcn stack) can read the drag offset
+// directly and apply it themselves:
+// Toast.swipeOffsetForEntry(model.toast.swipeState, entry.id)
+
 // In your view, embed Toast via h.submodel once at the app root. The
 // entryToView callback lays out each entry from its payload. The
-// component handles the <li> wrapper, hover-to-pause, and enter/leave
-// animations.
+// component handles the <li> wrapper, hover-to-pause, swipe-to-dismiss
+// (pointerdown + data-swipe="move" + translateX/--toast-swipe-move-x),
+// and enter/leave animations.
 const view = (h: HtmlBuilder<Message>) =>
   h.submodel({
     slotId: 'app-toast',

@@ -1,20 +1,36 @@
-import { Array, Duration, Effect, Number, Option, Schema, pipe } from 'effect'
+import {
+  Array,
+  Duration,
+  Effect,
+  Match,
+  Number,
+  Option,
+  Schema,
+  Stream,
+  pipe,
+} from 'effect'
 import * as Command from 'foldkit/command'
 import { evo } from 'foldkit/struct'
+import * as Subscription from 'foldkit/subscription'
 import * as Update from 'foldkit/update'
 
-import * as Animation from '../animation/schema.js'
+import {
+  Message as AnimationMessage,
+  type Model as AnimationModel,
+  OutMessage as AnimationOutMessage,
+  init as animationInit,
+} from '../animation/schema.js'
 import {
   defaultLeaveCommand as animationDefaultLeaveCommand,
-  hide as animationHide,
-  show as animationShow,
   update as animationUpdate,
 } from '../animation/update.js'
 import * as OptionExt from '../internal/optionExtensions.js'
 import {
   DEFAULT_DURATION,
+  DEFAULT_SWIPE_THRESHOLD,
   type InitConfig,
   Message as StaticMessage,
+  SwipeState,
   type Variant,
   makeEntry,
   makeMessage,
@@ -54,6 +70,41 @@ export const WaitBeforeDismissal = Command.define('WaitBeforeDismissal', {
 })
 
 const DEFAULT_VARIANT: Variant = 'Info'
+
+const SWIPE_THRESHOLD_FALLBACK = DEFAULT_SWIPE_THRESHOLD
+
+const SwipeActivity = Schema.Literals(['Idle', 'Active'])
+
+const swipeActivityFromState = (
+  swipeState: typeof SwipeState.Type,
+): typeof SwipeActivity.Type =>
+  Match.value(swipeState).pipe(
+    Match.withReturnType<typeof SwipeActivity.Type>(),
+    Match.tag('Dragging', () => 'Active'),
+    Match.orElse(() => 'Idle'),
+  )
+
+export const swipeOffsetForEntry = (
+  swipeState: typeof SwipeState.Type,
+  entryId: string,
+): number =>
+  Match.value(swipeState).pipe(
+    Match.withReturnType<number>(),
+    Match.tag('Dragging', dragging =>
+      dragging.entryId === entryId ? dragging.currentX - dragging.startX : 0,
+    ),
+    Match.orElse(() => 0),
+  )
+
+const isSwipingEntry = (
+  swipeState: typeof SwipeState.Type,
+  entryId: string,
+): boolean =>
+  Match.value(swipeState).pipe(
+    Match.withReturnType<boolean>(),
+    Match.tag('Dragging', dragging => dragging.entryId === entryId),
+    Match.orElse(() => false),
+  )
 
 /** Factory that binds Toast's runtime (update fn, helpers, commands) to a
  *  specific payload schema. Called by `make` in index.ts; inner helpers close
@@ -106,9 +157,14 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     WaitBeforeDismissal({ entryId, version, duration })
 
   const rescheduleDismissCommands = (
+    model: Model,
     entry: Entry,
   ): ReadonlyArray<Command.Command<Message>> => {
-    if (isEntryLeaving(entry) || entry.isHovered) {
+    if (
+      isEntryLeaving(entry) ||
+      entry.isHovered ||
+      isSwipingEntry(model.swipeState, entry.id)
+    ) {
       return []
     } else {
       return Option.match(entry.maybeDuration, {
@@ -137,26 +193,29 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
   const toGotAnimationMessage =
     (entryId: string) =>
-    (message: Animation.Message): Message =>
+    (message: AnimationMessage): Message =>
       MessageSchema.GotAnimationMessage({ entryId, message })
 
   const toDismissedToastOutMessage: (
     payload: A,
-  ) => (outMessage: Animation.OutMessage) => OutMessage | undefined = payload =>
-    Animation.OutMessage.match<OutMessage | undefined>({
-      StartedLeaveAnimating: () => undefined,
-      TransitionedOut: () => OutMessageSchema.DismissedToast({ payload }),
-    })
+  ) => (outMessage: AnimationOutMessage) => OutMessage | undefined = payload =>
+    Match.type<AnimationOutMessage>().pipe(
+      Match.withReturnType<OutMessage | undefined>(),
+      Match.tagsExhaustive({
+        StartedLeaveAnimating: () => undefined,
+        TransitionedOut: () => OutMessageSchema.DismissedToast({ payload }),
+      }),
+    )
 
   const foldEntryAnimationOutMessage: (
     entryId: string,
   ) => (
-    outMessage: Animation.OutMessage,
-    context: Update.FoldContext<Animation.Message, Message>,
+    outMessage: AnimationOutMessage,
+    context: Update.FoldContext<AnimationMessage, Message>,
   ) => Update.Step<Model, Message> =
     entryId =>
     (outMessage, { liftCommand }) =>
-      Animation.OutMessage.match<Update.Step<Model, Message>>(outMessage, {
+      AnimationOutMessage.match<Update.Step<Model, Message>>(outMessage, {
         StartedLeaveAnimating: () => model =>
           Option.match(readEntryAnimation(entryId)(model), {
             onNone: () => ({ model }),
@@ -182,7 +241,8 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
   const foldEntryAnimationShow = (entry: Entry) =>
     Update.foldChildStep({
-      update: animationShow,
+      update: (animation: AnimationModel) =>
+        animationUpdate(animation, AnimationMessage.Showed()),
       read: readEntryAnimation(entry.id),
       write: writeEntryAnimation(entry.id),
       toParentMessage: toGotAnimationMessage(entry.id),
@@ -190,7 +250,8 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
   const foldEntryAnimationHide = (entry: Entry) =>
     Update.foldChildStep({
-      update: animationHide,
+      update: (animation: AnimationModel) =>
+        animationUpdate(animation, AnimationMessage.Hid()),
       read: readEntryAnimation(entry.id),
       write: writeEntryAnimation(entry.id),
       toParentMessage: toGotAnimationMessage(entry.id),
@@ -199,7 +260,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const delegateToEntryAnimation = (
     model: Model,
     entryId: string,
-    animationMessage: Animation.Message,
+    animationMessage: AnimationMessage,
   ): UpdateReturn =>
     Option.match(
       Array.findFirst(model.entries, ({ id }) => id === entryId),
@@ -222,7 +283,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     return {
       id: entryId,
       variant: input.variant ?? DEFAULT_VARIANT,
-      animation: Animation.init({ id: entryId, isShowing: false }),
+      animation: animationInit({ id: entryId, isShowing: false }),
       maybeDuration,
       pendingDismissVersion: 0,
       isHovered: false,
@@ -239,6 +300,8 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         : Duration.fromInputUnsafe(config.defaultDuration),
     entries: [],
     nextEntryKey: 0,
+    swipeState: SwipeState.Idle(),
+    swipeThreshold: config.swipeThreshold ?? SWIPE_THRESHOLD_FALLBACK,
   })
 
   /** Processes a Toast Message and returns the next Model, optional Commands,
@@ -261,7 +324,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
               Array.findFirst(stepModel.entries, ({ id }) => id === entry.id),
               {
                 onNone: () => [],
-                onSome: rescheduleDismissCommands,
+                onSome: found => rescheduleDismissCommands(stepModel, found),
               },
             ),
           }),
@@ -337,13 +400,135 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
               isHovered: () => false,
               pendingDismissVersion: Number.increment,
             })
+            const nextModel = updateEntry(model, entryId, () => nextEntry)
             return {
-              model: updateEntry(model, entryId, () => nextEntry),
-              commands: rescheduleDismissCommands(nextEntry),
+              model: nextModel,
+              commands: rescheduleDismissCommands(nextModel, nextEntry),
             }
           },
         })
       },
+
+      PressedEntryPointer: ({ entryId, clientX }) => {
+        const maybeEntry = Array.findFirst(
+          model.entries,
+          ({ id }) => id === entryId,
+        )
+        return Option.match(maybeEntry, {
+          onNone: (): UpdateReturn => ({ model }),
+          onSome: entry => {
+            if (isEntryLeaving(entry) || model.swipeState._tag === 'Dragging') {
+              return { model }
+            } else {
+              const nextEntry = evo(entry, {
+                pendingDismissVersion: Number.increment,
+              })
+              return {
+                model: evo(
+                  updateEntry(model, entryId, () => nextEntry),
+                  {
+                    swipeState: () =>
+                      SwipeState.Dragging({
+                        entryId,
+                        startX: clientX,
+                        currentX: clientX,
+                      }),
+                  },
+                ),
+              }
+            }
+          },
+        })
+      },
+
+      MovedSwipePointer: ({ clientX }) =>
+        Match.value(model.swipeState).pipe(
+          Match.withReturnType<UpdateReturn>(),
+          Match.tag('Dragging', dragging => ({
+            model: evo(model, {
+              swipeState: () =>
+                SwipeState.Dragging({
+                  ...dragging,
+                  currentX: clientX,
+                }),
+            }),
+          })),
+          Match.orElse(() => ({ model })),
+        ),
+
+      ReleasedSwipePointer: ({ clientX }) =>
+        Match.value(model.swipeState).pipe(
+          Match.withReturnType<UpdateReturn>(),
+          Match.tag('Dragging', dragging => {
+            const offset = clientX - dragging.startX
+            const entryId = dragging.entryId
+            const maybeEntry = Array.findFirst(
+              model.entries,
+              ({ id }) => id === entryId,
+            )
+            return Option.match(maybeEntry, {
+              onNone: (): UpdateReturn => ({
+                model: evo(model, { swipeState: () => SwipeState.Idle() }),
+              }),
+              onSome: entry => {
+                if (Math.abs(offset) >= model.swipeThreshold) {
+                  const clearedModel = evo(model, {
+                    swipeState: () => SwipeState.Idle(),
+                  })
+                  if (isEntryLeaving(entry)) {
+                    return { model: clearedModel }
+                  } else {
+                    return foldEntryAnimationHide(entry)(clearedModel)
+                  }
+                } else {
+                  const nextEntry = evo(entry, {
+                    pendingDismissVersion: Number.increment,
+                  })
+                  const nextModel = evo(
+                    updateEntry(model, entryId, () => nextEntry),
+                    { swipeState: () => SwipeState.Idle() },
+                  )
+                  return {
+                    model: nextModel,
+                    commands: rescheduleDismissCommands(nextModel, nextEntry),
+                  }
+                }
+              },
+            })
+          }),
+          Match.orElse(() => ({ model })),
+        ),
+
+      CancelledSwipe: () =>
+        Match.value(model.swipeState).pipe(
+          Match.withReturnType<UpdateReturn>(),
+          Match.tag('Dragging', dragging => {
+            const entryId = dragging.entryId
+            const maybeEntry = Array.findFirst(
+              model.entries,
+              ({ id }) => id === entryId,
+            )
+            return Option.match(maybeEntry, {
+              onNone: (): UpdateReturn => ({
+                model: evo(model, { swipeState: () => SwipeState.Idle() }),
+              }),
+              onSome: entry => {
+                const nextEntry = evo(entry, {
+                  pendingDismissVersion: Number.increment,
+                })
+                const nextModel = evo(
+                  updateEntry(model, entryId, () => nextEntry),
+                  { swipeState: () => SwipeState.Idle() },
+                )
+                return {
+                  model: nextModel,
+                  commands: rescheduleDismissCommands(nextModel, nextEntry),
+                }
+              },
+            })
+          }),
+          Match.orElse(() => ({ model })),
+        ),
 
       GotAnimationMessage: ({ entryId, message: animationMessage }) =>
         delegateToEntryAnimation(model, entryId, animationMessage),
@@ -361,6 +546,94 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const dismissAll = (model: Model): UpdateReturn =>
     update(model, MessageSchema.DismissedAll())
 
+  const subscriptions = Subscription.make<Model, Message>()(entry => ({
+    swipePointer: entry(
+      { swipeActivity: SwipeActivity },
+      {
+        modelToDependencies: model => ({
+          swipeActivity: swipeActivityFromState(model.swipeState),
+        }),
+        dependenciesToStream: ({ swipeActivity }) => {
+          const moveStream = Stream.fromEventListener<PointerEvent>(
+            document,
+            'pointermove',
+          ).pipe(
+            Stream.map(event =>
+              MessageSchema.MovedSwipePointer({ clientX: event.clientX }),
+            ),
+          )
+          const upStream = Stream.fromEventListener<PointerEvent>(
+            document,
+            'pointerup',
+          ).pipe(
+            Stream.map(event =>
+              MessageSchema.ReleasedSwipePointer({
+                clientX: event.clientX,
+              }),
+            ),
+          )
+          const cancelStream = Stream.fromEventListener<PointerEvent>(
+            document,
+            'pointercancel',
+          ).pipe(Stream.map(() => MessageSchema.CancelledSwipe()))
+          const pointerEvents = Stream.merge(
+            Stream.merge(moveStream, upStream),
+            cancelStream,
+          )
+
+          const documentSwipeStyles = Stream.callback<never>(() =>
+            Effect.acquireRelease(
+              Effect.sync(() => {
+                document.documentElement.style.setProperty(
+                  'user-select',
+                  'none',
+                )
+                document.documentElement.style.setProperty(
+                  '-webkit-user-select',
+                  'none',
+                )
+                const cursorStyle = document.createElement('style')
+                cursorStyle.textContent = '* { cursor: grabbing !important; }'
+                document.head.appendChild(cursorStyle)
+                return cursorStyle
+              }),
+              cursorStyle =>
+                Effect.sync(() => {
+                  document.documentElement.style.removeProperty('user-select')
+                  document.documentElement.style.removeProperty(
+                    '-webkit-user-select',
+                  )
+                  cursorStyle.remove()
+                }),
+            ).pipe(Effect.flatMap(() => Effect.never)),
+          )
+
+          return Stream.when(
+            Stream.merge(pointerEvents, documentSwipeStyles),
+            Effect.sync(() => swipeActivity === 'Active'),
+          )
+        },
+      },
+    ),
+
+    swipeEscape: entry(
+      { swipeActivity: SwipeActivity },
+      {
+        modelToDependencies: model => ({
+          swipeActivity: swipeActivityFromState(model.swipeState),
+        }),
+        dependenciesToStream: ({ swipeActivity }) =>
+          Stream.when(
+            Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
+              Stream.filter(({ key }) => key === 'Escape'),
+              Stream.map(() => MessageSchema.CancelledSwipe()),
+            ),
+            Effect.sync(() => swipeActivity === 'Active'),
+          ),
+      },
+    ),
+  }))
+
   return {
     Entry: EntrySchema,
     Model: ModelSchema,
@@ -373,5 +646,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     show,
     dismiss,
     dismissAll,
+    subscriptions,
+    swipeOffsetForEntry,
   } as const
 }

@@ -1,15 +1,19 @@
-import { Match, Schema } from 'effect'
+import { Equal, Match, Option, Schema } from 'effect'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineView } from 'foldkit/submodel'
 
-import { Message, Position, Variant } from './schema.js'
-import { WaitBeforeDismissal, makeRuntime } from './update.js'
+import { Position, Variant } from './schema.js'
+import { makeRuntime } from './update.js'
 
 export type {
   CompletedWaitBeforeDismissal,
   Dismissed,
   DismissedAll,
   GotAnimationMessage,
+  PressedEntryPointer,
+  MovedSwipePointer,
+  ReleasedSwipePointer,
+  CancelledSwipe,
   HoveredEntry,
   InitConfig,
   LeftEntry,
@@ -18,7 +22,15 @@ export type { ShowInput } from './update.js'
 
 export * as test from './test.js'
 
-export { Message, Variant, Position, WaitBeforeDismissal }
+export {
+  Message,
+  Variant,
+  Position,
+  SwipeState,
+  DEFAULT_SWIPE_THRESHOLD,
+} from './schema.js'
+
+export { WaitBeforeDismissal, swipeOffsetForEntry } from './update.js'
 
 // VIEW
 
@@ -102,6 +114,8 @@ export type EntryHandlers = Readonly<{
 }>
 
 const DEFAULT_ARIA_LABEL = 'Notifications'
+
+const LEFT_MOUSE_BUTTON = 0
 
 /** Factory that binds `Toast` to a user-provided payload schema. The
  *  returned module contains everything needed to wire a toast stack into an
@@ -201,15 +215,65 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           Match.orElse(() => []),
         )
 
+        const swipeOffset = runtime.swipeOffsetForEntry(
+          model.swipeState,
+          entry.id,
+        )
+        const isSwiping =
+          model.swipeState._tag === 'Dragging' &&
+          model.swipeState.entryId === entry.id
+        const swipeAttributes = isSwiping
+          ? [
+              h.DataAttribute('swipe', 'move'),
+              ...(swipeOffset !== 0
+                ? [
+                    h.Style({
+                      transform: `translateX(${String(swipeOffset)}px)`,
+                      '--toast-swipe-move-x': `${String(swipeOffset)}px`,
+                    }),
+                  ]
+                : []),
+            ]
+          : []
+
+        const handlePointerDown = (
+          pointerType: string,
+          button: number,
+          _screenX: number,
+          _screenY: number,
+          _timeStamp: number,
+          clientX: number,
+          _clientY: number,
+        ): Option.Option<ToastMessage> => {
+          if (
+            pointerType === 'mouse' &&
+            !Equal.equals(button, LEFT_MOUSE_BUTTON)
+          ) {
+            return Option.none()
+          } else {
+            return Option.some(
+              runtime.Message.PressedEntryPointer({
+                entryId: entry.id,
+                clientX,
+              }),
+            )
+          }
+        }
+
         const itemAttributes = [
           h.Id(entry.id),
           h.Role(variantToRole(entry.variant)),
           h.AriaAtomic(true),
           h.DataAttribute('variant', entry.variant),
-          h.Style({ pointerEvents: 'auto' }),
+          h.Style({
+            pointerEvents: 'auto',
+            touchAction: 'pan-y',
+          }),
           h.OnMouseEnter(runtime.Message.HoveredEntry({ entryId: entry.id })),
           h.OnMouseLeave(runtime.Message.LeftEntry({ entryId: entry.id })),
+          h.OnPointerDown(handlePointerDown),
           ...animationAttributes,
+          ...swipeAttributes,
           ...(entryClassName ? [h.Class(entryClassName)] : []),
         ]
 
