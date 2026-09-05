@@ -76,7 +76,11 @@ export const headerView = (model: Model, h: HtmlBuilder<Message>) =>
     ],
     [
       h.div(
-        [h.Class('docs-shell h-full px-6 flex items-center justify-between')],
+        [
+          h.Class(
+            'docs-shell h-full px-4 md:px-6 flex items-center justify-between',
+          ),
+        ],
         [
           h.div(
             [h.Class('flex items-center gap-2')],
@@ -105,7 +109,11 @@ export const headerView = (model: Model, h: HtmlBuilder<Message>) =>
                 h,
               ),
               Search.triggerView('hidden md:flex', h),
-              ThemeSelector.view(model.maybeThemePreference, h),
+              ThemeSelector.view(
+                model.themeMenu,
+                model.maybeThemePreference,
+                h,
+              ),
               h.div(
                 [h.Class('hidden md:flex items-center gap-3 md:gap-4')],
                 [
@@ -135,7 +143,7 @@ export const headerView = (model: Model, h: HtmlBuilder<Message>) =>
               h.button(
                 [
                   h.Class(
-                    'md:hidden p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
+                    'md:hidden -mr-2 p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
                   ),
                   h.AriaExpanded(model.mobileMenuDialog.isOpen),
                   h.AriaLabel('Toggle menu'),

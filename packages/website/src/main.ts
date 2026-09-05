@@ -24,7 +24,7 @@ import { Url, toString as urlToString } from 'foldkit/url'
 import { githubStarCount } from 'virtual:landing-data'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { Dialog } from '@foldkit/ui'
+import { Dialog, Menu } from '@foldkit/ui'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
 
@@ -61,6 +61,7 @@ import {
 } from './sidebarStorage'
 import * as SnippetCopy from './snippetCopy'
 import * as Subscriptions from './subscription'
+import { ThemeSelector } from './view'
 import { NARROW_VIEWPORT_QUERY } from './viewport'
 
 export type { Message } from './message'
@@ -291,6 +292,7 @@ export const init: Runtime.RoutingApplicationInit<
         maybeInitialActiveSectionKey,
       ),
       coreSubmodelPage: coreSubmodelPageInit.model,
+      themeMenu: Menu.init({ id: 'theme-menu' }),
       maybeThemePreference,
       systemTheme,
       resolvedTheme,
@@ -325,6 +327,53 @@ type UpdateStep = Update.Step<
 >
 
 const isPathnameEqual = (a: Url, b: Url): boolean => a.pathname === b.pathname
+
+const foldThemeMenuOutMessage = Menu.OutMessage.match<
+  Update.Step<Model, Message>,
+  Menu.OutMessage<ThemePreference>
+>({
+  Selected:
+    ({ value: preference }) =>
+    model => {
+      const resolvedTheme = resolveTheme(preference, model.systemTheme)
+
+      return {
+        model: evo(model, {
+          maybeThemePreference: () => Option.some(preference),
+          resolvedTheme: () => resolvedTheme,
+        }),
+        commands: [
+          ApplyTheme({ theme: resolvedTheme }),
+          SaveThemePreference({ preference }),
+        ],
+      }
+    },
+})
+
+const readThemeMenu = (model: Model): Option.Option<Menu.Model> =>
+  Option.some(model.themeMenu)
+
+const writeThemeMenu = (model: Model, nextThemeMenu: Menu.Model): Model =>
+  evo(model, { themeMenu: () => nextThemeMenu })
+
+const toGotThemeMenuMessage = (message: Menu.Message): Message =>
+  Message.GotThemeMenuMessage({ message })
+
+const foldThemeMenu = Update.foldChild({
+  update: ThemeSelector.ThemeMenu.update,
+  read: readThemeMenu,
+  write: writeThemeMenu,
+  toParentMessage: toGotThemeMenuMessage,
+  foldOutMessage: foldThemeMenuOutMessage,
+})
+
+const foldThemeMenuClose = Update.foldChildStep({
+  update: ThemeSelector.ThemeMenu.close,
+  read: readThemeMenu,
+  write: writeThemeMenu,
+  toParentMessage: toGotThemeMenuMessage,
+  foldOutMessage: foldThemeMenuOutMessage,
+})
 
 const foldMobileMenuDialogOutMessage = Dialog.OutMessage.match<
   Update.Step<Model, Message>
@@ -638,6 +687,7 @@ export const update = (model: Model, message: Message) =>
         writeRouteFields,
         reconcileHomePresence(nextRoute),
         foldMobileMenuDialogClose,
+        foldThemeMenuClose,
         foldSearchRouteChanged,
         ...routeSteps,
         scrollToRoute,
@@ -741,20 +791,7 @@ export const update = (model: Model, message: Message) =>
       }
     },
 
-    SelectedThemePreference: ({ preference }) => {
-      const resolvedTheme = resolveTheme(preference, model.systemTheme)
-
-      return {
-        model: evo(model, {
-          maybeThemePreference: () => Option.some(preference),
-          resolvedTheme: () => resolvedTheme,
-        }),
-        commands: [
-          ApplyTheme({ theme: resolvedTheme }),
-          SaveThemePreference({ preference }),
-        ],
-      }
-    },
+    GotThemeMenuMessage: ({ message }) => foldThemeMenu(model, message),
 
     GotHomeMessage: ({ message }) => foldHome(model, message),
 

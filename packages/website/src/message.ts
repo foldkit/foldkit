@@ -4,7 +4,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
 
-import { Dialog } from '@foldkit/ui'
+import { Dialog, Menu } from '@foldkit/ui'
 
 import {
   ApiReference,
@@ -63,7 +63,7 @@ export const Message = defineMessageUnion({
   ToggledMobileTableOfContents: { isOpen: Schema.Boolean },
   ClickedMobileTableOfContentsLink: { sectionId: Schema.String },
   ChangedActiveSection: { sectionId: Schema.String },
-  SelectedThemePreference: { preference: ThemePreference },
+  GotThemeMenuMessage: { message: Menu.Message },
   ChangedSystemTheme: { theme: ResolvedTheme },
   ChangedViewportWidth: { isNarrow: Schema.Boolean },
   GotHomeMessage: { message: Home.Message },

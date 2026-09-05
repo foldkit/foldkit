@@ -184,6 +184,8 @@ When making multi-file edits or refactors, apply changes to ALL relevant files, 
 
 ## Verifying Your Own Work
 
+- Do not add automated tests just because code changed. For routine website layout, spacing, typography, or composition of existing UI components, verify the result in the browser and run relevant existing checks. Do not add browser, snapshot, or exact-pixel assertion tests for these changes unless the user explicitly requests them. Avoid retesting behavior already owned by a shared component. Add tests when they protect nontrivial application logic or a concrete regression that existing coverage does not catch; choose the narrowest useful test.
+
 A gate you just wrote is not evidence until you have watched it fail. Break the fix it covers, run the gate, confirm it reports the right thing, then restore. Both gates written for the SSR release passed while testing nothing: one sent a preflight without an `Origin` header, because Node's `fetch` silently drops it, and the other reported agreement produced by a dev server left running by an earlier invocation. Neither was visible from a green result.
 
 - Mutation-check before reporting. A gate that has never failed has never been shown to work.

@@ -317,7 +317,7 @@ export const mobileView = (model: Model, h: HtmlBuilder<Message>): Html => {
         h.div(
           [
             h.Class(
-              'flex justify-between items-center h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] px-6 border-b border-gray-300 dark:border-gray-800 shrink-0',
+              'flex justify-between items-center h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] px-4 md:px-6 border-b border-gray-300 dark:border-gray-800 shrink-0',
             ),
           ],
           [
@@ -339,7 +339,7 @@ export const mobileView = (model: Model, h: HtmlBuilder<Message>): Html => {
               [
                 ...closeButton,
                 h.Class(
-                  'p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
+                  '-mr-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
                 ),
                 h.AriaLabel('Close menu'),
               ],

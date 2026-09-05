@@ -14,7 +14,7 @@ const headerView = (model: Model, h: HtmlBuilder<Message>) =>
   h.header(
     [
       h.Class(
-        'fixed top-0 inset-x-0 z-50 h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] bg-cream/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-6 flex items-center justify-between',
+        'fixed top-0 inset-x-0 z-50 h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] bg-cream/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 md:px-6 flex items-center justify-between',
       ),
     ],
     [
@@ -42,7 +42,13 @@ const headerView = (model: Model, h: HtmlBuilder<Message>) =>
           Search.triggerView('hidden lg:flex', h),
           h.div(
             [h.Class('hidden md:flex')],
-            [ThemeSelector.view(model.maybeThemePreference, h)],
+            [
+              ThemeSelector.view(
+                model.themeMenu,
+                model.maybeThemePreference,
+                h,
+              ),
+            ],
           ),
           Search.compactTriggerView('hidden sm:inline-flex lg:hidden', h),
           h.a(
@@ -57,7 +63,7 @@ const headerView = (model: Model, h: HtmlBuilder<Message>) =>
           h.button(
             [
               h.Class(
-                'sm:hidden p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
+                'sm:hidden -mr-2 p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
               ),
               h.AriaExpanded(model.mobileMenuDialog.isOpen),
               h.AriaLabel('Toggle menu'),

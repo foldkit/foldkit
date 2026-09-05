@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { Url } from 'foldkit/url'
 
-import { Dialog } from '@foldkit/ui'
+import { Dialog, Menu } from '@foldkit/ui'
 
 import { Deployment } from './deployment'
 import { ResolvedTheme, ThemePreference } from './message'
@@ -35,6 +35,7 @@ export const Model = Schema.Struct({
   sidebarGroups: SidebarGroups,
   coreSubmodelPage: Core.SubmodelPage.Model,
   maybeHome: Schema.Option(Home.Model),
+  themeMenu: Menu.Model,
   maybeThemePreference: Schema.Option(ThemePreference),
   systemTheme: ResolvedTheme,
   resolvedTheme: ResolvedTheme,
