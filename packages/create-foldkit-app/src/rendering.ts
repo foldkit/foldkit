@@ -25,8 +25,7 @@ export const renderings: ReadonlyArray<{
   {
     value: 'ssr',
     title: 'SSR',
-    description:
-      'Render each request on a Node server, then hydrate in the browser',
+    description: 'Render each request, then hydrate in the browser',
   },
 ]
 

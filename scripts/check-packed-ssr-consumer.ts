@@ -314,7 +314,7 @@ const importSpecifiers = (source: string): ReadonlyArray<string> =>
 const FOLDKIT_INTERNAL_MARKER = 'data-foldkit-build'
 
 const assertServerBundleExternalizesFoldkit = (buildDir: string): void => {
-  const bundle = readFileSync(join(buildDir, 'server/entry.server.js'), 'utf8')
+  const bundle = readFileSync(join(buildDir, 'server/fetch.js'), 'utf8')
   const foldkitImports = importSpecifiers(bundle).filter(
     specifier => specifier === 'foldkit' || specifier.startsWith('foldkit/'),
   )
@@ -431,7 +431,7 @@ type ServerEntry = Readonly<{
 
 const loadServerEntry = async (buildDir: string): Promise<ServerEntry> => {
   const entry: ServerEntry = await import(
-    pathToFileURL(join(buildDir, 'server/entry.server.js')).href
+    pathToFileURL(join(buildDir, 'server/fetch.js')).href
   )
   return entry
 }

@@ -20,7 +20,7 @@ const HOST_PARITY_CONFIG = resolve(
   process.cwd(),
   'scripts/fixtures/host-parity/vite.config.ts',
 )
-const SERVER_BUNDLE = resolve(EXAMPLE_DIR, 'dist/server/main.js')
+const SERVER_BUNDLE = resolve(EXAMPLE_DIR, 'dist/server/fetch.js')
 const HOST_PARITY_BUILD_ID = 'host-parity'
 const EXPECTED_ALLOW = 'GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS'
 const BUILT_PORT = 5332
@@ -556,25 +556,12 @@ const assertNormalBundleHasNoParityMarkers = (): void => {
 }
 
 const buildHostParityFixture = (): void => {
-  runRequired('Building the host-parity client...', 'pnpm', [
-    'exec',
-    'vite',
-    'build',
-    '--outDir',
-    'dist/client',
-    '--emptyOutDir',
-  ])
-  runRequired('Building the host-parity server...', 'pnpm', [
+  runRequired('Building the host-parity app...', 'pnpm', [
     'exec',
     'vite',
     'build',
     '--config',
     HOST_PARITY_CONFIG,
-    '--ssr',
-    'server/main.ts',
-    '--outDir',
-    'dist/server',
-    '--emptyOutDir',
   ])
 
   const bundle = readServerBundle()
@@ -637,7 +624,7 @@ const assertPortIsFree = async (port: number): Promise<void> => {
 
 const assertNormalExampleHasNoParityResponses = async (): Promise<void> => {
   const origin = `http://localhost:${String(NORMAL_BUILT_PORT)}`
-  const host = startHost('node', ['dist/server/main.js'], NORMAL_BUILT_PORT)
+  const host = startHost('node', ['scripts/serve.mjs'], NORMAL_BUILT_PORT)
   try {
     await waitForOrigin(origin)
     const echo = await ask(origin, {
@@ -764,7 +751,7 @@ const main = async (): Promise<void> => {
       variant.port,
     ),
   }))
-  const builtHost = startHost('node', ['dist/server/main.js'], BUILT_PORT)
+  const builtHost = startHost('node', ['scripts/serve.mjs'], BUILT_PORT)
   const builtOrigin = `http://localhost:${BUILT_PORT}`
 
   try {

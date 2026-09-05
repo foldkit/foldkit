@@ -91,7 +91,7 @@
       ]
     },
     "examples/ssr": {
-      "entry": ["server/main.ts", "src/entry.server.ts"],
+      "entry": ["src/entry.server.ts"],
       "ignoreFiles": ["vite.config.playground.ts"],
       "ignoreDependencies": [
         "@foldkit/devtools",

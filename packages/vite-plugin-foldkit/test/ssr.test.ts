@@ -225,6 +225,7 @@ const startServer = async (
     viteMajor?: 7 | 8
     buildId?: string
     runnableSsr?: false
+    quietStandDown?: true
     warnings?: Array<string>
   }> = {},
 ) => {
@@ -261,6 +262,9 @@ const startServer = async (
         serverEntry: '/entry.server.ts',
         ...(options.origin === undefined ? {} : { origin: options.origin }),
         ...(options.buildId === undefined ? {} : { buildId: options.buildId }),
+        ...(options.quietStandDown === undefined
+          ? {}
+          : { quietStandDown: options.quietStandDown }),
       }),
     ],
     server: {
@@ -494,8 +498,25 @@ describe('foldkitSsr', () => {
       expect(warnings.join('\n')).toContain(
         'the "ssr" environment is not runnable',
       )
+      expect(warnings.join('\n')).not.toContain('Remove `ssr.serverEntry`')
     })
   }
+
+  it('stays quiet when standing down under ssr.build', async () => {
+    const warnings: Array<string> = []
+    const origin = await startServer({
+      runnableSsr: false,
+      quietStandDown: true,
+      warnings,
+    })
+
+    const response = await fetch(`${origin}/rendered`, {
+      headers: { accept: 'text/html' },
+    })
+
+    expect(response.status).toBe(404)
+    expect(warnings).toEqual([])
+  })
 
   for (const viteMajor of VITE_MAJORS) {
     it(`preserves the browser URL across the Vite ${String(viteMajor)} base middleware`, async () => {

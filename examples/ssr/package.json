@@ -6,13 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "start": "node dist/server/main.js",
+    "start": "node scripts/serve.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@effect/platform-browser": "4.0.0-rc.112",
-    "@effect/platform-node": "4.0.0-rc.112",
     "@foldkit/ui": "workspace:*",
     "effect": "4.0.0-rc.112",
     "foldkit": "workspace:*"

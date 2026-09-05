@@ -49,6 +49,7 @@ import { foldkitViewIdentity } from './viewIdentity.js'
 
 export { type BrandDistResult, brandDistDirectory } from './brandDist.js'
 export {
+  FOLDKIT_FETCH_MODULE_ID,
   FoldkitBuildManifest,
   type FoldkitBuildOptions,
   type FoldkitPrerenderOptions,
@@ -71,20 +72,23 @@ export type FoldkitPluginOptions = Readonly<{
    */
   devToolsMcpPort?: number
   /**
-   * Serve server-rendered pages from the Vite dev server. When set, `vite`
-   * passes HTML navigations that fall through Vite, plus non-GET requests, to
-   * `renderPage` from the module at `ssr.serverEntry`. When `undefined` (the
-   * default), the dev server serves the client entry only.
+   * Serve server-rendered pages from the Vite dev server, and — with
+   * `ssr.build` — emit a Web `fetch` handler as the server bundle. When
+   * set, `vite` passes HTML navigations that fall through Vite, plus
+   * non-GET requests, to `renderPage` from the module at
+   * `ssr.serverEntry`. When `undefined` (the default), the dev server
+   * serves the client entry only.
    */
-  ssr?: Omit<FoldkitSsrOptions, 'buildId'> &
+  ssr?: Omit<FoldkitSsrOptions, 'buildId' | 'quietStandDown'> &
     Readonly<{
       /**
-       * Build the server entry alongside the browser build, and generate static
-       * HTML from it, inside this project's own `vite build`. `true` builds it
-       * with the default output directories and generates nothing.
+       * Build a Web `fetch` handler alongside the browser build, and generate
+       * static HTML from the server entry, inside this project's own
+       * `vite build`. The handler is the server bundle: Node and Workers
+       * both run it. `true` builds it with the default output directories
+       * and generates nothing.
        *
-       * When this is absent, `vite build` builds the browser bundle only and
-       * the server build is a separate command the deployment runs itself.
+       * When this is absent, `vite build` builds the browser bundle only.
        */
       build?: boolean | FoldkitBuildOptions
     }>
@@ -720,15 +724,19 @@ const withContainerId = (
   containerId: string | undefined,
 ): FoldkitBuildOptions => {
   const options: FoldkitBuildOptions = build === true ? {} : build
-  if (containerId === undefined || options.prerender === undefined) {
+  if (containerId === undefined) {
     return options
+  }
+  const withContainer: FoldkitBuildOptions = { ...options, containerId }
+  if (options.prerender === undefined) {
+    return withContainer
   }
   const prerender = options.prerender === true ? {} : options.prerender
   if (prerender === false) {
-    return options
+    return withContainer
   }
   return {
-    ...options,
+    ...withContainer,
     prerender: { containerId, ...prerender },
   }
 }
@@ -808,6 +816,7 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
   const servePages = foldkitSsr({
     ...ssr,
     ...(options.buildId === undefined ? {} : { buildId: options.buildId }),
+    quietStandDown: build !== undefined && build !== false,
   })
 
   if (build === undefined || build === false) {
@@ -817,6 +826,9 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
   return [
     ...shared,
     servePages,
-    foldkitBuild(ssr.serverEntry, withContainerId(build, ssr.containerId)),
+    foldkitBuild(ssr.serverEntry, {
+      ...withContainerId(build, ssr.containerId),
+      ...(ssr.origin === undefined ? {} : { origin: ssr.origin }),
+    }),
   ]
 }

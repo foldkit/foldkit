@@ -28,7 +28,7 @@ export default defineConfig({
       devToolsMcpPort: 9988,
       ssr: {
         serverEntry: '/src/entry.server.ts',
-        build: { entry: '/server/main.ts' },
+        build: true,
       },
     }),
   ],

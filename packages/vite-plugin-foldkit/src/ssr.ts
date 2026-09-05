@@ -51,6 +51,12 @@ export type FoldkitSsrOptions = Readonly<{
    * The value is public in rendered HTML, so it must not be a secret.
    */
   buildId?: string
+  /**
+   * Skip the stand-down warning when the `ssr` environment is not runnable.
+   * The aggregate plugin sets this when `ssr.build` is on, because production
+   * still needs `serverEntry` and the host is supposed to serve.
+   */
+  quietStandDown?: boolean
 }>
 
 // Whether an environment can evaluate modules in this process, which is what
@@ -807,13 +813,13 @@ export const foldkitSsr = (options: FoldkitSsrOptions): Plugin => {
       // bindings the deployed entry holds, while the deployment it is standing
       // in for renders in workerd.
       if (!isRunnable(server.environments.ssr)) {
-        server.config.logger.warn(
-          '[foldkit] the "ssr" environment is not runnable, so another plugin owns' +
-            ' server-side execution. Dev-time server rendering is off and page' +
-            ' requests fall through to that host, which renders through the same' +
-            ' server entry. Remove `ssr.serverEntry` from the foldkit plugin to' +
-            ' silence this.',
-        )
+        if (options.quietStandDown !== true) {
+          server.config.logger.warn(
+            '[foldkit] the "ssr" environment is not runnable, so another plugin owns' +
+              " server-side execution. Dev-time rendering through Foldkit's Vite" +
+              ' middleware is off; page requests go to that host.',
+          )
+        }
         return
       }
 

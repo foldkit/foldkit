@@ -52,13 +52,13 @@ A server entry connects the application to its host. It exports a `renderPage` f
 
 ::Snippet{name="serverRenderingServerEntry" label="server entry example"}
 
-The outer `Promise` keeps `renderPage` callable from Vite, build scripts, serverless functions, and long-running Effect HTTP servers. Those hosts do not need to provide the application's Effect requirements. The entry uses Effect internally; the host sees only the `Promise`.
+The outer `Promise` keeps `renderPage` callable from Vite, build scripts, serverless functions, and the emitted `fetch` handler. Those hosts do not need to provide the application's Effect requirements. The entry uses Effect internally; the host sees only the `Promise`.
 
 The entry is application code. Keep it in `src/` (`src/entry.server.ts` in the examples), not in the host's directory. It imports the application's `init`, `view`, and `Flags`, so the server build must compile it with those application imports.
 
 The client and server are separate module graphs. Within each graph, the view and the Foldkit runtime that calls it must resolve to one `foldkit` module instance. The HTML builder tracks a render in module-level state. If one render uses two Foldkit copies, the view writes to one copy while the runtime reads the other. The render fails instead of producing the wrong page. Duplicate monorepo installs and aliases that split one graph are common causes.
 
-A delivery host imports the built entry and calls `renderPage`. It does not import the application and render it directly. The [SSR example](/example-apps/ssr)'s host lives outside `src/`, in `server/`, and does exactly that.
+A delivery host runs the built `fetch` handler. It does not import the application and render it directly. One `vite build` emits `dist/server/fetch.js` whose default export is `{ fetch }`. The [SSR example](/example-apps/ssr) starts that module with `node scripts/serve.mjs`. A Worker can default-export the same module.
 
 `renderToString` accepts the server-relevant subset of a `makeApplication` config. That subset contains `init` and `view`, plus `Flags` and `routing` when the application declares them. A full application config satisfies the subset, so an entry can pass it unchanged.
 
@@ -214,7 +214,7 @@ Vite continues to serve the client entry, HMR, and assets. Requests that reach F
 
 A hot update does not exercise hydration. HMR preserves the Model but rebuilds the DOM under the root. That DOM came from code that predates the edit. Reload the page to test hydration itself. The stamped root remains required during a hot update; without it, startup fails as it would on a fresh load.
 
-In production, the host is built alongside the client. Set `ssr.build` in the plugin and `vite build` produces both, with `entry` naming the host module when requests reach one, as they do here. The host serves static assets first, imports the built entry, and sends `Server.toResponse(template, await renderPage(request))`. The [SSR example](https://github.com/foldkit/foldkit/tree/main/examples/ssr) uses an Effect `HttpServer` for this delivery layer:
+In production, the host is built alongside the client. Set `ssr.build` in the plugin and `vite build` produces both. The server bundle is a Web `fetch` handler: Node and Workers both run it. Static files stay the platform's job. The [SSR example](https://github.com/foldkit/foldkit/tree/main/examples/ssr) starts that handler on Node:
 
 ::Snippet{name="serverRenderingBuildSsr" label="SSR build configuration"}
 
@@ -246,7 +246,7 @@ A deployed SSG build is a directory of static files. Any static host or CDN can 
 
 A build that `@foldkit/vite-plugin` owns writes `foldkit.build.json` beside the server bundle, naming the two output directories, the server entry, and every path it generated. A host reads it to decide what its asset layer does with a request matching no file: generated paths are files, anything else reaches the server when there is one. Deriving that from the build is how a deployment target avoids asking for it a second time, in settings whose wrong values serve an empty page at 200.
 
-A deployed SSR application needs a host with two jobs: serve the built client assets and call `renderPage` for page requests. On Node, use the [SSR example's server](https://github.com/foldkit/foldkit/tree/main/examples/ssr/server) as the reference. It serves static files first and sends `Server.toResponse(template, await renderPage(request))` for everything else.
+A deployed SSR application needs a host with two jobs: serve the built client assets and call `fetch` for page requests. On Node, use the [SSR example's `scripts/serve.mjs`](https://github.com/foldkit/foldkit/tree/main/examples/ssr/scripts/serve.mjs) as the reference. It serves static files first and falls through to `dist/server/fetch.js`.
 
 ### Which methods reach the entry
 
@@ -278,11 +278,11 @@ Request-time rendering depends on its Flags. A route with universal Flags can us
 
 ### Fetch-native runtimes
 
-Cloudflare Workers, Deno, and Bun already use Web `Request` and `Response`, so they can run the entry without an adapter:
+Cloudflare Workers, Deno, and Bun already use Web `Request` and `Response`, so they can run the emitted handler without an adapter:
 
 ::Snippet{name="serverRenderingWorkersHost" label="Workers host example"}
 
-The platform serves the built client assets, and the handler covers page requests. Configure the bundler to treat the template's `.html` import as a string. Cloudflare's Wrangler CLI calls this a `Text` module rule. The same built server entry runs unchanged on each runtime.
+The platform serves the built client assets, and the handler covers page requests. When the build does not name an origin, the handler uses the platform `Request.url`, so a Worker is not refused as off-origin. Set `ssr.origin` or `ORIGIN` only when the host constructs requests against a configured origin, as the Node adapter does. The same built `fetch.js` module runs unchanged on each runtime.
 
 [Alchemy](https://alchemy.run) can provision and deploy the host. It is TypeScript-native infrastructure as code built on Effect. The Worker and its databases, object storage, or queues live in the same TypeScript program as the entry. Its [Cloudflare support](https://alchemy.run/cloudflare/) deploys the Worker directly.
 

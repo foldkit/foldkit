@@ -4,11 +4,6 @@
     "moduleResolution": "bundler",
     "noEmit": true
   },
-  "include": [
-    "src/**/*.ts",
-    "server/**/*.ts",
-    "vite.config.ts",
-    "vitest.config.ts"
-  ],
+  "include": ["src/**/*.ts", "vite.config.ts", "vitest.config.ts"],
   "exclude": ["node_modules", "dist", "../../packages/foldkit/src"]
 }

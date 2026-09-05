@@ -87,11 +87,57 @@ describe('foldkitBuild', () => {
   it('builds the browser bundle and the server bundle in one build', async () => {
     const { client, server } = await buildFixture('both')
 
-    expect(await filesUnder(server)).toEqual([
-      'entry.server.js',
-      'foldkit.build.json',
-    ])
+    expect(await filesUnder(server)).toEqual(['fetch.js', 'foldkit.build.json'])
     expect(await filesUnder(client)).toContain('index.html')
+
+    const { pathToFileURL } = await import('node:url')
+    const built = await import(pathToFileURL(resolve(server, 'fetch.js')).href)
+    expect(typeof built.default.fetch).toBe('function')
+    expect(typeof built.renderPage).toBe('function')
+    expect(built.origin).toBeUndefined()
+  })
+
+  it('accepts a platform Request.url when the build named no origin', async () => {
+    const { server } = await buildFixture('platform-origin')
+    const { pathToFileURL } = await import('node:url')
+    const built = await import(pathToFileURL(resolve(server, 'fetch.js')).href)
+    const response = await built.default.fetch(
+      new Request('https://app.example/about'),
+    )
+    expect(response.status).toBe(200)
+  })
+
+  it('bakes the browser build template, not the source HTML', async () => {
+    const { server } = await buildFixture('fetch-template')
+    const bundle = await readFile(resolve(server, 'fetch.js'), 'utf8')
+    expect(bundle).not.toContain('./entry.client.ts')
+    expect(bundle).toContain('assets/')
+  })
+
+  it('serves against ORIGIN from the environment', async () => {
+    const { server } = await buildFixture('origin-env')
+    const previous = process.env['ORIGIN']
+    process.env['ORIGIN'] = 'http://app.example'
+    try {
+      const { pathToFileURL } = await import('node:url')
+      const built = await import(
+        `${pathToFileURL(resolve(server, 'fetch.js')).href}?origin-env`
+      )
+      const allowed = await built.default.fetch(
+        new Request('http://app.example/about'),
+      )
+      expect(allowed.status).toBe(200)
+      const refused = await built.default.fetch(
+        new Request('http://localhost/about'),
+      )
+      expect(refused.status).toBe(400)
+    } finally {
+      if (previous === undefined) {
+        delete process.env['ORIGIN']
+      } else {
+        process.env['ORIGIN'] = previous
+      }
+    }
   })
 
   it('generates a page for every path the entry lists', async () => {
@@ -214,7 +260,8 @@ describe('foldkitBuild', () => {
     )
 
     expect(manifest.prerendered).toEqual(['/', '/about'])
-    expect(manifest.serverEntry).toBe('entry.server.js')
+    expect(manifest.serverEntry).toBe('fetch.js')
+    expect(manifest.host).toBe('fetch')
     expect(manifest.client).toContain('client')
     expect(manifest.server).toContain('server')
   })
@@ -227,7 +274,8 @@ describe('foldkitBuild', () => {
     )
 
     expect(manifest.prerendered).toEqual([])
-    expect(manifest.serverEntry).toBe('entry.server.js')
+    expect(manifest.serverEntry).toBe('fetch.js')
+    expect(manifest.host).toBe('fetch')
   })
 
   // The manifest describes the deployment, and the browser build is the part of
@@ -456,7 +504,7 @@ describe('foldkitBuild orchestration', () => {
 
     const { server } = await buildFixture('js-client', {}, [jsOnlyClient])
 
-    expect(await filesUnder(server)).toContain('entry.server.js')
+    expect(await filesUnder(server)).toContain('fetch.js')
   })
 
   // Prerendering imports what this selects and runs it in the build process, so
@@ -580,10 +628,7 @@ describe('the build id across environments', () => {
       ),
       'utf8',
     )
-    const serverBundle = await readFile(
-      resolve(server, 'entry.server.js'),
-      'utf8',
-    )
+    const serverBundle = await readFile(resolve(server, 'fetch.js'), 'utf8')
 
     const inClient = UUID.exec(clientBundle)?.[0]
     const inServer = UUID.exec(serverBundle)?.[0]
