@@ -1,5 +1,37 @@
 # foldkit
 
+## 0.158.0
+
+### Minor Changes
+
+- [#1287](https://github.com/foldkit/foldkit/pull/1287) [`474b7c6`](https://github.com/foldkit/foldkit/commit/474b7c6d68a5cec68c36b05e635225cf41d93a51) Thanks [@devinjameson](https://github.com/devinjameson)! - Machine Edge handlers now return one `Update.Return`-shaped record with `model` and optional `commands` fields. This replaces the separate Model builder and Commands callback arguments on `to` and `when`, keeps transition outputs consistent with Foldkit update functions, and lets one derivation feed both the next state and its Commands. Migrate by returning `{ model, commands }` from the existing handler and removing the separate Commands callback.
+
+- [#1305](https://github.com/foldkit/foldkit/pull/1305) [`e0a0528`](https://github.com/foldkit/foldkit/commit/e0a0528c239958e6af24ccea356f6ac80d0830e4) Thanks [@devinjameson](https://github.com/devinjameson)! - Add `Machine.ignore()` for explicitly declaring that a guard list should ignore its Message when every preceding `when` guard declines. `Machine.step` reports this outcome as `ExplicitlyIgnored`, and static analysis reports later Edges as `ShadowedByIgnore`.
+
+  This adds an `Ignore` variant to `Machine.GuardedEdge` and variants to `Machine.IgnoredReason` and `Machine.DeadTransitionReason`. Update exhaustive matches over those unions to handle `Ignore`, `ExplicitlyIgnored`, and `ShadowedByIgnore`.
+
+- [#1300](https://github.com/foldkit/foldkit/pull/1300) [`2963bc7`](https://github.com/foldkit/foldkit/commit/2963bc7e16796984f62b5f675d639ee9427751b0) Thanks [@devinjameson](https://github.com/devinjameson)! - Add `Machine.fold`, a dual helper that folds a Machine state field into its enclosing Model.
+
+  The helper supports both data-first update calls and data-last `Update.Step` composition. Contextual Machines read their required context from the enclosing Model for each transition.
+
+- [#997](https://github.com/foldkit/foldkit/pull/997) [`177cfb4`](https://github.com/foldkit/foldkit/commit/177cfb4c02c9c2cdc52e0838e43a76cee4b0e43b) Thanks [@devinjameson](https://github.com/devinjameson)! - The experimental Machine's `Ignored` result now carries a required `reason` field, typed as the new `IgnoredReason` export, so a step that matched no Edge says why. `OutOfAlphabet` means the Message tag appears in no state's `on` record anywhere in the table. `NotApplicable` means the tag is in the Machine's alphabet but no Edge for it exists from the current state. `GuardsFellThrough` means an Edge entry exists for this state and Message but every guard declined and no `otherwise` was present, which previously looked identical to a Message the Machine never handles. Consumers that construct or assert an `Ignored` result must add its `reason`.
+
+- [#1288](https://github.com/foldkit/foldkit/pull/1288) [`3bc16bb`](https://github.com/foldkit/foldkit/commit/3bc16bbc80d817f26bca348c59c6adfb499c58a1) Thanks [@devinjameson](https://github.com/devinjameson)! - Add opt-in, Schema-typed read-only context to experimental Machines. Declare `context` in the first `Machine.define` stage to require it as the third argument to `transition` and `step`, expose it as the third guard parameter, and include it in `EdgeInput`.
+
+  Context-free Machines retain their existing two-argument call signatures and Edge input shape. Use context for per-dispatch reads from data outside the Machine state; keep state-owned snapshots in the state and continue using Messages for values that should be observable facts.
+
+- [#1314](https://github.com/foldkit/foldkit/pull/1314) [`240707a`](https://github.com/foldkit/foldkit/commit/240707af8cafdff65c52bc32c999d37616760033) Thanks [@devinjameson](https://github.com/devinjameson)! - Add `Machine.forStates(...).on(...)` and the Machine definition's `shared` array for declaring one transition map across several source states.
+
+  Shared handlers narrow `state` to the selected state variants and `message` to each transition's Message. State-local transitions replace shared defaults for the same state and Message, while overlapping shared declarations throw when the Machine is defined. Shared transitions are expanded into the Machine's ordinary Edge set before runtime dispatch and static analysis.
+
+- [#1303](https://github.com/foldkit/foldkit/pull/1303) [`420e3e9`](https://github.com/foldkit/foldkit/commit/420e3e91439c8b180e7c3a59259631872b9feae2) Thanks [@devinjameson](https://github.com/devinjameson)! - Export `Machine.StateTransitions` for typing an extracted state entry while preserving its Edge state and Message narrowing.
+
+### Patch Changes
+
+- [#999](https://github.com/foldkit/foldkit/pull/999) [`2494764`](https://github.com/foldkit/foldkit/commit/24947649807bdfe3b81a527d0149bc9ea0165d58) Thanks [@devinjameson](https://github.com/devinjameson)! - `Machine.define` now flattens nested state unions when extracting state tags instead of throwing at module load. A state Schema built as a union of unions, such as `Schema.Union([EnteringPlayers, PlayingState])` where `PlayingState` is itself a union, now works, and `stateTags` lists the tags in depth-first declaration order. Members that are neither a union nor a Struct with a literal `_tag` field still throw the existing error.
+
+- [#1286](https://github.com/foldkit/foldkit/pull/1286) [`79d102e`](https://github.com/foldkit/foldkit/commit/79d102e5315683a2fb275461c1ea461ebd6d4a17) Thanks [@devinjameson](https://github.com/devinjameson)! - Exclude Machine Edges shadowed by an earlier `otherwise` from reachability analysis and report each dead transition once.
+
 ## 0.157.0
 
 ### Minor Changes
