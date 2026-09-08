@@ -128,7 +128,7 @@ The placeholder's location and the view's root are part of the contract. Browser
 A hydratable render carries these markers:
 
 - The application root has `data-foldkit-app`. Its value is the `runtimeId`.
-- The root also has `data-foldkit-build`. Its value identifies the deployment that rendered the page.
+- The root also has `data-foldkit-build`. Its value identifies the deployment that rendered the page. The client removes it as it takes the root over, so its absence is the signal that the client runtime owns the page; a browser test can wait for `[data-foldkit-build]` to disappear. A refused handoff keeps the stamp and adds `data-foldkit-refused`.
 - An application with Flags emits a `<script type="application/json" data-foldkit-flags="...">`. It carries the Schema-encoded Flags that produced the server Model. The attribute value matches the root's `runtimeId`.
 - Keyed elements carry `data-foldkit-key`. Elements with build-assigned view identity carry `data-foldkit-identity`. Both values are deterministic, non-cryptographic fingerprints. Neither marker contains the original key, which may hold an account id or email address, or the build's source path. Hydration compares each fingerprint and removes the marker as it adopts the element. A render with `isHydratable: false` emits neither marker.
 
