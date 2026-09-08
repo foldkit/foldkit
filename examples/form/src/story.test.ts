@@ -1,34 +1,30 @@
-import { FieldValidation, Story } from 'foldkit'
+import { FieldValidation } from 'foldkit'
+import { Command, given, message, model, story } from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import {
-  ClickedFormSubmit,
+  Message,
   type Model,
   SubmitForm,
-  SubmittedForm,
-  UpdatedEmail,
-  UpdatedMessageText,
-  UpdatedName,
   ValidateEmail,
-  ValidatedEmail,
   initialModel,
   update,
 } from './main'
 
-const validModel: Model = {
-  ...initialModel,
-  name: FieldValidation.Valid({ value: 'Alice' }),
-  email: FieldValidation.Valid({ value: 'alice@example.com' }),
-}
+const validModel: Model = evo(initialModel, {
+  name: () => FieldValidation.Valid({ value: 'Alice' }),
+  email: () => FieldValidation.Valid({ value: 'alice@example.com' }),
+})
 
 describe('update', () => {
   describe('name field', () => {
     test('typing a long name produces a Valid field', () => {
-      Story.story(
+      story(
         update,
-        Story.with(initialModel),
-        Story.message(UpdatedName({ value: 'Alice' })),
-        Story.model(model => {
+        given(initialModel),
+        message(Message.UpdatedName({ value: 'Alice' })),
+        model(model => {
           expect(model.name._tag).toBe('Valid')
           expect(model.name.value).toBe('Alice')
         }),
@@ -36,11 +32,11 @@ describe('update', () => {
     })
 
     test('typing a short name produces an Invalid field with the min-length error', () => {
-      Story.story(
+      story(
         update,
-        Story.with(initialModel),
-        Story.message(UpdatedName({ value: 'A' })),
-        Story.model(model => {
+        given(initialModel),
+        message(Message.UpdatedName({ value: 'A' })),
+        model(model => {
           expect(model.name._tag).toBe('Invalid')
           if (model.name._tag === 'Invalid') {
             expect(model.name.errors).toContain(
@@ -54,83 +50,74 @@ describe('update', () => {
 
   describe('email field', () => {
     test('typing a well-formed email transitions to Validating and fires ValidateEmail', () => {
-      Story.story(
+      story(
         update,
-        Story.with(initialModel),
-        Story.message(UpdatedEmail({ value: 'alice@example.com' })),
-        Story.model(model => {
+        given(initialModel),
+        message(Message.UpdatedEmail({ value: 'alice@example.com' })),
+        model(model => {
           expect(model.email._tag).toBe('Validating')
-          expect(model.emailValidationId).toBe(1)
         }),
-        Story.Command.expectHas(ValidateEmail),
-        Story.Command.resolve(
+        Command.expectHas(ValidateEmail),
+        Command.resolve(
           ValidateEmail,
-          ValidatedEmail({
-            validationId: 1,
+          Message.CompletedValidateEmail({
             field: FieldValidation.Valid({ value: 'alice@example.com' }),
           }),
         ),
-        Story.model(model => {
+        model(model => {
           expect(model.email._tag).toBe('Valid')
         }),
       )
     })
 
     test('typing a malformed email produces Invalid without an async command', () => {
-      Story.story(
+      story(
         update,
-        Story.with(initialModel),
-        Story.message(UpdatedEmail({ value: 'not-an-email' })),
-        Story.Command.expectNone(),
-        Story.model(model => {
+        given(initialModel),
+        message(Message.UpdatedEmail({ value: 'not-an-email' })),
+        Command.expectNone(),
+        model(model => {
           expect(model.email._tag).toBe('Invalid')
         }),
       )
     })
 
-    test('stale ValidatedEmail responses are ignored', () => {
-      const inFlightModel: Model = {
-        ...initialModel,
-        email: FieldValidation.Validating({ value: 'alice@example.com' }),
-        emailValidationId: 5,
-      }
+    test('a validation result for a superseded email value is ignored', () => {
+      const inFlightModel: Model = evo(initialModel, {
+        email: () => FieldValidation.Validating({ value: 'alice@example.com' }),
+      })
 
-      Story.story(
+      story(
         update,
-        Story.with(inFlightModel),
-        Story.message(
-          ValidatedEmail({
-            validationId: 3,
+        given(inFlightModel),
+        message(
+          Message.CompletedValidateEmail({
             field: FieldValidation.Valid({ value: 'old@example.com' }),
           }),
         ),
-        Story.model(model => {
+        model(model => {
           expect(model.email._tag).toBe('Validating')
-          expect(model.emailValidationId).toBe(5)
         }),
       )
     })
 
-    test('async result for the current validationId updates the email field', () => {
-      const inFlightModel: Model = {
-        ...initialModel,
-        email: FieldValidation.Validating({ value: 'taken@example.com' }),
-        emailValidationId: 2,
-      }
+    test('a validation result for the current email value updates the field', () => {
+      const inFlightModel: Model = evo(initialModel, {
+        email: () => FieldValidation.Validating({ value: 'taken@example.com' }),
+      })
 
-      Story.story(
+      story(
         update,
-        Story.with(inFlightModel),
-        Story.message(
-          ValidatedEmail({
-            validationId: 2,
+        given(inFlightModel),
+        message(
+          Message.CompletedValidateEmail({
             field: FieldValidation.Invalid({
               value: 'taken@example.com',
               errors: ['This email is already on our waitlist'],
             }),
           }),
         ),
-        Story.model(model => {
+        model(model => {
           expect(model.email._tag).toBe('Invalid')
         }),
       )
@@ -139,11 +126,11 @@ describe('update', () => {
 
   describe('message text field', () => {
     test('UpdatedMessageText stores the value as Valid', () => {
-      Story.story(
+      story(
         update,
-        Story.with(initialModel),
-        Story.message(UpdatedMessageText({ value: 'Hello there.' })),
-        Story.model(model => {
+        given(initialModel),
+        message(Message.UpdatedMessageText({ value: 'Hello there.' })),
+        model(model => {
           expect(model.messageText._tag).toBe('Valid')
           expect(model.messageText.value).toBe('Hello there.')
         }),
@@ -153,36 +140,31 @@ describe('update', () => {
 
   describe('submission', () => {
     test('ClickedFormSubmit on an invalid form is ignored', () => {
-      Story.story(
+      story(
         update,
-        Story.with(initialModel),
-        Story.message(ClickedFormSubmit()),
-        Story.Command.expectNone(),
-        Story.model(model => {
+        given(initialModel),
+        message(Message.ClickedFormSubmit()),
+        Command.expectNone(),
+        model(model => {
           expect(model.submission._tag).toBe('NotSubmitted')
         }),
       )
     })
 
     test('ClickedFormSubmit on a valid form fires SubmitForm and enters Submitting', () => {
-      Story.story(
+      story(
         update,
-        Story.with(validModel),
-        Story.message(ClickedFormSubmit()),
-        Story.model(model => {
+        given(validModel),
+        message(Message.ClickedFormSubmit()),
+        model(model => {
           expect(model.submission._tag).toBe('Submitting')
         }),
-        Story.Command.expectHas(SubmitForm),
-        Story.Command.resolve(
+        Command.expectHas(SubmitForm),
+        Command.resolve(
           SubmitForm,
-          SubmittedForm({
-            success: true,
-            name: 'Alice',
-            email: 'alice@example.com',
-            messageText: '',
-          }),
+          Message.SucceededSubmitForm({ name: 'Alice' }),
         ),
-        Story.model(model => {
+        model(model => {
           expect(model.submission._tag).toBe('SubmitSuccess')
           if (model.submission._tag === 'SubmitSuccess') {
             expect(model.submission.confirmationText).toContain('Alice')
@@ -191,21 +173,13 @@ describe('update', () => {
       )
     })
 
-    test('failed SubmittedForm sets SubmitError', () => {
-      Story.story(
+    test('FailedSubmitForm sets SubmitError', () => {
+      story(
         update,
-        Story.with(validModel),
-        Story.message(ClickedFormSubmit()),
-        Story.Command.resolve(
-          SubmitForm,
-          SubmittedForm({
-            success: false,
-            name: 'Alice',
-            email: 'alice@example.com',
-            messageText: '',
-          }),
-        ),
-        Story.model(model => {
+        given(validModel),
+        message(Message.ClickedFormSubmit()),
+        Command.resolve(SubmitForm, Message.FailedSubmitForm()),
+        model(model => {
           expect(model.submission._tag).toBe('SubmitError')
         }),
       )

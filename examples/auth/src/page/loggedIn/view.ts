@@ -1,7 +1,7 @@
 import { clsx } from 'clsx'
-import { Match as M } from 'effect'
+import { Match } from 'effect'
 import { Submodel } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Session } from '../../domain/session'
 import { notFoundView } from '../../notFoundView'
@@ -16,10 +16,12 @@ const navLinkClassName = (isActive: boolean) =>
     'bg-blue-700 bg-opacity-50': isActive,
   })
 
-const navigationView = (session: Session, currentRouteTag: string): Html => {
-  const h = html<Message>()
-
-  return h.nav(
+const navigationView = (
+  session: Session,
+  currentRouteTag: string,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.nav(
     [h.Class('bg-blue-500 text-white p-4')],
     [
       h.div(
@@ -61,34 +63,25 @@ const navigationView = (session: Session, currentRouteTag: string): Html => {
       ),
     ],
   )
-}
 
-export const view = Submodel.defineView<Model, Message>((model): Html => {
-  const h = html<Message>()
-
-  return h.div(
+export const view = Submodel.defineView<Model, Message>((model, h) =>
+  h.div(
     [h.Class('min-h-screen')],
     [
-      navigationView(model.session, model.route._tag),
+      navigationView(model.session, model.route._tag, h),
       h.main(
         [h.Class('py-8')],
         [
-          h.keyed('div')(
-            model.route._tag,
-            [],
-            [
-              M.value(model.route).pipe(
-                M.tagsExhaustive({
-                  Dashboard: () => Dashboard.view(model.session),
-                  Settings: () => Settings.view(model.session),
-                  NotFound: ({ path }) =>
-                    notFoundView(path, dashboardRouter(), 'Go to Dashboard'),
-                }),
-              ),
-            ],
+          Match.value(model.route).pipe(
+            Match.tagsExhaustive({
+              Dashboard: () => Dashboard.view(model.session, h),
+              Settings: () => Settings.view(model.session, h),
+              NotFound: ({ path }) =>
+                notFoundView(path, dashboardRouter(), 'Go to Dashboard', h),
+            }),
           ),
         ],
       ),
     ],
-  )
-})
+  ),
+)

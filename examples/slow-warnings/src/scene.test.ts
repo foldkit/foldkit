@@ -1,4 +1,5 @@
-import { Scene } from 'foldkit'
+import { click, expect, given, role, scene, text } from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { type Model, update, view } from './main'
@@ -13,47 +14,46 @@ const initialModel: Model = {
 
 describe('view', () => {
   test('renders all workload controls', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(initialModel),
-      Scene.expect(Scene.text('Slow Warnings Lab')).toExist(),
-      Scene.expect(Scene.role('button', { name: 'Run update work' })).toExist(),
-      Scene.expect(Scene.role('button', { name: 'Run view work' })).toExist(),
-      Scene.expect(Scene.role('button', { name: 'Run patch work' })).toExist(),
-      Scene.expect(
-        Scene.role('button', { name: 'Run dependency extraction' }),
-      ).toExist(),
+      given(initialModel),
+      expect(text('Slow Warnings Lab')).toExist(),
+      expect(role('button', { name: 'Run update work' })).toExist(),
+      expect(role('button', { name: 'Run view work' })).toExist(),
+      expect(role('button', { name: 'Run patch work' })).toExist(),
+      expect(role('button', { name: 'Run dependency extraction' })).toExist(),
     )
   })
 
   test('clicking patch work renders patch rows', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(initialModel),
-      Scene.click(Scene.role('button', { name: 'Run patch work' })),
-      Scene.expect(Scene.text('Patch row 1')).toExist(),
+      given(initialModel),
+      click(role('button', { name: 'Run patch work' })),
+      expect(text('Patch row 1')).toExist(),
     )
   })
 
   test('clear removes recorded warnings', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with({
-        ...initialModel,
-        warnings: [
-          {
-            id: 1,
-            phase: 'Update',
-            durationMs: 12,
-            thresholdMs: 4,
-            trigger: 'ClickedRunUpdateWork',
-            details: 'Update work exceeded the threshold.',
-          },
-        ],
-      }),
-      Scene.expect(Scene.text('Update exceeded 4ms')).toExist(),
-      Scene.click(Scene.role('button', { name: 'Clear' })),
-      Scene.expect(Scene.text('Run a workload to record a warning.')).toExist(),
+      given(
+        evo(initialModel, {
+          warnings: () => [
+            {
+              id: 1,
+              phase: 'Update',
+              durationMs: 12,
+              thresholdMs: 4,
+              trigger: 'ClickedRunUpdateWork',
+              details: 'Update work exceeded the threshold.',
+            },
+          ],
+        }),
+      ),
+      expect(text('Update exceeded 4ms')).toExist(),
+      click(role('button', { name: 'Clear' })),
+      expect(text('Run a workload to record a warning.')).toExist(),
     )
   })
 })

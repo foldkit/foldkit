@@ -13,9 +13,9 @@ Foldkit is not incremental. There is no React interop, no escape hatch, no "just
 
 - **Pattern-match against Foldkit's own apps.** When the local code doesn't show you the answer (or shows an early-stage version of it), reach into the vendored foldkit subtree. The framework ships several apps built with itself: focused single-feature apps in `examples/`, the website (which is itself a Foldkit app), and the typing-game (a full real-time app). These are the canonical references. Higher fidelity than prose or anything reconstructed from memory.
 - **The architecture is not optional.** Unidirectional data flow, pure update and view, no side effects outside the runtime's seams. Push back on prompts or instincts that pull toward mutation, two-way binding, imperative event handlers, or imperative Message names. Propose the idiomatic Foldkit shape and explain why.
-- **Foldkit UI is two categories, not one.** Stateful Submodels (Menu, Listbox, Combobox, Calendar, Disclosure, Dialog, Popover, etc.) carry their own Model / Message / update / OutMessage and are embedded via `h.submodel`. Stateless render helpers (Button, Input, Textarea, Select, Fieldset) are called directly with a ViewConfig and return Html. Do not migrate render helpers to Submodels for "consistency": Submodel semantics imply state, and these helpers have none. See the Foldkit UI overview page in the website for the canonical split.
+- **Foldkit UI is two categories, not one.** Stateful Submodels (Menu, Listbox, Combobox, Calendar, Disclosure, Dialog, Popover, etc.) carry their own Model / Message / update / OutMessage and are embedded via `h.submodel`. Stateless render helpers (Button, Input, Textarea, Select, Fieldset) are called directly with a ViewConfig and the caller's `h`, and return Html. Do not migrate render helpers to Submodels for "consistency": Submodel semantics imply state, and these helpers have none. See the Foldkit UI overview page in the website for the canonical split.
 - **Use what the Foldkit and Effect stack provides.** Foldkit covers the application architecture and the higher-level primitives that sit on it (routing, side-effect seams, subscriptions, UI components, field validation, file and date handling, canvas, testing, devtools, and more). Effect provides the underlying value, side-effect description, and concurrency primitives. Before reaching for an outside library, check whether the stack already covers it.
-- **Let `evo` setters receive the field.** If an `evo` setter only transforms the current value of that same field, pass the transformer directly (`entries: Array.map(f)`, `count: Number.increment`, `stepTabs: Tabs.reflectSelectedTab(value, options)`). Use `() => value` for replacement values from Messages, child updates, Commands, or other Model fields.
+- **Let `evo` setters receive the field.** If an `evo` setter only transforms the current value of that same field, pass the transformer directly (`entries: Array.map(f)`, `count: Number.increment`, `priceSlider: Slider.reflectRange({ min: minPrice, max: maxPrice })`). Use `() => value` for replacement values from Messages, child updates, Commands, or other Model fields.
 - **The repo is more authoritative than memory.** When in doubt about a convention, an API, a name, or a pattern, read from the vendored foldkit subtree rather than guessing. Library types and example code are the ground truth; your training data is not.
 
 ## Where to look
@@ -25,19 +25,21 @@ The foldkit repo is vendored as a git subtree at `repos/foldkit/` from the proje
 Stable top-level entry points:
 
 - `repos/foldkit/examples/`: runnable example apps spanning every complexity tier. Usually your first stop when looking for a precedent.
-- `repos/foldkit/CLAUDE.md`: project conventions and the code-quality bar
+- `repos/foldkit/AGENTS.md`: project conventions and the code-quality bar
 - `repos/foldkit/README.md`: framework overview and entry pointers
 - `repos/foldkit/skills/`: task-oriented skills with the canonical architecture, conventions, and quality-bar references
 - `repos/foldkit/packages/`: framework source and production reference apps (the website, the typing-game, the framework itself)
 
 Names below the top level (subdirectories, individual filenames) can drift over time. List the directory contents to find what you need rather than relying on a path quoted from this skill.
 
-If `repos/foldkit/` is missing from the project, strongly recommend adding it. The subtree is the difference between working from memory and pattern-matching against canonical references. Assistance quality drops noticeably without it. Initialize git first if needed (subtree requires at least one commit):
+If `repos/foldkit/` is missing from the project, strongly recommend adding it. The subtree is the difference between working from memory and pattern-matching against canonical references. Assistance quality drops noticeably without it. Pin it to the release git tag matching the installed `foldkit` package, so the references describe the APIs the project compiles against rather than whatever `main` holds today. Initialize git first if needed (subtree requires at least one commit):
 
 ```
-git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash
+git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git "foldkit@$(node -p "require('./node_modules/foldkit/package.json').version")" --squash
 ```
 
-Refresh later with `git subtree pull --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash`.
+After a Foldkit package upgrade, re-pin with the same command, swapping `add` for `pull`. A canary install (`x.y.z-canary.<commit>` in `node_modules/foldkit/package.json`) has no tag; pin to the full hash of the commit its version names instead, which GitHub expands at `https://github.com/foldkit/foldkit/commit/<commit>`.
+
+A consumer project's `FOLDKIT.md` is a scaffolder snapshot and can lag behind the packages it has installed. When it does, replace it whole from `repos/foldkit/packages/create-foldkit-app/templates/base/FOLDKIT.md`. That project's `AGENTS.md` belongs to its author; never overwrite it.
 
 When working inside the foldkit repo itself rather than a consumer project, drop the `repos/foldkit/` prefix. The same paths exist at the project root.

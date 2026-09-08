@@ -8,26 +8,24 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "format": "prettier -w .",
+    "format": "oxfmt",
     "test": "vitest run"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-beta.88",
-    "@foldkit/devtools": "workspace:*",
-    "@tailwindcss/vite": "^4.3.1",
+    "@effect/platform-browser": "4.0.0-rc.112",
     "@typing-game/shared": "workspace:*",
     "clsx": "^2.1.1",
-    "effect": "4.0.0-beta.88",
-    "foldkit": "workspace:*",
-    "tailwindcss": "^4.3.1"
+    "effect": "4.0.0-rc.112",
+    "foldkit": "workspace:*"
   },
   "devDependencies": {
+    "@foldkit/devtools": "workspace:*",
     "@foldkit/vite-plugin": "workspace:*",
-    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
-    "happy-dom": "^20.10.4",
-    "prettier": "^3.8.4",
-    "typescript": "^6.0.3",
-    "vite": "^8.0.16",
-    "vitest": "^4.1.9"
+    "@tailwindcss/vite": "^4.3.3",
+    "happy-dom": "^20.11.13",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
   }
 }

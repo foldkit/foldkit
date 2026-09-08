@@ -1,15 +1,15 @@
 import {
-  Array as Array_,
+  Array,
   Function,
-  Match as M,
+  Match,
   Option,
   Predicate,
   Record,
-  Schema as S,
+  Schema,
 } from 'effect'
 
 import { OptionExt } from '../effectExtensions/index.js'
-import { ts } from '../schema/index.js'
+import { defineTaggedUnion } from '../schema/index.js'
 
 const ROOT = 'root'
 const PATH_SEPARATOR = '.'
@@ -19,39 +19,32 @@ const ARRAY_SAMPLE = 2
 
 // PATH
 
-const Found = ts('Found', {
-  value: S.Unknown,
-  atPath: S.String,
+const PathResolution = defineTaggedUnion({
+  Found: { value: Schema.Unknown, atPath: Schema.String },
+  NotFound: {
+    failedAt: Schema.String,
+    reason: Schema.String,
+    availableKeys: Schema.Array(Schema.String),
+  },
 })
-
-const NotFound = ts('NotFound', {
-  failedAt: S.String,
-  reason: S.String,
-  availableKeys: S.Array(S.String),
-})
-
-const PathResolution = S.Union([Found, NotFound])
 
 /**
- * Result of resolving a dot-string path against a Model snapshot.
- *
- * The path representation matches `SerializedEntry.changedPaths` exactly:
- * dot-separated, anchored at the literal segment `root`. `Found.atPath`
- * echoes the canonicalized path; `NotFound.availableKeys` lists the keys
- * present at the deepest segment that resolved, so an agent can recover with
- * one follow-up call.
+ * The result of looking up a `root.foo.bar` path in a Model snapshot.
+ * `PathResolution.Found` returns the value and the path where it was found.
+ * `PathResolution.NotFound` reports where the lookup stopped and which keys
+ * were available there.
  */
 export type PathResolution = typeof PathResolution.Type
 
 const isExpandable = Predicate.isObjectOrArray
 
 const keysOf = (value: unknown): ReadonlyArray<string> =>
-  M.value(value).pipe(
-    M.when(Array.isArray, items =>
-      Array_.makeBy(items.length, index => index.toString()),
+  Match.value(value).pipe(
+    Match.when(globalThis.Array.isArray, items =>
+      Array.makeBy(items.length, index => index.toString()),
     ),
-    M.when(Predicate.isObject, Record.keys),
-    M.orElse(() => []),
+    Match.when(Predicate.isObject, Record.keys),
+    Match.orElse(() => []),
   )
 
 const segmentsOf = (path: string): ReadonlyArray<string> =>
@@ -61,33 +54,33 @@ const isRootAnchored = (path: string): boolean =>
   path === ROOT || path.startsWith(`${ROOT}${PATH_SEPARATOR}`)
 
 const descend = (parent: unknown, segment: string): Option.Option<unknown> =>
-  M.value(parent).pipe(
-    M.when(Array.isArray, array =>
+  Match.value(parent).pipe(
+    Match.when(globalThis.Array.isArray, array =>
       Option.liftPredicate(Number(segment), Number.isInteger).pipe(
-        Option.flatMap(index => Array_.get(array, index)),
+        Option.flatMap(index => Array.get(array, index)),
       ),
     ),
-    M.when(Predicate.isObject, record => Record.get(record, segment)),
-    M.orElse(() => Option.none()),
+    Match.when(Predicate.isObject, record => Record.get(record, segment)),
+    Match.orElse(() => Option.none()),
   )
 
-/**
- * Walk a dot-string path against a Model snapshot. Returns the resolved value
- * on success, or a structured `NotFound` describing the deepest segment that
- * resolved plus its available keys so an agent can refine.
- */
+/** Looks up a `root.foo.bar` path in a Model snapshot. On failure, returns the
+ * deepest path reached and the keys available there. */
 export const resolvePath = (root: unknown, path: string): PathResolution => {
   if (!isRootAnchored(path)) {
-    return NotFound({
+    return PathResolution.NotFound({
       failedAt: '',
       reason: `Path must start with '${ROOT}'. Received: '${path}'.`,
       availableKeys: [],
     })
   }
 
-  const initial: PathResolution = Found({ value: root, atPath: ROOT })
+  const initial: PathResolution = PathResolution.Found({
+    value: root,
+    atPath: ROOT,
+  })
 
-  return Array_.reduce(
+  return Array.reduce(
     segmentsOf(path),
     initial,
     (resolution, segment): PathResolution => {
@@ -96,7 +89,7 @@ export const resolvePath = (root: unknown, path: string): PathResolution => {
       }
       return Option.match(descend(resolution.value, segment), {
         onNone: () =>
-          NotFound({
+          PathResolution.NotFound({
             failedAt: resolution.atPath,
             reason: isExpandable(resolution.value)
               ? `No '${segment}' at '${resolution.atPath}'.`
@@ -104,7 +97,7 @@ export const resolvePath = (root: unknown, path: string): PathResolution => {
             availableKeys: keysOf(resolution.value),
           }),
         onSome: descended =>
-          Found({
+          PathResolution.Found({
             value: descended,
             atPath: `${resolution.atPath}${PATH_SEPARATOR}${segment}`,
           }),
@@ -132,10 +125,10 @@ const sampleArray = (
     items.length <= ARRAY_SAMPLE
       ? items
       : [
-          ...Array_.take(items, ARRAY_SAMPLE - 1),
-          ...Option.toArray(Array_.last(items)),
+          ...Array.take(items, ARRAY_SAMPLE - 1),
+          ...Option.toArray(Array.last(items)),
         ]
-  return Array_.map(sample, item => summarizeAt(item, depth + 1))
+  return Array.map(sample, item => summarizeAt(item, depth + 1))
 }
 
 const summarizeArray = (
@@ -161,11 +154,11 @@ const summarizeRecord = (
 }
 
 const summarizeAt = (value: unknown, depth: number): unknown =>
-  M.value(value).pipe(
-    M.when(Predicate.isString, truncateString),
-    M.when(Array.isArray, items => summarizeArray(items, depth)),
-    M.when(Predicate.isObject, record => summarizeRecord(record, depth)),
-    M.orElse(Function.identity),
+  Match.value(value).pipe(
+    Match.when(Predicate.isString, truncateString),
+    Match.when(globalThis.Array.isArray, items => summarizeArray(items, depth)),
+    Match.when(Predicate.isObject, record => summarizeRecord(record, depth)),
+    Match.orElse(Function.identity),
   )
 
 /**
@@ -186,15 +179,12 @@ const formatAvailableKeys = (
   keys: ReadonlyArray<string>,
 ): Option.Option<string> =>
   OptionExt.when(
-    Array_.isReadonlyArrayNonEmpty(keys),
+    Array.isReadonlyArrayNonEmpty(keys),
     `Available keys: ${keys.join(', ')}.`,
   )
 
-/**
- * Format a `NotFound` resolution as a single human-readable line for the
- * `ResponseError.reason` channel. Includes the available keys at the failure
- * point so an agent can refine the path on the next call.
- */
+/** Formats a `NotFound` result for `ResponseError.reason`, including the keys
+ * available where the lookup stopped. */
 export const formatPathNotFound = (
   notFound: Extract<PathResolution, { _tag: 'NotFound' }>,
 ): string =>

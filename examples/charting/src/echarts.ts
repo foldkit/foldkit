@@ -13,7 +13,7 @@ import * as echarts from 'echarts/core'
 import { LabelLayout, UniversalTransition } from 'echarts/features'
 import { CanvasRenderer } from 'echarts/renderers'
 import type { EChartsOption } from 'echarts/types/dist/shared'
-import { Array, Match as M, Option, String, pipe } from 'effect'
+import { Array, Match, Option, String, pipe } from 'effect'
 
 import {
   type ChartMode,
@@ -382,11 +382,11 @@ const weekToDatumLabels =
   ]
 
 export const makeChartOption = (args: ChartOptionArgs) =>
-  M.value(args.chartMode).pipe(
-    M.when('Adoption', () => adoptionOption(args)),
-    M.when('Velocity', () => velocityOption(args)),
-    M.when('Ecosystem', () => ecosystemOption(args)),
-    M.exhaustive,
+  Match.value(args.chartMode).pipe(
+    Match.when('Adoption', () => adoptionOption(args)),
+    Match.when('Velocity', () => velocityOption(args)),
+    Match.when('Ecosystem', () => ecosystemOption(args)),
+    Match.exhaustive,
   )
 
 const findDatumLabelById =

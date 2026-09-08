@@ -1,4 +1,4 @@
-import { Scene } from 'foldkit'
+import { click, expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
 import { type Model, update, view } from './main'
@@ -7,51 +7,51 @@ const initialModel: Model = { count: 0 }
 
 describe('view', () => {
   test('renders the initial count and three buttons', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(initialModel),
-      Scene.expect(Scene.text('0')).toExist(),
-      Scene.expect(Scene.role('button', { name: '+' })).toExist(),
-      Scene.expect(Scene.role('button', { name: '-' })).toExist(),
-      Scene.expect(Scene.role('button', { name: 'Reset' })).toExist(),
+      given(initialModel),
+      expect(text('0')).toExist(),
+      expect(role('button', { name: '+' })).toExist(),
+      expect(role('button', { name: '-' })).toExist(),
+      expect(role('button', { name: 'Reset' })).toExist(),
     )
   })
 
   test('clicking + increments the displayed count', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(initialModel),
-      Scene.click(Scene.role('button', { name: '+' })),
-      Scene.expect(Scene.text('1')).toExist(),
-      Scene.click(Scene.role('button', { name: '+' })),
-      Scene.expect(Scene.text('2')).toExist(),
+      given(initialModel),
+      click(role('button', { name: '+' })),
+      expect(text('1')).toExist(),
+      click(role('button', { name: '+' })),
+      expect(text('2')).toExist(),
     )
   })
 
   test('clicking - decrements the displayed count', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with({ count: 3 }),
-      Scene.click(Scene.role('button', { name: '-' })),
-      Scene.expect(Scene.text('2')).toExist(),
+      given({ count: 3 }),
+      click(role('button', { name: '-' })),
+      expect(text('2')).toExist(),
     )
   })
 
   test('clicking - past zero produces a negative count', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(initialModel),
-      Scene.click(Scene.role('button', { name: '-' })),
-      Scene.expect(Scene.text('-1')).toExist(),
+      given(initialModel),
+      click(role('button', { name: '-' })),
+      expect(text('-1')).toExist(),
     )
   })
 
   test('Reset returns the count to zero', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with({ count: 42 }),
-      Scene.click(Scene.role('button', { name: 'Reset' })),
-      Scene.expect(Scene.text('0')).toExist(),
+      given({ count: 42 }),
+      click(role('button', { name: 'Reset' })),
+      expect(text('0')).toExist(),
     )
   })
 })

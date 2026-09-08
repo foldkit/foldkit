@@ -8,8 +8,8 @@ const application = Runtime.makeApplication({
   view,
   container: document.getElementById('root'),
   resources: Layer.mergeAll(
-    AudioContextService.Default,
-    WebRTCService.Default,
-    CanvasService.Default,
+    ApiClientService.Default,
+    AnalyticsService.Default,
+    ComputeWorkerService.Default,
   ),
 })

@@ -1,11 +1,10 @@
-import { Context, Option } from 'effect'
-import { afterEach, beforeEach, expect } from 'vitest'
+import { Context, Effect, Option, Schema } from 'effect'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { describe, it } from '@effect/vitest'
-
+import { defineMessageUnion } from '../message/index.js'
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
-import { html } from './index.js'
+import { type HtmlBuilder, __htmlBuilder } from './index.js'
 import {
   type DispatchSync,
   clearRuntime,
@@ -17,11 +16,7 @@ const setUpRuntime = (dispatched: Array<unknown>): void => {
     dispatched.push(message)
   }
   const dispatchService = Dispatch.of({
-    dispatchAsync: () =>
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      Promise.resolve() as unknown as ReturnType<
-        typeof Dispatch.Service.dispatchAsync
-      >,
+    dispatchAsync: () => Effect.void,
     dispatchSync,
   })
   const context = Context.make(Dispatch, dispatchService).pipe(
@@ -33,11 +28,10 @@ const setUpRuntime = (dispatched: Array<unknown>): void => {
   setRuntime(dispatchSync, context)
 }
 
-type PressedKey = Readonly<{ _tag: 'PressedKey'; key: string }>
-
-const PressedKey = (key: string): PressedKey => ({ _tag: 'PressedKey', key })
-
-type Message = PressedKey
+const Message = defineMessageUnion({
+  PressedKey: { key: Schema.String },
+})
+type Message = typeof Message.Type
 
 const fakeKeyboardEvent = (
   key: string,
@@ -68,7 +62,7 @@ const fakeKeyboardEvent = (
 
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 const handlerOf = (
-  vnode: ReturnType<ReturnType<typeof html<Message>>['div']>,
+  vnode: ReturnType<HtmlBuilder<Message>['div']>,
   eventName: string,
 ): ((event: unknown) => void) =>
   vnode?.data?.on?.[eventName] as unknown as (event: unknown) => void
@@ -88,8 +82,8 @@ describe('keyboard self-scoped attributes', () => {
 
   describe('OnKeyDownSelf', () => {
     it('dispatches when the keydown targets the element itself', () => {
-      const h = html<Message>()
-      const vnode = h.div([h.OnKeyDownSelf(key => PressedKey(key))], [])
+      const h = __htmlBuilder<Message>()
+      const vnode = h.div([h.OnKeyDownSelf(key => Message.PressedKey({ key }))])
 
       handlerOf(vnode, 'keydown')(fakeKeyboardEvent('a', 'self').event)
 
@@ -97,8 +91,8 @@ describe('keyboard self-scoped attributes', () => {
     })
 
     it('ignores keydowns that bubble up from a descendant', () => {
-      const h = html<Message>()
-      const vnode = h.div([h.OnKeyDownSelf(key => PressedKey(key))], [])
+      const h = __htmlBuilder<Message>()
+      const vnode = h.div([h.OnKeyDownSelf(key => Message.PressedKey({ key }))])
 
       handlerOf(vnode, 'keydown')(fakeKeyboardEvent('a', 'descendant').event)
 
@@ -108,15 +102,14 @@ describe('keyboard self-scoped attributes', () => {
 
   describe('OnKeyDownSelfPreventDefault', () => {
     it('prevents default and dispatches for a self event when the handler returns Some', () => {
-      const h = html<Message>()
-      const vnode = h.div(
-        [
-          h.OnKeyDownSelfPreventDefault(key =>
-            key === 'Enter' ? Option.some(PressedKey(key)) : Option.none(),
-          ),
-        ],
-        [],
-      )
+      const h = __htmlBuilder<Message>()
+      const vnode = h.div([
+        h.OnKeyDownSelfPreventDefault(key =>
+          key === 'Enter'
+            ? Option.some(Message.PressedKey({ key }))
+            : Option.none(),
+        ),
+      ])
 
       const fake = fakeKeyboardEvent('Enter', 'self')
       handlerOf(vnode, 'keydown')(fake.event)
@@ -126,15 +119,14 @@ describe('keyboard self-scoped attributes', () => {
     })
 
     it('leaves the key to the browser for a self event when the handler returns None', () => {
-      const h = html<Message>()
-      const vnode = h.div(
-        [
-          h.OnKeyDownSelfPreventDefault(key =>
-            key === 'Enter' ? Option.some(PressedKey(key)) : Option.none(),
-          ),
-        ],
-        [],
-      )
+      const h = __htmlBuilder<Message>()
+      const vnode = h.div([
+        h.OnKeyDownSelfPreventDefault(key =>
+          key === 'Enter'
+            ? Option.some(Message.PressedKey({ key }))
+            : Option.none(),
+        ),
+      ])
 
       const fake = fakeKeyboardEvent('a', 'self')
       handlerOf(vnode, 'keydown')(fake.event)
@@ -144,17 +136,12 @@ describe('keyboard self-scoped attributes', () => {
     })
 
     it('does not fire or prevent default for a descendant event', () => {
-      const h = html<Message>()
-      const vnode = h.div(
-        [
-          h.OnKeyDownSelfPreventDefault(key =>
-            // Would claim every key if it ran, so a quiet result proves the
-            // descendant guard short-circuits before the handler.
-            Option.some(PressedKey(key)),
-          ),
-        ],
-        [],
-      )
+      const h = __htmlBuilder<Message>()
+      const vnode = h.div([
+        h.OnKeyDownSelfPreventDefault(key =>
+          Option.some(Message.PressedKey({ key })),
+        ),
+      ])
 
       const fake = fakeKeyboardEvent('Enter', 'descendant')
       handlerOf(vnode, 'keydown')(fake.event)

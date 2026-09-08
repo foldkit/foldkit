@@ -1,30 +1,39 @@
 import { Context, Option } from 'effect'
-import { h } from 'snabbdom'
 import { afterEach, beforeEach, expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
+import { h } from '../snabbdom/index.js'
 import { type VNode, dedupeSharedVNodes, memoizedVNodes } from '../vdom.js'
 import {
   type BoundaryRegistry,
   beginRender,
   createBoundaryRegistry,
   registerBoundaryWrap,
+  resolveMountBoundaryDispatch,
 } from './boundary.js'
+import { __htmlBuilder } from './index.js'
 import { createKeyedLazy, createLazy } from './lazy.js'
 import {
   type DispatchSync,
   clearRuntime,
   pushBoundary,
   requireDispatch,
+  requireMountDispatch,
   setRuntime,
 } from './runtimeSingleton.js'
 import {
-  type SubmodelView as SubmodelViewBranded,
-  submodel,
+  type AnySubmodelView,
+  type SubmodelConfig,
+  defineView,
+  submodel as submodelImpl,
 } from './submodel.js'
+
+const submodel = <View extends AnySubmodelView>(
+  config: SubmodelConfig<View, unknown>,
+): VNode | null => submodelImpl(config, __htmlBuilder())
 
 const asVNode = (child: VNode | string | undefined): VNode => {
   if (child === undefined || typeof child === 'string') {
@@ -72,7 +81,7 @@ const GotChild = (args: { entryId: string; message: ChildMessage }) =>
 // Submodel's boundary. Calling `requireDispatch()` inside the click
 // handler would resolve at fire time when the boundary has already
 // been popped.
-const childView = (model: { value: number }) => {
+const childView = defineView<{ value: number }, ChildMessage>(model => {
   const dispatch = requireDispatch()
   return h('button', {
     on: {
@@ -83,7 +92,7 @@ const childView = (model: { value: number }) => {
         } satisfies ChildMessage),
     },
   })
-}
+})
 
 describe('h.submodel', () => {
   let registry: BoundaryRegistry
@@ -145,13 +154,14 @@ describe('h.submodel', () => {
     const innerResult = submodel({
       slotId: 'parent',
       model: {},
-      view: () =>
+      view: defineView<object, ParentMessage>(() =>
         submodel({
           slotId: 'child-1',
           model: { value: 99 },
           view: childView,
           toParentMessage: message => GotChild({ entryId: 'child-1', message }),
         }),
+      ),
       toParentMessage: message => GotParent({ message }),
     })
 
@@ -172,10 +182,11 @@ describe('h.submodel', () => {
   })
 
   it('passes viewInputs as the second view argument when provided', () => {
-    const viewWithInputs = (
-      model: { value: number },
-      viewInputs: { label: string },
-    ) => h('div', `${viewInputs.label}: ${model.value}`)
+    const viewWithInputs = defineView<
+      { value: number },
+      ChildMessage,
+      { label: string }
+    >((model, viewInputs) => h('div', `${viewInputs.label}: ${model.value}`))
 
     const result = submodel({
       slotId: 'with-viewInputs',
@@ -196,15 +207,20 @@ describe('h.submodel', () => {
     // `dispatchAcrossBoundary` throws if a chain wrap is missing, since
     // a missing wrap implies a corrupted registry (e.g. a Submodel
     // unmounted between event scheduling and dispatch).
-    registerBoundaryWrap(registry, 'outer', {
-      toParentMessage: message => ({ _tag: 'GotOuter', inner: message }),
-    })
+    registerBoundaryWrap(
+      registry,
+      'outer',
+      {
+        toParentMessage: message => ({ _tag: 'GotOuter', inner: message }),
+      },
+      requireMountDispatch(),
+    )
     pushBoundary('outer')
     try {
       submodel({
         slotId: 'inner',
         model: {},
-        view: () => h('span'),
+        view: defineView<object, ChildMessage>(() => h('span')),
         toParentMessage: message => GotChild({ entryId: 'inner', message }),
       })
 
@@ -243,6 +259,136 @@ describe('h.submodel', () => {
 
     // The wrap must persist. The cached vnode in the DOM still needs it.
     expect(registry.wraps.has('cached-row')).toBe(true)
+  })
+
+  it.each([
+    {
+      kind: 'createLazy',
+      makeLazy: () => {
+        const lazy = createLazy()
+        return (view: () => VNode | null) => lazy(view, [])
+      },
+    },
+    {
+      kind: 'createKeyedLazy',
+      makeLazy: () => {
+        const lazy = createKeyedLazy()
+        return (view: () => VNode | null) => lazy('cached-row', view, [])
+      },
+    },
+  ])(
+    'restores $kind Submodel wraps when a cached subtree is reinserted',
+    ({ makeLazy }) => {
+      const lazy = makeLazy()
+      let renderCount = 0
+      const renderChild = () => {
+        renderCount += 1
+        return submodel({
+          slotId: 'cached-row',
+          model: { value: 7 },
+          view: childView,
+          toParentMessage: message =>
+            GotChild({ entryId: 'cached-row', message }),
+        })
+      }
+
+      const first = lazy(renderChild)
+      expect(first).not.toBeNull()
+
+      beginRender(registry)
+      first?.data?.hook?.destroy?.(first)
+      expect(registry.wraps.has('cached-row')).toBe(false)
+
+      beginRender(registry)
+      const reinserted = lazy(renderChild)
+      expect(reinserted).toBe(first)
+      expect(renderCount).toBe(1)
+
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      const onClick = reinserted?.data?.on?.click as () => void
+      onClick()
+      const mountDispatch = resolveMountBoundaryDispatch(
+        registry,
+        requireMountDispatch(),
+        'cached-row',
+      )
+      mountDispatch({ _tag: 'ChildClicked', value: 8 })
+
+      expect(dispatched).toEqual([
+        GotChild({
+          entryId: 'cached-row',
+          message: { _tag: 'ChildClicked', value: 7 },
+        }),
+        GotChild({
+          entryId: 'cached-row',
+          message: { _tag: 'ChildClicked', value: 8 },
+        }),
+      ])
+    },
+  )
+
+  it('rolls back wraps restored by a lazy hit when its outer Submodel fails', () => {
+    const lazy = createLazy()
+    const nestedHtml = __htmlBuilder<ChildMessage>()
+    let isOuterViewFailing = false
+    let nestedRenderCount = 0
+    const renderNested = () => {
+      nestedRenderCount += 1
+      return nestedHtml.submodel({
+        slotId: 'nested',
+        model: { value: 4 },
+        view: childView,
+        toParentMessage: message => ({
+          ...message,
+          value: message.value + 10,
+        }),
+      })
+    }
+    const outerView = defineView<object, ChildMessage>(() => {
+      const nested = lazy(renderNested, [])
+      if (isOuterViewFailing) {
+        throw new Error('Outer view failed after the lazy hit')
+      }
+      return nested
+    })
+    const renderOuter = () =>
+      submodel({
+        slotId: 'outer',
+        model: {},
+        view: outerView,
+        toParentMessage: message => GotChild({ entryId: 'outer', message }),
+      })
+
+    const first = renderOuter()
+    expect(first).not.toBeNull()
+
+    beginRender(registry)
+    first?.data?.hook?.destroy?.(first)
+    expect(registry.wraps.has('outer')).toBe(false)
+    expect(registry.wraps.has('outer|nested')).toBe(false)
+
+    beginRender(registry)
+    isOuterViewFailing = true
+    expect(renderOuter).toThrow('Outer view failed after the lazy hit')
+    expect(registry.wraps.has('outer')).toBe(false)
+    expect(registry.wraps.has('outer|nested')).toBe(false)
+
+    beginRender(registry)
+    isOuterViewFailing = false
+    expect(renderOuter()).not.toBeNull()
+    resolveMountBoundaryDispatch(
+      registry,
+      requireMountDispatch(),
+      'outer|nested',
+    )({ _tag: 'ChildClicked', value: 4 })
+
+    expect(nestedRenderCount).toBe(1)
+    expect(dispatched).toEqual([
+      GotChild({
+        entryId: 'outer',
+        message: { _tag: 'ChildClicked', value: 14 },
+      }),
+    ])
   })
 
   it('deregisters the wrap when the returned vnode is destroyed by snabbdom', () => {
@@ -295,7 +441,7 @@ describe('h.submodel', () => {
 
   it('composes the user-supplied destroy hook with the boundary cleanup hook', () => {
     let userDestroyCalled = false
-    const viewWithDestroy = (_: { value: number }) => {
+    const viewWithDestroy = defineView<{ value: number }, ChildMessage>(_ => {
       const dispatch = requireDispatch()
       return h('button', {
         on: {
@@ -311,7 +457,7 @@ describe('h.submodel', () => {
           },
         },
       })
-    }
+    })
 
     const result = submodel({
       slotId: 'with-user-destroy',
@@ -334,12 +480,12 @@ describe('h.submodel', () => {
     submodel({
       slotId: 'child-1',
       model: {},
-      view: () => {
+      view: defineView<object, ChildMessage>(() => {
         const first = requireDispatch()
         const second = requireDispatch()
         expect(first).toBe(second)
         return h('div')
-      },
+      }),
       toParentMessage: message => GotChild({ entryId: 'child-1', message }),
     })
   })
@@ -360,6 +506,14 @@ describe('h.submodel', () => {
         toParentMessage: message => GotChild({ entryId: 'shared', message }),
       }),
     ).toThrow(/duplicate h\.submodel slotId "shared"/)
+    expect(() =>
+      submodel({
+        slotId: 'shared',
+        model: { value: 2 },
+        view: childView,
+        toParentMessage: message => GotChild({ entryId: 'shared', message }),
+      }),
+    ).toThrow(/Second registration: (?!.*assertBoundaryNotSeen)/)
   })
 
   it('runs slot callbacks in the parent boundary so handlers dispatch unwrapped', () => {
@@ -379,10 +533,11 @@ describe('h.submodel', () => {
       ) => unknown
     }>
 
-    const fakeCheckboxView = (
-      _model: object,
-      viewInputs: CheckboxLikeInputs,
-    ) => {
+    const fakeCheckboxView = defineView<
+      object,
+      ChildMessage,
+      CheckboxLikeInputs
+    >((_model, viewInputs) => {
       // Inside the Submodel boundary: dispatch captured here goes through
       // the Submodel's toParentMessage.
       const childDispatch = requireDispatch()
@@ -400,7 +555,7 @@ describe('h.submodel', () => {
       // should reach outerDispatch unwrapped.
       viewInputs.toView([])
       return internalButton
-    }
+    })
 
     let parentHandlerCalledDispatch: DispatchSync | null = null
     submodel({
@@ -437,10 +592,7 @@ describe('h.submodel', () => {
     type Selected = Readonly<{ _tag: 'Selected'; value: number }>
     type SelectedOnly = Selected
 
-    const selectingView: SubmodelViewBranded<
-      { value: number },
-      SelectedOnly
-    > = (model: { value: number }) => {
+    const selectingView = defineView<{ value: number }, SelectedOnly>(model => {
       const dispatch = requireDispatch()
       return h('button', {
         on: {
@@ -451,7 +603,7 @@ describe('h.submodel', () => {
             } satisfies Selected),
         },
       })
-    }
+    })
 
     const result = submodel({
       slotId: 'inference-check',
@@ -474,8 +626,7 @@ describe('h.submodel', () => {
   })
 
   it('returns null and deregisters the wrap when the view returns null', () => {
-    const nullView: SubmodelViewBranded<{ value: number }, ChildMessage> = () =>
-      null
+    const nullView = defineView<{ value: number }, ChildMessage>(() => null)
 
     const result = submodel({
       slotId: 'null-view',
@@ -490,6 +641,176 @@ describe('h.submodel', () => {
     expect(registry.wraps.has('null-view')).toBe(false)
   })
 
+  it.each(['throws', 'returns null'])(
+    'restores surviving nested live Mount wraps when a replay view %s',
+    outcome => {
+      const childMessage: ChildMessage = { _tag: 'ChildClicked', value: 1 }
+      const liveView = defineView<{ value: number }, ChildMessage>((model, h) =>
+        h.submodel({
+          slotId: 'nested',
+          model,
+          view: childView,
+          toParentMessage: message => ({
+            ...message,
+            value: message.value + 10,
+          }),
+        }),
+      )
+      submodel({
+        slotId: 'rollback',
+        model: { value: 1 },
+        view: liveView,
+        toParentMessage: message => GotChild({ entryId: 'live', message }),
+      })
+      const liveMountOuterDispatch = requireMountDispatch()
+      const liveMountDispatch = resolveMountBoundaryDispatch(
+        registry,
+        liveMountOuterDispatch,
+        'rollback|nested',
+      )
+
+      clearRuntime()
+      const replayDispatched: Array<unknown> = []
+      setUpRuntime(registry, replayDispatched)
+      const replayMountOuterDispatch = requireMountDispatch()
+      beginRender(registry)
+      const replayView = defineView<{ value: number }, ChildMessage>(
+        (model, h) => {
+          h.submodel({
+            slotId: 'nested',
+            model,
+            view: childView,
+            toParentMessage: message => ({
+              ...message,
+              value: message.value + 100,
+            }),
+          })
+          if (outcome === 'throws') {
+            throw new Error('Replay child view failed')
+          }
+          return null
+        },
+      )
+      const renderReplay = () =>
+        submodel({
+          slotId: 'rollback',
+          model: { value: 2 },
+          view: replayView,
+          toParentMessage: message => GotChild({ entryId: 'replay', message }),
+        })
+
+      if (outcome === 'throws') {
+        expect(renderReplay).toThrow('Replay child view failed')
+      } else {
+        expect(renderReplay()).toBeNull()
+      }
+      liveMountDispatch(childMessage)
+
+      expect(dispatched).toEqual([
+        GotChild({
+          entryId: 'live',
+          message: { ...childMessage, value: 11 },
+        }),
+      ])
+      expect(replayDispatched).toEqual([])
+      expect(
+        registry.wraps.get('rollback')?.toParentMessage(childMessage),
+      ).toEqual(GotChild({ entryId: 'live', message: childMessage }))
+      expect(
+        registry.mountWraps.get(replayMountOuterDispatch)?.has('rollback'),
+      ).toBe(false)
+      expect(
+        registry.mountWraps
+          .get(replayMountOuterDispatch)
+          ?.has('rollback|nested'),
+      ).toBe(false)
+      expect(registry.mountWrapOwners.get('rollback')).toEqual(
+        new Set([liveMountOuterDispatch]),
+      )
+      expect(registry.mountWrapOwners.get('rollback|nested')).toEqual(
+        new Set([liveMountOuterDispatch]),
+      )
+    },
+  )
+
+  it.each([
+    {
+      kind: 'createLazy',
+      makeLazy: () => {
+        const lazy = createLazy()
+        return (view: () => VNode | null) => lazy(view, [])
+      },
+    },
+    {
+      kind: 'createKeyedLazy',
+      makeLazy: () => {
+        const lazy = createKeyedLazy()
+        return (view: () => VNode | null) => lazy('nested', view, [])
+      },
+    },
+  ])(
+    'invalidates a $kind nested Submodel cached by a failed outer view',
+    ({ makeLazy }) => {
+      const lazy = makeLazy()
+      const nestedHtml = __htmlBuilder<ChildMessage>()
+      const nestedModel = { value: 1 }
+      let renderCount = 0
+      const renderNested = () => {
+        renderCount += 1
+        return nestedHtml.submodel({
+          slotId: 'nested',
+          model: nestedModel,
+          view: childView,
+          toParentMessage: message => ({
+            ...message,
+            value: message.value + 10,
+          }),
+        })
+      }
+      const failedView = defineView<object, ChildMessage>(() => {
+        lazy(renderNested)
+        throw new Error('Outer view failed after caching its child')
+      })
+
+      expect(() =>
+        submodel({
+          slotId: 'lazy-rollback',
+          model: {},
+          view: failedView,
+          toParentMessage: message => GotChild({ entryId: 'failed', message }),
+        }),
+      ).toThrow('Outer view failed after caching its child')
+      expect(registry.wraps.has('lazy-rollback')).toBe(false)
+      expect(registry.wraps.has('lazy-rollback|nested')).toBe(false)
+
+      beginRender(registry)
+      const successfulView = defineView<object, ChildMessage>(() =>
+        lazy(renderNested),
+      )
+      const result = submodel({
+        slotId: 'lazy-rollback',
+        model: {},
+        view: successfulView,
+        toParentMessage: message => GotChild({ entryId: 'live', message }),
+      })
+      const mountDispatch = resolveMountBoundaryDispatch(
+        registry,
+        requireMountDispatch(),
+        'lazy-rollback|nested',
+      )
+      mountDispatch({ _tag: 'ChildClicked', value: 1 })
+
+      expect(result).not.toBeNull()
+      expect(renderCount).toBe(2)
+      expect(dispatched).toEqual([
+        GotChild({
+          entryId: 'live',
+          message: { _tag: 'ChildClicked', value: 11 },
+        }),
+      ])
+    },
+  )
+
   it('allows the same slotId under different parent boundaries without throwing', () => {
     // Two h.submodel calls share the literal slotId "child" but live under
     // different parent boundaries, so their composed boundary ids differ. This
@@ -499,26 +820,28 @@ describe('h.submodel', () => {
       submodel({
         slotId: 'parent-a',
         model: {},
-        view: () =>
+        view: defineView<object, ParentMessage>(() =>
           submodel({
             slotId: 'child',
             model: { value: 1 },
             view: childView,
             toParentMessage: message => GotChild({ entryId: 'a', message }),
           }),
+        ),
         toParentMessage: message => ({ _tag: 'GotA' as const, message }),
       })
 
       submodel({
         slotId: 'parent-b',
         model: {},
-        view: () =>
+        view: defineView<object, ParentMessage>(() =>
           submodel({
             slotId: 'child',
             model: { value: 2 },
             view: childView,
             toParentMessage: message => GotChild({ entryId: 'b', message }),
           }),
+        ),
         toParentMessage: message => ({ _tag: 'GotB' as const, message }),
       })
     }).not.toThrow()
@@ -534,7 +857,9 @@ describe('h.submodel', () => {
     // ids on cache hit so the duplicate-slotId guard catches a sibling
     // collision against the cached entry instead of silently
     // overwriting its wrap.
-    const rowView = (): VNode | null =>
+    // NOTE: the key parameter exists only to match the `[key]` args tuple
+    // handed to createKeyedLazy below; the row itself does not use it.
+    const rowView = (_key: string): VNode | null =>
       submodel({
         slotId: 'shared',
         model: { value: 1 },
@@ -560,6 +885,36 @@ describe('h.submodel', () => {
         toParentMessage: message => GotChild({ entryId: 'shared', message }),
       }),
     ).toThrow(/duplicate h\.submodel slotId "shared"/)
+  })
+
+  it('throws when a createKeyedLazy cache hit collides with an earlier slotId', () => {
+    const rowView = (_key: string): VNode | null =>
+      submodel({
+        slotId: 'shared',
+        model: { value: 1 },
+        view: childView,
+        toParentMessage: message => GotChild({ entryId: 'shared', message }),
+      })
+
+    const lazyRow = createKeyedLazy()
+    const renderRow = (key: string): VNode | null =>
+      lazyRow(key, rowView, [key])
+
+    renderRow('row')
+    expect(registry.wraps.has('shared')).toBe(true)
+
+    beginRender(registry)
+    submodel({
+      slotId: 'shared',
+      model: { value: 2 },
+      view: childView,
+      toParentMessage: message => GotChild({ entryId: 'shared', message }),
+    })
+
+    expect(() => renderRow('row')).toThrow(
+      /duplicate h\.submodel slotId "shared"/,
+    )
+    expect(() => renderRow('row')).toThrow(/Second registration: at renderRow /)
   })
 
   it('survives createKeyedLazy reorder: cached entries keep their wraps registered', () => {
@@ -643,8 +998,9 @@ describe('h.submodel', () => {
     const lazy = createLazy()
     const buildChild = (value: number) =>
       h('div', {}, [h('span', {}, [`value: ${value}`])])
-    const memoizedChildView = (model: { value: number }) =>
-      lazy(buildChild, [model.value])
+    const memoizedChildView = defineView<{ value: number }, ChildMessage>(
+      model => lazy(buildChild, [model.value]),
+    )
 
     const wrapper = submodel({
       slotId: 'memoized-child',
@@ -684,10 +1040,12 @@ describe('h.submodel', () => {
     }): ParentSlotMessage => ({ _tag: 'GotSlotChild', ...args })
 
     type ShellInputs = Readonly<{ slot: () => VNode | null }>
-    const shellView = (_: object, viewInputs: ShellInputs): VNode | null => {
-      const slotVNode = viewInputs.slot()
-      return h('div', {}, [slotVNode ?? h('span')])
-    }
+    const shellView = defineView<object, ChildMessage, ShellInputs>(
+      (_, viewInputs) => {
+        const slotVNode = viewInputs.slot()
+        return h('div', {}, [slotVNode ?? h('span')])
+      },
+    )
 
     submodel({
       slotId: 'shell',
@@ -721,8 +1079,9 @@ describe('h.submodel', () => {
     type NestedInputs = Readonly<{
       config: Readonly<{ onSubmit: () => unknown }>
     }>
-    const viewWithNested = (_model: object, _viewInputs: NestedInputs) =>
-      h('div')
+    const viewWithNested = defineView<object, ChildMessage, NestedInputs>(
+      (_model, _viewInputs) => h('div'),
+    )
 
     expect(() =>
       submodel({
@@ -747,7 +1106,9 @@ describe('h.submodel', () => {
     type ItemsInputs = Readonly<{
       items: ReadonlyArray<Readonly<{ onSelect: () => unknown }>>
     }>
-    const viewWithItems = (_model: object, _viewInputs: ItemsInputs) => h('div')
+    const viewWithItems = defineView<object, ChildMessage, ItemsInputs>(
+      (_model, _viewInputs) => h('div'),
+    )
 
     expect(() =>
       submodel({
@@ -768,8 +1129,9 @@ describe('h.submodel', () => {
     // accepted. Models lean on `Option`, `Either`, and similar data
     // types heavily; threading them through `viewInputs` is a common idiom.
     type OptionInputs = Readonly<{ maybeValue: Option.Option<string> }>
-    const viewWithOption = (_model: object, _viewInputs: OptionInputs) =>
-      h('div')
+    const viewWithOption = defineView<object, ChildMessage, OptionInputs>(
+      (_model, _viewInputs) => h('div'),
+    )
 
     expect(() =>
       submodel({

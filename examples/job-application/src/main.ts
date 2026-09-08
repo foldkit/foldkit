@@ -1,11 +1,11 @@
-import { Crypto, Effect, Schema as S } from 'effect'
+import { Crypto, Effect, Schema } from 'effect'
 import { Calendar, Runtime } from 'foldkit'
 
 import { BrowserCrypto } from '@effect/platform-browser'
 import { Menu, Tabs } from '@foldkit/ui'
 
 import { Message } from './message'
-import { Model, NotSubmitted } from './model'
+import { Model, Submission } from './model'
 import {
   Attachments,
   CoverLetter,
@@ -15,15 +15,15 @@ import {
   WorkHistory,
 } from './step'
 import { update } from './update'
-import { view } from './view'
+import { view } from './view/view'
 
 // FLAGS
 
-export const Flags = S.Struct({
+export const Flags = Schema.Struct({
   today: Calendar.CalendarDate,
-  initialWorkHistoryEntryId: S.String,
-  initialEducationEntryId: S.String,
-  initialSkillsEntryId: S.String,
+  initialWorkHistoryEntryId: Schema.String,
+  initialEducationEntryId: Schema.String,
+  initialSkillsEntryId: Schema.String,
 })
 export type Flags = typeof Flags.Type
 
@@ -48,8 +48,8 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = ({
   initialWorkHistoryEntryId,
   initialEducationEntryId,
   initialSkillsEntryId,
-}) => [
-  {
+}) => ({
+  model: {
     currentStep: 'PersonalInfo',
     personalInfo: PersonalInfo.init(today),
     workHistory: WorkHistory.init(today, initialWorkHistoryEntryId),
@@ -58,12 +58,11 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = ({
     coverLetter: CoverLetter.init(),
     attachments: Attachments.init(),
     isPreviewVisible: false,
-    submission: NotSubmitted(),
+    submission: Submission.NotSubmitted(),
     stepMenu: Menu.init({ id: 'step-menu' }),
     stepTabs: Tabs.init({ id: 'step-tabs' }),
     isSubmitAttempted: false,
   },
-  [],
-]
+})
 
 export { Message, Model, update, view }

@@ -9,17 +9,17 @@
     "test:e2e:ui": "playwright test --ui",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "format": "prettier -w ."
+    "format": "oxfmt"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.61.0",
-    "@types/node": "^25.9.3",
-    "@typescript-eslint/eslint-plugin": "^8.61.1",
-    "@typescript-eslint/parser": "^8.61.1",
-    "eslint": "^10.5.0",
-    "playwright": "^1.61.0",
-    "prettier": "^3.8.4",
-    "typescript": "^6.0.3"
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.4.0",
+    "@typescript-eslint/eslint-plugin": "^8.68.0",
+    "@typescript-eslint/parser": "^8.68.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "eslint": "^10.9.1",
+    "playwright": "^1.62.1",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   }
 }

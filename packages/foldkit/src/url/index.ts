@@ -1,7 +1,7 @@
 import {
   Effect,
   Option,
-  Schema as S,
+  Schema,
   SchemaIssue,
   SchemaTransformation,
   String,
@@ -10,27 +10,27 @@ import {
 import { OptionExt } from '../effectExtensions/index.js'
 
 /** Schema representing a parsed URL with protocol, host, port, pathname, search, and hash fields. */
-export const Url = S.Struct({
-  protocol: S.String,
-  host: S.String,
-  port: S.Option(S.String),
-  pathname: S.String,
-  search: S.Option(S.String),
-  hash: S.Option(S.String),
+export const Url = Schema.Struct({
+  protocol: Schema.String,
+  host: Schema.String,
+  port: Schema.Option(Schema.String),
+  pathname: Schema.String,
+  search: Schema.Option(Schema.String),
+  hash: Schema.Option(Schema.String),
 })
 export type Url = typeof Url.Type
 
-const LocationAndHref = S.Struct({
-  href: S.String,
-  location: S.Struct({
-    protocol: S.String,
-    host: S.String,
-    port: S.String,
+const LocationAndHref = Schema.Struct({
+  href: Schema.String,
+  location: Schema.Struct({
+    protocol: Schema.String,
+    host: Schema.String,
+    port: Schema.String,
   }),
 })
 
-const LocationAndHrefFromString = S.String.pipe(
-  S.decodeTo(
+const LocationAndHrefFromString = Schema.String.pipe(
+  Schema.decodeTo(
     LocationAndHref,
     SchemaTransformation.transformOrFail({
       decode: urlString =>
@@ -47,8 +47,8 @@ const LocationAndHrefFromString = S.String.pipe(
             }
           },
           catch: () =>
-            new SchemaIssue.InvalidValue(Option.some(urlString), {
-              description: `Invalid URL: ${urlString}`,
+            new SchemaIssue.InvalidValue({
+              message: `Invalid URL: ${urlString}`,
             }),
         }),
       encode: ({ href, location }) => {
@@ -62,7 +62,7 @@ const LocationAndHrefFromString = S.String.pipe(
 )
 
 const UrlFromLocationAndHref = LocationAndHref.pipe(
-  S.decodeTo(
+  Schema.decodeTo(
     Url,
     SchemaTransformation.transform({
       decode: ({ href, location }) => {
@@ -103,10 +103,11 @@ const UrlFromLocationAndHref = LocationAndHref.pipe(
 )
 
 const UrlFromString = LocationAndHrefFromString.pipe(
-  S.decodeTo(UrlFromLocationAndHref),
+  Schema.decodeTo(UrlFromLocationAndHref),
 )
 
 /** Parses a URL string into a `Url`, returning `Option.None` if invalid. */
-export const fromString = (str: string) => S.decodeOption(UrlFromString)(str)
+export const fromString = (str: string) =>
+  Schema.decodeOption(UrlFromString)(str)
 /** Serializes a `Url` back to a string. */
-export const toString = (url: Url) => S.encodeSync(UrlFromString)(url)
+export const toString = (url: Url) => Schema.encodeSync(UrlFromString)(url)

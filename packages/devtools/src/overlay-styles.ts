@@ -1,5 +1,12 @@
 export const overlayStyles = `:host {
-  position: relative;
+  /* The host spans the viewport so it has real bounds to snapshot: it carries a
+     \`view-transition-name\` (set in \`overlay.ts\`, see the note there) to stay
+     out of an application's View Transitions, and a name on a zero-size element
+     captures nothing. The box itself is inert; the panels inside opt back into
+     hit-testing through \`.fixed\`. */
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
   z-index: 2147483647;
 
   --dt-bg: #1e1e2e;
@@ -37,11 +44,27 @@ ul {
   list-style: none;
 }
 
+/* The host is \`pointer-events: none\` so its viewport-spanning box cannot
+   swallow clicks meant for the application, and everything the shadow root
+   renders opts back in here. The boundary is the shadow root's children rather
+   than any one panel class: content arrives by routes a class list does not
+   cover, including the portal root \`@foldkit/ui\` prepends for anchored
+   dropdowns, and a surface that misses the opt-in is silently unclickable.
+   These wrappers are zero-height, so granting them hit-testing costs nothing;
+   descendants that must stay transparent, like the listbox backdrop, set
+   \`pointer-events: none\` on themselves. */
+:host > * {
+  pointer-events: auto;
+}
+
 .fixed {
   position: fixed;
 }
 .flex {
   display: flex;
+}
+.contents {
+  display: contents;
 }
 .flex-col {
   flex-direction: column;
@@ -346,6 +369,105 @@ ul {
   inset: 0;
   pointer-events: none;
 }
+.dt-settings-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  margin: -8px 0 -8px -12px;
+  padding: 0 12px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--dt-border);
+  color: var(--dt-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.dt-settings-button:hover {
+  color: var(--dt-text);
+  background-color: var(--dt-tree-hover);
+}
+.dt-settings-button:focus-visible {
+  outline: 1px solid var(--dt-accent);
+  outline-offset: -1px;
+}
+.dt-settings-button-active {
+  color: var(--dt-accent);
+  background-color: var(--dt-surface-selected);
+}
+.dt-settings-button-active:hover {
+  background-color: var(--dt-tree-hover);
+}
+.dt-settings-icon {
+  width: 14px;
+  height: 14px;
+}
+.dt-settings-section-title {
+  padding: 10px 12px 4px;
+  color: var(--dt-text-muted);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.dt-settings-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 8px 12px;
+}
+.dt-settings-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.dt-settings-row-label {
+  color: var(--dt-text);
+  font-size: 13px;
+  cursor: pointer;
+}
+.dt-settings-row-description {
+  color: var(--dt-text-muted);
+  font-size: 10px;
+}
+.dt-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 9999px;
+  background-color: var(--dt-border);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color 100ms ease,
+    filter 100ms ease;
+}
+.dt-switch:hover {
+  filter: brightness(1.2);
+}
+.dt-switch:focus-visible {
+  outline: 1px solid var(--dt-accent);
+  outline-offset: 2px;
+}
+.dt-switch[data-checked] {
+  background-color: var(--dt-accent);
+}
+.dt-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background-color: var(--dt-text-muted);
+  transition:
+    transform 100ms ease,
+    background-color 100ms ease;
+}
+.dt-switch[data-checked] .dt-switch-thumb {
+  transform: translateX(16px);
+  background-color: var(--dt-bg);
+}
 .dt-tab-button {
   position: relative;
   background: transparent;
@@ -608,10 +730,13 @@ ul {
   cursor: not-allowed;
 }
 
-/* Scrubber */
-.dt-scrubber-row {
+/* Footer */
+.dt-footer {
   background-color: var(--dt-bg);
+  height: 33px;
 }
+
+/* Scrubber */
 .dt-scrubber-control {
   position: relative;
   height: 16px;

@@ -1,11 +1,11 @@
-import { Match as M, Option } from 'effect'
+import { Match, Option } from 'effect'
 import { type CalendarDate } from 'foldkit/calendar'
-import { type Html, html } from 'foldkit/html'
+import { type Html, inertHtml as ih } from 'foldkit/html'
 
 import { Calendar } from '@foldkit/ui'
 
 import { fullDate } from './format'
-import { chevronDown } from './icon'
+import * as Icon from './icon'
 
 export const triggerClassName =
   'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500'
@@ -18,20 +18,17 @@ export const backdropClassName = 'fixed inset-0'
 export const triggerContent = (
   maybeDate: Option.Option<CalendarDate>,
   placeholder: string,
-): Html => {
-  const h = html()
-
-  return h.div(
-    [h.Class('flex w-full items-center justify-between gap-2')],
+): Html =>
+  ih.div(
+    [ih.Class('flex w-full items-center justify-between gap-2')],
     [
       Option.match(maybeDate, {
-        onNone: () => h.span([h.Class('text-gray-400')], [placeholder]),
-        onSome: date => h.span([], [fullDate(date)]),
+        onNone: () => ih.span([ih.Class('text-gray-400')], [placeholder]),
+        onSome: date => ih.span([], [fullDate(date)]),
       }),
-      h.span([h.Class('text-gray-400 shrink-0')], [chevronDown()]),
+      ih.span([ih.Class('text-gray-400 shrink-0')], [Icon.chevronDown()]),
     ],
   )
-}
 
 const calendarWrapperClassName =
   'flex flex-col gap-3 select-none min-w-[248px] min-h-[260px]'
@@ -53,46 +50,44 @@ const monthYearGridClassName =
 const monthYearButtonClassName =
   'flex h-full w-full items-center justify-center rounded-md text-sm text-gray-900 tabular-nums cursor-pointer hover:bg-gray-100 group-data-[today]:ring-1 group-data-[today]:ring-gray-400 group-data-[selected]:bg-indigo-600 group-data-[selected]:text-white! group-data-[selected]:hover:bg-indigo-600 group-data-[focused]:outline-2 group-data-[focused]:outline-offset-2 group-data-[focused]:outline-indigo-500 group-data-[disabled]:cursor-not-allowed group-data-[disabled]:opacity-40'
 
-export const calendarView = (attributes: Calendar.CalendarAttributes): Html => {
-  const h = html()
-
-  return M.value(attributes).pipe(
-    M.tagsExhaustive({
+export const calendarView = (attributes: Calendar.CalendarAttributes): Html =>
+  Match.value(attributes).pipe(
+    Match.tagsExhaustive({
       Days: days =>
-        h.div(
-          [...days.root, h.Class(calendarWrapperClassName)],
+        ih.div(
+          [...days.root, ih.Class(calendarWrapperClassName)],
           [
-            h.div(
-              [h.Class('flex items-center justify-between gap-2')],
+            ih.div(
+              [ih.Class('flex items-center justify-between gap-2')],
               [
-                h.button(
-                  [...days.previousMonthButton, h.Class(navButtonClassName)],
+                ih.button(
+                  [...days.previousMonthButton, ih.Class(navButtonClassName)],
                   ['‹'],
                 ),
-                h.button(
+                ih.button(
                   [
-                    h.Id(days.heading.id),
+                    ih.Id(days.heading.id),
                     ...days.headingButton,
-                    h.Class(headingButtonClassName),
+                    ih.Class(headingButtonClassName),
                   ],
-                  [days.heading.text, chevronDown('w-3 h-3')],
+                  [days.heading.text, Icon.chevronDown('w-3 h-3')],
                 ),
-                h.button(
-                  [...days.nextMonthButton, h.Class(navButtonClassName)],
+                ih.button(
+                  [...days.nextMonthButton, ih.Class(navButtonClassName)],
                   ['›'],
                 ),
               ],
             ),
-            h.div(
-              [...days.grid, h.Class('flex flex-col gap-1 outline-none')],
+            ih.div(
+              [...days.grid, ih.Class('flex flex-col gap-1 outline-none')],
               [
-                h.div(
-                  [...days.headerRow, h.Class('grid grid-cols-7 gap-1')],
+                ih.div(
+                  [...days.headerRow, ih.Class('grid grid-cols-7 gap-1')],
                   days.columnHeaders.map(header =>
-                    h.div(
+                    ih.div(
                       [
                         ...header.attributes,
-                        h.Class(
+                        ih.Class(
                           'text-center text-xs font-medium uppercase tracking-wide text-gray-500 py-1',
                         ),
                       ],
@@ -101,19 +96,19 @@ export const calendarView = (attributes: Calendar.CalendarAttributes): Html => {
                   ),
                 ),
                 ...days.weeks.map(week =>
-                  h.div(
-                    [...week.attributes, h.Class('grid grid-cols-7 gap-1')],
+                  ih.div(
+                    [...week.attributes, ih.Class('grid grid-cols-7 gap-1')],
                     week.cells.map(cell =>
-                      h.div(
+                      ih.div(
                         [
                           ...cell.cellAttributes,
-                          h.Class('group flex items-center justify-center'),
+                          ih.Class('group flex items-center justify-center'),
                         ],
                         [
-                          h.button(
+                          ih.button(
                             [
                               ...cell.buttonAttributes,
-                              h.Class(dayButtonClassName),
+                              ih.Class(dayButtonClassName),
                             ],
                             [cell.label],
                           ),
@@ -127,35 +122,35 @@ export const calendarView = (attributes: Calendar.CalendarAttributes): Html => {
           ],
         ),
       Months: months =>
-        h.div(
-          [...months.root, h.Class(calendarWrapperClassName)],
+        ih.div(
+          [...months.root, ih.Class(calendarWrapperClassName)],
           [
-            h.div(
-              [h.Class('flex items-center justify-center gap-2')],
+            ih.div(
+              [ih.Class('flex items-center justify-center gap-2')],
               [
-                h.button(
+                ih.button(
                   [
-                    h.Id(months.heading.id),
+                    ih.Id(months.heading.id),
                     ...months.headingButton,
-                    h.Class(headingButtonClassName),
+                    ih.Class(headingButtonClassName),
                   ],
-                  [months.heading.text, chevronDown('w-3 h-3')],
+                  [months.heading.text, Icon.chevronDown('w-3 h-3')],
                 ),
               ],
             ),
-            h.div(
-              [...months.grid, h.Class(monthYearGridClassName)],
+            ih.div(
+              [...months.grid, ih.Class(monthYearGridClassName)],
               months.cells.map(cell =>
-                h.div(
+                ih.div(
                   [
                     ...cell.cellAttributes,
-                    h.Class('group flex items-center justify-center'),
+                    ih.Class('group flex items-center justify-center'),
                   ],
                   [
-                    h.button(
+                    ih.button(
                       [
                         ...cell.buttonAttributes,
-                        h.Class(monthYearButtonClassName),
+                        ih.Class(monthYearButtonClassName),
                       ],
                       [cell.shortLabel],
                     ),
@@ -166,39 +161,39 @@ export const calendarView = (attributes: Calendar.CalendarAttributes): Html => {
           ],
         ),
       Years: years =>
-        h.div(
-          [...years.root, h.Class(calendarWrapperClassName)],
+        ih.div(
+          [...years.root, ih.Class(calendarWrapperClassName)],
           [
-            h.div(
-              [h.Class('flex items-center justify-between gap-2')],
+            ih.div(
+              [ih.Class('flex items-center justify-between gap-2')],
               [
-                h.button(
-                  [...years.previousPageButton, h.Class(navButtonClassName)],
+                ih.button(
+                  [...years.previousPageButton, ih.Class(navButtonClassName)],
                   ['‹'],
                 ),
-                h.h2(
-                  [h.Id(years.heading.id), h.Class(headingTextClassName)],
+                ih.h2(
+                  [ih.Id(years.heading.id), ih.Class(headingTextClassName)],
                   [years.heading.text],
                 ),
-                h.button(
-                  [...years.nextPageButton, h.Class(navButtonClassName)],
+                ih.button(
+                  [...years.nextPageButton, ih.Class(navButtonClassName)],
                   ['›'],
                 ),
               ],
             ),
-            h.div(
-              [...years.grid, h.Class(monthYearGridClassName)],
+            ih.div(
+              [...years.grid, ih.Class(monthYearGridClassName)],
               years.cells.map(cell =>
-                h.div(
+                ih.div(
                   [
                     ...cell.cellAttributes,
-                    h.Class('group flex items-center justify-center'),
+                    ih.Class('group flex items-center justify-center'),
                   ],
                   [
-                    h.button(
+                    ih.button(
                       [
                         ...cell.buttonAttributes,
-                        h.Class(monthYearButtonClassName),
+                        ih.Class(monthYearButtonClassName),
                       ],
                       [cell.label],
                     ),
@@ -210,4 +205,3 @@ export const calendarView = (attributes: Calendar.CalendarAttributes): Html => {
         ),
     }),
   )
-}

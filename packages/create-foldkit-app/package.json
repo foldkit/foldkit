@@ -1,6 +1,6 @@
 {
   "name": "create-foldkit-app",
-  "version": "0.19.1",
+  "version": "0.33.0",
   "description": "Create Foldkit applications",
   "type": "module",
   "main": "./dist/index.js",
@@ -8,28 +8,27 @@
     "create-foldkit-app": "./dist/index.js"
   },
   "files": [
-    "dist",
-    "templates"
+    "dist"
   ],
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
-    "build": "pnpm run clean && tsc -b",
-    "format": "prettier -w .",
+    "build": "pnpm run clean && tsc -b tsconfig.build.json && node scripts/build-templates.mjs",
+    "format": "oxfmt",
     "test": "vitest run",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@effect/platform-node": "4.0.0-beta.88",
-    "@effect/platform-node-shared": "4.0.0-beta.88",
-    "chalk": "^5.6.2",
-    "effect": "4.0.0-beta.88",
+    "@effect/platform-node": "4.0.0-rc.112",
+    "@effect/platform-node-shared": "4.0.0-rc.112",
+    "chalk": "^6.0.0",
+    "effect": "4.0.0-rc.112",
     "rimraf": "^6.1.3",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "devDependencies": {
-    "@effect/vitest": "4.0.0-beta.88",
-    "@types/node": "^25.9.3",
-    "vitest": "^4.1.9"
+    "@effect/vitest": "4.0.0-rc.112",
+    "@types/node": "^26.4.0",
+    "vitest": "^4.1.11"
   },
   "keywords": [
     "create-foldkit-app",
@@ -46,6 +45,7 @@
     "url": "https://github.com/foldkit/foldkit.git",
     "directory": "packages/create-foldkit-app"
   },
+  "homepage": "https://foldkit.dev/get-started",
   "publishConfig": {
     "access": "public"
   },

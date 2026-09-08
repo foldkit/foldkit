@@ -1,48 +1,30 @@
-import { Match as M } from 'effect'
-import {
-  type ChildAttribute,
-  type Html,
-  type TagName,
-  html,
-} from 'foldkit/html'
+import { Match } from 'effect'
+import type { ChildAttribute, Html, TagName } from 'foldkit/html'
 import { defineView } from 'foldkit/submodel'
 
+import { Message, Model, OutMessage, TransitionState, init } from './schema.js'
 import {
-  AdvancedAnimationFrame,
-  EndedAnimation,
-  Hid,
-  Message,
-  Model,
-  OutMessage,
-  Showed,
-  StartedLeaveAnimating,
-  TransitionState,
-  TransitionedOut,
-  init,
-} from './schema.js'
-import {
-  RequestFrame,
   WaitForAnimationSettled,
+  WaitForPaint,
   defaultLeaveCommand,
+  hide,
+  show,
+  toggle,
   update,
 } from './update.js'
 
-export type { InitConfig } from './schema.js'
-export {
-  AdvancedAnimationFrame,
-  EndedAnimation,
-  Hid,
-  init,
-  Message,
-  Model,
-  OutMessage,
-  Showed,
-  StartedLeaveAnimating,
-  TransitionState,
-  TransitionedOut,
-}
+export type { Hid, InitConfig, Showed } from './schema.js'
+export { init, Message, Model, OutMessage, TransitionState }
 
-export { RequestFrame, WaitForAnimationSettled, defaultLeaveCommand, update }
+export {
+  WaitForAnimationSettled,
+  WaitForPaint,
+  defaultLeaveCommand,
+  hide,
+  show,
+  toggle,
+  update,
+}
 
 // VIEW
 
@@ -51,7 +33,7 @@ export type ViewInputs = Readonly<{
   content: Html
   className?: string
   attributes?: ReadonlyArray<ChildAttribute>
-  element?: TagName
+  element?: Exclude<TagName, 'textarea'>
   /** When true, wraps content in a CSS grid container that smoothly animates
    *  height via `grid-template-rows: 0fr → 1fr`. The element stays in the DOM
    *  when hidden (collapsed to zero height) instead of being removed. */
@@ -68,9 +50,7 @@ export type ViewInputs = Readonly<{
  *  - `data-transition`: any animation is active
  */
 export const view = defineView<Model, Message, ViewInputs>(
-  (model, viewInputs): Html => {
-    const h = html<Message>()
-
+  (model, viewInputs, h): Html => {
     const { id, isShowing, transitionState } = model
     const {
       content,
@@ -86,26 +66,26 @@ export const view = defineView<Model, Message, ViewInputs>(
 
     const transitionAttributes: ReadonlyArray<
       ReturnType<typeof h.DataAttribute>
-    > = M.value(transitionState).pipe(
-      M.when('EnterStart', () => [
+    > = Match.value(transitionState).pipe(
+      Match.when('EnterStart', () => [
         h.DataAttribute('closed', ''),
         h.DataAttribute('enter', ''),
         h.DataAttribute('transition', ''),
       ]),
-      M.when('EnterAnimating', () => [
+      Match.when('EnterAnimating', () => [
         h.DataAttribute('enter', ''),
         h.DataAttribute('transition', ''),
       ]),
-      M.when('LeaveStart', () => [
+      Match.when('LeaveStart', () => [
         h.DataAttribute('leave', ''),
         h.DataAttribute('transition', ''),
       ]),
-      M.when('LeaveAnimating', () => [
+      Match.when('LeaveAnimating', () => [
         h.DataAttribute('closed', ''),
         h.DataAttribute('leave', ''),
         h.DataAttribute('transition', ''),
       ]),
-      M.orElse(() => []),
+      Match.orElse(() => []),
     )
 
     if (animateSize) {

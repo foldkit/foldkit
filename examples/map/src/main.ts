@@ -4,21 +4,21 @@ import {
   Effect,
   Equal,
   Function,
-  Match as M,
   Option,
   Queue,
-  Schema as S,
+  Schema,
   Stream,
   String,
 } from 'effect'
-import { Command, Mount, Runtime, Subscription } from 'foldkit'
+import { Command, Mount, Runtime, Subscription, Update } from 'foldkit'
 import * as Dom from 'foldkit/dom'
 import type { Document, Html } from 'foldkit/html'
-import { html } from 'foldkit/html'
-import { m } from 'foldkit/message'
-import { ts } from 'foldkit/schema'
+import { HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
+import { defineTaggedUnion } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 import type { Map as MapInstance } from 'maplibre-gl'
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 
 import { Button, Input } from '@foldkit/ui'
 
@@ -34,78 +34,59 @@ const GEOLOCATION_TIMEOUT_MS = 10_000
 
 // MODEL
 
-const Bounds = S.Struct({
-  west: S.Number,
-  south: S.Number,
-  east: S.Number,
-  north: S.Number,
+const Bounds = Schema.Struct({
+  west: Schema.Number,
+  south: Schema.Number,
+  east: Schema.Number,
+  north: Schema.Number,
 })
 type Bounds = typeof Bounds.Type
 
-const LngLat = S.Struct({ lng: S.Number, lat: S.Number })
+const LngLat = Schema.Struct({ lng: Schema.Number, lat: Schema.Number })
 type LngLat = typeof LngLat.Type
 
-export const GeolocateIdle = ts('GeolocateIdle')
-export const GeolocateLocating = ts('GeolocateLocating')
-export const GeolocateFailed = ts('GeolocateFailed', { reason: S.String })
+export const GeolocateState = defineTaggedUnion({
+  Idle: {},
+  Locating: {},
+  Failed: { reason: Schema.String },
+})
+export type GeolocateState = typeof GeolocateState.Type
 
-const GeolocateState = S.Union([
-  GeolocateIdle,
-  GeolocateLocating,
-  GeolocateFailed,
-])
-type GeolocateState = typeof GeolocateState.Type
-
-export const Model = S.Struct({
-  locations: S.Array(Location),
-  searchQuery: S.String,
-  maybeMapHostId: S.Option(S.String),
-  maybeMapError: S.Option(S.String),
-  maybeBounds: S.Option(Bounds),
-  maybeSelectedLocationId: S.Option(S.String),
-  maybeUserLocation: S.Option(LngLat),
+export const Model = Schema.Struct({
+  locations: Schema.Array(Location),
+  searchQuery: Schema.String,
+  maybeMapHostId: Schema.Option(Schema.String),
+  maybeMapError: Schema.Option(Schema.String),
+  maybeBounds: Schema.Option(Bounds),
+  maybeSelectedLocationId: Schema.Option(Schema.String),
+  maybeUserLocation: Schema.Option(LngLat),
   geolocateState: GeolocateState,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const SucceededMountMap = m('SucceededMountMap', { hostId: S.String })
-export const FailedMountMap = m('FailedMountMap', { reason: S.String })
-export const MovedMap = m('MovedMap', { bounds: Bounds })
-export const ClickedMarker = m('ClickedMarker', { locationId: S.String })
-export const ClickedLocation = m('ClickedLocation', { locationId: S.String })
-export const UpdatedSearchQuery = m('UpdatedSearchQuery', { value: S.String })
-export const ClickedFindMe = m('ClickedFindMe')
-export const DismissedGeolocate = m('DismissedGeolocate')
-export const SucceededGeolocate = m('SucceededGeolocate', {
-  lng: S.Number,
-  lat: S.Number,
+export const Message = defineMessageUnion({
+  SucceededMountMap: { hostId: Schema.String },
+  FailedMountMap: { reason: Schema.String },
+  MovedMap: { bounds: Bounds },
+  ClickedMarker: { locationId: Schema.String },
+  ClickedLocation: { locationId: Schema.String },
+  UpdatedSearchQuery: { value: Schema.String },
+  ClickedFindMe: {},
+  DismissedGeolocate: {},
+  SucceededGeolocate: {
+    lng: Schema.Number,
+    lat: Schema.Number,
+  },
+  FailedGeolocate: { reason: Schema.String },
+  SucceededFlyTo: {},
+  FailedFlyTo: { reason: Schema.String },
+  CompletedFocusSearchInput: {},
+  CompletedLockBodyScroll: {},
+  CompletedUnlockBodyScroll: {},
 })
-export const FailedGeolocate = m('FailedGeolocate', { reason: S.String })
-export const SucceededFlyTo = m('SucceededFlyTo')
-export const FailedFlyTo = m('FailedFlyTo', { reason: S.String })
-export const CompletedFocusSearchInput = m('CompletedFocusSearchInput')
-export const CompletedLockBodyScroll = m('CompletedLockBodyScroll')
-export const CompletedUnlockBodyScroll = m('CompletedUnlockBodyScroll')
 
-export const Message = S.Union([
-  SucceededMountMap,
-  FailedMountMap,
-  MovedMap,
-  ClickedMarker,
-  ClickedLocation,
-  UpdatedSearchQuery,
-  ClickedFindMe,
-  DismissedGeolocate,
-  SucceededGeolocate,
-  FailedGeolocate,
-  SucceededFlyTo,
-  FailedFlyTo,
-  CompletedFocusSearchInput,
-  CompletedLockBodyScroll,
-  CompletedUnlockBodyScroll,
-])
 export type Message = typeof Message.Type
 
 // COMMAND
@@ -115,49 +96,46 @@ const flyToMap = (
   lng: number,
   lat: number,
   zoom: number,
-): Effect.Effect<typeof SucceededFlyTo.Type | typeof FailedFlyTo.Type> =>
+): Effect.Effect<
+  typeof Message.SucceededFlyTo.Type | typeof Message.FailedFlyTo.Type
+> =>
   Option.match(getMap(hostId), {
     onNone: () =>
       Effect.succeed(
-        FailedFlyTo({
+        Message.FailedFlyTo({
           reason: `Could not find a live map for hostId ${hostId}.`,
         }),
       ),
     onSome: map =>
       Effect.sync(() => {
         map.flyTo({ center: [lng, lat], zoom, essential: true })
-        return SucceededFlyTo()
+        return Message.SucceededFlyTo()
       }),
   })
 
-export const FlyTo = Command.define(
-  'FlyTo',
-  {
-    maybeHostId: S.Option(S.String),
-    lng: S.Number,
-    lat: S.Number,
-    zoom: S.Number,
+export const FlyTo = Command.define('FlyTo', {
+  args: {
+    maybeHostId: Schema.Option(Schema.String),
+    lng: Schema.Number,
+    lat: Schema.Number,
+    zoom: Schema.Number,
   },
-  SucceededFlyTo,
-  FailedFlyTo,
-)(({ maybeHostId, lng, lat, zoom }) =>
-  Option.match(maybeHostId, {
-    onNone: () =>
-      Effect.succeed(
-        FailedFlyTo({
-          reason: 'FlyTo dispatched before the map mounted.',
-        }),
-      ),
-    onSome: hostId => flyToMap(hostId, lng, lat, zoom),
-  }),
-)
+  messages: [Message.SucceededFlyTo, Message.FailedFlyTo],
+  execute: ({ maybeHostId, lng, lat, zoom }) =>
+    Option.match(maybeHostId, {
+      onNone: () =>
+        Effect.succeed(
+          Message.FailedFlyTo({
+            reason: 'FlyTo dispatched before the map mounted.',
+          }),
+        ),
+      onSome: hostId => flyToMap(hostId, lng, lat, zoom),
+    }),
+})
 
-export const Geolocate = Command.define(
-  'Geolocate',
-  SucceededGeolocate,
-  FailedGeolocate,
-)(
-  Effect.gen(function* () {
+export const Geolocate = Command.define('Geolocate', {
+  messages: [Message.SucceededGeolocate, Message.FailedGeolocate],
+  execute: Effect.gen(function* () {
     const position = yield* Effect.callback<GeolocationPosition, Error>(
       resume => {
         if (typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -180,57 +158,48 @@ export const Geolocate = Command.define(
         )
       },
     )
-    return SucceededGeolocate({
+    return Message.SucceededGeolocate({
       lng: position.coords.longitude,
       lat: position.coords.latitude,
     })
   }).pipe(
     Effect.catch(error =>
       Effect.succeed(
-        FailedGeolocate({
+        Message.FailedGeolocate({
           reason: error instanceof Error ? error.message : `${error}`,
         }),
       ),
     ),
   ),
-)
+})
 
 const SEARCH_INPUT_ID = 'map-search-input'
 
-export const FocusSearchInput = Command.define(
-  'FocusSearchInput',
-  CompletedFocusSearchInput,
-)(
-  Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
+export const FocusSearchInput = Command.define('FocusSearchInput', {
+  messages: [Message.CompletedFocusSearchInput],
+  execute: Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
     Effect.ignore,
-    Effect.as(CompletedFocusSearchInput()),
+    Effect.as(Message.CompletedFocusSearchInput()),
   ),
-)
+})
 
-export const LockBodyScroll = Command.define(
-  'LockBodyScroll',
-  CompletedLockBodyScroll,
-)(
-  Effect.sync(() => {
+export const LockBodyScroll = Command.define('LockBodyScroll', {
+  messages: [Message.CompletedLockBodyScroll],
+  execute: Effect.sync(() => {
     document.body.classList.add('overflow-hidden')
-    return CompletedLockBodyScroll()
+    return Message.CompletedLockBodyScroll()
   }),
-)
+})
 
-export const UnlockBodyScroll = Command.define(
-  'UnlockBodyScroll',
-  CompletedUnlockBodyScroll,
-)(
-  Effect.sync(() => {
+export const UnlockBodyScroll = Command.define('UnlockBodyScroll', {
+  messages: [Message.CompletedUnlockBodyScroll],
+  execute: Effect.sync(() => {
     document.body.classList.remove('overflow-hidden')
-    return CompletedUnlockBodyScroll()
+    return Message.CompletedUnlockBodyScroll()
   }),
-)
+})
 
 // UPDATE
-
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const findLocation = (
   model: Model,
@@ -238,98 +207,95 @@ const findLocation = (
 ): Option.Option<Location> =>
   Array.findFirst(model.locations, ({ id }) => Equal.equals(id, locationId))
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tagsExhaustive({
-      SucceededMountMap: ({ hostId }) => [
-        evo(model, { maybeMapHostId: () => Option.some(hostId) }),
-        [],
-      ],
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    SucceededMountMap: ({ hostId }) => ({
+      model: evo(model, { maybeMapHostId: () => Option.some(hostId) }),
+    }),
 
-      FailedMountMap: ({ reason }) => [
-        evo(model, { maybeMapError: () => Option.some(reason) }),
-        [],
-      ],
+    FailedMountMap: ({ reason }) => ({
+      model: evo(model, { maybeMapError: () => Option.some(reason) }),
+    }),
 
-      MovedMap: ({ bounds }) => [
-        evo(model, { maybeBounds: () => Option.some(bounds) }),
-        [],
-      ],
+    MovedMap: ({ bounds }) => ({
+      model: evo(model, { maybeBounds: () => Option.some(bounds) }),
+    }),
 
-      ClickedMarker: ({ locationId }) => [
-        evo(model, {
-          maybeSelectedLocationId: () => Option.some(locationId),
-        }),
-        [],
-      ],
+    ClickedMarker: ({ locationId }) => ({
+      model: evo(model, {
+        maybeSelectedLocationId: () => Option.some(locationId),
+      }),
+    }),
 
-      ClickedLocation: ({ locationId }) =>
-        Option.match(findLocation(model, locationId), {
-          onNone: () => [model, []],
-          onSome: ({ lng, lat }) => [
-            evo(model, {
-              maybeSelectedLocationId: () => Option.some(locationId),
+    ClickedLocation: ({ locationId }) =>
+      Option.match(findLocation(model, locationId), {
+        onNone: () => ({ model }),
+        onSome: ({ lng, lat }) => ({
+          model: evo(model, {
+            maybeSelectedLocationId: () => Option.some(locationId),
+          }),
+          commands: [
+            FlyTo({
+              maybeHostId: model.maybeMapHostId,
+              lng,
+              lat,
+              zoom: SELECTED_LOCATION_ZOOM,
             }),
-            [
-              FlyTo({
-                maybeHostId: model.maybeMapHostId,
-                lng: lng,
-                lat: lat,
-                zoom: SELECTED_LOCATION_ZOOM,
-              }),
-            ],
           ],
         }),
+      }),
 
-      UpdatedSearchQuery: ({ value }) => [
-        evo(model, { searchQuery: () => value }),
-        [],
-      ],
-
-      ClickedFindMe: () => [
-        evo(model, { geolocateState: () => GeolocateLocating() }),
-        [LockBodyScroll(), Geolocate()],
-      ],
-
-      DismissedGeolocate: () => [
-        evo(model, { geolocateState: () => GeolocateIdle() }),
-        [UnlockBodyScroll()],
-      ],
-
-      SucceededGeolocate: ({ lng, lat }) => [
-        evo(model, {
-          maybeUserLocation: () => Option.some({ lng, lat }),
-          geolocateState: () => GeolocateIdle(),
-        }),
-        [
-          UnlockBodyScroll(),
-          FlyTo({
-            maybeHostId: model.maybeMapHostId,
-            lng: lng,
-            lat: lat,
-            zoom: USER_LOCATION_ZOOM,
-          }),
-        ],
-      ],
-
-      FailedGeolocate: ({ reason }) => [
-        evo(model, { geolocateState: () => GeolocateFailed({ reason }) }),
-        [],
-      ],
-
-      SucceededFlyTo: () => [model, []],
-      FailedFlyTo: () => [model, []],
-      CompletedFocusSearchInput: () => [model, []],
-      CompletedLockBodyScroll: () => [model, []],
-      CompletedUnlockBodyScroll: () => [model, []],
+    UpdatedSearchQuery: ({ value }) => ({
+      model: evo(model, { searchQuery: () => value }),
     }),
-  )
+
+    ClickedFindMe: () => ({
+      model: evo(model, {
+        geolocateState: () => GeolocateState.Locating(),
+      }),
+      commands: [LockBodyScroll(), Geolocate()],
+    }),
+
+    DismissedGeolocate: () => ({
+      model: evo(model, {
+        geolocateState: () => GeolocateState.Idle(),
+      }),
+      commands: [UnlockBodyScroll()],
+    }),
+
+    SucceededGeolocate: ({ lng, lat }) => ({
+      model: evo(model, {
+        maybeUserLocation: () => Option.some({ lng, lat }),
+        geolocateState: () => GeolocateState.Idle(),
+      }),
+      commands: [
+        UnlockBodyScroll(),
+        FlyTo({
+          maybeHostId: model.maybeMapHostId,
+          lng: lng,
+          lat: lat,
+          zoom: USER_LOCATION_ZOOM,
+        }),
+      ],
+    }),
+
+    FailedGeolocate: ({ reason }) => ({
+      model: evo(model, {
+        geolocateState: () => GeolocateState.Failed({ reason }),
+      }),
+    }),
+
+    SucceededFlyTo: () => ({ model }),
+    FailedFlyTo: () => ({ model }),
+    CompletedFocusSearchInput: () => ({ model }),
+    CompletedLockBodyScroll: () => ({ model }),
+    CompletedUnlockBodyScroll: () => ({ model }),
+  })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     locations: featuredLocations,
     searchQuery: '',
     maybeMapHostId: Option.none(),
@@ -337,66 +303,105 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => [
     maybeBounds: Option.none(),
     maybeSelectedLocationId: Option.none(),
     maybeUserLocation: Option.none(),
-    geolocateState: GeolocateIdle(),
+    geolocateState: GeolocateState.Idle(),
   },
-  [FocusSearchInput()],
-]
+  commands: [FocusSearchInput()],
+})
 
 // MAP MOUNT
 
-export const MountMap = Mount.define(
-  'MountMap',
-  { hostId: S.String },
-  SucceededMountMap,
-  FailedMountMap,
-)(
-  ({ hostId }) =>
-    element =>
-      Effect.gen(function* () {
-        if (!(element instanceof HTMLElement)) {
-          return FailedMountMap({ reason: 'Map host is not an HTMLElement.' })
-        }
-        return yield* Effect.gen(function* () {
-          yield* Effect.acquireRelease(
-            Effect.gen(function* () {
-              const maplibre = yield* Effect.tryPromise(
-                () => import('maplibre-gl'),
-              )
-              const map = new maplibre.Map({
-                container: element,
-                style: 'https://demotiles.maplibre.org/style.json',
-                center: [0, 20],
-                zoom: INITIAL_MAP_ZOOM,
-              })
+type MountedMap = Readonly<{
+  map: MapInstance
+  markerElements: ReadonlyArray<HTMLButtonElement>
+}>
 
-              Array.forEach(featuredLocations, ({ id, lng, lat }) => {
-                const markerElement = document.createElement('button')
-                markerElement.setAttribute('data-location-id', id)
-                markerElement.setAttribute('aria-label', `Marker: ${id}`)
-                markerElement.className = markerStyle
-                new maplibre.Marker({ element: markerElement })
-                  .setLngLat([lng, lat])
-                  .addTo(map)
-              })
+const applyMapViewState = (
+  { map, markerElements }: MountedMap,
+  viewState: Mount.ViewState,
+): Effect.Effect<void> =>
+  Effect.sync(() => {
+    const isLive = viewState === 'Live'
 
-              setMap(hostId, map)
-              return map
-            }),
-            () => Effect.sync(() => removeMap(hostId)),
+    if (isLive) {
+      map.keyboard.enable()
+    } else {
+      map.keyboard.disable()
+    }
+
+    Array.forEach(markerElements, markerElement => {
+      markerElement.disabled = !isLive
+    })
+  })
+
+const mountMap = (
+  element: Element,
+  hostId: string,
+  viewStateChanges: Stream.Stream<Mount.ViewState>,
+) =>
+  Effect.gen(function* () {
+    if (!(element instanceof HTMLElement)) {
+      return Message.FailedMountMap({
+        reason: 'Map host is not an HTMLElement.',
+      })
+    }
+
+    return yield* Effect.gen(function* () {
+      const mountedMap = yield* Effect.acquireRelease(
+        Effect.gen(function* () {
+          const maplibre = yield* Effect.tryPromise(() => import('maplibre-gl'))
+          maplibre.setWorkerUrl(maplibreWorkerUrl)
+          const map = new maplibre.Map({
+            container: element,
+            style: 'https://demotiles.maplibre.org/style.json',
+            center: [0, 20],
+            zoom: INITIAL_MAP_ZOOM,
+          })
+
+          const markerElements = Array.map(
+            featuredLocations,
+            ({ id, lng, lat }) => {
+              const markerElement = document.createElement('button')
+              markerElement.setAttribute('data-location-id', id)
+              markerElement.setAttribute('aria-label', `Marker: ${id}`)
+              markerElement.className = markerStyle
+              new maplibre.Marker({ element: markerElement })
+                .setLngLat([lng, lat])
+                .addTo(map)
+              return markerElement
+            },
           )
 
-          return SucceededMountMap({ hostId })
-        }).pipe(
-          Effect.catch(error =>
-            Effect.succeed(
-              FailedMountMap({
-                reason: error instanceof Error ? error.message : `${error}`,
-              }),
-            ),
-          ),
-        )
-      }),
-)
+          setMap(hostId, map)
+          return { map, markerElements }
+        }),
+        () => Effect.sync(() => removeMap(hostId)),
+      )
+
+      yield* viewStateChanges.pipe(
+        Stream.runForEach(viewState =>
+          applyMapViewState(mountedMap, viewState),
+        ),
+        Effect.forkScoped,
+      )
+
+      return Message.SucceededMountMap({ hostId })
+    }).pipe(
+      Effect.catch(error =>
+        Effect.succeed(
+          Message.FailedMountMap({
+            reason: error instanceof Error ? error.message : `${error}`,
+          }),
+        ),
+      ),
+    )
+  })
+
+export const MountMap = Mount.define('MountMap', {
+  args: { hostId: Schema.String },
+  messages: [Message.SucceededMountMap, Message.FailedMountMap],
+  execute: ({ element, hostId, viewStateChanges }) =>
+    mountMap(element, hostId, viewStateChanges),
+})
 
 // SUBSCRIPTIONS
 
@@ -416,7 +421,10 @@ const streamMapEvents = (hostId: string) =>
       Effect.sync(() =>
         Option.map(getMap(hostId), map => {
           const onMoveEnd = () => {
-            Queue.offerUnsafe(queue, MovedMap({ bounds: boundsFromMap(map) }))
+            Queue.offerUnsafe(
+              queue,
+              Message.MovedMap({ bounds: boundsFromMap(map) }),
+            )
           }
 
           const onContainerClick = (event: MouseEvent) => {
@@ -430,13 +438,16 @@ const streamMapEvents = (hostId: string) =>
             }
             const locationId = marker.dataset['locationId']
             if (locationId !== undefined) {
-              Queue.offerUnsafe(queue, ClickedMarker({ locationId }))
+              Queue.offerUnsafe(queue, Message.ClickedMarker({ locationId }))
             }
           }
 
           map.on('moveend', onMoveEnd)
           map.getContainer().addEventListener('click', onContainerClick)
-          Queue.offerUnsafe(queue, MovedMap({ bounds: boundsFromMap(map) }))
+          Queue.offerUnsafe(
+            queue,
+            Message.MovedMap({ bounds: boundsFromMap(map) }),
+          )
 
           return { map, onMoveEnd, onContainerClick }
         }),
@@ -456,7 +467,7 @@ const streamMapEvents = (hostId: string) =>
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   mapEvents: entry(
-    { maybeMapHostId: S.Option(S.String) },
+    { maybeMapHostId: Schema.Option(Schema.String) },
     {
       modelToDependencies: model => ({
         maybeMapHostId: model.maybeMapHostId,
@@ -491,25 +502,19 @@ const filterLocations = (
   }
 }
 
-export const view = (model: Model): Document => {
-  const h = html<Message>()
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+  title: 'Foldkit Map',
+  body: h.div(
+    [h.Class('h-screen w-screen flex bg-slate-100 text-slate-900')],
+    [
+      sidebarView(model, h),
+      mapPaneView(model, h),
+      geolocateOverlayView(model.geolocateState, h),
+    ],
+  ),
+})
 
-  return {
-    title: 'Foldkit Map',
-    body: h.div(
-      [h.Class('h-screen w-screen flex bg-slate-100 text-slate-900')],
-      [
-        sidebarView(model),
-        mapPaneView(model),
-        geolocateOverlayView(model.geolocateState),
-      ],
-    ),
-  }
-}
-
-const sidebarView = (model: Model): Html => {
-  const h = html<Message>()
-
+const sidebarView = (model: Model, h: HtmlBuilder<Message>): Html => {
   const visible = filterLocations(model.locations, model.searchQuery)
   return h.aside(
     [
@@ -534,41 +539,42 @@ const sidebarView = (model: Model): Html => {
       h.div(
         [h.Class('px-5 py-3 border-b border-slate-200')],
         [
-          Input.view<Message>({
-            id: SEARCH_INPUT_ID,
-            type: 'search',
-            value: model.searchQuery,
-            placeholder: 'Filter locations',
-            onInput: value => UpdatedSearchQuery({ value }),
-            toView: attributes =>
-              h.input([
-                ...attributes.input,
-                h.AriaLabel('Filter locations'),
-                h.Class(
-                  'w-full px-3 py-2 text-sm rounded-md border border-slate-300 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200',
-                ),
-              ]),
-          }),
+          Input.view(
+            {
+              id: SEARCH_INPUT_ID,
+              type: 'search',
+              value: model.searchQuery,
+              placeholder: 'Filter locations',
+              onInput: value => Message.UpdatedSearchQuery({ value }),
+              toView: attributes =>
+                h.input([
+                  ...attributes.input,
+                  h.AriaLabel('Filter locations'),
+                  h.Class(
+                    'w-full px-3 py-2 text-sm rounded-md border border-slate-300 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200',
+                  ),
+                ]),
+            },
+            h,
+          ),
         ],
       ),
       h.ul(
         [h.Class('flex-1 overflow-y-auto'), h.AriaLabel('Locations')],
         Array.match(visible, {
-          onEmpty: () => [emptySidebarView(model.searchQuery)],
-          onNonEmpty: Array.map(
-            locationListItemView(model.maybeSelectedLocationId),
+          onEmpty: () => [emptySidebarView(model.searchQuery, h)],
+          onNonEmpty: Array.map(location =>
+            locationListItemView(model.maybeSelectedLocationId)(location, h),
           ),
         }),
       ),
-      footerView(model),
+      footerView(model, h),
     ],
   )
 }
 
-const emptySidebarView = (searchQuery: string): Html => {
-  const h = html<Message>()
-
-  return h.li(
+const emptySidebarView = (searchQuery: string, h: HtmlBuilder<Message>): Html =>
+  h.li(
     [h.Class('px-5 py-6 text-sm text-slate-500')],
     [
       String.isEmpty(searchQuery.trim())
@@ -576,67 +582,68 @@ const emptySidebarView = (searchQuery: string): Html => {
         : `No locations match "${searchQuery.trim()}".`,
     ],
   )
-}
 
 const locationListItemView =
   (maybeSelectedId: Option.Option<string>) =>
-  (location: Location): Html => {
-    const h = html<Message>()
-
+  (location: Location, h: HtmlBuilder<Message>): Html => {
     const isSelected = Option.exists(maybeSelectedId, Equal.equals(location.id))
     return h.li(
       [],
       [
-        Button.view<Message>({
-          onClick: ClickedLocation({ locationId: location.id }),
-          toView: attributes =>
-            h.button(
-              [
-                ...attributes.button,
-                h.AriaPressed(isSelected ? 'true' : 'false'),
-                h.Class(
-                  clsx(
-                    'w-full text-left px-5 py-3 cursor-pointer border-l-2',
-                    isSelected
-                      ? 'bg-slate-100 border-slate-900'
-                      : 'hover:bg-slate-100 border-transparent',
+        Button.view(
+          {
+            onClick: Message.ClickedLocation({ locationId: location.id }),
+            toView: attributes =>
+              h.button(
+                [
+                  ...attributes.button,
+                  h.AriaPressed(isSelected ? 'true' : 'false'),
+                  h.Class(
+                    clsx(
+                      'w-full text-left px-5 py-3 cursor-pointer border-l-2',
+                      isSelected
+                        ? 'bg-slate-100 border-slate-900'
+                        : 'hover:bg-slate-100 border-transparent',
+                    ),
                   ),
-                ),
-              ],
-              [
-                h.div([h.Class('text-sm font-medium')], [location.name]),
-                h.div(
-                  [h.Class('text-xs text-slate-500 mt-0.5')],
-                  [location.region],
-                ),
-              ],
-            ),
-        }),
+                ],
+                [
+                  h.div([h.Class('text-sm font-medium')], [location.name]),
+                  h.div(
+                    [h.Class('text-xs text-slate-500 mt-0.5')],
+                    [location.region],
+                  ),
+                ],
+              ),
+          },
+          h,
+        ),
       ],
     )
   }
 
-const footerView = (model: Model): Html => {
-  const h = html<Message>()
-
-  const isLocating = model.geolocateState._tag === 'GeolocateLocating'
+const footerView = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const isLocating = model.geolocateState._tag === 'Locating'
   return h.div(
     [h.Class('border-t border-slate-200 px-5 py-3 space-y-2')],
     [
-      Button.view<Message>({
-        onClick: ClickedFindMe(),
-        isDisabled: isLocating,
-        toView: attributes =>
-          h.button(
-            [
-              ...attributes.button,
-              h.Class(
-                'w-full px-3 py-2 text-sm font-medium rounded-md bg-slate-900 text-white hover:bg-slate-800 data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed',
-              ),
-            ],
-            [isLocating ? 'Locating…' : 'Find my location'],
-          ),
-      }),
+      Button.view(
+        {
+          onClick: Message.ClickedFindMe(),
+          isDisabled: isLocating,
+          toView: attributes =>
+            h.button(
+              [
+                ...attributes.button,
+                h.Class(
+                  'w-full px-3 py-2 text-sm font-medium rounded-md bg-slate-900 text-white hover:bg-slate-800 data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed',
+                ),
+              ],
+              [isLocating ? 'Locating…' : 'Find my location'],
+            ),
+        },
+        h,
+      ),
       Option.match(model.maybeUserLocation, {
         onNone: () => h.empty,
         onSome: ({ lng, lat }) =>
@@ -649,30 +656,25 @@ const footerView = (model: Model): Html => {
   )
 }
 
-const mapPaneView = (model: Model): Html => {
-  const h = html<Message>()
-
-  return h.main(
+const mapPaneView = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.main(
     [h.Class('flex-1 relative')],
     [
-      h.div(
-        [
-          h.Class('h-full w-full'),
-          h.AriaLabel('Map'),
-          h.OnMount(MountMap({ hostId: HOST_ID })),
-        ],
-        [],
-      ),
-      mapErrorBannerView(model.maybeMapError),
-      boundsBadgeView(model.maybeBounds),
+      h.div([
+        h.Class('h-full w-full'),
+        h.AriaLabel('Map'),
+        h.OnMount(MountMap({ hostId: HOST_ID })),
+      ]),
+      mapErrorBannerView(model.maybeMapError, h),
+      boundsBadgeView(model.maybeBounds, h),
     ],
   )
-}
 
-const mapErrorBannerView = (maybeReason: Option.Option<string>): Html => {
-  const h = html<Message>()
-
-  return Option.match(maybeReason, {
+const mapErrorBannerView = (
+  maybeReason: Option.Option<string>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  Option.match(maybeReason, {
     onNone: () => h.empty,
     onSome: reason =>
       h.div(
@@ -688,12 +690,12 @@ const mapErrorBannerView = (maybeReason: Option.Option<string>): Html => {
         ],
       ),
   })
-}
 
-const boundsBadgeView = (maybeBounds: Option.Option<Bounds>): Html => {
-  const h = html<Message>()
-
-  return Option.match(maybeBounds, {
+const boundsBadgeView = (
+  maybeBounds: Option.Option<Bounds>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  Option.match(maybeBounds, {
     onNone: () => h.empty,
     onSome: bounds =>
       h.div(
@@ -710,27 +712,24 @@ const boundsBadgeView = (maybeBounds: Option.Option<Bounds>): Html => {
         ],
       ),
   })
-}
 
-const geolocateOverlayView = (state: GeolocateState): Html => {
-  const h = html<Message>()
+const geolocateOverlayView = (
+  state: GeolocateState,
+  h: HtmlBuilder<Message>,
+): Html =>
+  GeolocateState.match(state, {
+    Idle: () => h.empty,
+    Locating: () =>
+      geolocateOverlayShellView(geolocateLocatingContentView(h), h),
+    Failed: ({ reason }) =>
+      geolocateOverlayShellView(geolocateFailedContentView(reason, h), h),
+  })
 
-  return M.value(state).pipe(
-    M.tagsExhaustive({
-      GeolocateIdle: () => h.empty,
-      GeolocateLocating: () =>
-        geolocateOverlayShellView(geolocateLocatingContentView()),
-      GeolocateFailed: ({ reason }) =>
-        geolocateOverlayShellView(geolocateFailedContentView(reason)),
-    }),
-  )
-}
-
-const geolocateOverlayShellView = (content: Html): Html => {
-  const h = html<Message>()
-
-  return h.keyed('div')(
-    'Geolocate()-overlay',
+const geolocateOverlayShellView = (
+  content: Html,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
     [
       h.Class(
         'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40',
@@ -739,13 +738,9 @@ const geolocateOverlayShellView = (content: Html): Html => {
     ],
     [content],
   )
-}
 
-const geolocateLocatingContentView = (): Html => {
-  const h = html<Message>()
-
-  return h.keyed('article')(
-    'Geolocate()-locating',
+const geolocateLocatingContentView = (h: HtmlBuilder<Message>): Html =>
+  h.article(
     [
       h.Class(
         'bg-white rounded-lg shadow-lg max-w-sm w-full mx-4 px-6 py-5 text-center',
@@ -757,16 +752,15 @@ const geolocateLocatingContentView = (): Html => {
         [h.Class('text-sm text-slate-500')],
         ['Asking your browser for permission to use your location.'],
       ),
-      spinnerView(),
+      spinnerView(h),
     ],
   )
-}
 
-const geolocateFailedContentView = (reason: string): Html => {
-  const h = html<Message>()
-
-  return h.keyed('article')(
-    'Geolocate()-failed',
+const geolocateFailedContentView = (
+  reason: string,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.article(
     [
       h.Class(
         'bg-white rounded-lg shadow-lg max-w-sm w-full mx-4 px-6 py-5 text-center',
@@ -778,41 +772,37 @@ const geolocateFailedContentView = (reason: string): Html => {
         ['Could not locate you'],
       ),
       h.p([h.Class('text-sm text-slate-600')], [reason]),
-      Button.view<Message>({
-        onClick: DismissedGeolocate(),
-        toView: attributes =>
-          h.button(
-            [
-              ...attributes.button,
-              h.Class(
-                'mt-4 px-4 py-2 text-sm font-medium rounded-md bg-slate-900 text-white hover:bg-slate-800',
-              ),
-            ],
-            ['Dismiss'],
-          ),
-      }),
-    ],
-  )
-}
-
-const spinnerView = (): Html => {
-  const h = html<Message>()
-
-  return h.div(
-    [h.Class('flex justify-center mt-4')],
-    [
-      h.span(
-        [
-          h.Class(
-            'inline-block w-6 h-6 border-2 border-slate-300 border-t-slate-900 rounded-full motion-safe:animate-spin',
-          ),
-          h.AriaLabel('Loading'),
-        ],
-        [],
+      Button.view(
+        {
+          onClick: Message.DismissedGeolocate(),
+          toView: attributes =>
+            h.button(
+              [
+                ...attributes.button,
+                h.Class(
+                  'mt-4 px-4 py-2 text-sm font-medium rounded-md bg-slate-900 text-white hover:bg-slate-800',
+                ),
+              ],
+              ['Dismiss'],
+            ),
+        },
+        h,
       ),
     ],
   )
-}
+
+const spinnerView = (h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [h.Class('flex justify-center mt-4')],
+    [
+      h.span([
+        h.Class(
+          'inline-block w-6 h-6 border-2 border-slate-300 border-t-slate-900 rounded-full motion-safe:animate-spin',
+        ),
+        h.AriaLabel('Loading'),
+      ]),
+    ],
+  )
 
 // STYLE
 

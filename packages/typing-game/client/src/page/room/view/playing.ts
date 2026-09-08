@@ -1,60 +1,55 @@
 import { clsx } from 'clsx'
-import { Array, Number, Option, Order, String as Str, pipe } from 'effect'
-import { Html, html } from 'foldkit/html'
+import { Array, Number, Option, Order, String, pipe } from 'effect'
+import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { USER_GAME_TEXT_INPUT_ID } from '../../../constant'
-import { ChangedUserText } from '../message'
-import type { Message } from '../message'
+import { Message } from '../message'
 
 const typing = (
   gameText: string,
   userGameText: string,
   maybeWrongCharIndex: Option.Option<number>,
-): Html => {
-  const h = html<Message>()
-
-  return h.div(
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
     [h.Class('relative')],
     [
-      h.textarea(
-        [
-          h.Id(USER_GAME_TEXT_INPUT_ID),
-          h.Value(userGameText),
-          h.Class('absolute inset-0 opacity-0 z-10 resize-none'),
-          h.OnInput(value => ChangedUserText({ value })),
-          h.Spellcheck(false),
-          h.Autocorrect('off'),
-          h.Autocapitalize('none'),
-        ],
-        [],
-      ),
-      gameTextWithProgress(gameText, userGameText, maybeWrongCharIndex),
+      h.textarea([
+        h.Id(USER_GAME_TEXT_INPUT_ID),
+        h.Value(userGameText),
+        h.Class('absolute inset-0 opacity-0 z-10 resize-none'),
+        h.OnInput(value => Message.ChangedUserText({ value })),
+        h.Spellcheck(false),
+        h.Autocorrect('off'),
+        h.Autocapitalize('none'),
+      ]),
+      gameTextWithProgress(gameText, userGameText, maybeWrongCharIndex, h),
     ],
   )
-}
 
 const gameTextWithProgress = (
   gameText: string,
   userGameText: string,
   maybeWrongCharIndex: Option.Option<number>,
-): Html => {
-  const h = html<Message>()
-
-  return h.div(
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
     [h.Class('whitespace-pre-wrap')],
     pipe(
       gameText,
-      Str.split(''),
-      Array.map(char(userGameText, maybeWrongCharIndex)),
+      String.split(''),
+      Array.map(char(userGameText, maybeWrongCharIndex, h)),
     ),
   )
-}
 
 const char =
-  (userGameText: string, maybeWrongCharIndex: Option.Option<number>) =>
+  (
+    userGameText: string,
+    maybeWrongCharIndex: Option.Option<number>,
+    h: HtmlBuilder<Message>,
+  ) =>
   (char: string, index: number): Html => {
-    const h = html<Message>()
-    const userGameTextLength = Str.length(userGameText)
+    const userGameTextLength = String.length(userGameText)
     const hasNoInput = userGameTextLength === 0
     const isNext =
       (hasNoInput && index === 0) ||
@@ -89,10 +84,9 @@ export const playing = (
   maybeGameText: Option.Option<string>,
   userGameText: string,
   maybeWrongCharIndex: Option.Option<number>,
-): Html => {
-  const h = html<Message>()
-
-  return h.div(
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
     [h.Class('space-y-6')],
     [
       h.h3(
@@ -103,8 +97,8 @@ export const playing = (
       ),
       Option.match(maybeGameText, {
         onNone: () => h.empty,
-        onSome: gameText => typing(gameText, userGameText, maybeWrongCharIndex),
+        onSome: gameText =>
+          typing(gameText, userGameText, maybeWrongCharIndex, h),
       }),
     ],
   )
-}

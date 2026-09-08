@@ -1,4 +1,4 @@
-import { Effect, Schema as S } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Port, Runtime } from 'foldkit'
 
 // Each Port carries a Schema. The host works with the Schema's Encoded
@@ -6,8 +6,8 @@ import { Port, Runtime } from 'foldkit'
 // handle. Name ports subject-first like DOM event names (stepChanged);
 // the app wraps each value into its own verb-first Message (ChangedStep).
 export const ports = {
-  inbound: { stepChanged: Port.inbound(S.Number) },
-  outbound: { countChanged: Port.outbound(S.Number) },
+  inbound: { stepChanged: Port.inbound(Schema.Number) },
+  outbound: { countChanged: Port.outbound(Schema.Number) },
 }
 
 export const makeElement = (container: HTMLElement, flags: Flags) =>

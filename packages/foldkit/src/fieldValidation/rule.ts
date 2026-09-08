@@ -1,12 +1,4 @@
-import {
-  Array,
-  Number as Number_,
-  Option,
-  Predicate,
-  Schema as S,
-  String,
-  flow,
-} from 'effect'
+import { Array, Number, Option, Predicate, Schema, String, flow } from 'effect'
 
 // RULES + MESSAGES
 
@@ -27,7 +19,7 @@ export const minLength = (
   min: number,
   message?: RuleMessage<string>,
 ): Rule<string> => [
-  flow(String.length, Number_.isGreaterThanOrEqualTo(min)),
+  flow(String.length, Number.isGreaterThanOrEqualTo(min)),
   message ?? `Must be at least ${min} characters`,
 ]
 
@@ -36,7 +28,7 @@ export const maxLength = (
   max: number,
   message?: RuleMessage<string>,
 ): Rule<string> => [
-  flow(String.length, Number_.isLessThanOrEqualTo(max)),
+  flow(String.length, Number.isLessThanOrEqualTo(max)),
   message ?? `Must be at most ${max} characters`,
 ]
 
@@ -128,7 +120,7 @@ export const minItems = (
   min: number,
   message?: RuleMessage<ReadonlyArray<unknown>>,
 ): Rule<ReadonlyArray<unknown>> => [
-  flow(Array.length, Number_.isGreaterThanOrEqualTo(min)),
+  flow(Array.length, Number.isGreaterThanOrEqualTo(min)),
   message ?? `Must select at least ${min}`,
 ]
 
@@ -137,7 +129,7 @@ export const maxItems = (
   max: number,
   message?: RuleMessage<ReadonlyArray<unknown>>,
 ): Rule<ReadonlyArray<unknown>> => [
-  flow(Array.length, Number_.isLessThanOrEqualTo(max)),
+  flow(Array.length, Number.isLessThanOrEqualTo(max)),
   message ?? `Must select at most ${max}`,
 ]
 
@@ -151,6 +143,6 @@ export const maxItems = (
  *  custom rule can't, so prefer the dedicated rules for plain checks. Decoding
  *  is synchronous: the schema must decode without running an effect. */
 export const fromSchema = <A, I>(
-  schema: S.Codec<A, I>,
+  schema: Schema.Codec<A, I>,
   message: RuleMessage<I>,
-): Rule<I> => [flow(S.decodeOption(schema), Option.isSome), message]
+): Rule<I> => [flow(Schema.decodeOption(schema), Option.isSome), message]

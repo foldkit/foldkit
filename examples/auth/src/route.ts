@@ -1,46 +1,36 @@
-import { Schema as S, pipe } from 'effect'
+import { Schema, pipe } from 'effect'
 import { Route } from 'foldkit'
-import { literal, r } from 'foldkit/route'
+import { defineRouteUnion, literal } from 'foldkit/route'
 
-export const HomeRoute = r('Home')
-export const LoginRoute = r('Login')
-export const DashboardRoute = r('Dashboard')
-export const SettingsRoute = r('Settings')
-export const NotFoundRoute = r('NotFound', { path: S.String })
+export const AppRoute = defineRouteUnion({
+  Home: {},
+  Login: {},
+  Dashboard: {},
+  Settings: {},
+  NotFound: { path: Schema.String },
+})
 
-export type HomeRoute = typeof HomeRoute.Type
-export type LoginRoute = typeof LoginRoute.Type
-export type DashboardRoute = typeof DashboardRoute.Type
-export type SettingsRoute = typeof SettingsRoute.Type
-export type NotFoundRoute = typeof NotFoundRoute.Type
+export type AppRoute = typeof AppRoute.Type
 
-export const LoggedOutRoute = S.Union([HomeRoute, LoginRoute, NotFoundRoute])
-export const LoggedInRoute = S.Union([
-  DashboardRoute,
-  SettingsRoute,
-  NotFoundRoute,
-])
-export const AppRoute = S.Union([
-  HomeRoute,
-  LoginRoute,
-  DashboardRoute,
-  SettingsRoute,
-  NotFoundRoute,
+export const LoggedOutRoute = AppRoute.subset(['Home', 'Login', 'NotFound'])
+export const LoggedInRoute = AppRoute.subset([
+  'Dashboard',
+  'Settings',
+  'NotFound',
 ])
 
 export type LoggedOutRoute = typeof LoggedOutRoute.Type
 export type LoggedInRoute = typeof LoggedInRoute.Type
-export type AppRoute = typeof AppRoute.Type
 
-export const homeRouter = pipe(Route.root, Route.mapTo(HomeRoute))
-export const loginRouter = pipe(literal('login'), Route.mapTo(LoginRoute))
+export const homeRouter = pipe(Route.root, Route.mapTo(AppRoute.Home))
+export const loginRouter = pipe(literal('login'), Route.mapTo(AppRoute.Login))
 export const dashboardRouter = pipe(
   literal('dashboard'),
-  Route.mapTo(DashboardRoute),
+  Route.mapTo(AppRoute.Dashboard),
 )
 export const settingsRouter = pipe(
   literal('settings'),
-  Route.mapTo(SettingsRoute),
+  Route.mapTo(AppRoute.Settings),
 )
 
 const routeParser = Route.oneOf(
@@ -52,5 +42,5 @@ const routeParser = Route.oneOf(
 
 export const urlToAppRoute = Route.parseUrlWithFallback(
   routeParser,
-  NotFoundRoute,
+  AppRoute.NotFound,
 )

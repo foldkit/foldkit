@@ -1,10 +1,10 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Match as M, Option, Schema as S } from 'effect'
-import { Command } from 'foldkit'
-import { html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { Option, Schema } from 'effect'
+import { Update } from 'foldkit'
+import type { HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Toast as UiToast } from '@foldkit/ui'
@@ -12,9 +12,11 @@ import { Toast as UiToast } from '@foldkit/ui'
 // Define the payload shape for your toast. The Toast component owns only
 // lifecycle + a11y fields (id, variant, transition, dismiss timer, hover
 // state). The payload is yours, whatever you can encode in a Schema:
-const ToastPayload = S.Struct({
-  bodyText: S.String,
-  maybeLink: S.Option(S.Struct({ href: S.String, text: S.String })),
+const ToastPayload = Schema.Struct({
+  bodyText: Schema.String,
+  maybeLink: Schema.Option(
+    Schema.Struct({ href: Schema.String, text: Schema.String }),
+  ),
 })
 
 // Bind a Toast module to your payload schema. The factory returns Model,
@@ -25,57 +27,70 @@ export const Toast = UiToast.make(ToastPayload)
 // Add Toast.Model to your app Model. Track anything you want to lift from
 // a toast's lifecycle alongside it. Here, the last dismissed bodyText so
 // the UI can show "just dismissed: ..." after a toast goes away:
-const Model = S.Struct({
+const Model = Schema.Struct({
   toast: Toast.Model,
-  maybeLastDismissedBody: S.Option(S.String),
+  maybeLastDismissedBody: Schema.Option(Schema.String),
   // ...your other fields
 })
+type Model = typeof Model.Type
 
 // In your init function, initialize it:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     toast: Toast.init({ id: 'app-toast' }),
     maybeLastDismissedBody: Option.none(),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Embed the Toast Message in your parent Message, plus any domain Messages
 // that should push a toast:
-const GotToastMessage = m('GotToastMessage', { message: Toast.Message })
-const ClickedSave = m('ClickedSave')
+const Message = defineMessageUnion({
+  GotToastMessage: { message: Toast.Message },
+  ClickedSave: {},
+})
+type Message = typeof Message.Type
 
-// Inside your update's M.tagsExhaustive({...}), delegate Toast's own
-// Messages. The third tuple element is `Option<OutMessage>`. Pattern-match
-// it to lift the DismissedToast event into domain state:
-GotToastMessage: ({ message }) => {
-  const [nextToast, commands, maybeOutMessage] = Toast.update(
-    model.toast,
-    message,
-  )
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotToastMessage({ message }),
-  )
-
-  return Option.match(maybeOutMessage, {
-    onNone: () => [evo(model, { toast: () => nextToast }), mappedCommands],
-    onSome: M.type<typeof Toast.OutMessage.Type>().pipe(
-      M.tagsExhaustive({
-        DismissedToast: ({ payload }) => [
-          evo(model, {
-            toast: () => nextToast,
-            maybeLastDismissedBody: () => Option.some(payload.bodyText),
-          }),
-          mappedCommands,
-        ],
+// At module scope, fold the OutMessage into your own Model, lifting the
+// DismissedToast event into domain state. The arm returns an Update.Step over
+// the parent Model, which already has the next Toast Model written back:
+const foldToastOutMessage = Toast.OutMessage.match<Update.Step<Model, Message>>(
+  {
+    DismissedToast:
+      ({ payload }) =>
+      model => ({
+        model: evo(model, {
+          maybeLastDismissedBody: () => Option.some(payload.bodyText),
+        }),
       }),
-    ),
-  })
-}
+  },
+)
 
-ClickedSave: () => {
-  const [nextToast, commands] = Toast.show(model.toast, {
+// Update.foldChild wires the child into the parent: it delegates Toast's own
+// Messages to Toast.update, writes the next Toast Model back, maps the
+// Submodel's Commands into your Message type, and hands any OutMessage to
+// foldOutMessage.
+const foldToast = Update.foldChild({
+  update: Toast.update,
+  read: (model: Model) => Option.some(model.toast),
+  write: (model, nextToast) => evo(model, { toast: () => nextToast }),
+  toParentMessage: message => Message.GotToastMessage({ message }),
+  foldOutMessage: foldToastOutMessage,
+})
+
+const foldToastShow = Update.foldChild({
+  update: Toast.show,
+  read: (model: Model) => Option.some(model.toast),
+  write: (model, nextToast) => evo(model, { toast: () => nextToast }),
+  toParentMessage: message => Message.GotToastMessage({ message }),
+  foldOutMessage: foldToastOutMessage,
+})
+
+// In the corresponding Message.match handler, call the fold:
+GotToastMessage: ({ message }) => foldToast(model, message)
+
+ClickedSave: () =>
+  foldToastShow(model, {
     variant: 'Success',
     payload: {
       bodyText: 'Changes saved',
@@ -86,20 +101,12 @@ ClickedSave: () => {
     },
   })
 
-  return [
-    evo(model, { toast: () => nextToast }),
-    Command.mapMessages(commands, message => GotToastMessage({ message })),
-  ]
-}
-
 // In your view, embed Toast via h.submodel once at the app root. The
 // entryToView callback lays out each entry from its payload. The
 // component handles the <li> wrapper, hover-to-pause, and enter/leave
 // animations.
-const view = () => {
-  const h = html<Message>()
-
-  return h.submodel({
+const view = (h: HtmlBuilder<Message>) =>
+  h.submodel({
     slotId: 'app-toast',
     model: model.toast,
     view: Toast.view,
@@ -133,6 +140,5 @@ const view = () => {
           ],
         ),
     },
-    toParentMessage: message => GotToastMessage({ message }),
+    toParentMessage: message => Message.GotToastMessage({ message }),
   })
-}

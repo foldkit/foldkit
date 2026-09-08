@@ -1,0 +1,10 @@
+.popover-panel {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.popover-content {
+  min-height: 0;
+  overflow-y: auto;
+}

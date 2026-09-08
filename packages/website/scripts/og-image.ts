@@ -1,12 +1,21 @@
 import { FileSystem } from 'effect'
-import { Array, Console, Effect, pipe } from 'effect'
+import { Array, Console, Effect, Match, Option, String, pipe } from 'effect'
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { join, resolve } from 'node:path'
+import { type Browser } from 'playwright'
 import satori, { type Font } from 'satori'
 
 import { Resvg } from '@resvg/resvg-js'
 
+import { type PostCover, maybePostCover } from '../src/page/blog/frontmatter'
+import { BLOG_AUTHOR, BLOG_SECTION } from '../src/page/blog/meta'
 import { type AppRoute } from '../src/route'
+import {
+  type BlogPostEntry,
+  PUBLIC_DIR,
+  blogPosts,
+  maybeCoverMimeType,
+} from './blogPosts'
 import {
   type ApiModuleNameResolver,
   type PageMetadata,
@@ -186,52 +195,163 @@ const urlPathToSlug = (urlPath: string): string => {
   return urlPath.slice(1).replace(/\//g, '-')
 }
 
+// COVER IMAGES
+
+const maybeRoutePostEntry = (route: AppRoute): Option.Option<BlogPostEntry> =>
+  Match.value(route).pipe(
+    Match.tag('BlogPost', ({ postSlug }) =>
+      Array.findFirst(blogPosts, ({ slug }) => slug === postSlug),
+    ),
+    Match.orElse(() => Option.none()),
+  )
+
+const maybeRouteCover = (route: AppRoute): Option.Option<PostCover> =>
+  Option.flatMap(maybeRoutePostEntry(route), ({ frontmatter }) =>
+    maybePostCover(frontmatter),
+  )
+
+const coverMimeType = (src: string): Effect.Effect<string, Error> =>
+  Option.match(maybeCoverMimeType(src), {
+    onNone: () =>
+      Effect.fail(
+        new Error(`Cover image ${src} has no recognized image extension.`),
+      ),
+    onSome: Effect.succeed,
+  })
+
+// NOTE: Chromium decodes the cover and re-encodes it as PNG because resvg
+// cannot embed webp sources, and PNG is the one format every OG consumer
+// renders. The cover is center-cropped onto the standard 1200x630 card so
+// every platform shows the same crop instead of choosing its own. The
+// string-form evaluate polyfills the `__name` helper tsx injects into
+// compiled callbacks; see the note on PAGE_INIT_SCRIPT in prerender.ts.
+const renderCoverOgImage = (browser: Browser, cover: PostCover) =>
+  Effect.gen(function* () {
+    const mimeType = yield* coverMimeType(cover.src)
+    const fs = yield* FileSystem.FileSystem
+    const coverBytes = yield* fs.readFile(join(PUBLIC_DIR, cover.src))
+    const sourceUri = `data:${mimeType};base64,${Buffer.from(coverBytes).toString('base64')}`
+
+    const pngBase64 = yield* Effect.acquireUseRelease(
+      Effect.tryPromise(() => browser.newPage()),
+      page =>
+        Effect.gen(function* () {
+          yield* Effect.tryPromise(() =>
+            page.evaluate('window.__name = (target) => target'),
+          )
+          return yield* Effect.tryPromise(() =>
+            page.evaluate(
+              async ({ source, targetHeight, targetWidth }) => {
+                const image = new Image()
+                image.src = source
+                await image.decode()
+                if (image.naturalWidth === 0 || image.naturalHeight === 0) {
+                  throw new Error(
+                    'Cover image decoded with no intrinsic dimensions.',
+                  )
+                }
+                const canvas = document.createElement('canvas')
+                canvas.width = targetWidth
+                canvas.height = targetHeight
+                const context = canvas.getContext('2d')
+                if (context === null) {
+                  throw new Error('Canvas 2d context is unavailable.')
+                }
+                const scale = Math.max(
+                  targetWidth / image.naturalWidth,
+                  targetHeight / image.naturalHeight,
+                )
+                const drawWidth = image.naturalWidth * scale
+                const drawHeight = image.naturalHeight * scale
+                context.drawImage(
+                  image,
+                  (targetWidth - drawWidth) / 2,
+                  (targetHeight - drawHeight) / 2,
+                  drawWidth,
+                  drawHeight,
+                )
+                const pngPrefix = 'data:image/png;base64,'
+                return canvas.toDataURL('image/png').slice(pngPrefix.length)
+              },
+              {
+                source: sourceUri,
+                targetHeight: OG_HEIGHT,
+                targetWidth: OG_WIDTH,
+              },
+            ),
+          )
+        }),
+      page => Effect.promise(() => page.close()),
+    )
+
+    return Buffer.from(pngBase64, 'base64')
+  })
+
 // GENERATION
 
+const renderSatoriOgImage = (fonts: Array<Font>, metadata: PageMetadata) =>
+  Effect.gen(function* () {
+    const template = ogTemplate(metadata)
+
+    const svg = yield* Effect.tryPromise(() =>
+      // @ts-expect-error satori expects ReactNode but accepts plain {type, props} objects at runtime
+      satori(template, {
+        width: OG_WIDTH,
+        height: OG_HEIGHT,
+        fonts,
+      }),
+    )
+
+    const resvg = new Resvg(svg, {
+      fitTo: { mode: 'width', value: OG_WIDTH },
+    })
+
+    return resvg.render().asPng()
+  })
+
+// NOTE: a failed render fails the whole prerender on purpose. The page's meta
+// tags point at this file unconditionally, so shipping without it would ship
+// an og:image URL that 404s.
 const renderOgImage =
   (
     fonts: Array<Font>,
     ogDir: string,
     routeToUrlPath: (route: AppRoute) => string,
     resolveApiModuleName: ApiModuleNameResolver,
+    browser: Browser,
   ) =>
-  (route: AppRoute) =>
-    pipe(
+  (route: AppRoute) => {
+    const slug = urlPathToSlug(routeToUrlPath(route))
+    return pipe(
       Effect.gen(function* () {
-        const metadata = routeToMetadata(route, resolveApiModuleName)
-        const template = ogTemplate(metadata)
-        const slug = urlPathToSlug(routeToUrlPath(route))
-
-        const svg = yield* Effect.tryPromise(() =>
-          // @ts-expect-error satori expects ReactNode but accepts plain {type, props} objects at runtime
-          satori(template, {
-            width: OG_WIDTH,
-            height: OG_HEIGHT,
-            fonts,
-          }),
-        )
-
-        const resvg = new Resvg(svg, {
-          fitTo: { mode: 'width', value: OG_WIDTH },
+        const png = yield* Option.match(maybeRouteCover(route), {
+          onNone: () =>
+            renderSatoriOgImage(
+              fonts,
+              routeToMetadata(route, resolveApiModuleName),
+            ),
+          onSome: cover => renderCoverOgImage(browser, cover),
         })
-        const png = resvg.render().asPng()
 
         const fs = yield* FileSystem.FileSystem
         yield* fs.writeFile(resolve(ogDir, `${slug}.png`), png)
         yield* Console.log(`  ✓ og/${slug}.png`)
       }),
-      Effect.catch(error =>
-        Console.warn(
-          `  ✗ og/${urlPathToSlug(routeToUrlPath(route))}.png: ${String(error)}`,
-        ),
+      Effect.mapError(
+        error =>
+          new Error(
+            `og/${slug}.png failed to render: ${globalThis.String(error)}`,
+          ),
       ),
     )
+  }
 
 export const generateOgImages = (
   routes: ReadonlyArray<AppRoute>,
   routeToUrlPath: (route: AppRoute) => string,
   distDir: string,
   resolveApiModuleName: ApiModuleNameResolver,
+  browser: Browser,
 ) =>
   Effect.gen(function* () {
     yield* Console.log('Generating OG images...')
@@ -243,7 +363,13 @@ export const generateOgImages = (
 
     yield* Effect.forEach(
       routes,
-      renderOgImage(fonts, ogDir, routeToUrlPath, resolveApiModuleName),
+      renderOgImage(
+        fonts,
+        ogDir,
+        routeToUrlPath,
+        resolveApiModuleName,
+        browser,
+      ),
       { concurrency: 8 },
     )
 
@@ -254,6 +380,57 @@ export const generateOgImages = (
 
 const SITE_URL = 'https://foldkit.dev'
 
+const SITE_NAME = 'Foldkit'
+
+const HOMEPAGE_FULL_TITLE =
+  'Foldkit | TypeScript Frontend Framework Built on Effect'
+
+const generatedOgImageAlt = (metadata: PageMetadata): string => {
+  if (metadata.title === SITE_NAME) {
+    return HOMEPAGE_FULL_TITLE
+  } else if (
+    metadata.section.length > 0 &&
+    metadata.section !== metadata.title
+  ) {
+    return `Foldkit social card for ${metadata.title} in ${metadata.section}.`
+  } else {
+    return `Foldkit social card for ${metadata.title}.`
+  }
+}
+
+const ORGANIZATION_ID = `${SITE_URL}/#organization`
+
+export const ORGANIZATION_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': ORGANIZATION_ID,
+  name: 'Foldkit',
+  url: SITE_URL,
+  logo: `${SITE_URL}/logo.svg`,
+  description:
+    'Foldkit is an open source TypeScript frontend framework built on Effect, developed in the open on GitHub.',
+  sameAs: [
+    'https://github.com/foldkit/foldkit',
+    'https://www.npmjs.com/package/foldkit',
+    'https://discord.gg/kav8VNxqGm',
+    'https://x.com/devinjameson',
+  ],
+  contactPoint: [
+    {
+      '@type': 'ContactPoint',
+      contactType: 'technical support',
+      url: 'https://github.com/foldkit/foldkit/issues',
+      availableLanguage: 'English',
+    },
+    {
+      '@type': 'ContactPoint',
+      contactType: 'customer support',
+      url: `${SITE_URL}/contact`,
+      availableLanguage: 'English',
+    },
+  ],
+}
+
 const SOFTWARE_APPLICATION_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
@@ -261,32 +438,93 @@ const SOFTWARE_APPLICATION_SCHEMA = {
   applicationCategory: 'DeveloperApplication',
   operatingSystem: 'Web',
   description:
-    'A TypeScript frontend framework built on Effect-TS, using The Elm Architecture. Predictable state, explicit effects, type-safe routing.',
+    'Foldkit is a TypeScript frontend framework built on Effect. One Schema-defined Model, explicit effects, typed routing, server rendering, and accessible UI components.',
   url: SITE_URL,
-  author: { '@type': 'Organization', name: 'Foldkit' },
+  author: { '@id': ORGANIZATION_ID },
   programmingLanguage: 'TypeScript',
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
   license: 'https://opensource.org/licenses/MIT',
 }
 
+const WEBSITE_ID = `${SITE_URL}/#website`
+
 const WEBSITE_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
+  '@id': WEBSITE_ID,
   name: 'Foldkit',
   url: SITE_URL,
+  publisher: { '@id': ORGANIZATION_ID },
   description:
-    'A TypeScript frontend framework built on Effect-TS using The Elm Architecture',
+    'Foldkit is a TypeScript frontend framework built on Effect. One Schema-defined Model, explicit effects, typed routing, server rendering, and accessible UI components.',
 }
 
 const jsonLdTag = (schema: Record<string, unknown>): string =>
   `<script type="application/ld+json">${JSON.stringify(schema)}</script>`
 
 const HOMEPAGE_JSON_LD = [
+  jsonLdTag(ORGANIZATION_SCHEMA),
   jsonLdTag(SOFTWARE_APPLICATION_SCHEMA),
   jsonLdTag(WEBSITE_SCHEMA),
 ].join('\n    ')
 
+const sitePageJsonLd = (
+  schemaType: string,
+  pageUrl: string,
+  metadata: PageMetadata,
+): string =>
+  jsonLdTag({
+    '@context': 'https://schema.org',
+    '@type': schemaType,
+    name: metadata.title,
+    description: metadata.description,
+    url: pageUrl,
+    isPartOf: { '@id': WEBSITE_ID },
+    publisher: { '@id': ORGANIZATION_ID },
+  })
+
+const maybeSitePageSchemaType = (route: AppRoute): Option.Option<string> =>
+  Match.value(route).pipe(
+    Match.withReturnType<Option.Option<string>>(),
+    Match.tag('About', () => Option.some('AboutPage')),
+    Match.tag('Contact', () => Option.some('ContactPage')),
+    Match.tag('Privacy', () => Option.some('WebPage')),
+    Match.orElse(() => Option.none()),
+  )
+
+const blogPostingJsonLd = (
+  entry: BlogPostEntry,
+  pageUrl: string,
+  ogImageUrl: string,
+): string =>
+  jsonLdTag({
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: entry.frontmatter.title,
+    description: entry.frontmatter.description,
+    datePublished: entry.frontmatter.date,
+    author: { '@type': 'Person', name: BLOG_AUTHOR },
+    image: ogImageUrl,
+    url: pageUrl,
+    mainEntityOfPage: pageUrl,
+  })
+
 // META TAG INJECTION
+
+const replaceOrThrow = (
+  html: string,
+  pattern: RegExp,
+  replacement: string,
+  urlPath: string,
+): string => {
+  if (!pattern.test(html)) {
+    throw new Error(
+      `Head rewrite for ${urlPath} matched nothing with ${pattern}. The markup in index.html no longer has the shape this pattern expects.`,
+    )
+  }
+
+  return html.replace(pattern, () => replacement)
+}
 
 export const injectMetaTags = (
   html: string,
@@ -299,53 +537,106 @@ export const injectMetaTags = (
   const ogImageUrl = `${SITE_URL}/og/${slug}.png`
   const pageUrl = `${SITE_URL}${urlPath}`
   const fullTitle =
-    metadata.title === 'Foldkit'
-      ? 'Foldkit - TypeScript Frontend Framework Built on Effect-TS | Elm Architecture'
-      : `${metadata.title} - Foldkit | Effect-TS Frontend Framework`
+    metadata.title === SITE_NAME
+      ? HOMEPAGE_FULL_TITLE
+      : `${metadata.title} | ${SITE_NAME}`
 
-  const jsonLd = metadata.title === 'Foldkit' ? HOMEPAGE_JSON_LD : ''
+  const ogImageAlt = pipe(
+    maybeRouteCover(route),
+    Option.map(cover => cover.alt),
+    Option.filter(String.isNonEmpty),
+    Option.getOrElse(() => generatedOgImageAlt(metadata)),
+  )
 
-  return html
-    .replace(/<title>[^<]*<\/title>/, `<title>${fullTitle}</title>`)
-    .replace(
-      /rel="canonical" href="[^"]*"/,
-      `rel="canonical" href="${pageUrl}"`,
-    )
-    .replace(
-      /name="description" content="[^"]*"/,
-      `name="description" content="${metadata.description}"`,
-    )
-    .replace(
-      /property="og:url" content="[^"]*"/,
+  const escapedTitle = escapeHtml(fullTitle)
+  const escapedDescription = escapeHtml(metadata.description)
+  const escapedOgImageAlt = escapeHtml(ogImageAlt)
+
+  const maybePostEntry = maybeRoutePostEntry(route)
+
+  const ogType = Option.match(maybePostEntry, {
+    onNone: () => 'website',
+    onSome: () => 'article',
+  })
+
+  const headAppends = [
+    ...(metadata.title === 'Foldkit' ? [HOMEPAGE_JSON_LD] : []),
+    ...Option.match(maybeSitePageSchemaType(route), {
+      onNone: () => [],
+      onSome: schemaType => [sitePageJsonLd(schemaType, pageUrl, metadata)],
+    }),
+    ...Option.match(maybePostEntry, {
+      onNone: () => [],
+      onSome: entry => [
+        `<meta property="article:published_time" content="${entry.frontmatter.date}" />`,
+        `<meta property="article:section" content="${BLOG_SECTION}" />`,
+        blogPostingJsonLd(entry, pageUrl, ogImageUrl),
+      ],
+    }),
+  ]
+
+  const metaTagReplacements: ReadonlyArray<readonly [RegExp, string]> = [
+    [/<title>[^<]*<\/title>/, `<title>${escapedTitle}</title>`],
+    [/rel="canonical"\s+href="[^"]*"/, `rel="canonical" href="${pageUrl}"`],
+    [
+      /property="og:type"\s+content="[^"]*"/,
+      `property="og:type" content="${ogType}"`,
+    ],
+    [
+      /name="description"\s+content="[^"]*"/,
+      `name="description" content="${escapedDescription}"`,
+    ],
+    [
+      /property="og:url"\s+content="[^"]*"/,
       `property="og:url" content="${pageUrl}"`,
-    )
-    .replace(
-      /property="og:title" content="[^"]*"/,
-      `property="og:title" content="${fullTitle}"`,
-    )
-    .replace(
-      /property="og:description" content="[^"]*"/,
-      `property="og:description" content="${metadata.description}"`,
-    )
-    .replace(
-      /property="og:image" content="[^"]*"/,
+    ],
+    [
+      /property="og:title"\s+content="[^"]*"/,
+      `property="og:title" content="${escapedTitle}"`,
+    ],
+    [
+      /property="og:description"\s+content="[^"]*"/,
+      `property="og:description" content="${escapedDescription}"`,
+    ],
+    [
+      /property="og:image"\s+content="[^"]*"/,
       `property="og:image" content="${ogImageUrl}"`,
-    )
-    .replace(
-      /property="og:image:alt" content="[^"]*"/,
-      `property="og:image:alt" content="${fullTitle}"`,
-    )
-    .replace(
-      /name="twitter:title" content="[^"]*"/,
-      `name="twitter:title" content="${fullTitle}"`,
-    )
-    .replace(
-      /name="twitter:description" content="[^"]*"/,
-      `name="twitter:description" content="${metadata.description}"`,
-    )
-    .replace(
-      /name="twitter:image" content="[^"]*"/,
+    ],
+    [
+      /property="og:image:alt"\s+content="[^"]*"/,
+      `property="og:image:alt" content="${escapedOgImageAlt}"`,
+    ],
+    [
+      /name="twitter:title"\s+content="[^"]*"/,
+      `name="twitter:title" content="${escapedTitle}"`,
+    ],
+    [
+      /name="twitter:description"\s+content="[^"]*"/,
+      `name="twitter:description" content="${escapedDescription}"`,
+    ],
+    [
+      /name="twitter:image"\s+content="[^"]*"/,
       `name="twitter:image" content="${ogImageUrl}"`,
-    )
-    .replace('</head>', jsonLd ? `${jsonLd}\n  </head>` : '</head>')
+    ],
+    [
+      /name="twitter:image:alt"\s+content="[^"]*"/,
+      `name="twitter:image:alt" content="${escapedOgImageAlt}"`,
+    ],
+  ]
+
+  const withMetaTags = Array.reduce(
+    metaTagReplacements,
+    html,
+    (currentHtml, [pattern, replacement]) =>
+      replaceOrThrow(currentHtml, pattern, replacement, urlPath),
+  )
+
+  return replaceOrThrow(
+    withMetaTags,
+    /<\/head>/,
+    Array.isArrayNonEmpty(headAppends)
+      ? `${Array.join(headAppends, '\n    ')}\n  </head>`
+      : '</head>',
+    urlPath,
+  )
 }

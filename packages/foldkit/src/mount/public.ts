@@ -7,7 +7,9 @@ export type {
 export {
   MountDefinitionTypeId,
   MountTracker,
+  ViewState,
   define,
   defineStream,
+  liveViewStateChanges,
   mapMessage,
 } from './index.js'

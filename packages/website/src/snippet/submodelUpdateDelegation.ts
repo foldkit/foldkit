@@ -1,24 +1,15 @@
-import { Match as M } from 'effect'
-import { Command } from 'foldkit'
+import { Option } from 'effect'
+import { Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.tagsExhaustive({
-      GotSettingsMessage: ({ message }) => {
-        const [nextSettings, commands] = Settings.update(
-          model.settings,
-          message,
-        )
+const foldSettings = Update.foldChild({
+  update: Settings.update,
+  read: (model: Model) => Option.some(model.settings),
+  write: (model, nextSettings) => evo(model, { settings: () => nextSettings }),
+  toParentMessage: message => Message.GotSettingsMessage({ message }),
+})
 
-        const mappedCommands = Command.mapMessages(commands, message =>
-          GotSettingsMessage({ message }),
-        )
-
-        return [evo(model, { settings: () => nextSettings }), mappedCommands]
-      },
-    }),
-  )
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    GotSettingsMessage: ({ message }) => foldSettings(model, message),
+  })

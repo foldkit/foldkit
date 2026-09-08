@@ -1,0 +1,359 @@
+import clsx from 'clsx'
+import { Array, Equal, HashSet, Match, Option, pipe } from 'effect'
+import type { ChildAttribute, Document, Html, HtmlBuilder } from 'foldkit/html'
+
+import { Button, Tabs } from '@foldkit/ui'
+
+import { Step } from '../domain'
+import { Message } from '../message'
+import { type Model } from '../model'
+import {
+  Attachments,
+  CoverLetter,
+  Education,
+  PersonalInfo,
+  Skills,
+  WorkHistory,
+} from '../step'
+import { preview } from './preview'
+import { review } from './review'
+import { stepMenu, stepTabButton } from './stepNav'
+
+const StepTabs = Tabs.create<Step.Step>()
+
+const stepHasErrors =
+  (model: Model) =>
+  (step: Step.Step): boolean =>
+    Match.value(step).pipe(
+      Match.when('PersonalInfo', () =>
+        PersonalInfo.hasErrors(model.personalInfo),
+      ),
+      Match.when('WorkHistory', () => WorkHistory.hasErrors(model.workHistory)),
+      Match.when('Education', () => Education.hasErrors(model.education)),
+      Match.when('Skills', () => Skills.hasErrors(model.skills)),
+      Match.orElse(() => false),
+    )
+
+const stepIsComplete =
+  (model: Model) =>
+  (step: Step.Step): boolean =>
+    Match.value(step).pipe(
+      Match.when('PersonalInfo', () =>
+        PersonalInfo.isComplete(model.personalInfo),
+      ),
+      Match.when('WorkHistory', () =>
+        WorkHistory.isComplete(model.workHistory),
+      ),
+      Match.when('Education', () => Education.isComplete(model.education)),
+      Match.when('Skills', () => Skills.isComplete(model.skills)),
+      Match.orElse(() => true),
+    )
+
+const stepNeedsAttention =
+  (model: Model) =>
+  (step: Step.Step): boolean =>
+    stepHasErrors(model)(step) ||
+    (model.isSubmitAttempted && !stepIsComplete(model)(step))
+
+const stepsNeedingAttention = (model: Model): ReadonlyArray<Step.Step> =>
+  Array.filter(Step.all, stepNeedsAttention(model))
+
+const stepContent = (
+  model: Model,
+  attentionSteps: ReadonlyArray<Step.Step>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  Match.value(model.currentStep).pipe(
+    Match.when('PersonalInfo', () =>
+      h.submodel({
+        slotId: 'personal-info',
+        model: model.personalInfo,
+        view: PersonalInfo.view,
+        toParentMessage: message => Message.GotPersonalInfoMessage({ message }),
+      }),
+    ),
+    Match.when('WorkHistory', () =>
+      h.submodel({
+        slotId: 'work-history',
+        model: model.workHistory,
+        view: WorkHistory.view,
+        toParentMessage: message => Message.GotWorkHistoryMessage({ message }),
+      }),
+    ),
+    Match.when('Education', () =>
+      h.submodel({
+        slotId: 'education',
+        model: model.education,
+        view: Education.view,
+        toParentMessage: message => Message.GotEducationMessage({ message }),
+      }),
+    ),
+    Match.when('Skills', () =>
+      h.submodel({
+        slotId: 'skills',
+        model: model.skills,
+        view: Skills.view,
+        toParentMessage: message => Message.GotSkillsMessage({ message }),
+      }),
+    ),
+    Match.when('CoverLetter', () =>
+      h.submodel({
+        slotId: 'cover-letter',
+        model: model.coverLetter,
+        view: CoverLetter.view,
+        toParentMessage: message => Message.GotCoverLetterMessage({ message }),
+      }),
+    ),
+    Match.when('Attachments', () =>
+      h.submodel({
+        slotId: 'attachments',
+        model: model.attachments,
+        view: Attachments.view,
+        toParentMessage: message => Message.GotAttachmentsMessage({ message }),
+      }),
+    ),
+    Match.when('Review', () => review(model, attentionSteps, h)),
+    Match.exhaustive,
+  )
+
+const isFirstStep = (model: Model): boolean =>
+  pipe(Step.all, Array.head, Option.exists(Equal.equals(model.currentStep)))
+
+const isLastStep = (model: Model): boolean =>
+  pipe(Step.all, Array.last, Option.exists(Equal.equals(model.currentStep)))
+
+const navigationButtons = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [h.Class('flex justify-between pt-6 mt-8 border-t border-gray-200')],
+    [
+      ...(isFirstStep(model)
+        ? [h.empty]
+        : [
+            Button.view(
+              {
+                onClick: Message.ClickedPrevious(),
+                toView: attributes =>
+                  h.button(
+                    [
+                      ...attributes.button,
+                      h.Class(
+                        'rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition cursor-pointer',
+                      ),
+                    ],
+                    ['← Previous'],
+                  ),
+              },
+              h,
+            ),
+          ]),
+      ...(isLastStep(model)
+        ? []
+        : [
+            Button.view(
+              {
+                onClick: Message.ClickedNext(),
+                toView: attributes =>
+                  h.button(
+                    [
+                      ...attributes.button,
+                      h.Class(
+                        'rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition cursor-pointer',
+                      ),
+                    ],
+                    ['Next →'],
+                  ),
+              },
+              h,
+            ),
+          ]),
+    ],
+  )
+
+const pageHeader = (h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [h.Class('mb-6')],
+    [
+      h.h1(
+        [h.Class('text-2xl font-bold text-gray-900')],
+        ['Apply to Work on Foldkit'],
+      ),
+      h.p(
+        [h.Class('text-sm text-gray-500 mt-1')],
+        ['Fill out the form below and watch your resume build in real time.'],
+      ),
+    ],
+  )
+
+const stepContentPanel = (
+  model: Model,
+  attentionSteps: ReadonlyArray<Step.Step>,
+  panelAttributes: ReadonlyArray<ChildAttribute>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
+    [...panelAttributes, h.Class('flex-1 min-w-0')],
+    [
+      h.h2(
+        [h.Class('text-lg font-semibold text-gray-900 mb-6')],
+        [Step.show(model.currentStep)],
+      ),
+      h.div(
+        [h.Class('min-h-[400px]')],
+        [stepContent(model, attentionSteps, h)],
+      ),
+      ...(model.currentStep !== 'Review' ? [navigationButtons(model, h)] : []),
+    ],
+  )
+
+const stepTabsLayout = (
+  model: Model,
+  attentionSteps: ReadonlyArray<Step.Step>,
+  attentionStepSet: HashSet.HashSet<Step.Step>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.submodel({
+    slotId: model.stepTabs.id,
+    model: model.stepTabs,
+    view: StepTabs.view,
+    viewInputs: {
+      tabs: Step.all,
+      selectedValue: model.currentStep,
+      ariaLabel: 'Application steps',
+      orientation: 'Vertical',
+      toView: ({ tablist, tabs, activeIndex }) =>
+        h.div(
+          [h.Class('lg:flex lg:gap-8')],
+          [
+            h.div(
+              [h.Class('hidden w-60 shrink-0 lg:block')],
+              [
+                h.div(
+                  [h.Class('sticky top-8')],
+                  [
+                    h.div(
+                      [...tablist, h.Class('space-y-0.5')],
+                      Array.map(tabs, tab =>
+                        stepTabButton(
+                          tab,
+                          model.currentStep,
+                          attentionStepSet,
+                          h,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            ...pipe(
+              tabs,
+              Array.filter(tab => tab.index === activeIndex),
+              Array.map(tab =>
+                stepContentPanel(model, attentionSteps, tab.panel, h),
+              ),
+            ),
+            desktopPreviewSidebar(model, h),
+            mobilePreviewToggle(model, h),
+            ...(model.isPreviewVisible ? [mobilePreviewOverlay(model, h)] : []),
+          ],
+        ),
+    },
+    toParentMessage: message => Message.GotStepTabsMessage({ message }),
+  })
+
+const desktopPreviewSidebar = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [h.Class('hidden w-80 shrink-0 xl:block')],
+    [
+      h.div(
+        [h.Class('sticky top-8')],
+        [
+          h.div(
+            [h.Class('mb-2 flex items-center justify-between')],
+            [
+              h.h2(
+                [h.Class('text-sm font-semibold text-gray-700')],
+                ['Live Preview'],
+              ),
+            ],
+          ),
+          h.div(
+            [
+              h.Class(
+                'rounded-xl border border-gray-200 bg-white p-6 shadow-sm',
+              ),
+            ],
+            [preview(model)],
+          ),
+        ],
+      ),
+    ],
+  )
+
+const mobilePreviewToggle = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [h.Class('fixed top-4 right-4 xl:hidden')],
+    [
+      Button.view(
+        {
+          onClick: Message.ToggledPreview(),
+          toView: attributes =>
+            h.button(
+              [
+                ...attributes.button,
+                h.Class(
+                  clsx(
+                    'rounded-full px-4 py-2 text-sm font-medium shadow-lg transition cursor-pointer',
+                    model.isPreviewVisible
+                      ? 'bg-gray-800 text-white'
+                      : 'bg-indigo-600 text-white',
+                  ),
+                ),
+              ],
+              [model.isPreviewVisible ? 'Hide Preview' : 'Preview'],
+            ),
+        },
+        h,
+      ),
+    ],
+  )
+
+const mobilePreviewOverlay = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [
+      h.Class(
+        'fixed inset-x-4 top-16 bottom-4 overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-2xl xl:hidden',
+      ),
+    ],
+    [preview(model)],
+  )
+
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+  const attentionSteps = stepsNeedingAttention(model)
+  const attentionStepSet = HashSet.fromIterable(attentionSteps)
+  const body = h.div(
+    [h.Class('min-h-screen bg-gray-50')],
+    [
+      h.div(
+        [h.Class('mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8')],
+        [
+          pageHeader(h),
+          h.div(
+            [h.Class('mb-6 lg:hidden')],
+            [
+              stepMenu(
+                model,
+                attentionStepSet,
+                message => Message.GotStepMenuMessage({ message }),
+                h,
+              ),
+            ],
+          ),
+          stepTabsLayout(model, attentionSteps, attentionStepSet, h),
+        ],
+      ),
+    ],
+  )
+
+  return { title: 'Job Application', body }
+}

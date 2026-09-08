@@ -1,8 +1,12 @@
 import { Array, Predicate, Record, String, pipe } from 'effect'
-import { h } from 'snabbdom'
-import type { Classes, On, VNodeData } from 'snabbdom'
 
-import { type Html, __requireDispatch } from '../html/index.js'
+import {
+  type Html,
+  type HtmlBuilder,
+  __requireDispatch,
+} from '../html/index.js'
+import { h } from '../snabbdom/index.js'
+import type { Classes, On, VNodeData } from '../snabbdom/index.js'
 import { paintScene } from './paint.js'
 import type { Point, Shape } from './shape.js'
 
@@ -56,20 +60,30 @@ const classesFromClassName = (className: string): Classes =>
  * postpatch hook re-paints on every render. The canvas is a pure function of
  * `shapes`. Same shapes produce the same pixels.
  *
+ * The trailing `h` fixes `Message` to the calling view's frame; the pointer
+ * handlers dispatch through that frame at fire time, so passing the builder
+ * that built the surrounding view is what makes the handler types truthful.
+ *
  * @example
  * ```typescript
- * Canvas.view<Message>({
- *   width: 400,
- *   height: 300,
- *   shapes: [
- *     Canvas.Rect({ x: 0, y: 0, width: 400, height: 300, fill: '#000' }),
- *     Canvas.Circle({ x: 200, y: 150, radius: 50, fill: '#f0a' }),
- *   ],
- *   onPointerDown: ({ x, y }) => ClickedCanvas({ x, y }),
- * })
+ * Canvas.view(
+ *   {
+ *     width: 400,
+ *     height: 300,
+ *     shapes: [
+ *       Canvas.Rect({ x: 0, y: 0, width: 400, height: 300, fill: '#000' }),
+ *       Canvas.Circle({ x: 200, y: 150, radius: 50, fill: '#f0a' }),
+ *     ],
+ *     onPointerDown: ({ x, y }) => ClickedCanvas({ x, y }),
+ *   },
+ *   h,
+ * )
  * ```
  */
-export const view = <Message>(config: ViewConfig<Message>): Html => {
+export const view = <Message>(
+  config: ViewConfig<NoInfer<Message>>,
+  _h: HtmlBuilder<Message>,
+): Html => {
   const dispatchSync = __requireDispatch()
 
   const {
@@ -115,22 +129,22 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
           return
         }
         const canvas = vnode.elm
-        const nullableContext = canvas.getContext('2d')
-        if (Predicate.isNull(nullableContext)) {
+        const context = canvas.getContext('2d')
+        if (Predicate.isNull(context)) {
           return
         }
-        contextStore.set(canvas, nullableContext)
-        paintScene(nullableContext, width, height, shapes)
+        contextStore.set(canvas, context)
+        paintScene(context, width, height, shapes)
       },
       postpatch: (_oldVnode, vnode) => {
         if (!(vnode.elm instanceof HTMLCanvasElement)) {
           return
         }
-        const nullableContext = contextStore.get(vnode.elm)
-        if (nullableContext === undefined) {
+        const context = contextStore.get(vnode.elm)
+        if (context === undefined) {
           return
         }
-        paintScene(nullableContext, width, height, shapes)
+        paintScene(context, width, height, shapes)
       },
       destroy: vnode => {
         if (vnode.elm instanceof HTMLCanvasElement) {

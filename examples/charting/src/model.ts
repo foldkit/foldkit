@@ -1,40 +1,22 @@
-import { Schema as S } from 'effect'
-import { ts } from 'foldkit/schema'
+import { Schema } from 'effect'
+import { AsyncData } from 'foldkit'
 
 import { RadioGroup } from '@foldkit/ui'
 
 import { ChartMode, PackageId, Period, Telemetry } from './domain'
 
-export const TelemetryNotAsked = ts('TelemetryNotAsked')
-export const TelemetryLoading = ts('TelemetryLoading')
-export const TelemetryRefreshing = ts('TelemetryRefreshing', {
-  data: Telemetry,
-})
-export const TelemetryFailure = ts('TelemetryFailure', {
-  error: S.String,
-  maybeData: S.Option(Telemetry),
-})
-export const TelemetryOk = ts('TelemetryOk', { data: Telemetry })
+export const TelemetryAsyncData = AsyncData.Schema(Telemetry, Schema.String)
 
-export const TelemetryState = S.Union([
-  TelemetryNotAsked,
-  TelemetryLoading,
-  TelemetryRefreshing,
-  TelemetryFailure,
-  TelemetryOk,
-])
-export type TelemetryState = typeof TelemetryState.Type
-
-export const Model = S.Struct({
-  telemetry: TelemetryState,
+export const Model = Schema.Struct({
+  telemetry: TelemetryAsyncData.schema,
   chartMode: ChartMode,
-  selectedPackageId: PackageId,
-  period: Period,
-  maybeChartHostId: S.Option(S.String),
-  maybeChartError: S.Option(S.String),
-  maybeSelectedDatumId: S.Option(S.String),
   chartModeRadioGroup: RadioGroup.Model,
-  packageIdRadioGroup: RadioGroup.Model,
+  selectedPackageId: PackageId,
+  packageRadioGroup: RadioGroup.Model,
+  period: Period,
   periodRadioGroup: RadioGroup.Model,
+  maybeChartHostId: Schema.Option(Schema.String),
+  maybeChartError: Schema.Option(Schema.String),
+  maybeSelectedDatumId: Schema.Option(Schema.String),
 })
 export type Model = typeof Model.Type

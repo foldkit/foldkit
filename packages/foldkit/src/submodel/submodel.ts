@@ -13,9 +13,9 @@
  *
  *  ```ts
  *  // data-first
- *  const next = ColorListbox.reflectSelectedItem(model.colors, fromUrl)
+ *  const next = Slider.reflectRange(model.priceSlider, rangeFromUrl)
  *  // data-last, point-free in evo
- *  evo(model, { colors: ColorListbox.reflectSelectedItem(fromUrl) })
+ *  evo(model, { priceSlider: Slider.reflectRange(rangeFromUrl) })
  *  ```
  */
 export type Reflect<Model, Value> = {
@@ -24,8 +24,8 @@ export type Reflect<Model, Value> = {
 }
 
 /** Two-argument variant of {@link Reflect}, for setters that resolve a
- *  value against a companion argument (e.g. `Tabs.reflectSelectedTab(value,
- *  options)`, which finds the value's index in `options`). */
+ *  value against a companion argument (for example, a setter that finds a
+ *  value's index within a list of options before storing it). */
 export type Reflect2<Model, A, B> = {
   (model: Model, a: A, b: B): Model
   (a: A, b: B): (model: Model) => Model

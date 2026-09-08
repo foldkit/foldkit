@@ -1,79 +1,48 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Match as M, Option } from 'effect'
-import { Command } from 'foldkit'
-import { html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { Schema } from 'effect'
+import type { HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Checkbox } from '@foldkit/ui'
 
-// Add a field to your Model for the Checkbox Submodel:
-const Model = S.Struct({
-  checkboxDemo: Checkbox.Model,
+// Store the checked state as a plain boolean field in your Model:
+const Model = Schema.Struct({
+  acceptedTerms: Schema.Boolean,
   // ...your other fields
 })
 
-// In your init function, initialize the Checkbox Submodel with a unique id:
-const init = () => [
-  {
-    checkboxDemo: Checkbox.init({ id: 'terms' }),
+// In your init function, start it unchecked:
+const init = () => ({
+  model: {
+    acceptedTerms: false,
     // ...your other fields
   },
-  [],
-]
-
-// Embed the Checkbox Message in your parent Message:
-const GotCheckboxMessage = m('GotCheckboxMessage', {
-  message: Checkbox.Message,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate to
-// Checkbox.update. The OutMessage's `ToggledChecked` carries the new
-// `isChecked` value. Use it to fire analytics, validate a form, or push
-// the value to a backend at the toggle moment.
-GotCheckboxMessage: ({ message }) => {
-  const [nextCheckbox, commands, maybeOutMessage] = Checkbox.update(
-    model.checkboxDemo,
-    message,
-  )
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotCheckboxMessage({ message }),
-  )
+// A verb-first, past-tense Message carries the new checked state:
 
-  return Option.match(maybeOutMessage, {
-    onNone: () => [
-      evo(model, { checkboxDemo: () => nextCheckbox }),
-      mappedCommands,
-    ],
-    onSome: M.type<Checkbox.OutMessage>().pipe(
-      M.tagsExhaustive({
-        ToggledChecked: ({ isChecked }) => {
-          // The child has emitted `ToggledChecked`. The body commits
-          // the child's next state as usual. In this arm the parent
-          // can also update its own state or dispatch its own
-          // Commands, for example save the preference, validate a
-          // form, or dispatch a downstream Command.
-          return [
-            evo(model, { checkboxDemo: () => nextCheckbox }),
-            mappedCommands,
-          ]
-        },
-      }),
-    ),
-  })
-}
+const Message = defineMessageUnion({
+  ToggledTerms: { isChecked: Schema.Boolean },
+})
 
-// Inside your view function, render the checkbox via h.submodel:
-const view = () => {
-  const h = html<Message>()
+// In the corresponding Message.match handler, store the value.
+// This is the moment to fire analytics, validate a form, or push the value
+// to a backend.
+ToggledTerms: ({ isChecked }) => ({
+  model: evo(model, { acceptedTerms: () => isChecked }),
+})
 
-  return h.submodel({
-    slotId: 'terms-checkbox',
-    model: model.checkboxDemo,
-    view: Checkbox.view,
-    viewInputs: {
+// Inside your view function, render the checkbox with Checkbox.view. It reads
+// the checked state from your Model and calls onToggle with the new state.
+const view = (model, h: HtmlBuilder<Message>) =>
+  Checkbox.view(
+    {
+      id: 'accept-terms',
+      isChecked: model.acceptedTerms,
+      onToggle: isChecked => Message.ToggledTerms({ isChecked }),
       toView: attributes =>
         h.div(
           [h.Class('flex flex-col gap-1')],
@@ -83,7 +52,7 @@ const view = () => {
               [
                 h.button(
                   [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
-                  model.checkboxDemo.isChecked ? ['✓'] : [],
+                  model.acceptedTerms ? ['✓'] : [],
                 ),
                 h.label(
                   [...attributes.label, h.Class('text-sm')],
@@ -98,6 +67,5 @@ const view = () => {
           ],
         ),
     },
-    toParentMessage: message => GotCheckboxMessage({ message }),
-  })
-}
+    h,
+  )

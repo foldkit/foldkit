@@ -1,28 +1,11 @@
-import {
-  Array,
-  Effect,
-  Function,
-  Match as M,
-  Option,
-  Schema as S,
-  String,
-  pipe,
-} from 'effect'
+import { Array, Effect, Match, Option, Schema, String, pipe } from 'effect'
+import { type Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
-import {
-  type ChildAttribute,
-  type Html,
-  childAttributes,
-  html,
-} from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
-import {
-  type Reflect2,
-  type View as SubmodelView,
-  defineView,
-} from 'foldkit/submodel'
+import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
 import { idSelector } from '../internal/selectors.js'
 import { keyToIndex } from '../keyboard.js'
@@ -32,18 +15,21 @@ export { wrapIndex, findFirstEnabledIndex, keyToIndex } from '../keyboard.js'
 // MODEL
 
 /** Controls the tab list layout direction and which arrow keys navigate between tabs. */
-export const Orientation = S.Literals(['Horizontal', 'Vertical'])
+export const Orientation = Schema.Literals(['Horizontal', 'Vertical'])
 export type Orientation = typeof Orientation.Type
 
 /** Controls whether tabs activate on focus (`Automatic`) or require an explicit selection (`Manual`). */
-export const ActivationMode = S.Literals(['Automatic', 'Manual'])
+export const ActivationMode = Schema.Literals(['Automatic', 'Manual'])
 export type ActivationMode = typeof ActivationMode.Type
 
-/** Schema for the tabs component's state, tracking active/focused indices and activation mode. */
-export const Model = S.Struct({
-  id: S.String,
-  activeIndex: S.Number,
-  focusedIndex: S.Number,
+/** Schema for the tabs component's private interaction state. The active
+ *  tab is owned by the parent and passed in via `ViewInputs.selectedValue`,
+ *  so it is not stored here. `maybeFocusedIndex` is the roving-tabindex
+ *  cursor: `None` means keyboard focus follows the selected tab, and `Manual`
+ *  activation stores `Some(index)` while focus diverges from the selection. */
+export const Model = Schema.Struct({
+  id: Schema.String,
+  maybeFocusedIndex: Schema.Option(Schema.Number),
   activationMode: ActivationMode,
 })
 
@@ -51,33 +37,22 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** Sent when a tab is selected via click or keyboard. Updates both the active and focused indices. */
-export const SelectedTab = m('SelectedTab', {
-  index: S.Number,
-  value: S.String,
-})
-/** Sent when a tab receives keyboard focus in `Manual` mode without being activated. */
-export const FocusedTab = m('FocusedTab', { index: S.Number })
-/** Sent when the focus-tab command completes. */
-export const CompletedFocusTab = m('CompletedFocusTab')
-
 /** Union of all messages the tabs component can produce. */
-export const Message: S.Union<
-  [typeof SelectedTab, typeof FocusedTab, typeof CompletedFocusTab]
-> = S.Union([SelectedTab, FocusedTab, CompletedFocusTab])
+export const Message = defineMessageUnion({
+  SelectedTab: {
+    index: Schema.Number,
+    value: Schema.String,
+  },
+  FocusedTab: { index: Schema.Number },
+  CompletedFocusTab: {},
+})
 
-export type SelectedTab = typeof SelectedTab.Type
-export type FocusedTab = typeof FocusedTab.Type
+export type SelectedTab = typeof Message.SelectedTab.Type
+export type FocusedTab = typeof Message.FocusedTab.Type
 
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
-
-/** Sent to the parent when a tab is committed via click or keyboard. Carries both the tab's value (typed as `Value` via `Tabs.create<Value>()`) and its index. Generic at the type level; the schema stores `value: string` and the factory's fenced cast types it as `Value`. */
-export const Selected = m('Selected', {
-  value: S.String,
-  index: S.Number,
-})
 
 export type Selected<Value extends string = string> = Readonly<{
   readonly _tag: 'Selected'
@@ -85,8 +60,14 @@ export type Selected<Value extends string = string> = Readonly<{
   readonly index: number
 }>
 
-/** Union of out-messages the tabs component can produce. Surfaced as the third element of `update`'s return tuple and pattern-matched by the parent. */
-export const OutMessage = S.Union([Selected])
+/** Union of OutMessages the tabs component can produce. The parent's
+ *  `Update.foldChild` config handles them through `foldOutMessage`. */
+export const OutMessage = defineMessageUnion({
+  Selected: {
+    value: Schema.String,
+    index: Schema.Number,
+  },
+})
 
 /** Generic over `Value extends string` so consumers using
  *  `Tabs.create<MyUnion>()` receive `value: MyUnion` in the
@@ -98,21 +79,17 @@ export type OutMessage<Value extends string = string> = Selected<Value>
 /** Configuration for creating a tabs model with `init`. */
 export type InitConfig = Readonly<{
   id: string
-  activeIndex?: number
   activationMode?: ActivationMode
 }>
 
-/** Creates an initial tabs model from a config. Defaults to first tab and automatic activation. */
-export const init = (config: InitConfig): Model => {
-  const activeIndex = config.activeIndex ?? 0
-
-  return {
-    id: config.id,
-    activeIndex,
-    focusedIndex: activeIndex,
-    activationMode: config.activationMode ?? 'Automatic',
-  }
-}
+/** Creates an initial tabs model from a config. Focus follows the selected
+ *  tab until the user navigates in `Manual` mode, so `maybeFocusedIndex`
+ *  starts `None`. Defaults to automatic activation. */
+export const init = (config: InitConfig): Model => ({
+  id: config.id,
+  maybeFocusedIndex: Option.none(),
+  activationMode: config.activationMode ?? 'Automatic',
+})
 
 // UPDATE
 
@@ -121,78 +98,35 @@ const tabId = (id: string, index: number): string => `${id}-tab-${index}`
 const tabPanelId = (id: string, index: number): string => `${id}-panel-${index}`
 
 /** Moves focus to the tab at the given index. */
-export const FocusTab = Command.define(
-  'FocusTab',
-  { id: S.String, index: S.Number },
-  CompletedFocusTab,
-)(({ id, index }) =>
-  Dom.focus(idSelector(tabId(id, index))).pipe(
-    Effect.ignore,
-    Effect.as(CompletedFocusTab()),
-  ),
-)
-
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
-
-/** Processes a tabs message and returns the next model, commands, and an optional OutMessage. `Selected` fires when a tab is committed via click or keyboard. */
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    M.withReturnType<UpdateReturn>(),
-    M.tagsExhaustive({
-      SelectedTab: ({ index, value }) => [
-        evo(model, {
-          activeIndex: () => index,
-          focusedIndex: () => index,
-        }),
-        [FocusTab({ id: model.id, index })],
-        Option.some(Selected({ value, index })),
-      ],
-      FocusedTab: ({ index }) => [
-        evo(model, { focusedIndex: () => index }),
-        [FocusTab({ id: model.id, index })],
-        Option.none(),
-      ],
-      CompletedFocusTab: () => [model, [], Option.none()],
-    }),
-  )
-
-/** Programmatically selects a tab. Emits a `Selected` OutMessage. */
-export const selectTab = (
-  model: Model,
-  value: string,
-  index: number,
-): UpdateReturn => update(model, SelectedTab({ index, value }))
-
-/** Reflects an externally-sourced active tab onto the model without
- *  emitting an OutMessage or running the focus command. Use this to mirror
- *  external truth (a deep link, restored storage) onto the active tab.
- *  Contrast with `selectTab`, which represents a user or programmatic
- *  *choice*: it focuses the tab and emits `Selected`. Takes the tab `value`
- *  plus the `options` list (mirroring `RadioGroup.select`) because Tabs
- *  stores the active *index* internally, so the value is resolved to an
- *  index. A value not present in `options` is a no-op. Returns the model
- *  directly because it produces no commands and no OutMessage. */
-export const reflectSelectedTab: Reflect2<
-  Model,
-  string,
-  ReadonlyArray<string>
-> = Function.dual(
-  3,
-  (model: Model, value: string, options: ReadonlyArray<string>): Model =>
-    pipe(
-      options,
-      Array.findFirstIndex(option => option === value),
-      Option.match({
-        onNone: () => model,
-        onSome: index =>
-          evo(model, { activeIndex: () => index, focusedIndex: () => index }),
-      }),
+export const FocusTab = Command.define('FocusTab', {
+  args: { id: Schema.String, index: Schema.Number },
+  messages: [Message.CompletedFocusTab],
+  execute: ({ id, index }) =>
+    Dom.focus(idSelector(tabId(id, index))).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedFocusTab()),
     ),
-)
+})
+
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
+
+/** Processes a Tabs Message and returns the next Model, optional Commands, and
+ *  an optional OutMessage. `Selected` fires when a tab is committed via click
+ *  or keyboard; the parent stores the new value and passes it back in as
+ *  `selectedValue`. */
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    SelectedTab: ({ index, value }) => ({
+      model: evo(model, { maybeFocusedIndex: () => Option.none() }),
+      commands: [FocusTab({ id: model.id, index })],
+      outMessage: OutMessage.Selected({ value, index }),
+    }),
+    FocusedTab: ({ index }) => ({
+      model: evo(model, { maybeFocusedIndex: () => Option.some(index) }),
+      commands: [FocusTab({ id: model.id, index })],
+    }),
+    CompletedFocusTab: () => ({ model }),
+  })
 
 // VIEW
 
@@ -216,9 +150,9 @@ export type TabInfo<Value extends string = string> = Readonly<{
  *  - `tabs`: one entry per tab in `viewInputs.tabs`, in the same order, with
  *    the tab button's attribute bundle, the panel's attribute bundle,
  *    and derived state.
- *  - `activeIndex`: the currently-active tab index, convenient when the
- *    consumer wants to render only the active panel (vs all panels with
- *    `Hidden` for transitions). */
+ *  - `activeIndex`: the index of `viewInputs.selectedValue` within
+ *    `viewInputs.tabs`, convenient when the consumer wants to render only the
+ *    active panel (vs all panels with `Hidden` for transitions). */
 export type RenderInfo<Value extends string = string> = Readonly<{
   tablist: ReadonlyArray<ChildAttribute>
   tabs: ReadonlyArray<TabInfo<Value>>
@@ -229,9 +163,14 @@ export type RenderInfo<Value extends string = string> = Readonly<{
  *  Generic over `Value extends string` so consumers using
  *  `Tabs.create<MyUnion>()` receive `tab.value: MyUnion` in `toView`
  *  and `(value: MyUnion, index) => boolean` in `isTabDisabled`, without
- *  casting. */
+ *  casting.
+ *
+ *  - `selectedValue`: the active tab, read straight from the parent Model.
+ *    `aria-selected`, the `data-selected` marker, and which panel is active
+ *    all derive from it. */
 export type ViewInputs<Value extends string = string> = Readonly<{
   tabs: ReadonlyArray<Value>
+  selectedValue: Value
   ariaLabel: string
   toView: (render: RenderInfo<Value>) => Html
   isTabDisabled?: (value: Value, index: number) => boolean
@@ -239,17 +178,28 @@ export type ViewInputs<Value extends string = string> = Readonly<{
 }>
 
 const internalView = defineView<Model, Message, ViewInputs>(
-  (model, viewInputs): Html => {
-    const h = html<Message>()
-
-    const { id, activationMode, focusedIndex, activeIndex } = model
+  (model, viewInputs, h): Html => {
+    const { id, activationMode, maybeFocusedIndex } = model
     const {
       tabs,
+      selectedValue,
       ariaLabel,
       toView,
       isTabDisabled,
       orientation = 'Horizontal',
     } = viewInputs
+
+    const activeIndex = pipe(
+      tabs,
+      Array.findFirstIndex(tab => tab === selectedValue),
+      Option.getOrElse(() => 0),
+    )
+
+    const focusedIndex = pipe(
+      maybeFocusedIndex,
+      Option.filter(index => index < tabs.length),
+      Option.getOrElse(() => activeIndex),
+    )
 
     const isDisabled = (index: number): boolean =>
       !!isTabDisabled &&
@@ -259,16 +209,16 @@ const internalView = defineView<Model, Message, ViewInputs>(
         Option.exists(tab => isTabDisabled(tab, index)),
       )
 
-    const { nextKey, previousKey } = M.value(orientation).pipe(
-      M.when('Horizontal', () => ({
+    const { nextKey, previousKey } = Match.value(orientation).pipe(
+      Match.when('Horizontal', () => ({
         nextKey: 'ArrowRight',
         previousKey: 'ArrowLeft',
       })),
-      M.when('Vertical', () => ({
+      Match.when('Vertical', () => ({
         nextKey: 'ArrowDown',
         previousKey: 'ArrowUp',
       })),
-      M.exhaustive,
+      Match.exhaustive,
     )
 
     const resolveKeyIndex = keyToIndex(
@@ -283,12 +233,12 @@ const internalView = defineView<Model, Message, ViewInputs>(
       pipe(
         tabs,
         Array.get(index),
-        Option.map(value => SelectedTab({ index, value })),
+        Option.map(value => Message.SelectedTab({ index, value })),
       )
 
     const handleAutomaticKeyDown = (key: string): Option.Option<SelectedTab> =>
-      M.value(key).pipe(
-        M.whenOr(
+      Match.value(key).pipe(
+        Match.whenOr(
           nextKey,
           previousKey,
           'Home',
@@ -297,34 +247,35 @@ const internalView = defineView<Model, Message, ViewInputs>(
           'PageDown',
           () => tabSelectedAt(resolveKeyIndex(key)),
         ),
-        M.whenOr('Enter', ' ', () => tabSelectedAt(focusedIndex)),
-        M.orElse(() => Option.none()),
+        Match.whenOr('Enter', ' ', () => tabSelectedAt(focusedIndex)),
+        Match.orElse(() => Option.none()),
       )
 
     const handleManualKeyDown = (
       key: string,
     ): Option.Option<SelectedTab | FocusedTab> =>
-      M.value(key).pipe(
-        M.whenOr(
+      Match.value(key).pipe(
+        Match.whenOr(
           nextKey,
           previousKey,
           'Home',
           'End',
           'PageUp',
           'PageDown',
-          () => Option.some(FocusedTab({ index: resolveKeyIndex(key) })),
+          () =>
+            Option.some(Message.FocusedTab({ index: resolveKeyIndex(key) })),
         ),
-        M.whenOr('Enter', ' ', () => tabSelectedAt(focusedIndex)),
-        M.orElse(() => Option.none()),
+        Match.whenOr('Enter', ' ', () => tabSelectedAt(focusedIndex)),
+        Match.orElse(() => Option.none()),
       )
 
     const handleKeyDown = (
       key: string,
     ): Option.Option<SelectedTab | FocusedTab> =>
-      M.value(activationMode).pipe(
-        M.when('Automatic', () => handleAutomaticKeyDown(key)),
-        M.when('Manual', () => handleManualKeyDown(key)),
-        M.exhaustive,
+      Match.value(activationMode).pipe(
+        Match.when('Automatic', () => handleAutomaticKeyDown(key)),
+        Match.when('Manual', () => handleManualKeyDown(key)),
+        Match.exhaustive,
       )
 
     const tabInfos: ReadonlyArray<TabInfo> = Array.map(tabs, (value, index) => {
@@ -346,7 +297,7 @@ const internalView = defineView<Model, Message, ViewInputs>(
               h.AriaDisabled(true),
               h.DataAttribute('disabled', ''),
             ]
-          : [h.OnClick(SelectedTab({ index, value }))]),
+          : [h.OnClick(Message.SelectedTab({ index, value }))]),
         h.OnKeyDownPreventDefault(handleKeyDown),
       ]
 
@@ -383,49 +334,42 @@ const internalView = defineView<Model, Message, ViewInputs>(
   },
 )
 
-/** Pairs the tabs `view`, `update`, and `selectTab` behind a single
- *  Value-typed entry point. Declare once at module scope so consumers
- *  receive `tab.value: Value` in `toView` without an `as` cast:
+/** The `view` and `update` pair that `Tabs.create` returns, bound to one
+ *  `Value` type. Name it to annotate a value that holds a created bundle,
+ *  such as a field on a config object or a function parameter that takes
+ *  the bundle rather than calling `create` itself. */
+export type Bundle<Value extends string = string> = Readonly<{
+  view: SubmodelView<Model, Message, ViewInputs<Value>>
+  update: (
+    model: Model,
+    message: Message,
+  ) => Update.ReturnWithOutMessage<Model, Message, OutMessage<Value>>
+}>
+
+/** Pairs the tabs `view` and `update` behind a single Value-typed entry
+ *  point. Declare once at module scope so consumers receive
+ *  `tab.value: Value` in `toView` and the `Selected` OutMessage without an
+ *  `as` cast:
  *
  *  ```ts
  *  const DemoTabs = Tabs.create<DemoTab>()
  *
- *  // In view:
- *  h.submodel({ view: DemoTabs.view, ... })
+ *  // In view (selectedValue is the parent-owned active tab):
+ *  h.submodel({ view: DemoTabs.view, viewInputs: { selectedValue, ... }, ... })
  *
- *  // In update:
- *  const [next, commands] = DemoTabs.update(model, message)
+ *  // In the parent update, pass DemoTabs.update to Update.foldChild and
+ *  // fold the Selected OutMessage into your Model.
  *  ```
  *
  *  The internal view stays typed `ReadonlyArray<string>`; consumers can
  *  pass a `ReadonlyArray<MyUnion>` (assignable) and the fenced cast inside
  *  `create` types `TabInfo.value` as `MyUnion`. */
-export const create = <Value extends string = string>(): Readonly<{
-  view: SubmodelView<Model, Message, ViewInputs<Value>>
-  update: (
-    model: Model,
-    message: Message,
-  ) => readonly [
+export const create = <Value extends string = string>(): Bundle<Value> => {
+  type GenericReturn = Update.ReturnWithOutMessage<
     Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
-  selectTab: (
-    model: Model,
-    value: Value,
-    index: number,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
-  reflectSelectedTab: Reflect2<Model, Value, ReadonlyArray<Value>>
-}> => {
-  type GenericReturn = readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
+    Message,
+    OutMessage<Value>
+  >
   const cast = (result: UpdateReturn): GenericReturn =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     result as unknown as GenericReturn
@@ -438,12 +382,5 @@ export const create = <Value extends string = string>(): Readonly<{
       ViewInputs<Value>
     >,
     update: (model, message) => cast(update(model, message)),
-    selectTab: (model, value, index) => cast(selectTab(model, value, index)),
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    reflectSelectedTab: reflectSelectedTab as Reflect2<
-      Model,
-      Value,
-      ReadonlyArray<Value>
-    >,
   }
 }

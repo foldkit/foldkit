@@ -1,24 +1,24 @@
-import { Array, Duration, Effect, Option, Random, Schema as S } from 'effect'
+import { Array, Duration, Effect, Option, Random, Schema } from 'effect'
 
-export const Post = S.Struct({
-  id: S.String,
-  title: S.String,
-  excerpt: S.String,
+export const Post = Schema.Struct({
+  id: Schema.String,
+  title: Schema.String,
+  excerpt: Schema.String,
 })
 export type Post = typeof Post.Type
 
-export const PostDetail = S.Struct({
-  id: S.String,
-  title: S.String,
-  author: S.String,
-  body: S.String,
+export const PostDetail = Schema.Struct({
+  id: Schema.String,
+  title: Schema.String,
+  author: Schema.String,
+  body: Schema.String,
 })
 export type PostDetail = typeof PostDetail.Type
 
-export const Stats = S.Struct({
-  activeUsers: S.Number,
-  requestsPerSecond: S.Number,
-  cacheHitRatePercent: S.Number,
+export const Stats = Schema.Struct({
+  activeUsers: Schema.Number,
+  requestsPerSecond: Schema.Number,
+  cacheHitRatePercent: Schema.Number,
 })
 export type Stats = typeof Stats.Type
 
@@ -80,7 +80,7 @@ const postDetails = Array.map(articles, ({ id, title, author, body }) =>
   PostDetail.make({ id, title, author, body }),
 )
 
-export const fetchPostsFromServer = Effect.gen(function* () {
+export const fetchPosts = Effect.gen(function* () {
   yield* Effect.sleep(SERVER_LATENCY)
 
   return posts
@@ -88,18 +88,18 @@ export const fetchPostsFromServer = Effect.gen(function* () {
 
 // NOTE: Module-level mutation simulates a flaky server so the Failure and
 // retry path is reachable from the UI. The Foldkit app itself never mutates.
-let flakyAttemptCount = 0
+const flakyAttempts = { count: 0 }
 
-export const fetchPostDetailFromServer = (
+export const fetchPostDetail = (
   postId: string,
 ): Effect.Effect<PostDetail, string> =>
   Effect.gen(function* () {
     yield* Effect.sleep(SERVER_LATENCY)
 
     if (postId === FLAKY_POST_ID) {
-      flakyAttemptCount += 1
+      flakyAttempts.count += 1
 
-      if (flakyAttemptCount % 2 === 1) {
+      if (flakyAttempts.count % 2 === 1) {
         return yield* Effect.fail(
           'The connection dropped. Retry to fetch this post again.',
         )
@@ -115,7 +115,7 @@ export const fetchPostDetailFromServer = (
     )
   })
 
-export const fetchStatsFromServer = Effect.gen(function* () {
+export const fetchStats = Effect.gen(function* () {
   yield* Effect.sleep(SERVER_LATENCY)
 
   const activeUsers = yield* Random.nextIntBetween(80, 140)

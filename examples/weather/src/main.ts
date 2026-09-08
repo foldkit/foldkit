@@ -1,167 +1,131 @@
-import { Array, Effect, Match as M, Option, Schema as S, String } from 'effect'
-import {
-  FetchHttpClient,
-  HttpClient,
-  HttpClientRequest,
-} from 'effect/unstable/http'
-import { Command, Runtime } from 'foldkit'
-import { Document, Html, html } from 'foldkit/html'
-import { m } from 'foldkit/message'
-import { ts } from 'foldkit/schema'
+import { Array, Effect, Match, Option, Schema, String } from 'effect'
+import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
+import { AsyncData, Command, Http, Runtime, type Update } from 'foldkit'
+import { Document, Html, HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Button, Input } from '@foldkit/ui'
 
 // MODEL
 
-export const WeatherData = S.Struct({
-  zipCode: S.String,
-  temperature: S.Number,
-  description: S.String,
-  humidity: S.Number,
-  windSpeed: S.Number,
-  locationName: S.String,
-  region: S.String,
+export const WeatherData = Schema.Struct({
+  zipCode: Schema.String,
+  temperature: Schema.Number,
+  description: Schema.String,
+  humidity: Schema.Number,
+  windSpeed: Schema.Number,
+  locationName: Schema.String,
+  region: Schema.String,
 })
 export type WeatherData = typeof WeatherData.Type
 
-export const WeatherInit = ts('WeatherInit')
-export const WeatherLoading = ts('WeatherLoading')
-export const WeatherSuccess = ts('WeatherSuccess', { data: WeatherData })
-export const WeatherFailure = ts('WeatherFailure', { error: S.String })
+export const WeatherAsyncData = AsyncData.Schema(WeatherData, Schema.String)
 
-const WeatherAsyncResult = S.Union([
-  WeatherInit,
-  WeatherLoading,
-  WeatherSuccess,
-  WeatherFailure,
-])
-type WeatherAsyncResult = typeof WeatherAsyncResult.Type
-
-export const Model = S.Struct({
-  zipCodeInput: S.String,
-  weather: WeatherAsyncResult,
+export const Model = Schema.Struct({
+  zipCodeInput: Schema.String,
+  weather: WeatherAsyncData.schema,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const UpdatedZipCodeInput = m('UpdatedZipCodeInput', {
-  value: S.String,
+export const Message = defineMessageUnion({
+  UpdatedZipCodeInput: { value: Schema.String },
+  SubmittedWeatherForm: {},
+  SucceededFetchWeather: { weather: WeatherData },
+  FailedFetchWeather: { error: Schema.String },
 })
-export const SubmittedWeatherForm = m('SubmittedWeatherForm')
-export const SucceededFetchWeather = m('SucceededFetchWeather', {
-  weather: WeatherData,
-})
-export const FailedFetchWeather = m('FailedFetchWeather', { error: S.String })
 
-export const Message = S.Union([
-  UpdatedZipCodeInput,
-  SubmittedWeatherForm,
-  SucceededFetchWeather,
-  FailedFetchWeather,
-])
 export type Message = typeof Message.Type
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      UpdatedZipCodeInput: ({ value }) => [
-        evo(model, {
-          zipCodeInput: () => value,
-        }),
-        [],
-      ],
-
-      SubmittedWeatherForm: () => {
-        if (model.weather._tag === 'WeatherLoading') {
-          return [model, []]
-        }
-        return [
-          evo(model, {
-            weather: () => WeatherLoading(),
-          }),
-          [FetchWeather({ zipCode: model.zipCodeInput })],
-        ]
-      },
-
-      SucceededFetchWeather: ({ weather }) => [
-        evo(model, {
-          weather: () => WeatherSuccess({ data: weather }),
-        }),
-        [],
-      ],
-
-      FailedFetchWeather: ({ error }) => [
-        evo(model, {
-          weather: () => WeatherFailure({ error }),
-        }),
-        [],
-      ],
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    UpdatedZipCodeInput: ({ value }) => ({
+      model: evo(model, {
+        zipCodeInput: () => value,
+      }),
     }),
-  )
+
+    SubmittedWeatherForm: () => {
+      if (AsyncData.isPending(model.weather)) {
+        return { model }
+      }
+      return {
+        model: evo(model, {
+          weather: () => WeatherAsyncData.Loading(),
+        }),
+        commands: [FetchWeather({ zipCode: model.zipCodeInput })],
+      }
+    },
+
+    SucceededFetchWeather: ({ weather }) => ({
+      model: evo(model, {
+        weather: () => WeatherAsyncData.Success({ data: weather }),
+      }),
+    }),
+
+    FailedFetchWeather: ({ error }) => ({
+      model: evo(model, {
+        weather: () => WeatherAsyncData.Failure({ error }),
+      }),
+    }),
+  })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     zipCodeInput: '',
-    weather: WeatherInit(),
+    weather: WeatherAsyncData.Idle(),
   },
-  [],
-]
+})
 
 // COMMAND
 
 const GEOCODING_API = 'https://geocoding-api.open-meteo.com/v1/search'
 const WEATHER_API = 'https://api.open-meteo.com/v1/forecast'
 
-const GeocodingResult = S.Struct({
-  name: S.String,
-  latitude: S.Number,
-  longitude: S.Number,
-  admin1: S.OptionFromOptional(S.String),
+const GeocodingResult = Schema.Struct({
+  name: Schema.String,
+  latitude: Schema.Number,
+  longitude: Schema.Number,
+  admin1: Schema.OptionFromOptional(Schema.String),
 })
 
-const GeocodingResponse = S.Struct({
-  results: S.OptionFromOptional(S.Array(GeocodingResult)),
+const GeocodingResponse = Schema.Struct({
+  results: Schema.OptionFromOptional(Schema.Array(GeocodingResult)),
 })
 
-const WeatherResponse = S.Struct({
-  current: S.Struct({
-    temperature_2m: S.Number,
-    relative_humidity_2m: S.Number,
-    wind_speed_10m: S.Number,
-    weather_code: S.Number,
+const WeatherResponse = Schema.Struct({
+  current: Schema.Struct({
+    temperature_2m: Schema.Number,
+    relative_humidity_2m: Schema.Number,
+    wind_speed_10m: Schema.Number,
+    weather_code: Schema.Number,
   }),
 })
 
 const weatherCodeToDescription = (code: number): string =>
-  M.value(code).pipe(
-    M.when(0, () => 'Clear sky'),
-    M.whenOr(1, 2, 3, () => 'Partly cloudy'),
-    M.whenOr(45, 48, () => 'Foggy'),
-    M.whenOr(51, 53, 55, () => 'Drizzle'),
-    M.whenOr(61, 63, 65, () => 'Rain'),
-    M.whenOr(66, 67, () => 'Freezing rain'),
-    M.whenOr(71, 73, 75, 77, () => 'Snow'),
-    M.whenOr(80, 81, 82, () => 'Rain showers'),
-    M.whenOr(85, 86, () => 'Snow showers'),
-    M.whenOr(95, 96, 99, () => 'Thunderstorm'),
-    M.orElse(() => 'Unknown'),
+  Match.value(code).pipe(
+    Match.when(0, () => 'Clear sky'),
+    Match.whenOr(1, 2, 3, () => 'Partly cloudy'),
+    Match.whenOr(45, 48, () => 'Foggy'),
+    Match.whenOr(51, 53, 55, () => 'Drizzle'),
+    Match.whenOr(61, 63, 65, () => 'Rain'),
+    Match.whenOr(66, 67, () => 'Freezing rain'),
+    Match.whenOr(71, 73, 75, 77, () => 'Snow'),
+    Match.whenOr(80, 81, 82, () => 'Rain showers'),
+    Match.whenOr(85, 86, () => 'Snow showers'),
+    Match.whenOr(95, 96, 99, () => 'Thunderstorm'),
+    Match.orElse(() => 'Unknown'),
   )
 
 export const fetchWeatherEffect = (zipCode: string) =>
   Effect.gen(function* () {
     if (String.isEmpty(zipCode.trim())) {
       return yield* Effect.fail(
-        FailedFetchWeather({ error: 'Zip code required' }),
+        Message.FailedFetchWeather({ error: 'Zip code required' }),
       )
     }
 
@@ -179,11 +143,11 @@ export const fetchWeatherEffect = (zipCode: string) =>
 
     if (geocodeResponse.status !== 200) {
       return yield* Effect.fail(
-        FailedFetchWeather({ error: 'Location not found' }),
+        Message.FailedFetchWeather({ error: 'Location not found' }),
       )
     }
 
-    const geocodeData = yield* S.decodeUnknownEffect(GeocodingResponse)(
+    const geocodeData = yield* Schema.decodeUnknownEffect(GeocodingResponse)(
       yield* geocodeResponse.json,
     )
 
@@ -191,7 +155,9 @@ export const fetchWeatherEffect = (zipCode: string) =>
       Option.flatMap(Array.head),
       Option.match({
         onNone: () =>
-          Effect.fail(FailedFetchWeather({ error: 'Location not found' })),
+          Effect.fail(
+            Message.FailedFetchWeather({ error: 'Location not found' }),
+          ),
         onSome: Effect.succeed,
       }),
     )
@@ -210,11 +176,11 @@ export const fetchWeatherEffect = (zipCode: string) =>
 
     if (weatherResponse.status !== 200) {
       return yield* Effect.fail(
-        FailedFetchWeather({ error: 'Failed to fetch weather data' }),
+        Message.FailedFetchWeather({ error: 'Failed to fetch weather data' }),
       )
     }
 
-    const weatherData = yield* S.decodeUnknownEffect(WeatherResponse)(
+    const weatherData = yield* Schema.decodeUnknownEffect(WeatherResponse)(
       yield* weatherResponse.json,
     )
 
@@ -228,55 +194,48 @@ export const fetchWeatherEffect = (zipCode: string) =>
       region: Option.getOrElse(geoResult.admin1, () => ''),
     })
 
-    return SucceededFetchWeather({ weather })
+    return Message.SucceededFetchWeather({ weather })
   }).pipe(
     Effect.catchTag('FailedFetchWeather', error => Effect.succeed(error)),
     Effect.catch(() =>
       Effect.succeed(
-        FailedFetchWeather({ error: 'Failed to fetch weather data' }),
+        Message.FailedFetchWeather({ error: 'Failed to fetch weather data' }),
       ),
     ),
   )
 
-export const FetchWeather = Command.define(
-  'FetchWeather',
-  { zipCode: S.String },
-  SucceededFetchWeather,
-  FailedFetchWeather,
-)(({ zipCode }) =>
-  fetchWeatherEffect(zipCode).pipe(
-    Effect.provideService(HttpClient.TracerPropagationEnabled, false),
-    Effect.provide(FetchHttpClient.layer),
-  ),
-)
+export const FetchWeather = Command.define('FetchWeather', {
+  args: { zipCode: Schema.String },
+  messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
+  execute: ({ zipCode }) =>
+    Effect.provide(fetchWeatherEffect(zipCode), Http.layer),
+})
 
 // VIEW
 
-export const view = (model: Model): Document => {
-  const h = html<Message>()
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+  title: 'Weather',
+  body: h.div(
+    [
+      h.Class(
+        'min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 flex flex-col items-center justify-center gap-6 p-6',
+      ),
+    ],
+    [
+      h.h1([h.Class('text-4xl font-bold text-blue-900 mb-8')], ['Weather']),
 
-  return {
-    title: 'Weather',
-    body: h.div(
-      [
-        h.Class(
-          'min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 flex flex-col items-center justify-center gap-6 p-6',
-        ),
-      ],
-      [
-        h.h1([h.Class('text-4xl font-bold text-blue-900 mb-8')], ['Weather']),
-
-        h.form(
-          [
-            h.Class('flex flex-col gap-4 items-center w-full max-w-md'),
-            h.OnSubmit(SubmittedWeatherForm()),
-          ],
-          [
-            Input.view<Message>({
+      h.form(
+        [
+          h.Class('flex flex-col gap-4 items-center w-full max-w-md'),
+          h.OnSubmit(Message.SubmittedWeatherForm()),
+        ],
+        [
+          Input.view(
+            {
               id: 'location',
               value: model.zipCodeInput,
               placeholder: 'Enter a zip code',
-              onInput: value => UpdatedZipCodeInput({ value }),
+              onInput: value => Message.UpdatedZipCodeInput({ value }),
               toView: attributes =>
                 h.input([
                   ...attributes.input,
@@ -287,10 +246,13 @@ export const view = (model: Model): Document => {
                     'w-full px-4 py-2 rounded-lg border-2 border-blue-300 focus:border-blue-500 outline-none',
                   ),
                 ]),
-            }),
-            Button.view<Message>({
+            },
+            h,
+          ),
+          Button.view(
+            {
               type: 'submit',
-              isDisabled: model.weather._tag === 'WeatherLoading',
+              isDisabled: AsyncData.isPending(model.weather),
               toView: attributes =>
                 h.button(
                   [
@@ -300,45 +262,43 @@ export const view = (model: Model): Document => {
                     ),
                   ],
                   [
-                    model.weather._tag === 'WeatherLoading'
+                    AsyncData.isPending(model.weather)
                       ? 'Loading...'
                       : 'Get Weather',
                   ],
                 ),
-            }),
-          ],
-        ),
+            },
+            h,
+          ),
+        ],
+      ),
 
-        M.value(model.weather).pipe(
-          M.tagsExhaustive({
-            WeatherInit: () => h.empty,
-            WeatherLoading: () =>
-              h.div(
-                [h.Class('text-blue-600 font-semibold text-center')],
-                ['Fetching weather...'],
+      AsyncData.matchDataSplitEmpty(model.weather, {
+        onIdle: () => h.empty,
+        onLoading: () =>
+          h.div(
+            [h.Class('text-blue-600 font-semibold text-center')],
+            ['Fetching weather...'],
+          ),
+        onFailure: error =>
+          h.div(
+            [
+              h.Class(
+                'p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg',
               ),
-            WeatherFailure: ({ error }) =>
-              h.div(
-                [
-                  h.Class(
-                    'p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg',
-                  ),
-                ],
-                [error],
-              ),
-            WeatherSuccess: ({ data: weather }) => weatherView(weather),
-          }),
-        ),
-      ],
-    ),
-  }
-}
+            ],
+            [error],
+          ),
+        onData: weather =>
+          h.div([h.Class('w-full max-w-md')], [weatherView(weather, h)]),
+      }),
+    ],
+  ),
+})
 
-const weatherView = (weather: WeatherData): Html => {
-  const h = html<Message>()
-
-  return h.article(
-    [h.Class('bg-white rounded-xl shadow-lg p-8 max-w-md w-full')],
+const weatherView = (weather: WeatherData, h: HtmlBuilder<Message>): Html =>
+  h.article(
+    [h.Class('bg-white rounded-xl shadow-lg p-8 w-full')],
     [
       h.h2(
         [h.Class('text-2xl font-bold text-gray-800 mb-3 text-center')],
@@ -387,4 +347,3 @@ const weatherView = (weather: WeatherData): Html => {
       ),
     ],
   )
-}

@@ -2,21 +2,21 @@ import { clsx } from 'clsx'
 import {
   Array,
   Effect,
-  Match as M,
+  Match,
   Option,
   Order,
-  Schema as S,
+  Schema,
   SchemaTransformation,
   String,
   Types,
   pipe,
 } from 'effect'
-import { Command, Route, Runtime } from 'foldkit'
-import { Document, Html, childAttributes, html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { Command, Route, Runtime, Update } from 'foldkit'
+import { Document, Html, HtmlBuilder, childAttributes } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl, replaceUrl } from 'foldkit/navigation'
-import { r } from 'foldkit/route'
-import { ts } from 'foldkit/schema'
+import { defineRouteUnion } from 'foldkit/route'
+import { defineTaggedUnion } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
@@ -25,16 +25,23 @@ import { AnchorConfig } from '@foldkit/ui/listbox'
 
 import { type Dinosaur, dinosaurs } from './data'
 
-const Diet = S.Literals(['Carnivore', 'Herbivore', 'Omnivore'])
-const Period = S.Literals(['Triassic', 'Jurassic', 'Cretaceous'])
-const SortColumn = S.Literals(['Name', 'Period', 'Diet', 'Length', 'Weight'])
+const Diet = Schema.Literals(['Carnivore', 'Herbivore', 'Omnivore'])
+const Period = Schema.Literals(['Triassic', 'Jurassic', 'Cretaceous'])
+const SortColumn = Schema.Literals([
+  'Name',
+  'Period',
+  'Diet',
+  'Length',
+  'Weight',
+])
 type SortColumn = typeof SortColumn.Type
 
-export const Unsorted = ts('Unsorted')
-export const Ascending = ts('Ascending', { column: SortColumn })
-export const Descending = ts('Descending', { column: SortColumn })
-const Sorting = S.Union([Unsorted, Ascending, Descending])
-type Sorting = typeof Sorting.Type
+export const Sorting = defineTaggedUnion({
+  Unsorted: {},
+  Ascending: { column: SortColumn },
+  Descending: { column: SortColumn },
+})
+export type Sorting = typeof Sorting.Type
 
 const dietFilterItems: ReadonlyArray<string> = ['', ...Diet.literals]
 const periodFilterItems: ReadonlyArray<string> = ['', ...Period.literals]
@@ -43,12 +50,12 @@ const periodFilterItems: ReadonlyArray<string> = ['', ...Period.literals]
 
 const SORT_PARAM_SEPARATOR = ':'
 
-const optionFromValidParam = <A extends string>(schema: S.Codec<A, A>) => {
-  const decode = S.decodeUnknownOption(schema)
+const optionFromValidParam = <A extends string>(schema: Schema.Codec<A, A>) => {
+  const decode = Schema.decodeUnknownOption(schema)
 
-  return S.OptionFromOptional(S.String).pipe(
-    S.decodeTo(
-      S.Option(schema),
+  return Schema.OptionFromOptional(Schema.String).pipe(
+    Schema.decodeTo(
+      Schema.Option(schema),
       SchemaTransformation.transform({
         decode: (maybeRaw: Option.Option<string>): Option.Option<A> =>
           Option.flatMap(maybeRaw, decode),
@@ -59,19 +66,19 @@ const optionFromValidParam = <A extends string>(schema: S.Codec<A, A>) => {
   )
 }
 
-const SortDirection = S.Literals(['Ascending', 'Descending'])
+const SortDirection = Schema.Literals(['Ascending', 'Descending'])
 
 const sortingFromParam = (() => {
-  const decodeColumn = S.decodeUnknownOption(SortColumn)
-  const decodeDirection = S.decodeUnknownOption(SortDirection)
+  const decodeColumn = Schema.decodeUnknownOption(SortColumn)
+  const decodeDirection = Schema.decodeUnknownOption(SortDirection)
 
-  return S.OptionFromOptional(S.String).pipe(
-    S.decodeTo(
+  return Schema.OptionFromOptional(Schema.String).pipe(
+    Schema.decodeTo(
       Sorting,
       SchemaTransformation.transform({
         decode: (maybeRaw: Option.Option<string>): Sorting =>
           Option.match(maybeRaw, {
-            onNone: () => Unsorted(),
+            onNone: () => Sorting.Unsorted(),
             onSome: value => {
               const parts = String.split(value, SORT_PARAM_SEPARATOR)
 
@@ -89,63 +96,64 @@ const sortingFromParam = (() => {
                   ),
                 }),
                 Option.map(({ column, direction }) =>
-                  M.value(direction).pipe(
-                    M.when('Ascending', () => Ascending({ column })),
-                    M.when('Descending', () => Descending({ column })),
-                    M.exhaustive,
+                  Match.value(direction).pipe(
+                    Match.when('Ascending', () =>
+                      Sorting.Ascending({ column }),
+                    ),
+                    Match.when('Descending', () =>
+                      Sorting.Descending({ column }),
+                    ),
+                    Match.exhaustive,
                   ),
                 ),
-                Option.getOrElse(() => Unsorted()),
+                Option.getOrElse(() => Sorting.Unsorted()),
               )
             },
           }),
         encode: (sorting): Option.Option<string> =>
-          M.value(sorting).pipe(
-            M.withReturnType<Option.Option<string>>(),
-            M.tagsExhaustive({
-              Unsorted: () => Option.none(),
-              Ascending: ({ column }) =>
-                Option.some(`${column}${SORT_PARAM_SEPARATOR}Ascending`),
-              Descending: ({ column }) =>
-                Option.some(`${column}${SORT_PARAM_SEPARATOR}Descending`),
-            }),
-          ),
+          Sorting.match<Option.Option<string>>(sorting, {
+            Unsorted: () => Option.none(),
+            Ascending: ({ column }) =>
+              Option.some(`${column}${SORT_PARAM_SEPARATOR}Ascending`),
+            Descending: ({ column }) =>
+              Option.some(`${column}${SORT_PARAM_SEPARATOR}Descending`),
+          }),
       }),
     ),
   )
 })()
 
-export const BrowseRoute = r('Browse', {
-  search: S.Option(S.String),
-  sorting: Sorting,
-  diet: S.Option(Diet),
-  period: S.Option(Period),
+export const AppRoute = defineRouteUnion({
+  Browse: {
+    search: Schema.Option(Schema.String),
+    sorting: Sorting,
+    diet: Schema.Option(Diet),
+    period: Schema.Option(Period),
+  },
+  NotFound: { path: Schema.String },
 })
 
-export const NotFoundRoute = r('NotFound', { path: S.String })
+export type AppRoute = typeof AppRoute.Type
 
-const AppRoute = S.Union([BrowseRoute, NotFoundRoute])
-type AppRoute = typeof AppRoute.Type
-
-const browseRouter = pipe(
+export const browseRouter = pipe(
   Route.root,
   Route.query(
-    S.Struct({
-      search: S.OptionFromOptional(S.String),
+    Schema.Struct({
+      search: Schema.OptionFromOptional(Schema.String),
       sorting: sortingFromParam,
       diet: optionFromValidParam(Diet),
       period: optionFromValidParam(Period),
     }),
   ),
-  Route.mapTo(BrowseRoute),
+  Route.mapTo(AppRoute.Browse),
 )
 
 const routeParser = Route.oneOf(browseRouter)
-const urlToAppRoute = Route.parseUrlWithFallback(routeParser, NotFoundRoute)
+const urlToAppRoute = Route.parseUrlWithFallback(routeParser, AppRoute.NotFound)
 
 // MODEL
 
-export const Model = S.Struct({
+export const Model = Schema.Struct({
   route: AppRoute,
   dietListbox: Listbox.Model,
   periodListbox: Listbox.Model,
@@ -154,72 +162,49 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const CompletedNavigateInternal = m('CompletedNavigateInternal')
-export const CompletedLoadExternal = m('CompletedLoadExternal')
-export const CompletedReplaceUrl = m('CompletedReplaceUrl')
-export const ClickedLink = m('ClickedLink', { request: UrlRequest })
-export const ChangedUrl = m('ChangedUrl', { url: Url })
-export const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
-export const ClickedColumnHeader = m('ClickedColumnHeader', {
-  column: SortColumn,
-})
-export const GotDietListboxMessage = m('GotDietListboxMessage', {
-  message: Listbox.Message,
-})
-export const GotPeriodListboxMessage = m('GotPeriodListboxMessage', {
-  message: Listbox.Message,
+export const Message = defineMessageUnion({
+  CompletedNavigateInternal: {},
+  CompletedLoadExternal: {},
+  CompletedReplaceFilters: {},
+  ClickedLink: { request: UrlRequest },
+  ChangedUrl: { url: Url },
+  ChangedSearchInput: { value: Schema.String },
+  ClickedColumnHeader: { column: SortColumn },
+  GotDietListboxMessage: { message: Listbox.Message },
+  GotPeriodListboxMessage: { message: Listbox.Message },
 })
 
-export const Message = S.Union([
-  CompletedNavigateInternal,
-  CompletedLoadExternal,
-  CompletedReplaceUrl,
-  ClickedLink,
-  ChangedUrl,
-  ChangedSearchInput,
-  ClickedColumnHeader,
-  GotDietListboxMessage,
-  GotPeriodListboxMessage,
-])
 export type Message = typeof Message.Type
 
 // INIT
 
-type BrowseFields = Omit<typeof BrowseRoute.Type, '_tag'>
+type BrowseFields = Omit<typeof AppRoute.Browse.Type, '_tag'>
 
 const emptyBrowseFields: BrowseFields = {
   search: Option.none(),
-  sorting: Unsorted(),
+  sorting: Sorting.Unsorted(),
   diet: Option.none(),
   period: Option.none(),
 }
 
 const routeToBrowseFields = (route: AppRoute): BrowseFields =>
-  M.value(route).pipe(
-    M.tag('Browse', route => route),
-    M.orElse(() => emptyBrowseFields),
+  Match.value(route).pipe(
+    Match.tag('Browse', route => route),
+    Match.orElse(() => emptyBrowseFields),
   )
 
 export const init: Runtime.RoutingApplicationInit<Model, Message> = (
   url: Url,
 ) => {
   const route = urlToAppRoute(url)
-  const fields = routeToBrowseFields(route)
 
-  return [
-    {
+  return {
+    model: {
       route,
-      dietListbox: Listbox.init({
-        id: 'diet-filter',
-        selectedItem: Option.getOrElse(fields.diet, () => ''),
-      }),
-      periodListbox: Listbox.init({
-        id: 'period-filter',
-        selectedItem: Option.getOrElse(fields.period, () => ''),
-      }),
+      dietListbox: Listbox.init({ id: 'diet-filter' }),
+      periodListbox: Listbox.init({ id: 'period-filter' }),
     },
-    [],
-  ]
+  }
 }
 
 // UPDATE
@@ -241,18 +226,18 @@ const columnSortDirection = (
 const nextSorting = (sorting: Sorting, column: SortColumn): Sorting =>
   pipe(
     columnSortDirection(sorting, column),
-    M.value,
-    M.when('Unsorted', () => Ascending({ column })),
-    M.when('Ascending', () => Descending({ column })),
-    M.when('Descending', () => Unsorted()),
-    M.exhaustive,
+    Match.value,
+    Match.when('Unsorted', () => Sorting.Ascending({ column })),
+    Match.when('Ascending', () => Sorting.Descending({ column })),
+    Match.when('Descending', () => Sorting.Unsorted()),
+    Match.exhaustive,
   )
 
 const selectionToParam = <A extends string>(
   maybeSelectedItem: Option.Option<string>,
-  schema: S.Codec<A, A>,
+  schema: Schema.Codec<A, A>,
 ): Option.Option<A> => {
-  const decode = S.decodeUnknownOption(schema)
+  const decode = Schema.decodeUnknownOption(schema)
 
   return pipe(
     maybeSelectedItem,
@@ -261,173 +246,151 @@ const selectionToParam = <A extends string>(
   )
 }
 
-export const ReplaceFilters = Command.define(
-  'ReplaceFilters',
-  {
-    search: S.Option(S.String),
+export const ReplaceFilters = Command.define('ReplaceFilters', {
+  args: {
+    search: Schema.Option(Schema.String),
     sorting: Sorting,
-    diet: S.Option(Diet),
-    period: S.Option(Period),
+    diet: Schema.Option(Diet),
+    period: Schema.Option(Period),
   },
-  CompletedReplaceUrl,
-)(fields =>
-  replaceUrl(browseRouter(fields)).pipe(Effect.as(CompletedReplaceUrl())),
-)
+  messages: [Message.CompletedReplaceFilters],
+  execute: fields =>
+    replaceUrl(browseRouter(fields)).pipe(
+      Effect.as(Message.CompletedReplaceFilters()),
+    ),
+})
 
-const NavigateInternal = Command.define(
-  'NavigateInternal',
-  { url: S.String },
-  CompletedNavigateInternal,
-)(({ url }) => pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())))
+const NavigateInternal = Command.define('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  execute: ({ url }) =>
+    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+})
 
-const LoadExternal = Command.define(
-  'LoadExternal',
-  { href: S.String },
-  CompletedLoadExternal,
-)(({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())))
+const LoadExternal = Command.define('LoadExternal', {
+  args: { href: Schema.String },
+  messages: [Message.CompletedLoadExternal],
+  execute: ({ href }) =>
+    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+})
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
+type UpdateReturn = Update.Return<Model, Message>
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tagsExhaustive({
-      CompletedNavigateInternal: () => [model, []],
-      CompletedLoadExternal: () => [model, []],
-      CompletedReplaceUrl: () => [model, []],
+const DietListbox = Listbox.create<string>()
+const PeriodListbox = Listbox.create<string>()
 
-      ClickedLink: ({ request }) =>
-        M.value(request).pipe(
-          withUpdateReturn,
-          M.tagsExhaustive({
-            Internal: ({ url }) => [
-              model,
-              [NavigateInternal({ url: urlToString(url) })],
-            ],
-            External: ({ href }) => [model, [LoadExternal({ href })]],
+const foldDietListboxOutMessage = Listbox.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Selected:
+    ({ value }) =>
+    model => {
+      const fields = routeToBrowseFields(model.route)
+      return {
+        model,
+        commands: [
+          ReplaceFilters({
+            ...fields,
+            diet: selectionToParam(Option.some(value), Diet),
           }),
-        ),
+        ],
+      }
+    },
+})
 
-      ChangedUrl: ({ url }) => {
-        const nextRoute = urlToAppRoute(url)
-        const fields = routeToBrowseFields(nextRoute)
+const foldDietListbox = Update.foldChild({
+  update: DietListbox.update,
+  read: (model: Model) => Option.some(model.dietListbox),
+  write: (model, nextDietListbox) =>
+    evo(model, { dietListbox: () => nextDietListbox }),
+  toParentMessage: message => Message.GotDietListboxMessage({ message }),
+  foldOutMessage: foldDietListboxOutMessage,
+})
 
-        return [
-          evo(model, {
-            route: () => nextRoute,
-            dietListbox: DietListbox.reflectSelectedItem(
-              Option.orElse(fields.diet, () => Option.some('')),
-            ),
-            periodListbox: PeriodListbox.reflectSelectedItem(
-              Option.orElse(fields.period, () => Option.some('')),
-            ),
+const foldPeriodListboxOutMessage = Listbox.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Selected:
+    ({ value }) =>
+    model => {
+      const fields = routeToBrowseFields(model.route)
+      return {
+        model,
+        commands: [
+          ReplaceFilters({
+            ...fields,
+            period: selectionToParam(Option.some(value), Period),
           }),
-          [],
-        ]
-      },
+        ],
+      }
+    },
+})
 
-      ChangedSearchInput: ({ value }) => {
-        const fields = routeToBrowseFields(model.route)
+const foldPeriodListbox = Update.foldChild({
+  update: PeriodListbox.update,
+  read: (model: Model) => Option.some(model.periodListbox),
+  write: (model, nextPeriodListbox) =>
+    evo(model, { periodListbox: () => nextPeriodListbox }),
+  toParentMessage: message => Message.GotPeriodListboxMessage({ message }),
+  foldOutMessage: foldPeriodListboxOutMessage,
+})
 
-        return [
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
+    CompletedReplaceFilters: () => ({ model }),
+
+    ClickedLink: ({ request }) =>
+      UrlRequest.match<UpdateReturn>(request, {
+        Internal: ({ url }) => ({
           model,
-          [
-            ReplaceFilters({
-              ...fields,
-              search: Option.liftPredicate(value, String.isNonEmpty),
-            }),
-          ],
-        ]
-      },
-
-      ClickedColumnHeader: ({ column }) => {
-        const fields = routeToBrowseFields(model.route)
-
-        return [
+          commands: [NavigateInternal({ url: urlToString(url) })],
+        }),
+        External: ({ href }) => ({
           model,
-          [
-            ReplaceFilters({
-              ...fields,
-              sorting: nextSorting(fields.sorting, column),
-            }),
-          ],
-        ]
-      },
+          commands: [LoadExternal({ href })],
+        }),
+      }),
 
-      GotDietListboxMessage: ({ message }) => {
-        const [nextDietListbox, listboxCommands, maybeOutMessage] =
-          DietListbox.update(model.dietListbox, message)
-        const mappedCommands = Command.mapMessages(listboxCommands, message =>
-          GotDietListboxMessage({ message }),
-        )
+    ChangedUrl: ({ url }) => {
+      const nextRoute = urlToAppRoute(url)
 
-        return Option.match(maybeOutMessage, {
-          onNone: (): UpdateReturn => [
-            evo(model, { dietListbox: () => nextDietListbox }),
-            mappedCommands,
-          ],
-          onSome: M.type<Listbox.OutMessage>().pipe(
-            M.withReturnType<UpdateReturn>(),
-            M.tagsExhaustive({
-              Selected: () => {
-                const fields = routeToBrowseFields(model.route)
-                return [
-                  evo(model, { dietListbox: () => nextDietListbox }),
-                  [
-                    ...mappedCommands,
-                    ReplaceFilters({
-                      ...fields,
-                      diet: selectionToParam(
-                        nextDietListbox.maybeSelectedItem,
-                        Diet,
-                      ),
-                    }),
-                  ],
-                ]
-              },
-            }),
-          ),
-        })
-      },
+      return { model: evo(model, { route: () => nextRoute }) }
+    },
 
-      GotPeriodListboxMessage: ({ message }) => {
-        const [nextPeriodListbox, listboxCommands, maybeOutMessage] =
-          PeriodListbox.update(model.periodListbox, message)
-        const mappedCommands = Command.mapMessages(listboxCommands, message =>
-          GotPeriodListboxMessage({ message }),
-        )
+    ChangedSearchInput: ({ value }) => {
+      const fields = routeToBrowseFields(model.route)
 
-        return Option.match(maybeOutMessage, {
-          onNone: (): UpdateReturn => [
-            evo(model, { periodListbox: () => nextPeriodListbox }),
-            mappedCommands,
-          ],
-          onSome: M.type<Listbox.OutMessage>().pipe(
-            M.withReturnType<UpdateReturn>(),
-            M.tagsExhaustive({
-              Selected: () => {
-                const fields = routeToBrowseFields(model.route)
-                return [
-                  evo(model, { periodListbox: () => nextPeriodListbox }),
-                  [
-                    ...mappedCommands,
-                    ReplaceFilters({
-                      ...fields,
-                      period: selectionToParam(
-                        nextPeriodListbox.maybeSelectedItem,
-                        Period,
-                      ),
-                    }),
-                  ],
-                ]
-              },
-            }),
-          ),
-        })
-      },
-    }),
-  )
+      return {
+        model,
+        commands: [
+          ReplaceFilters({
+            ...fields,
+            search: Option.liftPredicate(value, String.isNonEmpty),
+          }),
+        ],
+      }
+    },
+
+    ClickedColumnHeader: ({ column }) => {
+      const fields = routeToBrowseFields(model.route)
+
+      return {
+        model,
+        commands: [
+          ReplaceFilters({
+            ...fields,
+            sorting: nextSorting(fields.sorting, column),
+          }),
+        ],
+      }
+    },
+
+    GotDietListboxMessage: ({ message }) => foldDietListbox(model, message),
+
+    GotPeriodListboxMessage: ({ message }) => foldPeriodListbox(model, message),
+  })
 
 // VIEW
 
@@ -456,14 +419,11 @@ const filterWhenSome =
 const sortBySorting =
   <A>(sorting: Sorting, orders: Record<SortColumn, Order.Order<A>>) =>
   (items: ReadonlyArray<A>): ReadonlyArray<A> =>
-    M.value(sorting).pipe(
-      M.tag('Unsorted', () => items),
-      M.tag('Ascending', ({ column }) => Array.sort(items, orders[column])),
-      M.tag('Descending', ({ column }) =>
-        Array.sort(items, Order.flip(orders[column])),
-      ),
-      M.exhaustive,
-    )
+    Sorting.match(sorting, {
+      Unsorted: () => items,
+      Ascending: ({ column }) => Array.sort(items, orders[column]),
+      Descending: ({ column }) => Array.sort(items, Order.flip(orders[column])),
+    })
 
 const filterAndSort = (fields: BrowseFields): ReadonlyArray<Dinosaur> =>
   pipe(
@@ -483,11 +443,11 @@ const filterAndSort = (fields: BrowseFields): ReadonlyArray<Dinosaur> =>
   )
 
 const sortIndicator = (column: SortColumn, sorting: Sorting): string =>
-  M.value(columnSortDirection(sorting, column)).pipe(
-    M.when('Unsorted', () => ''),
-    M.when('Ascending', () => '↑'),
-    M.when('Descending', () => '↓'),
-    M.exhaustive,
+  Match.value(columnSortDirection(sorting, column)).pipe(
+    Match.when('Unsorted', () => ''),
+    Match.when('Ascending', () => '↑'),
+    Match.when('Descending', () => '↓'),
+    Match.exhaustive,
   )
 
 const BADGE_BASE = 'px-2 py-0.5 rounded-full text-xs font-medium'
@@ -513,9 +473,8 @@ const headerButtonClass =
 
 const bodyCellClass = 'px-4 py-3 text-sm text-gray-700'
 
-const dinosaurRowView = (dinosaur: Dinosaur): Html => {
-  const h = html<Message>()
-  return h.keyed('tr')(
+const dinosaurRowView = (dinosaur: Dinosaur, h: HtmlBuilder<Message>): Html =>
+  h.keyed('tr')(
     dinosaur.name,
     [h.Class('border-b border-gray-100 hover:bg-gray-50 transition')],
     [
@@ -546,22 +505,21 @@ const dinosaurRowView = (dinosaur: Dinosaur): Html => {
       ),
     ],
   )
-}
 
 const sortAriaLabel = (column: SortColumn, sorting: Sorting): string =>
-  M.value(columnSortDirection(sorting, column)).pipe(
-    M.when('Unsorted', () => `Sort by ${column}`),
-    M.when('Ascending', () => `Sort by ${column}, currently ascending`),
-    M.when('Descending', () => `Sort by ${column}, currently descending`),
-    M.exhaustive,
+  Match.value(columnSortDirection(sorting, column)).pipe(
+    Match.when('Unsorted', () => `Sort by ${column}`),
+    Match.when('Ascending', () => `Sort by ${column}, currently ascending`),
+    Match.when('Descending', () => `Sort by ${column}, currently descending`),
+    Match.exhaustive,
   )
 
 const ariaSortValue = (column: SortColumn, sorting: Sorting): string =>
-  M.value(columnSortDirection(sorting, column)).pipe(
-    M.when('Unsorted', () => 'none'),
-    M.when('Ascending', () => 'ascending'),
-    M.when('Descending', () => 'descending'),
-    M.exhaustive,
+  Match.value(columnSortDirection(sorting, column)).pipe(
+    Match.when('Unsorted', () => 'none'),
+    Match.when('Ascending', () => 'ascending'),
+    Match.when('Descending', () => 'descending'),
+    Match.exhaustive,
   )
 
 const sortableColumnHeader = (
@@ -569,9 +527,8 @@ const sortableColumnHeader = (
   displayLabel: string,
   fields: BrowseFields,
   isRightAligned: boolean,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>()
-
   const indicator = h.span(
     [h.Class(clsx(SORT_INDICATOR_WIDTH, 'inline-block text-center'))],
     [sortIndicator(column, fields.sorting)],
@@ -582,18 +539,21 @@ const sortableColumnHeader = (
   return h.th(
     [h.AriaSort(ariaSortValue(column, fields.sorting))],
     [
-      Button.view<Message>({
-        onClick: ClickedColumnHeader({ column }),
-        toView: attributes =>
-          h.button(
-            [
-              ...attributes.button,
-              h.AriaLabel(sortAriaLabel(column, fields.sorting)),
-              h.Class(clsx(headerButtonClass, alignment)),
-            ],
-            isRightAligned ? [indicator, label] : [label, indicator],
-          ),
-      }),
+      Button.view(
+        {
+          onClick: Message.ClickedColumnHeader({ column }),
+          toView: attributes =>
+            h.button(
+              [
+                ...attributes.button,
+                h.AriaLabel(sortAriaLabel(column, fields.sorting)),
+                h.Class(clsx(headerButtonClass, alignment)),
+              ],
+              isRightAligned ? [indicator, label] : [label, indicator],
+            ),
+        },
+        h,
+      ),
     ],
   )
 }
@@ -603,9 +563,6 @@ const LISTBOX_ANCHOR: AnchorConfig = {
   gap: 4,
   padding: 8,
 }
-
-const DietListbox = Listbox.create<string>()
-const PeriodListbox = Listbox.create<string>()
 
 const listboxButtonClassName =
   'inline-flex items-center justify-between gap-2 min-w-40 px-4 py-2 text-sm border border-gray-300 rounded-lg bg-white cursor-pointer select-none hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:border-emerald-500'
@@ -620,9 +577,10 @@ const listboxBackdropClassName = 'fixed inset-0 z-0'
 
 const listboxWrapperClassName = 'relative inline-block'
 
-const filterItemConfig = (label: string): Listbox.ItemConfig => {
-  const h = html<Message>()
-
+const filterItemConfig = (
+  label: string,
+  h: HtmlBuilder<Message>,
+): Listbox.ItemConfig => {
   return {
     className: listboxItemClassName,
     content: h.div(
@@ -642,10 +600,8 @@ const filterItemConfig = (label: string): Listbox.ItemConfig => {
   }
 }
 
-const chevronDown = (className: string): Html => {
-  const h = html<Message>()
-
-  return h.svg(
+const chevronDown = (className: string, h: HtmlBuilder<Message>): Html =>
+  h.svg(
     [
       h.AriaHidden(true),
       h.Class(className),
@@ -656,26 +612,19 @@ const chevronDown = (className: string): Html => {
       h.Stroke('currentColor'),
     ],
     [
-      h.path(
-        [
-          h.StrokeLinecap('round'),
-          h.StrokeLinejoin('round'),
-          h.D('M19.5 8.25l-7.5 7.5-7.5-7.5'),
-        ],
-        [],
-      ),
+      h.path([
+        h.StrokeLinecap('round'),
+        h.StrokeLinejoin('round'),
+        h.D('M19.5 8.25l-7.5 7.5-7.5-7.5'),
+      ]),
     ],
   )
-}
 
-const filterButtonContent = (label: string): Html => {
-  const h = html<Message>()
-
-  return h.div(
+const filterButtonContent = (label: string, h: HtmlBuilder<Message>): Html =>
+  h.div(
     [h.Class('flex w-full items-center justify-between gap-4')],
-    [h.span([], [label]), chevronDown('w-4 h-4 text-gray-400')],
+    [h.span([], [label]), chevronDown('w-4 h-4 text-gray-400', h)],
   )
-}
 
 const filterButtonLabel = (
   maybeSelectedItem: Option.Option<string>,
@@ -693,9 +642,11 @@ const dietLabel = (item: string): string =>
 const periodLabel = (item: string): string =>
   String.isEmpty(item) ? 'All Periods' : item
 
-const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
-  const h = html<Message>()
-
+const browseView = (
+  model: Model,
+  route: typeof AppRoute.Browse.Type,
+  h: HtmlBuilder<Message>,
+): Html => {
   const fields = routeToBrowseFields(route)
   const results = filterAndSort(fields)
 
@@ -716,19 +667,22 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
       h.div(
         [h.Class('flex flex-wrap items-start gap-3 mb-6')],
         [
-          Input.view<Message>({
-            id: 'dinosaur-search',
-            value: Option.getOrElse(fields.search, () => ''),
-            placeholder: 'Search by name…',
-            onInput: value => ChangedSearchInput({ value }),
-            toView: attributes =>
-              h.input([
-                ...attributes.input,
-                h.Class(
-                  'flex-1 min-w-48 px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500',
-                ),
-              ]),
-          }),
+          Input.view(
+            {
+              id: 'dinosaur-search',
+              value: Option.getOrElse(fields.search, () => ''),
+              placeholder: 'Search by name…',
+              onInput: value => Message.ChangedSearchInput({ value }),
+              toView: attributes =>
+                h.input([
+                  ...attributes.input,
+                  h.Class(
+                    'flex-1 min-w-48 px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500',
+                  ),
+                ]),
+            },
+            h,
+          ),
           h.submodel({
             slotId: model.dietListbox.id,
             model: model.dietListbox,
@@ -736,13 +690,12 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
             viewInputs: {
               anchor: LISTBOX_ANCHOR,
               items: dietFilterItems,
-              itemToConfig: item => filterItemConfig(dietLabel(item)),
+              maybeSelectedValue: Option.orElseSome(fields.diet, () => ''),
+              itemToConfig: item => filterItemConfig(dietLabel(item), h),
               itemToSearchText: dietLabel,
               buttonContent: filterButtonContent(
-                filterButtonLabel(
-                  model.dietListbox.maybeSelectedItem,
-                  'All Diets',
-                ),
+                filterButtonLabel(fields.diet, 'All Diets'),
+                h,
               ),
               buttonAttributes: childAttributes([
                 h.Class(listboxButtonClassName),
@@ -755,7 +708,8 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
               ]),
               attributes: childAttributes([h.Class(listboxWrapperClassName)]),
             },
-            toParentMessage: message => GotDietListboxMessage({ message }),
+            toParentMessage: message =>
+              Message.GotDietListboxMessage({ message }),
           }),
           h.submodel({
             slotId: model.periodListbox.id,
@@ -764,13 +718,12 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
             viewInputs: {
               anchor: LISTBOX_ANCHOR,
               items: periodFilterItems,
-              itemToConfig: item => filterItemConfig(periodLabel(item)),
+              maybeSelectedValue: Option.orElseSome(fields.period, () => ''),
+              itemToConfig: item => filterItemConfig(periodLabel(item), h),
               itemToSearchText: periodLabel,
               buttonContent: filterButtonContent(
-                filterButtonLabel(
-                  model.periodListbox.maybeSelectedItem,
-                  'All Periods',
-                ),
+                filterButtonLabel(fields.period, 'All Periods'),
+                h,
               ),
               buttonAttributes: childAttributes([
                 h.Class(listboxButtonClassName),
@@ -783,7 +736,8 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
               ]),
               attributes: childAttributes([h.Class(listboxWrapperClassName)]),
             },
-            toParentMessage: message => GotPeriodListboxMessage({ message }),
+            toParentMessage: message =>
+              Message.GotPeriodListboxMessage({ message }),
           }),
         ],
       ),
@@ -820,31 +774,49 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
                       h.tr(
                         [],
                         [
-                          sortableColumnHeader('Name', 'Name', fields, false),
+                          sortableColumnHeader(
+                            'Name',
+                            'Name',
+                            fields,
+                            false,
+                            h,
+                          ),
                           sortableColumnHeader(
                             'Period',
                             'Period',
                             fields,
                             false,
+                            h,
                           ),
-                          sortableColumnHeader('Diet', 'Diet', fields, false),
+                          sortableColumnHeader(
+                            'Diet',
+                            'Diet',
+                            fields,
+                            false,
+                            h,
+                          ),
                           sortableColumnHeader(
                             'Length',
                             'Length (m)',
                             fields,
                             true,
+                            h,
                           ),
                           sortableColumnHeader(
                             'Weight',
                             'Weight (kg)',
                             fields,
                             true,
+                            h,
                           ),
                         ],
                       ),
                     ],
                   ),
-                  h.tbody([], rows.map(dinosaurRowView)),
+                  h.tbody(
+                    [],
+                    rows.map(row => dinosaurRowView(row, h)),
+                  ),
                 ],
               ),
             ],
@@ -861,10 +833,8 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
   )
 }
 
-const notFoundView = (path: string): Html => {
-  const h = html<Message>()
-
-  return h.div(
+const notFoundView = (path: string, h: HtmlBuilder<Message>): Html =>
+  h.div(
     [h.Class('max-w-4xl mx-auto px-4 text-center')],
     [
       h.h1(
@@ -884,23 +854,18 @@ const notFoundView = (path: string): Html => {
       ),
     ],
   )
-}
 
 const routeTitle = (route: Model['route']): string =>
-  M.value(route).pipe(
-    M.tag('Browse', () => 'Dinosaur Explorer'),
-    M.orElse(() => 'Not Found | Dinosaur Explorer'),
+  Match.value(route).pipe(
+    Match.tag('Browse', () => 'Dinosaur Explorer'),
+    Match.orElse(() => 'Not Found | Dinosaur Explorer'),
   )
 
-export const view = (model: Model): Document => {
-  const h = html<Message>()
-
-  const routeContent = M.value(model.route).pipe(
-    M.tagsExhaustive({
-      Browse: route => browseView(model, route),
-      NotFound: ({ path }) => notFoundView(path),
-    }),
-  )
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+  const routeContent = AppRoute.match(model.route, {
+    Browse: route => browseView(model, route, h),
+    NotFound: ({ path }) => notFoundView(path, h),
+  })
 
   const body = h.div(
     [h.Class('min-h-screen bg-gray-50')],
@@ -920,10 +885,7 @@ export const view = (model: Model): Document => {
           ),
         ],
       ),
-      h.main(
-        [h.Class('pb-12')],
-        [h.keyed('div')(model.route._tag, [], [routeContent])],
-      ),
+      h.main([h.Class('pb-12')], [routeContent]),
     ],
   )
 

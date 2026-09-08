@@ -1,15 +1,18 @@
-import { Predicate } from 'effect'
-
 import { type VNode, memoizedVNodes } from '../vdom.js'
 import {
   type BoundaryRegistry,
   type WrapDescriptor,
+  beginBoundaryWrapTransaction,
+  commitBoundaryWrapTransaction,
   composeBoundary,
   deregisterBoundaryWrap,
   registerBoundaryWrap,
+  rollbackBoundaryWrapTransaction,
 } from './boundary.js'
 import { isChildAttribute } from './childAttribute.js'
+import type { HtmlBuilder } from './index.js'
 import {
+  type DispatchSync,
   type Frame,
   clearRuntime,
   getCurrentFrame,
@@ -27,65 +30,99 @@ const SUBMODEL_MESSAGE_BRAND = '__submodelMessage'
  *
  *  ```ts
  *  export const view = defineView<Counter.Model, Counter.Message>(
- *    (model) => h.button([h.OnClick(Increment())], ['+']),
+ *    (model, h) => h.button([h.OnClick(Increment())], ['+']),
  *  )
  *  ```
  *
- *  When `ViewInputs` is provided, the view takes a second `viewInputs`
- *  argument:
+ *  When `ViewInputs` is provided, the view takes `viewInputs` as its
+ *  second argument and the builder moves to third position:
  *
  *  ```ts
  *  export const view = defineView<
- *    Checkbox.Model,
- *    Checkbox.Message,
+ *    CommandMenu.Model,
+ *    CommandMenu.Message,
  *    ViewInputs
- *  >((model, viewInputs) => viewInputs.toView({ checkbox: [...] }))
+ *  >((model, viewInputs, h) =>
+ *    viewInputs.toView({
+ *      isOpen: model.isOpen,
+ *      buttonAttributes: [...],
+ *      menuAttributes: [...],
+ *      items: menuItemSlots(model, viewInputs.items),
+ *    }),
+ *  )
  *  ```
  *
  *  Required at the `h.submodel` call site so unbranded plain functions
  *  fail to type-check there. */
-export type SubmodelView<
-  Model,
-  Message,
-  ViewInputs = void,
-> = (ViewInputs extends void
-  ? (model: Model) => VNode | null
-  : (model: Model, viewInputs: ViewInputs) => VNode | null) & {
+export type SubmodelView<Model, Message, ViewInputs = void> = ([
+  ViewInputs,
+] extends [void]
+  ? (model: Model, h: HtmlBuilder<Message>) => VNode | null
+  : (
+      model: Model,
+      viewInputs: ViewInputs,
+      h: HtmlBuilder<Message>,
+    ) => VNode | null) & {
   readonly [SUBMODEL_MESSAGE_BRAND]: Message
 }
 
 /** Defines the view function of a Submodel, a child component embedded
  *  via `h.submodel`.
  *
+ *  The runtime supplies the view's `h` builder, typed by the Submodel's
+ *  own Message. It is the only builder whose handlers route through this
+ *  Submodel's boundary, so a Message from another Message universe is a
+ *  type error at the handler call site. A helper this view delegates to
+ *  takes `h` as an ordinary parameter; markup owned by an ancestor arrives
+ *  pre-built through a `viewInputs` slot callback, which the runtime
+ *  executes in the ancestor's boundary.
+ *
  *  Use this ONLY for views that will be embedded via `h.submodel`. Plain
  *  view functions (page-level render functions, helper render functions
  *  that compose Html, etc.) don't need to be defined this way. Write
- *  them as ordinary `(model) => Html` functions.
+ *  them as ordinary `(model, h) => Html` functions.
  *
- *  Explicit type arguments are required because Message has no
- *  inferable source on the function signature itself. */
-export const defineView = <Model, Message, ViewInputs = void>(
-  fn: ViewInputs extends void
-    ? (model: Model) => VNode | null
-    : (model: Model, viewInputs: ViewInputs) => VNode | null,
+ *  Explicit type arguments are required because the Model and ViewInputs
+ *  parameters cannot drive inference on their own.
+ *
+ *  `Message` defaults to `never` so that omitting them fails loudly. Nothing in
+ *  the parameter list can infer it, so without the default it would widen to
+ *  `unknown` and the builder would accept any Message at all, which is exactly
+ *  the confusion this type is meant to prevent. */
+export const defineView = <Model, Message = never, ViewInputs = void>(
+  fn: [ViewInputs] extends [void]
+    ? (model: Model, h: HtmlBuilder<Message>) => VNode | null
+    : (
+        model: Model,
+        viewInputs: ViewInputs,
+        h: HtmlBuilder<Message>,
+      ) => VNode | null,
 ): SubmodelView<Model, Message, ViewInputs> =>
   // NOTE: The cast attaches the SUBMODEL_MESSAGE_BRAND to the runtime
-  // function value at the type level only. Message has no inferable
-  // source on the function signature itself, so the brand carries it.
-  // `h.submodel` reads the brand at the embed site to type-check
-  // `toParentMessage`. There is no runtime brand to add; the cast is
-  // the entire mechanism.
+  // function value at the type level only. `h.submodel` reads the brand
+  // at the embed site to type-check `toParentMessage` and to type the
+  // builder it hands this view. There is no runtime brand to add; the
+  // cast is the entire mechanism.
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   fn as SubmodelView<Model, Message, ViewInputs>
 
-type AnySubmodelView = ((...args: ReadonlyArray<any>) => VNode | null) & {
+/** Structural bound for any branded {@link SubmodelView}, independent of
+ *  its Model, Message, and ViewInputs. `h.submodel` and
+ *  {@link SubmodelConfig} constrain their `View` parameter with it so the
+ *  concrete types are recovered per call site via the `View*Of`
+ *  extractors. */
+export type AnySubmodelView = ((
+  ...args: ReadonlyArray<any>
+) => VNode | null) & {
   readonly [SUBMODEL_MESSAGE_BRAND]: unknown
 }
 
 type ViewModelOf<View extends AnySubmodelView> = Parameters<View>[0]
 
 type ViewInputsOf<View extends AnySubmodelView> =
-  Parameters<View> extends [unknown, infer ViewInputs] ? ViewInputs : void
+  Parameters<View> extends [unknown, infer ViewInputs, unknown]
+    ? ViewInputs
+    : void
 
 type ViewMessageOf<View extends AnySubmodelView> = View extends {
   readonly [SUBMODEL_MESSAGE_BRAND]: infer Message
@@ -125,23 +162,34 @@ type ViewMessageOf<View extends AnySubmodelView> = View extends {
  *    level of `viewInputs`.
  *  - `toParentMessage`: function that lifts a child message into the
  *    current boundary's Message type. The argument is typed as the
- *    child's Message via the view's brand, so destructuring is correctly
- *    typed without annotation. For per-instance identifiers, capture
- *    them in a closure
+ *    child's Message via the view's brand, and the return is typed as
+ *    the embedding builder's Message, so destructuring is correctly
+ *    typed without annotation and a lift into the wrong Message union
+ *    fails to compile. For per-instance identifiers, capture them in a
+ *    closure
  *    (`(message) => GotEntryMessage({ entryId: entry.id, message })`).
  *
  *  High-level events the parent handles declaratively flow through
- *  each Submodel's `OutMessage`. The parent's `GotChildMessage`
- *  handler unpacks the third tuple element of the child's `update`
- *  return and pattern-matches on `Option<OutMessage>`. See `Menu`,
- *  `Listbox`, etc., for examples. */
-export type SubmodelConfig<View extends AnySubmodelView> = Readonly<{
+ *  each Submodel's `OutMessage`. Use `Update.foldChild` to run the child
+ *  update, lift its Commands, and match the optional OutMessage without
+ *  unpacking the child result by hand. See `Menu`, `Listbox`, etc., for
+ *  examples. */
+export type SubmodelConfig<
+  View extends AnySubmodelView,
+  ParentMessage,
+> = Readonly<{
   slotId: string
   model: ViewModelOf<View>
   view: View
-  viewInputs?: ViewInputsOf<View>
-  toParentMessage: (message: ViewMessageOf<View>) => unknown
-}>
+  toParentMessage: (message: ViewMessageOf<View>) => ParentMessage
+}> &
+  // NOTE: required exactly when the view declares them. Left optional, omitting
+  // them still compiles and the runtime calls a three-parameter view with two
+  // arguments, so the builder lands in the `viewInputs` slot and shadows every
+  // field whose name collides with an element constructor.
+  ([ViewInputsOf<View>] extends [void]
+    ? Readonly<{ viewInputs?: never }>
+    : Readonly<{ viewInputs: ViewInputsOf<View> }>)
 
 const isPlainObject = (
   value: unknown,
@@ -264,23 +312,14 @@ const withBoundaryCleanup = (
   vnode: VNode,
   registry: BoundaryRegistry,
   boundaryId: string,
+  descriptor: WrapDescriptor,
+  mountOuterDispatch: DispatchSync,
 ): VNode => {
   const data = vnode.data ?? {}
   const hook = data.hook ?? {}
   const previousDestroy = hook.destroy
   const compositeDestroy = (removed: VNode): void => {
-    // NOTE: a Submodel whose root vnode changes snabbdom identity across
-    // renders (e.g. a keyed root whose key changed) re-registers its
-    // boundary in the new view phase, then snabbdom destroys the OLD root
-    // vnode in the following patch phase. That destroy must not evict the
-    // freshly re-registered wrap. `seenThisRender` is cleared in
-    // `beginRender`, so during patch it still reflects the just-completed
-    // view phase: the boundary's presence there means it is live this cycle
-    // (a remount), not a true unmount. Deleting it here would surface later
-    // as `dispatchAcrossBoundary missing wrap`.
-    if (!registry.seenThisRender.has(boundaryId)) {
-      deregisterBoundaryWrap(registry, boundaryId)
-    }
+    deregisterBoundaryWrap(registry, boundaryId, descriptor, mountOuterDispatch)
     if (previousDestroy !== undefined) {
       previousDestroy(removed)
     }
@@ -299,8 +338,15 @@ const withBoundaryCleanup = (
   return wrapped
 }
 
+/** Implementation behind `h.submodel`. Registers the child's boundary
+ *  wrap, pushes the child boundary, and invokes the child's
+ *  {@link SubmodelView} with the child-typed builder. Reached only
+ *  through a builder's `submodel` method, which fixes `toParentMessage`'s
+ *  return to the embedding frame's Message; the html factory passes the
+ *  process-wide builder singleton as `htmlBuilderSingleton`. */
 export const submodel = <View extends AnySubmodelView>(
-  config: SubmodelConfig<View>,
+  config: SubmodelConfig<View, unknown>,
+  htmlBuilderSingleton: HtmlBuilder<unknown>,
 ): VNode | null => {
   // Snapshot the parent frame BEFORE pushing the child boundary. The
   // snapshot is captured into slot-callback closures by
@@ -309,21 +355,40 @@ export const submodel = <View extends AnySubmodelView>(
   const parentFrame = getCurrentFrame()
   const registry = parentFrame.boundaryRegistry
   const childBoundaryId = composeBoundary(parentFrame.boundaryId, config.slotId)
-
-  registerBoundaryWrap(registry, childBoundaryId, {
+  const descriptor: WrapDescriptor = {
     toParentMessage:
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       config.toParentMessage as WrapDescriptor['toParentMessage'],
-  })
-
-  let vnode: VNode | null
-  pushBoundary(childBoundaryId)
+  }
+  const transaction = beginBoundaryWrapTransaction(registry)
   try {
+    registerBoundaryWrap(
+      registry,
+      childBoundaryId,
+      descriptor,
+      parentFrame.mountOuterDispatch,
+    )
+
+    // NOTE: the builder handed to the child view is the process-wide
+    // singleton retyped to the child's Message. The value carries no
+    // Message state (dispatch resolves from the frame pushed below), so
+    // the cast is the entire mechanism, exactly like the brand cast in
+    // `defineView`.
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const childBuilder = htmlBuilderSingleton as HtmlBuilder<
+      ViewMessageOf<View>
+    >
+
+    let vnode: VNode | null
+    pushBoundary(childBoundaryId)
     try {
-      if (Predicate.isUndefined(config.viewInputs)) {
+      if (!Object.hasOwn(config, 'viewInputs')) {
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-        const view = config.view as (model: ViewModelOf<View>) => VNode | null
-        vnode = view(config.model)
+        const view = config.view as (
+          model: ViewModelOf<View>,
+          h: HtmlBuilder<ViewMessageOf<View>>,
+        ) => VNode | null
+        vnode = view(config.model, childBuilder)
       } else {
         const wrappedViewInputs = wrapViewInputsForOuterBoundary(
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -334,25 +399,30 @@ export const submodel = <View extends AnySubmodelView>(
         const view = config.view as (
           model: ViewModelOf<View>,
           viewInputs: ViewInputsOf<View>,
+          h: HtmlBuilder<ViewMessageOf<View>>,
         ) => VNode | null
-        vnode = view(config.model, wrappedViewInputs)
+        vnode = view(config.model, wrappedViewInputs, childBuilder)
       }
-    } catch (error) {
-      // The view threw; the registered wrap would otherwise leak with
-      // no destroy hook ever firing. Drop it before propagating.
-      deregisterBoundaryWrap(registry, childBoundaryId)
-      throw error
+    } finally {
+      clearRuntime()
     }
-  } finally {
-    clearRuntime()
-  }
 
-  if (vnode === null) {
-    // No vnode means no destroy hook will ever fire; deregister now so
-    // the wrap doesn't leak.
-    deregisterBoundaryWrap(registry, childBoundaryId)
-    return null
-  }
+    if (vnode === null) {
+      rollbackBoundaryWrapTransaction(registry, transaction)
+      return null
+    }
 
-  return withBoundaryCleanup(vnode, registry, childBoundaryId)
+    const vnodeWithCleanup = withBoundaryCleanup(
+      vnode,
+      registry,
+      childBoundaryId,
+      descriptor,
+      parentFrame.mountOuterDispatch,
+    )
+    commitBoundaryWrapTransaction(registry, transaction)
+    return vnodeWithCleanup
+  } catch (error) {
+    rollbackBoundaryWrapTransaction(registry, transaction)
+    throw error
+  }
 }

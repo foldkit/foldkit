@@ -4,21 +4,16 @@
  * Run: pnpm --filter pixel-art-example exec vitest run src/comparison.bench.ts
  */
 import { Option } from 'effect'
+import { evo } from 'foldkit/struct'
 import { test } from 'vitest'
 
-import { Dialog, Listbox, RadioGroup, Switch } from '@foldkit/ui'
+import { Dialog, Listbox } from '@foldkit/ui'
 
 import { createEmptyGrid as createReactGrid } from '../../../comparisons/pixel-art-react/src/grid'
 import { reducer } from '../../../comparisons/pixel-art-react/src/reducer'
 import type { State } from '../../../comparisons/pixel-art-react/src/types'
 import { createEmptyGrid as createFoldkitGrid } from './grid'
-import {
-  ClickedRedo as FoldkitClickedRedo,
-  ClickedUndo as FoldkitClickedUndo,
-  EnteredCell as FoldkitEnteredCell,
-  PressedCell as FoldkitPressedCell,
-  ReleasedMouse as FoldkitReleasedMouse,
-} from './message'
+import { Message } from './message'
 import type { Model } from './model'
 import { update } from './update'
 
@@ -41,23 +36,7 @@ const foldkitModel: Model = {
   paletteThemeIndex: 0,
   gridSizeConfirmDialog: Dialog.init({ id: 'confirm-dialog' }),
   maybePendingGridSize: Option.none(),
-  toolRadioGroup: RadioGroup.init({
-    id: 'tools',
-    selectedValue: 'Brush',
-  }),
-  gridSizeRadioGroup: RadioGroup.init({
-    id: 'sizes',
-    selectedValue: String(GRID_SIZE),
-    orientation: 'Horizontal',
-  }),
-  paletteRadioGroup: RadioGroup.init({
-    id: 'palette',
-    selectedValue: '0',
-    orientation: 'Horizontal',
-  }),
-  mirrorHorizontalSwitch: Switch.init({ id: 'mirror-h' }),
-  mirrorVerticalSwitch: Switch.init({ id: 'mirror-v' }),
-  themeListbox: Listbox.init({ id: 'themes', selectedItem: '0' }),
+  themeListbox: Listbox.init({ id: 'themes' }),
 }
 
 const reactState: State = {
@@ -82,8 +61,9 @@ const buildFoldkitHistory = (steps: number): Model => {
   for (let i = 0; i < steps; i++) {
     const x = i % GRID_SIZE
     const y = Math.floor(i / GRID_SIZE) % GRID_SIZE
-    ;[model] = update(model, FoldkitPressedCell({ x, y }))
-    ;[model] = update(model, FoldkitReleasedMouse())
+    const pressedCell = update(model, Message.PressedCell({ x, y }))
+    const releasedMouse = update(pressedCell.model, Message.ReleasedMouse())
+    model = releasedMouse.model
   }
   return model
 }
@@ -134,8 +114,11 @@ test('benchmark', () => {
     {
       name: 'Brush stroke',
       foldkit: () => {
-        const [m] = update(foldkitModel, FoldkitPressedCell({ x: 5, y: 5 }))
-        update(m, FoldkitReleasedMouse())
+        const pressedCell = update(
+          foldkitModel,
+          Message.PressedCell({ x: 5, y: 5 }),
+        )
+        update(pressedCell.model, Message.ReleasedMouse())
       },
       react: () => {
         const s = reducer(reactState, { type: 'PressedCell', x: 5, y: 5 })
@@ -145,12 +128,27 @@ test('benchmark', () => {
     {
       name: 'Brush drag (5 cells)',
       foldkit: () => {
-        let [m] = update(foldkitModel, FoldkitPressedCell({ x: 0, y: 0 }))
-        ;[m] = update(m, FoldkitEnteredCell({ x: 1, y: 0 }))
-        ;[m] = update(m, FoldkitEnteredCell({ x: 2, y: 0 }))
-        ;[m] = update(m, FoldkitEnteredCell({ x: 3, y: 0 }))
-        ;[m] = update(m, FoldkitEnteredCell({ x: 4, y: 0 }))
-        update(m, FoldkitReleasedMouse())
+        let brushUpdate = update(
+          foldkitModel,
+          Message.PressedCell({ x: 0, y: 0 }),
+        )
+        brushUpdate = update(
+          brushUpdate.model,
+          Message.EnteredCell({ x: 1, y: 0 }),
+        )
+        brushUpdate = update(
+          brushUpdate.model,
+          Message.EnteredCell({ x: 2, y: 0 }),
+        )
+        brushUpdate = update(
+          brushUpdate.model,
+          Message.EnteredCell({ x: 3, y: 0 }),
+        )
+        brushUpdate = update(
+          brushUpdate.model,
+          Message.EnteredCell({ x: 4, y: 0 }),
+        )
+        update(brushUpdate.model, Message.ReleasedMouse())
       },
       react: () => {
         let s = reducer(reactState, { type: 'PressedCell', x: 0, y: 0 })
@@ -164,8 +162,8 @@ test('benchmark', () => {
     {
       name: 'Flood fill (16\u00d716)',
       foldkit: () => {
-        const m: Model = { ...foldkitModel, tool: 'Fill' as const }
-        update(m, FoldkitPressedCell({ x: 0, y: 0 }))
+        const m: Model = evo(foldkitModel, { tool: () => 'Fill' })
+        update(m, Message.PressedCell({ x: 0, y: 0 }))
       },
       react: () => {
         const s: State = { ...reactState, tool: 'Fill' }
@@ -175,7 +173,7 @@ test('benchmark', () => {
     {
       name: 'Single undo (20 entries)',
       foldkit: () => {
-        update(foldkitWith20, FoldkitClickedUndo())
+        update(foldkitWith20, Message.ClickedUndo())
       },
       react: () => {
         reducer(reactWith20, { type: 'ClickedUndo' })
@@ -184,12 +182,14 @@ test('benchmark', () => {
     {
       name: '5\u00d7 undo + 5\u00d7 redo',
       foldkit: () => {
-        let m = foldkitWith20
+        let model = foldkitWith20
         for (let i = 0; i < 5; i++) {
-          ;[m] = update(m, FoldkitClickedUndo())
+          const undo = update(model, Message.ClickedUndo())
+          model = undo.model
         }
         for (let i = 0; i < 5; i++) {
-          ;[m] = update(m, FoldkitClickedRedo())
+          const redo = update(model, Message.ClickedRedo())
+          model = redo.model
         }
       },
       react: () => {

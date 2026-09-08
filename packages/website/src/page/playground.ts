@@ -2,22 +2,21 @@ import { clsx } from 'clsx'
 import {
   Array,
   Effect,
-  Equal,
   Fiber,
-  Match as M,
+  Match,
   Option,
   Order,
   Queue,
   Record,
-  Schema as S,
+  Schema,
   Stream,
-  String as String_,
+  String,
   pipe,
 } from 'effect'
-import { Command, ManagedResource, Mount, Submodel } from 'foldkit'
-import { Html, html } from 'foldkit/html'
-import { m } from 'foldkit/message'
-import { ts } from 'foldkit/schema'
+import { Command, ManagedResource, Mount, Submodel, Update } from 'foldkit'
+import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
+import { defineTaggedUnion } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 import filesBySlug from 'virtual:playground-files'
 import playgroundTypes from 'virtual:playground-types'
@@ -28,81 +27,50 @@ import type { FileSystemTree, WebContainer } from '@webcontainer/api'
 import { Icon } from '../icon'
 import { exampleDetailRouter, examplesRouter } from '../route'
 import { type ExampleMeta, findBySlug } from './example/meta'
+import * as PlaygroundPreview from './playgroundPreview'
 
 // MODEL
 
-const PlaygroundStateIdle = ts('PlaygroundStateIdle')
-const PlaygroundStateBooting = ts('PlaygroundStateBooting')
-const PlaygroundStateBooted = ts('PlaygroundStateBooted', {
-  previewUrl: S.String,
+const PlaygroundState = defineTaggedUnion({
+  Idle: {},
+  Booting: {},
+  Booted: { preview: PlaygroundPreview.State },
+  Failed: { reason: Schema.String },
 })
-const PlaygroundStateFailed = ts('PlaygroundStateFailed', {
-  reason: S.String,
-})
-
-const PlaygroundState = S.Union([
-  PlaygroundStateIdle,
-  PlaygroundStateBooting,
-  PlaygroundStateBooted,
-  PlaygroundStateFailed,
-])
 type PlaygroundState = typeof PlaygroundState.Type
 
-export const Model = S.Struct({
-  slug: S.String,
+export const Model = Schema.Struct({
+  slug: Schema.String,
   state: PlaygroundState,
-  files: S.Record(S.String, S.String),
+  files: Schema.Record(Schema.String, Schema.String),
   fileTabs: Tabs.Model,
+  activeFilePath: Schema.String,
   // NOTE: Paths edited before the WebContainer finished booting. Writes
   // dispatched at that time fail with `ResourceNotAvailable`, so we
   // accumulate the paths here and flush them once `BootedPlayground`
   // fires.
-  dirtyPaths: S.Array(S.String),
+  dirtyPaths: Schema.Array(Schema.String),
   // NOTE: Surfaced as a banner when set. Cleared on `BootedPlayground`
   // and on each successful write schedule, so transient errors don't
   // linger after recovery.
-  lastWriteError: S.Option(S.String),
+  lastWriteError: Schema.Option(Schema.String),
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const BootedPlayground = m('BootedPlayground', {
-  previewUrl: S.String,
+export const Message = defineMessageUnion({
+  BootedPlayground: { previewUrl: Schema.String },
+  FailedBootPlayground: { reason: Schema.String },
+  ReleasedPlayground: {},
+  LoadedPlaygroundPreview: { previewUrl: Schema.String },
+  GotFileTabsMessage: { message: Tabs.Message },
+  EditedPlaygroundFile: { path: Schema.String, content: Schema.String },
+  SucceededMountPlaygroundEditor: {},
+  FailedMountPlaygroundEditor: { reason: Schema.String },
+  ScheduledWritePlaygroundFile: {},
+  FailedWritePlaygroundFile: { reason: Schema.String },
 })
-export const FailedBootPlayground = m('FailedBootPlayground', {
-  reason: S.String,
-})
-export const ReleasedPlayground = m('ReleasedPlayground')
-export const GotFileTabsMessage = m('GotFileTabsMessage', {
-  message: Tabs.Message,
-})
-export const EditedPlaygroundFile = m('EditedPlaygroundFile', {
-  path: S.String,
-  content: S.String,
-})
-export const SucceededMountPlaygroundEditor = m(
-  'SucceededMountPlaygroundEditor',
-)
-export const FailedMountPlaygroundEditor = m('FailedMountPlaygroundEditor', {
-  reason: S.String,
-})
-export const ScheduledWritePlaygroundFile = m('ScheduledWritePlaygroundFile')
-export const FailedWritePlaygroundFile = m('FailedWritePlaygroundFile', {
-  reason: S.String,
-})
-
-export const Message = S.Union([
-  BootedPlayground,
-  FailedBootPlayground,
-  ReleasedPlayground,
-  GotFileTabsMessage,
-  EditedPlaygroundFile,
-  SucceededMountPlaygroundEditor,
-  FailedMountPlaygroundEditor,
-  ScheduledWritePlaygroundFile,
-  FailedWritePlaygroundFile,
-])
 export type Message = typeof Message.Type
 
 // INIT
@@ -122,19 +90,13 @@ const sortedPaths = (
   files: Readonly<Record<string, string>>,
 ): ReadonlyArray<string> => pipe(files, Record.keys, Array.sort(Order.String))
 
-const initialActiveIndex = (
-  files: Readonly<Record<string, string>>,
-): number => {
-  const paths = sortedPaths(files)
-  return pipe(
+const initialActiveFile = (files: Readonly<Record<string, string>>): string =>
+  pipe(
     PREFERRED_INITIAL_FILES,
     Array.findFirst(preferred => Record.has(files, preferred)),
-    Option.flatMap(preferred =>
-      Array.findFirstIndex(paths, Equal.equals(preferred)),
-    ),
-    Option.getOrElse(() => 0),
+    Option.orElse(() => Array.head(sortedPaths(files))),
+    Option.getOrElse(() => ''),
   )
-}
 
 const FILE_TABS_ID = 'playground-files'
 
@@ -142,12 +104,10 @@ export const init = (slug: string): Model => {
   const files = Option.getOrElse(maybeFilesForSlug(slug), () => ({}))
   return {
     slug,
-    state: PlaygroundStateBooting(),
+    state: PlaygroundState.Booting(),
     files,
-    fileTabs: Tabs.init({
-      id: FILE_TABS_ID,
-      activeIndex: initialActiveIndex(files),
-    }),
+    fileTabs: Tabs.init({ id: FILE_TABS_ID }),
+    activeFilePath: initialActiveFile(files),
     dirtyPaths: [],
     lastWriteError: Option.none(),
   }
@@ -169,7 +129,7 @@ export type WebContainerPlaygroundService = ManagedResource.ServiceOf<
   typeof WebContainerPlayground
 >
 
-const PlaygroundParams = S.Struct({ slug: S.String })
+const PlaygroundParams = Schema.Struct({ slug: Schema.String })
 
 const fileSystemTreeFromFiles = (
   files: Readonly<Record<string, string>>,
@@ -208,12 +168,12 @@ const reasonFromError = (error: unknown): string => {
     }
     return error.message
   }
-  return String(error)
+  return globalThis.String(error)
 }
 
 export const managedResources = ManagedResource.make<Model, Message>()(
   entry => ({
-    webContainerPlayground: entry(S.Option(PlaygroundParams), {
+    webContainerPlayground: entry(Schema.Option(PlaygroundParams), {
       resource: WebContainerPlayground,
       modelToMaybeRequirements: ({ slug }) =>
         pipe(
@@ -306,10 +266,10 @@ export const managedResources = ManagedResource.make<Model, Message>()(
           }
           yield* Effect.sync(() => container.teardown())
         }),
-      onAcquired: ({ previewUrl }) => BootedPlayground({ previewUrl }),
-      onReleased: () => ReleasedPlayground(),
+      onAcquired: ({ previewUrl }) => Message.BootedPlayground({ previewUrl }),
+      onReleased: () => Message.ReleasedPlayground(),
       onAcquireError: error =>
-        FailedBootPlayground({ reason: reasonFromError(error) }),
+        Message.FailedBootPlayground({ reason: reasonFromError(error) }),
     }),
   }),
 )
@@ -319,18 +279,18 @@ export const managedResources = ManagedResource.make<Model, Message>()(
 const monacoLanguageForPath = (path: string): string =>
   pipe(
     path,
-    String_.lastIndexOf('.'),
+    String.lastIndexOf('.'),
     Option.match({
       onNone: () => 'plaintext',
       onSome: dotIndex =>
-        M.value(path.slice(dotIndex)).pipe(
-          M.when('.ts', () => 'typescript'),
-          M.when('.tsx', () => 'typescript'),
-          M.when('.js', () => 'javascript'),
-          M.when('.html', () => 'html'),
-          M.when('.css', () => 'css'),
-          M.when('.json', () => 'json'),
-          M.orElse(() => 'plaintext'),
+        Match.value(path.slice(dotIndex)).pipe(
+          Match.when('.ts', () => 'typescript'),
+          Match.when('.tsx', () => 'typescript'),
+          Match.when('.js', () => 'javascript'),
+          Match.when('.html', () => 'html'),
+          Match.when('.css', () => 'css'),
+          Match.when('.json', () => 'json'),
+          Match.orElse(() => 'plaintext'),
         ),
     }),
   )
@@ -423,120 +383,171 @@ const configureMonaco = async () => {
   }
 }
 
-const PlaygroundEditor = Mount.defineStream(
-  'PlaygroundEditor',
-  {
-    path: S.String,
-    initialContent: S.String,
-    files: S.Record(S.String, S.String),
-  },
-  SucceededMountPlaygroundEditor,
-  FailedMountPlaygroundEditor,
-  EditedPlaygroundFile,
-)(
-  ({ path, initialContent, files }) =>
-    element =>
-      Stream.callback<
-        | typeof SucceededMountPlaygroundEditor.Type
-        | typeof FailedMountPlaygroundEditor.Type
-        | typeof EditedPlaygroundFile.Type
-      >(queue =>
-        Effect.acquireRelease(
-          Effect.tryPromise(async () => {
-            await configureMonaco()
-            const monaco = await import('monaco-editor')
-            if (!(element instanceof HTMLElement)) {
-              throw new Error('Playground editor host must be an HTMLElement')
-            }
-            // NOTE: Pre-create Monaco models for every example file so
-            // relative imports between them resolve. Without this, opening
-            // `src/main.ts` and `import './icon'` would fail since
-            // Monaco's TS service only sees the files it has models for.
-            //
-            // We also register each TypeScript file as an extraLib. Monaco's
-            // TS service uses different code paths for resolving against
-            // models vs extraLibs, and Bundler's extension auto-resolution
-            // only kicks in for extraLib paths. Without this, relative
-            // imports like `./ui/message` fail to resolve to the model at
-            // `file:///src/ui/message.ts` despite the model existing.
-            const tsDefaults = monaco.typescript.typescriptDefaults
-            for (const [siblingPath, siblingContent] of Object.entries(files)) {
-              const siblingUri = monaco.Uri.parse(monacoUriForPath(siblingPath))
-              if (monaco.editor.getModel(siblingUri) === null) {
-                monaco.editor.createModel(
-                  siblingContent,
-                  monacoLanguageForPath(siblingPath),
-                  siblingUri,
-                )
-              }
-              if (monacoLanguageForPath(siblingPath) === 'typescript') {
-                tsDefaults.addExtraLib(siblingContent, siblingUri.toString())
-              }
-            }
-            const uri = monaco.Uri.parse(monacoUriForPath(path))
-            const editorModel =
-              monaco.editor.getModel(uri) ??
-              monaco.editor.createModel(
-                initialContent,
-                monacoLanguageForPath(path),
-                uri,
-              )
-            const editor = monaco.editor.create(element, {
-              model: editorModel,
-              theme: FOLDKIT_DARK_THEME,
-              automaticLayout: true,
-              fontSize: 13,
-              fontFamily: 'JetBrains Mono, ui-monospace, monospace',
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              tabSize: 2,
-              scrollbar: { alwaysConsumeMouseWheel: false },
-              stickyScroll: { enabled: false },
-              contextmenu: false,
-              autoClosingQuotes: 'never',
-              glyphMargin: false,
-              // NOTE: Monaco 0.55 ships an experimental `EditContext`
-              // input path that supersedes the hidden textarea. In our
-              // cross-origin-isolated playground page the EditContext
-              // path silently drops `Cmd+C` copies of selected text.
-              // Forcing the textarea path restores standard clipboard
-              // behavior at the cost of opting out of an in-progress
-              // browser API.
-              editContext: false,
-            })
-            const changeSubscription = editorModel.onDidChangeContent(() => {
-              Queue.offerUnsafe(
-                queue,
-                EditedPlaygroundFile({
-                  path,
-                  content: editorModel.getValue(),
-                }),
-              )
-            })
-            Queue.offerUnsafe(queue, SucceededMountPlaygroundEditor())
-            return { editor, editorModel, changeSubscription }
-          }),
-          ({ editor, editorModel, changeSubscription }) =>
-            Effect.sync(() => {
-              changeSubscription.dispose()
-              editor.dispose()
-              editorModel.dispose()
-            }),
-        ).pipe(
-          Effect.flatMap(() => Effect.never),
-          Effect.catch(error =>
-            Effect.sync(() => {
-              Queue.offerUnsafe(
-                queue,
-                FailedMountPlaygroundEditor({
-                  reason: reasonFromError(error),
-                }),
-              )
-            }),
+type PlaygroundEditorMessage =
+  | typeof Message.SucceededMountPlaygroundEditor.Type
+  | typeof Message.FailedMountPlaygroundEditor.Type
+  | typeof Message.EditedPlaygroundFile.Type
+
+type PlaygroundEditorResource = Readonly<{
+  editor: import('monaco-editor').editor.IStandaloneCodeEditor
+  editorModel: import('monaco-editor').editor.ITextModel
+  changeSubscription: import('monaco-editor').IDisposable
+}>
+
+const registerPlaygroundModels = (
+  monaco: typeof import('monaco-editor'),
+  files: Readonly<Record<string, string>>,
+): void => {
+  // NOTE: Pre-create Monaco models for every example file so relative imports
+  // between them resolve. Without this, opening `src/main.ts` and
+  // `import './icon'` would fail since Monaco's TS service only sees the files
+  // it has models for.
+  //
+  // We also register each TypeScript file as an extraLib. Monaco's TS service
+  // uses different code paths for resolving against models vs extraLibs, and
+  // Bundler's extension auto-resolution only kicks in for extraLib paths.
+  // Without this, relative imports like `./ui/message` fail to resolve to the
+  // model at `file:///src/ui/message.ts` despite the model existing.
+  const tsDefaults = monaco.typescript.typescriptDefaults
+  for (const [siblingPath, siblingContent] of Object.entries(files)) {
+    const siblingUri = monaco.Uri.parse(monacoUriForPath(siblingPath))
+
+    if (monaco.editor.getModel(siblingUri) === null) {
+      monaco.editor.createModel(
+        siblingContent,
+        monacoLanguageForPath(siblingPath),
+        siblingUri,
+      )
+    }
+
+    if (monacoLanguageForPath(siblingPath) === 'typescript') {
+      tsDefaults.addExtraLib(siblingContent, siblingUri.toString())
+    }
+  }
+}
+
+const acquirePlaygroundEditor = <E>(
+  queue: Queue.Enqueue<PlaygroundEditorMessage, E>,
+  element: Element,
+  path: string,
+  initialContent: string,
+  files: Readonly<Record<string, string>>,
+) =>
+  Effect.tryPromise(async (): Promise<PlaygroundEditorResource> => {
+    await configureMonaco()
+    const monaco = await import('monaco-editor')
+
+    if (!(element instanceof HTMLElement)) {
+      throw new Error('Playground editor host must be an HTMLElement')
+    }
+
+    registerPlaygroundModels(monaco, files)
+
+    const uri = monaco.Uri.parse(monacoUriForPath(path))
+    const editorModel =
+      monaco.editor.getModel(uri) ??
+      monaco.editor.createModel(
+        initialContent,
+        monacoLanguageForPath(path),
+        uri,
+      )
+    const editor = monaco.editor.create(element, {
+      model: editorModel,
+      theme: FOLDKIT_DARK_THEME,
+      automaticLayout: true,
+      fontSize: 13,
+      fontFamily: 'Paper Mono, ui-monospace, monospace',
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      tabSize: 2,
+      scrollbar: { alwaysConsumeMouseWheel: false },
+      stickyScroll: { enabled: false },
+      contextmenu: false,
+      autoClosingQuotes: 'never',
+      glyphMargin: false,
+      // NOTE: Monaco 0.55 ships an experimental `EditContext` input path that
+      // supersedes the hidden textarea. In our cross-origin-isolated playground
+      // page the EditContext path silently drops `Cmd+C` copies of selected
+      // text. Forcing the textarea path restores standard clipboard behavior at
+      // the cost of opting out of an in-progress browser API.
+      editContext: false,
+    })
+
+    const changeSubscription = editorModel.onDidChangeContent(() => {
+      Queue.offerUnsafe(
+        queue,
+        Message.EditedPlaygroundFile({
+          path,
+          content: editorModel.getValue(),
+        }),
+      )
+    })
+
+    Queue.offerUnsafe(queue, Message.SucceededMountPlaygroundEditor())
+    return { editor, editorModel, changeSubscription }
+  })
+
+const releasePlaygroundEditor = (resource: PlaygroundEditorResource) =>
+  Effect.sync(() => {
+    resource.changeSubscription.dispose()
+    resource.editor.dispose()
+    resource.editorModel.dispose()
+  })
+
+const streamPlaygroundEditorMessages = (
+  element: Element,
+  path: string,
+  initialContent: string,
+  files: Readonly<Record<string, string>>,
+  viewStateChanges: Stream.Stream<Mount.ViewState>,
+) =>
+  Stream.callback<PlaygroundEditorMessage>(queue =>
+    Effect.acquireRelease(
+      acquirePlaygroundEditor(queue, element, path, initialContent, files),
+      releasePlaygroundEditor,
+    ).pipe(
+      Effect.flatMap(({ editor }) =>
+        viewStateChanges.pipe(
+          Stream.runForEach(viewState =>
+            Effect.sync(() =>
+              editor.updateOptions({ readOnly: viewState === 'Paused' }),
+            ),
           ),
         ),
       ),
-)
+      Effect.catch(error =>
+        Effect.sync(() => {
+          Queue.offerUnsafe(
+            queue,
+            Message.FailedMountPlaygroundEditor({
+              reason: reasonFromError(error),
+            }),
+          )
+        }),
+      ),
+    ),
+  )
+
+export const PlaygroundEditor = Mount.defineStream('PlaygroundEditor', {
+  args: {
+    path: Schema.String,
+    initialContent: Schema.String,
+    files: Schema.Record(Schema.String, Schema.String),
+  },
+  messages: [
+    Message.SucceededMountPlaygroundEditor,
+    Message.FailedMountPlaygroundEditor,
+    Message.EditedPlaygroundFile,
+  ],
+  execute: ({ element, path, initialContent, files, viewStateChanges }) =>
+    streamPlaygroundEditorMessages(
+      element,
+      path,
+      initialContent,
+      files,
+      viewStateChanges,
+    ),
+})
 
 // COMMAND
 
@@ -549,70 +560,67 @@ const STYLES_CSS_PATH = 'src/styles.css'
 
 const WRITE_DEBOUNCE_MILLIS = 250
 
-export const WritePlaygroundFile = Command.define(
-  'WritePlaygroundFile',
-  { path: S.String, content: S.String },
-  ScheduledWritePlaygroundFile,
-  FailedWritePlaygroundFile,
-)(({ path, content }) =>
-  Effect.gen(function* () {
-    const { container, pendingWrites } = yield* WebContainerPlayground.get
-    const existing = pendingWrites.get(path)
-    if (existing !== undefined) {
-      yield* Fiber.interrupt(existing)
-    }
-    const fiber = yield* pipe(
-      Effect.gen(function* () {
-        yield* Effect.sleep(WRITE_DEBOUNCE_MILLIS)
-        yield* Effect.tryPromise(() => container.fs.writeFile(path, content))
-        if (path !== STYLES_CSS_PATH) {
-          const stylesContent = yield* Effect.tryPromise(() =>
-            container.fs.readFile(STYLES_CSS_PATH, 'utf-8'),
-          )
-          yield* Effect.tryPromise(() =>
-            container.fs.writeFile(STYLES_CSS_PATH, stylesContent),
-          )
-        }
-        pendingWrites.delete(path)
-      }),
-      // NOTE: Errors in the debounced write fiber can't reach the parent
-      // Command's return value (the Command already returned
-      // `Scheduled…` synchronously). We log so dev failures aren't
-      // entirely invisible; a Tailwind/HMR storm or container crash
-      // will appear in the console.
-      Effect.catch(error =>
-        Effect.sync(() => {
-          console.error(
-            `[playground] Debounced write failed for ${path}:`,
-            error,
-          )
+export const WritePlaygroundFile = Command.define('WritePlaygroundFile', {
+  args: { path: Schema.String, content: Schema.String },
+  messages: [
+    Message.ScheduledWritePlaygroundFile,
+    Message.FailedWritePlaygroundFile,
+  ],
+  execute: ({ path, content }) =>
+    Effect.gen(function* () {
+      const { container, pendingWrites } = yield* WebContainerPlayground.get
+      const existing = pendingWrites.get(path)
+      if (existing !== undefined) {
+        yield* Fiber.interrupt(existing)
+      }
+      const fiber = yield* pipe(
+        Effect.gen(function* () {
+          yield* Effect.sleep(WRITE_DEBOUNCE_MILLIS)
+          yield* Effect.tryPromise(() => container.fs.writeFile(path, content))
+          if (path !== STYLES_CSS_PATH) {
+            const stylesContent = yield* Effect.tryPromise(() =>
+              container.fs.readFile(STYLES_CSS_PATH, 'utf-8'),
+            )
+            yield* Effect.tryPromise(() =>
+              container.fs.writeFile(STYLES_CSS_PATH, stylesContent),
+            )
+          }
+          pendingWrites.delete(path)
         }),
+        // NOTE: Errors in the debounced write fiber can't reach the parent
+        // Command's return value (the Command already returned
+        // `Scheduled…` synchronously). We log so dev failures aren't
+        // entirely invisible; a Tailwind/HMR storm or container crash
+        // will appear in the console.
+        Effect.catch(error =>
+          Effect.sync(() => {
+            console.error(
+              `[playground] Debounced write failed for ${path}:`,
+              error,
+            )
+          }),
+        ),
+        Effect.forkDetach,
+      )
+      pendingWrites.set(path, fiber)
+      return Message.ScheduledWritePlaygroundFile()
+    }).pipe(
+      Effect.catchTag('ResourceNotAvailable', () =>
+        Effect.succeed(
+          Message.FailedWritePlaygroundFile({
+            reason: 'WebContainer not yet ready',
+          }),
+        ),
       ),
-      Effect.forkDetach,
-    )
-    pendingWrites.set(path, fiber)
-    return ScheduledWritePlaygroundFile()
-  }).pipe(
-    Effect.catchTag('ResourceNotAvailable', () =>
-      Effect.succeed(
-        FailedWritePlaygroundFile({ reason: 'WebContainer not yet ready' }),
+      Effect.catch(error =>
+        Effect.succeed(
+          Message.FailedWritePlaygroundFile({ reason: reasonFromError(error) }),
+        ),
       ),
     ),
-    Effect.catch(error =>
-      Effect.succeed(
-        FailedWritePlaygroundFile({ reason: reasonFromError(error) }),
-      ),
-    ),
-  ),
-)
+})
 
 // UPDATE
-
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message, never, WebContainerPlaygroundService>>,
-]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const appendDeduped = (
   paths: ReadonlyArray<string>,
@@ -633,64 +641,81 @@ const flushDirtyPaths = (
     ),
   )
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tags({
-      BootedPlayground: ({ previewUrl }) => [
-        evo(model, {
-          state: () => PlaygroundStateBooted({ previewUrl }),
+const markPreviewLoaded = (
+  state: PlaygroundState,
+  previewUrl: string,
+): PlaygroundState =>
+  Match.value(state).pipe(
+    Match.tag('Booted', bootedState => {
+      const nextPreview = PlaygroundPreview.load(
+        bootedState.preview,
+        previewUrl,
+      )
+      if (nextPreview === bootedState.preview) {
+        return state
+      } else {
+        return PlaygroundState.Booted({ preview: nextPreview })
+      }
+    }),
+    Match.orElse(() => state),
+  )
+
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message, WebContainerPlaygroundService>>(
+    message,
+    {
+      BootedPlayground: ({ previewUrl }) => ({
+        model: evo(model, {
+          state: () =>
+            PlaygroundState.Booted({
+              preview: PlaygroundPreview.start(previewUrl),
+            }),
           dirtyPaths: () => [],
           lastWriteError: () => Option.none(),
         }),
-        flushDirtyPaths(model),
-      ],
-      FailedBootPlayground: ({ reason }) => [
-        evo(model, { state: () => PlaygroundStateFailed({ reason }) }),
-        [],
-      ],
-      ReleasedPlayground: () => [
-        evo(model, { state: () => PlaygroundStateIdle() }),
-        [],
-      ],
-      GotFileTabsMessage: ({ message: tabsMessage }) => {
-        const [nextTabs, tabsCommands] = PlaygroundFileTabs.update(
-          model.fileTabs,
-          tabsMessage,
-        )
-        return [
-          evo(model, { fileTabs: () => nextTabs }),
-          Command.mapMessages(tabsCommands, message =>
-            GotFileTabsMessage({ message }),
-          ),
-        ]
-      },
+        commands: flushDirtyPaths(model),
+      }),
+      FailedBootPlayground: ({ reason }) => ({
+        model: evo(model, {
+          state: () => PlaygroundState.Failed({ reason }),
+        }),
+      }),
+      ReleasedPlayground: () => ({
+        model: evo(model, {
+          state: () => PlaygroundState.Idle(),
+        }),
+      }),
+      LoadedPlaygroundPreview: ({ previewUrl }) => ({
+        model: evo(model, {
+          state: state => markPreviewLoaded(state, previewUrl),
+        }),
+      }),
+      GotFileTabsMessage: ({ message: tabsMessage }) =>
+        foldPlaygroundFileTabs(model, tabsMessage),
       EditedPlaygroundFile: ({ path, content }) => {
-        const isBooted = model.state._tag === 'PlaygroundStateBooted'
-        return [
-          evo(model, {
+        const isBooted = model.state._tag === 'Booted'
+        return {
+          model: evo(model, {
             files: Record.set(path, content),
             dirtyPaths: existing =>
               isBooted ? existing : appendDeduped(existing, path),
           }),
-          isBooted ? [WritePlaygroundFile({ path, content })] : [],
-        ]
+          commands: isBooted ? [WritePlaygroundFile({ path, content })] : [],
+        }
       },
-      FailedMountPlaygroundEditor: ({ reason }) => [
-        evo(model, { state: () => PlaygroundStateFailed({ reason }) }),
-        [],
-      ],
-      ScheduledWritePlaygroundFile: () => [
-        evo(model, { lastWriteError: () => Option.none() }),
-        [],
-      ],
-      FailedWritePlaygroundFile: ({ reason }) => [
-        evo(model, { lastWriteError: () => Option.some(reason) }),
-        [],
-      ],
-    }),
-    M.tag('SucceededMountPlaygroundEditor', () => [model, []]),
-    M.exhaustive,
+      FailedMountPlaygroundEditor: ({ reason }) => ({
+        model: evo(model, {
+          state: () => PlaygroundState.Failed({ reason }),
+        }),
+      }),
+      ScheduledWritePlaygroundFile: () => ({
+        model: evo(model, { lastWriteError: () => Option.none() }),
+      }),
+      FailedWritePlaygroundFile: ({ reason }) => ({
+        model: evo(model, { lastWriteError: () => Option.some(reason) }),
+      }),
+      SucceededMountPlaygroundEditor: () => ({ model }),
+    },
   )
 
 // VIEW
@@ -704,49 +729,48 @@ const fileTabButtonClassName = clsx(
   'data-[selected]:bg-gray-200 data-[selected]:dark:bg-gray-800 data-[selected]:text-gray-900 data-[selected]:dark:text-gray-100 hover:cursor-pointer',
 )
 
-const backToExampleButton = (maybeMeta: Option.Option<ExampleMeta>): Html => {
-  const h = html()
-
-  return Option.match(maybeMeta, {
+const backToExampleButton = (maybeMeta: Option.Option<ExampleMeta>): Html =>
+  Option.match(maybeMeta, {
     onNone: () =>
-      h.a(
-        [h.Href(examplesRouter()), h.Class('cta-secondary')],
+      ih.a(
+        [ih.Href(examplesRouter()), ih.Class('cta-secondary')],
         [Icon.chevronLeft('w-4 h-4'), 'All Examples'],
       ),
     onSome: meta =>
-      h.a(
+      ih.a(
         [
-          h.Href(exampleDetailRouter({ exampleSlug: meta.slug })),
-          h.Class('cta-secondary'),
+          ih.Href(exampleDetailRouter({ exampleSlug: meta.slug })),
+          ih.Class('cta-secondary'),
         ],
         [Icon.chevronLeft('w-4 h-4'), `Back to ${meta.title}`],
       ),
   })
-}
 
 const messageView = (
   heading: string,
   body: string,
   maybeMeta: Option.Option<ExampleMeta>,
-): Html => {
-  const h = html()
-
-  return h.div(
-    [h.Class('flex-1 flex items-center justify-center px-6 py-20 text-center')],
+): Html =>
+  ih.div(
     [
-      h.div(
-        [h.Class('max-w-md flex flex-col items-center')],
+      ih.Class(
+        'flex-1 flex items-center justify-center px-6 py-20 text-center',
+      ),
+    ],
+    [
+      ih.div(
+        [ih.Class('max-w-md flex flex-col items-center')],
         [
-          h.div(
+          ih.div(
             [
-              h.Class(
+              ih.Class(
                 'text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2',
               ),
             ],
             [heading],
           ),
-          h.div(
-            [h.Class('text-sm text-gray-600 dark:text-gray-400 mb-6')],
+          ih.div(
+            [ih.Class('text-sm text-gray-600 dark:text-gray-400 mb-6')],
             [body],
           ),
           backToExampleButton(maybeMeta),
@@ -754,193 +778,195 @@ const messageView = (
       ),
     ],
   )
-}
 
-const spinnerView = (): Html => {
-  const h = html()
-  return h.div(
+const spinnerView = (): Html =>
+  ih.div([
+    ih.Class(
+      'w-8 h-8 mb-6 rounded-full border-2 border-gray-300 dark:border-gray-700 border-t-gray-900 dark:border-t-gray-100 animate-spin',
+    ),
+    ih.AriaLabel('Loading'),
+    ih.Role('status'),
+  ])
+
+const bootingPanelView = (heading: string, body: string): Html =>
+  ih.div(
     [
-      h.Class(
-        'w-8 h-8 mb-6 rounded-full border-2 border-gray-300 dark:border-gray-700 border-t-gray-900 dark:border-t-gray-100 animate-spin',
+      ih.Class(
+        'flex-1 flex items-center justify-center px-6 py-20 text-center',
       ),
-      h.AriaLabel('Loading'),
-      h.Role('status'),
     ],
-    [],
-  )
-}
-
-const bootingPanelView = (heading: string, body: string): Html => {
-  const h = html()
-  return h.div(
-    [h.Class('flex-1 flex items-center justify-center px-6 py-20 text-center')],
     [
-      h.div(
-        [h.Class('max-w-sm flex flex-col items-center')],
+      ih.div(
+        [ih.Class('max-w-sm flex flex-col items-center')],
         [
           spinnerView(),
-          h.div(
-            [h.Class('text-base font-semibold text-gray-900 mb-2')],
+          ih.div(
+            [ih.Class('text-base font-semibold text-gray-900 mb-2')],
             [heading],
           ),
-          h.div([h.Class('text-sm text-gray-600')], [body]),
+          ih.div([ih.Class('text-sm text-gray-600')], [body]),
         ],
       ),
     ],
   )
-}
 
-const failurePanelView = (reason: string): Html => {
-  const h = html()
-  return h.div(
-    [h.Class('flex-1 flex items-center justify-center px-6 py-20 text-center')],
+const failurePanelView = (reason: string): Html =>
+  ih.div(
     [
-      h.div(
-        [h.Class('max-w-sm flex flex-col items-center')],
+      ih.Class(
+        'flex-1 flex items-center justify-center px-6 py-20 text-center',
+      ),
+    ],
+    [
+      ih.div(
+        [ih.Class('max-w-sm flex flex-col items-center')],
         [
-          h.div(
-            [h.Class('text-base font-semibold text-gray-900 mb-2')],
+          ih.div(
+            [ih.Class('text-base font-semibold text-gray-900 mb-2')],
             ['Playground failed to load'],
           ),
-          h.div([h.Class('text-sm text-gray-600')], [reason]),
+          ih.div([ih.Class('text-sm text-gray-600')], [reason]),
         ],
       ),
     ],
   )
-}
 
 const editorPanelContent = (
   path: string,
   content: string,
   files: Readonly<Record<string, string>>,
-): Html => {
-  const h = html<Message>()
-
-  return h.div(
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
     [h.Class('flex-1 min-w-0 min-h-0 flex flex-col bg-[#1e1e1e] text-sm')],
     [
-      h.keyed('div')(
-        `editor-${path}`,
-        [
-          h.Class('flex-1 min-h-0 min-w-0 overflow-hidden'),
-          h.OnMount(PlaygroundEditor({ path, initialContent: content, files })),
-        ],
-        [],
-      ),
+      h.keyed('div')(`editor-${path}`, [
+        h.Class('flex-1 min-h-0 min-w-0 overflow-hidden'),
+        h.OnMount(PlaygroundEditor({ path, initialContent: content, files })),
+      ]),
     ],
   )
-}
 
-const previewPaneView = (state: PlaygroundState): Html => {
-  const h = html()
-
-  return h.div(
+const previewPaneView = (
+  state: PlaygroundState,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
     [
       h.Class(
         'flex-1 min-w-0 min-h-0 flex flex-col border-l max-playground-wide:border-l-0 max-playground-wide:border-t border-gray-200 dark:border-gray-800 bg-white',
       ),
     ],
     [
-      h.keyed('div')(
-        state._tag,
+      h.div(
         [h.Class('flex-1 min-w-0 min-h-0 flex flex-col')],
         [
-          M.value(state).pipe(
-            M.tagsExhaustive({
-              PlaygroundStateIdle: () =>
+          PlaygroundState.match(state, {
+            Idle: () =>
+              bootingPanelView(
+                'Starting playground…',
+                'The preview will appear when the development environment is ready.',
+              ),
+            Booting: () =>
+              bootingPanelView(
+                'Starting playground…',
+                'The first load can take about 30 seconds. The preview will appear when the development environment is ready.',
+              ),
+            Booted: ({ preview }) =>
+              PlaygroundPreview.view(
+                preview,
+                Message.LoadedPlaygroundPreview({
+                  previewUrl: preview.previewUrl,
+                }),
                 bootingPanelView(
-                  'Starting playground…',
-                  'Hang tight. The preview will appear automatically.',
+                  'Preparing preview…',
+                  'The server is running. The preview will appear when the page finishes loading.',
                 ),
-              PlaygroundStateBooting: () =>
-                bootingPanelView(
-                  'Starting playground…',
-                  'Hang tight. The preview will appear automatically. First load takes about 30 seconds.',
-                ),
-              PlaygroundStateBooted: ({ previewUrl }) =>
-                h.iframe(
-                  [
-                    h.Src(previewUrl),
-                    h.Allow('cross-origin-isolated'),
-                    h.Class('w-full h-full border-0'),
-                    h.Title('Foldkit Playground'),
-                  ],
-                  [],
-                ),
-              PlaygroundStateFailed: ({ reason }) => failurePanelView(reason),
-            }),
-          ),
+                h,
+              ),
+            Failed: ({ reason }) => failurePanelView(reason),
+          }),
         ],
       ),
     ],
   )
-}
 
-const writeErrorBannerView = (maybeError: Option.Option<string>): Html => {
-  const h = html()
-  return Option.match(maybeError, {
-    onNone: () => h.div([h.Class('hidden')], []),
+const writeErrorBannerView = (maybeError: Option.Option<string>): Html =>
+  Option.match(maybeError, {
+    onNone: () => ih.div([ih.Class('hidden')]),
     onSome: reason =>
-      h.div(
+      ih.div(
         [
-          h.Class(
+          ih.Class(
             'shrink-0 px-4 py-2 text-xs border-b border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950 text-red-900 dark:text-red-200',
           ),
-          h.Role('alert'),
+          ih.Role('alert'),
         ],
         [`Playground write failed: ${reason}`],
       ),
   })
-}
 
-const tooNarrowMessageView = (): Html => {
-  const h = html()
-  return h.div(
+const tooNarrowMessageView = (): Html =>
+  ih.div(
     [
-      h.Class(
+      ih.Class(
         'flex-1 hidden max-md:flex items-center justify-center px-6 py-20 text-center',
       ),
     ],
     [
-      h.div(
-        [h.Class('max-w-md flex flex-col items-center')],
+      ih.div(
+        [ih.Class('max-w-md flex flex-col items-center')],
         [
-          h.div(
+          ih.div(
             [
-              h.Class(
+              ih.Class(
                 'text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2',
               ),
             ],
-            ['Playground needs a wider screen'],
+            ['Use a wider screen'],
           ),
-          h.div(
-            [h.Class('text-sm text-gray-600 dark:text-gray-400')],
-            ['The live editor + preview layout needs a wider screen.'],
+          ih.div(
+            [ih.Class('text-sm text-gray-600 dark:text-gray-400')],
+            ['The live editor and preview need more horizontal space.'],
           ),
         ],
       ),
     ],
   )
-}
 
-const responsiveEditorView = (model: Model): Html => {
-  const h = html<Message>()
-  return h.div(
+const responsiveEditorView = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.div(
     [h.Class('flex-1 min-h-0 flex flex-col')],
     [
       tooNarrowMessageView(),
       h.div(
         [h.Class('flex-1 min-h-0 min-w-0 flex max-md:hidden')],
-        [editorLayoutView(model)],
+        [editorLayoutView(model, h)],
       ),
     ],
   )
-}
 
 const PlaygroundFileTabs = Tabs.create<string>()
 
-const editorLayoutView = (model: Model): Html => {
-  const h = html<Message>()
+const foldPlaygroundFileTabsOutMessage = Tabs.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Selected:
+    ({ value }) =>
+    model => ({
+      model: evo(model, { activeFilePath: () => value }),
+    }),
+})
+
+const foldPlaygroundFileTabs = Update.foldChild({
+  update: PlaygroundFileTabs.update,
+  read: (model: Model) => Option.some(model.fileTabs),
+  write: (model, nextFileTabs) => evo(model, { fileTabs: () => nextFileTabs }),
+  toParentMessage: message => Message.GotFileTabsMessage({ message }),
+  foldOutMessage: foldPlaygroundFileTabsOutMessage,
+})
+
+const editorLayoutView = (model: Model, h: HtmlBuilder<Message>): Html => {
   const paths = sortedPaths(model.files)
   return h.div(
     [h.Class('flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden')],
@@ -955,6 +981,7 @@ const editorLayoutView = (model: Model): Html => {
             view: PlaygroundFileTabs.view,
             viewInputs: {
               tabs: paths,
+              selectedValue: model.activeFilePath,
               ariaLabel: 'Playground files',
               orientation: 'Vertical',
               toView: ({ tablist, tabs, activeIndex }) =>
@@ -995,6 +1022,7 @@ const editorLayoutView = (model: Model): Html => {
                                 Option.getOrElse(() => ''),
                               ),
                               model.files,
+                              h,
                             ),
                           ],
                         ),
@@ -1002,27 +1030,33 @@ const editorLayoutView = (model: Model): Html => {
                   ],
                 ),
             },
-            toParentMessage: message => GotFileTabsMessage({ message }),
+            toParentMessage: message => Message.GotFileTabsMessage({ message }),
           }),
-          previewPaneView(model.state),
+          previewPaneView(model.state, h),
         ],
       ),
     ],
   )
 }
 
-type ViewInputs = Readonly<{ isChromium: boolean }>
+type ViewInputs = Readonly<{ maybeIsChromium: Option.Option<boolean> }>
 
 export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { isChromium }): Html => {
-    const h = html<Message>()
-
+  (model, { maybeIsChromium }, h): Html => {
     const maybeMeta = findBySlug(model.slug)
     const maybeFiles = Option.fromNullishOr(filesBySlug[model.slug])
 
-    const content = M.value({ isChromium, maybeMeta, maybeFiles }).pipe(
-      M.when(
-        ({ isChromium }) => !isChromium,
+    const content = Match.value({
+      maybeIsChromium,
+      maybeMeta,
+      maybeFiles,
+    }).pipe(
+      Match.when(
+        ({ maybeIsChromium }) => Option.isNone(maybeIsChromium),
+        () => h.empty,
+      ),
+      Match.when(
+        ({ maybeIsChromium }) => Option.contains(maybeIsChromium, false),
         () =>
           messageView(
             'Playground requires a Chromium browser',
@@ -1030,7 +1064,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
             maybeMeta,
           ),
       ),
-      M.orElse(() =>
+      Match.orElse(() =>
         Option.match(Option.all([maybeMeta, maybeFiles]), {
           onNone: () =>
             messageView(
@@ -1038,7 +1072,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
               'This example is not yet available in the embedded playground. Open its example detail page to see it running.',
               maybeMeta,
             ),
-          onSome: () => responsiveEditorView(model),
+          onSome: () => responsiveEditorView(model, h),
         }),
       ),
     )

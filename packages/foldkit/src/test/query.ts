@@ -2,12 +2,12 @@ import {
   Array,
   Equal,
   Match,
-  Number as Number_,
+  Number,
   Option,
   Predicate,
   Record,
   Result,
-  String as String_,
+  String,
   flow,
   pipe,
 } from 'effect'
@@ -48,7 +48,7 @@ const matchGroup =
   (input: string): Option.Option<MatchResult> =>
     pipe(
       input,
-      String_.match(regex),
+      String.match(regex),
       Option.flatMap(match =>
         pipe(
           match,
@@ -108,7 +108,7 @@ const tryParseAttribute = (
 ): Option.Option<SimpleSelector> =>
   pipe(
     input,
-    String_.match(ATTRIBUTE_PATTERN),
+    String.match(ATTRIBUTE_PATTERN),
     Option.flatMap(match =>
       pipe(
         match,
@@ -134,7 +134,7 @@ const parseModifiers = (
   input: string,
   accumulator: SimpleSelector,
 ): SimpleSelector => {
-  if (String_.isEmpty(input)) return accumulator
+  if (String.isEmpty(input)) return accumulator
 
   return pipe(
     tryParseId(input, accumulator),
@@ -153,7 +153,7 @@ const parseModifiers = (
 const parseCompoundSelector = (segment: string): SimpleSelector =>
   pipe(
     segment,
-    String_.match(TAG_PATTERN),
+    String.match(TAG_PATTERN),
     Option.match({
       onNone: () => parseModifiers(segment, emptySelector),
       onSome: match =>
@@ -165,8 +165,8 @@ const parseCompoundSelector = (segment: string): SimpleSelector =>
   )
 
 export const parseSelector = (input: string): Selector => {
-  const trimmed = String_.trim(input)
-  if (String_.isEmpty(trimmed)) {
+  const trimmed = String.trim(input)
+  if (String.isEmpty(trimmed)) {
     throw new Error(
       'I received an empty selector.\n\n' +
         'Provide a CSS selector like "button", "#email", or \'[role="tab"]\'.',
@@ -175,7 +175,7 @@ export const parseSelector = (input: string): Selector => {
 
   return pipe(
     trimmed,
-    String_.split(WHITESPACE_PATTERN),
+    String.split(WHITESPACE_PATTERN),
     Array.map(parseCompoundSelector),
   )
 }
@@ -194,7 +194,41 @@ const lookupAttribute =
 const lookupStringAttribute =
   (name: string) =>
   (vnode: VNode): Option.Option<string> =>
-    pipe(vnode, lookupAttribute(name), Option.map(String))
+    pipe(vnode, lookupAttribute(name), Option.map(globalThis.String))
+
+/** Returns whether an element is hidden from the accessibility tree. */
+export const isHidden = (vnode: VNode): boolean => {
+  const maybeHiddenProperty = Option.fromNullishOr(
+    vnode.data?.props?.['hidden'],
+  )
+  if (Option.exists(maybeHiddenProperty, Boolean)) {
+    return true
+  }
+  if (Option.isNone(maybeHiddenProperty)) {
+    const maybeHiddenAttribute = Option.fromNullishOr(
+      vnode.data?.attrs?.['hidden'],
+    )
+    if (
+      Option.isSome(maybeHiddenAttribute) &&
+      maybeHiddenAttribute.value !== false
+    ) {
+      return true
+    }
+  }
+  const maybeAriaHidden = lookupStringAttribute('aria-hidden')(vnode)
+  if (Option.isSome(maybeAriaHidden) && maybeAriaHidden.value === 'true') {
+    return true
+  }
+  const display = vnode.data?.style?.['display']
+  if (display === 'none') {
+    return true
+  }
+  const visibility = vnode.data?.style?.['visibility']
+  if (visibility === 'hidden') {
+    return true
+  }
+  return false
+}
 
 const isElement = (node: VNode): boolean => !Predicate.isUndefined(node.sel)
 
@@ -293,7 +327,7 @@ const matchesAttribute =
         vnode.key,
         Option.fromNullishOr,
         Option.map(key =>
-          typeof key === 'symbol' ? key.toString() : String(key),
+          typeof key === 'symbol' ? key.toString() : globalThis.String(key),
         ),
         matchesValue(value, mode),
       )
@@ -303,7 +337,7 @@ const matchesAttribute =
       vnode,
       lookupAttribute(name),
       Option.filter(actual => actual !== false),
-      Option.map(String),
+      Option.map(globalThis.String),
       matchesValue(value, mode),
     )
   }
@@ -400,7 +434,8 @@ const imgRole = (vnode: VNode): string =>
     lookupAttribute('alt'),
     Option.match({
       onNone: () => 'img',
-      onSome: value => (String(value) === '' ? 'presentation' : 'img'),
+      onSome: value =>
+        globalThis.String(value) === '' ? 'presentation' : 'img',
     }),
   )
 
@@ -497,10 +532,7 @@ const resolveRoles =
       vnode,
       lookupStringAttribute('role'),
       Option.map(
-        flow(
-          String_.split(WHITESPACE_PATTERN),
-          Array.filter(String_.isNonEmpty),
-        ),
+        flow(String.split(WHITESPACE_PATTERN), Array.filter(String.isNonEmpty)),
       ),
       Option.getOrElse(() => Option.toArray(implicitRole(root)(vnode))),
     )
@@ -508,7 +540,27 @@ const resolveRoles =
 // ACCESSIBLE NAME
 
 const nonEmptyString = (value: unknown): Option.Option<string> =>
-  Option.filter(Option.some(String(value)), String_.isNonEmpty)
+  Option.filter(Option.some(globalThis.String(value)), String.isNonEmpty)
+
+const accessibleTextContent = (vnode: VNode): string => {
+  if (Predicate.isString(vnode.text)) {
+    return vnode.text
+  }
+
+  return pipe(
+    vnode.children ?? [],
+    Array.map(child => {
+      if (Predicate.isString(child)) {
+        return child
+      }
+      return isHidden(child) ? '' : accessibleTextContent(child)
+    }),
+    Array.join(''),
+  )
+}
+
+const referencedTextContent = (vnode: VNode): string =>
+  isHidden(vnode) ? textContent(vnode) : accessibleTextContent(vnode)
 
 const nameFromLabelledBy =
   (root: VNode) =>
@@ -520,18 +572,18 @@ const nameFromLabelledBy =
       Option.map(labelledBy =>
         pipe(
           labelledBy,
-          String_.split(WHITESPACE_PATTERN),
+          String.split(WHITESPACE_PATTERN),
           Array.filterMap(
             flow(
               findById(root),
-              Option.map(textContent),
+              Option.map(referencedTextContent),
               Result.fromOption(() => undefined),
             ),
           ),
           Array.join(' '),
         ),
       ),
-      Option.filter(String_.isNonEmpty),
+      Option.filter(String.isNonEmpty),
     )
 
 const nameFromAriaLabel = (vnode: VNode): Option.Option<string> =>
@@ -555,13 +607,13 @@ const nameFromLabelFor =
                 Option.exists(Equal.equals(idString)),
               ),
           ),
-          Option.map(textContent),
+          Option.map(referencedTextContent),
         ),
       ),
     )
 
 const nameFromTextContent = (vnode: VNode): Option.Option<string> =>
-  Option.filter(Option.some(textContent(vnode)), String_.isNonEmpty)
+  Option.filter(Option.some(accessibleTextContent(vnode)), String.isNonEmpty)
 
 const nameFromTitle = (vnode: VNode): Option.Option<string> =>
   pipe(vnode, lookupAttribute('title'), Option.flatMap(nonEmptyString))
@@ -577,7 +629,8 @@ const nameFromChildTag =
     pipe(
       vnode,
       findFirstDirectChildWithTag(childTag),
-      Option.map(textContent),
+      Option.filter(child => !isHidden(child)),
+      Option.map(accessibleTextContent),
       Option.flatMap(nonEmptyString),
     )
 
@@ -613,7 +666,7 @@ const nameFromNativeHost = (vnode: VNode): Option.Option<string> =>
 /** Computes the accessible name of an element. Resolves via
  *  `aria-labelledby`, `aria-label`, `<label for>`, native host language
  *  attributes and child elements (img/area alt, input value/alt,
- *  fieldset legend, figure figcaption, table caption), text content,
+ *  fieldset legend, figure figcaption, table caption), accessible text content,
  *  then `title`. */
 export const accessibleName =
   (root: VNode) =>
@@ -641,11 +694,11 @@ export const accessibleDescription =
       Option.match({
         onNone: () => '',
         onSome: flow(
-          String_.split(WHITESPACE_PATTERN),
+          String.split(WHITESPACE_PATTERN),
           Array.filterMap(
             flow(
               findById(root),
-              Option.map(textContent),
+              Option.map(referencedTextContent),
               Result.fromOption(() => undefined),
             ),
           ),
@@ -685,10 +738,8 @@ const findAllImpl =
 export const find: {
   (html: VNode, selectorString: string): Option.Option<VNode>
   (selectorString: string): (html: VNode) => Option.Option<VNode>
-} = dual(
-  2,
-  (html: VNode, selectorString: string): Option.Option<VNode> =>
-    pipe(html, findAllImpl(selectorString), Array.head),
+} = dual(2, (html: VNode, selectorString: string): Option.Option<VNode> =>
+  pipe(html, findAllImpl(selectorString), Array.head),
 )
 
 /** Finds all VNodes matching the CSS selector. */
@@ -732,7 +783,7 @@ const attrImpl = (vnode: VNode, name: string): Option.Option<string> => {
           Array.join(' '),
         ),
       ),
-      Option.filter(String_.isNonEmpty),
+      Option.filter(String.isNonEmpty),
     )
   }
 
@@ -753,16 +804,16 @@ const headingLevelFromTag = (vnode: VNode): Option.Option<number> =>
   pipe(
     vnode.sel,
     Option.fromNullishOr,
-    Option.flatMap(String_.match(HEADING_LEVEL_PATTERN)),
-    Option.map(match => Number(match[1])),
+    Option.flatMap(String.match(HEADING_LEVEL_PATTERN)),
+    Option.map(match => globalThis.Number(match[1])),
   )
 
 const ariaLevel = (vnode: VNode): Option.Option<number> =>
   pipe(
     vnode,
     lookupStringAttribute('aria-level'),
-    Option.flatMap(Number_.parse),
-    Option.filter(value => !Number.isNaN(value)),
+    Option.flatMap(Number.parse),
+    Option.filter(value => !globalThis.Number.isNaN(value)),
   )
 
 const resolveLevel = (vnode: VNode): Option.Option<number> =>
@@ -774,7 +825,7 @@ const ariaTriStateMatches =
     pipe(
       vnode,
       lookupStringAttribute(attribute),
-      Option.exists(value => value === String(expected)),
+      Option.exists(value => value === globalThis.String(expected)),
     )
 
 const checkedMatches =
@@ -807,7 +858,7 @@ const disabledMatches =
   (vnode: VNode): boolean => {
     const ariaValue = lookupStringAttribute('aria-disabled')(vnode)
     if (Option.isSome(ariaValue)) {
-      return ariaValue.value === String(expected)
+      return ariaValue.value === globalThis.String(expected)
     }
     const disabled = pipe(
       vnode,
@@ -922,7 +973,7 @@ export const getByText =
       const nodeText = textContent(node)
       return exact
         ? nodeText === target || hasDirectTextNodeMatch(node, target)
-        : String_.includes(target)(nodeText)
+        : String.includes(target)(nodeText)
     }
 
     return pipe(
@@ -1066,7 +1117,7 @@ export const getAllByText =
       const nodeText = textContent(node)
       return exact
         ? nodeText === target || hasDirectTextNodeMatch(node, target)
-        : String_.includes(target)(nodeText)
+        : String.includes(target)(nodeText)
     })
   }
 
@@ -1164,7 +1215,7 @@ const describeRoleOptions = (options: RoleOptions): string => {
  *  `name`, `level`, `checked`, `selected`, `pressed`, `expanded`, and `disabled`. */
 export const role = (roleValue: string, options?: RoleOptions): Locator => {
   const optionsDescription = options ? describeRoleOptions(options) : ''
-  const description = String_.isEmpty(optionsDescription)
+  const description = String.isEmpty(optionsDescription)
     ? roleValue
     : `${roleValue} ${optionsDescription}`
   return makeLocator(getByRole(roleValue, options), description)
@@ -1214,13 +1265,11 @@ export const selector = (css: string): Locator =>
 export const within: {
   (parent: Locator, child: Locator): Locator
   (child: Locator): (parent: Locator) => Locator
-} = dual(
-  2,
-  (parent: Locator, child: Locator): Locator =>
-    makeLocator(
-      flow(parent, Option.flatMap(child)),
-      `${child.description} within ${parent.description}`,
-    ),
+} = dual(2, (parent: Locator, child: Locator): Locator =>
+  makeLocator(
+    flow(parent, Option.flatMap(child)),
+    `${child.description} within ${parent.description}`,
+  ),
 )
 
 // LOCATOR-ALL FACTORIES
@@ -1231,7 +1280,7 @@ export const allRole = (
   options?: RoleOptions,
 ): LocatorAll => {
   const optionsDescription = options ? describeRoleOptions(options) : ''
-  const description = String_.isEmpty(optionsDescription)
+  const description = String.isEmpty(optionsDescription)
     ? roleValue
     : `${roleValue} ${optionsDescription}`
   return makeLocatorAll(getAllByRole(roleValue, options), `all ${description}`)
@@ -1295,13 +1344,11 @@ export const last = (locatorAll: LocatorAll): Locator =>
 export const nth: {
   (locatorAll: LocatorAll, index: number): Locator
   (index: number): (locatorAll: LocatorAll) => Locator
-} = dual(
-  2,
-  (locatorAll: LocatorAll, index: number): Locator =>
-    makeLocator(
-      flow(locatorAll, Array.get(index)),
-      `nth(${index}) of ${locatorAll.description}`,
-    ),
+} = dual(2, (locatorAll: LocatorAll, index: number): Locator =>
+  makeLocator(
+    flow(locatorAll, Array.get(index)),
+    `nth(${index}) of ${locatorAll.description}`,
+  ),
 )
 
 type FilterOptions = Readonly<{
@@ -1328,30 +1375,28 @@ const describeFilterOptions = (options: FilterOptions): string => {
 export const filter: {
   (locatorAll: LocatorAll, options: FilterOptions): LocatorAll
   (options: FilterOptions): (locatorAll: LocatorAll) => LocatorAll
-} = dual(
-  2,
-  (locatorAll: LocatorAll, options: FilterOptions): LocatorAll =>
-    makeLocatorAll(
-      html =>
-        Array.filter(locatorAll(html), match => {
-          if (options.has && Option.isNone(options.has(match))) return false
-          if (options.hasNot && Option.isSome(options.hasNot(match))) {
+} = dual(2, (locatorAll: LocatorAll, options: FilterOptions): LocatorAll =>
+  makeLocatorAll(
+    html =>
+      Array.filter(locatorAll(html), match => {
+        if (options.has && Option.isNone(options.has(match))) return false
+        if (options.hasNot && Option.isSome(options.hasNot(match))) {
+          return false
+        }
+        if (options.hasText !== undefined) {
+          if (!String.includes(options.hasText)(textContent(match))) {
             return false
           }
-          if (options.hasText !== undefined) {
-            if (!String_.includes(options.hasText)(textContent(match))) {
-              return false
-            }
+        }
+        if (options.hasNotText !== undefined) {
+          if (String.includes(options.hasNotText)(textContent(match))) {
+            return false
           }
-          if (options.hasNotText !== undefined) {
-            if (String_.includes(options.hasNotText)(textContent(match))) {
-              return false
-            }
-          }
-          return true
-        }),
-      `${locatorAll.description} filtered by (${describeFilterOptions(options)})`,
-    ),
+        }
+        return true
+      }),
+    `${locatorAll.description} filtered by (${describeFilterOptions(options)})`,
+  ),
 )
 
 /** Resolves a target (CSS selector string or Locator) against a VNode tree. */

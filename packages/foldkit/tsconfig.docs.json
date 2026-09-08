@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "rootDir": "."
+  },
+  "include": ["typedoc-entry.test.ts", "typedoc-entry.ts", "src/vite-env.d.ts"]
+}

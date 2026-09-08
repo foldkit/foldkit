@@ -7,12 +7,13 @@ export {
   schemaSegment,
   root,
   rest,
+  restString,
   oneOf,
   mapTo,
   slash,
   query,
   parseUrlWithFallback,
-  r,
+  defineRouteUnion,
 } from './index.js'
 
 export type {
@@ -22,4 +23,7 @@ export type {
   TerminalParser,
   ExtendableBiparser,
   Parser,
+  RouteUnion,
 } from './index.js'
+
+export * as Transition from './transition.js'

@@ -36,8 +36,8 @@ There are no escape hatches:
 
 - **Model** is the single source of truth: an Effect Schema struct
 - **Messages** are facts about what happened: past-tense, never imperative
-- **update** is a pure function: `(model, message) → [nextModel, commands]`
-- **view** is a pure function: `(model) → Html`
+- **update** is a pure function. It receives the current Model and a Message, then returns an `Update.Return<Model, Message>`
+- **view** is a pure function: `(model, h) → Html`, where `h` is the builder the runtime supplies
 - **Commands** are the only place side effects happen. They return Messages
 
 ## Core Invariants
@@ -57,7 +57,7 @@ These operations belong in Commands, which return their results as Messages.
 
 ### 2. view is Pure
 
-The view function takes the Model and returns Html. It must not:
+The view function takes the Model and the builder `h`, and returns Html. It must not:
 
 - Access external state
 - Perform side effects
@@ -68,9 +68,9 @@ Event handlers in the view dispatch Messages. They don't perform actions directl
 
 ### 3. Commands Catch All Errors
 
-Define Command identities with `Command.define`, which is curried: the first call binds the name (optional args schema, then result Message schemas), and the second call binds the Effect. Every Command must handle its own errors via `Effect.catch(() => Effect.succeed(FailedX(...)))` and convert them to Messages. Commands never throw, so the app never crashes from an unhandled side effect.
+Define Command identities with `Command.define`, whose second argument is a config object: `args` (optional) declares the args Schema, `messages` lists every Message the Command can produce, `execute` holds the Effect, and `interrupt` opts into interruption. Every Command must handle its own errors via `Effect.catch(() => Effect.succeed(Message.FailedX(...)))` and convert them to Messages. Commands never throw, so the app never crashes from an unhandled side effect.
 
-Always assign definitions to PascalCase constants. Never use `Command.define` inline in a pipe chain. Definitions live where they're produced, colocated with the update function. Let TypeScript infer Command return types. The result Message schemas constrain the Effect's return type at the type level.
+Always assign definitions to PascalCase constants. Never use `Command.define` inline in a pipe chain. Definitions live where they're produced, colocated with the update function. Let TypeScript infer Command return types. The `messages` array constrains the Effect's return type at the type level.
 
 For the canonical shapes, study the live examples directly. They stay synced with the API:
 
@@ -85,26 +85,58 @@ Use discriminated unions to make impossible states unrepresentable:
 
 ```ts
 // WRONG: boolean flags allow impossible combinations
-const Model = S.Struct({
-  isLoading: S.Boolean,
-  isError: S.Boolean,
-  data: S.Option(Data),
-  error: S.Option(S.String),
+const Model = Schema.Struct({
+  isLoading: Schema.Boolean,
+  isError: Schema.Boolean,
+  data: Schema.Option(Data),
+  error: Schema.Option(Schema.String),
 })
 
 // RIGHT: each state is a distinct variant
-const Idle = ts('Idle')
-const Loading = ts('Loading')
-const Error = ts('Error', { error: S.String })
-const Ok = ts('Ok', { data: Data })
-const DataState = S.Union([Idle, Loading, Error, Ok])
+const DataState = defineTaggedUnion({
+  Idle: {},
+  Loading: {},
+  Error: { error: Schema.String },
+  Ok: { data: Data },
+})
 
-const Model = S.Struct({
+const Model = Schema.Struct({
   dataState: DataState,
 })
 ```
 
 With booleans, you can have `isLoading: true` AND `isError: true`, an impossible state. With unions, you're always in exactly one state.
+
+For **remote data specifically**, don't hand-roll the union. The `AsyncData` module ships it:
+
+```ts
+import { AsyncData } from 'foldkit'
+
+const WeatherAsyncData = AsyncData.Schema(WeatherData, Schema.String)
+
+const Model = Schema.Struct({
+  weather: WeatherAsyncData.schema,
+})
+```
+
+That gives six states, not four: `Idle`, `Loading`, `Refreshing`, `Failure`, `Stale`, `Success`. The two extra ones are the reason to use it. `Refreshing` carries the previous data while a reload runs, so a refetch doesn't blank the screen. `Stale` carries both the previous data and the new error, so a failed reload doesn't discard what the user was reading. A hand-rolled `Idle | Loading | Error | Ok` forces both of those regressions.
+
+The module also supplies the operations: `AsyncData.match`, `matchData`, `isPending`, `hasData`, `getData`, `map`, `revalidate`, `revalidateOrLoad`, `loadIfMissing`, `zipWith`, `all`.
+
+`match` hands each branch the bare value rather than the tagged variant, with one exception:
+
+```ts
+AsyncData.match(model.notes, {
+  onIdle: () => h.empty,
+  onLoading: () => spinnerView,
+  onRefreshing: data => listView(data),
+  onFailure: error => errorView(error),
+  onStale: ({ error, data }) => staleView(error, data),
+  onSuccess: data => listView(data),
+})
+```
+
+`onRefreshing`, `onFailure`, and `onSuccess` each take one bare value. `onStale` takes `{ error, data }` because it carries both. `onIdle` and `onLoading` take nothing at all, since there is no payload in those states. Destructuring `({ data })` in `onSuccess` or `onRefreshing` is the easy mistake. Read `foldkit/asyncData`'s `public.d.ts` for the full surface. `repos/foldkit/examples/weather/src/main.ts` is the canonical use.
 
 ### 5. Messages Are Facts, Not Commands
 
@@ -112,28 +144,78 @@ Messages describe what happened, not what should happen. The update function dec
 
 ```ts
 // WRONG: imperative, tells the system what to do
-const FetchData = m('FetchData')
-const SetFilter = m('SetFilter', { filter: S.String })
-const ShowModal = m('ShowModal')
+const Message = defineMessageUnion({
+  FetchData: {},
+  SetFilter: { filter: Schema.String },
+  ShowModal: {},
+})
 
 // RIGHT: past-tense, describes what happened
-const ClickedRefresh = m('ClickedRefresh')
-const SelectedFilter = m('SelectedFilter', { filter: S.String })
-const ClickedOpenModal = m('ClickedOpenModal')
+const Message = defineMessageUnion({
+  ClickedRefresh: {},
+  SelectedFilter: { filter: Schema.String },
+  ClickedOpenModal: {},
+})
 ```
+
+## Update Return Types
+
+`foldkit/update` names the shape so you don't have to:
+
+```ts
+import { Update } from 'foldkit'
+
+const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    // ...
+  })
+```
+
+`Update.ReturnWithOutMessage<Model, Message, OutMessage>` is the Submodel counterpart, adding an optional `outMessage` field.
+
+Update, init, boot, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, they return it directly without checking whether it is empty. Never write the literal `commands: []`.
+
+Inline the return type when the matcher is its only use. Create an `UpdateReturn` alias when another matcher, helper, or exported signature reuses it. `Message.match<UpdateReturn>` constrains the whole update function, so do not repeat `: UpdateReturn` on its signature. When a domain union match inside a handler needs the same constraint, pass it as that union's `match` generic (`Submission.match<UpdateReturn>(submission, { ... })`). Use `Match.withReturnType<UpdateReturn>()` only on an Effect `Match` (a partial match, or a union without its own `match`).
+
+Use `Update.Return<Model, Message>` for an update that cannot emit an OutMessage. It prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. A result with no `outMessage` can still be used where `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is expected. The missing field means that update emitted no OutMessage. A hand-written plain-return type must preserve the `outMessage?: never` field.
+
+When composing another update-shaped result, bind the whole result to a value named after the operation and access its fields through that value. Use `homeInit`, `dialogClose`, or a trailing underscore such as `init_` when the operation name collides with the function. Do not destructure or rename `model`, `commands`, or `outMessage`. Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. Name a child fold's `write` parameter after the next child Model, such as `nextSettings`.
+
+Pass optional Commands directly to APIs that accept them, such as `Command.mapMessages(homeInit.commands, toParentMessage)`. Use `result.commands ?? []` only when the next operation requires a concrete array for spreading, concatenating, execution, or an assertion.
+
+Use `Update.combine` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly. Name an inline Step parameter `stepModel` when combining several; it receives the Model from the preceding Step. Manual unpacking of a child result usually means the site should use `Update.foldChild` or `Update.foldChildStep` instead. Independent child inits still need separate Model assembly because neither init consumes the Model produced by the other.
+
+When the OutMessage is already known while constructing a new result, include it directly: `{ model, commands, outMessage }`. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper: `pipe(dialogClose, Update.withOutMessage(outMessage))`. When constructing the plain return in the same expression, pass it first: `Update.withOutMessage({ model, commands }, outMessage)`. Add `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit `toParentOutMessage` when every variant stops here. `foldOutMessage` still handles each variant locally, including variants that continue upward. Never add `toParentOutMessage: () => undefined` only to change the fold's return type.
+
+The module also carries two combinators for handlers that fan out after a mutation succeeds:
+
+- `Update.combine(model, [step, step, ...])` sequences update steps over one Model, threading the Model through and collecting the Commands.
+- `Update.refresh({ read, revalidate, write, load })` builds a step that reloads a cache **only when it already holds data**. When a cache is `Idle`, the step returns `{ model }` and does not load it. A `Succeeded*` handler can therefore list every possibly affected cache without fetching caches nobody has opened.
+
+```ts
+SucceededUpdateNote: ({ note }) =>
+  Update.combine(model, [
+    replaceNoteInCaches(note),
+    refreshNote(note.id),
+    refreshAllNotes,
+    showToast('Success', `Updated ${note.title}`),
+  ])
+```
+
+`repos/foldkit/examples/route-transitions/src/main.ts` uses both.
 
 ## Flags: Side Effects That Seed the Initial Model
 
-When the initial Model needs data from a side effect (current time, localStorage, browser APIs), use flags, not module-level constants:
+When the initial Model needs data from a side effect (current time, localStorage, browser APIs), use Flags, not module-level constants:
 
 ```ts
 // WRONG: module-level side effect (stale on HMR, non-deterministic, untestable)
 const now = Date.now()
-const init = () => [{ createdAt: now }, []]
+const init = () => ({ model: { createdAt: now } })
 
-// RIGHT: flags run as an Effect before init, result passed in
-const Flags = S.Struct({
-  createdAt: S.Number,
+// RIGHT: Flags run as an Effect before init, result passed in
+const Flags = Schema.Struct({
+  createdAt: Schema.Number,
 })
 
 const flags: Effect.Effect<Flags> = Effect.gen(function* () {
@@ -141,31 +223,44 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   return Flags({ createdAt: now })
 })
 
-const init: Runtime.ApplicationInit<Model, Message, Flags> = (flags) => [
-  { createdAt: flags.createdAt },
-  [],
-]
+const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
+  model: { createdAt: flags.createdAt },
+})
 ```
 
-Flags are an `Effect<Flags>`. The runtime executes them once before init, and passes the result in. This keeps init pure while still allowing side effects to populate the initial Model. Common uses:
+For a fresh browser boot, Flags are produced by an `Effect<Flags>`. The runtime executes it once before init and passes the result in. This keeps init pure while still allowing side effects to populate the initial Model. Common uses:
 
 - Reading from localStorage/sessionStorage (restoring saved state)
 - Getting the current time
 - Reading browser capabilities (`navigator.language`, `matchMedia`)
-- Decoding data embedded in the HTML (`<script type="application/json">`)
 
-Pass `Flags` and `flags` to `Runtime.makeApplication`:
+When Flags restore a value that a Command saved to storage, define the persistence Schema once next to the saved Schema and use it for both decode and encode:
+
+```ts
+export const SavedBoardJsonString = Schema.fromJsonString(
+  Schema.toCodecJson(SavedBoard),
+)
+```
+
+`toCodecJson` turns the domain value into canonical JSON, then `fromJsonString` stringifies it. Leave it out and a field like `Schema.Option` writes Effect's runtime shape (`{_id:"Option",_tag:"None"}`) to storage. The next boot fails to decode it, the Flags `Effect.catch` falls back to the empty value, and the user's saved data looks gone. For a Schema that is already JSON-native, `toCodecJson` changes nothing on the wire, so composing it every time costs nothing.
+
+Declare the `Flags` Schema on `Runtime.makeApplication`, then pass the Effect to `Runtime.run`:
 
 ```ts
 const application = Runtime.makeApplication({
   Model,
   Flags,
-  flags,
   init,
   update,
   view,
 })
+
+Runtime.run(application, { flags })
 ```
+
+Hydrated applications do not provide a browser Flags Effect. `Runtime.hydrate(application, { buildId: import.meta.env.FOLDKIT_BUILD_ID })` decodes the exact Schema-encoded Flags payload emitted by the server. The build id is required and names the deployment the client belongs to; hydration compares it against the id the server stamped on the root before it reads the handoff at all. Missing or invalid server handoff data, and a page from another deployment, are fatal boot errors.
+
+A service used only at startup is discharged inside `flags` with `Effect.provide`, the same way a Command discharges its own (`Effect.provide(BrowserKeyValueStore.layerLocalStorage)`). When the service is an app-wide singleton that Commands also use, leave the requirement in the flags type as `Effect<Flags, never, ApiClientService>` and let `resources` provide it. The runtime builds that Layer once and shares it with Flags, Commands, and Subscriptions. Never provide the same Layer to `flags` and pass it as `resources`: that builds it twice and hands the app two instances of whatever it holds.
 
 ## The Submodel Pattern
 
@@ -173,54 +268,51 @@ When a module grows too large, extract a Submodel: a child module with its own M
 
 ### Communication
 
-Parent → Child: the parent calls the child's update with child Messages
-Child → Parent: the child returns an `Option<OutMessage>` as a third tuple element
+Parent → Child: the parent routes child Messages or folds an exported child entry point
+Child → Parent: the child returns a record with an optional `outMessage`
 
 ```ts
-// Child update return type
-type UpdateReturn = [
-  Model,
-  ReadonlyArray<Command<Message>>,
-  Option.Option<OutMessage>,
-]
-
 // Child signals to parent
-CreatedRoom: ({ roomId, player }) => [
-  model,
-  [],
-  Option.some(SucceededCreateRoom({ roomId, player })),
-]
-
-// Parent handles OutMessage
-GotChildMessage: ({ message }) => {
-  const [nextChildModel, childCommands, maybeOutMessage] = Child.update(
-    model.child,
+const update = (model: Model, message: Message) =>
+  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
     message,
+    {
+      CreatedRoom: ({ roomId, player }) => ({
+        model,
+        outMessage: OutMessage.SucceededCreateRoom({ roomId, player }),
+      }),
+    },
   )
 
-  const mappedCommands = childCommands.map(
-    Command.mapEffect(Effect.map(message => GotChildMessage({ message }))),
-  )
+// Parent folds the child update and handles its OutMessage
+const foldChildOutMessage = Child.OutMessage.match<
+  Update.Step<ParentModel, ParentMessage>
+>({
+  SucceededCreateRoom:
+    ({ roomId }) =>
+    model => ({
+      model,
+      commands: [navigateToRoom(roomId)],
+    }),
+})
 
-  return Option.match(maybeOutMessage, {
-    onNone: () => [evo(model, { child: () => nextChildModel }), mappedCommands],
-    onSome: outMessage =>
-      M.value(outMessage).pipe(
-        withUpdateReturn,
-        M.tagsExhaustive({
-          SucceededCreateRoom: ({ roomId }) => [
-            evo(model, { child: () => nextChildModel }),
-            [...mappedCommands, navigateToRoom(roomId)],
-          ],
-        }),
-      ),
+const foldChild = Update.foldChild({
+  update: Child.update,
+  read: (model: ParentModel) => Option.some(model.child),
+  write: (model, nextChild) => evo(model, { child: () => nextChild }),
+  toParentMessage: message => ParentMessage.GotChildMessage({ message }),
+  foldOutMessage: foldChildOutMessage,
+})
+
+const update = (model: ParentModel, message: ParentMessage) =>
+  ParentMessage.match<Update.Return<ParentModel, ParentMessage>>(message, {
+    GotChildMessage: ({ message }) => foldChild(model, message),
   })
-}
 ```
 
 ### View Delegation
 
-Child views are embedded via `h.submodel`. The child writes a pure `(model) => Html` view (no awareness of the parent); the parent declares the Message wrap as data at the embed site:
+Child views are embedded via `h.submodel`. The child writes a pure `(model, h) => Html` view (no awareness of the parent); the parent declares the Message wrap as data at the embed site:
 
 ```ts
 // Parent view
@@ -228,17 +320,16 @@ h.submodel({
   slotId: 'submit-section',
   view: Child.view,
   model: model.child,
-  toParentMessage: message => GotChildMessage({ message }),
+  toParentMessage: message => Message.GotChildMessage({ message }),
 })
 
 // Child view, branded with Submodel.defineView
-export const view = Submodel.defineView<Model, Message>(model => {
-  const h = html<Message>()
-  return h.button([h.OnClick(ClickedSubmit())], ['Submit'])
-})
+export const view = Submodel.defineView<Model, Message>((model, h) =>
+  h.button([h.OnClick(Message.ClickedSubmit())], ['Submit']),
+)
 ```
 
-The runtime resolves the `toParentMessage` wrap at event-fire time through a scope registry, so the child's view stays pure and dispatches in its own Message type. Brand the view with `Submodel.defineView<Model, Message>` so `h.submodel` can infer the child's Message type at the embed site.
+The runtime resolves the `toParentMessage` wrap at event-fire time through a scope registry, so the child's view stays pure and dispatches in its own Message type. Brand the view with `Submodel.defineView<Model, Message>` so `h.submodel` can infer the child's Message type at the embed site. The `h` the child receives is typed by the child's own Message: the runtime supplies it per frame, so handlers built in the child's body can only carry Messages the child's boundary dispatches.
 
 ## Subscriptions
 
@@ -246,7 +337,7 @@ Subscriptions are model-driven streams. They automatically start and stop based 
 
 Build them with `Subscription.make<Model, Message>()(entry => ({ ... }))`. The builder callback receives an `entry(fields, callbacks)` helper. For each subscription, you provide:
 
-- A `fields` map (the bare field map passed as `entry`'s first argument) naming every dependency. The builder calls `S.Struct(fields)` internally and infers the dependency type from this map.
+- A `fields` map (the bare field map passed as `entry`'s first argument) naming every dependency. The builder calls `Schema.Struct(fields)` internally and infers the dependency type from this map.
 - A `modelToDependencies(model)` function that returns the parameters the stream needs. Wrap an absent dependency in `Option` at the field level. The runtime restarts the stream whenever the dependencies change.
 - A `dependenciesToStream(dependencies)` function that turns those parameters into a `Stream<Message>`. Errors should be mapped to a `Failed*` Message inside the stream rather than thrown.
 
@@ -259,20 +350,37 @@ Canonical live examples:
 - **Conditional WebSocket connection** (active only when a session exists): `repos/foldkit/examples/websocket-chat/src/main.ts`
 - **Production multi-stream pattern**: `repos/foldkit/packages/typing-game/client/src/subscription.ts`
 
-## Keyed Views
+## View Identity and Keys
 
-Use `keyed` wrappers when the view branches into structurally different layouts:
+View functions are the differ's identity boundaries. `@foldkit/vite-plugin` brands every view function's return with that function's identity, so switching between branches that render through different view functions replaces the old subtree instead of patching it, even when both branch roots share a tag. Branches are never keyed. `if`/`else`, ternaries, Effect `Match`, and `switch` all behave the same way: each arm's view function carries its own identity, and continuity is structural.
+
+Extract the arms into named view functions when a same-tag inline ternary must reset DOM state on switch. An inline `cond ? div(...) : div(...)` renders both arms through the enclosing function, so they share one identity and patch in place; two named functions give each arm its own identity.
+
+Write keys in exactly two places:
+
+- **Mapped list items**, keyed by a stable Model id, never by array position. Rows rendered by one row view function all share that function's identity, so the key is what distinguishes them.
+- **A shared view function rendering different entities at one position** (a detail page across slugs or ids), keyed by the entity id, so switching entities resets DOM state instead of bleeding it across.
 
 ```ts
-// Key layout branches: prevents vdom from diffing landing into docs
-keyed('div')('landing', [...], [...])
-keyed('div')('docs', [...], [...])
+// Mapped list: key each row by its stable Model id
+Array.map(model.items, item => keyed('li')(item.id, [...], [...]))
 
-// Key content areas on route tag: replaces content on navigation
-keyed('div')(model.route._tag, [...], [...])
+// Shared view function across entities: key by the entity id
+keyed('article')(model.selectedProduct.id, [...], [...])
 ```
 
-Without keying, the virtual DOM tries to patch one layout into another, causing stale DOM, mismatched event handlers, and rendering bugs.
+Keys carry identity, never data. A key answers which item or entity occupies a position, not what it currently shows. Never derive a key from displayed data to force a refresh when content changes:
+
+```ts
+// Wrong: the key restates displayed data, so every toggle tears the
+// panel down, discarding focus, scroll, and any open details element
+keyed('div')(`${model.isCardSelected}:${model.isTermsAccepted}`, [...], [...])
+
+// Right: same thing on every render, no key; changed content patches in place
+div([...], [...])
+```
+
+If a key can change while the same conceptual thing stays on screen, the key is doing change detection, and patching already does that. Always build with `@foldkit/vite-plugin`; without it, branch identity falls back to positional-plus-key semantics and every branch point needs a hand-written key.
 
 ## DOM and Effect Helpers
 
@@ -287,8 +395,8 @@ Import as `import { Dom } from 'foldkit'` (or `import * as Dom from 'foldkit/dom
 | `Dom.focus(selector)`              | Focus a DOM element by CSS selector                          |
 | `Dom.advanceFocus(direction)`      | Move focus to the next/previous focusable element            |
 | `Dom.scrollIntoView(selector)`     | Scroll an element into view                                  |
-| `Dom.showModal(selector)`          | Show a `<dialog>` element as a modal                         |
-| `Dom.closeModal(selector)`         | Close a `<dialog>` element                                   |
+| `Dom.showDialog(selector)`         | Open a `<dialog>` element with `show()`                      |
+| `Dom.closeDialog(selector)`        | Close a `<dialog>` element                                   |
 | `Dom.clickElement(selector)`       | Programmatically click an element                            |
 | `Dom.lockScroll` / `unlockScroll`  | Prevent / restore page scroll (e.g. behind modals)           |
 | `Dom.inertOthers` / `restoreInert` | Toggle `inert` on siblings of an element (focus containment) |
@@ -299,16 +407,16 @@ Import as `import { Dom } from 'foldkit'` (or `import * as Dom from 'foldkit/dom
 
 Use these directly from the `effect` package for non-DOM concerns. No Foldkit wrapper is needed.
 
-| Need                  | Use                                                    |
-| --------------------- | ------------------------------------------------------ |
-| Current time (millis) | `yield* Clock.currentTimeMillis`                       |
-| Current calendar date | `yield* Calendar.today.local` (returns `CalendarDate`) |
-| Random integer        | `yield* Random.nextIntBetween(min, max)`               |
-| Random float          | `yield* Random.nextBetween(min, max)`                  |
-| UUID                  | `yield* Effect.uuid`                                   |
-| Delay                 | `yield* Effect.sleep(Duration.millis(500))`            |
+| Need                  | Use                                                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Current time (millis) | `yield* Clock.currentTimeMillis`                                                                                      |
+| Current calendar date | `yield* Calendar.today.local` (returns `CalendarDate`)                                                                |
+| Random integer        | `yield* Random.nextIntBetween(min, max)`                                                                              |
+| Random float          | `yield* Random.nextBetween(min, max)`                                                                                 |
+| UUID                  | `yield* Effect.orDie(crypto.randomUUIDv4)` after `const crypto = yield* Crypto.Crypto`; provide `BrowserCrypto.layer` |
+| Delay                 | `yield* Effect.sleep(Duration.millis(500))`                                                                           |
 
-Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They compose naturally inside `Command.define`. For canonical wiring, see `repos/foldkit/examples/kanban/src/command.ts` (`FocusAddCardInput` wraps `Dom.focus`) and `repos/foldkit/examples/stopwatch/src/main.ts` (`Clock.currentTimeMillis` inside an `Effect.gen`).
+Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They compose naturally inside `Command.define`. For canonical wiring, see `repos/foldkit/examples/kanban/src/command.ts` (`FocusAddCardInput` wraps `Dom.focus`, `GenerateCardId` acquires `Crypto.Crypto` and provides `BrowserCrypto.layer`) and `repos/foldkit/examples/stopwatch/src/main.ts` (`Clock.currentTimeMillis` inside an `Effect.gen`).
 
 ## With and Without URL Routing
 
@@ -316,7 +424,7 @@ Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, o
 
 ### Without Routing
 
-For single-page apps that own the page but don't navigate. init receives only flags (if any):
+For single-page apps that own the page but don't navigate. init receives only Flags (if any):
 
 ```ts
 const application = Runtime.makeApplication({
@@ -332,7 +440,7 @@ Runtime.run(application)
 
 ### With Routing
 
-For apps with pages, navigation, and URL-driven state. init receives flags (if any) and the current URL. Add a `routing` config with two Message constructors:
+For apps with pages, navigation, and URL-driven state. init receives Flags (if any) and the current URL. Add a `routing` config with two Message constructors:
 
 ```ts
 const application = Runtime.makeApplication({
@@ -342,8 +450,8 @@ const application = Runtime.makeApplication({
   view,
   container: document.getElementById('root'),
   routing: {
-    onUrlRequest: request => ClickedLink({ request }),
-    onUrlChange: url => ChangedUrl({ url }),
+    onUrlRequest: request => Message.ClickedLink({ request }),
+    onUrlChange: url => Message.ChangedUrl({ url }),
   },
 })
 
@@ -352,16 +460,16 @@ Runtime.run(application)
 
 ### Scoped to a Node (Embedded Widgets)
 
-`makeApplication` assumes it owns the page: its `view` returns a `Document` (`{ title, canonical?, ogUrl?, body }`) and the runtime writes `document.title` and manages the canonical / og:url tags on every render. For a widget embedded on a page you do not control, that clobbers the host page's metadata.
+`makeApplication` assumes it owns the page: its `view` returns a `Document` (`{ title, lang?, dir?, canonical?, ogUrl?, body }`) and the runtime writes `document.title`, the `lang` / `dir` attributes on `<html>`, and the canonical / og:url tags on every render. For a widget embedded on a page you do not control, that clobbers the host page's metadata.
 
-Use `Runtime.makeElement` instead. Its `view` returns `Html` directly (no title to discard) and the runtime never touches the document `<head>`. Everything else (Model, init, update, Commands, Subscriptions, flags, crash handling) is identical. Embedded apps don't own the URL bar, so `makeElement` has no `routing` config.
+Use `Runtime.makeElement` instead. Its `view` returns `Html` directly (no title to discard) and the runtime never touches the document `<head>` or the `<html>` element. Everything else (Model, init, update, Commands, Subscriptions, Flags, crash handling) is identical. Embedded apps don't own the URL bar, so `makeElement` has no `routing` config.
 
 ```ts
 const element = Runtime.makeElement({
   Model,
   init,
   update,
-  view, // view: (model) => Html
+  view, // view: (model, h) => Html
   container: document.getElementById('widget'),
 })
 
@@ -370,9 +478,11 @@ Runtime.run(element)
 
 When the host application needs to control the embedded app (mount and unmount it, push data in, receive values out), start it with `Runtime.embed(program)` instead of `Runtime.run`. `embed` returns a handle with `dispose` plus one entry per Port declared on the config: the host sends on inbound Ports, subscribes to outbound Ports, and disposes on unmount, never touching the Model. Inbound Ports are consumed by the app as Subscription sources and outbound Ports are written from Commands, so the app itself stays inside the standard architecture. `repos/foldkit/examples/embedding/` shows the full pattern: the widget in `src/main.ts`, the host in `src/host.ts`.
 
-### Document Title
+### Document Metadata
 
-With `makeApplication`, the `view` returns a `Document`. The runtime sets `document.title` from its `title` field after every render and syncs the canonical / og:url tags (both default to the current URL when omitted). With `makeElement`, there is no title or head management at all.
+With `makeApplication`, the `view` returns a `Document`. The runtime sets `document.title` from its `title` field after every render and syncs the canonical / og:url tags (`canonical` defaults to the current URL, and `ogUrl` defaults to `canonical`, so setting `canonical` alone moves both). With `makeElement`, there is no title or metadata management at all.
+
+`lang` and `dir` sync to the `<html>` element, so an app that switches language at runtime drives them from the Model. `dir` is `TextDirection` from `foldkit/html`, a Schema over `'Ltr' | 'Rtl' | 'Auto'` that you can drop straight into a Model `Schema.Struct`, and the runtime writes it as the lowercase attribute value. Both fields are optional and have no default: when a view omits one, the runtime does not touch that attribute, leaving whatever value it currently holds, so a view that never sets it leaves the served HTML in place.
 
 `onUrlRequest` fires when the user clicks a link. The Message receives a `UrlRequest` (a tagged union from the `Navigation` namespace) which you handle in update by matching on its `_tag`. `onUrlChange` fires when the browser URL changes (back/forward buttons); the handler updates the route from the new URL.
 

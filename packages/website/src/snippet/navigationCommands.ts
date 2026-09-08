@@ -1,58 +1,53 @@
-import { Effect, Schema as S } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Command, Navigation } from 'foldkit'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 
-const CompletedNavigateInternal = m('CompletedNavigateInternal')
-const CompletedReplaceUrl = m('CompletedReplaceUrl')
-const CompletedGoBack = m('CompletedGoBack')
-const CompletedGoForward = m('CompletedGoForward')
-const CompletedLoadExternal = m('CompletedLoadExternal')
-const CompletedOpenUrl = m('CompletedOpenUrl')
-
-const Message = S.Union([
-  CompletedNavigateInternal,
-  CompletedReplaceUrl,
-  CompletedGoBack,
-  CompletedGoForward,
-  CompletedLoadExternal,
-  CompletedOpenUrl,
-])
+const Message = defineMessageUnion({
+  CompletedNavigateInternal: {},
+  CompletedReplaceUrl: {},
+  CompletedGoBack: {},
+  CompletedGoForward: {},
+  CompletedLoadExternal: {},
+  CompletedOpenUrl: {},
+})
 type Message = typeof Message.Type
 
-const NavigateInternal = Command.define(
-  'NavigateInternal',
-  { url: S.String },
-  CompletedNavigateInternal,
-)(({ url }) =>
-  Navigation.pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())),
-)
+const NavigateInternal = Command.define('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  execute: ({ url }) =>
+    Navigation.pushUrl(url).pipe(
+      Effect.as(Message.CompletedNavigateInternal()),
+    ),
+})
 
-const ReplaceUrl = Command.define(
-  'ReplaceUrl',
-  { url: S.String },
-  CompletedReplaceUrl,
-)(({ url }) =>
-  Navigation.replaceUrl(url).pipe(Effect.as(CompletedReplaceUrl())),
-)
+const ReplaceUrl = Command.define('ReplaceUrl', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedReplaceUrl],
+  execute: ({ url }) =>
+    Navigation.replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceUrl())),
+})
 
-const GoBack = Command.define(
-  'GoBack',
-  CompletedGoBack,
-)(Navigation.back().pipe(Effect.as(CompletedGoBack())))
+const GoBack = Command.define('GoBack', {
+  messages: [Message.CompletedGoBack],
+  execute: Navigation.back().pipe(Effect.as(Message.CompletedGoBack())),
+})
 
-const GoForward = Command.define(
-  'GoForward',
-  CompletedGoForward,
-)(Navigation.forward().pipe(Effect.as(CompletedGoForward())))
+const GoForward = Command.define('GoForward', {
+  messages: [Message.CompletedGoForward],
+  execute: Navigation.forward().pipe(Effect.as(Message.CompletedGoForward())),
+})
 
-const LoadExternal = Command.define(
-  'LoadExternal',
-  { href: S.String },
-  CompletedLoadExternal,
-)(({ href }) => Navigation.load(href).pipe(Effect.as(CompletedLoadExternal())))
+const LoadExternal = Command.define('LoadExternal', {
+  args: { href: Schema.String },
+  messages: [Message.CompletedLoadExternal],
+  execute: ({ href }) =>
+    Navigation.load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+})
 
-const OpenUrl = Command.define(
-  'OpenUrl',
-  { url: S.String },
-  CompletedOpenUrl,
-)(({ url }) => Navigation.openUrl(url).pipe(Effect.as(CompletedOpenUrl())))
+const OpenUrl = Command.define('OpenUrl', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedOpenUrl],
+  execute: ({ url }) =>
+    Navigation.openUrl(url).pipe(Effect.as(Message.CompletedOpenUrl())),
+})

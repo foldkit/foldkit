@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Number, Option, Order, pipe } from 'effect'
-import { Html, html } from 'foldkit/html'
+import { Html, HtmlBuilder } from 'foldkit/html'
 
 import * as Shared from '@typing-game/shared'
 
@@ -16,8 +16,8 @@ const byHighestWpm = pipe(
 const scoreboardView = (
   scoreboard: Shared.Scoreboard,
   hostId: string,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>()
   const sortedScoreboard = Array.sort(scoreboard, byHighestWpm)
 
   return h.table(
@@ -136,8 +136,8 @@ export const finished = (
   maybeScoreboard: Option.Option<Shared.Scoreboard>,
   hostId: string,
   maybeSession: Option.Option<RoomPlayerSession>,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>()
   const isLocalPlayerHost = Option.exists(
     maybeSession,
     session => session.player.id === hostId,
@@ -149,7 +149,7 @@ export const finished = (
       h.h3([h.Class('uppercase')], ['[Game complete]']),
       Option.match(maybeScoreboard, {
         onNone: () => h.empty,
-        onSome: scoreboard => scoreboardView(scoreboard, hostId),
+        onSome: scoreboard => scoreboardView(scoreboard, hostId, h),
       }),
       ...(isLocalPlayerHost
         ? [h.div([h.Class('mt-4')], ['> Enter to play again'])]

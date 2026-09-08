@@ -1,14 +1,10 @@
-import { Array, Match as M, Number } from 'effect'
+import { Array, Match, Number } from 'effect'
 import { File, Submodel } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
 import { FileDrop } from '@foldkit/ui'
 
-import {
-  ClickedRemoveFileDropDemoFile,
-  GotFileDropBasicDemoMessage,
-  type UiMessage,
-} from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 const dropZoneClassName =
@@ -32,85 +28,92 @@ const BYTES_PER_KB = 1024
 const BYTES_PER_MB = BYTES_PER_KB * BYTES_PER_KB
 
 const formatFileSize = (bytes: number): string =>
-  M.value(bytes).pipe(
-    M.when(Number.isLessThan(BYTES_PER_KB), () => `${bytes} B`),
-    M.when(
+  Match.value(bytes).pipe(
+    Match.when(Number.isLessThan(BYTES_PER_KB), () => `${bytes} B`),
+    Match.when(
       Number.isLessThan(BYTES_PER_MB),
       () => `${(bytes / BYTES_PER_KB).toFixed(1)} KB`,
     ),
-    M.orElse(() => `${(bytes / BYTES_PER_MB).toFixed(1)} MB`),
+    Match.orElse(() => `${(bytes / BYTES_PER_MB).toFixed(1)} MB`),
   )
 
 const fileKey = (file: File.File): string =>
   `${File.name(file)}:${File.size(file)}:${file.lastModified}`
 
-export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
-  const h = html<UiMessage>()
-
-  return h.div(
-    [],
-    [
-      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['File Drop']),
-      h.div(
-        [h.Class('flex flex-col gap-3 w-full max-w-md')],
-        [
-          h.submodel({
-            slotId: model.fileDropBasicDemo.id,
-            model: model.fileDropBasicDemo,
-            view: FileDrop.view,
-            viewInputs: {
-              multiple: true,
-              toView: attributes =>
-                h.label(
-                  [...attributes.root, h.Class(dropZoneClassName)],
-                  [
-                    h.p(
-                      [h.Class(primaryTextClassName)],
-                      ['Drop files or click to browse'],
-                    ),
-                    h.p(
-                      [h.Class(secondaryTextClassName)],
-                      ['Any file type. This demo just lists them.'],
-                    ),
-                    h.input(attributes.input),
-                  ],
+export const view = Submodel.defineView<UiModel, UiMessage>(
+  (model, h): Html => {
+    return h.div(
+      [],
+      [
+        h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['File Drop']),
+        h.div(
+          [h.Class('flex flex-col gap-3 w-full max-w-md')],
+          [
+            h.submodel({
+              slotId: model.fileDropBasicDemo.id,
+              model: model.fileDropBasicDemo,
+              view: FileDrop.view,
+              viewInputs: {
+                multiple: true,
+                toView: attributes =>
+                  h.label(
+                    [...attributes.root, h.Class(dropZoneClassName)],
+                    [
+                      h.p(
+                        [h.Class(primaryTextClassName)],
+                        ['Drop files or click to browse'],
+                      ),
+                      h.p(
+                        [h.Class(secondaryTextClassName)],
+                        ['Any file type. This demo just lists them.'],
+                      ),
+                      h.input(attributes.input),
+                    ],
+                  ),
+              },
+              toParentMessage: message =>
+                UiMessage.GotFileDropBasicDemoMessage({ message }),
+            }),
+            ...Array.match(model.fileDropBasicDemoFiles, {
+              onEmpty: () => [],
+              onNonEmpty: files =>
+                files.map((file, fileIndex) =>
+                  h.keyed('div')(
+                    fileKey(file),
+                    [h.Class(fileRowClassName)],
+                    [
+                      h.div(
+                        [h.Class('flex flex-col min-w-0')],
+                        [
+                          h.span(
+                            [h.Class(fileNameClassName)],
+                            [File.name(file)],
+                          ),
+                          h.span(
+                            [h.Class(fileSizeClassName)],
+                            [formatFileSize(File.size(file))],
+                          ),
+                        ],
+                      ),
+                      h.button(
+                        [
+                          h.Type('button'),
+                          h.OnClick(
+                            UiMessage.ClickedRemoveFileDropDemoFile({
+                              fileIndex,
+                            }),
+                          ),
+                          h.Class(removeButtonClassName),
+                        ],
+                        ['Remove'],
+                      ),
+                    ],
+                  ),
                 ),
-            },
-            toParentMessage: message =>
-              GotFileDropBasicDemoMessage({ message }),
-          }),
-          ...Array.match(model.fileDropBasicDemoFiles, {
-            onEmpty: () => [],
-            onNonEmpty: files =>
-              files.map((file, fileIndex) =>
-                h.keyed('div')(
-                  fileKey(file),
-                  [h.Class(fileRowClassName)],
-                  [
-                    h.div(
-                      [h.Class('flex flex-col min-w-0')],
-                      [
-                        h.span([h.Class(fileNameClassName)], [File.name(file)]),
-                        h.span(
-                          [h.Class(fileSizeClassName)],
-                          [formatFileSize(File.size(file))],
-                        ),
-                      ],
-                    ),
-                    h.button(
-                      [
-                        h.Type('button'),
-                        h.OnClick(ClickedRemoveFileDropDemoFile({ fileIndex })),
-                        h.Class(removeButtonClassName),
-                      ],
-                      ['Remove'],
-                    ),
-                  ],
-                ),
-              ),
-          }),
-        ],
-      ),
-    ],
-  )
-})
+            }),
+          ],
+        ),
+      ],
+    )
+  },
+)
