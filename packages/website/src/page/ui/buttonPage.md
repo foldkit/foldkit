@@ -54,7 +54,7 @@ Button sets `aria-disabled="true"` when disabled instead of the native `disabled
 Add your own attributes after the `button` bundle. A later attribute wins, so `h.Type('submit')` after the bundle replaces the default. A button that changes its own text, such as one cycling through values on a tap, announces each change by carrying a live region: spread `h.AriaLive('polite')` and `h.AriaAtomic(true)` after the bundle. Button adds no ARIA beyond what it manages, so this is the intended way.
 
 ```ts
-h.button([...button, h.AriaLive("polite"), h.AriaAtomic(true)], [label]);
+h.button([...button, h.AriaLive('polite'), h.AriaAtomic(true)], [label])
 ```
 
 ## API Reference
