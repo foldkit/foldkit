@@ -16,6 +16,35 @@ describe('idSelector', () => {
     expect(() => document.querySelector(idSelector(id))).not.toThrow()
     expect(() => document.querySelector(`#${id}`)).toThrow()
   })
+
+  it('replaces a null character with the replacement character', () => {
+    expect(idSelector('a\u0000b')).toBe('#a\uFFFDb')
+  })
+
+  it('escapes control and delete characters as hex code points', () => {
+    expect(idSelector('a\u0001b')).toBe('#a\\1 b')
+    expect(idSelector('a\u007Fb')).toBe('#a\\7f b')
+  })
+
+  it('escapes a leading digit as a hex code point', () => {
+    expect(idSelector('1abc')).toBe('#\\31 abc')
+  })
+
+  it('escapes a digit that follows a leading hyphen', () => {
+    expect(idSelector('-1a')).toBe('#-\\31 a')
+  })
+
+  it('escapes a lone hyphen', () => {
+    expect(idSelector('-')).toBe('#\\-')
+  })
+
+  it('passes identifier characters through unchanged', () => {
+    expect(idSelector('a-b_C9\u00E9')).toBe('#a-b_C9\u00E9')
+  })
+
+  it('backslash-escapes any other character', () => {
+    expect(idSelector('a b.c')).toBe('#a\\ b\\.c')
+  })
 })
 
 describe('attributeSelector', () => {

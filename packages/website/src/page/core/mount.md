@@ -2,88 +2,120 @@
 
 ## Overview
 
-Most Foldkit code is declarative. The [view](/core/view) is a function from Model to Html. It doesn’t reach into the DOM, it doesn’t hold references, it doesn’t run side effects. That purity is what makes Foldkit programs predictable.
+Most Foldkit code is declarative. The [view](/core/view) is a pure function from Model to Html. It does not reach into the DOM, hold element references, or run side effects.
 
-Mount binds an imperative, element-scoped side effect to a view element for as long as that element lives in the DOM. It sets up when the element enters and tears down when the element leaves. `OnMount` is the seam where view code drops down to imperative work on the live element. The common shape, `Mount.define`, runs an `Effect<Message>` that produces exactly one Message at acquire and keeps the scope open until the element unmounts. Cleanup is paired with setup via `Effect.acquireRelease` inside the Effect. For Mounts that emit a continuum of events from observers or listeners on the element, `Mount.defineStream` takes a `Stream<Message>` instead.
+Mount is the escape hatch for work whose cause is a particular element existing in the DOM. `OnMount` supplies the live `Element`, starts the work when that element enters the DOM, and tears it down when the element leaves.
 
-**Pick by the Mount’s job.** Use `Mount.define` when the Mount produces a single Message at acquire: anchor positioning, portaling, third-party library instantiation, reading element geometry on mount. Use `Mount.defineStream` only when the Mount’s job is to emit a continuous stream of Messages from listeners or observers attached to the element: scroll events, IntersectionObserver entries, MutationObserver records. Both forms require at least one declared result Message. Fire-and-forget Mounts follow the same convention as fire-and-forget Commands: declare a `Completed*` Message that `update` no-ops on, so DevTools, Scene tests, and replay still see the side effect.
+Use `Mount.define` for work that produces one Message when it starts. Its `execute` receives the live element and the rendered view's state, then returns an `Effect<Message>` that emits that Message. Its scope remains open until unmount so cleanup registered with `Effect.acquireRelease` runs at the right time. Use `Mount.defineStream` when listeners or observers on the element must emit a continuing `Stream<Message>`.
+
+Both forms require at least one declared result Message. When no result needs to change the Model, return a descriptive `Completed*` Message and leave the Model unchanged in update. The Message keeps the effect visible to DevTools, Scene tests, and replay.
 
 :::Info{label="Functional core, imperative shell"}
-The view describes what should be on screen. `OnMount` describes what to do at the boundary where the virtual DOM meets the real one. The Message the Effect produces flows back through update like any other Message, and cleanup is registered via `Effect.acquireRelease` inside the Effect, paired with the setup so "do the thing" and "undo the thing" stay together.
+The view describes what should be on screen. `OnMount` handles imperative work at the boundary between the virtual DOM and a live element. Results still return to update as Messages, and setup stays paired with cleanup inside the Mount's Effect or Stream.
 :::
 
 :::Info{label="Mounts surface in tests"}
-Scene tracks every `OnMount` in the rendered view as a pending Mount and requires the test to acknowledge each one with the result Message its factory would produce at runtime. See [Scene](/testing/scene) for the full contract.
+Scene records every `OnMount` in the rendered view as a pending Mount. A test must acknowledge or resolve each one with a declared result Message. See [Scene](/testing/scene) for the full contract.
 :::
 
 ## When to Reach for Mount
 
-Mount is one of the primitives Foldkit offers for side-effecting work. Pick by what causes the side effect, not by what feels most ergonomic.
+Choose a lifecycle primitive by what causes the work:
 
-[Command](/core/commands) fires a one-time side effect because `update` just returned it. The cause is a Message that just dispatched. `FocusInput` after `OpenedDialog`, `FetchWeather` after `ClickedRefresh`, `SaveTodos` after `EditedTodo`. Navigation, network, storage, analytics, and focus-on-state-change all belong in Commands.
+- A [Command](/core/commands) runs because update just handled a Message. Use it for one-time work such as navigation, network requests, storage, analytics, or focusing an input after `OpenedDialog`.
 
-Mount fires a per-instance lifecycle effect bound to a VNode existing in the rendered tree. The cause is the element appearing, and the author needs the live `Element` handle. Anchor positioning for floating panels, backdrop portaling, attaching observers to a specific element, handing the element to a third-party library: these are Mount cases.
+- A Mount runs because an element exists, and the work needs that live `Element`. Use it to measure geometry, portal a node, attach an element observer, or instantiate a library in a specific container.
 
-[Subscription](/core/subscriptions) catches a long-running external event source like timers, document or window events, system theme changes, or `WebSocket` message streams. It emits the events as Messages. Its lifetime is gated by a Model condition via `modelToDependencies`. Subscriptions look like `Mount.defineStream` in shape (both produce a `Stream<Message>` with `Effect.acquireRelease` cleanup), but the cause differs: Mount fires because an element appeared in the DOM, Subscription fires because a Model condition became true.
+- A [Subscription](/core/subscriptions) listens to an external event source while dependencies derived from the Model remain active. Timers, document events, system theme changes, and WebSocket messages fit this shape.
 
-[ManagedResource](/core/managed-resources) holds a stateful runtime object (a websocket, a camera stream, a third-party library instance) whose lifetime is tied to a Model condition AND whose handle is consumed by Commands via `yield*`. The condition determines lifetime; Commands do the work on the resource.
+- A [ManagedResource](/core/managed-resources) owns a stateful handle whose lifetime follows a Model condition and whose operations are performed by Commands.
 
-[CustomElement](/core/custom-element) covers the special case where the foreign DOM is a declarative web component: a hyphenated tag that exposes typed JS properties going in and dispatches `CustomEvent`s coming out. Shoelace, UI5, Spectrum, Lit, Stencil elements, and most modern web component libraries fit that shape. Declare the binding once with `CustomElement.define` and the element slots into the view like any other tag. Mount is the right reach only when the foreign element’s API is imperative instead.
+- A [CustomElement](/core/custom-element) renders a native web component with declarative properties and `CustomEvent`s. Use Mount only when the foreign element requires an imperative API instead.
 
-:::Info{label="Don’t reach for Mount just because the work happens to coincide with an element appearing"}
-Check what causes the work. If a Message just dispatched (like `Opened`), the cause is the Message, not the element. The element’s appearance is coincidentally co-timed with the Message but isn’t what causes the work. Use a Command returned from `update`’s handler instead. For example, focusing a search input when its dialog opens: the element appears, but the cause is `Opened`, not the input’s existence. A `FocusInput` Command returned from the `Opened` handler is the right shape.
+:::Info{label="Check the cause, not the timing"}
+Work that happens when an element appears is not necessarily caused by that element. For example: when `OpenedDialog` makes a search input visible, focusing it is still caused by the Message. Return a `FocusInput` Command from that Message's update handler. Reach for Mount only when the work is inseparable from the live element and its lifetime.
 :::
 
 ## Side Effects on Mount
 
-Mount’s lifecycle is tied to the DOM node, not the VNode. VNodes are reconstructed on every render; DOM nodes persist across renders unless the differ decides to replace them. If the differ matches an existing DOM node (same tag, same identity, and for keyed list siblings the same key), the Mount keeps running: `insert` doesn’t re-fire and `destroy` doesn’t fire. If the differ replaces the node (different tag, changed view-function identity, mismatched key), the old Mount’s scope closes (running `acquireRelease` finalizers) and the new node gets a fresh Mount. An unkeyed reordered list reuses DOM positions for different logical rows instead of replacing them, so view-function identity and stable keys on mapped list items are what keep the differ from mis-matching elements across renders and accidentally transferring Mount state to the wrong element.
+A Mount follows the lifetime of a DOM node, not a VNode. Foldkit reconstructs VNodes on every render, but the differ reuses an existing DOM node when its tag and identity still match. A reused node keeps its Mount running. A replaced node closes the old Mount's scope, runs its finalizers, and starts a fresh Mount on the new node.
 
-A typical Mount uses the element parameter to do DOM work that should pair with the element existing. Portal-to-body is the canonical small example: when this overlay element appears, move it to `document.body` so it escapes any clipping ancestor; when it unmounts, remove it. The Effect uses the element directly, the work is DOM manipulation, and the cleanup is registered via `Effect.acquireRelease` so it mirrors the setup.
+View-function identity and stable keys keep that lifecycle attached to the right logical element. This matters in mapped lists, where an unkeyed reorder can reuse the same DOM position for different data. Key each item by a stable Model identifier so its DOM node and Mount move together.
+
+Portal-to-body is a small example. When an overlay enters the DOM, its Mount moves the live element to `document.body` so it can escape clipping ancestors. When the element unmounts, the paired release removes it.
 
 ::Snippet{name="mountPortalToBody" label="portal-to-body example"}
 
-Cleanup is registered via `Effect.acquireRelease` inside the Effect, not as a separate hook. The runtime closes the Mount’s scope when the differ destroys the element, which runs the release. Pair the setup and the release in the same `acquireRelease` expression.
-
-:::Info{label="Two practical rules for Mount"}
-Both must hold. First, the factory uses the element parameter. Mount provides the live element handle, and that handle is what makes Mount distinct from the alternatives. If your factory doesn’t read or write the element, pick a different primitive. Second, the work is DOM measurement or DOM manipulation on that element: read its geometry, mutate its CSS, attach an observer to it, portal it, hand it to a third-party library. Anything else is a Command from update (network, storage, analytics, focus-on-transition, scroll lock for the page), a Subscription whose dependencies are derived from the Model (timers, document-level keyboard listeners, system theme observers), or a ManagedResource whose lifetime tracks a Model condition (a WebSocket connection, a camera stream). If you find yourself wanting a Mount that doesn’t use its element, the cause is a Model condition or a Message dispatch, not the element’s existence. Re-check the cause and pick the matching primitive.
+:::Info{label="Two rules for Mount work"}
+First, `execute` must use the live element. If it does not read or write that element, a Message or Model condition is probably the real cause. Second, the work must be safe to repeat whenever that element is inserted again. DOM measurement, paired DOM manipulation, observers, and element-owned library instances fit these rules.
 :::
 
-Only one Mount can attach per element. The differ’s hook system stores a single `insert`/`destroy` hook per VNode, so writing `[h.OnMount(A), h.OnMount(B)]` on the same element silently overwrites: the second `OnMount` replaces the first, and `A`’s factory never runs. If you need multiple lifetime-scoped behaviors on the same element (e.g. restore-scroll AND listen-for-scroll), bundle them into a single Mount that does both in its acquire and releases both in its release.
+:::Warning{label="Attach one Mount per element"}
+A VNode has one `insert` and `destroy` hook. If the same element receives `[h.OnMount(A), h.OnMount(B)]`, the second action silently replaces the first and `A` never runs. Combine both behaviors in one Mount and register both releases in its scope.
+:::
 
 :::Warning{label="Mounts re-run during DevTools time-travel"}
-When a user scrubs through history with the DevTools timeline, Foldkit re-renders the historical Model. Elements that carry `OnMount` fire their factories again as their VNodes are inserted, and the `acquireRelease` finalizers run as they are destroyed. The two rules above are what keep Mount work inherently replay-safe: DOM measurement is read-only, DOM manipulation on an element that exists in both live and time-travel views is idempotent, observer attachment paired with release is self-balancing. Anything that mutates external state (network calls, storage writes, focus-on-transition, scroll lock for the page, library instantiation keyed on Model rather than element) is unsafe to re-run during replay and therefore not a Mount.
+DevTools re-renders historical Models. Elements inserted during replay run their Mounts again, and elements removed during replay run their finalizers. Keep Mount work replay-safe and local to the element. External mutations such as network calls, storage writes, and analytics belong in Commands.
 :::
 
 ## Per-Instance Args {#args}
 
-Mount factories often need a value that varies per instance: an element id to anchor against, the data driving a chart render, the stable host id another Mount will key on. Declare those values as `args` on `Mount.define` so the factory receives them as a typed record at view time. The shape mirrors [Commands](/core/commands): `Mount.define(name, args, ...results)(({ ...args }) => element => Effect<Message>)`. Calling the Definition with an args record at view time produces a MountAction the runtime feeds into `OnMount`. `Mount.defineStream` takes the same args overload; only the factory’s return type changes (from `Effect<Message>` to `Stream<Message>`). Every property below applies identically: captured-at-mount semantics, the args naming rule, and the post-mount-Model-change escape hatch.
+A Mount often needs an input that differs by element instance, such as an initial scroll position, chart data, or a stable host id. Declare those under `args`, using the same Schema record shape a [Command](/core/commands) takes. `args`, `messages`, and `execute` are all named fields on one config object. `execute` receives the runtime fields `element` and `viewStateChanges` alongside the declared args, so those names are reserved and rejected under `args`:
 
-Args carry per-instance inputs only. Everything else the factory needs comes from outside args: module-level constants via lexical scope, app-wide services via Foldkit `Resources`, Model-driven handles via `ManagedResources`, and any Effect service via `yield*` inside the factory body.
+::Snippet{name="mountDefineArgs" label="Mount args definition"}
+
+Calling the Definition with an args record creates the MountAction passed to `OnMount`. That call never runs `execute`. The runtime calls it when the element enters the DOM, so nothing `execute` does happens inside the pure view that built the action. `Mount.defineStream` takes the same fields, and its `execute` returns a `Stream<Message>` instead.
+
+Args are only per-instance inputs. Module constants stay in lexical scope, app-wide services come from Foldkit `Resources`, Model-owned handles come from `ManagedResources`, and Effect services remain available through `yield*` inside `execute`.
 
 :::Info{label="Args surface in DevTools and tests"}
-Mount args appear in DevTools alongside the Mount name, and Scene tests can match a specific instance by passing the same args record to `Mount.expectHas` or `Mount.resolve`. See [Scene](/testing/scene) for the Definition-vs-Instance matcher contract.
+DevTools shows the args beside the Mount name. Scene tests can target one instance by passing the same args record to `Mount.expectHas` or `Mount.resolve`. See [Scene](/testing/scene) for the Definition and instance matcher contract.
 :::
 
-:::Warning{label="Args are captured at mount, not refreshed on subsequent renders"}
-The factory runs once when the element enters the DOM, with whatever arg values are passed at that moment. Every later render constructs a fresh `MountAction` with current arg values, but only the first invocation’s args ever execute. `OnMount` is bound to the differ’s `insert` and `destroy` hooks, with no `update` hook in between. Name args to express this lifecycle. Prefer `initialScroll` over `scroll`, `seedValue` over `value`. If you need Model changes to drive ongoing DOM behavior post-mount, the proximate cause is the Message that updated the Model. Dispatch a Command from `update`’s handler for that Message. The Command can find the element and do the imperative work. Don’t reach for a Subscription here. Subscriptions watch Model state via `modelToDependencies` to gate their lifetime, but their emissions come from external event sources (timers, document events, library callbacks), not from Model state itself. Translating Model changes into side effects is what `update` does on every Message, via the Commands it returns. This is different from the cases where Subscriptions do touch the DOM, and the distinction is worth naming. Subscriptions are Effect Streams that emit Messages. Their start and stop are diffed against dependencies derived from the Model via `modelToDependencies`: when the dependencies become satisfied the Stream’s body runs setup, and when they change the scope closes and any `Effect.acquireRelease` release runs. That makes Subscriptions the right fit when the lifetime of a DOM side effect is itself a Model condition: for example, applying `user-select: none` to the document while `isDragging` is true and undoing it when the drag ends sits naturally as one paired `Effect.acquireRelease` inside a Subscription whose dependency is `isDragging`. Subscriptions also handle the case where a DOM mutation has to run synchronously with the event itself, like calling `preventDefault` on a keydown listener: the Stream’s body is an Effect that can register the listener directly with the browser, so the listener runs in the same call stack as the browser’s event dispatch. Going through `update` would arrive after the browser had committed the default. Neither shape applies when an already-mounted element needs new DOM behavior in response to a Model change: the cause there is a Message that just dispatched, which is what Commands are for.
+:::Warning{label="Args are captured at mount"}
+`execute` receives the args from the render that inserts the element. Later renders create new MountActions, but a reused DOM node does not run `execute` again. Name values for that lifecycle, such as `initialScroll` or `seedValue`, rather than implying that they stay current.
 :::
+
+When a later Message changes the Model and should trigger new DOM work, return a Command from that Message's update handler. A Subscription is appropriate when a Model dependency controls the lifetime of an external stream or a paired DOM state, or when a browser event must be handled synchronously, such as calling `preventDefault` inside its listener. Mount args are not reactive properties for either case.
+
+## Paused Historical Views
+
+Time travel pauses the rendered view, not the application. The live Model, history, Commands, Subscriptions, and ManagedResources continue normally behind the historical DOM. A Mount owns imperative behavior attached to an element in that rendered view, so its `execute` input includes `viewStateChanges`, a `Stream<'Live' | 'Paused'>`.
+
+### Observing the View State
+
+The Stream begins with the rendered view state at the moment the Mount is acquired, followed by changes. That initial state is retained while `execute` performs asynchronous setup, so a Mount inserted by a historical render receives `Paused` first even if it consumes the Stream only after setup finishes. The Stream stays open for the Mount's lifetime and reports only `Live` when time travel is unavailable. A surviving live Mount is not restarted, interrupted, or reacquired when the view pauses. On resume, Mounts receive `Live` only after Foldkit has patched the latest live view back into the DOM.
+
+Custom renderers without time travel can pass `Mount.liveViewStateChanges` as the required second argument to a low-level `MountAction.f` call. It emits `Live` immediately and stays open.
+
+### Keeping Imperative UI Read-only
+
+Use the Stream to update state owned by the imperative integration itself. For example, a rich-text editor can call its read-only API while the historical view is installed, then restore editing when the live view returns:
+
+::Snippet{name="mountViewStateChanges" label="Making an editor read-only during time travel"}
+
+### Live and Historical Mounts
+
+A Mount acquired by the live view keeps participating in the live application while a historical view is displayed. Its asynchronous setup can complete, and its external streams can keep producing Messages. Foldkit cannot tell whether an arbitrary Stream emission came from historical DOM interaction, a timer, an observer, or a network source, so the integration must use `viewStateChanges` to stop its own DOM-derived interaction while paused. Do not translate this signal into an application Message. It describes which Model the DOM currently represents, not a change to application state.
+
+A Mount acquired by a historical render is different: its Messages cannot reach update, change the live Model, or enter history. If the resumed live view reuses that element and declares a Mount there, Foldkit releases the replay acquisition before starting the live action with the live render's args and dispatch. Cleanup finishes before the replacement setup begins, so the old integration cannot tear down the new handle. Within the live render owner, a surviving Mount follows the latest live Submodel `toParentMessage` wiring, matching event handlers without ever borrowing a historical render's wiring.
 
 ## Third-Party Libraries
 
-`OnMount` really earns its keep when a library owns its own DOM. Charts, code editors, map renderers, force-directed graphs: each expects a real element to render into and a way to be torn down later.
+Mount is especially useful when a library owns a rendered subtree. Charts, code editors, map renderers, and force-directed graphs all need a real element to render into and a way to release their resources.
 
-The factory takes the live `Element` (and its declared args, when any) and returns an `Effect<Message>`. The Mount’s scope is bound to the element’s lifetime: the Message the Effect produces is dispatched, and the scope is closed (running any registered `Effect.acquireRelease` finalizers) when the element unmounts. The Effect completes after producing its Message, but the scope stays open until the element unmounts so the cleanup runs at the right time. For Mounts that emit a continuum of events from observers or listeners on the element, `Mount.defineStream` takes a `Stream<Message>` instead and follows the same lifetime rules.
+Construct the handle in an acquire Effect, return the Mount's result Message, and register teardown with `Effect.acquireRelease`. The Effect can finish after emitting its Message because Foldkit keeps its scope open until the element unmounts.
 
 ::Snippet{name="mountThirdPartyChart" label="OnMount example"}
 
-:::Warning{label="Construct the handle inside the acquire body, never before it"}
-`Effect.acquireRelease` only guarantees atomicity of "acquire body completes → release is registered." If you construct the chart (or map, or audio context, or any stateful handle) before calling `acquireRelease` and the acquire body just returns the existing handle (`Effect.sync(() => alreadyExistingValue)`), interruption between the construction and the registration leaves the handle dangling. The fix is to express the construction as the success value of the acquire Effect: `Effect.tryPromise(() => import(...)).pipe(Effect.map(({ Lib }) => new Lib(...)))` for async imports, `Effect.sync(() => new Thing(...))` for sync construction. The discipline is: whatever the release function needs as input must be the success value of the acquire Effect.
+:::Warning{label="Construct the handle inside the acquire body"}
+`Effect.acquireRelease` registers the release only after its acquire Effect succeeds. Constructing a chart, map, or other stateful handle before that Effect can leak the handle if interruption happens before registration. Make construction the acquire Effect's success value. For example: use `Effect.sync(() => new Thing(...))`, or put an asynchronous import and construction in the same Effect pipeline. Whatever the release needs must be produced by the acquire Effect.
 :::
 
-The Model owns the data going in. The library owns its rendered subtree. The runtime owns the lifecycle.
+The Model owns the input data. The library owns its rendered subtree. Foldkit owns the lifecycle.
 
-:::Info{label="What if the factory emits or fails after the element is removed?"}
-The runtime handles this. When the element unmounts, Foldkit interrupts the Mount’s fiber. Interrupt propagates through the scope, running any registered `Effect.acquireRelease` finalizers (the canonical cleanup mechanism). Messages produced after interrupt are discarded; the Model never sees a Mount Message for an element that no longer exists.
+:::Info{label="Unmount interrupts the work"}
+When the element unmounts, Foldkit interrupts the Mount's fiber and runs registered finalizers. Any Messages produced after interruption are discarded, so update never receives a Mount Message for an element that no longer exists.
 :::
 
-Mount binds work to an element’s lifetime in the rendered tree. For a scoped Stream gated by a slice of your Model instead, one that runs while the slice holds its value and may emit Messages while it does, Foldkit has [Subscriptions](/core/subscriptions).
+When a foreign element already exposes a declarative property-and-event API, bind it with [CustomElement](/core/custom-element) instead.

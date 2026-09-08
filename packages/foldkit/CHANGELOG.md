@@ -1,5 +1,1445 @@
 # foldkit
 
+## 0.158.2
+
+### Patch Changes
+
+- [#1349](https://github.com/foldkit/foldkit/pull/1349) [`b3901c3`](https://github.com/foldkit/foldkit/commit/b3901c3fe836525893c4d392291a5109928b80ee) Thanks [@devinjameson](https://github.com/devinjameson)! - Republish the website build packages so their artifacts match the shared repository inputs and Vite plugin source used by foldkit.dev.
+
+## 0.158.1
+
+### Patch Changes
+
+- [#1347](https://github.com/foldkit/foldkit/pull/1347) [`9099339`](https://github.com/foldkit/foldkit/commit/90993394590df06ee4413cbbc766b740138f09f2) Thanks [@devinjameson](https://github.com/devinjameson)! - Point the foldkit README, the create-foldkit-app homepage, and the @foldkit/devtools-mcp README at /get-started and /introduction/why-foldkit.
+
+## 0.158.0
+
+### Minor Changes
+
+- [#1287](https://github.com/foldkit/foldkit/pull/1287) [`474b7c6`](https://github.com/foldkit/foldkit/commit/474b7c6d68a5cec68c36b05e635225cf41d93a51) Thanks [@devinjameson](https://github.com/devinjameson)! - Machine Edge handlers now return one `Update.Return`-shaped record with `model` and optional `commands` fields. This replaces the separate Model builder and Commands callback arguments on `to` and `when`, keeps transition outputs consistent with Foldkit update functions, and lets one derivation feed both the next state and its Commands. Migrate by returning `{ model, commands }` from the existing handler and removing the separate Commands callback.
+
+- [#1305](https://github.com/foldkit/foldkit/pull/1305) [`e0a0528`](https://github.com/foldkit/foldkit/commit/e0a0528c239958e6af24ccea356f6ac80d0830e4) Thanks [@devinjameson](https://github.com/devinjameson)! - Add `Machine.ignore()` for explicitly declaring that a guard list should ignore its Message when every preceding `when` guard declines. `Machine.step` reports this outcome as `ExplicitlyIgnored`, and static analysis reports later Edges as `ShadowedByIgnore`.
+
+  This adds an `Ignore` variant to `Machine.GuardedEdge` and variants to `Machine.IgnoredReason` and `Machine.DeadTransitionReason`. Update exhaustive matches over those unions to handle `Ignore`, `ExplicitlyIgnored`, and `ShadowedByIgnore`.
+
+- [#1300](https://github.com/foldkit/foldkit/pull/1300) [`2963bc7`](https://github.com/foldkit/foldkit/commit/2963bc7e16796984f62b5f675d639ee9427751b0) Thanks [@devinjameson](https://github.com/devinjameson)! - Add `Machine.fold`, a dual helper that folds a Machine state field into its enclosing Model.
+
+  The helper supports both data-first update calls and data-last `Update.Step` composition. Contextual Machines read their required context from the enclosing Model for each transition.
+
+- [#997](https://github.com/foldkit/foldkit/pull/997) [`177cfb4`](https://github.com/foldkit/foldkit/commit/177cfb4c02c9c2cdc52e0838e43a76cee4b0e43b) Thanks [@devinjameson](https://github.com/devinjameson)! - The experimental Machine's `Ignored` result now carries a required `reason` field, typed as the new `IgnoredReason` export, so a step that matched no Edge says why. `OutOfAlphabet` means the Message tag appears in no state's `on` record anywhere in the table. `NotApplicable` means the tag is in the Machine's alphabet but no Edge for it exists from the current state. `GuardsFellThrough` means an Edge entry exists for this state and Message but every guard declined and no `otherwise` was present, which previously looked identical to a Message the Machine never handles. Consumers that construct or assert an `Ignored` result must add its `reason`.
+
+- [#1288](https://github.com/foldkit/foldkit/pull/1288) [`3bc16bb`](https://github.com/foldkit/foldkit/commit/3bc16bbc80d817f26bca348c59c6adfb499c58a1) Thanks [@devinjameson](https://github.com/devinjameson)! - Add opt-in, Schema-typed read-only context to experimental Machines. Declare `context` in the first `Machine.define` stage to require it as the third argument to `transition` and `step`, expose it as the third guard parameter, and include it in `EdgeInput`.
+
+  Context-free Machines retain their existing two-argument call signatures and Edge input shape. Use context for per-dispatch reads from data outside the Machine state; keep state-owned snapshots in the state and continue using Messages for values that should be observable facts.
+
+- [#1314](https://github.com/foldkit/foldkit/pull/1314) [`240707a`](https://github.com/foldkit/foldkit/commit/240707af8cafdff65c52bc32c999d37616760033) Thanks [@devinjameson](https://github.com/devinjameson)! - Add `Machine.forStates(...).on(...)` and the Machine definition's `shared` array for declaring one transition map across several source states.
+
+  Shared handlers narrow `state` to the selected state variants and `message` to each transition's Message. State-local transitions replace shared defaults for the same state and Message, while overlapping shared declarations throw when the Machine is defined. Shared transitions are expanded into the Machine's ordinary Edge set before runtime dispatch and static analysis.
+
+- [#1303](https://github.com/foldkit/foldkit/pull/1303) [`420e3e9`](https://github.com/foldkit/foldkit/commit/420e3e91439c8b180e7c3a59259631872b9feae2) Thanks [@devinjameson](https://github.com/devinjameson)! - Export `Machine.StateTransitions` for typing an extracted state entry while preserving its Edge state and Message narrowing.
+
+### Patch Changes
+
+- [#999](https://github.com/foldkit/foldkit/pull/999) [`2494764`](https://github.com/foldkit/foldkit/commit/24947649807bdfe3b81a527d0149bc9ea0165d58) Thanks [@devinjameson](https://github.com/devinjameson)! - `Machine.define` now flattens nested state unions when extracting state tags instead of throwing at module load. A state Schema built as a union of unions, such as `Schema.Union([EnteringPlayers, PlayingState])` where `PlayingState` is itself a union, now works, and `stateTags` lists the tags in depth-first declaration order. Members that are neither a union nor a Struct with a literal `_tag` field still throw the existing error.
+
+- [#1286](https://github.com/foldkit/foldkit/pull/1286) [`79d102e`](https://github.com/foldkit/foldkit/commit/79d102e5315683a2fb275461c1ea461ebd6d4a17) Thanks [@devinjameson](https://github.com/devinjameson)! - Exclude Machine Edges shadowed by an earlier `otherwise` from reachability analysis and report each dead transition once.
+
+## 0.157.0
+
+### Minor Changes
+
+- [#1000](https://github.com/foldkit/foldkit/pull/1000) [`f26af99`](https://github.com/foldkit/foldkit/commit/f26af9919036186f853486ada8db73f13c61c1af) Thanks [@devinjameson](https://github.com/devinjameson)! - `Machine.unreachableStates` and `Machine.deadTransitions` accept an optional array of extra walk roots for entry states the declared Edge set does not reach from `initial`, such as states restored from persistence or entered through deep links. The roots are additive: `initial` is always a root, so passing extra roots can only shrink the findings. The analysis docs now state their assumptions plainly: the results describe the declared Edge set walked from its roots, the walk cannot see state advanced outside `transition` and `step`, and entry points other than `initial` must be passed as extra roots or the analysis reports false positives.
+
+- [#1229](https://github.com/foldkit/foldkit/pull/1229) [`13f4f70`](https://github.com/foldkit/foldkit/commit/13f4f703eb6ab6fdd3b90b1ea9ed09155c01031b) Thanks [@devinjameson](https://github.com/devinjameson)! - Let Mount integrations observe whether the rendered view is `Live` or `Paused` through the new `viewStateChanges` Stream supplied to `Mount.define` and `Mount.defineStream` execution.
+
+  The Stream begins with the rendered view state at the moment the Mount is acquired and stays open for the Mount's lifetime. That initial state is retained across asynchronous setup before the Stream is consumed. A live-acquired Mount that survives a time-travel render stays acquired and observes `Live`, then `Paused`, then `Live` after the latest live view has been patched back into the DOM. A Mount inserted by a replay starts in `Paused`, and a runtime without time travel reports only `Live`.
+
+  A Mount acquired by a historical render cannot dispatch to the live Model. If the resumed live view reuses its element and declares a Mount there, Foldkit releases the replay acquisition before starting the live action with the current args and dispatch. A Mount acquired by the live view stays live so asynchronous setup and external streams can continue; its results follow the latest live Submodel wiring without crossing into historical wiring. Integrations use `viewStateChanges` to stop DOM-derived interaction while the historical view is installed. Commands, Subscriptions, ManagedResources, the live Model, and DevTools history also continue normally.
+
+  This reserves `viewStateChanges` as a runtime-supplied Mount execution field. Rename any Mount arg with that name before upgrading. The low-level `MountAction.f` view-state parameter is now required; MountAction wrappers must accept and forward it.
+
+  Custom renderers without time travel can pass the public `Mount.liveViewStateChanges` Stream to that parameter. It emits `Live` immediately and stays open.
+
+- [#1268](https://github.com/foldkit/foldkit/pull/1268) [`3a4ccd0`](https://github.com/foldkit/foldkit/commit/3a4ccd0f6611f3ef90a5af43a821bbc2d8821fbe) Thanks [@devinjameson](https://github.com/devinjameson)! - Preserve structurally refined payload types in exhaustive Foldkit union matchers, migrate OutMessage folds to their owning union matcher, and add `Animation.toggle` as a child-owned visibility entry point.
+
+- [#1273](https://github.com/foldkit/foldkit/pull/1273) [`62ae446`](https://github.com/foldkit/foldkit/commit/62ae44614013a75af0e649f6ad593ae35a59b131) Thanks [@devinjameson](https://github.com/devinjameson)! - Preserve Message and OutMessage type safety across Story and Scene steps.
+
+  `Story.message`, `Story.expectOutMessage`, `Scene.Subscription.emit`, `Scene.expectOutMessage`, and `Scene.expectOutMessages` are now typed data steps rather than callable simulation transforms. Story and Scene validate those values against the Message and OutMessage types of the update under test, including narrow variants of a wider union.
+
+  ## Migration
+
+  Passing these steps directly to `story` or `scene` is unchanged. Any code that treated one of these returned steps as a function must migrate, including direct invocation, storing it as a simulation transform, or composition through Effect's `flow` or another helper in either Story or Scene.
+
+  Use the new `Story.steps` API for a reusable Story sequence. It accepts the same steps as `story`, preserves their Model, Message, and OutMessage constraints, and can itself be passed anywhere a Story step is accepted.
+
+  Scene has no grouped-step API. Pass `Subscription.emit` and OutMessage assertion steps as separate arguments to `scene`; do not compose them as functions.
+
+  Before:
+
+  ```ts
+  import { flow } from 'effect'
+  import { given, message } from 'foldkit/story'
+
+  const givenIncremented = flow(
+    given({ count: 0 }),
+    message(ClickedIncrement()),
+  )
+  ```
+
+  After:
+
+  ```ts
+  import { given, message, steps } from 'foldkit/story'
+
+  const givenIncremented = steps(
+    given({ count: 0 }),
+    message(ClickedIncrement()),
+  )
+  ```
+
+  Remove the `flow` import when it was used only to group Story steps. This is not a general deprecation of Effect's `flow`; continue to use it for ordinary function composition outside the Story step API.
+
+- [#1269](https://github.com/foldkit/foldkit/pull/1269) [`b5ec356`](https://github.com/foldkit/foldkit/commit/b5ec356d1d88d136f77bca416b753479d4aa7b50) Thanks [@devinjameson](https://github.com/devinjameson)! - Reject children and `h.InnerHTML` passed to `h.textarea` or `h.keyed('textarea')` so the Model remains the field's single source of truth. This is a breaking change: move textarea content into the live value property with `h.Value(text)`. The UI Textarea helper now exposes the narrower `TextareaAttribute` group. Animation wrapper elements and Virtual List row elements also exclude `textarea` because both render children.
+
+### Patch Changes
+
+- [#1250](https://github.com/foldkit/foldkit/pull/1250) [`21d56b2`](https://github.com/foldkit/foldkit/commit/21d56b2de3cdc6a010d1b1e1ac9af56ee1169583) Thanks [@devinjameson](https://github.com/devinjameson)! - Rename the Foldkit philosophy page to “Why Foldkit” and update its URL in the package README.
+
+- [#1213](https://github.com/foldkit/foldkit/pull/1213) [`57e2436`](https://github.com/foldkit/foldkit/commit/57e24366c8997cd235002f58c9dc38477a6cb1a3) Thanks [@devinjameson](https://github.com/devinjameson)! - Use full Effect module names in published source, examples, templates, and documentation. JavaScript and TypeScript globals that share an Effect module name are now qualified through `globalThis`.
+
+- [#1114](https://github.com/foldkit/foldkit/pull/1114) [`1593f90`](https://github.com/foldkit/foldkit/commit/1593f90f783752aba16c9c77a171d3d72f9206df) Thanks [@devinjameson](https://github.com/devinjameson)! - Let a consumer export a Machine Edge built with `to` or `when` from `foldkit/experimental/machine`.
+
+  `Edge` has a hidden field that carries the guard value type. Its key was a `unique symbol` that Foldkit did not export. TypeScript had to write that key into the consumer's `.d.ts` file, but it had no name for it, so it failed with `TS4023: ... has or is using name 'EdgeGuardValueTypeId' ... but cannot be named`. This hit any package that builds an Edge in one module and exports it, as soon as that package turned on declaration emit. `When`, `Otherwise`, and `TransitionTable` embed `Edge`, so exporting any of them hit the same error.
+
+  The key is now a normal property, `'~foldkit/EdgeGuardValue'`, following the same fix as the runtime boot key. Consumers need to do nothing. The field is still internal and still has no runtime representation.
+
+- [#1267](https://github.com/foldkit/foldkit/pull/1267) [`a43f524`](https://github.com/foldkit/foldkit/commit/a43f5241c4f7a6cea57386153863fea9ebf9eab8) Thanks [@devinjameson](https://github.com/devinjameson)! - Move focus into dialogs when the requested initial target is missing or cannot receive focus.
+
+## 0.156.0
+
+## 0.155.0
+
+### Minor Changes
+
+- [#1233](https://github.com/foldkit/foldkit/pull/1233) [`5c50e26`](https://github.com/foldkit/foldkit/commit/5c50e264d596fb14b149d49ed8a7cf5a53c2645b) Thanks [@devinjameson](https://github.com/devinjameson)! - Accept `ChildAttribute` in a custom element's attribute array.
+
+  An `ElementBuilder` minted by `CustomElement.define` typed its attributes as `ReadonlyArray<Attribute<Message>>`, while every html element builder accepts `ReadonlyArray<Attribute<Message> | ChildAttribute>`. Spreading a Submodel's published `childAttributes` group into `h.div` typechecked, but spreading the same group into a defined custom element was rejected, even though the runtime routes a `ChildAttribute` through its originating Submodel's boundary regardless of the element's tag. Wrappers that forward caller attributes into a custom element inherited the narrowing, so their own attribute parameters could not accept published groups either.
+
+  The builder's call signature now accepts the union, matching the html element builders. Nothing changes at runtime.
+
+- [#1232](https://github.com/foldkit/foldkit/pull/1232) [`9fe0b36`](https://github.com/foldkit/foldkit/commit/9fe0b3693b432f31337721c09f3708f6a422b86d) Thanks [@devinjameson](https://github.com/devinjameson)! - Add `FieldValidation.match`, a module-level exhaustive matcher for `Field` states. It follows the `AsyncData.match` shape: data-first with the field or data-last for pipelines, handlers `onNotValidated`, `onValidating`, and `onValid` receiving the state's `value`, and `onInvalid` receiving `{ value, errors }`.
+
+  ```typescript
+  FieldValidation.match(model.email, {
+    onNotValidated: () => 'border-gray-300',
+    onValidating: () => 'border-blue-300',
+    onValid: () => 'border-green-500',
+    onInvalid: () => 'border-red-500',
+  })
+  ```
+
+- [#1188](https://github.com/foldkit/foldkit/pull/1188) [`4e7d8d4`](https://github.com/foldkit/foldkit/commit/4e7d8d4010be5a84dd37d1dc48bb97b4f4e599f3) Thanks [@devinjameson](https://github.com/devinjameson)! - Take every `Mount.define` and `Mount.defineStream` input as a named field, with the work in a single flat `execute`.
+
+  Both constructors took their inputs positionally, with the result Messages as a variadic tail and the work supplied by a second call. With args declared, that second call was itself curried: `args => element => Effect<Message>`. The outer function ran the moment a view constructed the MountAction, so anything an author wrote between the two arrows ran on every render, inside a pure view. `Command.define` had the same hazard and defers its body with `Effect.suspend`; a Mount had no equivalent.
+
+  Inputs are now named fields on a config object: `args` declares the args Schema, `messages` lists the Messages the Mount can produce, and `execute` does the work. `execute` takes one parameter that carries the live element as `element` alongside the declared args, so the curried middle step is gone. Constructing a MountAction now runs nothing at all; the runtime calls `execute` when the element enters the DOM.
+
+  `execute` keeps the same shape whether or not `args` is declared, because a Mount always has an element. An args field named `element` is rejected where you declare it, since it would collide with the element `execute` receives.
+
+  ## Migration
+
+  Move each positional argument to its field, wrap the result Messages in an array, and collapse the two arrows into one `execute` that destructures `element` alongside the args.
+
+  ```ts
+  // before
+  const AnchorPopover = Mount.define(
+    'AnchorPopover',
+    { buttonId: S.String, anchor: AnchorConfig },
+    CompletedAnchorPopover,
+  )(({ buttonId, anchor }) => element => Effect.gen(function* () { ... }))
+
+  // after
+  const AnchorPopover = Mount.define('AnchorPopover', {
+    args: { buttonId: S.String, anchor: AnchorConfig },
+    messages: [CompletedAnchorPopover],
+    execute: ({ element, buttonId, anchor }) => Effect.gen(function* () { ... }),
+  })
+  ```
+
+  A Mount with no args omits `args` and keeps the same `execute`.
+
+  ```ts
+  // before
+  const PortalToBody = Mount.define('PortalToBody', CompletedPortalToBody)(
+    element => Effect.gen(function* () { ... }),
+  )
+
+  // after
+  const PortalToBody = Mount.define('PortalToBody', {
+    messages: [CompletedPortalToBody],
+    execute: ({ element }) => Effect.gen(function* () { ... }),
+  })
+  ```
+
+  `Mount.defineStream` migrates the same way, with `execute` returning a `Stream<Message>`.
+
+  `@foldkit/ui` now requires `foldkit` 0.155.0 or newer because its Mount definitions use this config shape.
+
+  `foldkit/mount-factory-must-use-element` reads the new shape. It looks for `element` in `execute`'s destructuring pattern, and reports on `execute` itself. A Mount whose `execute` ignores its element is still an error: the element is the reason a Mount exists, and work that does not need it belongs in a Command, Subscription, or ManagedResource.
+
+  Destructure `element` and the rule checks the read, reading through a default value so `{ element = document.body }` is still checked. Reading `input.element` off an unpacked parameter is checked too. Hand the whole input somewhere the rule cannot follow, such as `attachObserver(input)` or `input[key]`, and it stops checking rather than reporting a Mount that does use its element. Reading only some other field off that input still reports, and so does an `execute` that never references its parameter at all.
+
+- [#1203](https://github.com/foldkit/foldkit/pull/1203) [`d56894c`](https://github.com/foldkit/foldkit/commit/d56894cdc320bad3b80c43eb14bea457bde65af9) Thanks [@devinjameson](https://github.com/devinjameson)! - Remove the deprecated `h.OnClickFocus`. Replace `h.OnClickFocus(focusSelector, message)` with `h.OnClick(message, { focusSelector })`.
+
+- [#1208](https://github.com/foldkit/foldkit/pull/1208) [`fdc973c`](https://github.com/foldkit/foldkit/commit/fdc973cc795c2f04ce1e0f149f9cf0143cc6f3f1) Thanks [@devinjameson](https://github.com/devinjameson)! - Let Scene preserve multiple OutMessages emitted by one update-producing step in runtime order and assert the complete sequence with `expectOutMessages`.
+
+  This changes OutMessage assertions after `Command.resolveAll`, `Command.resolveAllExact`, and `Mount.resolveAll`. `expectOutMessage` now requires exactly one OutMessage from the whole step, and `expectNoOutMessage` requires none. Use `expectOutMessages` when several resolvers emit OutMessages. When a step emits several, the singular `SceneSimulation.outMessage` field is `undefined` because no single value can represent the result.
+
+### Patch Changes
+
+- [#1191](https://github.com/foldkit/foldkit/pull/1191) [`2d85d5a`](https://github.com/foldkit/foldkit/commit/2d85d5ae9536e3fc9c9595442c233a72c0395122) Thanks [@wmaurer](https://github.com/wmaurer)! - `Dom.closeDialog` now resolves to a boolean. It is `true` when the close released the focus trap, return focus, and stack entry that `Dom.showDialog` installed. It is `false` when the dialog held none. For example, this happens when the close runs before the show has finished. A caller that ignores the result needs no change.
+
+- [#1220](https://github.com/foldkit/foldkit/pull/1220) [`16b392c`](https://github.com/foldkit/foldkit/commit/16b392c5e304bbbea62c0aae5a4a36f90d472f71) Thanks [@devinjameson](https://github.com/devinjameson)! - Upgrade Happy DOM to include its latest custom-element event-listener fix.
+
+- [#1207](https://github.com/foldkit/foldkit/pull/1207) [`2a88e37`](https://github.com/foldkit/foldkit/commit/2a88e3738d4841525be25f2ba16d958164b4f1a9) Thanks [@devinjameson](https://github.com/devinjameson)! - Move TypeDoc generation into a private workspace so package TypeScript upgrades are independent from TypeDoc's compiler support.
+
+- [#1230](https://github.com/foldkit/foldkit/pull/1230) [`92e56cf`](https://github.com/foldkit/foldkit/commit/92e56cfbc0a7bccc261cf9e50564a5132fc89d1d) Thanks [@devinjameson](https://github.com/devinjameson)! - Clear a ManagedResource reference and dispatch its release Message when the user-provided release effect fails.
+
+- [#1231](https://github.com/foldkit/foldkit/pull/1231) [`aaff2e5`](https://github.com/foldkit/foldkit/commit/aaff2e53f5bf5742ae0428c5fda89a5d6974ac43) Thanks [@devinjameson](https://github.com/devinjameson)! - Match `defineTaggedUnion` and `defineRouteUnion` values through the union's own `match` instead of `Match.value` pipes with `Match.tagsExhaustive`. Internal call sites, the ssg template, and the generated FOLDKIT.md guidance now use the union method; behavior is unchanged.
+
+- [#1210](https://github.com/foldkit/foldkit/pull/1210) [`b02ce0a`](https://github.com/foldkit/foldkit/commit/b02ce0ab32a082bd40774127b8f4f6bfd6e1043e) Thanks [@devinjameson](https://github.com/devinjameson)! - Upgrade development dependencies to Node 26 type definitions and Happy DOM 20.11.8.
+
+- [#1217](https://github.com/foldkit/foldkit/pull/1217) [`5f8a6e8`](https://github.com/foldkit/foldkit/commit/5f8a6e8a2ac0baf34598964a7cc8d48c81fb37c6) Thanks [@devinjameson](https://github.com/devinjameson)! - Reduce render overhead by caching unchanged document metadata, writing ordinary properties directly, and skipping masked module scans for VNodes with no module data. External metadata changes and URL updates are still reconciled on the next render.
+
+- [#1220](https://github.com/foldkit/foldkit/pull/1220) [`16b392c`](https://github.com/foldkit/foldkit/commit/16b392c5e304bbbea62c0aae5a4a36f90d472f71) Thanks [@devinjameson](https://github.com/devinjameson)! - Upgrade the Happy DOM development dependency used by package tests.
+
+- [#1210](https://github.com/foldkit/foldkit/pull/1210) [`b02ce0a`](https://github.com/foldkit/foldkit/commit/b02ce0ab32a082bd40774127b8f4f6bfd6e1043e) Thanks [@devinjameson](https://github.com/devinjameson)! - Upgrade the TypeScript compiler used to build and test packages to 7.0.2 while keeping compiler API tools on the official TypeScript 6 compatibility package.
+
+## 0.154.0
+
+### Minor Changes
+
+- 186020f: Add composable `OnClick` controls for preventing the browser default, stopping DOM propagation, and synchronously focusing an existing element before dispatch. The existing one-argument call keeps its allow-and-bubble behavior, while `OnClickFocus` remains source compatible and is deprecated in favor of the new focus control. Scene now follows the full click propagation path, honors the default-action and propagation controls, and runs submit-button default actions.
+- a36b809: Add `OnFocusEnter` and `OnFocusLeave` attributes for modeling focus across a compound region. Put them on a common ancestor and Foldkit dispatches only when focus crosses that ancestor's boundary, not when it moves between descendants. The new `Scene.focusEnter` and `Scene.focusLeave` interactions exercise the same Messages in scene tests.
+- e13c3a0: `Update.foldChild` and `Update.foldChildStep` can now emit a derived parent OutMessage from `foldOutMessage`. Type the fold as `Update.StepWithOutMessage` when handling the child fact may also produce a different fact from the parent.
+
+  Imagine this code lives inside a settings page module with a reusable `Select` Submodel. Choosing "Dark" makes the Select emit `Select.OutMessage.Selected`. The settings page owns the theme Model, so its local `changeTheme` Step applies the selection:
+
+  ```typescript
+  // settings/main.ts
+  const changeTheme =
+    (theme: Theme): Update.StepWithOutMessage<Model, Message, OutMessage> =>
+    model => ({
+      model: evo(model, { theme: () => theme }),
+      commands: [SaveThemePreference({ theme })],
+      outMessage: OutMessage.ChangedTheme({ theme }),
+    })
+  ```
+
+  `changeTheme` evolves the settings Model, returns the Command that saves the preference, and reports the change to the settings page's parent.
+
+  Before, `foldOutMessage` could only return a plain `Update.Step`, so it could not call `changeTheme`. The fold had to leave the selection for the parent Message handler:
+
+  Before:
+
+  ```typescript
+  // settings/main.ts
+  const foldThemeSelectOutMessage = M.type<Select.OutMessage<Theme>>().pipe(
+    M.withReturnType<Update.Step<Model, Message>>(),
+    M.tagsExhaustive({
+      Selected: () => model => ({ model }),
+    }),
+  )
+  ```
+
+  The `GotThemeSelectMessage` branch then had to run the child fold, inspect the child Message again, call `changeTheme`, combine both Commands collections, and preserve the optional parent OutMessage:
+
+  ```typescript
+  // settings/main.ts
+  GotThemeSelectMessage: ({ message }) => {
+    const themeSelectFold = foldThemeSelect(model, message)
+
+    return Select.Message.match<
+      Update.ReturnWithOutMessage<Model, Message, OutMessage>
+    >(message, {
+      SelectedOption: ({ option }) => {
+        const themeChange = changeTheme(option)(themeSelectFold.model)
+
+        return {
+          ...themeChange,
+          commands: [
+            ...(themeSelectFold.commands ?? []),
+            ...(themeChange.commands ?? []),
+          ],
+        }
+      },
+    })
+  },
+  ```
+
+  After:
+
+  ```typescript
+  // settings/main.ts
+  const foldThemeSelectOutMessage = M.type<Select.OutMessage<Theme>>().pipe(
+    M.withReturnType<Update.StepWithOutMessage<Model, Message, OutMessage>>(),
+    M.tagsExhaustive({
+      Selected: ({ value: theme }) => changeTheme(theme),
+    }),
+  )
+  ```
+
+  Set `foldOutMessage` to `foldThemeSelectOutMessage` in the existing `Update.foldChild` config. The `GotThemeSelectMessage` branch only routes the child Message now:
+
+  ```typescript
+  // settings/main.ts
+  const foldThemeSelect = Update.foldChild({
+    update: Select.update,
+    read: model => Option.some(model.themeSelect),
+    write: (model, nextThemeSelect) =>
+      evo(model, { themeSelect: () => nextThemeSelect }),
+    toParentMessage: message => Message.GotThemeSelectMessage({ message }),
+    foldOutMessage: foldThemeSelectOutMessage,
+  })
+
+  GotThemeSelectMessage: ({ message }) => foldThemeSelect(model, message),
+  ```
+
+  The Step returned by `changeTheme` now runs inside `foldThemeSelect`. `Update.foldChild` preserves the Select Commands and returns the settings page's next Model, save Command, and derived `ChangedTheme` OutMessage together.
+
+  Keep `toParentOutMessage` for one-to-one forwarding of a child fact. No adapter is needed when every parent OutMessage is derived by `foldOutMessage`. When both paths emit, the derived OutMessage replaces the lift for that dispatch. If the Step emits nothing, the lift still runs.
+
+### Patch Changes
+
+- 6716de6: Clarify the public TSDoc for update returns and child folds. The revised guidance explains which child OutMessages continue to the parent, which stop at the current Submodel, and when `foldOutMessage` still runs locally.
+
+## 0.153.0
+
+### Minor Changes
+
+- 64387ef: Routes and other tagged unions now use the same one-object declaration as Messages. The old `r` and `ts` helpers are gone:
+
+  - Use `defineRouteUnion` for `AppRoute`.
+  - Use `defineTaggedUnion` for Model states and other domain unions.
+  - Use `taggedStruct` when a tagged struct must be declared on its own.
+
+  Both union helpers return a Schema that also holds the variant constructors. For example, `AppRoute.Person` is the `Person` Schema, and `AppRoute.Person({ personId: 42 })` constructs a value. They also provide `match`, `guards`, `isAnyOf`, `subset`, and `members`. A `defineTaggedUnion` result can be passed directly to `Machine.define`. Message unions still expose only their constructors and exhaustive `match`.
+
+  ## Migrate Routes
+
+  Declare every route in one `AppRoute` object, then use variants through that namespace. Do not name the union `Route`; Foldkit already uses that name for the route module.
+
+  Before:
+
+  ```typescript
+  import { int, literal, mapTo, r, root, slash } from 'foldkit/route'
+
+  export const HomeRoute = r('Home')
+  export const PersonRoute = r('Person', { personId: S.Number })
+  export const NotFoundRoute = r('NotFound', { path: S.String })
+
+  export const AppRoute = S.Union([HomeRoute, PersonRoute, NotFoundRoute])
+
+  export type HomeRoute = typeof HomeRoute.Type
+  export type PersonRoute = typeof PersonRoute.Type
+  export type NotFoundRoute = typeof NotFoundRoute.Type
+  export type AppRoute = typeof AppRoute.Type
+
+  export const homeRouter = pipe(root, mapTo(HomeRoute))
+  export const personRouter = pipe(
+    literal('people'),
+    slash(int('personId')),
+    mapTo(PersonRoute),
+  )
+
+  export const urlToAppRoute = parseUrlWithFallback(routeParser, NotFoundRoute)
+  ```
+
+  After:
+
+  ```typescript
+  import {
+    defineRouteUnion,
+    int,
+    literal,
+    mapTo,
+    root,
+    slash,
+  } from 'foldkit/route'
+
+  export const AppRoute = defineRouteUnion({
+    Home: {},
+    Person: { personId: S.Number },
+    NotFound: { path: S.String },
+  })
+  export type AppRoute = typeof AppRoute.Type
+
+  export const homeRouter = pipe(root, mapTo(AppRoute.Home))
+  export const personRouter = pipe(
+    literal('people'),
+    slash(int('personId')),
+    mapTo(AppRoute.Person),
+  )
+
+  export const urlToAppRoute = parseUrlWithFallback(
+    routeParser,
+    AppRoute.NotFound,
+  )
+  ```
+
+  The old `XxxRoute` suffix kept separate exports from colliding. `AppRoute` now provides that context, so write `AppRoute.Person({ personId: 42 })` instead of `PersonRoute({ personId: 42 })`.
+
+  ## Migrate Route subsets
+
+  Use `subset` when a Model or Schema accepts only some application Routes. This keeps the allowed Routes tied to `AppRoute` without declaring another union.
+
+  Before:
+
+  ```typescript
+  export const LoggedOutRoute = S.Union([HomeRoute, LoginRoute, NotFoundRoute])
+  export const LoggedInRoute = S.Union([
+    DashboardRoute,
+    SettingsRoute,
+    NotFoundRoute,
+  ])
+  ```
+
+  After:
+
+  ```typescript
+  export const LoggedOutRoute = AppRoute.subset(['Home', 'Login', 'NotFound'])
+  export const LoggedInRoute = AppRoute.subset([
+    'Dashboard',
+    'Settings',
+    'NotFound',
+  ])
+  ```
+
+  `subset` includes only the tags you name. If you add a Route to `AppRoute` later, neither Schema above will accept it until you add its tag. There is no `omit`: an exclusion list would silently accept every Route added later.
+
+  If a module needs to name one variant's type, export an alias beside `AppRoute` instead of repeating `typeof AppRoute.Person.Type`:
+
+  ```typescript
+  export type PersonRoute = typeof AppRoute.Person.Type
+  ```
+
+  ## Replace hand-written route guards
+
+  Use `isAnyOf` when one guard accepts several tags.
+
+  Before:
+
+  ```typescript
+  export const isBlogRoute = (
+    route: AppRoute,
+  ): route is BlogRoute | BlogPostRoute =>
+    route._tag === 'Blog' || route._tag === 'BlogPost'
+  ```
+
+  After:
+
+  ```typescript
+  export const isBlogRoute = AppRoute.isAnyOf(['Blog', 'BlogPost'])
+  ```
+
+  ## Migrate domain unions
+
+  Use `defineTaggedUnion` when the variants of a domain union can be declared together.
+
+  Before:
+
+  ```typescript
+  import { ts } from 'foldkit/schema'
+
+  export const NotSubmitted = ts('NotSubmitted')
+  export const Submitting = ts('Submitting')
+  export const SubmitSuccess = ts('SubmitSuccess')
+  export const SubmitError = ts('SubmitError', { error: S.String })
+
+  export const Submission = S.Union([
+    NotSubmitted,
+    Submitting,
+    SubmitSuccess,
+    SubmitError,
+  ])
+  export type Submission = typeof Submission.Type
+  ```
+
+  After:
+
+  ```typescript
+  import { defineTaggedUnion } from 'foldkit/schema'
+
+  export const Submission = defineTaggedUnion({
+    NotSubmitted: {},
+    Submitting: {},
+    SubmitSuccess: {},
+    SubmitError: { error: S.String },
+  })
+  export type Submission = typeof Submission.Type
+  ```
+
+  Use the union's `match` method when every tag must be handled:
+
+  ```typescript
+  // Before
+  M.value(submission).pipe(
+    M.withReturnType<Html>(),
+    M.tagsExhaustive({ ... }),
+  )
+
+  // After
+  Submission.match<Html>(submission, { ... })
+  ```
+
+  Because `match` runs at runtime, a file that calls it must import the union as a value. Keep using Effect `Match` for partial matching, fallbacks, or one handler shared by several tags.
+
+  ## Remove repeated union names from tags
+
+  The union name now provides the context a tag needs. Prefer `ConnectionState.Connected` to `ConnectionState.ConnectionConnected`.
+
+  Renaming a tag also changes its `_tag` value. Do not shorten tags stored in a Model, URL, or wire protocol unless that external value is meant to change.
+
+  ## Rename `ts` to `taggedStruct`
+
+  `taggedStruct` is the new name for `ts`. Most unions should move to `defineTaggedUnion`; `taggedStruct` remains for variants that must be declared separately.
+
+  ```typescript
+  // Before
+  import { ts } from 'foldkit/schema'
+  const TableRow = ts('TableRow', { cells: S.Array(TableCell) })
+
+  // After
+  import { taggedStruct } from 'foldkit/schema'
+  const TableRow = taggedStruct('TableRow', { cells: S.Array(TableCell) })
+  ```
+
+  Use `taggedStruct` in these cases:
+
+  - A recursive union, such as `Canvas.Shape` or the markdown AST.
+  - A union assembled from variants owned by different modules, such as a parent Model built from two Submodel Models.
+  - A tagged child struct that is not one variant of a choice, such as `TableRow`.
+  - A variant created inside a generic Schema factory, such as `AsyncData`.
+
+  If recursion forces one union in a module to use `taggedStruct`, use `taggedStruct` for the module's sibling unions too.
+
+  ## Variants are no longer separate exports
+
+  `Navigation` and `Interruptible` no longer export their variants as separate top-level names. Access each variant through its union instead.
+
+  ```typescript
+  // Before
+  Navigation.Internal({ url })
+  Interruptible.Interrupted()
+
+  // After
+  Navigation.UrlRequest.Internal({ url })
+  Interruptible.Outcome.Interrupted()
+  ```
+
+  The DevTools protocol now follows the same rule. Its variants live under `Request`, `Response`, `Event`, `DiffValue`, and `MessageSchemaResult`. The `_tag` strings did not change, so old and new DevTools clients still speak the same wire protocol.
+
+  `@foldkit/ui`, `@foldkit/devtools`, `@foldkit/devtools-mcp`, `@foldkit/markdown`, and `@foldkit/vite-plugin` now require Foldkit `>=0.153.0` because their published code calls these new APIs. Each gets a minor release so consumers on older pre-1.0 ranges do not receive an incompatible update.
+
+  ## Lint
+
+  `foldkit/no-empty-object-tagged-call` now catches no-field Route and domain constructors as well as Messages. It recognizes namespaces whose names end in Message, Route, or State, plus unions declared in the same file with Foldkit's union helpers. It does not assume every PascalCase namespace is a Foldkit union.
+
+  The [Routing & Navigation guide](https://foldkit.dev/core/routing-and-navigation) covers the route union in depth, and the [Model guide](https://foldkit.dev/core/model) covers state modeling with `defineTaggedUnion`.
+
+## 0.152.0
+
+### Minor Changes
+
+- da9e505: Bump Effect to `4.0.0-rc.112` (from `4.0.0-rc.111`). Foldkit's `effect` peer dependency now requires `4.0.0-rc.112`, and `@foldkit/devtools` pins its `@effect/platform-browser` peer dependency to the same version.
+
+  Pin your Effect packages to `4.0.0-rc.112` to match this release. While Effect v4 is in prerelease, use exact pins rather than ranges:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.112 @effect/platform-browser@4.0.0-rc.112
+  pnpm add -D @effect/vitest@4.0.0-rc.112
+  ```
+
+### Patch Changes
+
+- 86ef573: Prevent `foldOutMessage` from narrowing the parent Model while combining child-wrapper and OutMessage Step Message and Command service types in `Update.foldChild` and `Update.foldChildStep`.
+- efd64f4: Clarify the public `foldChild` and `foldChildStep` type parameter names so each Message and service requirement identifies its source.
+
+## 0.151.0
+
+### Minor Changes
+
+- 4a96f71: `Machine.transition` now returns `Update.Return<State, Message, R>` instead of a two-element tuple containing the next state and Commands. The Machine state is the return's `model`, and an ignored Message omits `commands`.
+
+  Before:
+
+  ```typescript
+  const [nextState, commands] = machine.transition(state, message)
+  ```
+
+  After:
+
+  ```typescript
+  const stateTransition = machine.transition(state, message)
+
+  stateTransition.model
+  stateTransition.commands
+  ```
+
+  The record can also serve directly as the child update in `Update.foldChild`. Use `Machine.step` instead when code needs to distinguish a `Transitioned` result from an `Ignored` result or inspect Edge metadata.
+
+- 11e0b0e: Update, init, boot, and component helpers now return records instead of tuples. Every producer and consumer of those results must migrate. The Runtime no longer accepts the tuple form. The `Update.Return<Model, Message>` and `Update.ReturnWithOutMessage<Model, Message, OutMessage>` names stay the same; the values assigned to them change shape.
+
+  ## Upgrade order
+
+  If your application uses Foldkit 0.148.x or earlier, upgrade to 0.149.0 and complete the Message union migration first. The examples below assume Messages use `defineMessageUnion` and updates use `Message.match`.
+
+  ## Migrate producers
+
+  Change every two-element tuple returned by update, init, boot, or a component helper from `[model, commands]` to `{ model, commands }`. Apply the change to every branch of an update. Omit `commands` wherever the producer statically creates none.
+
+  Before:
+
+  ```typescript
+  type UpdateReturn = Update.Return<Model, Message>
+
+  export const update = (model: Model, message: Message) =>
+    Message.match<UpdateReturn>(message, {
+      ClickedSave: () => [model, [SaveNote()]],
+      SucceededSave: ({ note }) => [evo(model, { note: () => note }), []],
+    })
+  ```
+
+  After:
+
+  ```typescript
+  export const update = (model: Model, message: Message) =>
+    Message.match<Update.Return<Model, Message>>(message, {
+      ClickedSave: () => ({ model, commands: [SaveNote()] }),
+      SucceededSave: ({ note }) => ({
+        model: evo(model, { note: () => note }),
+      }),
+    })
+  ```
+
+  An `UpdateReturn` alias still works. Foldkit's authoring convention is to inline the return type when `Message.match` is its only use. Keep the alias when another matcher, helper, or exported signature reuses it. The match generic constrains the whole update, so do not repeat `: UpdateReturn` on the function.
+
+  When a producer computes a Commands collection, return it directly even if the collection may be empty:
+
+  ```typescript
+  return { model: nextModel, commands: buildCommands(model) }
+  ```
+
+  Do not inspect a computed collection only to omit the property when it is empty. Use `commands ?? []` only where another operation requires an array for spreading, concatenating, execution, or an assertion. The new `foldkit/no-empty-commands-array` rule rejects a literal `commands: []` property.
+
+  ## Migrate consumers
+
+  Keep the whole result attached to the operation that produced it. For example, a test should keep the result of submitting a form together:
+
+  Before:
+
+  ```typescript
+  const [nextModel, commands] = update(model, Message.SubmittedForm())
+
+  expect(nextModel.status).toBe('Submitting')
+  expect(commands).toHaveLength(1)
+  ```
+
+  After:
+
+  ```typescript
+  const formSubmit = update(model, Message.SubmittedForm())
+
+  expect(formSubmit.model.status).toBe('Submitting')
+  expect(formSubmit.commands ?? []).toHaveLength(1)
+  ```
+
+  Do not replace tuple destructuring with record destructuring such as `const { model: nextModel, commands } = update(...)`. Dot access does not force a caller to read `outMessage`, but it keeps the operation and every returned field visibly connected. When the operation name collides with the function, use a trailing underscore such as `init_`.
+
+  The same convention applies when assembling independent init results.
+
+  Before:
+
+  ```typescript
+  const [homeModel, homeCommands] = Home.init()
+
+  return [
+    { home: homeModel },
+    Command.mapMessages(homeCommands, message =>
+      Message.GotHomeMessage({ message }),
+    ),
+  ]
+  ```
+
+  After:
+
+  ```typescript
+  const homeInit = Home.init()
+
+  return {
+    model: { home: homeInit.model },
+    commands: Command.mapMessages(homeInit.commands, message =>
+      Message.GotHomeMessage({ message }),
+    ),
+  }
+  ```
+
+  `Command.mapMessages` accepts an optional Commands field in both call forms and returns an empty array when the field is absent. Pass `homeInit.commands` directly instead of writing `homeInit.commands ?? []`.
+
+  TypeScript rejects this manual composition when the enclosing update returns `Update.Return<Model, Message>`:
+
+  ```typescript
+  const dialogOpen = openDialog(model)
+
+  return {
+    model: evo(dialogOpen.model, { isSubmitting: () => false }),
+    // Type error: with exactOptionalPropertyTypes, this property must be
+    // omitted when dialogOpen.commands is undefined.
+    commands: dialogOpen.commands,
+  }
+  ```
+
+  Every Foldkit template enables `exactOptionalPropertyTypes`. With that setting, the optional `commands` property may be absent. When the property is present, it must contain Commands. `dialogOpen.commands` has the type `Update.Commands<Message> | undefined`, so TypeScript rejects `commands: dialogOpen.commands`.
+
+  This error often points to update results being composed by hand. When a later operation needs the Model produced by an earlier operation, express both as Steps and compose them with `Update.combine`:
+
+  ```typescript
+  return Update.combine(model, [
+    openDialog,
+    stepModel => ({
+      model: evo(stepModel, { isSubmitting: () => false }),
+    }),
+  ])
+  ```
+
+  ## Migrate OutMessages
+
+  `Update.ReturnWithOutMessage<Model, Message, OutMessage>` now carries an optional `outMessage` field instead of an `Option<OutMessage>` tuple element. Include `outMessage` when the update emits one and omit the field otherwise.
+
+  Before:
+
+  ```typescript
+  SucceededAuthenticate: ({ session }) => [
+    model,
+    [],
+    Option.some(OutMessage.SucceededLogin({ session })),
+  ],
+  FailedAuthenticate: () => [model, [], Option.none()],
+  ```
+
+  After:
+
+  ```typescript
+  SucceededAuthenticate: ({ session }) => ({
+    model,
+    outMessage: OutMessage.SucceededLogin({ session }),
+  }),
+  FailedAuthenticate: () => ({ model }),
+  ```
+
+  Use `Update.Return<Model, Message>` when an update cannot emit an OutMessage. TypeScript rejects assigning a result that may contain an OutMessage to that type, so a caller cannot keep the Model and Commands while losing the OutMessage:
+
+  ```typescript
+  const childUpdate: Update.ReturnWithOutMessage<
+    Child.Model,
+    Child.Message,
+    Child.OutMessage
+  > = Child.update(model.child, message)
+
+  // Type error: childUpdate may contain an OutMessage.
+  const plainChildUpdate: Update.Return<Child.Model, Child.Message> =
+    childUpdate
+  ```
+
+  An OutMessage-aware API can still accept a plain result. A missing `outMessage` field means that update emitted nothing:
+
+  ```typescript
+  const plainUpdate: Update.Return<Model, Message> = { model }
+
+  const submodelUpdate: Update.ReturnWithOutMessage<
+    Model,
+    Message,
+    OutMessage
+  > = plainUpdate
+  ```
+
+  When an update definitely emits an OutMessage, include it directly:
+
+  ```typescript
+  return { model, outMessage: OutMessage.ClearedDate() }
+  ```
+
+  When the OutMessage may be `undefined`, use `Update.withOutMessage`. It omits the property when the update emitted nothing and preserves the Model and Commands of an existing result:
+
+  ```typescript
+  return pipe(dialogClose, Update.withOutMessage(outMessage))
+  ```
+
+  A child fold's `toParentOutMessage` mapper now returns the parent OutMessage directly. Return `undefined` for each named child variant that stops at the current Submodel.
+
+  Before:
+
+  ```typescript
+  const toParentOutMessage = M.type<Child.OutMessage>().pipe(
+    M.withReturnType<Option.Option<OutMessage>>(),
+    M.tagsExhaustive({
+      Submitted: ({ id }) => Option.some(OutMessage.Submitted({ id })),
+      Cancelled: () => Option.none(),
+    }),
+  )
+  ```
+
+  After:
+
+  ```typescript
+  const toParentOutMessage = M.type<Child.OutMessage>().pipe(
+    M.withReturnType<OutMessage | undefined>(),
+    M.tagsExhaustive({
+      Submitted: ({ id }) => OutMessage.Submitted({ id }),
+      Cancelled: () => undefined,
+    }),
+  )
+  ```
+
+  Add `toParentOutMessage` only when at least one child OutMessage is forwarded from the current Submodel to its parent. Omit it when no variant is forwarded. A forwarded variant may still be handled locally by `foldOutMessage`. `Update.foldChildStep` supports the same forwarding for child entry points that take only the child Model.
+
+  ## Migrate composed operations
+
+  Do not translate manual child tuple unpacking into separate reads of `result.model`, `result.commands`, and `result.outMessage`. Use `Update.foldChild` for child Messages and `Update.foldChildStep` for child entry points that take only the child Model.
+
+  The old code below writes the next Dialog Model and maps its Commands. The two-slot destructure silently drops the Dialog OutMessage:
+
+  Before:
+
+  ```typescript
+  const [nextDialog, dialogCommands] = Dialog.close(model.dialog)
+
+  return [
+    evo(model, {
+      dialog: () => nextDialog,
+      isSubmitting: () => false,
+    }),
+    Command.mapMessages(dialogCommands, toGotDialogMessage),
+  ]
+  ```
+
+  The replacement intentionally does more than translate the return shape. It handles the Dialog OutMessage that the old code discarded.
+
+  After:
+
+  ```typescript
+  const foldDialogClose = Update.foldChildStep({
+    update: Dialog.close,
+    read: model => Option.some(model.dialog),
+    write: (model, nextDialog) => evo(model, { dialog: () => nextDialog }),
+    toParentMessage: toGotDialogMessage,
+    foldOutMessage: foldDialogOutMessage,
+  })
+
+  return Update.combine(model, [
+    foldDialogClose,
+    stepModel => ({
+      model: evo(stepModel, { isSubmitting: () => false }),
+    }),
+  ])
+  ```
+
+  Use `Update.combine` for two or more Steps when a later Step needs the Model produced by an earlier Step. It collects Commands in Step order, but the Runtime forks them independently after update returns. Name an inline Step parameter `stepModel`; it contains the Model produced by the preceding Step. Call a single operation directly. Independent child inits do not form a sequence, so initialize them separately and assemble their Models into the parent.
+
+  Foldkit UI component helpers, the DevTools overlay, the SSR fixtures, and generated `create-foldkit-app` templates now use the same record shape. The [Update guide](https://foldkit.dev/core/update) and [Submodels guide](https://foldkit.dev/core/submodel) cover the permanent authoring conventions in more depth.
+
+## 0.150.0
+
+### Minor Changes
+
+- 9869cf7: Bump Effect to `4.0.0-rc.111` (from `4.0.0-rc.109`). Foldkit's `effect` peer dependency now requires `4.0.0-rc.111`, and `@foldkit/devtools` pins its `@effect/platform-browser` peer dependency to the same version.
+
+  Pin your Effect packages to `4.0.0-rc.111` to match this release. While Effect v4 is in prerelease, use exact pins rather than ranges:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.111 @effect/platform-browser@4.0.0-rc.111
+  pnpm add -D @effect/vitest@4.0.0-rc.111
+  ```
+
+## 0.149.0
+
+### Minor Changes
+
+- 504344b: Replace `m` with `defineMessageUnion` in `foldkit/message`. `defineMessageUnion` declares a whole Message union from one record of fields per variant instead of naming each variant once as a constructor and again in the union list.
+
+  The result is a Schema, so it decodes and nests in a Model. Its focused Message surface is exhaustive `match` plus one callable constructor per variant. Each constructor is itself a schema, which is what `Command.define` needs for its `messages` list. Use `Message.match` for exhaustive dispatch. Effect `Match` remains available for partial matching, fallbacks, and one handler shared across several tags.
+
+  This removes the `m` export. Declare Message and OutMessage as separate `defineMessageUnion()` unions, even when two variants happen to carry the same fields. Constructors stay on their owning union namespace rather than being exported as sibling bindings.
+
+  Update `@foldkit/oxlint-plugin` to recognize `defineMessageUnion()` declarations in the Message naming rules. Remove `message-binding-matches-tag`, since variants no longer have separate constructor bindings whose names can drift from their tags.
+
+  Update `create-foldkit-app` templates to declare and match Messages with the new API.
+
+  ```typescript
+  import { Schema as S } from 'effect'
+  import { Update } from 'foldkit'
+  import { defineMessageUnion } from 'foldkit/message'
+  import { evo } from 'foldkit/struct'
+
+  const Model = S.Struct({ count: S.Number })
+  type Model = typeof Model.Type
+
+  export const Message = defineMessageUnion({
+    ClickedReset: {},
+    ChangedCount: { count: S.Number },
+  })
+  export type Message = typeof Message.Type
+
+  type UpdateReturn = Update.Return<Model, Message>
+
+  export const update = (model: Model, message: Message) =>
+    Message.match<UpdateReturn>(message, {
+      ClickedReset: () => [evo(model, { count: () => 0 }), []],
+      ChangedCount: ({ count }) => [evo(model, { count: () => count }), []],
+    })
+  ```
+
+### Patch Changes
+
+- a477ac8: Speed up callable tagged constructors whose type-side fields can be copied directly, such as primitives, literals, and unions of those identity types. Structs, Arrays, child Messages, checked fields, contextual fields, opaque schemas, oneOf unions, schemas that redefine `_tag`, and other composite fields continue through Schema validation. In a warmed Node 22.22.3 benchmark on Effect 4.0.0-rc.109, `ClickedReset()` fell from 177.8 ns to 30.5 ns per call and `ClickedItem({ id })` fell from 257.5 ns to 73.7 ns per call.
+
+  The Vite plugin now includes SchemaAST in its forced Effect prebundle for this runtime dependency.
+
+  The fast path assumes typed object inputs whose provided payload fields are own data properties. Primitive inputs, payload accessors, and inherited payload fields fall back to Schema validation. Both paths ignore an inherited `_tag`. Calls that bypass TypeScript can now construct eligible variants with wrong primitive field types or missing required fields. Stateful accessor Proxy traps are outside the fast-path equivalence boundary. Decode untrusted input through the Schema as before.
+
+- aa10342: Let a consumer export a program whose type comes from `makeElement` or `makeApplication`.
+
+  `MakeRuntimeReturn` has a hidden field that carries Flags, Resources and Kind. Its key was a `unique symbol` that Foldkit did not export. TypeScript had to write that key into the `.d.ts` file, but it had no name for it, so it failed with `TS4023: ... has or is using name 'RuntimeBootTypeId' ... but cannot be named`. This hit any package that builds a program in one module and exports it, as soon as that package turned on declaration emit.
+
+  The key is now a normal property, `'~foldkit/RuntimeBoot'`. Consumers need to do nothing. The field is still internal and still has no runtime representation.
+
+## 0.148.2
+
+### Patch Changes
+
+- f9f2b22: Align the published READMEs with Foldkit's current positioning, terminology, and documentation links. Clarify the Vite plugin's Model-preserving hot reload and hydration build-id guidance.
+- 50fd51f: Compare controlled select hydration against the effective selection owned by the select value, and synchronize duplicate-valued option defaults after that value takes effect.
+- b927ff7: Refuse server rendering a native `select` controlled through a client-only `CustomElement.define` property named `value`. Foldkit applies the property at different points in a fresh render and hydration, so it cannot describe one portable selection. Use `h.Value` for a server-rendered controlled select.
+- 62813c9: Contain and refuse a server handoff unless it is the document's single nonempty stamped root in the body light DOM. `injectIntoTemplate` now rejects a second hydratable application even when it uses a distinct runtime id. Static body output can still coexist because it carries no handoff stamp. Each insertion still applies its `Document` head fields, so insertion order determines the initial metadata.
+
+## 0.148.1
+
+### Patch Changes
+
+- 1ecb97e: Block keyboard input from reaching same-document stale handlers when WebKit lets an older modal reclaim focus during hydration refusal.
+- febdb54: Validate deployment build ids at the JavaScript boundary so missing or non-string client and server values refuse the handoff instead of throwing natively or adopting unstamped HTML.
+- 3d8d80b: Preserve raw style attributes when an element moves from typed style ownership to `h.Attribute('style', ...)`, including hydration updates, CSS shorthands, and custom properties.
+- 21347b7: Preserve tokens from `h.Class` when a raw `class` attribute changes, and keep raw class tokens when typed ownership changes.
+- 3657b1b: Reject `NaN` element keys in hydratable server output because they cannot identify the same element across renders. Hydration key and view-identity markers are now documented as public, non-cryptographic fingerprints rather than one-way digests.
+
+## 0.148.0
+
+### Minor Changes
+
+- 7dc94b6: Harden experimental server rendering and hydration, and raise the supported Node version.
+
+  Security: the server serializer treated any property named `innerHTML` as trusted raw HTML, so a `CustomElement.define` property (or an internal `Prop({ key: 'innerHTML', value })`) named `innerHTML` could inject markup into a server-rendered page. Provenance is now recorded per property write, so only the value `h.InnerHTML` wrote reaches the raw-HTML sink, and a generic property written after it takes the name over rather than inheriting its trust.
+
+  A custom element's declared properties are client-only in the server HTML, including properties named after a global attribute such as `id`, `title`, `lang`, `dir`, `tabIndex`, `hidden`, `inert`, and `draggable`. They no longer reflect through the native property maps, so component state the view never rendered cannot reach the markup. `h.Id`, `h.Title`, and the other attribute builders set the reflected attribute every element has, and still serialize.
+
+  A plain-text `<noscript>` carrying markup is rejected. With scripting disabled, the state noscript exists for, a browser parses `<noscript>` content as HTML, so a `<` that opens a tag or comment would become live markup for exactly the users noscript targets. Plain text still round-trips; author intended fallback markup with `h.InnerHTML`.
+
+  A rendered root that would not close cleanly is rejected, for renders that are not hydratable as well. An unterminated element inside the root (an unclosed `<textarea>`, `<script>`, comment, or `<plaintext>`, typically from an incomplete `InnerHTML` fragment) would otherwise swallow the Flags payload, the client entry, and the rest of the served document.
+
+  A `<noscript>` that changes the rest of the page when a browser parses it with scripting disabled is rejected. Its content is raw text while scripting is enabled and ordinary HTML when it is not, so fallback markup that leaves a `<form>` or `<table>` open pulls the markup that follows the `<noscript>` inside itself, erasing it for exactly the visitors the fallback was written for. The render is parsed both ways and the trees compared, so this holds for a `<noscript>` that arrives inside an `h.InnerHTML` fragment too.
+
+  A static render is checked against the tree the view wrote, not only a hydratable one. Hydration is what would otherwise rebuild a subtree the parser reshaped, so without it a `<div>` inside a `<p>`, a bare `<tr>` in a `<table>`, or text foster-parented out of one is simply lost with nothing left to notice. The hydration-marker check stays conditional, since only a hydratable render emits a stamp.
+
+  `injectIntoTemplate` parses the finished page, with scripting enabled and disabled, and requires the placeholder's parent to hold exactly what the template and the rendered markup say it should. The rendered root is checked in a neutral context before it reaches a template, which cannot see what happens once it is spliced somewhere with a restrictive content model: a `<form>` root placed inside another `<form>` is dropped outright, a `<table>` foster-parents what it cannot hold, and a subtree can be reshaped below a root that itself survives. The check covers static output too, where a dropped subtree is lost with no hydration to rebuild it, and it identifies the injection by the position its placeholder held, so a second application's root elsewhere in the document is not counted against it.
+
+  The `html` field of a public `RenderedApplication` is validated as protocol data rather than trusted because its TypeScript shape is structurally constructible. Hydratable HTML must parse as exactly one top-level element carrying one nonempty root stamp and build stamp, optionally followed by one matching top-level JSON Flags script. Static HTML may contain one element, text, or comment root, or no body output. Additional top-level text or elements, missing build ownership, ambiguous handoff markers, and source that the parser drops, splits, moves, or reconstructs are refused before insertion. Only the HTML parser's five ASCII whitespace characters are ignorable between top-level nodes; a non-breaking space and other visible Unicode whitespace remain application content and cannot sit outside the owned root.
+
+  Where the placeholder may sit is now stated rather than inferred, and everything outside that set is refused by name. The placeholder must reach `<body>` through flow containers only (`div`, `main`, `section`, `article`, `aside`, `header`, `footer`); a `<form>`, `<table>`, `<select>`, foreign content, or a `<template>`'s content is rejected. Rendered markup that declares a shadow root, through `<template shadowrootmode>` or the older `shadowroot`, is rejected too: a browser turns it into a shadow root while parsing, moving the content out of the light DOM, so the served page and the tree hydration reconciles stop describing the same thing. Attach shadow roots from a custom element instead.
+
+  A view rooted at `<html>`, `<head>`, `<body>`, or `<frameset>` is rejected, for static output as well as hydratable output. A browser builds those elements from the document it parses, so the start tag is dropped, merged, or replaces the body once the rendered markup is spliced into a template, and the served root is never the element the view wrote.
+
+  A rendered `<template>` that declares a shadow root is refused by `renderToString` itself rather than only by `injectIntoTemplate`, so a page that never passes through the injector is covered too. The scan descends into template content and parses with scripting enabled and disabled, so a declaration nested inside an ordinary template, or inside a `<noscript>` where the content is live markup only when scripting is off, is refused as well.
+
+  An `h.InnerHTML` fragment cannot reach outside the application root. An `<html>`, `<head>`, `<body>`, or `<frameset>` tag inside one is not rendered where it is written: a browser merges its attributes onto the page's own elements and hoists its content, so the result is neither the markup the view wrote nor anything the application owns. A fragment parse drops those tags, which is why the check runs against a whole page.
+
+  An `h.InnerHTML` fragment containing any `<script>` is refused during server rendering. A script parsed with the served page and one created by assigning `innerHTML` have different execution and type-specific processing rules, so the two paths cannot be made equivalent by serialization alone. The conservative refusal includes classic and module scripts, import maps, speculation rules, and inert data blocks such as JSON-LD. Build the script as an ordinary view element or place it in the HTML template.
+
+  A live HTML `<base>` element is refused anywhere in rendered application markup, whether declared as a view element or supplied through `h.InnerHTML`, and `injectIntoTemplate` applies the same check to a structurally constructed `RenderedApplication`. A browser applies `<base>` before hydration, including one parsed in body or in a scripting-disabled `<noscript>`, so it can redirect the relative client entry written after the root to another origin. Put `<base>` in the template head under host control. An ordinary inert template may still contain one.
+
+  `xmp`, `noembed`, and `noframes` are treated as raw-text elements, and trusted `h.InnerHTML` inside a `textarea` or `title` is refused when it carries that element's closing sequence, which would end the element and put the rest of the fragment in the document. A carriage return in raw-text or comment content is refused, since neither position has an escape and HTML input preprocessing rewrites it before the tokenizer runs, and an unpaired surrogate is refused anywhere a value is serialized, since encoding the page as UTF-8 replaces it with U+FFFD.
+
+  A view that names two owners for one element's content is refused. `h.InnerHTML` and a client-only custom-element property named `innerHTML` each take the whole of an element's content, so either one conflicts with declared children, a controlled value on a `textarea`, `output`, or `select`, and an element that holds no content at all. Trusted raw HTML disagrees with the server serializer in those combinations, while a client-only property replaces the DOM nodes the differ still expects to patch and leaves their vnodes detached.
+
+  A controlled `h.Value` on a `textarea` or `output` also conflicts with declared children because assigning the value replaces the content those child vnodes describe. These are compatibility changes to the HTML builder itself, not only to server rendering: every refusal happens where the element is built, so a client-only application rendering one of these views now fails there rather than producing markup its next render contradicts.
+
+  A raw `h.Attribute` and a typed builder naming the same attribute are refused. The two are owners of one piece of state and their served form has no source spelling: `h.Attribute('checked', '')` beside `h.Checked(false)` served a checked box the client immediately cleared, and dropping the attribute instead left the served element with `defaultChecked` false where a fresh render parses the attribute and has it true, so `form.reset()`, `:default`, and an attribute selector read the two pages differently. The same held for `disabled`, `open`, `selected`, `muted`, and for a controlled `value` beside a raw one. HTML attribute names are matched ASCII-case-insensitively, so `h.Attribute('MULTIPLE', '')` is the same attribute as `h.Attribute('multiple', '')`.
+
+  A typed reflected builder on an HTML element whose native interface does not own that property remains client-only. For example: `h.Type('button')` in a reusable attribute bundle creates an expando when the consumer spreads it onto a `div`, just as it did before server rendering existed, and the server omits it rather than turning it into live attribute state. Use the typed builder on an element that owns the property when the value must appear in markup, or use `h.Attribute` when a raw attribute is intentional.
+
+  A raw attribute standing on its own still counts. A controlled `<select>` reads a raw `value`, `multiple`, or `size` when deciding which option matches and whether nothing may be selected, with `size` parsed the way a browser parses it: leading whitespace skipped, the leading digit run taken, and a value past the unsigned long range leaving the element on its own default. A select with no options at all may carry a value that matches nothing, since a served empty select and a fresh one both hold no selection.
+
+  The numeric attribute builders refuse values a browser reads differently depending on whether they arrive as parsed markup or as a property assignment. A negative `maxLength` throws on assignment while the attribute parses; `size = 0` throws and falls back to 20 only on an input, while the same value remains valid on a select or horizontal rule; `NaN` and `Infinity` become 0 through the property and the attribute's own default through the parser; and past 2^31 the property conversions wrap while the attribute clamps. This covers `h.Maxlength`, `h.Minlength`, `h.Size`, `h.Cols`, `h.Rows`, `h.Colspan`, `h.Rowspan`, `h.Span`, `h.Start`, and `h.Tabindex`, which takes any integer in the signed long range, and `h.High`, `h.Low`, and `h.Optimum`, which take any finite number.
+
+  A string builder that lands on a numeric property is refused the same way, decided by the element rather than by the builder. `h.Value` is a string on an input and a number on a `<meter>`, a `<progress>`, or an `<li>`, where `0x10` is 16 to a property assignment and invalid to the parser, and a leading `+`, surrounding whitespace, `Infinity`, and an empty string each part the two. `h.Max` and `h.Min` on a meter or progress read the same way.
+
+  A nonempty controlled value on `<input type="file">` is refused. The served attribute is ignored while assigning the property throws `InvalidStateError`, so the view crashed on a fresh render and on hydration. The type is read from `h.Type` or from a raw `type` attribute.
+
+  A typed attribute builder inside SVG or MathML is refused, `h.Attribute` being the mechanism foreign content uses. A foreign element has none of the HTML interface members those builders write except `id`, `tabIndex`, and `autofocus`, which were measured in Chromium to reflect there: `h.Href` on an SVG `<a>` throws on assignment because `SVGAElement.href` is readonly, `h.Title` sets a value no attribute reflects, and server rendering wrote an attribute for both. The serializer no longer emits them for foreign content either.
+
+  Dynamic HTML tag names are normalized to lowercase before element-specific serialization. An uppercase `SELECT` now receives the same controlled-value handling as the `HTMLSelectElement` a fresh client render creates. SVG and MathML tag names remain case-sensitive and must use their canonical spelling. Server rendering refuses a spelling the HTML parser would adjust because `createElementNS` preserves the authored name, and hydration compares foreign tag names exactly.
+
+  The accepted values were measured in Chromium, and `check:dom-state-parity` re-measures them: it serializes each view, applies the same view's attributes and properties to a fresh element the way the client does, and requires the two to agree.
+
+  `h.Style` now has one server and client representation per effective CSS declaration. The builder normalizes camel-case properties, declaration names, `cssFloat`, WebKit-prefixed properties, and custom properties beginning `--`; rejects duplicate aliases, `cssText`, Snabbdom lifecycle controls, non-string values, `!important`, and syntax that can escape into another declaration; and refuses a raw `style` attribute beside it. The client writes and removes only properties the view owns, preserving declarations a Mount or custom element added. Hydration seeds equivalent server declarations so an unchanged page causes no style mutations, while a strict CSP that blocked the parsed style attribute is repaired through property-level CSSOM writes. The server and client promise the same effective declarations, not identical `style` attribute bytes or mutation history.
+
+  Trusted `h.InnerHTML` in a `pre`, `listing`, or `textarea` is always prefixed with one newline, which the document parser then consumes. Checking whether the fragment began with a literal newline missed the ones tokenization produces from a character reference (`&#10;`, `&#xA;`, `&NewLine;`) and from input preprocessing turning CR or CRLF into LF.
+
+  `OPTIONS` reaches the server entry in the Vite dev host and the generated production host alike for application resources. Vite answered every preflight itself, with `Access-Control-Allow-Origin` and `Vary: Origin` headers a deployed host has no counterpart for, so a cross-origin request worked all through development and failed once deployed. A preflight is a question about a resource, so the application answers it: an entry can allow one origin for one route and refuse it for another, which no host-level setting could express. Ownership follows `Access-Control-Request-Method`, so a preflight for an application `POST` reaches the entry even when its path looks like a static asset. An `OPTIONS` request without both `Origin` and `Access-Control-Request-Method` is not a CORS preflight and reaches the entry regardless of its path. The generated entries answer one with 204 and an `Allow` header, and that is where an application's CORS policy goes. Preflights for Vite-owned source modules, assets, the client, and HMR stay under Vite's CORS policy.
+
+  The dev host wraps Vite's installed CORS middleware in place. It observes the response headers that middleware changes, retains them for Vite-owned and proxy-owned responses, and restores application responses to their pre-CORS state before applying the entry's own headers. The application render middleware remains after Vite's source, asset, proxy, and fallback ownership, so Vite keeps the resources it can serve while an application request that falls through reaches the entry with the same CORS boundary as production.
+
+  The methods a host still refuses itself are the ones the WHATWG `Request` constructor rejects: `CONNECT`, `TRACE`, and `TRACK`, answered 405 with `Allow`. Forwarding one turns a malformed request into a 500. On Node only `TRACE` reaches that rule, since the HTTP parser rejects `TRACK` with a 400 before any handler runs and `CONNECT` arrives on its own event. `Server.HOST_METHOD_ANSWERS` is now `{ refusedStatus, allow }`, and `Server.isHostSettledMethod` names those three.
+
+  Two roots stamped with one `runtimeId` are refused, by `injectIntoTemplate` when a page is assembled and by the runtime when one boots. The id pairs a root with its Flags payload and keys the Model and scroll position hot reloading preserves, so a page holding two would have them take each other's state. Hydrating more than one page-owning application is not supported: each rewrites the document's metadata and installs its own navigation listeners.
+
+  Attribute values now escape carriage returns (as `&#13;`, matching text) so a `\r` or `\r\n` round-trips through the HTML parser instead of collapsing to `\n`, and a NUL character in any serialized text or attribute is rejected as unrepresentable rather than silently corrupted.
+
+  A hydration whose root is not in the document rebuilds rather than reusing it. A caller that resolves the stamped root itself can hand over a detached element, and patching one directly let the differ match it by tag and keep it, so a page the build id had just rejected survived with its DOM state intact and the replacement root's Mount never ran.
+
+  A controlled property is reasserted once the element's children exist, not only on a later patch. The props module runs while an element is being created, and a `<select>`'s `value` setter has nothing to match until its `<option>`s are there, so a fresh render left the select on the browser's default while the server, which marks the matching option, served the right one. Both now settle on the Model's value at the same point.
+
+  Controlled `value`, `checked`, `selected`, and `muted` properties synchronize both current and parsed default DOM state. Hydration, a fresh render, `form.reset()`, attribute selectors, and a later transition to uncontrolled children or a raw attribute therefore agree. Removing a reflected typed property restores the browser's native default or the remaining raw attribute instead of leaving the old property value behind. A same-valued client-only property still writes when it takes ownership, after the typed builder's default state is cleared.
+
+  Hydration seeds unchanged reflected typed properties before the props module patches them. It does not rewrite an equivalent parsed attribute, so an unchanged resource URL does not reload an iframe and an unchanged `h.Id` does not invoke an upgraded custom element's `attributeChangedCallback` a second time merely because the element was adopted. Stale live state is still rewritten to the Model. On an autonomous custom element, typed global builders use the native attribute path rather than a component-defined property setter, while properties declared through `CustomElement.define` remain client-only.
+
+  Hydration replaces a Custom Element host when the view declares light DOM as text, children, or trusted `h.InnerHTML`. The new host and its content are built while detached, then connected in the same state as a fresh render. The old host disconnects, and the new host has a new DOM identity. A browser can connect the old element before parsing its server content, and `connectedCallback` can insert and retain a matching node ahead of it. A positional or markup comparison cannot distinguish the component node from the view node. Clearing children in place can also run a child's `disconnectedCallback` while the adopted host is live, allowing it to mutate state hydration already sampled. Hydration takes its final attribute and text snapshot after these planned lifecycle effects. A view that declares no content still adopts the host and preserves component-built light DOM. Component callbacks must keep structural DOM writes within their own host or shadow root; hydration does not reconcile arbitrary structural changes they make to ancestors or siblings.
+
+  Hydration compares trusted `h.InnerHTML` in an inert document and marks an equivalent parsed subtree as already owned before patching. The probe therefore does not upgrade custom elements or run their constructors, and adoption preserves the existing child identities. Fresh creation and a changed value use the native `Element.innerHTML` setter for `h.InnerHTML`; a client-only custom property named `innerHTML` still uses the component's own setter.
+
+  Hydration runs the initial `insert` hooks in the order a fresh render does. The differ fires the hooks of nodes it creates when the patch ends, and hydration fired the adopted ones after that, so a parent that adopted one child and created its sibling ran the sibling's Mount first. A Mount that depends on a sibling being initialized worked on a fresh boot and broke on a hydrated one; now both run children-first in tree order.
+
+  Hydration verifies logical identity, not just position, for the root as well as for every adopted child. A hydratable render stamps a keyed or identity-bearing element with a digest of its key and view identity, which hydration compares and then strips, so a reordered or stale keyed list rebuilds instead of adopting the wrong DOM node and transferring one row's user-typed state to another. The digest keeps raw keys (a row id, an account identifier, an email address) and the build's source paths out of the served markup, distinguishes key types so the number `1` and the string `'1'` never collide, and is emitted only for a hydratable render. An element keyed by a symbol cannot be compared across the server and the client, so a hydratable render refuses it: key hydratable elements by a string or a number.
+
+  Build skew is detectable. Hydration could adopt a stale page's `<input name="email">` for a new build's `<input name="ssn">`, carrying what the visitor typed into a field that means something else. A hydratable render now stamps a build id on the rendered root, and hydration compares it against the client's own before it accesses the Flags payload text or adopts DOM. A page from another deployment is refused: startup stops, and the page is contained so its links, forms, and controls stop responding rather than acting on a deployment whose code is not running.
+
+  This is a breaking change to both entry points. `renderToString` takes a `buildId` and fails with the new `MissingBuildId` when a hydratable render is given none; its options are now a union, so `isHydratable: false` takes no id and every other render requires one. `Runtime.hydrate` requires a non-empty `buildId` and no longer accepts a bare `hydrate(application)`: an absent id would equal the absent marker on a page served before build ids existed, which reads a page from an unknown deployment as one of this build's own. `@foldkit/vite-plugin` compiles the value into application code as `import.meta.env.FOLDKIT_BUILD_ID`, from its new `buildId` option or from the `FOLDKIT_BUILD_ID` environment variable, and the entries pass it along. The standalone `foldkitSsr` export compiles the same value itself, including the fixed development id, rather than relying on the aggregate `foldkit` plugin to have installed a separate define.
+
+  ```ts
+  // src/entry.server.ts
+  Server.renderToString(config, {
+    flags,
+    buildId: import.meta.env.FOLDKIT_BUILD_ID,
+  })
+
+  // src/entry.ts
+  Runtime.hydrate(application, { buildId: import.meta.env.FOLDKIT_BUILD_ID })
+  ```
+
+  The id comes from the deployment and nothing is derived from the project. Foldkit cannot see what decides a view's output (the constants it imports, the configuration it reads, the arguments its caller passes), and a digest of whatever files sit in the project would both miss inputs and turn a value published in the page into an oracle for the secrets among them. Use a value the deployment already has, such as a commit, a release tag, or a container digest, and give the client build and the server build the same one. The id is published in the HTML every visitor receives, so it must never contain a secret, and two deployments must never share one. A render that nothing will hydrate (`isHydratable: false`) needs no id. Only a build takes the id from the deployment. The dev server compiles a fixed one because one live source session supplies both transforms and has no deployment identity to derive.
+
+  The comparison settles before the Flags payload text is accessed, parsed, or decoded, before `init` runs, and so before any Command, Subscription, or ManagedResource this boot would start. A page from another deployment carries that deployment's Flags, which the current Schema may well accept while every value in them means something else, so startup stops rather than reading them. Every hydration refusal contains the page: build skew, a missing, duplicated, malformed, or Schema-incompatible Flags payload, a root stamped more than once, more than one root with no container to choose between them, and a served root that lost its stamp, which is where a generated client lands when neither the stamp nor its `#root` placeholder survives. Containment marks the document's body `inert` and opens a nondismissable modal shield above existing top-layer content, including dialogs in closed shadow roots. The shield takes focus after opening so physical keyboard input cannot target stale body handlers. Author-owned dialogs remain open behind it, and containment itself does not call `close` or dispatch `cancel`. Nothing moves, so no upgraded custom element reconnects and no embedded browsing context reloads. This blocks native page interaction without claiming a script or global-event sandbox: existing capture handlers, browser-generated top-layer events, timers, and stale scripts can still run. A page a server never rendered is left alone, since a missing container there is an application whose element does not exist rather than a handoff to refuse. `MissingBuildId`, `HydratableRenderOptions`, and `StaticRenderOptions` are exported from `foldkit/experimental/server`, and `HydrateOptions` from `foldkit/runtime`. The last two were documented as shipping from there while the packed declarations omitted them; `check:packed-ssr-consumer` now typechecks a consumer that imports every documented type against the packed declarations, which a source path resolves whether or not the barrel re-exports them.
+
+  A view identity carries the module path and function name alone, and a release gate now holds it to that. Mixing a digest of the module's source into one would make a changed view rebuild its own subtree, but the identity is emitted into the client bundle every visitor downloads, so a truncated hash of a whole source file would ship a check against that file's contents: a build that correctly tree-shook a low-entropy server-only value out of the client would still publish a digest of the source that held it, and the value could be recovered by hashing candidates until one matched. `check:packed-ssr-consumer` asserts against a real built bundle that no identity carries one. The deployment's build id is what catches a page from a build whose views mean something else, and it reveals nothing about the source.
+
+  The SSR hosts take the origin they serve from configuration rather than from the request: the generated production host from `ORIGIN` (defaulting to the configured port on localhost), and the Vite dev host from the new `origin` plugin option, defaulting to the origin the dev server itself resolved. An HTTP request target may be an absolute URL or a network-path reference such as `//elsewhere.example/page`, and resolving one of those against the `Host` header hands the server entry an origin the client chose, which an entry that derives redirects, canonical URLs, or tenant selection from `Request.url` would then take from the request. A target that resolves anywhere but the configured origin is refused with 400. The Vite dev host applies the same rule and preserves its configured `base` prefix and the browser's query string when Vite middleware rewrites the internal request path.
+
+  A request target carrying credentials (`http://user:pass@host/page`) is refused with 400. `URL.origin` ignores userinfo, so such a target read as same-origin and then made `new Request(url)` throw, turning a malformed request into a 500.
+
+  A missing static asset returns 404 rather than the application shell. Browsers fetch scripts and stylesheets with `Accept: */*`, which accepts HTML, so a hashed asset from a previous deployment was answered with the shell at 200 and a stale deployment read as a blank page instead of the 404 it is. `Server.classifyRequest` reads the path first and the request's `Sec-Fetch-Dest` second, and a refusal that turned on the header declares it in `Vary` so a cross-site script request cannot seed a shared-cache 404 for a real page. `Server.classifyRequest` reads the path a static file server would resolve, so `/assets/app%2Ejs` is classified as the asset it names rather than as a page. `Server.varyWith` merges a field name into an existing `Vary`. The Vite dev host keeps application responses under application CORS ownership, preserving `Vary` fields contributed by other non-CORS middleware, while Vite's `Vary: Origin` applies only to Vite-owned responses. The generated production host uses the same response helpers.
+
+  `foldkit` now requires Node >= 20.19, the floor its HTML parser dependencies need. This is an intentional breaking change: Node 18 reached end of life in April 2025.
+
+  `@foldkit/vite-plugin` sets its `foldkit` peer floor to `>=0.148.0`, the first release whose server rendering carries these fixes, in place of `^0`, which accepted versions without the server export at all and failed at import. It imports the server API from the explicit `foldkit/experimental/server` subpath, and its own Node engine floor rises to `>=20.19.0` to match the `foldkit` it requires. The plugin receives a minor release so an existing `^0.15.0` consumer stays on the compatible `0.15` line instead of resolving a patch whose Foldkit peer it cannot satisfy. The release workflow no longer broadens the peer floor back to `^0` while versioning, and release gates assert the packed floor and exercise the old and new ranges through a normal npm install.
+
+## 0.147.0
+
+### Minor Changes
+
+- 664a8bd: Add `injectIntoTemplate` to `foldkit/experimental/server`. It places a rendered page into an HTML template: the rendered markup replaces exactly one empty container placeholder (`<div id="root"></div>` by default, configurable via `containerId`), and the `Document` head fields are stamped into the shell, `title` into the template's single required `<title>`, `lang` and `dir` onto `<html>`, and `canonical` and `ogUrl` into a matching `<link rel="canonical">` and `<meta property="og:url">` when the template carries them. The exact placeholder and title contracts prevent an injection helper from silently discarding container attributes or matching ambiguous markup. The helper is pure string work with no module state, so a host process may import it directly even when the render itself must stay inside the server entry's module graph.
+
+  Also add a delivery-neutral server entry contract. `renderPage` takes a Web `Request` and returns a `Promise<EntryResult>`. `Rendered` carries an application plus optional HTTP status and headers for template injection; `Responded` carries a complete Web `Response` for redirects, APIs, and other bypasses. `toResponse` turns either result into the response a host sends. The Promise boundary keeps entries callable from build scripts, serverless functions, Vite, and Effect HTTP servers without making the host provide the application's Effect requirements.
+
+- 664a8bd: Add server rendering as an experimental capability. The new `foldkit/experimental/server` entry ships `renderToString`, which resolves `init` for a request, runs the pure view under a no-op dispatch frame, and serializes the resulting Document to an HTML string. The root element is stamped with `data-foldkit-app` and, when the application declares Flags, the Schema-encoded Flags ride along in a JSON script tag so a hydrating client reconstructs the same Model from the same inputs. Commands returned by `init` are not run on the server; the rendered HTML is the post-init state.
+
+  On the client, a new `Runtime.hydrate(application)` boots by adopting a server-rendered DOM, as the counterpart to `Runtime.run`, which always renders fresh. The choice is explicit: `run` builds the DOM, `hydrate` adopts it, and reading the entry file tells you which mode a page uses, with no hidden detection. Under `hydrate` the first render adopts the server DOM in place instead of replacing it: existing elements keep their identity, focus, and scroll while module hooks attach listeners and re-assert attributes, props, and controlled values, and Mounts fire for adopted nodes in the same children-first order the differ uses for created ones. A mismatching subtree is rebuilt at the nearest parent, and an HMR-restored Model wins over DOM adoption.
+
+  Hydration now treats the server handoff as required input. A missing stamped root, missing Flags payload, or undecodable Flags payload terminates startup and leaves the server HTML visible but inert instead of silently constructing different client state. Applications declare only their Flags Schema in `makeApplication`. Fresh client boot moves the Flags Effect to `Runtime.run(application, { flags })`, while `Runtime.hydrate(application)` accepts no client Flags producer and decodes the value embedded by `renderToString`. Migrate a client-only Flags application by removing `flags` from its `makeApplication` config and passing it to `Runtime.run`; use a separate `run` entry when a page must support a fresh SPA boot.
+
+  `renderToString` returns the `Document`'s head state alongside the markup (`title`, `lang`, `dir`, `canonical`, `ogUrl`) so the host can stamp it into the shell and the served HTML is correct before the runtime boots, including the `<html>` language and direction for a localized page on first paint.
+
+  Hydratable output now requires a non-empty runtime id and an element root, with typed `InvalidRuntimeId` and `InvalidHydrationRoot` failures when the handoff cannot be represented. Unsafe markup produces a typed `SerializationError`, and serialized tag and attribute names are validated before output.
+
+  Raw-text serialization is namespaced: `<script>`, `<style>`, `<iframe>`, and `<noscript>` are raw text only in the HTML namespace, emitting their text content verbatim (an escaped `&lt;` would be read back as literal characters, not `<`) and refusing content that would escape the element. `<script>` alone also refuses the `<!--` sequence that opens its double-escaped state, which the other three raw-text elements do not have. `<noscript>` is raw text only while scripting is enabled, which is the hydrating client's state, so its text (including `&`, `<`, and `>`) round-trips verbatim and element children inside it are rejected by the structure check. Foreign-content (SVG, MathML) children serialize through escaping. Void-element handling is likewise gated on the HTML namespace (as are the raw-text, textarea, and select rules) so a foreign sibling is not absorbed as a child, and SVG's HTML integration points (`foreignObject`, `desc`, `title`) keep their content in the HTML namespace, so foreign markup serializes and hydrates the way the browser parses it.
+
+  A hydratable render then verifies its serialized root by parsing it with the same HTML tokenizer the browser uses (parse5), requiring exactly one top-level element that carries the hydration stamp with the view's tag and namespace, and walking the parsed tree to confirm its child structure (elements, text, and comments) matches the view. A shape that HTML parsing rearranges reparses into a DOM the client would rebuild rather than adopt, so it is rejected as a `SerializationError`: a block element inside a `<p>`, an HTML element inside an `<svg>`, or foreign `InnerHTML` that escapes the SVG namespace splits content outside the application root (wrap HTML inside SVG in a `<foreignObject>`), and a `<tbody>` the browser inserts around a bare `<tr>`, or text a `<table>` foster-parents out of its rows, changes the structure inside the root (use explicit table sections). A zero-length text run is dropped from the comparison, since the serializer emits no node for it. `InnerHTML` is treated as a parser-owned subtree and left unwalked, while a controlled `<textarea>` or `<output>` is checked against the text content its `value` serializes to, and an uncontrolled `<textarea>` or `<output>` against its children. For `<textarea>`, whose content is RCDATA, that check rejects the element children the parser would fold into text.
+
+  `injectIntoTemplate` parses the template with an HTML tokenizer and mutates real element positions, so a stamped metadata value never lands inside an inline script, comment, or other unintended context, and it rejects a template with no explicit `<html>` start tag when a language or direction is requested rather than dropping them.
+
+  Hydration reconciles stale server DOM by seeding each value into the channel the client view owns it through, including when a view sets `class` or `style` through both a raw attribute and the typed module, so a deterministic render converges instead of one module removing what another set. It adopts by namespace as well as tag name, at the root and at every child, so a namespace mismatch is rebuilt rather than adopted, and in development it reports an attribute, property, class, or style the server and client disagree on by comparing structured per-vnode signatures of the adopted DOM before and after the client patch, reading each value through the channel the vnode owns it through (a DOM property for a non-reflecting form property such as `value` or `muted`, the attribute otherwise), without surfacing any value.
+
+  An adopted custom element keeps the attributes its `connectedCallback` adds that the view does not declare, and keeps component-added class tokens and style properties too when the view drives class and style through `h.Class` and `h.Style`; a raw `h.Attribute('class', ...)` or `h.Attribute('style', ...)` owns the whole attribute and replaces it, component additions included. Component-built light DOM is preserved when the view declares no children for the element; a view that declares children owns the element's light DOM and reconciles it.
+
+  Navigation and resource URL attributes (`href`, `src`, `action`, `formaction`) neutralize `javascript:` and `vbscript:` URLs. This is a safety net for navigation, not a guarantee that any URL is safe: an element that loads and runs its source, such as a `<script>` or `<iframe>`, still runs an `http(s)` or `data:` source, so those remain trusted-content sinks alongside `InnerHTML` and `Srcdoc`.
+
+  `acceptsHtml`, `resolvesToIndexHtml`, and `varyWithAccept` are exported so the dev host, the reference server, and the scaffold classify requests and merge cache headers through one contract: `Accept` is parsed with quality values (`text/html;q=0` is refused), a path is resolved the way a static file server resolves it, `varyWithAccept` merges `Accept` as a comma-separated field-name token so an existing `Accept-Language` is never mistaken for it, and development matches production, including `Vary: Accept` on both the rendered and the refused (404) representation of an Accept-negotiated route.
+
+  Hydration is the default for both request-time rendering and build-time static generation; visitor-specific browser facts should arrive through Commands or Subscriptions after hydration rather than being baked into SSG Flags.
+
+  The server API lives under `foldkit/experimental/server` while it settles and may change in any release. `Runtime.hydrate` ships in the stable runtime as a sibling to `run` and only adopts a DOM stamped by the experimental server entry. Apps that do not use server rendering continue to use `Runtime.run`.
+
+### Patch Changes
+
+- 664a8bd: `CustomElement.define` now validates a tag beyond the hyphen requirement. A name carrying characters outside a conservative custom-element name grammar, such as `My-Element` or one with markup characters, throws at define time, as do the specification's reserved names such as `annotation-xml` and `font-face`. The accepted set is a conservative subset of the full custom-element grammar rather than an exact match for every name the browser allows.
+
+## 0.146.0
+
+### Minor Changes
+
+- da05bfc: Bump Effect to `4.0.0-rc.109` (from `4.0.0-rc.108`). Foldkit's `effect` peer dependency now requires `4.0.0-rc.109`, and `@foldkit/devtools` pins its `@effect/platform-browser` peer dependency to the same version.
+
+  Pin your Effect packages to `4.0.0-rc.109` to match this release. While Effect v4 is in prerelease, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.109 @effect/platform-browser@4.0.0-rc.109
+  pnpm add -D @effect/vitest@4.0.0-rc.109
+  ```
+
+## 0.145.0
+
+### Minor Changes
+
+- ac3a34f: Stop treating page-lifecycle events as a commitment. A page-owning app no longer tears itself down, or reloads itself, on an event the document can survive.
+
+  Fixes an app going permanently blank when the user clicks a download link. `Runtime.run` started the program with `BrowserRuntime.runMain`, which interrupts the runtime on `beforeunload`. Chrome fires `beforeunload` for a click on a download link: it starts a navigation and converts it to a download once it sees the response, so the navigation is abandoned and the document lives on. By then the interrupt had already run the render finalizer, which puts the container element back empty. The file downloaded, the URL never changed, nothing was logged, and the app was gone until a manual reload.
+
+  None of this is specific to Chrome, or to downloads. Browsers fire `beforeunload` when a navigation starts rather than when it commits, so any navigation that does not replace the document leaves the same result. A response that comes back `204 No Content` has the same shape, as does a navigation the user cancels. The download link is the case that was reported.
+
+  `run` now starts the program with a `Runtime.makeRunMain` runner that registers no page-lifecycle interrupt. Error reporting is unchanged. A real navigation still ends the runtime, because the document goes with it.
+
+  **Behavior change:** a page-owning app restored from the browser's back/forward cache no longer reloads the page. The runtime survives the freeze with its Model, its DOM, and its listeners intact, so a back-navigation now returns the app as the user left it, which is what the cache is for. The reload was there to rescue a page the `beforeunload` interrupt had already emptied, and that interrupt is gone. Two things do come back changed: an app that wants fresh data on restore has to ask for it, with a `pageshow` Subscription that dispatches a Message when `persisted` is set, and an app holding its own WebSocket gets it back closed, since the browser closes sockets on the way into the cache.
+
+  One thing goes with the interrupt: a runtime's finalizers, meaning ManagedResource releases and Subscription and Mount teardowns, no longer get a best-effort run when the tab closes or the page navigates away. Nothing promised they would, and upstream calls that interrupt best-effort. An app that flushed state from a release should flush it as the state changes, or from a `pagehide` Subscription.
+
+  The DevTools bridge no longer announces a disconnect on `beforeunload` either. It reported a live app as gone after a download-link click, and the MCP relay ignored that app until the next reload. A page that really goes away closes its Vite HMR socket, and the plugin already prunes the runtime on that close. Because the freeze into the back/forward cache closes that socket too, the bridge now re-announces the connection on a restore, so a resumed app comes back visible to the DevTools MCP tools instead of staying pruned.
+
+  `foldkit` no longer imports `@effect/platform-browser`, so it is dropped from the package's dependencies and from its peer dependencies. Installing `foldkit` no longer asks for it. Apps still need it at the pinned version wherever they use it directly: `@foldkit/devtools` declares it as a peer dependency, and Effect's browser services such as `BrowserKeyValueStore` and `BrowserCrypto` come from it. `@foldkit/vite-plugin` adds `effect/Runtime` to the namespaces it force-includes in Vite's dependency optimizer, so a dev server prebundles what the compiled runtime now references.
+
+- 71556de: Add `Scene.expectHandled()` and `Scene.expectIgnored()`, which assert whether the preceding interaction's event handler produced a Message.
+
+  Scene had no way to express this and silently tolerated the negative case. `captureFromElement` resolved a handler that produced nothing back to the unchanged simulation, so an interaction whose handler ran and chose to return `Option.none()` left no trace. An element with no handler at all has always thrown; this is the narrower case of a handler that ran and let the event fall through.
+
+  That made a whole class of test vacuous. Any test of the shape "pressing this does nothing" passed whether the interaction was correctly inert or the handler had been deleted outright. In `@foldkit/ui` this was not hypothetical: replacing a read-only Listbox's commit branch with `Option.none()` left every listbox test passing, because the read-only tests asserted only the absence of an OutMessage and of Commands, and both hold when nothing is dispatched at all.
+
+  `expectHandled()` is the assertion behind "the key is consumed here". A handler that returns a Message is what makes `h.OnKeyDownPreventDefault` call `preventDefault()`, so a handled keydown is one whose browser default is suppressed: `Space` does not scroll the page and `Enter` does not submit a surrounding form. Reach for it rather than asserting the Message's tag, which couples the test to a name that is only the mechanism.
+
+  `expectIgnored()` is its complement, for where falling through is the intended behavior, so the intent is stated rather than left as the absence of any assertion.
+
+- bf60461: Fail a Scene test on an interaction that fell through and was never acknowledged.
+
+  An event handler that runs and returns `Option.none()` lets the event fall through. Scene records that outcome, which `expectHandled()` and `expectIgnored()` assert on, and now fails when nothing acknowledges it. Acknowledge with `expectIgnored()` where falling through is the intended behavior. Where the event should have been consumed, the handler is the bug, and `expectHandled()` states that expectation and fails until it is fixed.
+
+  Without this, a test asserting "pressing this does nothing" passed whether the interaction was correctly inert or its handler had regressed into producing an inert Message, since neither case changes the Model, emits an OutMessage, or alters the DOM.
+
+  This is a breaking change for test suites. An existing Scene test that fires an interaction whose handler produces nothing, and asserts nothing about it, will now fail and needs `expectIgnored()` added. One acknowledgement covers one fall-through, so two in a row need one each, and each must come before the next interaction. An interaction on an element with no handler for that event has always thrown, so that case is unaffected, as are handled interactions, which need no acknowledgement.
+
+  The failure names the event and the target it was dispatched on, because it is raised at the next interaction or at the end of the scene rather than at the step itself. It is deferred rather than raised inside the interaction step, because a later `expectIgnored()` cannot opt out of an error already thrown.
+
+## 0.144.0
+
+### Minor Changes
+
+- 3feb9ba: Bump Effect to `4.0.0-rc.108` (from `4.0.0-beta.107`), the first Effect v4 release candidate. Foldkit's peer dependencies now require `effect@4.0.0-rc.108` and `@effect/platform-browser@4.0.0-rc.108`.
+
+  Pin your Effect packages to `4.0.0-rc.108` to match this release. While Effect v4 is in prerelease, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.108 @effect/platform-browser@4.0.0-rc.108
+  pnpm add -D @effect/vitest@4.0.0-rc.108
+  ```
+
+## 0.143.0
+
+## 0.142.1
+
+### Patch Changes
+
+- 87e9dbf: Bump Effect to `4.0.0-beta.107` (from `4.0.0-beta.106`). Foldkit's peer dependencies now require `effect@4.0.0-beta.107` and `@effect/platform-browser@4.0.0-beta.107`.
+
+  Pin your Effect packages to `4.0.0-beta.107` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.107 @effect/platform-browser@4.0.0-beta.107
+  pnpm add -D @effect/vitest@4.0.0-beta.107
+  ```
+
+## 0.142.0
+
+### Minor Changes
+
+- 0262c9b: `Update.foldChild`'s `foldOutMessage` now receives an optional second parameter, an `Update.FoldContext` carrying `liftCommand` and `liftCommands` bound to the config's `toParentMessage`. The fold already lifts the Commands the child's update returns. The context covers the other case: a Command the parent returns on the child's behalf from the OutMessage Step, built with context only the parent holds, whose result Message is still the child's. The lifters apply the same lift the fold gives the child's own Commands, so there is no `Command.mapMessage` call to write and no second copy of the wrapper to keep in sync.
+
+  Existing one-parameter `foldOutMessage` functions keep working unchanged.
+
+  In the example below, the magic link carries a redirect destination, and only the parent knows the current Route. The Login child cannot build `Login.SendMagicLink` itself, so it emits `RequestedMagicLink` as a fact and the parent returns the Command with the Route filled in.
+
+  Before:
+
+  ```ts
+  const foldLoginOutMessage = M.type<Login.OutMessage>().pipe(
+    M.withReturnType<Update.Step<Model, Message>>(),
+    M.tagsExhaustive({
+      RequestedMagicLink:
+        ({ email }) =>
+        model => [
+          model,
+          [
+            Command.mapMessage(
+              Login.SendMagicLink({ email, redirectRoute: model.route }),
+              message => GotLoginMessage({ message }),
+            ),
+          ],
+        ],
+    }),
+  )
+  ```
+
+  After:
+
+  ```ts
+  const foldLoginOutMessage: (
+    outMessage: Login.OutMessage,
+    context: Update.FoldContext<Login.Message, Message>,
+  ) => Update.Step<Model, Message> = (outMessage, { liftCommand }) =>
+    M.value(outMessage).pipe(
+      M.withReturnType<Update.Step<Model, Message>>(),
+      M.tagsExhaustive({
+        RequestedMagicLink:
+          ({ email }) =>
+          model => [
+            model,
+            [
+              liftCommand(
+                Login.SendMagicLink({ email, redirectRoute: model.route }),
+              ),
+            ],
+          ],
+      }),
+    )
+  ```
+
+- dbacfa5: Add an optional `when` gate to `Subscription.lift`. It is a parent-side field on the parent's `lift` call and it receives the parent Model, so the parent holds the half of a condition the child cannot see, such as the route a page Submodel sits behind. The child neither declares nor sees the gate; it keeps holding its own half in `modelToDependencies`. Pass one predicate to gate every entry in the record, or a `Subscription.EntryGates` map keyed by entry name to gate entries individually, which leaves entries the map omits lifted ungated. A closed gate is a real teardown: the entry's Stream stops, and the child's `modelToDependencies` does not run again until the parent reopens the gate, so child state that changes behind a closed gate causes no restarts. Gating rewrites a gated entry's dependencies to `Subscription.GatedDependencies`, whose `maybeDependencies` is `None` while the gate is closed; a gated entry's `readDependencies` returns the last dependencies seen through an open gate. Ungated entries and lifts without `when` are unchanged. Lifts chain, so a record can pass through intermediate levels and pick up a gate at whichever level knows the condition.
+
+  One predicate gates the whole record. The Settings page keeps declaring its own Subscriptions, and the parent adds the route condition the page cannot answer:
+
+  ```ts
+  const settingsSubscriptions = Subscription.lift(Settings.subscriptions)<
+    Model,
+    Message
+  >({
+    toChildModel: model => model.settings,
+    toParentMessage: message => GotSettingsMessage({ message }),
+    when: ({ route }) => route._tag === 'Settings',
+  })
+  ```
+
+  A gate map names the entries to gate. The Room page holds a WebSocket stream that should outlive navigation and a keyboard listener that should not, so naming one entry gates it and leaves the other lifted ungated:
+
+  ```ts
+  const roomSubscriptions = Subscription.lift(Room.subscriptions)({
+    toChildModel: (model: Model) => model.room,
+    toParentMessage: (message: Room.Message): Message =>
+      GotRoomMessage({ message }),
+    when: { roomKeyboard: ({ route }) => route._tag === 'Room' },
+  })
+  ```
+
+- dbacfa5: Add `Update.foldChildStep`, the `Update.foldChild` variant for a child entry point that takes nothing but the child Model, such as `Dialog.close` or a Submodel's `informRouteChanged` that derives everything from its own state. It returns the `Update.Step` itself rather than a dual `Update.Fold`, so the call site composes with `Update.combine` without inventing an input the child does not take. Reading, writing, Command lifting, the no-op on a `None` from `read`, and `foldOutMessage` all behave exactly as they do in `foldChild`, down to the optional second parameter `foldOutMessage` receives, an `Update.FoldContext` carrying `liftCommand` and `liftCommands` bound to the config's `toParentMessage`.
+
+## 0.141.2
+
+### Patch Changes
+
+- 84050fc: Bump Effect to `4.0.0-beta.106` (from `4.0.0-beta.105`). Foldkit's peer dependencies now require `effect@4.0.0-beta.106` and `@effect/platform-browser@4.0.0-beta.106`.
+
+  Pin your Effect packages to `4.0.0-beta.106` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.106 @effect/platform-browser@4.0.0-beta.106
+  pnpm add -D @effect/vitest@4.0.0-beta.106
+  ```
+
+## 0.141.1
+
+### Patch Changes
+
+- 8d139ff: Document `createKeyedLazy`'s key contract. The TSDoc now states that a key should be the identifier that already gives the rendered thing its DOM identity, so the memo and the DOM invalidate together, and that entries are never evicted, so keys are expected to be bounded. For example: an entity registry, a route table, a fixed set of call sites. It also names the upgrade path for an unbounded key space, which is a variant that drops keys absent from the latest render pass rather than a cap on this one.
+- dc6682f: Rename the `Update.foldChild` TSDoc example's step from `joinRoom` to `enterJoinedRoom` and the child helper it calls from `Room.join` to `Room.informJoined`. The step runs after the join has already succeeded, so the old names read as initiating a join the example is actually reporting.
+
+## 0.141.0
+
+### Minor Changes
+
+- ea9c4f3: Add `Update.foldChild`, the update half of embedding a child Submodel. It takes the facts that vary per child (the child `update`, an `Option`-returning `read`, `write`, `toParentMessage`, and `foldOutMessage` for children that emit OutMessages) and returns a dual `Update.Fold`: call it data-first in a handler (`foldSearch(model, message)`) or data-last to build an `Update.Step` that composes with `Update.combine` (`foldSearch(message)`). When `read` returns `None` the fold is a no-op, so a Message for an unmounted child does nothing. A parent that is itself a Submodel adds `toParentOutMessage` to lift the child's OutMessage into its own; that fold returns `Update.ReturnWithOutMessage`, carrying the parent's OutMessage channel.
+
+  Existing hand-rolled `Got*` handlers keep working unchanged. To adopt, a handler like this:
+
+  ```ts
+  GotSettingsMessage: ({ message }) => {
+    const [nextSettings, commands] = Settings.update(model.settings, message)
+    return [
+      evo(model, { settings: () => nextSettings }),
+      Command.mapMessages(commands, message => GotSettingsMessage({ message })),
+    ]
+  },
+  ```
+
+  becomes a module-scope fold and a one-line handler:
+
+  ```ts
+  const foldSettings = Update.foldChild({
+    update: Settings.update,
+    read: (model: Model) => Option.some(model.settings),
+    write: (model, nextSettings) => evo(model, { settings: () => nextSettings }),
+    toParentMessage: message => GotSettingsMessage({ message }),
+  })
+
+  GotSettingsMessage: ({ message }) => foldSettings(model, message),
+  ```
+
+  See the [Submodel docs](https://foldkit.dev/core/submodel#fold-child) for OutMessage folding and the call-site conventions.
+
+### Patch Changes
+
+- 35621da: Type `Command.mapEffect`, `Command.mapMessage`, and `Command.mapMessages` against `Command` in argument and result positions instead of structural command shapes. Inside a generic combinator the Message is an open type parameter, so `Command<Message>` stayed a deferred conditional that never unified with the structural shapes. A parent lifting a child Submodel's Commands, generic over the Message types, can now annotate arguments and returns as `Command.Command<Message>` directly:
+
+  ```ts
+  const liftCommands = <ChildMessage, ParentMessage>(
+    commands: ReadonlyArray<Command.Command<ChildMessage>>,
+    toParent: (message: ChildMessage) => ParentMessage,
+  ): ReadonlyArray<Command.Command<ParentMessage>> =>
+    Command.mapMessages(commands, toParent)
+  ```
+
+  Concrete call sites infer exactly as before.
+
+## 0.140.1
+
+### Patch Changes
+
+- 40ccffe: Bump Effect to `4.0.0-beta.105` (from `4.0.0-beta.103`). Foldkit's peer dependencies now require `effect@4.0.0-beta.105` and `@effect/platform-browser@4.0.0-beta.105`.
+
+  Pin your Effect packages to `4.0.0-beta.105` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.105 @effect/platform-browser@4.0.0-beta.105
+  pnpm add -D @effect/vitest@4.0.0-beta.105
+  ```
+
+## 0.140.0
+
+### Minor Changes
+
+- 23d9329: Add `Story.Command.resolveAllExact` and `Scene.Command.resolveAllExact` for asserting that every expected Command was dispatched while preserving the carry-forward behavior of `resolveAll`. Both batch resolver APIs now type-check each result Message against its Command, so previously accepted mismatched pairs must be corrected. Resolve `Dom.inertOthers` selectors after the pending render commits so portaled modal content remains interactive, and invalidate pending inert work when an overlay closes before that commit.
+- 166c7ba: Add `Scene.contextMenu` so Scene tests can exercise `h.OnContextMenu` behavior with normal event bubbling.
+- 7f7cd45: Make negated Scene property, state, accessible-name, and accessible-description assertions require their target element to exist. Use `toBeAbsent()` or `not.toExist()` when absence is the intended assertion.
+
+  Accessible-name and accessible-description queries now exclude descendants hidden with `aria-hidden`, the `hidden` attribute, `display: none`, or `visibility: hidden`. Hidden elements directly referenced by `aria-labelledby` or `aria-describedby` continue to contribute their full subtree text.
+
+## 0.139.0
+
+### Minor Changes
+
+- c9b3dd3: Let the Foldkit Vite plugin mount the installed DevTools overlay automatically. Development dependencies stay out of production builds, while a regular dependency makes `show: 'Always'` sufficient to include the overlay in production. Keep `@foldkit/devtools` in generated applications' development dependencies.
+
+  Installing `@foldkit/devtools` is now the whole opt-in: an application that never configured `devTools` gets the overlay in development as soon as the package is present. Set `devTools: false` to turn DevTools off, or uninstall the package to drop the overlay alone.
+
+  This removes `DevToolsConfig.overlay`, the `DevToolsOverlay` export from `foldkit/runtime`, and the bare `overlay` export from `@foldkit/devtools`. Remove the overlay import and configuration field when upgrading. The Vite plugin now owns that integration through `@foldkit/devtools/vite`.
+
+  Upgrade `foldkit`, `@foldkit/vite-plugin`, and `@foldkit/devtools` together. The plugin injects the overlay only when the installed `@foldkit/devtools` exposes `@foldkit/devtools/vite`, so an older copy skips the overlay instead of failing the build. Thanks @artile for the report.
+
+  ## Migration
+
+  Drop the `overlay` import and the `overlay` field. The Vite plugin mounts the overlay whenever `@foldkit/devtools` is installed, so `devTools` now carries configuration alone.
+
+  ```ts
+  // before
+  import { overlay } from '@foldkit/devtools'
+
+  const application = Runtime.makeApplication({
+    // ...
+    devTools: {
+      overlay,
+      position: 'BottomLeft',
+    },
+  })
+
+  // after
+  const application = Runtime.makeApplication({
+    // ...
+    devTools: {
+      position: 'BottomLeft',
+    },
+  })
+  ```
+
+  An application whose only `devTools` field was `overlay` drops the object entirely and still gets the overlay in development.
+
+  ```ts
+  // before
+  import { overlay } from '@foldkit/devtools'
+
+  const application = Runtime.makeApplication({
+    // ...
+    devTools: { overlay },
+  })
+
+  // after
+  const application = Runtime.makeApplication({
+    // ...
+  })
+  ```
+
+  Shipping the overlay in production keeps `show: 'Always'` and moves `@foldkit/devtools` from `devDependencies` to `dependencies`. Dependency placement is the build-time boundary, and `show` controls whether the runtime mounts it.
+
+  ```ts
+  // before
+  import { overlay } from '@foldkit/devtools'
+
+  const application = Runtime.makeApplication({
+    // ...
+    devTools: {
+      overlay,
+      show: 'Always',
+      mode: { development: 'TimeTravel', production: 'Inspect' },
+    },
+  })
+
+  // after
+  const application = Runtime.makeApplication({
+    // ...
+    devTools: {
+      show: 'Always',
+      mode: { development: 'TimeTravel', production: 'Inspect' },
+    },
+  })
+  ```
+
+  An application that imported `DevToolsOverlay` from `foldkit/runtime` to type its own wiring no longer needs the type.
+
+### Patch Changes
+
+- f314f3f: Update the counter example in the README to use `evo` instead of building the next Model by hand, matching the counter in `examples/counter` and every other counter across the docs.
+- c947f47: Bump Effect to `4.0.0-beta.103` (from `4.0.0-beta.102`). Foldkit's peer dependencies now require `effect@4.0.0-beta.103` and `@effect/platform-browser@4.0.0-beta.103`.
+
+  Pin your Effect packages to `4.0.0-beta.103` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.103 @effect/platform-browser@4.0.0-beta.103
+  pnpm add -D @effect/vitest@4.0.0-beta.103
+  ```
+
+  `SchemaIssue.InvalidValue` dropped its `actual` argument in this Effect release and now takes annotations as its only argument. Decode failures for `CalendarDateFromIsoString` and `Url` are migrated to the new signature and carry their detail on the `message` annotation, which is the key the default formatter reads. Those two failures previously passed their detail as `description`, which the formatter ignored, so the messages now read as intended instead of falling back to a generic one. If you construct `SchemaIssue.InvalidValue` in your own schemas, drop the leading `Option` argument and move any detail to `message`.
+
 ## 0.138.0
 
 ### Minor Changes
@@ -108,9 +1548,10 @@
 
   ```ts
   // before
-  const LockScroll = Command.define('LockScroll', CompletedLockScroll)(
-    Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())),
-  )
+  const LockScroll = Command.define(
+    'LockScroll',
+    CompletedLockScroll,
+  )(Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())))
 
   // after
   const LockScroll = Command.define('LockScroll', {
@@ -1700,9 +3141,7 @@ for ancestor`. The root's destroy hook ran after the next render had
     slotId: 'agree-to-terms',
     model: model.agreeToTerms,
     view: Ui.Checkbox.view,
-    viewInputs: {
-      /* ... slot content if needed */
-    },
+    viewInputs: {/* ... slot content if needed */},
     toParentMessage: message => GotCheckboxMessage({ message }),
   })
 
@@ -4454,7 +5893,10 @@ display: none }` rule. Author CSS like Tailwind's `flex` utility class beats
 
   ```ts
   // Before
-  const dialogView = Dialog.lazy({ panelContent: myContent, panelClassName: '...' })
+  const dialogView = Dialog.lazy({
+    panelContent: myContent,
+    panelClassName: '...',
+  })
   dialogView(model.dialog, toParentMessage)
 
   // After

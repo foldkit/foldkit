@@ -16,6 +16,7 @@ const htmlSource = join(here, '..', '..', 'foldkit', 'src', 'html', 'index.ts')
 
 const ELEMENT_FUNCTION_TYPES = new Set([
   'ElementFunction',
+  'TextValueElementFunction',
   'VoidElementFunction',
 ])
 

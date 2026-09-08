@@ -1,7 +1,7 @@
-import { Array, Effect, Match as M, Option, Schema as S, String } from 'effect'
-import { Command, Runtime } from 'foldkit'
+import { Array, Effect, Option, Schema, String } from 'effect'
+import { Command, Runtime, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { Transition } from 'foldkit/route'
 import { evo } from 'foldkit/struct'
@@ -10,91 +10,79 @@ import { Url, toString as urlToString } from 'foldkit/url'
 import { Artwork, artworks, findArtwork } from './artwork'
 import { AppRoute, artworkRouter, galleryRouter, urlToAppRoute } from './route'
 
-export { ArtworkRoute, GalleryRoute, NotFoundRoute } from './route'
+export { AppRoute } from './route'
 
 // MODEL
 
-export const Model = S.Struct({
+export const Model = Schema.Struct({
   route: AppRoute,
-  filterText: S.String,
+  filterText: Schema.String,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const CompletedNavigateInternal = m('CompletedNavigateInternal')
-export const CompletedLoadExternal = m('CompletedLoadExternal')
-export const ClickedLink = m('ClickedLink', { request: UrlRequest })
-export const ChangedUrl = m('ChangedUrl', { url: Url })
-export const UpdatedFilterText = m('UpdatedFilterText', {
-  filterText: S.String,
+export const Message = defineMessageUnion({
+  CompletedNavigateInternal: {},
+  CompletedLoadExternal: {},
+  ClickedLink: { request: UrlRequest },
+  ChangedUrl: { url: Url },
+  UpdatedFilterText: { filterText: Schema.String },
 })
 
-export const Message = S.Union([
-  CompletedNavigateInternal,
-  CompletedLoadExternal,
-  ClickedLink,
-  ChangedUrl,
-  UpdatedFilterText,
-])
 export type Message = typeof Message.Type
 
 // INIT
 
 export const init: Runtime.RoutingApplicationInit<Model, Message> = (
   url: Url,
-) => [{ route: urlToAppRoute(url), filterText: '' }, []]
+) => ({ model: { route: urlToAppRoute(url), filterText: '' } })
 
 // COMMAND
 
 const NavigateInternal = Command.define('NavigateInternal', {
-  args: { url: S.String },
-  messages: [CompletedNavigateInternal],
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
   execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())),
+    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
 })
 
 const LoadExternal = Command.define('LoadExternal', {
-  args: { href: S.String },
-  messages: [CompletedLoadExternal],
-  execute: ({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())),
+  args: { href: Schema.String },
+  messages: [Message.CompletedLoadExternal],
+  execute: ({ href }) =>
+    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 })
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
+type UpdateReturn = Update.Return<Model, Message>
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tagsExhaustive({
-      CompletedNavigateInternal: () => [model, []],
-      CompletedLoadExternal: () => [model, []],
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
 
-      ClickedLink: ({ request }) =>
-        M.value(request).pipe(
-          withUpdateReturn,
-          M.tagsExhaustive({
-            Internal: ({ url }) => [
-              model,
-              [NavigateInternal({ url: urlToString(url) })],
-            ],
-            External: ({ href }) => [model, [LoadExternal({ href })]],
-          }),
-        ),
+    ClickedLink: ({ request }) =>
+      UrlRequest.match<UpdateReturn>(request, {
+        Internal: ({ url }) => ({
+          model,
+          commands: [NavigateInternal({ url: urlToString(url) })],
+        }),
+        External: ({ href }) => ({
+          model,
+          commands: [LoadExternal({ href })],
+        }),
+      }),
 
-      ChangedUrl: ({ url }) => [
-        evo(model, { route: () => urlToAppRoute(url) }),
-        [],
-      ],
-
-      UpdatedFilterText: ({ filterText }) => [
-        evo(model, { filterText: () => filterText }),
-        [],
-      ],
+    ChangedUrl: ({ url }) => ({
+      model: evo(model, { route: () => urlToAppRoute(url) }),
     }),
-  )
+
+    UpdatedFilterText: ({ filterText }) => ({
+      model: evo(model, { filterText: () => filterText }),
+    }),
+  })
 
 // NOTE: every arm past the guard is a navigation, so none return `false`.
 // `true` is "animate, with no direction to declare": the root fade in
@@ -113,14 +101,11 @@ export const viewTransition: Runtime.ViewTransitionConfig<Model, Message> = ({
 
   return Option.match(Transition.enteredAny(transition), {
     onNone: () => true,
-    onSome: M.type<AppRoute>().pipe(
-      M.withReturnType<Runtime.ViewTransitionDecision>(),
-      M.tagsExhaustive({
-        Artwork: () => ({ types: ['to-artwork-detail'] }),
-        Gallery: () => ({ types: ['to-gallery'] }),
-        NotFound: () => true,
-      }),
-    ),
+    onSome: AppRoute.match<Runtime.ViewTransitionDecision>({
+      Artwork: () => ({ types: ['to-artwork-detail'] }),
+      Gallery: () => ({ types: ['to-gallery'] }),
+      NotFound: () => true,
+    }),
   })
 }
 
@@ -186,7 +171,7 @@ const galleryView = (filterText: string, h: HtmlBuilder<Message>): Html =>
         h.Type('search'),
         h.Value(filterText),
         h.Placeholder('Filter by title or medium…'),
-        h.OnInput(value => UpdatedFilterText({ filterText: value })),
+        h.OnInput(value => Message.UpdatedFilterText({ filterText: value })),
         h.Class(
           'mb-8 w-full max-w-md rounded-lg border border-gray-300 bg-white px-4 py-2 focus:ring-2 focus:ring-gray-400 focus:outline-none',
         ),
@@ -299,26 +284,22 @@ const notFoundView = (path: string, h: HtmlBuilder<Message>): Html =>
   )
 
 const routeTitle = (route: AppRoute): string =>
-  M.value(route).pipe(
-    M.tagsExhaustive({
-      Gallery: () => 'View Transitions',
-      Artwork: ({ artworkId }) =>
-        Option.match(findArtwork(artworkId), {
-          onNone: () => 'Artwork Not Found | View Transitions',
-          onSome: artwork => `${artwork.title} | View Transitions`,
-        }),
-      NotFound: () => 'Page Not Found | View Transitions',
-    }),
-  )
+  AppRoute.match(route, {
+    Gallery: () => 'View Transitions',
+    Artwork: ({ artworkId }) =>
+      Option.match(findArtwork(artworkId), {
+        onNone: () => 'Artwork Not Found | View Transitions',
+        onSome: artwork => `${artwork.title} | View Transitions`,
+      }),
+    NotFound: () => 'Page Not Found | View Transitions',
+  })
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const routeContent = M.value(model.route).pipe(
-    M.tagsExhaustive({
-      Gallery: () => galleryView(model.filterText, h),
-      Artwork: ({ artworkId }) => artworkDetailView(artworkId, h),
-      NotFound: ({ path }) => notFoundView(path, h),
-    }),
-  )
+  const routeContent = AppRoute.match(model.route, {
+    Gallery: () => galleryView(model.filterText, h),
+    Artwork: ({ artworkId }) => artworkDetailView(artworkId, h),
+    NotFound: ({ path }) => notFoundView(path, h),
+  })
 
   return {
     title: routeTitle(model.route),

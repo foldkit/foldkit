@@ -11,36 +11,33 @@ import {
   text,
   type,
 } from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import {
-  CompletedLockBodyScroll,
-  CompletedUnlockBodyScroll,
-  FailedGeolocate,
   FlyTo,
   Geolocate,
-  GeolocateFailed,
+  GeolocateState,
   LockBodyScroll,
+  Message,
   MountMap,
-  SucceededFlyTo,
-  SucceededMountMap,
   UnlockBodyScroll,
   update,
   view,
 } from './main'
-import { initialModel, mountedModel } from './main.fixtures'
+import { initialModel, mountedModel } from './main.fixture'
 
 const acknowledgeMapMount = Mount.resolve(
   MountMap,
-  SucceededMountMap({ hostId: 'test-map-host' }),
+  Message.SucceededMountMap({ hostId: 'test-map-host' }),
 )
 const acknowledgeBodyLock = Command.resolve(
   LockBodyScroll,
-  CompletedLockBodyScroll(),
+  Message.CompletedLockBodyScroll(),
 )
 const acknowledgeBodyUnlock = Command.resolve(
   UnlockBodyScroll,
-  CompletedUnlockBodyScroll(),
+  Message.CompletedUnlockBodyScroll(),
 )
 
 describe('view', () => {
@@ -73,7 +70,7 @@ describe('view', () => {
       acknowledgeMapMount,
       click(role('button', { name: /Eiffel Tower/ })),
       Command.expectHas(FlyTo),
-      Command.resolve(FlyTo, SucceededFlyTo()),
+      Command.resolve(FlyTo, Message.SucceededFlyTo()),
     )
   })
 
@@ -85,17 +82,24 @@ describe('view', () => {
       click(role('button', { name: 'Find my location' })),
       expect(role('button', { name: 'Locating…' })).toExist(),
       acknowledgeBodyLock,
-      Command.resolve(Geolocate, FailedGeolocate({ reason: 'Test cleanup' })),
+      Command.resolve(
+        Geolocate,
+        Message.FailedGeolocate({ reason: 'Test cleanup' }),
+      ),
     )
   })
 
   test('the failed-geolocation overlay shows a Dismiss button that returns to idle', () => {
     scene(
       { update, view },
-      given({
-        ...mountedModel,
-        geolocateState: GeolocateFailed({ reason: 'Permission denied' }),
-      }),
+      given(
+        evo(mountedModel, {
+          geolocateState: () =>
+            GeolocateState.Failed({
+              reason: 'Permission denied',
+            }),
+        }),
+      ),
       acknowledgeMapMount,
       expect(role('button', { name: 'Dismiss' })).toExist(),
       click(role('button', { name: 'Dismiss' })),
@@ -107,10 +111,11 @@ describe('view', () => {
   test('a failed map mount renders the error banner', () => {
     scene(
       { update, view },
-      given({
-        ...initialModel,
-        maybeMapError: Option.some('Network timeout'),
-      }),
+      given(
+        evo(initialModel, {
+          maybeMapError: () => Option.some('Network timeout'),
+        }),
+      ),
       expect(label('Map failed to load')).toExist(),
       expect(text('Network timeout')).toExist(),
       acknowledgeMapMount,
@@ -120,15 +125,17 @@ describe('view', () => {
   test('the bounds badge shows after the map reports its first move', () => {
     scene(
       { update, view },
-      given({
-        ...mountedModel,
-        maybeBounds: Option.some({
-          west: -180,
-          south: -85,
-          east: 180,
-          north: 85,
+      given(
+        evo(mountedModel, {
+          maybeBounds: () =>
+            Option.some({
+              west: -180,
+              south: -85,
+              east: 180,
+              north: 85,
+            }),
         }),
-      }),
+      ),
       expect(text('N 85.00')).toExist(),
       expect(text('S -85.00')).toExist(),
       acknowledgeMapMount,

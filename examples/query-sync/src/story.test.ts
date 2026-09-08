@@ -1,28 +1,25 @@
 import { Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { Listbox } from '@foldkit/ui'
 
 import {
-  Ascending,
-  BrowseRoute,
-  ChangedSearchInput,
-  ChangedUrl,
-  ClickedColumnHeader,
-  CompletedReplaceFilters,
-  GotDietListboxMessage,
+  AppRoute,
+  Message,
   type Model,
   ReplaceFilters,
-  Unsorted,
+  Sorting,
+  browseRouter,
   update,
 } from './main'
 
 const browseModel: Model = {
-  route: BrowseRoute({
+  route: AppRoute.Browse({
     search: Option.none(),
-    sorting: Unsorted(),
+    sorting: Sorting.Unsorted(),
     diet: Option.none(),
     period: Option.none(),
   }),
@@ -36,6 +33,19 @@ const urlOrThrow = (raw: string) =>
     () => new Error(`Failed to parse url: ${raw}`),
   )
 
+describe('routing', () => {
+  test('prints sorting in the same format the parser accepts', () => {
+    const path = browseRouter({
+      search: Option.none(),
+      sorting: Sorting.Ascending({ column: 'Length' }),
+      diet: Option.none(),
+      period: Option.none(),
+    })
+
+    expect(decodeURIComponent(path)).toBe('/?sorting=Length:Ascending')
+  })
+})
+
 describe('update', () => {
   describe('ChangedUrl', () => {
     test('parses search, sorting, diet, and period from the URL', () => {
@@ -43,7 +53,7 @@ describe('update', () => {
         update,
         given(browseModel),
         message(
-          ChangedUrl({
+          Message.ChangedUrl({
             url: urlOrThrow(
               'http://localhost/?search=raptor&sorting=Length:Ascending&diet=Carnivore&period=Cretaceous',
             ),
@@ -55,7 +65,7 @@ describe('update', () => {
           }
           expect(model.route.search).toStrictEqual(Option.some('raptor'))
           expect(model.route.sorting).toStrictEqual(
-            Ascending({ column: 'Length' }),
+            Sorting.Ascending({ column: 'Length' }),
           )
           expect(model.route.diet).toStrictEqual(Option.some('Carnivore'))
           expect(model.route.period).toStrictEqual(Option.some('Cretaceous'))
@@ -68,7 +78,9 @@ describe('update', () => {
         update,
         given(browseModel),
         message(
-          ChangedUrl({ url: urlOrThrow('http://localhost/somewhere/else') }),
+          Message.ChangedUrl({
+            url: urlOrThrow('http://localhost/somewhere/else'),
+          }),
         ),
         model(model => {
           expect(model.route._tag).toBe('NotFound')
@@ -82,27 +94,29 @@ describe('update', () => {
       story(
         update,
         given(browseModel),
-        message(ChangedSearchInput({ value: 'rex' })),
+        message(Message.ChangedSearchInput({ value: 'rex' })),
         Command.expectHas(ReplaceFilters),
-        Command.resolve(ReplaceFilters, CompletedReplaceFilters()),
+        Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
       )
     })
 
     test('clearing the search input fires a replacement', () => {
       story(
         update,
-        given({
-          ...browseModel,
-          route: BrowseRoute({
-            search: Option.some('foo'),
-            sorting: Unsorted(),
-            diet: Option.none(),
-            period: Option.none(),
+        given(
+          evo(browseModel, {
+            route: () =>
+              AppRoute.Browse({
+                search: Option.some('foo'),
+                sorting: Sorting.Unsorted(),
+                diet: Option.none(),
+                period: Option.none(),
+              }),
           }),
-        }),
-        message(ChangedSearchInput({ value: '' })),
+        ),
+        message(Message.ChangedSearchInput({ value: '' })),
         Command.expectHas(ReplaceFilters),
-        Command.resolve(ReplaceFilters, CompletedReplaceFilters()),
+        Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
       )
     })
   })
@@ -112,9 +126,9 @@ describe('update', () => {
       story(
         update,
         given(browseModel),
-        message(ClickedColumnHeader({ column: 'Name' })),
+        message(Message.ClickedColumnHeader({ column: 'Name' })),
         Command.expectHas(ReplaceFilters),
-        Command.resolve(ReplaceFilters, CompletedReplaceFilters()),
+        Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
       )
     })
   })
@@ -125,13 +139,27 @@ describe('update', () => {
         update,
         given(browseModel),
         message(
-          GotDietListboxMessage({
-            message: Listbox.SelectedItem({ item: 'Carnivore' }),
+          Message.GotDietListboxMessage({
+            message: Listbox.Message.Opened({
+              maybeActiveItemIndex: Option.none(),
+            }),
           }),
         ),
-        Command.resolve(Listbox.FocusButton, Listbox.CompletedFocusButton()),
+        Command.resolve(
+          Listbox.FocusItems,
+          Listbox.Message.CompletedFocusItems(),
+        ),
+        message(
+          Message.GotDietListboxMessage({
+            message: Listbox.Message.SelectedItem({ item: 'Carnivore' }),
+          }),
+        ),
+        Command.resolve(
+          Listbox.FocusButton,
+          Listbox.Message.CompletedFocusButton(),
+        ),
         Command.expectHas(ReplaceFilters),
-        Command.resolve(ReplaceFilters, CompletedReplaceFilters()),
+        Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
       )
     })
   })

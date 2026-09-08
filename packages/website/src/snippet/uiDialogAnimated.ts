@@ -1,44 +1,53 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Command } from 'foldkit'
+import { Option, Schema } from 'effect'
+import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Dialog } from '@foldkit/ui'
 
 // Add a field to your Model for the Dialog Submodel:
-const Model = S.Struct({
+const Model = Schema.Struct({
   dialog: Dialog.Model,
   // ...your other fields
 })
+type Model = typeof Model.Type
 
 // In your init function, set isAnimated: true to coordinate CSS transitions:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     dialog: Dialog.init({ id: 'confirm', isAnimated: true }),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Embed the Dialog Message in your parent Message and delegate to
 // Dialog.update (open from a trigger with a fact and Dialog.open, as in
 // the basic Dialog example):
-const GotDialogMessage = m('GotDialogMessage', {
-  message: Dialog.Message,
+const Message = defineMessageUnion({
+  GotDialogMessage: { message: Dialog.Message },
+})
+type Message = typeof Message.Type
+
+const foldDialogOutMessage = Dialog.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Opened: () => model => ({ model }),
+  Closed: () => model => ({ model }),
 })
 
-GotDialogMessage: ({ message }) => {
-  const [nextDialog, dialogCommands] = Dialog.update(model.dialog, message)
-  return [
-    evo(model, { dialog: () => nextDialog }),
-    Command.mapMessages(dialogCommands, message =>
-      GotDialogMessage({ message }),
-    ),
-  ]
-}
+const foldDialog = Update.foldChild({
+  update: Dialog.update,
+  read: (model: Model) => Option.some(model.dialog),
+  write: (model, nextDialog) => evo(model, { dialog: () => nextDialog }),
+  toParentMessage: message => Message.GotDialogMessage({ message }),
+  foldOutMessage: foldDialogOutMessage,
+})
+
+GotDialogMessage: ({ message }) => foldDialog(model, message)
 
 // Inside your view function, use data-[closed] for enter/leave transitions and
 // spread the `closeButton` bundle onto your dismiss buttons:
@@ -110,5 +119,5 @@ const view = (model: Model, h: HtmlBuilder<Message>) =>
             : [],
         ),
     },
-    toParentMessage: message => GotDialogMessage({ message }),
+    toParentMessage: message => Message.GotDialogMessage({ message }),
   })

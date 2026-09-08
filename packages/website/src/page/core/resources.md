@@ -2,13 +2,13 @@
 
 ## Overview
 
-Commands are self-contained by default. Each execution starts fresh with no shared state. But some services need a single long-lived instance shared across Commands: clients that do real work at construction time, like an RPC client assembling its serialization and transport stack, or an analytics client that opens one session for the whole app. That’s what `resources` is for.
+Commands are self-contained by default. Each execution starts fresh with no shared state. Some services instead need one long-lived instance shared across Commands. An RPC client may assemble a serialization and transport stack at construction; an analytics client may open one session for the whole app. Put those services in `resources`.
 
 :::Info{label="Think of it like a restaurant kitchen"}
-Resources are kitchen equipment: the oven, the stand mixer, the deep fryer. They’re turned on when the kitchen opens and run all night. Every dish (Command) can use them. You don’t buy a new oven per order. An `RpcClient` and an analytics client are the same: expensive singletons that live for the entire app lifecycle. Need multiple pieces of equipment? Combine them with `Layer.mergeAll`.
+Resources are the kitchen equipment that stays available all night. Every dish can use the same oven; the kitchen does not install a new one for each order. An `RpcClient` or analytics client has the same app-wide lifetime. Combine several service Layers with `Layer.mergeAll`.
 :::
 
-Define a service using [Context.Service](https://effect.website/docs/requirements-management/services/), then pass its default layer to `makeApplication` via the `resources` config field. The runtime builds the Layer once, the first time it is needed: at startup in an app that declares flags (they resolve before `init`) or Subscriptions (their pipelines run for the application’s lifetime), otherwise when the first Command runs. The built services are shared for the application’s lifetime and released at teardown. Commands access a service by yielding its tag.
+Define a service with [Context.Service](https://effect.website/docs/requirements-management/services/), then pass its Layer through the runtime’s `resources` config. The runtime builds that Layer once, the first time it is needed: during startup when a fresh Flags Effect resolves or Subscriptions begin, otherwise when the first Command runs. It shares the built services for the runtime’s lifetime and releases them at teardown. Commands access a service by yielding its tag.
 
 ::Snippet{name="resources" label="resources example"}
 
@@ -16,14 +16,20 @@ Commands declare their resource requirements in the type signature via the third
 
 ## Resources or Per-Command Provision
 
-A Command can also discharge a requirement itself, with `Effect.provide` inside its Effect. Both placements work, so the question is which one a given service should use. The deciding lens: is the service an app-wide singleton every Command should reuse, or a per-Command decision where different Commands want different implementations? Four criteria sharpen the call.
+A Command can also satisfy a service requirement locally with `Effect.provide`. Choose the placement from the service’s intended lifetime and identity.
 
-- **Construction cost times invocation frequency.** A per-Command `Effect.provide` builds the layer on every invocation. For `Http.layer` from `foldkit/http`, a thin wrapper around `fetch`, that costs nothing. For an RPC client that assembles a serialization and transport stack, it means a Command that fires on every keystroke rebuilds the whole stack each time. Services whose construction does real work belong in `resources`, where construction happens once.
-- **Instance identity.** A per-Command provide constructs a fresh instance for each invocation, so Commands never share state through it. When every Command must talk to the same object, like one `RpcClient` that multiplexes their calls over a single connection, the service belongs in `resources`.
-- **Failure isolation versus fail-fast.** A per-Command provide scopes construction failure to the Commands that use the service: if the layer can’t be built, those Commands fail and the rest of the app keeps working. `resources` is the opposite contract. The runtime provides the Layer to every Command, so a Layer that fails to build crashes the app with the crash view. For a service the whole app depends on, that one loud failure is the better behavior; for a genuinely optional service, per-Command provision keeps the failure contained.
-- **Same tag, different implementations.** `resources` binds each service tag to one implementation for the whole app. Only per-Command provides can give two Commands different implementations of the same tag, like one Command using `KeyValueStore` over localStorage while another uses it over sessionStorage.
+| Question                       | `resources`                                      | Per-Command `Effect.provide`                     |
+| ------------------------------ | ------------------------------------------------ | ------------------------------------------------ |
+| How often is the Layer built?  | Once for the runtime.                            | Once per Command execution.                      |
+| Do Commands share an instance? | Yes.                                             | No. Each execution gets a fresh instance.        |
+| What if construction fails?    | The runtime fails loudly through its crash path. | The Command handles the failure at its boundary. |
+| Can one tag vary by Command?   | No. One implementation is bound for the runtime. | Yes. Each Command can provide its own.           |
 
-Run the criteria over the common cases and the split falls out. `HttpClient` defaults to per-Command: `Effect.provide(Http.layer)` is one line, the Command stays self-contained, and no type annotations change anywhere else. `Http.layer` from `foldkit/http` is Effect’s Fetch-backed client with trace header propagation disabled by default. Effect tunes that default for servers, where handing trace context to your own downstream services is desirable; in the browser the same `traceparent` headers make otherwise CORS-simple requests trigger preflights against plain APIs and dev proxies. `KeyValueStore` stays per-Command: which storage backs the tag is a per-Command decision, and `resources` could only pick one. An RPC client goes in `resources`: construction is expensive, every Command should reuse one client, and when its configuration is broken, one visible failure the first time the client is needed tells you more than every server call failing on its own.
+Common cases follow directly from that distinction:
+
+- **`HttpClient` starts per Command.** `Effect.provide(Http.layer)` keeps the Command self-contained, and the Layer is only a thin wrapper around `fetch`. Foldkit’s `Http.layer` uses Effect’s Fetch-backed client with trace header propagation disabled. Browser `traceparent` headers can turn otherwise CORS-simple requests into preflighted requests against plain APIs and development proxies.
+- **`KeyValueStore` stays per Command.** The backing store is often part of the operation: one Command may use localStorage while another uses sessionStorage. A runtime-wide Layer could bind only one implementation of the tag.
+- **An RPC client belongs in `resources`.** Construction does real work, every Command should reuse the same client, and broken configuration should produce one visible failure rather than isolated failures across every server operation.
 
 ::Snippet{name="resourcesPerCommandHttp" label="per-Command HTTP example"}
 
@@ -31,13 +37,19 @@ An HTTP client can still graduate. When an app grows many HTTP Commands, or shar
 
 ## Resources in Flags
 
-The `flags` Effect can require services too. Declare them in its type and the runtime provides them from the same `resources` Layer it gives Commands and Subscriptions, so a client needed both at startup and by Commands is constructed once rather than once per consumer.
+The Flags Effect can require services too. The runtime provides them from the same `resources` Layer used by Commands and Subscriptions, so a client needed during startup and later work is still constructed only once.
 
-::Snippet{name="resourcesFlags" label="flags consuming a resource"}
+::Snippet{name="resourcesFlags" label="Flags consuming a resource"}
 
-Flags resolve before `init`, so an app that declares them builds the Layer at startup rather than on the first Command. A Layer that fails to build still reaches the crash view, with one exception. When the flags Effect itself needs the broken service it cannot proceed, and it fails before the first render, where there is no Model for the crash view to render against. That case fails startup, and neither cause is swallowed, so a flags Effect that fails for its own unrelated reason stays visible alongside the build error. Every other case is unchanged: the app starts, and the failure reaches the crash view at the first Command or Subscription that needs the Layer.
+During a fresh boot, Flags resolve before init. An application with Flags therefore attempts to build its `resources` Layer during startup instead of waiting for the first Command.
 
-Requirements are checked at the `makeApplication` and `makeElement` boundaries. A flags Effect requiring a service that `resources` does not provide is a compile error, not a runtime one, whenever `Resources` is inferred from `resources`. Naming it explicitly in the type arguments detaches it from any Layer, which is the same gap Commands already have. Provide a service the flags Effect alone needs with `Effect.provide` inside `flags` instead, exactly as a Command does: `KeyValueStore` reading persisted state at startup is the common case, and it belongs there rather than in `resources`.
+:::Warning{label="Failure before the first render"}
+If the Flags Effect needs a service whose Layer fails to build, startup cannot reach init or the first render. There is no Model for the crash view yet, so startup fails directly. The Layer build cause remains visible alongside any unrelated Flags failure. If Flags can resolve without the broken service, the app can render; the cached Layer failure then reaches the crash view when the first Command or Subscription needs it.
+:::
+
+Requirements are checked where the Effect is supplied: at `Runtime.run` for an application and in `makeElement` for an element. Let inference connect those requirements to the `resources` Layer. Explicitly naming the `Resources` type argument can detach the requirement from a concrete Layer and bypass that check.
+
+Provide a service used only by Flags with `Effect.provide` inside the Flags Effect, just as you would inside a Command. Reading persisted startup state through `KeyValueStore` is the common case.
 
 ## Providing Multiple Services
 
@@ -45,4 +57,4 @@ The `resources` field takes a single `Layer`, but Effect layers compose. Use `La
 
 ::Snippet{name="resourcesMultiple" label="multiple resources example"}
 
-Resources live for the entire application. But what if a resource should only exist while the Model is in a certain state, like a camera stream during a video call, or a `WebSocket` while on a chat page? That’s what [Managed Resources](/core/managed-resources) are for.
+Resources live for the entire runtime. When a camera stream, `WebSocket`, or other handle should exist only while the Model is in a particular state, use [Managed Resources](/core/managed-resources) instead.

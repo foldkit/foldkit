@@ -25,15 +25,21 @@
       "error",
       { "assertionStyle": "never" }
     ],
+    "sort-imports": [
+      "error",
+      { "ignoreDeclarationSort": true, "ignoreCase": false }
+    ],
     "foldkit/no-noop-message": "error",
     "foldkit/got-submodel-message-name": "error",
-    "foldkit/message-binding-matches-tag": "error",
     "foldkit/got-prefix-requires-submodel-payload": "error",
     "foldkit/no-empty-children-array": "error",
+    "foldkit/no-empty-commands-array": "error",
+    "foldkit/no-empty-to-parent-out-message": "error",
     "foldkit/no-empty-object-tagged-call": "error",
     "foldkit/prefer-callable-message-constructor": "error",
     "foldkit/command-binding-matches-name": "error",
-    "foldkit/no-module-level-mutable-state": "error"
+    "foldkit/no-module-level-mutable-state": "error",
+    "foldkit/prefer-effect-module-names": "error"
   },
   "overrides": [
     {
@@ -45,30 +51,21 @@
     },
     {
       "files": [
-        "examples/**/*.ts",
-        "examples/**/*.tsx",
-        "packages/website/src/**/*.ts",
-        "packages/website/src/**/*.tsx",
-        "packages/typing-game/client/src/**/*.ts",
-        "packages/typing-game/client/src/**/*.tsx"
+        "**/entry.server.ts",
+        "**/entry.server.tsx",
+        "**/server/**/*.ts",
+        "**/server/**/*.tsx",
+        "**/prerender.ts",
+        "**/prerender.tsx"
+      ],
+      "excludeFiles": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx"
       ],
       "rules": {
-        "foldkit/command-define-pascal-const": "error",
-        "foldkit/got-wrapper-carries-only-routing": "error",
-        "foldkit/keyed-required-for-mapped-rows": "error",
-        "foldkit/lazy-view-stable-references": "error",
-        "foldkit/mount-factory-must-use-element": "error",
-        "foldkit/no-array-index-view-keys": "error",
-        "foldkit/no-child-message-construction-in-root": "error",
-        "foldkit/no-disabling-dev-guardrails": "error",
-        "foldkit/no-duplicate-onmount-per-element": "error",
-        "foldkit/no-hand-rolled-command-struct": "error",
-        "foldkit/no-hardcoded-route-strings": "error",
-        "foldkit/no-raw-dom-event-attributes": "error",
-        "foldkit/no-spread-in-evo": "error",
-        "foldkit/require-rel-for-external-link": "error",
-        "foldkit/selection-submodel-factory-at-module-scope": "error",
-        "foldkit/wrap-child-output-in-got-message": "error"
+        "foldkit/no-nonportable-server-globals": "error"
       }
     }
   ],
@@ -84,6 +81,9 @@
     "packages/oxlint-plugin-foldkit/",
     "packages/typing-game/shared/",
     "packages/vite-plugin-foldkit/",
+    "examples/",
+    "packages/website/src/",
+    "packages/typing-game/client/src/",
     "**/*.d.ts",
     "**/vite.config.ts",
     "**/*.config.js",
@@ -91,6 +91,7 @@
     "packages/website/public/example-apps-embed/",
     "packages/website/playwright-report/",
     "packages/website/test-results/",
-    "packages/website/src/snippet/"
+    "!packages/website/scripts/prerender.ts",
+    "!packages/vite-plugin-foldkit/test/fixtures/"
   ]
 }

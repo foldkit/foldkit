@@ -5,11 +5,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { Disclosure } from '@foldkit/ui'
 
 import * as Icon from '../../icon'
-import {
-  ToggledDisclosureAnimatedDemo,
-  ToggledDisclosureBasicDemo,
-  type UiMessage,
-} from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 const DISCLOSURE_BASIC_DEMO_ID = 'disclosure-basic-demo'
@@ -65,7 +61,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
           {
             id: DISCLOSURE_BASIC_DEMO_ID,
             isOpen: model.isDisclosureBasicDemoOpen,
-            onToggle: isOpen => ToggledDisclosureBasicDemo({ isOpen }),
+            onToggle: isOpen =>
+              UiMessage.ToggledDisclosureBasicDemo({ isOpen }),
             toView: attributes =>
               h.div(
                 [],
@@ -108,7 +105,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
           {
             id: DISCLOSURE_ANIMATED_DEMO_ID,
             isOpen: model.isDisclosureAnimatedDemoOpen,
-            onToggle: isOpen => ToggledDisclosureAnimatedDemo({ isOpen }),
+            onToggle: isOpen =>
+              UiMessage.ToggledDisclosureAnimatedDemo({ isOpen }),
             toView: attributes =>
               h.div(
                 [h.Class('border border-gray-300 rounded-lg overflow-hidden')],

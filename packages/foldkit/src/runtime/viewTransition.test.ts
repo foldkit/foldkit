@@ -1,11 +1,15 @@
-import { Effect, Fiber, Match as M, Option, Schema as S } from 'effect'
+import { Effect, Fiber, Option, PubSub, Queue, Schema, Stream } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { Command } from '../command/index.js'
+import * as Command from '../command/index.js'
 import { type DevToolsStore, INIT_INDEX } from '../devTools/store.js'
 import { __htmlBuilder } from '../html/index.js'
-import { m } from '../message/index.js'
-import { makeElement } from './runtime.js'
+import { defineMessageUnion } from '../message/index.js'
+import { afterCommit } from '../render/render.js'
+import * as Subscription from '../subscription/subscription.js'
+import type * as Update from '../update/index.js'
+import { __setDevToolsOverlay } from './devToolsConfig.js'
+import { makeElement } from './makeElement.js'
 import {
   __decideViewTransition,
   __resolveStartViewTransition,
@@ -162,27 +166,26 @@ describe('__resolveStartViewTransition', () => {
   })
 })
 
-const ClickedTransition = m('ClickedTransition')
-const ClickedPlain = m('ClickedPlain')
-const Message = S.Union([ClickedTransition, ClickedPlain])
+const Message = defineMessageUnion({
+  ClickedTransition: {},
+  ClickedPlain: {},
+  CompletedProbeCommittedDom: {},
+  Ticked: {},
+})
 type Message = typeof Message.Type
 
-const Model = S.Struct({ label: S.String })
+const Model = Schema.Struct({ label: Schema.String })
 type Model = typeof Model.Type
 
 const h = __htmlBuilder<Message>()
 
-const update = (
-  _model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<readonly [Model, ReadonlyArray<Command<Message>>]>(),
-    M.tagsExhaustive({
-      ClickedTransition: () => [{ label: 'transitioned' }, []],
-      ClickedPlain: () => [{ label: 'plain' }, []],
-    }),
-  )
+const update = (_model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedTransition: () => ({ model: { label: 'transitioned' } }),
+    ClickedPlain: () => ({ model: { label: 'plain' } }),
+    CompletedProbeCommittedDom: () => ({ model: _model }),
+    Ticked: () => ({ model: { label: 'ticked' } }),
+  })
 
 describe('makeElement with viewTransition', () => {
   let container: HTMLElement
@@ -194,6 +197,7 @@ describe('makeElement with viewTransition', () => {
   })
 
   afterEach(() => {
+    __setDevToolsOverlay(undefined)
     document.body.innerHTML = ''
     Reflect.deleteProperty(document, 'startViewTransition')
   })
@@ -205,8 +209,8 @@ describe('makeElement with viewTransition', () => {
 
   // NOTE: DevTools time-travel is the one path that repaints the container
   // without going through a render frame, so it is the only way the DOM and
-  // `lastRenderedModel` can disagree. The overlay callback is the seam: it
-  // receives the store, so a fake overlay can drive `jumpTo` from a test.
+  // `lastRenderedModel` can disagree. The registered overlay callback is the
+  // seam: it receives the store, so a fake can drive `jumpTo` from a test.
   it('does not let a pending transition paint over a time-travel replay', async () => {
     let maybeUpdate: (() => void) | null = null
     const skipCalls: Array<string> = []
@@ -222,24 +226,27 @@ describe('makeElement with viewTransition', () => {
     })
 
     let maybeStore: DevToolsStore | null = null
+    __setDevToolsOverlay(store => {
+      maybeStore = store
+      return Effect.void
+    })
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model =>
         h.div(
           [],
-          [h.button([h.OnClick(ClickedTransition())], ['go']), model.label],
+          [
+            h.button([h.OnClick(Message.ClickedTransition())], ['go']),
+            model.label,
+          ],
         ),
       container,
       viewTransition: () => true,
       devTools: {
         show: 'Always',
-        overlay: store => {
-          maybeStore = store
-          return Effect.void
-        },
       },
     })
 
@@ -276,6 +283,273 @@ describe('makeElement with viewTransition', () => {
     }
   })
 
+  it('does not run an ordinary frame queued before jumpTo while the replay render is in progress', async () => {
+    let maybeStore: DevToolsStore | null = null
+    let maybeScheduledFrame: FrameRequestCallback | null = null
+    let shouldRunFrameDuringReplay = false
+    let renderCount = 0
+    __setDevToolsOverlay(store => {
+      maybeStore = store
+      return Effect.void
+    })
+
+    const element = makeElement({
+      Model,
+      init: () => ({ model: { label: 'initial' } }),
+      update,
+      view: model => {
+        renderCount += 1
+        if (
+          shouldRunFrameDuringReplay &&
+          model.label === 'initial' &&
+          maybeScheduledFrame !== null
+        ) {
+          const scheduledFrame = maybeScheduledFrame
+          maybeScheduledFrame = null
+          scheduledFrame(performance.now())
+        }
+        return h.div(
+          [],
+          [h.button([h.OnClick(Message.ClickedPlain())], ['go']), model.label],
+        )
+      },
+      container,
+      devTools: { show: 'Always' },
+    })
+    const fiber = Effect.runFork(element.start())
+
+    try {
+      await awaitBodyText('initial')
+      await vi.waitFor(() => {
+        expect(maybeStore).not.toBeNull()
+      })
+
+      const requestAnimationFrameSpy = vi
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation(callback => {
+          maybeScheduledFrame = callback
+          return 1
+        })
+      try {
+        document.body.querySelector('button')!.click()
+        await vi.waitFor(() => {
+          expect(maybeScheduledFrame).not.toBeNull()
+        })
+        shouldRunFrameDuringReplay = true
+
+        await Effect.runPromise(maybeStore!.jumpTo(INIT_INDEX))
+
+        expect(renderCount).toBe(2)
+        expect(document.body.textContent).toContain('initial')
+        expect(document.body.textContent).not.toContain('plain')
+      } finally {
+        requestAnimationFrameSpy.mockRestore()
+      }
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it.each(['before', 'after'])(
+    'permanently invalidates a skipped transition callback that arrives %s the resume frame',
+    async callbackTiming => {
+      let maybeUpdate: (() => void) | null = null
+      let isProbeWaiting = false
+      let renderCount = 0
+      const observedLabels: Array<string> = []
+      Object.defineProperty(document, 'startViewTransition', {
+        configurable: true,
+        value: (callbackOptions: () => void) => {
+          maybeUpdate = callbackOptions
+          return {
+            updateCallbackDone: Promise.resolve(),
+            skipTransition: () => {},
+          }
+        },
+      })
+
+      const ProbeCommittedDom = Command.define('ProbeCommittedDom', {
+        messages: [Message.CompletedProbeCommittedDom],
+        execute: Effect.gen(function* () {
+          isProbeWaiting = true
+          yield* afterCommit
+          observedLabels.push(
+            document.querySelector('#label')?.textContent ?? '',
+          )
+          return Message.CompletedProbeCommittedDom()
+        }),
+      })
+      let maybeStore: DevToolsStore | null = null
+      __setDevToolsOverlay(store => {
+        maybeStore = store
+        return Effect.void
+      })
+
+      const element = makeElement({
+        Model,
+        init: () => ({ model: { label: 'initial' } }),
+        update: (model: Model, message: Message) =>
+          Message.match<Update.Return<Model, Message>>(message, {
+            ClickedTransition: () => ({
+              model: { label: 'transitioned' },
+              commands: [ProbeCommittedDom()],
+            }),
+            ClickedPlain: () => ({ model: { label: 'plain' } }),
+            CompletedProbeCommittedDom: () => ({ model }),
+            Ticked: () => ({ model: { label: 'ticked' } }),
+          }),
+        view: model => {
+          renderCount += 1
+          return h.div(
+            [],
+            [
+              h.button([h.OnClick(Message.ClickedTransition())], ['go']),
+              h.div([h.Id('label')], [model.label]),
+            ],
+          )
+        },
+        container,
+        viewTransition: () => true,
+        devTools: { show: 'Always' },
+      })
+      const fiber = Effect.runFork(element.start())
+
+      try {
+        await awaitBodyText('initial')
+        await vi.waitFor(() => {
+          expect(maybeStore).not.toBeNull()
+        })
+
+        const scheduledFrames: Array<FrameRequestCallback> = []
+        const requestAnimationFrameSpy = vi
+          .spyOn(window, 'requestAnimationFrame')
+          .mockImplementation(callback => {
+            scheduledFrames.push(callback)
+            return scheduledFrames.length
+          })
+        try {
+          document.body.querySelector('button')!.click()
+          await vi.waitFor(() => {
+            expect(scheduledFrames).toHaveLength(1)
+          })
+          const transitionFrame = scheduledFrames.shift()
+          if (transitionFrame === undefined) {
+            throw new Error('Expected the transition frame to be scheduled')
+          }
+          transitionFrame(performance.now())
+          await vi.waitFor(() => {
+            expect(maybeUpdate).not.toBeNull()
+            expect(isProbeWaiting).toBe(true)
+          })
+
+          await Effect.runPromise(maybeStore!.jumpTo(INIT_INDEX))
+          await Effect.runPromise(maybeStore!.resume)
+          expect(scheduledFrames).toHaveLength(1)
+
+          if (callbackTiming === 'before') {
+            maybeUpdate!()
+            await new Promise<void>(resolve => queueMicrotask(() => resolve()))
+            expect(observedLabels).toEqual([])
+          }
+
+          const resumeFrame = scheduledFrames.shift()
+          if (resumeFrame === undefined) {
+            throw new Error('Expected the resume frame to be scheduled')
+          }
+          resumeFrame(performance.now())
+          await vi.waitFor(() => {
+            expect(observedLabels).toEqual(['transitioned'])
+          })
+          const renderCountAfterResume = renderCount
+
+          if (callbackTiming === 'after') {
+            maybeUpdate!()
+            await new Promise<void>(resolve => queueMicrotask(() => resolve()))
+          }
+          expect(renderCount).toBe(renderCountAfterResume)
+        } finally {
+          requestAnimationFrameSpy.mockRestore()
+        }
+      } finally {
+        await Effect.runPromise(Fiber.interrupt(fiber))
+      }
+    },
+  )
+
+  it('resumes a paused view without a View Transition', async () => {
+    const transitionCalls: Array<unknown> = []
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: (callbackOptions: () => void) => {
+        transitionCalls.push(callbackOptions)
+        callbackOptions()
+        return {
+          updateCallbackDone: Promise.resolve(),
+          skipTransition: () => {},
+        }
+      },
+    })
+
+    const subscriptionMessages = await Effect.runPromise(
+      PubSub.unbounded<Message>(),
+    )
+    let isSubscriptionReady = false
+    const subscriptions = Subscription.make<Model, Message>()(() => ({
+      testMessages: Subscription.persistent(
+        Stream.fromEffect(
+          Effect.sync(() => {
+            isSubscriptionReady = true
+          }),
+        ).pipe(Stream.flatMap(() => Stream.fromPubSub(subscriptionMessages))),
+      ),
+    }))
+    let didProcessTick = false
+    let maybeStore: DevToolsStore | null = null
+    __setDevToolsOverlay(store => {
+      maybeStore = store
+      return Effect.void
+    })
+
+    const element = makeElement({
+      Model,
+      init: () => ({ model: { label: 'initial' } }),
+      update: (model, message) => {
+        if (message._tag === 'Ticked') {
+          didProcessTick = true
+        }
+        return update(model, message)
+      },
+      view: model => h.div([], [model.label]),
+      subscriptions,
+      container,
+      viewTransition: () => true,
+      devTools: { show: 'Always' },
+    })
+    const fiber = Effect.runFork(element.start())
+
+    try {
+      await awaitBodyText('initial')
+      await vi.waitFor(() => {
+        expect(maybeStore).not.toBeNull()
+        expect(isSubscriptionReady).toBe(true)
+      })
+
+      await Effect.runPromise(maybeStore!.jumpTo(INIT_INDEX))
+      PubSub.publishUnsafe(subscriptionMessages, Message.Ticked())
+      await vi.waitFor(() => {
+        expect(didProcessTick).toBe(true)
+      })
+      expect(document.body.textContent).toContain('initial')
+
+      await Effect.runPromise(maybeStore!.resume)
+      await awaitBodyText('ticked')
+
+      expect(transitionCalls).toEqual([])
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
   it('hands the predicate the painted Model and the incoming one', async () => {
     const seenPairs: Array<readonly [string, string]> = []
     // NOTE: defers the callback rather than running it inline. The real API
@@ -295,14 +569,14 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model =>
         h.div(
           [],
           [
-            h.button([h.OnClick(ClickedTransition())], ['transition']),
-            h.button([h.OnClick(ClickedPlain())], ['plain']),
+            h.button([h.OnClick(Message.ClickedTransition())], ['transition']),
+            h.button([h.OnClick(Message.ClickedPlain())], ['plain']),
             model.label,
           ],
         ),
@@ -360,14 +634,14 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model =>
         h.div(
           [],
           [
-            h.button([h.OnClick(ClickedTransition())], ['transition']),
-            h.button([h.OnClick(ClickedPlain())], ['plain']),
+            h.button([h.OnClick(Message.ClickedTransition())], ['transition']),
+            h.button([h.OnClick(Message.ClickedPlain())], ['plain']),
             model.label,
           ],
         ),
@@ -416,12 +690,15 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model =>
         h.div(
           [],
-          [h.button([h.OnClick(ClickedTransition())], ['go']), model.label],
+          [
+            h.button([h.OnClick(Message.ClickedTransition())], ['go']),
+            model.label,
+          ],
         ),
       container,
       viewTransition: ({ message }) => message._tag === 'ClickedTransition',
@@ -475,12 +752,15 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model =>
         h.div(
           [],
-          [h.button([h.OnClick(ClickedTransition())], ['go']), model.label],
+          [
+            h.button([h.OnClick(Message.ClickedTransition())], ['go']),
+            model.label,
+          ],
         ),
       container,
       viewTransition: () => true,
@@ -521,7 +801,7 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model => {
         if (model.label === 'plain') {
@@ -530,8 +810,8 @@ describe('makeElement with viewTransition', () => {
         return h.div(
           [],
           [
-            h.button([h.OnClick(ClickedTransition())], ['transition']),
-            h.button([h.OnClick(ClickedPlain())], ['plain']),
+            h.button([h.OnClick(Message.ClickedTransition())], ['transition']),
+            h.button([h.OnClick(Message.ClickedPlain())], ['plain']),
             model.label,
           ],
         )
@@ -565,6 +845,106 @@ describe('makeElement with viewTransition', () => {
     }
   })
 
+  it('settles afterCommit when a crash invalidates a pending transition', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    let maybeUpdate: (() => void) | null = null
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: (callbackOptions: () => void) => {
+        maybeUpdate = callbackOptions
+        return {
+          updateCallbackDone: Promise.resolve(),
+          skipTransition: () => {},
+        }
+      },
+    })
+
+    const crashTrigger = await Effect.runPromise(Queue.unbounded<void>())
+    const afterCrashProbeTrigger = await Effect.runPromise(
+      Queue.unbounded<void>(),
+    )
+    let didPendingProbeResume = false
+    let didAfterCrashProbeResume = false
+
+    const ProbePendingCommit = Command.define('ProbePendingCommit', {
+      messages: [Message.CompletedProbeCommittedDom],
+      execute: Effect.gen(function* () {
+        yield* afterCommit
+        didPendingProbeResume = true
+        return Message.CompletedProbeCommittedDom()
+      }),
+    })
+    const CrashRuntime = Command.define('CrashRuntime', {
+      messages: [Message.CompletedProbeCommittedDom],
+      execute: Effect.gen(function* () {
+        yield* Queue.take(crashTrigger)
+        return yield* Effect.die(new Error('boom from Command'))
+      }),
+    })
+    const ProbeAfterCrash = Command.define('ProbeAfterCrash', {
+      messages: [Message.CompletedProbeCommittedDom],
+      execute: Effect.gen(function* () {
+        yield* Queue.take(afterCrashProbeTrigger)
+        yield* afterCommit
+        didAfterCrashProbeResume = true
+        return Message.CompletedProbeCommittedDom()
+      }),
+    })
+
+    const element = makeElement({
+      Model,
+      init: () => ({ model: { label: 'initial' } }),
+      update: (model: Model, message: Message) =>
+        Message.match<Update.Return<Model, Message>>(message, {
+          ClickedTransition: () => ({
+            model: { label: 'transitioned' },
+            commands: [ProbePendingCommit(), CrashRuntime(), ProbeAfterCrash()],
+          }),
+          ClickedPlain: () => ({ model: { label: 'plain' } }),
+          CompletedProbeCommittedDom: () => ({ model }),
+          Ticked: () => ({ model: { label: 'ticked' } }),
+        }),
+      view: model =>
+        h.div(
+          [],
+          [
+            h.button([h.OnClick(Message.ClickedTransition())], ['go']),
+            model.label,
+          ],
+        ),
+      container,
+      viewTransition: () => true,
+      crash: { view: () => h.div([], ['Crashed']) },
+    })
+
+    const fiber = Effect.runFork(element.start())
+
+    try {
+      await awaitBodyText('initial')
+      document.body.querySelector('button')!.click()
+      await vi.waitFor(() => {
+        expect(maybeUpdate).not.toBeNull()
+      })
+
+      Queue.offerUnsafe(crashTrigger, undefined)
+      await awaitBodyText('Crashed')
+      maybeUpdate!()
+
+      await vi.waitFor(() => {
+        expect(didPendingProbeResume).toBe(true)
+      })
+
+      Queue.offerUnsafe(afterCrashProbeTrigger, undefined)
+      await vi.waitFor(() => {
+        expect(didAfterCrashProbeResume).toBe(true)
+      })
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+      vi.restoreAllMocks()
+    }
+  })
+
   it('falls back to a plain render when startViewTransition throws', async () => {
     Object.defineProperty(document, 'startViewTransition', {
       configurable: true,
@@ -575,12 +955,15 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model =>
         h.div(
           [],
-          [h.button([h.OnClick(ClickedTransition())], ['go']), model.label],
+          [
+            h.button([h.OnClick(Message.ClickedTransition())], ['go']),
+            model.label,
+          ],
         ),
       container,
       viewTransition: () => true,
@@ -620,14 +1003,14 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model =>
         h.div(
           [],
           [
-            h.button([h.OnClick(ClickedTransition())], ['transition']),
-            h.button([h.OnClick(ClickedPlain())], ['plain']),
+            h.button([h.OnClick(Message.ClickedTransition())], ['transition']),
+            h.button([h.OnClick(Message.ClickedPlain())], ['plain']),
             model.label,
           ],
         ),
@@ -676,12 +1059,15 @@ describe('makeElement with viewTransition', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ label: 'initial' }, []],
+      init: () => ({ model: { label: 'initial' } }),
       update,
       view: model =>
         h.div(
           [],
-          [h.button([h.OnClick(ClickedTransition())], ['go']), model.label],
+          [
+            h.button([h.OnClick(Message.ClickedTransition())], ['go']),
+            model.label,
+          ],
         ),
       container,
       viewTransition: () => true,

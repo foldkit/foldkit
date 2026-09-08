@@ -2,26 +2,32 @@
 
 ## Overview
 
-The `Http` module has a single export, `Http.layer`: Effect’s Fetch-backed `HttpClient` with trace header propagation disabled by default. It is the browser-correct client to provide to an HTTP [Command](/core/commands). Yield `HttpClient.HttpClient` inside the Command and provide `Http.layer` at the edge of its Effect.
+The `Http` module has one export: `Http.layer`, a Fetch-backed Effect `HttpClient` Layer with trace-header propagation disabled by default. Provide it to an HTTP [Command](/core/commands), then yield `HttpClient.HttpClient` inside that Command.
 
-The snippet on this page imports from `effect/unstable/http`. In the Effect v4 beta that Foldkit pins, the `HttpClient` modules live under the unstable namespace, so that import path is expected and matches what Foldkit projects use.
+The examples import client modules from `effect/unstable/http`. Foldkit currently pins an Effect v4 release candidate, where these modules live under the unstable namespace. That import path is expected.
 
-## Why propagation is off
+## Why Propagation Is Off
 
-Effect’s `HttpClient` records an `http.client` span for every request and, by default, writes that span’s context onto the request as `traceparent` and `b3` headers. That default is tuned for servers, where propagating trace context to your own downstream services is desirable. In a browser those same headers make an otherwise CORS-simple request non-simple, so a plain API or a same-origin dev proxy suddenly sees a preflight. `Http.layer` defaults propagation off, so requests stay CORS-simple.
+Effect records an `http.client` span for each request. Its standard Fetch client also propagates the span context through `traceparent` and `b3` request headers. That default suits a server calling downstream services that participate in the same distributed trace.
 
-Local observability is unaffected. Disabling propagation removes only the outgoing `traceparent` and `b3` request headers: the `http.client` span with its method, URL, and status attributes is still recorded, and in a Foldkit app it still nests under the runtime’s Command span.
+In a browser, those extra headers can turn an otherwise CORS-simple cross-origin request into a preflighted request. `Http.layer` disables propagation so tracing alone does not change the request's CORS behavior.
 
-## Providing it in a Command
+Local observability remains intact. The `http.client` span still records request method, URL, and status, and a Foldkit app nests it under the Command span. Only the outgoing trace-context headers are removed.
 
-Provide `Http.layer` per Command with `Effect.provide`. It is a thin wrapper around `fetch`, so building it on each invocation costs nothing and the Command stays self-contained. When an app grows many HTTP Commands, or shares a derived client across modules, provide it once through [resources](/core/resources) instead.
+## Providing It in a Command
+
+Provide `Http.layer` at the edge of the Command's Effect with `Effect.provide`. The Layer is a thin wrapper around the browser's `fetch`, so it can stay local to a self-contained Command. When many HTTP Commands share one configured client, provide it once through [Resources](/core/resources).
+
+The Command remains responsible for status checks, response decoding, and converting failures into declared Messages.
 
 ::Snippet{name="counterHttpCommand" label="HTTP Command example"}
 
-## Customizing the client
+## Customizing the Client
 
-`Http.layer` folds one overridable default into `FetchHttpClient.layer`, so every seam Effect’s client exposes still works through it. Supply a custom `fetch` by also providing `FetchHttpClient.Fetch`. An app doing distributed tracing can re-enable propagation for one Command with `Effect.provideService(HttpClient.TracerPropagationEnabled, true)`. Add auth headers, a base URL, or retries by transforming the client with `HttpClient.mapRequest` at the call site. You would write your own layer only for a transport that is not `fetch`, which is unusual in the browser.
+`Http.layer` supplies an overridable default to `FetchHttpClient.layer`, so Effect's normal client customization remains available. Provide `FetchHttpClient.Fetch` to substitute a custom `fetch` implementation. Set `HttpClient.TracerPropagationEnabled` to `true` for a Command that participates in distributed tracing.
 
-## Full API surface
+Transform a yielded client with helpers such as `HttpClient.mapRequest` to add authentication headers or prepend a base URL. Use `HttpClient.retry` or `HttpClient.retryTransient` for request retry policies. A custom Layer is only necessary when the transport is not `fetch` or when the application wants to centralize a configured client.
 
-The [Http API reference](/api-reference/http) lists the export with its full signature.
+## Full API Surface
+
+The [Http API reference](/api-reference/http) lists `Http.layer` with its full signature.

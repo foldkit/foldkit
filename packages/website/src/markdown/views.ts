@@ -1,9 +1,10 @@
-import { Match as M, Option } from 'effect'
+import { Match, Option } from 'effect'
 import { type Attribute, Html, inertHtml as ih } from 'foldkit/html'
 
 import type { Alignment } from '@foldkit/markdown'
 import type * as Markdown from '@foldkit/markdown'
 
+import { CodeBlock } from '../component'
 import {
   type RenderHeadingLink,
   diagram,
@@ -11,7 +12,6 @@ import {
   inlineCode,
   pageTitle,
 } from '../prose'
-import { type RenderCopyButton, codeBlock } from '../view/codeBlock'
 import { parseHeadingId, stripHeadingIdMarker } from './slug'
 import { type HeadingIds, headingId } from './tableOfContents'
 
@@ -21,43 +21,42 @@ import { type HeadingIds, headingId } from './tableOfContents'
 export type DocViewConfig = Readonly<{
   pageId: string
   idByHeading: HeadingIds
-  renderCopyButton: RenderCopyButton
+  renderCopyButton: CodeBlock.RenderCopyButton
   renderHeadingLink: RenderHeadingLink
 }>
 
-const linkClassName =
-  'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 font-normal'
+const linkClassName = 'link-accent'
 
 const blockquoteClassName =
-  'border-l-4 border-gray-300 dark:border-gray-700 pl-4 italic text-gray-700 dark:text-gray-300 mb-4 [&>p:last-child]:mb-0'
+  'border-l-4 border-gray-300 dark:border-gray-700 pl-4 italic text-gray-700 dark:text-gray-300 mb-5 [&>p:last-child]:mb-0'
 
-const listClassName = 'mb-8 space-y-2 [&>li>p:last-child]:mb-0'
+const listClassName = 'mb-6 space-y-2 [&>li>p:last-child]:mb-0'
 
 const diagramLanguage = 'diagram'
 
 const tableWrapperClassName =
-  'overflow-x-auto overscroll-x-none mb-6 border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden'
+  'overflow-x-auto overscroll-x-none mb-6 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden'
 const tableClassName = 'w-full min-w-[40rem]'
 const tableHeadClassName =
-  'bg-cream dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700'
+  'bg-cream dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800'
 const tableBodyClassName = 'bg-cream dark:bg-gray-900'
 const tableRowClassName =
-  'border-b border-gray-300 dark:border-gray-700 last:border-b-0'
+  'border-b border-gray-200 dark:border-gray-800 last:border-b-0'
 const tableHeaderCellClassName =
-  'px-4 py-3 text-left text-base font-semibold text-gray-900 dark:text-white border-r border-gray-300 dark:border-gray-700 last:border-r-0'
+  'px-4 py-3 text-left text-base font-semibold text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-800 last:border-r-0'
 const tableCellClassName =
-  'px-4 py-3 text-base min-w-[12rem] text-gray-800 dark:text-gray-200 border-r border-gray-300 dark:border-gray-700 last:border-r-0'
+  'px-4 py-3 text-base min-w-[12rem] text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-800 last:border-r-0'
 
 const alignmentAttributes = (
   alignment: Alignment,
 ): ReadonlyArray<Attribute<never>> =>
-  M.value(alignment).pipe(
-    M.withReturnType<ReadonlyArray<Attribute<never>>>(),
-    M.when('None', () => []),
-    M.when('Left', () => [ih.Style({ 'text-align': 'left' })]),
-    M.when('Center', () => [ih.Style({ 'text-align': 'center' })]),
-    M.when('Right', () => [ih.Style({ 'text-align': 'right' })]),
-    M.exhaustive,
+  Match.value(alignment).pipe(
+    Match.withReturnType<ReadonlyArray<Attribute<never>>>(),
+    Match.when('None', () => []),
+    Match.when('Left', () => [ih.Style({ 'text-align': 'left' })]),
+    Match.when('Center', () => [ih.Style({ 'text-align': 'center' })]),
+    Match.when('Right', () => [ih.Style({ 'text-align': 'right' })]),
+    Match.exhaustive,
   )
 
 const titleAttributes = (
@@ -77,7 +76,7 @@ const titleAttributes = (
 export const docViews = (config: DocViewConfig): Partial<Markdown.Views> => {
   return {
     Paragraph: (_paragraph, content) =>
-      ih.p([ih.Class('mb-4 leading-relaxed')], content),
+      ih.p([ih.Class('mb-5 leading-7')], content),
 
     Link: (link, content) =>
       ih.a(
@@ -99,10 +98,10 @@ export const docViews = (config: DocViewConfig): Partial<Markdown.Views> => {
         onSome: () => stripHeadingIdMarker(content),
       })
 
-      return M.value(heading.level).pipe(
-        M.withReturnType<Html>(),
-        M.when(1, () => pageTitle(config.pageId, text)),
-        M.when(2, () =>
+      return Match.value(heading.level).pipe(
+        Match.withReturnType<Html>(),
+        Match.when(1, () => pageTitle(config.pageId, text)),
+        Match.when(2, () =>
           headingWithContent(
             'h2',
             id,
@@ -111,7 +110,7 @@ export const docViews = (config: DocViewConfig): Partial<Markdown.Views> => {
             config.renderHeadingLink,
           ),
         ),
-        M.when(3, () =>
+        Match.when(3, () =>
           headingWithContent(
             'h3',
             id,
@@ -120,7 +119,7 @@ export const docViews = (config: DocViewConfig): Partial<Markdown.Views> => {
             config.renderHeadingLink,
           ),
         ),
-        M.when(4, () =>
+        Match.when(4, () =>
           headingWithContent(
             'h4',
             id,
@@ -129,7 +128,7 @@ export const docViews = (config: DocViewConfig): Partial<Markdown.Views> => {
             config.renderHeadingLink,
           ),
         ),
-        M.when(5, () =>
+        Match.when(5, () =>
           headingWithContent(
             'h5',
             id,
@@ -138,7 +137,7 @@ export const docViews = (config: DocViewConfig): Partial<Markdown.Views> => {
             config.renderHeadingLink,
           ),
         ),
-        M.when(6, () =>
+        Match.when(6, () =>
           headingWithContent(
             'h6',
             id,
@@ -147,19 +146,19 @@ export const docViews = (config: DocViewConfig): Partial<Markdown.Views> => {
             config.renderHeadingLink,
           ),
         ),
-        M.exhaustive,
+        Match.exhaustive,
       )
     },
 
-    CodeBlock: ({ maybeLanguage, value }) =>
+    CodeBlock: ({ maybeLanguage, value }, occurrenceIndex) =>
       Option.contains(maybeLanguage, diagramLanguage)
         ? diagram(value)
-        : codeBlock(
+        : CodeBlock.view(
+            `${config.pageId}-code-${occurrenceIndex}`,
             value,
             'Copy code to clipboard',
             config.renderCopyButton,
-            'mb-8',
-            Option.getOrUndefined(maybeLanguage),
+            { className: 'mb-6', maybeLanguage },
           ),
 
     List: (list, items) => {
@@ -181,7 +180,7 @@ export const docViews = (config: DocViewConfig): Partial<Markdown.Views> => {
       ih.blockquote([ih.Class(blockquoteClassName)], blocks),
 
     ThematicBreak: () =>
-      ih.hr([ih.Class('my-8 border-gray-300 dark:border-gray-800')]),
+      ih.hr([ih.Class('my-8 border-gray-200 dark:border-gray-800')]),
 
     Image: ({ url, alt, maybeTitle }) =>
       ih.img([

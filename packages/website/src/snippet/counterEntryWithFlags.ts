@@ -8,8 +8,7 @@ const application = Runtime.makeApplication({
   update,
   view,
   Flags,
-  flags,
   container: document.getElementById('root'),
 })
 
-Runtime.run(application)
+Runtime.run(application, { flags })

@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const TICK_INTERVAL_MS = 1000
 
 function Counter() {
-  const intervalRef = useRef<number>()
-
   const [count, setCount] = useState(0)
   const [isAutoCounting, setIsPlaying] = useState(false)
 
@@ -17,13 +15,15 @@ function Counter() {
   }
 
   useEffect(() => {
-    if (isAutoCounting) {
-      intervalRef.current = setInterval(() => {
-        setCount(count => count + 1)
-      }, TICK_INTERVAL_MS)
+    if (!isAutoCounting) {
+      return
     }
 
-    return () => clearInterval(intervalRef.current)
+    const intervalId = setInterval(() => {
+      setCount(count => count + 1)
+    }, TICK_INTERVAL_MS)
+
+    return () => clearInterval(intervalId)
   }, [isAutoCounting])
 
   return (

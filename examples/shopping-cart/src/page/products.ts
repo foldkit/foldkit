@@ -1,6 +1,6 @@
-import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
-import { Command, Submodel } from 'foldkit'
-import { m } from 'foldkit/message'
+import { Array, Effect, Option, Schema } from 'effect'
+import { Command, Submodel, type Update } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
 import { replaceUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 
@@ -11,53 +11,37 @@ import { cartRouter, productsRouter } from '../route'
 
 // MODEL
 
-export const Model = S.Struct({
-  products: S.Array(Item.Item),
-  searchText: S.String,
+export const Model = Schema.Struct({
+  products: Schema.Array(Item.Item),
+  searchText: Schema.String,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-const CompletedReplaceSearchUrl = m('CompletedReplaceSearchUrl')
-const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
-export const ClickedAddToCart = m('ClickedAddToCart', { item: Item.Item })
-export const ClickedIncrementQuantity = m('ClickedIncrementQuantity', {
-  itemId: S.String,
-})
-export const ClickedDecrementQuantity = m('ClickedDecrementQuantity', {
-  itemId: S.String,
+export const Message = defineMessageUnion({
+  CompletedReplaceSearchUrl: {},
+  ChangedSearchInput: { value: Schema.String },
+  ClickedAddToCart: { item: Item.Item },
+  ClickedIncrementQuantity: { itemId: Schema.String },
+  ClickedDecrementQuantity: { itemId: Schema.String },
 })
 
-export const Message = S.Union([
-  CompletedReplaceSearchUrl,
-  ChangedSearchInput,
-  ClickedAddToCart,
-  ClickedIncrementQuantity,
-  ClickedDecrementQuantity,
-])
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-export const AddedToCart = m('AddedToCart', { item: Item.Item })
-export const IncrementedQuantity = m('IncrementedQuantity', {
-  itemId: S.String,
-})
-export const DecrementedQuantity = m('DecrementedQuantity', {
-  itemId: S.String,
+export const OutMessage = defineMessageUnion({
+  AddedToCart: { item: Item.Item },
+  IncrementedQuantity: { itemId: Schema.String },
+  DecrementedQuantity: { itemId: Schema.String },
 })
 
-export const OutMessage = S.Union([
-  AddedToCart,
-  IncrementedQuantity,
-  DecrementedQuantity,
-])
 export type OutMessage = typeof OutMessage.Type
 
-export type AddedToCart = typeof AddedToCart.Type
-export type IncrementedQuantity = typeof IncrementedQuantity.Type
-export type DecrementedQuantity = typeof DecrementedQuantity.Type
+export type AddedToCart = typeof OutMessage.AddedToCart.Type
+export type IncrementedQuantity = typeof OutMessage.IncrementedQuantity.Type
+export type DecrementedQuantity = typeof OutMessage.DecrementedQuantity.Type
 
 // INIT
 
@@ -68,58 +52,47 @@ export const init = (products: ReadonlyArray<Item.Item>): Model => ({
 
 // COMMAND
 
-const ReplaceSearchUrl = Command.define('ReplaceSearchUrl', {
-  args: { url: S.String },
-  messages: [CompletedReplaceSearchUrl],
+export const ReplaceSearchUrl = Command.define('ReplaceSearchUrl', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedReplaceSearchUrl],
   execute: ({ url }) =>
-    replaceUrl(url).pipe(Effect.as(CompletedReplaceSearchUrl())),
+    replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl())),
 })
 
 // UPDATE
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
+    message,
+    {
+      CompletedReplaceSearchUrl: () => ({ model }),
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tagsExhaustive({
-      CompletedReplaceSearchUrl: () => [model, [], Option.none()],
-
-      ChangedSearchInput: ({ value }) => [
-        evo(model, { searchText: () => value }),
-        [
+      ChangedSearchInput: ({ value }) => ({
+        model: evo(model, { searchText: () => value }),
+        commands: [
           ReplaceSearchUrl({
             url: productsRouter({
               searchText: Option.fromNullishOr(value || null),
             }),
           }),
         ],
-        Option.none(),
-      ],
+      }),
 
-      ClickedAddToCart: ({ item }) => [
+      ClickedAddToCart: ({ item }) => ({
         model,
-        [],
-        Option.some(AddedToCart({ item })),
-      ],
+        outMessage: OutMessage.AddedToCart({ item }),
+      }),
 
-      ClickedIncrementQuantity: ({ itemId }) => [
+      ClickedIncrementQuantity: ({ itemId }) => ({
         model,
-        [],
-        Option.some(IncrementedQuantity({ itemId })),
-      ],
+        outMessage: OutMessage.IncrementedQuantity({ itemId }),
+      }),
 
-      ClickedDecrementQuantity: ({ itemId }) => [
+      ClickedDecrementQuantity: ({ itemId }) => ({
         model,
-        [],
-        Option.some(DecrementedQuantity({ itemId })),
-      ],
-    }),
+        outMessage: OutMessage.DecrementedQuantity({ itemId }),
+      }),
+    },
   )
 
 // VIEW
@@ -151,7 +124,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
                     id: 'product-search',
                     value: model.searchText,
                     placeholder: 'Search products...',
-                    onInput: value => ChangedSearchInput({ value }),
+                    onInput: value => Message.ChangedSearchInput({ value }),
                     toView: attributes =>
                       h.input([
                         ...attributes.input,
@@ -192,7 +165,9 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
                     Cart.itemQuantity(product.id)(cart) === 0
                       ? Button.view(
                           {
-                            onClick: ClickedAddToCart({ item: product }),
+                            onClick: Message.ClickedAddToCart({
+                              item: product,
+                            }),
                             toView: attributes =>
                               h.button(
                                 [
@@ -211,7 +186,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
                           [
                             Button.view(
                               {
-                                onClick: ClickedDecrementQuantity({
+                                onClick: Message.ClickedDecrementQuantity({
                                   itemId: product.id,
                                 }),
                                 toView: attributes =>
@@ -237,7 +212,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
                             ),
                             Button.view(
                               {
-                                onClick: ClickedIncrementQuantity({
+                                onClick: Message.ClickedIncrementQuantity({
                                   itemId: product.id,
                                 }),
                                 toView: attributes =>

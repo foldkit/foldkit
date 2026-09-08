@@ -254,7 +254,7 @@ const warnIfNotSingleSegment = (
  *
  * @example
  * ```ts
- * const UserId = S.String.pipe(S.brand('UserId'))
+ * const UserId = Schema.String.pipe(Schema.brand('UserId'))
  * pipe(literal('users'), slash(schemaSegment('userId', UserId)), mapTo(UserRoute))
  * // parses /users/abc into { _tag: 'UserRoute', userId: UserId.make('abc') }
  * ```
@@ -623,7 +623,7 @@ export const slash: {
  * ```ts
  * pipe(
  *   literal('search'),
- *   query(S.Struct({ q: S.String })),
+ *   query(Schema.Struct({ q: Schema.String })),
  *   mapTo(SearchRoute),
  * )
  * ```

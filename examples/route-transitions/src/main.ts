@@ -1,18 +1,10 @@
-import {
-  Array,
-  Duration,
-  Effect,
-  Match as M,
-  Option,
-  Schema as S,
-  pipe,
-} from 'effect'
+import { Array, Duration, Effect, Match, Option, Schema, pipe } from 'effect'
 import { Command, Runtime, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { Transition } from 'foldkit/route'
-import { ts } from 'foldkit/schema'
+import { defineTaggedUnion } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
@@ -26,14 +18,7 @@ import {
   urlToAppRoute,
 } from './route'
 
-export {
-  AppRoute,
-  GalleryRoute,
-  HomeRoute,
-  NotFoundRoute,
-  PaintingRoute,
-  StudioRoute,
-} from './route'
+export { AppRoute } from './route'
 
 const CATALOG_LATENCY = Duration.millis(600)
 const PAINTING_LATENCY = Duration.millis(400)
@@ -42,105 +27,93 @@ const MAX_LOGGED_TRANSITIONS = 20
 
 // MODEL
 
-export const CatalogStatus = S.Literals(['Idle', 'Loading', 'Ready'])
+export const CatalogStatus = Schema.Literals(['Idle', 'Loading', 'Ready'])
 export type CatalogStatus = typeof CatalogStatus.Type
 
-export const PaintingIdle = ts('PaintingIdle')
-export const PaintingLoading = ts('PaintingLoading', { paintingId: S.Number })
-export const PaintingReady = ts('PaintingReady', { paintingId: S.Number })
-
-export const PaintingStatus = S.Union([
-  PaintingIdle,
-  PaintingLoading,
-  PaintingReady,
-])
+export const PaintingStatus = defineTaggedUnion({
+  Idle: {},
+  Loading: { paintingId: Schema.Number },
+  Ready: { paintingId: Schema.Number },
+})
 export type PaintingStatus = typeof PaintingStatus.Type
 
-export const LoggedTransition = S.Struct({
-  sequenceNumber: S.Number,
-  maybePreviousRoute: S.Option(AppRoute),
+export const LoggedTransition = Schema.Struct({
+  sequenceNumber: Schema.Number,
+  maybePreviousRoute: Schema.Option(AppRoute),
   nextRoute: AppRoute,
 })
 export type LoggedTransition = typeof LoggedTransition.Type
 
-export const Model = S.Struct({
+export const Model = Schema.Struct({
   route: AppRoute,
-  transitionLog: S.Array(LoggedTransition),
+  transitionLog: Schema.Array(LoggedTransition),
   catalogStatus: CatalogStatus,
   paintingStatus: PaintingStatus,
-  studioDraft: S.String,
-  maybeSavedDraft: S.Option(S.String),
+  studioDraft: Schema.String,
+  maybeSavedDraft: Schema.Option(Schema.String),
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const CompletedNavigateInternal = m('CompletedNavigateInternal')
-export const CompletedLoadExternal = m('CompletedLoadExternal')
-export const ClickedLink = m('ClickedLink', { request: UrlRequest })
-export const ChangedUrl = m('ChangedUrl', { url: Url })
-export const SucceededLoadCatalog = m('SucceededLoadCatalog')
-export const SucceededLoadPainting = m('SucceededLoadPainting', {
-  paintingId: S.Number,
+export const Message = defineMessageUnion({
+  CompletedNavigateInternal: {},
+  CompletedLoadExternal: {},
+  ClickedLink: { request: UrlRequest },
+  ChangedUrl: { url: Url },
+  SucceededLoadCatalog: {},
+  SucceededLoadPainting: { paintingId: Schema.Number },
+  UpdatedStudioDraft: { value: Schema.String },
+  SucceededSaveDraft: { draft: Schema.String },
 })
-export const UpdatedStudioDraft = m('UpdatedStudioDraft', { value: S.String })
-export const SucceededSaveDraft = m('SucceededSaveDraft', { draft: S.String })
 
-export const Message = S.Union([
-  CompletedNavigateInternal,
-  CompletedLoadExternal,
-  ClickedLink,
-  ChangedUrl,
-  SucceededLoadCatalog,
-  SucceededLoadPainting,
-  UpdatedStudioDraft,
-  SucceededSaveDraft,
-])
 export type Message = typeof Message.Type
 
 // COMMAND
 
 const NavigateInternal = Command.define('NavigateInternal', {
-  args: { url: S.String },
-  messages: [CompletedNavigateInternal],
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
   execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())),
+    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
 })
 
 const LoadExternal = Command.define('LoadExternal', {
-  args: { href: S.String },
-  messages: [CompletedLoadExternal],
-  execute: ({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())),
+  args: { href: Schema.String },
+  messages: [Message.CompletedLoadExternal],
+  execute: ({ href }) =>
+    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 })
 
 export const LoadCatalog = Command.define('LoadCatalog', {
-  messages: [SucceededLoadCatalog],
+  messages: [Message.SucceededLoadCatalog],
   execute: Effect.sleep(CATALOG_LATENCY).pipe(
-    Effect.as(SucceededLoadCatalog()),
+    Effect.as(Message.SucceededLoadCatalog()),
   ),
 })
 
 export const LoadPainting = Command.define('LoadPainting', {
-  args: { paintingId: S.Number },
-  messages: [SucceededLoadPainting],
+  args: { paintingId: Schema.Number },
+  messages: [Message.SucceededLoadPainting],
   execute: ({ paintingId }) =>
     Effect.sleep(PAINTING_LATENCY).pipe(
-      Effect.as(SucceededLoadPainting({ paintingId })),
+      Effect.as(Message.SucceededLoadPainting({ paintingId })),
     ),
 })
 
 export const SaveDraft = Command.define('SaveDraft', {
-  args: { draft: S.String },
-  messages: [SucceededSaveDraft],
+  args: { draft: Schema.String },
+  messages: [Message.SucceededSaveDraft],
   execute: ({ draft }) =>
-    Effect.sleep(SAVE_LATENCY).pipe(Effect.as(SucceededSaveDraft({ draft }))),
+    Effect.sleep(SAVE_LATENCY).pipe(
+      Effect.as(Message.SucceededSaveDraft({ draft })),
+    ),
 })
 
 // UPDATE
 
 type UpdateReturn = Update.Return<Model, Message>
 type Step = Update.Step<Model, Message>
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export type AppTransition = Transition.Transition<AppRoute>
 
@@ -154,8 +127,8 @@ const nextSequenceNumber = (
 
 const logTransition =
   (transition: AppTransition): Step =>
-  model => [
-    evo(model, {
+  model => ({
+    model: evo(model, {
       transitionLog: transitionLog =>
         pipe(
           transitionLog,
@@ -167,54 +140,60 @@ const logTransition =
           Array.take(MAX_LOGGED_TRANSITIONS),
         ),
     }),
-    [],
-  ]
+  })
 
 const loadCatalogOnGalleryEntry =
   (transition: AppTransition): Step =>
   model =>
     Transition.isEntering(transition, 'Gallery') &&
     model.catalogStatus !== 'Loading'
-      ? [evo(model, { catalogStatus: () => 'Loading' }), [LoadCatalog()]]
-      : [model, []]
+      ? {
+          model: evo(model, { catalogStatus: () => 'Loading' }),
+          commands: [LoadCatalog()],
+        }
+      : { model }
 
 const loadPaintingOnEntry =
   (transition: AppTransition): Step =>
   model =>
     Option.match(Transition.entered(transition, 'Painting'), {
-      onNone: () => [model, []],
-      onSome: ({ paintingId }) => [
-        evo(model, { paintingStatus: () => PaintingLoading({ paintingId }) }),
-        [LoadPainting({ paintingId })],
-      ],
+      onNone: () => ({ model }),
+      onSome: ({ paintingId }) => ({
+        model: evo(model, {
+          paintingStatus: () => PaintingStatus.Loading({ paintingId }),
+        }),
+        commands: [LoadPainting({ paintingId })],
+      }),
     })
 
 const reloadPaintingOnIdChange =
   (transition: AppTransition): Step =>
   model =>
     Option.match(Transition.stayed(transition, 'Painting'), {
-      onNone: () => [model, []],
+      onNone: () => ({ model }),
       onSome: ({ previousRoute, nextRoute }) =>
         previousRoute.paintingId === nextRoute.paintingId
-          ? [model, []]
-          : [
-              evo(model, {
+          ? { model }
+          : {
+              model: evo(model, {
                 paintingStatus: () =>
-                  PaintingLoading({ paintingId: nextRoute.paintingId }),
+                  PaintingStatus.Loading({
+                    paintingId: nextRoute.paintingId,
+                  }),
               }),
-              [LoadPainting({ paintingId: nextRoute.paintingId })],
-            ],
+              commands: [LoadPainting({ paintingId: nextRoute.paintingId })],
+            },
     })
 
 const saveDraftOnStudioExit =
   (transition: AppTransition): Step =>
   model =>
     Option.match(Transition.exited(transition, 'Studio'), {
-      onNone: () => [model, []],
+      onNone: () => ({ model }),
       onSome: () =>
         model.studioDraft === ''
-          ? [model, []]
-          : [model, [SaveDraft({ draft: model.studioDraft })]],
+          ? { model }
+          : { model, commands: [SaveDraft({ draft: model.studioDraft })] },
     })
 
 const handleTransition = (
@@ -229,61 +208,54 @@ const handleTransition = (
     saveDraftOnStudioExit(transition),
   ])
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tagsExhaustive({
-      CompletedNavigateInternal: () => [model, []],
-      CompletedLoadExternal: () => [model, []],
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
 
-      ClickedLink: ({ request }) =>
-        M.value(request).pipe(
-          withUpdateReturn,
-          M.tagsExhaustive({
-            Internal: ({ url }) => [
-              model,
-              [NavigateInternal({ url: urlToString(url) })],
-            ],
-            External: ({ href }) => [model, [LoadExternal({ href })]],
-          }),
-        ),
+    ClickedLink: ({ request }) =>
+      UrlRequest.match<UpdateReturn>(request, {
+        Internal: ({ url }) => ({
+          model,
+          commands: [NavigateInternal({ url: urlToString(url) })],
+        }),
+        External: ({ href }) => ({
+          model,
+          commands: [LoadExternal({ href })],
+        }),
+      }),
 
-      ChangedUrl: ({ url }) => {
-        const nextRoute = urlToAppRoute(url)
-        const transition = Transition.make(model.route, nextRoute)
-        return handleTransition(
-          evo(model, { route: () => nextRoute }),
-          transition,
-        )
-      },
+    ChangedUrl: ({ url }) => {
+      const nextRoute = urlToAppRoute(url)
+      const transition = Transition.make(model.route, nextRoute)
+      return handleTransition(
+        evo(model, { route: () => nextRoute }),
+        transition,
+      )
+    },
 
-      SucceededLoadCatalog: () => [
-        evo(model, { catalogStatus: () => 'Ready' }),
-        [],
-      ],
-
-      SucceededLoadPainting: ({ paintingId }) =>
-        model.paintingStatus._tag === 'PaintingLoading' &&
-        model.paintingStatus.paintingId === paintingId
-          ? [
-              evo(model, {
-                paintingStatus: () => PaintingReady({ paintingId }),
-              }),
-              [],
-            ]
-          : [model, []],
-
-      UpdatedStudioDraft: ({ value }) => [
-        evo(model, { studioDraft: () => value }),
-        [],
-      ],
-
-      SucceededSaveDraft: ({ draft }) => [
-        evo(model, { maybeSavedDraft: () => Option.some(draft) }),
-        [],
-      ],
+    SucceededLoadCatalog: () => ({
+      model: evo(model, { catalogStatus: () => 'Ready' }),
     }),
-  )
+
+    SucceededLoadPainting: ({ paintingId }) =>
+      model.paintingStatus._tag === 'Loading' &&
+      model.paintingStatus.paintingId === paintingId
+        ? {
+            model: evo(model, {
+              paintingStatus: () => PaintingStatus.Ready({ paintingId }),
+            }),
+          }
+        : { model },
+
+    UpdatedStudioDraft: ({ value }) => ({
+      model: evo(model, { studioDraft: () => value }),
+    }),
+
+    SucceededSaveDraft: ({ draft }) => ({
+      model: evo(model, { maybeSavedDraft: () => Option.some(draft) }),
+    }),
+  })
 
 // INIT
 
@@ -295,7 +267,7 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (
     route,
     transitionLog: [],
     catalogStatus: 'Idle',
-    paintingStatus: PaintingIdle(),
+    paintingStatus: PaintingStatus.Idle(),
     studioDraft: '',
     maybeSavedDraft: Option.none(),
   })
@@ -305,15 +277,13 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (
 // VIEW
 
 const routeLabel = (route: AppRoute): string =>
-  M.value(route).pipe(
-    M.tagsExhaustive({
-      Home: () => 'Home',
-      Gallery: () => 'Gallery',
-      Painting: ({ paintingId }) => `Painting ${paintingId}`,
-      Studio: () => 'Studio',
-      NotFound: () => 'Not found',
-    }),
-  )
+  AppRoute.match(route, {
+    Home: () => 'Home',
+    Gallery: () => 'Gallery',
+    Painting: ({ paintingId }) => `Painting ${paintingId}`,
+    Studio: () => 'Studio',
+    NotFound: () => 'Not found',
+  })
 
 const navigationView = (
   currentRoute: AppRoute,
@@ -551,8 +521,7 @@ const foundPaintingView = (
   h: HtmlBuilder<Message>,
 ): Html => {
   const isPaintingReady =
-    paintingStatus._tag === 'PaintingReady' &&
-    paintingStatus.paintingId === painting.id
+    paintingStatus._tag === 'Ready' && paintingStatus.paintingId === painting.id
 
   return h.div(
     [],
@@ -615,7 +584,7 @@ const studioView = (
       ),
       h.textarea([
         h.Value(studioDraft),
-        h.OnInput(value => UpdatedStudioDraft({ value })),
+        h.OnInput(value => Message.UpdatedStudioDraft({ value })),
         h.Placeholder('A half-finished thought…'),
         h.Class(
           'w-full h-40 bg-white border border-gray-300 rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-indigo-500',
@@ -771,22 +740,22 @@ const transitionLogView = (
   )
 
 const routeTitle = (route: AppRoute): string =>
-  M.value(route).pipe(
-    M.tag('Home', () => 'Route Transitions'),
-    M.orElse(currentRoute => `${routeLabel(currentRoute)} | Route Transitions`),
+  Match.value(route).pipe(
+    Match.tag('Home', () => 'Route Transitions'),
+    Match.orElse(
+      currentRoute => `${routeLabel(currentRoute)} | Route Transitions`,
+    ),
   )
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const routeContent = M.value(model.route).pipe(
-    M.tagsExhaustive({
-      Home: () => homeView(h),
-      Gallery: () => galleryView(model.catalogStatus, h),
-      Painting: ({ paintingId }) =>
-        paintingView(paintingId, model.paintingStatus, h),
-      Studio: () => studioView(model.studioDraft, model.maybeSavedDraft, h),
-      NotFound: ({ path }) => notFoundView(path, h),
-    }),
-  )
+  const routeContent = AppRoute.match(model.route, {
+    Home: () => homeView(h),
+    Gallery: () => galleryView(model.catalogStatus, h),
+    Painting: ({ paintingId }) =>
+      paintingView(paintingId, model.paintingStatus, h),
+    Studio: () => studioView(model.studioDraft, model.maybeSavedDraft, h),
+    NotFound: ({ path }) => notFoundView(path, h),
+  })
 
   return {
     title: routeTitle(model.route),

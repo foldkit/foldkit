@@ -3,22 +3,36 @@ import { describe, expect, it } from 'vitest'
 
 import { gotWrapperCarriesOnlyRouting } from '../../src/rules/got-wrapper-carries-only-routing.ts'
 
-const m = (tag: string, fields?: unknown) =>
-  Testing.callExpr(
-    'm',
-    fields === undefined
-      ? [Testing.strLiteral(tag)]
-      : [Testing.strLiteral(tag), fields],
-  )
+const message = (name: string, fields: unknown = Testing.objectExpr([])) => ({
+  key: name,
+  value: fields,
+})
+
+const defineMessageUnion = (
+  ...cases: ReadonlyArray<ReturnType<typeof message>>
+) => Testing.callExpr('defineMessageUnion', [Testing.objectExpr(cases)])
+
+const runRule = (node: unknown) =>
+  Testing.runRuleMulti(gotWrapperCarriesOnlyRouting, [
+    [
+      'Program',
+      Testing.program([
+        Testing.importDeclWithSpecifiers('foldkit/message', [
+          Testing.importSpecifier('defineMessageUnion'),
+        ]),
+      ]),
+    ],
+    ['CallExpression', node],
+  ])
 
 describe('got-wrapper-carries-only-routing', () => {
   it('flags an extra field on a Got wrapper', () => {
-    const result = Testing.runRule(
-      gotWrapperCarriesOnlyRouting,
-      'CallExpression',
-      m(
-        'GotChatMessage',
-        Testing.objectExpr([{ key: 'message' }, { key: 'thought' }]),
+    const result = runRule(
+      defineMessageUnion(
+        message(
+          'GotChatMessage',
+          Testing.objectExpr([{ key: 'message' }, { key: 'thought' }]),
+        ),
       ),
     )
 
@@ -43,10 +57,8 @@ describe('got-wrapper-carries-only-routing', () => {
         },
       ],
     }
-    const result = Testing.runRule(
-      gotWrapperCarriesOnlyRouting,
-      'CallExpression',
-      m('GotChatMessage', fields),
+    const result = runRule(
+      defineMessageUnion(message('GotChatMessage', fields)),
     )
 
     expect(result).toHaveLength(1)
@@ -54,10 +66,10 @@ describe('got-wrapper-carries-only-routing', () => {
   })
 
   it('flags exactly the extra field on a Got tag without the Message suffix', () => {
-    const result = Testing.runRule(
-      gotWrapperCarriesOnlyRouting,
-      'CallExpression',
-      m('GotChatUpdates', Testing.objectExpr([{ key: 'thought' }])),
+    const result = runRule(
+      defineMessageUnion(
+        message('GotChatUpdates', Testing.objectExpr([{ key: 'thought' }])),
+      ),
     )
 
     expect(result).toHaveLength(1)
@@ -65,16 +77,16 @@ describe('got-wrapper-carries-only-routing', () => {
   })
 
   it('flags each extra field separately', () => {
-    const result = Testing.runRule(
-      gotWrapperCarriesOnlyRouting,
-      'CallExpression',
-      m(
-        'GotChatMessage',
-        Testing.objectExpr([
-          { key: 'message' },
-          { key: 'alpha' },
-          { key: 'beta' },
-        ]),
+    const result = runRule(
+      defineMessageUnion(
+        message(
+          'GotChatMessage',
+          Testing.objectExpr([
+            { key: 'message' },
+            { key: 'alpha' },
+            { key: 'beta' },
+          ]),
+        ),
       ),
     )
 
@@ -84,12 +96,12 @@ describe('got-wrapper-carries-only-routing', () => {
   })
 
   it('flags a key whose Id suffix is not capitalized exactly', () => {
-    const result = Testing.runRule(
-      gotWrapperCarriesOnlyRouting,
-      'CallExpression',
-      m(
-        'GotChatMessage',
-        Testing.objectExpr([{ key: 'message' }, { key: 'sessionID' }]),
+    const result = runRule(
+      defineMessageUnion(
+        message(
+          'GotChatMessage',
+          Testing.objectExpr([{ key: 'message' }, { key: 'sessionID' }]),
+        ),
       ),
     )
 
@@ -98,26 +110,26 @@ describe('got-wrapper-carries-only-routing', () => {
   })
 
   it('allows the canonical message-only wrapper', () => {
-    const result = Testing.runRule(
-      gotWrapperCarriesOnlyRouting,
-      'CallExpression',
-      m('GotChatMessage', Testing.objectExpr([{ key: 'message' }])),
+    const result = runRule(
+      defineMessageUnion(
+        message('GotChatMessage', Testing.objectExpr([{ key: 'message' }])),
+      ),
     )
 
     expect(result).toHaveLength(0)
   })
 
   it('allows id and Id-suffixed routing fields', () => {
-    const result = Testing.runRule(
-      gotWrapperCarriesOnlyRouting,
-      'CallExpression',
-      m(
-        'GotPiRuntimeModelComboboxMessage',
-        Testing.objectExpr([
-          { key: 'message' },
-          { key: 'id' },
-          { key: 'sessionId' },
-        ]),
+    const result = runRule(
+      defineMessageUnion(
+        message(
+          'GotPiRuntimeModelComboboxMessage',
+          Testing.objectExpr([
+            { key: 'message' },
+            { key: 'id' },
+            { key: 'sessionId' },
+          ]),
+        ),
       ),
     )
 
@@ -125,40 +137,34 @@ describe('got-wrapper-carries-only-routing', () => {
   })
 
   it('ignores a wrapper without a fields argument', () => {
-    const result = Testing.runRule(
-      gotWrapperCarriesOnlyRouting,
-      'CallExpression',
-      m('GotChatMessage'),
-    )
+    const result = runRule(defineMessageUnion(message('GotChatMessage')))
 
     expect(result).toHaveLength(0)
   })
 
   it('ignores a fields object missing the message property', () => {
-    const result = Testing.runRule(
-      gotWrapperCarriesOnlyRouting,
-      'CallExpression',
-      m('GotChatMessage', Testing.objectExpr([{ key: 'id' }])),
+    const result = runRule(
+      defineMessageUnion(
+        message('GotChatMessage', Testing.objectExpr([{ key: 'id' }])),
+      ),
     )
 
     expect(result).toHaveLength(0)
   })
 
   it('allows a Got tag without the Message suffix when the fields are clean', () => {
-    const result = Testing.runRule(
-      gotWrapperCarriesOnlyRouting,
-      'CallExpression',
-      m('GotChatUpdates', Testing.objectExpr([{ key: 'message' }])),
+    const result = runRule(
+      defineMessageUnion(
+        message('GotChatUpdates', Testing.objectExpr([{ key: 'message' }])),
+      ),
     )
 
     expect(result).toHaveLength(0)
   })
 
   it('ignores a non-object fields argument', () => {
-    const result = Testing.runRule(
-      gotWrapperCarriesOnlyRouting,
-      'CallExpression',
-      m('GotChatMessage', Testing.id('Fields')),
+    const result = runRule(
+      defineMessageUnion(message('GotChatMessage', Testing.id('Fields'))),
     )
 
     expect(result).toHaveLength(0)
@@ -182,32 +188,29 @@ describe('got-wrapper-carries-only-routing', () => {
         },
       ],
     }
-    const result = Testing.runRule(
-      gotWrapperCarriesOnlyRouting,
-      'CallExpression',
-      m('GotChatMessage', fields),
+    const result = runRule(
+      defineMessageUnion(message('GotChatMessage', fields)),
     )
 
     expect(result).toHaveLength(0)
   })
 
   it('ignores tags that do not match the Got wrapper pattern', () => {
-    const result = Testing.runRule(
-      gotWrapperCarriesOnlyRouting,
-      'CallExpression',
-      m('GotoSettings', Testing.objectExpr([{ key: 'thought' }])),
+    const result = runRule(
+      defineMessageUnion(
+        message('GotoSettings', Testing.objectExpr([{ key: 'thought' }])),
+      ),
     )
 
     expect(result).toHaveLength(0)
   })
 
-  it('ignores member calls named m', () => {
-    const result = Testing.runRule(
-      gotWrapperCarriesOnlyRouting,
-      'CallExpression',
-      Testing.callOfMember('Foo', 'm', [
-        Testing.strLiteral('GotChatMessage'),
-        Testing.objectExpr([{ key: 'thought' }]),
+  it('ignores member calls named defineMessageUnion', () => {
+    const result = runRule(
+      Testing.callOfMember('Foo', 'defineMessageUnion', [
+        Testing.objectExpr([
+          message('GotChatMessage', Testing.objectExpr([{ key: 'thought' }])),
+        ]),
       ]),
     )
 

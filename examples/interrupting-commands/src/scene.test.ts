@@ -5,9 +5,8 @@ import { describe, test } from 'vitest'
 
 import {
   CancelUploadFile,
-  CompletedCancelUploadFile,
   FAKE_FILES,
-  SucceededUploadFile,
+  Message,
   UploadFile,
   initialModel,
   update,
@@ -37,7 +36,7 @@ describe('view', () => {
       expect(role('button', { name: 'Cancel upload 0' })).toExist(),
       Command.resolve(
         UploadFile({ uploadId: 0, sizeMegabytes: firstFile.sizeMegabytes }),
-        SucceededUploadFile({ uploadId: 0 }),
+        Message.SucceededUploadFile({ uploadId: 0 }),
       ),
       expect(text('Done')).toExist(),
     )
@@ -51,9 +50,9 @@ describe('view', () => {
       click(role('button', { name: 'Cancel upload 0' })),
       Command.resolve(
         CancelUploadFile({ uploadId: 0 }),
-        CompletedCancelUploadFile({
+        Message.CompletedCancelUploadFile({
           uploadId: 0,
-          outcome: Interruptible.Interrupted(),
+          outcome: Interruptible.Outcome.Interrupted(),
         }),
       ),
       expect(text('Cancelled')).toExist(),
@@ -62,7 +61,7 @@ describe('view', () => {
       expect(text('Uploading')).toExist(),
       Command.resolve(
         UploadFile({ uploadId: 0, sizeMegabytes: firstFile.sizeMegabytes }),
-        SucceededUploadFile({ uploadId: 0 }),
+        Message.SucceededUploadFile({ uploadId: 0 }),
       ),
       expect(text('Done')).toExist(),
     )
@@ -78,9 +77,9 @@ describe('view', () => {
       click(role('button', { name: 'Cancel all' })),
       Command.resolve(
         CancelUploadFile({ uploadId: 0 }),
-        CompletedCancelUploadFile({
+        Message.CompletedCancelUploadFile({
           uploadId: 0,
-          outcome: Interruptible.Interrupted(),
+          outcome: Interruptible.Outcome.Interrupted(),
         }),
       ),
       expect(role('button', { name: 'Cancel all' })).toBeAbsent(),

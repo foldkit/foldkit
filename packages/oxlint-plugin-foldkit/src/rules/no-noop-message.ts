@@ -1,12 +1,12 @@
 import { Effect } from 'effect'
 import { Diagnostic, type ESTree, Rule, RuleContext } from 'effect-oxlint'
 
-import { firstStringArgument, isCallExpression } from '../guards.ts'
-import { isMCall } from '../message.ts'
+import { indexReferences, isCallExpression } from '../guards.ts'
+import { messageCases, recordFoldkitMessageUnionBindings } from '../message.ts'
 
 /**
- * Flags generic NoOp Messages (NoOp, Noop, NoOperation) passed to m(), steering
- * toward Messages that describe what happened.
+ * Flags generic NoOp Messages (NoOp, Noop, NoOperation) declared with
+ * `defineMessageUnion`, steering toward Messages that describe what happened.
  */
 export const noNoopMessage = Rule.define({
   name: 'no-noop-message',
@@ -17,22 +17,31 @@ export const noNoopMessage = Rule.define({
   }),
   create: function* () {
     const ctx = yield* RuleContext
+    const scopes = ctx.sourceCode.scopeManager?.scopes
+    const references =
+      scopes === undefined ? undefined : indexReferences(scopes)
+    const messageUnionBindings = new Set<string>()
     return {
+      Program: (node: ESTree.Node) => {
+        recordFoldkitMessageUnionBindings(messageUnionBindings, node)
+        return Effect.void
+      },
       CallExpression: (node: ESTree.Node) => {
-        if (!isCallExpression(node) || !isMCall(node)) return Effect.void
-        const messageName = firstStringArgument(node)
-        if (
-          messageName === undefined ||
-          !['NoOp', 'Noop', 'NoOperation'].includes(messageName.value)
-        ) {
-          return Effect.void
-        }
-        return ctx.report(
-          Diagnostic.make({
-            node: messageName,
-            message:
-              'Every Foldkit Message should describe what happened; avoid generic NoOp Messages.',
-          }),
+        if (!isCallExpression(node)) return Effect.void
+
+        return Effect.forEach(
+          messageCases(node, messageUnionBindings, references),
+          messageCase =>
+            ['NoOp', 'Noop', 'NoOperation'].includes(messageCase.name)
+              ? ctx.report(
+                  Diagnostic.make({
+                    node: messageCase.nameNode,
+                    message:
+                      'Every Foldkit Message should describe what happened; avoid generic NoOp Messages.',
+                  }),
+                )
+              : Effect.void,
+          { discard: true },
         )
       },
     }

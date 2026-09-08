@@ -4,26 +4,25 @@ import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import type { Message, Model, ViewInputs } from './index.js'
+import type { Model, ViewInputs } from './public.js'
 import {
   AnchorPopover,
-  CompletedAnchorPopover,
-  CompletedPortalPopoverBackdrop,
+  Message,
   PortalPopoverBackdrop,
-  RequestedOpen,
+  arrowId,
   buttonId,
   init,
   update,
   view,
-} from './index.js'
+} from './public.js'
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorPopover,
-  CompletedAnchorPopover(),
+  Message.CompletedAnchorPopover(),
 )
 const acknowledgeBackdrop = Scene.Mount.resolve(
   PortalPopoverBackdrop,
-  CompletedPortalPopoverBackdrop(),
+  Message.CompletedPortalPopoverBackdrop(),
 )
 
 const sceneView =
@@ -33,7 +32,7 @@ const sceneView =
       model,
       {
         anchor: { placement: 'bottom-start' },
-        toView: ({ button, panel, backdrop, isVisible }) =>
+        toView: ({ button, panel, backdrop, arrow, isVisible }) =>
           h.div(
             [],
             [
@@ -41,7 +40,11 @@ const sceneView =
               ...(isVisible
                 ? [
                     h.keyed('div')('test-backdrop', [...backdrop]),
-                    h.keyed('div')('test-panel-container', [...panel]),
+                    h.keyed('div')(
+                      'test-panel-container',
+                      [...panel],
+                      [h.keyed('div')('test-arrow', [...arrow])],
+                    ),
                   ]
                 : []),
             ],
@@ -54,12 +57,13 @@ const sceneView =
 const button = Scene.selector('[key="test-button"]')
 const panel = Scene.selector('[key="test-panel-container"]')
 const backdrop = Scene.selector('[key="test-backdrop"]')
+const arrow = Scene.selector('[key="test-arrow"]')
 
 const closedModel = init({ id: 'test' })
-const [openModel] = update(init({ id: 'test' }), RequestedOpen())
-const [openContentFocusModel] = update(
+const openPopover = update(init({ id: 'test' }), Message.RequestedOpen())
+const openContentFocusPopover = update(
   init({ id: 'test', contentFocus: true }),
-  RequestedOpen(),
+  Message.RequestedOpen(),
 )
 
 describe('Popover', () => {
@@ -76,7 +80,7 @@ describe('Popover', () => {
     it('renders button with aria-expanded true when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(openModel),
+        Scene.given(openPopover.model),
         Scene.expect(button).toHaveAttr('aria-expanded', 'true'),
         acknowledgeAnchor,
         acknowledgeBackdrop,
@@ -86,7 +90,7 @@ describe('Popover', () => {
     it('renders panel when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(openModel),
+        Scene.given(openPopover.model),
         Scene.expect(panel).toExist(),
         Scene.expect(panel).toHaveAttr('tabIndex', '0'),
         acknowledgeAnchor,
@@ -105,7 +109,7 @@ describe('Popover', () => {
     it('renders backdrop when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(openModel),
+        Scene.given(openPopover.model),
         Scene.expect(backdrop).toExist(),
         acknowledgeAnchor,
         acknowledgeBackdrop,
@@ -124,7 +128,7 @@ describe('Popover', () => {
     it('does not have role on the panel', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(openModel),
+        Scene.given(openPopover.model),
         Scene.expect(panel).toExist(),
         Scene.expect(panel).not.toHaveAttr('role'),
         acknowledgeAnchor,
@@ -135,7 +139,7 @@ describe('Popover', () => {
     it('adds anchor positioning styles and hooks', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(openModel),
+        Scene.given(openPopover.model),
         Scene.expect(panel).toHaveStyle('position', 'absolute'),
         Scene.expect(panel).toHaveStyle('margin', '0'),
         Scene.expect(panel).toHaveStyle('visibility', 'hidden'),
@@ -146,11 +150,55 @@ describe('Popover', () => {
       )
     })
 
+    it('emits the derived id and aria-hidden on the arrow', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openPopover.model),
+        Scene.expect(arrow).toHaveAttr('id', 'test-arrow'),
+        Scene.expect(arrow).toHaveAttr('aria-hidden', 'true'),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
+      )
+    })
+
+    it('passes the arrow id to the anchor Mount', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openPopover.model),
+        Scene.Mount.expectHas(
+          AnchorPopover({
+            buttonId: 'test-button',
+            anchor: { placement: 'bottom-start' },
+            arrowId: 'test-arrow',
+          }),
+        ),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
+      )
+    })
+
+    it('passes the arrow padding to the anchor Mount when given', () => {
+      Scene.scene(
+        { update, view: sceneView({ arrowPadding: 8 }) },
+        Scene.given(openPopover.model),
+        Scene.Mount.expectHas(
+          AnchorPopover({
+            buttonId: 'test-button',
+            anchor: { placement: 'bottom-start' },
+            arrowId: 'test-arrow',
+            arrowPadding: 8,
+          }),
+        ),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
+      )
+    })
+
     describe('contentFocus mode', () => {
       it('renders panel without tabindex when contentFocus is enabled', () => {
         Scene.scene(
           { update, view: sceneView() },
-          Scene.given(openContentFocusModel),
+          Scene.given(openContentFocusPopover.model),
           Scene.expect(panel).toExist(),
           Scene.expect(panel).not.toHaveAttr('tabIndex'),
           acknowledgeAnchor,
@@ -161,7 +209,7 @@ describe('Popover', () => {
       it('renders panel without blur handler when contentFocus is enabled', () => {
         Scene.scene(
           { update, view: sceneView() },
-          Scene.given(openContentFocusModel),
+          Scene.given(openContentFocusPopover.model),
           Scene.expect(panel).not.toHaveHandler('blur'),
           acknowledgeAnchor,
           acknowledgeBackdrop,
@@ -171,7 +219,7 @@ describe('Popover', () => {
       it('keeps the panel keydown handler when contentFocus is enabled', () => {
         Scene.scene(
           { update, view: sceneView() },
-          Scene.given(openContentFocusModel),
+          Scene.given(openContentFocusPopover.model),
           Scene.expect(panel).toHaveHandler('keydown'),
           acknowledgeAnchor,
           acknowledgeBackdrop,
@@ -224,6 +272,10 @@ describe('Popover', () => {
 
       it('buttonId derives the trigger id from the base id', () => {
         expect(buttonId('test')).toBe('test-button')
+      })
+
+      it('arrowId derives the arrow id from the base id', () => {
+        expect(arrowId('test')).toBe('test-arrow')
       })
     })
   })

@@ -1,4 +1,4 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 
 // ISLAND ATTRIBUTES
 
@@ -13,14 +13,14 @@ import { Schema as S } from 'effect'
  * can import it without pulling in the browser view layer.
  */
 export const islandAttributes = {
-  Snippet: S.Struct({
-    name: S.String,
-    label: S.optionalKey(S.String),
-    class: S.optionalKey(S.String),
+  Snippet: Schema.Struct({
+    name: Schema.String,
+    label: Schema.optionalKey(Schema.String),
+    class: Schema.optionalKey(Schema.String),
   }),
-  Info: S.Struct({ label: S.String }),
-  Warning: S.Struct({ label: S.String }),
-  Cta: S.Struct({}),
-  Demo: S.Struct({ name: S.String }),
-  Faq: S.Struct({ id: S.String, question: S.String }),
+  Info: Schema.Struct({ label: Schema.String }),
+  Warning: Schema.Struct({ label: Schema.String }),
+  Cta: Schema.Struct({}),
+  Demo: Schema.Struct({ name: Schema.String }),
+  Faq: Schema.Struct({ id: Schema.String, question: Schema.String }),
 }

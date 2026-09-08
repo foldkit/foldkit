@@ -3,7 +3,7 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 import { Button } from '@foldkit/ui'
 
 import { Session } from '../../../domain/session'
-import { ClickedLogout, type Message } from '../message'
+import { Message } from '../message'
 
 // VIEW
 
@@ -51,7 +51,7 @@ export const view = (session: Session, h: HtmlBuilder<Message>): Html =>
           ),
           Button.view(
             {
-              onClick: ClickedLogout(),
+              onClick: Message.ClickedLogout(),
               toView: attributes =>
                 h.button(
                   [

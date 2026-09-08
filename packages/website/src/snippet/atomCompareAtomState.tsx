@@ -1,4 +1,6 @@
-import { Atom, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import { Atom } from 'effect/unstable/reactivity'
+
+import { useAtomSet, useAtomValue } from '@effect/atom-react'
 
 type Filter = 'All' | 'Active' | 'Done'
 

@@ -172,7 +172,7 @@ const groupSkillsByProficiency = (
   pipe(
     entries,
     Array.filter(entry => String.isNonEmpty(entry.name.value)),
-    Array.groupBy(entry => entry.proficiency),
+    Array.groupBy<Skills.Entry.Model, string>(entry => entry.proficiency),
     Record.toEntries,
     Array.sort(proficiencyOrder),
     Array.map(([level, grouped]) => ({

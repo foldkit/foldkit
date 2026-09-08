@@ -1,6 +1,12 @@
 import { Array, Cause, Exit, Option, Schema, String, pipe } from 'effect'
 
-import type { Attribute, Child, Html, HtmlBuilder } from '../html/index.js'
+import type {
+  Attribute,
+  Child,
+  ChildAttribute,
+  Html,
+  HtmlBuilder,
+} from '../html/index.js'
 import {
   OnCustomEvent,
   Prop,
@@ -13,12 +19,6 @@ type KebabToPascal<S extends string> = S extends `${infer Head}-${infer Tail}`
   ? `${Capitalize<Head>}${KebabToPascal<Tail>}`
   : Capitalize<S>
 
-/** Constraint on a declared event's `detail` Schema. The runtime decodes
- *  `detail` synchronously inside the DOM event handler, where there is no
- *  Effect context to draw from, so a Schema requiring decoding services
- *  cannot describe an event payload. */
-export type EventSchema = Schema.Codec<unknown, unknown, never, never>
-
 type PropertyFactory<Message, ValueType> = (
   value: ValueType,
 ) => Attribute<Message>
@@ -26,6 +26,12 @@ type PropertyFactory<Message, ValueType> = (
 type EventFactory<Message, DetailType> = (
   toMessage: (detail: DetailType) => Message,
 ) => Attribute<Message>
+
+/** Constraint on a declared event's `detail` Schema. The runtime decodes
+ * `detail` synchronously inside the DOM event handler, where there is no
+ * Effect context to draw from, so a Schema requiring decoding services
+ * cannot describe an event payload. */
+export type EventSchema = Schema.Codec<unknown, unknown, never, unknown>
 
 /** @internal */
 type PropertyFactories<
@@ -40,21 +46,23 @@ type PropertyFactories<
 
 /** @internal */
 type EventFactories<Message, Events extends Record<string, EventSchema>> = {
-  readonly [K in keyof Events as `On${KebabToPascal<string & K>}`]: EventFactory<
-    Message,
-    Schema.Schema.Type<Events[K]>
-  >
+  readonly [
+    K in keyof Events as `On${KebabToPascal<string & K>}`
+  ]: EventFactory<Message, Schema.Schema.Type<Events[K]>>
 }
 
 /** Typed call site for a defined custom element. The element constructor
  *  itself is callable; each declared property gets a PascalCase factory
- *  method, and each declared event gets an `On{PascalCase}` factory method. */
+ *  method, and each declared event gets an `On{PascalCase}` factory method.
+ *  The attribute array accepts {@link ChildAttribute} alongside
+ *  `Attribute<Message>`, like every html element builder, so a Submodel's
+ *  published attribute groups can be spread into a custom element. */
 export type ElementBuilder<
   Message,
   Properties extends Record<string, Schema.Top>,
   Events extends Record<string, EventSchema>,
 > = ((
-  attributes?: ReadonlyArray<Attribute<Message>>,
+  attributes?: ReadonlyArray<Attribute<Message> | ChildAttribute>,
   children?: ReadonlyArray<Child>,
 ) => Html) &
   PropertyFactories<Message, Properties> &
@@ -105,6 +113,25 @@ export const kebabToPascal = (input: string): string =>
 
 const IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/
 
+// A conservative subset of the custom-element name grammar: lowercase start,
+// then only characters that cannot carry markup. The hyphen requirement is
+// checked separately so its message stays specific.
+const CUSTOM_ELEMENT_NAME_PATTERN = /^[a-z][a-z0-9._-]*$/
+
+// Hyphenated names the custom-element spec reserves for SVG and MathML, which
+// `customElements.define` rejects with a SyntaxError. They pass the character
+// grammar, so they are excluded by name.
+const RESERVED_CUSTOM_ELEMENT_NAMES: ReadonlySet<string> = new Set([
+  'annotation-xml',
+  'color-profile',
+  'font-face',
+  'font-face-src',
+  'font-face-uri',
+  'font-face-format',
+  'font-face-name',
+  'missing-glyph',
+])
+
 const isValidPropertyName = (name: string): boolean =>
   IDENTIFIER_PATTERN.test(name)
 
@@ -126,26 +153,16 @@ const propertyFactoryName = (propertyName: string): string =>
 const eventFactoryName = (eventName: string): string =>
   `On${kebabToPascal(eventName)}`
 
-// NOTE: `new CustomEvent(name)` leaves `detail` as `null`, so an element that
-// fires a payload-less event hands the runtime `null` rather than an empty
-// object. Declaring such an event as `S.Struct({})` is the natural spelling,
-// and `S.Struct({})` rejects `null`, so a nullish detail decodes as `{}`.
-const toDecodableDetail = (detail: unknown): unknown => detail ?? {}
-
 /**
  * Define a typed binding for a custom element. The returned spec describes
  * the element's properties and events with Schema, and exposes a
  * `.withMessage<Message>()` factory that yields a typed `ElementBuilder` for
  * the consumer's Message universe.
  *
- * Property changes diff across renders; declared `CustomEvent`s are
- * converted to Messages by the runtime.
- *
- * An event's `detail` is decoded against its declared Schema before your
- * callback runs, so the value you receive matches what you declared. A detail
- * the Schema rejects is reported on the console and dispatches no Message,
- * which keeps a third-party element that changed its payload shape from
- * feeding an unchecked value into update.
+ * Property changes diff across renders; declared `CustomEvent` details are
+ * decoded against their Schema before the runtime converts them to Messages.
+ * A detail the Schema rejects is reported to the console and dispatches no
+ * Message.
  *
  * @example
  * ```ts
@@ -156,10 +173,10 @@ const toDecodableDetail = (detail: unknown): unknown => detail ?? {}
  * const hexColorPicker = CustomElement.define({
  *   tag: 'hex-color-picker',
  *   properties: {
- *     color: S.String,
+ *     color: Schema.String,
  *   },
  *   events: {
- *     'color-changed': S.Struct({ value: S.String }),
+ *     'color-changed': Schema.Struct({ value: Schema.String }),
  *   },
  * })
  *
@@ -195,7 +212,7 @@ export const define = <
     const createVNode = customElementVNode<unknown>()(config.tag)
 
     const elementFn = (
-      attributes: ReadonlyArray<Attribute<unknown>> = [],
+      attributes: ReadonlyArray<Attribute<unknown> | ChildAttribute> = [],
       children: ReadonlyArray<Child> = [],
     ): Html => createVNode(attributes, children)
 
@@ -210,6 +227,22 @@ export const define = <
 
     for (const [eventName, detailSchema] of Object.entries(config.events)) {
       const decodeDetail = Schema.decodeUnknownExit(detailSchema)
+      const decodeEventDetail = (detail: unknown) => {
+        const decodedDetail = decodeDetail(detail)
+
+        // NOTE: `new CustomEvent(name)` leaves `detail` as `null`, while
+        // `Schema.Struct({})` is the natural declaration for an event with no
+        // payload. Decode the raw detail first so Schemas that accept nullish
+        // values keep their declared meaning, then fall back to an empty object.
+        if (
+          (detail === null || detail === undefined) &&
+          Exit.isFailure(decodedDetail)
+        ) {
+          return decodeDetail({})
+        } else {
+          return decodedDetail
+        }
+      }
 
       builder[eventFactoryName(eventName)] = (
         toMessage: (detail: unknown) => unknown,
@@ -217,7 +250,7 @@ export const define = <
         OnCustomEvent({
           name: eventName,
           f: event =>
-            Exit.match(decodeDetail(toDecodableDetail(event.detail)), {
+            Exit.match(decodeEventDetail(event.detail), {
               onFailure: cause => {
                 console.error(
                   `[foldkit] CustomElement '${config.tag}' rejected the detail of a "${eventName}" event:`,
@@ -268,6 +301,18 @@ const validateNames = (input: {
   if (!input.tag.includes('-')) {
     throw new Error(
       `${context}: tag '${input.tag}' is not a valid custom element name. Autonomous custom elements must contain at least one hyphen (e.g. 'fk-emoji-rating').`,
+    )
+  }
+
+  if (!CUSTOM_ELEMENT_NAME_PATTERN.test(input.tag)) {
+    throw new Error(
+      `${context}: tag '${input.tag}' is not a valid custom element name. Names must be lowercase, start with a letter, and use only letters, numbers, hyphens, dots, and underscores.`,
+    )
+  }
+
+  if (RESERVED_CUSTOM_ELEMENT_NAMES.has(input.tag)) {
+    throw new Error(
+      `${context}: tag '${input.tag}' is a reserved custom element name that the browser rejects.`,
     )
   }
 

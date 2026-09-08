@@ -1,42 +1,49 @@
-import { Array, Effect, Match, Option, Schema, SubscriptionRef } from 'effect'
+import {
+  Array,
+  Effect,
+  Exit,
+  Function,
+  Number,
+  Option,
+  Schema,
+  Scope,
+  SubscriptionRef,
+} from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import { m } from '../message/index.js'
-import {
-  MAX_DISPATCH_BATCH_SIZE,
-  type Request,
-  RequestDispatchMessage,
-  RequestDispatchMessages,
-} from './protocol.js'
+import { defineMessageUnion } from '../message/index.js'
+import { evo } from '../struct/index.js'
+import { EventFrame, MAX_DISPATCH_BATCH_SIZE, Request } from './protocol.js'
 import {
   type Bridge,
   type CreateDevToolsStoreOptions,
   createDevToolsStore,
 } from './store.js'
-import { dispatchRequest } from './webSocketBridge.js'
+import {
+  EVENT_CHANNEL,
+  dispatchRequest,
+  startWebSocketBridge,
+} from './webSocketBridge.js'
 
 const CounterModel = Schema.Struct({ count: Schema.Number })
 type CounterModel = typeof CounterModel.Type
 
 const initialModel = CounterModel.make({ count: 0 })
 
-const ClickedIncrement = m('ClickedIncrement')
-const ClickedDecrement = m('ClickedDecrement')
-
-const CounterMessage = Schema.Union([ClickedIncrement, ClickedDecrement])
+const CounterMessage = defineMessageUnion({
+  ClickedIncrement: {},
+  ClickedDecrement: {},
+})
 type CounterMessage = typeof CounterMessage.Type
 
-const clickedIncrement = ClickedIncrement()
-const clickedDecrement = ClickedDecrement()
+const clickedIncrement = CounterMessage.ClickedIncrement()
+const clickedDecrement = CounterMessage.ClickedDecrement()
 
 const update = (model: CounterModel, message: CounterMessage): CounterModel =>
-  Match.value(message).pipe(
-    Match.withReturnType<CounterModel>(),
-    Match.tagsExhaustive({
-      ClickedIncrement: () => ({ count: model.count + 1 }),
-      ClickedDecrement: () => ({ count: model.count - 1 }),
-    }),
-  )
+  CounterMessage.match<CounterModel>(message, {
+    ClickedIncrement: () => evo(model, { count: Number.increment }),
+    ClickedDecrement: () => evo(model, { count: Number.decrement }),
+  })
 
 const decodeCounterMessage = Schema.decodeUnknownSync(CounterMessage)
 
@@ -115,11 +122,15 @@ describe('dispatchRequest', () => {
       const { dispatched, callBridge, tagAt } = makeHarness()
 
       const response = callBridge(
-        RequestDispatchMessage({ message: { _tag: 'ClickedIncrement' } }),
+        Request.RequestDispatchMessage({
+          message: { _tag: 'ClickedIncrement' },
+        }),
       )
 
       if (response._tag !== 'ResponseDispatched') {
-        throw new Error(`Expected ResponseDispatched, got ${response._tag}`)
+        throw new Error(
+          `Expected Response.ResponseDispatched, got ${response._tag}`,
+        )
       }
       expect(response.acceptedAtIndex).toBe(2)
       expect(dispatched).toEqual([clickedIncrement])
@@ -130,7 +141,7 @@ describe('dispatchRequest', () => {
       const { dispatched, callBridge, recordedTags } = makeHarness()
 
       const response = callBridge(
-        RequestDispatchMessage({ message: { _tag: 'Nonsense' } }),
+        Request.RequestDispatchMessage({ message: { _tag: 'Nonsense' } }),
       )
 
       expect(response._tag).toBe('ResponseError')
@@ -144,7 +155,7 @@ describe('dispatchRequest', () => {
       const { dispatched, callBridge, tagAt } = makeHarness()
 
       const response = callBridge(
-        RequestDispatchMessages({
+        Request.RequestDispatchMessages({
           messages: [
             { _tag: 'ClickedIncrement' },
             { _tag: 'ClickedDecrement' },
@@ -155,7 +166,7 @@ describe('dispatchRequest', () => {
 
       if (response._tag !== 'ResponseDispatchedBatch') {
         throw new Error(
-          `Expected ResponseDispatchedBatch, got ${response._tag}`,
+          `Expected Response.ResponseDispatchedBatch, got ${response._tag}`,
         )
       }
       expect(response.acceptedAtIndices).toEqual([2, 3, 4])
@@ -178,7 +189,7 @@ describe('dispatchRequest', () => {
       })
 
       const response = callBridge(
-        RequestDispatchMessages({
+        Request.RequestDispatchMessages({
           messages: [
             { _tag: 'ClickedIncrement' },
             { _tag: 'ClickedDecrement' },
@@ -188,7 +199,7 @@ describe('dispatchRequest', () => {
 
       if (response._tag !== 'ResponseDispatchedBatch') {
         throw new Error(
-          `Expected ResponseDispatchedBatch, got ${response._tag}`,
+          `Expected Response.ResponseDispatchedBatch, got ${response._tag}`,
         )
       }
       expect(response.acceptedAtIndices).toEqual([2, 3])
@@ -202,7 +213,7 @@ describe('dispatchRequest', () => {
       const { dispatched, callBridge, recordedTags } = makeHarness()
 
       const response = callBridge(
-        RequestDispatchMessages({
+        Request.RequestDispatchMessages({
           messages: [
             { _tag: 'ClickedIncrement' },
             { _tag: 'Nonsense' },
@@ -212,7 +223,7 @@ describe('dispatchRequest', () => {
       )
 
       if (response._tag !== 'ResponseError') {
-        throw new Error(`Expected ResponseError, got ${response._tag}`)
+        throw new Error(`Expected Response.ResponseError, got ${response._tag}`)
       }
       expect(response.reason).toContain('zero-based batch position 1')
       expect(response.reason).toContain(
@@ -225,11 +236,13 @@ describe('dispatchRequest', () => {
     it('accepts an empty batch and dispatches nothing', () => {
       const { dispatched, callBridge, recordedTags } = makeHarness()
 
-      const response = callBridge(RequestDispatchMessages({ messages: [] }))
+      const response = callBridge(
+        Request.RequestDispatchMessages({ messages: [] }),
+      )
 
       if (response._tag !== 'ResponseDispatchedBatch') {
         throw new Error(
-          `Expected ResponseDispatchedBatch, got ${response._tag}`,
+          `Expected Response.ResponseDispatchedBatch, got ${response._tag}`,
         )
       }
       expect(response.acceptedAtIndices).toEqual([])
@@ -241,7 +254,7 @@ describe('dispatchRequest', () => {
       const { dispatched, callBridge, recordedTags } = makeHarness()
 
       const response = callBridge(
-        RequestDispatchMessages({
+        Request.RequestDispatchMessages({
           messages: Array.makeBy(MAX_DISPATCH_BATCH_SIZE + 1, () => ({
             _tag: 'ClickedIncrement',
           })),
@@ -249,7 +262,7 @@ describe('dispatchRequest', () => {
       )
 
       if (response._tag !== 'ResponseError') {
-        throw new Error(`Expected ResponseError, got ${response._tag}`)
+        throw new Error(`Expected Response.ResponseError, got ${response._tag}`)
       }
       expect(response.reason).toContain('Batch too large')
       expect(dispatched).toEqual([])
@@ -262,15 +275,125 @@ describe('dispatchRequest', () => {
       )
 
       const response = callBridge(
-        RequestDispatchMessages({ messages: [{ _tag: 'ClickedIncrement' }] }),
+        Request.RequestDispatchMessages({
+          messages: [{ _tag: 'ClickedIncrement' }],
+        }),
       )
 
       if (response._tag !== 'ResponseError') {
-        throw new Error(`Expected ResponseError, got ${response._tag}`)
+        throw new Error(`Expected Response.ResponseError, got ${response._tag}`)
       }
       expect(response.reason).toContain('DevToolsConfig.Message not configured')
       expect(dispatched).toEqual([])
       expect(recordedTags()).toEqual(['ClickedIncrement', 'ClickedIncrement'])
     })
+  })
+})
+
+const makeHotStub = () => {
+  const sentEventTags: Array<string> = []
+  const decodeEventFrame = Schema.decodeUnknownSync(EventFrame)
+
+  const hot: NonNullable<ImportMeta['hot']> = {
+    data: {},
+    accept: Function.constVoid,
+    acceptExports: Function.constVoid,
+    dispose: Function.constVoid,
+    prune: Function.constVoid,
+    invalidate: Function.constVoid,
+    on: Function.constVoid,
+    off: Function.constVoid,
+    send: (channel: string, payload: unknown) => {
+      if (channel === EVENT_CHANNEL) {
+        sentEventTags.push(decodeEventFrame(payload).event._tag)
+      }
+    },
+  }
+
+  return { hot, sentEventTags }
+}
+
+// NOTE: happy-dom has no `PageTransitionEvent` constructor, so the restore
+// flag goes onto a plain `pageshow` Event. Spreading the Event into an object
+// literal loses it: the fields are prototype accessors rather than own
+// properties, and `dispatchEvent` rejects anything that is not an Event.
+// Defining the property keeps the Event and needs no type assertion for a
+// field `Event` does not declare.
+const dispatchPageShow = (isRestoredFromBfcache: boolean): void => {
+  const event = new Event('pageshow')
+  Object.defineProperty(event, 'persisted', {
+    value: isRestoredFromBfcache,
+    configurable: true,
+  })
+  window.dispatchEvent(event)
+}
+
+const startBridgeInScope = (hot: NonNullable<ImportMeta['hot']>) => {
+  const scope = run(Scope.make())
+  run(
+    Effect.provideService(
+      startWebSocketBridge(
+        run(createDevToolsStore(makeBridge())),
+        hot,
+        () => Effect.void,
+        Option.some(CounterMessage),
+      ),
+      Scope.Scope,
+      scope,
+    ),
+  )
+  return { closeScope: () => run(Scope.close(scope, Exit.void)) }
+}
+
+// NOTE: the relay learns a page really went away from its Vite HMR socket
+// closing. `beforeunload` fires for events the document survives, so a bridge
+// that announced a disconnect there reported a live app as gone.
+describe('startWebSocketBridge', () => {
+  it('stays connected through a beforeunload the document survives', () => {
+    const { hot, sentEventTags } = makeHotStub()
+    const { closeScope } = startBridgeInScope(hot)
+
+    window.dispatchEvent(new Event('beforeunload'))
+
+    expect(sentEventTags).toEqual(['EventConnected'])
+
+    closeScope()
+  })
+
+  it('announces a disconnect when the runtime scope closes', () => {
+    const { hot, sentEventTags } = makeHotStub()
+    const { closeScope } = startBridgeInScope(hot)
+
+    closeScope()
+
+    expect(sentEventTags).toEqual(['EventConnected', 'EventDisconnected'])
+  })
+
+  // NOTE: the freeze into the back/forward cache closes the page's Vite HMR
+  // socket, and the relay prunes a runtime whose socket closed. The runtime
+  // outlives the freeze, so the restore has to reintroduce it.
+  it('announces the connection again when the page is restored from the back/forward cache', () => {
+    const { hot, sentEventTags } = makeHotStub()
+    const { closeScope } = startBridgeInScope(hot)
+
+    dispatchPageShow(false)
+
+    expect(sentEventTags).toEqual(['EventConnected'])
+
+    dispatchPageShow(true)
+
+    expect(sentEventTags).toEqual(['EventConnected', 'EventConnected'])
+
+    closeScope()
+  })
+
+  it('stops announcing once the runtime scope has closed', () => {
+    const { hot, sentEventTags } = makeHotStub()
+    const { closeScope } = startBridgeInScope(hot)
+
+    closeScope()
+    dispatchPageShow(true)
+
+    expect(sentEventTags).toEqual(['EventConnected', 'EventDisconnected'])
   })
 })

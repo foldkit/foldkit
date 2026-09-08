@@ -16,10 +16,10 @@ export type ViewConfig<Message> = Readonly<{
   isDisabled?: boolean
 }>
 
-/** Generates the legend element ID from the fieldset's base ID. */
+/** Returns the legend element id, derived from the fieldset's base id. */
 export const legendId = (id: string): string => `${id}-legend`
 
-/** Generates the description element ID from the fieldset's base ID. */
+/** Returns the description element id, derived from the fieldset's base id. */
 export const descriptionId = (id: string): string => `${id}-description`
 
 /** Renders an accessible fieldset by building ARIA attribute groups and delegating layout to the consumer's `toView` callback. */

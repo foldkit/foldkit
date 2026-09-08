@@ -1,16 +1,10 @@
-import { Array, Match as M, Option, pipe } from 'effect'
+import { Array, Match, Option, pipe } from 'effect'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { VirtualList } from '@foldkit/ui'
 
-import {
-  ClickedVirtualListScrollToMiddle,
-  ClickedVirtualListVariableScrollToMiddle,
-  GotVirtualListDemoMessage,
-  GotVirtualListVariableDemoMessage,
-  type UiMessage,
-} from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 type Activity = Readonly<{
@@ -94,11 +88,11 @@ const formatTimeAgo = (hours: number): string => {
 
 const targetForVerb = (verb: string, index: number): string => {
   const number = ((index * 13) % 9999) + 1
-  return M.value(verb).pipe(
-    M.withReturnType<string>(),
-    M.when('pushed to', () => cycle(branchNames, index)),
-    M.whenOr('opened', 'closed', 'reopened', () => `issue #${number}`),
-    M.orElse(() => `PR #${number}`),
+  return Match.value(verb).pipe(
+    Match.withReturnType<string>(),
+    Match.when('pushed to', () => cycle(branchNames, index)),
+    Match.whenOr('opened', 'closed', 'reopened', () => `issue #${number}`),
+    Match.orElse(() => `PR #${number}`),
   )
 }
 
@@ -294,7 +288,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                     h.button(
                       [
                         h.Class(buttonClassName),
-                        h.OnClick(ClickedVirtualListScrollToMiddle()),
+                        h.OnClick(UiMessage.ClickedVirtualListScrollToMiddle()),
                       ],
                       ['Jump to middle'],
                     ),
@@ -311,7 +305,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                     containerClassName,
                   },
                   toParentMessage: message =>
-                    GotVirtualListDemoMessage({ message }),
+                    UiMessage.GotVirtualListDemoMessage({ message }),
                 }),
               ],
             ),
@@ -332,7 +326,9 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                     h.button(
                       [
                         h.Class(buttonClassName),
-                        h.OnClick(ClickedVirtualListVariableScrollToMiddle()),
+                        h.OnClick(
+                          UiMessage.ClickedVirtualListVariableScrollToMiddle(),
+                        ),
                       ],
                       ['Jump to middle'],
                     ),
@@ -353,7 +349,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                     containerClassName,
                   },
                   toParentMessage: message =>
-                    GotVirtualListVariableDemoMessage({ message }),
+                    UiMessage.GotVirtualListVariableDemoMessage({ message }),
                 }),
               ],
             ),

@@ -1,47 +1,47 @@
 # Coming from TanStack Query
 
-TanStack Query is excellent at what it does. If you are coming from it, you are used to caching, background refetching, deduplication, and retries arriving as configuration on a hook. Foldkit has no `useQuery`, and it does not need one. This page shows where each piece of that behavior lives instead.
+TanStack Query is excellent at what it does. It combines remote data, a keyed cache, and fetching policy behind hooks and a `QueryClient`. Foldkit has no `useQuery`, and it does not need one.
 
-The short version: the value `useQuery` returns and the machinery it runs are two different things, and Foldkit treats them differently. The value is shipped. [AsyncData](/core/async-data) is a six-state union that makes loading, failure, stale-while-revalidate, and keep-stale-on-failure first-class states of the data itself, with named transitions between them. The machinery is not shipped, because here it is not machinery. When to fetch, when to refetch, and what counts as stale are decisions you write with the same primitives you already use for everything else: Model state, the `update` function, Commands, and Subscriptions.
+The value a request produces and the policy that obtains it are two different things. [AsyncData](/core/async-data) models the value. The Model, `update`, Commands, and Subscriptions define when work starts and what happens when it finishes.
 
-TanStack Query bundles both halves into the hook, with the policy arriving as configuration (`staleTime`, `refetchOnWindowFocus`, and the rest), so a lot happens that you did not write and cannot see. Foldkit ships the state machine every app shares and asks you to write the policy that differs per app. The trade is not more code or less. It is hidden machinery versus code you can read.
+TanStack Query supplies policies such as `staleTime`, retries, invalidation, and refetch-on-focus as configuration. Foldkit supplies the shared state machine and leaves application policy as visible state transitions. The trade is a query runtime configured from the outside versus ordinary application code you can read and test with everything else.
 
 ## Translating Concepts
 
-Here is how the TanStack Query model maps onto Foldkit:
+Here is how common TanStack Query concepts map onto Foldkit:
 
 | TanStack Query                                             | Foldkit                                                                                       |
 | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `useQuery`                                                 | An [AsyncData](/core/async-data) field in the Model plus a fetch Command                      |
 | `data` / `error` / `status` / `fetchStatus`                | The six `AsyncData` states, mapped below                                                      |
-| Query cache (keyed by query key)                           | Model state: one `AsyncData` field, or an `S.HashMap` of them keyed by id                     |
-| `placeholderData: keepPreviousData` / stale data on screen | `Refreshing` and `Stale`: states that hold the previous data                                  |
+| Query cache (keyed by query key)                           | Model state: one `AsyncData` field, or an `Schema.HashMap` of them keyed by id                |
+| `placeholderData: keepPreviousData` / stale data on screen | `Refreshing` and `Stale`, which retain the previous data                                      |
 | `staleTime` / background refetch                           | A Subscription gated on a Model condition, applying `AsyncData.revalidate`                    |
-| `staleTime: Infinity`                                      | `AsyncData.loadIfMissing`: fetch on first visit, then keep the cache without revalidating     |
-| Request deduplication                                      | `AsyncData.revalidateOrLoad` yields `None` while a request is in flight                       |
-| Out-of-order response handling                             | The request context threaded through the result Message, judged against the Model in `update` |
+| `staleTime: Infinity`                                      | `AsyncData.loadIfMissing`, followed by explicit revalidation when the application requires it |
+| Request deduplication                                      | `AsyncData.revalidateOrLoad` yields `None` while that field has a request in flight           |
+| Out-of-order response handling                             | Request context in the result Message, checked against the current Model in `update`          |
 | `invalidateQueries`                                        | `AsyncData.revalidateOrLoad` plus the fetch Command, returned from `update`                   |
-| `useMutation`                                              | A Message and a Command, the same as any other effect                                         |
-| Retries                                                    | Effect’s `retry` / `Schedule`                                                                 |
-| TanStack Query Devtools                                    | [Foldkit DevTools](/core/devtools): inspect the Model and step through every Message          |
+| `useMutation`                                              | A Message and a Command, like any other effect                                                |
+| Retries                                                    | Effect’s `retry` and `Schedule`                                                               |
+| TanStack Query Devtools                                    | [Foldkit DevTools](/core/devtools), which inspects the Model and Message timeline             |
 
 ## Async State Is Model State
 
-A query has states: loading, success, error, and often a “refreshing with stale data on screen” state. TanStack Query hands them to you as flags on the query object. In Foldkit they are a shipped value type, `AsyncData<A, E>`, a union of six states: `Idle`, `Loading`, `Refreshing`, `Failure`, `Stale`, and `Success`. `Refreshing` and `Stale` are the two that hold the previous good data: `Refreshing` while a refetch is in flight, which is stale-while-revalidate, and `Stale` after a refetch failed, which keeps the data on screen instead of blanking it to an error.
+`AsyncData<A, E>` is a union of six states: `Idle`, `Loading`, `Refreshing`, `Failure`, `Stale`, and `Success`. `Refreshing` holds the previous data while a refetch is in flight. `Stale` holds the previous data after that refetch fails. Those variants make stale-while-revalidate and keep-stale-on-failure part of the value instead of conditions derived from several flags.
 
-There is no separate cache. The Model is the cache. A single resource lives in one `AsyncData` field; a collection of resources keyed by id lives in an `S.HashMap` of them. Reading from cache is reading the Model, and rendering instantly from cache is just rendering the data you already hold.
+There is no separate query cache. The Model is the cache. A single resource lives in one `AsyncData` field. A collection of resources keyed by id lives in an `Schema.HashMap` of those fields. A cache hit is data the application already holds.
 
-Here is `useQuery` translated whole. One field, one Command, two `update` arms:
+Here is the complete shape of a simple query. It uses one field, one Command, and two `update` arms:
 
 ::Snippet{name="useQueryTranslation" label="useQuery translation"}
 
-Each runtime behavior of `useQuery` is one visible line. `revalidateOrLoad` returning `None` while a request is in flight is request deduplication. `Success` moving to `Refreshing` is cache-and-revalidate, with the current list staying on screen. A cold field starting `Loading` is the initial fetch. And `settle` folding the finished `Result` into the field is response handling, keeping the previous data as `Stale` when a refresh fails instead of blanking the screen.
+Each behavior is visible in the transition that implements it. `revalidateOrLoad` returns `None` while the field is already `Loading` or `Refreshing`, so the same update path does not start another request. A successful value moves to `Refreshing` when revalidated, keeping the current list on screen. A cold field moves to `Loading`. When the Command finishes, `settle` folds its `Result` into the field and preserves previous data as `Stale` if a refresh fails.
 
-The [API Cache example](/example-apps/api-cache) builds the rest of what TanStack Query gives you (a keyed cache with instant hits, invalidation, background polling) out of nothing but a Model, an `update` function, Commands, and one Subscription. It is worth reading top to bottom.
+The [API Cache example](/example-apps/api-cache) adds a keyed cache, instant cache hits, invalidation, and background polling using the same primitives. It is the complete answer to what replaces the machinery around `useQuery`.
 
 ## Mapping Query Status
 
-If you know TanStack Query’s status flags, you already know the six states. Each one is a combination of flags and data presence on the query object, promoted to a variant:
+The table below maps the common online query states. TanStack Query exposes `status`, `fetchStatus`, data presence, and derived flags independently, so it can represent more combinations than these six rows.
 
 | TanStack Query                                                           | AsyncData                |
 | ------------------------------------------------------------------------ | ------------------------ |
@@ -52,66 +52,72 @@ If you know TanStack Query’s status flags, you already know the six states. Ea
 | `isError && data !== undefined`                                          | `Stale({ error, data })` |
 | `isSuccess && !isFetching`                                               | `Success({ data })`      |
 
-The difference is who tracks the combinations. In TanStack Query, “failed but still holding data” is a derived condition you check with `isError && data !== undefined`, and nothing reminds you to. Here it is a variant, `Stale`, and `AsyncData.match` does not compile until you say what it renders. When a view does not care which data-holding state it is in, `matchData` collapses the six states into three channels: data, failure, empty.
+A paused fetch uses `fetchStatus: 'paused'`, and placeholder data can produce a successful query before the real result arrives. `AsyncData` does not assign those behaviors automatically. If offline pause or placeholder provenance affects the interface, represent it in the Model alongside the `AsyncData` field.
+
+The difference is who tracks the combinations. In TanStack Query, failed data that remains available is a condition such as `isError && data !== undefined`. In Foldkit it is the `Stale` variant, and `AsyncData.match` requires the view to handle it. When a view only cares whether it has data, `matchData` collapses the six states into data, failure, and empty channels.
 
 :::Warning{label="isPending means something different"}
-TanStack Query’s `isPending` means the first fetch has not finished: no data, no error yet. `AsyncData.isPending` means a request is in flight: true for `Loading` and `Refreshing`, the analog of TanStack Query’s `isFetching`. And `Stale` is not pending. Its fetch already failed; it is holding data, not waiting.
+TanStack Query’s `isPending` means the query has no data and no error yet. Its `isLoading` flag narrows that to a pending query that is actively fetching. `AsyncData.isPending` means a request is in flight, so it is true for both `Loading` and `Refreshing`. That is closer to TanStack Query’s `isFetching`.
 :::
 
 ## Out-of-Order Responses
 
-`AsyncData` tells you what state a field is in. It does not, and cannot, order the responses that arrive to fill it. Here is a bug that is easy to hit. Fire a request for A, then fire a request for B before A returns. A is slow, B is fast, so B resolves first, then A resolves last and overwrites it. Now you are showing A’s data when the user asked for B.
+`AsyncData` models the state of one request lifecycle. It does not decide which of two independent responses should win.
 
-Foldkit does not auto-cancel in-flight effects, and there is no ordering guarantee between independent requests, so this is reachable. You handle it the same way TanStack Query does internally: track what the Model currently wants and ignore any response that is not it. Thread the query through the Command into the result Message, and in `update` discard any result whose query no longer matches the Model:
+Imagine a search starts a request for A, then starts a request for B before A returns. B finishes first. If the slower A response then overwrites it, the screen shows results for a query the user no longer wants.
+
+Foldkit does not automatically cancel or order independent Commands. Thread the query through the Command into its result Message, then compare it with the current Model before accepting the result:
 
 ::Snippet{name="responseRaceGuard" label="response race guard"}
 
-The late response for an earlier query sees that its `query` no longer matches `queryInput` and is dropped. The newest query stays on screen. Everything around the guard is the standard shape: the Command settles the fetch into a `Result`, and `AsyncData.settle` folds it into the field. The comparison uses data the Model already holds; there is no synthetic request counter to maintain.
+The late response for A sees that its `query` no longer matches `queryInput`, so `update` leaves the Model unchanged. The comparison uses the context the application already cares about. The same pattern works for a search request launched after every keystroke: accept the result only if it still belongs to the current query.
 
-This snippet also shows where `keepPreviousData` went. `UpdatedQuery` transitions the field to `Loading`, which blanks the previous results while the new query runs. To keep them on screen instead, transition to `Refreshing({ data })` when the field holds data. Blank-and-load versus keep-while-loading is one visible line in `update`, not a configuration flag.
-
-:::Info{label="This is the solution, not a workaround"}
-It is tempting to read the guard as boilerplate you tolerate until something better comes along. It is not. The behavior you want, newest request wins, has to live somewhere. Here it lives in update as a comparison against the Model you can read and test. That visibility is the point, not a tax on it. The shape generalizes: tag each async result with what the Model wanted when you started it, then ignore any result that no longer matches. The same few lines that resolve this fetch race also resolve a debounced search box firing on every keystroke, because the question is identical: is this result still the one the Model is waiting for?
+:::Info{label="Receipt-time checks"}
+The guard is application policy, not incidental boilerplate. “Newest request wins” has to live somewhere. In Foldkit it is an explicit comparison against the current Model, in the same update function that decides what the result does.
 :::
 
-Judging at receipt is the correctness layer, and it is never optional. There is a second, situational layer: when the superseded request is worth stopping, because the fetch is expensive or the user gets a Cancel button, define the Command with an `interrupt` field and dispatch its `Interrupt` Command to stop the in-flight work explicitly. The guard stays either way: a result can already be in the queue when the interrupt lands. See [Interrupting Commands](/core/commands#interrupting-commands).
+This snippet also shows where `keepPreviousData` belongs. `UpdatedQuery` currently moves the field to `Loading`, which removes the previous results while the new query runs. To retain them, move a data-holding state to `Refreshing({ data })` instead.
+
+When a superseded request is expensive or the user can cancel it, define the Command with an `interrupt` field and dispatch its `Interrupt` Command. Keep the receipt-time check as well, because a result may already be queued when the interrupt arrives. See [Interrupting Commands](/core/commands#interrupting-commands).
 
 ## FAQ
 
 ### Where is useQuery? {#faq-where-is-usequery}
 
-There isn’t one, and you don’t assemble an equivalent hook. A query is an [AsyncData](/core/async-data) field in the [Model](/core/model) plus a [Command](/core/commands) returned from `update`. The runtime runs the effect and feeds the result back as a Message, and `AsyncData.settle` folds it into the field. The “query” is spread across those pieces on purpose, so each one stays visible.
+There is no equivalent hook, and you do not assemble one. A query is an [AsyncData](/core/async-data) field in the [Model](/core/model) plus a [Command](/core/commands) returned from `update`. The runtime executes the Command and dispatches its result Message. `update` then folds the result into the field.
 
 ### How do I cache responses? {#faq-caching}
 
-Keep the data in the Model. For a single resource that is one `AsyncData` field; for many resources, an `S.HashMap` of them keyed by id. A cache hit is a field where `AsyncData.hasData` is true, rendered without firing a Command. See the [API Cache example](/example-apps/api-cache).
+Keep them in the Model. Use one `AsyncData` field for one resource or an `Schema.HashMap` keyed by id for many resources. A cache hit is a field for which `AsyncData.hasData` is true. See the [API Cache example](/example-apps/api-cache).
 
 ### How do I deduplicate identical requests? {#faq-dedup}
 
-In `update`, decide the transition with `AsyncData.revalidateOrLoad`. While a request is in flight (`Loading` or `Refreshing`) it yields `None`, so you make no transition and return no Command. Because every request starts as a decision made in one place, not firing twice is a branch, not a feature. Note this is a different thing from out-of-order handling above: dedup avoids starting redundant work, the judgment in `update` resolves work that finishes out of order.
+Use `AsyncData.revalidateOrLoad` in the update path that starts the request. It yields `None` while that field is `Loading` or `Refreshing`, so the handler returns no Command. This prevents duplicate work through that transition. It is separate from the receipt-time check above, which rejects obsolete work that did start.
 
 ### What about keepPreviousData? {#faq-keep-previous-data}
 
-Pick the transition yourself when the input changes. `Loading` drops the old data; `Refreshing({ data })` keeps it on screen while the new request runs. TanStack Query’s helper (passed as `placeholderData` in v5) is that same decision made for you. Here it is one line you choose in `update`.
+Choose the transition when the input changes. `Loading` removes the old data. `Refreshing({ data })` retains it while the new request runs. TanStack Query v5 exposes the same choice through `placeholderData`, commonly using its `keepPreviousData` helper.
 
 ### How do I poll or refetch in the background? {#faq-polling}
 
-Use a [Subscription](/core/subscriptions) gated on a Model condition. It starts the interval when the condition becomes true and tears it down when it becomes false, with no manual cleanup. On each tick, apply `AsyncData.revalidate` and return the fetch Command when it yields a transition: `Success` and `Stale` move to `Refreshing`, so the old numbers stay on screen while the new ones load, and a tick that lands during an in-flight request starts nothing. The API Cache example refetches stats on a timer exactly this way.
+Use a [Subscription](/core/subscriptions) gated on a Model condition. On each tick, apply `AsyncData.revalidate` and return the fetch Command when it yields a transition. `Success` and `Stale` move to `Refreshing`, while a tick during an in-flight request starts nothing. The Subscription is torn down when its Model condition becomes false.
 
 ### How do I invalidate and refetch? {#faq-invalidate}
 
-Apply `AsyncData.revalidateOrLoad` to the field, and when it yields a transition, return the fetch Command from `update`. `Success` and `Stale` move to `Refreshing`, so the current data stays on screen while the new request runs, and a cold or failed field restarts a fresh `Loading`. That is the same cache-and-revalidate behavior you are used to, expressed as an explicit state transition. When the response arrives, `settle` folds it in, keeping the old data as `Stale` if the refresh failed. The narrower `revalidate` skips fields that hold nothing, which is the right transition after a mutation touches caches that may never have loaded.
+Apply `AsyncData.revalidateOrLoad` to the field and return the fetch Command when it yields a transition. Data-holding states move to `Refreshing`; a cold or failed field moves to `Loading`. The narrower `revalidate` skips fields that hold no data, which is useful when a mutation affects caches that may never have loaded.
 
 ### What about mutations? {#faq-mutations}
 
-A mutation is a Message and a Command, the same as any other effect. The button dispatches a Message, `update` returns a Command that performs the write, and the result comes back as another Message you handle. In that handler you do what `onSuccess` plus `invalidateQueries` would have done: revalidate the affected fields, or edit the cached data in place with `AsyncData.map`, the `setQueryData` move.
+A mutation begins with a Message. Its update handler returns a Command that performs the write, and the result returns as another Message. That result handler can revalidate affected fields or update cached data directly with `AsyncData.map`.
 
 ### How do I do optimistic updates? {#faq-optimistic-updates}
 
-Apply the edit to the Model immediately with `AsyncData.map` in the same `update` arm that fires the mutation Command, and handle the failure Message by putting the previous value back or revalidating. TanStack Query’s `onMutate` / `onError` / `onSettled` rollback dance becomes ordinary update logic: the optimistic write, the rollback value, and the recovery path are all plain state transitions you can read and test.
+Apply the optimistic edit to the Model with `AsyncData.map` in the same update arm that returns the mutation Command. Retain the previous value in the Model if the failure path needs to restore it, or revalidate after failure.
 
 ### Why write this yourself instead of letting a library do it? {#faq-own-the-behavior}
 
-Foldkit does ship the part that is the same in every app: `AsyncData` is the state machine for a value that arrives asynchronously, and `settle`, `revalidate`, and friends are its transitions. What it does not ship is the policy: when to fetch, what counts as stale, which fields a mutation invalidates. That logic is logic your app depends on, and keeping it as state and transitions you own means you can read it, test it, and change it. A hook that decides for you owns that logic instead, and the day your case diverges from its defaults you are reaching for configuration and hoping the knob you need exists. Owning the policy is not the cost of this approach. It is the point of it.
+Foldkit ships the reusable state machine. Your application defines when to fetch, what counts as stale, and which fields a mutation refreshes. That policy differs from one application to the next, so Foldkit keeps it in ordinary Model state and update logic where the same tools and tests cover it.
 
-The [Async Data](/core/async-data) page covers the module itself: the Schema builder, the `match` family, and combining several fields into one screen with `all`. If you are also coming from React, [Coming from React](/react/coming-from-react) covers the rest of the mental model: components, hooks, effects, and how they map onto Foldkit.
+A query runtime gives you more behavior out of the box. It also owns that behavior until its configuration changes it. Foldkit makes the opposite trade. Owning the policy is the reason to write it yourself, not an accidental cost.
+
+The [Async Data](/core/async-data) page covers the Schema builder, matching helpers, transitions, and combining fields with `all`. If you are also coming from React, [Coming from React](/react/coming-from-react) covers components, hooks, effects, and their Foldkit counterparts.

@@ -1,8 +1,8 @@
-import { Runtime } from 'foldkit'
+import { Runtime as AppRuntime } from 'foldkit'
 
 import { init, Model, update, view } from './app'
 
-export const app = Runtime.makeApplication({
+export const app = AppRuntime.makeApplication({
   Model,
   init,
   update,

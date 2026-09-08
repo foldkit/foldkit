@@ -1,164 +1,128 @@
-import { Effect, Match as M, Option, Schema as S } from 'effect'
-import { Command, Url } from 'foldkit'
-import { load, pushUrl } from 'foldkit/navigation'
+import { Effect, Match, Option, Schema } from 'effect'
+import { Command, Update, Url } from 'foldkit'
+import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 
 import * as Shared from '@typing-game/shared'
 
 import { NavigateToRoom } from './command'
-import {
-  CompletedLoadExternal,
-  CompletedNavigateInternal,
-  GotHomeMessage,
-  GotRoomMessage,
-  Message,
-} from './message'
+import { Message } from './message'
 import { Model } from './model'
 import { Home, Room } from './page'
 import { urlToAppRoute } from './route'
 import { RoomsClient } from './rpc'
 
 const NavigateInternal = Command.define('NavigateInternal', {
-  args: { url: S.String },
-  messages: [CompletedNavigateInternal],
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
   execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())),
+    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
 })
 
 const LoadExternal = Command.define('LoadExternal', {
-  args: { href: S.String },
-  messages: [CompletedLoadExternal],
-  execute: ({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())),
+  args: { href: Schema.String },
+  messages: [Message.CompletedLoadExternal],
+  execute: ({ href }) =>
+    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 })
 
-export type UpdateReturn<Model, Message> = [
+export type UpdateReturn<Model, Message> = Update.Return<
   Model,
-  ReadonlyArray<Command.Command<Message, never, RoomsClient>>,
-]
-const withUpdateReturn = M.withReturnType<UpdateReturn<Model, Message>>()
+  Message,
+  RoomsClient
+>
+const withUpdateReturn = Match.withReturnType<UpdateReturn<Model, Message>>()
 
-const applyRoomResult = (
-  model: Model,
-  [nextRoomModel, roomCommands]: Room.UpdateReturn,
-): UpdateReturn<Model, Message> => [
-  evo(model, { room: () => nextRoomModel }),
-  Command.mapMessages(roomCommands, message => GotRoomMessage({ message })),
-]
+type UpdateStep = Update.Step<Model, Message, RoomsClient>
 
-const applyHomeResult = (
-  model: Model,
-  [nextHomeModel, homeCommands, maybeOutMessage]: Home.UpdateReturn,
-): UpdateReturn<Model, Message> => {
-  const mappedCommands = Command.mapMessages(homeCommands, message =>
-    GotHomeMessage({ message }),
-  )
+const readHome = (model: Model): Option.Option<Home.Model.Model> =>
+  Option.some(model.home)
 
-  return Option.match(maybeOutMessage, {
-    onNone: () => [evo(model, { home: () => nextHomeModel }), mappedCommands],
-    onSome: outMessage =>
-      M.value(outMessage).pipe(
-        withUpdateReturn,
-        M.tag(
-          'SucceededCreateRoom',
-          'SucceededJoinRoom',
-          ({ roomId, player }) => {
-            const [nextModel, roomCommands] = handleRoomJoined(
-              model,
-              roomId,
-              player,
-            )
-            return [
-              evo(nextModel, { home: () => nextHomeModel }),
-              [...mappedCommands, ...roomCommands],
-            ]
-          },
-        ),
-        M.exhaustive,
-      ),
+const writeHome = (model: Model, nextHome: Home.Model.Model): Model =>
+  evo(model, { home: () => nextHome })
+
+const toGotHomeMessage = (message: Home.Message): Message =>
+  Message.GotHomeMessage({ message })
+
+const readRoom = (model: Model): Option.Option<Room.Model.Model> =>
+  Option.some(model.room)
+
+const writeRoom = (model: Model, nextRoom: Room.Model.Model): Model =>
+  evo(model, { room: () => nextRoom })
+
+const toGotRoomMessage = (message: Room.Message): Message =>
+  Message.GotRoomMessage({ message })
+
+const navigateToRoom =
+  (roomId: string): UpdateStep =>
+  model => ({ model, commands: [NavigateToRoom({ roomId })] })
+
+const enterJoinedRoom = (roomId: string, player: Shared.Player): UpdateStep =>
+  Update.combine([
+    navigateToRoom(roomId),
+    Update.foldChild({
+      update: (roomModel: Room.Model.Model, joinedPlayer: Shared.Player) =>
+        Room.informJoined(roomModel, joinedPlayer, { roomId }),
+      read: readRoom,
+      write: writeRoom,
+      toParentMessage: toGotRoomMessage,
+    })(player),
+  ])
+
+const foldHomeOutMessage = (outMessage: Home.OutMessage): UpdateStep =>
+  Home.OutMessage.match<UpdateStep>(outMessage, {
+    CreatedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
+    JoinedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
   })
-}
 
-export const update = (
-  model: Model,
-  message: Message,
-): UpdateReturn<Model, Message> =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tags({
-      ClickedLink: ({ request }) =>
-        M.value(request).pipe(
-          withUpdateReturn,
-          M.tagsExhaustive({
-            Internal: ({ url }) => [
-              model,
-              [NavigateInternal({ url: Url.toString(url) })],
-            ],
-            External: ({ href }) => [model, [LoadExternal({ href })]],
-          }),
-        ),
+const foldHomeMessage = Update.foldChild({
+  update: Home.update,
+  read: readHome,
+  write: writeHome,
+  toParentMessage: toGotHomeMessage,
+  foldOutMessage: foldHomeOutMessage,
+})
 
-      ChangedUrl: ({ url }) => [
-        evo(model, {
-          route: () => urlToAppRoute(url),
+const foldRoomMessage = (roomId: string) =>
+  Update.foldChild({
+    update: (roomModel: Room.Model.Model, message: Room.Message) =>
+      Room.update(roomModel, message, { roomId }),
+    read: readRoom,
+    write: writeRoom,
+    toParentMessage: toGotRoomMessage,
+  })
+
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn<Model, Message>>(message, {
+    ClickedLink: ({ request }) =>
+      UrlRequest.match<UpdateReturn<Model, Message>>(request, {
+        Internal: ({ url }) => ({
+          model,
+          commands: [NavigateInternal({ url: Url.toString(url) })],
         }),
-        [],
-      ],
+        External: ({ href }) => ({
+          model,
+          commands: [LoadExternal({ href })],
+        }),
+      }),
 
-      GotHomeMessage: ({ message }) =>
-        applyHomeResult(model, Home.update(model.home, message)),
-
-      GotRoomMessage: ({ message }) =>
-        M.value(model.route).pipe(
-          withUpdateReturn,
-          M.tag('Room', ({ roomId }) =>
-            applyRoomResult(
-              model,
-              Room.update(model.room, message, { roomId }),
-            ),
-          ),
-          M.orElse(() => [model, []]),
-        ),
-
-      PressedKey: ({ key }) =>
-        M.value(model.route).pipe(
-          withUpdateReturn,
-          M.tagsExhaustive({
-            Home: () =>
-              applyHomeResult(model, Home.informPressedKey(model.home, key)),
-            Room: ({ roomId }) =>
-              applyRoomResult(
-                model,
-                Room.informPressedKey(model.room, key, { roomId }),
-              ),
-            NotFound: () => [model, []],
-          }),
-        ),
+    ChangedUrl: ({ url }) => ({
+      model: evo(model, {
+        route: () => urlToAppRoute(url),
+      }),
     }),
-    M.tag(
-      'CompletedNavigateInternal',
-      'CompletedLoadExternal',
-      'CompletedNavigateToRoom',
-      () => [model, []],
-    ),
-    M.exhaustive,
-  )
 
-const handleRoomJoined = (
-  model: Model,
-  roomId: string,
-  player: Shared.Player,
-): UpdateReturn<Model, Message> => {
-  const [nextRoomModel, roomCommands] = Room.join(model.room, player, {
-    roomId,
-  })
+    GotHomeMessage: ({ message }) => foldHomeMessage(model, message),
 
-  return [
-    evo(model, { room: () => nextRoomModel }),
-    [
-      NavigateToRoom({ roomId }),
-      ...Command.mapMessages(roomCommands, message =>
-        GotRoomMessage({ message }),
+    GotRoomMessage: ({ message }) =>
+      Match.value(model.route).pipe(
+        withUpdateReturn,
+        Match.tag('Room', ({ roomId }) =>
+          foldRoomMessage(roomId)(model, message),
+        ),
+        Match.orElse(() => ({ model })),
       ),
-    ],
-  ]
-}
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
+    CompletedNavigateToRoom: () => ({ model }),
+  })

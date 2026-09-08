@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'vitest'
 
-import { ClickedCrash, update } from './main'
+import { Message, update } from './main'
 
 describe('update', () => {
   test('handling any Message throws to trigger the crash view', () => {
-    expect(() => update(null, ClickedCrash())).toThrow(
+    expect(() => update(null, Message.ClickedCrash())).toThrow(
       'This is a simulated crash!',
     )
   })

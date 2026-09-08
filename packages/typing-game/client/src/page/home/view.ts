@@ -1,35 +1,23 @@
-import { Array, Match as M, Option } from 'effect'
+import { Array, Option } from 'effect'
 import { Submodel } from 'foldkit'
 import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../constant'
+import { Message } from './message'
 import {
-  BlurredRoomIdInput,
-  BlurredUsernameInput,
-  ChangedRoomId,
-  ChangedUsername,
-  SubmittedJoinRoomForm,
-  SubmittedUsernameForm,
-} from './message'
-import type { Message } from './message'
-import {
-  EnterRoomId,
-  EnterUsername,
   HOME_ACTIONS,
   HomeAction,
+  HomeStep,
   Model,
-  SelectAction,
   homeActionToLabel,
 } from './model'
 
 export const view = Submodel.defineView<Model, Message>((model, h): Html => {
-  const maybeUsername = M.value(model.homeStep).pipe(
-    M.tagsExhaustive({
-      EnterUsername: () => Option.none(),
-      SelectAction: ({ username }) => Option.some(username),
-      EnterRoomId: ({ username }) => Option.some(username),
-    }),
-  )
+  const maybeUsername = HomeStep.match(model.homeStep, {
+    EnterUsername: () => Option.none(),
+    SelectAction: ({ username }) => Option.some(username),
+    EnterRoomId: ({ username }) => Option.some(username),
+  })
 
   const welcomeText = Option.match(maybeUsername, {
     onNone: () => h.empty,
@@ -42,13 +30,11 @@ export const view = Submodel.defineView<Model, Message>((model, h): Html => {
       h.h1([h.Class('mb-6 uppercase')], ['Typing Terminal']),
       welcomeText,
 
-      M.value(model.homeStep).pipe(
-        M.tagsExhaustive({
-          EnterUsername: step => enterUsername(step, h),
-          SelectAction: step => selectAction(step, h),
-          EnterRoomId: step => enterRoomId(step, h),
-        }),
-      ),
+      HomeStep.match(model.homeStep, {
+        EnterUsername: step => enterUsername(step, h),
+        SelectAction: step => selectAction(step, h),
+        EnterRoomId: step => enterRoomId(step, h),
+      }),
 
       maybeErrorMessage(model.formError, h),
     ],
@@ -56,11 +42,11 @@ export const view = Submodel.defineView<Model, Message>((model, h): Html => {
 })
 
 const enterUsername = (
-  { username }: EnterUsername,
+  { username }: typeof HomeStep.EnterUsername.Type,
   h: HtmlBuilder<Message>,
 ): Html =>
   h.form(
-    [h.OnSubmit(SubmittedUsernameForm())],
+    [h.OnSubmit(Message.SubmittedUsernameForm())],
     [
       h.div(
         [h.Class('flex items-center gap-2')],
@@ -76,8 +62,8 @@ const enterUsername = (
                 h.Type('text'),
                 h.Value(username),
                 h.Class('bg-transparent px-0 py-2 outline-none w-full'),
-                h.OnInput(value => ChangedUsername({ value })),
-                h.OnBlur(BlurredUsernameInput()),
+                h.OnInput(value => Message.ChangedUsername({ value })),
+                h.OnBlur(Message.BlurredUsernameInput()),
                 h.Autocapitalize('none'),
                 h.Spellcheck(false),
                 h.Autocorrect('off'),
@@ -92,7 +78,7 @@ const enterUsername = (
   )
 
 const selectAction = (
-  { selectedAction }: SelectAction,
+  { selectedAction }: typeof HomeStep.SelectAction.Type,
   h: HtmlBuilder<Message>,
 ): Html =>
   h.div(
@@ -117,9 +103,12 @@ const action =
       ],
     )
 
-const enterRoomId = ({ roomId }: EnterRoomId, h: HtmlBuilder<Message>): Html =>
+const enterRoomId = (
+  { roomId }: typeof HomeStep.EnterRoomId.Type,
+  h: HtmlBuilder<Message>,
+): Html =>
   h.form(
-    [h.OnSubmit(SubmittedJoinRoomForm())],
+    [h.OnSubmit(Message.SubmittedJoinRoomForm())],
     [
       h.div(
         [h.Class('flex items-center gap-2')],
@@ -136,8 +125,8 @@ const enterRoomId = ({ roomId }: EnterRoomId, h: HtmlBuilder<Message>): Html =>
                 h.Type('text'),
                 h.Value(roomId),
                 h.Class('bg-transparent px-0 py-2 outline-none w-full'),
-                h.OnInput(value => ChangedRoomId({ value })),
-                h.OnBlur(BlurredRoomIdInput()),
+                h.OnInput(value => Message.ChangedRoomId({ value })),
+                h.OnBlur(Message.BlurredRoomIdInput()),
                 h.Autocapitalize('none'),
                 h.Spellcheck(false),
                 h.Autocorrect('off'),

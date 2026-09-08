@@ -6,7 +6,7 @@ import { HtmlBuilder } from 'foldkit/html'
 import { Button } from '@foldkit/ui'
 
 import type { Telemetry } from '../domain'
-import { ClickedRefresh, ClickedRetry, type Message } from '../message'
+import { Message } from '../message'
 import type { Model } from '../model'
 import { chartPanelView } from './chart'
 import { sidebarView } from './sidebar'
@@ -45,7 +45,7 @@ export const headerView = (model: Model, h: HtmlBuilder<Message>): Html => {
       ),
       Button.view(
         {
-          onClick: ClickedRefresh(),
+          onClick: Message.ClickedRefresh(),
           isDisabled: isRefreshing || isLoading,
           toView: attributes =>
             h.button(
@@ -137,7 +137,7 @@ export const failureView = (error: string, h: HtmlBuilder<Message>): Html =>
           h.p([h.Class('mt-2 text-sm text-rose-800')], [error]),
           Button.view(
             {
-              onClick: ClickedRetry(),
+              onClick: Message.ClickedRetry(),
               toView: attributes =>
                 h.button(
                   [

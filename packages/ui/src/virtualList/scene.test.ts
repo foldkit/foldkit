@@ -4,10 +4,8 @@ import * as Scene from 'foldkit/scene'
 import { describe, it } from '@effect/vitest'
 
 import {
-  MeasuredContainer,
-  type Message,
+  Message,
   type Model,
-  ScrolledContainer,
   type ViewInputs,
   init,
   update,
@@ -54,11 +52,11 @@ const sceneView =
 const unmeasuredModel = init({ id: 'test', rowHeightPx: ROW_HEIGHT })
 
 const measuredModel = (() => {
-  const [model] = update(
+  const measurement = update(
     unmeasuredModel,
-    MeasuredContainer({ containerHeight: 90 }),
+    Message.MeasuredContainer({ containerHeight: 90 }),
   )
-  return model
+  return measurement.model
 })()
 
 const container = Scene.selector('ul[data-virtual-list-id="test"]')
@@ -164,13 +162,13 @@ describe('VirtualList', () => {
     })
 
     it('sets aria-posinset using the logical (data) index, not the slice index, when scrolled', () => {
-      const [scrolled] = update(
+      const scrolledUpdate = update(
         measuredModel,
-        ScrolledContainer({ scrollTop: 90 }),
+        Message.ScrolledContainer({ scrollTop: 90 }),
       )
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(scrolled),
+        Scene.given(scrolledUpdate.model),
         Scene.expect(
           Scene.selector('li[data-virtual-list-item-index="3"]'),
         ).toHaveAttr('aria-posinset', '4'),
@@ -201,11 +199,11 @@ describe('VirtualList', () => {
       item.id % 2 === 0 ? 60 : 20
 
     const variableMeasuredModel = (() => {
-      const [model] = update(
+      const measuredUpdate = update(
         unmeasuredModel,
-        MeasuredContainer({ containerHeight: 90 }),
+        Message.MeasuredContainer({ containerHeight: 90 }),
       )
-      return model
+      return measuredUpdate.model
     })()
 
     it('renders each row at the height returned by itemToRowHeightPx', () => {

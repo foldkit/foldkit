@@ -1,4 +1,5 @@
 import * as Scene from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { initialModel, update, view, viewWithDialog } from './disabledButton.js'
@@ -19,7 +20,7 @@ describe('disabled button cleanup', () => {
     test('submit starts enabled when model says so', () => {
       Scene.scene(
         { update, view },
-        Scene.given({ ...initialModel, isEnabled: true }),
+        Scene.given(evo(initialModel, { isEnabled: () => true })),
         Scene.expect(Scene.text('Submit')).not.toBeDisabled(),
         Scene.click(Scene.text('Submit')),
       )

@@ -4,11 +4,10 @@ import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import type { Message, Model } from './index.js'
+import type { Model } from './index.js'
 import {
   AnchorTooltip,
-  CompletedAnchorTooltip,
-  FocusedTrigger,
+  Message,
   init,
   triggerId,
   update,
@@ -17,7 +16,7 @@ import {
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorTooltip,
-  CompletedAnchorTooltip(),
+  Message.CompletedAnchorTooltip(),
 )
 
 const sceneView =
@@ -49,7 +48,7 @@ const trigger = Scene.selector('#test-trigger')
 const panel = Scene.selector('#test-panel')
 
 const hiddenModel = init({ id: 'test' })
-const [openModel] = update(init({ id: 'test' }), FocusedTrigger())
+const triggerFocus = update(init({ id: 'test' }), Message.FocusedTrigger())
 
 describe('Tooltip', () => {
   describe('view', () => {
@@ -73,7 +72,7 @@ describe('Tooltip', () => {
     it('renders the panel with role=tooltip when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(openModel),
+        Scene.given(triggerFocus.model),
         Scene.expect(panel).toExist(),
         Scene.expect(panel).toHaveAttr('role', 'tooltip'),
         Scene.expect(panel).toHaveAttr('id', 'test-panel'),
@@ -84,7 +83,7 @@ describe('Tooltip', () => {
     it('marks the trigger with data-open when visible', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(openModel),
+        Scene.given(triggerFocus.model),
         Scene.expect(trigger).toHaveAttr('data-open', ''),
         acknowledgeAnchor,
       )
@@ -93,7 +92,7 @@ describe('Tooltip', () => {
     it('adds anchor positioning styles and hooks to the panel', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(openModel),
+        Scene.given(triggerFocus.model),
         Scene.expect(panel).toHaveStyle('position', 'absolute'),
         Scene.expect(panel).toHaveStyle('margin', '0'),
         Scene.expect(panel).toHaveStyle('visibility', 'hidden'),

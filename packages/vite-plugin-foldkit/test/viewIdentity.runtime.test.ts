@@ -1,38 +1,34 @@
 // @vitest-environment happy-dom
-import { Effect, Fiber, Match as M, Schema as S } from 'effect'
+import { Effect, Fiber, Schema } from 'effect'
+import { type Update } from 'foldkit'
 import { brandViewResult } from 'foldkit/brand'
-import type { Command } from 'foldkit/command'
 import { type Html, inertHtml } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 import { makeElement } from 'foldkit/runtime'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { transformViewIdentity } from '../src/viewIdentity.ts'
 
-const Model = S.Struct({ mode: S.Literals(['Viewing', 'Editing']) })
+const Model = Schema.Struct({ mode: Schema.Literals(['Viewing', 'Editing']) })
 type Model = typeof Model.Type
 
-const ClickedToggle = m('ClickedToggle')
-type Message = typeof ClickedToggle.Type
+const Message = defineMessageUnion({
+  ClickedToggle: {},
+})
 
-const init = (): readonly [Model, ReadonlyArray<Command<Message>>] => [
-  { mode: 'Viewing' },
-  [],
-]
+type Message = typeof Message.Type
 
-const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<readonly [Model, ReadonlyArray<Command<Message>>]>(),
-    M.tagsExhaustive({
-      ClickedToggle: () => {
-        const nextMode = model.mode === 'Viewing' ? 'Editing' : 'Viewing'
-        return [{ mode: nextMode }, []]
-      },
-    }),
-  )
+const init = (): Update.Return<Model, Message> => ({
+  model: { mode: 'Viewing' },
+})
+
+const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedToggle: () => {
+      const nextMode = model.mode === 'Viewing' ? 'Editing' : 'Viewing'
+      return { model: { mode: nextMode } }
+    },
+  })
 
 const FIXTURE_MODULE_ID = '/app/src/View.js'
 const FIXTURE_ROOT = '/app'
@@ -125,7 +121,7 @@ const instantiateView = (viewSource: string): View => {
     BRAND_IMPORT_ALIAS,
     `${viewSource}\nreturn view`,
   )
-  const view: View = factory(inertHtml, ClickedToggle, brandViewResult)
+  const view: View = factory(inertHtml, Message.ClickedToggle, brandViewResult)
   return view
 }
 

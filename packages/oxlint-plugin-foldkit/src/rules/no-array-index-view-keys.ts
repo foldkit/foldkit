@@ -1,13 +1,26 @@
 import { Array, Effect, Option, Ref } from 'effect'
-import { Diagnostic, type ESTree, Rule, RuleContext } from 'effect-oxlint'
+import {
+  Diagnostic,
+  type ESTree,
+  type Reference,
+  Rule,
+  RuleContext,
+  type ScopeManager,
+  type Variable,
+} from 'effect-oxlint'
 
 import {
   calleeMatchesHelperName,
+  indexReferences,
   isCallExpression,
+  isFoldkitHtmlBuilderMember,
   isIdentifier,
+  isIdentifierReference,
   isMemberExpression,
   isObjectExpression,
   isStringLiteral,
+  resolveFoldkitApiPath,
+  resolvedVariable,
 } from '../guards.ts'
 
 // GUARDS
@@ -41,9 +54,34 @@ const isVariableDeclarator = (
   node: ESTree.Node,
 ): node is ESTree.VariableDeclarator => node.type === 'VariableDeclarator'
 
-const mapCallbackIndexParameterName = (
+type MapIndexBinding = Readonly<{
+  name: string
+  variable: Variable | undefined
+}>
+
+const isCreateKeyedLazyCall = (
+  node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
+  if (references === undefined) {
+    return calleeMatchesHelperName(node.callee, 'createKeyedLazy')
+  }
+
+  return Option.exists(resolveFoldkitApiPath(references, node.callee), path => {
+    const [namespace, factoryName, extraMember] = path
+
+    return (
+      namespace === 'Html' &&
+      factoryName === 'createKeyedLazy' &&
+      extraMember === undefined
+    )
+  })
+}
+
+const mapCallbackIndexParameter = (
   node: ESTree.Node,
-): Option.Option<string> => {
+  scopeManager: ScopeManager | undefined,
+): Option.Option<MapIndexBinding> => {
   if (!isArrowFunctionExpression(node)) {
     return Option.none()
   }
@@ -66,7 +104,12 @@ const mapCallbackIndexParameterName = (
   if (!isIdentifier(secondParameter)) {
     return Option.none()
   }
-  return Option.some(secondParameter.name)
+  const name = secondParameter.name
+  const variable = scopeManager
+    ?.getDeclaredVariables(node)
+    .find(candidate => candidate.name === name)
+
+  return Option.some({ name, variable })
 }
 
 const firstNonSpreadArgument = (
@@ -98,75 +141,113 @@ const slotIdValue = (
     property => property.value,
   )
 
+type KeyedLazySlot = Readonly<{
+  name: string
+  variable: Variable | undefined
+}>
+
 const keySinkExpression = (
   node: ESTree.CallExpression,
-  slotNames: ReadonlyArray<string>,
+  slots: ReadonlyArray<KeyedLazySlot>,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<ESTree.Expression> => {
   if (
     isCallExpression(node.callee) &&
-    calleeMatchesHelperName(node.callee.callee, 'keyed')
+    isFoldkitHtmlBuilderMember(node.callee.callee, 'keyed', references)
   ) {
     return firstNonSpreadArgument(node)
   }
-  if (calleeMatchesHelperName(node.callee, 'Key')) {
+  if (isFoldkitHtmlBuilderMember(node.callee, 'Key', references)) {
     return firstNonSpreadArgument(node)
   }
-  if (calleeMatchesHelperName(node.callee, 'submodel')) {
+  if (isFoldkitHtmlBuilderMember(node.callee, 'submodel', references)) {
     const [configArgument] = node.arguments
     if (isObjectExpression(configArgument)) {
       return slotIdValue(configArgument)
     }
   }
-  if (isIdentifier(node.callee) && slotNames.includes(node.callee.name)) {
-    return firstNonSpreadArgument(node)
+  if (isIdentifierReference(node.callee)) {
+    const slotCallee = node.callee
+    const isRegisteredSlot = slots.some(
+      slot =>
+        slot.name === slotCallee.name &&
+        (references === undefined ||
+          (slot.variable !== undefined &&
+            Option.exists(
+              resolvedVariable(references, slotCallee),
+              variable => variable === slot.variable,
+            ))),
+    )
+    if (isRegisteredSlot) {
+      return firstNonSpreadArgument(node)
+    }
   }
   return Option.none()
 }
 
-const referencesIndexName = (value: unknown, indexName: string): boolean => {
+const referencesIndexBinding = (
+  value: unknown,
+  indexBinding: MapIndexBinding,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
   if (Array.isArray(value)) {
-    return value.some(element => referencesIndexName(element, indexName))
+    return value.some(element =>
+      referencesIndexBinding(element, indexBinding, references),
+    )
   }
   if (typeof value !== 'object' || value === null) {
     return false
   }
-  if (isIdentifier(value, indexName)) {
-    return true
+  if (isIdentifierReference(value) && value.name === indexBinding.name) {
+    return (
+      references === undefined ||
+      (indexBinding.variable !== undefined &&
+        Option.exists(
+          resolvedVariable(references, value),
+          variable => variable === indexBinding.variable,
+        ))
+    )
   }
   if (isMemberExpression(value)) {
-    if (referencesIndexName(value.object, indexName)) {
+    if (referencesIndexBinding(value.object, indexBinding, references)) {
       return true
     }
     return (
-      value.computed === true && referencesIndexName(value.property, indexName)
+      value.computed === true &&
+      referencesIndexBinding(value.property, indexBinding, references)
     )
   }
   if (isProperty(value)) {
-    if (value.computed === true && referencesIndexName(value.key, indexName)) {
+    if (
+      value.computed === true &&
+      referencesIndexBinding(value.key, indexBinding, references)
+    ) {
       return true
     }
-    return referencesIndexName(value.value, indexName)
+    return referencesIndexBinding(value.value, indexBinding, references)
   }
-  if (isArrowFunctionExpression(value)) {
+  if (references === undefined && isArrowFunctionExpression(value)) {
     const parameters = value.params
     const isShadowed = parameters.some(parameter =>
-      isIdentifier(parameter, indexName),
+      isIdentifier(parameter, indexBinding.name),
     )
     if (isShadowed) {
       return false
     }
   }
-  return referencesIndexNameAcrossFields(value, indexName)
+  return referencesIndexBindingAcrossFields(value, indexBinding, references)
 }
 
-const referencesIndexNameAcrossFields = (
+const referencesIndexBindingAcrossFields = (
   value: object,
-  indexName: string,
+  indexBinding: MapIndexBinding,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
   const fieldEntries = Object.entries(value)
   return fieldEntries.some(
     ([fieldName, fieldValue]) =>
-      fieldName !== 'parent' && referencesIndexName(fieldValue, indexName),
+      fieldName !== 'parent' &&
+      referencesIndexBinding(fieldValue, indexBinding, references),
   )
 }
 
@@ -187,32 +268,42 @@ export const noArrayIndexViewKeys = Rule.define({
   }),
   create: function* () {
     const ctx = yield* RuleContext
-    const indexNameStack = yield* Ref.make<ReadonlyArray<string>>([])
-    const slotNames = yield* Ref.make<ReadonlyArray<string>>([])
+    const scopes = ctx.sourceCode.scopeManager?.scopes
+    const scopeManager = ctx.sourceCode.scopeManager
+    const references =
+      scopes === undefined ? undefined : indexReferences(scopes)
+    const indexBindingStack = yield* Ref.make<ReadonlyArray<MapIndexBinding>>(
+      [],
+    )
+    const slots = yield* Ref.make<ReadonlyArray<KeyedLazySlot>>([])
     return {
       VariableDeclarator: (node: ESTree.Node) => {
         if (
           !isVariableDeclarator(node) ||
-          !isIdentifier(node.id) ||
+          node.id.type !== 'Identifier' ||
           !isCallExpression(node.init) ||
-          !calleeMatchesHelperName(node.init.callee, 'createKeyedLazy')
+          !isCreateKeyedLazyCall(node.init, references)
         ) {
           return Effect.void
         }
-        return Ref.update(slotNames, Array.append(node.id.name))
+        const slotName = node.id.name
+        const variable = scopeManager
+          ?.getDeclaredVariables(node)
+          .find(candidate => candidate.name === slotName)
+        return Ref.update(slots, Array.append({ name: slotName, variable }))
       },
       ArrowFunctionExpression: (node: ESTree.Node) =>
-        Option.match(mapCallbackIndexParameterName(node), {
+        Option.match(mapCallbackIndexParameter(node, scopeManager), {
           onNone: () => Effect.void,
-          onSome: indexName =>
-            Ref.update(indexNameStack, Array.append(indexName)),
+          onSome: indexBinding =>
+            Ref.update(indexBindingStack, Array.append(indexBinding)),
         }),
       'ArrowFunctionExpression:exit': (node: ESTree.Node) =>
-        Option.match(mapCallbackIndexParameterName(node), {
+        Option.match(mapCallbackIndexParameter(node, scopeManager), {
           onNone: () => Effect.void,
           onSome: () =>
-            Ref.update(indexNameStack, activeIndexNames =>
-              Array.dropRight(activeIndexNames, 1),
+            Ref.update(indexBindingStack, activeIndexBindings =>
+              Array.dropRight(activeIndexBindings, 1),
             ),
         }),
       CallExpression: (node: ESTree.Node) => {
@@ -220,29 +311,32 @@ export const noArrayIndexViewKeys = Rule.define({
           return Effect.void
         }
         return Effect.gen(function* () {
-          const activeIndexNames = yield* Ref.get(indexNameStack)
-          if (Array.isReadonlyArrayEmpty(activeIndexNames)) {
+          const activeIndexBindings = yield* Ref.get(indexBindingStack)
+          if (Array.isReadonlyArrayEmpty(activeIndexBindings)) {
             return
           }
-          const registeredSlotNames = yield* Ref.get(slotNames)
+          const registeredSlots = yield* Ref.get(slots)
           const maybeKeyExpression = keySinkExpression(
             node,
-            registeredSlotNames,
+            registeredSlots,
+            references,
           )
           if (Option.isNone(maybeKeyExpression)) {
             return
           }
-          const keyExpression = maybeKeyExpression.value
-          const maybeIndexName = Array.findFirst(activeIndexNames, indexName =>
-            referencesIndexName(keyExpression, indexName),
+          const { value: keyExpression } = maybeKeyExpression
+          const maybeIndexBinding = Array.findFirst(
+            activeIndexBindings,
+            indexBinding =>
+              referencesIndexBinding(keyExpression, indexBinding, references),
           )
-          if (Option.isNone(maybeIndexName)) {
+          if (Option.isNone(maybeIndexBinding)) {
             return
           }
           yield* ctx.report(
             Diagnostic.make({
               node: keyExpression,
-              message: `The array index parameter \`${maybeIndexName.value}\` is used as a view key. Positions shift when the list reorders or loses an item, so the runtime patches the wrong rows. Key this row or Submodel by a stable Model identifier such as \`item.id\` instead.`,
+              message: `The array index parameter \`${maybeIndexBinding.value.name}\` is used as a view key. Positions shift when the list reorders or loses an item, so the runtime patches the wrong rows. Key this row or Submodel by a stable Model identifier such as \`item.id\` instead.`,
             }),
           )
         })

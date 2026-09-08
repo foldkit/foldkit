@@ -1,16 +1,17 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 
 export const SIDEBAR_STORAGE_KEY = 'foldkit-sidebar-state'
 
-export const SidebarState = S.Struct({
-  open: S.Record(S.String, S.Boolean),
+export const SidebarState = Schema.Struct({
+  open: Schema.Record(Schema.String, Schema.Boolean),
 })
 export type SidebarState = typeof SidebarState.Type
 
-export const SidebarStateJsonString = S.fromJsonString(SidebarState)
+export const SidebarStateJsonString = Schema.fromJsonString(SidebarState)
 
-export const GroupKey = S.Literals([
-  'getStarted',
+export const GroupKey = Schema.Literals([
+  'blog',
+  'introduction',
   'coreConcepts',
   'comparisons',
   'faq',
@@ -25,10 +26,5 @@ export const GroupKey = S.Literals([
 ])
 export type GroupKey = typeof GroupKey.Type
 
-export const SidebarGroups = S.Record(GroupKey, S.Boolean)
+export const SidebarGroups = Schema.Record(GroupKey, Schema.Boolean)
 export type SidebarGroups = typeof SidebarGroups.Type
-
-export const DEFAULT_OPEN_GROUPS: ReadonlyArray<GroupKey> = [
-  'getStarted',
-  'coreConcepts',
-]

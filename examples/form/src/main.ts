@@ -1,13 +1,6 @@
 import clsx from 'clsx'
-import {
-  Array,
-  Duration,
-  Effect,
-  Match as M,
-  Random,
-  Schema as S,
-} from 'effect'
-import { Command, Runtime } from 'foldkit'
+import { Array, Duration, Effect, Random, Schema } from 'effect'
+import { Command, FieldValidation, Runtime, type Update } from 'foldkit'
 import {
   Field,
   Invalid,
@@ -20,8 +13,8 @@ import {
   validate,
 } from 'foldkit/fieldValidation'
 import { type Attribute, Document, Html, HtmlBuilder } from 'foldkit/html'
-import { m } from 'foldkit/message'
-import { ts } from 'foldkit/schema'
+import { defineMessageUnion } from 'foldkit/message'
+import { defineTaggedUnion } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 
 import { Button, Input, Textarea } from '@foldkit/ui'
@@ -37,53 +30,35 @@ const emailRules = makeRules({
 
 // MODEL
 
-const NotSubmitted = ts('NotSubmitted')
-const Submitting = ts('Submitting')
-const SubmitSuccess = ts('SubmitSuccess', { confirmationText: S.String })
-const SubmitError = ts('SubmitError', { error: S.String })
+const Submission = defineTaggedUnion({
+  NotSubmitted: {},
+  Submitting: {},
+  SubmitSuccess: { confirmationText: Schema.String },
+  SubmitError: { error: Schema.String },
+})
 
-const Submission = S.Union([
-  NotSubmitted,
-  Submitting,
-  SubmitSuccess,
-  SubmitError,
-])
-
-type NotSubmitted = typeof NotSubmitted.Type
-type Submitting = typeof Submitting.Type
-type SubmitSuccess = typeof SubmitSuccess.Type
-type SubmitError = typeof SubmitError.Type
 type Submission = typeof Submission.Type
 
-export const Model = S.Struct({
-  name: Field(S.String),
-  email: Field(S.String),
-  messageText: Field(S.String),
+export const Model = Schema.Struct({
+  name: Field(Schema.String),
+  email: Field(Schema.String),
+  messageText: Field(Schema.String),
   submission: Submission,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const UpdatedName = m('UpdatedName', { value: S.String })
-export const UpdatedEmail = m('UpdatedEmail', { value: S.String })
-export const CompletedValidateEmail = m('CompletedValidateEmail', {
-  field: Field(S.String),
+export const Message = defineMessageUnion({
+  UpdatedName: { value: Schema.String },
+  UpdatedEmail: { value: Schema.String },
+  CompletedValidateEmail: { field: Field(Schema.String) },
+  UpdatedMessageText: { value: Schema.String },
+  ClickedFormSubmit: {},
+  SucceededSubmitForm: { name: Schema.String },
+  FailedSubmitForm: {},
 })
-export const UpdatedMessageText = m('UpdatedMessageText', { value: S.String })
-export const ClickedFormSubmit = m('ClickedFormSubmit')
-export const SucceededSubmitForm = m('SucceededSubmitForm', { name: S.String })
-export const FailedSubmitForm = m('FailedSubmitForm')
 
-export const Message = S.Union([
-  UpdatedName,
-  UpdatedEmail,
-  CompletedValidateEmail,
-  UpdatedMessageText,
-  ClickedFormSubmit,
-  SucceededSubmitForm,
-  FailedSubmitForm,
-])
 export type Message = typeof Message.Type
 
 // INIT
@@ -92,13 +67,12 @@ export const initialModel: Model = {
   name: NotValidated({ value: '' }),
   email: NotValidated({ value: '' }),
   messageText: NotValidated({ value: '' }),
-  submission: NotSubmitted(),
+  submission: Submission.NotSubmitted(),
 }
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  initialModel,
-  [],
-]
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: initialModel,
+})
 
 // FIELD VALIDATION
 
@@ -115,19 +89,19 @@ const isEmailOnWaitlist = (email: string): Effect.Effect<boolean> =>
   })
 
 export const ValidateEmail = Command.define('ValidateEmail', {
-  args: { email: S.String },
-  messages: [CompletedValidateEmail],
+  args: { email: Schema.String },
+  messages: [Message.CompletedValidateEmail],
   execute: ({ email }) =>
     Effect.gen(function* () {
       if (yield* isEmailOnWaitlist(email)) {
-        return CompletedValidateEmail({
+        return Message.CompletedValidateEmail({
           field: Invalid({
             value: email,
             errors: ['This email is already on our waitlist'],
           }),
         })
       } else {
-        return CompletedValidateEmail({
+        return Message.CompletedValidateEmail({
           field: Valid({ value: email }),
         })
       }
@@ -145,124 +119,114 @@ const isFormValid = (model: Model): boolean =>
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      UpdatedName: ({ value }) => [
-        evo(model, {
-          name: () => validateName(value),
-        }),
-        [],
-      ],
-
-      UpdatedEmail: ({ value }) => {
-        const validateEmailResult = validateEmail(value)
-
-        if (validateEmailResult._tag === 'Valid') {
-          return [
-            evo(model, {
-              email: () => Validating({ value }),
-            }),
-            [ValidateEmail({ email: value })],
-          ]
-        } else {
-          return [
-            evo(model, {
-              email: () => validateEmailResult,
-            }),
-            [],
-          ]
-        }
-      },
-
-      CompletedValidateEmail: ({ field }) => {
-        if (field.value === model.email.value) {
-          return [
-            evo(model, {
-              email: () => field,
-            }),
-            [],
-          ]
-        } else {
-          return [model, []]
-        }
-      },
-
-      UpdatedMessageText: ({ value }) => [
-        evo(model, {
-          messageText: () => Valid({ value }),
-        }),
-        [],
-      ],
-
-      ClickedFormSubmit: () => {
-        if (model.submission._tag === 'Submitting') {
-          return [model, []]
-        }
-
-        if (!isFormValid(model)) {
-          return [model, []]
-        }
-
-        return [
-          evo(model, {
-            submission: () => Submitting(),
-          }),
-          [
-            SubmitForm({
-              name: model.name.value,
-              email: model.email.value,
-              messageText: model.messageText.value,
-            }),
-          ],
-        ]
-      },
-
-      SucceededSubmitForm: ({ name }) => [
-        evo(model, {
-          submission: () =>
-            SubmitSuccess({
-              confirmationText: `Welcome to the waitlist, ${name}! We'll be in touch soon.`,
-            }),
-        }),
-        [],
-      ],
-
-      FailedSubmitForm: () => [
-        evo(model, {
-          submission: () =>
-            SubmitError({
-              error:
-                'Sorry, there was an error adding you to the waitlist. Please try again.',
-            }),
-        }),
-        [],
-      ],
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    UpdatedName: ({ value }) => ({
+      model: evo(model, {
+        name: () => validateName(value),
+      }),
     }),
-  )
+
+    UpdatedEmail: ({ value }) => {
+      const validateEmailResult = validateEmail(value)
+
+      if (validateEmailResult._tag === 'Valid') {
+        return {
+          model: evo(model, {
+            email: () => Validating({ value }),
+          }),
+          commands: [ValidateEmail({ email: value })],
+        }
+      } else {
+        return {
+          model: evo(model, {
+            email: () => validateEmailResult,
+          }),
+        }
+      }
+    },
+
+    CompletedValidateEmail: ({ field }) => {
+      if (field.value === model.email.value) {
+        return {
+          model: evo(model, {
+            email: () => field,
+          }),
+        }
+      } else {
+        return { model }
+      }
+    },
+
+    UpdatedMessageText: ({ value }) => ({
+      model: evo(model, {
+        messageText: () => Valid({ value }),
+      }),
+    }),
+
+    ClickedFormSubmit: () => {
+      if (model.submission._tag === 'Submitting') {
+        return { model }
+      }
+
+      if (!isFormValid(model)) {
+        return { model }
+      }
+
+      return {
+        model: evo(model, {
+          submission: () => Submission.Submitting(),
+        }),
+        commands: [
+          SubmitForm({
+            name: model.name.value,
+            email: model.email.value,
+            messageText: model.messageText.value,
+          }),
+        ],
+      }
+    },
+
+    SucceededSubmitForm: ({ name }) => ({
+      model: evo(model, {
+        submission: () =>
+          Submission.SubmitSuccess({
+            confirmationText: `Welcome to the waitlist, ${name}! We'll be in touch soon.`,
+          }),
+      }),
+    }),
+
+    FailedSubmitForm: () => ({
+      model: evo(model, {
+        submission: () =>
+          Submission.SubmitError({
+            error:
+              'Sorry, there was an error adding you to the waitlist. Please try again.',
+          }),
+      }),
+    }),
+  })
 
 // COMMAND
 
 const FAKE_API_DELAY_MS = 500
 
 export const SubmitForm = Command.define('SubmitForm', {
-  args: { name: S.String, email: S.String, messageText: S.String },
-  messages: [SucceededSubmitForm, FailedSubmitForm],
+  args: {
+    name: Schema.String,
+    email: Schema.String,
+    messageText: Schema.String,
+  },
+  messages: [Message.SucceededSubmitForm, Message.FailedSubmitForm],
   execute: ({ name }) =>
     Effect.gen(function* () {
       yield* Effect.sleep(`${FAKE_API_DELAY_MS} millis`)
 
       const isSuccess = yield* Random.nextBoolean
       if (isSuccess) {
-        return SucceededSubmitForm({ name })
+        return Message.SucceededSubmitForm({ name })
       } else {
-        return FailedSubmitForm()
+        return Message.FailedSubmitForm()
       }
     }),
 })
@@ -273,14 +237,12 @@ const LABEL_CLASS = 'text-sm font-medium text-gray-700'
 const DESCRIPTION_CLASS = 'text-sm mt-1'
 
 const borderClass = (field: Field<string>): string =>
-  M.value(field).pipe(
-    M.tagsExhaustive({
-      NotValidated: () => 'border-gray-300',
-      Validating: () => 'border-blue-300',
-      Valid: () => 'border-green-500',
-      Invalid: () => 'border-red-500',
-    }),
-  )
+  FieldValidation.match(field, {
+    onNotValidated: () => 'border-gray-300',
+    onValidating: () => 'border-blue-300',
+    onValid: () => 'border-green-500',
+    onInvalid: () => 'border-red-500',
+  })
 
 const inputClassName = (field: Field<string>): string =>
   clsx(
@@ -289,43 +251,39 @@ const inputClassName = (field: Field<string>): string =>
   )
 
 const statusIndicator = (field: Field<string>, h: HtmlBuilder<Message>): Html =>
-  M.value(field).pipe(
-    M.tagsExhaustive({
-      NotValidated: () => h.empty,
-      Validating: () =>
-        h.span([h.Class('text-blue-600 text-sm animate-spin')], ['◐']),
-      Valid: () => h.span([h.Class('text-green-600 text-sm')], ['✓']),
-      Invalid: () => h.empty,
-    }),
-  )
+  FieldValidation.match(field, {
+    onNotValidated: () => h.empty,
+    onValidating: () =>
+      h.span([h.Class('text-blue-600 text-sm animate-spin')], ['◐']),
+    onValid: () => h.span([h.Class('text-green-600 text-sm')], ['✓']),
+    onInvalid: () => h.empty,
+  })
 
 const descriptionView = (
   field: Field<string>,
   descriptionAttributes: ReadonlyArray<Attribute<Message>>,
   h: HtmlBuilder<Message>,
 ): Html =>
-  M.value(field).pipe(
-    M.tagsExhaustive({
-      NotValidated: () => h.empty,
-      Validating: () =>
-        h.span(
-          [
-            ...descriptionAttributes,
-            h.Class(clsx(DESCRIPTION_CLASS, 'text-blue-600')),
-          ],
-          ['Checking...'],
-        ),
-      Valid: () => h.empty,
-      Invalid: ({ errors }) =>
-        h.span(
-          [
-            ...descriptionAttributes,
-            h.Class(clsx(DESCRIPTION_CLASS, 'text-red-600')),
-          ],
-          [Array.headNonEmpty(errors)],
-        ),
-    }),
-  )
+  FieldValidation.match(field, {
+    onNotValidated: () => h.empty,
+    onValidating: () =>
+      h.span(
+        [
+          ...descriptionAttributes,
+          h.Class(clsx(DESCRIPTION_CLASS, 'text-blue-600')),
+        ],
+        ['Checking...'],
+      ),
+    onValid: () => h.empty,
+    onInvalid: ({ errors }) =>
+      h.span(
+        [
+          ...descriptionAttributes,
+          h.Class(clsx(DESCRIPTION_CLASS, 'text-red-600')),
+        ],
+        [Array.headNonEmpty(errors)],
+      ),
+  })
 
 const inputFieldView = (
   id: string,
@@ -417,13 +375,13 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           ),
 
           h.form(
-            [h.Class('space-y-4'), h.OnSubmit(ClickedFormSubmit())],
+            [h.Class('space-y-4'), h.OnSubmit(Message.ClickedFormSubmit())],
             [
               inputFieldView(
                 'name',
                 'Name',
                 model.name,
-                value => UpdatedName({ value }),
+                value => Message.UpdatedName({ value }),
                 'text',
                 h,
               ),
@@ -431,7 +389,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                 'email',
                 'Email',
                 model.email,
-                value => UpdatedEmail({ value }),
+                value => Message.UpdatedEmail({ value }),
                 'email',
                 h,
               ),
@@ -439,7 +397,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                 'message',
                 "Anything you'd like to share with us?",
                 model.messageText,
-                value => UpdatedMessageText({ value }),
+                value => Message.UpdatedMessageText({ value }),
                 h,
               ),
 
@@ -472,32 +430,30 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             ],
           ),
 
-          M.value(model.submission).pipe(
-            M.tagsExhaustive({
-              NotSubmitted: () => h.empty,
-              Submitting: () => h.empty,
-              SubmitSuccess: ({ confirmationText }) =>
-                h.div(
-                  [
-                    h.Role('status'),
-                    h.Class(
-                      'mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg',
-                    ),
-                  ],
-                  [confirmationText],
-                ),
-              SubmitError: ({ error }) =>
-                h.div(
-                  [
-                    h.Role('alert'),
-                    h.Class(
-                      'mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg',
-                    ),
-                  ],
-                  [error],
-                ),
-            }),
-          ),
+          Submission.match(model.submission, {
+            NotSubmitted: () => h.empty,
+            Submitting: () => h.empty,
+            SubmitSuccess: ({ confirmationText }) =>
+              h.div(
+                [
+                  h.Role('status'),
+                  h.Class(
+                    'mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg',
+                  ),
+                ],
+                [confirmationText],
+              ),
+            SubmitError: ({ error }) =>
+              h.div(
+                [
+                  h.Role('alert'),
+                  h.Class(
+                    'mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg',
+                  ),
+                ],
+                [error],
+              ),
+          }),
         ],
       ),
     ],

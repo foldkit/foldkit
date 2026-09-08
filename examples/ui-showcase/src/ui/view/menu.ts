@@ -1,15 +1,11 @@
-import { Match as M } from 'effect'
+import { Match } from 'effect'
 import { Submodel } from 'foldkit'
 import { type Html, type HtmlBuilder, childAttributes } from 'foldkit/html'
 
 import { Menu } from '@foldkit/ui'
 
 import * as Icon from '../../icon'
-import {
-  GotMenuAnimatedDemoMessage,
-  GotMenuBasicDemoMessage,
-  type UiMessage,
-} from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 const triggerClassName =
@@ -46,33 +42,33 @@ const MENU_ITEMS: ReadonlyArray<MenuItem> = [
 ]
 
 const menuItemIcon = (item: MenuItem): Html =>
-  M.value(item).pipe(
-    M.when('Edit', () => Icon.pencil(ICON_SIZE)),
-    M.when('Duplicate', () => Icon.documentDuplicate(ICON_SIZE)),
-    M.when('Archive', () => Icon.archiveBox(ICON_SIZE)),
-    M.when('Move', () => Icon.arrowRight(ICON_SIZE)),
-    M.when('Delete', () => Icon.trash(ICON_SIZE)),
-    M.exhaustive,
+  Match.value(item).pipe(
+    Match.when('Edit', () => Icon.pencil(ICON_SIZE)),
+    Match.when('Duplicate', () => Icon.documentDuplicate(ICON_SIZE)),
+    Match.when('Archive', () => Icon.archiveBox(ICON_SIZE)),
+    Match.when('Move', () => Icon.arrowRight(ICON_SIZE)),
+    Match.when('Delete', () => Icon.trash(ICON_SIZE)),
+    Match.exhaustive,
   )
 
 const isItemDisabled = (item: MenuItem): boolean => item === 'Archive'
 
 const itemGroupKey = (item: MenuItem): string =>
-  M.value(item).pipe(
-    M.when('Delete', () => 'Danger'),
-    M.orElse(() => 'Actions'),
+  Match.value(item).pipe(
+    Match.when('Delete', () => 'Danger'),
+    Match.orElse(() => 'Actions'),
   )
 
 const groupToHeading = (
   groupKey: string,
   h: HtmlBuilder<UiMessage>,
 ): Menu.GroupHeading | undefined => {
-  return M.value(groupKey).pipe(
-    M.when('Danger', () => ({
+  return Match.value(groupKey).pipe(
+    Match.when('Danger', () => ({
       content: h.span([], ['Danger Zone']),
       className: headingClassName,
     })),
-    M.orElse(() => undefined),
+    Match.orElse(() => undefined),
   )
 }
 
@@ -138,7 +134,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
               viewInputs: {
                 ...menuViewConfig(basicItemsClassName, h),
               },
-              toParentMessage: message => GotMenuBasicDemoMessage({ message }),
+              toParentMessage: message =>
+                UiMessage.GotMenuBasicDemoMessage({ message }),
             }),
           ],
         ),
@@ -165,7 +162,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                 ...menuViewConfig(animatedItemsClassName, h),
               },
               toParentMessage: message =>
-                GotMenuAnimatedDemoMessage({ message }),
+                UiMessage.GotMenuAnimatedDemoMessage({ message }),
             }),
           ],
         ),

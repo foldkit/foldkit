@@ -24,6 +24,7 @@ describe('no-child-message-construction-in-root', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain('Chat.Message.ClickedOpen')
+    expect(result[0]?.diagnostic.message).toContain('Update.foldChildStep')
   })
 
   it('flags widget-style namespaces', () => {

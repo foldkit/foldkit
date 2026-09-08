@@ -4,10 +4,9 @@ export {
   Model,
   Message,
   OutMessage,
-  Selected,
-  SelectedTab,
-  FocusedTab,
-  CompletedFocusTab,
+  type Selected,
+  type SelectedTab,
+  type FocusedTab,
   FocusTab,
   Orientation,
 } from './index.js'

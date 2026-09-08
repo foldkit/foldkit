@@ -1,5 +1,20 @@
 import { Array, Effect, Option, pipe } from 'effect'
-import { Diagnostic, type ESTree, Rule, RuleContext } from 'effect-oxlint'
+import {
+  Diagnostic,
+  type ESTree,
+  type Reference,
+  Rule,
+  RuleContext,
+  type ScopeManager,
+  type Variable,
+} from 'effect-oxlint'
+
+import {
+  indexReferences,
+  isIdentifierReference,
+  resolveFoldkitApiPath,
+  resolvedVariable,
+} from '../guards.ts'
 
 type LazyFactoryName = 'createLazy' | 'createKeyedLazy'
 
@@ -70,16 +85,29 @@ type LazyFactoryCall = Readonly<{
 
 const matchLazyFactoryCall = (
   node: ESTree.Node,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<LazyFactoryCall> => {
   const unwrapped = unwrapExpression(node)
   if (unwrapped.type !== 'CallExpression') {
     return Option.none()
   }
   const callee = unwrapExpression(unwrapped.callee)
-  if (callee.type !== 'Identifier' || !isLazyFactoryName(callee.name)) {
-    return Option.none()
+  if (references === undefined) {
+    return callee.type === 'Identifier' && isLazyFactoryName(callee.name)
+      ? Option.some({ call: unwrapped, factoryName: callee.name })
+      : Option.none()
   }
-  return Option.some({ call: unwrapped, factoryName: callee.name })
+
+  return Option.flatMap(resolveFoldkitApiPath(references, callee), path => {
+    const [namespace, factoryName, extraMember] = path
+
+    return namespace === 'Html' &&
+      factoryName !== undefined &&
+      isLazyFactoryName(factoryName) &&
+      extraMember === undefined
+      ? Option.some({ call: unwrapped, factoryName })
+      : Option.none()
+  })
 }
 
 const declarationOf = (
@@ -100,12 +128,15 @@ const declarationOf = (
 
 type RegisteredSlot = Readonly<{
   slotName: string
+  variable: Variable | undefined
   viewArgumentIndex: number
   initializerCall: ESTree.CallExpression
 }>
 
 const registeredSlotsOf = (
   program: ESTree.Program,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+  scopeManager: ScopeManager | undefined,
 ): ReadonlyArray<RegisteredSlot> =>
   pipe(
     program.body,
@@ -125,12 +156,15 @@ const registeredSlotsOf = (
       }
       const slotName = declarator.id.name
       return pipe(
-        matchLazyFactoryCall(declarator.init),
+        matchLazyFactoryCall(declarator.init, references),
         Option.match({
           onNone: () => [],
           onSome: factoryCall => [
             {
               slotName,
+              variable: scopeManager
+                ?.getDeclaredVariables(declarator)
+                .find(variable => variable.name === slotName),
               viewArgumentIndex:
                 VIEW_ARGUMENT_INDEX_BY_FACTORY[factoryCall.factoryName],
               initializerCall: factoryCall.call,
@@ -202,6 +236,21 @@ const isFunctionScopedName = (
   functionScopes: ReadonlyArray<ReadonlySet<string>>,
 ): boolean => functionScopes.some(scope => scope.has(name))
 
+const isNestedInFunctionScope = (scope: Variable['scope']): boolean =>
+  scope.type === 'function' ||
+  (scope.upper !== null && isNestedInFunctionScope(scope.upper))
+
+const isFunctionScopedView = (
+  identifier: ESTree.IdentifierReference,
+  context: AnalysisContext,
+): boolean =>
+  context.references === undefined
+    ? isFunctionScopedName(identifier.name, context.functionScopes)
+    : Option.exists(
+        resolvedVariable(context.references, identifier),
+        variable => isNestedInFunctionScope(variable.scope),
+      )
+
 const MISPLACED_CREATION_MESSAGE =
   '`createLazy()` and `createKeyedLazy()` must be assigned directly to a module-scope `const`. A slot recreated inside a function starts with a cold cache on every call, so the memoization never hits.'
 
@@ -223,14 +272,14 @@ type AnalysisContext = Readonly<{
   slotsByName: ReadonlyMap<string, RegisteredSlot>
   registeredInitializers: ReadonlySet<ESTree.CallExpression>
   functionScopes: ReadonlyArray<ReadonlySet<string>>
+  references: WeakMap<ESTree.Node, Reference> | undefined
 }>
 
 const misplacedCreationOffenses = (
   node: ESTree.CallExpression,
   context: AnalysisContext,
 ): ReadonlyArray<Offense> => {
-  const callee = unwrapExpression(node.callee)
-  if (callee.type !== 'Identifier' || !isLazyFactoryName(callee.name)) {
+  if (Option.isNone(matchLazyFactoryCall(node, context.references))) {
     return []
   }
   if (context.registeredInitializers.has(node)) {
@@ -244,19 +293,29 @@ const unstableViewOffenses = (
   context: AnalysisContext,
 ): ReadonlyArray<Offense> => {
   const callee = unwrapExpression(node.callee)
-  if (callee.type !== 'Identifier') {
+  if (!isIdentifierReference(callee)) {
     return []
   }
   const maybeSlot = Option.fromNullishOr(context.slotsByName.get(callee.name))
   if (Option.isNone(maybeSlot)) {
     return []
   }
-  const slot = maybeSlot.value
+  const { value: slot } = maybeSlot
+  if (
+    context.references !== undefined &&
+    (slot.variable === undefined ||
+      !Option.exists(
+        resolvedVariable(context.references, callee),
+        variable => variable === slot.variable,
+      ))
+  ) {
+    return []
+  }
   const maybeViewArgument = Array.get(node.arguments, slot.viewArgumentIndex)
   if (Option.isNone(maybeViewArgument)) {
     return []
   }
-  const viewArgument = maybeViewArgument.value
+  const { value: viewArgument } = maybeViewArgument
   if (viewArgument.type === 'SpreadElement') {
     return []
   }
@@ -267,8 +326,8 @@ const unstableViewOffenses = (
     ]
   }
   if (
-    unwrappedViewArgument.type === 'Identifier' &&
-    isFunctionScopedName(unwrappedViewArgument.name, context.functionScopes)
+    isIdentifierReference(unwrappedViewArgument) &&
+    isFunctionScopedView(unwrappedViewArgument, context)
   ) {
     return [
       {
@@ -340,12 +399,19 @@ export const lazyViewStableReferences = Rule.define({
   }),
   create: function* () {
     const ctx = yield* RuleContext
+    const scopes = ctx.sourceCode.scopeManager?.scopes
+    const references =
+      scopes === undefined ? undefined : indexReferences(scopes)
     return {
       'Program:exit': (node: ESTree.Node) => {
         if (!isProgram(node)) {
           return Effect.void
         }
-        const registeredSlots = registeredSlotsOf(node)
+        const registeredSlots = registeredSlotsOf(
+          node,
+          references,
+          ctx.sourceCode.scopeManager,
+        )
         const slotsByName = new Map(
           Array.map(
             registeredSlots,
@@ -359,6 +425,7 @@ export const lazyViewStableReferences = Rule.define({
           slotsByName,
           registeredInitializers,
           functionScopes: [],
+          references,
         })
         return Effect.forEach(
           offenses,

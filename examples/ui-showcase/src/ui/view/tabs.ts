@@ -1,14 +1,10 @@
-import { Array, Match as M } from 'effect'
+import { Array, Match } from 'effect'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Tabs } from '@foldkit/ui'
 
-import {
-  GotHorizontalTabsDemoMessage,
-  GotVerticalTabsDemoMessage,
-  type UiMessage,
-} from '../message'
+import { Message as UiMessage } from '../message'
 import { type DemoTab, type UiModel } from '../model'
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']
@@ -91,11 +87,11 @@ const elmPanel = (h: HtmlBuilder<UiMessage>): Html => {
 }
 
 const panelFor = (tab: DemoTab, h: HtmlBuilder<UiMessage>): Html =>
-  M.value(tab).pipe(
-    M.when('Foldkit', () => foldkitPanel(h)),
-    M.when('React', () => reactPanel(h)),
-    M.when('Elm', () => elmPanel(h)),
-    M.exhaustive,
+  Match.value(tab).pipe(
+    Match.when('Foldkit', () => foldkitPanel(h)),
+    Match.when('React', () => reactPanel(h)),
+    Match.when('Elm', () => elmPanel(h)),
+    Match.exhaustive,
   )
 
 export const view = Submodel.defineView<UiModel, UiMessage>(
@@ -141,7 +137,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                 ],
               ),
           },
-          toParentMessage: message => GotHorizontalTabsDemoMessage({ message }),
+          toParentMessage: message =>
+            UiMessage.GotHorizontalTabsDemoMessage({ message }),
         }),
 
         h.h3(
@@ -181,7 +178,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                 ],
               ),
           },
-          toParentMessage: message => GotVerticalTabsDemoMessage({ message }),
+          toParentMessage: message =>
+            UiMessage.GotVerticalTabsDemoMessage({ message }),
         }),
       ],
     )

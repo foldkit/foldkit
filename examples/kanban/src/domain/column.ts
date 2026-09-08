@@ -1,14 +1,14 @@
-import { Array, Match as M, Option, Schema as S, pipe } from 'effect'
+import { Array, Match, Option, Schema, pipe } from 'effect'
 import { evo } from 'foldkit/struct'
 import { generateKeyBetween } from 'fractional-indexing'
 
 import type { Card } from './card'
 import { Card as CardSchema } from './card'
 
-export const Column = S.Struct({
-  id: S.String,
-  name: S.String,
-  cards: S.Array(CardSchema),
+export const Column = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  cards: Schema.Array(CardSchema),
 })
 
 export type Column = typeof Column.Type
@@ -105,10 +105,10 @@ export const reorder = (
     onNone: () => columns,
     onSome: card =>
       Array.map(columns, column =>
-        M.value(column.id).pipe(
-          M.when(fromContainerId, () => removeCard(column, itemId).column),
-          M.when(toContainerId, () => insertCard(column, card, toIndex)),
-          M.orElse(() => column),
+        Match.value(column.id).pipe(
+          Match.when(fromContainerId, () => removeCard(column, itemId).column),
+          Match.when(toContainerId, () => insertCard(column, card, toIndex)),
+          Match.orElse(() => column),
         ),
       ),
   })

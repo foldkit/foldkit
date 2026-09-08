@@ -1,35 +1,21 @@
-import { Schema as S, pipe } from 'effect'
+import { Schema, pipe } from 'effect'
 import { Route } from 'foldkit'
-import { int, literal, r, rest, slash } from 'foldkit/route'
+import { defineRouteUnion, int, literal, rest, slash } from 'foldkit/route'
 
-export const HomeRoute = r('Home')
-export const NestedRoute = r('Nested')
-export const PeopleRoute = r('People', { searchText: S.Option(S.String) })
-export const PersonRoute = r('Person', { personId: S.Number })
-export const FilesIndexRoute = r('FilesIndex')
-export const FilesRoute = r('Files', { path: S.NonEmptyArray(S.String) })
-export const NotFoundRoute = r('NotFound', { path: S.String })
+export const AppRoute = defineRouteUnion({
+  Home: {},
+  Nested: {},
+  People: { searchText: Schema.Option(Schema.String) },
+  Person: { personId: Schema.Number },
+  FilesIndex: {},
+  Files: { path: Schema.NonEmptyArray(Schema.String) },
+  NotFound: { path: Schema.String },
+})
 
-export const AppRoute = S.Union([
-  HomeRoute,
-  NestedRoute,
-  PeopleRoute,
-  PersonRoute,
-  FilesIndexRoute,
-  FilesRoute,
-  NotFoundRoute,
-])
-
-export type HomeRoute = typeof HomeRoute.Type
-export type NestedRoute = typeof NestedRoute.Type
-export type PeopleRoute = typeof PeopleRoute.Type
-export type PersonRoute = typeof PersonRoute.Type
-export type FilesIndexRoute = typeof FilesIndexRoute.Type
-export type FilesRoute = typeof FilesRoute.Type
-export type NotFoundRoute = typeof NotFoundRoute.Type
 export type AppRoute = typeof AppRoute.Type
+export type PeopleRoute = typeof AppRoute.People.Type
 
-export const homeRouter = pipe(Route.root, Route.mapTo(HomeRoute))
+export const homeRouter = pipe(Route.root, Route.mapTo(AppRoute.Home))
 
 export const nestedRouter = pipe(
   literal('nested'),
@@ -37,34 +23,34 @@ export const nestedRouter = pipe(
   slash(literal('is')),
   slash(literal('very')),
   slash(literal('nested')),
-  Route.mapTo(NestedRoute),
+  Route.mapTo(AppRoute.Nested),
 )
 
 export const peopleRouter = pipe(
   literal('people'),
   Route.query(
-    S.Struct({
-      searchText: S.OptionFromOptional(S.String),
+    Schema.Struct({
+      searchText: Schema.OptionFromOptional(Schema.String),
     }),
   ),
-  Route.mapTo(PeopleRoute),
+  Route.mapTo(AppRoute.People),
 )
 
 export const personRouter = pipe(
   literal('people'),
   slash(int('personId')),
-  Route.mapTo(PersonRoute),
+  Route.mapTo(AppRoute.Person),
 )
 
 export const filesIndexRouter = pipe(
   literal('files'),
-  Route.mapTo(FilesIndexRoute),
+  Route.mapTo(AppRoute.FilesIndex),
 )
 
 export const filesRouter = pipe(
   literal('files'),
   slash(rest('path')),
-  Route.mapTo(FilesRoute),
+  Route.mapTo(AppRoute.Files),
 )
 
 const routeParser = Route.oneOf(
@@ -78,5 +64,5 @@ const routeParser = Route.oneOf(
 
 export const urlToAppRoute = Route.parseUrlWithFallback(
   routeParser,
-  NotFoundRoute,
+  AppRoute.NotFound,
 )

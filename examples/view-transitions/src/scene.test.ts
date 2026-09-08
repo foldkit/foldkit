@@ -3,23 +3,13 @@ import { Scene } from 'foldkit'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import {
-  ArtworkRoute,
-  ChangedUrl,
-  GalleryRoute,
-  Model,
-  NotFoundRoute,
-  UpdatedFilterText,
-  update,
-  view,
-  viewTransition,
-} from './main'
+import { AppRoute, Message, Model, update, view, viewTransition } from './main'
 
-const gallery = Model.make({ route: GalleryRoute(), filterText: '' })
+const gallery = Model.make({ route: AppRoute.Gallery(), filterText: '' })
 const artworkDetail = (artworkId: number) =>
-  Model.make({ route: ArtworkRoute({ artworkId }), filterText: '' })
+  Model.make({ route: AppRoute.Artwork({ artworkId }), filterText: '' })
 const notFound = Model.make({
-  route: NotFoundRoute({ path: '/nowhere' }),
+  route: AppRoute.NotFound({ path: '/nowhere' }),
   filterText: '',
 })
 
@@ -93,7 +83,7 @@ describe('viewTransition', () => {
     const decision = viewTransition({
       previousModel: gallery,
       model: artworkDetail(1),
-      message: ChangedUrl({ url: urlFor('/artwork/1') }),
+      message: Message.ChangedUrl({ url: urlFor('/artwork/1') }),
     })
 
     expect(decision).toEqual({ types: ['to-artwork-detail'] })
@@ -103,7 +93,7 @@ describe('viewTransition', () => {
     const decision = viewTransition({
       previousModel: artworkDetail(1),
       model: gallery,
-      message: ChangedUrl({ url: urlFor('/') }),
+      message: Message.ChangedUrl({ url: urlFor('/') }),
     })
 
     expect(decision).toEqual({ types: ['to-gallery'] })
@@ -113,7 +103,7 @@ describe('viewTransition', () => {
     const decision = viewTransition({
       previousModel: artworkDetail(1),
       model: artworkDetail(2),
-      message: ChangedUrl({ url: urlFor('/artwork/2') }),
+      message: Message.ChangedUrl({ url: urlFor('/artwork/2') }),
     })
 
     expect(decision).toBe(true)
@@ -123,7 +113,7 @@ describe('viewTransition', () => {
     const decision = viewTransition({
       previousModel: gallery,
       model: gallery,
-      message: UpdatedFilterText({ filterText: 'g' }),
+      message: Message.UpdatedFilterText({ filterText: 'g' }),
     })
 
     expect(decision).toBe(false)

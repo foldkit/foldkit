@@ -1,5 +1,5 @@
-import { Array, Match as M, Number, Option, Result } from 'effect'
-import { Command } from 'foldkit'
+import { Array, Number, Option, Result } from 'effect'
+import { Command, Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { Slider } from '@foldkit/ui'
@@ -31,17 +31,11 @@ import {
   TRAIL_LENGTH,
   TWO_PI,
 } from './constant'
-import {
-  CompletedGenerateAmbientParticle,
-  CompletedGenerateBurstParticle,
-  GotFlowStrengthSliderMessage,
-  GotNoiseScaleSliderMessage,
-  Message,
-} from './message'
+import { Message } from './message'
 import { Model, Particle, Point } from './model'
 import { fractalNoise } from './noise'
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 const computeFieldAngle = (
   point: Point,
@@ -206,8 +200,8 @@ const appendGeneratedParticle =
   (model: Model) =>
   (
     generatedParticle:
-      | typeof CompletedGenerateAmbientParticle.Type
-      | typeof CompletedGenerateBurstParticle.Type,
+      | typeof Message.CompletedGenerateAmbientParticle.Type
+      | typeof Message.CompletedGenerateBurstParticle.Type,
   ): UpdateReturn => {
     const newParticle: Particle = {
       id: model.nextId,
@@ -221,114 +215,106 @@ const appendGeneratedParticle =
       initialAngle: generatedParticle.initialAngle,
       initialSpeedScale: generatedParticle.initialSpeedScale,
     }
-    return [
-      evo(model, {
+    return {
+      model: evo(model, {
         particles: Array.append(newParticle),
         nextId: Number.increment,
       }),
-      [],
-    ]
+    }
   }
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    M.withReturnType<UpdateReturn>(),
-    M.tagsExhaustive({
-      TickedFrame: ({ deltaTimeMs }) => {
-        const deltaSeconds = cappedDeltaSeconds(deltaTimeMs)
-        const nextElapsedSeconds = model.elapsedSeconds + deltaSeconds
-        const advancedParticles = Array.filterMap(
-          model.particles,
-          advanceParticle(
-            deltaSeconds,
-            nextElapsedSeconds,
-            model.flowStrength,
-            model.noiseScale,
-            model.maybeMousePosition,
-          ),
-        )
-        const nextModel = evo(model, {
-          particles: () => advancedParticles,
-          elapsedSeconds: () => nextElapsedSeconds,
-        })
-        return [nextModel, spawnAmbientParticles(advancedParticles.length)]
-      },
+const foldFlowStrengthSliderOutMessage = Slider.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  ChangedValue:
+    ({ value }) =>
+    model => ({ model: evo(model, { flowStrength: () => value }) }),
+})
 
-      CompletedGenerateAmbientParticle: appendGeneratedParticle(model),
+const foldFlowStrengthSlider = Update.foldChild({
+  update: Slider.update,
+  read: (model: Model) => Option.some(model.flowStrengthSlider),
+  write: (model, nextFlowStrengthSlider) =>
+    evo(model, { flowStrengthSlider: () => nextFlowStrengthSlider }),
+  toParentMessage: message => Message.GotFlowStrengthSliderMessage({ message }),
+  foldOutMessage: foldFlowStrengthSliderOutMessage,
+})
 
-      CompletedGenerateBurstParticle: appendGeneratedParticle(model),
+const foldNoiseScaleSliderOutMessage = Slider.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  ChangedValue:
+    ({ value }) =>
+    model => ({ model: evo(model, { noiseScale: () => value }) }),
+})
 
-      PressedCanvas: ({ x, y }) => [
-        model,
-        spawnBurstParticles(x, y, computeBurstHueAnchor(model.elapsedSeconds)),
-      ],
+const foldNoiseScaleSlider = Update.foldChild({
+  update: Slider.update,
+  read: (model: Model) => Option.some(model.noiseScaleSlider),
+  write: (model, nextNoiseScaleSlider) =>
+    evo(model, { noiseScaleSlider: () => nextNoiseScaleSlider }),
+  toParentMessage: message => Message.GotNoiseScaleSliderMessage({ message }),
+  foldOutMessage: foldNoiseScaleSliderOutMessage,
+})
 
-      MovedPointer: ({ x, y }) => [
-        evo(model, {
-          maybeMousePosition: () => Option.some(Point.make({ x, y })),
-        }),
-        [],
-      ],
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    TickedFrame: ({ deltaTimeMs }) => {
+      const deltaSeconds = cappedDeltaSeconds(deltaTimeMs)
+      const nextElapsedSeconds = model.elapsedSeconds + deltaSeconds
+      const advancedParticles = Array.filterMap(
+        model.particles,
+        advanceParticle(
+          deltaSeconds,
+          nextElapsedSeconds,
+          model.flowStrength,
+          model.noiseScale,
+          model.maybeMousePosition,
+        ),
+      )
+      const nextModel = evo(model, {
+        particles: () => advancedParticles,
+        elapsedSeconds: () => nextElapsedSeconds,
+      })
+      return {
+        model: nextModel,
+        commands: spawnAmbientParticles(advancedParticles.length),
+      }
+    },
 
-      ClickedTogglePlay: () => [
-        evo(model, { isRunning: running => !running }),
-        [],
-      ],
+    CompletedGenerateAmbientParticle: appendGeneratedParticle(model),
 
-      ClickedReset: () => [
-        evo(model, {
-          particles: () => [],
-          maybeMousePosition: () => Option.none(),
-        }),
-        [],
-      ],
+    CompletedGenerateBurstParticle: appendGeneratedParticle(model),
 
-      GotFlowStrengthSliderMessage: ({ message }) => {
-        const [nextSlider, sliderCommands, maybeOutMessage] = Slider.update(
-          model.flowStrengthSlider,
-          message,
-        )
-        const nextFlowStrength = Option.match(maybeOutMessage, {
-          onNone: () => model.flowStrength,
-          onSome: M.type<Slider.OutMessage>().pipe(
-            M.tagsExhaustive({
-              ChangedValue: ({ value }) => value,
-            }),
-          ),
-        })
-        return [
-          evo(model, {
-            flowStrengthSlider: () => nextSlider,
-            flowStrength: () => nextFlowStrength,
-          }),
-          Command.mapMessages(sliderCommands, message =>
-            GotFlowStrengthSliderMessage({ message }),
-          ),
-        ]
-      },
-
-      GotNoiseScaleSliderMessage: ({ message }) => {
-        const [nextSlider, sliderCommands, maybeOutMessage] = Slider.update(
-          model.noiseScaleSlider,
-          message,
-        )
-        const nextNoiseScale = Option.match(maybeOutMessage, {
-          onNone: () => model.noiseScale,
-          onSome: M.type<Slider.OutMessage>().pipe(
-            M.tagsExhaustive({
-              ChangedValue: ({ value }) => value,
-            }),
-          ),
-        })
-        return [
-          evo(model, {
-            noiseScaleSlider: () => nextSlider,
-            noiseScale: () => nextNoiseScale,
-          }),
-          Command.mapMessages(sliderCommands, message =>
-            GotNoiseScaleSliderMessage({ message }),
-          ),
-        ]
-      },
+    PressedCanvas: ({ x, y }) => ({
+      model,
+      commands: spawnBurstParticles(
+        x,
+        y,
+        computeBurstHueAnchor(model.elapsedSeconds),
+      ),
     }),
-  )
+
+    MovedPointer: ({ x, y }) => ({
+      model: evo(model, {
+        maybeMousePosition: () => Option.some(Point.make({ x, y })),
+      }),
+    }),
+
+    ClickedTogglePlay: () => ({
+      model: evo(model, { isRunning: running => !running }),
+    }),
+
+    ClickedReset: () => ({
+      model: evo(model, {
+        particles: () => [],
+        maybeMousePosition: () => Option.none(),
+      }),
+    }),
+
+    GotFlowStrengthSliderMessage: ({ message }) =>
+      foldFlowStrengthSlider(model, message),
+
+    GotNoiseScaleSliderMessage: ({ message }) =>
+      foldNoiseScaleSlider(model, message),
+  })

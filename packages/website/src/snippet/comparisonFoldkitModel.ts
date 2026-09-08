@@ -1,21 +1,24 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 
-import { Dialog, Listbox } from '@foldkit/ui'
+import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
-export const Model = S.Struct({
+export const Model = Schema.Struct({
   grid: Grid,
-  undoStack: S.Array(Grid),
-  redoStack: S.Array(Grid),
+  undoStack: Schema.Array(Grid),
+  redoStack: Schema.Array(Grid),
   selectedColorIndex: PaletteIndex,
-  gridSize: S.Number,
+  gridSize: Schema.Number,
   tool: Tool,
   mirrorMode: MirrorMode,
-  isDrawing: S.Boolean,
-  maybeHoveredCell: S.Option(Position),
+  isDrawing: Schema.Boolean,
+  maybeHoveredCell: Schema.Option(Position),
   errorDialog: Dialog.Model,
-  maybeExportError: S.Option(S.String),
-  paletteThemeIndex: S.Number,
+  maybeExportError: Schema.Option(Schema.String),
+  paletteThemeIndex: Schema.Number,
   gridSizeConfirmDialog: Dialog.Model,
-  maybePendingGridSize: S.Option(S.Number),
+  maybePendingGridSize: Schema.Option(Schema.Number),
   themeListbox: Listbox.Model,
+  toolRadioGroup: RadioGroup.Model,
+  gridSizeRadioGroup: RadioGroup.Model,
+  paletteRadioGroup: RadioGroup.Model,
 })

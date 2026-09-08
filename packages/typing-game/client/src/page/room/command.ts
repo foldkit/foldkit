@@ -1,4 +1,4 @@
-import { Effect, Option, Schema as S } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
 import { Command, Dom } from 'foldkit'
 
@@ -10,40 +10,23 @@ import {
   USER_GAME_TEXT_INPUT_ID,
 } from '../../constant'
 import { RoomsClient } from '../../rpc'
-import {
-  CompletedClearSession,
-  CompletedFocusRoomPageUsernameInput,
-  CompletedFocusUserGameTextInput,
-  CompletedLoadSession,
-  CompletedSavePlayerSession,
-  CompletedUpdatePlayerProgress,
-  CompletedWaitBeforeHidingRoomIdCopiedIndicator,
-  CompletedWaitForExitCountdownInterval,
-  FailedCopyRoomId,
-  FailedFetchRoom,
-  FailedJoinRoom,
-  FailedStartGame,
-  SucceededCopyRoomId,
-  SucceededFetchRoom,
-  SucceededJoinRoom,
-  SucceededStartGame,
-} from './message'
-import { RoomPlayerSession } from './model'
+import { Message } from './message'
+import { RoomPlayerSession, RoomPlayerSessionJsonString } from './model'
 
 export const FetchRoom = Command.define('FetchRoom', {
-  args: { roomId: S.String },
-  messages: [SucceededFetchRoom, FailedFetchRoom],
+  args: { roomId: Schema.String },
+  messages: [Message.SucceededFetchRoom, Message.FailedFetchRoom],
   execute: ({ roomId }) =>
     Effect.gen(function* () {
       const client = yield* RoomsClient
       const room = yield* client.getRoomById({ roomId })
-      return SucceededFetchRoom({ room })
-    }).pipe(Effect.catch(() => Effect.succeed(FailedFetchRoom()))),
+      return Message.SucceededFetchRoom({ room })
+    }).pipe(Effect.catch(() => Effect.succeed(Message.FailedFetchRoom()))),
 })
 
 export const LoadSession = Command.define('LoadSession', {
-  args: { roomId: S.String },
-  messages: [CompletedLoadSession],
+  args: { roomId: Schema.String },
+  messages: [Message.CompletedLoadSession],
   execute: ({ roomId }) =>
     Effect.gen(function* () {
       const store = yield* KeyValueStore.KeyValueStore
@@ -52,11 +35,11 @@ export const LoadSession = Command.define('LoadSession', {
       const sessionJson = yield* Effect.fromOption(
         Option.fromNullishOr(maybeSessionJson),
       )
-      const decodeSession = S.decodeEffect(S.fromJsonString(RoomPlayerSession))
+      const decodeSession = Schema.decodeEffect(RoomPlayerSessionJsonString)
 
       return yield* decodeSession(sessionJson).pipe(
         Effect.map(session =>
-          CompletedLoadSession({
+          Message.CompletedLoadSession({
             maybeSession: Option.liftPredicate(
               session,
               session => session.roomId === roomId,
@@ -66,42 +49,44 @@ export const LoadSession = Command.define('LoadSession', {
       )
     }).pipe(
       Effect.catch(() =>
-        Effect.succeed(CompletedLoadSession({ maybeSession: Option.none() })),
+        Effect.succeed(
+          Message.CompletedLoadSession({ maybeSession: Option.none() }),
+        ),
       ),
       Effect.provide(BrowserKeyValueStore.layerSessionStorage),
     ),
 })
 
 export const JoinRoom = Command.define('JoinRoom', {
-  args: { username: S.String, roomId: S.String },
-  messages: [SucceededJoinRoom, FailedJoinRoom],
+  args: { username: Schema.String, roomId: Schema.String },
+  messages: [Message.SucceededJoinRoom, Message.FailedJoinRoom],
   execute: ({ username, roomId }) =>
     Effect.gen(function* () {
       const client = yield* RoomsClient
       const { player } = yield* client.joinRoom({ username, roomId })
-      return SucceededJoinRoom({ player })
-    }).pipe(Effect.catch(() => Effect.succeed(FailedJoinRoom()))),
+      return Message.SucceededJoinRoom({ player })
+    }).pipe(Effect.catch(() => Effect.succeed(Message.FailedJoinRoom()))),
 })
 
 export const StartGame = Command.define('StartGame', {
-  args: { roomId: S.String, playerId: S.String },
-  messages: [SucceededStartGame, FailedStartGame],
+  args: { roomId: Schema.String, playerId: Schema.String },
+  messages: [Message.SucceededStartGame, Message.FailedStartGame],
   execute: ({ roomId, playerId }) =>
     Effect.gen(function* () {
       const client = yield* RoomsClient
       yield* client.startGame({ roomId, playerId })
-      return SucceededStartGame()
-    }).pipe(Effect.catch(() => Effect.succeed(FailedStartGame()))),
+      return Message.SucceededStartGame()
+    }).pipe(Effect.catch(() => Effect.succeed(Message.FailedStartGame()))),
 })
 
 export const UpdatePlayerProgress = Command.define('UpdatePlayerProgress', {
   args: {
-    playerId: S.String,
-    gameId: S.String,
-    userGameText: S.String,
-    charsTyped: S.Number,
+    playerId: Schema.String,
+    gameId: Schema.String,
+    userGameText: Schema.String,
+    charsTyped: Schema.Number,
   },
-  messages: [CompletedUpdatePlayerProgress],
+  messages: [Message.CompletedUpdatePlayerProgress],
   execute: ({ playerId, gameId, userGameText, charsTyped }) =>
     Effect.gen(function* () {
       const client = yield* RoomsClient
@@ -111,31 +96,33 @@ export const UpdatePlayerProgress = Command.define('UpdatePlayerProgress', {
         userText: userGameText,
         charsTyped,
       })
-      return CompletedUpdatePlayerProgress()
+      return Message.CompletedUpdatePlayerProgress()
     }).pipe(
-      Effect.catch(() => Effect.succeed(CompletedUpdatePlayerProgress())),
+      Effect.catch(() =>
+        Effect.succeed(Message.CompletedUpdatePlayerProgress()),
+      ),
     ),
 })
 
 export const CopyRoomId = Command.define('CopyRoomId', {
-  args: { roomId: S.String },
-  messages: [SucceededCopyRoomId, FailedCopyRoomId],
+  args: { roomId: Schema.String },
+  messages: [Message.SucceededCopyRoomId, Message.FailedCopyRoomId],
   execute: ({ roomId }) =>
     Effect.tryPromise({
       try: () => navigator.clipboard.writeText(roomId),
       catch: () => new Error('Failed to copy to clipboard'),
     }).pipe(
-      Effect.as(SucceededCopyRoomId()),
-      Effect.catch(() => Effect.succeed(FailedCopyRoomId())),
+      Effect.as(Message.SucceededCopyRoomId()),
+      Effect.catch(() => Effect.succeed(Message.FailedCopyRoomId())),
     ),
 })
 
 export const WaitForExitCountdownInterval = Command.define(
   'WaitForExitCountdownInterval',
   {
-    messages: [CompletedWaitForExitCountdownInterval],
+    messages: [Message.CompletedWaitForExitCountdownInterval],
     execute: Effect.sleep('1 second').pipe(
-      Effect.as(CompletedWaitForExitCountdownInterval()),
+      Effect.as(Message.CompletedWaitForExitCountdownInterval()),
     ),
   },
 )
@@ -145,9 +132,9 @@ const COPY_INDICATOR_DURATION = '2 seconds'
 export const WaitBeforeHidingRoomIdCopiedIndicator = Command.define(
   'WaitBeforeHidingRoomIdCopiedIndicator',
   {
-    messages: [CompletedWaitBeforeHidingRoomIdCopiedIndicator],
+    messages: [Message.CompletedWaitBeforeHidingRoomIdCopiedIndicator],
     execute: Effect.sleep(COPY_INDICATOR_DURATION).pipe(
-      Effect.as(CompletedWaitBeforeHidingRoomIdCopiedIndicator()),
+      Effect.as(Message.CompletedWaitBeforeHidingRoomIdCopiedIndicator()),
     ),
   },
 )
@@ -156,28 +143,28 @@ export const WaitBeforeHidingRoomIdCopiedIndicator = Command.define(
 
 export const SavePlayerSession = Command.define('SavePlayerSession', {
   args: { session: RoomPlayerSession },
-  messages: [CompletedSavePlayerSession],
+  messages: [Message.CompletedSavePlayerSession],
   execute: ({ session }) =>
     Effect.gen(function* () {
       const store = yield* KeyValueStore.KeyValueStore
-      const encodeSession = S.encodeEffect(S.fromJsonString(RoomPlayerSession))
+      const encodeSession = Schema.encodeEffect(RoomPlayerSessionJsonString)
       const sessionJson = yield* encodeSession(session)
       yield* store.set(ROOM_PLAYER_SESSION_KEY, sessionJson)
-      return CompletedSavePlayerSession()
+      return Message.CompletedSavePlayerSession()
     }).pipe(
-      Effect.catch(() => Effect.succeed(CompletedSavePlayerSession())),
+      Effect.catch(() => Effect.succeed(Message.CompletedSavePlayerSession())),
       Effect.provide(BrowserKeyValueStore.layerSessionStorage),
     ),
 })
 
 export const ClearSession = Command.define('ClearSession', {
-  messages: [CompletedClearSession],
+  messages: [Message.CompletedClearSession],
   execute: Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
     yield* store.remove(ROOM_PLAYER_SESSION_KEY)
-    return CompletedClearSession()
+    return Message.CompletedClearSession()
   }).pipe(
-    Effect.catch(() => Effect.succeed(CompletedClearSession())),
+    Effect.catch(() => Effect.succeed(Message.CompletedClearSession())),
     Effect.provide(BrowserKeyValueStore.layerSessionStorage),
   ),
 })
@@ -185,18 +172,18 @@ export const ClearSession = Command.define('ClearSession', {
 export const FocusRoomPageUsernameInput = Command.define(
   'FocusRoomPageUsernameInput',
   {
-    messages: [CompletedFocusRoomPageUsernameInput],
+    messages: [Message.CompletedFocusRoomPageUsernameInput],
     execute: Dom.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
       Effect.ignore,
-      Effect.as(CompletedFocusRoomPageUsernameInput()),
+      Effect.as(Message.CompletedFocusRoomPageUsernameInput()),
     ),
   },
 )
 
 export const FocusUserGameTextInput = Command.define('FocusUserGameTextInput', {
-  messages: [CompletedFocusUserGameTextInput],
+  messages: [Message.CompletedFocusUserGameTextInput],
   execute: Dom.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
     Effect.ignore,
-    Effect.as(CompletedFocusUserGameTextInput()),
+    Effect.as(Message.CompletedFocusUserGameTextInput()),
   ),
 })

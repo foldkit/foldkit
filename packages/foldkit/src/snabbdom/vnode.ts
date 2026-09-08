@@ -17,6 +17,7 @@ export const VNodeDataMask = {
   On: 8,
   Props: 16,
   Style: 32,
+  OnUnmount: 64,
 }
 
 export interface VNode {

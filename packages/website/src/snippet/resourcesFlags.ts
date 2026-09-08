@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option, Schema as S } from 'effect'
+import { Context, Effect, Layer, Option, Schema } from 'effect'
 import { Runtime } from 'foldkit'
 
 class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
@@ -7,8 +7,8 @@ class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
   static readonly Default = Layer.effect(this, makeApiClient)
 }
 
-const Flags = S.Struct({
-  maybeSession: S.Option(Session),
+const Flags = Schema.Struct({
+  maybeSession: Schema.Option(Session),
 })
 type Flags = typeof Flags.Type
 
@@ -27,10 +27,11 @@ const flags: Effect.Effect<Flags, never, ApiClientService> = Effect.gen(
 const application = Runtime.makeApplication({
   Model,
   Flags,
-  flags,
   init,
   update,
   view,
   container: document.getElementById('root'),
   resources: ApiClientService.Default,
 })
+
+Runtime.run(application, { flags })

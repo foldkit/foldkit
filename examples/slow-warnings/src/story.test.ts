@@ -1,16 +1,8 @@
 import { Command, given, message, model, story } from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
-import {
-  ClickedClearWarnings,
-  ClickedRunPatchWork,
-  ClickedRunSubscriptionDependenciesWork,
-  ClickedRunUpdateWork,
-  ClickedRunViewWork,
-  type Model,
-  RecordedSlowWarning,
-  update,
-} from './main'
+import { Message, type Model, update } from './main'
 
 const initialModel: Model = {
   activeWorkload: 'Idle',
@@ -25,7 +17,7 @@ describe('update', () => {
     story(
       update,
       given(initialModel),
-      message(ClickedRunUpdateWork()),
+      message(Message.ClickedRunUpdateWork()),
       Command.expectNone(),
       model(model => {
         expect(model.activeWorkload).toBe('Update')
@@ -37,7 +29,7 @@ describe('update', () => {
     story(
       update,
       given(initialModel),
-      message(ClickedRunViewWork()),
+      message(Message.ClickedRunViewWork()),
       model(model => {
         expect(model.activeWorkload).toBe('View')
       }),
@@ -48,7 +40,7 @@ describe('update', () => {
     story(
       update,
       given(initialModel),
-      message(ClickedRunPatchWork()),
+      message(Message.ClickedRunPatchWork()),
       model(model => {
         expect(model.activeWorkload).toBe('Patch')
         expect(model.patchRows).toBeGreaterThan(0)
@@ -61,7 +53,7 @@ describe('update', () => {
     story(
       update,
       given(initialModel),
-      message(ClickedRunSubscriptionDependenciesWork()),
+      message(Message.ClickedRunSubscriptionDependenciesWork()),
       model(model => {
         expect(model.activeWorkload).toBe('SubscriptionDependencies')
       }),
@@ -73,7 +65,7 @@ describe('update', () => {
       update,
       given(initialModel),
       message(
-        RecordedSlowWarning({
+        Message.RecordedSlowWarning({
           report: {
             phase: 'Update',
             durationMs: 12,
@@ -103,21 +95,22 @@ describe('update', () => {
   test('ClickedClearWarnings clears warnings without resetting the patch surface', () => {
     story(
       update,
-      given({
-        ...initialModel,
-        patchRows: 4000,
-        warnings: [
-          {
-            id: 1,
-            phase: 'Patch',
-            durationMs: 16,
-            thresholdMs: 8,
-            trigger: 'ClickedRunPatchWork',
-            details: 'Patch work exceeded the threshold.',
-          },
-        ],
-      }),
-      message(ClickedClearWarnings()),
+      given(
+        evo(initialModel, {
+          patchRows: () => 4000,
+          warnings: () => [
+            {
+              id: 1,
+              phase: 'Patch',
+              durationMs: 16,
+              thresholdMs: 8,
+              trigger: 'ClickedRunPatchWork',
+              details: 'Patch work exceeded the threshold.',
+            },
+          ],
+        }),
+      ),
+      message(Message.ClickedClearWarnings()),
       model(model => {
         expect(model.warnings).toEqual([])
         expect(model.patchRows).toBe(4000)

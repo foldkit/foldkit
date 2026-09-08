@@ -1,4 +1,4 @@
-import { Function, Schema as S } from 'effect'
+import { Function, Schema } from 'effect'
 
 import { addDays, subtractDays } from './arithmetic.js'
 import { type CalendarDate, daysInMonth, unsafeMake } from './calendarDate.js'
@@ -7,7 +7,7 @@ import { type CalendarDate, daysInMonth, unsafeMake } from './calendarDate.js'
  * Schema for days of the week, Sunday through Saturday. Tagged union preferred
  * over 0-6 numeric indices to avoid magic numbers at call sites.
  */
-export const DayOfWeek = S.Literals([
+export const DayOfWeek = Schema.Literals([
   'Sunday',
   'Monday',
   'Tuesday',

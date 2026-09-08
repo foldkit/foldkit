@@ -1,4 +1,4 @@
-import { Effect, Option, Schema as S, pipe } from 'effect'
+import { Effect, Option, Schema, pipe } from 'effect'
 import { ManagedResource, Runtime } from 'foldkit'
 
 // 1. Define a Managed Resource identity
@@ -7,7 +7,7 @@ const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
 // 2. Wire the lifecycle with make. The requirements schema sits inline next
 //    to its config: Option.some = active, Option.none = inactive
 const managedResources = ManagedResource.make<Model, Message>()(entry => ({
-  camera: entry(S.Option(S.Struct({ facingMode: S.String })), {
+  camera: entry(Schema.Option(Schema.Struct({ facingMode: Schema.String })), {
     resource: CameraStream,
     modelToMaybeRequirements: model =>
       pipe(

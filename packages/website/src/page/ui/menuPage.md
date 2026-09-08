@@ -4,7 +4,7 @@
 
 A dropdown menu for actions, like a macOS context menu. Menu is fire-and-forget: each activation is an action, not a choice that persists (use Listbox for selection, where the parent owns the selected value). It supports typeahead search, drag-to-select, keyboard navigation, grouped items, and anchor positioning.
 
-For programmatic control in update functions, use the factory’s `open(model)`, `close(model)`, and `selectItem(model, item, index)` methods. Each returns the same `[Model, Commands, Option<OutMessage>]` tuple as `update`.
+Programmatic helpers are child entry points. Fold the factory's `open` and `close` helpers with `Update.foldChildStep`. Fold `selectItem` with `Update.foldChild` because it takes the selected item and index as input.
 
 What `Menu.create<Item>()` returns is typed [`Menu.Bundle<Item>`](/ui/selection-submodels#bundle-type), for the cases where a created bundle has to be named rather than called directly.
 
@@ -14,7 +14,7 @@ Check out how Menu is wired up in a [real Foldkit app](https://github.com/foldki
 
 ## Examples
 
-### Basic {#basic-menu}
+### Basic
 
 Pair `view` and `update` behind `Menu.create<Item>()` at module scope. The factory threads your item union through both, so `Selected({ value, index })` carries the picked value directly. Menu closes automatically after selection.
 
@@ -22,7 +22,7 @@ Pair `view` and `update` behind `Menu.create<Item>()` at module scope. The facto
 
 ::Snippet{name="uiMenuBasic" label="menu example"}
 
-### Animated {#animated-menu}
+### Animated
 
 Pass `isAnimated: true` at init for animation coordination.
 
@@ -115,8 +115,8 @@ Configuration object passed to `Menu.view()`.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Pattern-match on the OutMessage in your update handler.
+Messages emitted to the parent through the optional `outMessage` field. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
 
-| Name       | Type                             | Default | Description                                                                                                                                                                                                                                                                                                                                                                                      |
-| ---------- | -------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Selected` | `{ value: Item; index: number }` | —       | Emitted when a menu item is selected. Carries both the value (typed as your `Item` union via `Menu.create<Item>()`) and its index into the items array supplied at view time. Menu closes itself on selection; the parent does not need to dispatch Menu.close. Pattern-match the third tuple element of Menu.update in your GotMenuMessage handler to dispatch the corresponding domain action. |
+| Name       | Type                             | Default | Description                                                                                                                                                                                                                                                                                                                                                    |
+| ---------- | -------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Selected` | `{ value: Item; index: number }` | —       | Emitted when a menu item is selected. Carries both the value (typed as your `Item` union via `Menu.create<Item>()`) and its index into the items array supplied at view time. Menu closes itself on selection; the parent does not need to dispatch Menu.close. Fold it in the `foldOutMessage` of your Menu fold to dispatch the corresponding domain action. |

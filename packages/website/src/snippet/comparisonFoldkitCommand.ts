@@ -1,8 +1,8 @@
 const SaveCanvas = Command.define('SaveCanvas', {
   args: {
     grid: Grid,
-    gridSize: S.Number,
-    paletteThemeIndex: S.Number,
+    gridSize: Schema.Number,
+    paletteThemeIndex: Schema.Number,
     selectedColorIndex: PaletteIndex,
   },
   messages: [CompletedSaveCanvas],
@@ -15,7 +15,10 @@ const SaveCanvas = Command.define('SaveCanvas', {
         paletteThemeIndex,
         selectedColorIndex,
       }
-      yield* store.set(STORAGE_KEY, S.encodeSync(SavedCanvasJsonString)(data))
+      yield* store.set(
+        STORAGE_KEY,
+        Schema.encodeSync(SavedCanvasJsonString)(data),
+      )
       return CompletedSaveCanvas()
     }).pipe(
       Effect.catch(() => Effect.succeed(CompletedSaveCanvas())),
@@ -24,7 +27,11 @@ const SaveCanvas = Command.define('SaveCanvas', {
 })
 
 const ExportPng = Command.define('ExportPng', {
-  args: { grid: Grid, gridSize: S.Number, paletteThemeIndex: S.Number },
+  args: {
+    grid: Grid,
+    gridSize: Schema.Number,
+    paletteThemeIndex: Schema.Number,
+  },
   messages: [SucceededExportPng, FailedExportPng],
   execute: ({ grid, gridSize, paletteThemeIndex }) =>
     Effect.gen(function* () {

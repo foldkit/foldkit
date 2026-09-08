@@ -350,6 +350,22 @@ describe('createLazy', () => {
 
     expect(callCount).toBe(2)
   })
+
+  it('recomputes when Mount render ownership changes with the same dispatch', () => {
+    let callCount = 0
+    const viewFn = (label: string) => {
+      callCount++
+      return h('div', {}, [label])
+    }
+
+    const lazy = createLazy()
+    lazy(viewFn, ['hello'])
+    clearRuntime()
+    setRuntime(noOpDispatchSync, noOpContext, undefined, 'Replay')
+    lazy(viewFn, ['hello'])
+
+    expect(callCount).toBe(2)
+  })
 })
 
 describe('createKeyedLazy', () => {

@@ -1,16 +1,17 @@
-import { Cause, Effect, Option, Schema as S, Stream } from 'effect'
+import { Cause, Effect, Option, Schema, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
+import { capturedKeyDownStream } from '../../keyboard'
 import { RoomsClient } from '../../rpc'
-import { FailedStreamRoom, Message, UpdatedRoom } from './message'
-import { Model } from './model'
+import { Message } from './message'
+import { Model, capturesKeyboard } from './model'
 
 export const subscriptions = Subscription.make<Model, Message, RoomsClient>()(
   entry => ({
     roomStream: entry(
       {
-        maybeRoomStream: S.Option(
-          S.Struct({ roomId: S.String, playerId: S.String }),
+        maybeRoomStream: Schema.Option(
+          Schema.Struct({ roomId: Schema.String, playerId: Schema.String }),
         ),
       },
       {
@@ -28,11 +29,11 @@ export const subscriptions = Subscription.make<Model, Message, RoomsClient>()(
                 const client = yield* RoomsClient
                 return client.subscribeToRoom({ roomId, playerId }).pipe(
                   Stream.map(({ room, maybePlayerProgress }) =>
-                    UpdatedRoom({ room, maybePlayerProgress }),
+                    Message.UpdatedRoom({ room, maybePlayerProgress }),
                   ),
                   Stream.catchCause(cause =>
                     Stream.make(
-                      FailedStreamRoom({
+                      Message.FailedStreamRoom({
                         error: Option.match(Cause.findErrorOption(cause), {
                           onSome: failure => String(failure),
                           onNone: () => 'Unknown stream error',
@@ -43,6 +44,20 @@ export const subscriptions = Subscription.make<Model, Message, RoomsClient>()(
                 )
               }).pipe(Stream.unwrap),
           }),
+      },
+    ),
+
+    roomKeyboard: entry(
+      { shouldCaptureKeyboard: Schema.Boolean },
+      {
+        modelToDependencies: model => ({
+          shouldCaptureKeyboard: capturesKeyboard(model),
+        }),
+        dependenciesToStream: ({ shouldCaptureKeyboard }) =>
+          Stream.when(
+            capturedKeyDownStream(key => Message.PressedKey({ key })),
+            Effect.sync(() => shouldCaptureKeyboard),
+          ),
       },
     ),
   }),

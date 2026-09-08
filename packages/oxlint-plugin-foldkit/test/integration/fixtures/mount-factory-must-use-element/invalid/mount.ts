@@ -1,10 +1,9 @@
 import { Effect } from 'effect'
-import { Mount } from 'foldkit'
+import { Mount as Mounts } from 'foldkit'
 
 import { CompletedMountAnalytics } from './message'
 
-export const MountAnalytics = Mount.define(
-  'MountAnalytics',
-  {},
-  CompletedMountAnalytics,
-)(() => () => Effect.sync(() => startAnalytics()))
+export const MountAnalytics = Mounts.define('MountAnalytics', {
+  messages: [CompletedMountAnalytics],
+  execute: () => Effect.sync(() => startAnalytics()),
+})

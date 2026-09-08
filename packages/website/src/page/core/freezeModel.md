@@ -1,19 +1,23 @@
 # Freeze Model
 
-## Overview
+## Mutation Detection {#overview}
 
-Foldkit treats the Model as immutable, but TypeScript’s `readonly` is a compile-time hint, not a runtime guarantee. Code like `model.items.push(newItem)` still runs. When it does, reference equality no longer detects the change, so Subscriptions may not fire and the DOM patch can skip nodes that should have updated.
+Foldkit depends on immutable Model updates. TypeScript's `readonly` checks source code, but it cannot stop a write at runtime. If code mutates `model.items` in place, reference equality can no longer tell which parts changed. A Subscription may keep stale dependencies, and the view may leave stale DOM on screen.
 
-To catch mutations early, Foldkit deep-freezes the Model after `init` and after every `update`. Any accidental write throws a `TypeError` at the exact call site with a clear stack trace, instead of silently corrupting state.
+During development, Foldkit deep-freezes the Model after init and after every update. An accidental write then throws a `TypeError` at the write site instead of producing a later rendering or Subscription bug.
 
-Freezing runs in dev mode (gated behind `import.meta.hot`), so there is zero runtime cost in production builds. Set `freezeModel` to `false` to disable it entirely.
+Freezing runs only when Vite HMR is active. Set `freezeModel` to `false` to disable it, but do not use that option to hide a mutation the guardrail found.
 
 ## Scope
 
-Freezing is scoped to plain objects and arrays. Effect-tagged values such as `Option`, `Result`, `DateTime`, `HashSet`, `HashMap`, and `Chunk` are left untouched because they rely on `Hash.cached`, which lazily writes to the instance on the first `Equal.equals` or `Hash.hash` call. Freezing them would crash legitimate Effect operations. `Date`, `Map`, `Set`, `File`, and class instances are also left alone for the same reason.
+Foldkit freezes values selectively:
 
-`Option.some` is special-cased: the wrapper stays intact so `Hash.cached` still works, but the payload inside is frozen. So `Option.some({ items: [...] })` still throws if you try to mutate the inner array.
+- Plain objects and arrays are frozen recursively.
+- Effect values such as `Option`, `Result`, `DateTime`, `HashSet`, `HashMap`, and `Chunk` are not frozen. They may cache a hash on first use, which requires writing to the instance.
+- `Date`, `Map`, `Set`, `File`, and class instances are not frozen.
 
-Messages are never frozen. They routinely carry `Option` and `DateTimeFromSelf` payloads that rely on the same `Hash.cached` mechanism, and they’re short-lived enough that the dev-time safety value is low.
+`Option.some` has one extra rule. Its wrapper remains writable for Effect's hash cache, but Foldkit freezes a plain object or array inside it. Mutating the array in `Option.some({ items: [...] })` still throws.
 
-Cost is amortized to O(diff) per update: already-frozen values are short-circuited, and `evo` preserves unchanged branches by reference, so each update only pays to freeze the newly-created nodes.
+Messages are not frozen. The guardrail applies only to the Model.
+
+Already-frozen values are skipped. Because `evo` preserves unchanged branches by reference, each update freezes only the newly created plain objects and arrays.

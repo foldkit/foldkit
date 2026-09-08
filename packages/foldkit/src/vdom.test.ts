@@ -1,8 +1,10 @@
+import { Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import { h } from './snabbdom/index.js'
 import {
   type VNode,
+  __patchVNode,
   dedupeSharedVNodes,
   memoizedVNodes,
   patch,
@@ -202,5 +204,49 @@ describe('dedupeSharedVNodes', () => {
 
     mounted = patch(mounted, dedupeSharedVNodes(renderTree(true)))
     expect(spanCountsIn(mounted.elm)).toEqual([1, 1, 1])
+  })
+})
+
+describe('__patchVNode', () => {
+  it('fires insert hooks on a fresh render even when the container DOM matches', () => {
+    const container = document.createElement('div')
+    container.innerHTML = '<span>hi</span>'
+    document.body.appendChild(container)
+
+    let rootInserts = 0
+    let childInserts = 0
+    const view = h(
+      'div',
+      {
+        hook: {
+          insert: () => {
+            rootInserts += 1
+          },
+        },
+      },
+      [
+        h(
+          'span',
+          {
+            hook: {
+              insert: () => {
+                childInserts += 1
+              },
+            },
+          },
+          ['hi'],
+        ),
+      ],
+    )
+
+    const patched = __patchVNode(Option.none(), view, container)
+
+    expect(rootInserts).toBe(1)
+    expect(childInserts).toBe(1)
+
+    const rendered = patched.elm
+    if (rendered instanceof Node && rendered.parentNode) {
+      rendered.parentNode.removeChild(rendered)
+    }
   })
 })

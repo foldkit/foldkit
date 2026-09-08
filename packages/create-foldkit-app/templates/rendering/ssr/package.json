@@ -1,0 +1,14 @@
+{
+  "name": "{{name}}",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "node scripts/serve.ts",
+    "typecheck": "tsc --noEmit",
+    "format": "oxfmt",
+    "test": "vitest run",
+    "lint": "oxlint src scripts"
+  }
+}

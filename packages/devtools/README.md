@@ -7,33 +7,44 @@ The overlay displays every Message flowing through your app and lets you inspect
 ## Installation
 
 ```bash
-pnpm add @foldkit/devtools
+pnpm add --save-dev @foldkit/devtools
 # or
-npm install @foldkit/devtools
+npm install --save-dev @foldkit/devtools
 # or
-yarn add @foldkit/devtools
+yarn add --dev @foldkit/devtools
 ```
 
 `@foldkit/devtools` lists `foldkit`, `@foldkit/ui`, `effect`, and `@effect/platform-browser` as peer dependencies, so install those alongside it.
 
 ## Usage
 
-The overlay is opt-in. Pass its `overlay` factory as `devTools.overlay` when you create the application:
+With `@foldkit/vite-plugin`, installing this package as a development dependency is enough to mount the overlay during development. The plugin leaves it out of production builds:
 
 ```typescript
 import { Runtime } from 'foldkit'
 
-import { overlay } from '@foldkit/devtools'
-
 const application = Runtime.makeApplication({
   // ...
-  devTools: { Message, overlay },
+  devTools: {
+    Message,
+  },
 })
 
 Runtime.run(application)
 ```
 
-Without the overlay, a `devTools` config on its own still records Message history and serves the WebSocket bridge that the [DevTools MCP server](https://foldkit.dev/ai/mcp) connects to. Installing `@foldkit/devtools` and passing `overlay` is what mounts the visual panel in the browser.
+The `devTools` configuration is optional unless you need settings such as `Message`, `position`, or `excludeFromHistory`. Recording and the WebSocket bridge that the [DevTools MCP server](https://foldkit.dev/ai/mcp) connects to live in Foldkit's core Runtime.
+
+To include the overlay in production, move `@foldkit/devtools` to regular `dependencies` and set `show: 'Always'`. The dependency section is the build-time opt-in, and `show` controls whether the Runtime mounts it:
+
+```typescript
+const application = Runtime.makeApplication({
+  // ...
+  devTools: {
+    show: 'Always',
+  },
+})
+```
 
 See the [DevTools documentation](https://foldkit.dev/core/devtools) for the full configuration surface.
 

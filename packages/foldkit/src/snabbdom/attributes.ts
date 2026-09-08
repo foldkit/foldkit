@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
+import { parsedAttributeName } from '../domReflection.js'
 import type { Module } from './module.js'
 import { type VNode, type VNodeData, VNodeDataMask } from './vnode.js'
 
@@ -7,12 +8,72 @@ export type Attrs = Record<string, string | number | boolean>
 const xlinkNS = 'http://www.w3.org/1999/xlink'
 const xmlnsNS = 'http://www.w3.org/2000/xmlns/'
 const xmlNS = 'http://www.w3.org/XML/1998/namespace'
-const colonChar = 58
-const xChar = 120
-const mChar = 109
+const htmlNS = 'http://www.w3.org/1999/xhtml'
+
+const FOREIGN_ATTRIBUTE_NAMESPACES: Readonly<Record<string, string>> = {
+  'xlink:actuate': xlinkNS,
+  'xlink:arcrole': xlinkNS,
+  'xlink:href': xlinkNS,
+  'xlink:role': xlinkNS,
+  'xlink:show': xlinkNS,
+  'xlink:title': xlinkNS,
+  'xlink:type': xlinkNS,
+  'xml:base': xmlNS,
+  'xml:lang': xmlNS,
+  'xml:space': xmlNS,
+  xmlns: xmlnsNS,
+  'xmlns:xlink': xmlnsNS,
+}
+
+const namespaceFor = (
+  elementNamespace: string | null,
+  name: string,
+): string | undefined => {
+  if (elementNamespace === null || elementNamespace === htmlNS) {
+    return undefined
+  }
+  return FOREIGN_ATTRIBUTE_NAMESPACES[name]
+}
+
+const normalizedAttributes = (
+  attrs: Attrs,
+  namespace: string | null,
+): Map<string, string | number | boolean> => {
+  const normalized = new Map<string, string | number | boolean>()
+  for (const name of Object.keys(attrs)) {
+    normalized.set(parsedAttributeName(namespace, name), attrs[name]!)
+  }
+  return normalized
+}
+
+const setAttribute = (
+  element: Element,
+  name: string,
+  value: string | number | boolean,
+): void => {
+  const namespace = namespaceFor(element.namespaceURI, name)
+  if (value === true) {
+    if (namespace === undefined) {
+      element.setAttribute(name, '')
+    } else {
+      element.setAttributeNS(namespace, name, '')
+    }
+  } else if (value === false) {
+    if (namespace === undefined) {
+      element.removeAttribute(name)
+    } else {
+      const separator = name.indexOf(':')
+      const localName = separator === -1 ? name : name.slice(separator + 1)
+      element.removeAttributeNS(namespace, localName)
+    }
+  } else if (namespace === undefined) {
+    element.setAttribute(name, value as any)
+  } else {
+    element.setAttributeNS(namespace, name, value as any)
+  }
+}
 
 function updateAttrs(oldVnode: VNode, vnode: VNode): void {
-  let key: string
   const elm: Element = vnode.elm as Element
   let oldAttrs = (oldVnode.data as VNodeData).attrs
   let attrs = (vnode.data as VNodeData).attrs
@@ -22,38 +83,20 @@ function updateAttrs(oldVnode: VNode, vnode: VNode): void {
   oldAttrs = oldAttrs || {}
   attrs = attrs || {}
 
+  const normalizedOld = normalizedAttributes(oldAttrs, elm.namespaceURI)
+  const normalizedNext = normalizedAttributes(attrs, elm.namespaceURI)
+
   // update modified attributes, add new attributes
-  for (key in attrs) {
-    const cur = attrs[key]
-    const old = oldAttrs[key]
+  for (const [name, cur] of normalizedNext) {
+    const old = normalizedOld.get(name)
     if (old !== cur) {
-      if (cur === true) {
-        elm.setAttribute(key, '')
-      } else if (cur === false) {
-        elm.removeAttribute(key)
-      } else {
-        if (key.charCodeAt(0) !== xChar) {
-          elm.setAttribute(key, cur as any)
-        } else if (key.charCodeAt(3) === colonChar) {
-          // Assume xml namespace
-          elm.setAttributeNS(xmlNS, key, cur as any)
-        } else if (key.charCodeAt(5) === colonChar) {
-          // Assume 'xmlns' or 'xlink' namespace
-          key.charCodeAt(1) === mChar
-            ? elm.setAttributeNS(xmlnsNS, key, cur as any)
-            : elm.setAttributeNS(xlinkNS, key, cur as any)
-        } else {
-          elm.setAttribute(key, cur as any)
-        }
-      }
+      setAttribute(elm, name, cur)
     }
   }
-  // remove removed attributes
-  // use `in` operator since the previous `for` iteration uses it (.i.e. add even attributes with undefined value)
-  // the other option is to remove all attributes with value == undefined
-  for (key in oldAttrs) {
-    if (!(key in attrs)) {
-      elm.removeAttribute(key)
+
+  for (const name of normalizedOld.keys()) {
+    if (!normalizedNext.has(name)) {
+      setAttribute(elm, name, false)
     }
   }
 }

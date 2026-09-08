@@ -7,7 +7,7 @@ Run through each category after generating an app. Fix any issues before present
 
 ## Gate commands (run ALL FOUR; fix everything they surface)
 
-- [ ] `format`: run FIRST; rewrites files so subsequent gates see the committed shape. The scaffold wires prettier.
+- [ ] `format`: run FIRST; rewrites files so subsequent gates see the committed shape. The scaffold wires Oxfmt.
 - [ ] `lint`: output clean. This is the substantive structural gate, not just a style pass: the scaffold wires oxlint **and** `@foldkit/oxlint-plugin`, whose 24 `foldkit/*` rules enforce keyed rows, route printing, `Got*` wrapping, Command naming, and more. Treat any `foldkit(...)` diagnostic as a blocker; that is how they are labelled in the output. It also catches the unused imports `tsc` does not.
 - [ ] `typecheck`: no errors. The scaffold wires `tsc --noEmit`.
 - [ ] `test`: all tests pass. The scaffold wires vitest.
@@ -18,7 +18,7 @@ run its script, not the tool named here.
 
 Invoke each through the package manager the project was scaffolded with (`npm run lint`, `pnpm run lint`, `yarn lint`, `bun run lint`). If a script is missing, run the project-local binary through that manager's exec (`pnpm exec oxlint src`, `npm exec --no-install oxlint src`, `yarn exec oxlint src`, `bun x --no-install oxlint src`). Avoid bare `npx`, which fetches from the registry when the binary isn't installed locally.
 
-"Typecheck clean and tests pass" is NOT sufficient. Generated code is rarely Prettier-exact out of the box, and frequently has unused imports (`Invalid`, `NotValidated`, `Valid` imported as values when only used as string-literal tag keys in `M.tag(...)`) that only the linter catches. Skipping either means the user's first `git commit` produces a cascade of formatting/lint fixes they have to clean up.
+"Typecheck clean and tests pass" is NOT sufficient. Generated code rarely matches Oxfmt's output out of the box, and frequently has unused imports (`Invalid`, `NotValidated`, `Valid` imported as values when only used as string-literal tag keys in `Match.tag(...)`) that only the linter catches. Skipping either means the user's first `git commit` produces a cascade of formatting/lint fixes they have to clean up.
 
 ## Mechanical scans (run on every file before tsc)
 
@@ -55,10 +55,9 @@ hits aren't allowed. Phase 4.5 of SKILL.md runs this block; the reviewer in
 Phase 6 runs it again as sanity.
 
 ```bash
-# Empty-object constructor calls. foldkit/no-empty-object-tagged-call covers this
-# ONLY for a bare identifier callee: it bails on `!isIdentifier(node.callee)`, so
-# `Todo.ClickedDelete({})` through a namespace import is unflagged, and namespaced
-# Submodel Messages are the common spelling.
+# Empty-object constructor calls. foldkit/no-empty-object-tagged-call covers bare
+# constructors, Message/Route/State namespaces, and unions declared in this
+# file. Check imported domain unions with other names by eye.
 grep -rn "({})" src/
 
 # External links missing Rel. foldkit/require-rel-for-external-link bails when the
@@ -100,23 +99,41 @@ for f in $(grep -rl "HttpClient" src/); do
   grep -q "from 'effect/unstable/http'" "$f" || echo "WRONG HttpClient ORIGIN: $f"
 done
 
-# Update return type written inline at a match site instead of aliased once
-# per file. The alias itself is fine (most examples spell it by hand);
-# repeating the tuple inline is the finding. Two alternatives on purpose:
-# `withReturnType<$` catches the wrapped form where the tuple sits on the next
-# line, and `withReturnType<readonly [` catches the single-line form. Keep both.
-grep -rn "withReturnType<\s*$\|withReturnType<readonly \[" src/
+# Review update return types. Inline Update.Return at a Message.match when that
+# is its only use. Keep an UpdateReturn alias when another matcher, helper, or
+# exported signature reuses it. A hand-written plain type must include
+# outMessage?: never; prefer the framework type instead.
+rg -n 'type [A-Za-z]*UpdateReturn =|Message\.match<Update\.Return' src/
+rg -n -U 'type [A-Za-z]*UpdateReturn\s*=\s*Readonly<\{' src/
+
+# Review destructuring that names an update-result field. Application results
+# should be operation-named values consumed with dot access. Dot access keeps
+# the operation and all of its returned fields visible together, but someone can
+# still ignore outMessage. A plain domain record may be fine.
+rg -n -U 'const\s+\{[^}]*\b(model|commands|outMessage)\b[^}]*\}\s*=' src/
+
+# Literal empty Commands arrays. foldkit/no-empty-commands-array covers source
+# files where the rule is active. Review test files and any disabled paths too.
+# A producer with statically no Commands omits the field. A computed Commands
+# collection is returned directly without checking whether it is empty.
+rg -n -U '\bcommands\s*:\s*\[\s*\]' src/
+
+# Optional update Commands passed through ?? [] before Command.mapMessages.
+# The mapper accepts undefined and returns a concrete array, so pass result.commands
+# directly. Keep ?? [] where spreading, concatenating, executing, or asserting
+# genuinely requires an array.
+rg -n -U 'Command\.mapMessages\([^)]*commands\s*\?\?\s*\[\]' src/
 
 # T[] syntax in the return type: use ReadonlyArray<Command<Message>>
 grep -rn "readonly Command<.*>\[\]" src/
 
 # Hand-rolled remote-data union: use AsyncData.Schema(Data, Error).
 # Eyeball each hit; a non-remote state machine with these names is fine.
-grep -rn "ts('Loading')" src/
+grep -rn "Loading: {}" src/
 
 # Stale Effect array predicate names (the real ones are isArrayEmpty /
 # isArrayNonEmpty). Note both real ones take a MUTABLE Array<A>: on a Model
-# field from S.Array(...) use Array.match instead.
+# field from Schema.Array(...) use Array.match instead.
 grep -rn "isEmptyArray\|isNonEmptyArray" src/
 
 # Array predicates applied to a Model field: won't compile on ReadonlyArray
@@ -156,8 +173,8 @@ grep -rn "Array\.findFirst.*_tag" src/
 # no expect(...) and no Command.resolve(...), it's a no-op test.
 grep -rnE -A 6 "(^|[^.[:alnum:]_])scene\(" src/ --include="*.test.ts"
 
-# Single-op pipe: pipe(x, Option.match(...)) should be Option.match(x, ...)
-# These are common patterns; eyeball each hit.
+# Possible ordinary call wrapped in pipe. Check whether keeping the value first
+# carries meaning. A plain pipe(x, Option.match(...)) should be Option.match(x, ...).
 grep -rn "pipe([a-zA-Z_]*,\s*$" src/ -A 1 | grep "Option\.match\|Array\.map\|Effect\.runSync"
 
 # Length checks: use Array.match on a Model array (the predicates reject
@@ -195,8 +212,8 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 
 ## Structural completeness
 
-- [ ] Every `m()` declaration is included in the `S.Union`
-- [ ] Every union member has a case in `M.tagsExhaustive` in update
+- [ ] Every Message variant is declared once in `defineMessageUnion()`
+- [ ] Every Message variant has a case in `Message.match` in update
 - [ ] Every route variant has a corresponding view branch
 - [ ] Every `Succeeded*` has a paired `Failed*`
 - [ ] Every discriminated union variant is handled in both update and view
@@ -215,7 +232,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 - [ ] Every Command identity defined with `Command.define` and assigned to a PascalCase constant
 - [ ] No inline `Command.define` in pipe chains. Always stored as a constant
 - [ ] Definitions colocated with the update that produces them
-- [ ] Every _fallible_ Command catches all errors: `Effect.catch(() => Effect.succeed(FailedX(...)))`. Infallible Effects (`Clock.currentTimeMillis`, `Random.nextIntBetween`, `Effect.uuid`, `Calendar.today.local`) do NOT need catch. If the type system shows no error channel, there's nothing to catch, and no paired `Failed*` Message is needed either.
+- [ ] Every _fallible_ Command catches all errors: `Effect.catch(() => Effect.succeed(Message.FailedX(...)))`. Infallible Effects (`Clock.currentTimeMillis`, `Random.nextIntBetween`, `Calendar.today.local`) do NOT need catch. If the type system shows no error channel, there's nothing to catch, and no paired `Failed*` Message is needed either. UUID generation via `Crypto.Crypto` uses `Effect.orDie` instead of a `Failed*` Message; a crypto failure is a defect, not a domain error.
 - [ ] Return types inferred. No explicit `Command<typeof A>` annotations
 - [ ] Factory functions named by action: `fetchWeather`, not `fetchWeatherCommand`
 - [ ] Commands that can't meaningfully fail return `Completed*` Messages, payload-carrying ones included
@@ -223,24 +240,24 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 ## Mount, Command, Subscription, ManagedResource, CustomElement: pick by what causes the side effect
 
 - [ ] **One-time effect after a Message dispatched** → Command. Focus-on-open, navigation, network, storage, analytics, scroll lock paired with a modal opening/closing all belong in `update`'s return, not in `OnMount`.
-- [ ] **Per-instance lifecycle bound to a VNode existing**, where the live `Element` handle is needed → Mount. Anchor positioning, backdrop portaling, attaching observers/listeners to a specific element, third-party library instantiation that takes the element as host. Two constructors picked by emission cardinality: `Mount.define(name, ...results)(element => Effect<Message>)` for one-shot Mounts that produce exactly one Message at acquire (anchor setup, portal-to-body, library instantiation); `Mount.defineStream(name, ...results)(element => Stream<Message>)` for continuous-event Mounts where the element produces a stream of events from listeners or observers (scroll listeners, IntersectionObservers, MutationObservers). Both compose cleanup via `Effect.acquireRelease` and keep the scope open until destroy.
+- [ ] **Per-instance lifecycle bound to a VNode existing**, where the live `Element` handle is needed → Mount. Anchor positioning, backdrop portaling, attaching observers/listeners to a specific element, third-party library instantiation that takes the element as host. Two constructors picked by emission cardinality: `Mount.define(name, { messages, execute: ({ element }) => Effect<Message> })` for one-shot Mounts that produce exactly one Message at acquire (anchor setup, portal-to-body, library instantiation); `Mount.defineStream(name, { messages, execute: ({ element }) => Stream<Message> })` for continuous-event Mounts where the element produces a stream of events from listeners or observers (scroll listeners, IntersectionObservers, MutationObservers). Per-instance inputs go in `args`, and `execute` receives them alongside `element`. Both compose cleanup via `Effect.acquireRelease` and keep the scope open until destroy.
 - [ ] **External event source gated by a Model condition** → Subscription. Timers, document/window events, system theme changes, WebSocket message streams. The factory returns `Stream<Message>` whose lifetime is gated by `modelToDependencies`. Subscriptions look like `Mount.defineStream` in shape (Stream + `Effect.acquireRelease` cleanup), but the cause anchor differs: Mount = element existence, Subscription = Model condition.
 - [ ] **Stateful runtime object** (websocket, camera stream, library instance) keyed on a Model condition, with Commands consuming the handle via `yield*` → ManagedResource. Not a generic "lifecycle on Model condition". There must be a handle for Commands to use.
 - [ ] **Native web component** (Shoelace, vanilla-colorful, emoji-picker-element, anything that speaks typed JS properties + observed attributes + dispatched `CustomEvent`s) → CustomElement. Side-effect-import the package to register the element with the browser, then declare its surface with `CustomElement.define({ tag, properties, events })` to get a typed inline builder. Do NOT reach for Mount + Subscription + tag-name registry to wrap a web component; `CustomElement.define` is the higher-level fit when those three surfaces are available.
 
 ### Two practical rules for Mount (both must hold)
 
-- [ ] **The factory uses the element parameter.** If the factory doesn't read or write the element, Mount is the wrong primitive. Pick Command (transition-driven) or paired Commands (lifecycle-bound but element-handle-not-used).
+- [ ] **`execute` uses the element it receives.** If `execute` doesn't read or write the element, Mount is the wrong primitive. Pick Command (transition-driven) or paired Commands (lifecycle-bound but element-handle-not-used).
 - [ ] **The work is DOM measurement, DOM manipulation, or continuous element-scoped event listening on that element.** Read geometry, mutate CSS, attach an observer/listener, portal the element, hand it to a third-party library. Anything else (network, storage, analytics, focus-on-transition, scroll lock for the page) is a Command.
 
 ### Replay safety
 
-- [ ] Mount factories re-run during DevTools time-travel renders. The two rules above keep Mount work inherently replay-safe (read-only DOM measurement, idempotent DOM mutation, paired observer attachment+cleanup via `Effect.acquireRelease`). If your Mount touches the live world in a way that disrupts replay (focus stealing, scroll locking the live page, library re-instantiation), it shouldn't be a Mount.
+- [ ] A Mount's `execute` runs again during DevTools time-travel renders. The two rules above keep Mount work inherently replay-safe (read-only DOM measurement, idempotent DOM mutation, paired observer attachment+cleanup via `Effect.acquireRelease`). If your Mount touches the live world in a way that disrupts replay (focus stealing, scroll locking the live page, library re-instantiation), it shouldn't be a Mount.
 
 ### Smell check
 
 - [ ] **Don't reach for Mount just because the work happens to coincide with an element appearing.** Check what causes the work. If a Message just dispatched (e.g. `Opened*`, `Submitted*`), the cause is the Message, not the element. Use a Command returned from `update`'s handler. Example: focusing a search input when its dialog opens. The cause is `Opened`, not the input's existence; return a `FocusInput` Command from the `Opened` handler.
-- [ ] **`Effect.acquireRelease` construction lives INSIDE the acquire body, not before it.** If your acquire body reads as `Effect.sync(() => alreadyExistingValue)`, the construction happened earlier and your release is dangling. `acquireRelease` only guarantees atomicity of "acquire body completes → release is registered"; anything constructed outside the acquire body, even one `yield*` earlier, is unprotected against interruption. Fix: express the construction as the success value of the acquire Effect (`Effect.tryPromise(...).pipe(Effect.map(({ Lib }) => new Lib(...)))` for async imports, `Effect.sync(() => new Thing(...))` for sync construction). Applies anywhere `acquireRelease` is used: Mount.define factories, Subscription bodies, anywhere a release function depends on a value produced inside an Effect chain.
+- [ ] **`Effect.acquireRelease` construction lives INSIDE the acquire body, not before it.** If your acquire body reads as `Effect.sync(() => alreadyExistingValue)`, the construction happened earlier and your release is dangling. `acquireRelease` only guarantees atomicity of "acquire body completes → release is registered"; anything constructed outside the acquire body, even one `yield*` earlier, is unprotected against interruption. Fix: express the construction as the success value of the acquire Effect (`Effect.tryPromise(...).pipe(Effect.map(({ Lib }) => new Lib(...)))` for async imports, `Effect.sync(() => new Thing(...))` for sync construction). Applies anywhere `acquireRelease` is used: a Mount's `execute`, Subscription bodies, anywhere a release function depends on a value produced inside an Effect chain.
 
 ### Naming
 
@@ -255,35 +272,45 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 - [ ] Boolean fields prefixed with `is`
 - [ ] No opaque abbreviations or unexplained single-letter names
 - [ ] Constants for all magic numbers
-- [ ] Schema literals are capitalized: `S.Literals(['Active', 'Inactive'])`
+- [ ] Schema literals are capitalized: `Schema.Literals(['Active', 'Inactive'])`
 
 ## State modeling
 
 - [ ] Discriminated unions for multi-valued state (not booleans)
 - [ ] `Option` for absent fields (not empty strings, null, or zero)
 - [ ] Impossible states are unrepresentable
-- [ ] `ts()` for non-Message tagged structs (Model states, route variants)
-- [ ] `m()` only for Message variants
+- [ ] `defineTaggedUnion()` for non-Message domain unions and Model states
+- [ ] `defineRouteUnion()` for Routes
+- [ ] `taggedStruct()` only when the variants cannot be declared together
+- [ ] `defineMessageUnion()` for Message and OutMessage unions
 - [ ] **Remote data uses `AsyncData`, not a hand-rolled union.** `AsyncData.Schema(DataSchema, ErrorSchema)` supplies `Idle`, `Loading`, `Refreshing`, `Failure`, `Stale`, and `Success` plus `match`, `isPending`, `hasData`, `revalidate`, and the rest. A hand-rolled `Idle | Loading | Error | Ok` is missing `Refreshing` and `Stale`, which is what forces a refetch to blank the screen and a failed refetch to discard good data. Reference: `repos/foldkit/examples/weather/src/main.ts`
 
 ## Framework modules over hand-rolled equivalents
 
 Foldkit ships these; reaching past them is a finding, not a style choice.
 
-- [ ] Update return type is aliased once per file, not repeated inline at the signature and again at each `M.withReturnType` site. `Update.Return<Model, Message>` (or `Update.ReturnWithOutMessage<Model, Message, OutMessage>`) is the preferred spelling for new code; a hand-written tuple alias is what most examples still use and is not itself a finding
-- [ ] Multi-step post-mutation handlers use `Update.combine(model, [...])` and `Update.refresh({ read, revalidate, write, load })` rather than hand-threaded `evo` chains and conditional Command arrays
-- [ ] Child Submodel Commands are re-tagged with `Command.mapMessages(commands, toParentMessage)`
+- [ ] A return type used only at `Message.match` is written inline as `Update.Return<Model, Message>` or `Update.ReturnWithOutMessage<Model, Message, OutMessage>`. An `UpdateReturn` alias exists only when another matcher, helper, or exported signature reuses it. The update signature does not repeat the type already supplied to the match. A hand-written plain-return type includes `outMessage?: never`
+- [ ] Update, init, boot, and component helper producers omit `commands` when they statically create no Commands. They return computed Commands collections directly without checking whether the collection is empty. They never write the literal `commands: []`
+- [ ] Update, init, boot, and component helper results are bound to values named after their operations and consumed with dot access, not destructured or renamed. Name collisions use a trailing underscore such as `init_`; child `write` parameters use `next<Field>`
+- [ ] Optional Commands pass directly to `Command.mapMessages`; `result.commands ?? []` appears only where an operation requires a concrete array
+- [ ] Dot access keeps the operation and all of its returned fields visible together but does not prevent someone from ignoring `outMessage`
+- [ ] Child results use `Update.foldChild` or `Update.foldChildStep` instead of manual unpacking
+- [ ] An OutMessage that is already known is included directly in a new result. `Update.withOutMessage` is used for an existing plain return or a value with the type `OutMessage | undefined`: an existing return is piped into the helper, while a new result literal is passed first. No local equivalent helper or conditional spread duplicates it
+- [ ] Child folds include `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. Partial forwarding matches every child variant and returns `undefined` for variants that stop here. The property is omitted when every variant stops here, and no `toParentOutMessage: () => undefined` mapping appears
+- [ ] Two-or-more-step post-mutation handlers use `Update.combine(model, [...])` and `Update.refresh({ read, revalidate, write, load })` rather than hand-threaded `evo` chains and conditional Command arrays. One Step is not wrapped in `Update.combine`, and an inline Step parameter is named `stepModel`
+- [ ] Child Submodel results use `Update.foldChild` or `Update.foldChildStep`, which re-tag Commands through `toParentMessage`; direct `Command.mapMessages` is reserved for lower-level helpers and independent init results
 - [ ] HTTP uses `HttpClient` / `HttpClientRequest` from `effect/unstable/http`, with `Effect.provide(effect, Http.layer)` to supply the client. Not `@effect/platform` (`@effect/platform-browser` is separate and is for `BrowserKeyValueStore` / `BrowserCrypto`)
 - [ ] UI components are imported from `@foldkit/ui` by name (`import { Dialog, Input } from '@foldkit/ui'`). There is no `Ui` namespace on `foldkit`
 
 ## Effect-TS patterns
 
-- [ ] `pipe()` only for multi-step chains (not single operations)
-- [ ] `M.tagsExhaustive` for all Message/state matching (no switch)
-- [ ] `Array.match({ onEmpty, onNonEmpty })` for branching on a Model array (not `.length === 0` / `.length > 0`, and not `Array.isArrayEmpty` / `Array.isArrayNonEmpty`, which take a mutable `Array<A>` and reject the `ReadonlyArray` that `S.Array(...)` decodes to)
+- [ ] `pipe()` keeps a meaningful transformed value as the subject of left-to-right data flow; ordinary single calls stay direct
+- [ ] `Message.match` for exhaustive Message matching; Effect `Match` for state unions, partial matches, fallbacks, and shared multi-tag handlers (no switch)
+- [ ] `Array.match({ onEmpty, onNonEmpty })` for branching on a Model array (not `.length === 0` / `.length > 0`, and not `Array.isArrayEmpty` / `Array.isArrayNonEmpty`, which take a mutable `Array<A>` and reject the `ReadonlyArray` that `Schema.Array(...)` decodes to)
 - [ ] `evo()` for Model updates (not spread)
 - [ ] Callable constructors (not `as` casts or manual `_tag` objects)
-- [ ] No-field tagged structs called with NO argument: `Idle()`, `Work()`, `ClickedSubmit()`. Never `Idle({})`, `Work({})`, `ClickedSubmit({})`
+- [ ] Message and OutMessage constructors stay on their owning namespace; no constructor destructuring
+- [ ] No-field tagged structs called with NO argument: `Idle()`, `Work()`, `Message.ClickedSubmit()`. Never `Idle({})`, `Work({})`, `Message.ClickedSubmit({})`
 - [ ] `Option.match` preferred over `Option.map` + `Option.getOrElse`
 
 ## View
@@ -296,7 +323,7 @@ Foldkit ships these; reaching past them is a finding, not a style choice.
 
 - [ ] Foldkit UI components used where interaction matches (Dialog, Tabs, Menu, Combobox, DatePicker, FileDrop, Toast, Tooltip, DragAndDrop, etc.). Never hand-roll accessible widgets
 - [ ] **Form inputs use `Input.view`, `Textarea.view`, `Button.view` from `@foldkit/ui`.** Hand-rolled `input`/`textarea`/`button` elements in a form are a fail unless the file has a NOTE comment explaining why the component couldn't be used.
-- [ ] Each stateful UI component has its Model in the app Model, a `Got*` Message, init in init, and delegation in update. Stateless render helpers (`Button`, `Input`, `Textarea`, `Select`, `Fieldset`, `RadioGroup`, `Checkbox`, `Switch`, `Disclosure`, `Nav`) are called directly in view and dispatch parent Messages; the controlled ones (`RadioGroup`, `Checkbox`, `Switch`, `Disclosure`) take the current value in from the parent Model, which stores the new value on toggle
+- [ ] Each stateful UI component has its Model in the app Model, a `Got*` Message, init in init, and delegation in update. Stateless render helpers (`Button`, `Input`, `Textarea`, `Select`, `Fieldset`, `Checkbox`, `Switch`, `Disclosure`, `Nav`) are called directly in view and dispatch parent Messages; the controlled ones (`Checkbox`, `Switch`, `Disclosure`) take the current value in from the parent Model, which stores the new value on toggle
 - [ ] `Toast` uses `Toast.make(PayloadSchema)` to bind to a consumer-defined payload type
 - [ ] No custom keyboard navigation or ARIA attributes for patterns covered by Foldkit UI components
 
@@ -330,7 +357,7 @@ Hand-rolling a control the table covers is permitted only when the component gen
 
 **A NOTE is not a free pass.** Before writing one, read the component's `.d.ts` and confirm the concern is real. Common false-justifications to avoid:
 
-- _"Using the component would require a per-row Model instance and duplicate state"_: first check whether the component is stateful. Stateless controlled helpers like `Checkbox`, `Switch`, `Disclosure`, and `RadioGroup` do not add a child Model. Store the value in the parent Model and pass it to `view` with an `onToggle` or `onSelect` Message. For stateful components, the component Model holds UI state (focus, open/closed, typeahead key buffer), not your domain value, so holding it is not duplication.
+- _"Using the component would require a per-row Model instance and duplicate state"_: first check whether the component is stateful. Stateless controlled helpers like `Checkbox`, `Switch`, and `Disclosure` do not add a child Model. Store the value in the parent Model and pass it to `view` with an `onToggle` Message. For stateful components, the component Model holds UI state (focus, open/closed, typeahead key buffer), not your domain value, so holding it is not duplication.
 - _"The component needs a toParentMessage and I don't want to wire one"_: that's always the wiring cost. The whole point of Ui components is that you pay it once per use and get a11y for free.
 - _"The interaction is too custom for the component"_: check the `toView` callback signature. It lets you render whatever HTML you want inside the component's attribute-scaffolding. Custom visual = fine, custom a11y = never needed.
 
@@ -435,8 +462,8 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 - [ ] `Equal.equals(target)` in predicates: `Array.findFirst(items, Equal.equals('Other'))` not `item => item === 'Other'`.
 - [ ] `Array.fromOption(maybeCommand)` for "zero or one command based on Option", not `Option.match` that returns `[]` vs `[cmd]`.
 - [ ] `Option.liftPredicate(value, predicate)` instead of `condition ? Option.some(value) : Option.none()`. The predicate may be a constant `() => condition` when the check doesn't use the value.
-- [ ] `pipe(...)` is multi-step only. Never `pipe(x, singleOp(...))`; call `singleOp(x, ...)` directly. (Exception: `.pipe(Effect.catch(...))` as a tail suffix is fine.)
-- [ ] When piping, data leads on its own line: `pipe(\n  data,\n  Array.map(f),\n  ...\n)`, not `pipe(data, Array.map(f), ...)`.
+- [ ] A single-transformation `pipe` has a clear data-flow reading, such as `pipe(dialogClose, Update.withOutMessage(outMessage))`; a pipe that only rearranges ordinary function application is called directly
+- [ ] In multi-line pipes, data leads on its own line: `pipe(\n  data,\n  Array.map(f),\n  ...\n)`, not `pipe(data, Array.map(f), ...)`.
 - [ ] `evo` setters are point-free when they only transform that same field: `entries: Array.map(f)` not `entries: () => Array.map(model.entries, f)`, `count: Number.increment` not `count: () => Number.increment(model.count)`. Keep `() => value` for replacement values from Messages, child updates, Commands, or other Model fields.
 - [ ] Callback destructuring when accessing a single field: `({ id }) => id === cardId` not `card => card.id === cardId`.
 
@@ -469,7 +496,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 - [ ] Section headers present in files that span multiple sections: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// COMMAND`, `// VIEW`, `// RUN`. Order: Model → Message → Flags (if any) → Init → Update → Command → View → Run.
 - [ ] `index.ts` is always a barrel, never implementation. If a module `foo/` has code, the shape is `foo/foo.ts` for code + `foo/index.ts` for `export * from './foo'` and `export * as Child from './child'`.
 - [ ] Imports ordered: npm packages first (alphabetized), then `foldkit/*`, then relative imports. No mixed groups.
-- [ ] Message definitions exported individually AND as the `Message` union type when used across modules. Internal-only messages stay unexported.
+- [ ] Message unions are exported as values and types when used across modules. Variants stay on the owning namespace: `Message.ClickedSave()`, never a separate `ClickedSave` export. Internal-only Message unions stay unexported.
 
 ## Submodel and Command extraction [T5+]
 
@@ -480,15 +507,15 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 
 ## Subscriptions [T2+]
 
-- [ ] Subscriptions use `Subscription.make<Model, Message>()(entry => ({ key: entry(fields, callbacks) }))`. Each `entry(...)` call takes the bare field map as its first argument (no `S.Struct` wrap) and the `{ modelToDependencies, dependenciesToStream, equivalence? }` callbacks as its second.
+- [ ] Subscriptions use `Subscription.make<Model, Message>()(entry => ({ key: entry(fields, callbacks) }))`. Each `entry(...)` call takes the bare field map as its first argument (no `Schema.Struct` wrap) and the `{ modelToDependencies, dependenciesToStream, equivalence? }` callbacks as its second.
 - [ ] `modelToDependencies` extracts exactly the data the stream needs from Model, not the full Model. Wrap absent dependencies in `Option` at the field level when the subscription should stop.
 - [ ] Always-active subscriptions pass `{}` as the `entry` fields argument and return `{}` from `modelToDependencies`.
-- [ ] Message mapping happens inside `Stream.map(event => Effect.succeed(UpdatedX({ data: event })))`, not scattered through update.
+- [ ] Message mapping happens inside `Stream.map(event => Effect.succeed(Message.UpdatedX({ data: event })))`, not scattered through update.
 - [ ] Subscription files live at `src/subscription.ts` (or `src/subscription/` directory for multiple), never inline in `main.ts`.
 
 ## Managed Resources [T7]
 
-- [ ] Managed Resources use `ManagedResource.make<Model, Message>()(entry => ({ key: entry(requirementsSchema, config) }))`. The requirements schema is the positional first argument (usually `S.Option(...)`), not a field on `config`. No standalone `ManagedResourceDeps` struct.
+- [ ] Managed Resources use `ManagedResource.make<Model, Message>()(entry => ({ key: entry(requirementsSchema, config) }))`. The requirements schema is the positional first argument (usually `Schema.Option(...)`), not a field on `config`. No standalone `ManagedResourceDeps` struct.
 - [ ] `modelToMaybeRequirements` returns `Option.some(params)` to acquire and `Option.none()` to release. `acquire` fails into the error channel so `onAcquireError` fires instead of crashing; `release` never throws.
 - [ ] The service union is read with `ManagedResource.ServicesOf<typeof managedResources>`, not hand-maintained in parallel.
 - [ ] A child Submodel that owns a Managed Resource exposes its own `make` record in child terms; the parent composes it with `ManagedResource.lift(childRecord)<Parent, Parent>({ toChildModel, toParentMessage })` (where `toChildModel` returns `Option<ChildModel>`) and `ManagedResource.aggregate`. No hand-rolled parent factory threading `toChildModel`/`toParentMessage` into the child.

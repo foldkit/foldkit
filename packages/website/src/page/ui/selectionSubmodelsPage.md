@@ -2,9 +2,11 @@
 
 ## Overview
 
-Foldkit UI ships four Submodels for selecting one or more values from a set: [Listbox](/ui/listbox), [Combobox](/ui/combobox), [Tabs](/ui/tabs), and [Menu](/ui/menu). For example, a Listbox of plans, a Combobox of cities, a Tabs of view modes, or a Menu of actions. [RadioGroup](/ui/radio-group) is a stateless controlled render helper (like Select, Input, and Textarea), not a Submodel, so it is not covered here.
+Foldkit UI ships five Submodels for selecting values from a set: [Listbox](/ui/listbox), [Combobox](/ui/combobox), [Tabs](/ui/tabs), [Menu](/ui/menu), and [RadioGroup](/ui/radio-group). Listbox and Combobox also provide multi-select variants.
 
-Each exposes a `create<Item>()` factory that pairs the view and update behind a single type parameter, so the value type is fixed at the binding site and flows into the OutMessage.
+For example: a Listbox of plans, a Combobox of cities, Tabs for view modes, a Menu of actions, or a RadioGroup of pricing plans.
+
+Each exposes a `create<Item>()` factory that pairs the view and update behind a single type parameter. The binding fixes the item type used by the view and the `Selected` OutMessage.
 
 A Listbox over a literal-union `Plan` type:
 
@@ -12,7 +14,7 @@ A Listbox over a literal-union `Plan` type:
 
 ## The `create<Item>()` Factory {#create-factory}
 
-A call to `Listbox.create<Plan>()` returns an object whose entry points are all bound to `Plan`: `view` accepts `items: ReadonlyArray<Plan>`, `update` returns an OutMessage carrying the picked `Plan`, and the imperative helpers the Submodel exposes (`selectItem`, `open`, and `close` for Listbox and Combobox) accept and emit `Plan` too. Declare the factory once at module scope and use the same bundle at every site that needs it.
+A call to `Listbox.create<Plan>()` returns an object whose entry points are all bound to `Plan`. Its `view` accepts `items: ReadonlyArray<Plan>`. Its `update` and `selectItem` helper can return a `Selected` OutMessage carrying a `Plan`. Declare the factory once at module scope and use the same bundle at every site that needs it.
 
 There is no inbound reflect helper for the selection: the parent owns it outright and passes it in as `maybeSelectedValue` (`selectedValues` for multi-select), so there is nothing on the Listbox or Combobox to reflect onto. When an external value (a URL parameter, restored storage, a server push) changes the selection, the parent writes its own field. The `reflect*` family lives on the components with configuration the parent feeds in: `reflectMinDate`, `reflectMaxDate`, `reflectDisabledDates`, and `reflectDisabledDaysOfWeek` on Calendar and DatePicker, and `reflectRange` on Slider. See [Reflecting External State](/core/submodel#reflecting-external-state) for the concept.
 

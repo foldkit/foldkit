@@ -1,4 +1,4 @@
-import { Match as M, Option } from 'effect'
+import { Match, Option } from 'effect'
 import { AsyncData, Submodel } from 'foldkit'
 import { Html, HtmlBuilder } from 'foldkit/html'
 
@@ -6,13 +6,7 @@ import * as Shared from '@typing-game/shared'
 
 import { ROOM_PAGE_USERNAME_INPUT_ID } from '../../../constant'
 import { Icon } from '../../../view/icon'
-import {
-  BlurredRoomPageUsernameInput,
-  ChangedRoomPageUsername,
-  ClickedCopyRoomId,
-  SubmittedJoinRoomFromPage,
-} from '../message'
-import type { Message } from '../message'
+import { Message } from '../message'
 import { Model, RoomPlayerSession } from '../model'
 import { findFirstWrongCharIndex } from '../userGameText'
 import { countdown } from './countdown'
@@ -52,7 +46,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           'p-2 rounded hover:bg-terminal-green-dim hover:text-terminal-bg transition text-terminal-green',
         ),
         h.AriaLabel('Copy room ID'),
-        h.OnClick(ClickedCopyRoomId()),
+        h.OnClick(Message.ClickedCopyRoomId()),
       ],
       [Icon.copy()],
     )
@@ -121,8 +115,8 @@ const gameContent = (
     findFirstWrongCharIndex(userGameText),
   )
 
-  return M.value(room.status).pipe(
-    M.tagsExhaustive({
+  return Match.value(room.status).pipe(
+    Match.tagsExhaustive({
       Waiting: () => waiting(room.players, room.hostId, maybeSession, h),
       GetReady: () => getReady(maybeGameText, h),
       Countdown: ({ secondsLeft }) => countdown(secondsLeft, maybeGameText, h),
@@ -142,7 +136,7 @@ const gameContent = (
 
 const joinForm = (username: string, h: HtmlBuilder<Message>): Html =>
   h.form(
-    [h.OnSubmit(SubmittedJoinRoomFromPage())],
+    [h.OnSubmit(Message.SubmittedJoinRoomFromPage())],
     [
       h.div(
         [h.Class('flex items-center gap-2')],
@@ -158,8 +152,8 @@ const joinForm = (username: string, h: HtmlBuilder<Message>): Html =>
                 h.Type('text'),
                 h.Value(username),
                 h.Class('bg-transparent px-0 py-2 outline-none w-full'),
-                h.OnInput(value => ChangedRoomPageUsername({ value })),
-                h.OnBlur(BlurredRoomPageUsernameInput()),
+                h.OnInput(value => Message.ChangedRoomPageUsername({ value })),
+                h.OnBlur(Message.BlurredRoomPageUsernameInput()),
                 h.Autocapitalize('none'),
                 h.Spellcheck(false),
                 h.Autocorrect('off'),

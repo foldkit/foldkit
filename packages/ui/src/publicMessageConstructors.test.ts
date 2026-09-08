@@ -12,6 +12,7 @@ import * as Disclosure from './disclosure/public.js'
 import * as DragAndDrop from './dragAndDrop/public.js'
 import * as Fieldset from './fieldset/public.js'
 import * as FileDrop from './fileDrop/public.js'
+import * as HoverIntent from './hoverIntent/public.js'
 import * as Input from './input/public.js'
 import * as Listbox from './listbox/public.js'
 import * as Menu from './menu/public.js'
@@ -32,6 +33,7 @@ type BarrelAudit = Readonly<{
   memberCount: number
   tags: ReadonlyArray<string>
   unreachableTags: ReadonlyArray<string>
+  siblingConstructorTags: ReadonlyArray<string>
 }>
 
 const barrelsByComponent: Readonly<Record<string, Record<string, unknown>>> = {
@@ -46,6 +48,7 @@ const barrelsByComponent: Readonly<Record<string, Record<string, unknown>>> = {
   dragAndDrop: DragAndDrop,
   fieldset: Fieldset,
   fileDrop: FileDrop,
+  hoverIntent: HoverIntent,
   input: Input,
   listbox: Listbox,
   menu: Menu,
@@ -62,7 +65,25 @@ const barrelsByComponent: Readonly<Record<string, Record<string, unknown>>> = {
   virtualList: VirtualList,
 }
 
-const MINIMUM_COMPONENTS_WITH_A_MESSAGE_UNION = 14
+const COMPONENTS_WITH_A_MESSAGE_UNION = [
+  'animation',
+  'calendar',
+  'combobox',
+  'datePicker',
+  'dialog',
+  'dragAndDrop',
+  'fileDrop',
+  'hoverIntent',
+  'listbox',
+  'menu',
+  'popover',
+  'radioGroup',
+  'slider',
+  'tabs',
+  'toast',
+  'tooltip',
+  'virtualList',
+]
 
 // NOTE: A Schema value is callable, so `Predicate.isObject` rejects it. Reading
 // a property off one has to accept functions as well as plain objects.
@@ -70,9 +91,6 @@ const isIndexable = (
   value: unknown,
 ): value is Readonly<Record<PropertyKey, unknown>> =>
   Predicate.isObjectKeyword(value)
-
-const isUnknownArray = (value: unknown): value is ReadonlyArray<unknown> =>
-  Array.isArray(value)
 
 const maybeProperty = (value: unknown, key: string): Option.Option<unknown> =>
   isIndexable(value) ? Option.fromNullishOr(value[key]) : Option.none()
@@ -94,7 +112,11 @@ const maybeTagOf = (member: unknown): Option.Option<string> =>
 const maybeMessageUnionMembers = (
   barrel: Record<string, unknown>,
 ): Option.Option<ReadonlyArray<unknown>> =>
-  Option.filter(maybeProperty(barrel['Message'], 'members'), isUnknownArray)
+  pipe(
+    maybeProperty(barrel['Message'], 'cases'),
+    Option.filter(isIndexable),
+    Option.map(cases => Object.values(cases)),
+  )
 
 const toAudit = (
   component: string,
@@ -102,6 +124,7 @@ const toAudit = (
   barrel: Record<string, unknown>,
 ): BarrelAudit => {
   const tags = pipe(members, Array.map(maybeTagOf), Array.getSomes)
+  const message = barrel['Message']
 
   return {
     component,
@@ -109,7 +132,11 @@ const toAudit = (
     tags,
     unreachableTags: Array.filter(
       tags,
-      tag => typeof barrel[tag] !== 'function',
+      tag => !isIndexable(message) || typeof message[tag] !== 'function',
+    ),
+    siblingConstructorTags: Array.filter(
+      tags,
+      tag => typeof barrel[tag] === 'function',
     ),
   }
 }
@@ -126,8 +153,8 @@ const audits: ReadonlyArray<BarrelAudit> = pipe(
 
 describe('public Message constructors', () => {
   it('finds a Message union in the components that declare one', () => {
-    expect(audits.length).toBeGreaterThanOrEqual(
-      MINIMUM_COMPONENTS_WITH_A_MESSAGE_UNION,
+    expect(Array.map(audits, ({ component }) => component)).toEqual(
+      COMPONENTS_WITH_A_MESSAGE_UNION,
     )
   })
 
@@ -140,7 +167,7 @@ describe('public Message constructors', () => {
     expect(incomplete).toEqual([])
   })
 
-  it('exports a callable constructor for every tag its Message union declares', () => {
+  it('exposes every callable constructor through its Message union', () => {
     const shortfalls = pipe(
       audits,
       Array.filter(({ unreachableTags }) =>
@@ -153,5 +180,20 @@ describe('public Message constructors', () => {
     )
 
     expect(shortfalls).toEqual([])
+  })
+
+  it('does not export Message constructors as sibling bindings', () => {
+    const leaks = pipe(
+      audits,
+      Array.filter(({ siblingConstructorTags }) =>
+        Array.isReadonlyArrayNonEmpty(siblingConstructorTags),
+      ),
+      Array.map(({ component, siblingConstructorTags }) => ({
+        component,
+        siblingConstructorTags,
+      })),
+    )
+
+    expect(leaks).toEqual([])
   })
 })

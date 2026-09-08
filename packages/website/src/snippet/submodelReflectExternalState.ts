@@ -1,5 +1,5 @@
-ChangedUrl: ({ route }) => [
-  evo(model, {
+ChangedUrl: ({ route }) => ({
+  model: evo(model, {
     // The URL owns the price bounds, so reflect them onto the Slider. reflectRange
     // returns Model (point-free in evo) and emits nothing, so it can't echo the
     // route back and loop.
@@ -8,5 +8,4 @@ ChangedUrl: ({ route }) => [
       max: route.maxPrice,
     }),
   }),
-  [],
-]
+})

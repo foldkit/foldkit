@@ -3,13 +3,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Checkbox } from '@foldkit/ui'
 
-import {
-  ToggledCheckboxAllDemo,
-  ToggledCheckboxBasicDemo,
-  ToggledCheckboxOptionADemo,
-  ToggledCheckboxOptionBDemo,
-  type UiMessage,
-} from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 const CHECKBOX_BASIC_DEMO_ID = 'checkbox-basic-demo'
@@ -44,7 +38,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
           {
             id: CHECKBOX_BASIC_DEMO_ID,
             isChecked: model.isCheckboxBasicDemoChecked,
-            onToggle: isChecked => ToggledCheckboxBasicDemo({ isChecked }),
+            onToggle: isChecked =>
+              UiMessage.ToggledCheckboxBasicDemo({ isChecked }),
             toView: attributes =>
               h.div(
                 [h.Class('flex flex-col gap-1')],
@@ -114,7 +109,8 @@ const indeterminateDemo = (
             id: CHECKBOX_ALL_DEMO_ID,
             isChecked: isAllChecked,
             isIndeterminate,
-            onToggle: isChecked => ToggledCheckboxAllDemo({ isChecked }),
+            onToggle: isChecked =>
+              UiMessage.ToggledCheckboxAllDemo({ isChecked }),
             toView: attributes =>
               h.div(
                 [h.Class(topRowClassName)],
@@ -140,7 +136,7 @@ const indeterminateDemo = (
                 id: CHECKBOX_OPTION_A_DEMO_ID,
                 isChecked: model.isCheckboxOptionADemoChecked,
                 onToggle: isChecked =>
-                  ToggledCheckboxOptionADemo({ isChecked }),
+                  UiMessage.ToggledCheckboxOptionADemo({ isChecked }),
                 toView: attributes =>
                   h.div(
                     [h.Class(topRowClassName)],
@@ -163,7 +159,7 @@ const indeterminateDemo = (
                 id: CHECKBOX_OPTION_B_DEMO_ID,
                 isChecked: model.isCheckboxOptionBDemoChecked,
                 onToggle: isChecked =>
-                  ToggledCheckboxOptionBDemo({ isChecked }),
+                  UiMessage.ToggledCheckboxOptionBDemo({ isChecked }),
                 toView: attributes =>
                   h.div(
                     [h.Class(topRowClassName)],

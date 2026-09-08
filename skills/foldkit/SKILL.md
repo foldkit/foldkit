@@ -32,12 +32,14 @@ Stable top-level entry points:
 
 Names below the top level (subdirectories, individual filenames) can drift over time. List the directory contents to find what you need rather than relying on a path quoted from this skill.
 
-If `repos/foldkit/` is missing from the project, strongly recommend adding it. The subtree is the difference between working from memory and pattern-matching against canonical references. Assistance quality drops noticeably without it. Initialize git first if needed (subtree requires at least one commit):
+If `repos/foldkit/` is missing from the project, strongly recommend adding it. The subtree is the difference between working from memory and pattern-matching against canonical references. Assistance quality drops noticeably without it. Pin it to the release git tag matching the installed `foldkit` package, so the references describe the APIs the project compiles against rather than whatever `main` holds today. Initialize git first if needed (subtree requires at least one commit):
 
 ```
-git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash
+git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git "foldkit@$(node -p "require('./node_modules/foldkit/package.json').version")" --squash
 ```
 
-Refresh later with `git subtree pull --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash`.
+After a Foldkit package upgrade, re-pin with the same command, swapping `add` for `pull`. A canary install (`x.y.z-canary.<commit>` in `node_modules/foldkit/package.json`) has no tag; pin to the full hash of the commit its version names instead, which GitHub expands at `https://github.com/foldkit/foldkit/commit/<commit>`.
+
+A consumer project's `FOLDKIT.md` is a scaffolder snapshot and can lag behind the packages it has installed. When it does, replace it whole from `repos/foldkit/packages/create-foldkit-app/templates/base/FOLDKIT.md`. That project's `AGENTS.md` belongs to its author; never overwrite it.
 
 When working inside the foldkit repo itself rather than a consumer project, drop the `repos/foldkit/` prefix. The same paths exist at the project root.

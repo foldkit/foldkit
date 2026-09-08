@@ -1,8 +1,11 @@
 // Pseudocode walkthrough for variable-height rows. Builds on the basic
 // example: same Model, init, Message, update, subscription wiring. The
-// difference is in the view and in how `scrollToIndex` is called. Fit the
+// difference is in the view and in how `scrollToIndexVariable` is folded. Fit the
 // excerpts into your own definitions.
+import { Option } from 'effect'
+import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
+import { evo } from 'foldkit/struct'
 
 import { VirtualList } from '@foldkit/ui'
 
@@ -10,16 +13,15 @@ import { VirtualList } from '@foldkit/ui'
 // `rowHeightPx` to `init`; it remains the uniform default for the
 // `scrollToIndex` initial-apply path on the first measurement, and the
 // fallback for any item the variable callback doesn't cover:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     activityList: VirtualList.init({
       id: 'activity-list',
       rowHeightPx: 56,
     }),
     // ...your other fields
   },
-  [],
-]
+})
 
 // Provide an `itemToRowHeightPx` callback on `view`. Each row wrapper is
 // sized to the height the callback returns for that item. Slice and spacer
@@ -82,12 +84,29 @@ const view = (h: HtmlBuilder<Message>) =>
 // `view` so the math agrees:
 const itemToRowHeightPx = (activity, index) => (activity.hasSummary ? 104 : 56)
 
-const [nextList, commands] = VirtualList.scrollToIndexVariable(
-  model.activityList,
-  model.activities,
-  itemToRowHeightPx,
-  500,
-)
+const foldActivityListScrollToIndexVariable = Update.foldChild({
+  update: (
+    activityList: VirtualList.Model,
+    input: Readonly<{ activities: ReadonlyArray<Activity>; index: number }>,
+  ) =>
+    VirtualList.scrollToIndexVariable(
+      activityList,
+      input.activities,
+      itemToRowHeightPx,
+      input.index,
+    ),
+  read: (model: Model) => Option.some(model.activityList),
+  write: (model, nextActivityList) =>
+    evo(model, { activityList: () => nextActivityList }),
+  toParentMessage: message => Message.GotActivityListMessage({ message }),
+})
+
+// In the corresponding Message.match handler:
+ClickedScrollActivityListToMiddle: () =>
+  foldActivityListScrollToIndexVariable(model, {
+    activities: model.activities,
+    index: 500,
+  })
 
 // `scrollToIndex` (uniform) and `scrollToIndexVariable` (variable) are
 // independent: pick the one that matches how `view` is rendering. Mixing

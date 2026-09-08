@@ -1,4 +1,4 @@
-import { Match as M, Option } from 'effect'
+import { Option } from 'effect'
 import { Runtime } from 'foldkit'
 import { Transition } from 'foldkit/route'
 
@@ -20,13 +20,10 @@ export const viewTransition: Runtime.ViewTransitionConfig<Model, Message> = ({
   // compile error here until it is given a direction.
   return Option.match(Transition.enteredAny(transition), {
     onNone: () => true,
-    onSome: M.type<AppRoute>().pipe(
-      M.withReturnType<Runtime.ViewTransitionDecision>(),
-      M.tagsExhaustive({
-        Artwork: () => ({ types: ['to-artwork-detail'] }),
-        Gallery: () => ({ types: ['to-gallery'] }),
-        NotFound: () => true,
-      }),
-    ),
+    onSome: AppRoute.match<Runtime.ViewTransitionDecision>({
+      Artwork: () => ({ types: ['to-artwork-detail'] }),
+      Gallery: () => ({ types: ['to-gallery'] }),
+      NotFound: () => true,
+    }),
   })
 }

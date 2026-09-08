@@ -1,4 +1,4 @@
-import { Effect, Option, Schema as S } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import { aggregate, lift, make, tag } from './managedResource.js'
@@ -15,7 +15,7 @@ const childMessage = (tag: ChildMessage['tag']): ChildMessage => ({ tag })
 
 const SessionResource = tag<Readonly<{ token: string }>>()('SessionResource')
 
-const sessionSchema = S.Option(S.Struct({ token: S.String }))
+const sessionSchema = Schema.Option(Schema.Struct({ token: Schema.String }))
 
 const childManagedResources = make<ChildModel, ChildMessage>()(entry => ({
   session: entry(sessionSchema, {
@@ -49,7 +49,7 @@ const PingResource = tag<number>()('PingResource')
 
 const parentLocalManagedResources = make<ParentModel, ParentMessage>()(
   entry => ({
-    ping: entry(S.Option(S.Null), {
+    ping: entry(Schema.Option(Schema.Null), {
       resource: PingResource,
       modelToMaybeRequirements: () => Option.some(null),
       acquire: () => Effect.succeed(1),

@@ -1,69 +1,73 @@
 # Architecture
 
-## Overview
+## One State Tree {#overview}
 
-In most TypeScript UI frameworks, each component manages its own state and effects. In Foldkit, there’s a single state tree. Every change flows in one direction through the same loop.
+In most TypeScript UI frameworks, each component manages its own state and effects. Foldkit keeps application state in one `Model` and sends every change through the same loop.
 
-This pattern is called [The Elm Architecture](https://guide.elm-lang.org/architecture/). You don’t need to know Elm. Foldkit adapts it for TypeScript and Effect.
+This pattern is called [The Elm Architecture](https://guide.elm-lang.org/architecture/). You don’t need to know Elm to use it. Foldkit adapts the pattern for TypeScript and Effect so state transitions stay explicit and traceable.
 
 ## The Loop
 
-Every Foldkit app runs the same loop. A `Message` arrives: the user clicked a button, a timer fired, an HTTP response came back. The `update` function receives the current `Model` and the Message and returns a new Model along with any `Command`s to execute. The `view` function renders the new Model as HTML. When the user interacts with the view, it produces another Message, and the loop continues.
+Every Foldkit app repeats the same cycle:
 
-- **Commands:** descriptions of one-shot side effects: HTTP requests, focus operations, `localStorage` writes, navigation calls. The Foldkit runtime executes them and sends their results back as new Messages, feeding them into the same loop. Each Command carries a name, which surfaces in [DevTools](/core/devtools), [tests](/testing), and tracing.
-- **Mount:** the moment an element from the view enters the live DOM. Mount is the seam where view code can drop down to imperative work with the live element: portaling an overlay to the document body, attaching observers, handing the element to a third-party library that owns its own DOM. `Mount.define` runs an Effect that emits a single Message at acquire; `Mount.defineStream` runs a Stream of Messages from observers or listeners on the element. The runtime dispatches results back through `update` and runs the paired cleanup when the element unmounts.
-- **Subscriptions:** a scoped Stream gated by a slice of your Model. You are subscribed to the Model, not to an external event source. The runtime keeps the Stream alive while the slice holds its value and starts a fresh scope when the slice changes. The body usually plugs an external source (timer ticks, keypresses, `WebSocket` frames, system theme changes) into a Stream that flows back through `update` as Messages. Some Subscriptions emit no Messages and instead maintain DOM state for their lifetime, like setting `user-select: none` while a drag is active.
-- **ManagedResources:** declarations of a resource (a camera stream, a `WebSocket` connection, a Web Worker pool) made available to Commands and Subscriptions while a slice of the Model holds a particular value. The runtime acquires the resource when the slice says it should be alive, releases it when the slice says it should not, and dispatches Messages for each lifecycle transition. Commands and Subscriptions consume the resource as a typed handle (capturing a photo from the camera, sending a frame on the socket), with `ResourceNotAvailable` rather than a crash if the handle is not currently available.
-
-That’s it. Every state transition in your app flows through a single loop. There’s no action-at-a-distance, no hidden state mutation, no effect that runs outside the cycle. If you want to know how the app got into its current state, you follow the Messages.
+1. Something happens, and a `Message` records that fact.
+2. `update` receives the current `Model` and the Message, then returns the next Model and any `Command`s to execute.
+3. `view` renders the next Model as HTML, and the runtime executes the Commands.
+4. User events and effect results produce more Messages, and the cycle begins again.
 
 The complete cycle looks like this:
 
 ```diagram
-          +------------------------------------------------------+
-          |                                                      |
-          ↓                                                      |
-       Message                                                   |
-          |                                                      |
-          ↓                                                      |
-  +---------------+                                              |
-  |    update     |                                              |
-  +-------+-------+                                              |
-  ↓               ↓                                              |
-Model    Array<Command<Message>>                                 |
-  |               |                                              |
-  |               +-> Runtime -----------------------------------+
-  |                                                              |
-  +-> view -> Browser -> user events ----------------------------+
-  |                                                              |
-  +-> view -> Mount(Element) -> Effect<Message> -> Runtime ------+
-  |                                                              |
-  +-> Subscriptions -> Stream<Message> -> Runtime ---------------+
-  |                                                              |
-  +-> ManagedResources -> acquire/release Messages -> Runtime ---+
++-----> update --> Commands -----------+
+|         |                            |
+|         v                            |
+|       Model ---> Subscriptions ------+
+|         |                            |
+|         +------> ManagedResources ---+
+|         |                            |
+|         v                            |
+|       view ----> Mounts -------------+
+|         |                            |
+|         v                            |
+|       Browser -> events -------------+
+|                                      v
+|                                   Runtime
+|                                      |
+|                                      v
++<--------------------------------- Message
 ```
 
-Every path on the right side produces a Message that feeds back into `update`. Five sources: Commands, the Browser, Mount, Subscriptions, and ManagedResources. One loop.
+Five sources report through the Runtime: Commands, the Browser, Mounts, Subscriptions, and ManagedResources. When one produces a Message, the Runtime dispatches it back into `update`.
 
-Sitting beneath the loop are Resources: app-lifetime singletons like an `RpcClient`, an analytics client, or a background compute worker that Commands draw on. Resources don’t produce Messages themselves. They’re the ambient dependencies the Message-producing parts need to do their work.
+### Where Messages Come From
+
+- **Browser:** interactions with the rendered view, such as clicks and keypresses, produce Messages directly.
+- **Commands:** one-shot side effects such as HTTP requests, focus operations, `localStorage` writes, and navigation calls. The runtime executes each Command and sends its declared result back as a Message. Every Command has a name that appears in [DevTools](/core/devtools), [tests](/testing), and tracing.
+- **Mount:** imperative work scoped to the lifetime of an element in the live DOM. For example: portaling an overlay, attaching an observer, or handing an element to a third-party library. `Mount.define` runs an Effect that emits one Message at acquire. `Mount.defineStream` runs a Stream of Messages from listeners or observers. The runtime dispatches those results and runs the paired cleanup when the element unmounts.
+- **Subscriptions:** scoped Streams gated by a slice of the Model. The runtime keeps a Subscription alive while that slice holds its value, then starts a fresh scope when the value changes. A Subscription often turns an external source, such as timer ticks, `WebSocket` frames, or system theme changes, into Messages. It can also emit no Messages and maintain DOM state for its lifetime, such as setting `user-select: none` while a drag is active.
+- **ManagedResources:** stateful handles, such as a camera stream, a `WebSocket` connection, or a Web Worker pool, that exist while a slice of the Model holds a particular value. The runtime acquires and releases the handle and dispatches Messages for each lifecycle transition. Commands and Subscriptions can use the typed handle while it is live and receive `ResourceNotAvailable` rather than crashing when it is not.
+
+Resources sit beneath the loop instead of feeding it directly. They are app-lifetime dependencies such as an `RpcClient`, an analytics client, or a background compute worker. The runtime shares them with Commands, Subscriptions, and startup Flags, but Resources do not produce Messages themselves.
+
+These sources never mutate the Model. They report what happened with a Message, and only `update` decides the next state. If you want to know how the app reached its current state, follow the Messages.
 
 ## Definitions
 
-Each concept in one place, in plain terms:
+Use this table as a reference after you understand the loop:
 
-| Concept         | Definition                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Model           | The single data structure that holds your entire application state.                                                                                                                                                                                                                                                                                                                                                                                                           |
-| Message         | A fact about something that happened: a button was clicked, a key was pressed, a request succeeded with a payload.                                                                                                                                                                                                                                                                                                                                                            |
-| update          | A pure function that receives the current Model and a Message and returns a new Model along with any Commands to execute.                                                                                                                                                                                                                                                                                                                                                     |
-| view            | A pure function that renders the Model as HTML. User interactions produce Messages that flow back into update.                                                                                                                                                                                                                                                                                                                                                                |
-| Command         | A description of a one-shot side effect. The runtime executes it and sends the result back as one of its declared Messages.                                                                                                                                                                                                                                                                                                                                                   |
-| Mount           | The seam where view code reaches a live DOM element. Mount.define runs an Effect that emits a single Message at acquire; Mount.defineStream runs a Stream of Messages from observers on the element. The runtime dispatches results through update and runs the paired cleanup on unmount.                                                                                                                                                                                    |
-| Subscription    | A scoped Stream gated by a slice of your Model. The runtime keeps it alive while the slice holds its value and starts a fresh scope when the slice changes. The body usually pipes external events back as Messages; some Subscriptions emit nothing and just maintain DOM state for the subscription’s lifetime.                                                                                                                                                             |
-| Resource        | An app-lifetime singleton (an RPC client, an analytics client, a compute worker) that Commands can draw on. A dependency, not a Message source.                                                                                                                                                                                                                                                                                                                               |
-| ManagedResource | Like a Resource, but scoped to a window of Model state instead of the app lifetime: a WebSocket connection while the user is on a chat page, a camera stream during a video call. Commands and Subscriptions consume it as a typed handle while it’s live; the runtime acquires it on entry, releases it on exit, and dispatches Messages for each lifecycle transition.                                                                                                      |
-| Runtime         | The Foldkit engine that executes Commands, runs Subscriptions, manages resource and mount lifecycles, and routes Messages back into update.                                                                                                                                                                                                                                                                                                                                   |
-| Submodel        | A self-contained Model, Message, update, and Commands that a parent embeds as a field and delegates to in update. Submodels are how an app grows past a single update function: the stateful Foldkit UI components (Menu, Listbox, DatePicker, and friends) ship as Submodels, and you build your own for feature pages, repeated forms, or any unit of composition. Children surface high-level facts to parents through an OutMessage in the third tuple element of update. |
+| Concept         | Definition                                                                                                                                                                                                  |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Model           | The single data structure that holds the entire application state.                                                                                                                                          |
+| Message         | A fact about something that happened, such as a button click, a keypress, or a successful request with a payload.                                                                                           |
+| update          | A pure function that receives the current Model and a Message, then returns the next Model and any Commands to execute.                                                                                     |
+| view            | A pure function that renders the Model as HTML. Its event handlers construct Messages.                                                                                                                      |
+| Command         | A description of a one-shot side effect. The runtime executes it and sends the result back as one of its declared Messages.                                                                                 |
+| Mount           | Imperative work scoped to a live DOM element. It emits Messages through an Effect or Stream and cleans up when the element unmounts.                                                                        |
+| Subscription    | A scoped Stream gated by a slice of the Model. The runtime restarts its scope when that slice changes.                                                                                                      |
+| Resource        | An app-lifetime singleton shared with Commands, Subscriptions, and startup Flags. It is a dependency, not a Message source.                                                                                 |
+| ManagedResource | A stateful handle scoped to a slice of the Model. The runtime manages its lifecycle, and Commands and Subscriptions can use it while it is live.                                                            |
+| Runtime         | The Foldkit engine that executes Commands, runs Subscriptions, manages Mount and resource lifecycles, and routes Messages back into update.                                                                 |
+| Submodel        | A self-contained Model, Message, update, and Commands that a parent embeds and delegates to. A child can surface high-level facts to its parent through the optional `outMessage` field returned by update. |
 
 ## The Restaurant Analogy
 
@@ -72,7 +76,7 @@ Think of a Foldkit app like a restaurant. The waiter keeps a notebook: a running
 Messages work the same way. “Table 3 asked for the check” is a fact given to the waiter, not an instruction. The waiter decides what to do: maybe bring the check immediately, maybe offer dessert first. The message stays the same either way.
 
 :::Info{label="The restaurant analogy"}
-This analogy maps to every concept you’ll encounter in Core Concepts. The table below is a reference you can come back to as you read.
+Use the analogy to remember who knows the state and who performs effects. The definitions above remain the literal contracts.
 :::
 
 | Foldkit         | Restaurant                                                                                                                  |

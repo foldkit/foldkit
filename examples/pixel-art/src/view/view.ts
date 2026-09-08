@@ -10,7 +10,7 @@ import {
 import { Button } from '@foldkit/ui'
 
 import { isGridEmpty } from '../grid'
-import { ClickedExport, type Message } from '../message'
+import { Message } from '../message'
 import type { Model } from '../model'
 import { currentPaletteTheme } from '../palette'
 import { canvasView } from './canvas'
@@ -118,7 +118,7 @@ const headerView = (h: HtmlBuilder<Message>): Html =>
         [
           Button.view(
             {
-              onClick: ClickedExport(),
+              onClick: Message.ClickedExport(),
               toView: attributes =>
                 h.button(
                   [
@@ -159,6 +159,9 @@ const contentView = (model: Model, h: HtmlBuilder<Message>): Html => {
         theme,
         model.paletteThemeIndex,
         model.themeListbox,
+        model.toolRadioGroup,
+        model.gridSizeRadioGroup,
+        model.paletteRadioGroup,
         h,
       ]),
       canvasView(model, theme, h),

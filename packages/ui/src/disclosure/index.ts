@@ -1,4 +1,4 @@
-import { Match as M, Option, Predicate } from 'effect'
+import { Match, Option, Predicate } from 'effect'
 import type { Attribute, Html, HtmlBuilder } from 'foldkit/html'
 
 // VIEW
@@ -16,7 +16,13 @@ const panelSizeTransition = 'grid-template-rows 200ms ease-out'
 /** Attribute groups the disclosure provides to the consumer's `toView`
  *  callback. The consumer composes the button + panel layout themselves using
  *  these bundles. The `button` bundle carries the click and Enter/Space
- *  handlers that dispatch the configured `onToggle` Message. */
+ *  handlers that dispatch the configured `onToggle` Message.
+ *
+ *  The `button` bundle sets `type="button"` so that rendering the trigger as a
+ *  `button` element inside a `form` element toggles without also submitting the
+ *  form. Setting it is harmless on the other elements a trigger might use, such
+ *  as a `div` or a `span`, because the builder assigns a DOM property rather
+ *  than an HTML attribute. Spread a later `h.Type` to override it. */
 export type DisclosureAttributes<Message> = Readonly<{
   button: ReadonlyArray<Attribute<Message>>
   panel: ReadonlyArray<Attribute<Message>>
@@ -69,10 +75,9 @@ export type ViewConfig<Message> = Readonly<{
  *  )
  *
  *  // In update:
- *  ToggledDetails: ({ isOpen }) => [
- *    evo(model, { isDetailsOpen: () => isOpen }),
- *    [],
- *  ],
+ *  ToggledDetails: ({ isOpen }) => ({
+ *    model: evo(model, { isDetailsOpen: () => isOpen }),
+ *  }),
  *  ``` */
 export const view = <Message>(
   config: ViewConfig<Message>,
@@ -91,9 +96,9 @@ export const view = <Message>(
   const nextOpen = !isOpen
 
   const handleKeyDown = (key: string): Option.Option<Message> =>
-    M.value(key).pipe(
-      M.whenOr('Enter', ' ', () => Option.some(onToggle(nextOpen))),
-      M.orElse(() => Option.none()),
+    Match.value(key).pipe(
+      Match.whenOr('Enter', ' ', () => Option.some(onToggle(nextOpen))),
+      Match.orElse(() => Option.none()),
     )
 
   const disabledAttributes = isDisabled
@@ -112,6 +117,7 @@ export const view = <Message>(
 
   const buttonAttributes = [
     h.Id(buttonId(id)),
+    h.Type('button'),
     h.AriaExpanded(isOpen),
     h.AriaControls(panelId(id)),
     ...resolveButtonLabel(),

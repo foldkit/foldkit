@@ -1,13 +1,14 @@
 export {
   make,
+  Message,
   Variant,
   Position,
-  Dismissed,
-  DismissedAll,
-  CompletedWaitBeforeDismissal,
-  HoveredEntry,
-  LeftEntry,
-  GotAnimationMessage,
+  type Dismissed,
+  type DismissedAll,
+  type CompletedWaitBeforeDismissal,
+  type HoveredEntry,
+  type LeftEntry,
+  type GotAnimationMessage,
   WaitBeforeDismissal,
 } from './index.js'
 

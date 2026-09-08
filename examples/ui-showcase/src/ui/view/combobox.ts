@@ -7,14 +7,7 @@ import { Combobox } from '@foldkit/ui'
 import type { AnchorConfig } from '@foldkit/ui/combobox'
 
 import * as Icon from '../../icon'
-import {
-  GotComboboxDemoMessage,
-  GotComboboxMultiDemoMessage,
-  GotComboboxNullableDemoMessage,
-  GotComboboxPlacementLockDemoMessage,
-  GotComboboxSelectOnFocusDemoMessage,
-  type UiMessage,
-} from '../message'
+import { Message as UiMessage } from '../message'
 import type { City, UiModel } from '../model'
 
 export const CityCombobox = Combobox.create<City>()
@@ -152,7 +145,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                 ),
                 maybeSelectedValue: model.maybeComboboxDemoSelectedCity,
               },
-              toParentMessage: message => GotComboboxDemoMessage({ message }),
+              toParentMessage: message =>
+                UiMessage.GotComboboxDemoMessage({ message }),
             }),
           ],
         ),
@@ -201,7 +195,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                 openOnFocus: true,
               },
               toParentMessage: message =>
-                GotComboboxPlacementLockDemoMessage({ message }),
+                UiMessage.GotComboboxPlacementLockDemoMessage({ message }),
             }),
           ],
         ),
@@ -238,7 +232,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                 maybeSelectedValue: model.maybeComboboxNullableDemoSelectedCity,
               },
               toParentMessage: message =>
-                GotComboboxNullableDemoMessage({ message }),
+                UiMessage.GotComboboxNullableDemoMessage({ message }),
             }),
           ],
         ),
@@ -276,7 +270,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                   model.maybeComboboxSelectOnFocusDemoSelectedCity,
               },
               toParentMessage: message =>
-                GotComboboxSelectOnFocusDemoMessage({ message }),
+                UiMessage.GotComboboxSelectOnFocusDemoMessage({ message }),
             }),
           ],
         ),
@@ -322,7 +316,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                 selectedValues: model.comboboxMultiDemoSelectedCities,
               },
               toParentMessage: message =>
-                GotComboboxMultiDemoMessage({ message }),
+                UiMessage.GotComboboxMultiDemoMessage({ message }),
             }),
           ],
         ),

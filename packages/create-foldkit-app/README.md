@@ -1,6 +1,6 @@
 # create-foldkit-app
 
-Scaffolding CLI for new Foldkit applications. Creates a ready-to-run project with Vite, Tailwind CSS, TypeScript, [`@foldkit/vite-plugin`](https://www.npmjs.com/package/@foldkit/vite-plugin) for hot reloading with Model preservation, and your choice of starter example.
+Scaffolding CLI for new Foldkit applications. Creates a ready-to-run project with Vite, Tailwind CSS, TypeScript, [`@foldkit/vite-plugin`](https://www.npmjs.com/package/@foldkit/vite-plugin) for hot reloading with Model preservation, your choice of rendering mode, and a starter example for SPA scaffolds.
 
 ## Usage
 
@@ -14,7 +14,17 @@ yarn create foldkit-app
 bun create foldkit-app
 ```
 
-The CLI prompts you for a project name, starter example, and package manager. Pass `--name`, `--example`, and/or `--package-manager` to skip the matching prompts.
+The CLI prompts you for a project name, rendering mode, starter example, and package manager. Pass `--name`, `--rendering`, `--example`, and/or `--package-manager` to skip the matching prompts.
+
+## Rendering
+
+| Mode  | Description                                                                                                                                                                                  |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spa` | Render entirely in the browser. Starts from your choice of starter example below.                                                                                                            |
+| `ssg` | Prerender routes to static HTML at build time, then hydrate in the browser. Scaffolds a small routed app with a server entry. One `vite build` writes every route.                           |
+| `ssr` | Render each request, then hydrate in the browser. Scaffolds a counter whose Flags come from the request. One `vite build` emits a Web `fetch` handler; `start` runs `node scripts/serve.ts`. |
+
+The starter examples apply to `spa` rendering. The `ssg` and `ssr` modes scaffold their own starter apps.
 
 ## Examples
 

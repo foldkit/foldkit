@@ -1,26 +1,26 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit each into your own Model, init, Message,
 // update, view, and subscription definitions.
-import { Match as M, Option, Schema as S } from 'effect'
-import { Command, Subscription } from 'foldkit'
+import { Option, Schema } from 'effect'
+import { Subscription, Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Slider } from '@foldkit/ui'
 
 // Add two fields to your Model: the value you own, and the Slider Submodel's
 // interaction state:
-const Model = S.Struct({
-  ratingValue: S.Number,
+const Model = Schema.Struct({
+  ratingValue: Schema.Number,
   ratingDemo: Slider.Model,
   // ...your other fields
 })
 
 // In your init function, seed the value (snapped to the range) and initialize
 // the Slider Submodel with min / max / step and a unique id:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     ratingValue: Slider.snapAndClamp(3, 0, 10, 1),
     ratingDemo: Slider.init({
       id: 'rating',
@@ -30,47 +30,42 @@ const init = () => [
     }),
     // ...your other fields
   },
-  [],
-]
-
-// Embed the Slider Message in your parent Message:
-const GotSliderMessage = m('GotSliderMessage', {
-  message: Slider.Message,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate to
-// Slider.update. The OutMessage's `ChangedValue` carries the new
-// number. Lift it to domain state, validate, or persist on each commit.
-GotSliderMessage: ({ message }) => {
-  const [nextSlider, commands, maybeOutMessage] = Slider.update(
-    model.ratingDemo,
-    message,
-  )
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotSliderMessage({ message }),
-  )
+// Embed the Slider Message in your parent Message:
+const Message = defineMessageUnion({
+  GotSliderMessage: { message: Slider.Message },
+})
 
-  return Option.match(maybeOutMessage, {
-    onNone: () => [
-      evo(model, { ratingDemo: () => nextSlider }),
-      mappedCommands,
-    ],
-    onSome: M.type<Slider.OutMessage>().pipe(
-      M.tagsExhaustive({
-        ChangedValue: ({ value }) => [
-          // The child has emitted `ChangedValue`. Store the new value
-          // in the field you own. This arm is also where the parent
-          // can validate, persist, or trigger a downstream Command.
-          evo(model, {
-            ratingValue: () => value,
-            ratingDemo: () => nextSlider,
-          }),
-          mappedCommands,
-        ],
-      }),
-    ),
-  })
-}
+// At module scope, fold the OutMessage into your own Model. `ChangedValue`
+// carries the new number. Lift it to domain state, validate, or persist on
+// each commit. The arm returns an Update.Step over the parent Model, which
+// already has the next Slider Model written back:
+const foldSliderOutMessage = Slider.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  // The child has emitted `ChangedValue`. Store the new value in the field
+  // you own. This arm is also where the parent can validate, persist, or
+  // trigger a downstream Command.
+  ChangedValue:
+    ({ value }) =>
+    model => ({ model: evo(model, { ratingValue: () => value }) }),
+})
+
+// Update.foldChild wires the child into the parent: it runs Slider.update,
+// writes the next Slider Model back, maps the Submodel's Commands into your
+// Message type, and hands any OutMessage to foldOutMessage.
+const foldSlider = Update.foldChild({
+  update: Slider.update,
+  read: (model: Model) => Option.some(model.ratingDemo),
+  write: (model, nextRatingDemo) =>
+    evo(model, { ratingDemo: () => nextRatingDemo }),
+  toParentMessage: message => Message.GotSliderMessage({ message }),
+  foldOutMessage: foldSliderOutMessage,
+})
+
+// In the corresponding Message.match handler, call the fold:
+GotSliderMessage: ({ message }) => foldSlider(model, message)
 
 // NOTE: wire BOTH dragPointer and dragEscape. Without dragEscape, pressing
 // Escape during a drag won't cancel back to the origin value, but every
@@ -80,7 +75,7 @@ const sliderSubscriptions = Subscription.lift({
   sliderEscape: Slider.subscriptions.dragEscape,
 })<Model, Message>({
   toChildModel: model => model.ratingDemo,
-  toParentMessage: message => GotSliderMessage({ message }),
+  toParentMessage: message => Message.GotSliderMessage({ message }),
 })
 
 const subscriptions = Subscription.aggregate<Model, Message>()(
@@ -145,5 +140,5 @@ const view = (model: Model, h: HtmlBuilder<Message>) =>
           ],
         ),
     },
-    toParentMessage: message => GotSliderMessage({ message }),
+    toParentMessage: message => Message.GotSliderMessage({ message }),
   })

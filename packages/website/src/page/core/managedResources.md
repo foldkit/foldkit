@@ -2,48 +2,55 @@
 
 ## Overview
 
-Resources live for the entire application lifecycle. But some resources are heavy and should only be active while the Model is in a particular state, like a camera stream during a video call, a `WebSocket` connection while on a chat page, or a Web Worker pool during a computation. Managed Resources provide Model-driven acquire/release lifecycle, using the same deps-diffing engine as Subscriptions.
+Resources live for the entire runtime. Some stateful handles should exist only while the Model is in a particular state: a camera stream during a video call, a `WebSocket` while on a chat page, or a Web Worker pool during a computation. Managed Resources give those handles a Model-driven acquire and release lifecycle, using the same dependency-diffing engine as Subscriptions.
 
 :::Info{label="The restaurant analogy"}
-If resources are kitchen equipment (permanent, always on), Managed Resources are specialty ingredients sourced on demand. When the menu shifts to a seafood special (Model state changes), the kitchen orders in fresh lobster and sets up the shellfish station. When the special ends, the lobster goes back to the supplier and the station is broken down. If the chef (Command) tries to plate lobster when it’s not in season, they get a clear signal: `ResourceNotAvailable`. And if the special changes from Maine lobster to king crab (params change), the old stock is returned and new stock is sourced, just like switching camera resolutions triggers release and reacquire.
+Resources are the kitchen equipment available all night. A Managed Resource is a specialty station set up only while the menu needs it. Changing the special tears down the old station and sets up the new one, just as changing camera requirements releases one stream and acquires another. A Command that asks for an inactive station receives `ResourceNotAvailable`.
 :::
 
-Define a Managed Resource identity with `ManagedResource.tag`, then wire its lifecycle with `ManagedResource.make`. The `modelToMaybeRequirements` function returns `Option.some(params)` when the resource should be active, and `Option.none()` when it should be released.
+Define the handle’s identity with `ManagedResource.tag`, then wire its lifecycle with `ManagedResource.make`. The `modelToMaybeRequirements` function returns `Option.some(params)` while the handle should be active and `Option.none()` while it should be absent.
 
 ::Snippet{name="managedResources" label="Managed Resources example"}
 
-When requirements change, the runtime handles the lifecycle automatically. If `modelToMaybeRequirements` transitions from `Option.none()` to `Option.some(params)`, the resource is acquired and `onAcquired` is sent. When it goes back to `Option.none()`, the resource is released and `onReleased` is sent. If the params change while active (e.g. switching cameras), the old resource is released and a new one is acquired with the new params.
+The runtime compares the requirements after every Model change and performs the corresponding transition.
 
-If acquisition fails, `onAcquireError` is sent as a Message. The resource daemon continues watching for the next deps change. A failed acquisition does not crash the application.
+| Requirements transition                          | Runtime behavior                                                           |
+| ------------------------------------------------ | -------------------------------------------------------------------------- |
+| `Option.none()` to `Option.some(params)`         | Acquire the handle, then dispatch `onAcquired`.                            |
+| `Option.some(params)` to `Option.none()`         | Release the handle, then dispatch `onReleased`.                            |
+| `Option.some(a)` to a different `Option.some(b)` | Release and dispatch `onReleased`, then acquire and dispatch `onAcquired`. |
+| Structurally equal requirements                  | Keep the current handle.                                                   |
+
+If acquisition fails, the runtime dispatches `onAcquireError` as a Message. The lifecycle keeps watching for the next requirements change, and the failed acquisition does not crash the application.
 
 ## Accessing Managed Resources in Commands {#accessing-managed-resources}
 
-Commands access the resource value via `.get`. Since the resource might not be active, `.get` can fail with `ResourceNotAvailable`. The type system enforces this: your Command won’t compile unless you handle the error.
+Commands access the current handle through `.get`. Because the handle may be inactive, `.get` can fail with `ResourceNotAvailable`. The Command must turn that error into one of its declared result Messages.
 
 ::Snippet{name="managedResourcesCommand" label="Managed Resource command example"}
 
-This is the same `catchTag` pattern you already use for Command errors. If your Model correctly gates Commands (only dispatching `takePhoto` after `AcquiredCamera` has been received), the `catchTag` is a safety net that never fires. But if your Model logic has a bug, you get a graceful error message instead of a crash.
+This is the usual Command error-to-Message boundary. The Model should gate the operation, for example by enabling `TakePhoto` only after `AcquiredCamera` has been received. The error handler remains a safety net if that Model logic is wrong or the handle disappears before the Command reads it.
 
 ## Building a Layer in acquire
 
-When a resource’s setup and teardown are already packaged as an Effect `Layer`, you do not have to unpack it by hand. `acquire` runs with the resource-lifetime `Scope` in its context, the same scope the runtime closes on release or re-acquire. So `Layer.build` registers the Layer’s finalizers on it, and you map the built context down to the bare service value.
+When setup and teardown are already packaged as an Effect `Layer`, keep that lifecycle intact. `acquire` runs with the Managed Resource’s `Scope` in its context. `Layer.build` registers the Layer’s finalizers on that Scope, and the runtime closes it on release or reacquisition. Map the built Context down to the bare service value that Commands need.
 
 ::Snippet{name="managedResourcesLayer" label="Layer-backed Managed Resource example"}
 
-The resource tag holds the bare service value, so Commands read it through `.get` with no wrapper to destructure. Any finalizer registered during `acquire`, whether through `Layer.build` or `Effect.addFinalizer`, tears down with the resource, so `release` is simply `() => Effect.void`. The explicit `release` callback still runs first, then the scope finalizers, matching the last-in-first-out order Effect uses for any scope.
+The resource tag holds that bare value, so Commands read it through `.get` with no wrapper to destructure. Any finalizer registered during `acquire`, through either `Layer.build` or `Effect.addFinalizer`, runs when the handle is released. In that case the explicit `release` can be `() => Effect.void`. The explicit callback runs first, followed by the Scope finalizers in Effect’s last-in-first-out order.
 
 ## Composing Child Submodels
 
-A child Submodel owns its Managed Resources in its own Model and Message terms, built with `ManagedResource.make` and knowing nothing about any parent. `ManagedResource.lift` translates that record into the parent through a single Model lens and a single Message wrapper, the same shape as update delegation and `Subscription.lift`. `ManagedResource.aggregate` then combines a root-level record with any lifted child records into the single record `makeApplication` expects, throwing at startup on duplicate keys.
+A child Submodel defines its Managed Resources in its own Model and Message terms, with no knowledge of its parent. `ManagedResource.lift` translates the child record through a Model accessor and a Message wrapper, matching the shape of update delegation and `Subscription.lift`. `ManagedResource.aggregate` combines root and lifted child records into the single record the runtime config expects. Duplicate keys throw at startup instead of silently replacing an entry.
 
-Unlike `Subscription.lift`, `toChildModel` returns an `Option`. A Managed Resource already speaks in `Option` (`modelToMaybeRequirements` returns `Option.none()` to release), so a Submodel embedded as `Option` that is not mounted is just another `none`: a missing child releases the resource through the same channel.
+Unlike `Subscription.lift`, `toChildModel` returns an `Option`. A Managed Resource already uses `Option.none()` to mean “release”, so an optional child that is not mounted naturally follows the same path. Removing the child releases its handle.
 
 ::Snippet{name="managedResourcesLift" label="Managed Resources composition example"}
 
-These verbs compose across Submodel levels the same way their Subscription counterparts do. The [Subscription Organization](/patterns/subscription-organization) page traces the full leaf-to-root walkthrough. It uses Subscriptions for its example, but the shape is identical here: `make` at each level, `lift` each child, `aggregate` the results.
+The same operations compose across every Submodel level: `make` at the owner, `lift` through each parent, and `aggregate` at the root. [Subscription Organization](/patterns/subscription-organization) traces that leaf-to-root shape with Subscriptions; the Managed Resource structure is identical.
 
 :::Info{label="Resources vs Managed Resources"}
-Use `resources` for things that live forever (an `RpcClient`, an analytics client). Use `managedResources` for things tied to a Model state (camera streams, an `AudioContext`, `WebSocket` connections).
+Use `resources` for services that live with the runtime, such as an `RpcClient` or analytics client. Use `managedResources` for handles whose lifetime follows the Model, such as camera streams, an `AudioContext`, or `WebSocket` connections.
 :::
 
-With resources and Managed Resources, your app can work with any browser API. But what happens when something goes seriously wrong, like an unrecoverable error in update, view, or a Command? The next page covers crash views.
+Resources and Managed Resources cover long-lived services and Model-scoped handles. Unrecoverable errors in update, view, or a Command follow a different runtime path. The next page covers crash views.

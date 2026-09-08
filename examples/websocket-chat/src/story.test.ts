@@ -1,74 +1,67 @@
 import { DateTime } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import {
-  ClickedConnect,
-  Connected,
-  ConnectionConnected,
-  ConnectionConnecting,
-  ConnectionDisconnected,
-  Disconnected,
-  FailedConnect,
+  ConnectionState,
+  Message,
   type Model,
-  ReceivedMessage,
   SendMessage,
-  SubmittedMessage,
-  SucceededSendMessage,
   TimestampReceivedMessage,
   TimestampSentMessage,
-  TimestampedMessage,
-  UpdatedMessageInput,
   update,
 } from './main'
 
 const idleModel: Model = {
-  connection: ConnectionDisconnected(),
+  connection: ConnectionState.Disconnected(),
   messages: [],
   messageInput: '',
 }
 
-const connectedModel: Model = {
-  ...idleModel,
-  connection: ConnectionConnected(),
-}
+const connectedModel: Model = evo(idleModel, {
+  connection: () => ConnectionState.Connected(),
+})
 
 const zonedNow = DateTime.makeZonedUnsafe(0, { timeZone: 'UTC' })
 
 describe('update', () => {
   describe('connection state', () => {
-    test('ClickedConnect moves into ConnectionConnecting', () => {
+    test('ClickedConnect moves into Connecting', () => {
       story(
         update,
         given(idleModel),
-        message(ClickedConnect()),
+        message(Message.ClickedConnect()),
         model(model => {
-          expect(model.connection._tag).toBe('ConnectionConnecting')
+          expect(model.connection._tag).toBe('Connecting')
         }),
       )
     })
 
-    test('Connected moves into ConnectionConnected', () => {
+    test('Connected moves into Connected', () => {
       story(
         update,
-        given({ ...idleModel, connection: ConnectionConnecting() }),
-        message(Connected()),
+        given(
+          evo(idleModel, { connection: () => ConnectionState.Connecting() }),
+        ),
+        message(Message.Connected()),
         model(model => {
-          expect(model.connection._tag).toBe('ConnectionConnected')
+          expect(model.connection._tag).toBe('Connected')
         }),
       )
     })
 
-    test('Disconnected returns to ConnectionDisconnected and clears messages', () => {
+    test('Disconnected returns to Disconnected and clears messages', () => {
       story(
         update,
-        given({
-          ...connectedModel,
-          messages: [{ text: 'old', zoned: zonedNow, isSent: true }],
-        }),
-        message(Disconnected()),
+        given(
+          evo(connectedModel, {
+            messages: () => [{ text: 'old', zoned: zonedNow, isSent: true }],
+          }),
+        ),
+        message(Message.Disconnected()),
         model(model => {
-          expect(model.connection._tag).toBe('ConnectionDisconnected')
+          expect(model.connection._tag).toBe('Disconnected')
           expect(model.messages).toHaveLength(0)
         }),
       )
@@ -77,13 +70,15 @@ describe('update', () => {
     test('FailedConnect captures the error message', () => {
       story(
         update,
-        given({ ...idleModel, connection: ConnectionConnecting() }),
-        message(FailedConnect({ error: 'Timeout' })),
+        given(
+          evo(idleModel, { connection: () => ConnectionState.Connecting() }),
+        ),
+        message(Message.FailedConnect({ error: 'Timeout' })),
         model(model => {
-          if (model.connection._tag === 'ConnectionError') {
+          if (model.connection._tag === 'Error') {
             expect(model.connection.error).toBe('Timeout')
           } else {
-            throw new Error('Expected ConnectionError')
+            throw new Error('Expected Error')
           }
         }),
       )
@@ -95,7 +90,7 @@ describe('update', () => {
       story(
         update,
         given(connectedModel),
-        message(UpdatedMessageInput({ value: 'Hello' })),
+        message(Message.UpdatedMessageInput({ value: 'Hello' })),
         model(model => {
           expect(model.messageInput).toBe('Hello')
         }),
@@ -107,8 +102,8 @@ describe('update', () => {
     test('an empty input is ignored', () => {
       story(
         update,
-        given({ ...connectedModel, messageInput: '' }),
-        message(SubmittedMessage()),
+        given(evo(connectedModel, { messageInput: () => '' })),
+        message(Message.SubmittedMessage()),
         Command.expectNone(),
       )
     })
@@ -116,8 +111,8 @@ describe('update', () => {
     test('whitespace-only input is ignored', () => {
       story(
         update,
-        given({ ...connectedModel, messageInput: '   ' }),
-        message(SubmittedMessage()),
+        given(evo(connectedModel, { messageInput: () => '   ' })),
+        message(Message.SubmittedMessage()),
         Command.expectNone(),
       )
     })
@@ -125,20 +120,20 @@ describe('update', () => {
     test('connected client fires SendMessage and clears the input', () => {
       story(
         update,
-        given({ ...connectedModel, messageInput: 'Hello there' }),
-        message(SubmittedMessage()),
+        given(evo(connectedModel, { messageInput: () => 'Hello there' })),
+        message(Message.SubmittedMessage()),
         model(model => {
           expect(model.messageInput).toBe('')
         }),
         Command.expectHas(SendMessage),
         Command.resolve(
           SendMessage,
-          SucceededSendMessage({ text: 'Hello there' }),
+          Message.SucceededSendMessage({ text: 'Hello there' }),
         ),
         Command.expectHas(TimestampSentMessage),
         Command.resolve(
           TimestampSentMessage,
-          TimestampedMessage({
+          Message.TimestampedMessage({
             text: 'Hello there',
             zoned: zonedNow,
             isSent: true,
@@ -155,8 +150,8 @@ describe('update', () => {
     test('disconnected client ignores SubmittedMessage', () => {
       story(
         update,
-        given({ ...idleModel, messageInput: 'Hello' }),
-        message(SubmittedMessage()),
+        given(evo(idleModel, { messageInput: () => 'Hello' })),
+        message(Message.SubmittedMessage()),
         Command.expectNone(),
         model(model => {
           expect(model.messageInput).toBe('Hello')
@@ -170,11 +165,11 @@ describe('update', () => {
       story(
         update,
         given(connectedModel),
-        message(ReceivedMessage({ text: 'echo' })),
+        message(Message.ReceivedMessage({ text: 'echo' })),
         Command.expectHas(TimestampReceivedMessage),
         Command.resolve(
           TimestampReceivedMessage,
-          TimestampedMessage({
+          Message.TimestampedMessage({
             text: 'echo',
             zoned: zonedNow,
             isSent: false,

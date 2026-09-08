@@ -3,11 +3,7 @@ import type { Html } from 'foldkit/html'
 
 import { Animation } from '@foldkit/ui'
 
-import {
-  GotAnimationDemoMessage,
-  ToggledAnimationDemo,
-  type UiMessage,
-} from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 const triggerClassName =
@@ -26,8 +22,11 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
           [h.Class('flex gap-3')],
           [
             h.button(
-              [h.Class(triggerClassName), h.OnClick(ToggledAnimationDemo())],
-              [model.isAnimationDemoShowing ? 'Hide Content' : 'Show Content'],
+              [
+                h.Class(triggerClassName),
+                h.OnClick(UiMessage.ToggledAnimationDemo()),
+              ],
+              [model.animationDemo.isShowing ? 'Hide Content' : 'Show Content'],
             ),
           ],
         ),
@@ -48,7 +47,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                   ],
                 ),
               },
-              toParentMessage: message => GotAnimationDemoMessage({ message }),
+              toParentMessage: message =>
+                UiMessage.GotAnimationDemoMessage({ message }),
             }),
           ],
         ),

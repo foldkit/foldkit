@@ -1,28 +1,33 @@
-import { Array, Effect, Option } from 'effect'
-import { AST, Diagnostic, type ESTree, Rule, RuleContext } from 'effect-oxlint'
+import { Effect } from 'effect'
+import {
+  Diagnostic,
+  type ESTree,
+  type Reference,
+  Rule,
+  RuleContext,
+} from 'effect-oxlint'
 
-import { isArrayExpression } from '../guards.ts'
+import {
+  indexReferences,
+  isArrayExpression,
+  isFoldkitHtmlBuilderMember,
+} from '../guards.ts'
 
 const DUPLICATE_ON_MOUNT_MESSAGE =
-  'Only one OnMount attribute can attach to an element. Foldkit installs a single insert hook and tracks a single Mount fiber per element, so a later OnMount replaces the earlier one and its factory never runs. Combine the behaviors into one Mount definition.'
+  'Only one OnMount attribute can attach to an element. Foldkit installs a single insert hook and tracks a single Mount fiber per element, so a later OnMount replaces the earlier one and its `execute` never runs. Combine the behaviors into one Mount definition.'
 
-const isOnMountCallee = (callee: ESTree.Expression): boolean => {
-  if (callee.type === 'Identifier') {
-    return callee.name === 'OnMount'
-  }
-  if (callee.type === 'MemberExpression') {
-    return Option.match(AST.memberPath(callee), {
-      onNone: () => false,
-      onSome: path => Array.lastNonEmpty(path) === 'OnMount',
-    })
-  }
-  return false
-}
+const isOnMountCallee = (
+  callee: ESTree.Expression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => isFoldkitHtmlBuilderMember(callee, 'OnMount', references)
 
-const isOnMountCall = (element: ESTree.ArrayExpressionElement): boolean =>
+const isOnMountCall = (
+  element: ESTree.ArrayExpressionElement,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean =>
   element !== null &&
   element.type === 'CallExpression' &&
-  isOnMountCallee(element.callee)
+  isOnMountCallee(element.callee, references)
 
 /** Flags array literals carrying two or more top-level OnMount attributes. Foldkit installs a single insert hook and tracks a single Mount fiber per element, so a later OnMount silently replaces the earlier one. */
 export const noDuplicateOnmountPerElement = Rule.define({
@@ -33,10 +38,15 @@ export const noDuplicateOnmountPerElement = Rule.define({
   }),
   create: function* () {
     const ctx = yield* RuleContext
+    const scopes = ctx.sourceCode.scopeManager?.scopes
+    const references =
+      scopes === undefined ? undefined : indexReferences(scopes)
     return {
       ArrayExpression: (node: ESTree.Node) => {
         if (!isArrayExpression(node)) return Effect.void
-        const onMountCallCount = node.elements.filter(isOnMountCall).length
+        const onMountCallCount = node.elements.filter(element =>
+          isOnMountCall(element, references),
+        ).length
         if (onMountCallCount <= 1) return Effect.void
         return ctx.report(
           Diagnostic.make({ node, message: DUPLICATE_ON_MOUNT_MESSAGE }),

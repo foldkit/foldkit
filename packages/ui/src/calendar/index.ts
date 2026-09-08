@@ -2,10 +2,10 @@ import {
   Array,
   Effect,
   Function,
-  Match as M,
+  Match,
   Number,
   Option,
-  Schema as S,
+  Schema,
   pipe,
 } from 'effect'
 import * as Calendar from 'foldkit/calendar'
@@ -18,9 +18,10 @@ import {
   type HtmlBuilder,
   childAttributes,
 } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 import { type Reflect, defineView } from 'foldkit/submodel'
+import * as Update from 'foldkit/update'
 
 import * as OptionExt from '../internal/optionExtensions.js'
 import { idSelector } from '../internal/selectors.js'
@@ -30,118 +31,71 @@ import { idSelector } from '../internal/selectors.js'
 /** Which grid the calendar is currently displaying. `Days` is the standard
  * 6×7 day grid; `Months` is a 3×4 month-name grid for fast month jumps;
  * `Years` is a 3×4 year grid paged in 12-year windows for fast year jumps. */
-export const ViewMode = S.Literals(['Days', 'Months', 'Years'])
+export const ViewMode = Schema.Literals(['Days', 'Months', 'Years'])
 export type ViewMode = typeof ViewMode.Type
 
 /** Schema for the calendar component's state. Tracks the visible month/year,
  * the keyboard-focused and user-selected dates, the active view mode, and
  * the configuration that governs navigation (locale, min/max, disabled
  * days). */
-export const Model = S.Struct({
-  id: S.String,
+export const Model = Schema.Struct({
+  id: Schema.String,
   today: Calendar.CalendarDate,
-  viewYear: S.Int,
-  viewMonth: S.Int.check(S.isBetween({ minimum: 1, maximum: 12 })),
+  viewYear: Schema.Int,
+  viewMonth: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 })),
   viewMode: ViewMode,
-  maybeFocusedDate: S.Option(Calendar.CalendarDate),
-  isGridFocused: S.Boolean,
+  maybeFocusedDate: Schema.Option(Calendar.CalendarDate),
+  isGridFocused: Schema.Boolean,
   locale: Calendar.LocaleConfig,
-  maybeMinDate: S.Option(Calendar.CalendarDate),
-  maybeMaxDate: S.Option(Calendar.CalendarDate),
-  disabledDaysOfWeek: S.Array(Calendar.DayOfWeek),
-  disabledDates: S.Array(Calendar.CalendarDate),
+  maybeMinDate: Schema.Option(Calendar.CalendarDate),
+  maybeMaxDate: Schema.Option(Calendar.CalendarDate),
+  disabledDaysOfWeek: Schema.Array(Calendar.DayOfWeek),
+  disabledDates: Schema.Array(Calendar.CalendarDate),
 })
 
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** Sent when the user clicks a day cell in the grid. */
-export const ClickedDay = m('ClickedDay', { date: Calendar.CalendarDate })
-/** Sent when the user presses a key on the grid container. The update maps
- * the key to a navigation or selection action. */
-export const PressedKeyOnGrid = m('PressedKeyOnGrid', {
-  key: S.String,
-  isShift: S.Boolean,
-})
-/** Sent when the user clicks the previous-month navigation button in Days
- * mode. (The Years mode prev/next-page buttons dispatch `PagedYears`.) */
-export const ClickedPreviousMonthButton = m('ClickedPreviousMonthButton')
-/** Sent when the user clicks the next-month navigation button in Days
- * mode. (The Years mode prev/next-page buttons dispatch `PagedYears`.) */
-export const ClickedNextMonthButton = m('ClickedNextMonthButton')
-/** Sent when the user clicks the calendar heading. Zooms out one mode
- * level: Days → Months, Months → Years. Terminal in Years mode. */
-export const ClickedHeading = m('ClickedHeading')
-/** Sent when the user picks a month from the months grid. Jumps the view
- * to that month and returns the calendar to Days mode. */
-export const SelectedMonth = m('SelectedMonth', { month: S.Int })
-/** Sent when the user picks a year from the years grid. Jumps the view to
- * that year and transitions the calendar to Months mode for further drilling. */
-export const SelectedYear = m('SelectedYear', { year: S.Int })
-/** Sent when the user pages the years grid forward or backward by one
- * window. Direction is `1` for next, `-1` for previous. */
-export const PagedYears = m('PagedYears', {
-  direction: S.Literals([1, -1]),
-})
-/** Sent when the grid container receives DOM focus. */
-export const FocusedGrid = m('FocusedGrid')
-/** Sent when the grid container loses DOM focus. */
-export const BlurredGrid = m('BlurredGrid')
-/** Sent when a long-lived session's "today" reference should be refreshed. */
-export const RefreshedToday = m('RefreshedToday', {
-  today: Calendar.CalendarDate,
-})
-/** Sent when a FocusGrid command completes. */
-export const CompletedFocusGrid = m('CompletedFocusGrid')
-
 /** Union of all messages the calendar component can produce. */
-export const Message = S.Union([
-  ClickedDay,
-  PressedKeyOnGrid,
-  ClickedPreviousMonthButton,
-  ClickedNextMonthButton,
-  ClickedHeading,
-  SelectedMonth,
-  SelectedYear,
-  PagedYears,
-  FocusedGrid,
-  BlurredGrid,
-  RefreshedToday,
-  CompletedFocusGrid,
-])
+export const Message = defineMessageUnion({
+  ClickedDay: { date: Calendar.CalendarDate },
+  PressedKeyOnGrid: {
+    key: Schema.String,
+    isShift: Schema.Boolean,
+  },
+  ClickedPreviousMonthButton: {},
+  ClickedNextMonthButton: {},
+  ClickedHeading: {},
+  SelectedMonth: { month: Schema.Int },
+  SelectedYear: { year: Schema.Int },
+  PagedYears: { direction: Schema.Literals([1, -1]) },
+  FocusedGrid: {},
+  BlurredGrid: {},
+  RefreshedToday: { today: Calendar.CalendarDate },
+  CompletedFocusGrid: {},
+})
 export type Message = typeof Message.Type
 
-export type ClickedDay = typeof ClickedDay.Type
-export type PressedKeyOnGrid = typeof PressedKeyOnGrid.Type
-export type SelectedMonth = typeof SelectedMonth.Type
-export type SelectedYear = typeof SelectedYear.Type
+export type ClickedDay = typeof Message.ClickedDay.Type
+export type PressedKeyOnGrid = typeof Message.PressedKeyOnGrid.Type
+export type SelectedMonth = typeof Message.SelectedMonth.Type
+export type SelectedYear = typeof Message.SelectedYear.Type
 
 // OUT MESSAGE
 
-/** Emitted when the visible month changes due to navigation. Consumers of an
- * inline calendar may use this to load month-scoped data (holidays, events).
- * A click that commits a date in a different month emits `SelectedDate`, not
- * `ChangedViewMonth`. The parent infers the month change from the date. */
-export const ChangedViewMonth = m('ChangedViewMonth', {
-  year: S.Int,
-  month: S.Int,
-})
-
-/** Emitted when the user commits a date selection via click or keyboard. The
- * calendar's internal state already reflects the new selection by the time
- * this fires; consumers react by lifting the date into their domain state
- * (closing a popover, advancing a form step, etc.). */
-export const SelectedDate = m('SelectedDate', {
-  date: Calendar.CalendarDate,
-})
-
 /** Union of the calendar's OutMessages. */
-export const OutMessage = S.Union([ChangedViewMonth, SelectedDate])
+export const OutMessage = defineMessageUnion({
+  ChangedViewMonth: {
+    year: Schema.Int,
+    month: Schema.Int,
+  },
+  SelectedDate: { date: Calendar.CalendarDate },
+})
 export type OutMessage = typeof OutMessage.Type
 
-export type ChangedViewMonth = typeof ChangedViewMonth.Type
-export type SelectedDate = typeof SelectedDate.Type
+export type ChangedViewMonth = typeof OutMessage.ChangedViewMonth.Type
+export type SelectedDate = typeof OutMessage.SelectedDate.Type
 
 // INIT
 
@@ -181,12 +135,8 @@ export const init = (config: InitConfig): Model => {
 
 // UPDATE
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
+const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
 const gridId = (modelId: string): string => `${modelId}-grid`
 const gridSelector = (modelId: string): string => idSelector(gridId(modelId))
@@ -194,12 +144,12 @@ const gridSelector = (modelId: string): string => idSelector(gridId(modelId))
 /** Focuses the calendar grid container. Parent components like DatePicker
  * dispatch this after opening to hand focus to the grid's keyboard layer. */
 export const FocusGrid = Command.define('FocusGrid', {
-  args: { id: S.String },
-  messages: [CompletedFocusGrid],
+  args: { id: Schema.String },
+  messages: [Message.CompletedFocusGrid],
   execute: ({ id }) =>
     Dom.focus(gridSelector(id)).pipe(
       Effect.ignore,
-      Effect.as(CompletedFocusGrid()),
+      Effect.as(Message.CompletedFocusGrid()),
     ),
 })
 
@@ -210,7 +160,7 @@ export const FocusGrid = Command.define('FocusGrid', {
  *
  * Equivalent to dispatching `ClickedDay({ date })` through `update`. */
 export const selectDate = (model: Model, date: CalendarDate): UpdateReturn =>
-  update(model, ClickedDay({ date }))
+  update(model, Message.ClickedDay({ date }))
 
 /** Moves the calendar's view and cursor to a date without changing the
  *  selection (which the parent owns). Use it to navigate to a known date, for
@@ -349,39 +299,51 @@ const resolveNavigationKey = (
   focused: CalendarDate,
   firstDayOfWeek: Calendar.DayOfWeek,
 ): Option.Option<readonly [CalendarDate, 1 | -1, number]> =>
-  M.value(key).pipe(
-    M.withReturnType<readonly [CalendarDate, 1 | -1, number]>(),
-    M.when('ArrowLeft', () => [
+  Match.value(key).pipe(
+    Match.withReturnType<readonly [CalendarDate, 1 | -1, number]>(),
+    Match.when('ArrowLeft', () => [
       Calendar.addDays(focused, -1),
       -1,
       DAY_SKIP_CAP,
     ]),
-    M.when('ArrowRight', () => [Calendar.addDays(focused, 1), 1, DAY_SKIP_CAP]),
-    M.when('ArrowUp', () => [Calendar.addDays(focused, -7), -1, DAY_SKIP_CAP]),
-    M.when('ArrowDown', () => [Calendar.addDays(focused, 7), 1, DAY_SKIP_CAP]),
-    M.when('Home', () => [
+    Match.when('ArrowRight', () => [
+      Calendar.addDays(focused, 1),
+      1,
+      DAY_SKIP_CAP,
+    ]),
+    Match.when('ArrowUp', () => [
+      Calendar.addDays(focused, -7),
+      -1,
+      DAY_SKIP_CAP,
+    ]),
+    Match.when('ArrowDown', () => [
+      Calendar.addDays(focused, 7),
+      1,
+      DAY_SKIP_CAP,
+    ]),
+    Match.when('Home', () => [
       Calendar.startOfWeek(focused, firstDayOfWeek),
       -1,
       DAY_SKIP_CAP,
     ]),
-    M.when('End', () => [
+    Match.when('End', () => [
       Calendar.endOfWeek(focused, firstDayOfWeek),
       1,
       DAY_SKIP_CAP,
     ]),
-    M.when('PageUp', () => [
+    Match.when('PageUp', () => [
       isShift
         ? Calendar.addYears(focused, -1)
         : Calendar.addMonths(focused, -1),
       -1,
       MONTH_SKIP_CAP,
     ]),
-    M.when('PageDown', () => [
+    Match.when('PageDown', () => [
       isShift ? Calendar.addYears(focused, 1) : Calendar.addMonths(focused, 1),
       1,
       MONTH_SKIP_CAP,
     ]),
-    M.option,
+    Match.option,
   )
 
 const isCommitKey = (key: string): boolean => key === 'Enter' || key === ' '
@@ -396,17 +358,14 @@ const currentOrFallbackFocus = (model: Model): CalendarDate =>
  * month boundary. Always emits `SelectedDate` carrying the committed date;
  * the parent infers month transitions from the date itself rather than from
  * a separate `ChangedViewMonth` signal that would race with the selection. */
-const commitSelection = (
-  model: Model,
-  date: CalendarDate,
-): readonly [Model, Option.Option<OutMessage>] => {
-  const nextModel = evo(model, {
+const commitSelection = (model: Model, date: CalendarDate): UpdateReturn => ({
+  model: evo(model, {
     maybeFocusedDate: () => Option.some(date),
     viewYear: () => date.year,
     viewMonth: () => date.month,
-  })
-  return [nextModel, Option.some(SelectedDate({ date }))]
-}
+  }),
+  outMessage: OutMessage.SelectedDate({ date }),
+})
 
 /** Applies a focus move to the model, clamping to the allowed range and
  * skipping disabled dates. Emits `ChangedViewMonth` if the move crossed a
@@ -416,7 +375,7 @@ const applyFocusMove = (
   candidate: CalendarDate,
   direction: 1 | -1,
   cap: number,
-): readonly [Model, Option.Option<OutMessage>] => {
+): UpdateReturn => {
   const clamped = clampToRange(model, candidate)
   const nextFocus = skipDisabled(model, clamped, direction, cap)
   const crossedMonth =
@@ -426,11 +385,17 @@ const applyFocusMove = (
     viewYear: () => nextFocus.year,
     viewMonth: () => nextFocus.month,
   })
-  const maybeOutMessage = OptionExt.when(
-    crossedMonth,
-    ChangedViewMonth({ year: nextFocus.year, month: nextFocus.month }),
-  )
-  return [nextModel, maybeOutMessage]
+  if (crossedMonth) {
+    return {
+      model: nextModel,
+      outMessage: OutMessage.ChangedViewMonth({
+        year: nextFocus.year,
+        month: nextFocus.month,
+      }),
+    }
+  } else {
+    return { model: nextModel }
+  }
 }
 
 /** Computes the focused-date cursor for a view-month change. Preserves the
@@ -458,9 +423,9 @@ const applyViewMonthChange = (
   year: number,
   month: number,
   direction: 1 | -1,
-): UpdateReturn => {
+) => {
   if (year === model.viewYear && month === model.viewMonth) {
-    return [model, [], Option.none()]
+    return { model }
   }
   const nextFocus = moveFocusForViewChange(model, year, month, direction)
   const nextModel = evo(model, {
@@ -468,7 +433,10 @@ const applyViewMonthChange = (
     viewMonth: () => month,
     maybeFocusedDate: () => Option.some(nextFocus),
   })
-  return [nextModel, [], Option.some(ChangedViewMonth({ year, month }))]
+  return {
+    model: nextModel,
+    outMessage: OutMessage.ChangedViewMonth({ year, month }),
+  }
 }
 
 /** Direction the user moved when jumping to a new view year/month via grid
@@ -484,30 +452,30 @@ const jumpDirection = (model: Model, year: number, month: number): 1 | -1 => {
  * mode supports horizontal (±1), vertical (±row width), and PageUp/Down
  * (±12) navigation. */
 const resolveMonthsKey = (key: string): Option.Option<number> =>
-  M.value(key).pipe(
-    M.withReturnType<number>(),
-    M.when('ArrowLeft', () => -1),
-    M.when('ArrowRight', () => 1),
-    M.when('ArrowUp', () => -MONTHS_GRID_COLUMNS),
-    M.when('ArrowDown', () => MONTHS_GRID_COLUMNS),
-    M.when('PageUp', () => -MONTHS_IN_YEAR),
-    M.when('PageDown', () => MONTHS_IN_YEAR),
-    M.option,
+  Match.value(key).pipe(
+    Match.withReturnType<number>(),
+    Match.when('ArrowLeft', () => -1),
+    Match.when('ArrowRight', () => 1),
+    Match.when('ArrowUp', () => -MONTHS_GRID_COLUMNS),
+    Match.when('ArrowDown', () => MONTHS_GRID_COLUMNS),
+    Match.when('PageUp', () => -MONTHS_IN_YEAR),
+    Match.when('PageDown', () => MONTHS_IN_YEAR),
+    Match.option,
   )
 
 /** Maps a keyboard key to a years-grid focus shift (in years). Years mode
  * supports horizontal (±1), vertical (±row width), and PageUp/Down (±12 =
  * one window) navigation. */
 const resolveYearsKey = (key: string): Option.Option<number> =>
-  M.value(key).pipe(
-    M.withReturnType<number>(),
-    M.when('ArrowLeft', () => -1),
-    M.when('ArrowRight', () => 1),
-    M.when('ArrowUp', () => -YEARS_GRID_COLUMNS),
-    M.when('ArrowDown', () => YEARS_GRID_COLUMNS),
-    M.when('PageUp', () => -YEARS_PAGE_SIZE),
-    M.when('PageDown', () => YEARS_PAGE_SIZE),
-    M.option,
+  Match.value(key).pipe(
+    Match.withReturnType<number>(),
+    Match.when('ArrowLeft', () => -1),
+    Match.when('ArrowRight', () => 1),
+    Match.when('ArrowUp', () => -YEARS_GRID_COLUMNS),
+    Match.when('ArrowDown', () => YEARS_GRID_COLUMNS),
+    Match.when('PageUp', () => -YEARS_PAGE_SIZE),
+    Match.when('PageDown', () => YEARS_PAGE_SIZE),
+    Match.option,
   )
 
 /** Applies a months-grid focus shift, updating `maybeFocusedDate` and
@@ -519,14 +487,12 @@ const applyMonthsFocusShift = (
 ): UpdateReturn => {
   const focused = currentOrFallbackFocus(model)
   const nextFocus = Calendar.addMonths(focused, monthShift)
-  return [
-    evo(model, {
+  return {
+    model: evo(model, {
       maybeFocusedDate: () => Option.some(nextFocus),
       viewYear: () => nextFocus.year,
     }),
-    [],
-    Option.none(),
-  ]
+  }
 }
 
 /** Applies a years-grid focus shift, updating only `maybeFocusedDate`.
@@ -539,177 +505,156 @@ const applyYearsFocusShift = (
 ): UpdateReturn => {
   const focused = currentOrFallbackFocus(model)
   const nextFocus = Calendar.addYears(focused, yearShift)
-  return [
-    evo(model, {
+  return {
+    model: evo(model, {
       maybeFocusedDate: () => Option.some(nextFocus),
     }),
-    [],
-    Option.none(),
-  ]
+  }
 }
 
-/** Processes a calendar message and returns the next model, commands, and
- * optional OutMessage. */
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tagsExhaustive({
-      ClickedDay: ({ date }) => {
-        if (isDateDisabled(model, date)) {
-          return [model, [], Option.none()]
-        } else {
-          const [nextModel, maybeOutMessage] = commitSelection(model, date)
-          return [nextModel, [], maybeOutMessage]
-        }
-      },
+/** Processes a Calendar Message and returns the next Model, optional Commands,
+ *  and an optional OutMessage. */
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    ClickedDay: ({ date }) => {
+      if (isDateDisabled(model, date)) {
+        return { model }
+      } else {
+        return commitSelection(model, date)
+      }
+    },
 
-      PressedKeyOnGrid: ({ key, isShift }) =>
-        M.value(model.viewMode).pipe(
-          withUpdateReturn,
-          M.when('Days', () => {
-            const focused = currentOrFallbackFocus(model)
+    PressedKeyOnGrid: ({ key, isShift }) =>
+      Match.value(model.viewMode).pipe(
+        withUpdateReturn,
+        Match.when('Days', () => {
+          const focused = currentOrFallbackFocus(model)
 
-            if (isCommitKey(key)) {
-              if (isDateDisabled(model, focused)) {
-                return [model, [], Option.none()]
-              } else {
-                const [nextModel, maybeOutMessage] = commitSelection(
-                  model,
-                  focused,
-                )
-                return [nextModel, [], maybeOutMessage]
-              }
+          if (isCommitKey(key)) {
+            if (isDateDisabled(model, focused)) {
+              return { model }
             } else {
-              return Option.match(
-                resolveNavigationKey(
-                  key,
-                  isShift,
-                  focused,
-                  model.locale.firstDayOfWeek,
-                ),
-                {
-                  onNone: () => [model, [], Option.none()],
-                  onSome: ([candidate, direction, cap]) => {
-                    const [nextModel, maybeOutMessage] = applyFocusMove(
-                      model,
-                      candidate,
-                      direction,
-                      cap,
-                    )
-                    return [nextModel, [], maybeOutMessage]
-                  },
-                },
-              )
+              return commitSelection(model, focused)
             }
+          } else {
+            return Option.match(
+              resolveNavigationKey(
+                key,
+                isShift,
+                focused,
+                model.locale.firstDayOfWeek,
+              ),
+              {
+                onNone: () => ({ model }),
+                onSome: ([candidate, direction, cap]) =>
+                  applyFocusMove(model, candidate, direction, cap),
+              },
+            )
+          }
+        }),
+        Match.when('Months', () =>
+          Option.match(resolveMonthsKey(key), {
+            onNone: () => ({ model }),
+            onSome: shift => applyMonthsFocusShift(model, shift),
           }),
-          M.when('Months', () =>
-            Option.match(resolveMonthsKey(key), {
-              onNone: () => [model, [], Option.none()],
-              onSome: shift => applyMonthsFocusShift(model, shift),
-            }),
-          ),
-          M.when('Years', () =>
-            Option.match(resolveYearsKey(key), {
-              onNone: () => [model, [], Option.none()],
-              onSome: shift => applyYearsFocusShift(model, shift),
-            }),
-          ),
-          M.exhaustive,
         ),
-
-      ClickedPreviousMonthButton: () => {
-        const next = Calendar.subtractMonths(
-          Calendar.make(model.viewYear, model.viewMonth, 1),
-          1,
-        )
-        return applyViewMonthChange(model, next.year, next.month, -1)
-      },
-
-      ClickedNextMonthButton: () => {
-        const next = Calendar.addMonths(
-          Calendar.make(model.viewYear, model.viewMonth, 1),
-          1,
-        )
-        return applyViewMonthChange(model, next.year, next.month, 1)
-      },
-
-      ClickedHeading: () =>
-        M.value(model.viewMode).pipe(
-          withUpdateReturn,
-          M.when('Days', () => [
-            evo(model, { viewMode: () => 'Months' }),
-            [FocusGrid({ id: model.id })],
-            Option.none(),
-          ]),
-          M.when('Months', () => [
-            evo(model, { viewMode: () => 'Years' }),
-            [FocusGrid({ id: model.id })],
-            Option.none(),
-          ]),
-          M.when('Years', () => [model, [], Option.none()]),
-          M.exhaustive,
+        Match.when('Years', () =>
+          Option.match(resolveYearsKey(key), {
+            onNone: () => ({ model }),
+            onSome: shift => applyYearsFocusShift(model, shift),
+          }),
         ),
+        Match.exhaustive,
+      ),
 
-      SelectedMonth: ({ month }) => {
-        if (isMonthDisabled(model, model.viewYear, month)) {
-          return [model, [], Option.none()]
-        } else {
-          const [nextModel, commands, maybeOutMessage] = applyViewMonthChange(
-            model,
-            model.viewYear,
-            month,
-            jumpDirection(model, model.viewYear, month),
-          )
-          return [
-            evo(nextModel, { viewMode: () => 'Days' }),
-            [...commands, FocusGrid({ id: model.id })],
-            maybeOutMessage,
-          ]
+    ClickedPreviousMonthButton: () => {
+      const next = Calendar.subtractMonths(
+        Calendar.make(model.viewYear, model.viewMonth, 1),
+        1,
+      )
+      return applyViewMonthChange(model, next.year, next.month, -1)
+    },
+
+    ClickedNextMonthButton: () => {
+      const next = Calendar.addMonths(
+        Calendar.make(model.viewYear, model.viewMonth, 1),
+        1,
+      )
+      return applyViewMonthChange(model, next.year, next.month, 1)
+    },
+
+    ClickedHeading: () =>
+      Match.value(model.viewMode).pipe(
+        withUpdateReturn,
+        Match.when('Days', () => ({
+          model: evo(model, { viewMode: () => 'Months' }),
+          commands: [FocusGrid({ id: model.id })],
+        })),
+        Match.when('Months', () => ({
+          model: evo(model, { viewMode: () => 'Years' }),
+          commands: [FocusGrid({ id: model.id })],
+        })),
+        Match.when('Years', () => ({ model })),
+        Match.exhaustive,
+      ),
+
+    SelectedMonth: ({ month }) => {
+      if (isMonthDisabled(model, model.viewYear, month)) {
+        return { model }
+      } else {
+        const viewMonthChange = applyViewMonthChange(
+          model,
+          model.viewYear,
+          month,
+          jumpDirection(model, model.viewYear, month),
+        )
+        const monthSelection: Update.Return<Model, Message> = {
+          model: evo(viewMonthChange.model, { viewMode: () => 'Days' }),
+          commands: [FocusGrid({ id: model.id })],
         }
-      },
 
-      SelectedYear: ({ year }) => {
-        if (isYearDisabled(model, year)) {
-          return [model, [], Option.none()]
-        } else {
-          const [nextModel, commands, maybeOutMessage] = applyViewMonthChange(
-            model,
-            year,
-            model.viewMonth,
-            jumpDirection(model, year, model.viewMonth),
-          )
-          return [
-            evo(nextModel, { viewMode: () => 'Months' }),
-            [...commands, FocusGrid({ id: model.id })],
-            maybeOutMessage,
-          ]
+        return pipe(
+          monthSelection,
+          Update.withOutMessage(viewMonthChange.outMessage),
+        )
+      }
+    },
+
+    SelectedYear: ({ year }) => {
+      if (isYearDisabled(model, year)) {
+        return { model }
+      } else {
+        const yearViewMonthChange = applyViewMonthChange(
+          model,
+          year,
+          model.viewMonth,
+          jumpDirection(model, year, model.viewMonth),
+        )
+        const yearSelection: Update.Return<Model, Message> = {
+          model: evo(yearViewMonthChange.model, { viewMode: () => 'Months' }),
+          commands: [FocusGrid({ id: model.id })],
         }
-      },
 
-      PagedYears: ({ direction }) =>
-        applyYearsFocusShift(model, direction * YEARS_PAGE_SIZE),
+        return pipe(
+          yearSelection,
+          Update.withOutMessage(yearViewMonthChange.outMessage),
+        )
+      }
+    },
 
-      FocusedGrid: () => [
-        evo(model, { isGridFocused: () => true }),
-        [],
-        Option.none(),
-      ],
+    PagedYears: ({ direction }) =>
+      applyYearsFocusShift(model, direction * YEARS_PAGE_SIZE),
 
-      BlurredGrid: () => [
-        evo(model, { isGridFocused: () => false }),
-        [],
-        Option.none(),
-      ],
+    FocusedGrid: () => ({ model: evo(model, { isGridFocused: () => true }) }),
 
-      RefreshedToday: ({ today }) => [
-        evo(model, { today: () => today }),
-        [],
-        Option.none(),
-      ],
+    BlurredGrid: () => ({ model: evo(model, { isGridFocused: () => false }) }),
 
-      CompletedFocusGrid: () => [model, [], Option.none()],
+    RefreshedToday: ({ today }) => ({
+      model: evo(model, { today: () => today }),
     }),
-  )
+
+    CompletedFocusGrid: () => ({ model }),
+  })
 
 // VIEW
 
@@ -871,7 +816,7 @@ export type YearsModeAttributes = Readonly<{
 
 /** Discriminated union of attribute groups and derived data the calendar
  * component provides to the consumer's `toView` callback. The variant
- * matches `model.viewMode`. Pattern-match on `_tag` with `M.tagsExhaustive`
+ * matches `model.viewMode`. Pattern-match on `_tag` with `Match.tagsExhaustive`
  * to render each mode. */
 export type CalendarAttributes =
   | DaysModeAttributes
@@ -881,9 +826,8 @@ export type CalendarAttributes =
 /** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *
  *  The Calendar dispatches its own `ClickedDay` message on date commit
- *  and emits a `SelectedDate` OutMessage. Consumers handle date
- *  selection by pattern-matching the OutMessage in their
- *  `GotCalendarMessage` handler. */
+ *  and emits a `SelectedDate` OutMessage. Handle the selection in the
+ *  `foldOutMessage` of the Calendar's `Update.foldChild` config. */
 export type ViewInputs = Readonly<{
   /** The selected date, read straight from the parent Model. The selected-day
    *  marker derives from it. */
@@ -985,19 +929,19 @@ const buildDaysAttributes = (
   const previousMonthButton = [
     h.Type('button'),
     h.AriaLabel(previousMonthLabel),
-    h.OnClick(ClickedPreviousMonthButton()),
+    h.OnClick(Message.ClickedPreviousMonthButton()),
   ]
 
   const nextMonthButton = [
     h.Type('button'),
     h.AriaLabel(nextMonthLabel),
-    h.OnClick(ClickedNextMonthButton()),
+    h.OnClick(Message.ClickedNextMonthButton()),
   ]
 
   const headingButton = [
     h.Type('button'),
     h.AriaLabel(headingButtonLabel),
-    h.OnClick(ClickedHeading()),
+    h.OnClick(Message.ClickedHeading()),
   ]
 
   const handleKeyDown = (
@@ -1011,13 +955,15 @@ const buildDaysAttributes = (
       const maybeCommit = pipe(
         maybeFocusedDate,
         Option.filter(date => !isDateDisabled(model, date)),
-        Option.map(date => ClickedDay({ date })),
+        Option.map(date => Message.ClickedDay({ date })),
       )
       if (Option.isSome(maybeCommit)) {
         return maybeCommit
       }
     }
-    return Option.some(PressedKeyOnGrid({ key, isShift: modifiers.shiftKey }))
+    return Option.some(
+      Message.PressedKeyOnGrid({ key, isShift: modifiers.shiftKey }),
+    )
   }
 
   const activeDescendantAttributes = pipe(
@@ -1033,8 +979,8 @@ const buildDaysAttributes = (
     h.AriaRowcount(Number.increment(WEEKS_IN_GRID)),
     h.AriaColcount(DAYS_IN_WEEK),
     h.Tabindex(0),
-    h.OnFocus(FocusedGrid()),
-    h.OnBlur(BlurredGrid()),
+    h.OnFocus(Message.FocusedGrid()),
+    h.OnBlur(Message.BlurredGrid()),
     h.OnKeyDownPreventDefault(handleKeyDown),
     ...activeDescendantAttributes,
   ]
@@ -1072,7 +1018,7 @@ const buildDaysAttributes = (
       h.Tabindex(-1),
       h.AriaLabel(Calendar.formatAriaLabel(date, locale)),
       h.AriaDisabled(isDisabled),
-      ...(isDisabled ? [] : [h.OnClick(ClickedDay({ date }))]),
+      ...(isDisabled ? [] : [h.OnClick(Message.ClickedDay({ date }))]),
     ]
 
     return {
@@ -1152,7 +1098,7 @@ const buildMonthsAttributes = (
   const headingButton = [
     h.Type('button'),
     h.AriaLabel(headingButtonLabel),
-    h.OnClick(ClickedHeading()),
+    h.OnClick(Message.ClickedHeading()),
   ]
 
   const focusedMonth = Option.match(maybeFocusedDate, {
@@ -1169,10 +1115,12 @@ const buildMonthsAttributes = (
     } else if (isCommitKey(key)) {
       return OptionExt.when(
         !isMonthDisabled(model, viewYear, focusedMonth),
-        SelectedMonth({ month: focusedMonth }),
+        Message.SelectedMonth({ month: focusedMonth }),
       )
     } else {
-      return Option.some(PressedKeyOnGrid({ key, isShift: modifiers.shiftKey }))
+      return Option.some(
+        Message.PressedKeyOnGrid({ key, isShift: modifiers.shiftKey }),
+      )
     }
   }
 
@@ -1185,8 +1133,8 @@ const buildMonthsAttributes = (
     h.Role('grid'),
     h.AriaLabel(`Month picker, ${headingText}`),
     h.Tabindex(0),
-    h.OnFocus(FocusedGrid()),
-    h.OnBlur(BlurredGrid()),
+    h.OnFocus(Message.FocusedGrid()),
+    h.OnBlur(Message.BlurredGrid()),
     h.OnKeyDownPreventDefault(handleKeyDown),
     ...activeDescendantAttributes,
   ]
@@ -1221,7 +1169,7 @@ const buildMonthsAttributes = (
       h.Tabindex(-1),
       h.AriaLabel(`${label} ${viewYear}`),
       h.AriaDisabled(isDisabled),
-      ...(isDisabled ? [] : [h.OnClick(SelectedMonth({ month }))]),
+      ...(isDisabled ? [] : [h.OnClick(Message.SelectedMonth({ month }))]),
     ]
 
     return {
@@ -1275,13 +1223,13 @@ const buildYearsAttributes = (
   const previousPageButton = [
     h.Type('button'),
     h.AriaLabel(previousYearsPageLabel),
-    h.OnClick(PagedYears({ direction: -1 })),
+    h.OnClick(Message.PagedYears({ direction: -1 })),
   ]
 
   const nextPageButton = [
     h.Type('button'),
     h.AriaLabel(nextYearsPageLabel),
-    h.OnClick(PagedYears({ direction: 1 })),
+    h.OnClick(Message.PagedYears({ direction: 1 })),
   ]
 
   const focusedYear = cursorYear
@@ -1295,10 +1243,12 @@ const buildYearsAttributes = (
     } else if (isCommitKey(key)) {
       return OptionExt.when(
         !isYearDisabled(model, focusedYear),
-        SelectedYear({ year: focusedYear }),
+        Message.SelectedYear({ year: focusedYear }),
       )
     } else {
-      return Option.some(PressedKeyOnGrid({ key, isShift: modifiers.shiftKey }))
+      return Option.some(
+        Message.PressedKeyOnGrid({ key, isShift: modifiers.shiftKey }),
+      )
     }
   }
 
@@ -1311,8 +1261,8 @@ const buildYearsAttributes = (
     h.Role('grid'),
     h.AriaLabel(`Year picker, ${headingText}`),
     h.Tabindex(0),
-    h.OnFocus(FocusedGrid()),
-    h.OnBlur(BlurredGrid()),
+    h.OnFocus(Message.FocusedGrid()),
+    h.OnBlur(Message.BlurredGrid()),
     h.OnKeyDownPreventDefault(handleKeyDown),
     ...activeDescendantAttributes,
   ]
@@ -1346,7 +1296,7 @@ const buildYearsAttributes = (
       h.Tabindex(-1),
       h.AriaLabel(label),
       h.AriaDisabled(isDisabled),
-      ...(isDisabled ? [] : [h.OnClick(SelectedYear({ year }))]),
+      ...(isDisabled ? [] : [h.OnClick(Message.SelectedYear({ year }))]),
     ]
 
     return {
@@ -1383,12 +1333,12 @@ const buildYearsAttributes = (
 export const view = defineView<Model, Message, ViewInputs>(
   (model, viewInputs, h): Html =>
     viewInputs.toView(
-      M.value(model.viewMode).pipe(
-        M.withReturnType<CalendarAttributes>(),
-        M.when('Days', () => buildDaysAttributes(model, viewInputs, h)),
-        M.when('Months', () => buildMonthsAttributes(model, viewInputs, h)),
-        M.when('Years', () => buildYearsAttributes(model, viewInputs, h)),
-        M.exhaustive,
+      Match.value(model.viewMode).pipe(
+        Match.withReturnType<CalendarAttributes>(),
+        Match.when('Days', () => buildDaysAttributes(model, viewInputs, h)),
+        Match.when('Months', () => buildMonthsAttributes(model, viewInputs, h)),
+        Match.when('Years', () => buildYearsAttributes(model, viewInputs, h)),
+        Match.exhaustive,
       ),
     ),
 )

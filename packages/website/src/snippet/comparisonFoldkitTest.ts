@@ -4,10 +4,6 @@ test('undo restores the previous grid state', () => {
     given(emptyModel),
     message(PressedCell({ x: 0, y: 0 })),
     message(ReleasedMouse()),
-    // If someone removes the SaveCanvas command from ReleasedMouse, this
-    // test fails. You can't accidentally delete a side effect without
-    // every test that depends on it telling you. That's the point: side
-    // effects are load-bearing, and your tests enforce it automatically.
     Command.resolve(SaveCanvas, CompletedSaveCanvas()),
     model(model => {
       expect(model.grid[0]?.[0]).toEqual(Option.some(0))

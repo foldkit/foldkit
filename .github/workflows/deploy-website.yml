@@ -1,6 +1,13 @@
 name: Deploy Website to Vercel
 
 on:
+  workflow_call:
+    inputs:
+      published_commit:
+        description: Commit whose packages the successful release job published
+        required: false
+        type: string
+        default: ''
   push:
     branches:
       - main
@@ -13,161 +20,89 @@ on:
       - 'packages/vite-plugin-foldkit/**'
       - 'examples/**'
       - 'scripts/build-examples.ts'
+      - 'scripts/check-playground-ssg-build.ts'
+      - 'scripts/check-published-versions.ts'
+      - 'scripts/coherent-release.mjs'
       - 'scripts/example-bridge.js'
+      - 'scripts/plan-website-deploy.mjs'
+      - 'scripts/lib/coherent-release.mjs'
+      - 'scripts/lib/website-package-inputs.mjs'
+      - 'scripts/lib/workspace-packages.mjs'
       - 'scripts/restore-website-fonts.sh'
+      - 'scripts/website-vercel-config.mjs'
+      - '.npmrc'
+      - 'package.json'
       - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - '.github/workflows/deploy-website-build.yml'
       - '.github/workflows/deploy-website.yml'
 
 concurrency:
   group: deploy-website-production
-  cancel-in-progress: true
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
-  deploy:
+  authorize:
+    name: Authorize package inputs
     runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.authorization.outputs.deploy }}
+      target: ${{ steps.authorization.outputs.target }}
 
     steps:
-      - name: Checkout code
+      - name: Checkout code and release tags
         uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          fetch-depth: 0
+          fetch-tags: true
+          ref: ${{ inputs.published_commit || 'main' }}
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile --filter . --filter website... --filter '{examples/**}...'
-
-      - name: Build core packages
-        run: pnpm --filter 'website^...' build
-
-      - name: Build examples
-        run: pnpm build:examples
-
-      - name: Restore licensed website fonts
-        run: bash scripts/restore-website-fonts.sh
+      - name: Match package source to published versions
+        id: authorization
         env:
-          ABC_FAVORIT_BOOK_WOFF2_BASE64: ${{ secrets.ABC_FAVORIT_BOOK_WOFF2_BASE64 }}
-          ABC_FAVORIT_LIGHT_WOFF2_BASE64: ${{ secrets.ABC_FAVORIT_LIGHT_WOFF2_BASE64 }}
-
-      - name: Resolve GitHub star count
-        id: github-stars
-        env:
-          GH_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PUBLISHED_COMMIT: ${{ inputs.published_commit }}
         run: |
-          count=$(curl -sfL --connect-timeout 10 --max-time 30 \
-            -H "Authorization: Bearer ${GH_API_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            -H "User-Agent: foldkit-website-build" \
-            https://api.github.com/repos/foldkit/foldkit \
-            | jq -r '.stargazers_count // empty') || count=""
-          echo "count=${count}" >> "$GITHUB_OUTPUT"
+          target=$(git rev-parse HEAD)
+          if [ -n "${PUBLISHED_COMMIT}" ]; then
+            expected=$(git rev-parse --verify "${PUBLISHED_COMMIT}^{commit}")
+            if [ "${target}" != "${expected}" ]; then
+              echo "the checked-out website commit ${target} is not the published commit ${expected}" >&2
+              exit 1
+            fi
 
-      - name: Build website
-        run: pnpm --filter website build
-        env:
-          FOLDKIT_GITHUB_STAR_COUNT: ${{ steps.github-stars.outputs.count }}
+            if ! git merge-base --is-ancestor "${expected}" refs/remotes/origin/main; then
+              echo "the published website commit ${expected} is not on main" >&2
+              exit 1
+            fi
+          fi
 
-      - name: Install Playwright chromium
-        run: pnpm --filter website exec playwright install --with-deps chromium
+          result=$(node scripts/plan-website-deploy.mjs "${target}" "${PUBLISHED_COMMIT:+--allow-historical-target}")
+          echo "${result}"
+          deploy=${result#deploy=}
 
-      - name: Prerender
-        run: pnpm --filter website prerender
+          if [ -n "${PUBLISHED_COMMIT}" ] && [ "${deploy}" != 'true' ]; then
+            echo "the published website commit ${target} is not eligible for deployment" >&2
+            exit 1
+          fi
 
-      - name: Prepare Vercel output
-        run: |
-          mkdir -p .vercel/output/static
-          cp -r packages/website/dist/* .vercel/output/static/
-          cat > .vercel/output/config.json << 'EOF'
-          {
-            "version": 3,
-            "routes": [
-              {
-                "src": "^/og/(.*)\\.png$",
-                "headers": {
-                  "Content-Type": "image/png",
-                  "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400"
-                },
-                "continue": true
-              },
-              {
-                "src": "^/$",
-                "headers": {
-                  "Link": "</sitemap.xml>; rel=\"sitemap\", </get-started/manifesto>; rel=\"about\", </get-started/getting-started>; rel=\"help\", </example-apps>; rel=\"related\", </ai/overview>; rel=\"describedby\""
-                },
-                "continue": true
-              },
-              {
-                "src": "^/playground/.*",
-                "headers": {
-                  "Cross-Origin-Embedder-Policy": "credentialless",
-                  "Cross-Origin-Opener-Policy": "same-origin"
-                },
-                "continue": true
-              },
-              {
-                "src": ".*",
-                "headers": {
-                  "Cross-Origin-Resource-Policy": "same-origin"
-                },
-                "continue": true
-              },
-              {
-                "src": "^/assets/(.*)",
-                "headers": {
-                  "Cache-Control": "public, max-age=31536000, immutable"
-                },
-                "continue": true
-              },
-              {
-                "src": "^/([^.]*)$",
-                "headers": {
-                  "Cache-Control": "public, max-age=0, must-revalidate"
-                },
-                "continue": true
-              },
-              { "src": "^/manifesto$", "status": 308, "headers": { "Location": "/get-started/manifesto" } },
-              { "src": "^/manifesto\\.md$", "status": 308, "headers": { "Location": "/get-started/manifesto.md" } },
-              { "src": "^/getting-started$", "status": 308, "headers": { "Location": "/get-started/getting-started" } },
-              { "src": "^/getting-started\\.md$", "status": 308, "headers": { "Location": "/get-started/getting-started.md" } },
-              { "src": "^/why-no-jsx$", "status": 308, "headers": { "Location": "/faq/why-no-jsx" } },
-              { "src": "^/why-no-jsx\\.md$", "status": 308, "headers": { "Location": "/faq/why-no-jsx.md" } },
-              { "src": "^/what-about-ssr$", "status": 308, "headers": { "Location": "/faq/what-about-ssr" } },
-              { "src": "^/what-about-ssr\\.md$", "status": 308, "headers": { "Location": "/faq/what-about-ssr.md" } },
-              { "src": "^/coming-from-react$", "status": 308, "headers": { "Location": "/react/coming-from-react" } },
-              { "src": "^/coming-from-react\\.md$", "status": 308, "headers": { "Location": "/react/coming-from-react.md" } },
-              { "src": "^/foldkit-vs-react-side-by-side$", "status": 308, "headers": { "Location": "/react/foldkit-vs-react-side-by-side" } },
-              { "src": "^/foldkit-vs-react-side-by-side\\.md$", "status": 308, "headers": { "Location": "/react/foldkit-vs-react-side-by-side.md" } },
-              { "src": "^/routing-and-navigation$", "status": 308, "headers": { "Location": "/core/routing-and-navigation" } },
-              { "src": "^/routing-and-navigation\\.md$", "status": 308, "headers": { "Location": "/core/routing-and-navigation.md" } },
-              { "src": "^/field-validation$", "status": 308, "headers": { "Location": "/core/field-validation" } },
-              { "src": "^/field-validation\\.md$", "status": 308, "headers": { "Location": "/core/field-validation.md" } },
-              { "src": "^/project-organization$", "status": 308, "headers": { "Location": "/patterns/project-organization" } },
-              { "src": "^/project-organization\\.md$", "status": 308, "headers": { "Location": "/patterns/project-organization.md" } },
-              { "src": "^/example-apps/upload$", "status": 308, "headers": { "Location": "/example-apps/interrupting-commands" } },
-              { "src": "^/playground/upload$", "status": 308, "headers": { "Location": "/playground/interrupting-commands" } },
-              { "src": "^/example-apps/checkout-machine$", "status": 308, "headers": { "Location": "/example-apps/state-machine" } },
-              { "src": "^/example-apps/checkout-machine\\.md$", "status": 308, "headers": { "Location": "/example-apps/state-machine.md" } },
-              { "src": "^/playground/checkout-machine$", "status": 308, "headers": { "Location": "/playground/state-machine" } },
-              { "handle": "filesystem" },
-              {
-                "src": "/",
-                "has": [{ "type": "query", "key": "embedded", "value": "(?<slug>[^&]+)" }],
-                "dest": "/example-apps-embed/$slug/index.html"
-              },
-              { "src": "/playground/(.*)", "dest": "/playground/index.html" },
-              { "src": "/(.*)", "dest": "/index.html" }
-            ]
-          }
-          EOF
+          echo "deploy=${deploy}" >> "${GITHUB_OUTPUT}"
+          echo "target=${target}" >> "${GITHUB_OUTPUT}"
 
-      - name: Deploy to Vercel
-        run: pnpm dlx vercel@55.0.0 deploy --prebuilt --prod --token "$VERCEL_TOKEN"
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEBSITE_PROJECT_ID }}
+  deploy:
+    needs: authorize
+    if: needs.authorize.outputs.deploy == 'true'
+    uses: ./.github/workflows/deploy-website-build.yml
+    with:
+      target: ${{ needs.authorize.outputs.target }}
+      channel: production
+      hostname: foldkit.dev
+    secrets:
+      vercel_token: ${{ secrets.VERCEL_TOKEN }}
+      vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
+      vercel_project_id: ${{ secrets.VERCEL_WEBSITE_PROJECT_ID }}
+      website_book_font: ${{ secrets.ABC_FAVORIT_BOOK_WOFF2_BASE64 }}
+      website_light_font: ${{ secrets.ABC_FAVORIT_LIGHT_WOFF2_BASE64 }}

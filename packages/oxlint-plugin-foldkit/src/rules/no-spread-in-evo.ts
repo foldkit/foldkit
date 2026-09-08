@@ -1,12 +1,41 @@
 import { Array, Effect, Option, pipe } from 'effect'
-import { Diagnostic, type ESTree, Rule, RuleContext } from 'effect-oxlint'
+import {
+  Diagnostic,
+  type ESTree,
+  type Reference,
+  Rule,
+  RuleContext,
+} from 'effect-oxlint'
 
-import { isCallExpression, isObjectExpression } from '../guards.ts'
+import {
+  indexReferences,
+  isCallExpression,
+  isObjectExpression,
+  resolveFoldkitApiPath,
+} from '../guards.ts'
 
 const nestedEvoMessage = (fieldName: string): string =>
   `The updater for field \`${fieldName}\` rebuilds the record with a spread, stepping outside the strict Model update path. Use a nested \`evo\` instead: \`${fieldName}: () => evo(model.${fieldName}, { ... })\`.`
 
-const isEvoCall = (node: ESTree.CallExpression): boolean => {
+const isEvoCall = (
+  node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
+  if (references !== undefined) {
+    return Option.exists(
+      resolveFoldkitApiPath(references, node.callee),
+      path => {
+        const [namespace, methodName, extraMember] = path
+
+        return (
+          namespace === 'Struct' &&
+          methodName === 'evo' &&
+          extraMember === undefined
+        )
+      },
+    )
+  }
+
   const callee = node.callee
   if (callee.type === 'Identifier') {
     return callee.name === 'evo'
@@ -60,10 +89,11 @@ const updaterFieldName = (property: ESTree.ObjectProperty): string =>
 
 const spreadRebuiltFields = (
   node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): ReadonlyArray<
   Readonly<{ fieldName: string; bodyObject: ESTree.ObjectExpression }>
 > => {
-  if (!isEvoCall(node)) return []
+  if (!isEvoCall(node, references)) return []
   const [, updates] = node.arguments
   if (updates === undefined || updates.type !== 'ObjectExpression') return []
   return updates.properties.flatMap(property => {
@@ -93,11 +123,14 @@ export const noSpreadInEvo = Rule.define({
   }),
   create: function* () {
     const ctx = yield* RuleContext
+    const scopes = ctx.sourceCode.scopeManager?.scopes
+    const references =
+      scopes === undefined ? undefined : indexReferences(scopes)
     return {
       CallExpression: (node: ESTree.Node) => {
         if (!isCallExpression(node)) return Effect.void
         return Effect.forEach(
-          spreadRebuiltFields(node),
+          spreadRebuiltFields(node, references),
           ({ fieldName, bodyObject }) =>
             ctx.report(
               Diagnostic.make({

@@ -1,11 +1,11 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 
-export const Location = S.Struct({
-  id: S.String,
-  name: S.String,
-  region: S.String,
-  lng: S.Number,
-  lat: S.Number,
+export const Location = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  region: Schema.String,
+  lng: Schema.Number,
+  lat: Schema.Number,
 })
 export type Location = typeof Location.Type
 

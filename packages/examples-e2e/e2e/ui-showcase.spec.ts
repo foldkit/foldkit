@@ -33,6 +33,171 @@ test.describe('ui-showcase example', () => {
     await expect(trigger).toHaveAttribute('aria-expanded', 'true')
   })
 
+  test('opens the multi-select listbox when its external label is clicked', async ({
+    page,
+  }) => {
+    await page.goto('/')
+    await page
+      .getByRole('link', { name: 'Listbox', exact: true })
+      .first()
+      .click()
+    await expect(page).toHaveURL(/\/listbox$/)
+
+    const trigger = page.locator('#listbox-multi-demo-button')
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    await expect(trigger).toHaveText('Select Bluths')
+
+    await page.locator('label[for="listbox-multi-demo-button"]').click()
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+
+    const items = page.locator('#listbox-multi-demo-items')
+    await items.getByRole('option', { name: 'Gob Bluth', exact: true }).click()
+    await expect(trigger).toHaveText('Gob Bluth')
+
+    await items
+      .getByRole('option', { name: 'Buster Bluth', exact: true })
+      .click()
+    await expect(trigger).toHaveText('2 selected')
+  })
+
+  test('opens the grouped listbox and renders its group headings', async ({
+    page,
+  }) => {
+    await page.goto('/')
+    await page
+      .getByRole('link', { name: 'Listbox', exact: true })
+      .first()
+      .click()
+    await expect(page).toHaveURL(/\/listbox$/)
+
+    const trigger = page.locator('#listbox-grouped-demo-button')
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    await expect(trigger).toHaveText('Select a character')
+
+    await page.locator('label[for="listbox-grouped-demo-button"]').click()
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+
+    const items = page.locator('#listbox-grouped-demo-items')
+    await expect(items.getByText('Bluths', { exact: true })).toBeVisible()
+    await expect(items.getByText('Funkes', { exact: true })).toBeVisible()
+
+    await items
+      .getByRole('option', { name: 'Maeby Funke', exact: true })
+      .click()
+    await expect(trigger).toHaveText('Maeby Funke')
+  })
+
+  test('renders the fieldset demos with their descriptions and disabled state', async ({
+    page,
+  }) => {
+    await page.goto('/')
+    await page
+      .getByRole('link', { name: 'Fieldset', exact: true })
+      .first()
+      .click()
+    await expect(page).toHaveURL(/\/fieldset$/)
+
+    const basicFieldset = page.locator('#fieldset-basic-demo')
+    const disabledFieldset = page.locator('#fieldset-disabled-demo')
+    const nameDescription = 'As it appears on your government-issued ID.'
+
+    const nameInput = basicFieldset.locator('#fieldset-name-input')
+    await expect(nameInput).toBeEnabled()
+    await expect(
+      basicFieldset.getByText(nameDescription, { exact: true }),
+    ).toBeVisible()
+    await expect(
+      basicFieldset.getByText('A brief introduction about yourself.', {
+        exact: true,
+      }),
+    ).toBeVisible()
+
+    const termsCheckbox = basicFieldset.getByRole('checkbox')
+    await expect(termsCheckbox).toHaveAttribute('aria-checked', 'false')
+    await termsCheckbox.click()
+    await expect(termsCheckbox).toHaveAttribute('aria-checked', 'true')
+
+    await expect(
+      disabledFieldset.locator('#fieldset-disabled-name-input'),
+    ).toBeDisabled()
+    await expect(
+      disabledFieldset.locator('#fieldset-disabled-bio-textarea'),
+    ).toBeDisabled()
+    await expect(
+      disabledFieldset.getByText(nameDescription, { exact: true }),
+    ).toHaveCount(0)
+  })
+
+  test('opens each dialog demo with its own panel content', async ({
+    page,
+  }) => {
+    await page.goto('/')
+    await page
+      .getByRole('link', { name: 'Dialog', exact: true })
+      .first()
+      .click()
+    await expect(page).toHaveURL(/\/dialog$/)
+
+    const openAndClose = async (
+      triggerName: string,
+      dialogId: string,
+      title: string,
+    ): Promise<void> => {
+      const heading = page
+        .locator(dialogId)
+        .getByRole('heading', { name: title, exact: true })
+
+      await page.getByRole('button', { name: triggerName, exact: true }).click()
+      await expect(heading).toBeVisible()
+      await page.keyboard.press('Escape')
+      await expect(heading).toBeHidden()
+    }
+
+    await openAndClose('Open Dialog', '#dialog-demo', 'Confirm Action')
+    await openAndClose(
+      'Open Animated Dialog',
+      '#dialog-animated-demo',
+      'Confirm Action',
+    )
+    await openAndClose('Edit filters', '#overlay-dialog-demo', 'Edit filters')
+  })
+
+  test('stacks the nested dialogs and dismisses them one at a time', async ({
+    page,
+  }) => {
+    await page.goto('/')
+    await page
+      .getByRole('link', { name: 'Dialog', exact: true })
+      .first()
+      .click()
+    await expect(page).toHaveURL(/\/dialog$/)
+
+    const settingsTitle = page
+      .locator('#nested-dialog-parent-demo')
+      .getByRole('heading', { name: 'Project settings', exact: true })
+    const deleteTitle = page
+      .locator('#nested-dialog-child-demo')
+      .getByRole('heading', { name: 'Delete project?', exact: true })
+
+    await page
+      .getByRole('button', { name: 'Open project settings', exact: true })
+      .click()
+    await expect(settingsTitle).toBeVisible()
+
+    await page
+      .getByRole('button', { name: 'Delete project', exact: true })
+      .click()
+    await expect(deleteTitle).toBeVisible()
+    await expect(settingsTitle).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(deleteTitle).toBeHidden()
+    await expect(settingsTitle).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(settingsTitle).toBeHidden()
+  })
+
   test('opens the menu when its external label is clicked', async ({
     page,
   }) => {

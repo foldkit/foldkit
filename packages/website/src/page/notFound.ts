@@ -8,7 +8,7 @@ export const view = (path: string, introductionRoute: string): Html =>
     [
       ih.h1(
         [ih.Class('text-2xl md:text-4xl font-bold text-red-600 mb-6')],
-        ['404 - Page Not Found'],
+        ['404 | Page Not Found'],
       ),
       para(`The path "${path}" was not found.`),
       link(introductionRoute, '← Go Home'),

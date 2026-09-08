@@ -1,20 +1,21 @@
 import { Option } from 'effect'
 import { Calendar } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { Dialog } from '@foldkit/ui'
 
-import { ChangedUrl, HomeRoute, type Model, update } from './main'
+import { AppRoute, Message, type Model, update } from './main'
 import { uiInit } from './ui/init'
 
 const today = Calendar.make(2026, 4, 16)
-const [initialUiModel] = uiInit(today)
+const uiInit_ = uiInit(today)
 
 const initialModel: Model = {
-  route: HomeRoute(),
-  uiModel: initialUiModel,
+  route: AppRoute.Home(),
+  uiModel: uiInit_.model,
 }
 
 const urlOrThrow = (raw: string) =>
@@ -29,7 +30,7 @@ describe('update', () => {
       story(
         update,
         given(initialModel),
-        message(ChangedUrl({ url: urlOrThrow('http://localhost/') })),
+        message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
         model(model => {
           expect(model.route._tag).toBe('Home')
         }),
@@ -40,7 +41,9 @@ describe('update', () => {
       story(
         update,
         given(initialModel),
-        message(ChangedUrl({ url: urlOrThrow('http://localhost/button') })),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
+        ),
         model(model => {
           expect(model.route._tag).toBe('Button')
         }),
@@ -51,7 +54,9 @@ describe('update', () => {
       story(
         update,
         given(initialModel),
-        message(ChangedUrl({ url: urlOrThrow('http://localhost/calendar') })),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/calendar') }),
+        ),
         model(model => {
           expect(model.route._tag).toBe('Calendar')
         }),
@@ -63,7 +68,9 @@ describe('update', () => {
         update,
         given(initialModel),
         message(
-          ChangedUrl({ url: urlOrThrow('http://localhost/date-picker') }),
+          Message.ChangedUrl({
+            url: urlOrThrow('http://localhost/date-picker'),
+          }),
         ),
         model(model => {
           expect(model.route._tag).toBe('DatePicker')
@@ -75,7 +82,9 @@ describe('update', () => {
       story(
         update,
         given(initialModel),
-        message(ChangedUrl({ url: urlOrThrow('http://localhost/unknown') })),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/unknown') }),
+        ),
         model(model => {
           if (model.route._tag === 'NotFound') {
             expect(model.route.path).toBe('/unknown')
@@ -89,22 +98,26 @@ describe('update', () => {
 
   describe('mobile menu', () => {
     test('navigating to a new URL closes the mobile menu dialog', () => {
-      const modelWithOpenMenu: Model = {
-        ...initialModel,
-        uiModel: {
-          ...initialModel.uiModel,
-          mobileMenuDialog: Dialog.init({
-            id: 'mobile-menu',
-            isOpen: true,
-          }),
-        },
-      }
+      const modelWithOpenMenu: Model = evo(initialModel, {
+        uiModel: evo({
+          mobileMenuDialog: () =>
+            Dialog.init({
+              id: 'mobile-menu',
+              isOpen: true,
+            }),
+        }),
+      })
 
       story(
         update,
         given(modelWithOpenMenu),
-        message(ChangedUrl({ url: urlOrThrow('http://localhost/button') })),
-        Command.resolve(Dialog.CloseDialog, Dialog.CompletedCloseDialog()),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
+        ),
+        Command.resolve(
+          Dialog.CloseDialog,
+          Dialog.Message.CompletedCloseDialog(),
+        ),
         model(model => {
           expect(model.uiModel.mobileMenuDialog.isOpen).toBe(false)
         }),

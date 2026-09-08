@@ -10,15 +10,15 @@ Check out how Dialog is wired up in a [real Foldkit app](https://github.com/fold
 
 ## Examples
 
-### Basic {#dialog-basic}
+### Basic
 
-Open the dialog from a trigger by dispatching your own Message and calling `Dialog.open(model)` in your update. Spread the `closeButton` bundle onto a Cancel button to dismiss it, or call `Dialog.close(model)` directly. Both return `[Model, Commands, Option<OutMessage>]`. Spread `...title` onto a heading element so the dialog is labeled for screen readers.
+Open the Dialog from a trigger by dispatching your own Message. Fold `Dialog.open` and `Dialog.close` into the parent with `Update.foldChildStep`; both are no-argument child entry points. Spread the `closeButton` bundle onto a Cancel button to dismiss it. Spread `...title` onto a heading element so the Dialog is labeled for screen readers.
 
 ::Demo{name="dialog"}
 
 ::Snippet{name="uiDialogBasic" label="dialog example"}
 
-### Animated {#dialog-animated}
+### Animated
 
 Pass `isAnimated: true` at init to coordinate animations. The component manages an Animation submodel internally. Apply transition classes using `data-closed` (e.g. `data-[closed]:opacity-0 data-[closed]:scale-95`).
 
@@ -26,7 +26,7 @@ Pass `isAnimated: true` at init to coordinate animations. The component manages 
 
 ::Snippet{name="uiDialogAnimated" label="animated dialog example"}
 
-### Field {#dialog-field}
+### Field
 
 A field inside a dialog can open its own overlay, like a Combobox or DatePicker. By default that overlay portals its panel to the document body, where the dialog renders on top of it. Pass `anchor: { portal: false }` so the panel stays inside the dialog and remains visible.
 
@@ -34,7 +34,7 @@ A field inside a dialog can open its own overlay, like a Combobox or DatePicker.
 
 ::Snippet{name="uiDialogOverlay" label="field dialog example"}
 
-### Stacked {#dialog-stacked}
+### Stacked
 
 Use a separate Dialog Model for each level and open the second from a button in the first. The framework stacks them by z-index, traps focus in the topmost, and closes them one at a time: Escape closes the top dialog before the one beneath it.
 
@@ -96,20 +96,20 @@ Configuration object passed to `Dialog.view()`.
 
 Payload delivered to the `toView` callback each render.
 
-| Name           | Type                            | Default | Description                                                                                                                                                                                                              |
-| -------------- | ------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `dialog`       | `ReadonlyArray<ChildAttribute>` | —       | Spread onto an `h.dialog(...)` element. Carries the id, ARIA labelling, `open` prop, positioning style, and the Escape handler that wires to `RequestedClose`.                                                           |
-| `backdrop`     | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the backdrop element. Includes the Animation data attributes and the outside-click handler that dispatches `RequestedClose` (suppressed while a leave animation is in progress).                             |
-| `panel`        | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the panel element. Includes the panel id (`${id}-panel`) and the Animation data attributes.                                                                                                                  |
-| `title`        | `ReadonlyArray<ChildAttribute>` | —       | Spread onto your accessible-name heading (`h.h2([...title], [...])`). Carries the framework-managed id the dialog’s `aria-labelledby` points at, so labelling wires up without hand-rolling the id.                      |
-| `description`  | `ReadonlyArray<ChildAttribute>` | —       | Spread onto your description element (`h.p([...description], [...])`). Carries the framework-managed id the dialog’s `aria-describedby` points at, so the association wires up without hand-rolling the id.              |
-| `initialFocus` | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the element that should receive focus when the dialog opens (`h.input([...initialFocus])`). A configured `focusSelector` takes precedence; to focus an element whose id you do not own, use `focusSelector`. |
-| `closeButton`  | `ReadonlyArray<ChildAttribute>` | —       | Spread onto an in-panel close control such as a Cancel button. Carries the click handler that closes the dialog, so a plain dismiss needs no parent message.                                                             |
-| `isVisible`    | `boolean`                       | —       | Derived from `isOpen` and the Animation `transitionState`. Render the backdrop and panel only while this is true.                                                                                                        |
+| Name           | Type                            | Default | Description                                                                                                                                                                                                                           |
+| -------------- | ------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dialog`       | `ReadonlyArray<ChildAttribute>` | —       | Spread onto an `h.dialog(...)` element. Carries the id, ARIA labelling, `open` prop, positioning style, and the Escape handler that wires to `RequestedClose`.                                                                        |
+| `backdrop`     | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the backdrop element. Includes the Animation data attributes and the outside-click handler that dispatches `RequestedClose` (suppressed while a leave animation is in progress).                                          |
+| `panel`        | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the panel element. Includes the panel id (`${id}-panel`) and the Animation data attributes.                                                                                                                               |
+| `title`        | `ReadonlyArray<ChildAttribute>` | —       | Spread onto your accessible-name heading (`h.h2([...title], [...])`). Carries the framework-managed id the dialog’s `aria-labelledby` points at, so labelling wires up without hand-rolling the id.                                   |
+| `description`  | `ReadonlyArray<ChildAttribute>` | —       | Spread onto your description element (`h.p([...description], [...])`). Carries the framework-managed id the dialog’s `aria-describedby` points at, so the association wires up without hand-rolling the id.                           |
+| `initialFocus` | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the element that should receive focus when the dialog opens (`h.input([...initialFocus])`). A configured `focusSelector` takes precedence; to focus an element whose id you do not own, use `focusSelector`.              |
+| `closeButton`  | `ReadonlyArray<ChildAttribute>` | —       | Spread onto an in-panel close control such as a Cancel button. Carries the click handler that closes the dialog, so a plain dismiss needs no parent message, and `type="button"` so a close control inside a form does not submit it. |
+| `isVisible`    | `boolean`                       | —       | Derived from `isOpen` and the Animation `transitionState`. Render the backdrop and panel only while this is true.                                                                                                                     |
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Pattern-match on the OutMessage in your update handler.
+Messages emitted to the parent through the optional `outMessage` field. Match on the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
 
 | Name     | Type | Default | Description                                                                                                                                                                                                      |
 | -------- | ---- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -1,14 +1,14 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 
-export const ExampleSourceFile = S.Struct({
-  path: S.String,
-  highlightedHtml: S.String,
-  rawCode: S.String,
+export const ExampleSourceFile = Schema.Struct({
+  path: Schema.String,
+  highlightedHtml: Schema.String,
+  rawCode: Schema.String,
 })
 export type ExampleSourceFile = typeof ExampleSourceFile.Type
 
-export const ExampleSources = S.Struct({
-  files: S.Array(ExampleSourceFile),
+export const ExampleSources = Schema.Struct({
+  files: Schema.Array(ExampleSourceFile),
 })
 export type ExampleSources = typeof ExampleSources.Type
 
@@ -47,6 +47,8 @@ const loadersBySlug: Readonly<Record<string, SourceLoader | undefined>> = {
   'generative-art': () => import('virtual:example-sources/generative-art'),
   'web-components': () => import('virtual:example-sources/web-components'),
   embedding: () => import('virtual:example-sources/embedding'),
+  ssg: () => import('virtual:example-sources/ssg'),
+  ssr: () => import('virtual:example-sources/ssr'),
   'ui-showcase': () => import('virtual:example-sources/ui-showcase'),
   'personal-blog': () => import('virtual:example-sources/personal-blog'),
 }

@@ -2,6 +2,7 @@ import {
   blur,
   change,
   click,
+  contextMenu,
   doubleClick,
   focus,
   hover,
@@ -16,6 +17,7 @@ import {
 
 click(role('button', { name: 'Log out' }))
 doubleClick(role('button', { name: 'Expand' }))
+contextMenu(role('row', { name: 'Quarterly report' }))
 pointerDown(role('button', { name: 'Toggle' }))
 pointerUp(role('button', { name: 'Toggle' }))
 hover(role('menuitem', { name: 'File' }))

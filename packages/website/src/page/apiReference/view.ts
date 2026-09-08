@@ -26,7 +26,7 @@ import {
   scopedId,
   sectionId,
 } from './domain'
-import { type Message, ToggledSignature } from './message'
+import { Message } from './message'
 import type { ApiData, Model } from './model'
 
 type Highlights = ApiData['highlights']
@@ -74,12 +74,12 @@ const functionView = (
         ],
         [
           h.div(
-            [h.Class('flex items-center gap-2')],
+            [h.Class('flex flex-wrap items-center gap-2')],
             [
               h.h3(
                 [
                   h.Class(
-                    'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6',
+                    'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6 wrap-anywhere',
                   ),
                   h.Id(id),
                 ],
@@ -206,7 +206,7 @@ const signaturesView = (
       {
         id: key,
         isOpen: isSignatureDisclosureOpen,
-        onToggle: isOpen => ToggledSignature({ id: key, isOpen }),
+        onToggle: isOpen => Message.ToggledSignature({ id: key, isOpen }),
         toView: attributes =>
           h.div(
             [],
@@ -375,12 +375,12 @@ const typeView = (
         ],
         [
           h.div(
-            [h.Class('flex items-center gap-2')],
+            [h.Class('flex flex-wrap items-center gap-2')],
             [
               h.h3(
                 [
                   h.Class(
-                    'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6',
+                    'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6 wrap-anywhere',
                   ),
                   h.Id(id),
                 ],
@@ -448,12 +448,12 @@ const interfaceView = (
         ],
         [
           h.div(
-            [h.Class('flex items-center gap-2')],
+            [h.Class('flex flex-wrap items-center gap-2')],
             [
               h.h3(
                 [
                   h.Class(
-                    'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6',
+                    'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6 wrap-anywhere',
                   ),
                   h.Id(id),
                 ],
@@ -521,12 +521,12 @@ const variableView = (
         ],
         [
           h.div(
-            [h.Class('flex items-center gap-2')],
+            [h.Class('flex flex-wrap items-center gap-2')],
             [
               h.h3(
                 [
                   h.Class(
-                    'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6',
+                    'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6 wrap-anywhere',
                   ),
                   h.Id(id),
                 ],

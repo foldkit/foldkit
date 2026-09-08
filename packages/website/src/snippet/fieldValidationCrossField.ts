@@ -1,4 +1,4 @@
-import { Match as M } from 'effect'
+import { Update } from 'foldkit'
 import {
   type Field,
   Invalid,
@@ -30,25 +30,21 @@ const validateConfirmPassword = (
 }
 
 const update = (model: Model, message: Message) =>
-  M.value(message).pipe(
-    M.tagsExhaustive({
-      ChangedPassword: ({ value }) => [
-        evo(model, {
-          password: () => validatePassword(value),
-          confirmPassword: confirmPassword =>
-            confirmPassword._tag === 'NotValidated'
-              ? confirmPassword
-              : validateConfirmPassword(value, confirmPassword.value),
-        }),
-        [],
-      ],
-
-      ChangedConfirmPassword: ({ value }) => [
-        evo(model, {
-          confirmPassword: () =>
-            validateConfirmPassword(model.password.value, value),
-        }),
-        [],
-      ],
+  Message.match<Update.Return<Model, Message>>(message, {
+    ChangedPassword: ({ value }) => ({
+      model: evo(model, {
+        password: () => validatePassword(value),
+        confirmPassword: confirmPassword =>
+          confirmPassword._tag === 'NotValidated'
+            ? confirmPassword
+            : validateConfirmPassword(value, confirmPassword.value),
+      }),
     }),
-  )
+
+    ChangedConfirmPassword: ({ value }) => ({
+      model: evo(model, {
+        confirmPassword: () =>
+          validateConfirmPassword(model.password.value, value),
+      }),
+    }),
+  })

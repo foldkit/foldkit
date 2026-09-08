@@ -22,7 +22,7 @@ export type ViewConfig<Message> = Readonly<{
   name?: string
 }>
 
-/** Generates the description element ID from the select's base ID. */
+/** Returns the description element id, derived from the select's base id. */
 export const descriptionId = (id: string): string => `${id}-description`
 
 /** Renders an accessible select by building ARIA attribute groups and delegating layout to the consumer's `toView` callback. */
@@ -42,7 +42,7 @@ export const view = <Message>(
   } = config
 
   const disabledAttributes = isDisabled
-    ? [h.AriaDisabled(true), h.Disabled(true), h.DataAttribute('disabled', '')]
+    ? [h.Disabled(true), h.DataAttribute('disabled', '')]
     : []
 
   const invalidAttributes = isInvalid

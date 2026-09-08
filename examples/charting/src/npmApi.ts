@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema as S } from 'effect'
+import { Context, Effect, Layer, Schema } from 'effect'
 import { HttpClient } from 'effect/unstable/http'
 
 import type { PackageSpec } from './domain'
@@ -11,27 +11,31 @@ const NPM_REGISTRY_API = 'https://registry.npmjs.org'
 
 // SCHEMA
 
-export const NpmDownloadDay = S.Struct({
-  day: S.String,
-  downloads: S.Number,
+export const NpmDownloadDay = Schema.Struct({
+  day: Schema.String,
+  downloads: Schema.Number,
 })
 
-export const NpmDownloadsResponse = S.Struct({
-  downloads: S.Array(NpmDownloadDay),
+export const NpmDownloadsResponse = Schema.Struct({
+  downloads: Schema.Array(NpmDownloadDay),
 })
 
-export const NpmVersionMetadata = S.Struct({
-  dependencies: S.OptionFromOptional(S.Record(S.String, S.String)),
-  peerDependencies: S.OptionFromOptional(S.Record(S.String, S.String)),
+export const NpmVersionMetadata = Schema.Struct({
+  dependencies: Schema.OptionFromOptional(
+    Schema.Record(Schema.String, Schema.String),
+  ),
+  peerDependencies: Schema.OptionFromOptional(
+    Schema.Record(Schema.String, Schema.String),
+  ),
 })
 export type NpmVersionMetadata = typeof NpmVersionMetadata.Type
 
-export const NpmPackument = S.Struct({
-  name: S.String,
-  time: S.Record(S.String, S.String),
-  versions: S.Record(S.String, NpmVersionMetadata),
-  'dist-tags': S.Struct({
-    latest: S.String,
+export const NpmPackument = Schema.Struct({
+  name: Schema.String,
+  time: Schema.Record(Schema.String, Schema.String),
+  versions: Schema.Record(Schema.String, NpmVersionMetadata),
+  'dist-tags': Schema.Struct({
+    latest: Schema.String,
   }),
 })
 

@@ -61,7 +61,7 @@ Configuration object passed to `Select.view()`.
 | `toView`      | `(attributes: SelectAttributes) => Html` | —       | Callback that receives attribute groups for the select, label, and description elements.                    |
 | `onChange`    | `(value: string) => Message`             | —       | Function that maps the selected value to a Message when the selection changes.                              |
 | `value`       | `string`                                 | —       | The currently selected value.                                                                               |
-| `isDisabled`  | `boolean`                                | `false` | Whether the select is disabled. Sets both the native disabled attribute and aria-disabled.                  |
+| `isDisabled`  | `boolean`                                | `false` | Whether the select is disabled. Sets the native disabled attribute.                                         |
 | `isInvalid`   | `boolean`                                | `false` | Whether the select is in an invalid state. Sets aria-invalid and adds a data-invalid attribute for styling. |
 | `isAutofocus` | `boolean`                                | `false` | Whether the select receives focus when the page loads.                                                      |
 | `name`        | `string`                                 | —       | The form field name for native form submission.                                                             |

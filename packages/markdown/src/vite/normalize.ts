@@ -1,10 +1,4 @@
-import {
-  Array,
-  Match as M,
-  Option,
-  Record as Record_,
-  Schema as S,
-} from 'effect'
+import { Array, Match, Option, Record } from 'effect'
 import type {
   ListItem as MdastListItem,
   Table as MdastTable,
@@ -42,6 +36,7 @@ import {
   ThematicBreak,
 } from '../ast/index.js'
 import type { IslandDefinition, IslandDefinitions } from '../island/index.js'
+import { validateFields } from './validateFields.js'
 
 /**
  * Options for {@link normalizeRoot}. `islands`, when provided, maps each
@@ -61,13 +56,13 @@ type PositionedNode = Readonly<{
 type DirectiveNode = Readonly<{
   name: string
   attributes?:
-    | Readonly<Record<string, string | null | undefined>>
+    | Readonly<globalThis.Record<string, string | null | undefined>>
     | null
     | undefined
   position?: Position | undefined
 }>
 
-const UNSUPPORTED_GUIDANCE: Readonly<Record<string, string>> = {
+const UNSUPPORTED_GUIDANCE: Readonly<globalThis.Record<string, string>> = {
   html: 'Raw HTML is not part of the markdown vocabulary. Use an island directive to render custom views.',
   textDirective:
     'Inline directives are not supported. Use a leaf directive (`::Name`) on its own line, or a container directive (`:::Name`).',
@@ -79,7 +74,7 @@ const UNSUPPORTED_GUIDANCE: Readonly<Record<string, string>> = {
     'Reference-style link definitions are not supported. Use inline links (`[text](url)`).',
   footnoteReference: 'Footnotes are not supported.',
   footnoteDefinition: 'Footnotes are not supported.',
-  yaml: 'Frontmatter is not supported. Keep document metadata in application code, for example a typed post registry.',
+  yaml: 'Frontmatter is not supported without a `frontmatter` schema in the markdown plugin options. Pass one to enable it, or keep document metadata in application code.',
   'leaf directive label':
     'Leaf directive labels (`::Name[label]`) are not supported. Pass information through attributes (`::Name{label="..."}`) instead.',
 }
@@ -106,10 +101,10 @@ const unsupported = (node: PositionedNode): never => {
 
 const normalizeAttributes = (
   attributes:
-    | Readonly<Record<string, string | null | undefined>>
+    | Readonly<globalThis.Record<string, string | null | undefined>>
     | null
     | undefined,
-): Record<string, string> =>
+): globalThis.Record<string, string> =>
   Object.fromEntries(
     Object.entries(attributes ?? {}).map(([name, value]) => [
       name,
@@ -141,9 +136,9 @@ const toSafeUrl = (
 }
 
 const toInline = (node: PhrasingContent): Inline =>
-  M.value(node).pipe(
-    M.withReturnType<Inline>(),
-    M.discriminators('type')({
+  Match.value(node).pipe(
+    Match.withReturnType<Inline>(),
+    Match.discriminators('type')({
       text: ({ value }) => Text({ value }),
       inlineCode: ({ value }) => InlineCode({ value }),
       break: () => HardBreak(),
@@ -164,16 +159,16 @@ const toInline = (node: PhrasingContent): Inline =>
           maybeTitle: Option.fromNullishOr(imageNode.title),
         }),
     }),
-    M.orElse(unsupported),
+    Match.orElse(unsupported),
   )
 
 const toAlignment = (align: 'left' | 'right' | 'center' | null): Alignment =>
-  M.value(align).pipe(
-    M.withReturnType<Alignment>(),
-    M.when('left', () => 'Left'),
-    M.when('center', () => 'Center'),
-    M.when('right', () => 'Right'),
-    M.orElse(() => 'None'),
+  Match.value(align).pipe(
+    Match.withReturnType<Alignment>(),
+    Match.when('left', () => 'Left'),
+    Match.when('center', () => 'Center'),
+    Match.when('right', () => 'Right'),
+    Match.orElse(() => 'None'),
   )
 
 const toTableRow = (row: MdastTableRow): TableRow =>
@@ -194,32 +189,18 @@ export const normalizeRoot = (
   const validateIslandAttributes = (
     directive: DirectiveNode,
     attributesSchema: IslandDefinition,
-    attributes: Readonly<Record<string, string>>,
-  ): void => {
-    const allowedAttributeNames = Object.keys(attributesSchema.fields)
-    const unknownAttributeNames = Object.keys(attributes).filter(
-      attributeName => !allowedAttributeNames.includes(attributeName),
-    )
-    if (Array.isArrayNonEmpty(unknownAttributeNames)) {
-      const allowedDescription = Array.match(allowedAttributeNames, {
-        onEmpty: () => 'It takes no attributes.',
-        onNonEmpty: names => `Allowed attributes: ${names.join(', ')}.`,
-      })
-      throw new Error(
-        `Unknown attribute "${Array.headNonEmpty(unknownAttributeNames)}" for island "${directive.name}"${sourceLocation(directive)}. ` +
-          allowedDescription,
-      )
-    }
-
-    try {
-      S.decodeUnknownSync(attributesSchema)(attributes)
-    } catch (error) {
-      throw new Error(
-        `Invalid attributes for island "${directive.name}"${sourceLocation(directive)}. ` +
-          `${error instanceof Error ? error.message : String(error)}`,
-      )
-    }
-  }
+    attributes: Readonly<globalThis.Record<string, string>>,
+  ): void =>
+    validateFields({
+      schema: attributesSchema,
+      values: attributes,
+      memberNounPlural: 'attributes',
+      unknownField: (attributeName, allowedDescription) =>
+        `Unknown attribute "${attributeName}" for island "${directive.name}"${sourceLocation(directive)}. ` +
+        allowedDescription,
+      invalidValues: detail =>
+        `Invalid attributes for island "${directive.name}"${sourceLocation(directive)}. ${detail}`,
+    })
 
   const toIsland = (
     directive: DirectiveNode,
@@ -229,7 +210,7 @@ export const normalizeRoot = (
     const { islands } = options
 
     if (islands !== undefined) {
-      Option.match(Record_.get(islands, directive.name), {
+      Option.match(Record.get(islands, directive.name), {
         onNone: () => {
           throw new Error(
             `Unknown island "${directive.name}"${sourceLocation(directive)}. ` +
@@ -264,9 +245,9 @@ export const normalizeRoot = (
     })
 
   const toBlock = (node: RootContent): Block =>
-    M.value(node).pipe(
-      M.withReturnType<Block>(),
-      M.discriminators('type')({
+    Match.value(node).pipe(
+      Match.withReturnType<Block>(),
+      Match.discriminators('type')({
         heading: ({ depth, children }) =>
           Heading({ level: depth, content: children.map(toInline) }),
         paragraph: ({ children }) =>
@@ -306,7 +287,7 @@ export const normalizeRoot = (
         containerDirective: directive =>
           toIsland(directive, directive.children.map(toBlock)),
       }),
-      M.orElse(unsupported),
+      Match.orElse(unsupported),
     )
 
   return { blocks: root.children.map(toBlock) }

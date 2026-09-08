@@ -6,16 +6,7 @@ import { describe, it } from 'vitest'
 // Internal API not on the public surface but needed by the profile harness
 // to capture the runtime's sync dispatcher.
 import { __requireDispatch } from '../../../packages/foldkit/src/html/index.js'
-import {
-  AddedTodo,
-  DeletedTodo,
-  type Message,
-  Model,
-  ToggledTodo,
-  UpdatedNewTodo,
-  update as baseUpdate,
-  init,
-} from './main.js'
+import { Message, Model, update as baseUpdate, init } from './main.js'
 import type { Todo } from './main.js'
 import { view as naiveView } from './main.js'
 import { view as optimisedView } from './main.optimised.js'
@@ -155,8 +146,8 @@ const runProfile = async (
   // the next render so the runtime processes the queue exactly like the
   // harness's event-driven path.
   for (let index = 0; index < TODO_COUNT; index++) {
-    dispatch(UpdatedNewTodo({ text: `Todo ${index}` }))
-    dispatch(AddedTodo())
+    dispatch(Message.UpdatedNewTodo({ text: `Todo ${index}` }))
+    dispatch(Message.AddedTodo())
     await waitForCondition(() => getModel().todos.length === index + 1)
     await nextFrame()
   }
@@ -166,7 +157,7 @@ const runProfile = async (
     (todo: Todo) => todo.id,
   )
   for (const id of todoIds) {
-    dispatch(ToggledTodo({ id }))
+    dispatch(Message.ToggledTodo({ id }))
     await nextFrame()
   }
 
@@ -176,7 +167,7 @@ const runProfile = async (
     if (firstId === undefined) {
       break
     }
-    dispatch(DeletedTodo({ id: firstId }))
+    dispatch(Message.DeletedTodo({ id: firstId }))
     await nextFrame()
   }
 

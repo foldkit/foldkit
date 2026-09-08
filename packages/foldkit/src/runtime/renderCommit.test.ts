@@ -1,12 +1,13 @@
-import { Effect, Fiber, Match as M, Schema as S } from 'effect'
+import { Effect, Fiber, Schema } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
 import { __htmlBuilder } from '../html/index.js'
-import { m } from '../message/index.js'
+import { defineMessageUnion } from '../message/index.js'
 import { RenderCommit, createCommitNotifier } from '../render/commit.js'
 import { afterCommit } from '../render/render.js'
-import { makeElement } from './runtime.js'
+import type * as Update from '../update/index.js'
+import { makeElement } from './makeElement.js'
 
 describe('afterCommit', () => {
   it('resumes on a commit that lands after it registered', async () => {
@@ -122,42 +123,35 @@ const LABEL_ELEMENT_ID = 'render-commit-label'
 // test is precisely "a waiter never observes the pre-patch tree".
 let observedLabels: Array<string> = []
 
-const ClickedTransition = m('ClickedTransition')
-const CompletedProbeCommittedDom = m('CompletedProbeCommittedDom')
-const Message = S.Union([ClickedTransition, CompletedProbeCommittedDom])
+const Message = defineMessageUnion({
+  ClickedTransition: {},
+  CompletedProbeCommittedDom: {},
+})
 type Message = typeof Message.Type
 
-const Model = S.Struct({ label: S.String })
+const Model = Schema.Struct({ label: Schema.String })
 type Model = typeof Model.Type
 
 const h = __htmlBuilder<Message>()
 
 const ProbeCommittedDom = Command.define('ProbeCommittedDom', {
-  messages: [CompletedProbeCommittedDom],
+  messages: [Message.CompletedProbeCommittedDom],
   execute: Effect.gen(function* () {
     yield* afterCommit
     const label = document.getElementById(LABEL_ELEMENT_ID)
     observedLabels.push(label?.textContent ?? '')
-    return CompletedProbeCommittedDom()
+    return Message.CompletedProbeCommittedDom()
   }),
 })
 
-const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      ClickedTransition: () => [
-        { label: 'transitioned' },
-        [ProbeCommittedDom()],
-      ],
-      CompletedProbeCommittedDom: () => [model, []],
+const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedTransition: () => ({
+      model: { label: 'transitioned' },
+      commands: [ProbeCommittedDom()],
     }),
-  )
+    CompletedProbeCommittedDom: () => ({ model }),
+  })
 
 describe('Render.afterCommit inside a View Transition', () => {
   let container: HTMLElement
@@ -178,13 +172,13 @@ describe('Render.afterCommit inside a View Transition', () => {
     Effect.runFork(
       makeElement({
         Model,
-        init: () => [{ label: 'initial' }, []],
+        init: () => ({ model: { label: 'initial' } }),
         update,
         view: model =>
           h.div(
             [],
             [
-              h.button([h.OnClick(ClickedTransition())], ['go']),
+              h.button([h.OnClick(Message.ClickedTransition())], ['go']),
               h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
             ],
           ),
@@ -286,13 +280,13 @@ describe('Render.afterCommit inside a View Transition', () => {
     const fiber = Effect.runFork(
       makeElement({
         Model,
-        init: () => [{ label: 'initial' }, []],
+        init: () => ({ model: { label: 'initial' } }),
         update,
         view: model =>
           h.div(
             [],
             [
-              h.button([h.OnClick(ClickedTransition())], ['go']),
+              h.button([h.OnClick(Message.ClickedTransition())], ['go']),
               h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
             ],
           ),
@@ -342,7 +336,7 @@ describe('a frame that abandons its render', () => {
     const fiber = Effect.runFork(
       makeElement({
         Model,
-        init: () => [{ label: 'initial' }, []],
+        init: () => ({ model: { label: 'initial' } }),
         update,
         view: model => {
           if (model.label === 'transitioned') {
@@ -351,7 +345,7 @@ describe('a frame that abandons its render', () => {
           return h.div(
             [],
             [
-              h.button([h.OnClick(ClickedTransition())], ['go']),
+              h.button([h.OnClick(Message.ClickedTransition())], ['go']),
               h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
             ],
           )
@@ -388,13 +382,13 @@ describe('a frame that abandons its render', () => {
     const fiber = Effect.runFork(
       makeElement({
         Model,
-        init: () => [{ label: 'initial' }, []],
+        init: () => ({ model: { label: 'initial' } }),
         update,
         view: model =>
           h.div(
             [],
             [
-              h.button([h.OnClick(ClickedTransition())], ['go']),
+              h.button([h.OnClick(Message.ClickedTransition())], ['go']),
               h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
             ],
           ),

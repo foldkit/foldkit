@@ -5,7 +5,7 @@ import * as Scene from 'foldkit/scene'
 import { describe, it } from '@effect/vitest'
 
 import type { SliderAttributes } from './index.js'
-import { PressedThumb, init, update, view } from './index.js'
+import { Message, init, update, view } from './index.js'
 
 const testToView = (attributes: SliderAttributes) =>
   ih.div(
@@ -15,7 +15,7 @@ const testToView = (attributes: SliderAttributes) =>
       ih.div([...attributes.track], [ih.div([...attributes.filledTrack])]),
       ih.div([...attributes.thumb]),
       ...(Array.isReadonlyArrayNonEmpty(attributes.hiddenInput)
-        ? [ih.span(attributes.hiddenInput)]
+        ? [ih.input(attributes.hiddenInput)]
         : []),
     ],
   )
@@ -119,13 +119,13 @@ describe('Slider', () => {
 
   describe('state attributes', () => {
     it('marks the root, track, and thumb with data-dragging while Dragging', () => {
-      const [draggingModel] = update(
+      const dragStart = update(
         defaultModel,
-        PressedThumb({ originValue: 5 }),
+        Message.PressedThumb({ originValue: 5 }),
       )
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(draggingModel),
+        Scene.given(dragStart.model),
         Scene.expect(root).toHaveAttr('data-dragging', ''),
         Scene.expect(track).toHaveAttr('data-dragging', ''),
         Scene.expect(thumb).toHaveAttr('data-dragging', ''),
@@ -139,6 +139,60 @@ describe('Slider', () => {
         Scene.expect(root).toHaveAttr('data-disabled', ''),
         Scene.expect(thumb).toHaveAttr('aria-disabled', 'true'),
         Scene.expect(thumb).toHaveAttr('data-disabled', ''),
+      )
+    })
+  })
+
+  describe('read-only', () => {
+    it('marks the root, track, and thumb with data-readonly and the thumb with aria-readonly', () => {
+      Scene.scene(
+        { update, view: sceneView({ isReadOnly: true }) },
+        Scene.given(defaultModel),
+        Scene.expect(root).toHaveAttr('data-readonly', ''),
+        Scene.expect(track).toHaveAttr('data-readonly', ''),
+        Scene.expect(thumb).toHaveAttr('data-readonly', ''),
+        Scene.expect(thumb).toHaveAttr('aria-readonly', 'true'),
+        Scene.expect(thumb).not.toHaveAttr('aria-disabled'),
+        Scene.expect(thumb).not.toHaveAttr('data-disabled'),
+      )
+    })
+
+    it('emits both attribute sets when disabled and read-only are combined', () => {
+      Scene.scene(
+        {
+          update,
+          view: sceneView({ isDisabled: true, isReadOnly: true }),
+        },
+        Scene.given(defaultModel),
+        Scene.expect(thumb).toHaveAttr('aria-disabled', 'true'),
+        Scene.expect(thumb).toHaveAttr('data-disabled', ''),
+        Scene.expect(thumb).toHaveAttr('aria-readonly', 'true'),
+        Scene.expect(thumb).toHaveAttr('data-readonly', ''),
+      )
+    })
+
+    it('drops the track and thumb pointer handlers when read-only', () => {
+      Scene.scene(
+        { update, view: sceneView({ isReadOnly: true }) },
+        Scene.given(defaultModel),
+        Scene.expect(track).not.toHaveHandler('pointerdown'),
+        Scene.expect(thumb).not.toHaveHandler('pointerdown'),
+      )
+    })
+
+    it('drops the keyboard handler when read-only', () => {
+      Scene.scene(
+        { update, view: sceneView({ isReadOnly: true }) },
+        Scene.given(defaultModel),
+        Scene.expect(thumb).not.toHaveHandler('keydown'),
+      )
+    })
+
+    it('keeps the thumb focusable when read-only', () => {
+      Scene.scene(
+        { update, view: sceneView({ isReadOnly: true }) },
+        Scene.given(defaultModel),
+        Scene.expect(thumb).toHaveAttr('tabIndex', '0'),
       )
     })
   })

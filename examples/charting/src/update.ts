@@ -1,13 +1,20 @@
-import { Array, Match as M, Option, Result, pipe } from 'effect'
-import { AsyncData, Command } from 'foldkit'
+import { Array, Option, Result, pipe } from 'effect'
+import { AsyncData, Command, Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import { FetchTelemetry, SyncChart } from './command'
-import { type Message } from './message'
-import { type Model, TelemetryAsyncData } from './model'
+import { RadioGroup } from '@foldkit/ui'
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
+import { FetchTelemetry, SyncChart } from './command'
+import type { ChartMode, PackageId, Period } from './domain'
+import { Message } from './message'
+import { type Model, TelemetryAsyncData } from './model'
+import {
+  ChartModeRadioGroup,
+  PackageRadioGroup,
+  PeriodRadioGroup,
+} from './radioGroups'
+
+type UpdateReturn = Update.Return<Model, Message>
 
 const syncChart = (args: {
   maybeChartHostId: Model['maybeChartHostId']
@@ -36,136 +43,165 @@ const syncChart = (args: {
 
 const refetchTelemetry = (model: Model): UpdateReturn =>
   Option.match(AsyncData.revalidateOrLoad(model.telemetry), {
-    onNone: () => [model, []],
-    onSome: nextTelemetry => [
-      evo(model, { telemetry: () => nextTelemetry }),
-      [FetchTelemetry()],
-    ],
+    onNone: () => ({ model }),
+    onSome: nextTelemetry => ({
+      model: evo(model, { telemetry: () => nextTelemetry }),
+      commands: [FetchTelemetry()],
+    }),
   })
 
-const selectedControl = (
-  model: Model,
-  updateModel: (model: Model) => Model,
-): UpdateReturn => {
-  const nextModel = updateModel(
-    evo(model, { maybeSelectedDatumId: () => Option.none() }),
-  )
+const selectedControl =
+  (updateModel: (model: Model) => Model): Update.Step<Model, Message> =>
+  model => {
+    const nextModel = updateModel(
+      evo(model, { maybeSelectedDatumId: () => Option.none() }),
+    )
 
-  return [
-    nextModel,
-    syncChart({
-      maybeChartHostId: nextModel.maybeChartHostId,
-      telemetry: nextModel.telemetry,
-      chartMode: nextModel.chartMode,
-      selectedPackageId: nextModel.selectedPackageId,
-      period: nextModel.period,
-      maybeSelectedDatumId: nextModel.maybeSelectedDatumId,
+    return {
+      model: nextModel,
+      commands: syncChart({
+        maybeChartHostId: nextModel.maybeChartHostId,
+        telemetry: nextModel.telemetry,
+        chartMode: nextModel.chartMode,
+        selectedPackageId: nextModel.selectedPackageId,
+        period: nextModel.period,
+        maybeSelectedDatumId: nextModel.maybeSelectedDatumId,
+      }),
+    }
+  }
+
+const foldChartModeRadioGroupOutMessage = RadioGroup.OutMessage.match<
+  Update.Step<Model, Message>,
+  RadioGroup.OutMessage<ChartMode>
+>({
+  Selected: ({ value }) => selectedControl(evo({ chartMode: () => value })),
+})
+
+const foldChartModeRadioGroup = Update.foldChild({
+  update: ChartModeRadioGroup.update,
+  read: (model: Model) => Option.some(model.chartModeRadioGroup),
+  write: (model, nextChartModeRadioGroup) =>
+    evo(model, { chartModeRadioGroup: () => nextChartModeRadioGroup }),
+  toParentMessage: message =>
+    Message.GotChartModeRadioGroupMessage({ message }),
+  foldOutMessage: foldChartModeRadioGroupOutMessage,
+})
+
+const foldPeriodRadioGroupOutMessage = RadioGroup.OutMessage.match<
+  Update.Step<Model, Message>,
+  RadioGroup.OutMessage<Period>
+>({
+  Selected: ({ value }) => selectedControl(evo({ period: () => value })),
+})
+
+const foldPeriodRadioGroup = Update.foldChild({
+  update: PeriodRadioGroup.update,
+  read: (model: Model) => Option.some(model.periodRadioGroup),
+  write: (model, nextPeriodRadioGroup) =>
+    evo(model, { periodRadioGroup: () => nextPeriodRadioGroup }),
+  toParentMessage: message => Message.GotPeriodRadioGroupMessage({ message }),
+  foldOutMessage: foldPeriodRadioGroupOutMessage,
+})
+
+const foldPackageRadioGroupOutMessage = RadioGroup.OutMessage.match<
+  Update.Step<Model, Message>,
+  RadioGroup.OutMessage<PackageId>
+>({
+  Selected: ({ value }) =>
+    selectedControl(evo({ selectedPackageId: () => value })),
+})
+
+const foldPackageRadioGroup = Update.foldChild({
+  update: PackageRadioGroup.update,
+  read: (model: Model) => Option.some(model.packageRadioGroup),
+  write: (model, nextPackageRadioGroup) =>
+    evo(model, { packageRadioGroup: () => nextPackageRadioGroup }),
+  toParentMessage: message => Message.GotPackageRadioGroupMessage({ message }),
+  foldOutMessage: foldPackageRadioGroupOutMessage,
+})
+
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    GotChartModeRadioGroupMessage: ({ message }) =>
+      foldChartModeRadioGroup(model, message),
+
+    GotPeriodRadioGroupMessage: ({ message }) =>
+      foldPeriodRadioGroup(model, message),
+
+    GotPackageRadioGroupMessage: ({ message }) =>
+      foldPackageRadioGroup(model, message),
+
+    ClickedRefresh: () => refetchTelemetry(model),
+
+    ClickedRetry: () => refetchTelemetry(model),
+
+    ClickedChartDatum: ({ datumId }) => ({
+      model: evo(model, {
+        maybeSelectedDatumId: () => Option.some(datumId),
+      }),
+      commands: syncChart({
+        maybeChartHostId: model.maybeChartHostId,
+        telemetry: model.telemetry,
+        chartMode: model.chartMode,
+        selectedPackageId: model.selectedPackageId,
+        period: model.period,
+        maybeSelectedDatumId: Option.some(datumId),
+      }),
     }),
-  ]
-}
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tagsExhaustive({
-      SelectedChartMode: ({ chartMode }) =>
-        selectedControl(model, current =>
-          evo(current, {
-            chartMode: () => chartMode,
-          }),
-        ),
-
-      SelectedPeriod: ({ period }) =>
-        selectedControl(model, current =>
-          evo(current, {
-            period: () => period,
-          }),
-        ),
-
-      ClickedRefresh: () => refetchTelemetry(model),
-
-      ClickedRetry: () => refetchTelemetry(model),
-
-      ClickedChartDatum: ({ datumId }) => [
-        evo(model, {
-          maybeSelectedDatumId: () => Option.some(datumId),
+    SucceededFetchTelemetry: ({ telemetry }) => {
+      const nextModel = evo(model, {
+        telemetry: () => TelemetryAsyncData.Success({ data: telemetry }),
+      })
+      return {
+        model: nextModel,
+        commands: syncChart({
+          maybeChartHostId: nextModel.maybeChartHostId,
+          telemetry: nextModel.telemetry,
+          chartMode: nextModel.chartMode,
+          selectedPackageId: nextModel.selectedPackageId,
+          period: nextModel.period,
+          maybeSelectedDatumId: nextModel.maybeSelectedDatumId,
         }),
-        syncChart({
-          maybeChartHostId: model.maybeChartHostId,
-          telemetry: model.telemetry,
-          chartMode: model.chartMode,
-          selectedPackageId: model.selectedPackageId,
-          period: model.period,
-          maybeSelectedDatumId: Option.some(datumId),
-        }),
-      ],
+      }
+    },
 
-      SucceededFetchTelemetry: ({ telemetry }) => {
-        const nextModel = evo(model, {
-          telemetry: () => TelemetryAsyncData.Success({ data: telemetry }),
-        })
-        return [
-          nextModel,
-          syncChart({
-            maybeChartHostId: nextModel.maybeChartHostId,
-            telemetry: nextModel.telemetry,
-            chartMode: nextModel.chartMode,
-            selectedPackageId: nextModel.selectedPackageId,
-            period: nextModel.period,
-            maybeSelectedDatumId: nextModel.maybeSelectedDatumId,
-          }),
-        ]
-      },
-
-      FailedFetchTelemetry: ({ error }) => [
-        evo(model, {
-          telemetry: () =>
-            AsyncData.settle(model.telemetry, Result.fail(error)),
-        }),
-        [],
-      ],
-
-      SucceededMountChart: ({ hostId }) => [
-        evo(model, {
-          maybeChartHostId: () => Option.some(hostId),
-          maybeChartError: () => Option.none(),
-        }),
-        syncChart({
-          maybeChartHostId: Option.some(hostId),
-          telemetry: model.telemetry,
-          chartMode: model.chartMode,
-          selectedPackageId: model.selectedPackageId,
-          period: model.period,
-          maybeSelectedDatumId: model.maybeSelectedDatumId,
-        }),
-      ],
-
-      FailedMountChart: ({ reason }) => [
-        evo(model, {
-          maybeChartError: () => Option.some(reason),
-        }),
-        [],
-      ],
-
-      SucceededSyncChart: () => [
-        evo(model, {
-          maybeChartError: () => Option.none(),
-        }),
-        [],
-      ],
-
-      FailedSyncChart: ({ reason }) => [
-        evo(model, {
-          maybeChartError: () => Option.some(reason),
-        }),
-        [],
-      ],
-
-      SelectedPackage: ({ packageId }) =>
-        selectedControl(model, current =>
-          evo(current, {
-            selectedPackageId: () => packageId,
-          }),
-        ),
+    FailedFetchTelemetry: ({ error }) => ({
+      model: evo(model, {
+        telemetry: () => AsyncData.settle(model.telemetry, Result.fail(error)),
+      }),
     }),
-  )
+
+    SucceededMountChart: ({ hostId }) => ({
+      model: evo(model, {
+        maybeChartHostId: () => Option.some(hostId),
+        maybeChartError: () => Option.none(),
+      }),
+      commands: syncChart({
+        maybeChartHostId: Option.some(hostId),
+        telemetry: model.telemetry,
+        chartMode: model.chartMode,
+        selectedPackageId: model.selectedPackageId,
+        period: model.period,
+        maybeSelectedDatumId: model.maybeSelectedDatumId,
+      }),
+    }),
+
+    FailedMountChart: ({ reason }) => ({
+      model: evo(model, {
+        maybeChartError: () => Option.some(reason),
+      }),
+    }),
+
+    SucceededSyncChart: () => ({
+      model: evo(model, {
+        maybeChartError: () => Option.none(),
+      }),
+    }),
+
+    FailedSyncChart: ({ reason }) => ({
+      model: evo(model, {
+        maybeChartError: () => Option.some(reason),
+      }),
+    }),
+  })

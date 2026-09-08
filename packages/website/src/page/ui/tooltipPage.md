@@ -79,7 +79,7 @@ Payload delivered to the `toView` callback each render.
 
 ### Programmatic Helpers
 
-Helper functions for driving the tooltip from parent update handlers, returning `[Model, Commands]`.
+Use `reflectShowDelay` when parent-owned configuration changes the Tooltip's delay.
 
 | Name               | Type                                                 | Default | Description                                                                                                                                                                                                                                                                                                             |
 | ------------------ | ---------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -87,9 +87,9 @@ Helper functions for driving the tooltip from parent update handlers, returning 
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Fire only on visibility transitions, so consumers don’t see spurious events for Messages that only update internal hover/focus/delay state.
+Messages emitted to the parent through the optional `outMessage` field. They fire only on visibility transitions, so consumers don’t see spurious events for Messages that only update internal hover/focus/delay state.
 
-| Name     | Type | Default | Description                                                                                                                                                                                                              |
-| -------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Shown`  | `{}` | —       | Emitted once the tooltip transitions to visible (isOpen becomes true). Pattern-match the third tuple element of Tooltip.update to react. Useful for analytics, instrumentation, or coordinating with other transient UI. |
-| `Hidden` | `{}` | —       | Emitted once the tooltip transitions to hidden (isOpen becomes false).                                                                                                                                                   |
+| Name     | Type | Default | Description                                                                                                                                                                                                           |
+| -------- | ---- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Shown`  | `{}` | —       | Emitted once the tooltip transitions to visible (isOpen becomes true). Fold it in the `foldOutMessage` of your Tooltip fold to react. Useful for analytics, instrumentation, or coordinating with other transient UI. |
+| `Hidden` | `{}` | —       | Emitted once the tooltip transitions to hidden (isOpen becomes false).                                                                                                                                                |

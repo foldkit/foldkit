@@ -1,26 +1,29 @@
-import { Match as M, Option, Schema as S } from 'effect'
+import { Schema } from 'effect'
 
 import type { Html, HtmlBuilder } from '../../html/index.js'
-import { m } from '../../message/index.js'
+import { defineMessageUnion } from '../../message/index.js'
+import type * as Update from '../../update/index.js'
 
 // MODEL
 
-export const Model = S.Struct({ label: S.String })
+export const Model = Schema.Struct({ label: Schema.String })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const ClickedLogout = m('ClickedLogout')
-export const CompletedAction = m('CompletedAction')
+export const Message = defineMessageUnion({
+  ClickedLogout: {},
+  CompletedAction: {},
+})
 
-export const Message = S.Union([ClickedLogout, CompletedAction])
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-export const RequestedLogout = m('RequestedLogout')
+export const OutMessage = defineMessageUnion({
+  RequestedLogout: {},
+})
 
-export const OutMessage = S.Union([RequestedLogout])
 export type OutMessage = typeof OutMessage.Type
 
 // INIT
@@ -29,18 +32,16 @@ export const initialModel: Model = { label: 'Log out' }
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<never>, Option.Option<OutMessage>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<never>, Option.Option<OutMessage>]
-    >(),
-    M.tagsExhaustive({
-      ClickedLogout: () => [model, [], Option.some(RequestedLogout())],
-      CompletedAction: () => [model, [], Option.none()],
-    }),
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
+    message,
+    {
+      ClickedLogout: () => ({
+        model,
+        outMessage: OutMessage.RequestedLogout(),
+      }),
+      CompletedAction: () => ({ model }),
+    },
   )
 
 // VIEW
@@ -48,6 +49,11 @@ export const update = (
 export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
   return h.div(
     [],
-    [h.button([h.OnClick(ClickedLogout()), h.Role('button')], [model.label])],
+    [
+      h.button(
+        [h.OnClick(Message.ClickedLogout()), h.Role('button')],
+        [model.label],
+      ),
+    ],
   )
 }

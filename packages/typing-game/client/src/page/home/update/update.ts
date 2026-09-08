@@ -1,135 +1,125 @@
-import { Array, Match as M, Option, String as Str } from 'effect'
-import { Command } from 'foldkit'
+import { Array, Match, Option, String } from 'effect'
+import { type Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { optionWhen } from '../../../optionWhen'
 import { RoomsClient } from '../../../rpc'
 import { FocusRoomIdInput, FocusUsernameInput, JoinRoom } from '../command'
-import { Message, type OutMessage, PressedKey } from '../message'
-import { EnterRoomId, EnterUsername, Model, SelectAction } from '../model'
+import { Message, OutMessage } from '../message'
+import { HomeStep, Model } from '../model'
 import { handleKeyPressed } from './handleKeyPressed'
 
-export type UpdateReturn = readonly [
+export type UpdateReturn = Update.ReturnWithOutMessage<
   Model,
-  ReadonlyArray<Command.Command<Message, never, RoomsClient>>,
-  Option.Option<OutMessage>,
-]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
+  Message,
+  OutMessage,
+  RoomsClient
+>
+const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tagsExhaustive({
-      CompletedFocusUsernameInput: () => [model, [], Option.none()],
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    CompletedFocusUsernameInput: () => ({ model }),
 
-      CompletedFocusRoomIdInput: () => [model, [], Option.none()],
+    CompletedFocusRoomIdInput: () => ({ model }),
 
-      SubmittedUsernameForm: () =>
-        M.value(model.homeStep).pipe(
-          withUpdateReturn,
-          M.tag('EnterUsername', ({ username }) => {
-            const nextModel = Str.isNonEmpty(username)
-              ? evo(model, {
-                  homeStep: () =>
-                    SelectAction({ username, selectedAction: 'CreateRoom' }),
-                })
-              : model
+    SubmittedUsernameForm: () =>
+      Match.value(model.homeStep).pipe(
+        withUpdateReturn,
+        Match.tag('EnterUsername', ({ username }) => {
+          const nextModel = String.isNonEmpty(username)
+            ? evo(model, {
+                homeStep: () =>
+                  HomeStep.SelectAction({
+                    username,
+                    selectedAction: 'CreateRoom',
+                  }),
+              })
+            : model
 
-            return [nextModel, [], Option.none()]
+          return { model: nextModel }
+        }),
+        Match.orElse(() => ({ model })),
+      ),
+
+    PressedKey: message => handleKeyPressed(model)(message),
+
+    ChangedUsername: ({ value }) =>
+      Match.value(model.homeStep).pipe(
+        withUpdateReturn,
+        Match.tag('EnterUsername', () => ({
+          model: evo(model, {
+            homeStep: () => HomeStep.EnterUsername({ username: value }),
+            formError: () => Option.none(),
           }),
-          M.orElse(() => [model, [], Option.none()]),
-        ),
+        })),
+        Match.orElse(() => ({ model })),
+      ),
 
-      PressedKey: message => [
-        ...handleKeyPressed(model)(message),
-        Option.none(),
-      ],
+    BlurredUsernameInput: () => ({ model, commands: [FocusUsernameInput()] }),
 
-      ChangedUsername: ({ value }) =>
-        M.value(model.homeStep).pipe(
-          withUpdateReturn,
-          M.tag('EnterUsername', () => [
-            evo(model, {
-              homeStep: () => EnterUsername({ username: value }),
-              formError: () => Option.none(),
-            }),
-            [],
-            Option.none(),
-          ]),
-          M.orElse(() => [model, [], Option.none()]),
-        ),
+    BlurredRoomIdInput: () => ({ model, commands: [FocusRoomIdInput()] }),
 
-      BlurredUsernameInput: () => [
-        model,
-        [FocusUsernameInput()],
-        Option.none(),
-      ],
+    ChangedRoomId: ({ value }) =>
+      Match.value(model.homeStep).pipe(
+        withUpdateReturn,
+        Match.tag('EnterRoomId', ({ username }) => ({
+          model: evo(model, {
+            homeStep: () =>
+              HomeStep.EnterRoomId({
+                username,
+                roomId: value,
+              }),
+            formError: () => Option.none(),
+          }),
+        })),
+        Match.orElse(() => ({ model })),
+      ),
 
-      BlurredRoomIdInput: () => [model, [FocusRoomIdInput()], Option.none()],
-
-      ChangedRoomId: ({ value }) =>
-        M.value(model.homeStep).pipe(
-          withUpdateReturn,
-          M.tag('EnterRoomId', ({ username }) => [
-            evo(model, {
-              homeStep: () =>
-                EnterRoomId({
-                  username,
-                  roomId: value,
-                }),
-              formError: () => Option.none(),
-            }),
-            [],
-            Option.none(),
-          ]),
-          M.orElse(() => [model, [], Option.none()]),
-        ),
-
-      SubmittedJoinRoomForm: () =>
-        M.value(model.homeStep).pipe(
-          withUpdateReturn,
-          M.tag('EnterRoomId', ({ username, roomId }) => {
-            if (roomId === 'exit') {
-              return [
-                evo(model, {
-                  homeStep: () =>
-                    SelectAction({ username, selectedAction: 'JoinRoom' }),
-                }),
-                [],
-                Option.none(),
-              ]
+    SubmittedJoinRoomForm: () =>
+      Match.value(model.homeStep).pipe(
+        withUpdateReturn,
+        Match.tag('EnterRoomId', ({ username, roomId }) => {
+          if (roomId === 'exit') {
+            return {
+              model: evo(model, {
+                homeStep: () =>
+                  HomeStep.SelectAction({
+                    username,
+                    selectedAction: 'JoinRoom',
+                  }),
+              }),
             }
+          }
 
-            const maybeJoin = optionWhen(Str.isNonEmpty(roomId), () =>
-              JoinRoom({ username, roomId }),
-            )
+          const maybeJoin = optionWhen(String.isNonEmpty(roomId), () =>
+            JoinRoom({ username, roomId }),
+          )
 
-            return [model, Array.fromOption(maybeJoin), Option.none()]
-          }),
-          M.orElse(() => [model, [], Option.none()]),
-        ),
-
-      SucceededCreateRoom: outMessage => [model, [], Option.some(outMessage)],
-
-      SucceededJoinRoom: outMessage => [model, [], Option.some(outMessage)],
-
-      FailedCreateRoom: ({ error }) => [
-        evo(model, {
-          formError: () => Option.some(error),
+          return { model, commands: Array.fromOption(maybeJoin) }
         }),
-        [],
-        Option.none(),
-      ],
+        Match.orElse(() => ({ model })),
+      ),
 
-      FailedJoinRoom: ({ error }) => [
-        evo(model, {
-          formError: () => Option.some(error),
-        }),
-        [],
-        Option.none(),
-      ],
+    SucceededCreateRoom: ({ roomId, player }) => ({
+      model,
+      outMessage: OutMessage.CreatedRoom({ roomId, player }),
     }),
-  )
 
-export const informPressedKey = (model: Model, key: string): UpdateReturn =>
-  update(model, PressedKey({ key }))
+    SucceededJoinRoom: ({ roomId, player }) => ({
+      model,
+      outMessage: OutMessage.JoinedRoom({ roomId, player }),
+    }),
+
+    FailedCreateRoom: ({ error }) => ({
+      model: evo(model, {
+        formError: () => Option.some(error),
+      }),
+    }),
+
+    FailedJoinRoom: ({ error }) => ({
+      model: evo(model, {
+        formError: () => Option.some(error),
+      }),
+    }),
+  })

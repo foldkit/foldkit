@@ -11,5 +11,5 @@ A Foldkit application built with Effect.
 
 ## Learn More
 
-- [Foldkit Documentation](https://github.com/foldkit/foldkit)
+- [Foldkit Documentation](https://foldkit.dev)
 - [Effect Documentation](https://effect.website)

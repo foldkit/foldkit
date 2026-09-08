@@ -3,13 +3,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Popover } from '@foldkit/ui'
 
-import {
-  GotPopoverAnimatedDemoMessage,
-  GotPopoverBasicDemoMessage,
-  GotPopoverNestedChildDemoMessage,
-  GotPopoverNestedParentDemoMessage,
-  type UiMessage,
-} from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 const triggerClassName =
@@ -131,7 +125,8 @@ const nestedChildPopover = (
           ],
         ),
     },
-    toParentMessage: message => GotPopoverNestedChildDemoMessage({ message }),
+    toParentMessage: message =>
+      UiMessage.GotPopoverNestedChildDemoMessage({ message }),
   })
 }
 
@@ -184,7 +179,7 @@ const nestedDemo = (
             ),
         },
         toParentMessage: message =>
-          GotPopoverNestedParentDemoMessage({ message }),
+          UiMessage.GotPopoverNestedParentDemoMessage({ message }),
       }),
     ],
   )
@@ -214,7 +209,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
             popoverDemo(
               model.popoverBasicDemo.id,
               model.popoverBasicDemo,
-              message => GotPopoverBasicDemoMessage({ message }),
+              message => UiMessage.GotPopoverBasicDemoMessage({ message }),
               basicPanelClassName,
               h,
             ),
@@ -238,7 +233,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
             popoverDemo(
               model.popoverAnimatedDemo.id,
               model.popoverAnimatedDemo,
-              message => GotPopoverAnimatedDemoMessage({ message }),
+              message => UiMessage.GotPopoverAnimatedDemoMessage({ message }),
               animatedPanelClassName,
               h,
             ),

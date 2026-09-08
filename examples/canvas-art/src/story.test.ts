@@ -1,16 +1,8 @@
 import { Command, given, message, model, story } from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
-import {
-  ClickedCanvas,
-  ClickedClear,
-  ClickedTogglePlay,
-  CompletedGenerateBall,
-  GenerateBall,
-  type Model,
-  TickedFrame,
-  update,
-} from './main'
+import { GenerateBall, Message, type Model, update } from './main'
 
 const emptyModel: Model = {
   balls: [],
@@ -18,14 +10,13 @@ const emptyModel: Model = {
   isRunning: true,
 }
 
-const populatedModel: Model = {
-  ...emptyModel,
-  balls: [
+const populatedModel: Model = evo(emptyModel, {
+  balls: () => [
     { id: 0, x: 100, y: 100, vx: 50, vy: 50, radius: 10, color: '#ff2d55' },
     { id: 1, x: 200, y: 200, vx: -50, vy: -50, radius: 15, color: '#5ac8fa' },
   ],
-  nextId: 2,
-}
+  nextId: () => 2,
+})
 
 describe('update', () => {
   describe('spawning balls', () => {
@@ -33,11 +24,11 @@ describe('update', () => {
       story(
         update,
         given(emptyModel),
-        message(ClickedCanvas({ x: 150, y: 200 })),
+        message(Message.ClickedCanvas({ x: 150, y: 200 })),
         Command.expectHas(GenerateBall),
         Command.resolve(
           GenerateBall,
-          CompletedGenerateBall({
+          Message.CompletedGenerateBall({
             x: 150,
             y: 200,
             vx: 10,
@@ -65,7 +56,7 @@ describe('update', () => {
         update,
         given(emptyModel),
         message(
-          CompletedGenerateBall({
+          Message.CompletedGenerateBall({
             x: 10,
             y: 10,
             vx: 0,
@@ -75,7 +66,7 @@ describe('update', () => {
           }),
         ),
         message(
-          CompletedGenerateBall({
+          Message.CompletedGenerateBall({
             x: 20,
             y: 20,
             vx: 0,
@@ -97,7 +88,7 @@ describe('update', () => {
       story(
         update,
         given(populatedModel),
-        message(TickedFrame({ deltaTime: 1000 })),
+        message(Message.TickedFrame({ deltaTime: 1000 })),
         model(model => {
           expect(model.balls[0]?.x).toBe(150)
           expect(model.balls[0]?.y).toBe(150)
@@ -106,9 +97,8 @@ describe('update', () => {
     })
 
     test('bounces a ball off the canvas edges, flipping its velocity', () => {
-      const movingRightModel: Model = {
-        ...emptyModel,
-        balls: [
+      const movingRightModel: Model = evo(emptyModel, {
+        balls: () => [
           {
             id: 0,
             x: 595,
@@ -119,13 +109,13 @@ describe('update', () => {
             color: '#fff',
           },
         ],
-        nextId: 1,
-      }
+        nextId: () => 1,
+      })
 
       story(
         update,
         given(movingRightModel),
-        message(TickedFrame({ deltaTime: 1000 })),
+        message(Message.TickedFrame({ deltaTime: 1000 })),
         model(model => {
           expect(model.balls[0]?.vx).toBe(-100)
           expect(model.balls[0]?.x).toBe(590)
@@ -139,7 +129,7 @@ describe('update', () => {
       story(
         update,
         given(populatedModel),
-        message(ClickedClear()),
+        message(Message.ClickedClear()),
         model(model => {
           expect(model.balls).toHaveLength(0)
         }),
@@ -150,11 +140,11 @@ describe('update', () => {
       story(
         update,
         given(emptyModel),
-        message(ClickedTogglePlay()),
+        message(Message.ClickedTogglePlay()),
         model(model => {
           expect(model.isRunning).toBe(false)
         }),
-        message(ClickedTogglePlay()),
+        message(Message.ClickedTogglePlay()),
         model(model => {
           expect(model.isRunning).toBe(true)
         }),

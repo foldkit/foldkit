@@ -1,15 +1,14 @@
 import { Option } from 'effect'
 import * as Story from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import {
-  CompletedFocusTab,
   FocusTab,
-  FocusedTab,
-  Selected,
-  SelectedTab,
+  Message,
+  OutMessage,
   findFirstEnabledIndex,
   init,
   keyToIndex,
@@ -48,9 +47,11 @@ describe('Tabs', () => {
       Story.story(
         update,
         Story.given(init({ id: 'test' })),
-        Story.message(SelectedTab({ index: 3, value: 'tab-3' })),
-        Story.expectOutMessage(Selected({ value: 'tab-3', index: 3 })),
-        Story.Command.resolve(FocusTab, CompletedFocusTab()),
+        Story.message(Message.SelectedTab({ index: 3, value: 'tab-3' })),
+        Story.expectOutMessage(
+          OutMessage.Selected({ value: 'tab-3', index: 3 }),
+        ),
+        Story.Command.resolve(FocusTab, Message.CompletedFocusTab()),
         Story.model(model => {
           expect(model.maybeFocusedIndex).toStrictEqual(Option.none())
         }),
@@ -60,13 +61,16 @@ describe('Tabs', () => {
     it('emits Selected with the committed value on a subsequent SelectedTab', () => {
       Story.story(
         update,
-        Story.given({
-          ...init({ id: 'test' }),
-          maybeFocusedIndex: Option.some(1),
-        }),
-        Story.message(SelectedTab({ index: 0, value: 'tab-0' })),
-        Story.expectOutMessage(Selected({ value: 'tab-0', index: 0 })),
-        Story.Command.resolve(FocusTab, CompletedFocusTab()),
+        Story.given(
+          evo(init({ id: 'test' }), {
+            maybeFocusedIndex: () => Option.some(1),
+          }),
+        ),
+        Story.message(Message.SelectedTab({ index: 0, value: 'tab-0' })),
+        Story.expectOutMessage(
+          OutMessage.Selected({ value: 'tab-0', index: 0 }),
+        ),
+        Story.Command.resolve(FocusTab, Message.CompletedFocusTab()),
         Story.model(model => {
           expect(model.maybeFocusedIndex).toStrictEqual(Option.none())
         }),
@@ -77,8 +81,8 @@ describe('Tabs', () => {
       Story.story(
         update,
         Story.given(init({ id: 'test', activationMode: 'Manual' })),
-        Story.message(FocusedTab({ index: 2 })),
-        Story.Command.resolve(FocusTab, CompletedFocusTab()),
+        Story.message(Message.FocusedTab({ index: 2 })),
+        Story.Command.resolve(FocusTab, Message.CompletedFocusTab()),
         Story.model(model => {
           expect(model.maybeFocusedIndex).toStrictEqual(Option.some(2))
         }),
@@ -88,13 +92,16 @@ describe('Tabs', () => {
     it('SelectedTab in manual mode emits Selected and clears divergence', () => {
       Story.story(
         update,
-        Story.given({
-          ...init({ id: 'test', activationMode: 'Manual' }),
-          maybeFocusedIndex: Option.some(2),
-        }),
-        Story.message(SelectedTab({ index: 2, value: 'tab-2' })),
-        Story.expectOutMessage(Selected({ value: 'tab-2', index: 2 })),
-        Story.Command.resolve(FocusTab, CompletedFocusTab()),
+        Story.given(
+          evo(init({ id: 'test', activationMode: 'Manual' }), {
+            maybeFocusedIndex: () => Option.some(2),
+          }),
+        ),
+        Story.message(Message.SelectedTab({ index: 2, value: 'tab-2' })),
+        Story.expectOutMessage(
+          OutMessage.Selected({ value: 'tab-2', index: 2 }),
+        ),
+        Story.Command.resolve(FocusTab, Message.CompletedFocusTab()),
         Story.model(model => {
           expect(model.maybeFocusedIndex).toStrictEqual(Option.none())
         }),

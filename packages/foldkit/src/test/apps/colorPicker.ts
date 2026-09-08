@@ -1,32 +1,34 @@
-import { Match as M, Schema as S } from 'effect'
+import { Schema } from 'effect'
 
 import * as CustomElement from '../../customElement/index.js'
 import type { Html, HtmlBuilder } from '../../html/index.js'
-import { m } from '../../message/index.js'
+import { defineMessageUnion } from '../../message/index.js'
 import { evo } from '../../struct/index.js'
+import type * as Update from '../../update/index.js'
 
 // CUSTOM ELEMENT
 
 export const hexColorPicker = CustomElement.define({
   tag: 'hex-color-picker',
   properties: {
-    color: S.String,
+    color: Schema.String,
   },
   events: {
-    'color-changed': S.Struct({ value: S.String }),
+    'color-changed': Schema.Struct({ value: Schema.String }),
   },
 })
 
 // MODEL
 
-export const Model = S.Struct({ color: S.String })
+export const Model = Schema.Struct({ color: Schema.String })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const ChangedColor = m('ChangedColor', { value: S.String })
+export const Message = defineMessageUnion({
+  ChangedColor: { value: Schema.String },
+})
 
-export const Message = S.Union([ChangedColor])
 export type Message = typeof Message.Type
 
 // INIT
@@ -35,16 +37,12 @@ export const initialModel = Model.make({ color: '#000000' })
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<never>] =>
-  M.value(message).pipe(
-    M.withReturnType<readonly [Model, ReadonlyArray<never>]>(),
-    M.tagsExhaustive({
-      ChangedColor: ({ value }) => [evo(model, { color: () => value }), []],
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ChangedColor: ({ value }) => ({
+      model: evo(model, { color: () => value }),
     }),
-  )
+  })
 
 // VIEW
 
@@ -58,7 +56,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
         [
           picker.Color(model.color),
           picker.OnColorChanged(detail =>
-            ChangedColor({ value: detail.value }),
+            Message.ChangedColor({ value: detail.value }),
           ),
         ],
         [],

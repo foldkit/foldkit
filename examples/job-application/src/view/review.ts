@@ -1,12 +1,12 @@
-import { Array, Match as M, Option, pipe } from 'effect'
+import { Array, Option, pipe } from 'effect'
 import { File } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
 import { Step } from '../domain'
-import { ClickedSubmit, type Message } from '../message'
-import type { Model } from '../model'
+import { Message } from '../message'
+import { type Model, Submission } from '../model'
 import { Education, PersonalInfo, Skills, WorkHistory } from '../step'
 import { employmentRange, pluralize } from './format'
 
@@ -257,99 +257,97 @@ const submissionSection = (
   attentionSteps: ReadonlyArray<Step.Step>,
   h: HtmlBuilder<Message>,
 ): Html =>
-  M.value(submission).pipe(
-    M.tagsExhaustive({
-      NotSubmitted: () =>
-        h.div(
-          [h.Class('pt-4 space-y-2')],
-          [
-            ...(shouldShowBlockedNotice
-              ? [blockedNotice(attentionSteps, h)]
-              : []),
-            Button.view(
-              {
-                onClick: ClickedSubmit(),
-                toView: attributes =>
-                  h.button(
-                    [...attributes.button, h.Class(submitButtonClass)],
-                    ['Submit Application'],
-                  ),
-              },
-              h,
-            ),
-          ],
-        ),
-      Submitting: () =>
-        h.div(
-          [h.Class('pt-4')],
-          [
-            Button.view(
-              {
-                toView: attributes =>
-                  h.button(
-                    [
-                      ...attributes.button,
-                      h.Class(
-                        'w-full rounded-lg bg-indigo-400 px-4 py-3 text-sm font-semibold text-white cursor-wait',
-                      ),
-                    ],
-                    ['Submitting...'],
-                  ),
-              },
-              h,
-            ),
-          ],
-        ),
-      SubmitSuccess: () =>
-        h.div(
-          [
-            h.Role('status'),
-            h.Class(
-              'mt-4 rounded-lg border border-green-200 bg-green-50 p-4 text-center',
-            ),
-          ],
-          [
-            h.p(
-              [h.Class('text-lg font-semibold text-green-800')],
-              ['Application Submitted!'],
-            ),
-            h.p(
-              [h.Class('text-sm text-green-600 mt-1')],
-              ["Thank you for applying to work on Foldkit. We'll be in touch!"],
-            ),
-          ],
-        ),
-      SubmitError: ({ error }) =>
-        h.div(
-          [h.Class('space-y-3 pt-4')],
-          [
-            h.div(
-              [
-                h.Role('alert'),
-                h.Class(
-                  'rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700',
+  Submission.match(submission, {
+    NotSubmitted: () =>
+      h.div(
+        [h.Class('pt-4 space-y-2')],
+        [
+          ...(shouldShowBlockedNotice
+            ? [blockedNotice(attentionSteps, h)]
+            : []),
+          Button.view(
+            {
+              onClick: Message.ClickedSubmit(),
+              toView: attributes =>
+                h.button(
+                  [...attributes.button, h.Class(submitButtonClass)],
+                  ['Submit Application'],
                 ),
-              ],
-              [error],
-            ),
-            ...(shouldShowBlockedNotice
-              ? [blockedNotice(attentionSteps, h)]
-              : []),
-            Button.view(
-              {
-                onClick: ClickedSubmit(),
-                toView: attributes =>
-                  h.button(
-                    [...attributes.button, h.Class(submitButtonClass)],
-                    ['Try Again'],
-                  ),
-              },
-              h,
-            ),
-          ],
-        ),
-    }),
-  )
+            },
+            h,
+          ),
+        ],
+      ),
+    Submitting: () =>
+      h.div(
+        [h.Class('pt-4')],
+        [
+          Button.view(
+            {
+              toView: attributes =>
+                h.button(
+                  [
+                    ...attributes.button,
+                    h.Class(
+                      'w-full rounded-lg bg-indigo-400 px-4 py-3 text-sm font-semibold text-white cursor-wait',
+                    ),
+                  ],
+                  ['Submitting...'],
+                ),
+            },
+            h,
+          ),
+        ],
+      ),
+    SubmitSuccess: () =>
+      h.div(
+        [
+          h.Role('status'),
+          h.Class(
+            'mt-4 rounded-lg border border-green-200 bg-green-50 p-4 text-center',
+          ),
+        ],
+        [
+          h.p(
+            [h.Class('text-lg font-semibold text-green-800')],
+            ['Application Submitted!'],
+          ),
+          h.p(
+            [h.Class('text-sm text-green-600 mt-1')],
+            ["Thank you for applying to work on Foldkit. We'll be in touch!"],
+          ),
+        ],
+      ),
+    SubmitError: ({ error }) =>
+      h.div(
+        [h.Class('space-y-3 pt-4')],
+        [
+          h.div(
+            [
+              h.Role('alert'),
+              h.Class(
+                'rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700',
+              ),
+            ],
+            [error],
+          ),
+          ...(shouldShowBlockedNotice
+            ? [blockedNotice(attentionSteps, h)]
+            : []),
+          Button.view(
+            {
+              onClick: Message.ClickedSubmit(),
+              toView: attributes =>
+                h.button(
+                  [...attributes.button, h.Class(submitButtonClass)],
+                  ['Try Again'],
+                ),
+            },
+            h,
+          ),
+        ],
+      ),
+  })
 
 export const review = (
   model: Model,

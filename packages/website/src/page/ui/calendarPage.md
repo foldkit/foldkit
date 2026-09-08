@@ -1,146 +1,195 @@
 # Calendar
 
-## Overview
+## An Inline Calendar You Render {#overview}
 
-An accessible inline calendar grid built to the WAI-ARIA grid pattern. Calendar manages the 2D keyboard navigation state machine and renders a 6×7 grid of days with full screen-reader support. Use it standalone for scheduling UIs and event calendars, or as the foundation of a date picker.
+Calendar provides the state machine, ARIA wiring, and derived data for an inline calendar. You provide the markup and styling through `toView`. Use it in scheduling interfaces and event calendars, or as the calendar inside a date picker.
 
-The calendar heading is a button: clicking it switches the day grid into a 3×4 months grid. Clicking the year heading from there switches into a paged 3×4 years grid (prev/next page through 12-year windows). Selecting a year drills back to the months grid for that year; selecting a month drills back to the days grid for that month.
+The Calendar moves among three grids:
 
-Calendar uses the Submodel pattern: initialize with `Calendar.init()`, store the Model in your parent, delegate Messages via `Calendar.update()`, and render with `Calendar.view()`. The update function returns `[Model, Commands, Option<OutMessage>]`. The parent owns the selected date: store it in your Model, pass it back as `maybeSelectedDate`, and fold the `SelectedDate` OutMessage into that field. The OutMessage lets the parent handle meaningful events, for example date selection or month changes.
+- **Days:** a fixed 6×7 grid with locale-aware weekday headings.
+- **Months:** 12 cells for choosing a month, arranged in three columns.
+- **Years:** 12 cells for choosing a year, arranged in three columns and paged in 12-year windows.
+
+The heading moves from Days to Months, then from Months to Years. Selecting a year returns to Months for that year. Selecting a month returns to Days for that month.
+
+Calendar owns navigation state, including the visible month, active grid, and keyboard cursor. The parent owns the selected date. This keeps the domain value in the parent Model while Calendar handles the interaction state around it.
+
+## Wire Calendar into a Parent
+
+Initialize the Calendar with `Calendar.init()`, store its Model in your parent Model, and delegate its Messages with [`Update.foldChild`](/core/submodel#fold-child). Render it through `h.submodel` with `Calendar.view`.
+
+Pass the parent-owned selection into `viewInputs.maybeSelectedDate` on every render. When Calendar emits `SelectedDate`, fold that OutMessage into the parent's selected-date field. `Calendar.update` returns `Update.ReturnWithOutMessage<Model, Message, OutMessage>`, so the same fold can handle `ChangedViewMonth` when your application needs month-scoped data.
 
 :::Info{label="See it in an app"}
-Check out how Calendar is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/calendar.ts).
+See the complete Calendar integration in the [UI Showcase](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/calendar.ts).
 :::
 
-## Examples
+## Try It {#examples}
 
-A basic calendar with today highlighted. Click a day to select it, or tab into the grid and use the arrow keys. Navigation follows the full WAI-ARIA pattern including Home/End, PageUp/Down, and Shift+PageUp/Down for year jumps.
+This Calendar highlights today and lets the parent store a selected date. Click a day, or tab into the grid and navigate with the keyboard. The snippet shows the parent Model, `Update.foldChild`, OutMessage handling, and all three view modes.
 
 ::Demo{name="basic"}
 
 ::Snippet{name="uiCalendarBasic" label="basic calendar example"}
 
-## Styling
+## Render and Style the Calendar {#styling}
 
-Calendar is headless. Your `toView` callback controls all markup and styling. The attribute groups carry ARIA and event wiring; data attributes on day cells let you style state variants with CSS selectors like `data-[today]:` and `group-data-[selected]:`.
+Calendar is headless. Its `toView` callback receives attribute groups for the current mode. Spread those attributes onto your elements, then add your own classes and structure.
 
-| Attribute            | Condition                                                                                                                                                                     |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-today`         | Present on the cell representing "today": the day cell in Days mode, the current month cell in Months mode, the current year cell in Years mode.                              |
-| `data-selected`      | Present on the calendar's currently-centered cell: the selected date in Days mode, the centered month (viewMonth) in Months mode, the centered year (viewYear) in Years mode. |
-| `data-focused`       | Present on the cell at the keyboard cursor position while the grid has DOM focus.                                                                                             |
-| `data-outside-month` | (Days mode only.) Present on cells that fall outside the currently-viewed month (leading/trailing grid rows).                                                                 |
-| `data-disabled`      | Present on cells disabled by min/max, disabledDaysOfWeek, or disabledDates.                                                                                                   |
+State data attributes let styles follow Calendar state without rebuilding that logic in the view:
+
+| Attribute            | Present when                                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `data-today`         | The cell represents today, today's month, or today's year.                                                                |
+| `data-selected`      | The cell represents the parent-owned selected date in Days mode, `viewMonth` in Months mode, or `viewYear` in Years mode. |
+| `data-focused`       | The cell is at the keyboard cursor while the grid has DOM focus.                                                          |
+| `data-outside-month` | A Days-mode cell falls outside the visible month.                                                                         |
+| `data-disabled`      | A day violates a date constraint, or a month or year falls entirely outside the configured minimum and maximum.           |
+
+For example: `group-data-[selected]:` can style a button from the state attributes on its containing grid cell.
 
 ## Keyboard Interaction
 
-The grid container receives DOM focus, and navigation happens via `aria-activedescendant`. Screen readers announce the focused cell without moving browser focus. Disabled dates are skipped during navigation with a bounded cap so fully-disabled ranges terminate cleanly.
+The grid container holds DOM focus. `aria-activedescendant` points to the cell at the keyboard cursor, so assistive technology can announce movement without moving focus among the buttons.
 
-| Key                                 | Description                                                                                                                                                        |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ArrowLeft / ArrowRight`            | Move the focus cursor by one cell. Days: ±1 day. Months: ±1 month (wraps across years). Years: ±1 year (wraps across pages).                                       |
-| `ArrowUp / ArrowDown`               | Move the focus cursor by one row. Days: ±1 week (7 days). Months: ±1 row (3 months). Years: ±1 row (3 years).                                                      |
-| `Home / End`                        | (Days mode only.) Move focus to the start / end of the current week (based on locale.firstDayOfWeek).                                                              |
-| `PageUp / PageDown`                 | Days: ±1 month. Months: ±1 year. Years: ±1 window (12 years).                                                                                                      |
-| `Shift + PageUp / Shift + PageDown` | (Days mode only.) Move focus by one year.                                                                                                                          |
-| `Enter / Space`                     | Commit the focus cursor. Days: select the date. Months: jump the calendar to that month and drill back to Days. Years: jump to that year and drill back to Months. |
+In Days mode, navigation clamps to `minDate` and `maxDate` and skips disabled dates. The search is bounded, so a fully disabled range terminates cleanly. Disabled month and year cells cannot be committed.
+
+| Key                             | Behavior                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `ArrowLeft` / `ArrowRight`      | Move one day, month, or year, according to the current mode.                                      |
+| `ArrowUp` / `ArrowDown`         | Move one row: seven days in Days mode, three months in Months mode, or three years in Years mode. |
+| `Home` / `End`                  | In Days mode, move to the start or end of the current week using `locale.firstDayOfWeek`.         |
+| `PageUp` / `PageDown`           | Move one month in Days mode, one year in Months mode, or one 12-year window in Years mode.        |
+| `Shift` + `PageUp` / `PageDown` | In Days mode, move one year.                                                                      |
+| `Enter` / `Space`               | Select the date in Days mode, open the month in Months mode, or open the year in Years mode.      |
 
 ## Accessibility
 
-The grid renders with `role="grid"` and an explicit `aria-label` that leads with a non-numeric word ("Calendar, April 2026") so VoiceOver doesn't pattern-match the grid's row position into a date literal. Each row has `role="row"`, column headers have `role="columnheader"`, and day cells have `role="gridcell"` with `aria-selected` set on the chosen date. Day buttons carry a full accessible name via `aria-label` (e.g. "Monday, April 13, 2026"), and disabled days get `aria-disabled="true"`.
+Each mode renders a grid with an accessible name and uses `aria-activedescendant` for its keyboard cursor. The Days grid is labeled with a leading word, such as `Calendar, April 2026`, so VoiceOver does not interpret its row position as a date literal.
+
+Rows use `role="row"`. Weekday headings use `role="columnheader"`. Cells use `role="gridcell"` and expose selection state through `aria-selected`. Day buttons receive full accessible names, such as `Monday, April 13, 2026`, and disabled cells use `aria-disabled="true"`.
 
 ## API Reference
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `Calendar.init()`.
+Pass this configuration to `Calendar.init()`:
 
-| Name                 | Type                          | Default                | Description                                                                                                                                                                                       |
-| -------------------- | ----------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                 | `string`                      | —                      | Unique ID for the calendar instance.                                                                                                                                                              |
-| `today`              | `CalendarDate`                | —                      | The current calendar date. Typically fetched at the app boundary via Calendar.today.local and threaded through flags.                                                                             |
-| `initialViewDate`    | `CalendarDate`                | —                      | Seeds the month the calendar opens onto. When set, the view starts on the month containing this date. The parent owns the selection itself; pass your initial selected date here to open onto it. |
-| `locale`             | `LocaleConfig`                | `defaultEnglishLocale` | Month and day names plus the first day of the week. Import from foldkit/calendar.                                                                                                                 |
-| `minDate`            | `CalendarDate`                | —                      | Earliest selectable date. Dates before minDate are marked disabled and skipped by keyboard navigation.                                                                                            |
-| `maxDate`            | `CalendarDate`                | —                      | Latest selectable date. Dates after maxDate are marked disabled and skipped by keyboard navigation.                                                                                               |
-| `disabledDaysOfWeek` | `ReadonlyArray<DayOfWeek>`    | `[]`                   | Days of the week to disable (e.g. ["Saturday", "Sunday"] for weekday-only selection).                                                                                                             |
-| `disabledDates`      | `ReadonlyArray<CalendarDate>` | `[]`                   | Explicit list of disabled dates (e.g. holidays). Pre-compute for complex rules.                                                                                                                   |
+| Name                 | Type                          | Default                | Description                                                                                                                              |
+| -------------------- | ----------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                 | `string`                      | —                      | Unique ID for this Calendar instance.                                                                                                    |
+| `today`              | `CalendarDate`                | —                      | Current date used for highlighting and as the fallback focus target. Resolve it at the application boundary with `Calendar.today.local`. |
+| `initialViewDate`    | `CalendarDate`                | `today`                | Date whose month opens first. Pass the initial parent-owned selection to open on that value.                                             |
+| `locale`             | `LocaleConfig`                | `defaultEnglishLocale` | Month names, weekday names, and the first day of the week. Import the type and default from `foldkit/calendar`.                          |
+| `minDate`            | `CalendarDate`                | —                      | Earliest selectable date. Earlier dates are disabled and skipped during Days-mode keyboard navigation.                                   |
+| `maxDate`            | `CalendarDate`                | —                      | Latest selectable date. Later dates are disabled and skipped during Days-mode keyboard navigation.                                       |
+| `disabledDaysOfWeek` | `ReadonlyArray<DayOfWeek>`    | `[]`                   | Weekdays to disable across every month. For example: `['Saturday', 'Sunday']`.                                                           |
+| `disabledDates`      | `ReadonlyArray<CalendarDate>` | `[]`                   | Individual dates to disable. Precompute the array for more complex rules.                                                                |
 
 ### Model
 
-The calendar state managed as a Submodel field in your parent Model.
+Store the Calendar Model as a field in the parent Model. It contains interaction and constraint state, not the selected date.
 
-| Name                 | Type                            | Default  | Description                                                                                                   |
-| -------------------- | ------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------- |
-| `id`                 | `string`                        | —        | The calendar instance ID.                                                                                     |
-| `today`              | `CalendarDate`                  | —        | Cached "today" used for the data-today highlight and as the fallback focus target.                            |
-| `viewYear`           | `number`                        | —        | The year currently rendered in the grid.                                                                      |
-| `viewMonth`          | `number`                        | —        | The month (1-12) currently rendered in the grid.                                                              |
-| `maybeFocusedDate`   | `Option<CalendarDate>`          | —        | The keyboard cursor position, referenced by aria-activedescendant on the grid.                                |
-| `isGridFocused`      | `boolean`                       | —        | Whether the grid container has DOM focus. Used to apply focused styling only when visually appropriate.       |
-| `locale`             | `LocaleConfig`                  | —        | The locale for month/day names and first day of the week.                                                     |
-| `maybeMinDate`       | `Option<CalendarDate>`          | —        | Lower bound for selectable dates.                                                                             |
-| `maybeMaxDate`       | `Option<CalendarDate>`          | —        | Upper bound for selectable dates.                                                                             |
-| `disabledDaysOfWeek` | `ReadonlyArray<DayOfWeek>`      | —        | Days of the week disabled across every month.                                                                 |
-| `disabledDates`      | `ReadonlyArray<CalendarDate>`   | —        | Explicit dates marked as disabled.                                                                            |
-| `viewMode`           | `'Days' \| 'Months' \| 'Years'` | `'Days'` | Which grid the calendar is currently showing. Drives the `_tag` of the CalendarAttributes passed to `toView`. |
+| Name                 | Type                            | Description                                            |
+| -------------------- | ------------------------------- | ------------------------------------------------------ |
+| `id`                 | `string`                        | Calendar instance ID.                                  |
+| `today`              | `CalendarDate`                  | Date used for the today marker and fallback focus.     |
+| `viewYear`           | `number`                        | Year centered by the Calendar.                         |
+| `viewMonth`          | `number`                        | Month centered by the Calendar, from 1 through 12.     |
+| `viewMode`           | `'Days' \| 'Months' \| 'Years'` | Grid currently displayed.                              |
+| `maybeFocusedDate`   | `Option<CalendarDate>`          | Keyboard cursor used by `aria-activedescendant`.       |
+| `isGridFocused`      | `boolean`                       | Whether the grid container has DOM focus.              |
+| `locale`             | `LocaleConfig`                  | Month names, weekday names, and first day of the week. |
+| `maybeMinDate`       | `Option<CalendarDate>`          | Lower selection bound.                                 |
+| `maybeMaxDate`       | `Option<CalendarDate>`          | Upper selection bound.                                 |
+| `disabledDaysOfWeek` | `ReadonlyArray<DayOfWeek>`      | Weekdays disabled across every month.                  |
+| `disabledDates`      | `ReadonlyArray<CalendarDate>`   | Individually disabled dates.                           |
 
-### ViewConfig {#view-config}
+### ViewInputs {#view-config}
 
-Configuration object passed to `Calendar.view()`.
+Pass these fields under `viewInputs` when `h.submodel` renders `Calendar.view`. The surrounding `h.submodel` configuration separately receives `slotId`, `model`, `view`, and `toParentMessage`.
 
-| Name                       | Type                                                | Default                    | Description                                                                                                                                                                                                         |
-| -------------------------- | --------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model`                    | `Calendar.Model`                                    | —                          | The calendar state from your parent Model.                                                                                                                                                                          |
-| `maybeSelectedDate`        | `Option<CalendarDate>`                              | —                          | The parent-owned selected date. The calendar reads it to render the selected-day marker; it does not store the selection itself. Fold the SelectedDate OutMessage into this field and pass it back on every render. |
-| `toParentMessage`          | `(childMessage: Calendar.Message) => ParentMessage` | —                          | Wraps Calendar Messages in your parent Message type for Submodel delegation (navigation, keyboard, picker-mode transitions).                                                                                        |
-| `toView`                   | `(attributes: CalendarAttributes) => Html`          | —                          | Callback that receives a discriminated CalendarAttributes whose variant matches the calendar viewMode (Days, Months, or Years). Pattern-match on \_tag to render each grid.                                         |
-| `previousMonthLabel`       | `string`                                            | `'Previous month'`         | Accessible label for the previous-month navigation button (Days mode).                                                                                                                                              |
-| `nextMonthLabel`           | `string`                                            | `'Next month'`             | Accessible label for the next-month navigation button (Days mode).                                                                                                                                                  |
-| `previousYearsPageLabel`   | `string`                                            | `'Previous 12 years'`      | Accessible label for the previous-page button in the years grid.                                                                                                                                                    |
-| `nextYearsPageLabel`       | `string`                                            | `'Next 12 years'`          | Accessible label for the next-page button in the years grid.                                                                                                                                                        |
-| `daysHeadingButtonLabel`   | `string`                                            | `'Switch to month picker'` | Accessible label for the heading button in Days mode. Clicked to drill into the months grid.                                                                                                                        |
-| `monthsHeadingButtonLabel` | `string`                                            | `'Switch to year picker'`  | Accessible label for the heading button in Months mode. Clicked to drill into the years grid.                                                                                                                       |
+| Name                       | Type                                       | Default                    | Description                                                                                                    |
+| -------------------------- | ------------------------------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `maybeSelectedDate`        | `Option<CalendarDate>`                     | —                          | Parent-owned selection used to derive selected-cell state. Pass it on every render.                            |
+| `toView`                   | `(attributes: CalendarAttributes) => Html` | —                          | Renders the current grid from the mode-specific attribute bundle. Match on `_tag` with `Match.tagsExhaustive`. |
+| `previousMonthLabel`       | `string`                                   | `'Previous month'`         | Accessible label for the previous-month button in Days mode.                                                   |
+| `nextMonthLabel`           | `string`                                   | `'Next month'`             | Accessible label for the next-month button in Days mode.                                                       |
+| `previousYearsPageLabel`   | `string`                                   | `'Previous 12 years'`      | Accessible label for the previous-page button in Years mode.                                                   |
+| `nextYearsPageLabel`       | `string`                                   | `'Next 12 years'`          | Accessible label for the next-page button in Years mode.                                                       |
+| `daysHeadingButtonLabel`   | `string`                                   | `'Switch to month picker'` | Accessible label for the heading button in Days mode.                                                          |
+| `monthsHeadingButtonLabel` | `string`                                   | `'Switch to year picker'`  | Accessible label for the heading button in Months mode.                                                        |
 
 ### CalendarAttributes {#calendar-attributes}
 
-Attribute groups and derived data provided to the `toView` callback.
+`CalendarAttributes` is a discriminated union. Its `_tag` always matches `model.viewMode`. Every variant contains these fields:
 
-| Name                                    | Type                                                                       | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| --------------------------------------- | -------------------------------------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `_tag`                                  | `'Days' \| 'Months' \| 'Years'`                                            | —       | Discriminator matching model.viewMode. Use M.tagsExhaustive to render each variant. The fields below describe the union of variants. Only the fields documented for the current \_tag are present.                                                                                                                                                                                                                                                                                                                                                       |
-| `root`                                  | `ReadonlyArray<Attribute<Message>>`                                        | —       | (All modes.) Spread onto the outermost wrapper. Includes the root id.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `grid`                                  | `ReadonlyArray<Attribute<Message>>`                                        | —       | (All modes.) Spread onto the grid container. Includes role="grid", tabindex, aria-label, aria-activedescendant, and keyboard/focus handlers.                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `heading`                               | `{ id: string; text: string }`                                             | —       | (All modes.) Heading id and text. In Days mode the text is "September 2019"; in Months mode "2019"; in Years mode "2016–2027" (the visible window).                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `headingButton`                         | `ReadonlyArray<Attribute<Message>>`                                        | —       | (Days, Months only.) Spread onto a `<button>` wrapping heading.text. Clicking dispatches ClickedHeading and drills one level deeper. Years mode is terminal and omits this field.                                                                                                                                                                                                                                                                                                                                                                        |
-| `previousMonthButton / nextMonthButton` | `ReadonlyArray<Attribute<Message>>`                                        | —       | (Days only.) Prev/next month navigation. Click handlers dispatch ClickedPreviousMonthButton / ClickedNextMonthButton.                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `previousPageButton / nextPageButton`   | `ReadonlyArray<Attribute<Message>>`                                        | —       | (Years only.) Page through 12-year windows. Click handlers dispatch PagedYears with direction -1 or 1.                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `headerRow / columnHeaders`             | `ReadonlyArray<Attribute<Message>> + ReadonlyArray<ColumnHeader<Message>>` | —       | (Days only.) Row attributes (role="row") and seven column headers (role="columnheader") in locale-aware order.                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `weeks`                                 | `ReadonlyArray<Week<Message>>`                                             | —       | (Days only.) Six week rows. Each Week carries its own row attributes (role="row", aria-rowindex) and seven DayCells. DayCells carry cellAttributes (role="gridcell", aria-colindex), buttonAttributes (type="button", aria-label, click), the day label string, and state flags (isToday, isSelected, isFocused, isInViewMonth, isDisabled).                                                                                                                                                                                                             |
-| `cells`                                 | `ReadonlyArray<MonthCell<Message>> \| ReadonlyArray<YearCell<Message>>`    | —       | (Months, Years.) Twelve cells. In Months mode each cell carries the month number (1-12), the full localized name (label, e.g. "September"), and the localized abbreviation (shortLabel, e.g. "Sep"). Render whichever fits, never substring label to abbreviate. In Years mode each cell carries a year from the current 12-year window. Both expose cellAttributes (role="gridcell", aria-selected), buttonAttributes (click dispatches SelectedMonth/SelectedYear), and state flags (isSelected, isFocused, isCurrentMonth/isCurrentYear, isDisabled). |
+| Name      | Type                            | Description                                                                                |
+| --------- | ------------------------------- | ------------------------------------------------------------------------------------------ |
+| `_tag`    | `'Days' \| 'Months' \| 'Years'` | Discriminator for exhaustive rendering with `Match.tagsExhaustive`.                        |
+| `root`    | `ReadonlyArray<ChildAttribute>` | Attributes for the outermost Calendar element, including its ID.                           |
+| `grid`    | `ReadonlyArray<ChildAttribute>` | Grid semantics, keyboard and focus handlers, accessible name, and active-descendant state. |
+| `heading` | `{ id: string; text: string }`  | Heading ID and localized text for the current month, year, or 12-year window.              |
 
-### OutMessage {#out-messages}
+The remaining fields depend on the variant.
 
-Messages emitted to the parent through the third element of `[Model, Commands, Option<OutMessage>]`. Parents pattern-match on the OutMessage in their own update handler.
+#### Days
 
-| Name               | Type                              | Default | Description                                                                                                                                                                                                                                                                                |
-| ------------------ | --------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `SelectedDate`     | `{ date: CalendarDate }`          | —       | Emitted when the user commits a date (click / Enter / Space). Pattern-match the third tuple element of Calendar.update in your GotCalendarMessage handler to lift the date into domain state.                                                                                              |
-| `ChangedViewMonth` | `{ year: number; month: number }` | —       | Emitted when navigation changes the visible month (prev/next buttons, heading-drill selection of a different month, arrow keys crossing a month boundary, or a commit that crosses a month). Useful for inline-calendar consumers loading month-scoped data like holidays or availability. |
+| Name                                     | Type                            | Description                                                              |
+| ---------------------------------------- | ------------------------------- | ------------------------------------------------------------------------ |
+| `previousMonthButton`, `nextMonthButton` | `ReadonlyArray<ChildAttribute>` | Attributes for the month-navigation buttons.                             |
+| `headingButton`                          | `ReadonlyArray<ChildAttribute>` | Attributes for the heading button that opens Months mode.                |
+| `headerRow`                              | `ReadonlyArray<ChildAttribute>` | Attributes for the weekday-header row.                                   |
+| `columnHeaders`                          | `ReadonlyArray<ColumnHeader>`   | Seven locale-ordered weekday headings. Each has `name` and `attributes`. |
+| `weeks`                                  | `ReadonlyArray<Week>`           | Six rows. Each has `attributes` and seven `DayCell` values.              |
+
+Each `DayCell` contains `date`, `label`, `cellAttributes`, `buttonAttributes`, and the state flags `isSelected`, `isFocused`, `isToday`, `isInViewMonth`, and `isDisabled`.
+
+#### Months
+
+| Name            | Type                            | Description                                                                                                       |
+| --------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `headingButton` | `ReadonlyArray<ChildAttribute>` | Attributes for the heading button that opens Years mode.                                                          |
+| `cells`         | `ReadonlyArray<MonthCell>`      | Twelve month cells with `month`, localized `label` and `shortLabel`, cell and button attributes, and state flags. |
+
+Use `shortLabel` when space is tight. Do not derive an abbreviation by slicing `label`, which is not safe across locales.
+
+#### Years
+
+| Name                                   | Type                            | Description                                                                          |
+| -------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------ |
+| `previousPageButton`, `nextPageButton` | `ReadonlyArray<ChildAttribute>` | Attributes for paging through 12-year windows.                                       |
+| `cells`                                | `ReadonlyArray<YearCell>`       | Twelve year cells with `year`, `label`, cell and button attributes, and state flags. |
+
+Month cells expose `isSelected`, `isFocused`, `isCurrentMonth`, and `isDisabled`. Year cells expose `isSelected`, `isFocused`, `isCurrentYear`, and `isDisabled`.
+
+### OutMessage {#out-message}
+
+Calendar returns an optional OutMessage in the `outMessage` field. Match on its tag in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) configuration.
+
+| Name               | Payload                           | Emitted when                                                                                                                                                                       |
+| ------------------ | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SelectedDate`     | `{ date: CalendarDate }`          | The user commits a date by click, `Enter`, or `Space`. If the date is outside the visible month, Calendar also moves the view, but emits only `SelectedDate`.                      |
+| `ChangedViewMonth` | `{ year: number; month: number }` | Navigation changes the visible month without committing a date. This includes month buttons, cross-month keyboard movement, and choosing a different month or year while drilling. |
+
+Use `SelectedDate` to update the parent-owned selection. Use `ChangedViewMonth` when an inline Calendar needs month-scoped data such as availability, holidays, or events.
 
 ### Programmatic Helpers
 
-Helpers you call from your own update handlers to drive the calendar imperatively: writing back the selection in controlled mode, focusing the grid, or updating constraints when they derive from other Model state.
+`selectDate` is a child entry point. Fold it into the parent with `Update.foldChild` because it takes a date as input. The Model-only helpers make silent state adjustments and can be used as point-free `evo` setters.
 
-The four `reflect*` helpers are how you implement cross-field date validation. Constraints are set at init time and updated via these helpers. They do not live on ViewConfig, because the update function needs them for keyboard-navigation disabled-skipping and commit-time validation. For an end date that must be on or after a start date, call `reflectMinDate(endCalendar, maybeStartDate)` in the handler that processes the start date change, where `maybeStartDate` is the parent-owned start-date field.
+| Name         | Type                                                                                            | Behavior                                                                                                                  |
+| ------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `selectDate` | `(model: Model, date: CalendarDate) => Update.ReturnWithOutMessage<Model, Message, OutMessage>` | Moves the view and cursor to the date and emits `SelectedDate`. Fold the OutMessage to update the parent-owned selection. |
+| `focusDate`  | `(model: Model, date: CalendarDate) => Model`                                                   | Moves the view and cursor without selecting. Use it when an external value should determine which month opens.            |
+| `FocusGrid`  | `(args: { id: string }) => Command`                                                             | Focuses the Calendar grid. A parent such as DatePicker can dispatch it after opening.                                     |
+| `dropToDays` | `(model: Model) => Model`                                                                       | Returns to Days mode and reconciles the cursor with the visible month.                                                    |
 
-| Name                        | Type                                                                          | Default | Description                                                                                                                                                                                                                                                                                                   |
-| --------------------------- | ----------------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `selectDate`                | `(model: Model, date: CalendarDate) => [Model, Commands, Option<OutMessage>]` | —       | Commits the given date and moves the cursor onto it, emitting SelectedDate. Use for a programmatic selection that should behave like a user pick. To move the view to a date without selecting it (opening onto an externally-sourced value), use focusDate.                                                  |
-| `focusDate`                 | `(model: Model, date: CalendarDate) => Model`                                 | —       | Moves the view and cursor to a date without changing the selection (which the parent owns). Use it to navigate to a known date, for example when the parent sets its value externally (a URL, a saved draft) so opening the calendar shows that month. Returns the model directly: no Command, no OutMessage. |
-| `FocusGrid`                 | `(args: { id: string }) => Command`                                           | —       | A Command constructor, dispatched as FocusGrid({ id }), that focuses the calendar grid container. Parent components like DatePicker dispatch it to hand focus to the grid's keyboard layer after opening.                                                                                                     |
-| `dropToDays`                | `(model: Model) => Model`                                                     | —       | Returns the calendar to Days mode regardless of current depth (Days, Months, or Years). Useful for standalone consumers that want to wire their own back-out gesture; popovered consumers like DatePicker call this internally on open and close so the picker always reopens at the day grid.                |
-| `reflectMinDate`            | `(model: Model, maybeMinDate: Option<CalendarDate>) => Model`                 | —       | Reflects the minimum selectable date onto the model without emitting an OutMessage. Pass Option.none() to remove the minimum. Use for cross-field validation when the minimum derives from other Model state. Does not reconcile the current selection if it falls below the new minimum.                     |
-| `reflectMaxDate`            | `(model: Model, maybeMaxDate: Option<CalendarDate>) => Model`                 | —       | Reflects the maximum selectable date onto the model without emitting an OutMessage. Pass Option.none() to remove the maximum. Does not reconcile the current selection.                                                                                                                                       |
-| `reflectDisabledDates`      | `(model: Model, disabledDates: ReadonlyArray<CalendarDate>) => Model`         | —       | Reflects the list of individually-disabled dates (e.g. holidays) onto the model. Pass an empty array to clear.                                                                                                                                                                                                |
-| `reflectDisabledDaysOfWeek` | `(model: Model, disabledDaysOfWeek: ReadonlyArray<DayOfWeek>) => Model`       | —       | Reflects the list of disabled days of the week (e.g. ["Saturday", "Sunday"]) onto the model. Pass an empty array to clear.                                                                                                                                                                                    |
+The reflection helpers update constraints already stored in the Calendar Model. They emit no OutMessage and do not reconcile the parent-owned selection. If a new constraint invalidates that value, update the selection explicitly in the same parent handler.
+
+| Name                        | Type                                                   | Behavior                                                             |
+| --------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------- |
+| `reflectMinDate`            | `(model: Model, Option<CalendarDate>) => Model`        | Replaces the minimum. Pass `Option.none()` to remove it.             |
+| `reflectMaxDate`            | `(model: Model, Option<CalendarDate>) => Model`        | Replaces the maximum. Pass `Option.none()` to remove it.             |
+| `reflectDisabledDates`      | `(model: Model, ReadonlyArray<CalendarDate>) => Model` | Replaces the disabled-date list. Pass an empty array to clear it.    |
+| `reflectDisabledDaysOfWeek` | `(model: Model, ReadonlyArray<DayOfWeek>) => Model`    | Replaces the disabled-weekday list. Pass an empty array to clear it. |

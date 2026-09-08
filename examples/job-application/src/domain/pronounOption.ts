@@ -1,6 +1,6 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 
-export const PronounOption = S.Literals([
+export const PronounOption = Schema.Literals([
   'He/Him',
   'She/Her',
   'They/Them',

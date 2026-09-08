@@ -1,13 +1,7 @@
-import { Effect, Option, Schema as S, Stream } from 'effect'
+import { Effect, Option, Schema, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
-import type { Message } from './message'
-import {
-  ClickedRedo,
-  ClickedUndo,
-  ReleasedMouse,
-  SelectedTool,
-} from './message'
+import { Message } from './message'
 import type { Model } from './model'
 
 export const handleKeyboardEvent = (
@@ -19,22 +13,24 @@ export const handleKeyboardEvent = (
 
     if (isCtrlOrMeta && key === 'z') {
       event.preventDefault()
-      return Option.some(event.shiftKey ? ClickedRedo() : ClickedUndo())
+      return Option.some(
+        event.shiftKey ? Message.ClickedRedo() : Message.ClickedUndo(),
+      )
     }
     if (isCtrlOrMeta && key === 'y') {
       event.preventDefault()
-      return Option.some(ClickedRedo())
+      return Option.some(Message.ClickedRedo())
     }
 
     if (!isCtrlOrMeta) {
       if (key === 'b') {
-        return Option.some(SelectedTool({ tool: 'Brush' }))
+        return Option.some(Message.SelectedTool({ tool: 'Brush' }))
       }
       if (key === 'f') {
-        return Option.some(SelectedTool({ tool: 'Fill' }))
+        return Option.some(Message.SelectedTool({ tool: 'Fill' }))
       }
       if (key === 'e') {
-        return Option.some(SelectedTool({ tool: 'Eraser' }))
+        return Option.some(Message.SelectedTool({ tool: 'Eraser' }))
       }
     }
     return Option.none()
@@ -50,13 +46,13 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 
   mouseRelease: entry(
-    { isDrawing: S.Boolean },
+    { isDrawing: Schema.Boolean },
     {
       modelToDependencies: model => ({ isDrawing: model.isDrawing }),
       dependenciesToStream: ({ isDrawing }) =>
         Stream.when(
           Stream.fromEventListener(document, 'mouseup').pipe(
-            Stream.map(() => ReleasedMouse()),
+            Stream.map(() => Message.ReleasedMouse()),
           ),
           Effect.sync(() => isDrawing),
         ),

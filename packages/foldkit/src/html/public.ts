@@ -1,7 +1,10 @@
 export {
   childAttributes,
+  ClickOptions,
   createKeyedLazy,
   createLazy,
+  DefaultAction,
+  EventPropagation,
   inertHtml,
   TextDirection,
 } from './index.js'
@@ -14,4 +17,5 @@ export type {
   HtmlBuilder,
   KeyboardModifiers,
   TagName,
+  TextareaAttribute,
 } from './index.js'

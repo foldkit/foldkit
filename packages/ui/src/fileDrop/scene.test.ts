@@ -3,8 +3,8 @@ import * as Scene from 'foldkit/scene'
 
 import { describe, it } from '@effect/vitest'
 
-import type { Message, Model, ViewInputs } from './index.js'
-import { EnteredDragZone, init, update, view } from './index.js'
+import type { Model, ViewInputs } from './index.js'
+import { Message, init, update, view } from './index.js'
 
 const sceneView =
   (overrides: Omit<Partial<ViewInputs>, 'toView'> = {}) =>
@@ -26,7 +26,7 @@ const dropZone = Scene.selector('label')
 const fileInput = Scene.selector('input[type="file"]')
 
 const initialModel = init({ id: 'uploader' })
-const [dragOverModel] = update(initialModel, EnteredDragZone())
+const dragEntry = update(initialModel, Message.EnteredDragZone())
 
 describe('FileDrop', () => {
   describe('rendering', () => {
@@ -85,7 +85,7 @@ describe('FileDrop', () => {
     it('sets data-drag-over on the root after EnteredDragZone', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(dragOverModel),
+        Scene.given(dragEntry.model),
         Scene.expect(dropZone).toHaveAttr('data-drag-over'),
       )
     })

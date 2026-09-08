@@ -41,8 +41,8 @@ const view = (h: HtmlBuilder<Message>) =>
 
 Components come in two shapes:
 
-- **Render helpers** (Button, Input, Textarea, Select, RadioGroup, Checkbox, Switch, Disclosure, Fieldset) are stateless. Call their `view` directly with a typed config. The controlled helpers (RadioGroup, Checkbox, Switch, Disclosure) take the current value in through their config and dispatch a parent Message when the user changes it; you store that value in your own Model.
-- **Submodels** (Combobox, Dialog, Listbox, Menu, Popover, and the like) own a Model. Embed them with `h.submodel`, drive them through their `update`, and consume their `OutMessage` in the parent.
+- **Render helpers** (Button, Input, Textarea, Select, Checkbox, Switch, Disclosure, Fieldset) are stateless. Call their `view` directly with a typed config. The controlled helpers (Checkbox, Switch, Disclosure) take the current value in through their config and dispatch a parent Message when the user changes it; you store that value in your own Model.
+- **Submodels** (Combobox, Dialog, Listbox, Menu, Popover, RadioGroup, and the like) own a Model. Embed them with `h.submodel`, drive them through their `update`, and consume their `OutMessage` in the parent.
 
 Every component is also available as a subpath import:
 
@@ -58,9 +58,13 @@ import { Calendar as UiCalendar } from '@foldkit/ui'
 
 ## Components
 
-Animation, Button, Calendar, Checkbox, Combobox, DatePicker, Dialog, Disclosure, DragAndDrop, Fieldset, FileDrop, Input, Listbox, Menu, Popover, RadioGroup, Select, Slider, Switch, Tabs, Textarea, Toast, Tooltip, and VirtualList.
+Animation, Button, Calendar, Checkbox, Combobox, DatePicker, Dialog, Disclosure, DragAndDrop, Fieldset, FileDrop, HoverIntent, Input, Listbox, Menu, Popover, RadioGroup, Select, Slider, Switch, Tabs, Textarea, Toast, Tooltip, and VirtualList.
 
 See the [component documentation](https://foldkit.dev/ui/overview) for the full API and a live example of each.
+
+## Anchor
+
+`Anchor` is the positioning runtime the floating components share, exported at `@foldkit/ui/anchor`. It is neither a render helper nor a Submodel, so it is not in the list above. Reach for it when you need to anchor and portal a panel of your own from a Mount, and none of Listbox, Combobox, Menu, Popover, Tooltip, or DatePicker fits. See the [Anchor documentation](https://foldkit.dev/ui/anchor).
 
 ## License
 

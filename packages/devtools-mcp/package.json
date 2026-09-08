@@ -1,6 +1,6 @@
 {
   "name": "@foldkit/devtools-mcp",
-  "version": "0.14.0",
+  "version": "0.19.4",
   "description": "MCP server exposing Foldkit DevTools to AI agents (Claude Code, Cursor, etc.)",
   "type": "module",
   "main": "./dist/server.js",
@@ -23,21 +23,21 @@
     "typecheck": "tsc -b --noEmit"
   },
   "peerDependencies": {
-    "effect": "4.0.0-beta.102",
-    "foldkit": "workspace:^0"
+    "effect": "4.0.0-rc.112",
+    "foldkit": ">=0.153.0"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "ws": "^8.21.0"
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
-    "@types/node": "^25.9.3",
+    "@types/node": "^26.4.0",
     "@types/ws": "^8.18.1",
-    "effect": "4.0.0-beta.102",
-    "esbuild": "^0.28.1",
+    "effect": "4.0.0-rc.112",
+    "esbuild": "^0.28.2",
     "foldkit": "workspace:*",
     "rimraf": "^6.1.3",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "files": [
     "dist"
@@ -56,6 +56,7 @@
     "url": "https://github.com/foldkit/foldkit.git",
     "directory": "packages/devtools-mcp"
   },
+  "homepage": "https://foldkit.dev/ai/mcp",
   "publishConfig": {
     "access": "public"
   },

@@ -60,8 +60,8 @@ export type Ports = Readonly<{
  * @example
  * ```ts
  * export const ports = {
- *   inbound: { stepChanged: Port.inbound(S.Number) },
- *   outbound: { countChanged: Port.outbound(S.Number) },
+ *   inbound: { stepChanged: Port.inbound(Schema.Number) },
+ *   outbound: { countChanged: Port.outbound(Schema.Number) },
  * }
  * ```
  */
@@ -80,8 +80,8 @@ export const inbound = <Value, Encoded>(
  * @example
  * ```ts
  * export const ports = {
- *   inbound: { stepChanged: Port.inbound(S.Number) },
- *   outbound: { countChanged: Port.outbound(S.Number) },
+ *   inbound: { stepChanged: Port.inbound(Schema.Number) },
+ *   outbound: { countChanged: Port.outbound(Schema.Number) },
  * }
  * ```
  */
@@ -143,7 +143,7 @@ export const __makeInboundChannel = (): __InboundChannel => {
   const attach = (push: (value: unknown) => void): (() => void) => {
     subscribers.add(push)
     if (Option.isSome(maybeBacklog)) {
-      const backlog = maybeBacklog.value
+      const { value: backlog } = maybeBacklog
       maybeBacklog = Option.none()
       backlog.forEach(push)
     }
@@ -230,7 +230,7 @@ export const subscription = <Value, Encoded, Message>(
  *
  * ```ts
  * const ReportCount = Command.define('ReportCount', {
- *   args: { count: S.Number },
+ *   args: { count: Schema.Number },
  *   messages: [CompletedReportCount],
  *   execute: ({ count }) =>
  *     Port.emit(ports.outbound.countChanged, count).pipe(

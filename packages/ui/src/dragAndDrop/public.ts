@@ -12,20 +12,8 @@ export {
   Model,
   Message,
   OutMessage,
-  PressedDraggable,
-  MovedPointer,
-  ReleasedPointer,
-  CancelledDrag,
-  ActivatedKeyboardDrag,
-  CompletedResolveKeyboardMove,
-  ConfirmedKeyboardDrop,
-  PressedArrowKey,
-  AdvancedAutoScrollFrame,
-  CompletedFocusItem,
   FocusItem,
   ResolveKeyboardMove,
-  Reordered,
-  Cancelled,
 } from './index.js'
 
 export type { InitConfig, DraggableConfig, DraggableMessage } from './index.js'

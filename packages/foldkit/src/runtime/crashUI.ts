@@ -1,6 +1,48 @@
-import { Effect } from 'effect'
+import { Context, Effect, Option } from 'effect'
 
-import { Document, inertHtml as ih } from '../html/index.js'
+import {
+  Document,
+  Html,
+  type HtmlBuilder,
+  __clearRuntime as clearHtmlRuntime,
+  __htmlBuilder as htmlBuilderFor,
+  inertHtml as ih,
+  __setRuntime as setHtmlRuntime,
+} from '../html/index.js'
+import { MountTracker } from '../mount/index.js'
+import { VNode, __patchVNode } from '../vdom.js'
+import { Dispatch } from './dispatch.js'
+import { applyDocumentMetadata } from './documentMetadata.js'
+
+/** Context provided to crash.view and crash.report when the runtime encounters
+ *  an unrecoverable error. `message` is the Message being processed when the
+ *  crash occurred, present as an `Option` because a crash during the initial
+ *  render has no triggering Message. */
+export type CrashContext<Model, Message> = Readonly<{
+  error: Error
+  model: Model
+  message: Option.Option<Message>
+}>
+
+/** Configuration for crash handling, with custom crash UI and/or crash
+ *  reporting. The crash view renders after the dispatch loop has stopped, so
+ *  its builder's Message is `never` and no handler is expressible. Reload or
+ *  navigate with a raw DOM attribute instead. */
+export type CrashConfig<Model, Message> = Readonly<{
+  view?: (
+    context: CrashContext<Model, Message>,
+    h: HtmlBuilder<never>,
+  ) => Document
+  report?: (context: CrashContext<Model, Message>) => void
+}>
+
+/** Configuration for crash handling in a `makeElement` app. The crash view
+ *  returns `Html`, not a `Document`, because a scoped app never owns the
+ *  document `<head>`. */
+export type ElementCrashConfig<Model, Message> = Readonly<{
+  view?: (context: CrashContext<Model, Message>, h: HtmlBuilder<never>) => Html
+  report?: (context: CrashContext<Model, Message>) => void
+}>
 
 export const noOpDispatch = {
   dispatchAsync: (_message: unknown) => Effect.void,
@@ -25,7 +67,7 @@ const monoStack =
   'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace'
 
 export const defaultCrashView = (
-  context: Readonly<{ error: Error }>,
+  context: CrashContext<unknown, unknown>,
   viewError?: unknown,
 ): Document => {
   const codeBlockStyle = ih.Style({
@@ -211,4 +253,82 @@ export const defaultCrashView = (
   )
 
   return { title: 'Application Crash', body }
+}
+
+/** Mutable holder for the vnode tree currently mounted in the container.
+ *  The render frame writes it after every patch; the dispose finalizer, the
+ *  replay render, and {@link renderCrashView} read it. A plain object rather
+ *  than a Ref because every reader runs synchronously on the main thread. */
+export type VNodeSlot = {
+  maybeCurrentVNode: Option.Option<VNode>
+}
+
+export const renderCrashView = <Model, Message>(
+  context: CrashContext<Model, Message>,
+  crash: CrashConfig<Model, Message> | undefined,
+  container: HTMLElement,
+  vnodeSlot: VNodeSlot,
+  manageDocument: boolean,
+): void => {
+  console.error('[foldkit] Application crash:', context.error)
+
+  if (crash?.report) {
+    try {
+      crash.report(context)
+    } catch (reportError) {
+      console.error('[foldkit] crash.report failed:', reportError)
+    }
+  }
+
+  const crashContext = Context.make(Dispatch, noOpDispatch).pipe(
+    Context.add(MountTracker, {
+      started: () => {},
+      ended: () => {},
+    }),
+  )
+
+  try {
+    setHtmlRuntime(noOpDispatch.dispatchSync, crashContext)
+    let crashDocument: Document
+    try {
+      crashDocument = crash?.view
+        ? crash.view(context, htmlBuilderFor<never>())
+        : defaultCrashView(context)
+    } finally {
+      clearHtmlRuntime()
+    }
+
+    const patchedVNode = __patchVNode(
+      vnodeSlot.maybeCurrentVNode,
+      crashDocument.body,
+      container,
+    )
+    vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
+    if (manageDocument) {
+      applyDocumentMetadata(crashDocument, patchedVNode.elm)
+    }
+  } catch (viewError) {
+    console.error('[foldkit] crash.view failed:', viewError)
+
+    const fallbackViewError =
+      viewError instanceof Error ? viewError : new Error(String(viewError))
+
+    setHtmlRuntime(noOpDispatch.dispatchSync, crashContext)
+    let fallbackDocument: Document
+    try {
+      fallbackDocument = defaultCrashView(context, fallbackViewError)
+    } finally {
+      clearHtmlRuntime()
+    }
+
+    const patchedVNode = __patchVNode(
+      vnodeSlot.maybeCurrentVNode,
+      fallbackDocument.body,
+      container,
+    )
+    vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
+    if (manageDocument) {
+      applyDocumentMetadata(fallbackDocument, patchedVNode.elm)
+    }
+  }
 }

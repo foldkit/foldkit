@@ -5,23 +5,12 @@ export { buttonId } from './shared.js'
 export {
   Message,
   OutMessage,
-  Selected,
+  type Selected,
   Orientation,
-  SelectedItem,
-  CompletedLockScroll,
-  CompletedUnlockScroll,
-  CompletedInertOthers,
-  CompletedRestoreInert,
-  CompletedFocusButton,
-  CompletedFocusItems,
-  CompletedScrollIntoView,
-  CompletedClickItem,
-  CompletedAnchorListbox,
-  CompletedPortalListboxBackdrop,
+  type SelectedItem,
   AnchorListbox,
   PortalListboxBackdrop,
-  CompletedDelayClearSearch,
-  GotAnimationMessage,
+  type CompletedDelayClearSearch,
   LockScroll,
   UnlockScroll,
   InertOthers,
@@ -32,17 +21,18 @@ export {
   ClickItem,
   DelayClearSearch,
   DetectMovementOrAnimationEnd,
-  Opened,
-  Closed,
-  BlurredItems,
-  ActivatedItem,
-  DeactivatedItem,
-  MovedPointerOverItem,
-  RequestedItemClick,
-  Searched,
-  PressedPointerOnButton,
-  IgnoredMouseClick,
-  SuppressedSpaceScroll,
+  type Opened,
+  type Closed,
+  type BlurredItems,
+  type ActivatedItem,
+  type DeactivatedItem,
+  type MovedPointerOverItem,
+  type RequestedItemClick,
+  type Searched,
+  type PressedPointerOnButton,
+  type IgnoredMouseClick,
+  type SuppressedSpaceScroll,
+  type SuppressedItemCommit,
 } from './shared.js'
 
 export type {
@@ -55,6 +45,6 @@ export type {
 
 export type { Bundle, InitConfig, ViewInputs } from './single.js'
 
-export type { AnchorConfig } from '../anchor.js'
+export type { AnchorConfig } from '../anchor/index.js'
 
 export * as Multi from './multiPublic.js'

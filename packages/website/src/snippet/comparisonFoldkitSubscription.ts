@@ -8,7 +8,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 
   mouseRelease: entry(
-    { isDrawing: S.Boolean },
+    { isDrawing: Schema.Boolean },
     {
       modelToDependencies: model => ({ isDrawing: model.isDrawing }),
       dependenciesToStream: ({ isDrawing }) =>

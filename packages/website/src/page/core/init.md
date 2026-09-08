@@ -1,33 +1,39 @@
 # Init & Flags
 
-## Init
+## The First Model {#init}
 
-The counter works, but every time the user refreshes the page, the count resets to zero. What if we want to remember the last count? That’s where `init` comes in, and where flags let you pass data into your app at startup.
+`init` constructs the first Model and returns any Commands that should run when the application starts. It returns `Update.Return<Model, Message>`, the same type as update.
 
-In the restaurant analogy, init is the waiter’s notebook at the start of the shift: the state of every table before the first customer walks in.
-
-The `init` function returns the initial Model and any Commands to run on startup. It returns a tuple of `[Model, ReadonlyArray<Command<Message>>]`.
+The counter starts at zero and has no startup work:
 
 ::Snippet{name="initSimple" label="init example"}
 
-For elements (components without routing), init takes no arguments. For applications with routing, init receives the current URL so you can set up initial state based on the route.
+A non-routing application or element calls `init` with no arguments. A routing application passes the current URL, so its first Model can reflect the route. When the application declares Flags, they become the first argument in either form.
 
-## Flags
+## Startup Data from Flags {#flags}
 
-In the restaurant analogy, flags are what the manager tells the waiter before the shift: “table 5 has a reservation at 7, and we’re out of the salmon.” Information from outside the app that shapes the initial state.
+Flags carry data from outside the application into `init`. Typical sources include persisted state, runtime configuration, and request-specific data supplied during server rendering.
 
-Flags let you pass initialization data into your application, like persisted state from localStorage or configuration values. Define a Flags schema and provide an Effect that loads the flags.
+Define the boundary with a Flags Schema. For a fresh client boot, also define an Effect that obtains a value matching that Schema:
 
-::Snippet{name="flagsDefinition" label="flags definition"}
+::Snippet{name="flagsDefinition" label="Flags definition"}
 
-When using flags, your init function receives them as the first argument:
+`init` receives the decoded Flags value and folds it into the first Model:
 
-::Snippet{name="initWithFlags" label="init with flags"}
+::Snippet{name="initWithFlags" label="init with Flags"}
 
-Both the schema and the Effect are passed to `makeApplication` as `Flags` and `flags`. Without them the runtime calls `init` with no arguments and the compiler rejects the config.
+### Fresh Client Boot
 
-::Snippet{name="counterEntryWithFlags" label="flags wiring"}
+Pass the Schema to `Runtime.makeApplication` as `Flags`, then pass the Effect to `Runtime.run`. The runtime resolves the Effect before calling `init`. If the configuration omits the Schema, `init` takes no Flags argument and the compiler rejects mismatched wiring.
 
-The example above discharges its own `KeyValueStore` requirement with `Effect.provide`, which is the right placement for a service used only at startup. When the flags Effect needs an app-wide singleton that Commands also use, leave the requirement in its type and let the `resources` Layer provide it. The runtime builds that Layer once and shares it, so [Resources](/core/resources) covers the details.
+::Snippet{name="counterEntryWithFlags" label="Flags wiring"}
 
-Once your app outgrows a single Model, Message, and update, the next step is to decompose it into [Submodels](/core/submodel): self-contained modules with their own state, Messages, and update, embedded under a parent.
+The example provides `KeyValueStore` inside the Flags Effect because that service is used only during startup. If the same singleton is also needed by Commands or Subscriptions, leave the requirement in the Effect type and provide it through the application's `resources` Layer. The runtime builds that Layer once and shares it. See [Resources](/core/resources) for the full setup.
+
+### Server Rendering and Hydration
+
+Server rendering provides Flags from the request or build instead of running a client Flags Effect. `renderToString` uses that value to call `init`, encodes it through the Schema, and embeds the result in the HTML. `Runtime.hydrate` decodes the same value and calls the same `init`, so the client reconstructs the Model that produced the server HTML.
+
+A hydrating entry does not provide a client Flags Effect. Missing or invalid handoff data fails startup instead of silently booting a different Model. The [Server Rendering](/core/server-rendering#flags-and-what-only-the-browser-knows) guide explains which data is safe and reproducible across that boundary.
+
+Once one Model, Message union, and update function become too large to reason about as a unit, decompose the state machine into [Submodels](/core/submodel). Each child owns its own Model, Messages, update, and Commands behind an explicit parent boundary.

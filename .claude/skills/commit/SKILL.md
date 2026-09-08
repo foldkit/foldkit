@@ -30,8 +30,9 @@ Look at the changed files. If ANY changed file is inside a published package pat
 If a published package has changes but no changeset covers it:
 
 1. Determine the bump level:
-   - **patch** — bug fixes, docs, internal refactors, metadata changes
-   - **minor** — new features, non-breaking API additions, or breaking changes (project is pre-1.0, so never use `major`)
+   - **empty**: an internal change with no user-facing effect, such as a pure refactor, a move between modules that leaves the published surface and behavior unchanged, or a test-only change. Write a file at `.changeset/<descriptive-name>.md` holding only the two frontmatter delimiters, which is what `pnpm changeset add --empty` generates under a random name. It satisfies `changeset status` without adding a release entry.
+   - **patch**: bug fixes, docs, metadata changes
+   - **minor**: new features, non-breaking API additions, or breaking changes (project is pre-1.0, so never use `major`)
 2. Create a changeset file at `.changeset/<descriptive-name>.md` with this format:
 
 ```markdown

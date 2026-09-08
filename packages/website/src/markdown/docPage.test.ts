@@ -1,21 +1,28 @@
-import { Array, Option, Result, String as String_ } from 'effect'
+import { Array, Match, Option, Result, String } from 'effect'
 import { inertHtml as ih } from 'foldkit/html'
 import { describe, expect, test } from 'vitest'
 
+import * as Markdown from '@foldkit/markdown'
 import { parseMarkdown } from '@foldkit/markdown/vite'
 
+import { type CodeBlock } from '../component'
+import { PostFrontmatter } from '../page/blog/frontmatter'
 import comingFromReactSource from '../page/comingFromReact/comingFromReact.md?raw'
 import { FAQ_IDS } from '../page/comingFromReact/faq'
-import commandsSource from '../page/core/commands.md?raw'
-import submodelSource from '../page/core/submodel.md?raw'
-import manifestoSource from '../page/manifesto.md?raw'
+import comboboxPageSource from '../page/ui/comboboxPage.md?raw'
+import { collectDemoLabels } from './demoLabel'
 import { islandAttributes } from './islandAttributes'
-import { slugify, stripHeadingIdMarker } from './slug'
+import { docIslands } from './islands'
+import { parseHeadingId, slugify, stripHeadingIdMarker } from './slug'
 import { collectHeadings } from './tableOfContents'
+import { docViews } from './views'
 
-const tocOf = (source: string) =>
-  collectHeadings(parseMarkdown(source, { islands: islandAttributes }))
-    .tableOfContents
+// NOTE: mirrors the options the website's markdown plugin runs with, so a check
+// over every page's source reads the same documents the site builds.
+const markdownOptions = {
+  islands: islandAttributes,
+  frontmatter: PostFrontmatter,
+}
 
 describe('slugify', () => {
   test('lowercases and dashes non-alphanumeric runs', () => {
@@ -25,6 +32,11 @@ describe('slugify', () => {
     expect(slugify('Build Your Product, Not Your Architecture')).toBe(
       'build-your-product-not-your-architecture',
     )
+  })
+
+  test('drops apostrophes instead of dashing them', () => {
+    expect(slugify('Don’t Compute in Update')).toBe('dont-compute-in-update')
+    expect(slugify("What's in it")).toBe('whats-in-it')
   })
 })
 
@@ -132,183 +144,51 @@ describe('Demo island', () => {
   })
 })
 
-describe('proof pages', () => {
-  test('manifesto table of contents', () => {
-    expect(tocOf(manifestoSource)).toEqual([
-      {
-        level: 'h2',
-        id: 'the-architecture-problem',
-        text: 'The Architecture Problem',
-      },
-      {
-        level: 'h2',
-        id: 'power-through-constraints',
-        text: 'Power Through Constraints',
-      },
-      { level: 'h2', id: 'readable-by-design', text: 'Readable by Design' },
-      {
-        level: 'h2',
-        id: 'build-your-product-not-your-architecture',
-        text: 'Build Your Product, Not Your Architecture',
-      },
-    ])
-  })
+describe('copy control identity', () => {
+  test('uses structural occurrence indices for code blocks and snippets', () => {
+    const document = parseMarkdown(
+      '```ts\nconst first = 1\n```\n\n::Snippet{name="sceneLocators"}\n\n```ts\nconst second = 2\n```\n\n::Snippet{name="sceneLocators"}',
+      { islands: islandAttributes },
+    )
+    const { idByHeading } = collectHeadings(document)
+    const demoLabels = collectDemoLabels(document, idByHeading)
+    const ids: Array<string> = []
+    const renderCopyButton: CodeBlock.RenderCopyButton = config => {
+      ids.push(config.id)
+      return ih.empty
+    }
+    const renderHeadingLink = () => ih.empty
 
-  test('commands table of contents', () => {
-    expect(tocOf(commandsSource)).toEqual([
-      { level: 'h2', id: 'overview', text: 'Overview' },
-      { level: 'h2', id: 'anatomy-of-a-command', text: 'Anatomy of a Command' },
-      { level: 'h2', id: 'testable-by-design', text: 'Testable by Design' },
-      { level: 'h2', id: 'http-requests', text: 'HTTP Requests' },
-      { level: 'h2', id: 'commands-with-args', text: 'Commands with Args' },
-      {
-        level: 'h2',
-        id: 'interrupting-commands',
-        text: 'Interrupting Commands',
-      },
-      { level: 'h3', id: 'choosing-a-key', text: 'Choosing a Key' },
-      {
-        level: 'h3',
-        id: 'the-interrupt-constructor',
-        text: 'The Interrupt Constructor',
-      },
-      {
-        level: 'h3',
-        id: 'replacing-cancelled-work',
-        text: 'Replacing Cancelled Work',
-      },
-      {
-        level: 'h3',
-        id: 'cancellations-with-multiple-meanings',
-        text: 'Cancellations with Multiple Meanings',
-      },
-    ])
-  })
+    Markdown.view(document, {
+      views: docViews({
+        pageId: 'copy-identities',
+        idByHeading,
+        renderCopyButton,
+        renderHeadingLink,
+      }),
+      islands: docIslands(
+        { demos: {}, renderCopyButton, renderHeadingLink },
+        demoLabels,
+        'copy-identities',
+      ),
+    })
 
-  test('submodel table of contents', () => {
-    expect(tocOf(submodelSource)).toEqual([
-      { level: 'h2', id: 'overview', text: 'Overview' },
-      { level: 'h2', id: 'child-submodel', text: 'The Child Submodel' },
-      { level: 'h2', id: 'embedding', text: 'Embedding the Submodel' },
-      { level: 'h3', id: 'embedding-the-model', text: 'Embedding the Model' },
-      {
-        level: 'h3',
-        id: 'never-bypass-the-update',
-        text: 'Never Bypass the Child’s Update',
-      },
-      { level: 'h3', id: 'wrapping-messages', text: 'Wrapping Messages' },
-      { level: 'h3', id: 'delegating-in-update', text: 'Delegating in update' },
-      {
-        level: 'h3',
-        id: 'wiring-the-view',
-        text: 'Wiring the View with h.submodel',
-      },
-      {
-        level: 'h3',
-        id: 'per-render-view-inputs',
-        text: 'Per-render View Inputs',
-      },
-      {
-        level: 'h2',
-        id: 'boundary-id-and-model-identity',
-        text: 'Boundary Id and Model Identity',
-      },
-      { level: 'h2', id: 'multiple-instances', text: 'Multiple Instances' },
-      {
-        level: 'h2',
-        id: 'memoization',
-        text: 'Memoization Across Submodel Boundaries',
-      },
-      { level: 'h2', id: 'reading-parent-state', text: 'Reading Parent State' },
-      {
-        level: 'h3',
-        id: 'parent-state-in-view',
-        text: 'Passing Parent State to a Child Submodel’s view',
-      },
-      {
-        level: 'h3',
-        id: 'parent-state-in-update',
-        text: 'Providing Parent State to a Child Submodel’s update',
-      },
-      {
-        level: 'h2',
-        id: 'surfacing-facts',
-        text: 'Surfacing Facts to the Parent',
-      },
-      {
-        level: 'h3',
-        id: 'defining-out-messages',
-        text: 'Defining OutMessages',
-      },
-      {
-        level: 'h3',
-        id: 'emitting-from-the-child',
-        text: 'Emitting from the Child',
-      },
-      {
-        level: 'h3',
-        id: 'handling-in-the-parent',
-        text: 'Handling in the Parent',
-      },
-      {
-        level: 'h2',
-        id: 'reflecting-external-state',
-        text: 'Reflecting External State',
-      },
-      {
-        level: 'h2',
-        id: 'which-boundary',
-        text: 'Which Boundary a Handler Dispatches Through',
-      },
-      { level: 'h2', id: 'child-attributes', text: 'childAttributes' },
-      {
-        level: 'h3',
-        id: 'child-attributes-the-problem',
-        text: 'The Problem',
-      },
-      {
-        level: 'h3',
-        id: 'child-attributes-how-it-works',
-        text: 'How It Works',
-      },
-      {
-        level: 'h3',
-        id: 'child-attributes-when-to-reach',
-        text: 'When to Reach For It',
-      },
-      { level: 'h2', id: 'testing-submodels', text: 'Testing Submodels' },
-      {
-        level: 'h2',
-        id: 'debugging-in-devtools',
-        text: 'Debugging Submodels in DevTools',
-      },
-      { level: 'h2', id: 'common-pitfalls', text: 'Common Pitfalls' },
-      { level: 'h2', id: 'api-reference', text: 'API Reference' },
-      { level: 'h3', id: 'api-h-submodel', text: 'h.submodel' },
-      { level: 'h3', id: 'api-submodel-config', text: 'SubmodelConfig' },
-      { level: 'h3', id: 'api-define-view', text: 'Submodel.defineView' },
-      { level: 'h3', id: 'api-submodel-view', text: 'Submodel.View' },
-      { level: 'h3', id: 'api-child-attributes', text: 'childAttributes' },
-      { level: 'h3', id: 'api-child-attribute', text: 'ChildAttribute' },
-    ])
-  })
-
-  test('coming from react table of contents', () => {
-    expect(tocOf(comingFromReactSource)).toEqual([
-      { level: 'h2', id: 'a-simple-counter', text: 'A Simple Counter' },
-      { level: 'h2', id: 'adding-auto-count', text: 'Adding Auto-Count' },
-      { level: 'h2', id: 'adding-a-step-size', text: 'Adding a Step Size' },
-      {
-        level: 'h2',
-        id: 'translating-react-concepts',
-        text: 'Translating React Concepts',
-      },
-      { level: 'h2', id: 'faq', text: 'FAQ' },
+    expect(ids).toEqual([
+      'copy-identities-code-0',
+      'copy-identities-snippet-sceneLocators-0',
+      'copy-identities-code-1',
+      'copy-identities-snippet-sceneLocators-1',
     ])
   })
 })
 
 const markdownSources = import.meta.glob('../page/**/*.md', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+})
+
+const pageSources = import.meta.glob('../page/**/*.ts', {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -344,7 +224,7 @@ describe('faq island registration', () => {
       Object.entries(markdownSources),
       ([markdownPath, source]) =>
         markdownPath !== COMING_FROM_REACT_PATH &&
-        String(source).includes(':::Faq')
+        globalThis.String(source).includes(':::Faq')
           ? Result.succeed(markdownPath)
           : Result.failVoid,
     )
@@ -360,16 +240,13 @@ describe('faq island registration', () => {
 const DEMO_ISLAND_PATTERN = /::Demo\{name="([^"]+)"\}/g
 
 describe('demo island registration', () => {
-  const pageSources = import.meta.glob('../page/**/*.ts', {
-    query: '?raw',
-    import: 'default',
-    eager: true,
-  })
-
   const demoUsages = Array.filterMap(
     Object.entries(markdownSources),
     ([markdownPath, source]) => {
-      const names = capturedNames(String(source), DEMO_ISLAND_PATTERN)
+      const names = capturedNames(
+        globalThis.String(source),
+        DEMO_ISLAND_PATTERN,
+      )
 
       return Array.match(names, {
         onEmpty: () => Result.failVoid,
@@ -392,7 +269,7 @@ describe('demo island registration', () => {
       expect(pageSource, `no page module at ${pagePath}`).toBeDefined()
 
       for (const name of names) {
-        expect(String(pageSource)).toContain(`'${name}'`)
+        expect(globalThis.String(pageSource)).toContain(`'${name}'`)
       }
     },
   )
@@ -406,16 +283,18 @@ describe('demo island registration', () => {
 // import graph.
 const SNIPPET_ISLAND_PATTERN = /::Snippet\{[^}]*name="([^"]+)"/g
 
-const SNIPPET_EXTENSION_PATTERN = /\.(?:ts|tsx|elm|json|css)$/
+const SNIPPET_EXTENSION_PATTERN = /\.(?:ts|tsx|elm|json|css|html|sh)$/
 
 describe('snippet island registration', () => {
   const snippetFileNames = new Set(
     Array.filterMap(
-      Object.keys(import.meta.glob('../snippet/*.{ts,tsx,elm,json,css}')),
+      Object.keys(
+        import.meta.glob('../snippet/*.{ts,tsx,elm,json,css,html,sh}'),
+      ),
       path =>
         Result.fromOption(
-          Option.map(Array.last(String_.split(path, '/')), fileName =>
-            String_.replace(SNIPPET_EXTENSION_PATTERN, '')(fileName),
+          Option.map(Array.last(String.split(path, '/')), fileName =>
+            String.replace(SNIPPET_EXTENSION_PATTERN, '')(fileName),
           ),
           () => undefined,
         ),
@@ -425,7 +304,10 @@ describe('snippet island registration', () => {
   const snippetUsages = Array.filterMap(
     Object.entries(markdownSources),
     ([markdownPath, source]) => {
-      const names = capturedNames(String(source), SNIPPET_ISLAND_PATTERN)
+      const names = capturedNames(
+        globalThis.String(source),
+        SNIPPET_ISLAND_PATTERN,
+      )
 
       return Array.match(names, {
         onEmpty: () => Result.failVoid,
@@ -448,4 +330,110 @@ describe('snippet island registration', () => {
       expect(missing, `${markdownPath} references missing snippets`).toEqual([])
     },
   )
+})
+
+type HeadingOverride = Readonly<{ id: string; text: string }>
+
+const explicitHeadingIds = (source: string): ReadonlyArray<HeadingOverride> =>
+  Array.filterMap(parseMarkdown(source, markdownOptions).blocks, block =>
+    Match.value(block).pipe(
+      Match.withReturnType<Result.Result<HeadingOverride, void>>(),
+      Match.tag('Heading', heading => {
+        const { maybeId, text } = parseHeadingId(heading.content)
+
+        return Result.fromOption(
+          Option.map(maybeId, id => ({ id, text })),
+          () => undefined,
+        )
+      }),
+      Match.orElse(() => Result.failVoid),
+    ),
+  )
+
+// NOTE: a `{#id}` marker earns its place only when `slugify` would derive
+// something else, such as kebab-casing an identifier or pinning a short anchor
+// under a long heading. One that repeats the derived id reads as a convention
+// the next heading has to follow, and it silently stops matching the heading the
+// first time that heading is reworded.
+describe('heading id overrides', () => {
+  const overrideUsages = Array.filterMap(
+    Object.entries(markdownSources),
+    ([markdownPath, source]) =>
+      Array.match(explicitHeadingIds(globalThis.String(source)), {
+        onEmpty: () => Result.failVoid,
+        onNonEmpty: overrides => Result.succeed({ markdownPath, overrides }),
+      }),
+  )
+
+  test('finds heading id overrides to check', () => {
+    expect(Array.isArrayNonEmpty(overrideUsages)).toBe(true)
+  })
+
+  test.each(overrideUsages)(
+    '$markdownPath overrides only the ids slugify would not derive',
+    ({ markdownPath, overrides }) => {
+      const redundant = overrides.filter(({ id, text }) => id === slugify(text))
+
+      expect(
+        redundant,
+        `${markdownPath} repeats the derived id in a {#id} marker`,
+      ).toEqual([])
+    },
+  )
+})
+
+// NOTE: every demo sits under a heading, so each one renders as a region named
+// by that heading. This walks the same documents the site builds and checks the
+// pairing holds, since a demo that drifts above its heading loses its accessible
+// name silently.
+describe('demo section labels', () => {
+  const labelUsages = Array.filterMap(
+    Object.entries(markdownSources),
+    ([markdownPath, source]) => {
+      const names = capturedNames(
+        globalThis.String(source),
+        DEMO_ISLAND_PATTERN,
+      )
+
+      return Array.match(names, {
+        onEmpty: () => Result.failVoid,
+        onNonEmpty: presentNames =>
+          Result.succeed({ markdownPath, names: presentNames, source }),
+      })
+    },
+  )
+
+  test('finds demo islands to check', () => {
+    expect(Array.isArrayNonEmpty(labelUsages)).toBe(true)
+  })
+
+  test.each(labelUsages)(
+    '$markdownPath labels every demo with the heading above it',
+    ({ markdownPath, names, source }) => {
+      const document = parseMarkdown(globalThis.String(source), markdownOptions)
+      const demoLabels = collectDemoLabels(
+        document,
+        collectHeadings(document).idByHeading,
+      )
+      const unlabeled = names.filter(name => demoLabels.get(name) === undefined)
+
+      expect(unlabeled, `${markdownPath} has demos with no heading`).toEqual([])
+    },
+  )
+
+  test('labels the combobox demos with their own section headings', () => {
+    const document = parseMarkdown(comboboxPageSource, markdownOptions)
+    const demoLabels = collectDemoLabels(
+      document,
+      collectHeadings(document).idByHeading,
+    )
+
+    expect(Object.fromEntries(demoLabels)).toEqual({
+      'single-select': 'single-select',
+      nullable: 'nullable',
+      'select-on-focus': 'select-on-focus',
+      'locked-placement': 'locked-placement',
+      multi: 'multi-select',
+    })
+  })
 })

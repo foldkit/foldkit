@@ -1,10 +1,11 @@
 import {
   Array,
-  Match as M,
+  Match,
   Option,
   Order,
   Predicate,
-  Schema as S,
+  Record,
+  Schema,
   String,
   flow,
   pipe,
@@ -28,79 +29,71 @@ import {
 
 // SCHEMA
 
-const NullableString = S.OptionFromNullishOr(S.String, {
+const NullableString = Schema.OptionFromNullishOr(Schema.String, {
   onNoneEncoding: null,
 })
 
-export const ApiParameter = S.Struct({
-  name: S.String,
-  type: S.String,
-  isOptional: S.Boolean,
-  isRest: S.Boolean,
+export const ApiParameter = Schema.Struct({
+  name: Schema.String,
+  type: Schema.String,
+  isOptional: Schema.Boolean,
+  isRest: Schema.Boolean,
   defaultValue: NullableString,
   description: NullableString,
 })
-
 export type ApiParameter = typeof ApiParameter.Type
 
-export const ApiFunctionSignature = S.Struct({
-  parameters: S.Array(ApiParameter),
-  returnType: S.String,
-  typeParameters: S.Array(S.String),
+export const ApiFunctionSignature = Schema.Struct({
+  parameters: Schema.Array(ApiParameter),
+  returnType: Schema.String,
+  typeParameters: Schema.Array(Schema.String),
 })
-
 export type ApiFunctionSignature = typeof ApiFunctionSignature.Type
 
-export const ApiFunction = S.Struct({
-  name: S.String,
+export const ApiFunction = Schema.Struct({
+  name: Schema.String,
   description: NullableString,
-  signatures: S.Array(ApiFunctionSignature),
+  signatures: Schema.Array(ApiFunctionSignature),
   sourceUrl: NullableString,
 })
-
 export type ApiFunction = typeof ApiFunction.Type
 
-export const ApiType = S.Struct({
-  name: S.String,
+export const ApiType = Schema.Struct({
+  name: Schema.String,
   description: NullableString,
-  typeDefinition: S.String,
+  typeDefinition: Schema.String,
   sourceUrl: NullableString,
 })
-
 export type ApiType = typeof ApiType.Type
 
-export const ApiVariable = S.Struct({
-  name: S.String,
+export const ApiVariable = Schema.Struct({
+  name: Schema.String,
   description: NullableString,
-  type: S.String,
+  type: Schema.String,
   sourceUrl: NullableString,
 })
-
 export type ApiVariable = typeof ApiVariable.Type
 
-export const ApiInterface = S.Struct({
-  name: S.String,
+export const ApiInterface = Schema.Struct({
+  name: Schema.String,
   description: NullableString,
-  typeDefinition: S.String,
+  typeDefinition: Schema.String,
   sourceUrl: NullableString,
 })
-
 export type ApiInterface = typeof ApiInterface.Type
 
-export const ApiModule = S.Struct({
-  name: S.String,
-  functions: S.Array(ApiFunction),
-  types: S.Array(ApiType),
-  interfaces: S.Array(ApiInterface),
-  variables: S.Array(ApiVariable),
+export const ApiModule = Schema.Struct({
+  name: Schema.String,
+  functions: Schema.Array(ApiFunction),
+  types: Schema.Array(ApiType),
+  interfaces: Schema.Array(ApiInterface),
+  variables: Schema.Array(ApiVariable),
 })
-
 export type ApiModule = typeof ApiModule.Type
 
-export const ParsedApiReference = S.Struct({
-  modules: S.Array(ApiModule),
+export const ParsedApiReference = Schema.Struct({
+  modules: Schema.Array(ApiModule),
 })
-
 export type ParsedApiReference = typeof ParsedApiReference.Type
 
 // SHARED
@@ -130,6 +123,19 @@ export const scopedId = (
   moduleName: string,
   name: string,
 ): string => `${kind}-${moduleName}/${name}`
+
+// NOTE: highlight ids read `${kind}-${moduleName}/${name}`, and for items
+// inside namespaces the name itself contains further slashes
+// (`function-Http/Task/attempt`). The kind never contains a dash, so the id
+// belongs to a module exactly when the segment after the first dash starts
+// with `${moduleName}/`.
+export const scopedIdBelongsToModule = (
+  id: string,
+  moduleName: string,
+): boolean =>
+  Option.exists(String.indexOf('-')(id), kindSeparatorIndex =>
+    id.startsWith(`${moduleName}/`, kindSeparatorIndex + 1),
+  )
 
 export const sectionId = (moduleName: string, label: string): string =>
   `${moduleName}-${label.toLowerCase()}`
@@ -206,21 +212,21 @@ const collectFromItems = (
   items: ReadonlyArray<TypeDocItem>,
 ): ReadonlyArray<FingerprintEntry> =>
   Array.flatMap(items, item =>
-    M.value(item.kind).pipe(
-      M.when(Kind.Variable, () =>
+    Match.value(item.kind).pipe(
+      Match.when(Kind.Variable, () =>
         itemFingerprintEntries(
           variableQualifiedName(modulePath, item.name),
           item,
         ),
       ),
-      M.when(Kind.Namespace, () =>
+      Match.when(Kind.Namespace, () =>
         Option.match(item.children, {
           onNone: () => [],
           onSome: children =>
             collectFromItems(`${modulePath}/${item.name}`, children),
         }),
       ),
-      M.orElse(() => []),
+      Match.orElse(() => []),
     ),
   )
 
@@ -487,3 +493,14 @@ export const moduleNameToSlug = (name: string): string =>
 
 export const slugToModuleName = (slug: string): string =>
   pipe(slug, String.split('-'), Array.map(String.capitalize), Array.join(''))
+
+const modulesBySlug = (
+  modules: ReadonlyArray<ApiModule>,
+): Record<string, ApiModule> =>
+  Record.fromIterableBy(modules, module => moduleNameToSlug(module.name))
+
+export const resolveModule = (
+  parsedApi: ParsedApiReference,
+  slug: string,
+): Option.Option<ApiModule> =>
+  Record.get(modulesBySlug(parsedApi.modules), slug)

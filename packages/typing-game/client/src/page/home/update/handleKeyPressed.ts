@@ -1,61 +1,53 @@
-import { Array, Match as M, Number, Option, flow, pipe } from 'effect'
-import { Command } from 'foldkit'
+import { Array, Match, Number, Option, flow, pipe } from 'effect'
+import { type Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { RoomsClient } from '../../../rpc'
 import { CreateRoom, FocusRoomIdInput, FocusUsernameInput } from '../command'
 import { Message } from '../message'
-import {
-  EnterRoomId,
-  EnterUsername,
-  HOME_ACTIONS,
-  HomeAction,
-  Model,
-  SelectAction,
-} from '../model'
+import { HOME_ACTIONS, HomeAction, HomeStep, Model } from '../model'
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message, never, RoomsClient>>,
-]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
+type UpdateReturn = Update.Return<Model, Message, RoomsClient>
+const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
 export const handleKeyPressed =
   (model: Model) =>
   ({ key }: { key: string }): UpdateReturn =>
-    M.value(model.homeStep).pipe(
+    Match.value(model.homeStep).pipe(
       withUpdateReturn,
-      M.tag('SelectAction', whenSelectAction(model, key)),
-      M.orElse(() => [model, []]),
+      Match.tag('SelectAction', whenSelectAction(model, key)),
+      Match.orElse(() => ({ model })),
     )
 
 const whenSelectAction =
   (model: Model, key: string) =>
-  (selectAction: SelectAction): UpdateReturn =>
-    M.value(key).pipe(
+  (selectAction: typeof HomeStep.SelectAction.Type): UpdateReturn =>
+    Match.value(key).pipe(
       withUpdateReturn,
-      M.when('ArrowUp', () =>
+      Match.when('ArrowUp', () =>
         moveSelection(Number.decrement)(model, selectAction),
       ),
-      M.when('ArrowDown', () =>
+      Match.when('ArrowDown', () =>
         moveSelection(Number.increment)(model, selectAction),
       ),
-      M.when('Enter', () => confirmSelection(model)(selectAction)),
-      M.orElse(() => [model, []]),
+      Match.when('Enter', () => confirmSelection(model)(selectAction)),
+      Match.orElse(() => ({ model })),
     )
 
 const moveSelection =
   (f: (index: number) => number) =>
-  (model: Model, { username, selectedAction }: SelectAction): UpdateReturn => [
-    evo(model, {
+  (
+    model: Model,
+    { username, selectedAction }: typeof HomeStep.SelectAction.Type,
+  ): UpdateReturn => ({
+    model: evo(model, {
       homeStep: () =>
-        SelectAction({
+        HomeStep.SelectAction({
           username,
           selectedAction: cycleAction(f)(selectedAction),
         }),
     }),
-    [],
-  ]
+  })
 
 const cycleAction =
   (f: (a: number) => number) => (selectedAction: HomeAction) => {
@@ -79,28 +71,28 @@ const cycleAction =
 
 const confirmSelection =
   (model: Model) =>
-  (selectAction: SelectAction): UpdateReturn =>
-    M.value(selectAction.selectedAction).pipe(
+  (selectAction: typeof HomeStep.SelectAction.Type): UpdateReturn =>
+    Match.value(selectAction.selectedAction).pipe(
       withUpdateReturn,
-      M.when('CreateRoom', () => [
+      Match.when('CreateRoom', () => ({
         model,
-        [CreateRoom({ username: selectAction.username })],
-      ]),
-      M.when('JoinRoom', () => [
-        evo(model, {
+        commands: [CreateRoom({ username: selectAction.username })],
+      })),
+      Match.when('JoinRoom', () => ({
+        model: evo(model, {
           homeStep: () =>
-            EnterRoomId({
+            HomeStep.EnterRoomId({
               username: selectAction.username,
               roomId: '',
             }),
         }),
-        [FocusRoomIdInput()],
-      ]),
-      M.when('ChangeUsername', () => [
-        evo(model, {
-          homeStep: () => EnterUsername({ username: '' }),
+        commands: [FocusRoomIdInput()],
+      })),
+      Match.when('ChangeUsername', () => ({
+        model: evo(model, {
+          homeStep: () => HomeStep.EnterUsername({ username: '' }),
         }),
-        [FocusUsernameInput()],
-      ]),
-      M.exhaustive,
+        commands: [FocusUsernameInput()],
+      })),
+      Match.exhaustive,
     )

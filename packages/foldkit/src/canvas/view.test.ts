@@ -244,9 +244,9 @@ describe('Canvas.view', () => {
 
   it('wires pointer event listeners only when handlers are provided', () => {
     const { dispatch } = createCapturingDispatch()
-    const onPointerDown = vi.fn(
-      (): CanvasTestMessage => ({ _tag: 'ClickedCanvas' }),
-    )
+    const onPointerDown = vi.fn((): CanvasTestMessage => ({
+      _tag: 'ClickedCanvas',
+    }))
     const vnode = renderView(
       () =>
         view(

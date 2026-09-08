@@ -1,4 +1,5 @@
 node_modules
+.pnpm-store/
 dist
 coverage
 *.tsbuildinfo
@@ -17,3 +18,6 @@ packages/oxlint-plugin-foldkit/all.json
 playwright-report/
 test-results/
 .DS_Store
+
+# Build output written by the vite-plugin build tests
+dist-test

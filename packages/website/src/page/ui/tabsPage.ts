@@ -1,12 +1,12 @@
 import { Submodel } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
+import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
-import type { RenderCopyButton } from '../../view/codeBlock'
+import * as Tabs from './demo/tabs'
 import type { Message } from './message'
 import type { Model } from './model'
-import * as Tabs from './tabs'
 import raw from './tabsPage.md'
 
 const { tableOfContents, view: renderPage } = slotDocPage<
@@ -16,7 +16,7 @@ const { tableOfContents, view: renderPage } = slotDocPage<
 export { tableOfContents }
 
 type ViewInputs = Readonly<{
-  renderCopyButton: RenderCopyButton
+  renderCopyButton: CodeBlock.RenderCopyButton
   renderHeadingLink: RenderHeadingLink
 }>
 

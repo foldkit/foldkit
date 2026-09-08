@@ -10,16 +10,15 @@ import {
   text,
   type,
 } from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import {
-  CompletedGenerateTodo,
-  FailedSaveTodos,
+  EditingState,
   GenerateTodo,
+  Message,
   type Model,
-  NotEditing,
   SaveTodos,
-  SucceededSaveTodos,
   update,
   view,
 } from './main'
@@ -28,17 +27,16 @@ const emptyModel: Model = {
   todos: [],
   newTodoText: '',
   filter: 'All',
-  editing: NotEditing(),
+  editing: EditingState.NotEditing(),
 }
 
-const modelWithTodos: Model = {
-  ...emptyModel,
-  todos: [
+const modelWithTodos: Model = evo(emptyModel, {
+  todos: () => [
     { id: 'abc', text: 'Buy milk', completed: false, createdAt: 1000 },
     { id: 'def', text: 'Walk the dog', completed: false, createdAt: 2000 },
     { id: 'ghi', text: 'Done task', completed: true, createdAt: 3000 },
   ],
-}
+})
 
 describe('view', () => {
   test('empty state shows heading and placeholder message', () => {
@@ -77,14 +75,17 @@ describe('view', () => {
       Command.expectExact(GenerateTodo),
       Command.resolve(
         GenerateTodo,
-        CompletedGenerateTodo({
+        Message.CompletedGenerateTodo({
           id: 'new-1',
           timestamp: 5000,
           text: 'Write tests',
         }),
       ),
       Command.expectExact(SaveTodos),
-      Command.resolve(SaveTodos, SucceededSaveTodos({ todos: [addedTodo] })),
+      Command.resolve(
+        SaveTodos,
+        Message.SucceededSaveTodos({ todos: [addedTodo] }),
+      ),
       expect(text('Write tests')).toExist(),
       expect(label('New todo')).toHaveValue(''),
     )
@@ -92,7 +93,7 @@ describe('view', () => {
 
   test('toggle a todo by clicking its checkbox', () => {
     const toggledTodos = modelWithTodos.todos.map(todo =>
-      todo.id === 'abc' ? { ...todo, completed: true } : todo,
+      todo.id === 'abc' ? evo(todo, { completed: () => true }) : todo,
     )
 
     scene(
@@ -100,7 +101,10 @@ describe('view', () => {
       given(modelWithTodos),
       click(label('Buy milk')),
       Command.expectExact(SaveTodos),
-      Command.resolve(SaveTodos, SucceededSaveTodos({ todos: toggledTodos })),
+      Command.resolve(
+        SaveTodos,
+        Message.SucceededSaveTodos({ todos: toggledTodos }),
+      ),
       expect(role('status')).toContainText('1 active, 2 completed'),
     )
   })
@@ -113,7 +117,10 @@ describe('view', () => {
       given(modelWithTodos),
       click(role('button', { name: 'Delete Buy milk' })),
       Command.expectExact(SaveTodos),
-      Command.resolve(SaveTodos, SucceededSaveTodos({ todos: remainingTodos })),
+      Command.resolve(
+        SaveTodos,
+        Message.SucceededSaveTodos({ todos: remainingTodos }),
+      ),
       expect(text('Buy milk')).toBeAbsent(),
       expect(text('Walk the dog')).toExist(),
     )
@@ -129,17 +136,19 @@ describe('view', () => {
       given(modelWithTodos),
       click(role('button', { name: 'Clear 1 completed' })),
       Command.expectExact(SaveTodos),
-      Command.resolve(SaveTodos, SucceededSaveTodos({ todos: activeTodos })),
+      Command.resolve(
+        SaveTodos,
+        Message.SucceededSaveTodos({ todos: activeTodos }),
+      ),
       expect(text('Done task')).toBeAbsent(),
       expect(role('status')).toContainText('2 active, 0 completed'),
     )
   })
 
   test('mark all complete toggles all todos', () => {
-    const allCompletedTodos = modelWithTodos.todos.map(todo => ({
-      ...todo,
-      completed: true,
-    }))
+    const allCompletedTodos = modelWithTodos.todos.map(todo =>
+      evo(todo, { completed: () => true }),
+    )
 
     scene(
       { update, view },
@@ -148,7 +157,7 @@ describe('view', () => {
       Command.expectExact(SaveTodos),
       Command.resolve(
         SaveTodos,
-        SucceededSaveTodos({ todos: allCompletedTodos }),
+        Message.SucceededSaveTodos({ todos: allCompletedTodos }),
       ),
       expect(role('status')).toContainText('0 active, 3 completed'),
     )
@@ -160,7 +169,7 @@ describe('view', () => {
       given(modelWithTodos),
       click(label('Buy milk')),
       Command.expectExact(SaveTodos),
-      Command.resolve(SaveTodos, FailedSaveTodos()),
+      Command.resolve(SaveTodos, Message.FailedSaveTodos()),
       expect(role('status')).toContainText('1 active, 2 completed'),
     )
   })

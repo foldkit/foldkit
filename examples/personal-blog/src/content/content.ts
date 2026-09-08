@@ -1,4 +1,4 @@
-import { Array, Option, Schema as S } from 'effect'
+import { Array, Option, Schema } from 'effect'
 
 import { MarkdownDocument, decodeDocument } from '@foldkit/markdown'
 
@@ -8,11 +8,11 @@ import shootingFilmRaw from './shooting-film.md'
 
 export const about: MarkdownDocument = decodeDocument(aboutRaw)
 
-export const Post = S.Struct({
-  slug: S.String,
-  title: S.String,
-  publishedOn: S.String,
-  summary: S.String,
+export const Post = Schema.Struct({
+  slug: Schema.String,
+  title: Schema.String,
+  publishedOn: Schema.String,
+  summary: Schema.String,
   document: MarkdownDocument,
 })
 export type Post = typeof Post.Type

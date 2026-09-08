@@ -1,13 +1,27 @@
 import { Array, Effect, Option, pipe } from 'effect'
-import { Diagnostic, type ESTree, Rule, RuleContext } from 'effect-oxlint'
+import {
+  Diagnostic,
+  type ESTree,
+  type Reference,
+  Rule,
+  RuleContext,
+  type Variable,
+} from 'effect-oxlint'
 
 import {
+  indexReferences,
   isCallExpression,
   isIdentifier,
   isMemberExpression,
   isObjectExpression,
   isStringLiteral,
+  isVariableDeclarator,
+  resolveFoldkitApiPath,
+  resolveImportedPath,
+  resolvedVariable,
+  staticMemberPath,
 } from '../guards.ts'
+import { isFoldkitMessageUnionCall } from '../message.ts'
 
 const mapperWrapperTypes: ReadonlyArray<string> = [
   'ChainExpression',
@@ -27,6 +41,8 @@ const commandMapperPaths: ReadonlyArray<string> = [
 const gotMessagePattern = /^Got\w*Message$/
 
 const dynamicCalleeLabel = '<dynamic call>'
+
+const emptyMessageUnionBindings: ReadonlySet<string> = new Set()
 
 const isWrapperExpression = (
   node: unknown,
@@ -84,11 +100,23 @@ const resolveMemberPath = (
 const isPropertyKeyNamed = (key: unknown, name: string): boolean =>
   isIdentifier(key, name) || (isStringLiteral(key) && key.value === name)
 
+const foldkitApiPath = (
+  node: unknown,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<ReadonlyArray<string>> => {
+  if (references === undefined) {
+    return resolveMemberPath(node)
+  }
+
+  return resolveFoldkitApiPath(references, node)
+}
+
 const commandMapperArrow = (
   node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<ESTree.ArrowFunctionExpression> =>
   pipe(
-    resolveMemberPath(node.callee),
+    foldkitApiPath(node.callee, references),
     Option.map(Array.join('.')),
     Option.filter(calleePath => commandMapperPaths.includes(calleePath)),
     Option.flatMap(() => {
@@ -101,13 +129,14 @@ const commandMapperArrow = (
 
 const subscriptionLiftMapperArrow = (
   node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<ESTree.ArrowFunctionExpression> => {
   const innerCall = unwrapExpression(node.callee)
   if (!isCallExpression(innerCall)) {
     return Option.none()
   }
   return pipe(
-    resolveMemberPath(innerCall.callee),
+    foldkitApiPath(innerCall.callee, references),
     Option.map(Array.join('.')),
     Option.filter(calleePath => calleePath === 'Subscription.lift'),
     Option.flatMap(() => {
@@ -172,26 +201,73 @@ type MapperOffense = Readonly<{
   calleeLabel: string
 }>
 
+const isFoldkitMessageUnionVariable = (
+  variable: Variable,
+  references: WeakMap<ESTree.Node, Reference>,
+): boolean =>
+  variable.defs.some(
+    definition =>
+      definition.type === 'Variable' &&
+      isVariableDeclarator(definition.node) &&
+      isCallExpression(definition.node.init) &&
+      isFoldkitMessageUnionCall(
+        definition.node.init,
+        emptyMessageUnionBindings,
+        references,
+      ),
+  )
+
 const nonGotMapperOffense = (
   arrow: ESTree.ArrowFunctionExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<MapperOffense> =>
   pipe(
     analyzableMapperCall(arrow),
-    Option.flatMap(call =>
-      pipe(
-        resolveMemberPath(call.callee),
-        Option.match({
-          onNone: () => Option.some({ call, calleeLabel: dynamicCalleeLabel }),
-          onSome: calleePath =>
-            gotMessagePattern.test(Array.lastNonEmpty(calleePath))
-              ? Option.none()
-              : Option.some({
-                  call,
-                  calleeLabel: `${Array.join(calleePath, '.')}(...)`,
-                }),
+    Option.flatMap(call => {
+      const maybeCalleePath = resolveMemberPath(call.callee)
+      const isGotWrapper =
+        references === undefined
+          ? Option.exists(maybeCalleePath, calleePath =>
+              gotMessagePattern.test(Array.lastNonEmpty(calleePath)),
+            )
+          : Option.exists(
+              resolveImportedPath(references, call.callee),
+              importedPath => {
+                const [constructorName] = importedPath.members.slice(-1)
+
+                return (
+                  constructorName !== undefined &&
+                  gotMessagePattern.test(constructorName)
+                )
+              },
+            ) ||
+            Option.exists(staticMemberPath(call.callee), calleePath => {
+              const [constructorName, extraMember] = calleePath.members
+
+              return (
+                constructorName !== undefined &&
+                extraMember === undefined &&
+                gotMessagePattern.test(constructorName) &&
+                Option.exists(
+                  resolvedVariable(references, calleePath.root),
+                  variable =>
+                    isFoldkitMessageUnionVariable(variable, references),
+                )
+              )
+            })
+
+      if (isGotWrapper) {
+        return Option.none()
+      }
+
+      return Option.some({
+        call,
+        calleeLabel: Option.match(maybeCalleePath, {
+          onNone: () => dynamicCalleeLabel,
+          onSome: calleePath => `${Array.join(calleePath, '.')}(...)`,
         }),
-      ),
-    ),
+      })
+    }),
   )
 
 const commandMapperMessage = (calleeLabel: string): string =>
@@ -217,6 +293,10 @@ export const wrapChildOutputInGotMessage = Rule.define({
   }),
   create: function* () {
     const ctx = yield* RuleContext
+    const scopeManager = ctx.sourceCode.scopeManager
+    const scopes = scopeManager?.scopes
+    const references =
+      scopes === undefined ? undefined : indexReferences(scopes)
     const reportOffense = (
       offense: MapperOffense,
       renderMessage: (calleeLabel: string) => string,
@@ -233,14 +313,14 @@ export const wrapChildOutputInGotMessage = Rule.define({
           return Effect.void
         }
         return pipe(
-          commandMapperArrow(node),
-          Option.flatMap(nonGotMapperOffense),
+          commandMapperArrow(node, references),
+          Option.flatMap(arrow => nonGotMapperOffense(arrow, references)),
           Option.match({
             onSome: offense => reportOffense(offense, commandMapperMessage),
             onNone: () =>
               pipe(
-                subscriptionLiftMapperArrow(node),
-                Option.flatMap(nonGotMapperOffense),
+                subscriptionLiftMapperArrow(node, references),
+                Option.flatMap(arrow => nonGotMapperOffense(arrow, references)),
                 Option.match({
                   onSome: offense =>
                     reportOffense(offense, subscriptionMapperMessage),

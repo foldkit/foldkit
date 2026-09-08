@@ -1,9 +1,9 @@
-import { Option, Schema as S, pipe } from 'effect'
+import { Option, Schema, pipe } from 'effect'
 
 export const GOT_MESSAGE_PATTERN = /^Got.+Message$/
 
-const Tagged = S.Struct({ _tag: S.String })
-export const isTagged = S.is(Tagged)
+const Tagged = Schema.Struct({ _tag: Schema.String })
+export const isTagged = Schema.is(Tagged)
 
 /** Submodel chain information extracted from a recorded Message. */
 export type SubmodelInfo = Readonly<{

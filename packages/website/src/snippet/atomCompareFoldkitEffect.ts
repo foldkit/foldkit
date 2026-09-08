@@ -1,4 +1,4 @@
-import { Effect, Schema as S, Stream } from 'effect'
+import { Effect, Schema, Stream } from 'effect'
 import { Command, Subscription } from 'foldkit'
 
 import { Api } from './api'
@@ -7,7 +7,7 @@ import { Api } from './api'
 // in DevTools next to the Message that produced it, and is assertable in
 // tests. Api is an Effect service; Api.Default is its layer.
 const CreateTodo = Command.define('CreateTodo', {
-  args: { text: S.String },
+  args: { text: Schema.String },
   messages: [SucceededCreateTodo, FailedCreateTodo],
   execute: ({ text }) =>
     Effect.gen(function* () {
@@ -25,7 +25,7 @@ const CreateTodo = Command.define('CreateTodo', {
 // model.isDrawing changes. No addEventListener, no cleanup, no stale closure.
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   mouseRelease: entry(
-    { isDrawing: S.Boolean },
+    { isDrawing: Schema.Boolean },
     {
       modelToDependencies: model => ({ isDrawing: model.isDrawing }),
       dependenciesToStream: ({ isDrawing }) =>

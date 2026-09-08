@@ -1,7 +1,7 @@
-import { Array, Match as M, Option, Schema as S } from 'effect'
-import { Command, Runtime } from 'foldkit'
+import { Array, Option, Schema, pipe } from 'effect'
+import { Runtime, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
@@ -10,94 +10,73 @@ import * as Counter from './counter'
 
 // MODEL
 
-const Row = S.Struct({
-  id: S.String,
+const Row = Schema.Struct({
+  id: Schema.String,
   counter: Counter.Model,
 })
 type Row = typeof Row.Type
 
-export const Model = S.Struct({
-  rows: S.Array(Row),
-  nextRowId: S.Number,
+export const Model = Schema.Struct({
+  rows: Schema.Array(Row),
+  nextRowId: Schema.Number,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const ClickedAddRow = m('ClickedAddRow')
-export const ClickedRemoveRow = m('ClickedRemoveRow', { id: S.String })
-
-export const GotCounterMessage = m('GotCounterMessage', {
-  id: S.String,
-  message: Counter.Message,
+export const Message = defineMessageUnion({
+  ClickedAddRow: {},
+  ClickedRemoveRow: { id: Schema.String },
+  GotCounterMessage: {
+    id: Schema.String,
+    message: Counter.Message,
+  },
 })
 
-export const Message = S.Union([
-  ClickedAddRow,
-  ClickedRemoveRow,
-  GotCounterMessage,
-])
 export type Message = typeof Message.Type
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      ClickedAddRow: () => [
-        evo(model, {
-          rows: Array.append({
-            id: `counter-${model.nextRowId}`,
-            counter: Counter.init,
-          }),
-          nextRowId: nextRowId => nextRowId + 1,
-        }),
-        [],
-      ],
-      ClickedRemoveRow: ({ id }) => [
-        evo(model, {
-          rows: Array.filter(row => row.id !== id),
-        }),
-        [],
-      ],
-      GotCounterMessage: ({ id, message }) =>
-        Option.match(
-          Array.findFirst(model.rows, row => row.id === id),
-          {
-            onNone: () => [model, []],
-            onSome: row => {
-              const [nextCounter, commands] = Counter.update(
-                row.counter,
-                message,
-              )
-              return [
-                evo(model, {
-                  rows: Array.map(existingRow =>
-                    existingRow.id === id
-                      ? evo(existingRow, { counter: () => nextCounter })
-                      : existingRow,
-                  ),
-                }),
-                Command.mapMessages(commands, childMessage =>
-                  GotCounterMessage({ id, message: childMessage }),
-                ),
-              ]
-            },
-          },
+const foldCounter = (id: string) =>
+  Update.foldChild({
+    update: Counter.update,
+    read: (model: Model) =>
+      pipe(
+        Array.findFirst(model.rows, row => row.id === id),
+        Option.map(row => row.counter),
+      ),
+    write: (model, nextCounter) =>
+      evo(model, {
+        rows: Array.map(row =>
+          row.id === id ? evo(row, { counter: () => nextCounter }) : row,
         ),
+      }),
+    toParentMessage: message => Message.GotCounterMessage({ id, message }),
+  })
+
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedAddRow: () => ({
+      model: evo(model, {
+        rows: Array.append({
+          id: `counter-${model.nextRowId}`,
+          counter: Counter.init,
+        }),
+        nextRowId: nextRowId => nextRowId + 1,
+      }),
     }),
-  )
+    ClickedRemoveRow: ({ id }) => ({
+      model: evo(model, {
+        rows: Array.filter(row => row.id !== id),
+      }),
+    }),
+    GotCounterMessage: ({ id, message }) => foldCounter(id)(model, message),
+  })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     rows: [
       { id: 'counter-0', counter: Counter.init },
       { id: 'counter-1', counter: Counter.init },
@@ -105,8 +84,7 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => [
     ],
     nextRowId: 3,
   },
-  [],
-]
+})
 
 // VIEW
 
@@ -123,13 +101,13 @@ const rowView = (row: Row, h: HtmlBuilder<Message>): Html =>
             model: row.counter,
             view: Counter.view,
             toParentMessage: message =>
-              GotCounterMessage({ id: row.id, message }),
+              Message.GotCounterMessage({ id: row.id, message }),
           }),
         ],
       ),
       Button.view(
         {
-          onClick: ClickedRemoveRow({ id: row.id }),
+          onClick: Message.ClickedRemoveRow({ id: row.id }),
           toView: attributes =>
             h.button(
               [
@@ -168,7 +146,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
       ),
       Button.view(
         {
-          onClick: ClickedAddRow(),
+          onClick: Message.ClickedAddRow(),
           toView: attributes =>
             h.button(
               [

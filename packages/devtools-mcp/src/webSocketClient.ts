@@ -9,8 +9,8 @@ import {
   HashMap,
   Option,
   Ref,
-  Schema as S,
   Schedule,
+  Schema,
   pipe,
 } from 'effect'
 import {
@@ -25,8 +25,8 @@ const REQUEST_TIMEOUT = Duration.seconds(10)
 const INITIAL_RECONNECT_DELAY = Duration.millis(500)
 const MAX_RECONNECT_DELAY = Duration.seconds(30)
 
-const encodeRequestFrameToJson = S.encodeUnknownSync(
-  S.fromJsonString(RequestFrame),
+const encodeRequestFrameToJson = Schema.encodeUnknownSync(
+  Schema.fromJsonString(RequestFrame),
 )
 
 type PendingResponses = HashMap.HashMap<
@@ -248,9 +248,9 @@ const handleIncomingMessage = (
   raw: RawData,
   pendingResponsesRef: Ref.Ref<PendingResponses>,
 ): Effect.Effect<void> => {
-  const decoded = S.decodeUnknownExit(S.fromJsonString(ResponseFrame))(
-    raw.toString(),
-  )
+  const decoded = Schema.decodeUnknownExit(
+    Schema.fromJsonString(ResponseFrame),
+  )(raw.toString())
   return Exit.match(decoded, {
     onFailure: error =>
       Effect.sync(() =>

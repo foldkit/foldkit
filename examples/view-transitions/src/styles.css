@@ -53,9 +53,9 @@
    The directions differ in pace, not in curve: arriving at a detail page is
    unhurried, returning to the grid is brisk. Transition types are what let CSS
    tell the two apart, since the DOM change is otherwise symmetric. */
-:root:active-view-transition-type(to-artwork-detail)::view-transition-group(
-    .artwork
-  ) {
+:root:active-view-transition-type(
+    to-artwork-detail
+  )::view-transition-group(.artwork) {
   animation-duration: 480ms;
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }

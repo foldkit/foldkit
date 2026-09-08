@@ -78,7 +78,7 @@ export type FromEventFilterMapConfig<
  * ```typescript
  * const subscriptions = Subscription.make<Model, Message>()(entry => ({
  *   searchShortcut: entry(
- *     { isListening: S.Boolean },
+ *     { isListening: Schema.Boolean },
  *     {
  *       modelToDependencies: model => ({ isListening: model.isListening }),
  *       dependenciesToStream: ({ isListening }) =>
@@ -150,7 +150,7 @@ export const fromEventFilterMap = <EventType extends Event, Message>(
  * ```typescript
  * const subscriptions = Subscription.make<Model, Message>()(entry => ({
  *   shortcut: entry(
- *     { isListening: S.Boolean },
+ *     { isListening: Schema.Boolean },
  *     {
  *       modelToDependencies: model => ({ isListening: model.isListening }),
  *       dependenciesToStream: ({ isListening }) =>

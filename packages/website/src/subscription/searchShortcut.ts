@@ -1,37 +1,34 @@
-import { Effect, Option, Schema as S, Stream } from 'effect'
+import { Effect, Option, Schema, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
-import type { Model } from '../main'
-import { GotSearchMessage, type Message } from '../message'
-import { PressedSearchShortcut } from '../search'
+import { Message } from '../message'
+import type { Model } from '../model'
+import { isSearchRoute } from '../route'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   searchShortcut: entry(
-    { isDocsPage: S.Boolean },
+    { isSearchAvailable: Schema.Boolean },
     {
       modelToDependencies: model => ({
-        isDocsPage:
-          model.route._tag !== 'Home' && model.route._tag !== 'Newsletter',
+        isSearchAvailable: isSearchRoute(model.route),
       }),
-      dependenciesToStream: ({ isDocsPage }) =>
+      dependenciesToStream: ({ isSearchAvailable }) =>
         Stream.when(
           Subscription.fromEventFilterMap<
             KeyboardEvent,
-            typeof GotSearchMessage.Type
+            typeof Message.PressedSearchShortcut.Type
           >({
             target: document,
             type: 'keydown',
             toMessage: event => {
               if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
                 event.preventDefault()
-                return Option.some(
-                  GotSearchMessage({ message: PressedSearchShortcut() }),
-                )
+                return Option.some(Message.PressedSearchShortcut())
               }
               return Option.none()
             },
           }),
-          Effect.sync(() => isDocsPage),
+          Effect.sync(() => isSearchAvailable),
         ),
     },
   ),

@@ -1,8 +1,8 @@
 # Typing Terminal
 
-A production real-time multiplayer typing speed game. Build a room, share the code, and race friends to type the same passage. It runs at [typingterminal.com](https://typingterminal.com).
+Typing Terminal is a production multiplayer typing game built with Foldkit and Effect. Create a room, share its code, and race against friends on the same passage. The deployed application runs at [typingterminal.com](https://typingterminal.com).
 
-The other entries in this section are single-process apps that show one feature at a time. Typing Terminal is the full picture: a Foldkit client, an Effect-based RPC server, and a shared schema package that both ends import directly.
+Most examples in this section isolate one framework feature. Typing Terminal combines a Foldkit client, an Effect-based RPC server, and a shared Schema package imported by both.
 
 :::Cta
 [Race your friends →](https://typingterminal.com)
@@ -10,20 +10,20 @@ The other entries in this section are single-process apps that show one feature 
 [View source on GitHub →](https://github.com/foldkit/foldkit/tree/main/packages/typing-game)
 :::
 
-## A full-stack Effect app
+## Full-Stack Architecture
 
 The repo splits into three packages.
 
-- `shared/` declares Effect Schemas (`Room`, `Player`, `GameStatus`, `PlayerProgress`) and the `RoomRpcs` group built with `effect/unstable/rpc`. Both client and server import from here. There is no codegen step. Adding a field to a payload schema produces type errors on both sides at the same time.
-- `server/` is a Node HTTP server built on `effect/unstable/http` and `effect/unstable/rpc`. Room state lives in `Ref<HashMap>` stores provided as Effect Services. The streaming subscription RPC pushes room updates and per-player progress to every connected client over NDJSON.
-- `client/` is a Foldkit app with two routes (Home and Room) and the same Model / Message / update / view loop you have seen in the smaller examples, scaled up. The [Room Submodel](https://github.com/foldkit/foldkit/tree/main/packages/typing-game/client/src/page/room) coordinates the live game: it consumes the streaming RPC as a Subscription, dispatches keystroke updates as Commands, and renders the scoreboard from a derived view of the synced room state.
+- `shared/` declares the `Room`, `Player`, `GameStatus`, and `PlayerProgress` Schemas and the `RoomRpcs` group from `effect/unstable/rpc`. Client and server import the same definitions. The RPC protocol derives its payload and result codecs from those Schemas without a code-generation step.
+- `server/` is a Node HTTP server built with `effect/unstable/http` and `effect/unstable/rpc`. Room and progress state live in `SubscriptionRef<HashMap>` stores provided as Effect services. A streaming RPC sends room and player-progress updates over NDJSON. A separate `Ref<HashSet>` tracks players awaiting delayed disconnect cleanup.
+- `client/` is a Foldkit application with Home and Room routes. The [Room Submodel](https://github.com/foldkit/foldkit/tree/main/packages/typing-game/client/src/page/room) consumes the streaming RPC through a Subscription, sends player-progress updates through Commands, and renders the scoreboard from the synchronized room state.
 
-No new framework concepts are involved. The architecture is the same one [Counter](/example-apps/counter) uses. The interesting part is what falls out when that architecture meets a real backend: shared schemas across the wire, a typed RPC client without runtime decoders, a streaming [Subscription](/core/subscriptions) that owns reconnect logic, and [Commands](/core/commands) that map cleanly to RPC calls.
+The application uses the same Foldkit architecture as the [Counter](/example-apps/counter). The larger example shows how shared Schemas define an RPC boundary, how a streaming [Subscription](/core/subscriptions) follows a room session, and how [Commands](/core/commands) map user actions to RPC calls. The server delays disconnect cleanup for two seconds, allowing a reconnect to cancel the pending removal.
 
-## What’s in it {#whats-in-it}
+## Features
 
 - Multiplayer rooms with hosts and joiners, joined by a short room code
 - A `Waiting | GetReady | Countdown | Playing | Finished` state machine modelled as a discriminated union on the server, mirrored on the client
-- Live progress streaming: every keystroke from every player flows through the same RPC stream and updates the scoreboard in real time
+- Live progress streaming: keystrokes update player progress through RPC, and the room stream broadcasts the latest scoreboard state
 - Per-player WPM and accuracy scoring computed on the server
 - Reconnect-tolerant subscriptions with pending-cleanup tracking so a brief disconnect does not drop you from the room

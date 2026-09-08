@@ -1,5 +1,6 @@
-import { Option, Predicate } from 'effect'
+import { Option } from 'effect'
 
+import { onUnmountModule } from './onUnmountModule.js'
 import { propsModule } from './propsModule.js'
 import {
   type VNode,
@@ -16,11 +17,19 @@ import {
 export type { VNode } from './snabbdom/index.js'
 export { toVNode }
 
+// NOTE: module order is load-bearing for hydration. `attributesModule` must run
+// before `propsModule`. When a controlled input is adopted, the seeded server
+// `value` attribute is removed by the attrs module first, which resets
+// `elm.value`; only then does the props module reassert the model value, its
+// `elm[key] !== cur` guard now seeing a cleared value. In the reverse order the
+// props write is skipped as a no-op and the later attribute removal blanks the
+// input. The controlled-input hydration tests fail if this order is changed.
 export const patch = init([
   attributesModule,
   classModule,
   datasetModule,
   eventListenersModule,
+  onUnmountModule,
   propsModule,
   styleModule,
 ])
@@ -115,18 +124,50 @@ export const dedupeMemoizedResult = (
   return nextChildren === undefined ? root : { ...root, children: nextChildren }
 }
 
+// NOTE: a fresh boot builds the whole tree so snabbdom fires every insert hook,
+// which is what runs Mounts. Patching `toVNode(container)` directly would let
+// snabbdom reuse a container whose existing DOM happens to match the new tree (a
+// fresh `run` over server-rendered DOM, or an HMR restore), leaving those hooks
+// unfired and Mounts unattached. Patching against a comment placed where the
+// container was is never `sameVnode` with an element, so `createElm` builds the
+// tree fresh and replaces the container, exactly as a boot into an empty
+// container does.
+const patchFreshInto = (
+  container: HTMLElement,
+  nextVNode: VNode,
+  onRootPatched?: (vnode: VNode) => void,
+): VNode => {
+  const parent = container.parentNode
+  if (parent === null) {
+    return patch(toVNode(container), nextVNode, onRootPatched)
+  }
+  const placeholder = container.ownerDocument.createComment('')
+  parent.replaceChild(placeholder, container)
+  return patch(toVNode(placeholder), nextVNode, onRootPatched)
+}
+
 export const __patchVNode = (
   maybeCurrentVNode: Option.Option<VNode>,
   nextVNode: VNode | null,
   container: HTMLElement,
   seen?: Set<object>,
+  onRootPatched?: (vnode: VNode) => void,
 ): VNode => {
-  const dedupedVNode = Predicate.isNotNull(nextVNode)
-    ? dedupeSharedVNodes(nextVNode, seen)
-    : h('!')
+  const dedupedVNode =
+    nextVNode !== null ? dedupeSharedVNodes(nextVNode, seen) : h('!')
 
-  return Option.match(maybeCurrentVNode, {
-    onNone: () => patch(toVNode(container), dedupedVNode),
-    onSome: currentVNode => patch(currentVNode, dedupedVNode),
-  })
+  if (Option.isNone(maybeCurrentVNode)) {
+    return patchFreshInto(container, dedupedVNode, onRootPatched)
+  }
+
+  return patch(maybeCurrentVNode.value, dedupedVNode, onRootPatched)
+}
+
+export const __recoverVNodeAfterPatchFailure = (currentVNode: VNode): VNode => {
+  const currentElement = currentVNode.elm
+  const recoveryVNode = patch(currentVNode, h('!'))
+  if (recoveryVNode.elm !== currentElement && currentElement?.parentNode) {
+    currentElement.parentNode.removeChild(currentElement)
+  }
+  return recoveryVNode
 }

@@ -4,15 +4,15 @@ import {
   Duration,
   Effect,
   HashMap,
-  Match as M,
+  Match,
   Option,
-  Schema as S,
+  Schema,
   Stream,
   pipe,
 } from 'effect'
-import { AsyncData, Command, Runtime, Subscription } from 'foldkit'
+import { AsyncData, Command, Runtime, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Button, Tabs } from '@foldkit/ui'
@@ -32,94 +32,79 @@ export const TABS_ID = 'api-cache-tabs'
 
 // MODEL
 
-const FetchedPosts = S.Struct({ posts: S.Array(Post), fetchedAt: S.Number })
-
-const FetchedPostDetail = S.Struct({
-  detail: PostDetail,
-  fetchedAt: S.Number,
+const FetchedPosts = Schema.Struct({
+  posts: Schema.Array(Post),
+  fetchedAt: Schema.Number,
 })
 
-const FetchedStats = S.Struct({ stats: Stats, fetchedAt: S.Number })
+const FetchedPostDetail = Schema.Struct({
+  detail: PostDetail,
+  fetchedAt: Schema.Number,
+})
 
-export const PostsData = AsyncData.Schema(FetchedPosts, S.String)
-export const PostDetailData = AsyncData.Schema(FetchedPostDetail, S.String)
-export const StatsData = AsyncData.Schema(FetchedStats, S.String)
+const FetchedStats = Schema.Struct({ stats: Stats, fetchedAt: Schema.Number })
+
+export const PostsData = AsyncData.Schema(FetchedPosts, Schema.String)
+export const PostDetailData = AsyncData.Schema(FetchedPostDetail, Schema.String)
+export const StatsData = AsyncData.Schema(FetchedStats, Schema.String)
 
 type PostsData = typeof PostsData.schema.Type
 type PostDetailData = typeof PostDetailData.schema.Type
 type StatsData = typeof StatsData.schema.Type
 
-const Tab = S.Literals(['Posts', 'Stats'])
+const Tab = Schema.Literals(['Posts', 'Stats'])
 type Tab = typeof Tab.Type
 
 const tabValues: ReadonlyArray<Tab> = Tab.literals
 
 export const AppTabs = Tabs.create<Tab>()
 
-export const Model = S.Struct({
+export const Model = Schema.Struct({
   tabs: Tabs.Model,
   activeTab: Tab,
   posts: PostsData.schema,
-  postDetailById: S.HashMap(S.String, PostDetailData.schema),
-  maybeSelectedPostId: S.Option(S.String),
+  postDetailById: Schema.HashMap(Schema.String, PostDetailData.schema),
+  maybeSelectedPostId: Schema.Option(Schema.String),
   stats: StatsData.schema,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const GotTabsMessage = m('GotTabsMessage', { message: Tabs.Message })
-export const ClickedPost = m('ClickedPost', { postId: S.String })
-export const ClickedBackToPosts = m('ClickedBackToPosts')
-export const ClickedInvalidatePosts = m('ClickedInvalidatePosts')
-export const ClickedRetryPosts = m('ClickedRetryPosts')
-export const ClickedRetryPostDetail = m('ClickedRetryPostDetail', {
-  postId: S.String,
-})
-export const ClickedRefreshStats = m('ClickedRefreshStats')
-export const ClickedRetryStats = m('ClickedRetryStats')
-export const TickedRevalidateStats = m('TickedRevalidateStats')
-export const SettledFetchPosts = m('SettledFetchPosts', {
-  result: S.Result(FetchedPosts, S.String),
-})
-export const SettledFetchPostDetail = m('SettledFetchPostDetail', {
-  postId: S.String,
-  result: S.Result(FetchedPostDetail, S.String),
-})
-export const SettledFetchStats = m('SettledFetchStats', {
-  result: S.Result(FetchedStats, S.String),
+export const Message = defineMessageUnion({
+  GotTabsMessage: { message: Tabs.Message },
+  ClickedPost: { postId: Schema.String },
+  ClickedBackToPosts: {},
+  ClickedInvalidatePosts: {},
+  ClickedRetryPosts: {},
+  ClickedRetryPostDetail: { postId: Schema.String },
+  ClickedRefreshStats: {},
+  ClickedRetryStats: {},
+  TickedRevalidateStats: {},
+  SettledFetchPosts: { result: Schema.Result(FetchedPosts, Schema.String) },
+  SettledFetchPostDetail: {
+    postId: Schema.String,
+    result: Schema.Result(FetchedPostDetail, Schema.String),
+  },
+  SettledFetchStats: { result: Schema.Result(FetchedStats, Schema.String) },
 })
 
-export const Message = S.Union([
-  GotTabsMessage,
-  ClickedPost,
-  ClickedBackToPosts,
-  ClickedInvalidatePosts,
-  ClickedRetryPosts,
-  ClickedRetryPostDetail,
-  ClickedRefreshStats,
-  ClickedRetryStats,
-  TickedRevalidateStats,
-  SettledFetchPosts,
-  SettledFetchPostDetail,
-  SettledFetchStats,
-])
 export type Message = typeof Message.Type
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 const applyPostsTransition = (
   model: Model,
   maybeNextPosts: Option.Option<PostsData>,
 ): UpdateReturn =>
   Option.match(maybeNextPosts, {
-    onNone: () => [model, []],
-    onSome: nextPosts => [
-      evo(model, { posts: () => nextPosts }),
-      [FetchPosts()],
-    ],
+    onNone: () => ({ model }),
+    onSome: nextPosts => ({
+      model: evo(model, { posts: () => nextPosts }),
+      commands: [FetchPosts()],
+    }),
   })
 
 const applyStatsTransition = (
@@ -127,11 +112,11 @@ const applyStatsTransition = (
   maybeNextStats: Option.Option<StatsData>,
 ): UpdateReturn =>
   Option.match(maybeNextStats, {
-    onNone: () => [model, []],
-    onSome: nextStats => [
-      evo(model, { stats: () => nextStats }),
-      [FetchStats()],
-    ],
+    onNone: () => ({ model }),
+    onSome: nextStats => ({
+      model: evo(model, { stats: () => nextStats }),
+      commands: [FetchStats()],
+    }),
   })
 
 const setPostDetail = (postId: string, postDetail: PostDetailData) =>
@@ -140,126 +125,107 @@ const setPostDetail = (postId: string, postDetail: PostDetailData) =>
 const activateTab = (model: Model, tab: Tab): UpdateReturn => {
   const modelWithActiveTab = evo(model, { activeTab: () => tab })
 
-  return M.value(tab).pipe(
-    M.withReturnType<UpdateReturn>(),
-    M.when('Posts', () =>
+  return Match.value(tab).pipe(
+    Match.withReturnType<UpdateReturn>(),
+    Match.when('Posts', () =>
       applyPostsTransition(
         modelWithActiveTab,
         AsyncData.loadIfMissing(modelWithActiveTab.posts),
       ),
     ),
-    M.when('Stats', () =>
+    Match.when('Stats', () =>
       applyStatsTransition(
         modelWithActiveTab,
         AsyncData.loadIfMissing(modelWithActiveTab.stats),
       ),
     ),
-    M.exhaustive,
+    Match.exhaustive,
   )
 }
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    M.withReturnType<UpdateReturn>(),
-    M.tagsExhaustive({
-      GotTabsMessage: ({ message }) => {
-        const [nextTabs, tabsCommands, maybeOutMessage] = AppTabs.update(
-          model.tabs,
-          message,
-        )
+const foldTabsOutMessage = Tabs.OutMessage.match<
+  Update.Step<Model, Message>,
+  Tabs.OutMessage<Tab>
+>({
+  Selected:
+    ({ value }) =>
+    model =>
+      activateTab(model, value),
+})
 
-        const tabsModel = evo(model, { tabs: () => nextTabs })
-        const mappedCommands = Command.mapMessages(tabsCommands, message =>
-          GotTabsMessage({ message }),
-        )
+const foldTabs = Update.foldChild({
+  update: AppTabs.update,
+  read: (model: Model) => Option.some(model.tabs),
+  write: (model, nextTabs) => evo(model, { tabs: () => nextTabs }),
+  toParentMessage: message => Message.GotTabsMessage({ message }),
+  foldOutMessage: foldTabsOutMessage,
+})
 
-        return Option.match(maybeOutMessage, {
-          onNone: () => [tabsModel, mappedCommands],
-          onSome: M.type<Tabs.OutMessage<Tab>>().pipe(
-            M.withReturnType<UpdateReturn>(),
-            M.tagsExhaustive({
-              Selected: ({ value }) => {
-                const [activatedModel, activationCommands] = activateTab(
-                  tabsModel,
-                  value,
-                )
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    GotTabsMessage: ({ message }) => foldTabs(model, message),
 
-                return [
-                  activatedModel,
-                  Array.appendAll(mappedCommands, activationCommands),
-                ]
-              },
-            }),
-          ),
-        })
-      },
+    ClickedPost: ({ postId }) => {
+      const selectedModel = evo(model, {
+        maybeSelectedPostId: () => Option.some(postId),
+      })
 
-      ClickedPost: ({ postId }) => {
-        const selectedModel = evo(model, {
-          maybeSelectedPostId: () => Option.some(postId),
-        })
-
-        return Option.match(HashMap.get(model.postDetailById, postId), {
-          onNone: () => [
-            evo(selectedModel, {
-              postDetailById: setPostDetail(postId, PostDetailData.Loading()),
-            }),
-            [FetchPostDetail({ postId })],
-          ],
-          onSome: () => [selectedModel, []],
-        })
-      },
-
-      ClickedBackToPosts: () => [
-        evo(model, { maybeSelectedPostId: () => Option.none() }),
-        [],
-      ],
-
-      ClickedInvalidatePosts: () =>
-        applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
-
-      ClickedRetryPosts: () =>
-        applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
-
-      ClickedRetryPostDetail: ({ postId }) => [
-        evo(model, {
-          postDetailById: setPostDetail(postId, PostDetailData.Loading()),
+      return Option.match(HashMap.get(model.postDetailById, postId), {
+        onNone: () => ({
+          model: evo(selectedModel, {
+            postDetailById: setPostDetail(postId, PostDetailData.Loading()),
+          }),
+          commands: [FetchPostDetail({ postId })],
         }),
-        [FetchPostDetail({ postId })],
-      ],
+        onSome: () => ({ model: selectedModel }),
+      })
+    },
 
-      ClickedRefreshStats: () =>
-        applyStatsTransition(model, AsyncData.revalidateOrLoad(model.stats)),
-
-      ClickedRetryStats: () =>
-        applyStatsTransition(model, AsyncData.revalidateOrLoad(model.stats)),
-
-      TickedRevalidateStats: () =>
-        applyStatsTransition(model, AsyncData.revalidate(model.stats)),
-
-      SettledFetchPosts: ({ result }) => [
-        evo(model, { posts: AsyncData.settle(result) }),
-        [],
-      ],
-
-      SettledFetchPostDetail: ({ postId, result }) => [
-        evo(model, {
-          postDetailById: HashMap.modify(postId, AsyncData.settle(result)),
-        }),
-        [],
-      ],
-
-      SettledFetchStats: ({ result }) => [
-        evo(model, { stats: AsyncData.settle(result) }),
-        [],
-      ],
+    ClickedBackToPosts: () => ({
+      model: evo(model, { maybeSelectedPostId: () => Option.none() }),
     }),
-  )
+
+    ClickedInvalidatePosts: () =>
+      applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
+
+    ClickedRetryPosts: () =>
+      applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
+
+    ClickedRetryPostDetail: ({ postId }) => ({
+      model: evo(model, {
+        postDetailById: setPostDetail(postId, PostDetailData.Loading()),
+      }),
+      commands: [FetchPostDetail({ postId })],
+    }),
+
+    ClickedRefreshStats: () =>
+      applyStatsTransition(model, AsyncData.revalidateOrLoad(model.stats)),
+
+    ClickedRetryStats: () =>
+      applyStatsTransition(model, AsyncData.revalidateOrLoad(model.stats)),
+
+    TickedRevalidateStats: () =>
+      applyStatsTransition(model, AsyncData.revalidate(model.stats)),
+
+    SettledFetchPosts: ({ result }) => ({
+      model: evo(model, { posts: AsyncData.settle(result) }),
+    }),
+
+    SettledFetchPostDetail: ({ postId, result }) => ({
+      model: evo(model, {
+        postDetailById: HashMap.modify(postId, AsyncData.settle(result)),
+      }),
+    }),
+
+    SettledFetchStats: ({ result }) => ({
+      model: evo(model, { stats: AsyncData.settle(result) }),
+    }),
+  })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     tabs: Tabs.init({ id: TABS_ID }),
     activeTab: 'Posts',
     posts: PostsData.Loading(),
@@ -267,13 +233,13 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => [
     maybeSelectedPostId: Option.none(),
     stats: StatsData.Idle(),
   },
-  [FetchPosts()],
-]
+  commands: [FetchPosts()],
+})
 
 // COMMAND
 
 export const FetchPosts = Command.define('FetchPosts', {
-  messages: [SettledFetchPosts],
+  messages: [Message.SettledFetchPosts],
   execute: pipe(
     Effect.gen(function* () {
       const posts = yield* fetchPosts
@@ -281,13 +247,13 @@ export const FetchPosts = Command.define('FetchPosts', {
       return FetchedPosts.make({ posts, fetchedAt })
     }),
     Effect.result,
-    Effect.map(result => SettledFetchPosts({ result })),
+    Effect.map(result => Message.SettledFetchPosts({ result })),
   ),
 })
 
 export const FetchPostDetail = Command.define('FetchPostDetail', {
-  args: { postId: S.String },
-  messages: [SettledFetchPostDetail],
+  args: { postId: Schema.String },
+  messages: [Message.SettledFetchPostDetail],
   execute: ({ postId }) =>
     pipe(
       Effect.gen(function* () {
@@ -296,12 +262,12 @@ export const FetchPostDetail = Command.define('FetchPostDetail', {
         return FetchedPostDetail.make({ detail, fetchedAt })
       }),
       Effect.result,
-      Effect.map(result => SettledFetchPostDetail({ postId, result })),
+      Effect.map(result => Message.SettledFetchPostDetail({ postId, result })),
     ),
 })
 
 export const FetchStats = Command.define('FetchStats', {
-  messages: [SettledFetchStats],
+  messages: [Message.SettledFetchStats],
   execute: pipe(
     Effect.gen(function* () {
       const stats = yield* fetchStats
@@ -309,7 +275,7 @@ export const FetchStats = Command.define('FetchStats', {
       return FetchedStats.make({ stats, fetchedAt })
     }),
     Effect.result,
-    Effect.map(result => SettledFetchStats({ result })),
+    Effect.map(result => Message.SettledFetchStats({ result })),
   ),
 })
 
@@ -317,7 +283,7 @@ export const FetchStats = Command.define('FetchStats', {
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   revalidateStats: entry(
-    { isObservingStats: S.Boolean },
+    { isObservingStats: Schema.Boolean },
     {
       modelToDependencies: model => ({
         isObservingStats:
@@ -329,7 +295,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           // emission so freshly loaded stats are not refetched instantly.
           Stream.tick(STATS_REFETCH_INTERVAL).pipe(
             Stream.drop(1),
-            Stream.map(TickedRevalidateStats),
+            Stream.map(Message.TickedRevalidateStats),
           ),
           Effect.sync(() => isObservingStats),
         ),
@@ -387,10 +353,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
                           tabInfo.value,
                           [...tabInfo.panel, h.Class('flex flex-col gap-4')],
                           [
-                            M.value(tabInfo.value).pipe(
-                              M.when('Posts', () => postsTabView(model, h)),
-                              M.when('Stats', () => statsTabView(model, h)),
-                              M.exhaustive,
+                            Match.value(tabInfo.value).pipe(
+                              Match.when('Posts', () => postsTabView(model, h)),
+                              Match.when('Stats', () => statsTabView(model, h)),
+                              Match.exhaustive,
                             ),
                           ],
                         ),
@@ -399,7 +365,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
                   ],
                 ),
             },
-            toParentMessage: message => GotTabsMessage({ message }),
+            toParentMessage: message => Message.GotTabsMessage({ message }),
           }),
         ],
       ),
@@ -445,7 +411,7 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
           h.h2([h.Class('text-xl font-bold text-slate-800')], ['Posts']),
           Button.view(
             {
-              onClick: ClickedInvalidatePosts(),
+              onClick: Message.ClickedInvalidatePosts(),
               isDisabled: isPending,
               toView: attributes =>
                 h.button(
@@ -470,14 +436,16 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
       AsyncData.matchDataSplitEmpty(model.posts, {
         onIdle: () => loadingPanel('Loading posts...', h),
         onLoading: () => loadingPanel('Loading posts...', h),
-        onFailure: error => errorPanel(error, ClickedRetryPosts(), h),
+        onFailure: error => errorPanel(error, Message.ClickedRetryPosts(), h),
         onData: ({ posts }) =>
           h.div(
             [h.Class('flex flex-col gap-4')],
             [
               ...Option.match(AsyncData.getError(model.posts), {
                 onNone: () => [],
-                onSome: error => [staleView(error, ClickedRetryPosts(), h)],
+                onSome: error => [
+                  staleView(error, Message.ClickedRetryPosts(), h),
+                ],
               }),
               h.ul(
                 [h.Class('flex flex-col gap-2')],
@@ -508,7 +476,7 @@ const postListItems = (
       [
         Button.view(
           {
-            onClick: ClickedPost({ postId: post.id }),
+            onClick: Message.ClickedPost({ postId: post.id }),
             toView: attributes =>
               h.button(
                 [
@@ -565,7 +533,7 @@ const postDetailView = (
     [
       Button.view(
         {
-          onClick: ClickedBackToPosts(),
+          onClick: Message.ClickedBackToPosts(),
           toView: attributes =>
             h.button(
               [
@@ -583,7 +551,7 @@ const postDetailView = (
         onIdle: () => loadingPanel('Loading post...', h),
         onLoading: () => loadingPanel('Loading post...', h),
         onFailure: error =>
-          errorPanel(error, ClickedRetryPostDetail({ postId }), h),
+          errorPanel(error, Message.ClickedRetryPostDetail({ postId }), h),
         onData: ({ detail, fetchedAt }) =>
           h.div(
             [h.Class('flex flex-col gap-4')],
@@ -591,7 +559,11 @@ const postDetailView = (
               ...Option.match(AsyncData.getError(postDetailData), {
                 onNone: () => [],
                 onSome: error => [
-                  staleView(error, ClickedRetryPostDetail({ postId }), h),
+                  staleView(
+                    error,
+                    Message.ClickedRetryPostDetail({ postId }),
+                    h,
+                  ),
                 ],
               }),
               postDetailCard(detail, fetchedAt, h),
@@ -634,7 +606,7 @@ const statsTabView = (model: Model, h: HtmlBuilder<Message>): Html => {
           h.h2([h.Class('text-xl font-bold text-slate-800')], ['Stats']),
           Button.view(
             {
-              onClick: ClickedRefreshStats(),
+              onClick: Message.ClickedRefreshStats(),
               isDisabled: isPending,
               toView: attributes =>
                 h.button(
@@ -655,14 +627,16 @@ const statsTabView = (model: Model, h: HtmlBuilder<Message>): Html => {
       AsyncData.matchDataSplitEmpty(model.stats, {
         onIdle: () => loadingPanel('Loading stats...', h),
         onLoading: () => loadingPanel('Loading stats...', h),
-        onFailure: error => errorPanel(error, ClickedRetryStats(), h),
+        onFailure: error => errorPanel(error, Message.ClickedRetryStats(), h),
         onData: ({ stats, fetchedAt }) =>
           h.div(
             [h.Class('flex flex-col gap-4')],
             [
               ...Option.match(AsyncData.getError(model.stats), {
                 onNone: () => [],
-                onSome: error => [staleView(error, ClickedRetryStats(), h)],
+                onSome: error => [
+                  staleView(error, Message.ClickedRetryStats(), h),
+                ],
               }),
               statsCards(
                 stats,

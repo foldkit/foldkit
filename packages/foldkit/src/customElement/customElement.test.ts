@@ -1,14 +1,18 @@
-import { Context, Effect, Schema as S } from 'effect'
+import { Context, Effect, Schema } from 'effect'
 import { expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
+import { beginRender, createBoundaryRegistry } from '../html/boundary.js'
+import { type ChildAttribute, childAttributes } from '../html/childAttribute.js'
 import {
+  type Html,
   __htmlBuilder,
   __clearRuntime as clearHtmlRuntime,
   __setRuntime as setHtmlRuntime,
 } from '../html/index.js'
-import { m } from '../message/index.js'
+import { defineView, submodel as submodelImpl } from '../html/submodel.js'
+import { defineMessageUnion } from '../message/index.js'
 import { MountTracker } from '../mount/index.js'
 import { propsModule } from '../propsModule.js'
 import { Dispatch } from '../runtime/index.js'
@@ -33,23 +37,23 @@ const patch = init([
   styleModule,
 ])
 
-const RatingChanged = m('RatingChanged', { value: S.Number })
-const RatingCleared = m('RatingCleared')
-const ToggledDisabled = m('ToggledDisabled', { value: S.Boolean })
-
-const Message = S.Union([RatingChanged, RatingCleared, ToggledDisabled])
+const Message = defineMessageUnion({
+  RatingChanged: { value: Schema.Number },
+  RatingCleared: {},
+  ToggledDisabled: { value: Schema.Boolean },
+})
 type Message = typeof Message.Type
 
 const emojiRating = CustomElement.define({
   tag: 'fk-emoji-rating',
   properties: {
-    value: S.Number,
-    disabled: S.Boolean,
-    label: S.String,
+    value: Schema.Number,
+    disabled: Schema.Boolean,
+    label: Schema.String,
   },
   events: {
-    'change-rating': S.Struct({ value: S.Number }),
-    'clear-rating': S.Struct({}),
+    'change-rating': Schema.Struct({ value: Schema.Number }),
+    'clear-rating': Schema.Struct({}),
   },
 })
 
@@ -136,8 +140,10 @@ describe('CustomElement.define', () => {
 
     const view = () =>
       rating([
-        rating.OnChangeRating(detail => RatingChanged({ value: detail.value })),
-        rating.OnClearRating(() => RatingCleared()),
+        rating.OnChangeRating(detail =>
+          Message.RatingChanged({ value: detail.value }),
+        ),
+        rating.OnClearRating(() => Message.RatingCleared()),
       ])
     const element = patchInto(renderView(view, dispatch))
 
@@ -147,86 +153,104 @@ describe('CustomElement.define', () => {
     element.dispatchEvent(new CustomEvent('clear-rating'))
 
     expect(dispatched).toStrictEqual([
-      RatingChanged({ value: 5 }),
-      RatingCleared(),
+      Message.RatingChanged({ value: 5 }),
+      Message.RatingCleared(),
     ])
   })
 
-  it('decodes the event detail against the declared Schema before the callback runs', () => {
-    const spec = CustomElement.define({
-      tag: 'fk-decoding-rating',
-      properties: {},
-      events: { 'change-rating': S.Struct({ value: S.Number }) },
-    })
-    const rating = spec.withMessage(__htmlBuilder<Message>())
+  it('decodes event detail against its declared Schema before invoking the callback', () => {
+    const rating = emojiRating.withMessage(__htmlBuilder<Message>())
     const { dispatch, dispatched } = createCapturingDispatch()
+    const receivedDetails: Array<unknown> = []
 
-    const received: Array<unknown> = []
     const view = () =>
       rating([
         rating.OnChangeRating(detail => {
-          received.push(detail)
-          return RatingChanged({ value: detail.value })
+          receivedDetails.push(detail)
+          return Message.RatingChanged({ value: detail.value })
         }),
       ])
     const element = patchInto(renderView(view, dispatch))
 
     element.dispatchEvent(
       new CustomEvent('change-rating', {
-        detail: { value: 5, undeclared: 'dropped' },
+        detail: { value: 5, undeclared: true },
       }),
     )
 
-    expect(received).toStrictEqual([{ value: 5 }])
-    expect(dispatched).toStrictEqual([RatingChanged({ value: 5 })])
+    expect(receivedDetails).toStrictEqual([{ value: 5 }])
+    expect(dispatched).toStrictEqual([Message.RatingChanged({ value: 5 })])
   })
 
-  it('dispatches no Message when the event detail fails to decode', () => {
-    const spec = CustomElement.define({
-      tag: 'fk-rejecting-rating',
-      properties: {},
-      events: { 'change-rating': S.Struct({ value: S.Number }) },
-    })
-    const rating = spec.withMessage(__htmlBuilder<Message>())
+  it('reports invalid event detail and dispatches no Message', () => {
+    const rating = emojiRating.withMessage(__htmlBuilder<Message>())
     const { dispatch, dispatched } = createCapturingDispatch()
-
-    const view = () =>
-      rating([
-        rating.OnChangeRating(detail => RatingChanged({ value: detail.value })),
-      ])
-    const element = patchInto(renderView(view, dispatch))
-
     const reported: Array<unknown> = []
     const consoleError = vi
       .spyOn(console, 'error')
       .mockImplementation((...args) => {
         reported.push(args.at(0))
       })
+
     try {
+      const view = () =>
+        rating([
+          rating.OnChangeRating(detail =>
+            Message.RatingChanged({ value: detail.value }),
+          ),
+        ])
+      const element = patchInto(renderView(view, dispatch))
+
       element.dispatchEvent(
-        new CustomEvent('change-rating', { detail: { value: 'five' } }),
+        new CustomEvent('change-rating', { detail: { value: 'invalid' } }),
+      )
+
+      expect(dispatched).toStrictEqual([])
+      expect(reported).toHaveLength(1)
+      expect(String(reported.at(0))).toContain(
+        `CustomElement 'fk-emoji-rating' rejected the detail of a "change-rating" event`,
       )
     } finally {
       consoleError.mockRestore()
     }
-
-    expect(dispatched).toStrictEqual([])
-    expect(reported).toHaveLength(1)
-    expect(String(reported.at(0))).toContain(
-      `CustomElement 'fk-rejecting-rating' rejected the detail of a "change-rating" event`,
-    )
   })
 
-  it('decodes a payload-less event, whose detail the DOM leaves as null', () => {
+  it('decodes a payload-less event as an empty object', () => {
     const rating = emojiRating.withMessage(__htmlBuilder<Message>())
     const { dispatch, dispatched } = createCapturingDispatch()
 
-    const view = () => rating([rating.OnClearRating(() => RatingCleared())])
+    const view = () =>
+      rating([rating.OnClearRating(() => Message.RatingCleared())])
     const element = patchInto(renderView(view, dispatch))
 
     element.dispatchEvent(new CustomEvent('clear-rating'))
 
-    expect(dispatched).toStrictEqual([RatingCleared()])
+    expect(dispatched).toStrictEqual([Message.RatingCleared()])
+  })
+
+  it('preserves a null detail when the declared Schema accepts null', () => {
+    const nullableRating = CustomElement.define({
+      tag: 'fk-nullable-rating',
+      properties: {},
+      events: { cleared: Schema.Null },
+    })
+    const rating = nullableRating.withMessage(__htmlBuilder<Message>())
+    const { dispatch, dispatched } = createCapturingDispatch()
+    const receivedDetails: Array<unknown> = []
+
+    const view = () =>
+      rating([
+        rating.OnCleared(detail => {
+          receivedDetails.push(detail)
+          return Message.RatingCleared()
+        }),
+      ])
+    const element = patchInto(renderView(view, dispatch))
+
+    element.dispatchEvent(new CustomEvent('cleared'))
+
+    expect(receivedDetails).toStrictEqual([null])
+    expect(dispatched).toStrictEqual([Message.RatingCleared()])
   })
 
   it('preserves property updates across renders via the propsModule diff', () => {
@@ -274,23 +298,120 @@ describe('CustomElement.define', () => {
   })
 })
 
+describe('ElementBuilder ChildAttribute support', () => {
+  type ChildClicked = Readonly<{ _tag: 'ChildClicked' }>
+  type GotChild = Readonly<{ _tag: 'GotChild'; message: ChildClicked }>
+
+  const GotChild = (args: { message: ChildClicked }): GotChild => ({
+    _tag: 'GotChild',
+    ...args,
+  })
+
+  it('routes a published ChildAttribute OnClick through the Submodel boundary when spread into a custom element', () => {
+    // Mirrors the childAttributes scenario: a Submodel publishes an
+    // attribute group and the consumer spreads it into an element built
+    // in the parent's boundary. Here the consumer's element is a defined
+    // custom element rather than an html builder element, so this locks
+    // in both halves: the ElementBuilder signature accepts the union,
+    // and the runtime routes the handler through the Submodel's wrap.
+    const registry = createBoundaryRegistry()
+    const { dispatch, dispatched } = createCapturingDispatch()
+    const testContext = Context.make(Dispatch, dispatch).pipe(
+      Context.add(MountTracker, {
+        started: () => {},
+        ended: () => {},
+      }),
+    )
+
+    setHtmlRuntime(dispatch.dispatchSync, testContext, registry)
+    beginRender(registry)
+    try {
+      type ControlViewInputs = Readonly<{
+        toView: (attributes: { control: ReadonlyArray<ChildAttribute> }) => Html
+      }>
+
+      const fakeControlView = defineView<
+        object,
+        ChildClicked,
+        ControlViewInputs
+      >((_model, viewInputs) => {
+        const h = __htmlBuilder<ChildClicked>()
+        return viewInputs.toView({
+          control: childAttributes([h.OnClick({ _tag: 'ChildClicked' })]),
+        })
+      })
+
+      const result = submodelImpl(
+        {
+          slotId: 'fake-control',
+          model: {},
+          view: fakeControlView,
+          viewInputs: {
+            toView: attributes => {
+              const rating = emojiRating.withMessage(__htmlBuilder<Message>())
+              return rating([...attributes.control, rating.Value(3)])
+            },
+          },
+          toParentMessage: message => GotChild({ message }),
+        },
+        __htmlBuilder(),
+      )
+      if (result === null) {
+        throw new Error('submodel returned null Html')
+      }
+
+      const element = patchInto(result)
+      expect(element.tagName).toBe('FK-EMOJI-RATING')
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      expect((element as unknown as { value: number }).value).toBe(3)
+
+      element.dispatchEvent(new Event('click'))
+      expect(dispatched).toStrictEqual([
+        { _tag: 'GotChild', message: { _tag: 'ChildClicked' } },
+      ])
+    } finally {
+      clearHtmlRuntime()
+    }
+  })
+})
+
 describe('CustomElement.define validation', () => {
   it('throws when the tag has no hyphen', () => {
     expect(() =>
       CustomElement.define({
         tag: 'rating',
-        properties: { value: S.Number },
+        properties: { value: Schema.Number },
         events: {},
       }),
     ).toThrowError(/tag 'rating' is not a valid custom element name/)
+  })
+
+  it('throws when the tag carries markup characters despite a hyphen', () => {
+    expect(() =>
+      CustomElement.define({
+        tag: 'x-a><script>alert(1)</script><x-a',
+        properties: {},
+        events: {},
+      }),
+    ).toThrowError(/is not a valid custom element name/)
+  })
+
+  it('throws when the tag is a browser-reserved custom element name', () => {
+    expect(() =>
+      CustomElement.define({
+        tag: 'annotation-xml',
+        properties: {},
+        events: {},
+      }),
+    ).toThrowError(/reserved custom element name/)
   })
 
   it('throws when a property name collides with an event factory name', () => {
     expect(() =>
       CustomElement.define({
         tag: 'fk-collide',
-        properties: { onClick: S.Boolean },
-        events: { click: S.Struct({}) },
+        properties: { onClick: Schema.Boolean },
+        events: { click: Schema.Struct({}) },
       }),
     ).toThrowError(/factory name 'OnClick' is claimed/)
   })
@@ -300,8 +421,8 @@ describe('CustomElement.define validation', () => {
       CustomElement.define({
         tag: 'fk-collide',
         properties: {
-          value: S.Number,
-          Value: S.String,
+          value: Schema.Number,
+          Value: Schema.String,
         },
         events: {},
       }),
@@ -313,7 +434,7 @@ describe('CustomElement.define validation', () => {
       CustomElement.define({
         tag: 'fk-bad-event',
         properties: {},
-        events: { 'change--rating': S.Struct({}) },
+        events: { 'change--rating': Schema.Struct({}) },
       }),
     ).toThrowError(/event name 'change--rating' is not a valid kebab-case/)
   })
@@ -323,7 +444,7 @@ describe('CustomElement.define validation', () => {
       CustomElement.define({
         tag: 'fk-leading-hyphen',
         properties: {},
-        events: { '-change-rating': S.Struct({}) },
+        events: { '-change-rating': Schema.Struct({}) },
       }),
     ).toThrowError(/is not a valid kebab-case/)
 
@@ -331,7 +452,7 @@ describe('CustomElement.define validation', () => {
       CustomElement.define({
         tag: 'fk-trailing-hyphen',
         properties: {},
-        events: { 'change-rating-': S.Struct({}) },
+        events: { 'change-rating-': Schema.Struct({}) },
       }),
     ).toThrowError(/is not a valid kebab-case/)
   })
@@ -341,7 +462,7 @@ describe('CustomElement.define validation', () => {
       CustomElement.define({
         tag: 'fk-empty-event',
         properties: {},
-        events: { '': S.Struct({}) },
+        events: { '': Schema.Struct({}) },
       }),
     ).toThrowError(/is not a valid kebab-case/)
   })
@@ -350,7 +471,7 @@ describe('CustomElement.define validation', () => {
     expect(() =>
       CustomElement.define({
         tag: 'fk-bad-prop',
-        properties: { 'has-dash': S.String },
+        properties: { 'has-dash': Schema.String },
         events: {},
       }),
     ).toThrowError(/property name 'has-dash' is not a valid JS identifier/)
@@ -358,7 +479,7 @@ describe('CustomElement.define validation', () => {
     expect(() =>
       CustomElement.define({
         tag: 'fk-empty-prop',
-        properties: { '': S.String },
+        properties: { '': Schema.String },
         events: {},
       }),
     ).toThrowError(/is not a valid JS identifier/)
@@ -368,7 +489,9 @@ describe('CustomElement.define validation', () => {
     const spec = CustomElement.define({
       tag: 'fk-multi-segment',
       properties: {},
-      events: { 'change-rating-value': S.Struct({ value: S.Number }) },
+      events: {
+        'change-rating-value': Schema.Struct({ value: Schema.Number }),
+      },
     })
     const builder = spec.withMessage(__htmlBuilder<Message>())
     expect('OnChangeRatingValue' in builder).toBe(true)

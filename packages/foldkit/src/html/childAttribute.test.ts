@@ -1,5 +1,5 @@
-import { Context } from 'effect'
-import { afterEach, beforeEach, expect } from 'vitest'
+import { Context, Stream } from 'effect'
+import { afterEach, beforeEach, expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
@@ -75,6 +75,82 @@ describe('childAttributes', () => {
 
   afterEach(() => {
     clearRuntime()
+  })
+
+  it('captures a Mount dispatch resolver only for groups containing OnMount', () => {
+    const h = __htmlBuilder<ChildClicked>()
+    const clickAttributes = childAttributes([
+      h.OnClick({ _tag: 'ChildClicked' }),
+    ])
+    const mountAttributes = childAttributes([
+      h.OnMount({
+        name: 'ObserveChild',
+        f: (_element, _viewStateChanges) => Stream.never,
+      }),
+    ])
+
+    expect(
+      clickAttributes.every(
+        attribute => attribute.resolveMountDispatch === undefined,
+      ),
+    ).toBe(true)
+    expect(
+      mountAttributes.every(
+        attribute => attribute.resolveMountDispatch !== undefined,
+      ),
+    ).toBe(true)
+  })
+
+  it('keeps a later OnMount group bound to the child boundary after an event-only group', async () => {
+    type CheckboxViewInputs = Readonly<{
+      toView: (attributes: {
+        event: ReadonlyArray<ChildAttribute>
+        mount: ReadonlyArray<ChildAttribute>
+      }) => Html
+    }>
+
+    const fakeCheckboxView = defineView<
+      object,
+      ChildClicked,
+      CheckboxViewInputs
+    >((_model, viewInputs) => {
+      const h = __htmlBuilder<ChildClicked>()
+      return viewInputs.toView({
+        event: childAttributes([h.OnClick({ _tag: 'ChildClicked' })]),
+        mount: childAttributes([
+          h.OnMount({
+            name: 'ObserveChild',
+            f: (_element, _viewStateChanges) =>
+              Stream.make({ _tag: 'ChildClicked' }),
+          }),
+        ]),
+      })
+    })
+
+    const result = submodel({
+      slotId: 'fake-checkbox',
+      model: {},
+      view: fakeCheckboxView,
+      viewInputs: {
+        toView: attributes => {
+          const hParent = __htmlBuilder<ParentDirect>()
+          return hParent.div([...attributes.event, ...attributes.mount])
+        },
+      },
+      toParentMessage: message => GotChild({ message }),
+    })
+    if (result === null) {
+      throw new Error('Expected the Submodel to render an element')
+    }
+    result.elm = document.createElement('div')
+    result.data?.hook?.insert?.(result)
+
+    await vi.waitFor(() => {
+      expect(dispatched).toContainEqual({
+        _tag: 'GotChild',
+        message: { _tag: 'ChildClicked' },
+      })
+    })
   })
 
   it('routes a published OnClick through the Submodel boundary even when the consumer builds the element in the parent boundary', () => {

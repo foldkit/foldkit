@@ -13,15 +13,8 @@ import {
 } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import {
-  FailedFetchWeather,
-  FetchWeather,
-  SucceededFetchWeather,
-  WeatherAsyncData,
-  update,
-  view,
-} from './main'
-import { weatherData, weatherModel } from './main.fixtures'
+import { FetchWeather, Message, WeatherAsyncData, update, view } from './main'
+import { weatherData, weatherModel } from './main.fixture'
 
 describe('view', () => {
   test('initial view shows empty form with Get Weather button', () => {
@@ -52,7 +45,7 @@ describe('view', () => {
       Command.expectExact(FetchWeather({ zipCode: '90210' })),
       Command.resolve(
         FetchWeather,
-        SucceededFetchWeather({ weather: weatherData }),
+        Message.SucceededFetchWeather({ weather: weatherData }),
       ),
     )
   })
@@ -65,7 +58,7 @@ describe('view', () => {
       Command.expectExact(FetchWeather({ zipCode: '90210' })),
       Command.resolve(
         FetchWeather,
-        SucceededFetchWeather({ weather: weatherData }),
+        Message.SucceededFetchWeather({ weather: weatherData }),
       ),
       inside(
         role('article'),
@@ -87,7 +80,7 @@ describe('view', () => {
       Command.expectExact(FetchWeather({ zipCode: '90210' })),
       Command.resolve(
         FetchWeather,
-        FailedFetchWeather({ error: 'Network error' }),
+        Message.FailedFetchWeather({ error: 'Network error' }),
       ),
       expect(role('article')).toBeAbsent(),
       expect(text('Network error', { exact: false })).toExist(),
@@ -104,7 +97,7 @@ describe('view', () => {
       Command.expectExact(FetchWeather({ zipCode: '90210' })),
       Command.resolve(
         FetchWeather,
-        SucceededFetchWeather({ weather: weatherData }),
+        Message.SucceededFetchWeather({ weather: weatherData }),
       ),
       inside(
         role('article'),

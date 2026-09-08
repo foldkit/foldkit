@@ -1,11 +1,11 @@
 import { Submodel } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
+import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
-import type { RenderCopyButton } from '../../view/codeBlock'
-import * as Button from './button'
 import raw from './buttonPage.md'
+import * as Button from './demo/button'
 import type { Message } from './message'
 import type { Model } from './model'
 
@@ -17,7 +17,7 @@ const { tableOfContents, view: renderPage } = slotDocPage<'basic' | 'disabled'>(
 export { tableOfContents }
 
 type ViewInputs = Readonly<{
-  renderCopyButton: RenderCopyButton
+  renderCopyButton: CodeBlock.RenderCopyButton
   renderHeadingLink: RenderHeadingLink
 }>
 

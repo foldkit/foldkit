@@ -4,5 +4,13 @@ const badRouting = () =>
   GotChildMessage({ message: Child.Message.ClickedSave() })
 
 // ✅ Good
-// The child exports a helper; the root routes its output through the wrapper.
-const goodRouting = () => GotChildMessage({ message: Child.clickedSave() })
+// The child exports an update capability. The parent folds the complete child
+// result without importing or constructing its internal Message.
+const foldChildSave = Update.foldChildStep({
+  update: Child.save,
+  read: model => Option.some(model.child),
+  write: (model, nextChild) => evo(model, { child: () => nextChild }),
+  toParentMessage: message => GotChildMessage({ message }),
+})
+
+const goodRouting = model => foldChildSave(model)

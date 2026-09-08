@@ -1,7 +1,11 @@
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 
 // ❌ Bad
-const NoOp = m('NoOp')
+const BadMessage = defineMessageUnion({
+  NoOp: {},
+})
 
 // ✅ Good
-const ClickedSave = m('ClickedSave')
+const Message = defineMessageUnion({
+  ClickedSave: {},
+})

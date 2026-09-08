@@ -4,11 +4,7 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 import { Button, Textarea } from '@foldkit/ui'
 
 import { Cart } from '../domain'
-import {
-  ClickedPlaceOrder,
-  Message,
-  UpdatedDeliveryInstructions,
-} from '../main'
+import { Message } from '../main'
 import { cartRouter, productsRouter } from '../route'
 
 // VIEW
@@ -145,7 +141,8 @@ export const view = (
                 id: 'delivery-instructions',
                 value: deliveryInstructions,
                 placeholder: 'Special delivery instructions (optional)...',
-                onInput: value => UpdatedDeliveryInstructions({ value }),
+                onInput: value =>
+                  Message.UpdatedDeliveryInstructions({ value }),
                 toView: attributes =>
                   h.div(
                     [h.Class('mb-6')],
@@ -184,7 +181,7 @@ export const view = (
                 ),
                 Button.view(
                   {
-                    onClick: ClickedPlaceOrder(),
+                    onClick: Message.ClickedPlaceOrder(),
                     toView: attributes =>
                       h.button(
                         [

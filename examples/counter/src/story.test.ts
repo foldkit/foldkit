@@ -1,13 +1,7 @@
 import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
-import {
-  ClickedDecrement,
-  ClickedIncrement,
-  ClickedReset,
-  type Model,
-  update,
-} from './main'
+import { Message, type Model, update } from './main'
 
 const initialModel: Model = { count: 0 }
 
@@ -16,7 +10,7 @@ describe('update', () => {
     story(
       update,
       given(initialModel),
-      message(ClickedIncrement()),
+      message(Message.ClickedIncrement()),
       Command.expectNone(),
       model(model => {
         expect(model.count).toBe(1)
@@ -28,7 +22,7 @@ describe('update', () => {
     story(
       update,
       given({ count: 5 }),
-      message(ClickedDecrement()),
+      message(Message.ClickedDecrement()),
       model(model => {
         expect(model.count).toBe(4)
       }),
@@ -39,7 +33,7 @@ describe('update', () => {
     story(
       update,
       given(initialModel),
-      message(ClickedDecrement()),
+      message(Message.ClickedDecrement()),
       model(model => {
         expect(model.count).toBe(-1)
       }),
@@ -50,7 +44,7 @@ describe('update', () => {
     story(
       update,
       given({ count: 99 }),
-      message(ClickedReset()),
+      message(Message.ClickedReset()),
       model(model => {
         expect(model.count).toBe(0)
       }),
@@ -61,14 +55,14 @@ describe('update', () => {
     story(
       update,
       given(initialModel),
-      message(ClickedIncrement()),
-      message(ClickedIncrement()),
-      message(ClickedIncrement()),
-      message(ClickedDecrement()),
+      message(Message.ClickedIncrement()),
+      message(Message.ClickedIncrement()),
+      message(Message.ClickedIncrement()),
+      message(Message.ClickedDecrement()),
       model(model => {
         expect(model.count).toBe(2)
       }),
-      message(ClickedReset()),
+      message(Message.ClickedReset()),
       model(model => {
         expect(model.count).toBe(0)
       }),

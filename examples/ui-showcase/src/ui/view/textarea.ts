@@ -3,7 +3,7 @@ import type { Html } from 'foldkit/html'
 
 import { Textarea } from '@foldkit/ui'
 
-import { type UiMessage, UpdatedTextareaDemoValue } from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 const textareaClassName =
@@ -31,7 +31,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
               {
                 id: 'textarea-basic-demo',
                 value: model.textareaDemoValue,
-                onInput: value => UpdatedTextareaDemoValue({ value }),
+                onInput: value => UiMessage.UpdatedTextareaDemoValue({ value }),
                 placeholder: 'Tell us about yourself...',
                 rows: 4,
                 toView: attributes =>

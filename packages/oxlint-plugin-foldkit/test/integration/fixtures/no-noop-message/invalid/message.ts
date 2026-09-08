@@ -1,3 +1,5 @@
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 
-export const NoOp = m('NoOp')
+const Message = defineMessageUnion({
+  NoOp: {},
+})

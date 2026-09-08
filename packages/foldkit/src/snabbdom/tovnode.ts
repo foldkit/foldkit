@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
-import { addNS } from './h.js'
+import { addMathmlNS, addNS } from './h.js'
 import { type DOMAPI, htmlDomApi } from './htmldomapi.js'
 import { type VNode, vnode } from './vnode.js'
 
@@ -53,6 +53,11 @@ export function toVNode(node: Node, domApi?: DOMAPI): VNode {
       (sel.length === 3 || sel[3] === '.' || sel[3] === '#')
     ) {
       addNS(data, children, sel)
+    } else if (
+      sel.startsWith('math') &&
+      (sel.length === 4 || sel[4] === '.' || sel[4] === '#')
+    ) {
+      addMathmlNS(data, children, sel)
     }
     return vnode(sel, data, children, undefined, node)
   } else if (api.isText(node)) {

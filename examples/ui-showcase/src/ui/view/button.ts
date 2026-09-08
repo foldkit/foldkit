@@ -3,7 +3,7 @@ import type { Html } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
-import { ClickedButtonDemo, type UiMessage } from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 const buttonClassName =
@@ -25,7 +25,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
           [
             Button.view(
               {
-                onClick: ClickedButtonDemo(),
+                onClick: UiMessage.ClickedButtonDemo(),
                 toView: attributes =>
                   h.button(
                     [...attributes.button, h.Class(buttonClassName)],

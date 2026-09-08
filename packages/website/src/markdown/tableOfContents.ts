@@ -1,8 +1,8 @@
-import { Array, Match as M, Option, Result, pipe } from 'effect'
+import { Array, Match, Option, Result, pipe } from 'effect'
 
 import type { Heading, MarkdownDocument } from '@foldkit/markdown'
 
-import type { TableOfContentsEntry } from '../main'
+import type { TableOfContentsEntry } from '../tableOfContentsEntry'
 import { parseHeadingId, slugify } from './slug'
 
 // TABLE OF CONTENTS
@@ -36,12 +36,12 @@ const tableOfContentsEntry = (
   id: string,
   text: string,
 ): Result.Result<TableOfContentsEntry, void> =>
-  M.value(heading.level).pipe(
-    M.withReturnType<Result.Result<TableOfContentsEntry, void>>(),
-    M.when(2, () => Result.succeed({ id, level: 'h2', text })),
-    M.when(3, () => Result.succeed({ id, level: 'h3', text })),
-    M.when(4, () => Result.succeed({ id, level: 'h4', text })),
-    M.orElse(() => Result.failVoid),
+  Match.value(heading.level).pipe(
+    Match.withReturnType<Result.Result<TableOfContentsEntry, void>>(),
+    Match.when(2, () => Result.succeed({ id, level: 'h2', text })),
+    Match.when(3, () => Result.succeed({ id, level: 'h3', text })),
+    Match.when(4, () => Result.succeed({ id, level: 'h4', text })),
+    Match.orElse(() => Result.failVoid),
   )
 
 /**
@@ -58,9 +58,9 @@ export const collectHeadings = (
   const usedIds = new Set<string>()
 
   const tableOfContents = Array.filterMap(document.blocks, block =>
-    M.value(block).pipe(
-      M.withReturnType<Result.Result<TableOfContentsEntry, void>>(),
-      M.tag('Heading', heading => {
+    Match.value(block).pipe(
+      Match.withReturnType<Result.Result<TableOfContentsEntry, void>>(),
+      Match.tag('Heading', heading => {
         const { maybeId, text } = parseHeadingId(heading.content)
         const base = Option.getOrElse(maybeId, () => slugify(text))
         const id = uniqueHeadingId(base, usedIds)
@@ -68,7 +68,7 @@ export const collectHeadings = (
         idByHeading.set(heading, id)
         return tableOfContentsEntry(heading, id, text)
       }),
-      M.orElse(() => Result.failVoid),
+      Match.orElse(() => Result.failVoid),
     ),
   )
 

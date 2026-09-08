@@ -1,9 +1,9 @@
-import { evo } from 'foldkit/struct'
+import { evo as evolve } from 'foldkit/struct'
 import { Model } from './model'
 
 // UPDATE
 
 export const update = (model: Model): Model =>
-  evo(model, {
+  evolve(model, {
     user: () => ({ ...model.user, name: 'Ada' }),
   })

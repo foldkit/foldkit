@@ -15,16 +15,16 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "effect": "4.0.0-beta.102",
+    "effect": "4.0.0-rc.112",
     "foldkit": "workspace:*"
   },
   "devDependencies": {
     "@foldkit/vite-plugin": "workspace:*",
-    "@types/node": "^25.9.3",
-    "happy-dom": "^20.10.4",
-    "playwright": "^1.61.0",
-    "typescript": "^6.0.3",
-    "vite": "^8.0.16",
-    "vitest": "^4.1.9"
+    "@types/node": "^26.4.0",
+    "happy-dom": "^20.11.13",
+    "playwright": "^1.62.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
   }
 }

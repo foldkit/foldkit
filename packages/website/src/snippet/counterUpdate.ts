@@ -1,20 +1,15 @@
-import { Match as M } from 'effect'
-import { Command } from 'foldkit'
+import { type Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 // UPDATE
 
-const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      ClickedDecrement: () => [evo(model, { count: count => count - 1 }), []],
-      ClickedIncrement: () => [evo(model, { count: count => count + 1 }), []],
-      ClickedReset: () => [evo(model, { count: () => 0 }), []],
+const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedDecrement: () => ({
+      model: evo(model, { count: count => count - 1 }),
     }),
-  )
+    ClickedIncrement: () => ({
+      model: evo(model, { count: count => count + 1 }),
+    }),
+    ClickedReset: () => ({ model: evo(model, { count: () => 0 }) }),
+  })

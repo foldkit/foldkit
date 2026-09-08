@@ -1,22 +1,24 @@
-import { Array, Effect, Match as M, Schema as S } from 'effect'
-import { Command } from 'foldkit'
-import { m } from 'foldkit/message'
+import { Array, Effect, Schema } from 'effect'
+import { Command, type Update } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const ClickedCancelUpload = m('ClickedCancelUpload', { uploadId: S.Number })
-const SucceededUploadFile = m('SucceededUploadFile', { uploadId: S.Number })
-const FailedUploadFile = m('FailedUploadFile', { uploadId: S.Number })
-const CompletedCancelUploadFile = m('CompletedCancelUploadFile', {
-  uploadId: S.Number,
-  outcome: Command.Interruptible.Outcome,
+const Message = defineMessageUnion({
+  ClickedCancelUpload: { uploadId: Schema.Number },
+  SucceededUploadFile: { uploadId: Schema.Number },
+  FailedUploadFile: { uploadId: Schema.Number },
+  CompletedCancelUploadFile: {
+    uploadId: Schema.Number,
+    outcome: Command.Interruptible.Outcome,
+  },
 })
 
-const UploadKey = S.Struct({ uploadId: S.Number })
+const UploadKey = Schema.Struct({ uploadId: Schema.Number })
 type UploadKey = typeof UploadKey.Type
 
 const UploadFile = Command.define('UploadFile', {
-  args: { ...UploadKey.fields, file: S.instanceOf(File) },
-  messages: [SucceededUploadFile, FailedUploadFile],
+  args: { ...UploadKey.fields, file: Schema.instanceOf(File) },
+  messages: [Message.SucceededUploadFile, Message.FailedUploadFile],
   // The key function maps args to what distinguishes invocations. Foldkit
   // prefixes the Command name automatically, so the full key for upload 7
   // is "UploadFile:7".
@@ -26,8 +28,10 @@ const UploadFile = Command.define('UploadFile', {
   },
   execute: ({ uploadId, file }) =>
     postFile(file).pipe(
-      Effect.as(SucceededUploadFile({ uploadId })),
-      Effect.catch(() => Effect.succeed(FailedUploadFile({ uploadId }))),
+      Effect.as(Message.SucceededUploadFile({ uploadId })),
+      Effect.catch(() =>
+        Effect.succeed(Message.FailedUploadFile({ uploadId })),
+      ),
     ),
 })
 
@@ -36,48 +40,36 @@ const setStatusForId = (uploadId: number, status: UploadStatus) =>
     upload.id === uploadId ? evo(upload, { status: () => status }) : upload,
   )
 
-const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      // Interrupt only the upload with this uploadId.
-      ClickedCancelUpload: ({ uploadId }) => [
-        model,
-        [
-          UploadFile.Interrupt({ uploadId }, outcome =>
-            CompletedCancelUploadFile({ uploadId, outcome }),
-          ),
-        ],
-      ],
-      CompletedCancelUploadFile: ({ uploadId, outcome }) =>
-        M.value(outcome).pipe(
-          M.withReturnType<
-            readonly [Model, ReadonlyArray<Command.Command<Message>>]
-          >(),
-          M.tagsExhaustive({
-            // The upload was stopped. Its result Message will never arrive,
-            // so this branch owns the state transition.
-            Interrupted: () => [
-              evo(model, { uploads: setStatusForId(uploadId, 'Cancelled') }),
-              [],
-            ],
-            // Nothing held the key: the upload already completed (or never
-            // started), and its own result Message handles the Model.
-            NotFound: () => [model, []],
-          }),
+type UpdateReturn = Update.Return<Model, Message>
+
+const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    // Interrupt only the upload with this uploadId.
+    ClickedCancelUpload: ({ uploadId }) => ({
+      model,
+      commands: [
+        UploadFile.Interrupt({ uploadId }, outcome =>
+          Message.CompletedCancelUploadFile({ uploadId, outcome }),
         ),
-      SucceededUploadFile: ({ uploadId }) => [
-        evo(model, { uploads: setStatusForId(uploadId, 'Done') }),
-        [],
-      ],
-      FailedUploadFile: ({ uploadId }) => [
-        evo(model, { uploads: setStatusForId(uploadId, 'Failed') }),
-        [],
       ],
     }),
-  )
+    CompletedCancelUploadFile: ({ uploadId, outcome }) =>
+      Command.Interruptible.Outcome.match<UpdateReturn>(outcome, {
+        // The upload was stopped. Its result Message will never arrive,
+        // so this branch owns the state transition.
+        Interrupted: () => ({
+          model: evo(model, {
+            uploads: setStatusForId(uploadId, 'Cancelled'),
+          }),
+        }),
+        // Nothing held the key: the upload already completed (or never
+        // started), and its own result Message handles the Model.
+        NotFound: () => ({ model }),
+      }),
+    SucceededUploadFile: ({ uploadId }) => ({
+      model: evo(model, { uploads: setStatusForId(uploadId, 'Done') }),
+    }),
+    FailedUploadFile: ({ uploadId }) => ({
+      model: evo(model, { uploads: setStatusForId(uploadId, 'Failed') }),
+    }),
+  })

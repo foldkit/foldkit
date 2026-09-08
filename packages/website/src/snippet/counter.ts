@@ -1,52 +1,43 @@
-import { Match as M, Schema as S } from 'effect'
-import { Command, Runtime } from 'foldkit'
+import { Schema } from 'effect'
+import { Runtime, type Update } from 'foldkit'
 import type { Document, HtmlBuilder } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // MODEL
 
-export const Model = S.Struct({
-  count: S.Number,
+export const Model = Schema.Struct({
+  count: Schema.Number,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-const ClickedDecrement = m('ClickedDecrement')
-const ClickedIncrement = m('ClickedIncrement')
-const ClickedReset = m('ClickedReset')
-
-export const Message = S.Union([
-  ClickedDecrement,
-  ClickedIncrement,
-  ClickedReset,
-])
+export const Message = defineMessageUnion({
+  ClickedDecrement: {},
+  ClickedIncrement: {},
+  ClickedReset: {},
+})
 export type Message = typeof Message.Type
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      ClickedDecrement: () => [evo(model, { count: count => count - 1 }), []],
-      ClickedIncrement: () => [evo(model, { count: count => count + 1 }), []],
-      ClickedReset: () => [evo(model, { count: () => 0 }), []],
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedDecrement: () => ({
+      model: evo(model, { count: count => count - 1 }),
     }),
-  )
+    ClickedIncrement: () => ({
+      model: evo(model, { count: count => count + 1 }),
+    }),
+    ClickedReset: () => ({ model: evo(model, { count: () => 0 }) }),
+  })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  { count: 0 },
-  [],
-]
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: { count: 0 },
+})
 
 // VIEW
 
@@ -67,15 +58,15 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
         [h.Class('flex flex-wrap justify-center gap-4')],
         [
           h.button(
-            [h.OnClick(ClickedDecrement()), h.Class(buttonStyle)],
+            [h.OnClick(Message.ClickedDecrement()), h.Class(buttonStyle)],
             ['-'],
           ),
           h.button(
-            [h.OnClick(ClickedReset()), h.Class(buttonStyle)],
+            [h.OnClick(Message.ClickedReset()), h.Class(buttonStyle)],
             ['Reset'],
           ),
           h.button(
-            [h.OnClick(ClickedIncrement()), h.Class(buttonStyle)],
+            [h.OnClick(Message.ClickedIncrement()), h.Class(buttonStyle)],
             ['+'],
           ),
         ],

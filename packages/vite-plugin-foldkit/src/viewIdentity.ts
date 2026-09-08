@@ -301,6 +301,27 @@ const rawFunctionName = (
   return ANONYMOUS_FUNCTION_NAME
 }
 
+// NOTE: a view identity names a source position, and a source position outlives
+// the code that occupied it. Hydration compares identities to decide whether the
+// server DOM and the client's first render describe the same logical element, so
+// an identity that stays the same while the function's body changes tells it two
+// different views are the same one: a stale page's `<input name="email">` is
+// adopted by a new build's `<input name="ssn">`, and the value the visitor typed
+// before hydration is carried into a field that means something else and submits
+// under a new name. That is what the deployment's build id answers: it is
+// compared before hydration reads anything the page carries, so a page from a
+// build whose views mean something else is refused as a whole.
+//
+// An identity carries no digest of the module's source, and must not. Mixing
+// one in would make a changed view rebuild its own subtree, which is the reason
+// to want it, but the identity is emitted into the client bundle every visitor
+// downloads, and a truncated hash of a whole source file is a check against that
+// file's contents. A build that tree-shakes a low-entropy server-only value out
+// of the client (a PIN behind `import.meta.env.SSR`) would still ship a digest
+// of the source that contained it, and the value could be recovered by hashing
+// candidates until one matched. The build id costs nothing to compare and
+// reveals nothing about the source. `check:packed-ssr-consumer` asserts the
+// absence against a real built bundle.
 const assignFunctionIds = (
   functionNodes: ReadonlyArray<FunctionNode>,
   parentByNode: ReadonlyMap<AstNode, AstNode>,
@@ -410,10 +431,40 @@ const uniqueBrandAlias = (code: string): string => {
 
 // TRANSFORM
 
+// NOTE: MagicString 0.x declared `file` as a string even though generated maps
+// leave it undefined when no file is supplied. Keep that published type while
+// narrowing `sourcesContent` for Vite 7. `file` remains untouched at runtime.
+type ViteCompatibleSourceMap = SourceMap & {
+  file: string
+  sourcesContent: Array<string> | undefined
+}
+
+const isViteCompatibleSourceMap = (
+  sourceMap: SourceMap,
+): sourceMap is SourceMap & ViteCompatibleSourceMap =>
+  sourceMap.sourcesContent === undefined ||
+  sourceMap.sourcesContent.every(content => content !== null)
+
+const toViteCompatibleSourceMap = (
+  sourceMap: SourceMap,
+): ViteCompatibleSourceMap => {
+  if (sourceMap.sourcesContent !== undefined) {
+    sourceMap.sourcesContent = sourceMap.sourcesContent.map(
+      content => content ?? '',
+    )
+  }
+
+  if (isViteCompatibleSourceMap(sourceMap)) {
+    return sourceMap
+  }
+
+  throw new Error('Failed to normalize the generated source map')
+}
+
 /** Result of {@link transformViewIdentity}: rewritten code plus a source map. */
 export type ViewIdentityTransformResult = Readonly<{
   code: string
-  map: SourceMap
+  map: ViteCompatibleSourceMap
 }>
 
 /**
@@ -459,7 +510,9 @@ export const transformViewIdentity = (
   code: string,
   id: string,
   root: string,
-  options?: Readonly<{ isFoldkitCoreResolved?: boolean }>,
+  options?: Readonly<{
+    isFoldkitCoreResolved?: boolean
+  }>,
 ): ViewIdentityTransformResult | null => {
   if (!isEligibleModuleId(id, options?.isFoldkitCoreResolved ?? false)) {
     return null
@@ -499,7 +552,9 @@ export const transformViewIdentity = (
   }
   return {
     code: sourceText.toString(),
-    map: sourceText.generateMap({ hires: 'boundary' }),
+    map: toViteCompatibleSourceMap(
+      sourceText.generateMap({ hires: 'boundary' }),
+    ),
   }
 }
 

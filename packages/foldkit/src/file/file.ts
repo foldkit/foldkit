@@ -1,4 +1,4 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 
 /**
  * A file selected by the user. Direct alias for the browser's native `File`
@@ -13,10 +13,10 @@ export type File = globalThis.File
  * Use in Model fields that hold user-selected files:
  *
  * ```ts
- * attachedResume: S.Option(File.File)
+ * attachedResume: Schema.Option(File.File)
  * ```
  */
-export const File: S.Schema<File> = S.instanceOf(globalThis.File)
+export const File: Schema.Schema<File> = Schema.instanceOf(globalThis.File)
 
 /** The file's name including extension, as reported by the browser. */
 export const name = (file: File): string => file.name

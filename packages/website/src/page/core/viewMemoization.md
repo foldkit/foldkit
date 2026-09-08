@@ -1,43 +1,64 @@
 # View Memoization
 
-## Overview
+## Skipping Stable Subtrees {#overview}
 
-In [The Elm Architecture](https://guide.elm-lang.org/architecture/), every model change triggers a full call to `view(model)`. The entire virtual DOM tree is rebuilt from scratch, then diffed against the previous tree to compute minimal DOM updates. For most apps this is fast enough, but when a view contains a large subtree that rarely changes, the cost of rebuilding and diffing that subtree on every render adds up.
+Every Model change calls view again. Foldkit builds the next VNode tree and diffs it against the previous tree. Most views need no extra optimization, but a large subtree that rarely changes can repeat the same construction and diff work on every render.
 
-Foldkit provides two functions for skipping unnecessary view work: `createLazy` for single views and `createKeyedLazy` for lists. Both work by caching the VNode returned by a view function. When the function reference and all arguments are referentially equal (`===`) to the previous call, the cached VNode is returned without re-running the view function. The differ short-circuits when it sees the same VNode reference, so both VNode construction and subtree diffing are skipped.
+Foldkit provides two memoization helpers:
+
+- `createLazy` caches a view rendered at one position.
+- `createKeyedLazy` gives one view function a separate cache for each list item, entity, or call site.
+
+Each helper caches the VNode returned by a view function. On a later live render, Foldkit reuses it when the function and every argument still have the same references. The DOM differ sees the same VNode object and skips the subtree.
 
 ## createLazy {#create-lazy}
 
-`createLazy` creates a single memoization slot. Call it at module level to create a cache, then use it in your view to wrap an expensive subtree:
+`createLazy` creates one memoization slot. Declare it at module scope, then use it to wrap an expensive subtree rendered at one position.
 
 ::Snippet{name="createLazy" label="createLazy example"}
 
-Both the view function and the lazy slot must be defined at module level. If the view function is defined inside the view, a new function reference is created on every render, which means the `fn === previousFn` check always fails and the cache is never used.
+Both the view function and the lazy slot must stay at module scope. Defining either inside view creates a new reference on every render, so the cache always misses.
 
-Arguments are compared by reference, not by value. This works naturally with [evo](/best-practices/immutability#immutable-updates): when a Model field isn’t updated, `evo` preserves its reference. Only fields that actually changed get new references, so unchanged arguments automatically pass the `===` check.
+Arguments are compared by reference, not by value. This works with [evo](/best-practices/immutability#immutable-updates): an unchanged Model branch keeps its reference, so a lazy view receiving that branch can reuse its VNode.
 
 ## createKeyedLazy {#create-keyed-lazy}
 
-`createKeyedLazy` creates a `Map`-backed cache where each key gets its own independent memoization slot. This is designed for lists where individual items change independently:
+`createKeyedLazy` stores an independent memoization slot for every key. Use it when one view function renders several positions, such as rows in a list.
 
 ::Snippet{name="createKeyedLazy" label="createKeyedLazy example"}
 
-When one item in the list changes, only that item is recomputed. All other items return their cached VNodes instantly. This reduces the expensive item-subtree recomputation to `O(1)` for the common case where only one or two items change, though the parent view still traverses the full list.
+When one item changes, its slot misses while unchanged items return their cached VNodes. The parent view still traverses the list, but it does not rebuild or diff each unchanged item subtree.
 
 :::Warning{label="One slot per position"}
-A cached VNode can only be rendered at one position in the tree. The differ records each VNode object's real DOM element on the VNode itself, so rendering the same cached VNode at two positions causes patches to collide and can duplicate or misplace DOM nodes. If the same content needs to appear in multiple positions (for example, the same navigation in a desktop sidebar and a mobile menu), create a separate lazy slot for each position.
+A cached VNode can appear at only one position in the tree. Foldkit records its DOM element on the VNode object. Reusing that object at two positions can duplicate or move the wrong DOM node. Give each position its own key. For example: use separate keys for desktop and mobile instances of the same navigation view.
+:::
+
+## Keying by Entity Identity {#key-by-entity-identity}
+
+A keyed lazy also separates entities rendered at the same position. A blog page can cache each post by slug, so returning to a previous post can reuse its VNode instead of rebuilding it.
+
+Use the same stable Model identifier for memoization and [DOM identity](/best-practices/keying#keys-and-view-identity). A post addressed by `post.slug` uses `post.slug`. A row keyed with `todo.id` uses `todo.id`. One identifier then names the entity in both systems.
+
+::Snippet{name="createKeyedLazyEntity" label="Memoizing an entity view by its identifier"}
+
+Keys can also identify fixed call sites. If one view function renders in two places, give those positions distinct keys instead of maintaining two `createLazy` slots.
+
+:::Info{label="Keys are never evicted"}
+`createKeyedLazy` keeps every key it has seen for the lifetime of the page. Use it with a bounded set, such as an entity registry, route table, or fixed set of call sites. A search query or paged cursor can produce unbounded keys and grow the cache without limit.
 :::
 
 ## When to Use Lazy Views {#when-to-use-lazy}
 
-Lazy views help most when:
+Consider a lazy view when:
 
-- A large view subtree changes infrequently relative to how often the parent re-renders
-- A list has many items but only a few change at a time (table of contents, contact lists, dashboards)
-- The view function is expensive to compute (deeply nested trees, many elements)
+- A large subtree changes less often than its parent.
+- A long list usually changes only a few items.
+- Profiling shows that building or diffing a view is expensive.
 
-Lazy views are unnecessary for small views, views that change on every model update, or leaf nodes with minimal children. The memoization check itself has a small cost, so applying it everywhere would add overhead without benefit.
+Do not add lazy views to every function. Small views and inputs that change on every render receive no useful cache hits. Confirm the repeated work with the [slow warnings](/core/slow-warnings) and a profiler first.
 
 :::Info{label="How it works under the hood"}
-Foldkit’s differ (a vendored fork of [Snabbdom](https://github.com/snabbdom/snabbdom)) compares the old and new VNode by reference before diffing. When `oldVnode === newVnode`, it returns immediately. No attribute comparison, no child reconciliation, no DOM touching. `createLazy` and `createKeyedLazy` exploit this by returning the exact same VNode object when inputs are unchanged.
+Foldkit's differ compares the old and new VNode by reference before diffing. When they are the same object, it skips attribute comparison, child reconciliation, and DOM updates.
+
+The active dispatch is also part of the internal cache key because event handlers close over it. A DevTools replay uses a non-live dispatch, so Foldkit rebuilds the subtree before returning to the live application even when the function and arguments are unchanged.
 :::

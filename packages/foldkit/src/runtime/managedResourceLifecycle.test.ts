@@ -1,21 +1,14 @@
-import {
-  Context,
-  Effect,
-  Fiber,
-  Layer,
-  Match as M,
-  Option,
-  Schema as S,
-} from 'effect'
+import { Context, Effect, Fiber, Layer, Option, Schema } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
 import { __htmlBuilder } from '../html/index.js'
 import * as ManagedResource from '../managedResource/index.js'
 import { make } from '../managedResource/managedResource.js'
-import { m } from '../message/index.js'
+import { defineMessageUnion } from '../message/index.js'
 import { evo } from '../struct/index.js'
-import { makeElement } from './runtime.js'
+import type * as Update from '../update/index.js'
+import { makeElement } from './makeElement.js'
 
 type EngineShape = Readonly<{ id: string }>
 
@@ -23,13 +16,15 @@ class EngineService extends Context.Service<EngineService, EngineShape>()(
   'EngineService',
 ) {}
 
-const FAIL_ID = 'fail'
+const ACQUIRE_FAILURE_ID = 'acquire-failure'
+const RELEASE_DEFECT_ID = 'release-defect'
 const LAYER_BUILD_ERROR = 'engine layer failed to build'
+const RELEASE_ERROR = 'engine release failed'
 
 let log: Array<string> = []
 
 const acquireEngine = (id: string): Effect.Effect<EngineShape, Error> => {
-  if (id === FAIL_ID) {
+  if (id === ACQUIRE_FAILURE_ID) {
     return Effect.fail(new Error(LAYER_BUILD_ERROR))
   } else {
     return Effect.sync(() => {
@@ -49,76 +44,75 @@ const makeEngineLayer = (id: string): Layer.Layer<EngineService, Error> =>
     ),
   )
 
+const releaseEngine = ({ id }: EngineShape) =>
+  Effect.gen(function* () {
+    yield* Effect.sync(() => {
+      log.push('release')
+    })
+
+    if (id === RELEASE_DEFECT_ID) {
+      yield* Effect.sync(() => {
+        throw new Error(RELEASE_ERROR)
+      })
+    }
+  })
+
 const Engine = ManagedResource.tag<EngineShape>()('Engine')
 type EngineServiceId = ManagedResource.ServiceOf<typeof Engine>
 
-const RequestedEngine = m('RequestedEngine', { id: S.String })
-const StoppedEngine = m('StoppedEngine')
-const AcquiredEngine = m('AcquiredEngine')
-const ReleasedEngine = m('ReleasedEngine')
-const FailedEngine = m('FailedEngine', { error: S.String })
-const ClickedRead = m('ClickedRead')
-const SucceededRead = m('SucceededRead', { value: S.String })
-const FailedRead = m('FailedRead')
-
-const Message = S.Union([
-  RequestedEngine,
-  StoppedEngine,
-  AcquiredEngine,
-  ReleasedEngine,
-  FailedEngine,
-  ClickedRead,
-  SucceededRead,
-  FailedRead,
-])
+const Message = defineMessageUnion({
+  RequestedEngine: { id: Schema.String },
+  StoppedEngine: {},
+  AcquiredEngine: {},
+  ReleasedEngine: {},
+  FailedEngine: { error: Schema.String },
+  ClickedRead: {},
+  SucceededRead: { value: Schema.String },
+  FailedRead: {},
+})
 type Message = typeof Message.Type
 
-const Model = S.Struct({
-  requested: S.Option(S.String),
-  status: S.String,
-  readValue: S.String,
+const Model = Schema.Struct({
+  requested: Schema.Option(Schema.String),
+  status: Schema.String,
+  readValue: Schema.String,
 })
 type Model = typeof Model.Type
 
 const ReadEngine = Command.define('ReadEngine', {
-  messages: [SucceededRead, FailedRead],
+  messages: [Message.SucceededRead, Message.FailedRead],
   execute: Engine.get.pipe(
-    Effect.map(({ id }) => SucceededRead({ value: id })),
-    Effect.catchTag('ResourceNotAvailable', () => Effect.succeed(FailedRead())),
+    Effect.map(({ id }) => Message.SucceededRead({ value: id })),
+    Effect.catchTag('ResourceNotAvailable', () =>
+      Effect.succeed(Message.FailedRead()),
+    ),
   ),
 })
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message, never, EngineServiceId>>,
-]
-
-const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    M.withReturnType<UpdateReturn>(),
-    M.tagsExhaustive({
-      RequestedEngine: ({ id }) => [
-        evo(model, { requested: () => Option.some(id) }),
-        [],
-      ],
-      StoppedEngine: () => [evo(model, { requested: () => Option.none() }), []],
-      AcquiredEngine: () => [evo(model, { status: () => 'acquired' }), []],
-      ReleasedEngine: () => [evo(model, { status: () => 'released' }), []],
-      FailedEngine: ({ error }) => [
-        evo(model, { status: () => `failed:${error}` }),
-        [],
-      ],
-      ClickedRead: () => [model, [ReadEngine()]],
-      SucceededRead: ({ value }) => [
-        evo(model, { readValue: () => value }),
-        [],
-      ],
-      FailedRead: () => [evo(model, { readValue: () => 'unavailable' }), []],
+const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message, EngineServiceId>>(message, {
+    RequestedEngine: ({ id }) => ({
+      model: evo(model, { requested: () => Option.some(id) }),
     }),
-  )
+    StoppedEngine: () => ({
+      model: evo(model, { requested: () => Option.none() }),
+    }),
+    AcquiredEngine: () => ({ model: evo(model, { status: () => 'acquired' }) }),
+    ReleasedEngine: () => ({ model: evo(model, { status: () => 'released' }) }),
+    FailedEngine: ({ error }) => ({
+      model: evo(model, { status: () => `failed:${error}` }),
+    }),
+    ClickedRead: () => ({ model, commands: [ReadEngine()] }),
+    SucceededRead: ({ value }) => ({
+      model: evo(model, { readValue: () => value }),
+    }),
+    FailedRead: () => ({
+      model: evo(model, { readValue: () => 'unavailable' }),
+    }),
+  })
 
 const managedResources = make<Model, Message>()(entry => ({
-  engine: entry(S.Option(S.Struct({ id: S.String })), {
+  engine: entry(Schema.Option(Schema.Struct({ id: Schema.String })), {
     resource: Engine,
     modelToMaybeRequirements: model =>
       Option.map(model.requested, id => ({ id })),
@@ -126,13 +120,10 @@ const managedResources = make<Model, Message>()(entry => ({
       Layer.build(makeEngineLayer(id)).pipe(
         Effect.map(context => Context.get(context, EngineService)),
       ),
-    release: () =>
-      Effect.sync(() => {
-        log.push('release')
-      }),
-    onAcquired: () => AcquiredEngine(),
-    onReleased: () => ReleasedEngine(),
-    onAcquireError: error => FailedEngine({ error: String(error) }),
+    release: releaseEngine,
+    onAcquired: () => Message.AcquiredEngine(),
+    onReleased: () => Message.ReleasedEngine(),
+    onAcquireError: error => Message.FailedEngine({ error: String(error) }),
   }),
 }))
 
@@ -142,9 +133,12 @@ const view = (model: Model) =>
   h.div(
     [],
     [
-      h.button([h.OnClick(RequestedEngine({ id: 'b' }))], ['request-b']),
-      h.button([h.OnClick(StoppedEngine())], ['stop']),
-      h.button([h.OnClick(ClickedRead())], ['read']),
+      h.button(
+        [h.OnClick(Message.RequestedEngine({ id: 'b' }))],
+        ['request-b'],
+      ),
+      h.button([h.OnClick(Message.StoppedEngine())], ['stop']),
+      h.button([h.OnClick(Message.ClickedRead())], ['read']),
       h.div([], [`status:${model.status}`]),
       h.div([], [`value:${model.readValue}`]),
     ],
@@ -173,10 +167,13 @@ afterEach(() => {
 const startEngineApp = (initialId: string) =>
   makeElement({
     Model,
-    init: () => [
-      { requested: Option.some(initialId), status: 'idle', readValue: 'none' },
-      [],
-    ],
+    init: () => ({
+      model: {
+        requested: Option.some(initialId),
+        status: 'idle',
+        readValue: 'none',
+      },
+    }),
     update,
     view,
     crash,
@@ -256,7 +253,7 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
   })
 
   it('dispatches onAcquireError and leaves the ref empty when acquire fails', async () => {
-    const element = startEngineApp(FAIL_ID)
+    const element = startEngineApp(ACQUIRE_FAILURE_ID)
     const fiber = Effect.runFork(element.start())
 
     try {
@@ -283,6 +280,25 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
       await awaitLogEntry('finalize:a')
 
       expect(log).toStrictEqual(['build:a', 'release', 'finalize:a'])
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('clears the ref and dispatches onReleased after a release defect', async () => {
+    const element = startEngineApp(RELEASE_DEFECT_ID)
+    const fiber = Effect.runFork(element.start())
+
+    try {
+      await awaitBodyText('status:acquired')
+
+      clickButton('stop')
+      await awaitBodyText('status:released')
+
+      expect(document.body.textContent).not.toContain('Crash view')
+
+      clickButton('read')
+      await awaitBodyText('value:unavailable')
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))
     }

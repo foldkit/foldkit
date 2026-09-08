@@ -6,14 +6,7 @@ import { Button, DragAndDrop, Input } from '@foldkit/ui'
 
 import { ADD_CARD_INPUT_ID } from '../constant'
 import { Card, Column } from '../domain'
-import {
-  CancelledNewCard,
-  ChangedNewCardTitle,
-  ClickedAddCard,
-  GotDragAndDropMessage,
-  type Message,
-  SubmittedNewCard,
-} from '../message'
+import { Message } from '../message'
 import type { Model } from '../model'
 import { cardView } from './card'
 
@@ -31,7 +24,7 @@ const addCardForm = (
   if (!isAddingToThisColumn) {
     return Button.view(
       {
-        onClick: toParentMessage(ClickedAddCard({ columnId })),
+        onClick: toParentMessage(Message.ClickedAddCard({ columnId })),
         toView: attributes =>
           h.button(
             [
@@ -50,7 +43,7 @@ const addCardForm = (
   return h.form(
     [
       h.Class('flex flex-col gap-2'),
-      h.OnSubmit(toParentMessage(SubmittedNewCard())),
+      h.OnSubmit(toParentMessage(Message.SubmittedNewCard())),
     ],
     [
       h.label(
@@ -60,7 +53,8 @@ const addCardForm = (
       Input.view(
         {
           id: ADD_CARD_INPUT_ID,
-          onInput: value => toParentMessage(ChangedNewCardTitle({ value })),
+          onInput: value =>
+            toParentMessage(Message.ChangedNewCardTitle({ value })),
           value: model.newCardTitle,
           placeholder: 'Card title...',
           toView: attributes =>
@@ -72,7 +66,7 @@ const addCardForm = (
               h.OnKeyDownPreventDefault(
                 flow(
                   Option.liftPredicate(Equal.equals('Escape')),
-                  Option.map(() => toParentMessage(CancelledNewCard())),
+                  Option.map(() => toParentMessage(Message.CancelledNewCard())),
                 ),
               ),
             ]),
@@ -84,7 +78,7 @@ const addCardForm = (
         [
           Button.view(
             {
-              onClick: toParentMessage(CancelledNewCard()),
+              onClick: toParentMessage(Message.CancelledNewCard()),
               toView: attributes =>
                 h.button(
                   [
@@ -150,7 +144,7 @@ const defaultCardElements = (
       card,
       column.id,
       index,
-      message => toParentMessage(GotDragAndDropMessage({ message })),
+      message => toParentMessage(Message.GotDragAndDropMessage({ message })),
       h,
     ),
   )
@@ -179,7 +173,8 @@ const previewCardElements = (
           card,
           column.id,
           index,
-          message => toParentMessage(GotDragAndDropMessage({ message })),
+          message =>
+            toParentMessage(Message.GotDragAndDropMessage({ message })),
           h,
         ),
       )
@@ -209,7 +204,8 @@ const previewCardElements = (
                 card,
                 column.id,
                 targetIndex,
-                message => toParentMessage(GotDragAndDropMessage({ message })),
+                message =>
+                  toParentMessage(Message.GotDragAndDropMessage({ message })),
                 h,
               ),
           })

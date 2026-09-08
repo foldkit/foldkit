@@ -1,27 +1,21 @@
 import { FieldValidation } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import {
-  ClickedFormSubmit,
-  CompletedValidateEmail,
-  FailedSubmitForm,
+  Message,
   type Model,
   SubmitForm,
-  SucceededSubmitForm,
-  UpdatedEmail,
-  UpdatedMessageText,
-  UpdatedName,
   ValidateEmail,
   initialModel,
   update,
 } from './main'
 
-const validModel: Model = {
-  ...initialModel,
-  name: FieldValidation.Valid({ value: 'Alice' }),
-  email: FieldValidation.Valid({ value: 'alice@example.com' }),
-}
+const validModel: Model = evo(initialModel, {
+  name: () => FieldValidation.Valid({ value: 'Alice' }),
+  email: () => FieldValidation.Valid({ value: 'alice@example.com' }),
+})
 
 describe('update', () => {
   describe('name field', () => {
@@ -29,7 +23,7 @@ describe('update', () => {
       story(
         update,
         given(initialModel),
-        message(UpdatedName({ value: 'Alice' })),
+        message(Message.UpdatedName({ value: 'Alice' })),
         model(model => {
           expect(model.name._tag).toBe('Valid')
           expect(model.name.value).toBe('Alice')
@@ -41,7 +35,7 @@ describe('update', () => {
       story(
         update,
         given(initialModel),
-        message(UpdatedName({ value: 'A' })),
+        message(Message.UpdatedName({ value: 'A' })),
         model(model => {
           expect(model.name._tag).toBe('Invalid')
           if (model.name._tag === 'Invalid') {
@@ -59,14 +53,14 @@ describe('update', () => {
       story(
         update,
         given(initialModel),
-        message(UpdatedEmail({ value: 'alice@example.com' })),
+        message(Message.UpdatedEmail({ value: 'alice@example.com' })),
         model(model => {
           expect(model.email._tag).toBe('Validating')
         }),
         Command.expectHas(ValidateEmail),
         Command.resolve(
           ValidateEmail,
-          CompletedValidateEmail({
+          Message.CompletedValidateEmail({
             field: FieldValidation.Valid({ value: 'alice@example.com' }),
           }),
         ),
@@ -80,7 +74,7 @@ describe('update', () => {
       story(
         update,
         given(initialModel),
-        message(UpdatedEmail({ value: 'not-an-email' })),
+        message(Message.UpdatedEmail({ value: 'not-an-email' })),
         Command.expectNone(),
         model(model => {
           expect(model.email._tag).toBe('Invalid')
@@ -89,16 +83,15 @@ describe('update', () => {
     })
 
     test('a validation result for a superseded email value is ignored', () => {
-      const inFlightModel: Model = {
-        ...initialModel,
-        email: FieldValidation.Validating({ value: 'alice@example.com' }),
-      }
+      const inFlightModel: Model = evo(initialModel, {
+        email: () => FieldValidation.Validating({ value: 'alice@example.com' }),
+      })
 
       story(
         update,
         given(inFlightModel),
         message(
-          CompletedValidateEmail({
+          Message.CompletedValidateEmail({
             field: FieldValidation.Valid({ value: 'old@example.com' }),
           }),
         ),
@@ -109,16 +102,15 @@ describe('update', () => {
     })
 
     test('a validation result for the current email value updates the field', () => {
-      const inFlightModel: Model = {
-        ...initialModel,
-        email: FieldValidation.Validating({ value: 'taken@example.com' }),
-      }
+      const inFlightModel: Model = evo(initialModel, {
+        email: () => FieldValidation.Validating({ value: 'taken@example.com' }),
+      })
 
       story(
         update,
         given(inFlightModel),
         message(
-          CompletedValidateEmail({
+          Message.CompletedValidateEmail({
             field: FieldValidation.Invalid({
               value: 'taken@example.com',
               errors: ['This email is already on our waitlist'],
@@ -137,7 +129,7 @@ describe('update', () => {
       story(
         update,
         given(initialModel),
-        message(UpdatedMessageText({ value: 'Hello there.' })),
+        message(Message.UpdatedMessageText({ value: 'Hello there.' })),
         model(model => {
           expect(model.messageText._tag).toBe('Valid')
           expect(model.messageText.value).toBe('Hello there.')
@@ -151,7 +143,7 @@ describe('update', () => {
       story(
         update,
         given(initialModel),
-        message(ClickedFormSubmit()),
+        message(Message.ClickedFormSubmit()),
         Command.expectNone(),
         model(model => {
           expect(model.submission._tag).toBe('NotSubmitted')
@@ -163,12 +155,15 @@ describe('update', () => {
       story(
         update,
         given(validModel),
-        message(ClickedFormSubmit()),
+        message(Message.ClickedFormSubmit()),
         model(model => {
           expect(model.submission._tag).toBe('Submitting')
         }),
         Command.expectHas(SubmitForm),
-        Command.resolve(SubmitForm, SucceededSubmitForm({ name: 'Alice' })),
+        Command.resolve(
+          SubmitForm,
+          Message.SucceededSubmitForm({ name: 'Alice' }),
+        ),
         model(model => {
           expect(model.submission._tag).toBe('SubmitSuccess')
           if (model.submission._tag === 'SubmitSuccess') {
@@ -182,8 +177,8 @@ describe('update', () => {
       story(
         update,
         given(validModel),
-        message(ClickedFormSubmit()),
-        Command.resolve(SubmitForm, FailedSubmitForm()),
+        message(Message.ClickedFormSubmit()),
+        Command.resolve(SubmitForm, Message.FailedSubmitForm()),
         model(model => {
           expect(model.submission._tag).toBe('SubmitError')
         }),

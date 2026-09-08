@@ -1,10 +1,10 @@
 # Skills
 
-## Overview
+## Foldkit Skills
 
-Foldkit ships a `foldkit-skills` plugin that provides agent skills tailored to the Foldkit architecture. These skills encode the conventions, patterns, and quality standards that make Foldkit apps well-factored and maintainable.
+Foldkit ships three agent skills in the repository. Claude Code installs them together as the `foldkit-skills` plugin. Codex, the ChatGPT desktop app, and OpenCode can load the same skill directories directly.
 
-The skills work with `Claude Code`, `Codex`, the ChatGPT desktop app, and `OpenCode`. Each skill is a directory with a `SKILL.md` file, the format they all read.
+Each skill is a directory with a `SKILL.md` file. The file tells an agent when to use the skill and which workflow to follow. The optional `agents/openai.yaml` file supplies display metadata for Codex and the ChatGPT desktop app.
 
 ## Installation
 
@@ -20,42 +20,51 @@ Add the Foldkit marketplace, then install the plugin:
 /plugin install foldkit-skills@foldkit
 ```
 
-### Codex and ChatGPT
+### Codex
 
-Codex discovers repo-local skills from `.agents/skills/`. Vendor the Foldkit repository as a git subtree (see the [AI overview](/ai/overview)) so the sources are on disk, then copy or symlink the skill directories from `repos/foldkit/skills/` into `.agents/skills/` in your project. Invoke a skill by name, for example `$generate-program`.
+Codex discovers repository skills in `.agents/skills/` from the current directory up to the repository root. First [vendor the Foldkit repository](/ai/overview#vendoring-the-foldkit-repository), then copy or symlink the directories from `repos/foldkit/skills/` into `.agents/skills/` in your project. Codex follows symlinked skill directories.
 
-The ChatGPT desktop app surfaces the skills in its picker from the `agents/openai.yaml` descriptor shipped alongside each `SKILL.md` (display name, short description, and default prompt). Follow the [ChatGPT skills guide](https://learn.chatgpt.com/docs/build-skills) to register them.
+Invoke a skill by typing `$` and its name, such as `$generate-program`. Codex may also select a skill automatically when the task matches its description.
+
+### ChatGPT Desktop
+
+The ChatGPT desktop app uses the same `SKILL.md` format. The `agents/openai.yaml` file shipped with each Foldkit skill provides its display name, description, and default prompt in the Skills interface.
+
+Open Skills in the app sidebar to view the skills available across your projects. See the official [ChatGPT and Codex skills guide](https://learn.chatgpt.com/docs/build-skills) for standalone skill setup.
 
 ### OpenCode
 
-[OpenCode](https://opencode.ai/docs/skills/) discovers skills from `.opencode/skills/`, `.claude/skills/`, and `.agents/skills/`, walking up from the working directory to the git root. It reads the `SKILL.md` frontmatter directly and ignores the ChatGPT `agents/openai.yaml` descriptor.
+[OpenCode](https://opencode.ai/docs/skills/) discovers skills in `.opencode/skills/`, `.claude/skills/`, and `.agents/skills/`, walking from the current directory to the git root. Copy or symlink the Foldkit skill directories into one of those locations.
 
-Copy or symlink the skills from the vendored subtree (`repos/foldkit/skills/`) into one of those directories. OpenCode also reads `AGENTS.md`, so the conventions the starter template ships already apply.
+OpenCode reads the `SKILL.md` frontmatter directly and ignores `agents/openai.yaml`. It also reads the `AGENTS.md` that `create-foldkit-app` includes, which points it at `FOLDKIT.md`.
 
 ## Available Skills
 
 ### foldkit
 
 ```text
-/foldkit-skills:foldkit
+Claude Code: /foldkit-skills:foldkit
+Codex: $foldkit
 ```
 
-Always-on framing for working in a Foldkit codebase. Auto-loads when Foldkit context is detected (imports, files, or prompt mentions) and sets the agent's posture: pattern-match against Foldkit's own apps (the examples, the website, the typing-game), treat the architecture as non-negotiable, use what the Foldkit and Effect stack already ships before reaching for outside libraries, and prefer the canonical source over memory. Points the agent at the vendored foldkit subtree for the conventions, source code, and examples themselves.
+Loads the architectural framing for work in a Foldkit codebase. It directs the agent to the vendored source and examples, treats the Elm Architecture as a constraint, distinguishes stateful Submodels from stateless UI helpers, and checks the Foldkit and Effect stack before introducing another library.
+
+Hosts that support implicit skill invocation can select it when the project or prompt contains Foldkit context.
 
 ### generate-program
 
 ```text
-/foldkit-skills:generate-program
+Claude Code: /foldkit-skills:generate-program
+Codex: $generate-program
 ```
 
-Generate a complete, idiomatic Foldkit application from a natural language description. Produces correct-by-construction apps with proper Model schemas, Message naming, Commands with error handling, and Foldkit UI component integration.
+Builds an idiomatic Foldkit application from a natural-language description. The workflow clarifies domain behavior, studies matching examples, chooses the application structure and Foldkit UI components, verifies current APIs, writes tests, and runs the project's formatting, lint, typecheck, build, and browser checks.
 
 ### audit-program
 
 ```text
-/foldkit-skills:audit-program
+Claude Code: /foldkit-skills:audit-program
+Codex: $audit-program
 ```
 
-Audit an existing Foldkit program against the architecture, conventions, and quality bar. Surfaces structural issues, naming drift, accessibility gaps, dead code, and idiom violations as a structured BLOCKERS / QUALITY / NICE-TO-HAVE report. Read-only by default; fixes are opt-in and require explicit approval per item or batch.
-
-More skills are in development, including message scaffolding and Submodel extraction.
+Audits an existing Foldkit application against the architecture and conventions. It reports findings under `BLOCKERS`, `QUALITY`, and `NICE-TO-HAVE`, then gives a verdict. The audit remains read-only until the user reviews the report and explicitly approves individual fixes or a batch.

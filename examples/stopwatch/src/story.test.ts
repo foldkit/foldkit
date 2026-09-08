@@ -1,16 +1,12 @@
 import { Command, given, message, model, story } from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import {
-  ClickedReset,
-  ClickedStart,
-  ClickedStop,
-  CompletedDetermineStartTime,
-  CompletedDetermineTickTime,
   DetermineStartTime,
   DetermineTickTime,
+  Message,
   type Model,
-  Ticked,
   update,
 } from './main'
 
@@ -31,15 +27,15 @@ describe('update', () => {
     test('ClickedStart fires DetermineStartTime with current elapsed time', () => {
       story(
         update,
-        given({ ...idleModel, elapsedMs: 2000 }),
-        message(ClickedStart()),
+        given(evo(idleModel, { elapsedMs: () => 2000 })),
+        message(Message.ClickedStart()),
         Command.expectHas(DetermineStartTime),
         model(model => {
           expect(model.isRunning).toBe(false)
         }),
         Command.resolve(
           DetermineStartTime,
-          CompletedDetermineStartTime({ startTime: 500 }),
+          Message.CompletedDetermineStartTime({ startTime: 500 }),
         ),
         model(model => {
           expect(model.isRunning).toBe(true)
@@ -52,7 +48,7 @@ describe('update', () => {
       story(
         update,
         given(idleModel),
-        message(CompletedDetermineStartTime({ startTime: 1000 })),
+        message(Message.CompletedDetermineStartTime({ startTime: 1000 })),
         model(model => {
           expect(model.isRunning).toBe(true)
           expect(model.startTime).toBe(1000)
@@ -66,7 +62,7 @@ describe('update', () => {
       story(
         update,
         given(runningModel),
-        message(ClickedStop()),
+        message(Message.ClickedStop()),
         model(model => {
           expect(model.isRunning).toBe(false)
           expect(model.elapsedMs).toBe(5000)
@@ -79,7 +75,7 @@ describe('update', () => {
       story(
         update,
         given(runningModel),
-        message(ClickedReset()),
+        message(Message.ClickedReset()),
         model(model => {
           expect(model.elapsedMs).toBe(0)
           expect(model.isRunning).toBe(false)
@@ -92,7 +88,7 @@ describe('update', () => {
       story(
         update,
         given(idleModel),
-        message(ClickedReset()),
+        message(Message.ClickedReset()),
         model(model => {
           expect(model).toEqual(idleModel)
         }),
@@ -105,11 +101,11 @@ describe('update', () => {
       story(
         update,
         given(runningModel),
-        message(Ticked()),
+        message(Message.Ticked()),
         Command.expectHas(DetermineTickTime),
         Command.resolve(
           DetermineTickTime,
-          CompletedDetermineTickTime({ elapsedMs: 6000 }),
+          Message.CompletedDetermineTickTime({ elapsedMs: 6000 }),
         ),
         model(model => {
           expect(model.elapsedMs).toBe(6000)
@@ -121,7 +117,7 @@ describe('update', () => {
       story(
         update,
         given(runningModel),
-        message(CompletedDetermineTickTime({ elapsedMs: 7500 })),
+        message(Message.CompletedDetermineTickTime({ elapsedMs: 7500 })),
         model(model => {
           expect(model.elapsedMs).toBe(7500)
         }),

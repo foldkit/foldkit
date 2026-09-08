@@ -1,46 +1,31 @@
 import { Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
-import {
-  ClickedCompute,
-  ClickedStartEngine,
-  ClickedStopEngine,
-  CompletedCompute,
-  Compute,
-  EngineBooting,
-  EngineFailed,
-  EngineOff,
-  EngineReady,
-  FailedStartEngine,
-  type Model,
-  SkippedCompute,
-  StartedEngine,
-  StoppedEngine,
-  update,
-} from './main'
+import { Compute, EngineState, Message, type Model, update } from './main'
 
 const offModel: Model = {
-  engine: EngineOff(),
+  engine: EngineState.Off(),
   computeCount: 0,
   maybeSquareResult: Option.none(),
 }
 
 const readyModel: Model = {
-  engine: EngineReady({ engineId: 'engine-1' }),
+  engine: EngineState.Ready({ engineId: 'engine-1' }),
   computeCount: 2,
   maybeSquareResult: Option.none(),
 }
 
 describe('update', () => {
   describe('engine lifecycle', () => {
-    test('ClickedStartEngine requests the engine by entering EngineBooting', () => {
+    test('ClickedStartEngine requests the engine by entering Booting', () => {
       story(
         update,
         given(offModel),
-        message(ClickedStartEngine()),
+        message(Message.ClickedStartEngine()),
         model(model => {
-          expect(model.engine._tag).toBe('EngineBooting')
+          expect(model.engine._tag).toBe('Booting')
         }),
       )
     })
@@ -48,23 +33,23 @@ describe('update', () => {
     test('StartedEngine marks the engine ready with its id', () => {
       story(
         update,
-        given({ ...offModel, engine: EngineBooting() }),
-        message(StartedEngine({ engineId: 'engine-7' })),
+        given(evo(offModel, { engine: () => EngineState.Booting() })),
+        message(Message.StartedEngine({ engineId: 'engine-7' })),
         model(model => {
           expect(model.engine).toStrictEqual(
-            EngineReady({ engineId: 'engine-7' }),
+            EngineState.Ready({ engineId: 'engine-7' }),
           )
         }),
       )
     })
 
-    test('ClickedStopEngine releases the engine by entering EngineOff', () => {
+    test('ClickedStopEngine releases the engine by entering Off', () => {
       story(
         update,
         given(readyModel),
-        message(ClickedStopEngine()),
+        message(Message.ClickedStopEngine()),
         model(model => {
-          expect(model.engine._tag).toBe('EngineOff')
+          expect(model.engine._tag).toBe('Off')
         }),
       )
     })
@@ -73,7 +58,7 @@ describe('update', () => {
       story(
         update,
         given(offModel),
-        message(StoppedEngine()),
+        message(Message.StoppedEngine()),
         model(model => {
           expect(model).toStrictEqual(offModel)
         }),
@@ -83,11 +68,11 @@ describe('update', () => {
     test('FailedStartEngine records the failure reason', () => {
       story(
         update,
-        given({ ...offModel, engine: EngineBooting() }),
-        message(FailedStartEngine({ reason: 'boot timeout' })),
+        given(evo(offModel, { engine: () => EngineState.Booting() })),
+        message(Message.FailedStartEngine({ reason: 'boot timeout' })),
         model(model => {
           expect(model.engine).toStrictEqual(
-            EngineFailed({ reason: 'boot timeout' }),
+            EngineState.Failed({ reason: 'boot timeout' }),
           )
         }),
       )
@@ -99,12 +84,12 @@ describe('update', () => {
       story(
         update,
         given(readyModel),
-        message(ClickedCompute()),
+        message(Message.ClickedCompute()),
         model(model => {
           expect(model.computeCount).toBe(3)
         }),
         Command.expectExact(Compute({ value: 3 })),
-        Command.resolve(Compute, CompletedCompute({ result: 9 })),
+        Command.resolve(Compute, Message.CompletedCompute({ result: 9 })),
         model(model => {
           expect(model.maybeSquareResult).toStrictEqual(Option.some(9))
         }),
@@ -115,7 +100,7 @@ describe('update', () => {
       story(
         update,
         given(readyModel),
-        message(SkippedCompute()),
+        message(Message.SkippedCompute()),
         model(model => {
           expect(model).toStrictEqual(readyModel)
         }),

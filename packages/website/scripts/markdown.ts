@@ -1,12 +1,4 @@
-import {
-  Array as Array_,
-  Effect,
-  Option,
-  Order,
-  String as Str,
-  pipe,
-} from 'effect'
-import { type Page } from 'playwright'
+import { Array, Option, Order, String, pipe } from 'effect'
 
 import { type AppRoute } from '../src/route'
 import { type PageMetadata } from './metadata'
@@ -15,8 +7,17 @@ import { type PageMetadata } from './metadata'
 
 const SITE_URL = 'https://foldkit.dev'
 
-export const extractMarkdownFromCurrentDocument = (siteUrl: string): string => {
-  const root = document.querySelector('[data-pagefind-body]')
+const TEXT_NODE_TYPE = 3
+const ELEMENT_NODE_TYPE = 1
+
+const isElementNode = (node: Node): node is Element =>
+  node.nodeType === ELEMENT_NODE_TYPE
+
+export const extractMarkdownFromRenderedDocument = (
+  renderedDocument: Document,
+  siteUrl: string = SITE_URL,
+): string => {
+  const root = renderedDocument.querySelector('[data-pagefind-body]')
   if (root === null) {
     return ''
   }
@@ -50,17 +51,17 @@ export const extractMarkdownFromCurrentDocument = (siteUrl: string): string => {
   }
 
   const collectInline = (node: Node): string => {
-    if (node.nodeType === Node.TEXT_NODE) {
+    if (node.nodeType === TEXT_NODE_TYPE) {
       return collapseWhitespace(node.textContent ?? '')
     }
-    if (!(node instanceof Element)) {
+    if (!isElementNode(node)) {
       return ''
     }
     if (isSkippedElement(node)) {
       return ''
     }
     const tag = node.tagName.toLowerCase()
-    const inner = Array.from(node.childNodes)
+    const inner = globalThis.Array.from(node.childNodes)
       .map(collectInline)
       .join('')
       .replace(/ {2,}/g, ' ')
@@ -98,7 +99,10 @@ export const extractMarkdownFromCurrentDocument = (siteUrl: string): string => {
   }
 
   const detectLanguage = (element: Element): string => {
-    const candidates = [element, ...Array.from(element.querySelectorAll('*'))]
+    const candidates = [
+      element,
+      ...globalThis.Array.from(element.querySelectorAll('*')),
+    ]
     for (const candidate of candidates) {
       const className = candidate.getAttribute('class') ?? ''
       const match = className.match(/language-([\w+-]+)/)
@@ -131,9 +135,9 @@ export const extractMarkdownFromCurrentDocument = (siteUrl: string): string => {
       .join('\n')
 
   const extractList = (element: Element, ordered: boolean): string => {
-    const lines: Array<string> = []
+    const lines: globalThis.Array<string> = []
     let index = 1
-    for (const child of Array.from(element.children)) {
+    for (const child of globalThis.Array.from(element.children)) {
       if (child.tagName !== 'LI') {
         continue
       }
@@ -158,16 +162,16 @@ export const extractMarkdownFromCurrentDocument = (siteUrl: string): string => {
   }
 
   const extractBlocks = (parent: Element): string => {
-    const parts: Array<string> = []
-    for (const node of Array.from(parent.childNodes)) {
-      if (node.nodeType === Node.TEXT_NODE) {
+    const parts: globalThis.Array<string> = []
+    for (const node of globalThis.Array.from(parent.childNodes)) {
+      if (node.nodeType === TEXT_NODE_TYPE) {
         const text = collapseWhitespace(node.textContent ?? '').trim()
         if (text.length > 0) {
           parts.push(text)
         }
         continue
       }
-      if (!(node instanceof Element)) {
+      if (!isElementNode(node)) {
         continue
       }
       if (isSkippedElement(node)) {
@@ -256,12 +260,6 @@ export const extractMarkdownFromCurrentDocument = (siteUrl: string): string => {
     .trim()
 }
 
-export const extractPageMarkdown = (page: Page): Effect.Effect<string, Error> =>
-  Effect.tryPromise({
-    try: () => page.evaluate(extractMarkdownFromCurrentDocument, SITE_URL),
-    catch: error => new Error(`Failed to extract markdown: ${String(error)}`),
-  })
-
 // PATHS
 
 export const urlPathToMarkdownPath = (urlPath: string): string =>
@@ -285,24 +283,32 @@ export type LlmsIndexEntry = Readonly<{
   metadata: PageMetadata
 }>
 
-const SECTION_ORDER: ReadonlyArray<string> = [
+/**
+ * Every section a page can report, in the order sections appear in `llms.txt`
+ * and `llms-full.txt`. A section missing from this list ranks last, so adding a
+ * new one here is part of adding it to {@link PageMetadata}.
+ */
+export const SECTION_ORDER: ReadonlyArray<string> = [
   'Docs',
   'Guides',
   'Core Concepts',
   'Best Practices',
   'Patterns',
+  'Tooling',
   'FAQ',
   'Foldkit UI',
   'Testing',
   'Examples',
   'AI',
   'API Reference',
+  'Blog',
+  'Site',
 ]
 
 const sectionRank = (section: string): number =>
   pipe(
     SECTION_ORDER,
-    Array_.findFirstIndex(candidate => candidate === section),
+    Array.findFirstIndex(candidate => candidate === section),
     Option.getOrElse(() => SECTION_ORDER.length),
   )
 
@@ -328,32 +334,62 @@ const renderIndexSection = (
 ): string => {
   const lines = pipe(
     entries,
-    Array_.sortBy(titleOrder),
-    Array_.map(renderIndexEntry),
+    Array.sortBy(titleOrder),
+    Array.map(renderIndexEntry),
   )
-  return `## ${section}\n\n${Array_.join(lines, '\n')}`
+  return `## ${section}\n\n${Array.join(lines, '\n')}`
 }
+
+const WHEN_TO_USE = `When to use Foldkit:
+
+- Building a browser single-page application in TypeScript around The Elm Architecture: one Schema-defined Model, Messages as facts, a pure update function, and side effects confined to Commands.
+- Extending a codebase that already uses Effect-TS, since Foldkit shares its idioms (Effect, Schema, Match, Option) and its ecosystem.
+- Applications where agents write or audit significant code. Explicit state transitions and Messages-as-data make programs inspectable, and the Story and Scene test frameworks drive them without a browser.
+- Not a fit for: server-only projects with no browser UI, teams staying on React and JSX idioms, or codebases avoiding the Effect ecosystem.
+
+How an agent works with Foldkit:
+
+- Scaffold a new application with \`npm create foldkit-app@latest\` (pnpm, yarn, and bun equivalents work too).
+- Fetch any page below as Markdown by appending \`.md\` to its URL, or by requesting the page URL with \`Accept: text/markdown\`.
+- Connect to a running app through the DevTools MCP server (\`npx @foldkit/devtools-mcp init\`) to inspect the Model, replay history, and dispatch Messages.
+- Install the repository skills from ${SITE_URL}/ai/skills for architecture guidance, program generation, and application audits.`
+
+const DEVELOPER_RESOURCES_SECTION = `## Developer Resources
+
+- [llms-full.txt](${SITE_URL}/llms-full.txt): Every documentation page concatenated into one Markdown file.
+- [Content API documentation](${SITE_URL}/api): The read-only JSON API for this site: endpoints, authentication, versioning and deprecation policy, rate limit headers, and the error model.
+- [Content API service index](${SITE_URL}/api/v1): The endpoint list and policies as JSON. Pages, sections, examples, and blog posts hang off it.
+- [openapi.json](${SITE_URL}/openapi.json): OpenAPI 3.1 description of this site's machine-readable content endpoints, with a typed schema for every response.
+- [Sitemap](${SITE_URL}/sitemap.xml): Every page URL on the site.
+- [AI overview](${SITE_URL}/ai/overview): How Foldkit's explicit architecture supports coding agents, and the resources available to them.
+- [Agent skills](${SITE_URL}/ai/skills): Installable repository skills for architecture guidance, program generation, and application audits.
+- [DevTools MCP server](${SITE_URL}/ai/mcp): Connect an agent to a running Foldkit application. Published on npm as @foldkit/devtools-mcp.
+- [GitHub repository](https://github.com/foldkit/foldkit): Source code, issues, and discussions.
+- [Blog RSS feed](${SITE_URL}/blog/rss.xml): Release announcements and deep dives.
+- [About](${SITE_URL}/about): What Foldkit is, who builds it, and how it is released.
+- [Contact](${SITE_URL}/contact): Issues, chat, security reports, and contributions.
+- [Privacy](${SITE_URL}/privacy): What this site collects and what stays in your browser.`
 
 export const buildLlmsIndex = (
   entries: ReadonlyArray<LlmsIndexEntry>,
 ): string => {
   const sectioned = pipe(
     entries,
-    Array_.filter(entry => entry.metadata.section.length > 0),
-    Array_.groupBy(entry => entry.metadata.section),
+    Array.filter(entry => entry.metadata.section.length > 0),
+    Array.groupBy(entry => entry.metadata.section),
   )
 
   const sectionBlocks = pipe(
     Object.entries(sectioned),
-    Array_.sortBy(Order.mapInput(sectionOrder, ([section]) => section)),
-    Array_.map(([section, sectionEntries]) =>
+    Array.sortBy(Order.mapInput(sectionOrder, ([section]) => section)),
+    Array.map(([section, sectionEntries]) =>
       renderIndexSection(section, sectionEntries),
     ),
   )
 
-  const header = `# Foldkit\n\n> ${SITE_BLURB}\n\nThis index lists every page on the Foldkit documentation site with a short description. Every page is also available as Markdown by appending \`.md\` to its URL (e.g. ${SITE_URL}/get-started/getting-started.md). A single-file concatenation of every page is available at ${SITE_URL}/llms-full.txt.`
+  const header = `# Foldkit\n\n> ${SITE_BLURB}\n\nThis index lists every page on the Foldkit documentation site with a short description. Every page is also available as Markdown by appending \`.md\` to its URL (e.g. ${SITE_URL}/get-started.md). A single-file concatenation of every page is available at ${SITE_URL}/llms-full.txt.\n\n${WHEN_TO_USE}`
 
-  return `${header}\n\n${Array_.join(sectionBlocks, '\n\n')}\n`
+  return `${header}\n\n${DEVELOPER_RESOURCES_SECTION}\n\n${Array.join(sectionBlocks, '\n\n')}\n`
 }
 
 // FULL
@@ -379,7 +415,7 @@ const renderFullEntry = (entry: LlmsFullEntry): string => {
     entry.metadata.section.length === 0
       ? ''
       : `Section: ${entry.metadata.section}\n`
-  const trimmed = Str.trim(entry.markdown)
+  const trimmed = String.trim(entry.markdown)
   return `${sourceLine}\n${sectionLine}\n${trimmed}`
 }
 
@@ -389,9 +425,9 @@ export const buildLlmsFull = (
 ): string => {
   const sections = pipe(
     entries,
-    Array_.sortBy(fullEntryOrder),
-    Array_.map(renderFullEntry),
+    Array.sortBy(fullEntryOrder),
+    Array.map(renderFullEntry),
   )
   const header = `# Foldkit Documentation\n\nGenerated ${generatedDate} from ${SITE_URL}\n\n${SITE_BLURB}`
-  return `${header}\n\n---\n\n${Array_.join(sections, '\n\n---\n\n')}\n`
+  return `${header}\n\n---\n\n${Array.join(sections, '\n\n---\n\n')}\n`
 }

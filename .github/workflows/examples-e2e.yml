@@ -1,12 +1,12 @@
 name: Examples E2E
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
+  merge_group:
+    types:
+      - checks_requested
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -28,8 +28,8 @@ jobs:
       - name: Plan affected examples
         id: plan
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
         run: node scripts/plan-examples-e2e.mjs "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
 
   examples-e2e:

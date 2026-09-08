@@ -1,15 +1,7 @@
-import {
-  Array,
-  Duration,
-  Effect,
-  Match as M,
-  Schema as S,
-  Stream,
-  pipe,
-} from 'effect'
-import { Command, Runtime, Subscription } from 'foldkit'
+import { Array, Duration, Effect, Match, Schema, Stream, pipe } from 'effect'
+import { Command, Runtime, Subscription, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { GAME, GAME_SPEED } from './constants'
@@ -17,7 +9,7 @@ import { Apple, Direction, Position, Snake } from './domain'
 
 // MODEL
 
-export const GameState = S.Literals([
+export const GameState = Schema.Literals([
   'NotStarted',
   'Playing',
   'Paused',
@@ -25,37 +17,27 @@ export const GameState = S.Literals([
 ])
 export type GameState = typeof GameState.Type
 
-export const Model = S.Struct({
+export const Model = Schema.Struct({
   snake: Snake.Snake,
   apple: Position.Position,
   direction: Direction.Direction,
   nextDirection: Direction.Direction,
   gameState: GameState,
-  points: S.Number,
-  highScore: S.Number,
+  points: Schema.Number,
+  highScore: Schema.Number,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const TickedClock = m('TickedClock')
-export const PressedKey = m('PressedKey', { key: S.String })
-export const PausedGame = m('PausedGame')
-export const RestartedGame = m('RestartedGame')
-export const CompletedGenerateApplePosition = m(
-  'CompletedGenerateApplePosition',
-  {
-    position: Position.Position,
-  },
-)
+export const Message = defineMessageUnion({
+  TickedClock: {},
+  PressedKey: { key: Schema.String },
+  PausedGame: {},
+  RestartedGame: {},
+  CompletedGenerateApplePosition: { position: Position.Position },
+})
 
-export const Message = S.Union([
-  TickedClock,
-  PressedKey,
-  PausedGame,
-  RestartedGame,
-  CompletedGenerateApplePosition,
-])
 export type Message = typeof Message.Type
 
 // INIT
@@ -63,8 +45,8 @@ export type Message = typeof Message.Type
 export const init: Runtime.ApplicationInit<Model, Message> = () => {
   const snake = Snake.create(GAME.INITIAL_POSITION)
 
-  return [
-    {
+  return {
+    model: {
       snake,
       apple: { x: 15, y: 15 },
       direction: GAME.INITIAL_DIRECTION,
@@ -73,175 +55,164 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => {
       points: 0,
       highScore: 0,
     },
-    [GenerateApplePosition({ snake: snake })],
-  ]
+    commands: [GenerateApplePosition({ snake: snake })],
+  }
 }
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      PressedKey: ({ key }) =>
-        M.value(key).pipe(
-          M.withReturnType<
-            readonly [Model, ReadonlyArray<Command.Command<Message>>]
-          >(),
-          M.whenOr(
-            'ArrowUp',
-            'ArrowDown',
-            'ArrowLeft',
-            'ArrowRight',
-            'w',
-            'a',
-            's',
-            'd',
-            moveKey => {
-              const nextDirection = M.value(moveKey).pipe(
-                M.withReturnType<Direction.Direction>(),
-                M.whenOr('ArrowUp', 'w', () => 'Up'),
-                M.whenOr('ArrowDown', 's', () => 'Down'),
-                M.whenOr('ArrowLeft', 'a', () => 'Left'),
-                M.whenOr('ArrowRight', 'd', () => 'Right'),
-                M.exhaustive,
-              )
+type UpdateReturn = Update.Return<Model, Message>
 
-              if (model.gameState === 'Playing') {
-                return [
-                  evo(model, {
-                    nextDirection: () => nextDirection,
-                  }),
-                  [],
-                ]
-              } else {
-                return [model, []]
-              }
-            },
-          ),
-          M.when(' ', () => {
-            const nextGameState = M.value(model.gameState).pipe(
-              M.withReturnType<GameState>(),
-              M.when('NotStarted', () => 'Playing'),
-              M.when('Playing', () => 'Paused'),
-              M.when('Paused', () => 'Playing'),
-              M.when('GameOver', () => 'GameOver'),
-              M.exhaustive,
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    PressedKey: ({ key }) =>
+      Match.value(key).pipe(
+        Match.withReturnType<UpdateReturn>(),
+        Match.whenOr(
+          'ArrowUp',
+          'ArrowDown',
+          'ArrowLeft',
+          'ArrowRight',
+          'w',
+          'a',
+          's',
+          'd',
+          moveKey => {
+            const nextDirection = Match.value(moveKey).pipe(
+              Match.withReturnType<Direction.Direction>(),
+              Match.whenOr('ArrowUp', 'w', () => 'Up'),
+              Match.whenOr('ArrowDown', 's', () => 'Down'),
+              Match.whenOr('ArrowLeft', 'a', () => 'Left'),
+              Match.whenOr('ArrowRight', 'd', () => 'Right'),
+              Match.exhaustive,
             )
-            return [
-              evo(model, {
-                gameState: () => nextGameState,
-              }),
-              [],
-            ]
-          }),
-          M.when('r', () => {
-            const nextSnake = Snake.create(GAME.INITIAL_POSITION)
 
-            return [
-              evo(model, {
-                snake: () => nextSnake,
-                direction: () => GAME.INITIAL_DIRECTION,
-                nextDirection: () => GAME.INITIAL_DIRECTION,
-                gameState: () => 'NotStarted',
-                points: () => 0,
-              }),
-              [GenerateApplePosition({ snake: nextSnake })],
-            ]
-          }),
-          M.orElse(() => [model, []]),
+            if (model.gameState === 'Playing') {
+              return {
+                model: evo(model, {
+                  nextDirection: () => nextDirection,
+                }),
+              }
+            } else {
+              return { model }
+            }
+          },
         ),
-
-      TickedClock: () => {
-        if (model.gameState !== 'Playing') {
-          return [model, []]
-        }
-
-        const currentDirection = Direction.isOpposite(
-          model.direction,
-          model.nextDirection,
-        )
-          ? model.direction
-          : model.nextDirection
-
-        const newHead = Position.move(model.snake[0], currentDirection)
-        const willEatApple = Position.equivalence(newHead, model.apple)
-
-        const nextSnake = willEatApple
-          ? Snake.grow(model.snake, currentDirection)
-          : Snake.move(model.snake, currentDirection)
-
-        if (Snake.hasCollision(nextSnake)) {
-          return [
-            evo(model, {
-              gameState: () => 'GameOver',
-              highScore: highScore => Math.max(model.points, highScore),
+        Match.when(' ', () => {
+          const nextGameState = Match.value(model.gameState).pipe(
+            Match.withReturnType<GameState>(),
+            Match.when('NotStarted', () => 'Playing'),
+            Match.when('Playing', () => 'Paused'),
+            Match.when('Paused', () => 'Playing'),
+            Match.when('GameOver', () => 'GameOver'),
+            Match.exhaustive,
+          )
+          return {
+            model: evo(model, {
+              gameState: () => nextGameState,
             }),
-            [],
-          ]
+          }
+        }),
+        Match.when('r', () => {
+          const nextSnake = Snake.create(GAME.INITIAL_POSITION)
+
+          return {
+            model: evo(model, {
+              snake: () => nextSnake,
+              direction: () => GAME.INITIAL_DIRECTION,
+              nextDirection: () => GAME.INITIAL_DIRECTION,
+              gameState: () => 'NotStarted',
+              points: () => 0,
+            }),
+            commands: [GenerateApplePosition({ snake: nextSnake })],
+          }
+        }),
+        Match.orElse(() => ({ model })),
+      ),
+
+    TickedClock: () => {
+      if (model.gameState !== 'Playing') {
+        return { model }
+      }
+
+      const currentDirection = Direction.isOpposite(
+        model.direction,
+        model.nextDirection,
+      )
+        ? model.direction
+        : model.nextDirection
+
+      const newHead = Position.move(model.snake[0], currentDirection)
+      const willEatApple = Position.equivalence(newHead, model.apple)
+
+      const nextSnake = willEatApple
+        ? Snake.grow(model.snake, currentDirection)
+        : Snake.move(model.snake, currentDirection)
+
+      if (Snake.hasCollision(nextSnake)) {
+        return {
+          model: evo(model, {
+            gameState: () => 'GameOver',
+            highScore: highScore => Math.max(model.points, highScore),
+          }),
         }
+      }
 
-        const commands = willEatApple
-          ? [GenerateApplePosition({ snake: nextSnake })]
-          : []
+      const commands = willEatApple
+        ? [GenerateApplePosition({ snake: nextSnake })]
+        : []
 
-        return [
-          evo(model, {
-            snake: () => nextSnake,
-            direction: () => currentDirection,
-            points: points =>
-              willEatApple ? points + GAME.POINTS_PER_APPLE : points,
-          }),
-          commands,
-        ]
-      },
-
-      PausedGame: () => [
-        evo(model, {
-          gameState: gameState =>
-            gameState === 'Playing' ? 'Paused' : 'Playing',
+      return {
+        model: evo(model, {
+          snake: () => nextSnake,
+          direction: () => currentDirection,
+          points: points =>
+            willEatApple ? points + GAME.POINTS_PER_APPLE : points,
         }),
-        [],
-      ],
+        commands,
+      }
+    },
 
-      RestartedGame: () => {
-        const startPos: Position.Position = { x: 10, y: 10 }
-        const nextSnake = Snake.create(startPos)
-
-        return [
-          evo(model, {
-            snake: () => nextSnake,
-            direction: () => 'Right',
-            nextDirection: () => 'Right',
-            gameState: () => 'NotStarted',
-            points: () => 0,
-          }),
-          [GenerateApplePosition({ snake: nextSnake })],
-        ]
-      },
-
-      CompletedGenerateApplePosition: ({ position }) => [
-        evo(model, {
-          apple: () => position,
-        }),
-        [],
-      ],
+    PausedGame: () => ({
+      model: evo(model, {
+        gameState: gameState =>
+          gameState === 'Playing' ? 'Paused' : 'Playing',
+      }),
     }),
-  )
+
+    RestartedGame: () => {
+      const startPosition: Position.Position = { x: 10, y: 10 }
+      const nextSnake = Snake.create(startPosition)
+
+      return {
+        model: evo(model, {
+          snake: () => nextSnake,
+          direction: () => 'Right',
+          nextDirection: () => 'Right',
+          gameState: () => 'NotStarted',
+          points: () => 0,
+        }),
+        commands: [GenerateApplePosition({ snake: nextSnake })],
+      }
+    },
+
+    CompletedGenerateApplePosition: ({ position }) => ({
+      model: evo(model, {
+        apple: () => position,
+      }),
+    }),
+  })
 
 // COMMAND
 
 export const GenerateApplePosition = Command.define('GenerateApplePosition', {
   args: { snake: Snake.Snake },
-  messages: [CompletedGenerateApplePosition],
+  messages: [Message.CompletedGenerateApplePosition],
   execute: ({ snake }) =>
     Apple.generatePosition(snake).pipe(
-      Effect.map(position => CompletedGenerateApplePosition({ position })),
+      Effect.map(position =>
+        Message.CompletedGenerateApplePosition({ position }),
+      ),
     ),
 })
 
@@ -250,8 +221,8 @@ export const GenerateApplePosition = Command.define('GenerateApplePosition', {
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   gameClock: entry(
     {
-      isPlaying: S.Boolean,
-      interval: S.Number,
+      isPlaying: Schema.Boolean,
+      interval: Schema.Number,
     },
     {
       modelToDependencies: model => ({
@@ -263,7 +234,9 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       }),
       dependenciesToStream: ({ isPlaying, interval }) =>
         Stream.when(
-          Stream.tick(Duration.millis(interval)).pipe(Stream.map(TickedClock)),
+          Stream.tick(Duration.millis(interval)).pipe(
+            Stream.map(Message.TickedClock),
+          ),
           Effect.sync(() => isPlaying),
         ),
     },
@@ -273,7 +246,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
       Stream.mapEffect(keyboardEvent =>
         Effect.sync(() => keyboardEvent.preventDefault()).pipe(
-          Effect.as(PressedKey({ key: keyboardEvent.key })),
+          Effect.as(Message.PressedKey({ key: keyboardEvent.key })),
         ),
       ),
     ),
@@ -291,11 +264,11 @@ const cellClass = (x: number, y: number, model: Model): string => {
   )
   const isApple = Position.equivalence({ x, y }, model.apple)
 
-  return M.value({ isSnakeHead, isSnakeTail, isApple }).pipe(
-    M.when({ isSnakeHead: true }, () => 'bg-green-700'),
-    M.when({ isSnakeTail: true }, () => 'bg-green-500'),
-    M.when({ isApple: true }, () => 'bg-red-500'),
-    M.orElse(() => 'bg-gray-800'),
+  return Match.value({ isSnakeHead, isSnakeTail, isApple }).pipe(
+    Match.when({ isSnakeHead: true }, () => 'bg-green-700'),
+    Match.when({ isSnakeTail: true }, () => 'bg-green-500'),
+    Match.when({ isApple: true }, () => 'bg-red-500'),
+    Match.orElse(() => 'bg-gray-800'),
   )
 }
 
@@ -313,12 +286,12 @@ const gridView = (model: Model, h: HtmlBuilder<Message>): Html =>
   )
 
 const gameStateView = (gameState: GameState): string =>
-  M.value(gameState).pipe(
-    M.when('NotStarted', () => 'Press SPACE to start'),
-    M.when('Playing', () => 'Playing - SPACE to pause'),
-    M.when('Paused', () => 'Paused - SPACE to continue'),
-    M.when('GameOver', () => 'Game Over - Press R to restart'),
-    M.exhaustive,
+  Match.value(gameState).pipe(
+    Match.when('NotStarted', () => 'Press SPACE to start'),
+    Match.when('Playing', () => 'Playing - SPACE to pause'),
+    Match.when('Paused', () => 'Paused - SPACE to continue'),
+    Match.when('GameOver', () => 'Game Over - Press R to restart'),
+    Match.exhaustive,
   )
 
 const instructionsView = (h: HtmlBuilder<Message>): Html =>

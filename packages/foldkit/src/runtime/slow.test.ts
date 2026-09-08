@@ -1,36 +1,35 @@
-import { Effect, Fiber, Match as M, Option, Schema as S, Stream } from 'effect'
+import { Effect, Fiber, Number, Option, Schema, Stream } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { Command } from '../command/index.js'
 import { __htmlBuilder } from '../html/index.js'
-import { m } from '../message/index.js'
+import { defineMessageUnion } from '../message/index.js'
+import { evo } from '../struct/index.js'
 import * as Subscription from '../subscription/subscription.js'
+import type * as Update from '../update/index.js'
+import { makeElement } from './makeElement.js'
 import {
   type SlowContext,
   type SlowSubscriptionDependenciesContext,
   type SlowUpdateContext,
   __resolveSlowConfig,
-  makeElement,
-} from './runtime.js'
+} from './slowPhase.js'
 
-const ClickedIncrement = m('ClickedIncrement')
-const ClickedKeptModel = m('ClickedKeptModel')
-const Message = S.Union([ClickedIncrement, ClickedKeptModel])
+const Message = defineMessageUnion({
+  ClickedIncrement: {},
+  ClickedKeptModel: {},
+})
 type Message = typeof Message.Type
 
-const Model = S.Struct({ count: S.Number })
+const Model = Schema.Struct({ count: Schema.Number })
 type Model = typeof Model.Type
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command<Message>>]
-
-const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    M.withReturnType<UpdateReturn>(),
-    M.tagsExhaustive({
-      ClickedIncrement: () => [{ count: model.count + 1 }, []],
-      ClickedKeptModel: () => [model, []],
+const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedIncrement: () => ({
+      model: evo(model, { count: Number.increment }),
     }),
-  )
+    ClickedKeptModel: () => ({ model }),
+  })
 
 const view = (model: Model) => {
   const h = __htmlBuilder<Message>()
@@ -38,7 +37,7 @@ const view = (model: Model) => {
   return h.div(
     [],
     [
-      h.button([h.OnClick(ClickedIncrement())], ['increment']),
+      h.button([h.OnClick(Message.ClickedIncrement())], ['increment']),
       h.div([], [`count:${model.count}`]),
     ],
   )
@@ -50,7 +49,7 @@ const sameModelReferenceView = (model: Model) => {
   return h.div(
     [],
     [
-      h.button([h.OnClick(ClickedKeptModel())], ['keep']),
+      h.button([h.OnClick(Message.ClickedKeptModel())], ['keep']),
       h.div([], [`count:${model.count}`]),
     ],
   )
@@ -58,7 +57,7 @@ const sameModelReferenceView = (model: Model) => {
 
 const subscriptions = Subscription.make<Model, Message>()(entry => ({
   count: entry(
-    { count: S.Number },
+    { count: Schema.Number },
     {
       modelToDependencies: model => ({ count: model.count }),
       dependenciesToStream: () => Stream.empty,
@@ -170,7 +169,7 @@ describe('slow warnings', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ count: 0 }, []],
+      init: () => ({ model: { count: 0 } }),
       update,
       view,
       subscriptions,
@@ -230,7 +229,7 @@ describe('slow warnings', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ count: 0 }, []],
+      init: () => ({ model: { count: 0 } }),
       update,
       view,
       subscriptions,
@@ -268,7 +267,7 @@ describe('slow warnings', () => {
 
     const element = makeElement({
       Model,
-      init: () => [{ count: 0 }, []],
+      init: () => ({ model: { count: 0 } }),
       update,
       view: sameModelReferenceView,
       subscriptions,

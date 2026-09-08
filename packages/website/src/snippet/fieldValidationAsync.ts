@@ -1,12 +1,12 @@
-import { Effect, Match as M, Number, Schema as S } from 'effect'
-import { Command } from 'foldkit'
+import { Effect, Match, Number, Schema } from 'effect'
+import { Command, Update } from 'foldkit'
 import { Invalid, Valid, Validating, validate } from 'foldkit/fieldValidation'
 import { evo } from 'foldkit/struct'
 
 const validateEmail = validate(emailRules)
 
 const CheckEmailAvailable = Command.define('CheckEmailAvailable', {
-  args: { email: S.String, validationId: S.Number },
+  args: { email: Schema.String, validationId: Schema.Number },
   messages: [CompletedCheckEmailAvailable],
   execute: ({ email, validationId }) =>
     Effect.gen(function* () {
@@ -36,36 +36,33 @@ const CheckEmailAvailable = Command.define('CheckEmailAvailable', {
 })
 
 const update = (model: Model, message: Message) =>
-  M.value(message).pipe(
-    M.tagsExhaustive({
-      ChangedEmail: ({ value }) => {
-        const syncResult = validateEmail(value)
-        const validationId = Number.increment(model.emailValidationId)
+  Message.match<Update.Return<Model, Message>>(message, {
+    ChangedEmail: ({ value }) => {
+      const syncResult = validateEmail(value)
+      const validationId = Number.increment(model.emailValidationId)
 
-        return M.value(syncResult).pipe(
-          M.tag('Valid', () => [
-            evo(model, {
-              email: () => Validating({ value }),
-              emailValidationId: () => validationId,
-            }),
-            [CheckEmailAvailable({ email: value, validationId })],
-          ]),
-          M.orElse(() => [
-            evo(model, {
-              email: () => syncResult,
-              emailValidationId: () => validationId,
-            }),
-            [],
-          ]),
-        )
-      },
+      return Match.value(syncResult).pipe(
+        Match.tag('Valid', () => ({
+          model: evo(model, {
+            email: () => Validating({ value }),
+            emailValidationId: () => validationId,
+          }),
+          commands: [CheckEmailAvailable({ email: value, validationId })],
+        })),
+        Match.orElse(() => ({
+          model: evo(model, {
+            email: () => syncResult,
+            emailValidationId: () => validationId,
+          }),
+        })),
+      )
+    },
 
-      CompletedCheckEmailAvailable: ({ validationId, field }) => {
-        if (validationId === model.emailValidationId) {
-          return [evo(model, { email: () => field }), []]
-        } else {
-          return [model, []]
-        }
-      },
-    }),
-  )
+    CompletedCheckEmailAvailable: ({ validationId, field }) => {
+      if (validationId === model.emailValidationId) {
+        return { model: evo(model, { email: () => field }) }
+      } else {
+        return { model }
+      }
+    },
+  })

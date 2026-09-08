@@ -1,4 +1,4 @@
-import { Effect, Record as Record_, Schema as S } from 'effect'
+import { Effect, Record, Schema } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
 
 // CONSTANT
@@ -16,7 +16,7 @@ export const errorMessage = (error: unknown): string =>
 
 export const makeUrl = (
   url: string,
-  params: Readonly<Record<string, string>>,
+  params: Readonly<globalThis.Record<string, string>>,
 ): string => {
   const searchParams = new URLSearchParams(params)
   return `${url}?${searchParams.toString()}`
@@ -27,10 +27,10 @@ export const encodePackageName = (packageName: string): string =>
 
 export const fetchJson =
   (client: HttpClient.HttpClient) =>
-  <A, I>(schema: S.Codec<A, I>) =>
+  <A, I>(schema: Schema.Codec<A, I>) =>
   (
     url: string,
-    headers: Readonly<Record<string, string>> = Record_.empty(),
+    headers: Readonly<globalThis.Record<string, string>> = Record.empty(),
   ): Effect.Effect<A, Error> =>
     Effect.gen(function* () {
       const request = HttpClientRequest.get(url).pipe(
@@ -44,7 +44,7 @@ export const fetchJson =
         )
       }
 
-      return yield* S.decodeUnknownEffect(schema)(yield* response.json).pipe(
-        Effect.mapError(error => new Error(errorMessage(error))),
-      )
+      return yield* Schema.decodeUnknownEffect(schema)(
+        yield* response.json,
+      ).pipe(Effect.mapError(error => new Error(errorMessage(error))))
     })

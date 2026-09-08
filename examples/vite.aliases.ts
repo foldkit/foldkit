@@ -28,6 +28,10 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/foldkit/src/experimental/machine',
   ),
+  'foldkit/experimental/server': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/experimental/server/public',
+  ),
   'foldkit/experimental': path.resolve(
     dirname,
     '../../packages/foldkit/src/experimental',
@@ -85,6 +89,10 @@ export const foldkitAliases = (dirname: string) => ({
     '../../packages/foldkit/src/update/public',
   ),
   'foldkit/url': path.resolve(dirname, '../../packages/foldkit/src/url'),
+  '@foldkit/ui/anchor': path.resolve(
+    dirname,
+    '../../packages/ui/src/anchor/public',
+  ),
   '@foldkit/ui/animation': path.resolve(
     dirname,
     '../../packages/ui/src/animation/public',
@@ -190,9 +198,9 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/markdown/src/index',
   ),
-  '@foldkit/devtools': path.resolve(
+  '@foldkit/devtools/vite': path.resolve(
     dirname,
-    '../../packages/devtools/src/index',
+    '../../packages/devtools/src/vite',
   ),
   foldkit: path.resolve(dirname, '../../packages/foldkit/src/index'),
 })

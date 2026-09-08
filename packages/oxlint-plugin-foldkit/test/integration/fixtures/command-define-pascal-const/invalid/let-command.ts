@@ -1,11 +1,14 @@
 import { Effect } from 'effect'
 import { Command } from 'foldkit'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 
-const CompletedRefreshSession = m('CompletedRefreshSession')
-const refreshSessionEffect = Effect.succeed(CompletedRefreshSession())
+const Message = defineMessageUnion({
+  CompletedRefreshSession: {},
+})
+
+const refreshSessionEffect = Effect.succeed(Message.CompletedRefreshSession())
 
 export let RefreshSession = Command.define('RefreshSession', {
-  messages: [CompletedRefreshSession],
+  messages: [Message.CompletedRefreshSession],
   execute: refreshSessionEffect,
 })

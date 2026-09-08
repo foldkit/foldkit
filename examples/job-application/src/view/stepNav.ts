@@ -7,7 +7,7 @@ import { Menu, Tabs } from '@foldkit/ui'
 import { Step } from '../domain'
 import type { Message } from '../message'
 import { type Model } from '../model'
-import { chevronDown } from './icon'
+import * as Icon from './icon'
 
 const StepMenu = Menu.create<Step.Step>()
 
@@ -125,7 +125,7 @@ const stepMenuTrigger = (
           ),
         ],
       ),
-      h.span([h.Class('text-gray-400 shrink-0')], [chevronDown()]),
+      h.span([h.Class('text-gray-400 shrink-0')], [Icon.chevronDown()]),
     ],
   )
 

@@ -1,4 +1,4 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 
-export const Model = S.Record(S.String, S.Boolean)
+export const Model = Schema.Record(Schema.String, Schema.Boolean)
 export type Model = typeof Model.Type

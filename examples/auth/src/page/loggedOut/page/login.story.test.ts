@@ -8,25 +8,20 @@ import {
   model,
   story,
 } from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import {
-  ChangedEmail,
-  ChangedPassword,
-  FailedSimulateAuthRequest,
-  Model,
+  Message,
+  OutMessage,
   SimulateAuthRequest,
-  SubmittedForm,
-  SucceededLogin,
-  SucceededSimulateAuthRequest,
   initModel,
   update,
 } from './login'
 
-const validModel = Model.make({
-  ...initModel(),
-  email: Valid({ value: 'alice@example.com' }),
-  password: Valid({ value: 'password' }),
+const validModel = evo(initModel(), {
+  email: () => Valid({ value: 'alice@example.com' }),
+  password: () => Valid({ value: 'password' }),
 })
 
 const aliceSession = { userId: '1', email: 'alice@example.com', name: 'alice' }
@@ -36,11 +31,11 @@ describe('login', () => {
     story(
       update,
       given(initModel()),
-      message(ChangedEmail({ value: '' })),
+      message(Message.ChangedEmail({ value: '' })),
       model(model => {
         expect(model.email._tag).toBe('Invalid')
       }),
-      message(ChangedEmail({ value: 'alice@example.com' })),
+      message(Message.ChangedEmail({ value: 'alice@example.com' })),
       model(model => {
         expect(model.email._tag).toBe('Valid')
         expect(model.email.value).toBe('alice@example.com')
@@ -52,11 +47,11 @@ describe('login', () => {
     story(
       update,
       given(initModel()),
-      message(ChangedPassword({ value: '' })),
+      message(Message.ChangedPassword({ value: '' })),
       model(model => {
         expect(model.password._tag).toBe('Invalid')
       }),
-      message(ChangedPassword({ value: 'secret' })),
+      message(Message.ChangedPassword({ value: 'secret' })),
       model(model => {
         expect(model.password._tag).toBe('Valid')
       }),
@@ -67,7 +62,7 @@ describe('login', () => {
     story(
       update,
       given(initModel()),
-      message(SubmittedForm()),
+      message(Message.SubmittedForm()),
       model(model => {
         expect(model.isSubmitting).toBe(false)
       }),
@@ -79,16 +74,16 @@ describe('login', () => {
     story(
       update,
       given(validModel),
-      message(SubmittedForm()),
+      message(Message.SubmittedForm()),
       model(model => {
         expect(model.isSubmitting).toBe(true)
       }),
       Command.expectHas(SimulateAuthRequest),
       Command.resolve(
         SimulateAuthRequest,
-        SucceededSimulateAuthRequest({ session: aliceSession }),
+        Message.SucceededSimulateAuthRequest({ session: aliceSession }),
       ),
-      expectOutMessage(SucceededLogin({ session: aliceSession })),
+      expectOutMessage(OutMessage.SucceededLogin({ session: aliceSession })),
     )
   })
 
@@ -96,13 +91,15 @@ describe('login', () => {
     story(
       update,
       given(validModel),
-      message(SubmittedForm()),
+      message(Message.SubmittedForm()),
       model(model => {
         expect(model.isSubmitting).toBe(true)
       }),
       Command.resolve(
         SimulateAuthRequest,
-        FailedSimulateAuthRequest({ error: 'Invalid credentials' }),
+        Message.FailedSimulateAuthRequest({
+          error: 'Invalid credentials',
+        }),
       ),
       model(model => {
         expect(model.isSubmitting).toBe(false)

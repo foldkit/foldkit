@@ -2,13 +2,8 @@ import * as Story from 'foldkit/story'
 import { describe, expect, it } from 'vitest'
 
 import {
-  CancelledDrag,
-  ChangedValue,
-  MovedDragPointer,
-  PressedKeyboardNavigation,
-  PressedPointer,
-  PressedThumb,
-  ReleasedDragPointer,
+  Message,
+  OutMessage,
   fractionOfValue,
   init,
   reflectRange,
@@ -54,9 +49,12 @@ describe('Slider', () => {
         update,
         Story.given(defaultInit()),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'StepIncrement', value: 5 }),
+          Message.PressedKeyboardNavigation({
+            direction: 'StepIncrement',
+            value: 5,
+          }),
         ),
-        Story.expectOutMessage(ChangedValue({ value: 6 })),
+        Story.expectOutMessage(OutMessage.ChangedValue({ value: 6 })),
       )
     })
 
@@ -65,9 +63,12 @@ describe('Slider', () => {
         update,
         Story.given(defaultInit()),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'StepDecrement', value: 5 }),
+          Message.PressedKeyboardNavigation({
+            direction: 'StepDecrement',
+            value: 5,
+          }),
         ),
-        Story.expectOutMessage(ChangedValue({ value: 4 })),
+        Story.expectOutMessage(OutMessage.ChangedValue({ value: 4 })),
       )
     })
 
@@ -76,9 +77,12 @@ describe('Slider', () => {
         update,
         Story.given(init({ id: 'test', min: 0, max: 100, step: 1 })),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'PageIncrement', value: 20 }),
+          Message.PressedKeyboardNavigation({
+            direction: 'PageIncrement',
+            value: 20,
+          }),
         ),
-        Story.expectOutMessage(ChangedValue({ value: 30 })),
+        Story.expectOutMessage(OutMessage.ChangedValue({ value: 30 })),
       )
     })
 
@@ -87,9 +91,12 @@ describe('Slider', () => {
         update,
         Story.given(init({ id: 'test', min: 0, max: 100, step: 1 })),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'PageDecrement', value: 30 }),
+          Message.PressedKeyboardNavigation({
+            direction: 'PageDecrement',
+            value: 30,
+          }),
         ),
-        Story.expectOutMessage(ChangedValue({ value: 20 })),
+        Story.expectOutMessage(OutMessage.ChangedValue({ value: 20 })),
       )
     })
 
@@ -98,9 +105,12 @@ describe('Slider', () => {
         update,
         Story.given(init({ id: 'test', min: 2, max: 20, step: 1 })),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'Min', value: 10 }),
+          Message.PressedKeyboardNavigation({
+            direction: 'Min',
+            value: 10,
+          }),
         ),
-        Story.expectOutMessage(ChangedValue({ value: 2 })),
+        Story.expectOutMessage(OutMessage.ChangedValue({ value: 2 })),
       )
     })
 
@@ -109,9 +119,12 @@ describe('Slider', () => {
         update,
         Story.given(init({ id: 'test', min: 0, max: 99, step: 1 })),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'Max', value: 10 }),
+          Message.PressedKeyboardNavigation({
+            direction: 'Max',
+            value: 10,
+          }),
         ),
-        Story.expectOutMessage(ChangedValue({ value: 99 })),
+        Story.expectOutMessage(OutMessage.ChangedValue({ value: 99 })),
       )
     })
 
@@ -120,7 +133,10 @@ describe('Slider', () => {
         update,
         Story.given(init({ id: 'test', min: 0, max: 10, step: 1 })),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'StepIncrement', value: 10 }),
+          Message.PressedKeyboardNavigation({
+            direction: 'StepIncrement',
+            value: 10,
+          }),
         ),
         Story.expectNoOutMessage(),
       )
@@ -131,7 +147,10 @@ describe('Slider', () => {
         update,
         Story.given(init({ id: 'test', min: 0, max: 10, step: 1 })),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'StepDecrement', value: 0 }),
+          Message.PressedKeyboardNavigation({
+            direction: 'StepDecrement',
+            value: 0,
+          }),
         ),
         Story.expectNoOutMessage(),
       )
@@ -142,9 +161,12 @@ describe('Slider', () => {
         update,
         Story.given(init({ id: 'test', min: 0, max: 1, step: 0.1 })),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'StepIncrement', value: 0.2 }),
+          Message.PressedKeyboardNavigation({
+            direction: 'StepIncrement',
+            value: 0.2,
+          }),
         ),
-        Story.expectOutMessage(ChangedValue({ value: 0.3 })),
+        Story.expectOutMessage(OutMessage.ChangedValue({ value: 0.3 })),
       )
     })
   })
@@ -154,7 +176,7 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(PressedThumb({ originValue: 5 })),
+        Story.message(Message.PressedThumb({ originValue: 5 })),
         Story.expectNoOutMessage(),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Dragging')
@@ -169,8 +191,10 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(init({ id: 'test', min: 0, max: 1, step: 0.05 })),
-        Story.message(PressedThumb({ originValue: 0.5 })),
-        Story.message(PressedPointer({ value: 0.45, originValue: 0.5 })),
+        Story.message(Message.PressedThumb({ originValue: 0.5 })),
+        Story.message(
+          Message.PressedPointer({ value: 0.45, originValue: 0.5 }),
+        ),
         Story.expectNoOutMessage(),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Dragging')
@@ -185,8 +209,8 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(PressedPointer({ value: 9, originValue: 5 })),
-        Story.message(PressedThumb({ originValue: 99 })),
+        Story.message(Message.PressedPointer({ value: 9, originValue: 5 })),
+        Story.message(Message.PressedThumb({ originValue: 99 })),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Dragging')
           if (model.dragState._tag === 'Dragging') {
@@ -202,8 +226,8 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(PressedPointer({ value: 7, originValue: 5 })),
-        Story.expectOutMessage(ChangedValue({ value: 7 })),
+        Story.message(Message.PressedPointer({ value: 7, originValue: 5 })),
+        Story.expectOutMessage(OutMessage.ChangedValue({ value: 7 })),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Dragging')
           if (model.dragState._tag === 'Dragging') {
@@ -217,8 +241,8 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(PressedPointer({ value: 7, originValue: 5 })),
-        Story.message(PressedPointer({ value: 8, originValue: 7 })),
+        Story.message(Message.PressedPointer({ value: 7, originValue: 5 })),
+        Story.message(Message.PressedPointer({ value: 8, originValue: 7 })),
         Story.expectNoOutMessage(),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Dragging')
@@ -233,8 +257,8 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(init({ id: 'test', min: 0, max: 10, step: 2 })),
-        Story.message(PressedPointer({ value: 4.7, originValue: 0 })),
-        Story.expectOutMessage(ChangedValue({ value: 4 })),
+        Story.message(Message.PressedPointer({ value: 4.7, originValue: 0 })),
+        Story.expectOutMessage(OutMessage.ChangedValue({ value: 4 })),
       )
     })
 
@@ -242,9 +266,9 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(PressedPointer({ value: 3, originValue: 5 })),
-        Story.message(MovedDragPointer({ value: 8 })),
-        Story.expectOutMessage(ChangedValue({ value: 8 })),
+        Story.message(Message.PressedPointer({ value: 3, originValue: 5 })),
+        Story.message(Message.MovedDragPointer({ value: 8 })),
+        Story.expectOutMessage(OutMessage.ChangedValue({ value: 8 })),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Dragging')
         }),
@@ -256,7 +280,7 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(originalModel),
-        Story.message(MovedDragPointer({ value: 8 })),
+        Story.message(Message.MovedDragPointer({ value: 8 })),
         Story.expectNoOutMessage(),
         Story.model(model => {
           expect(model).toBe(originalModel)
@@ -268,8 +292,8 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(PressedPointer({ value: 3, originValue: 5 })),
-        Story.message(ReleasedDragPointer()),
+        Story.message(Message.PressedPointer({ value: 3, originValue: 5 })),
+        Story.message(Message.ReleasedDragPointer()),
         Story.expectNoOutMessage(),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
@@ -282,7 +306,7 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(originalModel),
-        Story.message(ReleasedDragPointer()),
+        Story.message(Message.ReleasedDragPointer()),
         Story.model(model => {
           expect(model).toBe(originalModel)
         }),
@@ -293,10 +317,10 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(PressedPointer({ value: 9, originValue: 5 })),
-        Story.message(MovedDragPointer({ value: 2 })),
-        Story.message(CancelledDrag()),
-        Story.expectOutMessage(ChangedValue({ value: 5 })),
+        Story.message(Message.PressedPointer({ value: 9, originValue: 5 })),
+        Story.message(Message.MovedDragPointer({ value: 2 })),
+        Story.message(Message.CancelledDrag()),
+        Story.expectOutMessage(OutMessage.ChangedValue({ value: 5 })),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
         }),
@@ -307,10 +331,10 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(PressedThumb({ originValue: 5 })),
-        Story.message(MovedDragPointer({ value: 9 })),
-        Story.message(CancelledDrag()),
-        Story.expectOutMessage(ChangedValue({ value: 5 })),
+        Story.message(Message.PressedThumb({ originValue: 5 })),
+        Story.message(Message.MovedDragPointer({ value: 9 })),
+        Story.message(Message.CancelledDrag()),
+        Story.expectOutMessage(OutMessage.ChangedValue({ value: 5 })),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
         }),
@@ -322,7 +346,7 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(originalModel),
-        Story.message(CancelledDrag()),
+        Story.message(Message.CancelledDrag()),
         Story.model(model => {
           expect(model).toBe(originalModel)
         }),
@@ -333,9 +357,9 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(PressedPointer({ value: 5, originValue: 5 })),
-        Story.message(MovedDragPointer({ value: 42 })),
-        Story.expectOutMessage(ChangedValue({ value: 10 })),
+        Story.message(Message.PressedPointer({ value: 5, originValue: 5 })),
+        Story.message(Message.MovedDragPointer({ value: 42 })),
+        Story.expectOutMessage(OutMessage.ChangedValue({ value: 10 })),
       )
     })
 
@@ -343,9 +367,9 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(PressedPointer({ value: 5, originValue: 5 })),
-        Story.message(MovedDragPointer({ value: -4 })),
-        Story.expectOutMessage(ChangedValue({ value: 0 })),
+        Story.message(Message.PressedPointer({ value: 5, originValue: 5 })),
+        Story.message(Message.MovedDragPointer({ value: -4 })),
+        Story.expectOutMessage(OutMessage.ChangedValue({ value: 0 })),
       )
     })
   })
@@ -356,9 +380,12 @@ describe('Slider', () => {
         update,
         Story.given(defaultInit()),
         Story.message(
-          PressedKeyboardNavigation({ direction: 'StepIncrement', value: 5 }),
+          Message.PressedKeyboardNavigation({
+            direction: 'StepIncrement',
+            value: 5,
+          }),
         ),
-        Story.expectOutMessage(ChangedValue({ value: 6 })),
+        Story.expectOutMessage(OutMessage.ChangedValue({ value: 6 })),
       )
     })
 
@@ -366,9 +393,9 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(PressedPointer({ value: 9, originValue: 5 })),
-        Story.message(CancelledDrag()),
-        Story.expectOutMessage(ChangedValue({ value: 5 })),
+        Story.message(Message.PressedPointer({ value: 9, originValue: 5 })),
+        Story.message(Message.CancelledDrag()),
+        Story.expectOutMessage(OutMessage.ChangedValue({ value: 5 })),
       )
     })
 
@@ -376,8 +403,8 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(PressedPointer({ value: 3, originValue: 5 })),
-        Story.message(ReleasedDragPointer()),
+        Story.message(Message.PressedPointer({ value: 3, originValue: 5 })),
+        Story.message(Message.ReleasedDragPointer()),
         Story.expectNoOutMessage(),
       )
     })
@@ -386,7 +413,7 @@ describe('Slider', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(PressedPointer({ value: 5, originValue: 5 })),
+        Story.message(Message.PressedPointer({ value: 5, originValue: 5 })),
         Story.expectNoOutMessage(),
       )
     })
@@ -430,13 +457,13 @@ describe('Slider', () => {
     })
 
     it('updates the range even while Dragging', () => {
-      const [draggingModel] = update(
+      const dragStart = update(
         defaultInit(),
-        PressedThumb({ originValue: 5 }),
+        Message.PressedThumb({ originValue: 5 }),
       )
-      expect(draggingModel.dragState._tag).toBe('Dragging')
+      expect(dragStart.model.dragState._tag).toBe('Dragging')
 
-      const after = reflectRange(draggingModel, { min: 7, max: 10 })
+      const after = reflectRange(dragStart.model, { min: 7, max: 10 })
       expect(after.min).toBe(7)
       expect(after.max).toBe(10)
       expect(after.dragState._tag).toBe('Dragging')

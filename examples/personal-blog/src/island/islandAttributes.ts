@@ -1,6 +1,6 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 
 export const islandAttributes = {
-  Counter: S.Struct({ label: S.optionalKey(S.String) }),
-  Note: S.Struct({}),
+  Counter: Schema.Struct({ label: Schema.optionalKey(Schema.String) }),
+  Note: Schema.Struct({}),
 }

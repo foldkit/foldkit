@@ -1,7 +1,7 @@
-import { Match, Schema as S } from 'effect'
-import { ts } from 'foldkit/schema'
+import { Match, Schema } from 'effect'
+import { defineTaggedUnion } from 'foldkit/schema'
 
-export const HomeAction = S.Literals([
+export const HomeAction = Schema.Literals([
   'CreateRoom',
   'JoinRoom',
   'ChangeUsername',
@@ -21,27 +21,16 @@ export const homeActionToLabel = Match.type<HomeAction>().pipe(
   Match.exhaustive,
 )
 
-export const EnterUsername = ts('EnterUsername', {
-  username: S.String,
+export const HomeStep = defineTaggedUnion({
+  EnterUsername: { username: Schema.String },
+  SelectAction: { username: Schema.String, selectedAction: HomeAction },
+  EnterRoomId: { username: Schema.String, roomId: Schema.String },
 })
-export const SelectAction = ts('SelectAction', {
-  username: S.String,
-  selectedAction: HomeAction,
-})
-export const EnterRoomId = ts('EnterRoomId', {
-  username: S.String,
-  roomId: S.String,
-})
-
-export const HomeStep = S.Union([EnterUsername, SelectAction, EnterRoomId])
-export type EnterUsername = typeof EnterUsername.Type
-export type SelectAction = typeof SelectAction.Type
-export type EnterRoomId = typeof EnterRoomId.Type
 export type HomeStep = typeof HomeStep.Type
 
-export const Model = S.Struct({
+export const Model = Schema.Struct({
   homeStep: HomeStep,
-  formError: S.Option(S.String),
+  formError: Schema.Option(Schema.String),
 })
 export type Model = typeof Model.Type
 

@@ -1,4 +1,4 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 import { File, Calendar as FoldkitCalendar } from 'foldkit'
 
 import {
@@ -9,24 +9,26 @@ import {
   Dialog,
   DragAndDrop,
   FileDrop,
+  HoverIntent,
   Listbox,
   Menu,
   Popover,
+  RadioGroup,
   Slider,
   Tabs,
   Tooltip,
   VirtualList,
 } from '@foldkit/ui'
 
-import { Toast } from './toastModule'
+import { Toast } from './demo/toastModule'
 
-export const Plan = S.Literals(['Startup', 'Business', 'Enterprise'])
+export const Plan = Schema.Literals(['Startup', 'Business', 'Enterprise'])
 export type Plan = typeof Plan.Type
 
-export const DemoTab = S.Literals(['Foldkit', 'React', 'Elm'])
+export const DemoTab = Schema.Literals(['Foldkit', 'React', 'Elm'])
 export type DemoTab = typeof DemoTab.Type
 
-export const City = S.Literals([
+export const City = Schema.Literals([
   'Johannesburg',
   'Kyiv',
   'Oxford',
@@ -37,7 +39,7 @@ export const City = S.Literals([
 ])
 export type City = typeof City.Type
 
-export const ListboxItem = S.Literals([
+export const ListboxItem = Schema.Literals([
   'Michael Bluth',
   'Lindsay Funke',
   'Gob Bluth',
@@ -49,80 +51,89 @@ export const ListboxItem = S.Literals([
 ])
 export type ListboxItem = typeof ListboxItem.Type
 
-export const DemoCard = S.Struct({
-  id: S.String,
-  label: S.String,
+export const DemoCard = Schema.Struct({
+  id: Schema.String,
+  label: Schema.String,
 })
 
-export const DemoColumn = S.Struct({
-  id: S.String,
-  label: S.String,
-  cards: S.Array(DemoCard),
+export const DemoColumn = Schema.Struct({
+  id: Schema.String,
+  label: Schema.String,
+  cards: Schema.Array(DemoCard),
 })
 
-export const Model = S.Struct({
-  buttonClickCount: S.Number,
-  inputDemoValue: S.String,
-  textareaDemoValue: S.String,
-  fieldsetInputValue: S.String,
-  fieldsetTextareaValue: S.String,
-  isFieldsetCheckboxDemoChecked: S.Boolean,
+export const Model = Schema.Struct({
+  buttonClickCount: Schema.Number,
+  inputDemoValue: Schema.String,
+  textareaDemoValue: Schema.String,
+  fieldsetInputValue: Schema.String,
+  fieldsetTextareaValue: Schema.String,
+  isFieldsetCheckboxDemoChecked: Schema.Boolean,
   calendarBasicDemo: Calendar.Model,
-  maybeCalendarBasicDemoSelectedDate: S.Option(FoldkitCalendar.CalendarDate),
+  maybeCalendarBasicDemoSelectedDate: Schema.Option(
+    FoldkitCalendar.CalendarDate,
+  ),
   datePickerBasicDemo: DatePicker.Model,
-  maybeDatePickerBasicDemoSelectedDate: S.Option(FoldkitCalendar.CalendarDate),
-  isCheckboxBasicDemoChecked: S.Boolean,
-  isCheckboxOptionADemoChecked: S.Boolean,
-  isCheckboxOptionBDemoChecked: S.Boolean,
+  maybeDatePickerBasicDemoSelectedDate: Schema.Option(
+    FoldkitCalendar.CalendarDate,
+  ),
+  isCheckboxBasicDemoChecked: Schema.Boolean,
+  isCheckboxOptionADemoChecked: Schema.Boolean,
+  isCheckboxOptionBDemoChecked: Schema.Boolean,
   comboboxDemo: Combobox.Model,
-  maybeComboboxDemoSelectedCity: S.Option(City),
+  maybeComboboxDemoSelectedCity: Schema.Option(City),
   comboboxPlacementLockDemo: Combobox.Model,
-  maybeComboboxPlacementLockDemoSelectedCity: S.Option(City),
+  maybeComboboxPlacementLockDemoSelectedCity: Schema.Option(City),
   comboboxNullableDemo: Combobox.Model,
-  maybeComboboxNullableDemoSelectedCity: S.Option(City),
+  maybeComboboxNullableDemoSelectedCity: Schema.Option(City),
   comboboxMultiDemo: Combobox.Multi.Model,
-  comboboxMultiDemoSelectedCities: S.Array(City),
+  comboboxMultiDemoSelectedCities: Schema.Array(City),
   comboboxSelectOnFocusDemo: Combobox.Model,
-  maybeComboboxSelectOnFocusDemoSelectedCity: S.Option(City),
+  maybeComboboxSelectOnFocusDemoSelectedCity: Schema.Option(City),
   dialogDemo: Dialog.Model,
   dialogAnimatedDemo: Dialog.Model,
   overlayDialogDemo: Dialog.Model,
   overlayComboboxDemo: Combobox.Model,
-  maybeOverlayComboboxDemoSelectedCity: S.Option(City),
+  maybeOverlayComboboxDemoSelectedCity: Schema.Option(City),
   nestedDialogParentDemo: Dialog.Model,
   nestedDialogChildDemo: Dialog.Model,
-  isDisclosureDemoOpen: S.Boolean,
+  isDisclosureDemoOpen: Schema.Boolean,
   listboxDemo: Listbox.Model,
-  maybeListboxDemoSelectedItem: S.Option(ListboxItem),
+  maybeListboxDemoSelectedItem: Schema.Option(ListboxItem),
   listboxMultiDemo: Listbox.Multi.Model,
-  listboxMultiDemoSelectedItems: S.Array(ListboxItem),
+  listboxMultiDemoSelectedItems: Schema.Array(ListboxItem),
   listboxGroupedDemo: Listbox.Model,
-  maybeListboxGroupedDemoSelectedItem: S.Option(S.String),
+  maybeListboxGroupedDemoSelectedItem: Schema.Option(Schema.String),
   menuBasicDemo: Menu.Model,
   menuAnimatedDemo: Menu.Model,
   popoverBasicDemo: Popover.Model,
   popoverAnimatedDemo: Popover.Model,
+  popoverArrowDemo: Popover.Model,
   popoverNestedParentDemo: Popover.Model,
   popoverNestedChildDemo: Popover.Model,
-  verticalRadioGroupDemoValue: S.Option(Plan),
-  horizontalRadioGroupDemoValue: S.Option(Plan),
-  selectDemoValue: S.String,
+  verticalRadioGroupDemo: RadioGroup.Model,
+  verticalRadioGroupDemoValue: Schema.Option(Plan),
+  horizontalRadioGroupDemo: RadioGroup.Model,
+  horizontalRadioGroupDemoValue: Schema.Option(Plan),
+  selectDemoValue: Schema.String,
   sliderRatingDemo: Slider.Model,
-  sliderRatingValue: S.Number,
+  sliderRatingValue: Schema.Number,
   sliderVolumeDemo: Slider.Model,
-  sliderVolumeValue: S.Number,
-  isSwitchDemoChecked: S.Boolean,
+  sliderVolumeValue: Schema.Number,
+  isSwitchDemoChecked: Schema.Boolean,
   horizontalTabsDemo: Tabs.Model,
   horizontalTabsDemoTab: DemoTab,
   verticalTabsDemo: Tabs.Model,
   verticalTabsDemoTab: DemoTab,
   dragAndDropDemo: DragAndDrop.Model,
-  dragAndDropDemoColumns: S.Array(DemoColumn),
+  dragAndDropDemoColumns: Schema.Array(DemoColumn),
   fileDropBasicDemo: FileDrop.Model,
-  fileDropBasicDemoFiles: S.Array(File.File),
+  fileDropBasicDemoFiles: Schema.Array(File.File),
   toastDemo: Toast.Model,
-  maybeLastDismissedToastTitle: S.Option(S.String),
+  maybeLastDismissedToastTitle: Schema.Option(Schema.String),
   tooltipDemo: Tooltip.Model,
+  hoverIntentCardDemo: HoverIntent.Model,
+  hoverIntentMenuDemo: HoverIntent.Model,
   animationDemo: Animation.Model,
   virtualListDemo: VirtualList.Model,
   virtualListVariableDemo: VirtualList.Model,

@@ -1,12 +1,12 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 
 /**
  * Schema for one island's attributes: a struct that decodes the directive's
  * string attributes into typed values. Use transforming field schemas to
- * decode past strings, for example `S.NumberFromString` for numeric
+ * decode past strings, for example `Schema.NumberFromString` for numeric
  * attributes.
  */
-export type IslandDefinition = S.Struct<S.Struct.Fields> &
+export type IslandDefinition = Schema.Struct<Schema.Struct.Fields> &
   Readonly<{ DecodingServices: never; EncodingServices: never }>
 
 /**

@@ -1,18 +1,29 @@
 # DevTools
 
-## Overview
+## Using the Overlay {#overview}
 
-Foldkit has a DevTools overlay that displays every Message flowing through your app and lets you inspect the Model, Message, Commands, and Mounts at any point in time. It renders inside a shadow DOM so it won’t interfere with your styles or layout.
+By default, Foldkit DevTools records every Message flowing through your app. Open the overlay to inspect what happened, what changed, and which work the update returned. The overlay renders inside a shadow DOM, so it does not interfere with your styles or layout.
 
 You can see it in action right now. Look for the tab on the bottom right edge of this page.
 
-Open the panel and you’ll see a scrolling list of every Message dispatched so far, newest at the bottom. Click any row to inspect it. Four tabs swap the inspector content: `Model` shows the full state tree (with changed paths highlighted), `Message` shows the payload, `Commands` lists the Commands returned by the update, and `Mounts` shows which Mounts started or were torn down during that render. A `Live` badge tells you whether you’re looking at the latest state or a past snapshot; clicking a row in time-travel mode pauses the app and `Resume` returns to live. A `Clear` button drops history without restarting the app.
+The panel lists every recorded Message, with the newest at the bottom. Select a row and use the four inspector tabs:
+
+- `Model` shows the full state tree and highlights changed paths.
+- `Message` shows the Message payload.
+- `Commands` lists the Commands returned by update.
+- `Mounts` shows which Mounts started or ended during that render.
+
+The `Live` badge tells you whether the inspector shows the latest state or a past entry. In time-travel mode, selecting an earlier row installs a paused historical view. It does not pause the live application behind that view. Select `Resume` to patch the latest live view back into the DOM. `Clear` drops the recorded history without restarting the app.
 
 :::Info{label="AI agent integration"}
 Foldkit also exposes DevTools to AI agents over the Model Context Protocol. See the [DevTools MCP](/ai/mcp) page for setup.
 :::
 
-DevTools are enabled by default in development. Recording and the MCP bridge live in the core runtime, so a `devTools` object on `makeApplication` is enough for the MCP integration. The in-browser overlay ships separately in `@foldkit/devtools`: install it and pass its `overlay` to mount the panel.
+## Development and Production
+
+DevTools are enabled by default in development. Recording and the MCP bridge live in the core runtime. The browser overlay ships separately in `@foldkit/devtools`. When that package is installed as a development dependency, `@foldkit/vite-plugin` mounts the overlay automatically during development. Production builds omit it without an application-level environment check.
+
+Add a `devTools` object to `makeApplication` only when you need to configure DevTools or allow MCP dispatch. To include the overlay in production, move `@foldkit/devtools` to regular `dependencies` and set `show: 'Always'`. You do not need to import the overlay.
 
 ::Snippet{name="devtoolsBasic" label="Configuring DevTools"}
 
@@ -30,11 +41,11 @@ Controls where the badge and panel appear on screen. One of `'BottomRight'` (def
 
 ### mode
 
-`'TimeTravel'` (the default) enables full time-travel debugging. Clicking a Message row pauses the app and re-renders it exactly as it looked at that point in time. User interaction is blocked while paused, but Subscriptions continue running in the background and new rows keep appearing in the panel. Click Resume to jump back to the live state.
+`'TimeTravel'` (the default) renders the state at an earlier Message and pauses that historical view. The live Model, history, Commands, Subscriptions, ManagedResources, and live-acquired Mounts continue normally. Their Messages and state changes keep appearing in the panel even though the historical DOM stays in place. Foldkit event handlers and Mounts created by the historical render cannot dispatch, and the overlay blocks pointer interaction. A surviving live Mount observes its `viewStateChanges` Stream and must make its imperative integration read-only while paused so keyboard or programmatic DOM interaction cannot produce Messages. Select `Resume` to patch the latest live view back into the DOM; a replay-created Mount whose element is reused is released before the live action starts.
 
-`'Inspect'` lets you browse state snapshots without pausing the app, which is useful when showing DevTools to visitors in production or staging environments.
+`'Inspect'` lets you browse recorded states without pausing the app. Use it when visitors can open DevTools in production or staging.
 
-You can also pass `{ development, production }` to select a different mode per environment. This is the recommended pattern when `show: 'Always'` keeps DevTools available in production: keep `'TimeTravel'` for local debugging and ship `'Inspect'` to your users so clicking a row never pauses their app.
+Pass `{ development, production }` to choose a mode for each environment. When `show: 'Always'` keeps DevTools available in production, use `'TimeTravel'` for local debugging and `'Inspect'` in production. Selecting a row will not pause a visitor's app.
 
 ::Snippet{name="devtoolsInspect" label="TimeTravel locally, Inspect in production"}
 
@@ -48,20 +59,28 @@ The application’s `Message` Schema. Required only for AI agent integration: wh
 
 ### excludeFromHistory {#exclude-from-history}
 
-A list of Message `_tag` values whose dispatches should not be recorded in DevTools history. The Messages still drive `update` and the runtime as usual; they just don’t appear in the history panel and don’t pay the per-Message diff cost. Reach for this when an animation-frame Subscription, pointer-move handler, scroll listener, or other high-frequency dispatcher would otherwise flood history with entries that all look the same.
+A list of Message `_tag` values that DevTools should not record. The Messages still run through update and change the application as usual. They do not appear in the history panel or incur the per-Message diff cost.
 
-When `excludeFromHistory` is set, DevTools also switches to a per-entry snapshot strategy so time-travel jumps to recorded entries reflect the real live state at the moment they were recorded. Without this, replay would walk only the kept Messages and miss any cumulative state the excluded ones would have produced. The "Live" model view stays in sync as well: excluded Messages still update the latest-model snapshot, they just don’t append a history entry or compute a diff.
+Use this option when animation frames, pointer moves, scroll events, or another high-frequency source would flood the history.
+
+When the list contains at least one tag, DevTools stores a full Model snapshot for every recorded entry. That preserves changes made by excluded Messages when you travel to a recorded state. Excluded Messages also update the `Live` Model view, but they do not append a history entry or compute a diff.
 
 ::Snippet{name="devtoolsExcludeFromHistory" label="Excluding high-frequency Messages from history"}
 
 ### maxEntries {#max-entries}
 
-Maximum number of recorded Messages retained in history before the oldest is evicted. Defaults to `100`. Clamped to the range `20` to `500`: smaller values keep the panel snappy under high message rates, larger values give you more scroll-back. Each retained entry is one append + diff in the regular case, or one append + full Model snapshot when `excludeFromHistory` is active, so memory cost scales with both `maxEntries` and your Model size.
+The maximum number of recorded Messages retained before DevTools evicts the oldest entry. The default is `100`, and values are clamped between `20` and `500`.
+
+Smaller values reduce work under high Message rates. Larger values provide more history. Memory use grows with `maxEntries` and Model size, especially when `excludeFromHistory` makes every recorded entry store a full Model snapshot.
 
 ::Snippet{name="devtoolsMaxEntries" label="Raising the DevTools history cap"}
 
 ### keyframeInterval {#keyframe-interval}
 
-Number of recorded Messages between full Model snapshots. Defaults to `31`. Time-travel to an index replays `update` forward from the nearest earlier keyframe, so this is a memory and time tradeoff: smaller values store more snapshots and shorten the replay each jump walks, down to `1` where every jump is a constant-time snapshot lookup with no replay. Reach for a denser interval when your app has a heavy `update` and time-travel jumps feel sluggish. Clamped to a minimum of `1`, and forced to `1` automatically when `excludeFromHistory` is active, since excluded Messages are never replayed.
+The number of recorded Messages between full Model snapshots. The default is `31`, and the minimum is `1`.
+
+To reconstruct an entry, DevTools starts at the nearest earlier snapshot and replays update. A smaller interval stores more snapshots but shortens that replay. Set the interval to `1` when update is expensive and time-travel feels slow. Every entry then has its own snapshot, so no replay is needed.
+
+DevTools automatically uses `1` when `excludeFromHistory` is active because excluded Messages are not available for replay.
 
 ::Snippet{name="devtoolsKeyframeInterval" label="Snapshotting every entry for constant-time jumps"}

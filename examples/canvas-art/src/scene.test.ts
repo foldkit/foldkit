@@ -1,4 +1,5 @@
 import { click, expect, given, role, scene, text } from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { type Model, update, view } from './main'
@@ -33,15 +34,14 @@ describe('view', () => {
   })
 
   test('the ball count reflects spawned balls in the Model', () => {
-    const populatedModel: Model = {
-      ...emptyModel,
-      balls: [
+    const populatedModel: Model = evo(emptyModel, {
+      balls: () => [
         { id: 0, x: 10, y: 20, vx: 1, vy: 1, radius: 8, color: '#ff2d55' },
         { id: 1, x: 30, y: 40, vx: -1, vy: 1, radius: 12, color: '#5ac8fa' },
         { id: 2, x: 50, y: 60, vx: 1, vy: -1, radius: 16, color: '#34c759' },
       ],
-      nextId: 3,
-    }
+      nextId: () => 3,
+    })
 
     scene(
       { update, view },
@@ -51,13 +51,12 @@ describe('view', () => {
   })
 
   test('Clear empties the rendered ball count', () => {
-    const populatedModel: Model = {
-      ...emptyModel,
-      balls: [
+    const populatedModel: Model = evo(emptyModel, {
+      balls: () => [
         { id: 0, x: 10, y: 20, vx: 1, vy: 1, radius: 8, color: '#ff2d55' },
       ],
-      nextId: 1,
-    }
+      nextId: () => 1,
+    })
 
     scene(
       { update, view },

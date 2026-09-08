@@ -1,10 +1,10 @@
-import { Array, Match as M, Option, Order, Predicate, pipe } from 'effect'
+import { Array, Match, Option, Order, Predicate, pipe } from 'effect'
 
 import type { TypeDocItem, TypeDocSignature, TypeDocType } from './typedoc'
 
 const indent = (depth: number): string => '  '.repeat(depth)
 
-const whenType = M.discriminator('type')
+const whenType = Match.discriminator('type')
 
 /** Map from a reflection fingerprint to the qualified type name to render in
  * its place. The fingerprint identifies a Schema-derived struct by its sorted
@@ -126,7 +126,7 @@ const formatType = (
   depth: number,
   namedSchemas: NamedSchemas,
 ): string =>
-  M.value(type).pipe(
+  Match.value(type).pipe(
     whenType('intrinsic', ({ name }) => name),
     whenType('literal', ({ value }) => JSON.stringify(value)),
     whenType('reference', ({ name, typeArguments }) =>
@@ -232,7 +232,7 @@ const formatType = (
     ),
     whenType('inferred', ({ name }) => `infer ${name}`),
     whenType('predicate', 'unknown', () => 'unknown'),
-    M.exhaustive,
+    Match.exhaustive,
   )
 
 export const typeToString = (

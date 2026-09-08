@@ -1,12 +1,21 @@
 import { Array, Effect, Option } from 'effect'
-import { Diagnostic, type ESTree, Rule, RuleContext } from 'effect-oxlint'
+import {
+  Diagnostic,
+  type ESTree,
+  type Reference,
+  Rule,
+  RuleContext,
+} from 'effect-oxlint'
 
 import { ELEMENT_BUILDER_NAMES } from '../elementBuilderNames.ts'
 import {
+  indexReferences,
   isArrayExpression,
   isCallExpression,
+  isFoldkitHtmlBuilderMember,
   isIdentifier,
   isMemberExpression,
+  staticMemberPath,
 } from '../guards.ts'
 
 // The builder bindings Foldkit views use: the `h` a view receives, and
@@ -19,28 +28,43 @@ const KEYED_PROPERTY = 'keyed'
 
 type BuilderCallee = Readonly<{ binding: string; property: string }>
 
-const builderCallee = (callee: unknown): Option.Option<BuilderCallee> => {
+const builderCallee = (
+  callee: unknown,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<BuilderCallee> => {
   if (!isMemberExpression(callee) || callee.computed === true) {
     return Option.none()
   }
+  if (!isIdentifier(callee.property)) {
+    return Option.none()
+  }
+  const maybePath = staticMemberPath(callee)
+  if (Option.isNone(maybePath)) {
+    return Option.none()
+  }
+  const path = maybePath.value
+  const binding = [path.root.name, ...Array.dropRight(path.members, 1)].join(
+    '.',
+  )
   if (
-    !isIdentifier(callee.object) ||
-    !BUILDER_BINDINGS.has(callee.object.name) ||
-    !isIdentifier(callee.property)
+    references === undefined
+      ? !BUILDER_BINDINGS.has(binding)
+      : !isFoldkitHtmlBuilderMember(callee, callee.property.name, references)
   ) {
     return Option.none()
   }
   return Option.some({
-    binding: callee.object.name,
+    binding,
     property: callee.property.name,
   })
 }
 
 const elementCallTarget = (
   node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<string> =>
   node.arguments.length === 2
-    ? builderCallee(node.callee).pipe(
+    ? builderCallee(node.callee, references).pipe(
         Option.filter(({ property }) => ELEMENT_BUILDER_NAMES.has(property)),
         Option.map(({ binding, property }) => `${binding}.${property}([...])`),
       )
@@ -50,11 +74,12 @@ const elementCallTarget = (
 // the third argument of the outer call rather than the second.
 const keyedCallTarget = (
   node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<string> => {
   if (node.arguments.length !== 3 || !isCallExpression(node.callee)) {
     return Option.none()
   }
-  return builderCallee(node.callee.callee).pipe(
+  return builderCallee(node.callee.callee, references).pipe(
     Option.filter(({ property }) => property === KEYED_PROPERTY),
     Option.map(
       ({ binding }) => `${binding}.${KEYED_PROPERTY}(tag)(key, [...])`,
@@ -79,13 +104,17 @@ export const noEmptyChildrenArray = Rule.define({
   }),
   create: function* () {
     const ctx = yield* RuleContext
+    const scopes = ctx.sourceCode.scopeManager?.scopes
+    const references =
+      scopes === undefined ? undefined : indexReferences(scopes)
     return {
       CallExpression: (node: ESTree.Node) => {
         if (!isCallExpression(node)) {
           return Effect.void
         }
-        const maybeTarget = Option.orElse(elementCallTarget(node), () =>
-          keyedCallTarget(node),
+        const maybeTarget = Option.orElse(
+          elementCallTarget(node, references),
+          () => keyedCallTarget(node, references),
         )
         if (Option.isNone(maybeTarget)) {
           return Effect.void

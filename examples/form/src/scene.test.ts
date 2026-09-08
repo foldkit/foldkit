@@ -10,13 +10,12 @@ import {
   submit,
   type,
 } from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import {
-  CompletedValidateEmail,
-  FailedSubmitForm,
+  Message,
   SubmitForm,
-  SucceededSubmitForm,
   ValidateEmail,
   initialModel,
   update,
@@ -59,10 +58,9 @@ describe('view', () => {
   })
 
   test('typing a well-formed email triggers async validation', () => {
-    const modelWithValidName = {
-      ...initialModel,
-      name: FieldValidation.Valid({ value: 'Alice' }),
-    }
+    const modelWithValidName = evo(initialModel, {
+      name: () => FieldValidation.Valid({ value: 'Alice' }),
+    })
 
     scene(
       { update, view },
@@ -73,7 +71,7 @@ describe('view', () => {
       Command.expectExact(ValidateEmail),
       Command.resolve(
         ValidateEmail,
-        CompletedValidateEmail({
+        Message.CompletedValidateEmail({
           field: FieldValidation.Valid({ value: 'alice@example.com' }),
         }),
       ),
@@ -89,7 +87,7 @@ describe('view', () => {
       Command.expectExact(ValidateEmail),
       Command.resolve(
         ValidateEmail,
-        CompletedValidateEmail({
+        Message.CompletedValidateEmail({
           field: FieldValidation.Invalid({
             value: 'test@example.com',
             errors: ['This email is already on our waitlist'],
@@ -103,11 +101,10 @@ describe('view', () => {
   })
 
   test('submit becomes enabled once name and email are valid', () => {
-    const validModel = {
-      ...initialModel,
-      name: FieldValidation.Valid({ value: 'Alice' }),
-      email: FieldValidation.Valid({ value: 'alice@example.com' }),
-    }
+    const validModel = evo(initialModel, {
+      name: () => FieldValidation.Valid({ value: 'Alice' }),
+      email: () => FieldValidation.Valid({ value: 'alice@example.com' }),
+    })
 
     scene(
       { update, view },
@@ -117,11 +114,10 @@ describe('view', () => {
   })
 
   test('submitting a valid form shows the loading label then a success banner', () => {
-    const validModel = {
-      ...initialModel,
-      name: FieldValidation.Valid({ value: 'Alice' }),
-      email: FieldValidation.Valid({ value: 'alice@example.com' }),
-    }
+    const validModel = evo(initialModel, {
+      name: () => FieldValidation.Valid({ value: 'Alice' }),
+      email: () => FieldValidation.Valid({ value: 'alice@example.com' }),
+    })
 
     scene(
       { update, view },
@@ -129,25 +125,27 @@ describe('view', () => {
       click(role('button', { name: 'Join Waitlist' })),
       expect(role('button', { name: 'Joining...' })).toBeDisabled(),
       Command.expectExact(SubmitForm),
-      Command.resolve(SubmitForm, SucceededSubmitForm({ name: 'Alice' })),
+      Command.resolve(
+        SubmitForm,
+        Message.SucceededSubmitForm({ name: 'Alice' }),
+      ),
       expect(role('status')).toContainText('Welcome to the waitlist, Alice!'),
       expect(role('button', { name: 'Join Waitlist' })).toExist(),
     )
   })
 
   test('a failed submission renders an error banner', () => {
-    const validModel = {
-      ...initialModel,
-      name: FieldValidation.Valid({ value: 'Alice' }),
-      email: FieldValidation.Valid({ value: 'alice@example.com' }),
-    }
+    const validModel = evo(initialModel, {
+      name: () => FieldValidation.Valid({ value: 'Alice' }),
+      email: () => FieldValidation.Valid({ value: 'alice@example.com' }),
+    })
 
     scene(
       { update, view },
       given(validModel),
       submit(role('form')),
       Command.expectExact(SubmitForm),
-      Command.resolve(SubmitForm, FailedSubmitForm()),
+      Command.resolve(SubmitForm, Message.FailedSubmitForm()),
       expect(role('alert')).toContainText('Sorry, there was an error'),
     )
   })

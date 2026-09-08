@@ -4,13 +4,7 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 import { Button } from '@foldkit/ui'
 
 import { Cart } from '../domain'
-import {
-  ClickedClearCart,
-  ClickedDecrementQuantity,
-  ClickedIncrementQuantity,
-  ClickedRemoveCartItem,
-  Message,
-} from '../main'
+import { Message } from '../main'
 import { checkoutRouter, productsRouter } from '../route'
 
 // VIEW
@@ -79,7 +73,7 @@ export const view = (cart: Cart.Cart, h: HtmlBuilder<Message>): Html =>
                           [
                             Button.view(
                               {
-                                onClick: ClickedDecrementQuantity({
+                                onClick: Message.ClickedDecrementQuantity({
                                   itemId: cartItem.item.id,
                                 }),
                                 toView: attributes =>
@@ -101,7 +95,7 @@ export const view = (cart: Cart.Cart, h: HtmlBuilder<Message>): Html =>
                             ),
                             Button.view(
                               {
-                                onClick: ClickedIncrementQuantity({
+                                onClick: Message.ClickedIncrementQuantity({
                                   itemId: cartItem.item.id,
                                 }),
                                 toView: attributes =>
@@ -119,7 +113,7 @@ export const view = (cart: Cart.Cart, h: HtmlBuilder<Message>): Html =>
                             ),
                             Button.view(
                               {
-                                onClick: ClickedRemoveCartItem({
+                                onClick: Message.ClickedRemoveCartItem({
                                   itemId: cartItem.item.id,
                                 }),
                                 toView: attributes =>
@@ -175,7 +169,7 @@ export const view = (cart: Cart.Cart, h: HtmlBuilder<Message>): Html =>
                     ),
                     Button.view(
                       {
-                        onClick: ClickedClearCart(),
+                        onClick: Message.ClickedClearCart(),
                         toView: attributes =>
                           h.button(
                             [

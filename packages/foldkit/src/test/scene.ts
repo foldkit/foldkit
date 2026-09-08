@@ -4,18 +4,18 @@ import {
   Effect,
   Equal,
   Function,
+  Match,
   Option,
   Predicate,
-  type Schema,
-  String as String_,
+  Schema,
+  String,
   pipe,
 } from 'effect'
 import { dual } from 'effect/Function'
 
-import type { CommandDefinition } from '../command/index.js'
-import type * as Interruptible from '../command/interruptible/index.js'
 import { kebabToPascal } from '../customElement/index.js'
 import type { CustomElementSpec, EventSchema } from '../customElement/index.js'
+import { serializedStylePropertyName } from '../domReflection.js'
 import type { File } from '../file/index.js'
 import type { FoldkitMountMarker } from '../html/index.js'
 import {
@@ -34,18 +34,22 @@ import type {
 import type { Entry as ManagedResourceEntry } from '../managedResource/index.js'
 import { MountTracker } from '../mount/index.js'
 import type { MountDefinition } from '../mount/index.js'
-import { Dispatch } from '../runtime/index.js'
+import { Dispatch } from '../runtime/dispatch.js'
 import type { VNode } from '../vdom.js'
 import type {
   AnyCommand,
+  AnyCommandInstance,
   AnyMount,
   BaseInternal,
   CommandMatcher,
   MountMatcher,
   MountResolver,
   PendingMount,
+  ResolvableCommandDefinition,
+  ResolvableCommandMatcher,
   Resolver,
   ResolverEntry,
+  SimulationUpdateReturn,
 } from './internal.js'
 import {
   assertAllCommandsResolved,
@@ -66,6 +70,7 @@ import {
   formatMountList,
   formatMountMatcher,
   mountMatches,
+  resolveAllExactInternal,
   resolveAllInternal,
   resolveByMatcher,
   resolveMountByMatcher,
@@ -76,6 +81,7 @@ import {
   accessibleName,
   ancestorsOf,
   attr,
+  isHidden,
   resolveTarget,
   selector,
   textContent,
@@ -164,7 +170,9 @@ export type SceneSimulation<Model, Message, OutMessage = undefined> = Readonly<{
   _phantom: [Model, Message]
   commands: ReadonlyArray<AnyCommand>
   mounts: ReadonlyArray<PendingMount>
-  outMessage: OutMessage
+  /** The sole OutMessage from the latest update-producing Scene step.
+   *  Undefined when that step emitted none or more than one. */
+  outMessage: OutMessage | undefined
   html: VNode
 }>
 
@@ -174,12 +182,47 @@ type GivenStep<Model> = Readonly<{ _phantomModel: Model }> &
     simulation: SceneSimulation<M, Message, OutMessage>,
   ) => SceneSimulation<M, Message, OutMessage>)
 
-/** A single step in a scene: either a `given` step or a scene simulation transform. */
+/** A typed Subscription Message step. */
+export type SubscriptionMessageStep<Message> = Readonly<{
+  _tag: 'SubscriptionMessageStep'
+  message: Message
+}>
+
+/** A typed OutMessage assertion step. */
+export type OutMessageStep<OutMessage> = Readonly<{
+  _tag: 'OutMessageStep'
+  expected: OutMessage
+}>
+
+/** A typed OutMessage sequence assertion step. */
+export type OutMessagesStep<OutMessage> = Readonly<{
+  _tag: 'OutMessagesStep'
+  expected: readonly [OutMessage, OutMessage, ...ReadonlyArray<OutMessage>]
+}>
+
+/** A single step in a scene: a `given` step, typed Message or OutMessage step,
+ *  or scene simulation transform. */
 export type SceneStep<Model, Message, OutMessage> =
   | GivenStep<NoInfer<Model>>
+  | Readonly<{
+      _tag: 'SubscriptionMessageStep'
+      message: NoInfer<Message>
+    }>
+  | Readonly<{
+      _tag: 'OutMessageStep'
+      expected: NoInfer<OutMessage>
+    }>
+  | Readonly<{
+      _tag: 'OutMessagesStep'
+      expected: readonly [
+        NoInfer<OutMessage>,
+        NoInfer<OutMessage>,
+        ...ReadonlyArray<NoInfer<OutMessage>>,
+      ]
+    }>
   | ((
-      simulation: SceneSimulation<Model, Message, OutMessage>,
-    ) => SceneSimulation<Model, Message, OutMessage>)
+      simulation: SceneSimulation<any, any, any>,
+    ) => SceneSimulation<any, any, any>)
 
 // INTERNAL
 
@@ -190,13 +233,28 @@ type DispatchService = Readonly<{
 
 type CapturingDispatch = Readonly<{
   dispatch: DispatchService
-  getCapturedMessage: () => unknown | undefined
+  getCapturedMessages: () => ReadonlyArray<unknown>
   reset: () => void
 }>
 
-type UpdateResult<Model, OutMessage> =
-  | readonly [Model, ReadonlyArray<AnyCommand>]
-  | readonly [Model, ReadonlyArray<AnyCommand>, OutMessage]
+/** Whether the most recent interaction step's event handler produced a
+ *  Message. `NotRun` is the seed state, before any interaction has run. */
+type InteractionOutcome = Readonly<
+  { _tag: 'NotRun' } | { _tag: 'Handled' } | { _tag: 'Ignored' }
+>
+
+const NotRun: InteractionOutcome = { _tag: 'NotRun' }
+const Handled: InteractionOutcome = { _tag: 'Handled' }
+const Ignored: InteractionOutcome = { _tag: 'Ignored' }
+
+/** An interaction whose handler let the event fall through and which no
+ *  `expectIgnored` has acknowledged yet. Carries the event and target so the
+ *  failure can name them, since it is raised at the next interaction or at
+ *  the end of the scene rather than at the step itself. */
+type IgnoredInteraction = Readonly<{
+  eventName: string
+  description: string
+}>
 
 type MountStatus =
   | Readonly<{ _tag: 'Pending' }>
@@ -224,42 +282,17 @@ type InternalSceneSimulation<
     updateFn: (
       model: Model,
       message: Message,
-    ) => UpdateResult<Model, OutMessage>
+    ) => SimulationUpdateReturn<Model, OutMessage>
     resolvers: ReadonlyArray<ResolverEntry>
     viewFn: (model: Model, h: HtmlBuilder<Message>) => Html | Document
     capturingDispatch: CapturingDispatch
     scope: Option.Option<Locator>
     mountSlots: ReadonlyArray<MountSlotState>
+    outMessages: ReadonlyArray<OutMessage>
+    outMessageRevision: number
+    lastInteractionOutcome: InteractionOutcome
+    maybeUnacknowledgedIgnored: Option.Option<IgnoredInteraction>
   }>
-
-/** A typed Command instance carrying the result Message type via its
- *  `effect` field, so passing `FetchWeather({ zipCode })` to `Scene.Command.resolve`
- *  preserves the link between the Command and its declared result Message. */
-type SceneCommandInstance<ResultMessage = unknown> = Readonly<{
-  name: string
-  args?: Record<string, unknown>
-  effect: Effect.Effect<ResultMessage, any, any>
-}>
-
-/** A Command Definition accepted by `Scene.Command.resolve` as a name matcher:
- *  a plain `Command.define` Definition or an interruptible
- *  interruptible `Command.define` Definition. Both carry the
- *  `CommandDefinitionTypeId` brand and match by name at runtime, so `resolve`
- *  accepts either, the way `expectHas`/`expectExact` already do. */
-type ResolvableCommandDefinition<Name extends string, ResultMessage> =
-  | CommandDefinition<Name, ResultMessage>
-  | Interruptible.DefinitionNoArgs<Name, Effect.Effect<ResultMessage, any, any>>
-  | Interruptible.DefinitionWithArgs<
-      Name,
-      any,
-      any,
-      Effect.Effect<ResultMessage, any, any>
-    >
-  | Interruptible.DefinitionWithArgsNameKeyed<
-      Name,
-      any,
-      Effect.Effect<ResultMessage, any, any>
-    >
 
 const slotKey = ({ name, occurrence }: PendingMount): string =>
   `${name}#${occurrence}`
@@ -366,6 +399,60 @@ const toInternal = <Model, Message, OutMessage>(
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   simulation as InternalSceneSimulation<Model, Message, OutMessage>
 
+type OutMessageCapture<Model, Message, OutMessage> = Readonly<{
+  updateFn: (
+    model: Model,
+    message: Message,
+  ) => SimulationUpdateReturn<Model, OutMessage>
+  getOutMessages: () => ReadonlyArray<OutMessage>
+  isUpdateApplied: () => boolean
+}>
+
+const createOutMessageCapture = <Model, Message, OutMessage>(
+  updateFn: (
+    model: Model,
+    message: Message,
+  ) => SimulationUpdateReturn<Model, OutMessage>,
+): OutMessageCapture<Model, Message, OutMessage> => {
+  const outMessages: Array<OutMessage> = []
+  let isUpdateApplied = false
+
+  return {
+    updateFn: (model, message) => {
+      isUpdateApplied = true
+      const messageUpdate = updateFn(model, message)
+
+      if (!Predicate.isUndefined(messageUpdate.outMessage)) {
+        outMessages.push(messageUpdate.outMessage)
+      }
+
+      return messageUpdate
+    },
+    getOutMessages: () => outMessages,
+    isUpdateApplied: () => isUpdateApplied,
+  }
+}
+
+const withOutMessages = <Model, Message, OutMessage>(
+  simulation: SceneSimulation<Model, Message, OutMessage>,
+  outMessages: ReadonlyArray<OutMessage>,
+): SceneSimulation<Model, Message, OutMessage> => {
+  const internal = toInternal(simulation)
+  const outMessage = Array.matchLeft(outMessages, {
+    onEmpty: () => undefined,
+    onNonEmpty: (head, tail) =>
+      Array.isReadonlyArrayEmpty(tail) ? head : undefined,
+  })
+
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return {
+    ...internal,
+    outMessage,
+    outMessages,
+    outMessageRevision: internal.outMessageRevision + 1,
+  } as unknown as SceneSimulation<Model, Message, OutMessage>
+}
+
 const applyScopeToTarget = (
   scope: Option.Option<Locator>,
   target: string | Locator,
@@ -408,18 +495,18 @@ const applyScopeToLocatorAll = (
 // CAPTURING DISPATCH
 
 const createCapturingDispatch = (): CapturingDispatch => {
-  let capturedMessage: unknown | undefined
+  let capturedMessages: Array<unknown> = []
 
   return {
     dispatch: Dispatch.of({
       dispatchAsync: () => Effect.void,
       dispatchSync: (dispatchedMessage: unknown) => {
-        capturedMessage = dispatchedMessage
+        capturedMessages.push(dispatchedMessage)
       },
     }),
-    getCapturedMessage: () => capturedMessage,
+    getCapturedMessages: () => capturedMessages,
     reset: () => {
-      capturedMessage = undefined
+      capturedMessages = []
     },
   }
 }
@@ -467,11 +554,14 @@ const isDocument = (value: Html | Document): value is Document =>
 const EVENT_NAMES: Record<string, string> = {
   click: 'OnClick',
   dblclick: 'OnDoubleClick',
+  contextmenu: 'OnContextMenu',
   submit: 'OnSubmit',
   input: 'OnInput',
   change: 'OnChange',
   focus: 'OnFocus',
   blur: 'OnBlur',
+  focusin: 'OnFocusEnter',
+  focusout: 'OnFocusLeave',
   mouseenter: 'OnMouseEnter',
   mouseover: 'OnMouseOver',
   keydown: 'OnKeyDown or OnKeyDownPreventDefault',
@@ -500,16 +590,163 @@ const maybeCaptureFromElement = <Model, Message, OutMessage>(
   internal.capturingDispatch.reset()
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   invokeHandler(maybeHandler.value as Function)
+  const capturedMessages = internal.capturingDispatch.getCapturedMessages()
 
-  return Option.map(
-    Option.fromNullishOr(internal.capturingDispatch.getCapturedMessage()),
-    captured =>
-      applyExternalMessage(
-        simulation,
-        captured,
-        'when an interaction dispatched a new Message',
+  return Array.match(capturedMessages, {
+    onEmpty: () => Option.none(),
+    onNonEmpty: messages =>
+      Option.some(
+        applyExternalMessages(
+          simulation,
+          messages,
+          'when an interaction dispatched a new Message',
+        ),
       ),
+  })
+}
+
+const finishCapturedInteraction = <Model, Message, OutMessage>(
+  simulation: SceneSimulation<Model, Message, OutMessage>,
+  description: string,
+  eventName: string,
+): SceneSimulation<Model, Message, OutMessage> => {
+  const capturedMessages =
+    toInternal(simulation).capturingDispatch.getCapturedMessages()
+
+  return Array.match(capturedMessages, {
+    onEmpty: () =>
+      advanceInteraction(
+        simulation,
+        Ignored,
+        Option.some({ eventName, description }),
+      ),
+    onNonEmpty: messages =>
+      advanceInteraction(
+        applyExternalMessages(
+          simulation,
+          messages,
+          'when an interaction dispatched a new Message',
+        ),
+        Handled,
+        Option.none(),
+      ),
+  })
+}
+
+const applyMessageWithoutBoundaryChecks = <Model, Message, OutMessage>(
+  simulation: SceneSimulation<Model, Message, OutMessage>,
+  message: unknown,
+): SceneSimulation<Model, Message, OutMessage> => {
+  const internal = toInternal(simulation)
+
+  /* eslint-disable @typescript-eslint/consistent-type-assertions */
+  const messageAsParent = message as unknown as Message
+  const messageUpdate = internal.updateFn(internal.model, messageAsParent)
+  return {
+    ...internal,
+    model: messageUpdate.model,
+    message: messageAsParent,
+    commands: Array.appendAll(internal.commands, messageUpdate.commands ?? []),
+    outMessage: messageUpdate.outMessage,
+  } as unknown as SceneSimulation<Model, Message, OutMessage>
+  /* eslint-enable @typescript-eslint/consistent-type-assertions */
+}
+
+const assertExternalMessageBoundary = <Model, Message, OutMessage>(
+  simulation: SceneSimulation<Model, Message, OutMessage>,
+  context: string,
+): void => {
+  const internal = toInternal(simulation)
+
+  assertNoUnresolvedCommands(internal.commands, context)
+  assertNoUnresolvedMounts(internal.mounts, context)
+  assertNoUnacknowledgedUnmounts(
+    unacknowledgedEndedMountsOf(internal.mountSlots),
+    context,
   )
+}
+
+const applyExternalMessages = <Model, Message, OutMessage>(
+  simulation: SceneSimulation<Model, Message, OutMessage>,
+  messages: ReadonlyArray<unknown>,
+  context: string,
+): SceneSimulation<Model, Message, OutMessage> => {
+  assertExternalMessageBoundary(simulation, context)
+
+  return Array.reduce(messages, simulation, applyMessageWithoutBoundaryChecks)
+}
+
+const applySubscriptionMessage = <Model, Message, OutMessage>(
+  simulation: SceneSimulation<Model, Message, OutMessage>,
+  message: Message,
+): SceneSimulation<Model, Message, OutMessage> => {
+  const internal = toInternal(simulation)
+  const context = 'when a Subscription emitted a new Message'
+
+  assertExternalMessageBoundary(simulation, context)
+
+  const messageUpdate = internal.updateFn(internal.model, message)
+
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return {
+    ...internal,
+    model: messageUpdate.model,
+    message,
+    commands: Array.appendAll(internal.commands, messageUpdate.commands ?? []),
+    outMessage: messageUpdate.outMessage,
+  } as SceneSimulation<Model, Message, OutMessage>
+}
+
+/** Clears the pending fall-through, marking it acknowledged. Paired with
+ *  {@link assertNoUnacknowledgedIgnored}, which is what it silences. */
+const withNoUnacknowledgedIgnored = <Model, Message, OutMessage>(
+  simulation: SceneSimulation<Model, Message, OutMessage>,
+): SceneSimulation<Model, Message, OutMessage> =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  ({
+    ...simulation,
+    maybeUnacknowledgedIgnored: Option.none(),
+  }) as SceneSimulation<Model, Message, OutMessage>
+
+/** Fails on an interaction whose handler let the event fall through and
+ *  which no `expectIgnored` acknowledged. Called at the next interaction and
+ *  again when the scene ends, which are the two points by which the
+ *  acknowledgement must have arrived. */
+const assertNoUnacknowledgedIgnored = <Model, Message, OutMessage>(
+  simulation: SceneSimulation<Model, Message, OutMessage>,
+): void => {
+  const { maybeUnacknowledgedIgnored } = toInternal(simulation)
+
+  if (Option.isSome(maybeUnacknowledgedIgnored)) {
+    const { eventName, description } = maybeUnacknowledgedIgnored.value
+    throw new Error(
+      `I dispatched "${eventName}" on the element matching ${description} but its handler produced no Message, and nothing asserted that.\n\n` +
+        'The handler ran and returned nothing, so the event falls through and the browser default is not prevented. A test that leaves this unsaid passes whether the interaction is correctly inert or its handler regressed.\n\n' +
+        'Add `expectIgnored()` after the interaction if falling through is what you meant. If the event should have been consumed, the handler is the bug; `expectHandled()` states that expectation and will fail until it is fixed.',
+    )
+  }
+}
+
+/** Advances the simulation past an interaction: records whether its handler
+ *  produced a Message, so {@link expectHandled} and {@link expectIgnored} can
+ *  assert on it, and tracks a fall-through until something acknowledges it.
+ *
+ *  Fails first on any fall-through the previous interaction left
+ *  unacknowledged, so the error lands one interaction later rather than at
+ *  the end of the scene wherever possible. */
+const advanceInteraction = <Model, Message, OutMessage>(
+  simulation: SceneSimulation<Model, Message, OutMessage>,
+  outcome: InteractionOutcome,
+  maybeIgnored: Option.Option<IgnoredInteraction>,
+): SceneSimulation<Model, Message, OutMessage> => {
+  assertNoUnacknowledgedIgnored(simulation)
+
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return {
+    ...simulation,
+    lastInteractionOutcome: outcome,
+    maybeUnacknowledgedIgnored: maybeIgnored,
+  } as SceneSimulation<Model, Message, OutMessage>
 }
 
 const captureFromElement = <Model, Message, OutMessage>(
@@ -519,7 +756,7 @@ const captureFromElement = <Model, Message, OutMessage>(
   eventName: string,
   invokeHandler: (handler: Function) => void,
 ): SceneSimulation<Model, Message, OutMessage> =>
-  Option.getOrElse(
+  Option.match(
     maybeCaptureFromElement(
       simulation,
       element,
@@ -527,7 +764,15 @@ const captureFromElement = <Model, Message, OutMessage>(
       eventName,
       invokeHandler,
     ),
-    () => simulation,
+    {
+      onNone: () =>
+        advanceInteraction(
+          simulation,
+          Ignored,
+          Option.some({ eventName, description }),
+        ),
+      onSome: next => advanceInteraction(next, Handled, Option.none()),
+    },
   )
 
 const invokeAndCapture = <Model, Message, OutMessage>(
@@ -559,25 +804,80 @@ const invokeAndCapture = <Model, Message, OutMessage>(
   )
 }
 
-const lookupTypeAttribute = (vnode: VNode): string | undefined => {
-  const fromAttrs = vnode.data?.attrs?.['type']
-  const fromProps = vnode.data?.props?.['type']
-  return typeof fromAttrs === 'string'
-    ? fromAttrs
-    : typeof fromProps === 'string'
-      ? fromProps
-      : undefined
+const lookupStringAttribute = (
+  vnode: VNode,
+  name: string,
+): string | undefined => {
+  const fromAttrs = vnode.data?.attrs?.[name]
+  const fromProps = vnode.data?.props?.[name]
+  if (Predicate.isString(fromAttrs)) {
+    return fromAttrs
+  }
+
+  if (Predicate.isString(fromProps)) {
+    return fromProps
+  }
+
+  return undefined
 }
 
 const isSubmitButton = (element: VNode): boolean => {
-  const type = lookupTypeAttribute(element)
+  const maybeType = pipe(
+    lookupStringAttribute(element, 'type'),
+    Option.fromNullishOr,
+    Option.map(String.toLowerCase),
+  )
+
   if (element.sel === 'button') {
-    return type === undefined || type === 'submit'
+    return Option.match(maybeType, {
+      onNone: () => true,
+      onSome: value => value !== 'button' && value !== 'reset',
+    })
   }
+
   if (element.sel === 'input') {
-    return type === 'submit' || type === 'image'
+    return Option.exists(
+      maybeType,
+      value => value === 'submit' || value === 'image',
+    )
   }
+
   return false
+}
+
+const findElementById = (root: VNode, id: string): Option.Option<VNode> => {
+  if (lookupStringAttribute(root, 'id') === id) {
+    return Option.some(root)
+  }
+
+  for (const child of root.children ?? []) {
+    if (Predicate.isString(child)) {
+      continue
+    }
+
+    const maybeMatch = findElementById(child, id)
+    if (Option.isSome(maybeMatch)) {
+      return maybeMatch
+    }
+  }
+
+  return Option.none()
+}
+
+const formOwnerOf = (root: VNode, submitter: VNode): Option.Option<VNode> => {
+  const formId = lookupStringAttribute(submitter, 'form')
+  if (formId !== undefined) {
+    return pipe(
+      findElementById(root, formId),
+      Option.filter(element => element.sel === 'form'),
+    )
+  }
+
+  return pipe(
+    root,
+    ancestorsOf(submitter),
+    Array.findLast(element => element.sel === 'form'),
+  )
 }
 
 const isElementDisabled = (element: VNode): boolean => {
@@ -669,7 +969,7 @@ const resolveCommand: {
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ) => SceneSimulation<Model, Message, OutMessage>
   <ResultMessage>(
-    instance: SceneCommandInstance<ResultMessage>,
+    instance: AnyCommandInstance<ResultMessage>,
     resultMessage: ResultMessage,
   ): <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
@@ -679,14 +979,9 @@ const resolveCommand: {
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ): SceneSimulation<Model, Message, OutMessage> => {
-    /* eslint-disable @typescript-eslint/consistent-type-assertions */
     const internal = toInternal(simulation)
     assertResolveUnambiguous(internal.commands, matcher)
-    const next = resolveByMatcher(
-      internal as BaseInternal<Model, Message, unknown>,
-      matcher,
-      resultMessage,
-    )
+    const next = resolveByMatcher(internal, matcher, resultMessage)
 
     if (Predicate.isUndefined(next)) {
       const pending = Array.match(internal.commands, {
@@ -705,8 +1000,7 @@ const resolveCommand: {
       )
     }
 
-    return next as unknown as SceneSimulation<Model, Message, OutMessage>
-    /* eslint-enable @typescript-eslint/consistent-type-assertions */
+    return { ...internal, ...next }
   }
 
 /** Resolves listed Commands with their result Messages, cascading through any
@@ -719,8 +1013,8 @@ const resolveCommand: {
  *  entry replaces any leftover resolvers sharing its Definition or Instance
  *  shape (latest wins). */
 const resolveAllCommands =
-  <R extends ReadonlyArray<unknown>>(
-    ...resolvers: { [K in keyof R]: Resolver<R[K]> }
+  <Matchers extends ReadonlyArray<ResolvableCommandMatcher>>(
+    ...resolvers: { [K in keyof Matchers]: Resolver<Matchers[K]> }
   ) =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
@@ -730,6 +1024,22 @@ const resolveAllCommands =
       toInternal(simulation),
       resolvers,
     ) as unknown as SceneSimulation<Model, Message, OutMessage>
+
+/** Resolves listed Commands with their result Messages, cascading through any
+ *  Commands the results produce. Every resolver must match one dispatch in
+ *  this call, and no actual Commands may remain unresolved. Supplied resolvers
+ *  do not carry forward. */
+const resolveAllExactCommands =
+  <Matchers extends ReadonlyArray<ResolvableCommandMatcher>>(
+    ...resolvers: { [K in keyof Matchers]: Resolver<Matchers[K]> }
+  ) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+    const next = resolveAllExactInternal(internal, resolvers)
+    return { ...internal, ...next }
+  }
 
 /** Asserts that every given matcher matches a pending Command. Definition
  *  matchers match by name only; Instance matchers match by name + args. */
@@ -929,29 +1239,7 @@ const applyExternalMessage = <Model, Message, OutMessage>(
   message: unknown,
   context: string,
 ): SceneSimulation<Model, Message, OutMessage> => {
-  const internal = toInternal(simulation)
-
-  assertNoUnresolvedCommands(internal.commands, context)
-  assertNoUnresolvedMounts(internal.mounts, context)
-  assertNoUnacknowledgedUnmounts(
-    unacknowledgedEndedMountsOf(internal.mountSlots),
-    context,
-  )
-
-  /* eslint-disable @typescript-eslint/consistent-type-assertions */
-  const messageAsParent = message as unknown as Message
-  const result = internal.updateFn(internal.model, messageAsParent)
-  const [nextModel, commands] = result
-  const outMessage = result.length === 3 ? result[2] : internal.outMessage
-
-  return {
-    ...internal,
-    model: nextModel,
-    message: messageAsParent,
-    commands: Array.appendAll(internal.commands, commands),
-    outMessage,
-  } as unknown as SceneSimulation<Model, Message, OutMessage>
-  /* eslint-enable @typescript-eslint/consistent-type-assertions */
+  return applyExternalMessages(simulation, [message], context)
 }
 
 /** Feeds a Message through update as if a Subscription had emitted it,
@@ -962,16 +1250,12 @@ const applyExternalMessage = <Model, Message, OutMessage>(
  *  the test exercises the handler wiring this step skips. Like an
  *  interaction, it throws if unresolved Commands, unresolved Mounts, or
  *  unacknowledged unmounts are pending. */
-const emitSubscriptionMessage =
-  <MessageInput>(message: MessageInput) =>
-  <Model, Message, OutMessage = undefined>(
-    simulation: SceneSimulation<Model, Message, OutMessage>,
-  ): SceneSimulation<Model, Message, OutMessage> =>
-    applyExternalMessage(
-      simulation,
-      message,
-      'when a Subscription emitted a new Message',
-    )
+const emitSubscriptionMessage = <Message>(
+  message: Message,
+): SubscriptionMessageStep<Message> => ({
+  _tag: 'SubscriptionMessageStep',
+  message,
+})
 
 const MANAGED_RESOURCE_CONTEXT =
   'when a ManagedResource dispatched a new Message'
@@ -1096,12 +1380,11 @@ const releaseManagedResource =
   }
 
 /** Dispatches a CustomEvent a rendered custom element declares, feeding the
- *  Message its `On*` event mapping produces through update. The event name is
- *  typed by the spec's event Schemas, and the detail takes each Schema's
- *  encoded shape, matching what a real element puts on the event before the
- *  runtime decodes it. The element must be in the rendered tree with the
- *  event's attribute attached, so the test exercises the same mapping and the
- *  same decode the browser event would. */
+ *  Message its `On*` event mapping produces through update. The event name
+ *  and detail are typed by the encoded side of the spec's event Schemas. The
+ *  runtime decodes the detail before invoking the event mapping. The element
+ *  must be in the rendered tree with the event's attribute attached, so the
+ *  test exercises the same mapping the browser event would. */
 const emitCustomElementEvent =
   <
     Events extends Record<string, EventSchema>,
@@ -1119,7 +1402,7 @@ const emitCustomElementEvent =
       const declared = Object.keys(spec.events).join(', ')
       throw new Error(
         `I tried to emit "${eventName}" but the '${spec.tag}' element does not declare it.\n\n` +
-          `Declared events: ${String_.isEmpty(declared) ? '(none)' : declared}.`,
+          `Declared events: ${String.isEmpty(declared) ? '(none)' : declared}.`,
       )
     }
 
@@ -1137,7 +1420,7 @@ const emitCustomElementEvent =
       )
     }
 
-    const element = maybeElement.value
+    const { value: element } = maybeElement
 
     if (element.data?.on?.[eventName] === undefined) {
       throw new Error(
@@ -1146,10 +1429,9 @@ const emitCustomElementEvent =
       )
     }
 
-    // NOTE: the OnCustomEvent handler only dispatches when the event is a
-    // real CustomEvent instance, so the synthetic event must be constructed
-    // with `new CustomEvent(...)`, never a plain object literal like the
-    // other interaction helpers use.
+    // NOTE: the OnCustomEvent handler only handles real CustomEvent instances,
+    // so the synthetic event must be constructed with `new CustomEvent(...)`,
+    // never a plain object literal like the other interaction helpers use.
     const maybeNext = maybeCaptureFromElement(
       simulation,
       element,
@@ -1160,13 +1442,17 @@ const emitCustomElementEvent =
       },
     )
 
-    return Option.getOrThrowWith(
-      maybeNext,
-      () =>
-        new Error(
-          `I dispatched "${eventName}" on the element matching ${description} but its handler produced no Message.\n\n` +
-            `The detail failed to decode against the Schema '${spec.tag}' declares for "${eventName}", so the handler dispatched nothing. Check the console for the decode error, and check that the detail this step passes matches the declared Schema's encoded shape.`,
-        ),
+    return advanceInteraction(
+      Option.getOrThrowWith(
+        maybeNext,
+        () =>
+          new Error(
+            `I dispatched "${eventName}" on the element matching ${description} but its handler produced no Message.\n\n` +
+              'Its detail may have failed the declared Schema. Check the console for the decoding error.',
+          ),
+      ),
+      Handled,
+      Option.none(),
     )
   }
 
@@ -1181,6 +1467,10 @@ export const Command = {
    *  identical responses. Resolvers carry across calls; a new entry replaces
    *  any leftovers sharing its Definition or Instance shape (latest wins). */
   resolveAll: resolveAllCommands,
+  /** Resolves listed Commands and throws unless every resolver matches one
+   *  dispatch and no actual Commands remain unresolved. Entries apply only to
+   *  this call and never carry forward. */
+  resolveAllExact: resolveAllExactCommands,
   /** Asserts that every given Command is among the pending Commands. */
   expectHas: expectHasCommandsStep,
   /** Asserts that the pending Commands match the given definitions exactly (order-independent). */
@@ -1244,60 +1534,176 @@ export const CustomElement = {
   emit: emitCustomElementEvent,
 } as const
 
-/** Asserts that the OutMessage is Some with the expected value.
- *
- *  The tracked OutMessage is the third element of the most recent update
- *  result that had one. An update branch that returns a two-tuple leaves
- *  the previous value latched in place, so keep every branch of an
- *  OutMessage-returning update on the three-tuple shape, returning
- *  `Option.none()` when there is nothing to report. */
-export const expectOutMessage =
-  <Expected>(expected: Expected) =>
-  <Model, Message, OutMessage>(
-    simulation: SceneSimulation<Model, Message, Option.Option<OutMessage>>,
-  ): SceneSimulation<Model, Message, Option.Option<OutMessage>> => {
-    const internal = toInternal(simulation)
-    const outMessage = internal.outMessage
+/** Asserts by structural equality that the latest update-producing Scene step
+ *  emitted exactly the expected OutMessage. */
+export const expectOutMessage = <OutMessage>(
+  expected: OutMessage,
+): OutMessageStep<OutMessage> => ({
+  _tag: 'OutMessageStep',
+  expected,
+})
 
-    if (
-      !Option.isOption(outMessage) ||
-      Option.isNone(outMessage) ||
-      !Equal.equals(outMessage.value, expected)
-    ) {
-      throw new Error(
-        `Expected OutMessage:\n\n    Some(${JSON.stringify(expected)})\n\nBut got:\n\n    ${JSON.stringify(outMessage)}`,
-      )
-    }
+const assertOutMessage = <Model, Message, OutMessage>(
+  simulation: SceneSimulation<Model, Message, OutMessage>,
+  expected: unknown,
+): void => {
+  const internal = toInternal(simulation)
+  const maybeOutMessage = Array.head(internal.outMessages)
 
-    return simulation
+  if (Option.isNone(maybeOutMessage)) {
+    throw new Error(
+      `Expected OutMessage:\n\n    ${JSON.stringify(expected)}\n\nBut got:\n\n    undefined`,
+    )
   }
 
-/** Asserts that the OutMessage is None.
- *
- *  The tracked OutMessage is the third element of the most recent update
- *  result that had one. An update branch that returns a two-tuple leaves
- *  the previous value latched in place, so keep every branch of an
- *  OutMessage-returning update on the three-tuple shape, returning
- *  `Option.none()` when there is nothing to report. */
+  if (Array.isReadonlyArrayNonEmpty(Array.drop(internal.outMessages, 1))) {
+    throw new Error(
+      `Expected exactly one OutMessage but got multiple:\n\n    ${JSON.stringify(internal.outMessages)}`,
+    )
+  }
+
+  if (!Equal.equals(maybeOutMessage.value, expected)) {
+    throw new Error(
+      `Expected OutMessage:\n\n    ${JSON.stringify(expected)}\n\nBut got:\n\n    ${JSON.stringify(maybeOutMessage.value)}`,
+    )
+  }
+}
+
+/** Asserts by structural equality that the latest update-producing Scene
+ *  step emitted two or more expected OutMessages in runtime order. */
+export const expectOutMessages = <
+  Expected extends readonly [unknown, unknown, ...ReadonlyArray<unknown>],
+>(
+  ...expected: Expected
+): OutMessagesStep<Expected[number]> => ({
+  _tag: 'OutMessagesStep',
+  expected,
+})
+
+const assertOutMessages = <Model, Message, OutMessage>(
+  simulation: SceneSimulation<Model, Message, OutMessage>,
+  expected: ReadonlyArray<unknown>,
+): void => {
+  const actual = toInternal(simulation).outMessages
+
+  if (!Equal.equals(actual, expected)) {
+    throw new Error(
+      `Expected OutMessages:\n\n    ${JSON.stringify(expected)}\n\nBut got:\n\n    ${JSON.stringify(actual)}`,
+    )
+  }
+}
+
+/** Asserts that the latest update-producing Scene step emitted no OutMessages. */
 export const expectNoOutMessage =
   () =>
   <Model, Message, OutMessage>(
-    simulation: SceneSimulation<Model, Message, Option.Option<OutMessage>>,
-  ): SceneSimulation<Model, Message, Option.Option<OutMessage>> => {
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
     const internal = toInternal(simulation)
-    const outMessage = internal.outMessage
 
-    if (
-      !Predicate.isUndefined(outMessage) &&
-      !(Option.isOption(outMessage) && Option.isNone(outMessage))
-    ) {
+    if (Array.isReadonlyArrayNonEmpty(internal.outMessages)) {
+      const actual = Array.isReadonlyArrayEmpty(
+        Array.drop(internal.outMessages, 1),
+      )
+        ? Array.headNonEmpty(internal.outMessages)
+        : internal.outMessages
       throw new Error(
-        `Expected no OutMessage but got:\n\n    ${JSON.stringify(outMessage)}`,
+        `Expected no OutMessage but got:\n\n    ${JSON.stringify(actual)}`,
       )
     }
 
     return simulation
   }
+
+/** Asserts that the preceding interaction was handled: its event handler
+ *  produced a Message.
+ *
+ *  This is the assertion behind "the key is consumed here". A Foldkit
+ *  handler that returns a Message is what makes `h.OnKeyDownPreventDefault`
+ *  call `preventDefault()`, so a handled keydown is one whose browser
+ *  default is suppressed: `Space` does not scroll the page and `Enter` does
+ *  not submit a surrounding form.
+ *
+ *  Reach for this rather than asserting the Message's tag. The tag is the
+ *  mechanism a component happens to use; being consumed is the contract, and
+ *  it survives renaming the Message.
+ *
+ *  An interaction on an element with no handler at all throws from the
+ *  interaction step itself, so this distinguishes the narrower case of a
+ *  handler that ran and chose to produce nothing.
+ *
+ *  Only interaction steps set the outcome. `Command.resolve`, `Mount.resolve`,
+ *  and plain `expect` leave it alone, so the value is the last *interaction*
+ *  rather than the last step. Keep the assertion next to the interaction it
+ *  covers.
+ *
+ *  Where the event should have been consumed but was not, this is the
+ *  assertion that says so, and it fails until the handler is fixed. Where
+ *  falling through is intended, reach for {@link expectIgnored} instead,
+ *  which a fall-through requires. */
+export const expectHandled =
+  () =>
+  <Model, Message, OutMessage>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> =>
+    Match.value(toInternal(simulation).lastInteractionOutcome).pipe(
+      Match.withReturnType<SceneSimulation<Model, Message, OutMessage>>(),
+      Match.tagsExhaustive({
+        NotRun: () => {
+          throw new Error(
+            'I was asked whether the last interaction was handled, but no interaction has run yet.\n\n' +
+              'Put `expectHandled()` after a step like `click`, `keydown`, or `change`.',
+          )
+        },
+        Handled: () => simulation,
+        Ignored: () => {
+          throw new Error(
+            'Expected the last interaction to be handled, but its handler produced no Message.\n\n' +
+              'The handler ran and returned nothing, so the event falls through and the browser default is not prevented.',
+          )
+        },
+      }),
+    )
+
+/** Asserts that the preceding interaction was ignored: its event handler ran
+ *  and produced no Message, so the event falls through and the browser
+ *  default stands.
+ *
+ *  Required after any interaction that falls through, and it acknowledges
+ *  that fall-through as intended. Saying nothing is not an available
+ *  position: Scene fails at the next interaction, or at the end of the
+ *  scene, on a fall-through nothing acknowledged, because a test that leaves
+ *  it unsaid passes whether the interaction is correctly inert or its
+ *  handler regressed.
+ *
+ *  One acknowledgement covers one fall-through. Two in a row need one each,
+ *  and each must come before the next interaction.
+ *
+ *  Carries the same adjacency caveat as {@link expectHandled}: only
+ *  interaction steps set the outcome, so keep the assertion next to the
+ *  interaction it covers. */
+export const expectIgnored =
+  () =>
+  <Model, Message, OutMessage>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> =>
+    Match.value(toInternal(simulation).lastInteractionOutcome).pipe(
+      Match.withReturnType<SceneSimulation<Model, Message, OutMessage>>(),
+      Match.tagsExhaustive({
+        NotRun: () => {
+          throw new Error(
+            'I was asked whether the last interaction was ignored, but no interaction has run yet.\n\n' +
+              'Put `expectIgnored()` after a step like `click`, `keydown`, or `change`.',
+          )
+        },
+        Handled: () => {
+          throw new Error(
+            'Expected the last interaction to be ignored, but its handler produced a Message.',
+          )
+        },
+        Ignored: () => withNoUnacknowledgedIgnored(simulation),
+      }),
+    )
 
 /** Runs a function for side effects (e.g. assertions) without breaking the step chain. */
 export const tap =
@@ -1311,17 +1717,58 @@ export const tap =
     return simulation
   }
 
+const applySceneStep = <Model, Message, OutMessage>(
+  simulation: SceneSimulation<Model, Message, OutMessage>,
+  step: SceneStep<Model, Message, OutMessage>,
+): SceneSimulation<Model, Message, OutMessage> => {
+  if (Predicate.isTagged(step, 'SubscriptionMessageStep')) {
+    return applySubscriptionMessage(simulation, step.message)
+  }
+
+  if (Predicate.isTagged(step, 'OutMessageStep')) {
+    assertOutMessage(simulation, step.expected)
+    return simulation
+  }
+
+  if (Predicate.isTagged(step, 'OutMessagesStep')) {
+    assertOutMessages(simulation, step.expected)
+    return simulation
+  }
+
+  if (Predicate.isFunction(step)) {
+    return step(simulation)
+  }
+
+  return simulation
+}
+
 const runSteps = <Model, Message, OutMessage>(
   seed: SceneSimulation<Model, Message, OutMessage>,
   steps: ReadonlyArray<SceneStep<Model, Message, OutMessage>>,
 ): SceneSimulation<Model, Message, OutMessage> =>
   /* eslint-disable @typescript-eslint/consistent-type-assertions */
   Array.reduce(steps, seed, (current, step) => {
-    const next = (
-      step as (
-        simulation: SceneSimulation<Model, Message, OutMessage>,
-      ) => SceneSimulation<Model, Message, OutMessage>
-    )(current)
+    const currentInternal = toInternal(current)
+    const outMessageCapture = createOutMessageCapture(currentInternal.updateFn)
+    const capturingSimulation = {
+      ...currentInternal,
+      updateFn: outMessageCapture.updateFn,
+    } as unknown as SceneSimulation<Model, Message, OutMessage>
+    const stepResult = applySceneStep(capturingSimulation, step)
+    const restoredSimulation = {
+      ...toInternal(stepResult),
+      updateFn: currentInternal.updateFn,
+    } as unknown as SceneSimulation<Model, Message, OutMessage>
+    const isSequenceUpdatedByNestedSteps =
+      toInternal(restoredSimulation).outMessageRevision !==
+      currentInternal.outMessageRevision
+    const next =
+      outMessageCapture.isUpdateApplied() && !isSequenceUpdatedByNestedSteps
+        ? withOutMessages(
+            restoredSimulation,
+            outMessageCapture.getOutMessages(),
+          )
+        : restoredSimulation
 
     const internal = toInternal(next)
 
@@ -1389,15 +1836,42 @@ const findAncestorWithHandler = (
     Array.findFirst(vnode => vnode.data?.on?.[eventName] !== undefined),
   )
 
+type SimulatedClick = Readonly<{
+  event: Readonly<{
+    preventDefault: () => void
+    stopPropagation: () => void
+  }>
+  isDefaultPrevented: () => boolean
+  isPropagationStopped: () => boolean
+}>
+
+const createSimulatedClick = (): SimulatedClick => {
+  let isDefaultPrevented = false
+  let isPropagationStopped = false
+
+  return {
+    event: {
+      preventDefault: () => {
+        isDefaultPrevented = true
+      },
+      stopPropagation: () => {
+        isPropagationStopped = true
+      },
+    },
+    isDefaultPrevented: () => isDefaultPrevented,
+    isPropagationStopped: () => isPropagationStopped,
+  }
+}
+
 // INTERACTION STEPS
 
 /** Simulates a click on the element matching the target.
- *  When the element has no click handler, the event bubbles up to the
- *  nearest ancestor with one, mirroring browser event propagation.
- *  When the element is a submit button (`<button>` with no type or
- *  `type="submit"`, `<input type="submit">`, `<input type="image">`) with no
- *  click handler in its ancestor chain, the click falls through to the
- *  `submit` handler of the nearest ancestor `<form>`. */
+ *  Runs click handlers from the target through its ancestors until one stops
+ *  propagation, mirroring browser event propagation.
+ *  When the target activates a submit button and no click handler prevents
+ *  the default, the click falls through to the `submit` handler of its form
+ *  owner. Scene honors an explicit `form` attribute before looking for the
+ *  nearest ancestor `<form>`. */
 export const click =
   (target: string | Locator) =>
   <Model, Message, OutMessage = undefined>(
@@ -1417,9 +1891,18 @@ export const click =
       )
     }
 
-    const element = maybeElement.value
+    const { value: element } = maybeElement
+    const propagationPath = [
+      element,
+      ...pipe(internal.html, ancestorsOf(element), Array.reverse),
+    ]
+    const activationElement = pipe(
+      propagationPath,
+      Array.findFirst(currentElement => currentElement.sel === 'button'),
+      Option.getOrElse(() => element),
+    )
 
-    if (isElementDisabled(element)) {
+    if (isElementDisabled(activationElement)) {
       throw new Error(
         `I found an element matching ${description} but it is disabled.\n\n` +
           'Disabled elements do not receive click events in the browser. ' +
@@ -1429,62 +1912,59 @@ export const click =
       )
     }
 
-    const hasClickHandler = element.data?.on?.['click'] !== undefined
+    const simulatedClick = createSimulatedClick()
+    let isClickHandled = false
+    let isSubmitHandled = false
 
-    if (hasClickHandler) {
-      return captureFromElement(
-        simulation,
-        element,
-        description,
-        'click',
-        handler => {
-          handler()
-        },
+    internal.capturingDispatch.reset()
+
+    for (const currentElement of propagationPath) {
+      const maybeClickHandler = Option.fromNullishOr(
+        currentElement.data?.on?.['click'],
       )
-    }
+      if (Option.isNone(maybeClickHandler)) {
+        continue
+      }
 
-    const maybeAncestor = findAncestorWithHandler(
-      internal.html,
-      element,
-      'click',
-    )
+      isClickHandled = true
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const clickHandler = maybeClickHandler.value as Function
+      clickHandler(simulatedClick.event)
 
-    if (Option.isSome(maybeAncestor)) {
-      return captureFromElement(
-        simulation,
-        maybeAncestor.value,
-        `ancestor of ${description}`,
-        'click',
-        handler => {
-          handler()
-        },
-      )
-    }
-
-    if (isSubmitButton(element)) {
-      const maybeForm = pipe(
-        internal.html,
-        ancestorsOf(element),
-        Array.findLast(vnode => vnode.sel === 'form'),
-      )
-      if (Option.isSome(maybeForm)) {
-        return captureFromElement(
-          simulation,
-          maybeForm.value,
-          `form containing ${description}`,
-          'submit',
-          handler => {
-            handler({ preventDefault: Function.constVoid })
-          },
-        )
+      if (simulatedClick.isPropagationStopped()) {
+        break
       }
     }
 
-    const attributeName = EVENT_NAMES['click'] ?? 'click'
-    throw new Error(
-      `I found an element matching ${description} but neither it nor any ancestor has a click handler.\n\n` +
-        `Make sure the element or a parent has an ${attributeName} attribute.`,
-    )
+    if (!simulatedClick.isDefaultPrevented()) {
+      const maybeSubmitter = Array.findFirst(propagationPath, isSubmitButton)
+      const maybeForm = pipe(
+        maybeSubmitter,
+        Option.flatMap(submitter => formOwnerOf(internal.html, submitter)),
+      )
+
+      if (Option.isSome(maybeForm)) {
+        const maybeSubmitHandler = Option.fromNullishOr(
+          maybeForm.value.data?.on?.['submit'],
+        )
+        if (Option.isSome(maybeSubmitHandler)) {
+          isSubmitHandled = true
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          const submitHandler = maybeSubmitHandler.value as Function
+          submitHandler({ preventDefault: Function.constVoid })
+        }
+      }
+    }
+
+    if (!isClickHandled && !isSubmitHandled) {
+      const attributeName = EVENT_NAMES['click'] ?? 'click'
+      throw new Error(
+        `I found an element matching ${description} but neither it nor any ancestor has a click handler.\n\n` +
+          `Make sure the element or a parent has an ${attributeName} attribute.`,
+      )
+    }
+
+    return finishCapturedInteraction(simulation, description, 'click')
   }
 
 /** Simulates a double-click on the element matching the target.
@@ -1509,7 +1989,7 @@ export const doubleClick =
       )
     }
 
-    const element = maybeElement.value
+    const { value: element } = maybeElement
     const hasHandler = element.data?.on?.['dblclick'] !== undefined
 
     if (hasHandler) {
@@ -1545,6 +2025,66 @@ export const doubleClick =
     const attributeName = EVENT_NAMES['dblclick'] ?? 'dblclick'
     throw new Error(
       `I found an element matching ${description} but neither it nor any ancestor has a dblclick handler.\n\n` +
+        `Make sure the element or a parent has an ${attributeName} attribute.`,
+    )
+  }
+
+/** Simulates a contextmenu event on the element matching the target.
+ *  When the element has no contextmenu handler, the event bubbles up to the
+ *  nearest ancestor with one, mirroring browser event propagation. */
+export const contextMenu =
+  (target: string | Locator) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+    const scopedTarget = applyScopeToTarget(internal.scope, target)
+    const { maybeElement, description } = resolveTarget(
+      internal.html,
+      scopedTarget,
+    )
+
+    if (Option.isNone(maybeElement)) {
+      throw new Error(
+        `I could not find an element matching ${description}.\n\n` +
+          'Check that your selector matches an element in the current view.',
+      )
+    }
+
+    const { value: element } = maybeElement
+    const invokeHandler = (handler: Function) => {
+      handler({ preventDefault: Function.constVoid })
+    }
+
+    if (element.data?.on?.['contextmenu'] !== undefined) {
+      return captureFromElement(
+        simulation,
+        element,
+        description,
+        'contextmenu',
+        invokeHandler,
+      )
+    }
+
+    const maybeAncestor = findAncestorWithHandler(
+      internal.html,
+      element,
+      'contextmenu',
+    )
+
+    if (Option.isSome(maybeAncestor)) {
+      return captureFromElement(
+        simulation,
+        maybeAncestor.value,
+        `ancestor of ${description}`,
+        'contextmenu',
+        invokeHandler,
+      )
+    }
+
+    const attributeName = EVENT_NAMES['contextmenu'] ?? 'contextmenu'
+    throw new Error(
+      `I found an element matching ${description} but neither it nor any ancestor has a contextmenu handler.\n\n` +
         `Make sure the element or a parent has an ${attributeName} attribute.`,
     )
   }
@@ -1590,7 +2130,7 @@ export const pointerDown =
       )
     }
 
-    const element = maybeElement.value
+    const { value: element } = maybeElement
     const { pointerType, button, screenX, screenY, clientX, clientY } = {
       ...DEFAULT_POINTER_DOWN_OPTIONS,
       ...options,
@@ -1674,7 +2214,7 @@ export const pointerUp =
       )
     }
 
-    const element = maybeElement.value
+    const { value: element } = maybeElement
     const { pointerType, screenX, screenY } = {
       ...DEFAULT_POINTER_UP_OPTIONS,
       ...options,
@@ -1753,6 +2293,26 @@ export const blur =
   ): SceneSimulation<Model, Message, OutMessage> =>
     invokeAndCapture(simulation, target, 'blur', handler => {
       handler({ relatedTarget: null })
+    })
+
+/** Simulates focus entering the subtree of the element matching the target. */
+export const focusEnter =
+  (target: string | Locator) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> =>
+    invokeAndCapture(simulation, target, 'focusin', handler => {
+      handler({ currentTarget: null, relatedTarget: null })
+    })
+
+/** Simulates focus leaving the subtree of the element matching the target. */
+export const focusLeave =
+  (target: string | Locator) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> =>
+    invokeAndCapture(simulation, target, 'focusout', handler => {
+      handler({ currentTarget: null, relatedTarget: null })
     })
 
 /** Simulates a change event on the element matching the target.
@@ -1970,12 +2530,10 @@ const assertOnElement =
   ): SceneAssertion =>
   (maybeElement, description, isNot, root) => {
     if (Option.isNone(maybeElement)) {
-      if (!isNot) {
-        throw new Error(
-          `Expected element matching ${description} to ${expectation} but the element does not exist.`,
-        )
-      }
-      return
+      const negation = isNot ? 'not ' : ''
+      throw new Error(
+        `Expected element matching ${description} ${negation}to ${expectation} but the element does not exist.`,
+      )
     }
     const { pass, actual } = check(maybeElement.value, root)
     if (isNot ? pass : !pass) {
@@ -2080,7 +2638,9 @@ const assertHasStyle = (
 ): SceneAssertion =>
   assertOnElement(
     vnode => {
-      const maybeActualValue = Option.fromNullishOr(vnode.data?.style?.[name])
+      const maybeActualValue = Option.fromNullishOr(
+        vnode.data?.style?.[serializedStylePropertyName(name)],
+      )
       if (Predicate.isUndefined(value)) {
         return {
           pass: Option.isSome(maybeActualValue),
@@ -2090,7 +2650,7 @@ const assertHasStyle = (
       return Option.match(maybeActualValue, {
         onNone: () => ({ pass: false, actual: 'it is not present' }),
         onSome: actualValue => ({
-          pass: String(actualValue) === value,
+          pass: globalThis.String(actualValue) === value,
           actual: `received "${actualValue}"`,
         }),
       })
@@ -2168,18 +2728,6 @@ const assertIsChecked: SceneAssertion = assertOnElement(vnode => {
   return { pass, actual: 'it is not checked' }
 }, 'be checked')
 
-const isHidden = (vnode: VNode): boolean => {
-  const hiddenAttr = attr(vnode, 'hidden')
-  if (Option.isSome(hiddenAttr) && hiddenAttr.value !== 'false') return true
-  const ariaHidden = attr(vnode, 'aria-hidden')
-  if (Option.isSome(ariaHidden) && ariaHidden.value === 'true') return true
-  const display = vnode.data?.style?.['display']
-  if (display === 'none') return true
-  const visibility = vnode.data?.style?.['visibility']
-  if (visibility === 'hidden') return true
-  return false
-}
-
 const assertIsVisible: SceneAssertion = assertOnElement(
   vnode => ({ pass: !isHidden(vnode), actual: 'it is hidden' }),
   'be visible',
@@ -2215,8 +2763,8 @@ const assertIsEmpty: SceneAssertion = assertOnElement(vnode => {
   const childCount = (vnode.children ?? []).length
   const text = textContent(vnode)
   return {
-    pass: String_.isEmpty(text) && childCount === 0,
-    actual: String_.isNonEmpty(text)
+    pass: String.isEmpty(text) && childCount === 0,
+    actual: String.isNonEmpty(text)
       ? `received text "${text}"`
       : `received ${childCount} child(ren)`,
   }
@@ -2363,31 +2911,48 @@ export const withViewInputs =
 
 // SCENE
 
-/** Executes a scene test. Throws if any Commands remain unresolved. */
+/** Executes a scene test. Throws if any Commands or Mounts remain
+ *  unresolved, any unmount is unacknowledged, or any interaction fell
+ *  through unacknowledged. */
 export const scene: {
-  <Model, Message, OutMessage>(
+  <Model, Message, OutMessage = never>(
     config: Readonly<{
       update: (
         model: Model,
         message: Message,
-      ) => readonly [Model, ReadonlyArray<AnyCommand>, OutMessage]
+      ) => Readonly<{
+        model: Model
+        commands?: ReadonlyArray<AnyCommand>
+        outMessage?: OutMessage
+      }>
       view: (model: Model, h: HtmlBuilder<Message>) => Html | Document
     }>,
-    ...steps: ReadonlyArray<SceneStep<Model, Message, OutMessage>>
+    ...steps: ReadonlyArray<
+      SceneStep<NoInfer<Model>, NoInfer<Message>, NoInfer<OutMessage>>
+    >
   ): void
   <Model, Message>(
     config: Readonly<{
       update: (
         model: Model,
         message: Message,
-      ) => readonly [Model, ReadonlyArray<AnyCommand>]
+      ) => Readonly<{
+        model: Model
+        commands?: ReadonlyArray<AnyCommand>
+        outMessage?: never
+      }>
       view: (model: Model, h: HtmlBuilder<Message>) => Html | Document
     }>,
-    ...steps: ReadonlyArray<SceneStep<Model, Message, undefined>>
+    ...steps: ReadonlyArray<
+      SceneStep<NoInfer<Model>, NoInfer<Message>, undefined>
+    >
   ): void
 } = <Model, Message, OutMessage = undefined>(
   config: Readonly<{
-    update: (model: Model, message: Message) => UpdateResult<Model, OutMessage>
+    update: (
+      model: Model,
+      message: Message,
+    ) => SimulationUpdateReturn<Model, OutMessage>
     view: (model: Model, h: HtmlBuilder<Message>) => Html | Document
   }>,
   ...steps: ReadonlyArray<SceneStep<Model, Message, OutMessage>>
@@ -2398,16 +2963,20 @@ export const scene: {
   const seed = {
     model: UNINITIALIZED as unknown,
     message: undefined,
-    commands: [],
+    commands: Array.empty(),
     mounts: [],
     mountSlots: [],
-    outMessage: undefined as unknown,
+    outMessage: undefined,
+    outMessages: [],
+    outMessageRevision: 0,
     updateFn: config.update,
     resolvers: [],
     html: undefined as unknown,
     viewFn: config.view,
     capturingDispatch,
     scope: Option.none(),
+    lastInteractionOutcome: NotRun,
+    maybeUnacknowledgedIgnored: Option.none(),
   } as unknown as SceneSimulation<Model, Message, OutMessage>
 
   const result = runSteps(seed, steps)
@@ -2419,4 +2988,5 @@ export const scene: {
   assertAllUnmountsAcknowledged(
     unacknowledgedEndedMountsOf(internal.mountSlots),
   )
+  assertNoUnacknowledgedIgnored(internal)
 }

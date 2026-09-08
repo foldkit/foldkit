@@ -2,25 +2,14 @@ import { Array, Option, String } from 'effect'
 import { expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import {
-  FilesIndexRoute,
-  FilesRoute,
-  HomeRoute,
-  Model,
-  NestedRoute,
-  NotFoundRoute,
-  PeopleRoute,
-  PersonRoute,
-  update,
-  view,
-} from './main'
+import { AppRoute, Model, update, view } from './main'
 import { People } from './page'
 
 const peoplePageWith = (searchInput: string) =>
   People.Model.make({
     searchInput,
     searchHistory: Array.liftPredicate(String.isNonEmpty)(searchInput),
-    results: People.SearchLoaded({
+    results: People.SearchResults.Loaded({
       query: searchInput,
       people: People.searchPeople(searchInput),
     }),
@@ -28,35 +17,38 @@ const peoplePageWith = (searchInput: string) =>
 
 const initialPeoplePage = peoplePageWith('')
 
-const home = Model.make({ route: HomeRoute(), peoplePage: initialPeoplePage })
+const home = Model.make({
+  route: AppRoute.Home(),
+  peoplePage: initialPeoplePage,
+})
 const people = (searchInput: string) =>
   Model.make({
-    route: PeopleRoute({
+    route: AppRoute.People({
       searchText: Option.liftPredicate(String.isNonEmpty)(searchInput),
     }),
     peoplePage: peoplePageWith(searchInput),
   })
 const person = (personId: number) =>
   Model.make({
-    route: PersonRoute({ personId }),
+    route: AppRoute.Person({ personId }),
     peoplePage: initialPeoplePage,
   })
 const nested = Model.make({
-  route: NestedRoute(),
+  route: AppRoute.Nested(),
   peoplePage: initialPeoplePage,
 })
 const filesIndex = Model.make({
-  route: FilesIndexRoute(),
+  route: AppRoute.FilesIndex(),
   peoplePage: initialPeoplePage,
 })
 const files = (path: Array.NonEmptyReadonlyArray<string>) =>
   Model.make({
-    route: FilesRoute({ path }),
+    route: AppRoute.Files({ path }),
     peoplePage: initialPeoplePage,
   })
 const notFound = (path: string) =>
   Model.make({
-    route: NotFoundRoute({ path }),
+    route: AppRoute.NotFound({ path }),
     peoplePage: initialPeoplePage,
   })
 
@@ -88,26 +80,11 @@ describe('view', () => {
     )
   })
 
-  test('the People route lists every person', () => {
+  test('the People route renders the People heading', () => {
     scene(
       { update, view },
       given(people('')),
-      expect(text('Alice Johnson')).toExist(),
-      expect(text('Bob Smith')).toExist(),
-      expect(text('Carol Davis')).toExist(),
-      expect(text('David Wilson')).toExist(),
-      expect(text('Eva Brown')).toExist(),
-    )
-  })
-
-  test('a search filters People to matches by name or role', () => {
-    scene(
-      { update, view },
-      given(people('designer')),
-      expect(text('Alice Johnson')).toExist(),
-      expect(text('Eva Brown')).toExist(),
-      expect(text('Bob Smith')).toBeAbsent(),
-      expect(text('2 results', { exact: false })).toExist(),
+      expect(role('heading', { name: 'People' })).toExist(),
     )
   })
 

@@ -1,5 +1,6 @@
 import { Option } from 'effect'
 import { click, expect, given, label, role, scene, text } from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { Slider } from '@foldkit/ui'
@@ -53,13 +54,14 @@ const makeParticle = (id: number, x: number, y: number): Particle => ({
   initialSpeedScale: 1,
 })
 
-const modelWithParticles = (count: number): Model => ({
-  ...initialModel,
-  particles: Array.from({ length: count }, (_, index) =>
-    makeParticle(index, 100 + index * 5, 100),
-  ),
-  nextId: count,
-})
+const modelWithParticles = (count: number): Model =>
+  evo(initialModel, {
+    particles: () =>
+      Array.from({ length: count }, (_, index) =>
+        makeParticle(index, 100 + index * 5, 100),
+      ),
+    nextId: () => count,
+  })
 
 describe('view', () => {
   test('initial view shows Pause and Reset buttons and a zero particle counter', () => {

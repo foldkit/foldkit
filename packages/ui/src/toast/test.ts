@@ -1,12 +1,7 @@
 import * as Story from 'foldkit/story'
 
-import {
-  CompletedWaitForPaint,
-  EndedAnimation,
-  WaitForAnimationSettled,
-  WaitForPaint,
-} from '../animation/index.js'
-import { CompletedWaitBeforeDismissal } from './schema.js'
+import * as Animation from '../animation/index.js'
+import { Message } from './schema.js'
 import { WaitBeforeDismissal } from './update.js'
 
 /** Input for {@link drainEntry}. `entryId` selects the entry whose lifecycle
@@ -56,9 +51,12 @@ export const drainEntry = ({
   version = DEFAULT_VERSION,
 }: DrainEntryInput) =>
   Story.Command.resolveAll(
-    [WaitForPaint, CompletedWaitForPaint()],
-    [WaitForAnimationSettled, EndedAnimation()],
-    [WaitBeforeDismissal, CompletedWaitBeforeDismissal({ entryId, version })],
-    [WaitForPaint, CompletedWaitForPaint()],
-    [WaitForAnimationSettled, EndedAnimation()],
+    [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
+    [Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation()],
+    [
+      WaitBeforeDismissal,
+      Message.CompletedWaitBeforeDismissal({ entryId, version }),
+    ],
+    [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
+    [Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation()],
   )

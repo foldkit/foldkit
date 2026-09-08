@@ -1,5 +1,7 @@
+import type { SourceMap } from 'magic-string'
 import { parseAst } from 'vite'
-import { describe, expect, it } from 'vitest'
+import type { Plugin as Vite7Plugin } from 'vite7'
+import { describe, expect, expectTypeOf, it } from 'vitest'
 
 import { transformViewIdentity } from '../src/viewIdentity.ts'
 
@@ -130,8 +132,8 @@ describe('nested functions', () => {
   }
 }
 `)
-    expect(countOccurrences(result.code, '"src/View.ts#outer"')).toBe(1)
-    expect(countOccurrences(result.code, '"src/View.ts#inner"')).toBe(1)
+    expect(countOccurrences(result.code, `"src/View.ts#outer"`)).toBe(1)
+    expect(countOccurrences(result.code, `"src/View.ts#inner"`)).toBe(1)
   })
 
   it('nests calls correctly when inner and outer targets share an end', () => {
@@ -232,7 +234,7 @@ describe('eligibility', () => {
       { isFoldkitCoreResolved: true },
     )
     expect(result).not.toBeNull()
-    expect(result?.code).toContain('"packages/foldkit/View.ts#view"')
+    expect(result?.code).toContain(`"packages/foldkit/View.ts#view"`)
   })
 
   it('skips foldkit core under node_modules', () => {
@@ -250,7 +252,7 @@ describe('eligibility', () => {
       FUNCTION_SOURCE,
       '/app/packages/ui/src/button/button.ts',
     )
-    expect(result.code).toContain('"packages/ui/src/button/button.ts#view"')
+    expect(result.code).toContain(`"packages/ui/src/button/button.ts#view"`)
   })
 
   it('skips virtual modules', () => {
@@ -267,7 +269,7 @@ describe('eligibility', () => {
 
   it('strips the query before checking the extension', () => {
     const result = requireTransform(FUNCTION_SOURCE, '/app/src/View.ts?v=123')
-    expect(result.code).toContain('"src/View.ts#view"')
+    expect(result.code).toContain(`"src/View.ts#view"`)
   })
 
   it('skips only whole node_modules path segments', () => {
@@ -283,7 +285,7 @@ describe('eligibility', () => {
       FUNCTION_SOURCE,
       '/app/src/node_modules-demo.ts',
     )
-    expect(result.code).toContain('"src/node_modules-demo.ts#view"')
+    expect(result.code).toContain(`"src/node_modules-demo.ts#view"`)
   })
 })
 
@@ -374,6 +376,18 @@ const view = () => 1
 })
 
 describe('output stability', () => {
+  it('returns a Vite 7 compatible source map', () => {
+    const result = requireTransform('const view = () => 1\n')
+    const plugin: Vite7Plugin = {
+      name: 'vite7-source-map-compatibility',
+      transform: (code, id) => transformViewIdentity(code, id, ROOT),
+    }
+
+    expectTypeOf(result.map.file).toEqualTypeOf<string>()
+    expectTypeOf(result.map).toMatchTypeOf<SourceMap>()
+    expect(plugin.name).toBe('vite7-source-map-compatibility')
+  })
+
   it('produces identical output across runs', () => {
     const source = `const view = () => 1
 const panel = () => {
@@ -388,5 +402,43 @@ const panel = () => {
   it('produces a source map', () => {
     const result = requireTransform('const view = () => 1\n')
     expect(result.map.mappings.length).toBeGreaterThan(0)
+  })
+})
+
+describe('identities reveal nothing about the source', () => {
+  const VIEW_SOURCE = `export const field = () => h.input([h.Name('email')])\n`
+  const SECRET_SOURCE =
+    `const pin = import.meta.env.SSR ? '0427' : ''\n` +
+    `export const field = () => h.input([h.Name('email')])\n`
+
+  const identityOf = (source: string): string => {
+    const result = transformViewIdentity(source, MODULE_ID, ROOT)
+    if (result === null) {
+      throw new Error('expected a transform result')
+    }
+    const match = /"(src\/View\.ts#[^"]+)"/.exec(result.code)
+    if (match?.[1] === undefined) {
+      throw new Error(`no identity found in ${result.code}`)
+    }
+    return match[1]
+  }
+
+  it('names the source position and nothing else', () => {
+    expect(identityOf(VIEW_SOURCE)).toBe('src/View.ts#field')
+  })
+
+  it('does not change when the module body changes around a view', () => {
+    // An identity that carried a digest of the module's own source was a check
+    // against that source's contents, shipped in the bundle every visitor
+    // downloads. A build that tree-shakes a low-entropy server-only value out
+    // of the client still published a hash of the file that held it, and the
+    // value could be recovered by hashing candidates until one matched. The
+    // deployment's build id is what catches a page from a build whose views
+    // mean something else, and it says nothing about the source.
+    expect(identityOf(SECRET_SOURCE)).toBe(identityOf(VIEW_SOURCE))
+  })
+
+  it('carries no hexadecimal digest suffix', () => {
+    expect(identityOf(SECRET_SOURCE)).not.toMatch(/@[0-9a-f]{8,}$/)
   })
 })

@@ -7,7 +7,7 @@ import {
   Option,
   Predicate,
   Record,
-  String as String_,
+  String,
   SubscriptionRef,
   pipe,
 } from 'effect'
@@ -112,7 +112,7 @@ export const computeDiff = (
   const addAncestors = (path: string): void => {
     pipe(
       path,
-      String_.lastIndexOf('.'),
+      String.lastIndexOf('.'),
       Option.map(lastDot => path.substring(0, lastDot)),
       Option.filter(parent => !affected.has(parent)),
       Option.map(parent => {
@@ -303,33 +303,42 @@ export const createDevToolsStore = (
       commands: ReadonlyArray<CommandRecord>,
       isModelChanged: boolean,
     ) =>
-      SubscriptionRef.update(stateRef, state => {
-        const absoluteIndex = nextEntryIndex(state)
+      Effect.gen(function* () {
+        const didAutoResume = yield* SubscriptionRef.modify(stateRef, state => {
+          const absoluteIndex = nextEntryIndex(state)
 
-        const diff = isModelChanged
-          ? computeDiff(modelBeforeUpdate, modelAfterUpdate)
-          : emptyDiff
+          const diff = isModelChanged
+            ? computeDiff(modelBeforeUpdate, modelAfterUpdate)
+            : emptyDiff
 
-        const hasChangedFields = HashSet.size(diff.changedPaths) > 0
+          const hasChangedFields = HashSet.size(diff.changedPaths) > 0
 
-        const nextState = evo(state, {
-          entries: Array.append({
-            tag: message._tag,
-            message,
-            commands,
-            mountStarts: [],
-            mountEnds: [],
-            timestamp: performance.now(),
-            isModelChanged: hasChangedFields,
-            diff,
-          }),
-          keyframes: addKeyframeIfNeeded(absoluteIndex + 1, modelAfterUpdate),
-          maybeLatestModel: () => Option.some(modelAfterUpdate),
+          const nextState = evo(state, {
+            entries: Array.append({
+              tag: message._tag,
+              message,
+              commands,
+              mountStarts: [],
+              mountEnds: [],
+              timestamp: performance.now(),
+              isModelChanged: hasChangedFields,
+              diff,
+            }),
+            keyframes: addKeyframeIfNeeded(absoluteIndex + 1, modelAfterUpdate),
+            maybeLatestModel: () => Option.some(modelAfterUpdate),
+          })
+
+          const recordedState =
+            nextState.entries.length > maxEntries
+              ? evictOldestSegment(nextState)
+              : nextState
+
+          return [state.isPaused && !recordedState.isPaused, recordedState]
         })
 
-        return nextState.entries.length > maxEntries
-          ? evictOldestSegment(nextState)
-          : nextState
+        if (didAutoResume) {
+          yield* bridge.markRenderPending
+        }
       })
 
     /** Attaches Mount lifecycle events from the most recent render to the
@@ -411,13 +420,33 @@ export const createDevToolsStore = (
         const state = yield* SubscriptionRef.get(stateRef)
         const model = resolveModel(state, index)
         yield* bridge.render(model)
-        yield* SubscriptionRef.set(
+        const wasTargetEvicted = yield* SubscriptionRef.modify(
           stateRef,
-          evo(state, {
-            isPaused: () => true,
-            pausedAtIndex: () => index,
-          }),
+          currentState => {
+            const isTargetRetained =
+              index === INIT_INDEX ||
+              (index >= currentState.startIndex &&
+                index <= latestEntryIndex(currentState))
+
+            return isTargetRetained
+              ? [
+                  false,
+                  evo(currentState, {
+                    isPaused: () => true,
+                    pausedAtIndex: () => index,
+                  }),
+                ]
+              : [
+                  true,
+                  evo(currentState, {
+                    isPaused: () => false,
+                  }),
+                ]
+          },
         )
+        if (wasTargetEvicted) {
+          yield* bridge.markRenderPending
+        }
         return model
       })
 

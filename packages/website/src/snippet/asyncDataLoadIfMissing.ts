@@ -1,8 +1,8 @@
-const enterStatsRoute = (model: Model): readonly [Model, Commands] =>
+const enterStatsRoute = (model: Model): Update.Return<Model, Message> =>
   Option.match(AsyncData.loadIfMissing(model.stats), {
-    onNone: () => [model, []],
-    onSome: loadingStats => [
-      evo(model, { stats: () => loadingStats }),
-      [LoadStats()],
-    ],
+    onNone: () => ({ model }),
+    onSome: loadingStats => ({
+      model: evo(model, { stats: () => loadingStats }),
+      commands: [LoadStats()],
+    }),
   })

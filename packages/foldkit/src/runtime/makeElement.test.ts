@@ -1,38 +1,35 @@
-import { Effect, Fiber, Match as M, Number, Schema as S } from 'effect'
+import { Effect, Fiber, Number, Schema } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { Command } from '../command/index.js'
 import { TextDirection, __htmlBuilder } from '../html/index.js'
-import { m } from '../message/index.js'
+import { defineMessageUnion } from '../message/index.js'
 import { evo } from '../struct/index.js'
-import { makeApplication, makeElement } from './runtime.js'
+import type * as Update from '../update/index.js'
+import { __setDevToolsOverlay } from './devToolsConfig.js'
+import { makeApplication } from './makeApplication.js'
+import { makeElement } from './makeElement.js'
 
-const Rendered = m('Rendered')
-const ClickedBump = m('ClickedBump')
-const Message = S.Union([Rendered, ClickedBump])
+const Message = defineMessageUnion({
+  Rendered: {},
+  ClickedBump: {},
+})
 type Message = typeof Message.Type
 
-const Model = S.Struct({ label: S.String })
+const Model = Schema.Struct({ label: Schema.String })
 type Model = typeof Model.Type
 
 const h = __htmlBuilder<Message>()
 
-const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<readonly [Model, ReadonlyArray<Command<Message>>]>(),
-    M.tagsExhaustive({
-      Rendered: () => [model, []],
-      ClickedBump: () => [{ label: 'world' }, []],
-    }),
-  )
+const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    Rendered: () => ({ model }),
+    ClickedBump: () => ({ model: { label: 'world' } }),
+  })
 
-const LocaleModel = S.Struct({
-  lang: S.String,
+const LocaleModel = Schema.Struct({
+  lang: Schema.String,
   dir: TextDirection,
-  revision: S.Number,
+  revision: Schema.Number,
 })
 type LocaleModel = typeof LocaleModel.Type
 
@@ -43,29 +40,23 @@ const FRENCH_AUTO = LocaleModel.make({
   revision: 0,
 })
 
-const ClickedArabic = m('ClickedArabic')
-const ClickedRerender = m('ClickedRerender')
-const LocaleMessage = S.Union([ClickedArabic, ClickedRerender])
+const LocaleMessage = defineMessageUnion({
+  ClickedArabic: {},
+  ClickedRerender: {},
+})
 type LocaleMessage = typeof LocaleMessage.Type
 
 const localeH = __htmlBuilder<LocaleMessage>()
 
-const localeUpdate = (
-  model: LocaleModel,
-  message: LocaleMessage,
-): readonly [LocaleModel, ReadonlyArray<Command<LocaleMessage>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [LocaleModel, ReadonlyArray<Command<LocaleMessage>>]
-    >(),
-    M.tagsExhaustive({
-      ClickedArabic: () => [
-        evo(model, { lang: () => 'ar', dir: () => 'Rtl' }),
-        [],
-      ],
-      ClickedRerender: () => [evo(model, { revision: Number.increment }), []],
+const localeUpdate = (model: LocaleModel, message: LocaleMessage) =>
+  LocaleMessage.match<Update.Return<LocaleModel, LocaleMessage>>(message, {
+    ClickedArabic: () => ({
+      model: evo(model, { lang: () => 'ar', dir: () => 'Rtl' }),
     }),
-  )
+    ClickedRerender: () => ({
+      model: evo(model, { revision: Number.increment }),
+    }),
+  })
 
 const HOST_TITLE = 'Host Page Title'
 const HOST_LANG = 'en'
@@ -96,6 +87,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  __setDevToolsOverlay(undefined)
   document.body.innerHTML = ''
   document.title = HOST_TITLE
   removeHeadMetadata()
@@ -116,10 +108,37 @@ const expectDocumentUntouched = (): void => {
 }
 
 describe('makeElement', () => {
+  it('mounts a registered DevTools overlay when DevTools are active', async () => {
+    const mountedOverlays: Array<string> = []
+    __setDevToolsOverlay(() => {
+      mountedOverlays.push('registered')
+      return Effect.void
+    })
+
+    const element = makeElement({
+      Model,
+      init: () => ({ model: { label: 'hello' } }),
+      update,
+      view: model => h.div([], [model.label]),
+      container,
+      devTools: { show: 'Always' },
+    })
+
+    const fiber = Effect.runFork(element.start())
+
+    try {
+      await vi.waitFor(() => {
+        expect(mountedOverlays).toEqual(['registered'])
+      })
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
   it('renders into its container without touching the document head', async () => {
     const element = makeElement({
       Model,
-      init: () => [{ label: 'hello' }, []],
+      init: () => ({ model: { label: 'hello' } }),
       update,
       view: model => h.div([], [model.label]),
       container,
@@ -138,12 +157,12 @@ describe('makeElement', () => {
   it('leaves the document head untouched across re-renders', async () => {
     const element = makeElement({
       Model,
-      init: () => [{ label: 'hello' }, []],
+      init: () => ({ model: { label: 'hello' } }),
       update,
       view: model =>
         h.div(
           [],
-          [h.button([h.OnClick(ClickedBump())], ['bump']), model.label],
+          [h.button([h.OnClick(Message.ClickedBump())], ['bump']), model.label],
         ),
       container,
     })
@@ -165,13 +184,13 @@ describe('makeElement', () => {
   })
 
   it('seeds the initial model from flags', async () => {
-    const Flags = S.Struct({ initialLabel: S.String })
+    const Flags = Schema.Struct({ initialLabel: Schema.String })
 
     const element = makeElement({
       Model,
       Flags,
       flags: Effect.succeed({ initialLabel: 'from-flags' }),
-      init: flags => [{ label: flags.initialLabel }, []],
+      init: flags => ({ model: { label: flags.initialLabel } }),
       update,
       view: model => h.div([], [model.label]),
       container,
@@ -190,7 +209,7 @@ describe('makeElement', () => {
   it('renders a scoped crash view without touching the document head', async () => {
     const element = makeElement({
       Model,
-      init: () => [{ label: 'hello' }, []],
+      init: () => ({ model: { label: 'hello' } }),
       update,
       view: () => {
         throw new Error('boom from view')
@@ -216,7 +235,7 @@ describe('makeApplication', () => {
   it('owns the document head, applying title and canonical metadata', async () => {
     const application = makeApplication({
       Model,
-      init: () => [{ label: 'hello' }, []],
+      init: () => ({ model: { label: 'hello' } }),
       update,
       view: model => ({ title: model.label, body: h.div([], [model.label]) }),
       container,
@@ -243,15 +262,15 @@ describe('makeApplication', () => {
     const canonicalUrl = 'https://example.com/todos'
     const application = makeApplication({
       Model,
-      init: () => [{ label: 'hello' }, []],
+      init: () => ({ model: { label: 'hello' } }),
       update,
       view: model => ({
-        title: model.label,
+        title: 'Metadata test',
         canonical: canonicalUrl,
         ogUrl: canonicalUrl,
         body: h.div(
           [],
-          [h.button([h.OnClick(ClickedBump())], ['bump']), model.label],
+          [h.button([h.OnClick(Message.ClickedBump())], ['bump']), model.label],
         ),
       }),
       container,
@@ -276,6 +295,8 @@ describe('makeApplication', () => {
       }
 
       const querySelectorSpy = vi.spyOn(document.head, 'querySelector')
+      const canonicalGetAttributeSpy = vi.spyOn(canonical, 'getAttribute')
+      const ogUrlGetAttributeSpy = vi.spyOn(ogUrl, 'getAttribute')
       const canonicalSetAttributeSpy = vi.spyOn(canonical, 'setAttribute')
       const ogUrlSetAttributeSpy = vi.spyOn(ogUrl, 'setAttribute')
       try {
@@ -283,6 +304,8 @@ describe('makeApplication', () => {
         await awaitBodyText('world')
 
         expect(querySelectorSpy).not.toHaveBeenCalled()
+        expect(canonicalGetAttributeSpy).not.toHaveBeenCalled()
+        expect(ogUrlGetAttributeSpy).not.toHaveBeenCalled()
         expect(canonicalSetAttributeSpy).not.toHaveBeenCalled()
         expect(ogUrlSetAttributeSpy).not.toHaveBeenCalled()
 
@@ -308,6 +331,8 @@ describe('makeApplication', () => {
         )
       } finally {
         querySelectorSpy.mockRestore()
+        canonicalGetAttributeSpy.mockRestore()
+        ogUrlGetAttributeSpy.mockRestore()
         canonicalSetAttributeSpy.mockRestore()
         ogUrlSetAttributeSpy.mockRestore()
       }
@@ -316,10 +341,97 @@ describe('makeApplication', () => {
     }
   })
 
+  it('invalidates the default canonical cache when the location changes', async () => {
+    const originalHref = window.location.href
+    const nextUrl = new URL('/next?mode=fast#ignored', originalHref)
+    const nextCanonicalUrl = `${nextUrl.origin}${nextUrl.pathname}${nextUrl.search}`
+    const application = makeApplication({
+      Model,
+      init: () => ({ model: { label: 'hello' } }),
+      update,
+      view: model => ({
+        title: model.label,
+        body: h.button([h.OnClick(Message.ClickedBump())], [model.label]),
+      }),
+      container,
+    })
+
+    const fiber = Effect.runFork(application.start())
+
+    try {
+      await awaitBodyText('hello')
+      const canonicalElement = document.head.querySelector(
+        'link[rel="canonical"]',
+      )
+      const button = document.body.querySelector('button')
+      if (!(canonicalElement instanceof HTMLLinkElement) || button === null) {
+        throw new Error('expected application canonical metadata and button')
+      }
+
+      history.pushState(null, '', nextUrl)
+      button.click()
+
+      await vi.waitFor(() => {
+        expect(canonicalElement.getAttribute('href')).toBe(nextCanonicalUrl)
+      })
+    } finally {
+      history.replaceState(null, '', originalHref)
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('rebuilds document metadata after the head is replaced', async () => {
+    const canonicalUrl = 'https://example.com/replaced-head'
+    const application = makeApplication({
+      Model,
+      init: () => ({ model: { label: 'hello' } }),
+      update,
+      view: model => ({
+        title: 'Metadata test',
+        canonical: canonicalUrl,
+        ogUrl: canonicalUrl,
+        body: h.button([h.OnClick(Message.ClickedBump())], [model.label]),
+      }),
+      container,
+    })
+    const fiber = Effect.runFork(application.start())
+    const originalHead = document.head
+
+    try {
+      await awaitBodyText('hello')
+      const button = document.body.querySelector('button')
+      if (button === null) {
+        throw new Error('expected application button')
+      }
+
+      originalHead.replaceWith(document.createElement('head'))
+      button.click()
+
+      await vi.waitFor(() => {
+        expect(document.title).toBe('Metadata test')
+        expect(
+          document.head
+            .querySelector('link[rel="canonical"]')
+            ?.getAttribute('href'),
+        ).toBe(canonicalUrl)
+        expect(
+          document.head
+            .querySelector('meta[property="og:url"]')
+            ?.getAttribute('content'),
+        ).toBe(canonicalUrl)
+      })
+    } finally {
+      if (document.head !== originalHead) {
+        document.head.replaceWith(originalHead)
+      }
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
   it('applies lang and dir to the html element', async () => {
     const application = makeApplication({
       Model: LocaleModel,
-      init: () => [FRENCH_AUTO, []],
+      init: () => ({ model: FRENCH_AUTO }),
       update: localeUpdate,
       view: model => ({
         title: 'Localized',
@@ -345,7 +457,7 @@ describe('makeApplication', () => {
   it('leaves lang and dir alone when the view omits them', async () => {
     const application = makeApplication({
       Model,
-      init: () => [{ label: 'hello' }, []],
+      init: () => ({ model: { label: 'hello' } }),
       update,
       view: model => ({ title: model.label, body: h.div([], [model.label]) }),
       container,
@@ -366,7 +478,7 @@ describe('makeApplication', () => {
   it('applies lang without touching dir when the view sets only one', async () => {
     const application = makeApplication({
       Model,
-      init: () => [{ label: 'hello' }, []],
+      init: () => ({ model: { label: 'hello' } }),
       update,
       view: model => ({
         title: model.label,
@@ -391,7 +503,7 @@ describe('makeApplication', () => {
   it('tracks lang and dir across renders, and reasserts them on a later render that leaves both unchanged', async () => {
     const application = makeApplication({
       Model: LocaleModel,
-      init: () => [ENGLISH_LTR, []],
+      init: () => ({ model: ENGLISH_LTR }),
       update: localeUpdate,
       view: model => ({
         title: 'Localized',
@@ -400,8 +512,14 @@ describe('makeApplication', () => {
         body: localeH.div(
           [],
           [
-            localeH.button([localeH.OnClick(ClickedArabic())], ['arabic']),
-            localeH.button([localeH.OnClick(ClickedRerender())], ['rerender']),
+            localeH.button(
+              [localeH.OnClick(LocaleMessage.ClickedArabic())],
+              ['arabic'],
+            ),
+            localeH.button(
+              [localeH.OnClick(LocaleMessage.ClickedRerender())],
+              ['rerender'],
+            ),
             `${model.lang}-${model.revision}`,
           ],
         ),

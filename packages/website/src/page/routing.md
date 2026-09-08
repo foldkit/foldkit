@@ -8,21 +8,33 @@ Most routers make you define routes twice: once for matching URLs, and again for
 
 Foldkit’s routing is based on biparsers: parsers that work in both directions. A single route definition handles:
 
-- `/people/42` → `PersonRoute { personId: 42 }` (parsing)
-- `PersonRoute { personId: 42 }` → `/people/42` (building)
+- `/people/42` → `AppRoute.Person { personId: 42 }` (parsing)
+- `AppRoute.Person { personId: 42 }` → `/people/42` (building)
 
 This symmetry means if you can parse a URL into data, you can always build that data back into the same URL.
 
 ## Defining Routes
 
-Routes are defined as tagged unions using [Effect Schema](https://effect.website/docs/schema/introduction/). Each route variant carries the data extracted from the URL.
+`defineRouteUnion` declares every application Route together. Each key is a tag, and its value lists the fields parsed from the URL. `AppRoute` is also an [Effect Schema](https://effect.website/docs/schema/introduction/), so it can be stored in the Model and used to decode unknown values.
 
 ::Snippet{name="routingDefineRoutes" label="route definitions"}
 
-- `HomeRoute`: no parameters
-- `PersonRoute`: holds a `personId: number`
-- `PeopleRoute`: holds an optional `searchText: Option<string>`
-- `NotFoundRoute`: holds the unmatched `path: string`
+- `AppRoute.Home`: no parameters
+- `AppRoute.Person`: holds a `personId: number`
+- `AppRoute.People`: holds an optional `searchText: Option<string>`
+- `AppRoute.NotFound`: holds the unmatched `path: string`
+
+Keep each variant on `AppRoute`, just as Message variants stay on `Message`. `AppRoute.Person({ personId: 42 })` constructs a Route, while `Route.mapTo(AppRoute.Person)` uses the same variant as a Schema.
+
+Use `AppRoute.match` when every Route needs a branch. Use `AppRoute.isAnyOf(['Blog', 'BlogPost'])` when one check accepts several tags.
+
+If a Model or Schema accepts only some application Routes, create that Schema with `subset`:
+
+::Snippet{name="routingSubset" label="Route subset example"}
+
+`subset` includes only the tags you name. If you add a Route to `AppRoute` later, `TopLevelRoute` will not accept it until you add its tag. There is no `omit`: an exclusion list would silently accept every Route added later.
+
+If a module needs to name one variant's type, add an alias beside `AppRoute`: `export type NewsletterRoute = typeof AppRoute.Newsletter.Type`.
 
 ## Building Routers
 
@@ -40,7 +52,7 @@ The primitives:
 - `restString('path')`: captures all remaining segments as one path string
 - `slash(...)`: chains path segments together
 - `Route.query(Schema)`: adds query parameter parsing
-- `Route.mapTo(RouteType)`: converts parsed data into a typed route
+- `Route.mapTo(AppRoute.Person)`: converts parsed data into a typed route
 
 ## Parsing URLs
 
@@ -64,7 +76,7 @@ Query parameters use [Effect Schema](https://effect.website/docs/schema/introduc
 
 ::Snippet{name="routingQueryParams" label="query parameters example"}
 
-`S.OptionFromOptional` makes parameters optional. Missing params become `Option.none()`. `S.FiniteFromString` automatically parses string query values into numbers.
+`Schema.OptionFromOptional` makes parameters optional. Missing params become `Option.none()`. `Schema.FiniteFromString` automatically parses string query values into numbers.
 
 For a complete routing example, see the [Routing example](/example-apps/routing). For a deeper look at query parameters (custom schema transforms, lenient parsing, and bidirectional URL sync), see the [Query Sync example](/example-apps/query-sync).
 
@@ -82,17 +94,17 @@ The schema’s encoded form must be a single segment string, and `schemaSegment`
 
 ## Rest Segments
 
-Some routes carry a whole path as data: a file tree, a documentation page, a breadcrumb trail. `rest` captures every remaining segment as a named field, the feature other routers call catch-all or splat routes. The parsed value is a non-empty array of strings, so the route schema declares the field with `S.NonEmptyArray(S.String)`.
+Some routes carry a whole path as data: a file tree, a documentation page, a breadcrumb trail. `rest` captures every remaining segment as a named field, the feature other routers call catch-all or splat routes. The parsed value is a non-empty array of strings, so the route schema declares the field with `Schema.NonEmptyArray(Schema.String)`.
 
 ::Snippet{name="routingRest" label="rest segments example"}
 
-`rest` requires at least one segment, so the bare prefix `/files` does not match the rest route. Give the prefix its own route, like `FilesIndexRoute` above. The two never overlap: one matches exactly `/files`, the other matches anything beneath it.
+`rest` requires at least one segment, so the bare prefix `/files` does not match the rest route. Give the prefix its own route, like `AppRoute.FilesIndex` above. The two never overlap: one matches exactly `/files`, the other matches anything beneath it.
 
 A specific route under the same prefix is different. The rest route also matches every URL that `literal('files'), slash(literal('shared'))` accepts, so in `oneOf` the specific route must come first.
 
 Nothing can follow `rest` in the path, so `slash` cannot extend it. TypeScript rejects the composition. `query` can still follow, since query parameters live after the path.
 
-When the path itself is the value, `restString` captures the same tail as a single string, slashes included, so the route schema declares the field with `S.String`. A repository-relative file path like `20-upgrade/teach/the-elm-architecture.md` round-trips as one value instead of an array of segments.
+When the path itself is the value, `restString` captures the same tail as a single string, slashes included, so the route schema declares the field with `Schema.String`. A repository-relative file path like `20-upgrade/teach/the-elm-architecture.md` round-trips as one value instead of an array of segments.
 
 ::Snippet{name="routingRestString" label="restString example"}
 

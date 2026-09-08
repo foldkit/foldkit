@@ -1,13 +1,22 @@
-import { Effect, Option, Schema as S } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 
-export const TypeDocFlags = S.Struct({
-  isOptional: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
-  isPrivate: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
-  isProtected: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
-  isRest: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
-  isStatic: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
+export const TypeDocFlags = Schema.Struct({
+  isOptional: Schema.Boolean.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed(false)),
+  ),
+  isPrivate: Schema.Boolean.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed(false)),
+  ),
+  isProtected: Schema.Boolean.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed(false)),
+  ),
+  isRest: Schema.Boolean.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed(false)),
+  ),
+  isStatic: Schema.Boolean.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed(false)),
+  ),
 })
-
 export type TypeDocFlags = typeof TypeDocFlags.Type
 
 const defaultFlags: TypeDocFlags = {
@@ -18,34 +27,30 @@ const defaultFlags: TypeDocFlags = {
   isStatic: false,
 }
 
-export const TypeDocCommentPart = S.Struct({
-  kind: S.String,
-  text: S.String,
+export const TypeDocCommentPart = Schema.Struct({
+  kind: Schema.String,
+  text: Schema.String,
 })
-
 export type TypeDocCommentPart = typeof TypeDocCommentPart.Type
 
-export const TypeDocBlockTag = S.Struct({
-  tag: S.String,
-  content: S.Array(TypeDocCommentPart),
+export const TypeDocBlockTag = Schema.Struct({
+  tag: Schema.String,
+  content: Schema.Array(TypeDocCommentPart),
 })
-
 export type TypeDocBlockTag = typeof TypeDocBlockTag.Type
 
-export const TypeDocComment = S.Struct({
-  summary: S.OptionFromOptional(S.Array(TypeDocCommentPart)),
-  blockTags: S.OptionFromOptional(S.Array(TypeDocBlockTag)),
+export const TypeDocComment = Schema.Struct({
+  summary: Schema.OptionFromOptional(Schema.Array(TypeDocCommentPart)),
+  blockTags: Schema.OptionFromOptional(Schema.Array(TypeDocBlockTag)),
 })
-
 export type TypeDocComment = typeof TypeDocComment.Type
 
-export const TypeDocSource = S.Struct({
-  fileName: S.String,
-  line: S.Number,
-  character: S.Number,
-  url: S.OptionFromOptional(S.String),
+export const TypeDocSource = Schema.Struct({
+  fileName: Schema.String,
+  line: Schema.Number,
+  character: Schema.Number,
+  url: Schema.OptionFromOptional(Schema.String),
 })
-
 export type TypeDocSource = typeof TypeDocSource.Type
 
 type TypeDocIntrinsicType = Readonly<{
@@ -177,7 +182,7 @@ export type TypeDocType =
   | TypeDocUnknownType
 
 // NOTE: Manual type definitions are required here because TypeScript cannot infer
-// types from mutually recursive schemas (TypeDocType ↔ TypeDocItem via S.suspend).
+// types from mutually recursive schemas (TypeDocType ↔ TypeDocItem via Schema.suspend).
 type TypeDocTypeEncoded =
   | TypeDocIntrinsicType
   | TypeDocLiteralType
@@ -199,190 +204,191 @@ type TypeDocTypeEncoded =
   | TypeDocUnknownType
 
 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-export const TypeDocTypeSchema = S.suspend(() =>
-  S.Union([
-    S.Struct({ type: S.Literal('intrinsic'), name: S.String }),
-    S.Struct({ type: S.Literal('literal'), value: S.Unknown }),
-    S.Struct({
-      type: S.Literal('reference'),
-      name: S.String,
-      package: S.optional(S.String),
-      target: S.optional(
-        S.Union([
-          S.Number,
-          S.Struct({
-            packageName: S.optional(S.String),
-            packagePath: S.optional(S.String),
-            qualifiedName: S.optional(S.String),
+export const TypeDocTypeSchema = Schema.suspend(() =>
+  Schema.Union([
+    Schema.Struct({ type: Schema.Literal('intrinsic'), name: Schema.String }),
+    Schema.Struct({ type: Schema.Literal('literal'), value: Schema.Unknown }),
+    Schema.Struct({
+      type: Schema.Literal('reference'),
+      name: Schema.String,
+      package: Schema.optional(Schema.String),
+      target: Schema.optional(
+        Schema.Union([
+          Schema.Number,
+          Schema.Struct({
+            packageName: Schema.optional(Schema.String),
+            packagePath: Schema.optional(Schema.String),
+            qualifiedName: Schema.optional(Schema.String),
           }),
         ]),
       ),
-      typeArguments: S.optional(S.Array(TypeDocTypeSchema)),
+      typeArguments: Schema.optional(Schema.Array(TypeDocTypeSchema)),
     }),
-    S.Struct({
-      type: S.Literal('array'),
+    Schema.Struct({
+      type: Schema.Literal('array'),
       elementType: TypeDocTypeSchema,
     }),
-    S.Struct({
-      type: S.Literal('rest'),
+    Schema.Struct({
+      type: Schema.Literal('rest'),
       elementType: TypeDocTypeSchema,
     }),
-    S.Struct({
-      type: S.Literal('tuple'),
-      elements: S.Array(TypeDocTypeSchema),
+    Schema.Struct({
+      type: Schema.Literal('tuple'),
+      elements: Schema.Array(TypeDocTypeSchema),
     }),
-    S.Struct({
-      type: S.Literal('union'),
-      types: S.Array(TypeDocTypeSchema),
+    Schema.Struct({
+      type: Schema.Literal('union'),
+      types: Schema.Array(TypeDocTypeSchema),
     }),
-    S.Struct({
-      type: S.Literal('intersection'),
-      types: S.Array(TypeDocTypeSchema),
+    Schema.Struct({
+      type: Schema.Literal('intersection'),
+      types: Schema.Array(TypeDocTypeSchema),
     }),
-    S.Struct({
-      type: S.Literal('reflection'),
-      declaration: S.OptionFromOptional(TypeDocItem),
+    Schema.Struct({
+      type: Schema.Literal('reflection'),
+      declaration: Schema.OptionFromOptional(TypeDocItem),
     }),
-    S.Struct({
-      type: S.Literal('typeOperator'),
-      operator: S.String,
+    Schema.Struct({
+      type: Schema.Literal('typeOperator'),
+      operator: Schema.String,
       target: TypeDocTypeSchema,
     }),
-    S.Struct({
-      type: S.Literal('mapped'),
-      parameter: S.String,
+    Schema.Struct({
+      type: Schema.Literal('mapped'),
+      parameter: Schema.String,
       parameterType: TypeDocTypeSchema,
       templateType: TypeDocTypeSchema,
-      readonlyModifier: S.optional(S.String),
+      readonlyModifier: Schema.optional(Schema.String),
     }),
-    S.Struct({
-      type: S.Literal('conditional'),
+    Schema.Struct({
+      type: Schema.Literal('conditional'),
       checkType: TypeDocTypeSchema,
       extendsType: TypeDocTypeSchema,
       trueType: TypeDocTypeSchema,
       falseType: TypeDocTypeSchema,
     }),
-    S.Struct({
-      type: S.Literal('indexedAccess'),
+    Schema.Struct({
+      type: Schema.Literal('indexedAccess'),
       objectType: TypeDocTypeSchema,
       indexType: TypeDocTypeSchema,
     }),
-    S.Struct({
-      type: S.Literal('query'),
+    Schema.Struct({
+      type: Schema.Literal('query'),
       queryType: TypeDocTypeSchema,
     }),
-    S.Struct({
-      type: S.Literal('templateLiteral'),
-      head: S.String,
-      tail: S.Array(S.Tuple([TypeDocTypeSchema, S.String])),
+    Schema.Struct({
+      type: Schema.Literal('templateLiteral'),
+      head: Schema.String,
+      tail: Schema.Array(Schema.Tuple([TypeDocTypeSchema, Schema.String])),
     }),
-    S.Struct({ type: S.Literal('inferred'), name: S.String }),
-    S.Struct({ type: S.Literal('predicate') }),
-    S.Struct({ type: S.Literal('unknown') }),
+    Schema.Struct({ type: Schema.Literal('inferred'), name: Schema.String }),
+    Schema.Struct({ type: Schema.Literal('predicate') }),
+    Schema.Struct({ type: Schema.Literal('unknown') }),
   ]),
-) as unknown as S.Codec<TypeDocType, TypeDocTypeEncoded>
+) as unknown as Schema.Codec<TypeDocType, TypeDocTypeEncoded>
 
-export const TypeDocTypeParam = S.Struct({
-  id: S.Number,
-  name: S.String,
-  variant: S.String,
-  kind: S.Number,
-  type: S.OptionFromOptional(TypeDocTypeSchema),
-  default: S.OptionFromOptional(TypeDocTypeSchema),
+export const TypeDocTypeParam = Schema.Struct({
+  id: Schema.Number,
+  name: Schema.String,
+  variant: Schema.String,
+  kind: Schema.Number,
+  type: Schema.OptionFromOptional(TypeDocTypeSchema),
+  default: Schema.OptionFromOptional(TypeDocTypeSchema),
 })
-
 export type TypeDocTypeParam = typeof TypeDocTypeParam.Type
 
-export const TypeDocParam = S.Struct({
-  id: S.Number,
-  name: S.String,
-  variant: S.String,
-  kind: S.Number,
+export const TypeDocParam = Schema.Struct({
+  id: Schema.Number,
+  name: Schema.String,
+  variant: Schema.String,
+  kind: Schema.Number,
   flags: TypeDocFlags.pipe(
-    S.withDecodingDefaultKey(Effect.succeed(defaultFlags)),
+    Schema.withDecodingDefaultKey(Effect.succeed(defaultFlags)),
   ),
-  type: S.OptionFromOptional(TypeDocTypeSchema),
-  defaultValue: S.OptionFromOptional(S.String),
-  comment: S.OptionFromOptional(TypeDocComment),
+  type: Schema.OptionFromOptional(TypeDocTypeSchema),
+  defaultValue: Schema.OptionFromOptional(Schema.String),
+  comment: Schema.OptionFromOptional(TypeDocComment),
 })
-
 export type TypeDocParam = typeof TypeDocParam.Type
 
-export const TypeDocSignature = S.Struct({
-  id: S.Number,
-  name: S.String,
-  variant: S.String,
-  kind: S.Number,
-  comment: S.OptionFromOptional(TypeDocComment),
-  parameters: S.OptionFromOptional(S.Array(TypeDocParam)),
-  type: S.OptionFromOptional(TypeDocTypeSchema),
-  typeParameters: S.OptionFromOptional(S.Array(TypeDocTypeParam)),
+export const TypeDocSignature = Schema.Struct({
+  id: Schema.Number,
+  name: Schema.String,
+  variant: Schema.String,
+  kind: Schema.Number,
+  comment: Schema.OptionFromOptional(TypeDocComment),
+  parameters: Schema.OptionFromOptional(Schema.Array(TypeDocParam)),
+  type: Schema.OptionFromOptional(TypeDocTypeSchema),
+  typeParameters: Schema.OptionFromOptional(Schema.Array(TypeDocTypeParam)),
 })
-
 export type TypeDocSignature = typeof TypeDocSignature.Type
 
 const typeDocItemFields = {
-  id: S.Number,
-  name: S.String,
-  variant: S.String,
-  kind: S.Number,
+  id: Schema.Number,
+  name: Schema.String,
+  variant: Schema.String,
+  kind: Schema.Number,
   flags: TypeDocFlags.pipe(
-    S.withDecodingDefaultKey(Effect.succeed(defaultFlags)),
+    Schema.withDecodingDefaultKey(Effect.succeed(defaultFlags)),
   ),
-  comment: S.OptionFromOptional(TypeDocComment),
-  sources: S.OptionFromOptional(S.Array(TypeDocSource)),
-  signatures: S.OptionFromOptional(S.Array(TypeDocSignature)),
-  typeParameters: S.OptionFromOptional(S.Array(TypeDocTypeParam)),
+  comment: Schema.OptionFromOptional(TypeDocComment),
+  sources: Schema.OptionFromOptional(Schema.Array(TypeDocSource)),
+  signatures: Schema.OptionFromOptional(Schema.Array(TypeDocSignature)),
+  typeParameters: Schema.OptionFromOptional(Schema.Array(TypeDocTypeParam)),
 }
 
-export interface TypeDocItem extends S.Struct.Type<typeof typeDocItemFields> {
+export interface TypeDocItem extends Schema.Struct.Type<
+  typeof typeDocItemFields
+> {
   readonly type: Option.Option<TypeDocType>
   readonly children: Option.Option<ReadonlyArray<TypeDocItem>>
 }
 
-interface TypeDocItemEncoded extends S.Struct.Encoded<
+interface TypeDocItemEncoded extends Schema.Struct.Encoded<
   typeof typeDocItemFields
 > {
   readonly type?: TypeDocTypeEncoded
   readonly children?: ReadonlyArray<TypeDocItemEncoded>
 }
 
-/* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-export const TypeDocItem: S.Codec<TypeDocItem, TypeDocItemEncoded> = S.Struct({
-  ...typeDocItemFields,
-  type: S.OptionFromOptional(TypeDocTypeSchema),
-  children: S.OptionFromOptional(
-    S.Array(
-      S.suspend(
-        () =>
-          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-          TypeDocItem as unknown as S.Codec<TypeDocItem, TypeDocItemEncoded>,
+export const TypeDocItem: Schema.Codec<TypeDocItem, TypeDocItemEncoded> =
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  Schema.Struct({
+    ...typeDocItemFields,
+    type: Schema.OptionFromOptional(TypeDocTypeSchema),
+    children: Schema.OptionFromOptional(
+      Schema.Array(
+        Schema.suspend(
+          () =>
+            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+            TypeDocItem as unknown as Schema.Codec<
+              TypeDocItem,
+              TypeDocItemEncoded
+            >,
+        ),
       ),
     ),
-  ),
-}) as unknown as S.Codec<TypeDocItem, TypeDocItemEncoded>
+  }) as unknown as Schema.Codec<TypeDocItem, TypeDocItemEncoded>
 
-export const TypeDocModule = S.Struct({
-  id: S.Number,
-  name: S.String,
-  variant: S.String,
-  kind: S.Number,
-  children: S.Array(TypeDocItem).pipe(
-    S.withDecodingDefaultKey(Effect.succeed([])),
+export const TypeDocModule = Schema.Struct({
+  id: Schema.Number,
+  name: Schema.String,
+  variant: Schema.String,
+  kind: Schema.Number,
+  children: Schema.Array(TypeDocItem).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed([])),
   ),
 })
-
 export type TypeDocModule = typeof TypeDocModule.Type
 
-export const TypeDocJson = S.Struct({
-  schemaVersion: S.String,
-  id: S.Number,
-  name: S.String,
-  variant: S.String,
-  kind: S.Number,
-  children: S.Array(TypeDocModule),
+export const TypeDocJson = Schema.Struct({
+  schemaVersion: Schema.String,
+  id: Schema.Number,
+  name: Schema.String,
+  variant: Schema.String,
+  kind: Schema.Number,
+  children: Schema.Array(TypeDocModule),
 })
-
 export type TypeDocJson = typeof TypeDocJson.Type
 
 export const Kind = {

@@ -1,6 +1,6 @@
 {
-  "$schema": "https://unpkg.com/@changesets/config@3.1.2/schema.json",
-  "changelog": "@changesets/cli/changelog",
+  "$schema": "https://unpkg.com/@changesets/config@4.0.0/schema.json",
+  "changelog": ["@changesets/changelog-github", { "repo": "foldkit/foldkit" }],
   "commit": false,
   "fixed": [["foldkit", "@foldkit/ui", "@foldkit/devtools"]],
   "linked": [],
@@ -12,6 +12,7 @@
   },
   "ignore": [
     "website",
+    "@foldkit/api-reference-generator",
     "@typing-game/client",
     "@typing-game/server",
     "@typing-game/shared",
@@ -49,6 +50,8 @@
     "state-machine-example",
     "personal-blog-example",
     "interrupting-commands-example",
-    "view-transitions-example"
+    "view-transitions-example",
+    "ssr-example",
+    "ssg-example"
   ]
 }

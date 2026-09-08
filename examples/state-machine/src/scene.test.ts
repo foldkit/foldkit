@@ -11,8 +11,15 @@ import {
 } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { PlaceOrder, SucceededPlaceOrder, initialModel, update } from './main'
+import { RadioGroup } from '@foldkit/ui'
+
+import { Message, PlaceOrder, initialModel, update } from './main'
 import { view } from './view'
+
+const resolveFocusOption = Command.resolve(
+  RadioGroup.FocusOption,
+  RadioGroup.Message.CompletedFocusOption(),
+)
 
 describe('scene', () => {
   test('initial view shows the hardcover order and state machine inspector', () => {
@@ -31,6 +38,7 @@ describe('scene', () => {
       { update, view },
       given(initialModel),
       click(role('radio', { name: 'E-book' })),
+      resolveFocusOption,
       expect(role('radio', { name: 'E-book' })).toBeChecked(),
       click(role('button', { name: 'Continue to payment' })),
       expect(role('heading', { name: 'Payment' })).toExist(),
@@ -47,7 +55,7 @@ describe('scene', () => {
       expect(role('heading', { name: 'Processing your order' })).toExist(),
       Command.resolve(
         PlaceOrder,
-        SucceededPlaceOrder({ orderId: 'DIGI-1001' }),
+        Message.SucceededPlaceOrder({ orderId: 'DIGI-1001' }),
       ),
       expect(text('Order DIGI-1001 confirmed')).toExist(),
     )
@@ -58,6 +66,7 @@ describe('scene', () => {
       { update, view },
       given(initialModel),
       click(role('radio', { name: 'E-book' })),
+      resolveFocusOption,
       click(role('button', { name: 'Continue to payment' })),
       click(role('checkbox', { name: 'Mastercard •••• 4242' })),
       click(role('button', { name: 'Review order' })),

@@ -1,33 +1,33 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 
 import { Slider } from '@foldkit/ui'
 
-export const Point = S.Struct({ x: S.Number, y: S.Number })
+export const Point = Schema.Struct({ x: Schema.Number, y: Schema.Number })
 export type Point = typeof Point.Type
 
-export const Particle = S.Struct({
-  id: S.Number,
-  trail: S.Array(Point),
-  baseHue: S.Number,
-  hueDriftPerSecond: S.Number,
-  ageMs: S.Number,
-  lifespanMs: S.Number,
-  speed: S.Number,
-  bornAtSeconds: S.Number,
-  initialAngle: S.Option(S.Number),
-  initialSpeedScale: S.Number,
+export const Particle = Schema.Struct({
+  id: Schema.Number,
+  trail: Schema.Array(Point),
+  baseHue: Schema.Number,
+  hueDriftPerSecond: Schema.Number,
+  ageMs: Schema.Number,
+  lifespanMs: Schema.Number,
+  speed: Schema.Number,
+  bornAtSeconds: Schema.Number,
+  initialAngle: Schema.Option(Schema.Number),
+  initialSpeedScale: Schema.Number,
 })
 export type Particle = typeof Particle.Type
 
-export const Model = S.Struct({
-  particles: S.Array(Particle),
-  nextId: S.Number,
-  elapsedSeconds: S.Number,
-  maybeMousePosition: S.Option(Point),
-  isRunning: S.Boolean,
-  flowStrength: S.Number,
+export const Model = Schema.Struct({
+  particles: Schema.Array(Particle),
+  nextId: Schema.Number,
+  elapsedSeconds: Schema.Number,
+  maybeMousePosition: Schema.Option(Point),
+  isRunning: Schema.Boolean,
+  flowStrength: Schema.Number,
   flowStrengthSlider: Slider.Model,
-  noiseScale: S.Number,
+  noiseScale: Schema.Number,
   noiseScaleSlider: Slider.Model,
 })
 export type Model = typeof Model.Type

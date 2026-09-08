@@ -2,13 +2,17 @@ import { type VNode, memoizedVNodes } from '../vdom.js'
 import {
   type BoundaryRegistry,
   type WrapDescriptor,
+  beginBoundaryWrapTransaction,
+  commitBoundaryWrapTransaction,
   composeBoundary,
   deregisterBoundaryWrap,
   registerBoundaryWrap,
+  rollbackBoundaryWrapTransaction,
 } from './boundary.js'
 import { isChildAttribute } from './childAttribute.js'
 import type { HtmlBuilder } from './index.js'
 import {
+  type DispatchSync,
   type Frame,
   clearRuntime,
   getCurrentFrame,
@@ -166,10 +170,10 @@ type ViewMessageOf<View extends AnySubmodelView> = View extends {
  *    (`(message) => GotEntryMessage({ entryId: entry.id, message })`).
  *
  *  High-level events the parent handles declaratively flow through
- *  each Submodel's `OutMessage`. The parent's `GotChildMessage`
- *  handler unpacks the third tuple element of the child's `update`
- *  return and pattern-matches on `Option<OutMessage>`. See `Menu`,
- *  `Listbox`, etc., for examples. */
+ *  each Submodel's `OutMessage`. Use `Update.foldChild` to run the child
+ *  update, lift its Commands, and match the optional OutMessage without
+ *  unpacking the child result by hand. See `Menu`, `Listbox`, etc., for
+ *  examples. */
 export type SubmodelConfig<
   View extends AnySubmodelView,
   ParentMessage,
@@ -308,23 +312,14 @@ const withBoundaryCleanup = (
   vnode: VNode,
   registry: BoundaryRegistry,
   boundaryId: string,
+  descriptor: WrapDescriptor,
+  mountOuterDispatch: DispatchSync,
 ): VNode => {
   const data = vnode.data ?? {}
   const hook = data.hook ?? {}
   const previousDestroy = hook.destroy
   const compositeDestroy = (removed: VNode): void => {
-    // NOTE: a Submodel whose root vnode changes snabbdom identity across
-    // renders (e.g. a keyed root whose key changed) re-registers its
-    // boundary in the new view phase, then snabbdom destroys the OLD root
-    // vnode in the following patch phase. That destroy must not evict the
-    // freshly re-registered wrap. `seenThisRender` is cleared in
-    // `beginRender`, so during patch it still reflects the just-completed
-    // view phase: the boundary's presence there means it is live this cycle
-    // (a remount), not a true unmount. Deleting it here would surface later
-    // as `dispatchAcrossBoundary missing wrap`.
-    if (!registry.seenThisRender.has(boundaryId)) {
-      deregisterBoundaryWrap(registry, boundaryId)
-    }
+    deregisterBoundaryWrap(registry, boundaryId, descriptor, mountOuterDispatch)
     if (previousDestroy !== undefined) {
       previousDestroy(removed)
     }
@@ -360,24 +355,32 @@ export const submodel = <View extends AnySubmodelView>(
   const parentFrame = getCurrentFrame()
   const registry = parentFrame.boundaryRegistry
   const childBoundaryId = composeBoundary(parentFrame.boundaryId, config.slotId)
-
-  registerBoundaryWrap(registry, childBoundaryId, {
+  const descriptor: WrapDescriptor = {
     toParentMessage:
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       config.toParentMessage as WrapDescriptor['toParentMessage'],
-  })
-
-  // NOTE: the builder handed to the child view is the process-wide
-  // singleton retyped to the child's Message. The value carries no
-  // Message state (dispatch resolves from the frame pushed below), so
-  // the cast is the entire mechanism, exactly like the brand cast in
-  // `defineView`.
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  const childBuilder = htmlBuilderSingleton as HtmlBuilder<ViewMessageOf<View>>
-
-  let vnode: VNode | null
-  pushBoundary(childBoundaryId)
+  }
+  const transaction = beginBoundaryWrapTransaction(registry)
   try {
+    registerBoundaryWrap(
+      registry,
+      childBoundaryId,
+      descriptor,
+      parentFrame.mountOuterDispatch,
+    )
+
+    // NOTE: the builder handed to the child view is the process-wide
+    // singleton retyped to the child's Message. The value carries no
+    // Message state (dispatch resolves from the frame pushed below), so
+    // the cast is the entire mechanism, exactly like the brand cast in
+    // `defineView`.
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const childBuilder = htmlBuilderSingleton as HtmlBuilder<
+      ViewMessageOf<View>
+    >
+
+    let vnode: VNode | null
+    pushBoundary(childBoundaryId)
     try {
       if (!Object.hasOwn(config, 'viewInputs')) {
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -400,22 +403,26 @@ export const submodel = <View extends AnySubmodelView>(
         ) => VNode | null
         vnode = view(config.model, wrappedViewInputs, childBuilder)
       }
-    } catch (error) {
-      // The view threw; the registered wrap would otherwise leak with
-      // no destroy hook ever firing. Drop it before propagating.
-      deregisterBoundaryWrap(registry, childBoundaryId)
-      throw error
+    } finally {
+      clearRuntime()
     }
-  } finally {
-    clearRuntime()
-  }
 
-  if (vnode === null) {
-    // No vnode means no destroy hook will ever fire; deregister now so
-    // the wrap doesn't leak.
-    deregisterBoundaryWrap(registry, childBoundaryId)
-    return null
-  }
+    if (vnode === null) {
+      rollbackBoundaryWrapTransaction(registry, transaction)
+      return null
+    }
 
-  return withBoundaryCleanup(vnode, registry, childBoundaryId)
+    const vnodeWithCleanup = withBoundaryCleanup(
+      vnode,
+      registry,
+      childBoundaryId,
+      descriptor,
+      parentFrame.mountOuterDispatch,
+    )
+    commitBoundaryWrapTransaction(registry, transaction)
+    return vnodeWithCleanup
+  } catch (error) {
+    rollbackBoundaryWrapTransaction(registry, transaction)
+    throw error
+  }
 }

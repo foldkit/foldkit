@@ -2,16 +2,19 @@ import { Array, Effect, Option, pipe } from 'effect'
 import {
   Diagnostic,
   type ESTree,
+  type Reference,
   Rule,
   RuleContext,
   Visitor,
 } from 'effect-oxlint'
 
 import {
+  indexReferences,
   isCallExpression,
   isIdentifier,
   isMemberExpression,
   isProgram,
+  resolveImportedPath,
 } from '../guards.ts'
 
 const factoryWrapperTypes: ReadonlyArray<string> = [
@@ -74,9 +77,7 @@ const resolveMemberPath = (
   return Option.none()
 }
 
-const isSelectionFactoryPath = (
-  path: Array.NonEmptyReadonlyArray<string>,
-): boolean => {
+const isSelectionFactoryPath = (path: ReadonlyArray<string>): boolean => {
   const [first, second, third, fourth, fifth] = path
   if (fifth !== undefined) {
     return false
@@ -93,6 +94,7 @@ const isSelectionFactoryPath = (
   if (third !== undefined) {
     const isMultiForm =
       second === 'Multi' &&
+      first !== undefined &&
       multiSelectComponents.includes(first) &&
       third === 'create'
     const isUiNamespaceForm =
@@ -102,17 +104,46 @@ const isSelectionFactoryPath = (
       third === 'create'
     return isMultiForm || isUiNamespaceForm
   }
-  return second === 'create' && singleSelectComponents.includes(first)
+  return (
+    first !== undefined &&
+    second === 'create' &&
+    singleSelectComponents.includes(first)
+  )
 }
 
 const selectionFactoryLabel = (
   call: ESTree.CallExpression,
-): Option.Option<string> =>
-  pipe(
-    resolveMemberPath(call.callee),
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<string> => {
+  const maybePath =
+    references === undefined
+      ? resolveMemberPath(call.callee)
+      : pipe(
+          resolveImportedPath(references, call.callee),
+          Option.flatMap(path => {
+            if (path.source === '@foldkit/ui') {
+              return Option.some(path.members)
+            }
+
+            const componentBySource: Readonly<Record<string, string>> = {
+              '@foldkit/ui/combobox': 'Combobox',
+              '@foldkit/ui/listbox': 'Listbox',
+              '@foldkit/ui/menu': 'Menu',
+              '@foldkit/ui/tabs': 'Tabs',
+            }
+            const component = componentBySource[path.source]
+            return component === undefined
+              ? Option.none()
+              : Option.some([component, ...path.members])
+          }),
+        )
+
+  return pipe(
+    maybePath,
     Option.filter(isSelectionFactoryPath),
     Option.map(Array.join('.')),
   )
+}
 
 type SelectionFactoryCall = Readonly<{
   call: ESTree.CallExpression
@@ -121,13 +152,14 @@ type SelectionFactoryCall = Readonly<{
 
 const selectionFactorySelfMatch = (
   value: unknown,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): ReadonlyArray<SelectionFactoryCall> => {
   if (!isCallExpression(value)) {
     return []
   }
   const call = value
   return pipe(
-    selectionFactoryLabel(call),
+    selectionFactoryLabel(call, references),
     Option.match({
       onNone: () => [],
       onSome: label => [{ call, label }],
@@ -137,15 +169,16 @@ const selectionFactorySelfMatch = (
 
 const collectSelectionFactoryCalls = (
   value: unknown,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): ReadonlyArray<SelectionFactoryCall> => {
   if (typeof value !== 'object' || value === null) {
     return []
   }
   const childEntries = Object.entries(value)
   const childMatches = childEntries.flatMap(([key, child]) =>
-    key === 'parent' ? [] : collectSelectionFactoryCalls(child),
+    key === 'parent' ? [] : collectSelectionFactoryCalls(child, references),
   )
-  return [...selectionFactorySelfMatch(value), ...childMatches]
+  return [...selectionFactorySelfMatch(value, references), ...childMatches]
 }
 
 const topLevelInitializerCalls = (
@@ -185,12 +218,15 @@ export const selectionSubmodelFactoryAtModuleScope = Rule.define({
   }),
   create: function* () {
     const ctx = yield* RuleContext
+    const scopes = ctx.sourceCode.scopeManager?.scopes
+    const references =
+      scopes === undefined ? undefined : indexReferences(scopes)
     return Visitor.onExit('Program', (node: ESTree.Node) => {
       if (!isProgram(node)) {
         return Effect.void
       }
       const allowedCalls = topLevelInitializerCalls(node)
-      const factoryCalls = collectSelectionFactoryCalls(node)
+      const factoryCalls = collectSelectionFactoryCalls(node, references)
       const offendingCalls = factoryCalls.filter(
         factoryCall => !allowedCalls.includes(factoryCall.call),
       )

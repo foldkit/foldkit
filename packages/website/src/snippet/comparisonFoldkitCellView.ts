@@ -1,3 +1,10 @@
+import { Array } from 'effect'
+import type { Html, HtmlBuilder } from 'foldkit/html'
+
+import { Message } from './message'
+import type { Cell, HexColor } from './model'
+import { type PaletteTheme, resolveColor } from './palette'
+
 const rowView = (
   row: ReadonlyArray<Cell>,
   y: number,
@@ -15,8 +22,8 @@ const rowView = (
       const displayColor = isPreview ? previewColor : resolveColor(cell, theme)
 
       return h.div([
-        h.OnMouseDown(PressedCell({ x, y })),
-        h.OnMouseEnter(EnteredCell({ x, y })),
+        h.OnMouseDown(Message.PressedCell({ x, y })),
+        h.OnMouseEnter(Message.EnteredCell({ x, y })),
         h.Style({ flex: '1', backgroundColor: displayColor }),
       ])
     }),

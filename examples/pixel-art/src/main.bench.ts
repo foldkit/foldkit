@@ -1,16 +1,11 @@
 import { Option } from 'effect'
+import { evo } from 'foldkit/struct'
 import { bench, describe } from 'vitest'
 
-import { Dialog, Listbox } from '@foldkit/ui'
+import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
 import { createEmptyGrid } from './grid'
-import {
-  ClickedRedo,
-  ClickedUndo,
-  EnteredCell,
-  PressedCell,
-  ReleasedMouse,
-} from './message'
+import { Message } from './message'
 import type { Model } from './model'
 import { update } from './update'
 
@@ -32,6 +27,9 @@ const initialModel: Model = {
   gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
   maybePendingGridSize: Option.none(),
   themeListbox: Listbox.init({ id: 'theme-picker' }),
+  toolRadioGroup: RadioGroup.init({ id: 'tool-picker' }),
+  gridSizeRadioGroup: RadioGroup.init({ id: 'grid-size-picker' }),
+  paletteRadioGroup: RadioGroup.init({ id: 'palette-picker' }),
 }
 
 const dispatch = (
@@ -39,7 +37,7 @@ const dispatch = (
   ...messages: ReadonlyArray<Parameters<typeof update>[1]>
 ): Model =>
   messages.reduce<Model>(
-    (currentModel, message) => update(currentModel, message)[0],
+    (currentModel, message) => update(currentModel, message).model,
     model,
   )
 
@@ -48,31 +46,39 @@ const buildHistoryModel = (steps: number): Model => {
   for (let i = 0; i < steps; i++) {
     const x = i % GRID_SIZE
     const y = Math.floor(i / GRID_SIZE) % GRID_SIZE
-    model = dispatch(model, PressedCell({ x, y }), ReleasedMouse())
+    model = dispatch(
+      model,
+      Message.PressedCell({ x, y }),
+      Message.ReleasedMouse(),
+    )
   }
   return model
 }
 
 describe('update: single operations', () => {
   bench('brush stroke (press + release)', () => {
-    dispatch(initialModel, PressedCell({ x: 5, y: 5 }), ReleasedMouse())
+    dispatch(
+      initialModel,
+      Message.PressedCell({ x: 5, y: 5 }),
+      Message.ReleasedMouse(),
+    )
   })
 
   bench('brush drag (5 cells)', () => {
     dispatch(
       initialModel,
-      PressedCell({ x: 0, y: 0 }),
-      EnteredCell({ x: 1, y: 0 }),
-      EnteredCell({ x: 2, y: 0 }),
-      EnteredCell({ x: 3, y: 0 }),
-      EnteredCell({ x: 4, y: 0 }),
-      ReleasedMouse(),
+      Message.PressedCell({ x: 0, y: 0 }),
+      Message.EnteredCell({ x: 1, y: 0 }),
+      Message.EnteredCell({ x: 2, y: 0 }),
+      Message.EnteredCell({ x: 3, y: 0 }),
+      Message.EnteredCell({ x: 4, y: 0 }),
+      Message.ReleasedMouse(),
     )
   })
 
   bench('flood fill (empty grid)', () => {
-    const fillModel: Model = { ...initialModel, tool: 'Fill' as const }
-    dispatch(fillModel, PressedCell({ x: 0, y: 0 }))
+    const fillModel: Model = evo(initialModel, { tool: () => 'Fill' })
+    dispatch(fillModel, Message.PressedCell({ x: 0, y: 0 }))
   })
 })
 
@@ -81,20 +87,20 @@ describe('update: undo/redo with history', () => {
   const modelWith30Steps = buildHistoryModel(30)
 
   bench('undo (10 history entries)', () => {
-    dispatch(modelWith10Steps, ClickedUndo())
+    dispatch(modelWith10Steps, Message.ClickedUndo())
   })
 
   bench('undo (30 history entries)', () => {
-    dispatch(modelWith30Steps, ClickedUndo())
+    dispatch(modelWith30Steps, Message.ClickedUndo())
   })
 
   bench('5x undo then 5x redo', () => {
     let model = modelWith10Steps
     for (let i = 0; i < 5; i++) {
-      model = update(model, ClickedUndo())[0]
+      model = update(model, Message.ClickedUndo()).model
     }
     for (let i = 0; i < 5; i++) {
-      model = update(model, ClickedRedo())[0]
+      model = update(model, Message.ClickedRedo()).model
     }
   })
 })
@@ -105,16 +111,24 @@ describe('update: paint sequence (16x16 grid)', () => {
     for (let i = 0; i < 50; i++) {
       const x = (i * 7 + 3) % GRID_SIZE
       const y = (i * 11 + 5) % GRID_SIZE
-      model = dispatch(model, PressedCell({ x, y }), ReleasedMouse())
+      model = dispatch(
+        model,
+        Message.PressedCell({ x, y }),
+        Message.ReleasedMouse(),
+      )
     }
   })
 
   bench('paint 50 cells with mirror mode', () => {
-    let model: Model = { ...initialModel, mirrorMode: 'Both' as const }
+    let model: Model = evo(initialModel, { mirrorMode: () => 'Both' })
     for (let i = 0; i < 50; i++) {
       const x = (i * 7 + 3) % GRID_SIZE
       const y = (i * 11 + 5) % GRID_SIZE
-      model = dispatch(model, PressedCell({ x, y }), ReleasedMouse())
+      model = dispatch(
+        model,
+        Message.PressedCell({ x, y }),
+        Message.ReleasedMouse(),
+      )
     }
   })
 })

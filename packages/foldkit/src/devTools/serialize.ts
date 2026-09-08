@@ -1,11 +1,4 @@
-import {
-  Array as Array_,
-  Function,
-  Match as M,
-  Option,
-  Predicate,
-  Record,
-} from 'effect'
+import { Array, Function, Match, Option, Predicate, Record } from 'effect'
 
 import type {
   SerializedCommand,
@@ -18,22 +11,22 @@ import { extractSubmodelInfo } from './submodelPath.js'
 const inspectableCache = new WeakMap<object, unknown>()
 
 const computeInspectableValue = (value: unknown): unknown =>
-  M.value(value).pipe(
-    M.when(M.instanceOf(File), file => ({
+  Match.value(value).pipe(
+    Match.when(Match.instanceOf(File), file => ({
       name: file.name,
       size: file.size,
       type: file.type,
       lastModified: file.lastModified,
     })),
-    M.when(M.instanceOf(Blob), blob => ({
+    Match.when(Match.instanceOf(Blob), blob => ({
       size: blob.size,
       type: blob.type,
     })),
-    M.when(M.instanceOf(Date), date => date.toISOString()),
-    M.when(M.instanceOf(URL), ({ href }) => href),
-    M.when(Array.isArray, Array_.map(toInspectableValue)),
-    M.when(Predicate.isObject, Record.map(toInspectableValue)),
-    M.orElse(Function.identity),
+    Match.when(Match.instanceOf(Date), date => date.toISOString()),
+    Match.when(Match.instanceOf(URL), ({ href }) => href),
+    Match.when(globalThis.Array.isArray, Array.map(toInspectableValue)),
+    Match.when(Predicate.isObject, Record.map(toInspectableValue)),
+    Match.orElse(Function.identity),
   )
 
 /**
@@ -45,7 +38,7 @@ const computeInspectableValue = (value: unknown): unknown =>
  * because File extends Blob.
  *
  * Memoized by reference. The transform allocates fresh wrappers via
- * `Array_.map` / `Record.map` even when the input contains no DOM classes
+ * `Array.map` / `Record.map` even when the input contains no DOM classes
  * (because `map` always allocates), which would otherwise produce a fresh
  * tree of references on every call. Without memoization, the inspector
  * tree's row-level `lazyTreeNode` cache would miss on every row of every
@@ -107,13 +100,13 @@ export const toSerializedEntry = (
     index,
     tag: entry.tag,
     message: toInspectableValue(entry.message),
-    commands: Array_.map(entry.commands, toSerializedCommand),
-    mountStarts: Array_.map(entry.mountStarts, toSerializedMount),
-    mountEnds: Array_.map(entry.mountEnds, toSerializedMount),
+    commands: Array.map(entry.commands, toSerializedCommand),
+    mountStarts: Array.map(entry.mountStarts, toSerializedMount),
+    mountEnds: Array.map(entry.mountEnds, toSerializedMount),
     timestamp: entry.timestamp,
     isModelChanged: entry.isModelChanged,
-    changedPaths: Array_.fromIterable(entry.diff.changedPaths),
-    affectedPaths: Array_.fromIterable(entry.diff.affectedPaths),
+    changedPaths: Array.fromIterable(entry.diff.changedPaths),
+    affectedPaths: Array.fromIterable(entry.diff.affectedPaths),
     submodelPath,
     maybeLeafTag,
   }

@@ -17,6 +17,13 @@ Command.resolveAll(
   [TrackSignInAttempt, CompletedTrackSignInAttempt()],
 )
 
+// Resolve the batch while asserting every listed Command was dispatched.
+click(role('button', { name: 'Sign In' }))
+Command.resolveAllExact(
+  [RequestAuthentication, SucceededRequestAuthentication({ session })],
+  [TrackSignInAttempt, CompletedTrackSignInAttempt()],
+)
+
 // Subset assertion. Use when you only care that a particular Command is pending.
 // Definition or instance: instance form locks in the args.
 Command.expectHas(FetchWeather)

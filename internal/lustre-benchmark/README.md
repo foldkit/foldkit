@@ -40,7 +40,7 @@ reference. Concretely, the model layer diverges from `examples/todo`:
   dropped because nothing in the benchmark reads it.
 - `update` dispatches through a handler record keyed by Message tag,
   exhaustive via a mapped type, instead of constructing a
-  `M.value(...).pipe(M.tagsExhaustive(...))` matcher per Message.
+  `Match.value(...).pipe(Match.tagsExhaustive(...))` matcher per Message.
 - View hot paths check tags directly and compute the footer counts in one
   pass. The optimised view nests lazy slots so the footer's filters list
   and the toggle-all controls skip the per-step footer and main rebuilds.

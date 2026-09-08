@@ -3,62 +3,50 @@ import {
   Array,
   Duration,
   Effect,
-  Match as M,
+  Match,
   Number,
   Option,
-  Schema as S,
+  Schema,
   pipe,
 } from 'effect'
-import { Command, Runtime } from 'foldkit'
+import { Command, Runtime, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 // MODEL
 
-export const UploadStatus = S.Literals(['Uploading', 'Done', 'Cancelled'])
+export const UploadStatus = Schema.Literals(['Uploading', 'Done', 'Cancelled'])
 export type UploadStatus = typeof UploadStatus.Type
 
-export const Upload = S.Struct({
-  id: S.Number,
-  fileName: S.String,
-  sizeMegabytes: S.Number,
+export const Upload = Schema.Struct({
+  id: Schema.Number,
+  fileName: Schema.String,
+  sizeMegabytes: Schema.Number,
   status: UploadStatus,
 })
 export type Upload = typeof Upload.Type
 
-export const Model = S.Struct({
-  uploadId: S.Number,
-  uploads: S.Array(Upload),
+export const Model = Schema.Struct({
+  uploadId: Schema.Number,
+  uploads: Schema.Array(Upload),
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const ClickedStartUpload = m('ClickedStartUpload')
-export const ClickedCancelUpload = m('ClickedCancelUpload', {
-  uploadId: S.Number,
-})
-export const ClickedCancelAllUploads = m('ClickedCancelAllUploads')
-export const ClickedRestartUpload = m('ClickedRestartUpload', {
-  uploadId: S.Number,
-})
-export const SucceededUploadFile = m('SucceededUploadFile', {
-  uploadId: S.Number,
-})
-export const CompletedCancelUploadFile = m('CompletedCancelUploadFile', {
-  uploadId: S.Number,
-  outcome: Command.Interruptible.Outcome,
+export const Message = defineMessageUnion({
+  ClickedStartUpload: {},
+  ClickedCancelUpload: { uploadId: Schema.Number },
+  ClickedCancelAllUploads: {},
+  ClickedRestartUpload: { uploadId: Schema.Number },
+  SucceededUploadFile: { uploadId: Schema.Number },
+  CompletedCancelUploadFile: {
+    uploadId: Schema.Number,
+    outcome: Command.Interruptible.Outcome,
+  },
 })
 
-export const Message = S.Union([
-  ClickedStartUpload,
-  ClickedCancelUpload,
-  ClickedCancelAllUploads,
-  ClickedRestartUpload,
-  SucceededUploadFile,
-  CompletedCancelUploadFile,
-])
 export type Message = typeof Message.Type
 
 // INIT
@@ -68,14 +56,16 @@ export const initialModel: Model = {
   uploads: [],
 }
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  initialModel,
-  [],
-]
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: initialModel,
+})
 
 // FAKE FILES
 
-export const FakeFile = S.Struct({ name: S.String, sizeMegabytes: S.Number })
+export const FakeFile = Schema.Struct({
+  name: Schema.String,
+  sizeMegabytes: Schema.Number,
+})
 export type FakeFile = typeof FakeFile.Type
 
 export const FAKE_FILES: Array.NonEmptyReadonlyArray<FakeFile> = [
@@ -97,12 +87,12 @@ const fakeFileForUpload = (uploadId: number): FakeFile =>
 
 const MILLISECONDS_PER_MEGABYTE = 100
 
-export const UploadKey = S.Struct({ uploadId: S.Number })
+export const UploadKey = Schema.Struct({ uploadId: Schema.Number })
 export type UploadKey = typeof UploadKey.Type
 
 export const UploadFile = Command.define('UploadFile', {
-  args: { ...UploadKey.fields, sizeMegabytes: S.Number },
-  messages: [SucceededUploadFile],
+  args: { ...UploadKey.fields, sizeMegabytes: Schema.Number },
+  messages: [Message.SucceededUploadFile],
   interrupt: {
     keyFields: ['uploadId'],
     toKey: ({ uploadId }) => String(uploadId),
@@ -112,13 +102,13 @@ export const UploadFile = Command.define('UploadFile', {
       yield* Effect.sleep(
         Duration.millis(sizeMegabytes * MILLISECONDS_PER_MEGABYTE),
       )
-      return SucceededUploadFile({ uploadId })
+      return Message.SucceededUploadFile({ uploadId })
     }),
 })
 
 export const CancelUploadFile = ({ uploadId }: UploadKey) =>
   UploadFile.Interrupt({ uploadId }, outcome =>
-    CompletedCancelUploadFile({ uploadId, outcome }),
+    Message.CompletedCancelUploadFile({ uploadId, outcome }),
   )
 
 // UPDATE
@@ -128,107 +118,102 @@ const setStatusForId = (uploadId: number, status: UploadStatus) =>
     upload.id === uploadId ? evo(upload, { status: () => status }) : upload,
   )
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      ClickedStartUpload: () => {
-        const fakeFile = fakeFileForUpload(model.uploadId)
-        const startedUpload = Upload.make({
-          id: model.uploadId,
-          fileName: fakeFile.name,
-          sizeMegabytes: fakeFile.sizeMegabytes,
-          status: 'Uploading',
-        })
-        return [
-          evo(model, {
-            uploadId: Number.increment,
-            uploads: Array.append(startedUpload),
+type UpdateReturn = Update.Return<Model, Message>
+
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    ClickedStartUpload: () => {
+      const fakeFile = fakeFileForUpload(model.uploadId)
+      const startedUpload = Upload.make({
+        id: model.uploadId,
+        fileName: fakeFile.name,
+        sizeMegabytes: fakeFile.sizeMegabytes,
+        status: 'Uploading',
+      })
+      return {
+        model: evo(model, {
+          uploadId: Number.increment,
+          uploads: Array.append(startedUpload),
+        }),
+        commands: [
+          UploadFile({
+            uploadId: startedUpload.id,
+            sizeMegabytes: startedUpload.sizeMegabytes,
           }),
-          [
-            UploadFile({
-              uploadId: startedUpload.id,
-              sizeMegabytes: startedUpload.sizeMegabytes,
-            }),
-          ],
-        ]
-      },
+        ],
+      }
+    },
 
-      ClickedCancelUpload: ({ uploadId }) => [
-        model,
-        [CancelUploadFile({ uploadId })],
-      ],
+    ClickedCancelUpload: ({ uploadId }) => ({
+      model,
+      commands: [CancelUploadFile({ uploadId })],
+    }),
 
-      ClickedCancelAllUploads: () => [
+    ClickedCancelAllUploads: () => {
+      return {
         model,
-        pipe(
+        commands: pipe(
           model.uploads,
           Array.filter(upload => upload.status === 'Uploading'),
           Array.map(upload => CancelUploadFile({ uploadId: upload.id })),
         ),
-      ],
+      }
+    },
 
-      ClickedRestartUpload: ({ uploadId }) =>
-        pipe(
-          model.uploads,
-          Array.findFirst(
-            upload => upload.id === uploadId && upload.status === 'Cancelled',
-          ),
-          Option.match({
-            onNone: () => [model, []],
-            onSome: upload => [
-              evo(model, { uploads: setStatusForId(uploadId, 'Uploading') }),
-              [UploadFile({ uploadId, sizeMegabytes: upload.sizeMegabytes })],
+    ClickedRestartUpload: ({ uploadId }) =>
+      pipe(
+        model.uploads,
+        Array.findFirst(
+          upload => upload.id === uploadId && upload.status === 'Cancelled',
+        ),
+        Option.match({
+          onNone: () => ({ model }),
+          onSome: upload => ({
+            model: evo(model, {
+              uploads: setStatusForId(uploadId, 'Uploading'),
+            }),
+            commands: [
+              UploadFile({ uploadId, sizeMegabytes: upload.sizeMegabytes }),
             ],
           }),
-        ),
+        }),
+      ),
 
-      SucceededUploadFile: ({ uploadId }) => [
-        evo(model, { uploads: setStatusForId(uploadId, 'Done') }),
-        [],
-      ],
-
-      CompletedCancelUploadFile: ({ uploadId, outcome }) =>
-        M.value(outcome).pipe(
-          M.withReturnType<
-            readonly [Model, ReadonlyArray<Command.Command<Message>>]
-          >(),
-          M.tagsExhaustive({
-            Interrupted: () => [
-              evo(model, { uploads: setStatusForId(uploadId, 'Cancelled') }),
-              [],
-            ],
-            NotFound: () => [model, []],
-          }),
-        ),
+    SucceededUploadFile: ({ uploadId }) => ({
+      model: evo(model, { uploads: setStatusForId(uploadId, 'Done') }),
     }),
-  )
+
+    CompletedCancelUploadFile: ({ uploadId, outcome }) =>
+      Command.Interruptible.Outcome.match<UpdateReturn>(outcome, {
+        Interrupted: () => ({
+          model: evo(model, {
+            uploads: setStatusForId(uploadId, 'Cancelled'),
+          }),
+        }),
+        NotFound: () => ({ model }),
+      }),
+  })
 
 // VIEW
 
 const badgeClass = (status: UploadStatus): string =>
-  M.value(status).pipe(
-    M.when('Uploading', () => 'bg-blue-100 text-blue-700'),
-    M.when('Done', () => 'bg-green-100 text-green-700'),
-    M.when('Cancelled', () => 'bg-gray-200 text-gray-600'),
-    M.exhaustive,
+  Match.value(status).pipe(
+    Match.when('Uploading', () => 'bg-blue-100 text-blue-700'),
+    Match.when('Done', () => 'bg-green-100 text-green-700'),
+    Match.when('Cancelled', () => 'bg-gray-200 text-gray-600'),
+    Match.exhaustive,
   )
 
 const ACTION_BUTTON_CLASS =
   'px-3 py-1 text-sm font-medium rounded-md border transition'
 
 const uploadActionView = (upload: Upload, h: HtmlBuilder<Message>): Html =>
-  M.value(upload.status).pipe(
-    M.when('Uploading', () =>
+  Match.value(upload.status).pipe(
+    Match.when('Uploading', () =>
       h.keyed('button')(
         'Uploading',
         [
-          h.OnClick(ClickedCancelUpload({ uploadId: upload.id })),
+          h.OnClick(Message.ClickedCancelUpload({ uploadId: upload.id })),
           h.AriaLabel(`Cancel upload ${upload.id}`),
           h.Class(
             clsx(
@@ -240,11 +225,11 @@ const uploadActionView = (upload: Upload, h: HtmlBuilder<Message>): Html =>
         ['Cancel'],
       ),
     ),
-    M.when('Cancelled', () =>
+    Match.when('Cancelled', () =>
       h.keyed('button')(
         'Cancelled',
         [
-          h.OnClick(ClickedRestartUpload({ uploadId: upload.id })),
+          h.OnClick(Message.ClickedRestartUpload({ uploadId: upload.id })),
           h.AriaLabel(`Restart upload ${upload.id}`),
           h.Class(
             clsx(
@@ -256,8 +241,8 @@ const uploadActionView = (upload: Upload, h: HtmlBuilder<Message>): Html =>
         ['Restart'],
       ),
     ),
-    M.when('Done', () => h.empty),
-    M.exhaustive,
+    Match.when('Done', () => h.empty),
+    Match.exhaustive,
   )
 
 const uploadView = (upload: Upload, h: HtmlBuilder<Message>): Html =>
@@ -327,7 +312,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             [
               h.button(
                 [
-                  h.OnClick(ClickedStartUpload()),
+                  h.OnClick(Message.ClickedStartUpload()),
                   h.Class(
                     'px-4 py-2 rounded-md bg-blue-500 text-white font-medium hover:bg-blue-600 transition',
                   ),
@@ -338,7 +323,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                 ? h.keyed('button')(
                     'CancelAll',
                     [
-                      h.OnClick(ClickedCancelAllUploads()),
+                      h.OnClick(Message.ClickedCancelAllUploads()),
                       h.Class(
                         'px-4 py-2 rounded-md border border-red-300 text-red-600 font-medium hover:bg-red-50 transition',
                       ),

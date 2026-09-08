@@ -25,15 +25,7 @@ import {
   TWO_PI,
   VIGNETTE_ALPHA,
 } from './constant'
-import {
-  ClickedReset,
-  ClickedTogglePlay,
-  GotFlowStrengthSliderMessage,
-  GotNoiseScaleSliderMessage,
-  Message,
-  MovedPointer,
-  PressedCanvas,
-} from './message'
+import { Message } from './message'
 import type { Model, Particle, Point } from './model'
 
 const fadeAlpha = (particle: Particle): number => {
@@ -370,10 +362,10 @@ const controlsView = (model: Model, h: HtmlBuilder<Message>): Html =>
         [
           controlButton(
             playPauseLabel(model.isRunning),
-            ClickedTogglePlay(),
+            Message.ClickedTogglePlay(),
             h,
           ),
-          controlButton('Reset', ClickedReset(), h),
+          controlButton('Reset', Message.ClickedReset(), h),
           h.span(
             [h.Class('text-xs uppercase tracking-widest text-white/40')],
             [
@@ -394,14 +386,14 @@ const controlsView = (model: Model, h: HtmlBuilder<Message>): Html =>
         'Turbulence',
         model.flowStrengthSlider,
         model.flowStrength,
-        message => GotFlowStrengthSliderMessage({ message }),
+        message => Message.GotFlowStrengthSliderMessage({ message }),
         h,
       ),
       slider(
         'Noise scale',
         model.noiseScaleSlider,
         model.noiseScale,
-        message => GotNoiseScaleSliderMessage({ message }),
+        message => Message.GotNoiseScaleSliderMessage({ message }),
         h,
       ),
     ],
@@ -448,8 +440,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           className:
             'rounded-2xl shadow-[0_0_120px_rgba(80,30,140,0.35)] ' +
             'border border-white/10 cursor-crosshair',
-          onPointerDown: ({ x, y }) => PressedCanvas({ x, y }),
-          onPointerMove: ({ x, y }) => MovedPointer({ x, y }),
+          onPointerDown: ({ x, y }) => Message.PressedCanvas({ x, y }),
+          onPointerMove: ({ x, y }) => Message.MovedPointer({ x, y }),
         },
         h,
       ),

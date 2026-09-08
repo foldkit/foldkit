@@ -3,11 +3,7 @@ import type { Html } from 'foldkit/html'
 
 import { Slider } from '@foldkit/ui'
 
-import {
-  GotSliderRatingDemoMessage,
-  GotSliderVolumeDemoMessage,
-  type UiMessage,
-} from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 const rowClassName = 'flex flex-col gap-2 w-full max-w-sm'
@@ -84,7 +80,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                   ),
               },
               toParentMessage: message =>
-                GotSliderRatingDemoMessage({ message }),
+                UiMessage.GotSliderRatingDemoMessage({ message }),
             }),
             h.submodel({
               slotId: model.sliderVolumeDemo.id,
@@ -129,7 +125,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                   ),
               },
               toParentMessage: message =>
-                GotSliderVolumeDemoMessage({ message }),
+                UiMessage.GotSliderVolumeDemoMessage({ message }),
             }),
           ],
         ),

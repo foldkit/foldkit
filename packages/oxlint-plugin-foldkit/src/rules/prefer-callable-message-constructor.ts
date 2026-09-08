@@ -95,7 +95,7 @@ export const preferCallableMessageConstructor = Rule.define({
           Diagnostic.make({
             node,
             message:
-              'Construct Messages with their callable Schema constructor (e.g. Foo({ ... })) instead of typing an object literal with a _tag.',
+              'Construct Messages with their callable Schema constructor (e.g. Message.Foo({ ... })) instead of typing an object literal with a _tag.',
           }),
         )
       },
@@ -111,7 +111,7 @@ export const preferCallableMessageConstructor = Rule.define({
           Diagnostic.make({
             node,
             message:
-              'Construct Messages with their callable Schema constructor (e.g. Foo({ ... })) instead of casting an object literal with a _tag.',
+              'Construct Messages with their callable Schema constructor (e.g. Message.Foo({ ... })) instead of casting an object literal with a _tag.',
           }),
         )
       },

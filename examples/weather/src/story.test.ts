@@ -1,34 +1,27 @@
-import { Effect, Layer, Match as M, String } from 'effect'
+import { Effect, Layer, Match, String } from 'effect'
 import { HttpClient, HttpClientResponse } from 'effect/unstable/http'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { expect, test } from 'vitest'
 
-import {
-  FailedFetchWeather,
-  FetchWeather,
-  SubmittedWeatherForm,
-  SucceededFetchWeather,
-  fetchWeatherEffect,
-  update,
-} from './main'
+import { FetchWeather, Message, fetchWeatherEffect, update } from './main'
 import {
   mockGeocodingResponse,
   mockWeatherResponse,
   weatherData,
   weatherModel,
-} from './main.fixtures'
+} from './main.fixture'
 
 test('submitting the weather form fetches weather and shows result', () => {
   story(
     update,
     given(weatherModel),
-    message(SubmittedWeatherForm()),
+    message(Message.SubmittedWeatherForm()),
     model(model => {
       expect(model.weather._tag).toBe('Loading')
     }),
     Command.resolve(
       FetchWeather,
-      SucceededFetchWeather({ weather: weatherData }),
+      Message.SucceededFetchWeather({ weather: weatherData }),
     ),
     model(model => {
       expect(model.weather._tag).toBe('Success')
@@ -44,10 +37,10 @@ test('failed fetch shows failure state', () => {
   story(
     update,
     given(weatherModel),
-    message(SubmittedWeatherForm()),
+    message(Message.SubmittedWeatherForm()),
     Command.resolve(
       FetchWeather,
-      FailedFetchWeather({ error: 'Network error' }),
+      Message.FailedFetchWeather({ error: 'Network error' }),
     ),
     model(model => {
       expect(model.weather._tag).toBe('Failure')
@@ -61,10 +54,10 @@ test('failed fetch shows failure state', () => {
 test('fetchWeather returns SucceededFetchWeather with data on success', async () => {
   const mockClient = HttpClient.make(request =>
     Effect.sync(() => {
-      const responseData = M.value(request.url).pipe(
-        M.when(String.includes('geocoding'), () => mockGeocodingResponse),
-        M.when(String.includes('forecast'), () => mockWeatherResponse),
-        M.orElse(url => {
+      const responseData = Match.value(request.url).pipe(
+        Match.when(String.includes('geocoding'), () => mockGeocodingResponse),
+        Match.when(String.includes('forecast'), () => mockWeatherResponse),
+        Match.orElse(url => {
           throw new Error(`Unexpected request URL: ${url}`)
         }),
       )

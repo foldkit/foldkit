@@ -1,23 +1,21 @@
 # Messages
 
-## Overview
+## Facts, Not Instructions {#overview}
 
-A Message is a fact about something that happened in your application. Not an instruction to do something, just a record of what occurred.
+A Message records something that happened in the application. It does not prescribe the response. The update function decides what the fact means for the current Model.
 
-In the [restaurant analogy](/core/architecture#the-restaurant-analogy), “table 3 asked for the check” is a Message. It doesn’t tell the waiter what to do: maybe they bring the check immediately, maybe they offer dessert first. The waiter (the update function) decides. The Message stays the same either way.
-
-`ClickedIncrement` doesn’t say “add one to the count.” It says “the user clicked the increment button.” The update function decides what that means. Maybe today it adds one. Maybe tomorrow it fetches a new count from a server. The Message stays the same.
+`ClickedIncrement` does not mean “add one.” It records that the user clicked the increment button. In this counter, update adds one. A later version may return a Command that obtains the next value elsewhere. The Message remains a stable account of the event.
 
 The counter has three Messages:
 
-::Snippet{name="counterMessages" label="messages example"}
+::Snippet{name="counterMessages" label="Message union example"}
 
-By convention, Messages follow a verb-first, past-tense naming pattern: `ClickedIncrement`, not `Increment` or `ADD_COUNT`. The verb prefix functions as a category marker, e.g. `Clicked*` for button clicks, `Updated*` for input changes, `Succeeded*` and `Failed*` for Command results, and `Got*` for [Submodel results](/core/submodel).
+Messages use verb-first, past-tense names such as `ClickedIncrement`, not `Increment` or `ADD_COUNT`. Prefixes make their causes easy to scan. `Clicked*` records clicks, and `Updated*` records input changes. Command results use `Succeeded*` or `Failed*` when the distinction matters, and `Completed*` otherwise. `Got*` is reserved for results lifted from a child [Submodel](/core/submodel).
 
-The `m()` helper creates a `TaggedStruct` with a callable constructor. `m('ClickedIncrement')` gives you a type you can pattern match on and a function you can call to create instances: `ClickedIncrement()`.
+The `defineMessageUnion()` helper declares the whole union in one place. Each key becomes a callable constructor on the union, so `Message.ClickedIncrement()` creates the value and `Message.match(message, handlers)` handles every variant exhaustively. Do not destructure the constructors. Keeping `Message` or `OutMessage` at the call site makes the owning domain explicit.
 
-:::Info{label="Actions without the boilerplate"}
-Messages are similar to Redux action types, but more ergonomic with Effect Schema. Instead of string constants and action creators, you get type inference and pattern matching for free.
+:::Info{label="Name the cause"}
+A Message says what happened, not what update intends to do next. That keeps the same fact useful when the application’s response changes.
 :::
 
-Messages describe what happened. But who decides what to do about it? That’s the job of the update function: the single place where your application’s state transitions live.
+Messages describe what happened. The [update function](/core/update) defines every resulting state transition.

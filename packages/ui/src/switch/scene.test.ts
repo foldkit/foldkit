@@ -1,6 +1,7 @@
-import { Match as M, Schema as S } from 'effect'
+import { Schema } from 'effect'
+import { type Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 import * as Scene from 'foldkit/scene'
 import { evo } from 'foldkit/struct'
 
@@ -8,34 +9,33 @@ import { describe, it } from '@effect/vitest'
 
 import { view } from './index.js'
 
-const Toggled = m('Toggled', { isChecked: S.Boolean })
-const Message = S.Union([Toggled])
+const Message = defineMessageUnion({
+  Toggled: { isChecked: Schema.Boolean },
+})
 type Message = typeof Message.Type
 
 type Model = Readonly<{ isChecked: boolean }>
 
-type UpdateReturn = readonly [Model, ReadonlyArray<never>]
-
-const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    M.withReturnType<UpdateReturn>(),
-    M.tagsExhaustive({
-      Toggled: ({ isChecked }) => [
-        evo(model, { isChecked: () => isChecked }),
-        [],
-      ],
+const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    Toggled: ({ isChecked }) => ({
+      model: evo(model, { isChecked: () => isChecked }),
     }),
-  )
+  })
 
 const testView =
-  ({ isDisabled = false }: { isDisabled?: boolean } = {}) =>
+  ({
+    isDisabled = false,
+    isReadOnly = false,
+  }: { isDisabled?: boolean; isReadOnly?: boolean } = {}) =>
   (model: Model, h: HtmlBuilder<Message>) =>
     view(
       {
         id: 'test',
         isChecked: model.isChecked,
-        onToggle: isChecked => Toggled({ isChecked }),
+        onToggle: isChecked => Message.Toggled({ isChecked }),
         isDisabled,
+        isReadOnly,
         toView: ({ button, label }) =>
           h.div(
             [],
@@ -84,6 +84,55 @@ describe('Switch controlled view', () => {
       Scene.given({ isChecked: false }),
       Scene.expect(toggle).toBeDisabled(),
       Scene.expect(toggle).toHaveAttr('data-disabled', ''),
+    )
+  })
+
+  it('emits read-only attributes without disabled attributes', () => {
+    Scene.scene(
+      { update, view: testView({ isReadOnly: true }) },
+      Scene.given({ isChecked: false }),
+      Scene.expect(toggle).toHaveAttr('aria-readonly', 'true'),
+      Scene.expect(toggle).toHaveAttr('data-readonly', ''),
+      Scene.expect(toggle).not.toBeDisabled(),
+      Scene.expect(toggle).not.toHaveAttr('data-disabled'),
+    )
+  })
+
+  it('stays focusable but drops every handler when read-only', () => {
+    Scene.scene(
+      { update, view: testView({ isReadOnly: true }) },
+      Scene.given({ isChecked: false }),
+      Scene.expect(toggle).toHaveAttr('tabIndex', '0'),
+      Scene.expect(toggle).not.toHaveHandler('click'),
+      Scene.expect(toggle).not.toHaveHandler('keyup'),
+      Scene.expect(label).not.toHaveHandler('click'),
+    )
+  })
+
+  it('emits both attribute sets when disabled and read-only are combined', () => {
+    Scene.scene(
+      { update, view: testView({ isDisabled: true, isReadOnly: true }) },
+      Scene.given({ isChecked: false }),
+      Scene.expect(toggle).toBeDisabled(),
+      Scene.expect(toggle).toHaveAttr('data-disabled', ''),
+      Scene.expect(toggle).toHaveAttr('aria-readonly', 'true'),
+      Scene.expect(toggle).toHaveAttr('data-readonly', ''),
+    )
+  })
+
+  it('sets type button so a button control does not submit a form', () => {
+    Scene.scene(
+      { update, view: testView() },
+      Scene.given({ isChecked: false }),
+      Scene.expect(toggle).toHaveAttr('type', 'button'),
+    )
+  })
+
+  it('keeps type button when disabled and read-only', () => {
+    Scene.scene(
+      { update, view: testView({ isDisabled: true, isReadOnly: true }) },
+      Scene.given({ isChecked: false }),
+      Scene.expect(toggle).toHaveAttr('type', 'button'),
     )
   })
 })

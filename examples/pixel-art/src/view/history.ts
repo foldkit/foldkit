@@ -5,13 +5,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { Button } from '@foldkit/ui'
 
 import { THUMBNAIL_CELL_SIZE, VISIBLE_HISTORY_COUNT } from '../constant'
-import {
-  ClickedHistoryStep,
-  ClickedRedo,
-  ClickedRedoStep,
-  ClickedUndo,
-  type Message,
-} from '../message'
+import { Message } from '../message'
 import type { Grid } from '../model'
 import { type PaletteTheme, resolveColor } from '../palette'
 
@@ -47,7 +41,7 @@ export const historyPanelView = (
         [
           Button.view(
             {
-              onClick: ClickedUndo(),
+              onClick: Message.ClickedUndo(),
               isDisabled: undoCount === 0,
               toView: attributes =>
                 h.button(
@@ -75,7 +69,7 @@ export const historyPanelView = (
           ),
           Button.view(
             {
-              onClick: ClickedRedo(),
+              onClick: Message.ClickedRedo(),
               isDisabled: redoCount === 0,
               toView: attributes =>
                 h.button(
@@ -112,7 +106,7 @@ export const historyPanelView = (
               gridSize,
               false,
               `Forward ${redoCount - index}`,
-              Option.some(ClickedRedoStep({ stepIndex: index })),
+              Option.some(Message.ClickedRedoStep({ stepIndex: index })),
               theme,
               h,
             ),
@@ -135,7 +129,7 @@ export const historyPanelView = (
                 gridSize,
                 false,
                 `Back ${index + 1}`,
-                Option.some(ClickedHistoryStep({ stepIndex })),
+                Option.some(Message.ClickedHistoryStep({ stepIndex })),
                 theme,
                 h,
               )

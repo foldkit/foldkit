@@ -1,9 +1,10 @@
 // `Command.mapMessages` is one line, and so is the per-Command helper it
 // stacks on: the whole thing is small enough to read top-down.
 
-// Lift every Command in the list through the per-Command helper.
+// Lift every Command in the list through the per-Command helper. An omitted
+// list means there are no Commands, so the result is a concrete empty array.
 export const mapMessages = (commands, f) =>
-  Array.map(commands, command => mapMessage(command, f))
+  Array.map(commands ?? [], command => mapMessage(command, f))
 
 // Per-Command: map the Effect's result through `f`, which is what dispatches
 // in production, and also record `f` on the Command. The recorded chain is

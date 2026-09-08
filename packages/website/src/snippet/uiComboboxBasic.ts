@@ -1,15 +1,15 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Array, Match as M, Option } from 'effect'
-import { Command } from 'foldkit'
+import { Array, Option, Schema } from 'effect'
+import { Update } from 'foldkit'
 import { type HtmlBuilder, childAttributes } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Combobox } from '@foldkit/ui'
 
-const City = S.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
+const City = Schema.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
 type City = typeof City.Type
 
 // Declare a typed Combobox once at module scope:
@@ -18,63 +18,56 @@ const CityCombobox = Combobox.create<City>()
 // Add a field to your Model for the Combobox Submodel, plus a field for
 // the selected value your app actually cares about. Using the `City`
 // Schema keeps the field literal-typed end to end:
-const Model = S.Struct({
-  maybeCity: S.Option(City),
+const Model = Schema.Struct({
+  maybeCity: Schema.Option(City),
   combobox: Combobox.Model,
   // ...your other fields
 })
 
 // In your init function, initialize the Combobox Submodel with a unique id:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     maybeCity: Option.none(),
     combobox: Combobox.init({ id: 'city' }),
     // ...your other fields
   },
-  [],
-]
-
-// Wrap Combobox's Messages so they can flow through your update:
-const GotComboboxMessage = m('GotComboboxMessage', {
-  message: Combobox.Message,
 })
 
-// Delegate keyboard navigation, typeahead, and open/close to
-// CityCombobox.update. The OutMessage's `Selected` carries the activated
-// item; fold it into the selection you own. `ClearedSelection` only fires
-// for nullable comboboxes, so this combobox keeps its selection there and
-// the fold stays exhaustive:
-GotComboboxMessage: ({ message }) => {
-  const [nextCombobox, commands, maybeOutMessage] = CityCombobox.update(
-    model.combobox,
-    message,
-  )
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotComboboxMessage({ message }),
-  )
+// Wrap Combobox's Messages so they can flow through your update:
+const Message = defineMessageUnion({
+  GotComboboxMessage: { message: Combobox.Message },
+})
 
-  return Option.match(maybeOutMessage, {
-    onNone: () => [
-      evo(model, { combobox: () => nextCombobox }),
-      mappedCommands,
-    ],
-    onSome: M.type<Combobox.OutMessage<City>>().pipe(
-      M.tagsExhaustive({
-        Selected: ({ value }) => [
-          evo(model, {
-            combobox: () => nextCombobox,
-            maybeCity: () => Option.some(value),
-          }),
-          mappedCommands,
-        ],
-        ClearedSelection: () => [
-          evo(model, { combobox: () => nextCombobox }),
-          mappedCommands,
-        ],
-      }),
-    ),
-  })
-}
+// At module scope, fold the OutMessage into your own Model. `Selected`
+// carries the activated item; fold it into the selection you own.
+// `ClearedSelection` only fires for nullable comboboxes, so this combobox
+// keeps its selection there and the fold stays exhaustive. Each arm returns
+// an Update.Step over the parent Model, which already has the next Combobox
+// Model written back:
+const foldComboboxOutMessage = Combobox.OutMessage.match<
+  Update.Step<Model, Message>,
+  Combobox.OutMessage<City>
+>({
+  Selected:
+    ({ value }) =>
+    model => ({ model: evo(model, { maybeCity: () => Option.some(value) }) }),
+  ClearedSelection: () => model => ({ model }),
+})
+
+// Update.foldChild wires the child into the parent: it delegates keyboard
+// navigation, typeahead, and open/close to CityCombobox.update, writes the
+// next Combobox Model back, maps the Submodel's Commands into your Message
+// type, and hands any OutMessage to foldOutMessage.
+const foldCombobox = Update.foldChild({
+  update: CityCombobox.update,
+  read: (model: Model) => Option.some(model.combobox),
+  write: (model, nextCombobox) => evo(model, { combobox: () => nextCombobox }),
+  toParentMessage: message => Message.GotComboboxMessage({ message }),
+  foldOutMessage: foldComboboxOutMessage,
+})
+
+// In the corresponding Message.match handler, call the fold:
+GotComboboxMessage: ({ message }) => foldCombobox(model, message)
 
 const cities: ReadonlyArray<City> = [
   'Johannesburg',
@@ -136,7 +129,7 @@ const view = (model: Model, h: HtmlBuilder<Message>) => {
           backdropAttributes: childAttributes([h.Class('fixed inset-0')]),
           anchor: { placement: 'bottom-start', gap: 8, padding: 8 },
         },
-        toParentMessage: message => GotComboboxMessage({ message }),
+        toParentMessage: message => Message.GotComboboxMessage({ message }),
       }),
     ],
   )

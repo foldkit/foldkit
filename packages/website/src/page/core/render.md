@@ -2,18 +2,30 @@
 
 ## Overview
 
-The `Render` module exposes two primitives for synchronizing with the browser's render cycle: `Render.afterCommit` resumes once the runtime has applied the latest VDOM patch to the DOM. `Render.afterPaint` resumes after the prior state has been displayed to the user. Both are Effects you yield inside your own [Commands](/core/commands) or [Subscriptions](/core/subscriptions).
+The `Render` module synchronizes an Effect with Foldkit's DOM commit and the browser's next paint. It exposes two Effects:
 
-The runtime batches renders to `requestAnimationFrame`. A Command runs on the microtask queue right after the dispatching Message, which means a synchronous DOM read or write inside that Command sees the tree from before the latest model was patched in. `Render.afterCommit` is how you wait for the matching patch to apply.
+- `Render.afterCommit` resumes after Foldkit applies the pending VDOM patch.
 
-## When to reach for it
+- `Render.afterPaint` waits for that commit, then one more animation frame so the committed state has been displayed.
 
-Reach for `Render.afterCommit` when you need to read or measure an element that was just brought into existence (or moved, or had attributes changed) by the same Message. Custom focus, custom scroll restoration, `IntersectionObserver` setup inside a Subscription, `getBoundingClientRect` for layout work. The [Dom helpers](/api-reference/dom) already gate themselves with this internally, so reach for `Render.afterCommit` directly when building your own.
+Yield either one inside a [Command](/core/commands) or [Subscription](/core/subscriptions). They do not render anything themselves. They mark the point after which a DOM read or write has the timing guarantee it needs.
 
-Reach for `Render.afterPaint` when you need the browser to actually display the prior state before you change to the next one, typically for CSS transition orchestration. A single `requestAnimationFrame` commits the DOM but the pixels have not been painted yet. A second one resumes after that paint is visible, so the from-state is on screen and the to-state can transition smoothly to it.
+The distinction matters because a Command can start after update but before Foldkit applies the render scheduled by the same Message. Reading the DOM immediately can still see the previous tree. `Render.afterCommit` waits for the actual pending patch, including a patch performed inside a View Transition.
+
+When no Foldkit patch is pending, `Render.afterCommit` yields one animation frame. The same fallback applies when the Effect runs without a Foldkit runtime, such as in a standalone helper.
+
+## When to Reach for It
+
+Use `Render.afterCommit` before custom DOM work whose target was created, moved, or updated by the same Message. For example: measure a new panel with `getBoundingClientRect`, restore a custom scroll position, or start DOM observation from a Subscription after its target exists.
+
+Use `Render.afterPaint` when the committed state must be visible before the next change. CSS transition orchestration is the usual case. The first state must reach the screen before update applies the transition's destination state, or the browser can collapse both into one frame and skip the animation.
+
+:::Info{label="Prefer Dom helpers for common operations"}
+The [Dom helpers](/core/dom) already wait for the commit or paint their operation requires. Use `Render` directly when implementing timing-sensitive DOM work that those helpers do not cover.
+:::
 
 ::Snippet{name="renderBasic" label="Render examples"}
 
-## Full API surface
+## Full API Surface
 
-The [Render API reference](/api-reference/render) lists every primitive with its signature and an inline example.
+The [Render API reference](/api-reference/render) lists both Effects with their signatures and inline examples.

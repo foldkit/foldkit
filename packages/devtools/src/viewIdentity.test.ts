@@ -7,6 +7,9 @@ describe('view identity branding', () => {
 
     const vnode = panelView()
 
+    // The identity names the source position and nothing else. It ships in the
+    // client bundle, so anything derived from the module's contents would be a
+    // published check against those contents.
     expect(vnode?.identity).toBe('src/viewIdentity.test.ts#panelView')
   })
 })

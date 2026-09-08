@@ -1,40 +1,37 @@
-import { Match as M, Schema as S } from 'effect'
-import { Command, Submodel } from 'foldkit'
-import { m } from 'foldkit/message'
+import { Schema } from 'effect'
+import { Submodel, type Update } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
 // MODEL
 
-export const Model = S.Struct({ count: S.Number })
+export const Model = Schema.Struct({ count: Schema.Number })
 export type Model = typeof Model.Type
 
 export const init: Model = { count: 0 }
 
 // MESSAGE
 
-export const ClickedDecrement = m('ClickedDecrement')
-export const ClickedIncrement = m('ClickedIncrement')
+export const Message = defineMessageUnion({
+  ClickedDecrement: {},
+  ClickedIncrement: {},
+})
 
-export const Message = S.Union([ClickedDecrement, ClickedIncrement])
 export type Message = typeof Message.Type
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      ClickedDecrement: () => [evo(model, { count: count => count - 1 }), []],
-      ClickedIncrement: () => [evo(model, { count: count => count + 1 }), []],
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedDecrement: () => ({
+      model: evo(model, { count: count => count - 1 }),
     }),
-  )
+    ClickedIncrement: () => ({
+      model: evo(model, { count: count => count + 1 }),
+    }),
+  })
 
 // VIEW
 
@@ -48,7 +45,7 @@ export const view = Submodel.defineView<Model, Message>((model, h) =>
     [
       Button.view(
         {
-          onClick: ClickedDecrement(),
+          onClick: Message.ClickedDecrement(),
           toView: attributes =>
             h.button([...attributes.button, h.Class(buttonStyle)], ['-']),
         },
@@ -60,7 +57,7 @@ export const view = Submodel.defineView<Model, Message>((model, h) =>
       ),
       Button.view(
         {
-          onClick: ClickedIncrement(),
+          onClick: Message.ClickedIncrement(),
           toView: attributes =>
             h.button([...attributes.button, h.Class(buttonStyle)], ['+']),
         },

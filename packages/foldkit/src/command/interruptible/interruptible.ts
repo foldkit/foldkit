@@ -1,36 +1,21 @@
 import { Array, Context, Effect, Fiber, Option, Schema } from 'effect'
 
-import { ts } from '../../schema/index.js'
+import { defineTaggedUnion } from '../../schema/index.js'
 import { CommandDefinitionTypeId, brandAsDefinition } from '../brand.js'
 
-/** At least one in-flight Command held the interrupt key, and every holder
- *  has been stopped. Their declared result Messages are guaranteed never to
- *  dispatch. */
-export const Interrupted = ts('Interrupted')
+/** The result of interrupting a key. `Outcome.Interrupted` means at least one
+ * in-flight Command was stopped and will not dispatch its result Message.
+ * `Outcome.NotFound` means no Command held the key. The interrupt operation
+ * itself cannot fail. */
+export const Outcome = defineTaggedUnion({
+  Interrupted: {},
+  NotFound: {},
+})
 
-/** At least one in-flight Command held the interrupt key, and every holder
- *  has been stopped. Their declared result Messages are guaranteed never to
- *  dispatch. */
-export type Interrupted = typeof Interrupted.Type
-
-/** No Command holds the interrupt key: every target already completed (its
- *  result Message dispatched or will dispatch) or was never dispatched. The
- *  two cases are indistinguishable by design. */
-export const NotFound = ts('NotFound')
-
-/** No Command holds the interrupt key: every target already completed (its
- *  result Message dispatched or will dispatch) or was never dispatched. The
- *  two cases are indistinguishable by design. */
-export type NotFound = typeof NotFound.Type
-
-/** The result of an Interrupt Command: {@link Interrupted} when at least one
- *  holder was stopped, {@link NotFound} when nothing held the key.
- *  Interruption itself cannot fail. */
-export const Outcome = Schema.Union([Interrupted, NotFound])
-
-/** The result of an Interrupt Command: {@link Interrupted} when at least one
- *  holder was stopped, {@link NotFound} when nothing held the key.
- *  Interruption itself cannot fail. */
+/** The result of interrupting a key. `Outcome.Interrupted` means at least one
+ * in-flight Command was stopped and will not dispatch its result Message.
+ * `Outcome.NotFound` means no Command held the key. The interrupt operation
+ * itself cannot fail. */
 export type Outcome = typeof Outcome.Type
 
 /** @internal The per-runtime-instance map from interrupt key to the fibers
@@ -89,9 +74,11 @@ export const __makeRegistry = (): __Registry => {
   const interrupt = (key: string): Effect.Effect<Outcome> =>
     Effect.suspend(() =>
       Array.match(lookup(key), {
-        onEmpty: () => Effect.succeed<Outcome>(NotFound()),
+        onEmpty: () => Effect.succeed<Outcome>(Outcome.NotFound()),
         onNonEmpty: fibers =>
-          Effect.map(Fiber.interruptAll(fibers), (): Outcome => Interrupted()),
+          Effect.map(Fiber.interruptAll(fibers), (): Outcome =>
+            Outcome.Interrupted(),
+          ),
       }),
     )
 
@@ -148,7 +135,7 @@ const makeInterruptEffect = <ToMessage>(
  *  to produce a Command that interrupts every holder of the definition's key. */
 export interface InterruptDefinitionNoArgs<Name extends string> {
   readonly [CommandDefinitionTypeId]: CommandDefinitionTypeId
-  readonly name: `${Name}.Interrupt`;
+  readonly name: `${Name}.Interrupt`
   <ToMessage>(toMessage: (outcome: Outcome) => ToMessage): Readonly<{
     name: `${Name}.Interrupt`
     interruptsKey: string
@@ -162,7 +149,7 @@ export interface InterruptDefinitionNoArgs<Name extends string> {
  *  interrupts every holder of the key derived from `keyArgs`. */
 export interface InterruptDefinitionWithArgs<Name extends string, KeyArgs> {
   readonly [CommandDefinitionTypeId]: CommandDefinitionTypeId
-  readonly name: `${Name}.Interrupt`;
+  readonly name: `${Name}.Interrupt`
   <ToMessage>(
     keyArgs: KeyArgs,
     toMessage: (outcome: Outcome) => ToMessage,
@@ -183,7 +170,7 @@ export interface DefinitionNoArgs<
 > {
   readonly [CommandDefinitionTypeId]: CommandDefinitionTypeId
   readonly name: Name
-  readonly Interrupt: InterruptDefinitionNoArgs<Name>;
+  readonly Interrupt: InterruptDefinitionNoArgs<Name>
   (): Readonly<{ name: Name; key: string; effect: Eff }>
 }
 
@@ -199,7 +186,7 @@ export interface DefinitionWithArgs<
 > {
   readonly [CommandDefinitionTypeId]: CommandDefinitionTypeId
   readonly name: Name
-  readonly Interrupt: InterruptDefinitionWithArgs<Name, KeyArgs>;
+  readonly Interrupt: InterruptDefinitionWithArgs<Name, KeyArgs>
   (args: Schema.Schema.Type<Schema.Struct<Fields>>): Readonly<{
     name: Name
     args: Schema.Schema.Type<Schema.Struct<Fields>>
@@ -221,7 +208,7 @@ export interface DefinitionWithArgsNameKeyed<
 > {
   readonly [CommandDefinitionTypeId]: CommandDefinitionTypeId
   readonly name: Name
-  readonly Interrupt: InterruptDefinitionNoArgs<Name>;
+  readonly Interrupt: InterruptDefinitionNoArgs<Name>
   (args: Schema.Schema.Type<Schema.Struct<Fields>>): Readonly<{
     name: Name
     args: Schema.Schema.Type<Schema.Struct<Fields>>

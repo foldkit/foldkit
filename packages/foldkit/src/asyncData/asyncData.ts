@@ -1,14 +1,14 @@
 import {
   Array,
+  Schema as EffectSchema,
   Function,
-  Match as M,
+  Match,
   Option,
   Predicate,
   Result,
-  Schema as S,
 } from 'effect'
 
-import { ts } from '../schema/index.js'
+import { taggedStruct } from '../schema/index.js'
 
 // STATE
 
@@ -62,11 +62,11 @@ export type AsyncData<A, E> =
 
 /** Constructs the `Idle` state. A parameter-free callable Schema, so it can
  *  also serve as a Union member. */
-export const Idle = ts('Idle')
+export const Idle = taggedStruct('Idle')
 
 /** Constructs the `Loading` state. A parameter-free callable Schema, so it
  *  can also serve as a Union member. */
-export const Loading = ts('Loading')
+export const Loading = taggedStruct('Loading')
 
 /** Constructs a `Refreshing` state holding the previous good data. Plain
  *  value builder, generic in `A`; use the `Schema` factory's `Refreshing`
@@ -135,8 +135,8 @@ export type AsyncDataEncoded<AI, EI> =
  *  functions over any `AsyncData<A, E>` value. */
 export type AsyncDataSchema<A, AI, E, EI> = Readonly<{
   /** The six-state Union codec. Embed this in your Model, or in
-   *  `S.HashMap(key, this)` for a keyed cache. */
-  schema: S.Codec<AsyncData<A, E>, AsyncDataEncoded<AI, EI>>
+   *  `Schema.HashMap(key, this)` for a keyed cache. */
+  schema: EffectSchema.Codec<AsyncData<A, E>, AsyncDataEncoded<AI, EI>>
   Idle: typeof Idle
   Loading: typeof Loading
   Refreshing: (payload: Readonly<{ data: A }>) => AsyncData<A, E>
@@ -152,10 +152,10 @@ export type AsyncDataSchema<A, AI, E, EI> = Readonly<{
  *  @example
  *  ```ts
  *  import { AsyncData } from 'foldkit'
- *  import { Schema as S } from 'effect'
+ *  import { Schema } from 'effect'
  *
- *  const Note = S.Struct({ id: S.String, body: S.String })
- *  const Notes = AsyncData.Schema(S.Array(Note), S.String)
+ *  const Note = Schema.Struct({ id: Schema.String, body: Schema.String })
+ *  const Notes = AsyncData.Schema(Schema.Array(Note), Schema.String)
  *
  *  // Model field: typeof Notes.schema.Type
  *  const initial = AsyncData.Idle()
@@ -163,14 +163,17 @@ export type AsyncDataSchema<A, AI, E, EI> = Readonly<{
  *  ```
  */
 export const Schema = <A, AI, E, EI>(
-  dataSchema: S.Codec<A, AI>,
-  errorSchema: S.Codec<E, EI>,
+  dataSchema: EffectSchema.Codec<A, AI>,
+  errorSchema: EffectSchema.Codec<E, EI>,
 ): AsyncDataSchema<A, AI, E, EI> => {
-  const RefreshingSchema = ts('Refreshing', { data: dataSchema })
-  const FailureSchema = ts('Failure', { error: errorSchema })
-  const StaleSchema = ts('Stale', { error: errorSchema, data: dataSchema })
-  const SuccessSchema = ts('Success', { data: dataSchema })
-  const schema = S.Union([
+  const RefreshingSchema = taggedStruct('Refreshing', { data: dataSchema })
+  const FailureSchema = taggedStruct('Failure', { error: errorSchema })
+  const StaleSchema = taggedStruct('Stale', {
+    error: errorSchema,
+    data: dataSchema,
+  })
+  const SuccessSchema = taggedStruct('Success', { data: dataSchema })
+  const schema = EffectSchema.Union([
     Idle,
     Loading,
     RefreshingSchema,
@@ -366,9 +369,9 @@ export const map: {
 } = Function.dual(
   2,
   <A, E, B>(self: AsyncData<A, E>, f: (data: A) => B): AsyncData<B, E> =>
-    M.value(self).pipe(
-      M.withReturnType<AsyncData<B, E>>(),
-      M.tagsExhaustive({
+    Match.value(self).pipe(
+      Match.withReturnType<AsyncData<B, E>>(),
+      Match.tagsExhaustive({
         Idle: idle => idle,
         Loading: loading => loading,
         Refreshing: ({ data }) => Refreshing({ data: f(data) }),
@@ -388,9 +391,9 @@ export const mapError: {
 } = Function.dual(
   2,
   <A, E, E2>(self: AsyncData<A, E>, f: (error: E) => E2): AsyncData<A, E2> =>
-    M.value(self).pipe(
-      M.withReturnType<AsyncData<A, E2>>(),
-      M.tagsExhaustive({
+    Match.value(self).pipe(
+      Match.withReturnType<AsyncData<A, E2>>(),
+      Match.tagsExhaustive({
         Idle: idle => idle,
         Loading: loading => loading,
         Refreshing: refreshing => refreshing,
@@ -425,9 +428,9 @@ export const mapBoth: {
       readonly onError: (error: E) => E2
     },
   ): AsyncData<B, E2> =>
-    M.value(self).pipe(
-      M.withReturnType<AsyncData<B, E2>>(),
-      M.tagsExhaustive({
+    Match.value(self).pipe(
+      Match.withReturnType<AsyncData<B, E2>>(),
+      Match.tagsExhaustive({
         Idle: idle => idle,
         Loading: loading => loading,
         Refreshing: ({ data }) => Refreshing({ data: handlers.onData(data) }),
@@ -461,9 +464,9 @@ export const flatMap: {
     self: AsyncData<A, E>,
     f: (data: A) => AsyncData<B, E2>,
   ): AsyncData<B, E | E2> =>
-    M.value(self).pipe(
-      M.withReturnType<AsyncData<B, E | E2>>(),
-      M.tagsExhaustive({
+    Match.value(self).pipe(
+      Match.withReturnType<AsyncData<B, E | E2>>(),
+      Match.tagsExhaustive({
         Idle: idle => idle,
         Loading: loading => loading,
         Refreshing: ({ data }) => f(data),
@@ -610,9 +613,9 @@ export const orElse: {
 export const revalidateOrLoad = <A, E>(
   self: AsyncData<A, E>,
 ): Option.Option<AsyncData<A, E>> =>
-  M.value(self).pipe(
-    M.withReturnType<Option.Option<AsyncData<A, E>>>(),
-    M.tagsExhaustive({
+  Match.value(self).pipe(
+    Match.withReturnType<Option.Option<AsyncData<A, E>>>(),
+    Match.tagsExhaustive({
       Idle: () => Option.some(Loading()),
       Loading: () => Option.none(),
       Refreshing: () => Option.none(),
@@ -630,9 +633,9 @@ export const revalidateOrLoad = <A, E>(
 export const revalidate = <A, E>(
   self: AsyncData<A, E>,
 ): Option.Option<AsyncData<A, E>> =>
-  M.value(self).pipe(
-    M.tag('Success', 'Stale', ({ data }) => Refreshing({ data })),
-    M.option,
+  Match.value(self).pipe(
+    Match.tag('Success', 'Stale', ({ data }) => Refreshing({ data })),
+    Match.option,
   )
 
 /** The first-visit load transition: the cold no-data states (`Idle`,
@@ -644,9 +647,9 @@ export const revalidate = <A, E>(
 export const loadIfMissing = <A, E>(
   self: AsyncData<A, E>,
 ): Option.Option<AsyncData<A, E>> =>
-  M.value(self).pipe(
-    M.tag('Idle', 'Failure', () => Loading()),
-    M.option,
+  Match.value(self).pipe(
+    Match.tag('Idle', 'Failure', () => Loading()),
+    Match.option,
   )
 
 /** Combines two values under the two-tier lattice
@@ -825,10 +828,9 @@ export const all: <
  *  })
  *
  *  // One update arm folds it in, whatever the previous state was:
- *  SettledLoadNotes: ({ result }) => [
- *    evo(model, { notes: AsyncData.settle(result) }),
- *    [],
- *  ]
+ *  SettledLoadNotes: ({ result }) => ({
+ *    model: evo(model, { notes: AsyncData.settle(result) }),
+ *  })
  *  ```
  */
 export const settle: {

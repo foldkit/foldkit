@@ -3,20 +3,34 @@ import { describe, expect, it } from 'vitest'
 
 import { gotSubmodelMessageName } from '../../src/rules/got-submodel-message-name.ts'
 
-const m = (tag: string, fields?: unknown) =>
-  Testing.callExpr(
-    'm',
-    fields === undefined
-      ? [Testing.strLiteral(tag)]
-      : [Testing.strLiteral(tag), fields],
-  )
+const message = (name: string, fields: unknown = Testing.objectExpr([])) => ({
+  key: name,
+  value: fields,
+})
+
+const defineMessageUnion = (
+  ...cases: ReadonlyArray<ReturnType<typeof message>>
+) => Testing.callExpr('defineMessageUnion', [Testing.objectExpr(cases)])
+
+const runRule = (node: unknown) =>
+  Testing.runRuleMulti(gotSubmodelMessageName, [
+    [
+      'Program',
+      Testing.program([
+        Testing.importDeclWithSpecifiers('foldkit/message', [
+          Testing.importSpecifier('defineMessageUnion'),
+        ]),
+      ]),
+    ],
+    ['CallExpression', node],
+  ])
 
 describe('got-submodel-message-name', () => {
   it('requires Message payload wrappers to use Got*Message names', () => {
-    const result = Testing.runRule(
-      gotSubmodelMessageName,
-      'CallExpression',
-      m('ReceivedChild', Testing.objectExpr([{ key: 'message' }])),
+    const result = runRule(
+      defineMessageUnion(
+        message('ReceivedChild', Testing.objectExpr([{ key: 'message' }])),
+      ),
     )
 
     expect(result).toHaveLength(1)
@@ -24,14 +38,14 @@ describe('got-submodel-message-name', () => {
   })
 
   it('allows Got*Message wrappers around Submodel Messages', () => {
-    const result = Testing.runRule(
-      gotSubmodelMessageName,
-      'CallExpression',
-      m(
-        'GotChildMessage',
-        Testing.objectExpr([
-          { key: 'message', value: Testing.memberExpr('Child', 'Message') },
-        ]),
+    const result = runRule(
+      defineMessageUnion(
+        message(
+          'GotChildMessage',
+          Testing.objectExpr([
+            { key: 'message', value: Testing.memberExpr('Child', 'Message') },
+          ]),
+        ),
       ),
     )
 

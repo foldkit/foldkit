@@ -1,18 +1,14 @@
-import { Option, Schema as S } from 'effect'
-import type * as Command from 'foldkit/command'
+import { Option, Schema } from 'effect'
+import { type Update } from 'foldkit'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
 import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewInputsCommon,
-  Closed,
   type ItemToValueInput,
-  type Message,
-  Opened,
-  type OutMessage,
-  SelectedItem,
-  Selected as SharedSelected,
+  Message,
+  OutMessage,
   baseInit,
   makeUpdate,
   makeView,
@@ -21,7 +17,7 @@ import {
 // MODEL
 
 /** Schema for the single-select listbox's private interaction state (open/closed status, active item, activation trigger, typeahead search). The selection is owned by the parent and passed in via `ViewInputs.maybeSelectedValue`. */
-export const Model = S.Struct({
+export const Model = Schema.Struct({
   ...BaseModel.fields,
 })
 
@@ -37,25 +33,30 @@ export const init = (config: InitConfig): Model => baseInit(config)
 
 // UPDATE
 
-/** Processes a listbox message and returns the next model, commands, and optional OutMessage. Closes the listbox on selection (single-select behavior); emits a `Selected({ value })` OutMessage the parent stores as the selection. */
+/** Processes a Listbox Message and returns the next Model, optional Commands,
+ *  and an optional OutMessage. Selection closes the Listbox and emits
+ *  `Selected({ value })` for the parent to store. */
 export const update = makeUpdate<Model>((model, item, context) =>
-  context.closeWithFocus(model, Option.some(SharedSelected({ value: item }))),
+  context.closeWithFocus(model, OutMessage.Selected({ value: item })),
 )
 
 type UpdateReturn = ReturnType<typeof update>
 
-/** Programmatically opens the listbox, updating the model and returning
- *  focus and modal commands. Use this in domain-event handlers to open the listbox. */
+/** Programmatically opens the Listbox, updating the Model and returning focus
+ *  and modal Commands. Use this in domain-event handlers. */
 export const open = (model: Model): UpdateReturn =>
-  update(model, Opened({ maybeActiveItemIndex: Option.none() }))
+  update(model, Message.Opened({ maybeActiveItemIndex: Option.none() }))
 
-/** Programmatically closes the listbox, updating the model and returning
- *  focus and modal commands. Use this in domain-event handlers to close the listbox. */
-export const close = (model: Model): UpdateReturn => update(model, Closed())
+/** Programmatically closes the listbox. If it is open, returns the closed Model
+ *  with focus and modal Commands. If it is already closed, returns the Model
+ *  unchanged with no Commands. Use this in domain-event handlers to close the
+ *  listbox. */
+export const close = (model: Model): UpdateReturn =>
+  update(model, Message.Closed())
 
 /** Programmatically selects an item in the single-select listbox, closing the listbox and emitting a `Selected({ value })` OutMessage. */
 export const selectItem = (model: Model, item: string): UpdateReturn =>
-  update(model, SelectedItem({ item }))
+  update(model, Message.SelectedItem({ item }))
 
 // VIEW
 
@@ -90,6 +91,12 @@ const singleViewImpl = defineView<Model, Message, ViewInputs<unknown, string>>(
     ),
 )
 
+type BundleUpdateReturn<Value extends string> = Update.ReturnWithOutMessage<
+  Model,
+  Message,
+  OutMessage<Value>
+>
+
 /** The `view`, `update`, and programmatic helpers that `Listbox.create`
  *  returns, bound to one `Item` and `Value` pair. Name it to annotate a
  *  value that holds a created bundle, such as a field on a config object
@@ -100,36 +107,10 @@ export type Bundle<
   Value extends string = Item extends string ? Item : string,
 > = Readonly<{
   view: SubmodelView<Model, Message, ViewInputs<Item, Value>>
-  update: (
-    model: Model,
-    message: Message,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
-  selectItem: (
-    model: Model,
-    item: Value,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
-  open: (
-    model: Model,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
-  close: (
-    model: Model,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
+  update: (model: Model, message: Message) => BundleUpdateReturn<Value>
+  selectItem: (model: Model, item: Value) => BundleUpdateReturn<Value>
+  open: (model: Model) => BundleUpdateReturn<Value>
+  close: (model: Model) => BundleUpdateReturn<Value>
 }>
 
 /** Pairs the single-select listbox's `view` and `update` (and programmatic
@@ -143,9 +124,8 @@ export type Bundle<
  *  // In view:
  *  h.submodel({ view: ColorListbox.view, ... })
  *
- *  // In update:
- *  const [next, commands, maybeOutMessage] = ColorListbox.update(model, message)
- *  // maybeOutMessage: Option<Listbox.OutMessage<Color>>
+ *  // In the parent update, pass ColorListbox.update to Update.foldChild and
+ *  // handle Listbox.OutMessage<Color> in foldOutMessage.
  *  ```
  *
  *  Two type params support object-typed items with an `itemToValue`
@@ -156,11 +136,11 @@ export const create = <
   Item = string,
   Value extends string = Item extends string ? Item : string,
 >(): Bundle<Item, Value> => {
-  type UpdateReturn = readonly [
+  type UpdateReturn = Update.ReturnWithOutMessage<
     Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
+    Message,
+    OutMessage<Value>
+  >
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const typedUpdate = update as (model: Model, message: Message) => UpdateReturn
   const view =
@@ -173,9 +153,13 @@ export const create = <
   return {
     view,
     update: typedUpdate,
-    selectItem: (model, item) => typedUpdate(model, SelectedItem({ item })),
+    selectItem: (model, item) =>
+      typedUpdate(model, Message.SelectedItem({ item })),
     open: model =>
-      typedUpdate(model, Opened({ maybeActiveItemIndex: Option.none() })),
-    close: model => typedUpdate(model, Closed()),
+      typedUpdate(
+        model,
+        Message.Opened({ maybeActiveItemIndex: Option.none() }),
+      ),
+    close: model => typedUpdate(model, Message.Closed()),
   }
 }

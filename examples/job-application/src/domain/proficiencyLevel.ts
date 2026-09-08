@@ -1,6 +1,6 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 
-export const ProficiencyLevel = S.Literals([
+export const ProficiencyLevel = Schema.Literals([
   'Beginner',
   'Intermediate',
   'Advanced',

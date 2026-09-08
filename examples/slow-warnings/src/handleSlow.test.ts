@@ -1,6 +1,7 @@
+import { evo } from 'foldkit/struct'
 import { describe, expect, test, vi } from 'vitest'
 
-import { ClickedRunUpdateWork, type Model, handleSlow } from './main'
+import { Message, type Model, handleSlow } from './main'
 
 const initialModel: Model = {
   activeWorkload: 'Idle',
@@ -20,11 +21,10 @@ describe('handleSlow', () => {
         durationMs: 12,
         thresholdMs: 4,
         previousModel: initialModel,
-        nextModel: {
-          ...initialModel,
-          activeWorkload: 'Update',
-        },
-        message: ClickedRunUpdateWork(),
+        nextModel: evo(initialModel, {
+          activeWorkload: () => 'Update',
+        }),
+        message: Message.ClickedRunUpdateWork(),
       })
 
       expect(consoleWarn).toHaveBeenCalledWith(

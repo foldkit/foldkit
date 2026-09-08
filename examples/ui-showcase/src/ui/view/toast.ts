@@ -1,35 +1,26 @@
-import { Match as M, Option } from 'effect'
+import { Match, Option } from 'effect'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import type { EntryHandlers, Variant } from '@foldkit/ui/toast'
 
 import * as Icon from '../../icon'
-import {
-  ClickedDismissAllToasts,
-  ClickedShowErrorToast,
-  ClickedShowInfoToast,
-  ClickedShowStickyToast,
-  ClickedShowSuccessToast,
-  ClickedShowWarningToast,
-  GotToastDemoMessage,
-  type UiMessage,
-} from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 import { Toast } from '../toast'
 
 type Entry = typeof Toast.Entry.Type
 
 const variantClassName = (variant: Variant): string =>
-  M.value(variant).pipe(
-    M.when('Info', () => 'border-gray-300 bg-white text-gray-900'),
-    M.when(
+  Match.value(variant).pipe(
+    Match.when('Info', () => 'border-gray-300 bg-white text-gray-900'),
+    Match.when(
       'Success',
       () => 'border-emerald-300 bg-emerald-50 text-emerald-900',
     ),
-    M.when('Warning', () => 'border-amber-300 bg-amber-50 text-amber-900'),
-    M.when('Error', () => 'border-red-300 bg-red-50 text-red-900'),
-    M.exhaustive,
+    Match.when('Warning', () => 'border-amber-300 bg-amber-50 text-amber-900'),
+    Match.when('Error', () => 'border-red-300 bg-red-50 text-red-900'),
+    Match.exhaustive,
   )
 
 const entryClassName = 'w-80'
@@ -90,27 +81,30 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
           [h.Class('flex flex-wrap gap-2')],
           [
             h.button(
-              [h.Class(demoButtonClassName), h.OnClick(ClickedShowInfoToast())],
+              [
+                h.Class(demoButtonClassName),
+                h.OnClick(UiMessage.ClickedShowInfoToast()),
+              ],
               ['Info'],
             ),
             h.button(
               [
                 h.Class(demoButtonClassName),
-                h.OnClick(ClickedShowSuccessToast()),
+                h.OnClick(UiMessage.ClickedShowSuccessToast()),
               ],
               ['Success'],
             ),
             h.button(
               [
                 h.Class(demoButtonClassName),
-                h.OnClick(ClickedShowWarningToast()),
+                h.OnClick(UiMessage.ClickedShowWarningToast()),
               ],
               ['Warning'],
             ),
             h.button(
               [
                 h.Class(demoButtonClassName),
-                h.OnClick(ClickedShowErrorToast()),
+                h.OnClick(UiMessage.ClickedShowErrorToast()),
               ],
               ['Error'],
             ),
@@ -138,14 +132,14 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
             h.button(
               [
                 h.Class(demoButtonClassName),
-                h.OnClick(ClickedShowStickyToast()),
+                h.OnClick(UiMessage.ClickedShowStickyToast()),
               ],
               ['Show sticky toast'],
             ),
             h.button(
               [
                 h.Class(demoButtonClassName),
-                h.OnClick(ClickedDismissAllToasts()),
+                h.OnClick(UiMessage.ClickedDismissAllToasts()),
               ],
               ['Dismiss all'],
             ),
@@ -162,7 +156,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
               renderToastEntry(entry, handlers, h),
             entryClassName,
           },
-          toParentMessage: message => GotToastDemoMessage({ message }),
+          toParentMessage: message =>
+            UiMessage.GotToastDemoMessage({ message }),
         }),
       ],
     )

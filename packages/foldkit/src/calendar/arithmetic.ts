@@ -76,10 +76,8 @@ const fromRataDie = (rataDie: number): CalendarDate => {
 export const addDays: {
   (n: number): (self: CalendarDate) => CalendarDate
   (self: CalendarDate, n: number): CalendarDate
-} = Function.dual(
-  2,
-  (self: CalendarDate, n: number): CalendarDate =>
-    n === 0 ? self : fromRataDie(toRataDie(self) + n),
+} = Function.dual(2, (self: CalendarDate, n: number): CalendarDate =>
+  n === 0 ? self : fromRataDie(toRataDie(self) + n),
 )
 
 /**
@@ -100,9 +98,8 @@ export const addDays: {
 export const subtractDays: {
   (n: number): (self: CalendarDate) => CalendarDate
   (self: CalendarDate, n: number): CalendarDate
-} = Function.dual(
-  2,
-  (self: CalendarDate, n: number): CalendarDate => addDays(self, -n),
+} = Function.dual(2, (self: CalendarDate, n: number): CalendarDate =>
+  addDays(self, -n),
 )
 
 /**
@@ -144,9 +141,8 @@ export const addMonths: {
 export const subtractMonths: {
   (n: number): (self: CalendarDate) => CalendarDate
   (self: CalendarDate, n: number): CalendarDate
-} = Function.dual(
-  2,
-  (self: CalendarDate, n: number): CalendarDate => addMonths(self, -n),
+} = Function.dual(2, (self: CalendarDate, n: number): CalendarDate =>
+  addMonths(self, -n),
 )
 
 /**
@@ -169,10 +165,8 @@ export const subtractMonths: {
 export const addYears: {
   (n: number): (self: CalendarDate) => CalendarDate
   (self: CalendarDate, n: number): CalendarDate
-} = Function.dual(
-  2,
-  (self: CalendarDate, n: number): CalendarDate =>
-    addMonths(self, n * MONTHS_PER_YEAR),
+} = Function.dual(2, (self: CalendarDate, n: number): CalendarDate =>
+  addMonths(self, n * MONTHS_PER_YEAR),
 )
 
 /**
@@ -181,9 +175,8 @@ export const addYears: {
 export const subtractYears: {
   (n: number): (self: CalendarDate) => CalendarDate
   (self: CalendarDate, n: number): CalendarDate
-} = Function.dual(
-  2,
-  (self: CalendarDate, n: number): CalendarDate => addYears(self, -n),
+} = Function.dual(2, (self: CalendarDate, n: number): CalendarDate =>
+  addYears(self, -n),
 )
 
 /**

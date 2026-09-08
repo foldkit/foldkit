@@ -8,30 +8,35 @@ import {
   submit,
   text,
 } from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { SaveSession } from './command'
-import { CompletedNavigateInternal, SucceededSaveSession } from './message'
+import { Session } from './domain/session'
+import { Message } from './message'
 import { LoggedOut } from './model'
 import {
+  Message as LoginMessage,
   SimulateAuthRequest,
-  SucceededSimulateAuthRequest,
   initModel as initLoginModel,
 } from './page/loggedOut/page/login'
-import { LoginRoute } from './route'
+import { AppRoute } from './route'
 import { RedirectToDashboard, update } from './update'
 import { view } from './view'
 
 const validModel = LoggedOut.Model({
-  route: LoginRoute(),
-  loginModel: {
-    ...initLoginModel(),
-    email: Valid({ value: 'alice@example.com' }),
-    password: Valid({ value: 'password' }),
-  },
+  route: AppRoute.Login(),
+  loginModel: evo(initLoginModel(), {
+    email: () => Valid({ value: 'alice@example.com' }),
+    password: () => Valid({ value: 'password' }),
+  }),
 })
 
-const aliceSession = { userId: '1', email: 'alice@example.com', name: 'alice' }
+const aliceSession = Session.make({
+  userId: '1',
+  email: 'alice@example.com',
+  name: 'alice',
+})
 
 describe('login flow', () => {
   test('successful login saves the session and lands on the dashboard', () => {
@@ -42,12 +47,12 @@ describe('login flow', () => {
       Command.expectExact(SimulateAuthRequest),
       Command.resolve(
         SimulateAuthRequest,
-        SucceededSimulateAuthRequest({ session: aliceSession }),
+        LoginMessage.SucceededSimulateAuthRequest({ session: aliceSession }),
       ),
       Command.expectExact(SaveSession, RedirectToDashboard),
       Command.resolveAll(
-        [SaveSession, SucceededSaveSession()],
-        [RedirectToDashboard, CompletedNavigateInternal()],
+        [SaveSession, Message.SucceededSaveSession()],
+        [RedirectToDashboard, Message.CompletedNavigateInternal()],
       ),
       expect(text('Welcome back, alice!')).toExist(),
     )

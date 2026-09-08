@@ -1,23 +1,39 @@
 # Model
 
-## Overview
+## One State Tree {#overview}
 
-The Model represents your entire application state in a single, immutable data structure defined with [Effect Schema](https://effect.website/docs/schema/introduction/). Everything your app can be at any moment lives here, not scattered across components, not split between local and global state.
+The Model is the complete application state in one immutable data structure. Everything the application can be at a moment lives here, rather than being divided between component-local and global stores.
 
-In the [restaurant analogy](/core/architecture#the-restaurant-analogy), the Model is the waiter’s notebook: the running picture of everything happening right now. Orders in flight, tables seated, who’s waiting for dessert. Every fact about the current state of the restaurant lives in one place.
+In the [restaurant analogy](/core/architecture#the-restaurant-analogy), this is the waiter's notebook. The analogy is a memory aid; the literal contract is one state tree that every transition receives and returns.
 
-In the counter example, the Model is a Struct with a single field:
+The counter defines its Model with [Effect Schema](https://effect.website/docs/schema/introduction/):
 
 ::Snippet{name="counterModel" label="model example"}
 
-TypeScript types disappear when your code compiles. They help the compiler check your code, but they don’t exist at runtime. Schema keeps that type information alive as a value. This gives Foldkit knowledge of your Model at runtime: it can compare models for equality, decode state from unknown sources, and manage resource lifecycles, things that need the Model’s shape as a value, not just a compile-time annotation. You’ll see these capabilities pay off as the counter grows, especially on the Subscriptions page.
+`Schema.Struct` creates the runtime Schema. `typeof Model.Type` derives the TypeScript type from that same definition, so the runtime and compiler agree on the Model’s shape.
 
-The counter starts with a single field, but Models grow with your app. When we add auto-counting later, the Model will expand:
+That runtime value matters because TypeScript types disappear after compilation. Foldkit uses the Model Schema to encode and decode state preserved across hot updates. The same Schema can validate unknown data at application boundaries.
+
+## State with Variants
+
+Use `defineTaggedUnion` when a Model field can have several named shapes. Declare every variant together, then construct and match values through the union:
+
+::Snippet{name="modelTaggedUnion" label="Model state union example"}
+
+`EditorMode` is the Schema stored in `Model` and the namespace used to construct values such as `EditorMode.Browsing()`. Its `match` method requires every variant to be handled. If you add another editor mode, TypeScript finds each match that needs a new branch.
+
+Use `EditorMode.guards.Editing` to check one variant and `EditorMode.isAnyOf(['Editing', 'Previewing'])` to check several.
+
+When another Schema accepts only some editor modes, build it with `EditorMode.subset(['Editing', 'Previewing'])`. `subset` includes only the tags you name. If you add another mode later, the smaller Schema will not accept it until you add its tag. There is no `omit`: an exclusion list would silently accept every mode added later.
+
+Use `taggedStruct` only when the variants cannot be declared together. Recursive unions and standalone tagged structs are the common cases.
+
+The counter starts with one field. When automatic counting becomes part of the application state, the Model grows to record it:
 
 ::Snippet{name="counterModelPreview" label="expanded model example"}
 
-:::Info{label="One state tree, not many"}
-Think of the Model as combining useState, useContext, and your Redux store into one typed structure. Instead of state scattered across components, everything lives here.
+:::Info{label="Model the application, not the screen"}
+Store facts the application needs to remember. Values used only to render one frame can usually be derived in view instead of becoming another Model field.
 :::
 
-The Model captures what your app is at any moment. But how does it change? In Foldkit, every change starts with a [Message](/core/messages): a fact about something that happened.
+The Model describes the current state. Every change begins with a [Message](/core/messages), a fact about something that happened.

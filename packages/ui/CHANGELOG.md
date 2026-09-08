@@ -1,5 +1,982 @@
 # @foldkit/ui
 
+## 0.158.2
+
+### Version Alignment
+
+Updated to keep this package aligned with the rest of this release.
+There are no package-specific changes in this release.
+
+## 0.158.1
+
+### Patch Changes
+
+- [#1347](https://github.com/foldkit/foldkit/pull/1347) [`9099339`](https://github.com/foldkit/foldkit/commit/90993394590df06ee4413cbbc766b740138f09f2) Thanks [@devinjameson](https://github.com/devinjameson)! - Keep an anchored panel in place when its button sits in a fixed header. Two things went wrong for a panel opened from a `position: fixed` header, for example a Menu, Listbox, or Popover. The website theme picker was the case that showed both.
+
+  Opening the panel scrolled the page. The reveal focused the freshly positioned panel with a plain `.focus()`, and on a page whose `scroll-padding-top` is larger than the panel's offset from the top of the viewport, the browser scrolled the document to push the panel below that padding. The reveal now focuses with `preventScroll: true`, since Floating UI has already placed the panel in view.
+
+  Scrolling with the panel open made it jump. The panel was positioned with Floating UI's absolute strategy in document coordinates, so every scroll moved it with the page until the scroll listener put it back under the button. A portaled panel whose button has a `position: fixed` ancestor is now positioned with the fixed strategy and stays under the button as the page scrolls.
+
+## 0.158.0
+
+## 0.157.0
+
+### Minor Changes
+
+- [#1270](https://github.com/foldkit/foldkit/pull/1270) [`49d911a`](https://github.com/foldkit/foldkit/commit/49d911a3b592b658cd44918e668d28f10b19cde2) Thanks [@devinjameson](https://github.com/devinjameson)! - Resolve imported Foldkit, UI, Effect, and child Message APIs through Oxlint's scope manager. Rules now recognize aliased imports, ignore local shadows, and distinguish Submodel Message payloads from unrelated `message` fields without requiring TypeScript parser services.
+
+  This can introduce lint failures where an alias previously hid parent-owned construction of a child Message. Expose an update capability from the child and invoke it through `Update.foldChild` or `Update.foldChildStep` instead.
+
+  Expose Animation `show` and `hide` update capabilities so parents can drive visibility through `Update.foldChildStep` without constructing child Messages.
+
+- [#1268](https://github.com/foldkit/foldkit/pull/1268) [`3a4ccd0`](https://github.com/foldkit/foldkit/commit/3a4ccd0f6611f3ef90a5af43a821bbc2d8821fbe) Thanks [@devinjameson](https://github.com/devinjameson)! - Preserve structurally refined payload types in exhaustive Foldkit union matchers, migrate OutMessage folds to their owning union matcher, and add `Animation.toggle` as a child-owned visibility entry point.
+
+- [#1269](https://github.com/foldkit/foldkit/pull/1269) [`b5ec356`](https://github.com/foldkit/foldkit/commit/b5ec356d1d88d136f77bca416b753479d4aa7b50) Thanks [@devinjameson](https://github.com/devinjameson)! - Reject children and `h.InnerHTML` passed to `h.textarea` or `h.keyed('textarea')` so the Model remains the field's single source of truth. This is a breaking change: move textarea content into the live value property with `h.Value(text)`. The UI Textarea helper now exposes the narrower `TextareaAttribute` group. Animation wrapper elements and Virtual List row elements also exclude `textarea` because both render children.
+
+### Patch Changes
+
+- [#1213](https://github.com/foldkit/foldkit/pull/1213) [`57e2436`](https://github.com/foldkit/foldkit/commit/57e24366c8997cd235002f58c9dc38477a6cb1a3) Thanks [@devinjameson](https://github.com/devinjameson)! - Use full Effect module names in published source, examples, templates, and documentation. JavaScript and TypeScript globals that share an Effect module name are now qualified through `globalThis`.
+
+## 0.156.0
+
+### Minor Changes
+
+- [#1240](https://github.com/foldkit/foldkit/pull/1240) [`12a51d6`](https://github.com/foldkit/foldkit/commit/12a51d6b03863e613436251545781cbb15b4dd2e) Thanks [@devinjameson](https://github.com/devinjameson)! - Close HoverIntent without the pointer grace delay when focus leaves the trigger and panel. The zero-delay close still lets focus moving into the panel cancel dismissal before it resolves, while explicit click-away and Tab-away interactions now feel immediate.
+
+  Add `HoverIntent.close` for parent domain events that should dismiss the panel immediately, such as selecting an item from a hover menu. It invalidates pending transitions, clears panel engagement, and emits `Closed` when visibility changes.
+
+## 0.155.0
+
+### Minor Changes
+
+- [#1191](https://github.com/foldkit/foldkit/pull/1191) [`2d85d5a`](https://github.com/foldkit/foldkit/commit/2d85d5ae9536e3fc9c9595442c233a72c0395122) Thanks [@wmaurer](https://github.com/wmaurer)! - `ShowDialog` now reports whether the dialog opened. It produces `SucceededShowDialog` when the show completes and `FailedShowDialog` when the dialog element is already gone by the time the show runs. `CompletedShowDialog` is renamed to `SucceededShowDialog`. Update any test that resolves `ShowDialog`:
+
+  ```ts
+  // Before
+  Command.resolve(Dialog.ShowDialog, DialogMessage.CompletedShowDialog())
+
+  // After
+  Command.resolve(Dialog.ShowDialog, DialogMessage.SucceededShowDialog())
+  ```
+
+  A failed show now releases the scroll lock that the Command took, and `update` closes the Model on `FailedShowDialog`. Before this change, the page stayed locked with no dialog open. The Model also still said the dialog was open. The same dialog could then render again with no lock and no focus trap. If another overlay was open, closing the dialog released that overlay's lock, and the page under it could scroll. `ShowDialog` also releases the lock when the Command is interrupted while it waits for the commit.
+
+  `CloseDialog` now releases the dialog's resources when the element is already gone by the time the close runs. Before this change, a close with no element was ignored and the lock was never released.
+
+  `CloseDialog` also unlocks page scroll only when the close released the resources that `ShowDialog` installed. A close that runs before the show has finished leaves the lock alone. When the show then fails, it releases the lock itself. When the show succeeds, `update` closes the dialog again. Without the check on the close result, a close that ran before the show finished would release the lock, and the failed show would release it again. With another overlay open, the page under that overlay could then scroll.
+
+- [#1179](https://github.com/foldkit/foldkit/pull/1179) [`8c8758e`](https://github.com/foldkit/foldkit/commit/8c8758e64c00172c5615090e5064f83791d2ee8a) Thanks [@SyahrulBhudiF](https://github.com/SyahrulBhudiF)! - Add HoverIntent, a behavior-only Submodel for delayed hover and focus reveal across a trigger and panel.
+
+  HoverIntent opens after a configurable pointer-entry delay, keeps the interaction visible while the pointer or focus moves between its trigger and panel, and closes after a configurable grace delay. Escape closes immediately and suppresses reopening until the interaction fully disengages. The component returns headless trigger and panel event bundles only. It does not impose markup, ARIA semantics, positioning, or styling, so Hover Card and Navigation Menu implementations can compose it with their own UI behavior.
+
+- [#1188](https://github.com/foldkit/foldkit/pull/1188) [`4e7d8d4`](https://github.com/foldkit/foldkit/commit/4e7d8d4010be5a84dd37d1dc48bb97b4f4e599f3) Thanks [@devinjameson](https://github.com/devinjameson)! - Take every `Mount.define` and `Mount.defineStream` input as a named field, with the work in a single flat `execute`.
+
+  Both constructors took their inputs positionally, with the result Messages as a variadic tail and the work supplied by a second call. With args declared, that second call was itself curried: `args => element => Effect<Message>`. The outer function ran the moment a view constructed the MountAction, so anything an author wrote between the two arrows ran on every render, inside a pure view. `Command.define` had the same hazard and defers its body with `Effect.suspend`; a Mount had no equivalent.
+
+  Inputs are now named fields on a config object: `args` declares the args Schema, `messages` lists the Messages the Mount can produce, and `execute` does the work. `execute` takes one parameter that carries the live element as `element` alongside the declared args, so the curried middle step is gone. Constructing a MountAction now runs nothing at all; the runtime calls `execute` when the element enters the DOM.
+
+  `execute` keeps the same shape whether or not `args` is declared, because a Mount always has an element. An args field named `element` is rejected where you declare it, since it would collide with the element `execute` receives.
+
+  ## Migration
+
+  Move each positional argument to its field, wrap the result Messages in an array, and collapse the two arrows into one `execute` that destructures `element` alongside the args.
+
+  ```ts
+  // before
+  const AnchorPopover = Mount.define(
+    'AnchorPopover',
+    { buttonId: S.String, anchor: AnchorConfig },
+    CompletedAnchorPopover,
+  )(({ buttonId, anchor }) => element => Effect.gen(function* () { ... }))
+
+  // after
+  const AnchorPopover = Mount.define('AnchorPopover', {
+    args: { buttonId: S.String, anchor: AnchorConfig },
+    messages: [CompletedAnchorPopover],
+    execute: ({ element, buttonId, anchor }) => Effect.gen(function* () { ... }),
+  })
+  ```
+
+  A Mount with no args omits `args` and keeps the same `execute`.
+
+  ```ts
+  // before
+  const PortalToBody = Mount.define('PortalToBody', CompletedPortalToBody)(
+    element => Effect.gen(function* () { ... }),
+  )
+
+  // after
+  const PortalToBody = Mount.define('PortalToBody', {
+    messages: [CompletedPortalToBody],
+    execute: ({ element }) => Effect.gen(function* () { ... }),
+  })
+  ```
+
+  `Mount.defineStream` migrates the same way, with `execute` returning a `Stream<Message>`.
+
+  `@foldkit/ui` now requires `foldkit` 0.155.0 or newer because its Mount definitions use this config shape.
+
+  `foldkit/mount-factory-must-use-element` reads the new shape. It looks for `element` in `execute`'s destructuring pattern, and reports on `execute` itself. A Mount whose `execute` ignores its element is still an error: the element is the reason a Mount exists, and work that does not need it belongs in a Command, Subscription, or ManagedResource.
+
+  Destructure `element` and the rule checks the read, reading through a default value so `{ element = document.body }` is still checked. Reading `input.element` off an unpacked parameter is checked too. Hand the whole input somewhere the rule cannot follow, such as `attachObserver(input)` or `input[key]`, and it stops checking rather than reporting a Mount that does use its element. Reading only some other field off that input still reports, and so does an `execute` that never references its parameter at all.
+
+### Patch Changes
+
+- [#1205](https://github.com/foldkit/foldkit/pull/1205) [`9601382`](https://github.com/foldkit/foldkit/commit/960138253f09310ff1dca45d2cf84d25fb86d12d) Thanks [@devinjameson](https://github.com/devinjameson)! - Upgrade `@floating-ui/dom` to 1.8.0.
+
+- [#1220](https://github.com/foldkit/foldkit/pull/1220) [`16b392c`](https://github.com/foldkit/foldkit/commit/16b392c5e304bbbea62c0aae5a4a36f90d472f71) Thanks [@devinjameson](https://github.com/devinjameson)! - Upgrade Happy DOM to include its latest custom-element event-listener fix.
+
+- [#1207](https://github.com/foldkit/foldkit/pull/1207) [`2a88e37`](https://github.com/foldkit/foldkit/commit/2a88e3738d4841525be25f2ba16d958164b4f1a9) Thanks [@devinjameson](https://github.com/devinjameson)! - Move TypeDoc generation into a private workspace so package TypeScript upgrades are independent from TypeDoc's compiler support.
+
+- [#1231](https://github.com/foldkit/foldkit/pull/1231) [`aaff2e5`](https://github.com/foldkit/foldkit/commit/aaff2e53f5bf5742ae0428c5fda89a5d6974ac43) Thanks [@devinjameson](https://github.com/devinjameson)! - Match `defineTaggedUnion` and `defineRouteUnion` values through the union's own `match` instead of `Match.value` pipes with `Match.tagsExhaustive`. Internal call sites, the ssg template, and the generated FOLDKIT.md guidance now use the union method; behavior is unchanged.
+
+- [#1210](https://github.com/foldkit/foldkit/pull/1210) [`b02ce0a`](https://github.com/foldkit/foldkit/commit/b02ce0ab32a082bd40774127b8f4f6bfd6e1043e) Thanks [@devinjameson](https://github.com/devinjameson)! - Upgrade development dependencies to Node 26 type definitions and Happy DOM 20.11.8.
+
+- [#1220](https://github.com/foldkit/foldkit/pull/1220) [`16b392c`](https://github.com/foldkit/foldkit/commit/16b392c5e304bbbea62c0aae5a4a36f90d472f71) Thanks [@devinjameson](https://github.com/devinjameson)! - Upgrade the Happy DOM development dependency used by package tests.
+
+- [#1210](https://github.com/foldkit/foldkit/pull/1210) [`b02ce0a`](https://github.com/foldkit/foldkit/commit/b02ce0ab32a082bd40774127b8f4f6bfd6e1043e) Thanks [@devinjameson](https://github.com/devinjameson)! - Upgrade the TypeScript compiler used to build and test packages to 7.0.2 while keeping compiler API tools on the official TypeScript 6 compatibility package.
+
+## 0.154.0
+
+### Minor Changes
+
+- 35bd456: Position an arrow for Popover, so a panel can point at its trigger and keep pointing at it as the panel flips and shifts. Popover does not draw the arrow. `toView` receives an `arrow` attribute bundle to spread onto your own element inside the panel, `Popover.arrowId` returns its id as `Popover.buttonId` does for the trigger, and `arrowPadding` keeps the arrow clear of the panel's corners. The Popover docs show the CSS.
+
+  `anchorSetup` takes `arrowId` and an optional `arrowPadding`. When the id resolves to an element inside the panel, of any type including `<svg>`, it appends Floating UI's `arrow` middleware and publishes the offset as `--arrow-x` and `--arrow-y` on the panel. One axis is set per placement, the other is reset to `initial`, and both are removed on cleanup. An id that resolves outside the panel is ignored. With an arrow, `anchorSetup` no longer writes `overflow-y: auto` and `overscroll-behavior: none` on the panel, and still writes `max-height`, so a panel that can outgrow the viewport scrolls through a child of its own. Cleanup now also removes `overflow-y` and `overscroll-behavior`, so a panel set up again, this time with an arrow, does not keep the scroll container the earlier run wrote. Panels with no arrow are otherwise unchanged.
+
+  Two things break. `RenderInfo` gains an `arrow` field, so code that constructs a `RenderInfo` literal, such as a test fixture, needs `arrow: []`. Popover's panel Mount args now always carry `arrowId`, so a Scene test matching the Mount by instance, `Scene.Mount.expectHas(Popover.AnchorPopover({ buttonId, anchor }))`, stops matching until `arrowId: Popover.arrowId(id)` is added to the expected args.
+
+## 0.153.0
+
+### Minor Changes
+
+- 64387ef: Routes and other tagged unions now use the same one-object declaration as Messages. The old `r` and `ts` helpers are gone:
+
+  - Use `defineRouteUnion` for `AppRoute`.
+  - Use `defineTaggedUnion` for Model states and other domain unions.
+  - Use `taggedStruct` when a tagged struct must be declared on its own.
+
+  Both union helpers return a Schema that also holds the variant constructors. For example, `AppRoute.Person` is the `Person` Schema, and `AppRoute.Person({ personId: 42 })` constructs a value. They also provide `match`, `guards`, `isAnyOf`, `subset`, and `members`. A `defineTaggedUnion` result can be passed directly to `Machine.define`. Message unions still expose only their constructors and exhaustive `match`.
+
+  ## Migrate Routes
+
+  Declare every route in one `AppRoute` object, then use variants through that namespace. Do not name the union `Route`; Foldkit already uses that name for the route module.
+
+  Before:
+
+  ```typescript
+  import { int, literal, mapTo, r, root, slash } from 'foldkit/route'
+
+  export const HomeRoute = r('Home')
+  export const PersonRoute = r('Person', { personId: S.Number })
+  export const NotFoundRoute = r('NotFound', { path: S.String })
+
+  export const AppRoute = S.Union([HomeRoute, PersonRoute, NotFoundRoute])
+
+  export type HomeRoute = typeof HomeRoute.Type
+  export type PersonRoute = typeof PersonRoute.Type
+  export type NotFoundRoute = typeof NotFoundRoute.Type
+  export type AppRoute = typeof AppRoute.Type
+
+  export const homeRouter = pipe(root, mapTo(HomeRoute))
+  export const personRouter = pipe(
+    literal('people'),
+    slash(int('personId')),
+    mapTo(PersonRoute),
+  )
+
+  export const urlToAppRoute = parseUrlWithFallback(routeParser, NotFoundRoute)
+  ```
+
+  After:
+
+  ```typescript
+  import {
+    defineRouteUnion,
+    int,
+    literal,
+    mapTo,
+    root,
+    slash,
+  } from 'foldkit/route'
+
+  export const AppRoute = defineRouteUnion({
+    Home: {},
+    Person: { personId: S.Number },
+    NotFound: { path: S.String },
+  })
+  export type AppRoute = typeof AppRoute.Type
+
+  export const homeRouter = pipe(root, mapTo(AppRoute.Home))
+  export const personRouter = pipe(
+    literal('people'),
+    slash(int('personId')),
+    mapTo(AppRoute.Person),
+  )
+
+  export const urlToAppRoute = parseUrlWithFallback(
+    routeParser,
+    AppRoute.NotFound,
+  )
+  ```
+
+  The old `XxxRoute` suffix kept separate exports from colliding. `AppRoute` now provides that context, so write `AppRoute.Person({ personId: 42 })` instead of `PersonRoute({ personId: 42 })`.
+
+  ## Migrate Route subsets
+
+  Use `subset` when a Model or Schema accepts only some application Routes. This keeps the allowed Routes tied to `AppRoute` without declaring another union.
+
+  Before:
+
+  ```typescript
+  export const LoggedOutRoute = S.Union([HomeRoute, LoginRoute, NotFoundRoute])
+  export const LoggedInRoute = S.Union([
+    DashboardRoute,
+    SettingsRoute,
+    NotFoundRoute,
+  ])
+  ```
+
+  After:
+
+  ```typescript
+  export const LoggedOutRoute = AppRoute.subset(['Home', 'Login', 'NotFound'])
+  export const LoggedInRoute = AppRoute.subset([
+    'Dashboard',
+    'Settings',
+    'NotFound',
+  ])
+  ```
+
+  `subset` includes only the tags you name. If you add a Route to `AppRoute` later, neither Schema above will accept it until you add its tag. There is no `omit`: an exclusion list would silently accept every Route added later.
+
+  If a module needs to name one variant's type, export an alias beside `AppRoute` instead of repeating `typeof AppRoute.Person.Type`:
+
+  ```typescript
+  export type PersonRoute = typeof AppRoute.Person.Type
+  ```
+
+  ## Replace hand-written route guards
+
+  Use `isAnyOf` when one guard accepts several tags.
+
+  Before:
+
+  ```typescript
+  export const isBlogRoute = (
+    route: AppRoute,
+  ): route is BlogRoute | BlogPostRoute =>
+    route._tag === 'Blog' || route._tag === 'BlogPost'
+  ```
+
+  After:
+
+  ```typescript
+  export const isBlogRoute = AppRoute.isAnyOf(['Blog', 'BlogPost'])
+  ```
+
+  ## Migrate domain unions
+
+  Use `defineTaggedUnion` when the variants of a domain union can be declared together.
+
+  Before:
+
+  ```typescript
+  import { ts } from 'foldkit/schema'
+
+  export const NotSubmitted = ts('NotSubmitted')
+  export const Submitting = ts('Submitting')
+  export const SubmitSuccess = ts('SubmitSuccess')
+  export const SubmitError = ts('SubmitError', { error: S.String })
+
+  export const Submission = S.Union([
+    NotSubmitted,
+    Submitting,
+    SubmitSuccess,
+    SubmitError,
+  ])
+  export type Submission = typeof Submission.Type
+  ```
+
+  After:
+
+  ```typescript
+  import { defineTaggedUnion } from 'foldkit/schema'
+
+  export const Submission = defineTaggedUnion({
+    NotSubmitted: {},
+    Submitting: {},
+    SubmitSuccess: {},
+    SubmitError: { error: S.String },
+  })
+  export type Submission = typeof Submission.Type
+  ```
+
+  Use the union's `match` method when every tag must be handled:
+
+  ```typescript
+  // Before
+  M.value(submission).pipe(
+    M.withReturnType<Html>(),
+    M.tagsExhaustive({ ... }),
+  )
+
+  // After
+  Submission.match<Html>(submission, { ... })
+  ```
+
+  Because `match` runs at runtime, a file that calls it must import the union as a value. Keep using Effect `Match` for partial matching, fallbacks, or one handler shared by several tags.
+
+  ## Remove repeated union names from tags
+
+  The union name now provides the context a tag needs. Prefer `ConnectionState.Connected` to `ConnectionState.ConnectionConnected`.
+
+  Renaming a tag also changes its `_tag` value. Do not shorten tags stored in a Model, URL, or wire protocol unless that external value is meant to change.
+
+  ## Rename `ts` to `taggedStruct`
+
+  `taggedStruct` is the new name for `ts`. Most unions should move to `defineTaggedUnion`; `taggedStruct` remains for variants that must be declared separately.
+
+  ```typescript
+  // Before
+  import { ts } from 'foldkit/schema'
+  const TableRow = ts('TableRow', { cells: S.Array(TableCell) })
+
+  // After
+  import { taggedStruct } from 'foldkit/schema'
+  const TableRow = taggedStruct('TableRow', { cells: S.Array(TableCell) })
+  ```
+
+  Use `taggedStruct` in these cases:
+
+  - A recursive union, such as `Canvas.Shape` or the markdown AST.
+  - A union assembled from variants owned by different modules, such as a parent Model built from two Submodel Models.
+  - A tagged child struct that is not one variant of a choice, such as `TableRow`.
+  - A variant created inside a generic Schema factory, such as `AsyncData`.
+
+  If recursion forces one union in a module to use `taggedStruct`, use `taggedStruct` for the module's sibling unions too.
+
+  ## Variants are no longer separate exports
+
+  `Navigation` and `Interruptible` no longer export their variants as separate top-level names. Access each variant through its union instead.
+
+  ```typescript
+  // Before
+  Navigation.Internal({ url })
+  Interruptible.Interrupted()
+
+  // After
+  Navigation.UrlRequest.Internal({ url })
+  Interruptible.Outcome.Interrupted()
+  ```
+
+  The DevTools protocol now follows the same rule. Its variants live under `Request`, `Response`, `Event`, `DiffValue`, and `MessageSchemaResult`. The `_tag` strings did not change, so old and new DevTools clients still speak the same wire protocol.
+
+  `@foldkit/ui`, `@foldkit/devtools`, `@foldkit/devtools-mcp`, `@foldkit/markdown`, and `@foldkit/vite-plugin` now require Foldkit `>=0.153.0` because their published code calls these new APIs. Each gets a minor release so consumers on older pre-1.0 ranges do not receive an incompatible update.
+
+  ## Lint
+
+  `foldkit/no-empty-object-tagged-call` now catches no-field Route and domain constructors as well as Messages. It recognizes namespaces whose names end in Message, Route, or State, plus unions declared in the same file with Foldkit's union helpers. It does not assume every PascalCase namespace is a Foldkit union.
+
+  The [Routing & Navigation guide](https://foldkit.dev/core/routing-and-navigation) covers the route union in depth, and the [Model guide](https://foldkit.dev/core/model) covers state modeling with `defineTaggedUnion`.
+
+## 0.152.0
+
+### Minor Changes
+
+- da9e505: Bump Effect to `4.0.0-rc.112` (from `4.0.0-rc.111`). Foldkit's `effect` peer dependency now requires `4.0.0-rc.112`, and `@foldkit/devtools` pins its `@effect/platform-browser` peer dependency to the same version.
+
+  Pin your Effect packages to `4.0.0-rc.112` to match this release. While Effect v4 is in prerelease, use exact pins rather than ranges:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.112 @effect/platform-browser@4.0.0-rc.112
+  pnpm add -D @effect/vitest@4.0.0-rc.112
+  ```
+
+## 0.151.0
+
+### Minor Changes
+
+- 11e0b0e: Update, init, boot, and component helpers now return records instead of tuples. Every producer and consumer of those results must migrate. The Runtime no longer accepts the tuple form. The `Update.Return<Model, Message>` and `Update.ReturnWithOutMessage<Model, Message, OutMessage>` names stay the same; the values assigned to them change shape.
+
+  ## Upgrade order
+
+  If your application uses Foldkit 0.148.x or earlier, upgrade to 0.149.0 and complete the Message union migration first. The examples below assume Messages use `defineMessageUnion` and updates use `Message.match`.
+
+  ## Migrate producers
+
+  Change every two-element tuple returned by update, init, boot, or a component helper from `[model, commands]` to `{ model, commands }`. Apply the change to every branch of an update. Omit `commands` wherever the producer statically creates none.
+
+  Before:
+
+  ```typescript
+  type UpdateReturn = Update.Return<Model, Message>
+
+  export const update = (model: Model, message: Message) =>
+    Message.match<UpdateReturn>(message, {
+      ClickedSave: () => [model, [SaveNote()]],
+      SucceededSave: ({ note }) => [evo(model, { note: () => note }), []],
+    })
+  ```
+
+  After:
+
+  ```typescript
+  export const update = (model: Model, message: Message) =>
+    Message.match<Update.Return<Model, Message>>(message, {
+      ClickedSave: () => ({ model, commands: [SaveNote()] }),
+      SucceededSave: ({ note }) => ({
+        model: evo(model, { note: () => note }),
+      }),
+    })
+  ```
+
+  An `UpdateReturn` alias still works. Foldkit's authoring convention is to inline the return type when `Message.match` is its only use. Keep the alias when another matcher, helper, or exported signature reuses it. The match generic constrains the whole update, so do not repeat `: UpdateReturn` on the function.
+
+  When a producer computes a Commands collection, return it directly even if the collection may be empty:
+
+  ```typescript
+  return { model: nextModel, commands: buildCommands(model) }
+  ```
+
+  Do not inspect a computed collection only to omit the property when it is empty. Use `commands ?? []` only where another operation requires an array for spreading, concatenating, execution, or an assertion. The new `foldkit/no-empty-commands-array` rule rejects a literal `commands: []` property.
+
+  ## Migrate consumers
+
+  Keep the whole result attached to the operation that produced it. For example, a test should keep the result of submitting a form together:
+
+  Before:
+
+  ```typescript
+  const [nextModel, commands] = update(model, Message.SubmittedForm())
+
+  expect(nextModel.status).toBe('Submitting')
+  expect(commands).toHaveLength(1)
+  ```
+
+  After:
+
+  ```typescript
+  const formSubmit = update(model, Message.SubmittedForm())
+
+  expect(formSubmit.model.status).toBe('Submitting')
+  expect(formSubmit.commands ?? []).toHaveLength(1)
+  ```
+
+  Do not replace tuple destructuring with record destructuring such as `const { model: nextModel, commands } = update(...)`. Dot access does not force a caller to read `outMessage`, but it keeps the operation and every returned field visibly connected. When the operation name collides with the function, use a trailing underscore such as `init_`.
+
+  The same convention applies when assembling independent init results.
+
+  Before:
+
+  ```typescript
+  const [homeModel, homeCommands] = Home.init()
+
+  return [
+    { home: homeModel },
+    Command.mapMessages(homeCommands, message =>
+      Message.GotHomeMessage({ message }),
+    ),
+  ]
+  ```
+
+  After:
+
+  ```typescript
+  const homeInit = Home.init()
+
+  return {
+    model: { home: homeInit.model },
+    commands: Command.mapMessages(homeInit.commands, message =>
+      Message.GotHomeMessage({ message }),
+    ),
+  }
+  ```
+
+  `Command.mapMessages` accepts an optional Commands field in both call forms and returns an empty array when the field is absent. Pass `homeInit.commands` directly instead of writing `homeInit.commands ?? []`.
+
+  TypeScript rejects this manual composition when the enclosing update returns `Update.Return<Model, Message>`:
+
+  ```typescript
+  const dialogOpen = openDialog(model)
+
+  return {
+    model: evo(dialogOpen.model, { isSubmitting: () => false }),
+    // Type error: with exactOptionalPropertyTypes, this property must be
+    // omitted when dialogOpen.commands is undefined.
+    commands: dialogOpen.commands,
+  }
+  ```
+
+  Every Foldkit template enables `exactOptionalPropertyTypes`. With that setting, the optional `commands` property may be absent. When the property is present, it must contain Commands. `dialogOpen.commands` has the type `Update.Commands<Message> | undefined`, so TypeScript rejects `commands: dialogOpen.commands`.
+
+  This error often points to update results being composed by hand. When a later operation needs the Model produced by an earlier operation, express both as Steps and compose them with `Update.combine`:
+
+  ```typescript
+  return Update.combine(model, [
+    openDialog,
+    stepModel => ({
+      model: evo(stepModel, { isSubmitting: () => false }),
+    }),
+  ])
+  ```
+
+  ## Migrate OutMessages
+
+  `Update.ReturnWithOutMessage<Model, Message, OutMessage>` now carries an optional `outMessage` field instead of an `Option<OutMessage>` tuple element. Include `outMessage` when the update emits one and omit the field otherwise.
+
+  Before:
+
+  ```typescript
+  SucceededAuthenticate: ({ session }) => [
+    model,
+    [],
+    Option.some(OutMessage.SucceededLogin({ session })),
+  ],
+  FailedAuthenticate: () => [model, [], Option.none()],
+  ```
+
+  After:
+
+  ```typescript
+  SucceededAuthenticate: ({ session }) => ({
+    model,
+    outMessage: OutMessage.SucceededLogin({ session }),
+  }),
+  FailedAuthenticate: () => ({ model }),
+  ```
+
+  Use `Update.Return<Model, Message>` when an update cannot emit an OutMessage. TypeScript rejects assigning a result that may contain an OutMessage to that type, so a caller cannot keep the Model and Commands while losing the OutMessage:
+
+  ```typescript
+  const childUpdate: Update.ReturnWithOutMessage<
+    Child.Model,
+    Child.Message,
+    Child.OutMessage
+  > = Child.update(model.child, message)
+
+  // Type error: childUpdate may contain an OutMessage.
+  const plainChildUpdate: Update.Return<Child.Model, Child.Message> =
+    childUpdate
+  ```
+
+  An OutMessage-aware API can still accept a plain result. A missing `outMessage` field means that update emitted nothing:
+
+  ```typescript
+  const plainUpdate: Update.Return<Model, Message> = { model }
+
+  const submodelUpdate: Update.ReturnWithOutMessage<
+    Model,
+    Message,
+    OutMessage
+  > = plainUpdate
+  ```
+
+  When an update definitely emits an OutMessage, include it directly:
+
+  ```typescript
+  return { model, outMessage: OutMessage.ClearedDate() }
+  ```
+
+  When the OutMessage may be `undefined`, use `Update.withOutMessage`. It omits the property when the update emitted nothing and preserves the Model and Commands of an existing result:
+
+  ```typescript
+  return pipe(dialogClose, Update.withOutMessage(outMessage))
+  ```
+
+  A child fold's `toParentOutMessage` mapper now returns the parent OutMessage directly. Return `undefined` for each named child variant that stops at the current Submodel.
+
+  Before:
+
+  ```typescript
+  const toParentOutMessage = M.type<Child.OutMessage>().pipe(
+    M.withReturnType<Option.Option<OutMessage>>(),
+    M.tagsExhaustive({
+      Submitted: ({ id }) => Option.some(OutMessage.Submitted({ id })),
+      Cancelled: () => Option.none(),
+    }),
+  )
+  ```
+
+  After:
+
+  ```typescript
+  const toParentOutMessage = M.type<Child.OutMessage>().pipe(
+    M.withReturnType<OutMessage | undefined>(),
+    M.tagsExhaustive({
+      Submitted: ({ id }) => OutMessage.Submitted({ id }),
+      Cancelled: () => undefined,
+    }),
+  )
+  ```
+
+  Add `toParentOutMessage` only when at least one child OutMessage is forwarded from the current Submodel to its parent. Omit it when no variant is forwarded. A forwarded variant may still be handled locally by `foldOutMessage`. `Update.foldChildStep` supports the same forwarding for child entry points that take only the child Model.
+
+  ## Migrate composed operations
+
+  Do not translate manual child tuple unpacking into separate reads of `result.model`, `result.commands`, and `result.outMessage`. Use `Update.foldChild` for child Messages and `Update.foldChildStep` for child entry points that take only the child Model.
+
+  The old code below writes the next Dialog Model and maps its Commands. The two-slot destructure silently drops the Dialog OutMessage:
+
+  Before:
+
+  ```typescript
+  const [nextDialog, dialogCommands] = Dialog.close(model.dialog)
+
+  return [
+    evo(model, {
+      dialog: () => nextDialog,
+      isSubmitting: () => false,
+    }),
+    Command.mapMessages(dialogCommands, toGotDialogMessage),
+  ]
+  ```
+
+  The replacement intentionally does more than translate the return shape. It handles the Dialog OutMessage that the old code discarded.
+
+  After:
+
+  ```typescript
+  const foldDialogClose = Update.foldChildStep({
+    update: Dialog.close,
+    read: model => Option.some(model.dialog),
+    write: (model, nextDialog) => evo(model, { dialog: () => nextDialog }),
+    toParentMessage: toGotDialogMessage,
+    foldOutMessage: foldDialogOutMessage,
+  })
+
+  return Update.combine(model, [
+    foldDialogClose,
+    stepModel => ({
+      model: evo(stepModel, { isSubmitting: () => false }),
+    }),
+  ])
+  ```
+
+  Use `Update.combine` for two or more Steps when a later Step needs the Model produced by an earlier Step. It collects Commands in Step order, but the Runtime forks them independently after update returns. Name an inline Step parameter `stepModel`; it contains the Model produced by the preceding Step. Call a single operation directly. Independent child inits do not form a sequence, so initialize them separately and assemble their Models into the parent.
+
+  Foldkit UI component helpers, the DevTools overlay, the SSR fixtures, and generated `create-foldkit-app` templates now use the same record shape. The [Update guide](https://foldkit.dev/core/update) and [Submodels guide](https://foldkit.dev/core/submodel) cover the permanent authoring conventions in more depth.
+
+## 0.150.0
+
+### Minor Changes
+
+- 9869cf7: Bump Effect to `4.0.0-rc.111` (from `4.0.0-rc.109`). Foldkit's `effect` peer dependency now requires `4.0.0-rc.111`, and `@foldkit/devtools` pins its `@effect/platform-browser` peer dependency to the same version.
+
+  Pin your Effect packages to `4.0.0-rc.111` to match this release. While Effect v4 is in prerelease, use exact pins rather than ranges:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.111 @effect/platform-browser@4.0.0-rc.111
+  pnpm add -D @effect/vitest@4.0.0-rc.111
+  ```
+
+## 0.149.0
+
+### Minor Changes
+
+- 504344b: Replace `m` with `defineMessageUnion` in `foldkit/message`. `defineMessageUnion` declares a whole Message union from one record of fields per variant instead of naming each variant once as a constructor and again in the union list.
+
+  The result is a Schema, so it decodes and nests in a Model. Its focused Message surface is exhaustive `match` plus one callable constructor per variant. Each constructor is itself a schema, which is what `Command.define` needs for its `messages` list. Use `Message.match` for exhaustive dispatch. Effect `Match` remains available for partial matching, fallbacks, and one handler shared across several tags.
+
+  This removes the `m` export. Declare Message and OutMessage as separate `defineMessageUnion()` unions, even when two variants happen to carry the same fields. Constructors stay on their owning union namespace rather than being exported as sibling bindings.
+
+  Update `@foldkit/oxlint-plugin` to recognize `defineMessageUnion()` declarations in the Message naming rules. Remove `message-binding-matches-tag`, since variants no longer have separate constructor bindings whose names can drift from their tags.
+
+  Update `create-foldkit-app` templates to declare and match Messages with the new API.
+
+  ```typescript
+  import { Schema as S } from 'effect'
+  import { Update } from 'foldkit'
+  import { defineMessageUnion } from 'foldkit/message'
+  import { evo } from 'foldkit/struct'
+
+  const Model = S.Struct({ count: S.Number })
+  type Model = typeof Model.Type
+
+  export const Message = defineMessageUnion({
+    ClickedReset: {},
+    ChangedCount: { count: S.Number },
+  })
+  export type Message = typeof Message.Type
+
+  type UpdateReturn = Update.Return<Model, Message>
+
+  export const update = (model: Model, message: Message) =>
+    Message.match<UpdateReturn>(message, {
+      ClickedReset: () => [evo(model, { count: () => 0 }), []],
+      ChangedCount: ({ count }) => [evo(model, { count: () => count }), []],
+    })
+  ```
+
+## 0.148.2
+
+## 0.148.1
+
+## 0.148.0
+
+## 0.147.0
+
+### Patch Changes
+
+- 664a8bd: Build id selectors with a local CSS identifier escape instead of the `CSS` browser global, so views that construct selectors also render under Node during server rendering.
+
+## 0.146.0
+
+### Minor Changes
+
+- ee7bdb6: Make the anchor positioning runtime public under a new `@foldkit/ui/anchor` subpath, so an application can build its own anchored component without rendering one of the six components that accept an `anchor` prop.
+
+  `AnchorConfig` was already re-exported as a type from `combobox`, `listbox`, `menu`, `popover` and `tooltip`, so a consumer could describe an anchor config but had no way to act on one. The subpath exports the runtime side alongside it:
+
+  ```ts
+  import {
+    AnchorConfig,
+    Padding,
+    Placement,
+    anchorSetup,
+    portalToContainingRoot,
+  } from '@foldkit/ui/anchor'
+  ```
+
+  `anchorSetup` and `portalToContainingRoot` are plain DOM functions that return a cleanup, meant to be called inside `Effect.sync` in a Mount and stashed in the Mount result. `AnchorConfig`, `Placement` and `Padding` are now available as Schema values, not only as types.
+
+  The module is also exported from the root barrel, as `import { Anchor } from '@foldkit/ui'`, and appears in the API reference as `Ui.Anchor`.
+
+  Nothing is removed or renamed. `src/anchor.ts` moved to `src/anchor/`, which is internal layout only.
+
+  Thanks @wmaurer for contributing this feature!
+
+- 7014ef6: Name the config `anchorSetup` takes, and give `Placement` and `Padding` type companions, so the `@foldkit/ui/anchor` surface can be described without reaching for `Parameters` or `typeof`.
+
+  ```ts
+  import type { Padding, Placement, SetupConfig } from '@foldkit/ui/anchor'
+  ```
+
+  `SetupConfig` matches the `InitConfig` and `ViewInputs` types the stateful components export. `Placement` and `Padding` each export a type of the same name alongside their Schema value, the way `AnchorConfig` already did.
+
+  `anchorSetup` takes the element first, as `anchorSetup(element, config)`, matching `portalToContainingRoot(element)`.
+
+- da05bfc: Bump Effect to `4.0.0-rc.109` (from `4.0.0-rc.108`). Foldkit's `effect` peer dependency now requires `4.0.0-rc.109`, and `@foldkit/devtools` pins its `@effect/platform-browser` peer dependency to the same version.
+
+  Pin your Effect packages to `4.0.0-rc.109` to match this release. While Effect v4 is in prerelease, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.109 @effect/platform-browser@4.0.0-rc.109
+  pnpm add -D @effect/vitest@4.0.0-rc.109
+  ```
+
+### Patch Changes
+
+- 4d9e0fb: Report a failed anchor positioning tick through `console.error` instead of letting it escape as an unhandled rejection, and apply the tick gate to every panel rather than only to placement-locked ones.
+
+  `anchorSetup` positions through a promise chain that had no rejection handler. `computePosition` awaits platform measurement and every middleware, so a throw in any of them rejects the tick, and that rejection reached the window unhandled.
+
+  It is now reported, rather than either escaping or being swallowed silently. A panel that never appears with nothing logged is the hard case to debug, since the caller renders `visibility: hidden` and only a successful tick clears it. A run of consecutive failures is reported once, because the panel repositions on every scroll and resize and a persistent failure would otherwise repeat on each one. A fresh failure after a recovery is reported again.
+
+  The gate that keeps at most one tick in flight, so the last write always wins, was conditional on `isPlacementLocked`. That tied a concurrency guard to an unrelated positioning flag. It now applies to every anchored panel. This part changes no behavior: with the current `@floating-ui/dom` a tick settles inside a microtask chain, and each `autoUpdate` callback returns through a microtask checkpoint, so two ticks are never in flight together and the gate does not engage. It makes the invariant hold by construction rather than by coincidence.
+
+  Placement locking is unchanged.
+
+## 0.145.0
+
+### Minor Changes
+
+- 1dc70c7: Widen `AnchorConfig.padding` to accept a partial per-side object alongside the existing scalar, mirroring `@floating-ui/dom`'s `Padding` type. A number still pads every side uniformly; `{ top: 88, right: 16, bottom: 16, left: 16 }` bounds each side independently. The value is forwarded unchanged to the `flip`, `shift`, and `size` middleware.
+
+  With a single scalar, a panel that `flip` moves above its button can slide to within that scalar of the viewport top, under fixed chrome such as a sticky site header, which then paints over the panel. Per-side padding gives the top the extra clearance the header needs while the other sides keep the tighter viewport bound.
+
+### Patch Changes
+
+- 71556de: Assert the read-only commit suppression through `Scene.expectHandled()` instead of a hand-rolled `update` wrapper, and harden three tests that asserted nothing.
+
+  Listbox and Combobox recorded dispatched Messages by wrapping `update` and matching on the `SuppressedItemCommit` tag, because Scene could not express what the component actually promises. It promises the keypress is consumed, so the browser default is suppressed; the Message tag is the mechanism. Those four sites now use `expectHandled()` and `expectIgnored()` and drop the wrapper.
+
+  Three tests elsewhere asserted inertness with no assertion behind it, and now say so: RadioGroup's read-only Space, and Calendar's disabled-month and disabled-year Enter. Each held whether the key was correctly ignored or its handler had started producing a Message with no visible effect, which is the regression they exist to catch. Removing the handler outright has always thrown from the interaction step.
+
+  Test-only change. No API or behavior change.
+
+## 0.144.0
+
+### Minor Changes
+
+- 3feb9ba: Bump Effect to `4.0.0-rc.108` (from `4.0.0-beta.107`), the first Effect v4 release candidate. Foldkit's peer dependencies now require `effect@4.0.0-rc.108` and `@effect/platform-browser@4.0.0-rc.108`.
+
+  Pin your Effect packages to `4.0.0-rc.108` to match this release. While Effect v4 is in prerelease, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.108 @effect/platform-browser@4.0.0-rc.108
+  pnpm add -D @effect/vitest@4.0.0-rc.108
+  ```
+
+## 0.143.0
+
+### Minor Changes
+
+- a614c5e: Stop a multi-select Combobox emitting `ClearedSelection` when it closes.
+
+  `handleClose` read an empty `inputValue` on close as the user having cleared the selection. That inference holds for single-select, where the input displays the current selection and the user has to empty it deliberately. It never held for multi-select, whose `restingInputValue` is an empty string by design, so the condition was true on every close. A nullable multi-select therefore wiped the parent's whole selection each time it closed, by `Escape`, blur, the toggle button, or a backdrop click, without the user doing anything to ask for it.
+
+  Multi-select now never emits `ClearedSelection`. Clearing a multi-select is toggling its values off, one `Selected` at a time, which is the channel it already had. Single-select is unchanged, and `nullable` continues to govern its empty-input close.
+
+- a614c5e: Add `isReadOnly` to the view inputs of both Combobox variants.
+
+  A read-only Combobox emits the native `readonly` attribute plus `aria-readonly="true"` on the input, `aria-readonly="true"` on the items panel, and `data-readonly` on the wrapper, input, toggle button, items panel, and every item. It still opens, navigates, and closes, and the input still takes focus and allows text selection and copying. Five paths that would change the parent's selection close: typing is frozen, items carry no click handler, `Enter` on the active item emits a `SuppressedItemCommit` Message instead of selecting, an `immediate` Combobox stops committing as the arrow keys move, and a nullable Combobox no longer emits `ClearedSelection` when a user close finds an empty input. `itemToConfig`'s context gains `isReadOnly`, so an item can style itself for the state without closing over the view inputs.
+
+  `Closed`, `BlurredInput`, and `PressedToggleButton` gained an `isClearable` field, since the close path lives in `update` and cannot see `isReadOnly`, which is a view input. The view passes it, and the programmatic `close` helpers pass `true`, so `close(model)` clears exactly as before.
+
+  Typing is frozen rather than left to filter because `inputValue` is both the filter query and the display of the selection, so a typable read-only Combobox would have a visible value the user can change.
+
+  `isReadOnly` and `isDisabled` are independent: setting both emits both attribute sets, and `isDisabled` still wins for interaction, since it drops every handler, so a Combobox that is both read-only and disabled cannot be opened at all.
+
+## 0.142.1
+
+### Patch Changes
+
+- 87e9dbf: Bump Effect to `4.0.0-beta.107` (from `4.0.0-beta.106`). Foldkit's peer dependencies now require `effect@4.0.0-beta.107` and `@effect/platform-browser@4.0.0-beta.107`.
+
+  Pin your Effect packages to `4.0.0-beta.107` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.107 @effect/platform-browser@4.0.0-beta.107
+  pnpm add -D @effect/vitest@4.0.0-beta.107
+  ```
+
+## 0.142.0
+
+### Minor Changes
+
+- b2704a4: Add `isReadOnly` to the view inputs of both Listbox variants.
+
+  A read-only Listbox emits `aria-readonly="true"` on the items panel and `data-readonly` on the wrapper, button, items panel, and every item. It still opens, navigates, and searches, but items carry no click handler and `Enter` or `Space` on the active item emits a `SuppressedItemCommit` Message instead of selecting. `itemToConfig`'s context gains `isReadOnly`, so an item can style itself for the state without closing over the view inputs.
+
+  `isReadOnly` and `isDisabled` are independent: setting both emits both attribute sets, and `isDisabled` still wins for interaction, since its button drops every handler, so a Listbox that is both read-only and disabled cannot be opened at all.
+
+- 7632ab7: Turn RadioGroup into a Submodel and add `isReadOnly` to its view inputs.
+
+  RadioGroup now owns its keyboard focus in a Model. Create it with `RadioGroup.create<Value>()`, hold `RadioGroup.Model` in your Model, initialize it with `RadioGroup.init({ id })`, embed it with `h.submodel`, and fold the `Selected` OutMessage back into the field you pass in as `selectedValue`. The `id` and `onSelect` fields are gone: `id` moves to `init`, and the committed value now arrives as an OutMessage instead of a Message the config builds. Focus moves through a `FocusOption` Command rather than inside the view's event handlers, so a scene or story test resolves it like any other Command.
+
+  A read-only group keeps arrow, Home, End, PageUp, and PageDown focus navigation, reporting each move as a `FocusedOption` Message, and makes Space and clicking inert. The group carries `aria-readonly="true"` and `data-readonly`, and each option carries `data-readonly`. Because focus is modeled, `data-active`, `OptionInfo.isActive`, and `tabindex` follow the keyboard rather than staying pinned to the selection. `isReadOnly` and `isDisabled` are independent; a disabled option drops both its click and its keydown handler.
+
+- bea1da5: Add `isReadOnly` to Slider's view inputs.
+
+  A read-only Slider emits `aria-readonly="true"` on the thumb and `data-readonly` on every attribute group, remains focusable, and omits its pointerdown and keydown handlers. `isReadOnly` and `isDisabled` are independent, and either one removes the interaction handlers.
+
+### Patch Changes
+
+- b49c0b8: Fold the DatePicker's Popover entry points with `Update.foldChildStep`. The hand-written `closePopover` Step and the `Opened` and `Closed` handlers now run `Popover.open` and `Popover.close` through the helper instead of calling them directly and lifting their Commands with `Command.mapMessages`, so the Popover's read, write, and Message lift are stated once and shared with the existing `Update.foldChild` config. Internal refactor with no API change.
+- 47e861a: Document `isDisabled` on Checkbox, Switch, and Slider.
+
+  Each component documented `isReadOnly` and left `isDisabled` bare, so the only description of what `isDisabled` emits lived inside its neighbor's comment. Each now describes the attributes it emits, that the control stays focusable, and which of the two flags to reach for. The Slider docs page gains the same guidance.
+
+- 8f7312d: Drop the redundant function-type annotation from the component internals' `fold<Child>OutMessage` consts. `M.type<X.OutMessage>()` names the OutMessage and `M.withReturnType<Update.Step<Model, Message>>()` names the Step, so the standalone annotation restated both. Calendar, Popover, Menu, Combobox, and Listbox folds now bind the pipe directly. The Dialog and Toast leave-animation folds keep their annotation, since they take the fold's `Update.FoldContext` as a second parameter and nothing else types it. Internal refactor with no API or behavior change.
+- e515c76: Fold child Submodels inside component internals with `Update.foldChild`. Dialog, Popover, Menu, DatePicker, Listbox, Combobox, and Toast now build their child folds from the helper instead of hand-writing `Command.mapMessages` plus an OutMessage match. The Dialog and Toast leave-animation folds take the fold's `Update.FoldContext` and lift the overridable leave Command with `liftCommand`. Internal refactor with no API or behavior change.
+
+## 0.141.2
+
+### Patch Changes
+
+- 84050fc: Bump Effect to `4.0.0-beta.106` (from `4.0.0-beta.105`). Foldkit's peer dependencies now require `effect@4.0.0-beta.106` and `@effect/platform-browser@4.0.0-beta.106`.
+
+  Pin your Effect packages to `4.0.0-beta.106` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.106 @effect/platform-browser@4.0.0-beta.106
+  pnpm add -D @effect/vitest@4.0.0-beta.106
+  ```
+
+## 0.141.1
+
+## 0.141.0
+
+## 0.140.1
+
+### Patch Changes
+
+- 40ccffe: Bump Effect to `4.0.0-beta.105` (from `4.0.0-beta.103`). Foldkit's peer dependencies now require `effect@4.0.0-beta.105` and `@effect/platform-browser@4.0.0-beta.105`.
+
+  Pin your Effect packages to `4.0.0-beta.105` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.105 @effect/platform-browser@4.0.0-beta.105
+  pnpm add -D @effect/vitest@4.0.0-beta.105
+  ```
+
+## 0.140.0
+
+### Minor Changes
+
+- 107cfa5: Stop emitting `aria-disabled` from Input, Select, and Textarea
+
+  These three set the native `disabled` attribute, which already carries the state, so the extra `aria-disabled` restated native semantics in ARIA. The native attribute and `data-disabled` are unchanged. If you select on `[aria-disabled]` in CSS for one of these three, switch to `[data-disabled]`.
+
+- cfe987a: Add `isReadOnly` to Input's and Textarea's `ViewConfig`.
+
+  A read-only field sets the native `readonly` attribute plus `data-readonly`, stays focusable and selectable, and omits its input handler. `isReadOnly` and `isDisabled` are independent, and either one removes the input handler.
+
+- d5566ad: Export `Switch.labelId` and `Switch.descriptionId`
+
+  Switch derived `${id}-label` and `${id}-description` from module-private consts, so a consumer that needed to reference the label or description element, to point `aria-details` at it, to style it, or to find it in a test, had to re-declare the convention and hope it did not drift. `Checkbox`, `Fieldset`, `Dialog`, `Select`, `Textarea`, `Input`, and `Popover` already export their equivalents; Switch now matches. No behavior change.
+
+- 5926900: Add `isReadOnly` to Switch's `ViewConfig`.
+
+  A read-only Switch emits `aria-readonly="true"` and `data-readonly`, remains focusable, and omits its click and Space handlers. `isReadOnly` and `isDisabled` are independent, and either one removes the interaction handlers.
+
+### Patch Changes
+
+- 23d9329: Release scroll locks and inert page content whenever a modal Combobox closes, while keeping multi-select Comboboxes open and modal after selection.
+- 6396b63: Set `type="button"` on the headless attribute groups a consumer can render as a `button`.
+
+  A `button` element with no `type` defaults to `type="submit"`, and `h.OnClick` dispatches a Message without calling `preventDefault`. Checkbox, Switch, Disclosure, RadioGroup, and Dialog hand their control attributes to the consumer's `toView` callback, so the consumer picks the element and the component could not know it was a button. Spreading one of those groups onto a `button` inside a `form`, which is an expected setup given that Checkbox, Switch, and RadioGroup support forms through `name` and `value`, meant a click both toggled the control and submitted the form.
+
+  The affected groups now emit `type="button"`: Checkbox's `checkbox`, Switch's `button`, Disclosure's `button`, RadioGroup's `option`, and Dialog's `closeButton`. It is emitted in every state, including disabled, read-only, and while a Dialog leave animation runs, because a bare `button` submits its form whether or not the component attached a handler.
+
+  Setting it is harmless on the other elements these groups target, such as a `div` or a `span`, because the builder assigns a DOM property rather than an HTML attribute. Nothing is serialized into the markup. Attributes apply in order, so a consumer who wants a submit control spreads a later `h.Type` to override it.
+
+  Menu, Listbox, and Combobox render their own `div` for items, so the consumer never chooses that element and they are unaffected.
+
+## 0.139.0
+
+### Minor Changes
+
+- c4822d9: Add `isReadOnly` to Checkbox's `ViewConfig`.
+
+  A read-only Checkbox emits `aria-readonly="true"` and `data-readonly`, remains focusable, and omits its click and Space handlers. `isReadOnly` and `isDisabled` are independent, and either one removes the interaction handlers.
+
+  Thanks @wmaurer!
+
+### Patch Changes
+
+- aa1c805: Preserve focus on a draggable item after each keyboard move. Moving a lifted item re-renders it at its next position and can replace or detach the focused element, which previously left focus on the document body until the drag was dropped or cancelled. DragAndDrop now focuses the item again after resolving every keyboard move, matching its existing drop and cancel behavior.
+
+  Thanks @artile!
+
+- c947f47: Bump Effect to `4.0.0-beta.103` (from `4.0.0-beta.102`). Foldkit's peer dependencies now require `effect@4.0.0-beta.103` and `@effect/platform-browser@4.0.0-beta.103`.
+
+  Pin your Effect packages to `4.0.0-beta.103` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.103 @effect/platform-browser@4.0.0-beta.103
+  pnpm add -D @effect/vitest@4.0.0-beta.103
+  ```
+
+  `SchemaIssue.InvalidValue` dropped its `actual` argument in this Effect release and now takes annotations as its only argument. Decode failures for `CalendarDateFromIsoString` and `Url` are migrated to the new signature and carry their detail on the `message` annotation, which is the key the default formatter reads. Those two failures previously passed their detail as `description`, which the formatter ignored, so the messages now read as intended instead of falling back to a generic one. If you construct `SchemaIssue.InvalidValue` in your own schemas, drop the leading `Option` argument and move any detail to `message`.
+
+- d50f8a5: Closing an already-closed Menu or Listbox no longer returns Commands. `closeMenu` and `closeListbox` had no open check, so `Closed` on a closed component returned `FocusButton` and focus jumped to a trigger whose panel was never open. A modal Menu or Listbox also returned `UnlockScroll` and `RestoreInert` for a scroll lock and an inert tree it never applied, the same pair leaked when the items container blurred while closed, and an animated component started a leave cascade for a panel that was not showing. Popover and Dialog already treat closing a closed Model as a no-op, and this brings Menu and Listbox in line with them.
+
+  An open Menu or Listbox is unchanged. It still returns `FocusButton`, still returns the modal Commands when `isModal` is set, still emits `Selected` on selection, and an animated one still runs its full leave cascade.
+
+  `SelectedItem` on a closed Menu or single-select Listbox still emits the `Selected` OutMessage. Selection is independent of the open-state transition: programmatic selection has no open precondition, and multi-select Listbox also emits while closed. This fix changes only the leaked Commands.
+
+  Thanks @artile!
+
+- f639d3f: Closing an already-closed Popover no longer returns Commands. `RequestedClose` on a closed Popover returned the caller's Commands unchanged, so `FocusButton` survived and focus jumped to a trigger whose panel was never open. A modal Popover also returned `UnlockScroll` and `RestoreInert` for a scroll lock and an inert tree it never applied, and the same leak reached `BlurredPanel`. The docs already described `Popover.close` on a closed Model as a no-op, and Dialog already behaves that way, so this brings the code in line with both.
+
+  An open Popover is unchanged. It still returns `FocusButton`, still returns the modal Commands when `isModal` is set, still emits `Closed`, and an animated Popover still runs its full leave cascade. Only the already-closed path changed, and it now returns no Commands and no OutMessage, matching `RequestedOpen` on an already-open Popover.
+
+  DatePicker picks this up for free, since its `Closed` Message delegates to `Popover.close`.
+
+  Thanks @artile!
+
 ## 0.138.0
 
 ### Minor Changes
@@ -178,9 +1155,10 @@
 
   ```ts
   // before
-  const LockScroll = Command.define('LockScroll', CompletedLockScroll)(
-    Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())),
-  )
+  const LockScroll = Command.define(
+    'LockScroll',
+    CompletedLockScroll,
+  )(Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())))
 
   // after
   const LockScroll = Command.define('LockScroll', {

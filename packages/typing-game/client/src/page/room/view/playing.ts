@@ -1,10 +1,9 @@
 import { clsx } from 'clsx'
-import { Array, Number, Option, Order, String as Str, pipe } from 'effect'
+import { Array, Number, Option, Order, String, pipe } from 'effect'
 import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { USER_GAME_TEXT_INPUT_ID } from '../../../constant'
-import { ChangedUserText } from '../message'
-import type { Message } from '../message'
+import { Message } from '../message'
 
 const typing = (
   gameText: string,
@@ -19,7 +18,7 @@ const typing = (
         h.Id(USER_GAME_TEXT_INPUT_ID),
         h.Value(userGameText),
         h.Class('absolute inset-0 opacity-0 z-10 resize-none'),
-        h.OnInput(value => ChangedUserText({ value })),
+        h.OnInput(value => Message.ChangedUserText({ value })),
         h.Spellcheck(false),
         h.Autocorrect('off'),
         h.Autocapitalize('none'),
@@ -38,7 +37,7 @@ const gameTextWithProgress = (
     [h.Class('whitespace-pre-wrap')],
     pipe(
       gameText,
-      Str.split(''),
+      String.split(''),
       Array.map(char(userGameText, maybeWrongCharIndex, h)),
     ),
   )
@@ -50,7 +49,7 @@ const char =
     h: HtmlBuilder<Message>,
   ) =>
   (char: string, index: number): Html => {
-    const userGameTextLength = Str.length(userGameText)
+    const userGameTextLength = String.length(userGameText)
     const hasNoInput = userGameTextLength === 0
     const isNext =
       (hasNoInput && index === 0) ||

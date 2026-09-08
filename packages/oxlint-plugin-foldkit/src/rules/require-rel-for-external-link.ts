@@ -1,10 +1,17 @@
 import { Array, Effect, Option, pipe } from 'effect'
-import { Diagnostic, type ESTree, Rule, RuleContext } from 'effect-oxlint'
+import {
+  Diagnostic,
+  type ESTree,
+  type Reference,
+  Rule,
+  RuleContext,
+} from 'effect-oxlint'
 
 import {
-  calleeMatchesHelperName,
+  indexReferences,
   isArrayExpression,
   isCallExpression,
+  isFoldkitHtmlBuilderMember,
   isSpreadElement,
   isStringLiteral,
   staticStringValue,
@@ -16,10 +23,11 @@ const protectiveRelSubstrings = ['noopener', 'noreferrer']
 
 const isTargetBlankElement = (
   element: unknown,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): element is ESTree.CallExpression => {
   if (
     !isCallExpression(element) ||
-    !calleeMatchesHelperName(element.callee, 'Target')
+    !isFoldkitHtmlBuilderMember(element.callee, 'Target', references)
   ) {
     return false
   }
@@ -27,8 +35,12 @@ const isTargetBlankElement = (
   return isStringLiteral(firstArgument) && firstArgument.value === '_blank'
 }
 
-const isRelElement = (element: unknown): element is ESTree.CallExpression =>
-  isCallExpression(element) && calleeMatchesHelperName(element.callee, 'Rel')
+const isRelElement = (
+  element: unknown,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): element is ESTree.CallExpression =>
+  isCallExpression(element) &&
+  isFoldkitHtmlBuilderMember(element.callee, 'Rel', references)
 
 const relStaticValue = (
   relElement: ESTree.CallExpression,
@@ -62,6 +74,9 @@ export const requireRelForExternalLink = Rule.define({
   }),
   create: function* () {
     const ctx = yield* RuleContext
+    const scopes = ctx.sourceCode.scopeManager?.scopes
+    const references =
+      scopes === undefined ? undefined : indexReferences(scopes)
     return {
       ArrayExpression: (node: ESTree.Node) => {
         if (!isArrayExpression(node)) {
@@ -70,14 +85,15 @@ export const requireRelForExternalLink = Rule.define({
         if (Array.some(node.elements, isSpreadElement)) {
           return Effect.void
         }
-        const maybeTargetBlank = Array.findFirst(
-          node.elements,
-          isTargetBlankElement,
+        const maybeTargetBlank = Array.findFirst(node.elements, element =>
+          isTargetBlankElement(element, references),
         )
         if (Option.isNone(maybeTargetBlank)) {
           return Effect.void
         }
-        const relElements = Array.filter(node.elements, isRelElement)
+        const relElements = Array.filter(node.elements, element =>
+          isRelElement(element, references),
+        )
         if (Array.isArrayEmpty(relElements)) {
           return ctx.report(
             Diagnostic.make({

@@ -1,0 +1,41 @@
+name: Deploy Website Canary
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        description: Commit whose verified package snapshot to deploy
+        required: true
+        type: string
+    secrets:
+      VERCEL_TOKEN:
+        required: true
+      VERCEL_ORG_ID:
+        required: true
+      VERCEL_WEBSITE_CANARY_PROJECT_ID:
+        required: true
+      ABC_FAVORIT_BOOK_WOFF2_BASE64:
+        required: true
+      ABC_FAVORIT_LIGHT_WOFF2_BASE64:
+        required: true
+
+concurrency:
+  group: deploy-website-canary
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/deploy-website-build.yml
+    with:
+      target: ${{ inputs.target }}
+      channel: canary
+      hostname: canary.foldkit.dev
+    secrets:
+      vercel_token: ${{ secrets.VERCEL_TOKEN }}
+      vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
+      vercel_project_id: ${{ secrets.VERCEL_WEBSITE_CANARY_PROJECT_ID }}
+      website_book_font: ${{ secrets.ABC_FAVORIT_BOOK_WOFF2_BASE64 }}
+      website_light_font: ${{ secrets.ABC_FAVORIT_LIGHT_WOFF2_BASE64 }}

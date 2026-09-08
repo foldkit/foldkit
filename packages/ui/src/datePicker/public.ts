@@ -15,15 +15,9 @@ export {
   Model,
   Message,
   OutMessage,
-  GotCalendarMessage,
-  GotPopoverMessage,
-  RequestedSelectDate,
-  SelectedDate,
-  ClearedDate,
-  Cleared,
-  Opened,
-  Closed,
-  ChangedViewMonth,
+  type SelectedDate,
+  type ClearedDate,
+  type ChangedViewMonth,
 } from './index.js'
 
 export type { InitConfig, ViewInputs } from './index.js'

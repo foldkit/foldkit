@@ -1,6 +1,6 @@
 {
   "name": "foldkit",
-  "version": "0.138.0",
+  "version": "0.158.2",
   "description": "A TypeScript frontend framework, built on Effect and architected like Elm",
   "type": "module",
   "main": "./dist/index.js",
@@ -46,6 +46,10 @@
     "./experimental/machine": {
       "types": "./dist/experimental/machine/public.d.ts",
       "import": "./dist/experimental/machine/public.js"
+    },
+    "./experimental/server": {
+      "types": "./dist/experimental/server/public.d.ts",
+      "import": "./dist/experimental/server/public.js"
     },
     "./html": {
       "types": "./dist/html/public.d.ts",
@@ -158,23 +162,22 @@
     "build": "pnpm run clean && tsc -b tsconfig.build.json",
     "watch": "tsc -b tsconfig.build.json --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --coverage",
-    "docs": "typedoc"
+    "test": "vitest run --coverage"
+  },
+  "dependencies": {
+    "parse5": "^8.0.1"
   },
   "peerDependencies": {
-    "@effect/platform-browser": "4.0.0-beta.102",
-    "effect": "4.0.0-beta.102"
+    "effect": "4.0.0-rc.112"
   },
   "devDependencies": {
-    "@effect/platform-browser": "4.0.0-beta.102",
-    "@effect/vitest": "4.0.0-beta.102",
-    "@vitest/coverage-v8": "^4.1.9",
-    "effect": "4.0.0-beta.102",
-    "happy-dom": "^20.10.4",
+    "@effect/vitest": "4.0.0-rc.112",
+    "@vitest/coverage-v8": "^4.1.11",
+    "effect": "4.0.0-rc.112",
+    "happy-dom": "^20.11.13",
     "rimraf": "^6.1.3",
-    "typedoc": "^0.28.19",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.9"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   },
   "keywords": [
     "effect",
@@ -194,6 +197,6 @@
     "access": "public"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.19.0"
   }
 }

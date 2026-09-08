@@ -1,4 +1,4 @@
-import { Array, Option, Schema as S } from 'effect'
+import { Array, Option, Schema } from 'effect'
 import { inertHtml as ih } from 'foldkit/html'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -87,6 +87,32 @@ describe('view', () => {
     expect(
       (root.children ?? []).map(child => asElement(child).sel),
     ).toStrictEqual(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+  })
+
+  it('passes each code block its occurrence index in document order', () => {
+    const document = parseMarkdown(
+      lines(
+        '```ts',
+        'const first = 1',
+        '```',
+        '',
+        '```ts',
+        'const second = 2',
+        '```',
+      ),
+    )
+    const receivedIndexes: Array<number> = []
+
+    view(document, {
+      views: {
+        CodeBlock: (_codeBlock, occurrenceIndex) => {
+          receivedIndexes.push(occurrenceIndex)
+          return ih.pre([])
+        },
+      },
+    })
+
+    expect(receivedIndexes).toStrictEqual([0, 1])
   })
 
   it('renders nested inline content through the default views', () => {
@@ -227,7 +253,9 @@ describe('view', () => {
     const root = asElement(
       view(document, {
         islands: islandsFor(
-          { Badge: S.Struct({ label: S.optionalKey(S.String) }) },
+          {
+            Badge: Schema.Struct({ label: Schema.optionalKey(Schema.String) }),
+          },
           {
             Badge: ({ label }, _content, occurrenceIndex) =>
               ih.span([], [label ?? 'none', String(occurrenceIndex)]),
@@ -246,7 +274,7 @@ describe('view', () => {
     const root = asElement(
       view(document, {
         islands: islandsFor(
-          { Gauge: S.Struct({ level: S.String }) },
+          { Gauge: Schema.Struct({ level: Schema.String }) },
           { Gauge: ({ level }) => ih.span([], [level]) },
         ),
       }),

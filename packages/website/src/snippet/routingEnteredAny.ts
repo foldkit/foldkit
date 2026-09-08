@@ -1,4 +1,4 @@
-import { Match as M, Option } from 'effect'
+import { Match, Option } from 'effect'
 import { Command } from 'foldkit'
 import { Transition } from 'foldkit/route'
 
@@ -9,10 +9,10 @@ const commandsForTransition = (
 ): Commands =>
   Option.match(Transition.enteredAny(transition), {
     onNone: () => [],
-    onSome: M.type<AppRoute>().pipe(
-      M.withReturnType<Commands>(),
-      M.tag('People', () => [FetchPeopleFilters()]),
-      M.tag('Person', ({ personId }) => [FetchPerson({ personId })]),
-      M.orElse(() => []),
+    onSome: Match.type<AppRoute>().pipe(
+      Match.withReturnType<Commands>(),
+      Match.tag('People', () => [FetchPeopleFilters()]),
+      Match.tag('Person', ({ personId }) => [FetchPerson({ personId })]),
+      Match.orElse(() => []),
     ),
   })

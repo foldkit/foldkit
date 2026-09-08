@@ -1,35 +1,47 @@
 # AI
 
-## Overview
+## Architecture and Source Context
 
-Most frameworks give AI tools too much freedom. State can live anywhere, effects can happen anywhere, and there’s no canonical structure to follow. The result is generated code that works but doesn’t hold up.
+AI coding agents work best in a Foldkit project when they can see both its predictable architecture and its current source.
 
-Foldkit’s architecture changes this. The Elm Architecture enforces a rigid, yet expressive structure where every piece has a canonical shape and function. Side effects are encapsulated in exactly six places: Commands, Mount Effects, flags, Subscription streams, Resources, and ManagedResources. Every Message routes back through update. The same constraints that make your code correct make it machine-legible.
+The architecture gives every part of the program a clear role. The Model holds state. Messages record facts. update decides the next Model and which Commands to return. view describes the UI. The Runtime starts and manages outside work described by Commands, Subscriptions, Mounts, Flags, Resources, and ManagedResource entries.
 
-An AI that understands this loop can reason about the entire program as a state machine. It can generate structurally valid code, not just syntactically valid code. It can scaffold Messages and know exactly where they wire through. It can extract [Submodel](/core/submodel) and get the [OutMessage](/core/submodel#surfacing-facts) pattern right.
+An agent can follow that loop from an interaction to a Message, through update, and back to the rendered result. It can also see where a Submodel owns behavior and how an OutMessage carries a fact to its parent.
 
-This isn’t a bolt-on. It’s a consequence of the architecture.
+Architecture is only half of the context. APIs and conventions change, so the agent also needs a current copy of Foldkit's source, examples, and documentation.
 
-## Subtree Setup
+## Vendoring the Foldkit Repository
 
-For the best experience, vendor the Foldkit repository into your project as a git subtree:
+Vendor the Foldkit repository into your project as a git subtree, pinned to the release you have installed:
 
-```sh
-git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash
-```
+::Snippet{name="aiOverviewAddSubtree" label="vendor the Foldkit repository"}
 
-This gives the AI access to the Foldkit source code, the examples, and this documentation site: real patterns it can learn from and apply to your code. Unlike a submodule, a subtree is checked into your repository, so a fresh clone (your teammate, a CI runner, a cloud agent) has the source on disk immediately. The starter template includes an `AGENTS.md` with Foldkit conventions and a `.ignore` file that keeps the vendored source out of your editor’s file tree.
+Each stable release publishes a `foldkit@<version>` git tag, and the command reads the installed version from `node_modules`, so the vendored copy describes the APIs your app compiles against. Vendoring `main` instead can hand an agent examples and docs from a release you have not installed. A canary install has no tag; its version names its source commit (`0.156.0-canary.<commit>`), and the full hash of that commit is the ref to pin instead. GitHub expands the short hash at `https://github.com/foldkit/foldkit/commit/<commit>`.
 
-To pull the latest source, examples, and docs into the subtree:
+The subtree gives an agent local access to the framework source, runnable examples, this documentation site, and the production apps built with Foldkit. Treat it as read-only reference material. Application imports should still come from the installed npm packages.
 
-```sh
-git subtree pull --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash
-```
+Unlike a submodule, a subtree is committed with your repository. Teammates, CI runners, and cloud agents receive the reference source with a normal clone. Projects created with `create-foldkit-app` include a `FOLDKIT.md` that points agents to these references, an `AGENTS.md` for your own instructions, and a `.ignore` file that keeps `repos/` out of the editor file tree.
 
-## Skills Plugin
+The subtree does not move on its own. After upgrading your Foldkit packages, re-pin it to the release you now have:
 
-Foldkit ships a [skills plugin](/ai/skills) for Claude Code that encodes Foldkit’s conventions, patterns, and quality standards into agent workflows. The skills reference the actual example code in the Foldkit repository, so the generated output stays in sync with the framework as it evolves.
+::Snippet{name="aiOverviewRefreshSubtree" label="refresh the Foldkit repository"}
+
+## Keeping FOLDKIT.md Current
+
+`create-foldkit-app` writes `FOLDKIT.md` when it creates the project, and the conventions in it change with the framework. A stale copy can steer an agent toward APIs the installed packages no longer export.
+
+Replace the whole file when you upgrade Foldkit. If you vendor the repository, re-pin the subtree to the new release and copy `repos/foldkit/packages/create-foldkit-app/templates/base/FOLDKIT.md` over it. Otherwise take the template from GitHub at the tag matching the installed version: `https://github.com/foldkit/foldkit/blob/foldkit@<version>/packages/create-foldkit-app/templates/base/FOLDKIT.md`. There is nothing to merge, because your own instructions live in `AGENTS.md`, which the upgrade leaves alone.
+
+## Foldkit Skills
+
+Foldkit ships [agent skills](/ai/skills) for Claude Code, Codex, the ChatGPT desktop app, and OpenCode. The skills encode repeatable workflows for building and auditing Foldkit applications. They also direct the agent to the vendored repository when the live source is more authoritative than a written guide.
 
 ## DevTools MCP
 
-Skills generate code. The [DevTools MCP server](/ai/mcp) lets agents observe and interact with code that’s already running. Agents can read the current Model, list and inspect Message history, rewind the UI to any past Model, and dispatch Messages into the runtime.
+Skills and source help an agent understand the code. The [DevTools MCP server](/ai/mcp) exposes an application that is currently running. An agent can inspect the current or historical Model, query Message history, compare states, replay the UI, and dispatch Schema-validated Messages.
+
+## Reading This Site as Data
+
+An agent does not have to scrape these pages. Every page is available as Markdown by appending `.md` to its URL or by requesting it with `Accept: text/markdown`, [llms.txt](https://foldkit.dev/llms.txt) indexes the whole site, and [llms-full.txt](https://foldkit.dev/llms-full.txt) is every page in one file.
+
+For structured access there is a read-only JSON [Content API](/api): the page index, one document per page with its Markdown, the documentation sections, the example applications, and the blog. It is versioned, has a published deprecation policy, advertises its rate limit on every response, and answers failures as RFC 9457 problem documents. Every endpoint is described with a typed schema in [openapi.json](https://foldkit.dev/openapi.json), which is what an agent needs to call it as a tool.

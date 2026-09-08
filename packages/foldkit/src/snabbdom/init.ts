@@ -149,6 +149,16 @@ export function init(
     }
   }
 
+  const isCreateModuleDataMaskCoverageComplete = moduleDataMasks.create.every(
+    dataMask => dataMask !== undefined,
+  )
+  const isUpdateModuleDataMaskCoverageComplete = moduleDataMasks.update.every(
+    dataMask => dataMask !== undefined,
+  )
+  const isDestroyModuleDataMaskCoverageComplete = moduleDataMasks.destroy.every(
+    dataMask => dataMask !== undefined,
+  )
+
   function emptyNodeAt(element: Element) {
     const id = element.id ? '#' + element.id : ''
 
@@ -219,18 +229,24 @@ export function init(
         )
       }
       const dataMask = data?.[vnodeDataMaskKey]
-      for (
-        let moduleIndex = 0;
-        moduleIndex < moduleHooks.create.length;
-        ++moduleIndex
+      if (
+        !isCreateModuleDataMaskCoverageComplete ||
+        dataMask === undefined ||
+        dataMask !== 0
       ) {
-        const moduleDataMask = moduleDataMasks.create[moduleIndex]
-        if (
-          moduleDataMask === undefined ||
-          dataMask === undefined ||
-          (dataMask & moduleDataMask) !== 0
+        for (
+          let moduleIndex = 0;
+          moduleIndex < moduleHooks.create.length;
+          ++moduleIndex
         ) {
-          moduleHooks.create[moduleIndex]!(emptyNode, vnode)
+          const moduleDataMask = moduleDataMasks.create[moduleIndex]
+          if (
+            moduleDataMask === undefined ||
+            dataMask === undefined ||
+            (dataMask & moduleDataMask) !== 0
+          ) {
+            moduleHooks.create[moduleIndex]!(emptyNode, vnode)
+          }
         }
       }
       if (
@@ -262,18 +278,24 @@ export function init(
         api.createDocumentFragment ?? documentFragmentIsNotSupported
       )()
       const dataMask = data?.[vnodeDataMaskKey]
-      for (
-        let moduleIndex = 0;
-        moduleIndex < moduleHooks.create.length;
-        ++moduleIndex
+      if (
+        !isCreateModuleDataMaskCoverageComplete ||
+        dataMask === undefined ||
+        dataMask !== 0
       ) {
-        const moduleDataMask = moduleDataMasks.create[moduleIndex]
-        if (
-          moduleDataMask === undefined ||
-          dataMask === undefined ||
-          (dataMask & moduleDataMask) !== 0
+        for (
+          let moduleIndex = 0;
+          moduleIndex < moduleHooks.create.length;
+          ++moduleIndex
         ) {
-          moduleHooks.create[moduleIndex]!(emptyNode, vnode)
+          const moduleDataMask = moduleDataMasks.create[moduleIndex]
+          if (
+            moduleDataMask === undefined ||
+            dataMask === undefined ||
+            (dataMask & moduleDataMask) !== 0
+          ) {
+            moduleHooks.create[moduleIndex]!(emptyNode, vnode)
+          }
         }
       }
       for (
@@ -320,18 +342,24 @@ export function init(
     if (data !== undefined) {
       data?.hook?.destroy?.(vnode)
       const dataMask = data[vnodeDataMaskKey]
-      for (
-        let moduleIndex = 0;
-        moduleIndex < moduleHooks.destroy.length;
-        ++moduleIndex
+      if (
+        !isDestroyModuleDataMaskCoverageComplete ||
+        dataMask === undefined ||
+        dataMask !== 0
       ) {
-        const moduleDataMask = moduleDataMasks.destroy[moduleIndex]
-        if (
-          moduleDataMask === undefined ||
-          dataMask === undefined ||
-          (dataMask & moduleDataMask) !== 0
+        for (
+          let moduleIndex = 0;
+          moduleIndex < moduleHooks.destroy.length;
+          ++moduleIndex
         ) {
-          moduleHooks.destroy[moduleIndex]!(vnode)
+          const moduleDataMask = moduleDataMasks.destroy[moduleIndex]
+          if (
+            moduleDataMask === undefined ||
+            dataMask === undefined ||
+            (dataMask & moduleDataMask) !== 0
+          ) {
+            moduleHooks.destroy[moduleIndex]!(vnode)
+          }
         }
       }
       if (vnode.children !== undefined) {
@@ -610,19 +638,26 @@ export function init(
       oldVnode.data ??= {}
       const oldDataMask = oldVnode.data[vnodeDataMaskKey]
       const dataMask = vnode.data[vnodeDataMaskKey]
-      for (
-        let moduleIndex = 0;
-        moduleIndex < moduleHooks.update.length;
-        ++moduleIndex
+      if (
+        !isUpdateModuleDataMaskCoverageComplete ||
+        oldDataMask === undefined ||
+        dataMask === undefined ||
+        (oldDataMask | dataMask) !== 0
       ) {
-        const moduleDataMask = moduleDataMasks.update[moduleIndex]
-        if (
-          moduleDataMask === undefined ||
-          oldDataMask === undefined ||
-          dataMask === undefined ||
-          ((oldDataMask | dataMask) & moduleDataMask) !== 0
+        for (
+          let moduleIndex = 0;
+          moduleIndex < moduleHooks.update.length;
+          ++moduleIndex
         ) {
-          moduleHooks.update[moduleIndex]!(oldVnode, vnode)
+          const moduleDataMask = moduleDataMasks.update[moduleIndex]
+          if (
+            moduleDataMask === undefined ||
+            oldDataMask === undefined ||
+            dataMask === undefined ||
+            ((oldDataMask | dataMask) & moduleDataMask) !== 0
+          ) {
+            moduleHooks.update[moduleIndex]!(oldVnode, vnode)
+          }
         }
       }
       vnode.data?.hook?.update?.(oldVnode, vnode)
@@ -666,6 +701,7 @@ export function init(
   return function patch(
     oldVnode: VNode | Element | DocumentFragment,
     vnode: VNode,
+    onRootPatched?: (vnode: VNode) => void,
   ): VNode {
     const insertedVnodeQueue: VNodeQueue = []
     isDuplicateKeyWarningIssued = false
@@ -696,6 +732,11 @@ export function init(
         removeVnodes(parent, [oldVnode], 0, 0)
       }
     }
+
+    // NOTE: insert hooks run after the root has been installed and the old
+    // root may already be detached. Callers recovering from an insert-hook
+    // defect need the VNode that owns the DOM before those hooks can throw.
+    onRootPatched?.(vnode)
 
     for (
       let insertedVnodeIndex = 0;

@@ -1,4 +1,4 @@
-import { Match as M, Option } from 'effect'
+import { Match, Option } from 'effect'
 import * as Calendar from 'foldkit/calendar'
 import { type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
@@ -8,23 +8,23 @@ import { describe, it } from '@effect/vitest'
 
 import * as UiCalendar from '../calendar/index.js'
 import * as Popover from '../popover/public.js'
-import type { Message, Model, ViewInputs } from './index.js'
-import { Opened, init, triggerId, update, view } from './index.js'
+import type { Model, ViewInputs } from './index.js'
+import { Message, init, triggerId, update, view } from './index.js'
 
 const acknowledgeAnchorPopover = Scene.Mount.resolve(
   Popover.AnchorPopover,
-  Popover.CompletedAnchorPopover(),
+  Popover.Message.CompletedAnchorPopover(),
 )
 const acknowledgePopoverBackdrop = Scene.Mount.resolve(
   Popover.PortalPopoverBackdrop,
-  Popover.CompletedPortalPopoverBackdrop(),
+  Popover.Message.CompletedPortalPopoverBackdrop(),
 )
 
 const today = Calendar.make(2026, 4, 13)
 
 const testToCalendarView = (attrs: UiCalendar.CalendarAttributes) =>
-  M.value(attrs).pipe(
-    M.tagsExhaustive({
+  Match.value(attrs).pipe(
+    Match.tagsExhaustive({
       Days: days =>
         ih.div(days.root, [
           ih.div(
@@ -136,7 +136,7 @@ const grid = Scene.role('grid')
 const hiddenInput = Scene.selector('input[type="hidden"]')
 
 const closedModel = init({ id: 'picker', today })
-const [openModel] = update(closedModel, Opened())
+const pickerOpen = update(closedModel, Message.Opened())
 
 describe('DatePicker', () => {
   describe('rendering', () => {
@@ -181,7 +181,7 @@ describe('DatePicker', () => {
     it('renders the calendar grid inside the popover panel when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(openModel),
+        Scene.given(pickerOpen.model),
         Scene.expect(panel).toExist(),
         Scene.expect(grid).toExist(),
         acknowledgeAnchorPopover,
@@ -194,7 +194,7 @@ describe('DatePicker', () => {
     it('does not put tabindex on the popover panel when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(openModel),
+        Scene.given(pickerOpen.model),
         Scene.expect(panel).not.toHaveAttr('tabIndex'),
         acknowledgeAnchorPopover,
         acknowledgePopoverBackdrop,
@@ -204,7 +204,7 @@ describe('DatePicker', () => {
     it('does not attach a blur handler to the popover panel when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(openModel),
+        Scene.given(pickerOpen.model),
         Scene.expect(panel).not.toHaveHandler('blur'),
         acknowledgeAnchorPopover,
         acknowledgePopoverBackdrop,
@@ -217,7 +217,7 @@ describe('DatePicker', () => {
       // Removing this while retaining contentFocus would break Escape-to-close.
       Scene.scene(
         { update, view: sceneView() },
-        Scene.given(openModel),
+        Scene.given(pickerOpen.model),
         Scene.expect(panel).toHaveHandler('keydown'),
         acknowledgeAnchorPopover,
         acknowledgePopoverBackdrop,

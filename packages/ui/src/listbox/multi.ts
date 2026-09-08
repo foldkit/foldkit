@@ -1,17 +1,13 @@
-import { Option, Schema as S } from 'effect'
-import type * as Command from 'foldkit/command'
+import { Option, Schema } from 'effect'
+import { type Update } from 'foldkit'
 import type { View as SubmodelView } from 'foldkit/submodel'
 
 import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewInputs,
-  Closed,
-  type Message,
-  Opened,
-  type OutMessage,
-  SelectedItem,
-  Selected as SharedSelected,
+  Message,
+  OutMessage,
   baseInit,
   makeUpdate,
   makeView,
@@ -20,7 +16,7 @@ import {
 // MODEL
 
 /** Schema for the multi-select listbox's private interaction state (open/closed status, active item, activation trigger, typeahead search). The selection is owned by the parent and passed in via `ViewInputs.selectedValues`. */
-export const Model = S.Struct({
+export const Model = Schema.Struct({
   ...BaseModel.fields,
 })
 
@@ -36,27 +32,32 @@ export const init = (config: InitConfig): Model => baseInit(config)
 
 // UPDATE
 
-/** Processes a listbox message and returns the next model, commands, and optional OutMessage. Stays open on selection (multi-select behavior); emits a `Selected({ value })` OutMessage the parent folds by toggling the value's membership in the selection it owns. */
-export const update = makeUpdate<Model>((model, item) => [
+/** Processes a Listbox Message and returns the next Model, optional Commands,
+ *  and an optional OutMessage. Selection leaves the multi-select Listbox open
+ *  and emits `Selected({ value })` for the parent to fold by toggling
+ *  membership. */
+export const update = makeUpdate<Model>((model, item) => ({
   model,
-  [],
-  Option.some(SharedSelected({ value: item })),
-])
+  outMessage: OutMessage.Selected({ value: item }),
+}))
 
 type UpdateReturn = ReturnType<typeof update>
 
-/** Programmatically opens the listbox, updating the model and returning
- *  focus and modal commands. Use this in domain-event handlers to open the listbox. */
+/** Programmatically opens the Listbox, updating the Model and returning focus
+ *  and modal Commands. Use this in domain-event handlers. */
 export const open = (model: Model): UpdateReturn =>
-  update(model, Opened({ maybeActiveItemIndex: Option.none() }))
+  update(model, Message.Opened({ maybeActiveItemIndex: Option.none() }))
 
-/** Programmatically closes the listbox, updating the model and returning
- *  focus and modal commands. Use this in domain-event handlers to close the listbox. */
-export const close = (model: Model): UpdateReturn => update(model, Closed())
+/** Programmatically closes the listbox. If it is open, returns the closed Model
+ *  with focus and modal Commands. If it is already closed, returns the Model
+ *  unchanged with no Commands. Use this in domain-event handlers to close the
+ *  listbox. */
+export const close = (model: Model): UpdateReturn =>
+  update(model, Message.Closed())
 
 /** Programmatically activates an item in the multi-select listbox. Emits `Selected({ value })`; the parent toggles the value's membership. */
 export const selectItem = (model: Model, item: string): UpdateReturn =>
-  update(model, SelectedItem({ item }))
+  update(model, Message.SelectedItem({ item }))
 
 // VIEW
 
@@ -68,6 +69,12 @@ export type ViewInputs<Item, Value extends string = string> = BaseViewInputs<
 
 const internalView = makeView<Model>({ ariaMultiSelectable: true })
 
+type BundleUpdateReturn<Value extends string> = Update.ReturnWithOutMessage<
+  Model,
+  Message,
+  OutMessage<Value>
+>
+
 /** The `view`, `update`, and programmatic helpers that
  *  `Listbox.Multi.create` returns, bound to one `Item` and `Value` pair.
  *  Name it to annotate a value that holds a created bundle, such as a
@@ -78,36 +85,10 @@ export type Bundle<
   Value extends string = Item extends string ? Item : string,
 > = Readonly<{
   view: SubmodelView<Model, Message, ViewInputs<Item, Value>>
-  update: (
-    model: Model,
-    message: Message,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
-  selectItem: (
-    model: Model,
-    item: Value,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
-  open: (
-    model: Model,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
-  close: (
-    model: Model,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
+  update: (model: Model, message: Message) => BundleUpdateReturn<Value>
+  selectItem: (model: Model, item: Value) => BundleUpdateReturn<Value>
+  open: (model: Model) => BundleUpdateReturn<Value>
+  close: (model: Model) => BundleUpdateReturn<Value>
 }>
 
 /** Pairs the multi-select listbox's `view` and `update` (and programmatic
@@ -119,19 +100,23 @@ export const create = <
   Item = string,
   Value extends string = Item extends string ? Item : string,
 >(): Bundle<Item, Value> => {
-  type UpdateReturn = readonly [
+  type UpdateReturn = Update.ReturnWithOutMessage<
     Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
+    Message,
+    OutMessage<Value>
+  >
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const typedUpdate = update as (model: Model, message: Message) => UpdateReturn
   return {
     view: internalView<Item, Value>(),
     update: typedUpdate,
-    selectItem: (model, item) => typedUpdate(model, SelectedItem({ item })),
+    selectItem: (model, item) =>
+      typedUpdate(model, Message.SelectedItem({ item })),
     open: model =>
-      typedUpdate(model, Opened({ maybeActiveItemIndex: Option.none() })),
-    close: model => typedUpdate(model, Closed()),
+      typedUpdate(
+        model,
+        Message.Opened({ maybeActiveItemIndex: Option.none() }),
+      ),
+    close: model => typedUpdate(model, Message.Closed()),
   }
 }

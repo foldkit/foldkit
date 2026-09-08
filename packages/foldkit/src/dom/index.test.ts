@@ -1,8 +1,9 @@
-import { Effect } from 'effect'
+import { Effect, Fiber } from 'effect'
 import { expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
+import { RenderCommit, createCommitNotifier } from '../render/commit.js'
 import {
   ElementNotFound,
   closeDialog,
@@ -280,6 +281,88 @@ describe('inertOthers', () => {
     }),
   )
 
+  it.effect('resolves the allowed elements after the render commits', () =>
+    Effect.gen(function* () {
+      const main = document.createElement('main')
+      const button = document.createElement('button')
+      button.id = 'menu-button'
+      main.appendChild(button)
+
+      const portalRoot = document.createElement('div')
+      portalRoot.id = 'portal-root'
+      const footer = document.createElement('footer')
+      document.body.appendChild(main)
+      document.body.appendChild(portalRoot)
+      document.body.appendChild(footer)
+
+      const notifier = createCommitNotifier()
+      notifier.markCommitPending()
+
+      expect(document.querySelector('#menu-items')).toBeNull()
+
+      const fiber = yield* Effect.forkChild(
+        inertOthers('test', ['#menu-button', '#menu-items']).pipe(
+          Effect.provideService(RenderCommit, notifier.service),
+        ),
+        { startImmediately: true },
+      )
+
+      yield* Effect.promise(
+        () =>
+          new Promise<void>(resolve => {
+            queueMicrotask(() => {
+              const items = document.createElement('div')
+              items.id = 'menu-items'
+              portalRoot.appendChild(items)
+              resolve()
+            })
+          }),
+      )
+
+      expect(document.querySelector('#menu-items')).not.toBeNull()
+      expect(fiber.pollUnsafe()).toBeUndefined()
+
+      notifier.notifyCommitted()
+      yield* Fiber.join(fiber)
+
+      expect(portalRoot.inert).toBeFalsy()
+      expect(portalRoot.getAttribute('aria-hidden')).toBeNull()
+      expect(footer.inert).toBe(true)
+      expect(footer.getAttribute('aria-hidden')).toBe('true')
+
+      yield* restoreInert('test')
+      cleanupDom()
+    }),
+  )
+
+  it.effect('stays restored when closed before the render commits', () =>
+    Effect.gen(function* () {
+      const { header, footer } = buildDom()
+      const notifier = createCommitNotifier()
+      notifier.markCommitPending()
+
+      const fiber = yield* Effect.forkChild(
+        inertOthers('test', ['#menu-button', '#menu-items']).pipe(
+          Effect.provideService(RenderCommit, notifier.service),
+        ),
+        { startImmediately: true },
+      )
+
+      expect(fiber.pollUnsafe()).toBeUndefined()
+
+      yield* restoreInert('test')
+      notifier.notifyCommitted()
+      yield* Fiber.join(fiber)
+
+      expect(header.inert).toBeFalsy()
+      expect(header.getAttribute('aria-hidden')).toBeNull()
+      expect(footer.inert).toBeFalsy()
+      expect(footer.getAttribute('aria-hidden')).toBeNull()
+
+      cleanupDom()
+    }),
+  )
+
   it.effect('restores original values', () =>
     Effect.gen(function* () {
       const { header, footer } = buildDom()
@@ -384,6 +467,160 @@ describe('showDialog', () => {
     document.dispatchEvent(event)
     return event
   }
+
+  it.effect(
+    'falls back to the first focusable descendant when focusSelector misses',
+    () =>
+      Effect.gen(function* () {
+        const dialog = makeDialog('solo')
+        const button = dialog.querySelector('button')
+
+        yield* showDialog('#solo', { focusSelector: '#missing' })
+
+        expect(document.activeElement).toBe(button)
+
+        yield* closeDialog('#solo')
+        document.body.innerHTML = ''
+      }),
+  )
+
+  it.effect(
+    'falls back when focusSelector matches an element that cannot receive focus',
+    () =>
+      Effect.gen(function* () {
+        const dialog = makeDialog('solo')
+        const nonFocusable = document.createElement('div')
+        nonFocusable.id = 'non-focusable'
+        dialog.prepend(nonFocusable)
+        const button = dialog.querySelector('button')
+
+        yield* showDialog('#solo', { focusSelector: '#non-focusable' })
+
+        expect(document.activeElement).toBe(button)
+
+        yield* closeDialog('#solo')
+        document.body.innerHTML = ''
+      }),
+  )
+
+  it.effect('focuses the first focusable descendant by default', () =>
+    Effect.gen(function* () {
+      const dialog = makeDialog('solo')
+      const button = dialog.querySelector('button')
+
+      yield* showDialog('#solo')
+
+      expect(document.activeElement).toBe(button)
+
+      yield* closeDialog('#solo')
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect('skips descendants that cannot receive focus', () =>
+    Effect.gen(function* () {
+      const dialog = document.createElement('dialog')
+      dialog.id = 'solo'
+
+      const hiddenInput = document.createElement('input')
+      hiddenInput.type = 'hidden'
+
+      const hiddenButton = document.createElement('button')
+      hiddenButton.style.display = 'none'
+
+      const disabledButton = document.createElement('button')
+      disabledButton.disabled = true
+
+      const visibleButton = document.createElement('button')
+
+      dialog.append(hiddenInput, hiddenButton, disabledButton, visibleButton)
+      document.body.appendChild(dialog)
+
+      yield* showDialog('#solo')
+
+      expect(document.activeElement).toBe(visibleButton)
+      expect(pressTab().defaultPrevented).toBe(true)
+      expect(document.activeElement).toBe(visibleButton)
+
+      yield* closeDialog('#solo')
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect('ignores nonfocusable descendants when trapping Tab', () =>
+    Effect.gen(function* () {
+      const dialog = document.createElement('dialog')
+      dialog.id = 'solo'
+
+      const visibleButton = document.createElement('button')
+
+      const hiddenInput = document.createElement('input')
+      hiddenInput.type = 'hidden'
+
+      const hiddenButton = document.createElement('button')
+      hiddenButton.style.display = 'none'
+
+      dialog.append(visibleButton, hiddenInput, hiddenButton)
+      document.body.appendChild(dialog)
+
+      yield* showDialog('#solo')
+
+      expect(document.activeElement).toBe(visibleButton)
+      expect(pressTab().defaultPrevented).toBe(true)
+      expect(document.activeElement).toBe(visibleButton)
+
+      yield* closeDialog('#solo')
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect('focuses the dialog when it has no focusable descendants', () =>
+    Effect.gen(function* () {
+      const dialog = document.createElement('dialog')
+      dialog.id = 'solo'
+      document.body.appendChild(dialog)
+
+      yield* showDialog('#solo')
+
+      expect(document.activeElement).toBe(dialog)
+
+      yield* closeDialog('#solo')
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect('traps Tab on a dialog with no focusable descendants', () =>
+    Effect.gen(function* () {
+      const dialog = document.createElement('dialog')
+      dialog.id = 'solo'
+      document.body.appendChild(dialog)
+
+      yield* showDialog('#solo')
+
+      expect(pressTab().defaultPrevented).toBe(true)
+      expect(document.activeElement).toBe(dialog)
+
+      yield* closeDialog('#solo')
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect(
+    'closeDialog reports whether it released the hygiene showDialog installed',
+    () =>
+      Effect.gen(function* () {
+        makeDialog('solo')
+
+        expect(yield* closeDialog('#solo')).toBe(false)
+
+        yield* showDialog('#solo')
+
+        expect(yield* closeDialog('#solo')).toBe(true)
+        expect(yield* closeDialog('#solo')).toBe(false)
+
+        document.body.innerHTML = ''
+      }),
+  )
 
   it.effect('routes Escape to a single open dialog', () =>
     Effect.gen(function* () {

@@ -1,29 +1,40 @@
 # Testing
 
-## Overview
+## Story and Scene {#overview}
 
-The Elm Architecture makes testing straightforward. The update function is pure. Given a Model and a Message, it always returns the same result. No DOM, no HTTP calls, no timers. Just a function that takes data and returns data.
+Foldkit tests at two boundaries. Story calls update directly. Scene enters through the rendered view. Neither test runs a browser or executes the Effects inside Commands, so both stay deterministic and fast.
 
-Foldkit ships two testing primitives. `Story` tests the state machine: you send Messages directly through update, resolve Commands inline, and assert on the Model. `Scene` tests features through the rendered view (for example clicking buttons, typing into inputs, or pressing keys) using accessible locators. Both are pure, deterministic, and fast.
+|                | Story                                        | Scene                                              |
+| -------------- | -------------------------------------------- | -------------------------------------------------- |
+| Enters through | A Message                                    | An interaction or lifecycle result                 |
+| Observes       | Model changes, Commands, and OutMessages     | Rendered output, Commands, Mounts, and OutMessages |
+| Best suited to | Update logic, edge cases, and Command wiring | User flows, view behavior, and accessibility       |
 
-Use Story for update logic, edge cases, and Command wiring. Use Scene for user flows, view rendering, and accessibility. A well-tested Foldkit app uses both.
+Use both. Story proves the state machine behaves correctly. Scene proves that a person can reach that behavior through the view.
 
-Name test files for their test style, beside the code under test: `story.test.ts` for Story tests (which drive `update`) and `scene.test.ts` for Scene tests (which drive the rendered view). The name describes how the test works, not a source file, so it stays correct whether `update` and `view` live in `main.ts` or in their own files. When one folder holds more than one test of a kind (sibling pages, component variants), prefix with the subject, like `login.story.test.ts`. Both styles colocate at any level, including inside [Submodel](/core/submodel) folders. A root-level `scene.test.ts` then holds only the flows that span pages, and a large suite splits those by flow into `checkout.scene.test.ts`, `cart.scene.test.ts`, and so on. See [Project Organization](/project-organization) for the full layout.
+Name each file for the boundary it tests:
+
+- `story.test.ts` drives update.
+- `scene.test.ts` drives the rendered view.
+- When one folder has several tests of the same kind, prefix the subject: `login.story.test.ts`.
+- Keep root-level Scene tests for flows that cross pages. Colocate page and Submodel tests with the code they exercise.
+
+The names stay accurate whether update and view live together or in separate files. See [Project Organization](/patterns/project-organization) for the full layout.
 
 ## Story
 
-`story` simulates the update loop. Each step reads like a sentence: send a Message, resolve a Command, check the Model. See the [Story](/testing/story) page for the full API.
+`story` starts from a Model, sends Messages through update, and keeps Commands as data until the test supplies their result Messages. See the [Story](/testing/story) page for the full API.
 
-Story tests are flexible about testing level. Because Story sends Messages directly to `update` and asserts on the Model, testing a child’s update in isolation is valid: the function signature is the contract, and it works the same whether the parent calls it or the test does.
+Story can test a root update or a child update in isolation. The update function is the contract at either level.
 
 ::Snippet{name="counterCommandsTest" label="Story example"}
 
 ## Scene
 
-`scene` exercises the view. Locators find elements the way users do: by role, label, or placeholder. Interactions dispatch Messages through the rendered event handlers, and Messages from the other lifecycle causes enter through their own cause-named steps: `Subscription.emit`, `ManagedResource.acquire` / `release` / `failAcquire`, and `CustomElement.emit`. Inline assertions check the HTML between steps. Scene also tracks the Mount lifecycle: the side effects declared by `OnMount` attributes in the view must be acknowledged via `Mount.resolve`, mirroring how Commands are resolved, and a Mount that later unmounts is acknowledged with `Mount.expectEnded`. See the [Scene](/testing/scene) page for the full API.
+`scene` renders the view after every step. Locators find elements by role, label, placeholder, and visible text. Interactions invoke the view's event handlers, while cause-named steps supply Subscription, ManagedResource, and CustomElement results. Scene also tracks pending Commands and Mounts. See the [Scene](/testing/scene) page for the full API.
 
-Scene runs at any level. `Submodel.defineView` produces a plain `(model, h) => Html` function, so a child view drops into `scene` unmodified. The `toParentMessage` wrap lives at the parent’s `h.submodel` call site, not in the child’s signature. A Submodel that declares `ViewInputs` takes a second argument, which `withViewInputs` supplies: pass the view and its default inputs once, then vary value inputs per test while the renderer stays pinned; `packages/ui/src/slider/scene.test.ts` is the canonical example. `scene` also accepts a child `update` that returns the three-tuple with an OutMessage, and `expectOutMessage` and `expectNoOutMessage` assert on it directly.
+Scene can also start at the root or at a child Submodel. `withViewInputs` adapts a Submodel view that needs ViewInputs, and `expectOutMessage` checks a child's OutMessage directly.
 
-Pick the level by coupling. Enter at the [Submodel](/core/submodel) for behavior the Submodel owns: how it renders, how it responds to interaction, which Commands it returns. Enter at the root for behavior that crosses the boundary, which covers how the parent folds an OutMessage, a Command the parent lifts, a route change, and view inputs the parent computes. Those are invisible from below, so asserting on them in a child Scene would test a path production never runs. (The OutMessage itself is assertable at the child level with `expectOutMessage`; what the parent does with it is not.) The reverse is just as real: driving the whole app through the root to check one page’s rendering buries the assertion in unrelated setup.
+Choose the level by ownership. Test a Submodel's rendering, interactions, Commands, and OutMessages at the Submodel. Test parent folding, lifted Commands, route changes, and parent-computed ViewInputs at the root. Those behaviors cross the boundary and cannot be observed from the child.
 
 ::Snippet{name="sceneWeatherFlow" label="Scene example"}

@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema as S } from 'effect'
+import { Context, Effect, Layer, Schema } from 'effect'
 import { Command, Runtime } from 'foldkit'
 
 class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
@@ -8,7 +8,7 @@ class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
 }
 
 const LoadUser = Command.define('LoadUser', {
-  args: { userId: S.String },
+  args: { userId: Schema.String },
   messages: [CompletedLoadUser],
   execute: ({ userId }) =>
     Effect.gen(function* () {

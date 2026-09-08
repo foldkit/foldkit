@@ -1,9 +1,16 @@
 import { Array, Effect, Option, pipe } from 'effect'
-import { Diagnostic, type ESTree, Rule, RuleContext } from 'effect-oxlint'
+import {
+  Diagnostic,
+  type ESTree,
+  type Reference,
+  Rule,
+  RuleContext,
+} from 'effect-oxlint'
 
 import {
-  calleeMatchesHelperName,
+  indexReferences,
   isCallExpression,
+  isFoldkitHtmlBuilderMember,
   isIdentifier,
   isObjectExpression,
   isStringLiteral,
@@ -156,16 +163,20 @@ const keyPropertyValue = (
 
 const attributeEventName = (
   node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<string> => {
-  if (!calleeMatchesHelperName(node.callee, 'Attribute')) {
+  if (!isFoldkitHtmlBuilderMember(node.callee, 'Attribute', references)) {
     return Option.none()
   }
   const [firstArgument] = node.arguments
   return Option.filter(staticStringValue(firstArgument), isRawEventName)
 }
 
-const propEventName = (node: ESTree.CallExpression): Option.Option<string> => {
-  if (!calleeMatchesHelperName(node.callee, 'Prop')) {
+const propEventName = (
+  node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<string> => {
+  if (!isFoldkitHtmlBuilderMember(node.callee, 'Prop', references)) {
     return Option.none()
   }
   const [configArgument] = node.arguments
@@ -196,14 +207,17 @@ export const noRawDomEventAttributes = Rule.define({
   }),
   create: function* () {
     const ctx = yield* RuleContext
+    const scopes = ctx.sourceCode.scopeManager?.scopes
+    const references =
+      scopes === undefined ? undefined : indexReferences(scopes)
     return {
       CallExpression: (node: ESTree.Node) => {
         if (!isCallExpression(node)) {
           return Effect.void
         }
         return pipe(
-          attributeEventName(node),
-          Option.orElse(() => propEventName(node)),
+          attributeEventName(node, references),
+          Option.orElse(() => propEventName(node, references)),
           Option.match({
             onNone: () => Effect.void,
             onSome: attributeName =>

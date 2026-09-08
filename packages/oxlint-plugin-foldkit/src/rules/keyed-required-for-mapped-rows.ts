@@ -1,13 +1,24 @@
 import { Array, Effect, Option, pipe } from 'effect'
-import { Diagnostic, type ESTree, Rule, RuleContext } from 'effect-oxlint'
+import {
+  Diagnostic,
+  type ESTree,
+  type Reference,
+  Rule,
+  RuleContext,
+  type Variable,
+} from 'effect-oxlint'
 
 import {
   calleeMatchesHelperName,
   helperCalleeName,
+  indexReferences,
   isArrayExpression,
   isCallExpression,
+  isFoldkitHtmlBuilderMember,
   isIdentifier,
   isMemberExpression,
+  resolveImportedPath,
+  resolvedVariable,
 } from '../guards.ts'
 
 const rowElementTagNames = ['li', 'div', 'tr', 'article', 'section']
@@ -65,12 +76,64 @@ const isObjectPattern = (
   'type' in node &&
   node.type === 'ObjectPattern'
 
-const isSingleValueMapCallee = (callee: unknown): boolean =>
-  isMemberExpression(callee) &&
-  !callee.computed &&
-  isIdentifier(callee.property, 'map') &&
-  isIdentifier(callee.object) &&
-  singleValueMapNamespaces.includes(callee.object.name)
+const isSingleValueMapCallee = (
+  callee: unknown,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
+  if (references === undefined) {
+    return (
+      isMemberExpression(callee) &&
+      !callee.computed &&
+      isIdentifier(callee.property, 'map') &&
+      isIdentifier(callee.object) &&
+      singleValueMapNamespaces.includes(callee.object.name)
+    )
+  }
+
+  return Option.exists(resolveImportedPath(references, callee), path => {
+    const isEffectModule =
+      path.source === 'effect' || path.source.startsWith('effect/')
+    const members = path.source.startsWith('effect/')
+      ? [path.source.slice('effect/'.length), ...path.members]
+      : path.members
+    const [namespace, methodName, extraMember] = members
+
+    return (
+      isEffectModule &&
+      namespace !== undefined &&
+      singleValueMapNamespaces.includes(namespace) &&
+      methodName === 'map' &&
+      extraMember === undefined
+    )
+  })
+}
+
+const isMapCallee = (
+  callee: unknown,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
+  if (calleeMatchesHelperName(callee, 'map')) {
+    return true
+  }
+  if (references === undefined) {
+    return false
+  }
+
+  return Option.exists(resolveImportedPath(references, callee), path => {
+    if (path.source !== 'effect' && !path.source.startsWith('effect/')) {
+      return false
+    }
+
+    const members = path.source.startsWith('effect/')
+      ? [path.source.slice('effect/'.length), ...path.members]
+      : path.members
+    const [namespace, methodName, extraMember] = members
+
+    return (
+      namespace === 'Array' && methodName === 'map' && extraMember === undefined
+    )
+  })
+}
 
 const arrowCallback = (
   node: ESTree.CallExpression,
@@ -88,10 +151,17 @@ const arrowCallback = (
 const referencesIdOfParameter = (
   value: unknown,
   parameterName: string,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+  parameterVariable: Variable | undefined,
 ): boolean => {
   if (Array.isArray(value)) {
     return value.some(element =>
-      referencesIdOfParameter(element, parameterName),
+      referencesIdOfParameter(
+        element,
+        parameterName,
+        references,
+        parameterVariable,
+      ),
     )
   }
   if (typeof value !== 'object' || value === null) {
@@ -100,7 +170,13 @@ const referencesIdOfParameter = (
   if (
     isMemberExpression(value) &&
     isIdentifier(value.object, parameterName) &&
-    isIdentifier(value.property, 'id')
+    isIdentifier(value.property, 'id') &&
+    (references === undefined ||
+      (parameterVariable !== undefined &&
+        Option.exists(
+          resolvedVariable(references, value.object),
+          variable => variable === parameterVariable,
+        )))
   ) {
     return true
   }
@@ -108,7 +184,12 @@ const referencesIdOfParameter = (
   return fieldEntries.some(
     ([fieldName, fieldValue]) =>
       fieldName !== 'parent' &&
-      referencesIdOfParameter(fieldValue, parameterName),
+      referencesIdOfParameter(
+        fieldValue,
+        parameterName,
+        references,
+        parameterVariable,
+      ),
   )
 }
 
@@ -123,10 +204,23 @@ const destructuresId = (
       isIdentifier(property.key, 'id'),
   )
 
-const isIdentityBearing = (callback: ArrowCallback): boolean => {
+const isIdentityBearing = (
+  callback: ArrowCallback,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+  declaredVariables: ReadonlyArray<Variable>,
+): boolean => {
   const [firstParameter] = callback.params
   if (isIdentifier(firstParameter)) {
-    return referencesIdOfParameter(callback.body, firstParameter.name)
+    const parameterVariable = declaredVariables.find(variable =>
+      variable.identifiers.some(identifier => identifier === firstParameter),
+    )
+
+    return referencesIdOfParameter(
+      callback.body,
+      firstParameter.name,
+      references,
+      parameterVariable,
+    )
   }
   if (isObjectPattern(firstParameter)) {
     return destructuresId(firstParameter)
@@ -149,11 +243,17 @@ const callbackReturnExpression = (
   )
 }
 
-const isKeyedWrapped = (node: ESTree.CallExpression): boolean =>
+const isKeyedWrapped = (
+  node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean =>
   isCallExpression(node.callee) &&
-  calleeMatchesHelperName(node.callee.callee, 'keyed')
+  isFoldkitHtmlBuilderMember(node.callee.callee, 'keyed', references)
 
-const hasKeyAttribute = (rowElementCall: ESTree.CallExpression): boolean => {
+const hasKeyAttribute = (
+  rowElementCall: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
   const [attributesArgument] = rowElementCall.arguments
   if (!isArrayExpression(attributesArgument)) {
     return false
@@ -161,7 +261,7 @@ const hasKeyAttribute = (rowElementCall: ESTree.CallExpression): boolean => {
   return attributesArgument.elements.some(
     element =>
       isCallExpression(element) &&
-      calleeMatchesHelperName(element.callee, 'Key'),
+      isFoldkitHtmlBuilderMember(element.callee, 'Key', references),
   )
 }
 
@@ -172,16 +272,23 @@ type UnkeyedRow = Readonly<{
 
 const unkeyedRowElement = (
   returnExpression: unknown,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<UnkeyedRow> => {
   if (!isCallExpression(returnExpression)) {
     return Option.none()
   }
-  if (isKeyedWrapped(returnExpression) || hasKeyAttribute(returnExpression)) {
+  if (
+    isKeyedWrapped(returnExpression, references) ||
+    hasKeyAttribute(returnExpression, references)
+  ) {
     return Option.none()
   }
   return pipe(
     helperCalleeName(returnExpression.callee),
     Option.filter(tagName => rowElementTagNames.includes(tagName)),
+    Option.filter(tagName =>
+      isFoldkitHtmlBuilderMember(returnExpression.callee, tagName, references),
+    ),
     Option.map(tagName => ({ rowElementCall: returnExpression, tagName })),
   )
 }
@@ -202,20 +309,33 @@ export const keyedRequiredForMappedRows = Rule.define({
   }),
   create: function* () {
     const ctx = yield* RuleContext
+    const scopeManager = ctx.sourceCode.scopeManager
+    const references =
+      scopeManager === undefined
+        ? undefined
+        : indexReferences(scopeManager.scopes)
     return {
       CallExpression: (node: ESTree.Node) => {
         if (
           !isCallExpression(node) ||
-          !calleeMatchesHelperName(node.callee, 'map') ||
-          isSingleValueMapCallee(node.callee)
+          !isMapCallee(node.callee, references) ||
+          isSingleValueMapCallee(node.callee, references)
         ) {
           return Effect.void
         }
         return pipe(
           arrowCallback(node),
-          Option.filter(isIdentityBearing),
+          Option.filter(callback =>
+            isIdentityBearing(
+              callback,
+              references,
+              scopeManager?.getDeclaredVariables(callback as ESTree.Node) ?? [],
+            ),
+          ),
           Option.flatMap(callbackReturnExpression),
-          Option.flatMap(unkeyedRowElement),
+          Option.flatMap(returnExpression =>
+            unkeyedRowElement(returnExpression, references),
+          ),
           Option.match({
             onNone: () => Effect.void,
             onSome: ({ rowElementCall, tagName }) =>

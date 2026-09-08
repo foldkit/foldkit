@@ -1,4 +1,5 @@
 import { click, expect, given, role, scene, text } from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { type Model, update, view } from './main'
@@ -36,19 +37,20 @@ describe('view', () => {
   test('clear removes recorded warnings', () => {
     scene(
       { update, view },
-      given({
-        ...initialModel,
-        warnings: [
-          {
-            id: 1,
-            phase: 'Update',
-            durationMs: 12,
-            thresholdMs: 4,
-            trigger: 'ClickedRunUpdateWork',
-            details: 'Update work exceeded the threshold.',
-          },
-        ],
-      }),
+      given(
+        evo(initialModel, {
+          warnings: () => [
+            {
+              id: 1,
+              phase: 'Update',
+              durationMs: 12,
+              thresholdMs: 4,
+              trigger: 'ClickedRunUpdateWork',
+              details: 'Update work exceeded the threshold.',
+            },
+          ],
+        }),
+      ),
       expect(text('Update exceeded 4ms')).toExist(),
       click(role('button', { name: 'Clear' })),
       expect(text('Run a workload to record a warning.')).toExist(),

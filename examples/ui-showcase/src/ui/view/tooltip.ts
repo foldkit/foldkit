@@ -4,11 +4,7 @@ import type { Html } from 'foldkit/html'
 import { Tooltip } from '@foldkit/ui'
 import type { AnchorConfig } from '@foldkit/ui/tooltip'
 
-import {
-  GotTooltipBasicDemoMessage,
-  GotTooltipNoDelayDemoMessage,
-  type UiMessage,
-} from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 const triggerClassName =
@@ -72,7 +68,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                   ),
               },
               toParentMessage: message =>
-                GotTooltipBasicDemoMessage({ message }),
+                UiMessage.GotTooltipBasicDemoMessage({ message }),
             }),
           ],
         ),
@@ -117,7 +113,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                   ),
               },
               toParentMessage: message =>
-                GotTooltipNoDelayDemoMessage({ message }),
+                UiMessage.GotTooltipNoDelayDemoMessage({ message }),
             }),
           ],
         ),

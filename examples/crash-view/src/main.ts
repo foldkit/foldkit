@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
-import { Command, Runtime } from 'foldkit'
+import { Runtime, type Update } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 
 import { Button } from '@foldkit/ui'
 
@@ -12,9 +12,10 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const ClickedCrash = m('ClickedCrash')
+export const Message = defineMessageUnion({
+  ClickedCrash: {},
+})
 
-export const Message = Schema.Union([ClickedCrash])
 export type Message = typeof Message.Type
 
 // UPDATE
@@ -22,13 +23,15 @@ export type Message = typeof Message.Type
 export const update = (
   _model: Model,
   _message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
+): Update.Return<Model, Message> => {
   throw new Error('This is a simulated crash!')
 }
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [null, []]
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: null,
+})
 
 // VIEW
 
@@ -39,7 +42,7 @@ export const view = (_model: Model, h: HtmlBuilder<Message>): Document => ({
     [
       Button.view(
         {
-          onClick: ClickedCrash(),
+          onClick: Message.ClickedCrash(),
           toView: attributes =>
             h.button(
               [

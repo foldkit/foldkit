@@ -20,14 +20,10 @@ import { DragAndDrop } from '@foldkit/ui'
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import type { Card } from './domain/card'
 import type { Column } from './domain/column'
-import {
-  CompletedFocusAddCardInput,
-  CompletedGenerateCardId,
-  CompletedSaveBoard,
-} from './message'
+import { Message } from './message'
 import type { Model } from './model'
 import { update } from './update'
-import { view } from './view/index'
+import { view } from './view'
 
 const card = (id: string, title: string, sortKey: string): Card => ({
   id,
@@ -64,7 +60,7 @@ const doneColumn = role('region', { name: 'Done' })
 
 const acknowledgeFocusInput = Command.resolve(
   FocusAddCardInput,
-  CompletedFocusAddCardInput(),
+  Message.CompletedFocusAddCardInput(),
 )
 
 describe('view', () => {
@@ -135,14 +131,14 @@ describe('view', () => {
         Command.expectExact(GenerateCardId),
         Command.resolve(
           GenerateCardId,
-          CompletedGenerateCardId({
+          Message.CompletedGenerateCardId({
             cardId: 'test-uuid',
             columnId: 'todo',
             title: 'Buy groceries',
           }),
         ),
         Command.expectExact(SaveBoard),
-        Command.resolve(SaveBoard, CompletedSaveBoard()),
+        Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
         expect(text('Buy groceries')).toExist(),
       ),
     )

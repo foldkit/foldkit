@@ -4,7 +4,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Switch } from '@foldkit/ui'
 
-import { ToggledSwitchDemo, type UiMessage } from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 const SWITCH_DEMO_ID = 'switch-demo'
@@ -43,7 +43,8 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
               {
                 id: SWITCH_DEMO_ID,
                 isChecked: model.isSwitchDemoChecked,
-                onToggle: isChecked => ToggledSwitchDemo({ isChecked }),
+                onToggle: isChecked =>
+                  UiMessage.ToggledSwitchDemo({ isChecked }),
                 toView: attributes =>
                   h.div(
                     [h.Class(wrapperClassName)],

@@ -3,7 +3,7 @@ import { type Html, type HtmlBuilder, createKeyedLazy } from 'foldkit/html'
 
 import { EMPTY_COLOR } from '../constant'
 import { floodFill, getMirroredPositions } from '../grid'
-import { EnteredCell, LeftCanvas, type Message, PressedCell } from '../message'
+import { Message } from '../message'
 import type { Cell, Grid, HexColor, Model, PaletteIndex } from '../model'
 import { type PaletteTheme, resolveColor } from '../palette'
 
@@ -69,7 +69,7 @@ export const canvasView = (
     ],
     [
       h.div(
-        [h.OnMouseLeave(LeftCanvas()), h.Class('w-full max-w-lg')],
+        [h.OnMouseLeave(Message.LeftCanvas()), h.Class('w-full max-w-lg')],
         [
           h.div(
             [
@@ -123,8 +123,8 @@ export const rowView = (
       const displayColor = isPreview ? previewColor : resolveColor(cell, theme)
 
       return h.div([
-        h.OnMouseDown(PressedCell({ x, y })),
-        h.OnMouseEnter(EnteredCell({ x, y })),
+        h.OnMouseDown(Message.PressedCell({ x, y })),
+        h.OnMouseEnter(Message.EnteredCell({ x, y })),
         h.Style({
           flex: '1',
           backgroundColor: displayColor,

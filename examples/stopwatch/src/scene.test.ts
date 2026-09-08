@@ -11,12 +11,10 @@ import {
 import { describe, test } from 'vitest'
 
 import {
-  CompletedDetermineStartTime,
-  CompletedDetermineTickTime,
   DetermineStartTime,
   DetermineTickTime,
+  Message,
   Model,
-  Ticked,
   update,
   view,
 } from './main'
@@ -47,7 +45,7 @@ describe('view', () => {
       Command.expectExact(DetermineStartTime({ elapsedMs: 0 })),
       Command.resolve(
         DetermineStartTime,
-        CompletedDetermineStartTime({ startTime: 1000 }),
+        Message.CompletedDetermineStartTime({ startTime: 1000 }),
       ),
       expect(role('button', { name: 'Stop' })).toExist(),
       expect(role('button', { name: 'Start' })).toBeAbsent(),
@@ -100,11 +98,11 @@ describe('view', () => {
       { update, view },
       given(runningModel),
       expect(text('00:00.00')).toExist(),
-      Subscription.emit(Ticked()),
+      Subscription.emit(Message.Ticked()),
       Command.expectExact(DetermineTickTime({ startTime })),
       Command.resolve(
         DetermineTickTime,
-        CompletedDetermineTickTime({ elapsedMs: 4320 }),
+        Message.CompletedDetermineTickTime({ elapsedMs: 4320 }),
       ),
       expect(text('00:04.32')).toExist(),
     )

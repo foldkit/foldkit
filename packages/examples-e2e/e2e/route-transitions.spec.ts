@@ -42,7 +42,9 @@ test.describe('route transitions example', () => {
     await expect(page.getByText('Exited Studio').first()).toBeVisible()
     await page.getByRole('link', { name: 'Studio', exact: true }).click()
     await expect(page.getByText('Last saved draft')).toBeVisible()
-    await expect(page.getByText('half-finished thought')).toBeVisible()
+    await expect(
+      page.getByRole('paragraph').filter({ hasText: 'half-finished thought' }),
+    ).toBeVisible()
     await expect(page.getByRole('textbox')).toHaveValue('half-finished thought')
   })
 })

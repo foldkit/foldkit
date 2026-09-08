@@ -1,11 +1,11 @@
-import { Array, Option, Schema as S } from 'effect'
+import { Array, Option, Schema } from 'effect'
 
-export const Artwork = S.Struct({
-  id: S.Number,
-  title: S.String,
-  medium: S.String,
-  description: S.String,
-  gradientClassName: S.String,
+export const Artwork = Schema.Struct({
+  id: Schema.Number,
+  title: Schema.String,
+  medium: Schema.String,
+  description: Schema.String,
+  gradientClassName: Schema.String,
 })
 export type Artwork = typeof Artwork.Type
 

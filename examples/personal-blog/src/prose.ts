@@ -1,4 +1,4 @@
-import { Match as M, Option } from 'effect'
+import { Match, Option } from 'effect'
 import { Html, inertHtml as ih } from 'foldkit/html'
 
 import * as Markdown from '@foldkit/markdown'
@@ -7,26 +7,26 @@ const headingView = (
   heading: Markdown.Heading,
   content: Markdown.InlineContent,
 ): Html =>
-  M.value(heading.level).pipe(
-    M.when(1, () =>
+  Match.value(heading.level).pipe(
+    Match.when(1, () =>
       ih.h1([ih.Class('text-3xl font-bold text-stone-900')], content),
     ),
-    M.when(2, () =>
+    Match.when(2, () =>
       ih.h2([ih.Class('mt-10 text-2xl font-semibold text-stone-900')], content),
     ),
-    M.when(3, () =>
+    Match.when(3, () =>
       ih.h3([ih.Class('mt-8 text-xl font-semibold text-stone-900')], content),
     ),
-    M.when(4, () =>
+    Match.when(4, () =>
       ih.h4([ih.Class('mt-6 text-lg font-semibold text-stone-900')], content),
     ),
-    M.when(5, () =>
+    Match.when(5, () =>
       ih.h5([ih.Class('mt-6 font-semibold text-stone-900')], content),
     ),
-    M.when(6, () =>
+    Match.when(6, () =>
       ih.h6([ih.Class('mt-6 text-sm font-semibold text-stone-900')], content),
     ),
-    M.exhaustive,
+    Match.exhaustive,
   )
 
 const codeBlockView = (codeBlock: Markdown.CodeBlock): Html =>
@@ -76,10 +76,10 @@ const listView = (list: Markdown.List, items: ReadonlyArray<Html>): Html => {
 }
 
 const alignmentClass = (alignment: Markdown.Alignment): string =>
-  M.value(alignment).pipe(
-    M.when('Right', () => 'text-right'),
-    M.when('Center', () => 'text-center'),
-    M.orElse(() => 'text-left'),
+  Match.value(alignment).pipe(
+    Match.when('Right', () => 'text-right'),
+    Match.when('Center', () => 'text-center'),
+    Match.orElse(() => 'text-left'),
   )
 
 const tableCellView = (

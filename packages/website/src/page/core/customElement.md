@@ -2,42 +2,44 @@
 
 ## Overview
 
-Native web components are a standard browser feature: a hyphenated tag, a class extending `HTMLElement`, observed attributes, JS properties, and `CustomEvent`s. They can render into a shadow DOM and handle their own keyboard and pointer behavior. Foldkit gives them a typed seam through `CustomElement.define`, so they slot into a view next to standard elements without manual property wiring or a separate Mount step.
+Native web components are browser elements with hyphenated tags, JavaScript properties, and `CustomEvent`s. They can render into a shadow DOM and own their internal keyboard, pointer, and display behavior.
 
-You declare the element’s shape once with Schema. Property factories arrive as PascalCase methods on the builder, event factories as `On{PascalCase}` methods. The builder is callable, so the element itself appears inline in your view alongside `h.div`, `h.button`, etc. Property changes diff across renders; CustomEvents come back as Messages.
+`CustomElement.define` gives that declarative interface a typed Foldkit binding. Properties become PascalCase factories on an element builder, events become `On{PascalCase}` factories, and the builder renders beside standard elements such as `h.div` and `h.button`. Properties flow from the Model into the element; event details return as Messages.
 
-:::Info{label="CustomElement.define mirrors Command.define and Mount.define"}
-The shape is consistent across Foldkit’s lifecycle primitives. Declare the foreign element once. The runtime owns the wiring. Your view stays a pure function from Model to VNode.
+:::Info{label="A declarative boundary"}
+The browser owns the custom element's implementation. Foldkit owns the typed property and event wiring. The view remains a pure function from Model to VNode, with no manual property assignment or separate Mount.
 :::
 
 ## Defining a Binding
 
-Foldkit only owns the typed binding. Registering the element class with the browser is the same step you would take in any other framework. Most third-party packages do it for you when imported: `import 'vanilla-colorful/hex-color-picker.js'` calls `customElements.define('hex-color-picker', HexColorPicker)` as a side effect, and `<hex-color-picker>` is then a real tag in the browser. If you author your own element, you do the same: `customElements.define('your-tag', YourClass)` once, usually alongside the class definition.
+Foldkit defines the typed binding, but the browser still needs the element's class. Third-party packages commonly register it through a side-effect import. For example: importing `vanilla-colorful/hex-color-picker.js` calls `customElements.define` for `<hex-color-picker>`. A custom element you author follows the same browser registration step.
 
-A `CustomElement.define` call takes the tag name, a record of properties keyed by their JS property name, and a record of events keyed by their kebab-case event name. It returns a spec you can export and share across modules. Inside the view, call `.withMessage(h)` with the builder the view received. That binds the element to the Message universe of the frame it renders in, so an event handler on it carries a Message the frame's dispatcher can route.
+`CustomElement.define` takes one config object with the element's `tag`, a record of JavaScript `properties`, and a record of custom `events`. Each property and event payload is described with Schema. The resulting spec is independent of any application Message type, so it can be exported and shared.
+
+Inside a view, call `.withMessage(h)` on the spec. The view builder acts as a type witness that binds event handlers to the current Message universe. The runtime builder is reusable after that binding.
 
 ::Snippet{name="customElementDefine" label="CustomElement.define example"}
 
-The element constructor is callable. Pass attributes (including the property and event factories) as the first argument and children as the second, same shape as `h.div` and friends. Property factories are checked against the declared Schema at the type level: `qr.Size("220")` is a compile error when `size` is declared as `S.Number`. Event factories receive a typed `detail` argument; the consumer returns a Message that the runtime dispatches when the CustomEvent fires.
+The bound element builder is callable. Pass attributes, including generated property and event factories, as the first argument and children as the second. Either argument can be omitted when it is not needed. Schema keeps both directions typed: a property factory accepts its declared value, while an event factory receives its declared `detail` and returns a Message.
 
 ## Properties and Events
 
-Each property in the config becomes a PascalCase factory: `value` → `Value`, `isDisabled` → `IsDisabled`. The factory writes a JS property on the live element through `propsModule`, not an HTML attribute. That distinction matters: properties can carry any JS value (arrays, dates, objects), and `propsModule` diffs them across renders so the element only receives writes when the value actually changes. Removed boolean properties get reset to `false` on cleanup.
+Each property name becomes a PascalCase factory. For example: `value` becomes `Value`, and `isDisabled` becomes `IsDisabled`. The factory writes a JavaScript property on the live element through `propsModule`, not an HTML attribute. This allows values such as arrays and objects, and Foldkit only writes a property again when its value changes across renders. When primitive properties are removed, booleans reset to `false`, strings to `''`, and numbers to `0`.
 
-Each event becomes an `On{PascalCase}` factory derived from the kebab-case name: `"color-changed"` → `OnColorChanged`. The factory takes a `(detail) => Message` callback. When the element dispatches the CustomEvent, the runtime extracts `event.detail`, decodes it against the event's declared Schema, runs your callback with the decoded value, and dispatches the resulting Message just like any other handler.
+Each kebab-case event name becomes an `On{PascalCase}` factory. For example: `color-changed` becomes `OnColorChanged`. Its callback receives the decoded `detail` from a `CustomEvent` and returns the Message Foldkit dispatches.
 
-The decode is what makes the declared Schema load-bearing rather than a type-level annotation. A third-party element is code you do not control, and the shape of its `detail` is a promise its next version can quietly break. When a `detail` fails to decode, the runtime reports it on the console and dispatches nothing, so a changed payload surfaces as a visible error instead of an unchecked value reaching update. Undeclared fields are dropped, so what your callback receives is exactly what you declared.
+Foldkit decodes each event's `detail` against its declared Schema before calling the event factory callback. Invalid details are reported to the console and produce no Message. Schema transformations run at this boundary, and undeclared fields are removed according to the Schema's decoding behavior.
 
-An event that carries no payload is declared as `S.Struct({})`. The DOM leaves `detail` as `null` on such an event, and the runtime decodes that as an empty detail.
+For an event with no payload, declare `Schema.Struct({})`. Browsers set `detail` to `null` when a `CustomEvent` is constructed without one. Foldkit first decodes that raw value so Schemas such as `Schema.Null` preserve their meaning; when the Schema rejects a nullish detail, Foldkit retries with an empty object so the payload-less struct decodes.
 
 :::Info{label="Validation runs at define time"}
-`CustomElement.define` validates property and event names up front. Property names must be valid JS identifiers; event names must be hyphen-separated lowercase segments. Collisions between factory names (e.g. a `click` event and an `onClick` property both producing `OnClick`) throw immediately so you catch them before they ship.
+`CustomElement.define` validates the custom tag, property names, and event names when the binding is created. It also rejects generated factory-name collisions. For example: an `onClick` property and a `click` event would both produce `OnClick`, so the definition throws before the view can render it.
 :::
 
 ## When to Reach for CustomElement
 
-CustomElement is the right primitive when the foreign element has a declarative API: typed JS properties going in, `CustomEvent`s coming out. Everything you push to the element is a property; everything you read back is an event. The element owns its rendering and its internal state, and Foldkit sees the same surface a vanilla JS or React consumer would. Most modern web component libraries (Shoelace, UI5, Spectrum, Lit, Stencil) fit this shape by design.
+Use CustomElement when the foreign element exposes a declarative contract: JavaScript properties go in and `CustomEvent`s come out. The element owns its rendering and internal state, while the application shares state through the Model. Most web component libraries built with tools such as Lit or Stencil fit this shape.
 
-[Mount](/core/mount) stays the right primitive when the foreign API is imperative: when you need to call `new Map({ container }).flyTo(...)`, `editor.setValue(text)`, `dialog.showModal()`, or otherwise drive the element through method calls rather than property writes. `OnMount` hands you the live `Element` so you can instantiate the library, call methods on it, and pair a cleanup. The [Map example](/example-apps/map) is the canonical shape.
+Use [Mount](/core/mount) when the foreign API is imperative. Instantiating a map in a container, calling methods on an editor, or pairing setup with a destructor requires the live `Element` and an element-scoped Effect. The [Map example](/example-apps/map) shows that lifecycle.
 
-The [Web Components example](/example-apps/web-components) pairs two real third-party elements: `<hex-color-picker>` from `vanilla-colorful` emits color-changed CustomEvents that flow back as Messages, and `<sl-qr-code>` from `@shoelace-style/shoelace` accepts typed properties that the runtime diffs through `propsModule`. The picker and the QR code never touch each other directly; they share state through the Model.
+The [Web Components example](/example-apps/web-components) shows the declarative alternative. A `<hex-color-picker>` emits color changes as Messages, while `<sl-qr-code>` receives typed properties diffed from the Model. The elements never coordinate directly; update connects them through application state.

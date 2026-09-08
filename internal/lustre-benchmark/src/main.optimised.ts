@@ -8,22 +8,11 @@ import {
 } from 'foldkit/html'
 
 import {
-  AddedTodo,
-  CancelledEdit,
-  ClearedCompleted,
-  DeletedTodo,
   EditingState,
   Filter,
   Message,
   Model,
-  SavedEdit,
-  SelectedFilter,
-  StartedEditing,
   Todo,
-  ToggledAll,
-  ToggledTodo,
-  UpdatedEditingTodo,
-  UpdatedNewTodo,
   countActiveTodos,
   filterTodos,
 } from './main.js'
@@ -58,15 +47,15 @@ const nonEditingTodoView = (todo: Todo, h: HtmlBuilder<Message>): Html => {
             h.Class('toggle'),
             h.Type('checkbox'),
             h.Checked(todo.completed),
-            h.OnClick(ToggledTodo({ id: todo.id })),
+            h.OnClick(Message.ToggledTodo({ id: todo.id })),
           ]),
           h.label(
-            [h.OnDoubleClick(StartedEditing({ id: todo.id }))],
+            [h.OnDoubleClick(Message.StartedEditing({ id: todo.id }))],
             [todo.text],
           ),
           h.button([
             h.Class('destroy'),
-            h.OnClick(DeletedTodo({ id: todo.id })),
+            h.OnClick(Message.DeletedTodo({ id: todo.id })),
           ]),
         ],
       ),
@@ -89,14 +78,14 @@ const editingTodoView = (
         h.Name('title'),
         h.Id(`todo-${todo.id}`),
         h.Autofocus(true),
-        h.OnInput(text => UpdatedEditingTodo({ text })),
-        h.OnBlur(SavedEdit()),
+        h.OnInput(text => Message.UpdatedEditingTodo({ text })),
+        h.OnBlur(Message.SavedEdit()),
         h.OnKeyDownPreventDefault(key => {
           if (key === 'Enter') {
-            return Option.some(SavedEdit())
+            return Option.some(Message.SavedEdit())
           }
           if (key === 'Escape') {
-            return Option.some(CancelledEdit())
+            return Option.some(Message.CancelledEdit())
           }
           return Option.none()
         }),
@@ -115,7 +104,7 @@ const todoItemView = (
     onSome: text => editingTodoView(todo, text, h),
   })
 
-// NOTE: hot-path helper. `M.value(...).pipe(M.tagsExhaustive(...))`
+// NOTE: hot-path helper. `Match.value(...).pipe(Match.tagsExhaustive(...))`
 // constructs a fresh matcher on every call; done per todo per frame it
 // dominates view time, so this checks the tag directly.
 const maybeEditingTextFor = (
@@ -139,9 +128,9 @@ const headerView = (newTodoText: string, h: HtmlBuilder<Message>): Html => {
         h.Autofocus(true),
         h.Value(newTodoText),
         h.Name('newTodo'),
-        h.OnInput(text => UpdatedNewTodo({ text })),
+        h.OnInput(text => Message.UpdatedNewTodo({ text })),
         h.OnKeyDownPreventDefault(key =>
-          Option.liftPredicate(AddedTodo(), () => key === 'Enter'),
+          Option.liftPredicate(Message.AddedTodo(), () => key === 'Enter'),
         ),
       ]),
     ],
@@ -156,7 +145,7 @@ const filterItemView = (
   h: HtmlBuilder<Message>,
 ): Html => {
   return h.li(
-    [h.OnClick(SelectedFilter({ filter }))],
+    [h.OnClick(Message.SelectedFilter({ filter }))],
     [
       h.a(
         [h.Href(href), h.Class(filter === active ? 'selected' : '')],
@@ -201,7 +190,7 @@ const footerView = (
       lazyFilters(filtersView, [filter, h]),
       completedCount > 0
         ? h.button(
-            [h.Class('clear-completed'), h.OnClick(ClearedCompleted())],
+            [h.Class('clear-completed'), h.OnClick(Message.ClearedCompleted())],
             [`Clear completed (${completedCount})`],
           )
         : h.empty,
@@ -219,7 +208,7 @@ const toggleAllInputView = (
     h.Type('checkbox'),
     h.Name('toggle'),
     h.Checked(allCompleted),
-    h.OnClick(ToggledAll()),
+    h.OnClick(Message.ToggledAll()),
   ])
 }
 

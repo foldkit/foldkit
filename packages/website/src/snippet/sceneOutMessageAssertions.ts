@@ -3,19 +3,27 @@ import {
   click,
   expectNoOutMessage,
   expectOutMessage,
+  expectOutMessages,
   given,
   role,
   scene,
 } from 'foldkit/scene'
 
-// A Submodel's update returns [Model, Commands, Option<OutMessage>]. Scene
-// tracks the third element, so a page-level test asserts what the child
-// announced to its parent.
 scene(
   { update, view },
   given(initialModel),
   click(role('button', { name: 'Log out' })),
-  expectOutMessage(RequestedLogout()),
-  Subscription.emit(CompletedAction()),
+  expectOutMessage(OutMessage.RequestedLogout()),
+  Subscription.emit(Message.CompletedAction()),
   expectNoOutMessage(),
+)
+
+scene(
+  { update, view: treeRowView },
+  given(initialModel),
+  click(role('button', { name: 'Expand' })),
+  expectOutMessages(
+    OutMessage.RequestedExpand(),
+    OutMessage.RequestedSelection(),
+  ),
 )

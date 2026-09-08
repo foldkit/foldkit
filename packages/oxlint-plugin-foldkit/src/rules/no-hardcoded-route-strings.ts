@@ -1,7 +1,19 @@
 import { Array, Effect, Option, pipe } from 'effect'
-import { Diagnostic, type ESTree, Rule, RuleContext } from 'effect-oxlint'
+import {
+  Diagnostic,
+  type ESTree,
+  type Reference,
+  Rule,
+  RuleContext,
+} from 'effect-oxlint'
 
-import { helperCalleeName, isStringLiteral } from '../guards.ts'
+import {
+  helperCalleeName,
+  indexReferences,
+  isFoldkitHtmlBuilderMember,
+  isStringLiteral,
+  resolveFoldkitApiPath,
+} from '../guards.ts'
 
 // GUARDS
 
@@ -37,6 +49,33 @@ const INTERNAL_NAVIGATION_FUNCTION_NAMES: ReadonlyArray<string> = [
 
 const INTERNAL_PATH_PATTERN = /^\//
 const ABSOLUTE_URL_PATTERN = /^https?:\/\//
+
+const routingFunctionName = (
+  callee: unknown,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<string> => {
+  if (references === undefined) {
+    return pipe(
+      helperCalleeName(callee),
+      Option.filter(name => Array.contains(ROUTING_FUNCTION_NAMES, name)),
+    )
+  }
+
+  if (isFoldkitHtmlBuilderMember(callee, 'Href', references)) {
+    return Option.some('Href')
+  }
+
+  return Option.flatMap(resolveFoldkitApiPath(references, callee), path => {
+    const [namespace, functionName, extraMember] = path
+
+    return namespace === 'Navigation' &&
+      functionName !== undefined &&
+      Array.contains(INTERNAL_NAVIGATION_FUNCTION_NAMES, functionName) &&
+      extraMember === undefined
+      ? Option.some(functionName)
+      : Option.none()
+  })
+}
 
 const isHardcodedRouteString = (functionName: string, value: string): boolean =>
   INTERNAL_PATH_PATTERN.test(value) ||
@@ -79,19 +118,19 @@ export const noHardcodedRouteStrings = Rule.define({
   }),
   create: function* () {
     const ctx = yield* RuleContext
+    const scopes = ctx.sourceCode.scopeManager?.scopes
+    const references =
+      scopes === undefined ? undefined : indexReferences(scopes)
     return {
       CallExpression: (node: ESTree.Node) => {
         if (!isCallExpression(node)) {
           return Effect.void
         }
-        const maybeFunctionName = pipe(
-          helperCalleeName(node.callee),
-          Option.filter(name => Array.contains(ROUTING_FUNCTION_NAMES, name)),
-        )
+        const maybeFunctionName = routingFunctionName(node.callee, references)
         if (Option.isNone(maybeFunctionName)) {
           return Effect.void
         }
-        const functionName = maybeFunctionName.value
+        const { value: functionName } = maybeFunctionName
         const [firstArgument] = node.arguments
         if (
           isStringLiteral(firstArgument) &&

@@ -1,7 +1,7 @@
-import { HashMap, Option, Result, Schema as S, pipe } from 'effect'
+import { HashMap, Option, Result, Schema, pipe } from 'effect'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
-import { ts } from '../schema/index.js'
+import { taggedStruct } from '../schema/index.js'
 import * as AsyncData from './asyncData.js'
 
 type State = AsyncData.AsyncData<number, string>
@@ -55,8 +55,8 @@ describe('constructors', () => {
 })
 
 describe('Schema', () => {
-  const Note = S.Struct({ id: S.String, body: S.String })
-  const Notes = AsyncData.Schema(S.Array(Note), S.String)
+  const Note = Schema.Struct({ id: Schema.String, body: Schema.String })
+  const Notes = AsyncData.Schema(Schema.Array(Note), Schema.String)
 
   const note = { id: '1', body: 'hi' }
 
@@ -86,20 +86,20 @@ describe('Schema', () => {
 
   it('decodes each encoded variant to the constructed state', () => {
     for (const { encoded, state } of variants) {
-      expect(getSome(S.decodeUnknownOption(Notes.schema)(encoded))).toEqual(
-        state,
-      )
+      expect(
+        getSome(Schema.decodeUnknownOption(Notes.schema)(encoded)),
+      ).toEqual(state)
     }
   })
 
   it('encodes each state back to its wire form', () => {
     for (const { encoded, state } of variants) {
-      expect(S.encodeSync(Notes.schema)(state)).toEqual(encoded)
+      expect(Schema.encodeSync(Notes.schema)(state)).toEqual(encoded)
     }
   })
 
   it('rejects unknown tags', () => {
-    const decoded = S.decodeUnknownOption(Notes.schema)({ _tag: 'Ok' })
+    const decoded = Schema.decodeUnknownOption(Notes.schema)({ _tag: 'Ok' })
     expect(Option.isNone(decoded)).toBe(true)
   })
 
@@ -119,33 +119,33 @@ describe('Schema', () => {
   })
 
   it('embeds in a HashMap codec', () => {
-    const Cache = S.HashMap(S.String, Notes.schema)
+    const Cache = Schema.HashMap(Schema.String, Notes.schema)
     const encodedEntries: ReadonlyArray<readonly [string, unknown]> = [
       ['notes:1', { _tag: 'Success', data: [{ id: '1', body: 'hi' }] }],
     ]
     const encodedCache = HashMap.fromIterable(encodedEntries)
 
-    const decoded = getSome(S.decodeUnknownOption(Cache)(encodedCache))
+    const decoded = getSome(Schema.decodeUnknownOption(Cache)(encodedCache))
     const entry = getSome(HashMap.get(decoded, 'notes:1'))
     expect(getSome(AsyncData.getData(entry))).toEqual([{ id: '1', body: 'hi' }])
 
-    const reencoded = S.encodeSync(Cache)(decoded)
+    const reencoded = Schema.encodeSync(Cache)(decoded)
     expect(HashMap.toEntries(reencoded)).toEqual(encodedEntries)
   })
 })
 
 describe('type drift', () => {
   it('keeps AsyncData<A, E> and the Schema union type mutually assignable', () => {
-    const factory = AsyncData.Schema(S.Number, S.String)
+    const factory = AsyncData.Schema(Schema.Number, Schema.String)
     type FactoryType = typeof factory.schema.Type
 
-    const RawUnion = S.Union([
+    const RawUnion = Schema.Union([
       AsyncData.Idle,
       AsyncData.Loading,
-      ts('Refreshing', { data: S.Number }),
-      ts('Failure', { error: S.String }),
-      ts('Stale', { error: S.String, data: S.Number }),
-      ts('Success', { data: S.Number }),
+      taggedStruct('Refreshing', { data: Schema.Number }),
+      taggedStruct('Failure', { error: Schema.String }),
+      taggedStruct('Stale', { error: Schema.String, data: Schema.Number }),
+      taggedStruct('Success', { data: Schema.Number }),
     ])
     type RawUnionType = typeof RawUnion.Type
 
@@ -280,16 +280,16 @@ describe('types', () => {
   })
 
   it('keeps AsyncDataEncoded and the Schema union Encoded type mutually assignable', () => {
-    const factory = AsyncData.Schema(S.Number, S.String)
+    const factory = AsyncData.Schema(Schema.Number, Schema.String)
     type FactoryEncoded = typeof factory.schema.Encoded
 
-    const RawUnion = S.Union([
+    const RawUnion = Schema.Union([
       AsyncData.Idle,
       AsyncData.Loading,
-      ts('Refreshing', { data: S.Number }),
-      ts('Failure', { error: S.String }),
-      ts('Stale', { error: S.String, data: S.Number }),
-      ts('Success', { data: S.Number }),
+      taggedStruct('Refreshing', { data: Schema.Number }),
+      taggedStruct('Failure', { error: Schema.String }),
+      taggedStruct('Stale', { error: Schema.String, data: Schema.Number }),
+      taggedStruct('Success', { data: Schema.Number }),
     ])
     type RawEncoded = typeof RawUnion.Encoded
     type Wire = AsyncData.AsyncDataEncoded<number, string>

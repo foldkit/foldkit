@@ -1,15 +1,6 @@
 import { clsx } from 'clsx'
-import {
-  Array,
-  Duration,
-  Effect,
-  Match as M,
-  Option,
-  Schema as S,
-  String,
-  pipe,
-} from 'effect'
-import { Command, Submodel } from 'foldkit'
+import { Array, Duration, Effect, Option, Schema, String, pipe } from 'effect'
+import { Command, FieldValidation, Submodel, type Update } from 'foldkit'
 import {
   Field,
   Invalid,
@@ -20,7 +11,7 @@ import {
   validate,
 } from 'foldkit/fieldValidation'
 import { Html, HtmlBuilder } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Button, Input } from '@foldkit/ui'
@@ -30,10 +21,10 @@ import { homeRouter } from '../../../route'
 
 // MODEL
 
-export const Model = S.Struct({
-  email: Field(S.String),
-  password: Field(S.String),
-  isSubmitting: S.Boolean,
+export const Model = Schema.Struct({
+  email: Field(Schema.String),
+  password: Field(Schema.String),
+  isSubmitting: Schema.Boolean,
 })
 
 export type Model = typeof Model.Type
@@ -46,29 +37,22 @@ export const initModel = (): Model => ({
 
 // MESSAGE
 
-export const ChangedEmail = m('ChangedEmail', { value: S.String })
-export const ChangedPassword = m('ChangedPassword', { value: S.String })
-export const SubmittedForm = m('SubmittedForm')
-export const SucceededSimulateAuthRequest = m('SucceededSimulateAuthRequest', {
-  session: Session,
-})
-export const FailedSimulateAuthRequest = m('FailedSimulateAuthRequest', {
-  error: S.String,
+export const Message = defineMessageUnion({
+  ChangedEmail: { value: Schema.String },
+  ChangedPassword: { value: Schema.String },
+  SubmittedForm: {},
+  SucceededSimulateAuthRequest: { session: Session },
+  FailedSimulateAuthRequest: { error: Schema.String },
 })
 
-export const Message = S.Union([
-  ChangedEmail,
-  ChangedPassword,
-  SubmittedForm,
-  SucceededSimulateAuthRequest,
-  FailedSimulateAuthRequest,
-])
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-export const SucceededLogin = m('SucceededLogin', { session: Session })
-export const OutMessage = S.Union([SucceededLogin])
+export const OutMessage = defineMessageUnion({
+  SucceededLogin: { session: Session },
+})
+
 export type OutMessage = typeof OutMessage.Type
 
 // VALIDATION
@@ -93,22 +77,20 @@ const isFormValid = (model: Model): boolean =>
 
 // UPDATE
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
-
 export const SimulateAuthRequest = Command.define('SimulateAuthRequest', {
-  args: { email: S.String, password: S.String },
-  messages: [SucceededSimulateAuthRequest, FailedSimulateAuthRequest],
+  args: { email: Schema.String, password: Schema.String },
+  messages: [
+    Message.SucceededSimulateAuthRequest,
+    Message.FailedSimulateAuthRequest,
+  ],
   execute: ({ email, password }) =>
     Effect.gen(function* () {
       yield* Effect.sleep(Duration.seconds(1))
 
       if (password !== 'password') {
-        return FailedSimulateAuthRequest({ error: 'Invalid credentials' })
+        return Message.FailedSimulateAuthRequest({
+          error: 'Invalid credentials',
+        })
       }
 
       const name = pipe(
@@ -120,55 +102,49 @@ export const SimulateAuthRequest = Command.define('SimulateAuthRequest', {
 
       const session: Session = { userId: '1', email, name }
 
-      return SucceededSimulateAuthRequest({ session })
+      return Message.SucceededSimulateAuthRequest({ session })
     }),
 })
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tagsExhaustive({
-      ChangedEmail: ({ value }) => [
-        evo(model, { email: () => validateEmail(value) }),
-        [],
-        Option.none(),
-      ],
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
+    message,
+    {
+      ChangedEmail: ({ value }) => ({
+        model: evo(model, { email: () => validateEmail(value) }),
+      }),
 
-      ChangedPassword: ({ value }) => [
-        evo(model, { password: () => validatePassword(value) }),
-        [],
-        Option.none(),
-      ],
+      ChangedPassword: ({ value }) => ({
+        model: evo(model, { password: () => validatePassword(value) }),
+      }),
 
       SubmittedForm: () => {
         if (model.isSubmitting) {
-          return [model, [], Option.none()]
+          return { model }
         }
 
         if (!isFormValid(model)) {
-          return [model, [], Option.none()]
+          return { model }
         }
 
-        return [
-          evo(model, { isSubmitting: () => true }),
-          [
+        return {
+          model: evo(model, { isSubmitting: () => true }),
+          commands: [
             SimulateAuthRequest({
               email: model.email.value,
               password: model.password.value,
             }),
           ],
-          Option.none(),
-        ]
+        }
       },
 
-      SucceededSimulateAuthRequest: ({ session }) => [
+      SucceededSimulateAuthRequest: ({ session }) => ({
         model,
-        [],
-        Option.some(SucceededLogin({ session })),
-      ],
+        outMessage: OutMessage.SucceededLogin({ session }),
+      }),
 
-      FailedSimulateAuthRequest: ({ error }) => [
-        evo(model, {
+      FailedSimulateAuthRequest: ({ error }) => ({
+        model: evo(model, {
           password: () =>
             Invalid({
               value: model.password.value,
@@ -176,23 +152,19 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             }),
           isSubmitting: () => false,
         }),
-        [],
-        Option.none(),
-      ],
-    }),
+      }),
+    },
   )
 
 // VIEW
 
 const fieldToBorderClass = (field: Field<string>) =>
-  M.value(field).pipe(
-    M.tagsExhaustive({
-      NotValidated: () => 'border-gray-300',
-      Validating: () => 'border-blue-300',
-      Valid: () => 'border-green-500',
-      Invalid: () => 'border-red-500',
-    }),
-  )
+  FieldValidation.match(field, {
+    onNotValidated: () => 'border-gray-300',
+    onValidating: () => 'border-blue-300',
+    onValid: () => 'border-green-500',
+    onInvalid: () => 'border-red-500',
+  })
 
 const fieldView = (
   id: string,
@@ -230,34 +202,30 @@ const fieldView = (
                   ],
                   [labelText],
                 ),
-                M.value(field).pipe(
-                  M.tagsExhaustive({
-                    NotValidated: () => h.empty,
-                    Validating: () =>
-                      h.span([h.Class('text-blue-600 text-sm')], ['...']),
-                    Valid: () =>
-                      h.span([h.Class('text-green-600 text-sm')], ['✓']),
-                    Invalid: () => h.empty,
-                  }),
-                ),
+                FieldValidation.match(field, {
+                  onNotValidated: () => h.empty,
+                  onValidating: () =>
+                    h.span([h.Class('text-blue-600 text-sm')], ['...']),
+                  onValid: () =>
+                    h.span([h.Class('text-green-600 text-sm')], ['✓']),
+                  onInvalid: () => h.empty,
+                }),
               ],
             ),
             h.input([...attributes.input, h.Class(inputClass)]),
-            M.value(field).pipe(
-              M.tagsExhaustive({
-                NotValidated: () => h.empty,
-                Validating: () => h.empty,
-                Valid: () => h.empty,
-                Invalid: ({ errors }) =>
-                  h.div(
-                    [
-                      ...attributes.description,
-                      h.Class('text-red-600 text-sm mt-1'),
-                    ],
-                    [Array.headNonEmpty(errors)],
-                  ),
-              }),
-            ),
+            FieldValidation.match(field, {
+              onNotValidated: () => h.empty,
+              onValidating: () => h.empty,
+              onValid: () => h.empty,
+              onInvalid: ({ errors }) =>
+                h.div(
+                  [
+                    ...attributes.description,
+                    h.Class('text-red-600 text-sm mt-1'),
+                  ],
+                  [Array.headNonEmpty(errors)],
+                ),
+            }),
           ],
         ),
     },
@@ -288,13 +256,13 @@ export const view = Submodel.defineView<Model, Message>((model, h) => {
             ],
           ),
           h.form(
-            [h.Class('space-y-6'), h.OnSubmit(SubmittedForm())],
+            [h.Class('space-y-6'), h.OnSubmit(Message.SubmittedForm())],
             [
               fieldView(
                 'email',
                 'Email',
                 model.email,
-                value => ChangedEmail({ value }),
+                value => Message.ChangedEmail({ value }),
                 'email',
                 'you@example.com',
                 h,
@@ -303,7 +271,7 @@ export const view = Submodel.defineView<Model, Message>((model, h) => {
                 'password',
                 'Password',
                 model.password,
-                value => ChangedPassword({ value }),
+                value => Message.ChangedPassword({ value }),
                 'password',
                 'Enter your password',
                 h,

@@ -1,6 +1,7 @@
 import { Effect } from 'effect'
+import { Atom } from 'effect/unstable/reactivity'
 
-import { Atom, useAtomMount, useAtomSet } from '@effect-atom/atom-react'
+import { useAtomMount, useAtomSet } from '@effect/atom-react'
 
 // A mutation is a function atom. Reactivity keys invalidate dependents.
 const createTodoAtom = runtime.fn(

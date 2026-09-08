@@ -1,61 +1,27 @@
-import { Effect, Fiber, Match as M, Schema as S } from 'effect'
+import { Effect, Fiber, Schema } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Command } from '../command/index.js'
 import { __htmlBuilder, __requireDispatch } from '../html/index.js'
-import { m } from '../message/index.js'
-import { makeElement } from './runtime.js'
+import { defineMessageUnion } from '../message/index.js'
+import type * as Update from '../update/index.js'
+import { makeElement } from './makeElement.js'
 
-/**
- * Pins the message-processing contract of the plain hot path:
- *
- * - Messages are processed synchronously at dispatch time, in arrival
- *   order. A Command result never jumps ahead of an earlier Message and a
- *   later user Message never jumps ahead of an earlier Command result.
- * - A synchronous burst that exceeds the drain budget defers its remaining
- *   Messages to a later task instead of holding the stack, and every
- *   deferred Message is still processed, in order. The budget accumulates
- *   across drains within one task and resets when the browser demonstrably
- *   got control back between dispatches.
- * - No Message is processed before boot completes: an init Command's
- *   result arrives against a fully initialized runtime, after the init
- *   render painted the init Model, and a Command returned by that result's
- *   update forks and completes correctly.
- * - A crash is terminal: Messages dispatched after update throws are
- *   dropped, and a Command forked by a Message processed just before the
- *   crash does not run its effect, so no update, Command fork, or side
- *   effect runs behind the crash view.
- * - A Message dispatched while a render frame's patch is on the stack (an
- *   OnUnmount destroy hook) is buffered until the frame commits, so a
- *   defect in its update crashes cleanly and dispose still restores the
- *   container.
- */
-
-const AppendedFirst = m('AppendedFirst')
-const AppendedSecond = m('AppendedSecond')
-const AppendedCommandResult = m('AppendedCommandResult')
-const AppendedInitResult = m('AppendedInitResult')
-const AppendedChainedResult = m('AppendedChainedResult')
-const AppendedAfterCrash = m('AppendedAfterCrash')
-const ThrewInUpdate = m('ThrewInUpdate')
-const RemovedChild = m('RemovedChild')
-const UnmountedChild = m('UnmountedChild')
-const BurnedBudget = m('BurnedBudget', { label: S.String })
-const Message = S.Union([
-  AppendedFirst,
-  AppendedSecond,
-  AppendedCommandResult,
-  AppendedInitResult,
-  AppendedChainedResult,
-  AppendedAfterCrash,
-  ThrewInUpdate,
-  RemovedChild,
-  UnmountedChild,
-  BurnedBudget,
-])
+const Message = defineMessageUnion({
+  AppendedFirst: {},
+  AppendedSecond: {},
+  AppendedCommandResult: {},
+  AppendedInitResult: {},
+  AppendedChainedResult: {},
+  AppendedAfterCrash: {},
+  ThrewInUpdate: {},
+  RemovedChild: {},
+  UnmountedChild: {},
+  BurnedBudget: { label: Schema.String },
+})
 type Message = typeof Message.Type
 
-const Model = S.Struct({ log: S.Array(S.String) })
+const Model = Schema.Struct({ log: Schema.Array(Schema.String) })
 type Model = typeof Model.Type
 
 const h = __htmlBuilder<Message>()
@@ -87,6 +53,8 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
+type UpdateReturn = Update.Return<Model, Message>
+
 describe('message processing', () => {
   it('processes Messages synchronously at dispatch, in arrival order, with Command results following', async () => {
     const processedLog: Array<string> = []
@@ -95,35 +63,32 @@ describe('message processing', () => {
 
     const produceCommandResult: Command<Message> = {
       name: 'ProduceCommandResult',
-      effect: Effect.succeed(AppendedCommandResult()),
+      effect: Effect.succeed(Message.AppendedCommandResult()),
     }
 
-    const update = (
-      model: Model,
-      message: Message,
-    ): readonly [Model, ReadonlyArray<Command<Message>>] => {
+    const update = (model: Model, message: Message) => {
       processedLog.push(message._tag)
       const nextModel = { log: [...model.log, message._tag] }
-      return M.value(message).pipe(
-        M.withReturnType<readonly [Model, ReadonlyArray<Command<Message>>]>(),
-        M.tagsExhaustive({
-          AppendedFirst: () => [nextModel, [produceCommandResult]],
-          AppendedSecond: () => [nextModel, []],
-          AppendedCommandResult: () => [nextModel, []],
-          AppendedInitResult: () => [nextModel, []],
-          AppendedChainedResult: () => [nextModel, []],
-          AppendedAfterCrash: () => [nextModel, []],
-          ThrewInUpdate: () => [nextModel, []],
-          RemovedChild: () => [nextModel, []],
-          UnmountedChild: () => [nextModel, []],
-          BurnedBudget: () => [nextModel, []],
+      return Message.match<UpdateReturn>(message, {
+        AppendedFirst: () => ({
+          model: nextModel,
+          commands: [produceCommandResult],
         }),
-      )
+        AppendedSecond: () => ({ model: nextModel }),
+        AppendedCommandResult: () => ({ model: nextModel }),
+        AppendedInitResult: () => ({ model: nextModel }),
+        AppendedChainedResult: () => ({ model: nextModel }),
+        AppendedAfterCrash: () => ({ model: nextModel }),
+        ThrewInUpdate: () => ({ model: nextModel }),
+        RemovedChild: () => ({ model: nextModel }),
+        UnmountedChild: () => ({ model: nextModel }),
+        BurnedBudget: () => ({ model: nextModel }),
+      })
     }
 
     const element = makeElement({
       Model,
-      init: () => [{ log: [] }, []],
+      init: () => ({ model: { log: [] } }),
       update,
       view: model => {
         capturedDispatch = __requireDispatch()
@@ -139,11 +104,11 @@ describe('message processing', () => {
 
     try {
       const dispatch = capturedDispatch!
-      dispatch(AppendedFirst())
+      dispatch(Message.AppendedFirst())
       // AppendedFirst has already been processed on this stack; its Command
       // has been forked but its result cannot arrive before the next line.
       expect(processedLog).toEqual(['AppendedFirst'])
-      dispatch(AppendedSecond())
+      dispatch(Message.AppendedSecond())
       expect(processedLog).toEqual(['AppendedFirst', 'AppendedSecond'])
 
       await vi.waitFor(() => {
@@ -167,22 +132,19 @@ describe('message processing', () => {
       .spyOn(performance, 'now')
       .mockImplementation(() => fakeNow)
 
-    const update = (
-      model: Model,
-      message: Message,
-    ): readonly [Model, ReadonlyArray<Command<Message>>] => {
+    const update = (model: Model, message: Message): UpdateReturn => {
       processedLog.push(
         message._tag === 'BurnedBudget' ? message.label : message._tag,
       )
       if (message._tag === 'BurnedBudget') {
         fakeNow += BURN_MS
       }
-      return [{ log: [...model.log, message._tag] }, []]
+      return { model: { log: [...model.log, message._tag] } }
     }
 
     const element = makeElement({
       Model,
-      init: () => [{ log: [] }, []],
+      init: () => ({ model: { log: [] } }),
       update,
       view: model => {
         capturedDispatch = __requireDispatch()
@@ -200,7 +162,7 @@ describe('message processing', () => {
       const dispatch = capturedDispatch!
       const labels = ['burn-1', 'burn-2', 'burn-3', 'burn-4']
       for (const label of labels) {
-        dispatch(BurnedBudget({ label }))
+        dispatch(Message.BurnedBudget({ label }))
       }
 
       // The dispatch loop holds the stack, so the mocked clock never
@@ -226,22 +188,19 @@ describe('message processing', () => {
       .spyOn(performance, 'now')
       .mockImplementation(() => fakeNow)
 
-    const update = (
-      model: Model,
-      message: Message,
-    ): readonly [Model, ReadonlyArray<Command<Message>>] => {
+    const update = (model: Model, message: Message): UpdateReturn => {
       processedLog.push(
         message._tag === 'BurnedBudget' ? message.label : message._tag,
       )
       if (message._tag === 'BurnedBudget') {
         fakeNow += BURN_MS
       }
-      return [{ log: [...model.log, message._tag] }, []]
+      return { model: { log: [...model.log, message._tag] } }
     }
 
     const element = makeElement({
       Model,
-      init: () => [{ log: [] }, []],
+      init: () => ({ model: { log: [] } }),
       update,
       view: model => {
         capturedDispatch = __requireDispatch()
@@ -259,7 +218,7 @@ describe('message processing', () => {
       const dispatch = capturedDispatch!
       const labels = ['burn-1', 'burn-2', 'burn-3', 'burn-4']
       for (const label of labels) {
-        dispatch(BurnedBudget({ label }))
+        dispatch(Message.BurnedBudget({ label }))
         // An idle gap wider than the budget between dispatches means the
         // browser had the stack back; the accumulated budget resets and no
         // burn ever defers.
@@ -279,29 +238,26 @@ describe('message processing', () => {
 
     const chainedCommand: Command<Message> = {
       name: 'ProduceChainedResult',
-      effect: Effect.succeed(AppendedChainedResult()),
+      effect: Effect.succeed(Message.AppendedChainedResult()),
     }
 
     const initCommand: Command<Message> = {
       name: 'ProduceInitResult',
-      effect: Effect.succeed(AppendedInitResult()),
+      effect: Effect.succeed(Message.AppendedInitResult()),
     }
 
-    const update = (
-      model: Model,
-      message: Message,
-    ): readonly [Model, ReadonlyArray<Command<Message>>] => {
+    const update = (model: Model, message: Message): UpdateReturn => {
       processedLog.push(message._tag)
       const nextModel = { log: [...model.log, message._tag] }
       if (message._tag === 'AppendedInitResult') {
-        return [nextModel, [chainedCommand]]
+        return { model: nextModel, commands: [chainedCommand] }
       }
-      return [nextModel, []]
+      return { model: nextModel }
     }
 
     const element = makeElement({
       Model,
-      init: () => [{ log: [] }, [initCommand]],
+      init: () => ({ model: { log: [] }, commands: [initCommand] }),
       update,
       view: model => {
         seenViewModels.push(model)
@@ -344,28 +300,25 @@ describe('message processing', () => {
       name: 'ProduceSpiedResult',
       effect: Effect.sync(() => {
         commandEffectSpy()
-        return AppendedCommandResult()
+        return Message.AppendedCommandResult()
       }),
     }
 
-    const update = (
-      model: Model,
-      message: Message,
-    ): readonly [Model, ReadonlyArray<Command<Message>>] => {
+    const update = (model: Model, message: Message): UpdateReturn => {
       processedLog.push(message._tag)
       if (message._tag === 'ThrewInUpdate') {
         throw new Error('boom in update')
       }
       const nextModel = { log: [...model.log, message._tag] }
       if (message._tag === 'AppendedAfterCrash') {
-        return [nextModel, [spiedCommand]]
+        return { model: nextModel, commands: [spiedCommand] }
       }
-      return [nextModel, []]
+      return { model: nextModel }
     }
 
     const element = makeElement({
       Model,
-      init: () => [{ log: [] }, []],
+      init: () => ({ model: { log: [] } }),
       update,
       view: model => {
         capturedDispatch = __requireDispatch()
@@ -384,10 +337,10 @@ describe('message processing', () => {
 
     try {
       const dispatch = capturedDispatch!
-      dispatch(ThrewInUpdate())
+      dispatch(Message.ThrewInUpdate())
       expect(document.body.textContent).toContain('crash-view-marker')
 
-      dispatch(AppendedAfterCrash())
+      dispatch(Message.AppendedAfterCrash())
       expect(processedLog).toEqual(['ThrewInUpdate'])
 
       // Give any wrongly-forked Command time to run before asserting.
@@ -409,27 +362,24 @@ describe('message processing', () => {
       name: 'ProduceSpiedResult',
       effect: Effect.sync(() => {
         commandEffectSpy()
-        return AppendedCommandResult()
+        return Message.AppendedCommandResult()
       }),
     }
 
-    const update = (
-      model: Model,
-      message: Message,
-    ): readonly [Model, ReadonlyArray<Command<Message>>] => {
+    const update = (model: Model, message: Message): UpdateReturn => {
       if (message._tag === 'ThrewInUpdate') {
         throw new Error('boom in update')
       }
       const nextModel = { log: [...model.log, message._tag] }
       if (message._tag === 'AppendedFirst') {
-        return [nextModel, [spiedCommand]]
+        return { model: nextModel, commands: [spiedCommand] }
       }
-      return [nextModel, []]
+      return { model: nextModel }
     }
 
     const element = makeElement({
       Model,
-      init: () => [{ log: [] }, []],
+      init: () => ({ model: { log: [] } }),
       update,
       view: model => {
         capturedDispatch = __requireDispatch()
@@ -452,8 +402,8 @@ describe('message processing', () => {
       // ThrewInUpdate crashes on the same synchronous stack before that
       // microtask runs. The Command's side effect must not run behind the
       // crash view.
-      dispatch(AppendedFirst())
-      dispatch(ThrewInUpdate())
+      dispatch(Message.AppendedFirst())
+      dispatch(Message.ThrewInUpdate())
       expect(document.body.textContent).toContain('crash-view-marker')
 
       // Give the deferred Command fork a chance to run before asserting.
@@ -469,20 +419,17 @@ describe('message processing', () => {
     const processedLog: Array<string> = []
     let capturedDispatch: ((message: Message) => void) | null = null
 
-    const update = (
-      model: Model,
-      message: Message,
-    ): readonly [Model, ReadonlyArray<Command<Message>>] => {
+    const update = (model: Model, message: Message): UpdateReturn => {
       processedLog.push(message._tag)
       if (message._tag === 'UnmountedChild') {
         throw new Error('boom from unmount')
       }
-      return [{ log: [...model.log, message._tag] }, []]
+      return { model: { log: [...model.log, message._tag] } }
     }
 
     const element = makeElement({
       Model,
-      init: () => [{ log: [] }, []],
+      init: () => ({ model: { log: [] } }),
       update,
       view: model => {
         capturedDispatch = __requireDispatch()
@@ -494,7 +441,7 @@ describe('message processing', () => {
               ? h.empty
               : h.keyed('span')(
                   'unmount-child',
-                  [h.OnUnmount(UnmountedChild())],
+                  [h.OnUnmount(Message.UnmountedChild())],
                   ['child'],
                 ),
             h.p([], ['stable']),
@@ -513,7 +460,7 @@ describe('message processing', () => {
     })
 
     try {
-      capturedDispatch!(RemovedChild())
+      capturedDispatch!(Message.RemovedChild())
 
       // The removal patch fires the OnUnmount destroy hook mid-patch; its
       // Message must process after the frame commits, so the crash view

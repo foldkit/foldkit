@@ -1,26 +1,23 @@
-import { Array, Match as M } from 'effect'
+import { Array } from 'effect'
+import { FieldValidation } from 'foldkit'
 import { type Field, allValid } from 'foldkit/fieldValidation'
 import type { HtmlBuilder } from 'foldkit/html'
 
 const borderClass = (field: Field<string>) =>
-  M.value(field).pipe(
-    M.tagsExhaustive({
-      NotValidated: () => 'border-gray-300',
-      Validating: () => 'border-accent-300',
-      Valid: () => 'border-accent-500',
-      Invalid: () => 'border-red-500',
-    }),
-  )
+  FieldValidation.match(field, {
+    onNotValidated: () => 'border-gray-300',
+    onValidating: () => 'border-accent-300',
+    onValid: () => 'border-accent-500',
+    onInvalid: () => 'border-red-500',
+  })
 
 const statusIndicator = (field: Field<string>, h: HtmlBuilder<Message>) =>
-  M.value(field).pipe(
-    M.tagsExhaustive({
-      NotValidated: () => h.empty,
-      Validating: () => h.span([], ['Checking...']),
-      Valid: () => h.span([], ['✓']),
-      Invalid: ({ errors }) => h.div([], [Array.headNonEmpty(errors)]),
-    }),
-  )
+  FieldValidation.match(field, {
+    onNotValidated: () => h.empty,
+    onValidating: () => h.span([], ['Checking...']),
+    onValid: () => h.span([], ['✓']),
+    onInvalid: ({ errors }) => h.div([], [Array.headNonEmpty(errors)]),
+  })
 
 // `allValid` gates fields of one value type per call; required rules demand
 // `Valid`, optional rules also accept `NotValidated`. For a form that mixes

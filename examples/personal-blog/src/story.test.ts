@@ -4,9 +4,10 @@ import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { Counter } from './island'
-import { ChangedUrl, GotCounterMessage, HomeRoute, Model, update } from './main'
+import { Message as CounterMessage } from './island/counter'
+import { AppRoute, Message, Model, update } from './main'
 
-const home = Model.make({ route: HomeRoute(), counter: Counter.init })
+const home = Model.make({ route: AppRoute.Home(), counter: Counter.init })
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
@@ -20,7 +21,7 @@ describe('update', () => {
       story(
         update,
         given(home),
-        message(ChangedUrl({ url: urlOrThrow('http://localhost/') })),
+        message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
         model(model => {
           expect(model.route._tag).toBe('Home')
         }),
@@ -31,7 +32,9 @@ describe('update', () => {
       story(
         update,
         given(home),
-        message(ChangedUrl({ url: urlOrThrow('http://localhost/posts') })),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/posts') }),
+        ),
         model(model => {
           expect(model.route._tag).toBe('Posts')
         }),
@@ -43,7 +46,7 @@ describe('update', () => {
         update,
         given(home),
         message(
-          ChangedUrl({
+          Message.ChangedUrl({
             url: urlOrThrow('http://localhost/posts/making-this-blog'),
           }),
         ),
@@ -61,7 +64,9 @@ describe('update', () => {
       story(
         update,
         given(home),
-        message(ChangedUrl({ url: urlOrThrow('http://localhost/missing') })),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/missing') }),
+        ),
         model(model => {
           if (model.route._tag === 'NotFound') {
             expect(model.route.path).toBe('/missing')
@@ -78,8 +83,16 @@ describe('update', () => {
       story(
         update,
         given(home),
-        message(GotCounterMessage({ message: Counter.ClickedIncrement() })),
-        message(GotCounterMessage({ message: Counter.ClickedIncrement() })),
+        message(
+          Message.GotCounterMessage({
+            message: CounterMessage.ClickedIncrement(),
+          }),
+        ),
+        message(
+          Message.GotCounterMessage({
+            message: CounterMessage.ClickedIncrement(),
+          }),
+        ),
         Command.expectNone(),
         model(model => {
           expect(model.counter.count).toBe(2)
@@ -91,10 +104,16 @@ describe('update', () => {
       story(
         update,
         given(home),
-        message(GotCounterMessage({ message: Counter.ClickedIncrement() })),
-        message(ChangedUrl({ url: urlOrThrow('http://localhost/posts') })),
         message(
-          ChangedUrl({
+          Message.GotCounterMessage({
+            message: CounterMessage.ClickedIncrement(),
+          }),
+        ),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/posts') }),
+        ),
+        message(
+          Message.ChangedUrl({
             url: urlOrThrow('http://localhost/posts/making-this-blog'),
           }),
         ),

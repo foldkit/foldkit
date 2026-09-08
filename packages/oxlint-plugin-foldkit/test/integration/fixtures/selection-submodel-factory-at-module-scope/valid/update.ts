@@ -8,3 +8,6 @@ const sortListbox = Listbox.create()
 
 export const update = (model: Model, message: Message) =>
   sortListbox.update(model.sort, message)
+
+export const createLocalSelection = (Listbox: { create: () => unknown }) =>
+  Listbox.create()

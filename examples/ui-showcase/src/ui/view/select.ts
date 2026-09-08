@@ -4,7 +4,7 @@ import type { Html } from 'foldkit/html'
 import { Select } from '@foldkit/ui'
 
 import * as Icon from '../../icon'
-import { type UiMessage, UpdatedSelectDemoValue } from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 const selectClassName =
@@ -37,7 +37,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
               {
                 id: 'select-basic-demo',
                 value: model.selectDemoValue,
-                onChange: value => UpdatedSelectDemoValue({ value }),
+                onChange: value => UiMessage.UpdatedSelectDemoValue({ value }),
                 toView: attributes =>
                   h.div(
                     [h.Class('flex flex-col gap-1.5 w-full')],

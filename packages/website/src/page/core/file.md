@@ -2,34 +2,44 @@
 
 ## Overview
 
-The `File` module wraps the browser file APIs as Effects you can run from a Command. It mirrors the design of Elm’s `elm/file` package: file values are opaque, file selection happens imperatively through a Command (not a form event), and file contents are read asynchronously via `FileReader`.
+The `File` module brings browser file APIs into the Foldkit architecture. It opens the native picker through Commands, reads contents through Effects, and exposes synchronous metadata helpers. Inline inputs and drop zones use the typed file handlers in `foldkit/html` or the FileDrop Submodel.
 
-A `File` is a direct alias for the browser’s native `File` type. You can hold one in your Model with `S.Option(File.File)`. Foldkit never serializes files, so the schema acts as an opaque guard rather than a parser.
+`File.File` is both a direct alias for the browser's native `File` type and a Schema that accepts native File instances. A Model can hold one with `Schema.Option(File.File)`. The Schema treats the value as an opaque browser object; it validates the instance but does not turn file contents into serializable Model data.
 
-## Metadata and reading
+## Metadata and Reading
 
-`File.name`, `File.size`, and `File.mimeType` return metadata synchronously. `File.readAsText`, `File.readAsDataUrl`, and `File.readAsArrayBuffer` wrap the browser’s `FileReader` as Effects that can fail with a `FileReadError`. Use `readAsDataUrl` when you want a preview thumbnail without uploading the file first.
+`File.name`, `File.size`, and `File.mimeType` read browser-provided metadata synchronously. A MIME type may be an empty string when the browser cannot determine it.
+
+`File.readAsText`, `File.readAsDataUrl`, and `File.readAsArrayBuffer` wrap `FileReader` as interruptible Effects. They fail with `FileReadError` when the browser reports an error or returns an unexpected result type. Catch that error inside the Command and convert it into a declared failure Message.
 
 ::Snippet{name="fileMetadataAndRead" label="file metadata and read example"}
 
-## Selecting files
+## Selecting Files
 
-`File.select` and `File.selectMultiple` open the native file picker and resolve with what the user chose. Both take a list of accepted MIME types or extensions. `File.select` resolves with `Option.some(file)` on a pick or `Option.none()` on cancel; `File.selectMultiple` resolves with the array of chosen files, empty if the user cancels. Mirrors Elm’s `File.Select.file` and `File.Select.files`.
+`File.select` and `File.selectMultiple` open a temporary native file input. Both accept a list of MIME types or extensions, which Foldkit forwards to the input's `accept` attribute.
 
-Wrap the Effect in a Command at the call site with `Effect.map` to produce your own Message. The `File` module never defines Messages, so you keep full control of your domain vocabulary.
+The `accept` list filters the picker UI; it does not validate the selected file. Validate type, size, and contents in your own update and Commands when those constraints matter.
+
+Cancellation is a normal result, not an Effect failure. `File.select` returns `Option.some(file)` after a selection and `Option.none()` after cancellation. `File.selectMultiple` returns all selected files, or an empty array after cancellation. Map either result into domain-specific Messages in the Command.
 
 ::Snippet{name="fileSelect" label="file select example"}
 
 ## Components
 
-For drop zones and inline file pickers, reach for `FileDrop`. It is a Submodel that wires a drop zone and a hidden `<input type="file">` together and emits a `ReceivedFiles` OutMessage when files arrive (whether dropped or picked through the input). It handles the easy-to-miss details for you: it resets the input so the same file can be picked again, calls `preventDefault` on drop, and tracks drag state that flips only on true entry and exit. When you need a shape it does not cover, build directly with the `OnFileChange` and `OnDropFiles` attributes in `foldkit/html`.
+Use [FileDrop](/ui/file-drop) for a headless drop zone with a hidden `<input type="file">`. Its Submodel resets the input so the same file can be selected twice, prevents the browser's default drop behavior, and tracks real drag entry and exit.
+
+FileDrop emits a `ReceivedFiles` OutMessage with a guaranteed non-empty file list. It emits `RejectedNonFiles` when a drop or change contains no files. Fold both variants in the parent update. When FileDrop does not fit the interaction, build directly with the `OnFileChange` and `OnDropFiles` attributes from `foldkit/html`.
 
 ::Snippet{name="uiFileDropBasic" label="FileDrop example"}
 
 ## Testing
 
-Scene tests exercise file flows through two helpers. `dropFiles` dispatches a synthetic drop event on a drop zone (e.g. the root of a `FileDrop`), and `changeFiles` dispatches a synthetic change event on a file input. Both accept a target locator and a `ReadonlyArray<File>`, and throw a clear error if the target element does not have the matching file-event handler registered.
+Scene provides `changeFiles` for file inputs and `dropFiles` for drop zones. Each takes a target locator and `ReadonlyArray<File>`, then checks that the matching file-event handler is present before dispatching the synthetic event.
 
-For button-triggered pickers that use the `File.select` Command, scene tests use `click` on the button and then `Command.resolve` to synthesize the result, bypassing the native file picker entirely. Use `Command.resolveAll` when an update returns multiple Commands at once, or when resolving one Command cascades into others, like reading a preview immediately after a successful selection.
+For a button-triggered `File.select` Command, click the button and resolve the Command with the result the picker would have produced. `Command.resolveAll` covers flows where selection immediately starts another Command, such as reading a preview.
 
 ::Snippet{name="fileSceneTest" label="file scene test example"}
+
+## Full API Surface
+
+The [File API reference](/api-reference/file) lists the Schema, metadata helpers, readers, selectors, and `FileReadError` signatures.

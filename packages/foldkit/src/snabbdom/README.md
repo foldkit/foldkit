@@ -77,7 +77,7 @@ Only the surface Foldkit uses is vendored:
 
 ## Non-functional adaptations
 
-- Formatting follows the repo Prettier config.
+- Formatting follows the repo Oxfmt config.
 - Type-level adjustments for this repo's stricter compiler flags
   (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`,
   `noPropertyAccessFromIndexSignature`): non-null assertions on index reads,

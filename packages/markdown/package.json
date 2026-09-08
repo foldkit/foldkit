@@ -1,6 +1,6 @@
 {
   "name": "@foldkit/markdown",
-  "version": "0.2.1",
+  "version": "0.9.1",
   "description": "Write markdown files, get Foldkit views with live islands.",
   "type": "module",
   "main": "./dist/index.js",
@@ -33,8 +33,8 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "effect": "4.0.0-beta.102",
-    "foldkit": "workspace:^0",
+    "effect": "4.0.0-rc.112",
+    "foldkit": ">=0.153.0",
     "vite": "^7.0.0 || ^8.0.0"
   },
   "dependencies": {
@@ -47,14 +47,14 @@
   "devDependencies": {
     "@types/mdast": "^4.0.4",
     "@types/unist": "^3.0.3",
-    "effect": "4.0.0-beta.102",
+    "effect": "4.0.0-rc.112",
     "foldkit": "workspace:*",
-    "happy-dom": "^20.10.4",
+    "happy-dom": "^20.11.13",
     "mdast-util-directive": "^3.1.0",
     "rimraf": "^6.1.3",
-    "typescript": "^6.0.3",
-    "vite": "^8.0.16",
-    "vitest": "^4.1.9"
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
   },
   "keywords": [
     "foldkit",

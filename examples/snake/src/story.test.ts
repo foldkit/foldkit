@@ -1,15 +1,9 @@
 import { Command, given, message, model, story } from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { Snake } from './domain'
-import {
-  CompletedGenerateApplePosition,
-  GenerateApplePosition,
-  type Model,
-  PressedKey,
-  TickedClock,
-  update,
-} from './main'
+import { GenerateApplePosition, Message, type Model, update } from './main'
 
 const initialSnake = Snake.create({ x: 10, y: 10 })
 
@@ -23,10 +17,9 @@ const playingModel: Model = {
   highScore: 0,
 }
 
-const notStartedModel: Model = {
-  ...playingModel,
-  gameState: 'NotStarted',
-}
+const notStartedModel: Model = evo(playingModel, {
+  gameState: () => 'NotStarted',
+})
 
 describe('update', () => {
   describe('movement controls', () => {
@@ -34,7 +27,7 @@ describe('update', () => {
       story(
         update,
         given(playingModel),
-        message(PressedKey({ key: 'ArrowUp' })),
+        message(Message.PressedKey({ key: 'ArrowUp' })),
         model(model => {
           expect(model.nextDirection).toBe('Up')
         }),
@@ -45,7 +38,7 @@ describe('update', () => {
       story(
         update,
         given(playingModel),
-        message(PressedKey({ key: 'a' })),
+        message(Message.PressedKey({ key: 'a' })),
         model(model => {
           expect(model.nextDirection).toBe('Left')
         }),
@@ -55,8 +48,8 @@ describe('update', () => {
     test('arrow keys are ignored while the game is paused', () => {
       story(
         update,
-        given({ ...playingModel, gameState: 'Paused' }),
-        message(PressedKey({ key: 'ArrowDown' })),
+        given(evo(playingModel, { gameState: () => 'Paused' })),
+        message(Message.PressedKey({ key: 'ArrowDown' })),
         model(model => {
           expect(model.nextDirection).toBe('Right')
         }),
@@ -69,7 +62,7 @@ describe('update', () => {
       story(
         update,
         given(notStartedModel),
-        message(PressedKey({ key: ' ' })),
+        message(Message.PressedKey({ key: ' ' })),
         model(model => {
           expect(model.gameState).toBe('Playing')
         }),
@@ -80,7 +73,7 @@ describe('update', () => {
       story(
         update,
         given(playingModel),
-        message(PressedKey({ key: ' ' })),
+        message(Message.PressedKey({ key: ' ' })),
         model(model => {
           expect(model.gameState).toBe('Paused')
         }),
@@ -90,8 +83,8 @@ describe('update', () => {
     test('SPACE on GameOver does nothing', () => {
       story(
         update,
-        given({ ...playingModel, gameState: 'GameOver' }),
-        message(PressedKey({ key: ' ' })),
+        given(evo(playingModel, { gameState: () => 'GameOver' })),
+        message(Message.PressedKey({ key: ' ' })),
         model(model => {
           expect(model.gameState).toBe('GameOver')
         }),
@@ -103,8 +96,8 @@ describe('update', () => {
     test('R fires GenerateApplePosition and resets the snake', () => {
       story(
         update,
-        given({ ...playingModel, points: 100 }),
-        message(PressedKey({ key: 'r' })),
+        given(evo(playingModel, { points: () => 100 })),
+        message(Message.PressedKey({ key: 'r' })),
         model(model => {
           expect(model.gameState).toBe('NotStarted')
           expect(model.points).toBe(0)
@@ -113,7 +106,7 @@ describe('update', () => {
         Command.expectHas(GenerateApplePosition),
         Command.resolve(
           GenerateApplePosition,
-          CompletedGenerateApplePosition({ position: { x: 5, y: 5 } }),
+          Message.CompletedGenerateApplePosition({ position: { x: 5, y: 5 } }),
         ),
         model(model => {
           expect(model.apple).toEqual({ x: 5, y: 5 })
@@ -127,7 +120,7 @@ describe('update', () => {
       story(
         update,
         given(playingModel),
-        message(TickedClock()),
+        message(Message.TickedClock()),
         model(model => {
           expect(model.snake[0]).toEqual({ x: 11, y: 10 })
         }),
@@ -138,7 +131,7 @@ describe('update', () => {
       story(
         update,
         given(notStartedModel),
-        message(TickedClock()),
+        message(Message.TickedClock()),
         model(model => {
           expect(model.snake).toEqual(initialSnake)
         }),
@@ -146,20 +139,19 @@ describe('update', () => {
     })
 
     test('eating an apple grows the snake, adds points, and requests a new apple', () => {
-      const aboutToEatModel: Model = {
-        ...playingModel,
-        apple: { x: 11, y: 10 },
-      }
+      const aboutToEatModel: Model = evo(playingModel, {
+        apple: () => ({ x: 11, y: 10 }),
+      })
       const lengthBefore = aboutToEatModel.snake.length
 
       story(
         update,
         given(aboutToEatModel),
-        message(TickedClock()),
+        message(Message.TickedClock()),
         Command.expectHas(GenerateApplePosition),
         Command.resolve(
           GenerateApplePosition,
-          CompletedGenerateApplePosition({ position: { x: 5, y: 5 } }),
+          Message.CompletedGenerateApplePosition({ position: { x: 5, y: 5 } }),
         ),
         model(model => {
           expect(model.snake.length).toBe(lengthBefore + 1)

@@ -1,14 +1,8 @@
 import { given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
-import { ClickedDecrement, ClickedIncrement } from './counter'
-import {
-  ClickedAddRow,
-  ClickedRemoveRow,
-  GotCounterMessage,
-  type Model,
-  update,
-} from './main'
+import { Message as CounterMessage } from './counter'
+import { Message, type Model, update } from './main'
 
 const initialModel: Model = {
   rows: [
@@ -23,7 +17,7 @@ describe('update', () => {
     story(
       update,
       given(initialModel),
-      message(ClickedAddRow()),
+      message(Message.ClickedAddRow()),
       model(model => {
         expect(model.rows).toHaveLength(3)
         expect(model.rows[2]?.id).toBe('counter-2')
@@ -37,7 +31,7 @@ describe('update', () => {
     story(
       update,
       given(initialModel),
-      message(ClickedRemoveRow({ id: 'counter-0' })),
+      message(Message.ClickedRemoveRow({ id: 'counter-0' })),
       model(model => {
         expect(model.rows).toHaveLength(1)
         expect(model.rows[0]?.id).toBe('counter-1')
@@ -50,9 +44,9 @@ describe('update', () => {
       update,
       given(initialModel),
       message(
-        GotCounterMessage({
+        Message.GotCounterMessage({
           id: 'counter-1',
-          message: ClickedIncrement(),
+          message: CounterMessage.ClickedIncrement(),
         }),
       ),
       model(model => {
@@ -73,9 +67,9 @@ describe('update', () => {
         nextRowId: 2,
       }),
       message(
-        GotCounterMessage({
+        Message.GotCounterMessage({
           id: 'counter-0',
-          message: ClickedDecrement(),
+          message: CounterMessage.ClickedDecrement(),
         }),
       ),
       model(model => {
@@ -90,9 +84,9 @@ describe('update', () => {
       update,
       given(initialModel),
       message(
-        GotCounterMessage({
+        Message.GotCounterMessage({
           id: 'counter-99',
-          message: ClickedIncrement(),
+          message: CounterMessage.ClickedIncrement(),
         }),
       ),
       model(model => {
@@ -107,21 +101,21 @@ describe('update', () => {
       update,
       given(initialModel),
       message(
-        GotCounterMessage({
+        Message.GotCounterMessage({
           id: 'counter-0',
-          message: ClickedIncrement(),
+          message: CounterMessage.ClickedIncrement(),
         }),
       ),
       message(
-        GotCounterMessage({
+        Message.GotCounterMessage({
           id: 'counter-0',
-          message: ClickedIncrement(),
+          message: CounterMessage.ClickedIncrement(),
         }),
       ),
       message(
-        GotCounterMessage({
+        Message.GotCounterMessage({
           id: 'counter-1',
-          message: ClickedDecrement(),
+          message: CounterMessage.ClickedDecrement(),
         }),
       ),
       model(model => {

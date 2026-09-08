@@ -1,4 +1,5 @@
 import { expect, given, role, scene, text } from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { Snake } from './domain'
@@ -39,7 +40,7 @@ describe('view', () => {
   test('shows the playing prompt while the game is active', () => {
     scene(
       { update, view },
-      given({ ...baseModel, gameState: 'Playing' }),
+      given(evo(baseModel, { gameState: () => 'Playing' })),
       expect(text('Playing - SPACE to pause')).toExist(),
     )
   })
@@ -47,7 +48,7 @@ describe('view', () => {
   test('shows the paused prompt while the game is paused', () => {
     scene(
       { update, view },
-      given({ ...baseModel, gameState: 'Paused' }),
+      given(evo(baseModel, { gameState: () => 'Paused' })),
       expect(text('Paused - SPACE to continue')).toExist(),
     )
   })
@@ -55,7 +56,7 @@ describe('view', () => {
   test('shows the game-over prompt at the end of a run', () => {
     scene(
       { update, view },
-      given({ ...baseModel, gameState: 'GameOver', points: 50 }),
+      given(evo(baseModel, { gameState: () => 'GameOver', points: () => 50 })),
       expect(text('Game Over - Press R to restart')).toExist(),
       expect(text('Score: 50')).toExist(),
     )
@@ -64,12 +65,13 @@ describe('view', () => {
   test('the current and high scores reflect the Model', () => {
     scene(
       { update, view },
-      given({
-        ...baseModel,
-        gameState: 'Playing',
-        points: 120,
-        highScore: 200,
-      }),
+      given(
+        evo(baseModel, {
+          gameState: () => 'Playing',
+          points: () => 120,
+          highScore: () => 200,
+        }),
+      ),
       expect(text('Score: 120')).toExist(),
       expect(text('High Score: 200')).toExist(),
     )

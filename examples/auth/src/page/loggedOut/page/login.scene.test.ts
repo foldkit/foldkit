@@ -11,21 +11,14 @@ import {
   type,
   within,
 } from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import {
-  FailedSimulateAuthRequest,
-  Model,
-  SimulateAuthRequest,
-  initModel,
-  update,
-  view,
-} from './login'
+import { Message, SimulateAuthRequest, initModel, update, view } from './login'
 
-const validModel = Model.make({
-  ...initModel(),
-  email: Valid({ value: 'alice@example.com' }),
-  password: Valid({ value: 'password' }),
+const validModel = evo(initModel(), {
+  email: () => Valid({ value: 'alice@example.com' }),
+  password: () => Valid({ value: 'password' }),
 })
 
 const heading = role('heading', { name: 'Sign In' })
@@ -92,7 +85,7 @@ describe('login', () => {
       Command.expectExact(SimulateAuthRequest),
       Command.resolve(
         SimulateAuthRequest,
-        FailedSimulateAuthRequest({ error: '' }),
+        Message.FailedSimulateAuthRequest({ error: 'Invalid credentials' }),
       ),
     )
   })
@@ -105,7 +98,7 @@ describe('login', () => {
       Command.expectExact(SimulateAuthRequest),
       Command.resolve(
         SimulateAuthRequest,
-        FailedSimulateAuthRequest({ error: 'Invalid credentials' }),
+        Message.FailedSimulateAuthRequest({ error: 'Invalid credentials' }),
       ),
       expect(within(role('form'), text('Invalid credentials'))).toExist(),
       expect(submitButton).toBeDisabled(),

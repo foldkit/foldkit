@@ -10,12 +10,12 @@ export {
   Model,
   Message,
   OutMessage,
-  PressedThumb,
-  PressedPointer,
-  MovedDragPointer,
-  ReleasedDragPointer,
-  CancelledDrag,
-  PressedKeyboardNavigation,
+  type PressedThumb,
+  type PressedPointer,
+  type MovedDragPointer,
+  type ReleasedDragPointer,
+  type CancelledDrag,
+  type PressedKeyboardNavigation,
 } from './index.js'
 
 export type { InitConfig, ViewInputs, SliderAttributes } from './index.js'

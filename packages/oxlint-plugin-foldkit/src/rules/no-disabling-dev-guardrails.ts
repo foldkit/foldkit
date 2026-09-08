@@ -1,7 +1,18 @@
 import { Array, Effect, Option, pipe } from 'effect'
-import { AST, Diagnostic, type ESTree, Rule, RuleContext } from 'effect-oxlint'
+import {
+  AST,
+  Diagnostic,
+  type ESTree,
+  type Reference,
+  Rule,
+  RuleContext,
+} from 'effect-oxlint'
 
-import { isCallExpression } from '../guards.ts'
+import {
+  indexReferences,
+  isCallExpression,
+  resolveFoldkitApiPath,
+} from '../guards.ts'
 
 const FACTORY_NAMES = ['makeApplication', 'makeElement']
 
@@ -11,7 +22,23 @@ const FREEZE_MODEL_MESSAGE =
 const SLOW_MESSAGE =
   "`slow: false` turns off Foldkit's dev performance warnings, which flag update, view, and patch phases that blow their budgets. Tune instead of disabling: pass an object with thresholdOverrides, measuredPhases, show, or onSlow. A deliberate disable belongs behind an oxlint-disable comment at this line."
 
-const isFactoryCallee = (callee: ESTree.Expression): boolean => {
+const isFactoryCallee = (
+  callee: ESTree.Expression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
+  if (references !== undefined) {
+    return Option.exists(resolveFoldkitApiPath(references, callee), path => {
+      const [namespace, factoryName, extraMember] = path
+
+      return (
+        namespace === 'Runtime' &&
+        factoryName !== undefined &&
+        FACTORY_NAMES.includes(factoryName) &&
+        extraMember === undefined
+      )
+    })
+  }
+
   if (callee.type === 'Identifier') {
     return FACTORY_NAMES.includes(callee.name)
   }
@@ -68,9 +95,15 @@ export const noDisablingDevGuardrails = Rule.define({
   }),
   create: function* () {
     const ctx = yield* RuleContext
+    const scopes = ctx.sourceCode.scopeManager?.scopes
+    const references =
+      scopes === undefined ? undefined : indexReferences(scopes)
     return {
       CallExpression: (node: ESTree.Node) => {
-        if (!isCallExpression(node) || !isFactoryCallee(node.callee)) {
+        if (
+          !isCallExpression(node) ||
+          !isFactoryCallee(node.callee, references)
+        ) {
           return Effect.void
         }
         const disabledGuardrails = node.arguments.flatMap(argument => {

@@ -1,15 +1,15 @@
+import { Schema } from 'effect'
 import { evo } from 'foldkit/struct'
 
-type Model = { count: number; lastUpdated: number }
-const model: Model = { count: 0, lastUpdated: 0 }
-
-// evo takes the model and an object of transform functions
-const newModel = evo(model, {
-  count: count => count + 1,
-  lastUpdated: () => Date.now(),
+const Model = Schema.Struct({
+  count: Schema.Number,
+  status: Schema.Literals(['Idle', 'Counting']),
 })
+type Model = typeof Model.Type
 
-// Invalid keys are caught at compile time
-const badModel = evo(model, {
-  counnt: count => count + 1, // ❌ Error: 'counnt' does not exist in Model
+const model: Model = { count: 0, status: 'Idle' }
+
+const nextModel = evo(model, {
+  count: count => count + 1,
+  status: () => 'Counting',
 })

@@ -1,4 +1,4 @@
-import { Array, Data, Option, String as Str } from 'effect'
+import { Array, Data, Option, String } from 'effect'
 import { AsyncData } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
@@ -48,9 +48,9 @@ export const handleRoomUpdated =
     )
 
     const nextUserGameText = gameJustStarted
-      ? Str.empty
+      ? String.empty
       : PlayerProgressAction.$match(progressAction, {
-          Clear: () => Str.empty,
+          Clear: () => String.empty,
           Maintain: ({ userGameText }) => userGameText,
           Restore: ({ progress: { userText } }) => userText,
         })
@@ -70,8 +70,8 @@ export const handleRoomUpdated =
       FocusUserGameTextInput(),
     )
 
-    return [
-      evo(model, {
+    return {
+      model: evo(model, {
         roomAsyncData: () => RoomAsyncData.Success({ data: room }),
         userGameText: () => nextUserGameText,
         charsTyped: () => nextCharsTyped,
@@ -80,11 +80,11 @@ export const handleRoomUpdated =
             ? EXIT_COUNTDOWN_SECONDS
             : model.exitCountdownSecondsLeft,
       }),
-      Array.appendAll(
+      commands: Array.appendAll(
         Array.fromOption(maybeExitCountdown),
         Array.fromOption(maybeFocusUserGameText),
       ),
-    ]
+    }
   }
 
 type PlayerProgressAction = Data.TaggedEnum<{
@@ -103,7 +103,7 @@ const determinePlayerProgressAction = (
 ): PlayerProgressAction => {
   if (room.status._tag === 'Finished') {
     return PlayerProgressAction.Clear()
-  } else if (Str.isNonEmpty(currentUserGameText)) {
+  } else if (String.isNonEmpty(currentUserGameText)) {
     return PlayerProgressAction.Maintain({
       userGameText: currentUserGameText,
       charsTyped: currentCharsTyped,

@@ -1,11 +1,11 @@
-import { Match as M, Option } from 'effect'
+import { Match, Option } from 'effect'
 import { type CalendarDate } from 'foldkit/calendar'
 import { type Html, inertHtml as ih } from 'foldkit/html'
 
 import { Calendar } from '@foldkit/ui'
 
 import { fullDate } from './format'
-import { chevronDown } from './icon'
+import * as Icon from './icon'
 
 export const triggerClassName =
   'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500'
@@ -26,7 +26,7 @@ export const triggerContent = (
         onNone: () => ih.span([ih.Class('text-gray-400')], [placeholder]),
         onSome: date => ih.span([], [fullDate(date)]),
       }),
-      ih.span([ih.Class('text-gray-400 shrink-0')], [chevronDown()]),
+      ih.span([ih.Class('text-gray-400 shrink-0')], [Icon.chevronDown()]),
     ],
   )
 
@@ -51,8 +51,8 @@ const monthYearButtonClassName =
   'flex h-full w-full items-center justify-center rounded-md text-sm text-gray-900 tabular-nums cursor-pointer hover:bg-gray-100 group-data-[today]:ring-1 group-data-[today]:ring-gray-400 group-data-[selected]:bg-indigo-600 group-data-[selected]:text-white! group-data-[selected]:hover:bg-indigo-600 group-data-[focused]:outline-2 group-data-[focused]:outline-offset-2 group-data-[focused]:outline-indigo-500 group-data-[disabled]:cursor-not-allowed group-data-[disabled]:opacity-40'
 
 export const calendarView = (attributes: Calendar.CalendarAttributes): Html =>
-  M.value(attributes).pipe(
-    M.tagsExhaustive({
+  Match.value(attributes).pipe(
+    Match.tagsExhaustive({
       Days: days =>
         ih.div(
           [...days.root, ih.Class(calendarWrapperClassName)],
@@ -70,7 +70,7 @@ export const calendarView = (attributes: Calendar.CalendarAttributes): Html =>
                     ...days.headingButton,
                     ih.Class(headingButtonClassName),
                   ],
-                  [days.heading.text, chevronDown('w-3 h-3')],
+                  [days.heading.text, Icon.chevronDown('w-3 h-3')],
                 ),
                 ih.button(
                   [...days.nextMonthButton, ih.Class(navButtonClassName)],
@@ -134,7 +134,7 @@ export const calendarView = (attributes: Calendar.CalendarAttributes): Html =>
                     ...months.headingButton,
                     ih.Class(headingButtonClassName),
                   ],
-                  [months.heading.text, chevronDown('w-3 h-3')],
+                  [months.heading.text, Icon.chevronDown('w-3 h-3')],
                 ),
               ],
             ),

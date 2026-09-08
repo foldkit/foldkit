@@ -1,13 +1,13 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 import { CustomElement, Scene } from 'foldkit'
 
 const hexColorPicker = CustomElement.define({
   tag: 'hex-color-picker',
   properties: {
-    color: S.String,
+    color: Schema.String,
   },
   events: {
-    'color-changed': S.Struct({ value: S.String }),
+    'color-changed': Schema.Struct({ value: Schema.String }),
   },
 })
 

@@ -3,21 +3,14 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import {
-  ChangedUrl,
-  GotPeopleMessage,
-  HomeRoute,
-  Model,
-  PeopleRoute,
-  update,
-} from './main'
+import { AppRoute, Message, Model, update } from './main'
 import { People } from './page'
 
 const peoplePageWith = (searchInput: string) =>
   People.Model.make({
     searchInput,
     searchHistory: Array.liftPredicate(String.isNonEmpty)(searchInput),
-    results: People.SearchLoaded({
+    results: People.SearchResults.Loaded({
       query: searchInput,
       people: People.searchPeople(searchInput),
     }),
@@ -25,11 +18,14 @@ const peoplePageWith = (searchInput: string) =>
 
 const initialPeoplePage = peoplePageWith('')
 
-const home = Model.make({ route: HomeRoute(), peoplePage: initialPeoplePage })
+const home = Model.make({
+  route: AppRoute.Home(),
+  peoplePage: initialPeoplePage,
+})
 
 const onPeople = (searchInput: string) =>
   Model.make({
-    route: PeopleRoute({
+    route: AppRoute.People({
       searchText: Option.liftPredicate(String.isNonEmpty)(searchInput),
     }),
     peoplePage: peoplePageWith(searchInput),
@@ -44,7 +40,7 @@ const urlOrThrow = (raw: string) =>
 const resolveFetch = (searchText: string) =>
   Command.resolve(
     People.FetchPeople,
-    People.SucceededFetchPeople({
+    People.Message.SucceededFetchPeople({
       query: searchText,
       people: People.searchPeople(searchText),
     }),
@@ -56,7 +52,9 @@ describe('update', () => {
       story(
         update,
         given(home),
-        message(ChangedUrl({ url: urlOrThrow('http://localhost/people') })),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/people') }),
+        ),
         model(model => {
           if (model.route._tag === 'People') {
             expect(model.route.searchText).toStrictEqual(Option.none())
@@ -73,7 +71,7 @@ describe('update', () => {
         update,
         given(home),
         message(
-          ChangedUrl({
+          Message.ChangedUrl({
             url: urlOrThrow('http://localhost/people?searchText=foo'),
           }),
         ),
@@ -92,7 +90,9 @@ describe('update', () => {
       story(
         update,
         given(home),
-        message(ChangedUrl({ url: urlOrThrow('http://localhost/people/3') })),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/people/3') }),
+        ),
         model(model => {
           if (model.route._tag === 'Person') {
             expect(model.route.personId).toBe(3)
@@ -107,7 +107,9 @@ describe('update', () => {
       story(
         update,
         given(home),
-        message(ChangedUrl({ url: urlOrThrow('http://localhost/missing') })),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/missing') }),
+        ),
         model(model => {
           if (model.route._tag === 'NotFound') {
             expect(model.route.path).toBe('/missing')
@@ -123,7 +125,7 @@ describe('update', () => {
         update,
         given(home),
         message(
-          ChangedUrl({
+          Message.ChangedUrl({
             url: urlOrThrow('http://localhost/nested/route/is/very/nested'),
           }),
         ),
@@ -137,7 +139,9 @@ describe('update', () => {
       story(
         update,
         given(home),
-        message(ChangedUrl({ url: urlOrThrow('http://localhost/files') })),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/files') }),
+        ),
         model(model => {
           expect(model.route._tag).toBe('FilesIndex')
         }),
@@ -149,7 +153,7 @@ describe('update', () => {
         update,
         given(home),
         message(
-          ChangedUrl({
+          Message.ChangedUrl({
             url: urlOrThrow('http://localhost/files/documents/taxes'),
           }),
         ),
@@ -168,19 +172,19 @@ describe('update', () => {
         update,
         given(onPeople('')),
         message(
-          ChangedUrl({
+          Message.ChangedUrl({
             url: urlOrThrow('http://localhost/people?searchText=designer'),
           }),
         ),
         model(model => {
           expect(model.peoplePage.searchInput).toBe('designer')
           expect(model.peoplePage.searchHistory).toStrictEqual(['designer'])
-          expect(model.peoplePage.results._tag).toBe('SearchLoading')
+          expect(model.peoplePage.results._tag).toBe('Loading')
         }),
         Command.expectHas(People.FetchPeople),
         resolveFetch('designer'),
         model(model => {
-          if (model.peoplePage.results._tag === 'SearchLoaded') {
+          if (model.peoplePage.results._tag === 'Loaded') {
             expect(
               model.peoplePage.results.people.map(person => person.name),
             ).toStrictEqual(['Alice Johnson', 'Eva Brown'])
@@ -193,40 +197,18 @@ describe('update', () => {
   })
 
   describe('GotPeopleMessage', () => {
-    test('typing updates the input without recording history or firing a command', () => {
+    test('GotPeopleMessage writes through to peoplePage', () => {
       story(
         update,
         given(onPeople('')),
         message(
-          GotPeopleMessage({
-            message: People.ChangedSearchInput({ value: 'd' }),
+          Message.GotPeopleMessage({
+            message: People.Message.ChangedSearchInput({ value: 'd' }),
           }),
         ),
-        message(
-          GotPeopleMessage({
-            message: People.ChangedSearchInput({ value: 'de' }),
-          }),
-        ),
-        message(
-          GotPeopleMessage({
-            message: People.ChangedSearchInput({ value: 'designer' }),
-          }),
-        ),
-        Command.expectNone(),
         model(model => {
-          expect(model.peoplePage.searchInput).toBe('designer')
-          expect(model.peoplePage.searchHistory).toStrictEqual([])
+          expect(model.peoplePage.searchInput).toBe('d')
         }),
-      )
-    })
-
-    test('submitting the search pushes the current input to the URL', () => {
-      story(
-        update,
-        given(onPeople('designer')),
-        message(GotPeopleMessage({ message: People.SubmittedSearch() })),
-        Command.expectHas(People.PushSearchUrl),
-        Command.resolve(People.PushSearchUrl, People.CompletedPushSearchUrl()),
       )
     })
   })

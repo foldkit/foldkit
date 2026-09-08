@@ -1,19 +1,24 @@
-import { Schema as S, pipe } from 'effect'
+import { Schema, pipe } from 'effect'
 import { Route } from 'foldkit'
-import { literal, r, rest, slash } from 'foldkit/route'
+import { defineRouteUnion, literal, rest, slash } from 'foldkit/route'
 
-const FilesIndexRoute = r('FilesIndex')
-const FilesRoute = r('Files', { path: S.NonEmptyArray(S.String) })
+const AppRoute = defineRouteUnion({
+  FilesIndex: {},
+  Files: { path: Schema.NonEmptyArray(Schema.String) },
+})
 
 // Matches: /files
-const filesIndexRouter = pipe(literal('files'), Route.mapTo(FilesIndexRoute))
+const filesIndexRouter = pipe(
+  literal('files'),
+  Route.mapTo(AppRoute.FilesIndex),
+)
 
 // Matches: /files/documents/taxes/2024.pdf
 // path: ['documents', 'taxes', '2024.pdf']
 const filesRouter = pipe(
   literal('files'),
   slash(rest('path')),
-  Route.mapTo(FilesRoute),
+  Route.mapTo(AppRoute.Files),
 )
 
 // Builds: /files/documents/taxes

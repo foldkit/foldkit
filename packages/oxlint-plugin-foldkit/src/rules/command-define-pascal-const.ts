@@ -1,12 +1,21 @@
 import { Effect, Option } from 'effect'
-import { AST, Diagnostic, type ESTree, Rule, RuleContext } from 'effect-oxlint'
+import {
+  AST,
+  Diagnostic,
+  type ESTree,
+  type Reference,
+  Rule,
+  RuleContext,
+} from 'effect-oxlint'
 
 import {
+  indexReferences,
   isCallExpression,
   isIdentifier,
   isStringLiteral,
   isVariableDeclaration,
   isVariableDeclarator,
+  resolveFoldkitApiPath,
 } from '../guards.ts'
 
 const PASCAL_CASE_NAME = /^[A-Z][A-Za-z0-9]*$/
@@ -32,16 +41,36 @@ const nearestVariableDeclarator = (
     : Option.none()
 }
 
+const isCommandDefineCall = (
+  node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
+  if (references === undefined) {
+    return AST.isCallOf(node, 'Command', 'define')
+  }
+
+  return Option.exists(resolveFoldkitApiPath(references, node.callee), path => {
+    const [namespace, methodName, extraMember] = path
+
+    return (
+      namespace === 'Command' &&
+      methodName === 'define' &&
+      extraMember === undefined
+    )
+  })
+}
+
 const headCommandDefineCall = (
   node: unknown,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<ESTree.CallExpression> => {
   if (!isCallExpression(node)) {
     return Option.none()
   }
-  if (AST.isCallOf(node, 'Command', 'define')) {
+  if (isCommandDefineCall(node, references)) {
     return Option.some(node)
   }
-  return headCommandDefineCall(node.callee)
+  return headCommandDefineCall(node.callee, references)
 }
 
 const missingLiteralNameMessage =
@@ -61,6 +90,7 @@ const notConstMessage = (name: string): string =>
 
 const diagnosticMessage = (
   node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<string> => {
   const [firstArgument] = node.arguments
   if (!isStringLiteral(firstArgument)) {
@@ -74,7 +104,7 @@ const diagnosticMessage = (
     onNone: () => Option.some(notAssignedMessage(name)),
     onSome: declarator => {
       const headsInitializer = Option.exists(
-        headCommandDefineCall(declarator.init),
+        headCommandDefineCall(declarator.init, references),
         call => call === node,
       )
       if (!headsInitializer) {
@@ -105,15 +135,15 @@ export const commandDefinePascalConst = Rule.define({
   }),
   create: function* () {
     const ctx = yield* RuleContext
+    const scopes = ctx.sourceCode.scopeManager?.scopes
+    const references =
+      scopes === undefined ? undefined : indexReferences(scopes)
     return {
       CallExpression: (node: ESTree.Node) => {
-        if (
-          !isCallExpression(node) ||
-          !AST.isCallOf(node, 'Command', 'define')
-        ) {
+        if (!isCallExpression(node) || !isCommandDefineCall(node, references)) {
           return Effect.void
         }
-        return Option.match(diagnosticMessage(node), {
+        return Option.match(diagnosticMessage(node, references), {
           onNone: () => Effect.void,
           onSome: message => ctx.report(Diagnostic.make({ node, message })),
         })

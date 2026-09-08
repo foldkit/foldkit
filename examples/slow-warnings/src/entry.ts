@@ -1,7 +1,5 @@
 import { Runtime } from 'foldkit'
 
-import { overlay } from '@foldkit/devtools'
-
 import {
   Message,
   Model,
@@ -24,7 +22,6 @@ const application = Runtime.makeApplication({
     onSlow: handleSlow,
   },
   devTools: {
-    overlay,
     Message,
   },
 })

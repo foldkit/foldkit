@@ -53,7 +53,7 @@ export interface CommandDefinitionNoArgs<
   Eff extends Effect.Effect<any, any, any>,
 > {
   readonly [CommandDefinitionTypeId]: CommandDefinitionTypeId
-  readonly name: Name;
+  readonly name: Name
   (): Readonly<{ name: Name; effect: Eff }>
 }
 
@@ -64,7 +64,7 @@ export interface CommandDefinitionWithArgs<
   Eff extends Effect.Effect<any, any, any>,
 > {
   readonly [CommandDefinitionTypeId]: CommandDefinitionTypeId
-  readonly name: Name;
+  readonly name: Name
   (args: Schema.Schema.Type<Schema.Struct<Fields>>): Readonly<{
     name: Name
     args: Schema.Schema.Type<Schema.Struct<Fields>>
@@ -178,7 +178,7 @@ const suspendExecute = (
  * @example With args
  * ```ts
  * const FetchWeather = Command.define('FetchWeather', {
- *   args: { zipCode: S.String },
+ *   args: { zipCode: Schema.String },
  *   messages: [SucceededFetchWeather, FailedFetchWeather],
  *   execute: ({ zipCode }) => Effect.gen(function* () { ... }),
  * })
@@ -189,7 +189,7 @@ const suspendExecute = (
  * @example Interruptible, keyed by the Command name
  * ```ts
  * const SaveDraft = Command.define('SaveDraft', {
- *   args: { draftId: S.String, body: S.String },
+ *   args: { draftId: Schema.String, body: Schema.String },
  *   messages: [SucceededSaveDraft, FailedSaveDraft],
  *   interrupt: true,
  *   execute: ({ draftId, body }) => Effect.gen(function* () { ... }),
@@ -202,7 +202,7 @@ const suspendExecute = (
  * @example Interruptible, keyed by args
  * ```ts
  * const UploadFile = Command.define('UploadFile', {
- *   args: { uploadId: S.Number, file: S.instanceOf(File) },
+ *   args: { uploadId: Schema.Number, file: Schema.instanceOf(File) },
  *   messages: [SucceededUploadFile, FailedUploadFile],
  *   interrupt: {
  *     keyFields: ['uploadId'],
@@ -325,7 +325,7 @@ export function define(name: string, config: DefineConfig): unknown {
     }
   }
 
-  const interrupt = maybeInterrupt.value
+  const { value: interrupt } = maybeInterrupt
   const maybeToKey =
     Predicate.isObject(interrupt) &&
     Predicate.hasProperty(interrupt, 'toKey') &&
@@ -365,7 +365,7 @@ export function define(name: string, config: DefineConfig): unknown {
     return definition
   }
 
-  const toKey = maybeToKey.value
+  const { value: toKey } = maybeToKey
   const toFullKey = (keyArgs: any): string => `${name}:${toKey(keyArgs)}`
 
   const definition = (args: any) => {
@@ -400,29 +400,11 @@ export function define(name: string, config: DefineConfig): unknown {
 export const mapEffect: {
   <A, E1, R1, B, E2, R2>(
     f: (effect: Effect.Effect<A, E1, R1>) => Effect.Effect<B, E2, R2>,
-  ): (
-    command: Readonly<{
-      name: string
-      args?: Record<string, unknown>
-      effect: Effect.Effect<A, E1, R1>
-    }>,
-  ) => Readonly<{
-    name: string
-    args?: Record<string, unknown>
-    effect: Effect.Effect<B, E2, R2>
-  }>
+  ): (command: Command<A, E1, R1>) => Command<B, E2, R2>
   <A, E1, R1, B, E2, R2>(
-    command: Readonly<{
-      name: string
-      args?: Record<string, unknown>
-      effect: Effect.Effect<A, E1, R1>
-    }>,
+    command: Command<A, E1, R1>,
     f: (effect: Effect.Effect<A, E1, R1>) => Effect.Effect<B, E2, R2>,
-  ): Readonly<{
-    name: string
-    args?: Record<string, unknown>
-    effect: Effect.Effect<B, E2, R2>
-  }>
+  ): Command<B, E2, R2>
 } = Function.dual(
   2,
   <A, E1, R1, B, E2, R2>(
@@ -455,33 +437,21 @@ export const mapEffect: {
  *  Preserves the Command's `name` and `args` so traces still attribute
  *  it to the originating Submodel. When you need to transform the
  *  Effect itself (not just the result Message), reach for
- *  {@link mapEffect} instead. */
+ *  {@link mapEffect} instead.
+ *
+ *  Typed against {@link Command} in argument and result positions, so a
+ *  generic combinator over a type-parameter Message unifies with
+ *  `Command.Command<Message>` directly. */
 export const mapMessage: {
   <FromMessage, ToMessage, E = never, R = never>(
-    command: Readonly<{
-      name: string
-      args?: Record<string, unknown>
-      effect: Effect.Effect<FromMessage, E, R>
-    }>,
+    command: Command<FromMessage, E, R>,
     f: (message: FromMessage) => ToMessage,
-  ): Readonly<{
-    name: string
-    args?: Record<string, unknown>
-    effect: Effect.Effect<ToMessage, E, R>
-  }>
+  ): Command<ToMessage, E, R>
   <FromMessage, ToMessage>(
     f: (message: FromMessage) => ToMessage,
   ): <E = never, R = never>(
-    command: Readonly<{
-      name: string
-      args?: Record<string, unknown>
-      effect: Effect.Effect<FromMessage, E, R>
-    }>,
-  ) => Readonly<{
-    name: string
-    args?: Record<string, unknown>
-    effect: Effect.Effect<ToMessage, E, R>
-  }>
+    command: Command<FromMessage, E, R>,
+  ) => Command<ToMessage, E, R>
 } = Function.dual(
   2,
   <FromMessage, ToMessage, E = never, R = never>(
@@ -512,19 +482,20 @@ export const mapMessage: {
 )
 
 /** Lifts every Command in a list through `f`, transforming the result
- *  Message type from `FromMessage` to `ToMessage`. Reach for this at the
- *  boundary where a child Submodel's `update` returns Commands typed in
- *  the child's Message and the parent needs them typed in the parent's
- *  Message:
+ *  Message type from `FromMessage` to `ToMessage`. When `commands` is
+ *  `undefined`, it returns an empty array. `Update.foldChild` handles
+ *  this mapping for application Submodels. Reach for `mapMessages` in
+ *  lower-level helpers or when mapping an optional update result directly:
  *
  *  ```ts
- *  GotChildMessage: ({ message }) => {
- *    const [nextChild, commands, maybeOutMessage] = Child.update(model.child, message)
- *    const mappedCommands = Command.mapMessages(
- *      commands,
- *      message => GotChildMessage({ message }),
- *    )
- *    // ...
+ *  const homeInit = Home.init()
+ *
+ *  return {
+ *    model: { home: homeInit.model },
+ *    commands: Command.mapMessages(
+ *      homeInit.commands,
+ *      message => Message.GotHomeMessage({ message }),
+ *    ),
  *  }
  *  ```
  *
@@ -534,57 +505,26 @@ export const mapMessage: {
  *  from the matched Command.
  *  Preserves each Command's `name` and `args` so traces still attribute the
  *  Command to the originating Submodel. When you need to transform the Effect
- *  itself (not just the result Message), reach for {@link mapEffect} instead. */
+ *  itself (not just the result Message), reach for {@link mapEffect} instead.
+ *
+ *  Typed against {@link Command} in argument and result positions, so a
+ *  generic combinator over a type-parameter Message unifies with
+ *  `Command.Command<Message>` directly. */
 export const mapMessages: {
   <FromMessage, ToMessage, E = never, R = never>(
-    commands: ReadonlyArray<
-      Readonly<{
-        name: string
-        args?: Record<string, unknown>
-        effect: Effect.Effect<FromMessage, E, R>
-      }>
-    >,
+    commands: ReadonlyArray<Command<FromMessage, E, R>> | undefined,
     f: (message: FromMessage) => ToMessage,
-  ): ReadonlyArray<
-    Readonly<{
-      name: string
-      args?: Record<string, unknown>
-      effect: Effect.Effect<ToMessage, E, R>
-    }>
-  >
+  ): ReadonlyArray<Command<ToMessage, E, R>>
   <FromMessage, ToMessage>(
     f: (message: FromMessage) => ToMessage,
   ): <E = never, R = never>(
-    commands: ReadonlyArray<
-      Readonly<{
-        name: string
-        args?: Record<string, unknown>
-        effect: Effect.Effect<FromMessage, E, R>
-      }>
-    >,
-  ) => ReadonlyArray<
-    Readonly<{
-      name: string
-      args?: Record<string, unknown>
-      effect: Effect.Effect<ToMessage, E, R>
-    }>
-  >
+    commands: ReadonlyArray<Command<FromMessage, E, R>> | undefined,
+  ) => ReadonlyArray<Command<ToMessage, E, R>>
 } = Function.dual(
   2,
   <FromMessage, ToMessage, E = never, R = never>(
-    commands: ReadonlyArray<
-      Readonly<{
-        name: string
-        args?: Record<string, unknown>
-        effect: Effect.Effect<FromMessage, E, R>
-      }>
-    >,
+    commands: ReadonlyArray<Command<FromMessage, E, R>> | undefined,
     f: (message: FromMessage) => ToMessage,
-  ): ReadonlyArray<
-    Readonly<{
-      name: string
-      args?: Record<string, unknown>
-      effect: Effect.Effect<ToMessage, E, R>
-    }>
-  > => Array.map(commands, command => mapMessage(command, f)),
+  ): ReadonlyArray<Command<ToMessage, E, R>> =>
+    Array.map(commands ?? [], command => mapMessage(command, f)),
 )

@@ -1,8 +1,18 @@
-import { m } from 'foldkit/message'
+import { Schema as S } from 'effect'
+import { defineMessageUnion } from 'foldkit/message'
 
 import * as Child from './child'
+import { ValidationMessage } from './validation'
 
-export const OpenedChild = m('OpenedChild')
-export const GotChildMessage = m('GotChildMessage', {
-  message: Child.Message,
+const Message = defineMessageUnion({
+  OpenedChild: {},
+  ReceivedMessage: { message: S.String, },
+  ReceivedValidation: { message: ValidationMessage, },
+  GotChildMessage: { message: Child.Message, },
 })
+
+export const localUnion = () => {
+  const defineMessageUnion = (cases: unknown) => cases
+
+  return defineMessageUnion({ ChildChanged: { message: Child.Message } })
+}

@@ -12,27 +12,23 @@ import {
   text,
   type,
 } from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import {
-  ConnectionConnected,
-  ConnectionConnecting,
-  ConnectionDisconnected,
-  ConnectionError,
+  ConnectionState,
+  Message,
   Model,
-  ReceivedMessage,
   SendMessage,
-  SucceededSendMessage,
   TimestampReceivedMessage,
   TimestampSentMessage,
-  TimestampedMessage,
   managedResources,
   update,
   view,
 } from './main'
 
 const idleModel = Model.make({
-  connection: ConnectionDisconnected(),
+  connection: ConnectionState.Disconnected(),
   messages: [],
   messageInput: '',
 })
@@ -55,7 +51,7 @@ describe('view', () => {
   test('connecting state renders the Connecting message', () => {
     scene(
       { update, view },
-      given({ ...idleModel, connection: ConnectionConnecting() }),
+      given(evo(idleModel, { connection: () => ConnectionState.Connecting() })),
       expect(text('Connecting...')).toExist(),
     )
   })
@@ -63,7 +59,7 @@ describe('view', () => {
   test('connected state shows the message input and Send button', () => {
     scene(
       { update, view },
-      given({ ...idleModel, connection: ConnectionConnected() }),
+      given(evo(idleModel, { connection: () => ConnectionState.Connected() })),
       expect(placeholder('Type a message...')).toExist(),
       expect(role('button', { name: 'Send' })).toBeDisabled(),
       type(placeholder('Type a message...'), 'hi'),
@@ -74,10 +70,14 @@ describe('view', () => {
   test('error state renders the error and a Try Again button', () => {
     scene(
       { update, view },
-      given({
-        ...idleModel,
-        connection: ConnectionError({ error: 'Connection refused' }),
-      }),
+      given(
+        evo(idleModel, {
+          connection: () =>
+            ConnectionState.Error({
+              error: 'Connection refused',
+            }),
+        }),
+      ),
       expect(text('Connection Error')).toExist(),
       expect(text('Connection refused')).toExist(),
       expect(role('button', { name: 'Try Again' })).toExist(),
@@ -87,14 +87,15 @@ describe('view', () => {
   test('messages render in the conversation list', () => {
     scene(
       { update, view },
-      given({
-        ...idleModel,
-        connection: ConnectionConnected(),
-        messages: [
-          { text: 'Hello there', zoned: zonedAt(0), isSent: true },
-          { text: 'General Kenobi', zoned: zonedAt(0), isSent: false },
-        ],
-      }),
+      given(
+        evo(idleModel, {
+          connection: () => ConnectionState.Connected(),
+          messages: () => [
+            { text: 'Hello there', zoned: zonedAt(0), isSent: true },
+            { text: 'General Kenobi', zoned: zonedAt(0), isSent: false },
+          ],
+        }),
+      ),
       expect(text('Hello there')).toExist(),
       expect(text('General Kenobi')).toExist(),
       expect(text('No messages yet')).toBeAbsent(),
@@ -112,10 +113,13 @@ describe('view', () => {
       type(placeholder('Type a message...'), 'hi there'),
       click(role('button', { name: 'Send' })),
       Command.expectExact(SendMessage({ text: 'hi there' })),
-      Command.resolve(SendMessage, SucceededSendMessage({ text: 'hi there' })),
+      Command.resolve(
+        SendMessage,
+        Message.SucceededSendMessage({ text: 'hi there' }),
+      ),
       Command.resolve(
         TimestampSentMessage,
-        TimestampedMessage({
+        Message.TimestampedMessage({
           text: 'hi there',
           zoned: zonedAt(0),
           isSent: true,
@@ -145,14 +149,14 @@ describe('view', () => {
   test('a message arriving on the socket Subscription lands in the conversation', () => {
     scene(
       { update, view },
-      given({ ...idleModel, connection: ConnectionConnected() }),
-      Subscription.emit(ReceivedMessage({ text: 'hello from echo' })),
+      given(evo(idleModel, { connection: () => ConnectionState.Connected() })),
+      Subscription.emit(Message.ReceivedMessage({ text: 'hello from echo' })),
       Command.expectExact(
         TimestampReceivedMessage({ text: 'hello from echo' }),
       ),
       Command.resolve(
         TimestampReceivedMessage,
-        TimestampedMessage({
+        Message.TimestampedMessage({
           text: 'hello from echo',
           zoned: zonedAt(0),
           isSent: false,
