@@ -112,14 +112,16 @@ describe('Disclosure controlled view', () => {
     )
   })
 
-  it('keeps a peek of the collapsed panel in view and readable', () => {
+  it('keeps a peek of the collapsed panel in view, readable, and as the floor once open', () => {
     Scene.scene(
       { update, view: testView({ peek: '7.5em' }) },
       Scene.given({ isOpen: false }),
       Scene.expect(panelBox).toHaveStyle('min-height', '7.5em'),
       Scene.expect(panelBox).not.toHaveAttr('aria-hidden'),
+      // The floor stays up while open, so the height transition starts from
+      // the peek rather than from nothing.
       Scene.click(button),
-      Scene.expect(panelBox).toHaveStyle('min-height', '0px'),
+      Scene.expect(panelBox).toHaveStyle('min-height', '7.5em'),
     )
   })
 

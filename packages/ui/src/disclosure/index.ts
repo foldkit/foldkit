@@ -156,6 +156,10 @@ export const view = <Message>(
   // The inner box's min-height is the collapsed track's floor: a 0fr track
   // still honors its item's minimum, so `peek` is what keeps the top of the
   // content in view while closed, and 0px is what lets the panel close fully.
+  // The floor holds while OPEN too. The transition interpolates the track
+  // from 0fr, and at its first frame 0fr with no floor is nothing at all —
+  // a peeking panel would snap below its peek and then grow. Open, the 1fr
+  // track is taller than the peek anyway, so a constant floor costs nothing.
   const animatePanel = (
     content: Html,
     options: AnimatePanelOptions = {},
@@ -175,7 +179,7 @@ export const view = <Message>(
         h.div(
           [
             h.Style({
-              minHeight: !isOpen && isPeeking ? peek : '0px',
+              minHeight: isPeeking ? peek : '0px',
               overflow: 'hidden',
             }),
             ...(isOpen || isPeeking ? [] : [h.AriaHidden(true)]),
