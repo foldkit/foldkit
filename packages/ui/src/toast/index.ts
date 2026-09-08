@@ -1,4 +1,4 @@
-import { Equal, Match, Option, Schema } from 'effect'
+import { Match, Option, Schema } from 'effect'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineView } from 'foldkit/submodel'
 
@@ -14,9 +14,11 @@ export type {
   MovedSwipePointer,
   ReleasedSwipePointer,
   CancelledSwipe,
+  CompletedWaitForSwipeSettled,
   HoveredEntry,
   InitConfig,
   LeftEntry,
+  SwipeToDismissConfig,
 } from './schema.js'
 export type { ShowInput } from './update.js'
 
@@ -28,9 +30,14 @@ export {
   Position,
   SwipeState,
   DEFAULT_SWIPE_THRESHOLD,
+  SWIPE_SETTLE_DURATION,
 } from './schema.js'
 
-export { WaitBeforeDismissal, swipeOffsetForEntry } from './update.js'
+export {
+  WaitBeforeDismissal,
+  WaitForSwipeSettled,
+  swipeOffsetForEntry,
+} from './update.js'
 
 // VIEW
 
@@ -146,11 +153,11 @@ const LEFT_MOUSE_BUTTON = 0
  *  ```
  */
 export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
-  const runtime = makeRuntime(payloadSchema)
-  type Entry = typeof runtime.Entry.Type
+  const toast = makeRuntime(payloadSchema)
+  type Entry = typeof toast.Entry.Type
 
-  type ToastModel = typeof runtime.Model.Type
-  type ToastMessage = typeof runtime.Message.Type
+  type ToastModel = typeof toast.Model.Type
+  type ToastMessage = typeof toast.Message.Type
 
   /** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs`
    *  field. */
@@ -167,7 +174,12 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
    *  page load. Each entry becomes a `<div>` keyed by its id, with
    *  animation data attributes (`data-enter`, `data-leave`,
    *  `data-transition`, `data-closed`) and `data-variant` reflecting the
-   *  entry's variant. */
+   *  entry's variant. When swipe is enabled via `swipeToDismiss`, entries
+   *  also carry `data-swipe` (`move` while dragging, `settling` after
+   *  release) with an inline `translate` property holding the gesture
+   *  offset. The offset lives on `translate` rather than `transform` so it
+   *  composes with your `transform` animations instead of overriding
+   *  them. */
   const view = defineView<ToastModel, ToastMessage, ViewInputs>(
     (model, viewInputs, h): Html => {
       const { id, entries } = model
@@ -213,26 +225,36 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           Match.orElse(() => []),
         )
 
-        const swipeOffset = runtime.swipeOffsetForEntry(
+        const swipeOffset = toast.swipeOffsetForEntry(
           model.swipeState,
           entry.id,
         )
-        const isSwiping =
-          model.swipeState._tag === 'Dragging' &&
-          model.swipeState.entryId === entry.id
-        const swipeAttributes = isSwiping
-          ? [
-              h.DataAttribute('swipe', 'move'),
-              ...(swipeOffset !== 0
-                ? [
-                    h.Style({
-                      transform: `translateX(${String(swipeOffset)}px)`,
-                      '--toast-swipe-move-x': `${String(swipeOffset)}px`,
-                    }),
-                  ]
-                : []),
-            ]
-          : []
+        const swipePhase = Match.value(model.swipeState).pipe(
+          Match.withReturnType<Option.Option<'move' | 'settling'>>(),
+          Match.tag('Dragging', dragging =>
+            dragging.entryId === entry.id ? Option.some('move') : Option.none(),
+          ),
+          Match.tag('Settling', settling =>
+            settling.entryId === entry.id
+              ? Option.some('settling')
+              : Option.none(),
+          ),
+          Match.orElse(() => Option.none()),
+        )
+        const swipeAttributes = Option.match(swipePhase, {
+          onNone: () => [],
+          onSome: phase => [
+            h.DataAttribute('swipe', phase),
+            ...(swipeOffset !== 0
+              ? [
+                  h.Style({
+                    translate: `${String(swipeOffset)}px`,
+                    '--toast-swipe-move-x': `${String(swipeOffset)}px`,
+                  }),
+                ]
+              : []),
+          ],
+        })
 
         const handlePointerDown = (
           pointerType: string,
@@ -243,14 +265,11 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           clientX: number,
           _clientY: number,
         ): Option.Option<ToastMessage> => {
-          if (
-            pointerType === 'mouse' &&
-            !Equal.equals(button, LEFT_MOUSE_BUTTON)
-          ) {
+          if (pointerType === 'mouse' && button !== LEFT_MOUSE_BUTTON) {
             return Option.none()
           } else {
             return Option.some(
-              runtime.Message.PressedEntryPointer({
+              toast.Message.PressedEntryPointer({
                 entryId: entry.id,
                 clientX,
               }),
@@ -267,9 +286,11 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             pointerEvents: 'auto',
             touchAction: 'pan-y',
           }),
-          h.OnMouseEnter(runtime.Message.HoveredEntry({ entryId: entry.id })),
-          h.OnMouseLeave(runtime.Message.LeftEntry({ entryId: entry.id })),
-          h.OnPointerDown(handlePointerDown),
+          h.OnMouseEnter(toast.Message.HoveredEntry({ entryId: entry.id })),
+          h.OnMouseLeave(toast.Message.LeftEntry({ entryId: entry.id })),
+          ...(Option.isSome(model.maybeSwipeThreshold)
+            ? [h.OnPointerDown(handlePointerDown)]
+            : []),
           ...animationAttributes,
           ...swipeAttributes,
           ...(entryClassName ? [h.Class(entryClassName)] : []),
@@ -277,7 +298,7 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
         const handlers: EntryHandlers = {
           dismiss: childAttributes([
-            h.OnClick(runtime.Message.Dismissed({ entryId: entry.id })),
+            h.OnClick(toast.Message.Dismissed({ entryId: entry.id })),
           ]),
         }
 
@@ -295,7 +316,7 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   )
 
   return {
-    ...runtime,
+    ...toast,
     view,
   } as const
 }

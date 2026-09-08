@@ -2,9 +2,9 @@ import { Subscription } from 'foldkit'
 
 import { DragAndDrop, Slider, VirtualList } from '@foldkit/ui'
 
+import { Toast } from './demo/toastModule'
 import { Message } from './message'
 import type { Model } from './model'
-import { Toast } from './toastModule'
 
 const dragAndDropSubscriptions = Subscription.lift({
   dragPointer: DragAndDrop.subscriptions.documentPointer,

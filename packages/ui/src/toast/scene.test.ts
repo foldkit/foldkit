@@ -6,7 +6,14 @@ import { modifyFields } from 'foldkit/struct'
 import { describe, it } from '@effect/vitest'
 
 import * as Animation from '../animation/index.js'
-import { type EntryHandlers, SwipeState, type Variant, make } from './index.js'
+import {
+  type EntryHandlers,
+  SwipeState,
+  type Variant,
+  WaitBeforeDismissal,
+  WaitForSwipeSettled,
+  make,
+} from './index.js'
 
 const TestPayload = Schema.Struct({ body: Schema.String })
 type TestPayload = typeof TestPayload.Type
@@ -54,8 +61,20 @@ const sceneView =
 const container = Scene.selector('div[key="test"]')
 const entryZero = Scene.selector('div[key="test-entry-0"]')
 
+const STALE_VERSION = -1
+
+// Swipe version after one press and one release: each gesture transition
+// bumps it, so the settle timer scheduled by that release carries 2.
+const SETTLE_VERSION = 2
+
 const withEntry = (overrides: Partial<Entry> = {}): Model =>
-  modifyFields(Toast.init({ id: 'test' }), {
+  evo(Toast.init({ id: 'test', swipeToDismiss: {} }), {
+    entries: () => [makeSettledEntry(overrides)],
+    nextEntryKey: () => 1,
+  })
+
+const withDisabledEntry = (overrides: Partial<Entry> = {}): Model =>
+  evo(Toast.init({ id: 'test' }), {
     entries: () => [makeSettledEntry(overrides)],
     nextEntryKey: () => 1,
   })
@@ -174,23 +193,21 @@ describe('Toast', () => {
       )
     })
 
-    it('adds data-swipe=move and translateX when dragging', () => {
+    it('adds data-swipe=move and translate offset when dragging', () => {
       const model: Model = {
-        ...Toast.init({ id: 'test' }),
-        entries: [makeSettledEntry()],
-        nextEntryKey: 1,
+        ...withEntry(),
         swipeState: SwipeState.Dragging({
           entryId: 'test-entry-0',
           startX: 100,
           currentX: 180,
         }),
-        swipeThreshold: 80,
       }
       Scene.scene(
         { update: Toast.update, view: sceneView() },
         Scene.given(model),
         Scene.expect(entryZero).toHaveAttr('data-swipe', 'move'),
-        Scene.expect(entryZero).toHaveStyle('transform', 'translateX(80px)'),
+        Scene.expect(entryZero).toHaveStyle('translate', '80px'),
+        Scene.expect(entryZero).not.toHaveStyle('transform'),
       )
     })
 
@@ -199,6 +216,75 @@ describe('Toast', () => {
         { update: Toast.update, view: sceneView() },
         Scene.given(withEntry()),
         Scene.expect(entryZero).not.toHaveAttr('data-swipe'),
+      )
+    })
+
+    it('attaches no pointerdown handler when swipe is disabled', () => {
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(withDisabledEntry()),
+        Scene.expect(entryZero).not.toHaveHandler('pointerdown'),
+      )
+    })
+
+    it('keeps the released offset rendered while the leave runs', () => {
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(withEntry()),
+        Scene.pointerDown(entryZero, { clientX: 100 }),
+        Scene.expect(entryZero).toHaveAttr('data-swipe', 'move'),
+        Scene.Subscription.emit(
+          Toast.Message.MovedSwipePointer({ clientX: 200 }),
+        ),
+        Scene.expect(entryZero).toHaveStyle('translate', '100px'),
+        Scene.Subscription.emit(
+          Toast.Message.ReleasedSwipePointer({ clientX: 200 }),
+        ),
+        Scene.expect(entryZero).toHaveAttr('data-swipe', 'settling'),
+        Scene.expect(entryZero).toHaveStyle('translate', '100px'),
+        Scene.expect(entryZero).not.toHaveStyle('transform'),
+        Scene.expect(entryZero).toHaveAttr('data-leave', ''),
+        Scene.Command.resolveAll(
+          [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
+          [
+            Animation.WaitForAnimationSettled,
+            Animation.Message.EndedAnimation(),
+          ],
+        ),
+        Scene.expect(entryZero).toBeAbsent(),
+      )
+    })
+
+    it('renders settling without an offset after a cancelled release', () => {
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(withEntry()),
+        Scene.pointerDown(entryZero, { clientX: 100 }),
+        Scene.Subscription.emit(
+          Toast.Message.MovedSwipePointer({ clientX: 130 }),
+        ),
+        Scene.Subscription.emit(
+          Toast.Message.ReleasedSwipePointer({ clientX: 130 }),
+        ),
+        Scene.expect(entryZero).toHaveAttr('data-swipe', 'settling'),
+        Scene.expect(entryZero).not.toHaveStyle('translate'),
+        Scene.expect(entryZero).not.toHaveAttr('data-leave'),
+        Scene.Command.resolve(
+          WaitForSwipeSettled,
+          Toast.Message.CompletedWaitForSwipeSettled({
+            entryId: 'test-entry-0',
+            version: SETTLE_VERSION,
+          }),
+        ),
+        Scene.expect(entryZero).not.toHaveAttr('data-swipe'),
+        Scene.Command.resolve(
+          WaitBeforeDismissal,
+          Toast.Message.CompletedWaitBeforeDismissal({
+            entryId: 'test-entry-0',
+            version: STALE_VERSION,
+          }),
+        ),
+        Scene.expect(entryZero).toExist(),
       )
     })
   })

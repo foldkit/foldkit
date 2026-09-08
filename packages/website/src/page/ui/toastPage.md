@@ -2,7 +2,7 @@
 
 ## Overview
 
-A stack of transient notifications anchored to a corner of the viewport. Each entry has its own enter and leave animation, its own auto-dismiss timer, its own hover-to-pause behavior, and a pointer swipe to dismiss. One container lives at the app root; entries are added dynamically via `Toast.show`.
+A stack of transient notifications anchored to a corner of the viewport. Each entry has its own enter and leave animation, its own auto-dismiss timer, its own hover-to-pause behavior, and an opt-in pointer swipe to dismiss. One container lives at the app root; entries are added dynamically via `Toast.show`.
 
 Toast is parameterized on a payload Schema that you provide. The component owns its id, semantic variant, transition, dismiss timer, and hover state. Everything else lives in your payload and is rendered by your `entryToView` callback. `Toast.make(PayloadSchema)` returns a module whose Model, helpers, and view are bound to that payload type.
 
@@ -26,18 +26,26 @@ Each entry’s enter/leave animations flow through the [Animation](/ui/animation
 
 ## Gestures
 
-Swipe is pointer-driven. `Toast.view` attaches `pointerdown` per entry; `Toast.subscriptions` drives `pointermove`, `pointerup`, and `pointercancel` plus `Escape` to cancel, and locks `user-select` and cursor to `grabbing` while dragging. Wire the subscriptions at the app root with `Subscription.lift(Toast.subscriptions)`. See the snippet below and [Toast subscriptions in the demo app](https://github.com/foldkit/foldkit/blob/main/packages/website/src/page/ui/subscriptions.ts).
+Swipe is pointer-driven and opt-in. Pass `swipeToDismiss` to `Toast.init` (`{}` for the default 80px threshold, `{ threshold: 120 }` to tune it); without it the view attaches no `pointerdown` handler and the gesture Messages are no-ops, so an existing Toast without wired subscriptions can never get stuck mid-drag. With it enabled, `Toast.view` attaches `pointerdown` per entry and `Toast.subscriptions` drives `pointermove`, `pointerup`, and `pointercancel` plus `Escape` to cancel, locking `user-select` and cursor to `grabbing` while dragging. Wire the subscriptions at the app root with `Subscription.lift(Toast.subscriptions)`. See the snippet below and [Toast subscriptions in the demo app](https://github.com/foldkit/foldkit/blob/main/packages/website/src/page/ui/subscriptions.ts).
 
-While dragging the entry follows the pointer with `translateX(offset)` and `data-swipe="move"`. Releasing with `abs(offset) >= swipeThreshold` starts the leave animation and eventually emits `DismissedToast`; releasing below the threshold snaps back and reschedules the auto-dismiss timer. `Escape` cancels the gesture the same way.
+While dragging the entry follows the pointer with `data-swipe="move"` and an inline `translate` property holding the offset. The offset lives on `translate` rather than `transform` on purpose: the two compose, so a leave animation that moves the entry with `transform` starts from the release position instead of fighting an inline style. Releasing with `abs(offset) >= threshold` holds the offset behind `data-swipe="settling"` while the leave animation runs, then emits `DismissedToast` on removal. A slide-out leave needs no swipe-specific CSS; it runs from wherever the pointer let go. Releasing below the threshold (or cancelling with `Escape`) settles back toward zero and reschedules the auto-dismiss timer. The component holds `data-swipe="settling"` for 150ms (`SWIPE_SETTLE_DURATION`) after a cancel so your CSS can animate the snap-back; transition the `translate` property on the settling state:
 
-| Attribute         | Condition                                                                                                                                                  |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-variant`    | Present on each entry, with the variant value (Info, Success, Warning, Error). Use for per-variant CSS.                                                    |
-| `data-enter`      | Present on an entry while its enter animation runs.                                                                                                        |
-| `data-leave`      | Present on an entry while its leave animation runs.                                                                                                        |
-| `data-closed`     | Present on an entry at the closed extreme of its enter or leave animation. Pair with data-enter or data-leave to drive the starting and ending CSS states. |
-| `data-transition` | Present on an entry while either animation runs.                                                                                                           |
-| `data-swipe`      | `move` while an entry is being dragged. Pair with `transform: translateX` and `--toast-swipe-move-x` set inline by the view for custom swipe styling.      |
+```css
+.toast-entry[data-swipe='settling'] {
+  transition: translate 150ms ease-out;
+}
+```
+
+The view also exposes the live offset as `--toast-swipe-move-x` for custom styling, such as fading in an action background behind the entry as it moves.
+
+| Attribute         | Condition                                                                                                                                                                                                                                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-variant`    | Present on each entry, with the variant value (Info, Success, Warning, Error). Use for per-variant CSS.                                                                                                                                                                                                 |
+| `data-enter`      | Present on an entry while its enter animation runs.                                                                                                                                                                                                                                                     |
+| `data-leave`      | Present on an entry while its leave animation runs.                                                                                                                                                                                                                                                     |
+| `data-closed`     | Present on an entry at the closed extreme of its enter or leave animation. Pair with data-enter or data-leave to drive the starting and ending CSS states.                                                                                                                                              |
+| `data-transition` | Present on an entry while either animation runs.                                                                                                                                                                                                                                                        |
+| `data-swipe`      | `move` while an entry is being dragged, `settling` after release until the entry rests or its leave completes. The view positions the entry with the inline `translate` property (which composes with your `transform` animations) and exposes the offset as `--toast-swipe-move-x` for custom styling. |
 
 ## Accessibility
 
@@ -49,11 +57,11 @@ The container is a `role="region"` with `aria-live="polite"`, always rendered (e
 
 Configuration object passed to `Toast.init()`.
 
-| Name              | Type             | Default               | Description                                                                                                                                                                                        |
-| ----------------- | ---------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`              | `string`         | —                     | Unique ID for the toast container.                                                                                                                                                                 |
-| `defaultDuration` | `Duration.Input` | `Duration.seconds(4)` | Auto-dismiss duration applied to any show() call that does not provide its own duration or pass sticky: true. Accepts any Effect Duration input; a bare number is interpreted as milliseconds.     |
-| `swipeThreshold`  | `number`         | `80`                  | Horizontal distance in pixels the pointer must travel before a release dismisses the entry. Applies per container; override in `Toast.init({ swipeThreshold })` to match a denser or looser stack. |
+| Name              | Type                     | Default               | Description                                                                                                                                                                                                                                          |
+| ----------------- | ------------------------ | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`              | `string`                 | —                     | Unique ID for the toast container.                                                                                                                                                                                                                   |
+| `defaultDuration` | `Duration.Input`         | `Duration.seconds(4)` | Auto-dismiss duration applied to any show() call that does not provide its own duration or pass sticky: true. Accepts any Effect Duration input; a bare number is interpreted as milliseconds.                                                       |
+| `swipeToDismiss`  | `{ threshold?: number }` | —                     | Opts the container into swipe-to-dismiss. Omit it to leave swipe disabled. Pass `{}` for the default 80px threshold or `{ threshold }` to set how far in pixels the pointer must travel before a release dismisses the entry. Applies per container. |
 
 ### ShowInput {#show-input}
 
@@ -90,7 +98,7 @@ Toast helpers are child entry points. Fold `show` and `dismiss` with `Update.fol
 | `dismiss`    | `(model: Model, entryId: string) => Update.ReturnWithOutMessage<Model, Message, OutMessage>`  | —       | Begins dismissing a specific entry. Calling it for an entry that is already leaving or has been removed is a no-op.                                                                    |
 | `dismissAll` | `(model: Model) => Update.ReturnWithOutMessage<Model, Message, OutMessage>`                   | —       | Begins dismissing every currently-visible entry.                                                                                                                                       |
 
-### Subscriptions {#subscriptions}
+### Subscriptions
 
 Toast exposes `Toast.subscriptions` with `swipePointer` and `swipeEscape`. Lift them once at the app root so pointer tracking continues even when the pointer leaves the entry:
 
@@ -110,7 +118,7 @@ export const subscriptions = Subscription.lift(Toast.subscriptions)<
 
 Without the lift the view still renders `data-swipe="move"` for the initial `pointerdown`, but `pointermove` and `pointerup` never reach the update and the gesture cannot complete.
 
-For custom renderers (for example a foldcn-style stack that owns its own `<li>`), read the offset with `Toast.swipeOffsetForEntry(model.swipeState, entry.id)` and apply `transform: translateX(offset)` and `data-swipe` yourself.
+For custom renderers (for example a foldcn-style stack that owns its own `<li>`), read the offset with `Toast.swipeOffsetForEntry(model.swipeState, entry.id)` and apply `translate: <offset>px` yourself. Mirror the `data-swipe` phases: `move` while `swipeState` is `Dragging` for the entry, `settling` while it is `Settling`.
 
 ### OutMessage {#out-message}
 

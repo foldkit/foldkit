@@ -38,10 +38,12 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize it. Tune swipeThreshold for a tighter or looser stack:
+// In your init function, initialize it. Swipe is opt-in: omit
+// swipeToDismiss to leave it disabled, or tune the threshold for a tighter
+// or looser stack:
 const init = () => ({
   model: {
-    toast: Toast.init({ id: 'app-toast', swipeThreshold: 80 }),
+    toast: Toast.init({ id: 'app-toast', swipeToDismiss: {} }),
     maybeLastDismissedBody: Option.none(),
     // ...your other fields
   },
@@ -120,8 +122,8 @@ export const subscriptions = Subscription.lift(Toast.subscriptions)<
 // In your view, embed Toast via h.submodel once at the app root. The
 // entryToView callback lays out each entry from its payload. The
 // component handles the <li> wrapper, hover-to-pause, swipe-to-dismiss
-// (pointerdown + data-swipe="move" + translateX/--toast-swipe-move-x),
-// and enter/leave animations.
+// (pointerdown + data-swipe="move"/"settling" +
+// translate/--toast-swipe-move-x), and enter/leave animations.
 const view = (h: HtmlBuilder<Message>) =>
   h.submodel({
     slotId: 'app-toast',

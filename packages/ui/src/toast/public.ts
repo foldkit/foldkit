@@ -5,6 +5,7 @@ export {
   Position,
   SwipeState,
   DEFAULT_SWIPE_THRESHOLD,
+  SWIPE_SETTLE_DURATION,
   swipeOffsetForEntry,
   type Dismissed,
   type DismissedAll,
@@ -16,11 +17,13 @@ export {
   type MovedSwipePointer,
   type ReleasedSwipePointer,
   type CancelledSwipe,
+  type CompletedWaitForSwipeSettled,
   WaitBeforeDismissal,
+  WaitForSwipeSettled,
 } from './index.js'
 
 export * as test from './test.js'
 
 export type { EntryHandlers } from './index.js'
-export type { InitConfig, ShowInput } from './index.js'
+export type { InitConfig, ShowInput, SwipeToDismissConfig } from './index.js'
 export type { DrainEntryInput } from './test.js'

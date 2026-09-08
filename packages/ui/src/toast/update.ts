@@ -29,6 +29,7 @@ import {
   DEFAULT_DURATION,
   DEFAULT_SWIPE_THRESHOLD,
   type InitConfig,
+  SWIPE_SETTLE_DURATION,
   Message as StaticMessage,
   SwipeState,
   type Variant,
@@ -71,7 +72,22 @@ export const WaitBeforeDismissal = Command.define('WaitBeforeDismissal', {
 
 const DEFAULT_VARIANT: Variant = 'Info'
 
-const SWIPE_THRESHOLD_FALLBACK = DEFAULT_SWIPE_THRESHOLD
+/** Holds the swipe timer that clears a cancelled gesture's settling state
+ *  once consumer CSS has had time to animate the snap-back. Static. The
+ *  Command definition doesn't depend on payload. */
+export const WaitForSwipeSettled = Command.define('WaitForSwipeSettled', {
+  args: {
+    entryId: Schema.String,
+    version: Schema.Number,
+  },
+  messages: [StaticMessage.CompletedWaitForSwipeSettled],
+  execute: ({ entryId, version }) =>
+    Effect.sleep(SWIPE_SETTLE_DURATION).pipe(
+      Effect.as(
+        StaticMessage.CompletedWaitForSwipeSettled({ entryId, version }),
+      ),
+    ),
+})
 
 const SwipeActivity = Schema.Literals(['Idle', 'Active'])
 
@@ -93,7 +109,20 @@ export const swipeOffsetForEntry = (
     Match.tag('Dragging', dragging =>
       dragging.entryId === entryId ? dragging.currentX - dragging.startX : 0,
     ),
+    Match.tag('Settling', settling =>
+      settling.entryId === entryId ? settling.offsetX : 0,
+    ),
     Match.orElse(() => 0),
+  )
+
+const isDraggingEntry = (
+  swipeState: typeof SwipeState.Type,
+  entryId: string,
+): boolean =>
+  Match.value(swipeState).pipe(
+    Match.withReturnType<boolean>(),
+    Match.tag('Dragging', dragging => dragging.entryId === entryId),
+    Match.orElse(() => false),
   )
 
 const isSwipingEntry = (
@@ -103,6 +132,7 @@ const isSwipingEntry = (
   Match.value(swipeState).pipe(
     Match.withReturnType<boolean>(),
     Match.tag('Dragging', dragging => dragging.entryId === entryId),
+    Match.tag('Settling', settling => settling.entryId === entryId),
     Match.orElse(() => false),
   )
 
@@ -163,7 +193,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     if (
       isEntryLeaving(entry) ||
       entry.isHovered ||
-      isSwipingEntry(model.swipeState, entry.id)
+      isDraggingEntry(model.swipeState, entry.id)
     ) {
       return []
     } else {
@@ -173,6 +203,36 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           scheduleDismiss(entry.id, entry.pendingDismissVersion, duration),
         ],
       })
+    }
+  }
+
+  /** Returns a cancelled gesture to rest: bumps the dismiss version,
+   *  reschedules the auto-dismiss timer, and holds `Settling` at zero
+   *  offset while consumer CSS animates the snap-back. Each gesture
+   *  generation gets its own swipe version, so a re-press during the
+   *  transition safely discards the stale settle completion. */
+  const settleSnapBack = (
+    model: Model,
+    entry: Entry,
+    entryId: string,
+  ): UpdateReturn => {
+    const nextEntry = evo(entry, {
+      pendingDismissVersion: Number.increment,
+    })
+    const nextVersion = Number.increment(model.swipeVersion)
+    const nextModel = evo(
+      updateEntry(model, entryId, () => nextEntry),
+      {
+        swipeState: () => SwipeState.Settling({ entryId, offsetX: 0 }),
+        swipeVersion: () => nextVersion,
+      },
+    )
+    return {
+      model: nextModel,
+      commands: [
+        WaitForSwipeSettled({ entryId, version: nextVersion }),
+        ...rescheduleDismissCommands(nextModel, nextEntry),
+      ],
     }
   }
 
@@ -224,9 +284,18 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
               commands: [liftCommand(animationDefaultLeaveCommand(animation))],
             }),
           }),
-        TransitionedOut: () => model => ({
-          model: removeEntry(model, entryId),
-        }),
+        TransitionedOut: () => model => {
+          const nextModel = removeEntry(model, entryId)
+          if (isSwipingEntry(nextModel.swipeState, entryId)) {
+            return {
+              model: evo(nextModel, {
+                swipeState: () => SwipeState.Idle(),
+              }),
+            }
+          } else {
+            return { model: nextModel }
+          }
+        },
       })
 
   const foldEntryAnimation = (entry: Entry) =>
@@ -291,7 +360,8 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     }
   }
 
-  /** Creates an initial toast container model from a config. Starts empty. */
+  /** Creates an initial toast container model from a config. Starts empty
+   *  with swipe disabled unless `swipeToDismiss` opts in. */
   const init = (config: InitConfig): Model => ({
     id: config.id,
     defaultDuration:
@@ -301,7 +371,13 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     entries: [],
     nextEntryKey: 0,
     swipeState: SwipeState.Idle(),
-    swipeThreshold: config.swipeThreshold ?? SWIPE_THRESHOLD_FALLBACK,
+    swipeVersion: 0,
+    maybeSwipeThreshold:
+      config.swipeToDismiss === undefined
+        ? Option.none()
+        : Option.some(
+            config.swipeToDismiss.threshold ?? DEFAULT_SWIPE_THRESHOLD,
+          ),
   })
 
   /** Processes a Toast Message and returns the next Model, optional Commands,
@@ -410,6 +486,9 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       },
 
       PressedEntryPointer: ({ entryId, clientX }) => {
+        if (Option.isNone(model.maybeSwipeThreshold)) {
+          return { model }
+        }
         const maybeEntry = Array.findFirst(
           model.entries,
           ({ id }) => id === entryId,
@@ -433,6 +512,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
                         startX: clientX,
                         currentX: clientX,
                       }),
+                    swipeVersion: Number.increment,
                   },
                 ),
               }
@@ -462,6 +542,10 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           Match.tag('Dragging', dragging => {
             const offset = clientX - dragging.startX
             const entryId = dragging.entryId
+            const threshold = Option.getOrElse(
+              model.maybeSwipeThreshold,
+              () => DEFAULT_SWIPE_THRESHOLD,
+            )
             const maybeEntry = Array.findFirst(
               model.entries,
               ({ id }) => id === entryId,
@@ -471,27 +555,19 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
                 model: evo(model, { swipeState: () => SwipeState.Idle() }),
               }),
               onSome: entry => {
-                if (Math.abs(offset) >= model.swipeThreshold) {
-                  const clearedModel = evo(model, {
-                    swipeState: () => SwipeState.Idle(),
+                if (Math.abs(offset) >= threshold) {
+                  const settlingModel = evo(model, {
+                    swipeState: () =>
+                      SwipeState.Settling({ entryId, offsetX: offset }),
+                    swipeVersion: Number.increment,
                   })
                   if (isEntryLeaving(entry)) {
-                    return { model: clearedModel }
+                    return { model: settlingModel }
                   } else {
-                    return foldEntryAnimationHide(entry)(clearedModel)
+                    return foldEntryAnimationHide(entry)(settlingModel)
                   }
                 } else {
-                  const nextEntry = evo(entry, {
-                    pendingDismissVersion: Number.increment,
-                  })
-                  const nextModel = evo(
-                    updateEntry(model, entryId, () => nextEntry),
-                    { swipeState: () => SwipeState.Idle() },
-                  )
-                  return {
-                    model: nextModel,
-                    commands: rescheduleDismissCommands(nextModel, nextEntry),
-                  }
+                  return settleSnapBack(model, entry, entryId)
                 }
               },
             })
@@ -512,20 +588,26 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
               onNone: (): UpdateReturn => ({
                 model: evo(model, { swipeState: () => SwipeState.Idle() }),
               }),
-              onSome: entry => {
-                const nextEntry = evo(entry, {
-                  pendingDismissVersion: Number.increment,
-                })
-                const nextModel = evo(
-                  updateEntry(model, entryId, () => nextEntry),
-                  { swipeState: () => SwipeState.Idle() },
-                )
-                return {
-                  model: nextModel,
-                  commands: rescheduleDismissCommands(nextModel, nextEntry),
-                }
-              },
+              onSome: entry => settleSnapBack(model, entry, entryId),
             })
+          }),
+          Match.orElse(() => ({ model })),
+        ),
+
+      CompletedWaitForSwipeSettled: ({ entryId, version }) =>
+        Match.value(model.swipeState).pipe(
+          Match.withReturnType<UpdateReturn>(),
+          Match.tag('Settling', settling => {
+            if (
+              settling.entryId === entryId &&
+              version === model.swipeVersion
+            ) {
+              return {
+                model: evo(model, { swipeState: () => SwipeState.Idle() }),
+              }
+            } else {
+              return { model }
+            }
           }),
           Match.orElse(() => ({ model })),
         ),
@@ -548,12 +630,13 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
   const subscriptions = Subscription.make<Model, Message>()(entry => ({
     swipePointer: entry(
-      { swipeActivity: SwipeActivity },
+      { swipeActivity: SwipeActivity, isSwipeEnabled: Schema.Boolean },
       {
         modelToDependencies: model => ({
           swipeActivity: swipeActivityFromState(model.swipeState),
+          isSwipeEnabled: Option.isSome(model.maybeSwipeThreshold),
         }),
-        dependenciesToStream: ({ swipeActivity }) => {
+        dependenciesToStream: ({ swipeActivity, isSwipeEnabled }) => {
           const moveStream = Stream.fromEventListener<PointerEvent>(
             document,
             'pointermove',
@@ -610,25 +693,26 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
           return Stream.when(
             Stream.merge(pointerEvents, documentSwipeStyles),
-            Effect.sync(() => swipeActivity === 'Active'),
+            Effect.sync(() => isSwipeEnabled && swipeActivity === 'Active'),
           )
         },
       },
     ),
 
     swipeEscape: entry(
-      { swipeActivity: SwipeActivity },
+      { swipeActivity: SwipeActivity, isSwipeEnabled: Schema.Boolean },
       {
         modelToDependencies: model => ({
           swipeActivity: swipeActivityFromState(model.swipeState),
+          isSwipeEnabled: Option.isSome(model.maybeSwipeThreshold),
         }),
-        dependenciesToStream: ({ swipeActivity }) =>
+        dependenciesToStream: ({ swipeActivity, isSwipeEnabled }) =>
           Stream.when(
             Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
               Stream.filter(({ key }) => key === 'Escape'),
               Stream.map(() => MessageSchema.CancelledSwipe()),
             ),
-            Effect.sync(() => swipeActivity === 'Active'),
+            Effect.sync(() => isSwipeEnabled && swipeActivity === 'Active'),
           ),
       },
     ),
