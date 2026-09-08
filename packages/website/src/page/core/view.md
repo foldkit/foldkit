@@ -122,6 +122,8 @@ Two constraints account for most uses. `event.preventDefault()` must run before 
 
 `OnClick` accepts `defaultAction`, `propagation`, and `focusSelector` controls. Foldkit applies them synchronously before dispatching the Message. `OnKeyDownPreventDefault` lets a translator decide whether to claim a key event. `OnPastePreventDefault` passes the clipboard's `text/plain` payload to its translator; `Some` suppresses the default insertion and dispatches the Message, while `None` leaves the paste alone. `OnCopyText` and `OnCutText` write Model-derived text to the clipboard and suppress the browser's default payload; the cut variant also dispatches a Message.
 
+`OnCancelPreventDefault` always suppresses a cancel event's default action. A native cancel event dispatches no Message. A `CustomEvent` dispatches the optional Message, so an application-owned cancel signal can use the same event name without treating native cancellation as a state change. Dialog uses this distinction to ignore the native cancel event observed when a file picker closes and map `Dom.showDialog`'s signal for an unhandled Escape to `RequestedClose`.
+
 ::Snippet{name="eventHandlerSideEffects" label="event handler side effects example"}
 
 The iOS keyboard case has one extra constraint: the target must already exist when the user taps. An input inside a closed dialog does not. Keep an always-present, visually hidden text input as a keyboard warmup and pass its selector as `focusSelector` to `OnClick`. The same attribute dispatches the Message that opens the dialog. Update can then return a `Dom.focus` Command to move focus to the real input after it mounts, while iOS keeps the keyboard open.
