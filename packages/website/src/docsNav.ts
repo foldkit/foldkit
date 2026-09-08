@@ -162,7 +162,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
   },
   {
     key: 'coreConcepts',
-    label: 'Core Concepts',
+    label: 'Core',
     pageGroups: [
       [
         {
