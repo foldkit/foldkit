@@ -121,9 +121,11 @@ type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 /** Locks page scroll and opens the native dialog element through
  *  `Dom.showDialog`, which calls `show()` (not native `showModal()`) so other
  *  high-z-index overlays stay interactive. It layers the dialog with a high
- *  z-index, traps focus, and dispatches a `cancel` event on Esc. The Dialog
- *  component supplies its own backdrop. If the dialog element is gone by the
- *  time the show runs, the lock is released and the Command reports
+ *  z-index and traps focus. For an unhandled Escape on the topmost Dialog, the
+ *  helper dispatches a `CustomEvent` named `cancel`; the Dialog view maps that
+ *  signal to `RequestedClose` while suppressing native `cancel` events. The
+ *  Dialog component supplies its own backdrop. If the dialog element is gone
+ *  by the time the show runs, the lock is released and the Command reports
  *  `FailedShowDialog`. A closed dialog has no `OnUnmount`, so nothing else
  *  would release the lock. The update function then closes the Model. Without
  *  this close, the dialog would render open with no lock and no focus trap.
@@ -367,11 +369,12 @@ export const descriptionId = (model: Model): string =>
 /** Render-time payload published to the consumer's `toView`.
  *
  *  - `dialog`: attributes for the native `<dialog>` element. Carries
- *    the id, ARIA labelling, `open` prop, positioning style, the
- *    `OnCancel` handler that wires Escape to `RequestedClose`, and an
- *    `OnUnmount` backstop that releases framework hygiene (scroll lock,
- *    focus trap, return focus) if the element is removed from the DOM
- *    while still open, such as navigating away from a route-keyed subtree.
+ *    the id, ARIA labelling, `open` prop, positioning style, a `cancel` handler
+ *    that prevents a file picker's native cancellation from closing the dialog
+ *    while mapping `Dom.showDialog`'s Escape signal to `RequestedClose`,
+ *    and an `OnUnmount` backstop that releases framework hygiene (scroll lock,
+ *    focus trap, return focus) if the element is removed from the DOM while
+ *    still open, such as navigating away from a route-keyed subtree.
  *    The consumer MUST render an `h.dialog(...)` element so the framework
  *    can open and close it, and so the unmount backstop can fire.
  *  - `backdrop`: attributes for the backdrop element. Includes the
@@ -420,7 +423,7 @@ export type ViewInputs = Readonly<{
 /** Renders a headless dialog component backed by the native `<dialog>`
  *  element. `ShowDialog` opens it through `Dom.showDialog`, which uses `show()`
  *  (not native `showModal()`) with a high z-index, a focus trap, a
- *  component-supplied backdrop, and a `cancel` event dispatched on Esc. */
+ *  component-supplied backdrop, and topmost-only Escape handling. */
 export const view = defineView<Model, Message, ViewInputs>(
   (model, viewInputs, h): Html => {
     const {
@@ -458,7 +461,10 @@ export const view = defineView<Model, Message, ViewInputs>(
       h.Id(id),
       h.AriaLabelledBy(titleId(model)),
       h.AriaDescribedBy(descriptionId(model)),
-      h.OnCancel(Message.RequestedClose()),
+      // NOTE: Chromium reports canceling a file picker as a native `cancel`
+      // event observed by the containing dialog. Dom.showDialog uses a
+      // CustomEvent for its unhandled-Escape signal, so the two are separable.
+      h.OnCancelPreventDefault(Message.RequestedClose()),
       h.Open(isVisible),
       h.Style({
         width: '100%',

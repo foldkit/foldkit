@@ -646,23 +646,34 @@ describe('showDialog', () => {
       Effect.gen(function* () {
         makeDialog('parent')
         makeDialog('child')
-        const cancelled: Array<string> = []
-        document
-          .querySelector('#parent')
-          ?.addEventListener('cancel', () => cancelled.push('parent'))
-        document
-          .querySelector('#child')
-          ?.addEventListener('cancel', () => cancelled.push('child'))
+        const cancelled: Array<
+          Readonly<{ id: string; isCustomEvent: boolean }>
+        > = []
+        document.querySelector('#parent')?.addEventListener('cancel', event =>
+          cancelled.push({
+            id: 'parent',
+            isCustomEvent: event instanceof CustomEvent,
+          }),
+        )
+        document.querySelector('#child')?.addEventListener('cancel', event =>
+          cancelled.push({
+            id: 'child',
+            isCustomEvent: event instanceof CustomEvent,
+          }),
+        )
 
         yield* showDialog('#parent')
         yield* showDialog('#child')
 
         pressEscape()
-        expect(cancelled).toEqual(['child'])
+        expect(cancelled).toEqual([{ id: 'child', isCustomEvent: true }])
 
         yield* closeDialog('#child')
         pressEscape()
-        expect(cancelled).toEqual(['child', 'parent'])
+        expect(cancelled).toEqual([
+          { id: 'child', isCustomEvent: true },
+          { id: 'parent', isCustomEvent: true },
+        ])
 
         yield* closeDialog('#parent')
         document.body.innerHTML = ''
@@ -687,6 +698,33 @@ describe('showDialog', () => {
       event.preventDefault()
       document.dispatchEvent(event)
 
+      expect(cancelled).toEqual([])
+
+      yield* closeDialog('#solo')
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect('does not close when a descendant consumes Escape', () =>
+    Effect.gen(function* () {
+      const dialog = makeDialog('solo')
+      const input = document.createElement('input')
+      const cancelled: Array<string> = []
+
+      input.addEventListener('keydown', event => event.preventDefault())
+      dialog.addEventListener('cancel', () => cancelled.push('solo'))
+      dialog.appendChild(input)
+
+      yield* showDialog('#solo')
+
+      const event = new KeyboardEvent('keydown', {
+        key: 'Escape',
+        bubbles: true,
+        cancelable: true,
+      })
+      input.dispatchEvent(event)
+
+      expect(event.defaultPrevented).toBe(true)
       expect(cancelled).toEqual([])
 
       yield* closeDialog('#solo')

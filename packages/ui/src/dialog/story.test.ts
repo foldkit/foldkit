@@ -103,6 +103,21 @@ const hasButtonType = (group: ReadonlyArray<ChildAttribute>): boolean =>
       attribute.value === 'button',
   )
 
+const hasCancelPrevention = (group: ReadonlyArray<ChildAttribute>): boolean =>
+  group.some(({ attribute }) =>
+    Predicate.isTagged(attribute, 'OnCancelPreventDefault'),
+  )
+
+const hasEscapeCancelMapping = (
+  group: ReadonlyArray<ChildAttribute>,
+): boolean =>
+  group.some(
+    ({ attribute }) =>
+      Predicate.isTagged(attribute, 'OnCancelPreventDefault') &&
+      Predicate.hasProperty(attribute, 'maybeCustomEventMessage') &&
+      Predicate.isTagged(attribute.maybeCustomEventMessage, 'Some'),
+  )
+
 describe('Dialog', () => {
   describe('init', () => {
     it('defaults isOpen to false', () => {
@@ -546,6 +561,24 @@ describe('Dialog', () => {
         hasIdAttribute(
           renderGroup(model, render => render.description),
           descriptionId(model),
+        ),
+      ).toBe(true)
+    })
+  })
+
+  describe('RenderInfo dialog', () => {
+    it('suppresses native cancel events', () => {
+      expect(
+        hasCancelPrevention(
+          renderGroup(init({ id: 'my-dialog' }), render => render.dialog),
+        ),
+      ).toBe(true)
+    })
+
+    it('maps the showDialog Escape signal', () => {
+      expect(
+        hasEscapeCancelMapping(
+          renderGroup(init({ id: 'my-dialog' }), render => render.dialog),
         ),
       ).toBe(true)
     })

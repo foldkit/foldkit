@@ -642,6 +642,9 @@ export type Attribute<Message> = Data.TaggedEnum<{
   OnCopyText: { readonly text: string }
   OnCutText: { readonly text: string; readonly message: Message }
   OnCancel: { readonly message: Message }
+  OnCancelPreventDefault: {
+    readonly maybeCustomEventMessage: Option.Option<Message>
+  }
   OnToggle: { readonly f: (isOpen: boolean) => Message }
   OnContextMenu: { readonly message: Message }
   OnDragStart: { readonly message: Message }
@@ -968,6 +971,7 @@ const {
   OnCopyText,
   OnCutText,
   OnCancel,
+  OnCancelPreventDefault,
   OnToggle,
   OnContextMenu,
   OnDragStart,
@@ -1835,6 +1839,18 @@ const attributeHandlers: AttributeHandlers = {
       cancel: (event: Event) => {
         event.preventDefault()
         ctx.dispatch(message)
+      },
+    }),
+  OnCancelPreventDefault: ({ maybeCustomEventMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      cancel: (event: Event) => {
+        event.preventDefault()
+        if (
+          event instanceof CustomEvent &&
+          Option.isSome(maybeCustomEventMessage)
+        ) {
+          ctx.dispatch(maybeCustomEventMessage.value)
+        }
       },
     }),
   OnToggle: ({ f: toMessage }, ctx: BuildContext) =>
@@ -3919,6 +3935,14 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnCancel'
     readonly message: Message
   }
+  /** Prevents the default action of a `cancel` event. When a
+   *  `customEventMessage` is provided, dispatches it only for a `CustomEvent`,
+   *  allowing a synthetic cancel signal to be distinguished from the native
+   *  event. Native `cancel` events never dispatch a Message. */
+  OnCancelPreventDefault: (customEventMessage?: Message) => {
+    readonly _tag: 'OnCancelPreventDefault'
+    readonly maybeCustomEventMessage: Option.Option<Message>
+  }
   OnToggle: (toMessage: (isOpen: boolean) => Message) => {
     readonly _tag: 'OnToggle'
     readonly f: (isOpen: boolean) => Message
@@ -4932,6 +4956,10 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
    */
   OnCutText: (text: string, message: Message) => OnCutText({ text, message }),
   OnCancel: (message: Message) => OnCancel({ message }),
+  OnCancelPreventDefault: (customEventMessage?: Message) =>
+    OnCancelPreventDefault({
+      maybeCustomEventMessage: Option.fromNullishOr(customEventMessage),
+    }),
   OnToggle: (toMessage: (isOpen: boolean) => Message) =>
     OnToggle({ f: toMessage }),
   OnContextMenu: (message: Message) => OnContextMenu({ message }),

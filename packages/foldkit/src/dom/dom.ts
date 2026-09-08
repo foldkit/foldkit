@@ -140,10 +140,13 @@ export const focus = (
 
 /**
  * Opens a dialog element using `show()` with high z-index, focus trapping,
- * and Escape key handling. Uses `show()` instead of `showModal()` so that
- * DevTools (and any other high-z-index overlay) remains interactive. The
- * Dialog component provides its own backdrop, scroll locking, and transitions.
- * Fails with `ElementNotFound` if the selector does not match an `HTMLDialogElement`.
+ * and Escape key handling. An unhandled Escape on the topmost dialog dispatches
+ * a `CustomEvent` named `cancel`, distinguishing it from native `cancel` events
+ * while preserving the dialog event contract. Uses `show()` instead of
+ * `showModal()` so that DevTools (and any other high-z-index overlay) remains
+ * interactive. The Dialog component provides its own backdrop, scroll locking,
+ * and transitions. Fails with `ElementNotFound` if the selector does not match
+ * an `HTMLDialogElement`.
  *
  * Pass `focusSelector` to focus an element inside the dialog when it opens.
  * When it does not match a focusable element, or when none is provided, focus
@@ -212,7 +215,7 @@ export const showDialog = (
           }
 
           event.preventDefault()
-          element.dispatchEvent(new Event('cancel', { cancelable: true }))
+          element.dispatchEvent(new CustomEvent('cancel', { cancelable: true }))
         }),
         Match.when('Tab', () => {
           trapFocusWithinDialog(event, element)
