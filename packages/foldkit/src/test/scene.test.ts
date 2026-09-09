@@ -82,6 +82,10 @@ import {
 } from './apps/interactions.js'
 import { update as keyUpdate, view as keyView } from './apps/keypress.js'
 import {
+  update as keySelfUpdate,
+  view as keySelfView,
+} from './apps/keypressSelf.js'
+import {
   Authenticate,
   Message as LoginMessage,
   initialModel,
@@ -1817,6 +1821,18 @@ describe('scene', () => {
       ),
       Scene.expectIgnored(),
       Scene.expect(Scene.testId('editor')).toHaveText('A'),
+    )
+  })
+
+  test('keydown is self-targeted, so it reaches an OnKeyDownSelf handler', () => {
+    Scene.scene(
+      { update: keySelfUpdate, view: keySelfView },
+      Scene.given({ lastKey: '' }),
+      Scene.keydown(
+        Scene.role('application', { name: 'Self key press area' }),
+        'a',
+      ),
+      Scene.expect(Scene.label('Last key')).toHaveText('a'),
     )
   })
 })

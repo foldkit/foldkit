@@ -189,6 +189,9 @@ const inputEventValue = (target: EventTarget | null): string => {
   return ''
 }
 
+const isEventTargetCurrentTarget = (event: Event): boolean =>
+  event.target === event.currentTarget
+
 const isDevToolsFocusTarget = (target: EventTarget | null): boolean =>
   target instanceof Element && target.id === DEVTOOLS_HOST_ID
 
@@ -630,6 +633,15 @@ export type Attribute<Message> = Data.TaggedEnum<{
       modifiers: KeyboardModifiers,
     ) => Option.Option<Message>
   }
+  OnKeyDownSelf: {
+    readonly f: (key: string, modifiers: KeyboardModifiers) => Message
+  }
+  OnKeyDownSelfPreventDefault: {
+    readonly f: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>
+  }
   OnKeyDownFocus: {
     readonly f: (
       key: string,
@@ -986,6 +998,8 @@ const {
   OnPointerUp,
   OnKeyDown,
   OnKeyDownPreventDefault,
+  OnKeyDownSelf,
+  OnKeyDownSelfPreventDefault,
   OnKeyDownFocus,
   OnKeyUp,
   OnKeyUpPreventDefault,
@@ -1724,6 +1738,28 @@ const attributeHandlers: AttributeHandlers = {
   OnKeyDownPreventDefault: ({ f: toMaybeMessage }, ctx: BuildContext) =>
     updateDataOn(ctx, {
       keydown: (event: KeyboardEvent) => {
+        const maybeMessage = toMaybeMessage(event.key, keyboardModifiers(event))
+        if (Option.isSome(maybeMessage)) {
+          event.preventDefault()
+          ctx.dispatch(maybeMessage.value)
+        }
+      },
+    }),
+  OnKeyDownSelf: ({ f: toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      keydown: (event: KeyboardEvent) => {
+        if (isEventTargetCurrentTarget(event)) {
+          ctx.dispatch(toMessage(event.key, keyboardModifiers(event)))
+        }
+      },
+    }),
+  OnKeyDownSelfPreventDefault: ({ f: toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      keydown: (event: KeyboardEvent) => {
+        if (!isEventTargetCurrentTarget(event)) {
+          return
+        }
+
         const maybeMessage = toMaybeMessage(event.key, keyboardModifiers(event))
         if (Option.isSome(maybeMessage)) {
           event.preventDefault()
@@ -3877,6 +3913,24 @@ type HtmlAttributes<Message> = {
       modifiers: KeyboardModifiers,
     ) => Option.Option<Message>
   }
+  OnKeyDownSelf: (
+    toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => {
+    readonly _tag: 'OnKeyDownSelf'
+    readonly f: (key: string, modifiers: KeyboardModifiers) => Message
+  }
+  OnKeyDownSelfPreventDefault: (
+    toMaybeMessage: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>,
+  ) => {
+    readonly _tag: 'OnKeyDownSelfPreventDefault'
+    readonly f: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>
+  }
   OnKeyUp: (
     toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
   ) => {
@@ -4930,6 +4984,42 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
       modifiers: KeyboardModifiers,
     ) => Option.Option<Message>,
   ) => OnKeyDownPreventDefault({ f: toMaybeMessage }),
+  /**
+   * Like `OnKeyDown`, but dispatches only when the keydown targets this
+   * element itself rather than bubbling from a descendant.
+   *
+   * Use this on a composite widget that owns keyboard input for its host but
+   * contains interactive children whose keydowns should remain independent.
+   *
+   * @example
+   * ```typescript
+   * h.OnKeyDownSelf((key, modifiers) => Message.PressedHostKey({ key }))
+   * ```
+   */
+  OnKeyDownSelf: (
+    toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => OnKeyDownSelf({ f: toMessage }),
+  /**
+   * Like `OnKeyDownPreventDefault`, but handles only keydowns that target this
+   * element itself rather than bubbling from a descendant. Returning `Some`
+   * prevents the browser's default action and dispatches the Message;
+   * returning `None` leaves the key to the browser.
+   *
+   * @example
+   * ```typescript
+   * h.OnKeyDownSelfPreventDefault(key =>
+   *   key === 'Enter'
+   *     ? Option.some(Message.SubmittedEditor())
+   *     : Option.none(),
+   * )
+   * ```
+   */
+  OnKeyDownSelfPreventDefault: (
+    toMaybeMessage: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>,
+  ) => OnKeyDownSelfPreventDefault({ f: toMaybeMessage }),
   /**
    * Keydown handler that, for a handled key, synchronously focuses the element
    * matching `focusSelector` and dispatches `message`, both inside the
