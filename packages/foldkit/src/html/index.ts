@@ -6,6 +6,7 @@ import {
   Fiber,
   Function,
   Option,
+  Predicate,
   Record,
   Schema,
   Stream,
@@ -163,25 +164,22 @@ const keyboardModifiers = (event: KeyboardEvent): KeyboardModifiers => ({
 
 const inputEventValue = (target: EventTarget | null): string => {
   if (
-    target !== null &&
-    'value' in target &&
-    typeof target.value === 'string'
+    Predicate.hasProperty(target, 'value') &&
+    Predicate.isString(target.value)
   ) {
     return target.value
   }
 
   if (
-    target !== null &&
-    'innerText' in target &&
-    typeof target.innerText === 'string'
+    Predicate.hasProperty(target, 'innerText') &&
+    Predicate.isString(target.innerText)
   ) {
     return target.innerText
   }
 
   if (
-    target !== null &&
-    'textContent' in target &&
-    typeof target.textContent === 'string'
+    Predicate.hasProperty(target, 'textContent') &&
+    Predicate.isString(target.textContent)
   ) {
     return target.textContent
   }
