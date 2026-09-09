@@ -1,20 +1,21 @@
 import { Option } from 'effect'
-import { Calendar, Story } from 'foldkit'
+import { Calendar } from 'foldkit'
+import { Command, given, message, model, story } from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { Dialog } from '@foldkit/ui'
 
-import { ChangedUrl, GotUiMessage, HomeRoute, type Model, update } from './main'
+import { AppRoute, Message, type Model, update } from './main'
 import { uiInit } from './ui/init'
-import { GotMobileMenuDialogMessage } from './ui/message'
 
 const today = Calendar.make(2026, 4, 16)
-const [initialUiModel] = uiInit(today)
+const uiInit_ = uiInit(today)
 
 const initialModel: Model = {
-  route: HomeRoute(),
-  uiModel: initialUiModel,
+  route: AppRoute.Home(),
+  uiModel: uiInit_.model,
 }
 
 const urlOrThrow = (raw: string) =>
@@ -26,63 +27,65 @@ const urlOrThrow = (raw: string) =>
 describe('update', () => {
   describe('routing', () => {
     test('the root URL resolves to Home', () => {
-      Story.story(
+      story(
         update,
-        Story.with(initialModel),
-        Story.message(ChangedUrl({ url: urlOrThrow('http://localhost/') })),
-        Story.model(model => {
+        given(initialModel),
+        message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
+        model(model => {
           expect(model.route._tag).toBe('Home')
         }),
       )
     })
 
     test('/button resolves to Button', () => {
-      Story.story(
+      story(
         update,
-        Story.with(initialModel),
-        Story.message(
-          ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
+        given(initialModel),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
         ),
-        Story.model(model => {
+        model(model => {
           expect(model.route._tag).toBe('Button')
         }),
       )
     })
 
     test('/calendar resolves to Calendar', () => {
-      Story.story(
+      story(
         update,
-        Story.with(initialModel),
-        Story.message(
-          ChangedUrl({ url: urlOrThrow('http://localhost/calendar') }),
+        given(initialModel),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/calendar') }),
         ),
-        Story.model(model => {
+        model(model => {
           expect(model.route._tag).toBe('Calendar')
         }),
       )
     })
 
     test('/date-picker resolves to DatePicker', () => {
-      Story.story(
+      story(
         update,
-        Story.with(initialModel),
-        Story.message(
-          ChangedUrl({ url: urlOrThrow('http://localhost/date-picker') }),
+        given(initialModel),
+        message(
+          Message.ChangedUrl({
+            url: urlOrThrow('http://localhost/date-picker'),
+          }),
         ),
-        Story.model(model => {
+        model(model => {
           expect(model.route._tag).toBe('DatePicker')
         }),
       )
     })
 
     test('an unknown path resolves to NotFound', () => {
-      Story.story(
+      story(
         update,
-        Story.with(initialModel),
-        Story.message(
-          ChangedUrl({ url: urlOrThrow('http://localhost/unknown') }),
+        given(initialModel),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/unknown') }),
         ),
-        Story.model(model => {
+        model(model => {
           if (model.route._tag === 'NotFound') {
             expect(model.route.path).toBe('/unknown')
           } else {
@@ -95,32 +98,27 @@ describe('update', () => {
 
   describe('mobile menu', () => {
     test('navigating to a new URL closes the mobile menu dialog', () => {
-      const modelWithOpenMenu: Model = {
-        ...initialModel,
-        uiModel: {
-          ...initialModel.uiModel,
-          mobileMenuDialog: Dialog.init({
-            id: 'mobile-menu',
-            isOpen: true,
-          }),
-        },
-      }
-
-      Story.story(
-        update,
-        Story.with(modelWithOpenMenu),
-        Story.message(
-          ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
-        ),
-        Story.Command.resolve(
-          Dialog.CloseDialog,
-          Dialog.CompletedCloseDialog(),
-          dialogMessage =>
-            GotUiMessage({
-              message: GotMobileMenuDialogMessage({ message: dialogMessage }),
+      const modelWithOpenMenu: Model = evo(initialModel, {
+        uiModel: evo({
+          mobileMenuDialog: () =>
+            Dialog.init({
+              id: 'mobile-menu',
+              isOpen: true,
             }),
+        }),
+      })
+
+      story(
+        update,
+        given(modelWithOpenMenu),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
         ),
-        Story.model(model => {
+        Command.resolve(
+          Dialog.CloseDialog,
+          Dialog.Message.CompletedCloseDialog(),
+        ),
+        model(model => {
           expect(model.uiModel.mobileMenuDialog.isOpen).toBe(false)
         }),
       )

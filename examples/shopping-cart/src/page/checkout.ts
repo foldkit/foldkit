@@ -1,14 +1,10 @@
 import { Array, Option } from 'effect'
-import { Html, html } from 'foldkit/html'
+import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Button, Textarea } from '@foldkit/ui'
 
 import { Cart } from '../domain'
-import {
-  ClickedPlaceOrder,
-  Message,
-  UpdatedDeliveryInstructions,
-} from '../main'
+import { Message } from '../main'
 import { cartRouter, productsRouter } from '../route'
 
 // VIEW
@@ -17,9 +13,8 @@ export const view = (
   cart: Cart.Cart,
   deliveryInstructions: string,
   orderPlaced: boolean,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>()
-
   if (orderPlaced) {
     return h.div(
       [h.Class('max-w-4xl mx-auto px-4 text-center')],
@@ -141,36 +136,37 @@ export const view = (
                 ),
               ],
             ),
-            Textarea.view<Message>({
-              id: 'delivery-instructions',
-              value: deliveryInstructions,
-              placeholder: 'Special delivery instructions (optional)...',
-              onInput: value => UpdatedDeliveryInstructions({ value }),
-              toView: attributes =>
-                h.div(
-                  [h.Class('mb-6')],
-                  [
-                    h.label(
-                      [
-                        ...attributes.label,
-                        h.Class(
-                          'block text-lg font-semibold text-gray-800 mb-2',
-                        ),
-                      ],
-                      ['Delivery Instructions'],
-                    ),
-                    h.textarea(
-                      [
+            Textarea.view(
+              {
+                id: 'delivery-instructions',
+                value: deliveryInstructions,
+                placeholder: 'Special delivery instructions (optional)...',
+                onInput: value =>
+                  Message.UpdatedDeliveryInstructions({ value }),
+                toView: attributes =>
+                  h.div(
+                    [h.Class('mb-6')],
+                    [
+                      h.label(
+                        [
+                          ...attributes.label,
+                          h.Class(
+                            'block text-lg font-semibold text-gray-800 mb-2',
+                          ),
+                        ],
+                        ['Delivery Instructions'],
+                      ),
+                      h.textarea([
                         ...attributes.textarea,
                         h.Class(
                           'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none',
                         ),
-                      ],
-                      [],
-                    ),
-                  ],
-                ),
-            }),
+                      ]),
+                    ],
+                  ),
+              },
+              h,
+            ),
             h.div(
               [h.Class('flex gap-4 justify-center')],
               [
@@ -183,19 +179,22 @@ export const view = (
                   ],
                   ['Back to Cart'],
                 ),
-                Button.view<Message>({
-                  onClick: ClickedPlaceOrder(),
-                  toView: attributes =>
-                    h.button(
-                      [
-                        ...attributes.button,
-                        h.Class(
-                          'bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium',
-                        ),
-                      ],
-                      ['Place Order'],
-                    ),
-                }),
+                Button.view(
+                  {
+                    onClick: Message.ClickedPlaceOrder(),
+                    toView: attributes =>
+                      h.button(
+                        [
+                          ...attributes.button,
+                          h.Class(
+                            'bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium',
+                          ),
+                        ],
+                        ['Place Order'],
+                      ),
+                  },
+                  h,
+                ),
               ],
             ),
           ],

@@ -1,23 +1,17 @@
 import { clsx } from 'clsx'
 import { Array, Option } from 'effect'
-import { type Html, html } from 'foldkit/html'
+import { type Html, type HtmlBuilder } from 'foldkit/html'
 
 import { Icon } from '../icon'
-import { type TableOfContentsEntry } from '../main'
-import {
-  ChangedActiveSection,
-  ClickedMobileTableOfContentsLink,
-  type Message,
-  ToggledMobileTableOfContents,
-} from '../message'
+import { Message } from '../message'
+import { type TableOfContentsEntry } from '../tableOfContentsEntry'
 
 const tableOfContentsEntryView = (
   entry: TableOfContentsEntry,
   isActive: boolean,
-): Html => {
-  const h = html<Message>()
-
-  return h.keyed('li')(
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.keyed('li')(
     entry.id,
     [
       h.Class(
@@ -31,9 +25,9 @@ const tableOfContentsEntryView = (
       h.a(
         [
           h.Href(`#${entry.id}`),
-          h.OnClick(ChangedActiveSection({ sectionId: entry.id })),
+          h.OnClick(Message.ChangedActiveSection({ sectionId: entry.id })),
           h.Class(
-            clsx('transition block', {
+            clsx('transition block wrap-anywhere', {
               'text-accent-600 dark:text-accent-400 underline': isActive,
               'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white':
                 !isActive,
@@ -45,35 +39,31 @@ const tableOfContentsEntryView = (
       ),
     ],
   )
-}
 
-export const tableOfContentsView = (
+export const view = (
   entries: ReadonlyArray<TableOfContentsEntry>,
   maybeActiveSectionId: Option.Option<string>,
-) => {
-  const h = html<Message>()
-
-  return h.aside(
+  h: HtmlBuilder<Message>,
+) =>
+  h.aside(
     [
       h.Class(
-        'hidden xl:block sticky top-[var(--header-height)] min-w-64 w-fit h-[calc(100vh-var(--header-height))] shrink-0 overflow-y-auto border-l border-gray-300 dark:border-gray-800 p-4',
+        'docs-toc hidden xl:block fixed top-[var(--header-height)] bottom-0 z-30 w-64 overflow-y-auto overscroll-none bg-cream dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 px-4 pt-4 pb-4',
       ),
     ],
     [
       h.h3(
         [
           h.AriaHidden(true),
-          h.Class(
-            'text-xs font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-2',
-          ),
+          h.Class('text-sm text-gray-800 dark:text-gray-200 mb-4'),
         ],
-        ['On This Page'],
+        ['On this page'],
       ),
       h.nav(
         [h.AriaLabel('Table of contents')],
         [
           h.ul(
-            [h.Class('space-y-2 text-sm')],
+            [h.Class('space-y-3 text-sm')],
             Array.map(entries, entry =>
               tableOfContentsEntryView(
                 entry,
@@ -81,6 +71,7 @@ export const tableOfContentsView = (
                   maybeActiveSectionId,
                   activeSectionId => activeSectionId === entry.id,
                 ),
+                h,
               ),
             ),
           ),
@@ -88,15 +79,13 @@ export const tableOfContentsView = (
       ),
     ],
   )
-}
 
-export const mobileTableOfContentsView = (
+export const mobileView = (
   entries: ReadonlyArray<TableOfContentsEntry>,
   maybeActiveSectionId: Option.Option<string>,
   isOpen: boolean,
+  h: HtmlBuilder<Message>,
 ) => {
-  const h = html<Message>()
-
   const firstEntryText = Array.head(entries).pipe(
     Option.match({
       onNone: () => '',
@@ -120,16 +109,18 @@ export const mobileTableOfContentsView = (
     [
       h.Id('mobile-table-of-contents'),
       h.Open(isOpen),
-      h.OnToggle(open => ToggledMobileTableOfContents({ isOpen: open })),
+      h.OnToggle(open =>
+        Message.ToggledMobileTableOfContents({ isOpen: open }),
+      ),
       h.Class(
-        'group xl:hidden fixed top-[var(--header-height)] left-0 right-0 md:left-64 z-40 bg-cream dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800',
+        'group xl:hidden fixed top-[var(--header-height)] left-0 right-0 md:left-64 z-40 bg-cream dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800',
       ),
     ],
     [
       h.summary(
         [
           h.Class(
-            'flex items-center justify-between px-4 py-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden group-open:border-b group-open:border-gray-300 dark:group-open:border-gray-800',
+            'flex items-center justify-between px-4 md:px-6 py-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden group-open:border-b group-open:border-gray-200 dark:group-open:border-gray-800',
           ),
         ],
         [
@@ -167,7 +158,7 @@ export const mobileTableOfContentsView = (
         ],
         [
           h.ul(
-            [h.Class('text-sm divide-y divide-gray-300 dark:divide-gray-800')],
+            [h.Class('text-sm divide-y divide-gray-200 dark:divide-gray-800')],
             Array.map(entries, ({ level, id, text }) => {
               const isActive = Option.match(maybeActiveSectionId, {
                 onNone: () => false,
@@ -182,16 +173,16 @@ export const mobileTableOfContentsView = (
                     [
                       h.Href(`#${id}`),
                       h.OnClick(
-                        ClickedMobileTableOfContentsLink({
+                        Message.ClickedMobileTableOfContentsLink({
                           sectionId: id,
                         }),
                       ),
                       h.Class(
                         clsx(
-                          'transition flex items-center justify-between py-3 px-4',
+                          'transition flex items-center justify-between py-3 px-4 md:px-6',
                           {
-                            'pl-8': level === 'h3',
-                            'pl-12': level === 'h4',
+                            'pl-8 md:pl-10': level === 'h3',
+                            'pl-12 md:pl-14': level === 'h4',
                             'text-accent-600 dark:text-accent-400': isActive,
                             'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white':
                               !isActive,

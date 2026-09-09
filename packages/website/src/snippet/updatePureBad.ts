@@ -1,18 +1,14 @@
-import { Match } from 'effect'
+import { type Update } from 'foldkit'
+import { evo } from 'foldkit/struct'
 
 import { Message } from './message'
-import { Model } from './model'
+import type { Model } from './model'
 
 // ❌ Don't do this in update
 const update = (model: Model, message: Message) =>
-  Match.value(message).pipe(
-    Match.tagsExhaustive({
-      ClickedFetchUser: () => {
-        // Making HTTP requests directly
-        fetch('/api/user').then(res => {
-          model.user = res.json() // Mutating state!
-        })
-        return [model, []]
-      },
-    }),
-  )
+  Message.match<Update.Return<Model, Message>>(message, {
+    OpenedDialog: () => {
+      document.querySelector<HTMLInputElement>('#search-input')?.focus()
+      return { model: evo(model, { dialogState: () => 'Open' }) }
+    },
+  })

@@ -16,7 +16,7 @@ Add a scenario whenever a runtime hot-path regression is discovered. Name it aft
 
 Scenarios currently covered:
 
-- **Large Message payload**: walks captured Message bodies in the DevTools store. Reproduced the Effect 4 `Equal.equals` regression on `S.Unknown`.
+- **Large Message payload**: walks captured Message bodies in the DevTools store. Reproduced the Effect 4 `Equal.equals` regression on `Schema.Unknown`.
 - **Large Model array**: walks the Model array via Schema-derived equivalence on every dispatch.
 - **Deep history**: replays user updates from the latest keyframe to recover the inspector's follow-latest model. Reproduced per-dispatch latency that grew with history depth.
 

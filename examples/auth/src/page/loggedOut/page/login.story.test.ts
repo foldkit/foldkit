@@ -1,39 +1,42 @@
-import { Story } from 'foldkit'
 import { Valid } from 'foldkit/fieldValidation'
+import {
+  Command,
+  expectNoOutMessage,
+  expectOutMessage,
+  given,
+  message,
+  model,
+  story,
+} from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import {
-  ChangedEmail,
-  ChangedPassword,
-  FailedSimulateAuthRequest,
-  type Model,
+  Message,
+  OutMessage,
   SimulateAuthRequest,
-  SubmittedForm,
-  SucceededLogin,
-  SucceededSimulateAuthRequest,
   initModel,
   update,
 } from './login'
 
-const validModel: Model = {
-  ...initModel(),
-  email: Valid({ value: 'alice@example.com' }),
-  password: Valid({ value: 'password' }),
-}
+const validModel = evo(initModel(), {
+  email: () => Valid({ value: 'alice@example.com' }),
+  password: () => Valid({ value: 'password' }),
+})
 
 const aliceSession = { userId: '1', email: 'alice@example.com', name: 'alice' }
 
 describe('login', () => {
   test('typing an email validates the field', () => {
-    Story.story(
+    story(
       update,
-      Story.with(initModel()),
-      Story.message(ChangedEmail({ value: '' })),
-      Story.model(model => {
+      given(initModel()),
+      message(Message.ChangedEmail({ value: '' })),
+      model(model => {
         expect(model.email._tag).toBe('Invalid')
       }),
-      Story.message(ChangedEmail({ value: 'alice@example.com' })),
-      Story.model(model => {
+      message(Message.ChangedEmail({ value: 'alice@example.com' })),
+      model(model => {
         expect(model.email._tag).toBe('Valid')
         expect(model.email.value).toBe('alice@example.com')
       }),
@@ -41,66 +44,68 @@ describe('login', () => {
   })
 
   test('typing a password validates the field', () => {
-    Story.story(
+    story(
       update,
-      Story.with(initModel()),
-      Story.message(ChangedPassword({ value: '' })),
-      Story.model(model => {
+      given(initModel()),
+      message(Message.ChangedPassword({ value: '' })),
+      model(model => {
         expect(model.password._tag).toBe('Invalid')
       }),
-      Story.message(ChangedPassword({ value: 'secret' })),
-      Story.model(model => {
+      message(Message.ChangedPassword({ value: 'secret' })),
+      model(model => {
         expect(model.password._tag).toBe('Valid')
       }),
     )
   })
 
   test('submitting with invalid fields does nothing', () => {
-    Story.story(
+    story(
       update,
-      Story.with(initModel()),
-      Story.message(SubmittedForm()),
-      Story.model(model => {
+      given(initModel()),
+      message(Message.SubmittedForm()),
+      model(model => {
         expect(model.isSubmitting).toBe(false)
       }),
-      Story.Command.expectNone(),
+      Command.expectNone(),
     )
   })
 
   test('submitting with valid fields sends an auth request', () => {
-    Story.story(
+    story(
       update,
-      Story.with(validModel),
-      Story.message(SubmittedForm()),
-      Story.model(model => {
+      given(validModel),
+      message(Message.SubmittedForm()),
+      model(model => {
         expect(model.isSubmitting).toBe(true)
       }),
-      Story.Command.expectHas(SimulateAuthRequest),
-      Story.Command.resolve(
+      Command.expectHas(SimulateAuthRequest),
+      Command.resolve(
         SimulateAuthRequest,
-        SucceededSimulateAuthRequest({ session: aliceSession }),
+        Message.SucceededSimulateAuthRequest({ session: aliceSession }),
       ),
-      Story.expectOutMessage(SucceededLogin({ session: aliceSession })),
+      expectOutMessage(OutMessage.SucceededLogin({ session: aliceSession })),
     )
   })
 
   test('failed auth marks the password field invalid and stops submitting', () => {
-    Story.story(
+    story(
       update,
-      Story.with(validModel),
-      Story.message(SubmittedForm()),
-      Story.model(model => {
+      given(validModel),
+      message(Message.SubmittedForm()),
+      model(model => {
         expect(model.isSubmitting).toBe(true)
       }),
-      Story.Command.resolve(
+      Command.resolve(
         SimulateAuthRequest,
-        FailedSimulateAuthRequest({ error: 'Invalid credentials' }),
+        Message.FailedSimulateAuthRequest({
+          error: 'Invalid credentials',
+        }),
       ),
-      Story.model(model => {
+      model(model => {
         expect(model.isSubmitting).toBe(false)
         expect(model.password._tag).toBe('Invalid')
       }),
-      Story.expectNoOutMessage(),
+      expectNoOutMessage(),
     )
   })
 })

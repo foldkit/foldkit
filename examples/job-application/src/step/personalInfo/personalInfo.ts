@@ -1,0 +1,286 @@
+import { Array, Duration, Effect, Match, Number, Option, Schema } from 'effect'
+import { Command, Update } from 'foldkit'
+import { CalendarDate } from 'foldkit/calendar'
+import {
+  Field,
+  Invalid,
+  NotValidated,
+  Rule,
+  Valid,
+  Validating,
+  allValid,
+  anyInvalid,
+  makeRules,
+  validate,
+} from 'foldkit/fieldValidation'
+import { defineMessageUnion } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
+
+import { DatePicker, Listbox } from '@foldkit/ui'
+
+import { revealFieldErrors } from '../validation'
+
+// MODEL
+
+export const PronounsListbox = Listbox.create<string>()
+
+export const Model = Schema.Struct({
+  firstName: Field(Schema.String),
+  lastName: Field(Schema.String),
+  email: Field(Schema.String),
+  emailValidationId: Schema.Number,
+  phone: Field(Schema.String),
+  pronouns: Listbox.Model,
+  maybeSelectedPronoun: Schema.Option(Schema.String),
+  customPronouns: Schema.String,
+  portfolioUrl: Field(Schema.String),
+  availableDate: DatePicker.Model,
+  maybeAvailableDate: Schema.Option(CalendarDate),
+})
+export type Model = typeof Model.Type
+
+// MESSAGE
+
+export const Message = defineMessageUnion({
+  UpdatedFirstName: { value: Schema.String },
+  UpdatedLastName: { value: Schema.String },
+  UpdatedEmail: { value: Schema.String },
+  CompletedValidateEmailAsync: {
+    validationId: Schema.Number,
+    field: Field(Schema.String),
+  },
+  UpdatedPhone: { value: Schema.String },
+  GotPronounsMessage: { message: Listbox.Message },
+  UpdatedCustomPronouns: { value: Schema.String },
+  UpdatedPortfolioUrl: { value: Schema.String },
+  GotAvailableDateMessage: { message: DatePicker.Message },
+})
+
+export type Message = typeof Message.Type
+
+// INIT
+
+export const init = (today: CalendarDate): Model => ({
+  firstName: NotValidated({ value: '' }),
+  lastName: NotValidated({ value: '' }),
+  email: NotValidated({ value: '' }),
+  emailValidationId: 0,
+  phone: NotValidated({ value: '' }),
+  pronouns: Listbox.init({ id: 'pronouns' }),
+  maybeSelectedPronoun: Option.none(),
+  customPronouns: '',
+  portfolioUrl: NotValidated({ value: '' }),
+  availableDate: DatePicker.init({
+    id: 'available-date',
+    today,
+    minDate: today,
+  }),
+  maybeAvailableDate: Option.none(),
+})
+
+// FIELD VALIDATION
+
+const firstNameRules = makeRules({
+  required: 'First name is required',
+  rules: [Rule.minLength(2, 'First name must be at least 2 characters')],
+})
+
+const lastNameRules = makeRules({
+  required: 'Last name is required',
+})
+
+const emailRules = makeRules({
+  required: 'Email is required',
+  rules: [Rule.email('Please enter a valid email address')],
+})
+
+const PHONE_PATTERN = /^\+?[\d\s()-]{7,}$/
+
+const phoneRules = makeRules({
+  rules: [Rule.pattern(PHONE_PATTERN, 'Please enter a valid phone number')],
+})
+
+const portfolioUrlRules = makeRules({
+  rules: [
+    Rule.url({
+      message: 'Please enter a valid URL',
+      requireProtocol: false,
+    }),
+  ],
+})
+
+const validateFirstName = validate(firstNameRules)
+const validateLastName = validate(lastNameRules)
+const validateEmail = validate(emailRules)
+const validatePhone = validate(phoneRules)
+const validatePortfolioUrl = validate(portfolioUrlRules)
+
+// COMMAND
+
+const FAKE_API_DELAY_MS = 600
+
+const TAKEN_EMAILS = [
+  'admin@foldkit.dev',
+  'test@example.com',
+  'demo@foldkit.dev',
+]
+
+const isEmailTaken = (emailInput: string): Effect.Effect<boolean> =>
+  Effect.gen(function* () {
+    yield* Effect.sleep(Duration.millis(FAKE_API_DELAY_MS))
+    return Array.contains(TAKEN_EMAILS, emailInput.toLowerCase())
+  })
+
+export const ValidateEmailAsync = Command.define('ValidateEmailAsync', {
+  args: { emailInput: Schema.String, validationId: Schema.Number },
+  messages: [Message.CompletedValidateEmailAsync],
+  execute: ({ emailInput, validationId }) =>
+    Effect.gen(function* () {
+      if (yield* isEmailTaken(emailInput)) {
+        return Message.CompletedValidateEmailAsync({
+          validationId,
+          field: Invalid({
+            value: emailInput,
+            errors: ['This email is already in use'],
+          }),
+        })
+      }
+      return Message.CompletedValidateEmailAsync({
+        validationId,
+        field: Valid({ value: emailInput }),
+      })
+    }),
+})
+
+// UPDATE
+
+type UpdateReturn = Update.Return<Model, Message>
+
+const foldPronounsOutMessage = Listbox.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Selected:
+    ({ value }) =>
+    model => ({
+      model: evo(model, { maybeSelectedPronoun: () => Option.some(value) }),
+    }),
+})
+
+const foldPronouns = Update.foldChild({
+  update: PronounsListbox.update,
+  read: (model: Model) => Option.some(model.pronouns),
+  write: (model, nextPronouns) => evo(model, { pronouns: () => nextPronouns }),
+  toParentMessage: message => Message.GotPronounsMessage({ message }),
+  foldOutMessage: foldPronounsOutMessage,
+})
+
+const foldAvailableDateOutMessage = DatePicker.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  SelectedDate:
+    ({ date }) =>
+    model => ({
+      model: evo(model, { maybeAvailableDate: () => Option.some(date) }),
+    }),
+  ClearedDate: () => model => ({
+    model: evo(model, { maybeAvailableDate: () => Option.none() }),
+  }),
+  ChangedViewMonth: () => model => ({ model }),
+})
+
+const foldAvailableDate = Update.foldChild({
+  update: DatePicker.update,
+  read: (model: Model) => Option.some(model.availableDate),
+  write: (model, nextAvailableDate) =>
+    evo(model, { availableDate: () => nextAvailableDate }),
+  toParentMessage: message => Message.GotAvailableDateMessage({ message }),
+  foldOutMessage: foldAvailableDateOutMessage,
+})
+
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    UpdatedFirstName: ({ value }) => ({
+      model: evo(model, { firstName: () => validateFirstName(value) }),
+    }),
+
+    UpdatedLastName: ({ value }) => ({
+      model: evo(model, { lastName: () => validateLastName(value) }),
+    }),
+
+    UpdatedEmail: ({ value }) => {
+      const validationId = Number.increment(model.emailValidationId)
+      return Match.value(validateEmail(value)).pipe(
+        Match.withReturnType<UpdateReturn>(),
+        Match.tag('Valid', () => ({
+          model: evo(model, {
+            email: () => Validating({ value }),
+            emailValidationId: () => validationId,
+          }),
+          commands: [ValidateEmailAsync({ emailInput: value, validationId })],
+        })),
+        Match.orElse(syncResult => ({
+          model: evo(model, {
+            email: () => syncResult,
+            emailValidationId: () => validationId,
+          }),
+        })),
+      )
+    },
+
+    CompletedValidateEmailAsync: ({ validationId, field }) => {
+      if (validationId === model.emailValidationId) {
+        return { model: evo(model, { email: () => field }) }
+      } else {
+        return { model }
+      }
+    },
+
+    UpdatedPhone: ({ value }) => ({
+      model: evo(model, { phone: () => validatePhone(value) }),
+    }),
+
+    GotPronounsMessage: ({ message }) => foldPronouns(model, message),
+
+    UpdatedCustomPronouns: ({ value }) => ({
+      model: evo(model, { customPronouns: () => value }),
+    }),
+
+    UpdatedPortfolioUrl: ({ value }) => ({
+      model: evo(model, {
+        portfolioUrl: () => validatePortfolioUrl(value),
+      }),
+    }),
+
+    GotAvailableDateMessage: ({ message }) => foldAvailableDate(model, message),
+  })
+
+// VALIDATION SUMMARY
+
+const validatedFields = (model: Model): ReadonlyArray<Field<string>> => [
+  model.firstName,
+  model.lastName,
+  model.email,
+  model.phone,
+  model.portfolioUrl,
+]
+
+export const hasErrors = (model: Model): boolean =>
+  anyInvalid(validatedFields(model))
+
+export const isComplete = (model: Model): boolean =>
+  allValid([
+    [model.firstName, firstNameRules],
+    [model.lastName, lastNameRules],
+    [model.email, emailRules],
+    [model.phone, phoneRules],
+    [model.portfolioUrl, portfolioUrlRules],
+  ])
+
+export const revealErrors = (model: Model): Model =>
+  evo(model, {
+    firstName: revealFieldErrors(firstNameRules),
+    lastName: revealFieldErrors(lastNameRules),
+    email: revealFieldErrors(emailRules),
+    phone: revealFieldErrors(phoneRules),
+    portfolioUrl: revealFieldErrors(portfolioUrlRules),
+  })

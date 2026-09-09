@@ -1,0 +1,178 @@
+import { Match } from 'effect'
+import type { ChildAttribute, Html, HtmlBuilder } from 'foldkit/html'
+
+import type { Calendar } from '@foldkit/ui'
+
+import { Icon } from '../../../icon'
+
+const headerClassName = 'flex items-center justify-between gap-2'
+
+const headingButtonClassName =
+  'inline-flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white tabular-nums px-2 py-1 rounded-md cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
+
+const headingTextClassName =
+  'text-sm font-semibold text-gray-900 dark:text-white tabular-nums'
+
+const navButtonClassName =
+  'inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer'
+
+const gridClassName = 'flex flex-col gap-1 outline-none'
+
+const rowClassName = 'grid grid-cols-7 gap-1'
+
+const columnHeaderClassName =
+  'text-center text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 py-1'
+
+const cellClassName = 'group flex items-center justify-center'
+
+const dayButtonClassName =
+  'flex h-9 w-9 items-center justify-center rounded-full text-sm font-normal text-gray-900 dark:text-gray-100 tabular-nums cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 group-data-[today]:ring-1 group-data-[today]:ring-gray-400 dark:group-data-[today]:ring-gray-500 group-data-[selected]:bg-accent-600 group-data-[selected]:dark:bg-accent-500 group-data-[selected]:text-white! group-data-[selected]:dark:text-accent-900! group-data-[selected]:hover:bg-accent-700 group-data-[selected]:dark:hover:bg-accent-600 group-data-[selected]:active:bg-accent-800 group-data-[selected]:dark:active:bg-accent-700 group-data-[focused]:outline-2 group-data-[focused]:outline-offset-2 group-data-[focused]:outline-accent-600 group-data-[focused]:dark:outline-accent-400 group-data-[outside-month]:text-gray-400 dark:group-data-[outside-month]:text-gray-600 group-data-[disabled]:cursor-not-allowed group-data-[disabled]:opacity-40'
+
+const monthYearGridClassName =
+  'grid grid-cols-3 grid-rows-4 gap-1 outline-none flex-1'
+
+const monthYearButtonClassName =
+  'flex h-full w-full items-center justify-center rounded-md text-sm font-normal text-gray-900 dark:text-gray-100 tabular-nums cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 group-data-[today]:ring-1 group-data-[today]:ring-gray-400 dark:group-data-[today]:ring-gray-500 group-data-[selected]:bg-accent-600 group-data-[selected]:dark:bg-accent-500 group-data-[selected]:text-white! group-data-[selected]:dark:text-accent-900! group-data-[selected]:hover:bg-accent-700 group-data-[selected]:dark:hover:bg-accent-600 group-data-[selected]:active:bg-accent-800 group-data-[selected]:dark:active:bg-accent-700 group-data-[focused]:outline-2 group-data-[focused]:outline-offset-2 group-data-[focused]:outline-accent-600 group-data-[focused]:dark:outline-accent-400 group-data-[disabled]:cursor-not-allowed group-data-[disabled]:opacity-40'
+
+const navButton = <Message>(
+  attributes: ReadonlyArray<ChildAttribute>,
+  icon: Html,
+  h: HtmlBuilder<Message>,
+): Html => h.button([...attributes, h.Class(navButtonClassName)], [icon])
+
+const headingButton = <Message>(
+  heading: Calendar.DaysModeAttributes['heading'],
+  attributes: ReadonlyArray<ChildAttribute>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.button(
+    [h.Id(heading.id), ...attributes, h.Class(headingButtonClassName)],
+    [heading.text, Icon.chevronDown('w-3 h-3')],
+  )
+
+const weekRow = <Message>(week: Calendar.Week, h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [...week.attributes, h.Class(rowClassName)],
+    week.cells.map(cell =>
+      h.div(
+        [...cell.cellAttributes, h.Class(cellClassName)],
+        [
+          h.button(
+            [...cell.buttonAttributes, h.Class(dayButtonClassName)],
+            [cell.label],
+          ),
+        ],
+      ),
+    ),
+  )
+
+const daysView = <Message>(
+  days: Calendar.DaysModeAttributes,
+  rootClassName: string,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
+    [...days.root, h.Class(rootClassName)],
+    [
+      h.div(
+        [h.Class(headerClassName)],
+        [
+          navButton(days.previousMonthButton, Icon.chevronLeft('w-5 h-5'), h),
+          headingButton(days.heading, days.headingButton, h),
+          navButton(days.nextMonthButton, Icon.chevronRight('w-5 h-5'), h),
+        ],
+      ),
+      h.div(
+        [...days.grid, h.Class(gridClassName)],
+        [
+          h.div(
+            [...days.headerRow, h.Class(rowClassName)],
+            days.columnHeaders.map(header =>
+              h.div(
+                [...header.attributes, h.Class(columnHeaderClassName)],
+                [header.name],
+              ),
+            ),
+          ),
+          ...days.weeks.map(week => weekRow(week, h)),
+        ],
+      ),
+    ],
+  )
+
+const monthsView = <Message>(
+  months: Calendar.MonthsModeAttributes,
+  rootClassName: string,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
+    [...months.root, h.Class(rootClassName)],
+    [
+      h.div(
+        [h.Class(`${headerClassName} justify-center`)],
+        [headingButton(months.heading, months.headingButton, h)],
+      ),
+      h.div(
+        [...months.grid, h.Class(monthYearGridClassName)],
+        months.cells.map(cell =>
+          h.div(
+            [...cell.cellAttributes, h.Class(cellClassName)],
+            [
+              h.button(
+                [...cell.buttonAttributes, h.Class(monthYearButtonClassName)],
+                [cell.shortLabel],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ],
+  )
+
+const yearsView = <Message>(
+  years: Calendar.YearsModeAttributes,
+  rootClassName: string,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
+    [...years.root, h.Class(rootClassName)],
+    [
+      h.div(
+        [h.Class(headerClassName)],
+        [
+          navButton(years.previousPageButton, Icon.chevronLeft('w-5 h-5'), h),
+          h.h2(
+            [h.Id(years.heading.id), h.Class(headingTextClassName)],
+            [years.heading.text],
+          ),
+          navButton(years.nextPageButton, Icon.chevronRight('w-5 h-5'), h),
+        ],
+      ),
+      h.div(
+        [...years.grid, h.Class(monthYearGridClassName)],
+        years.cells.map(cell =>
+          h.div(
+            [...cell.cellAttributes, h.Class(cellClassName)],
+            [
+              h.button(
+                [...cell.buttonAttributes, h.Class(monthYearButtonClassName)],
+                [cell.label],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ],
+  )
+
+export const calendarView = <Message>(
+  rootClassName: string,
+  h: HtmlBuilder<Message>,
+) =>
+  Match.type<Calendar.CalendarAttributes>().pipe(
+    Match.tagsExhaustive({
+      Days: days => daysView(days, rootClassName, h),
+      Months: months => monthsView(months, rootClassName, h),
+      Years: years => yearsView(years, rootClassName, h),
+    }),
+  )

@@ -1,5 +1,7 @@
 import { Array, Effect, Number, Option, Predicate, Result, pipe } from 'effect'
 
+import { afterCommit } from '../render/render.js'
+
 const inertState = {
   originals: new Map<
     HTMLElement,
@@ -7,6 +9,7 @@ const inertState = {
   >(),
   counts: new Map<HTMLElement, number>(),
   cleanups: new Map<string, ReadonlyArray<() => void>>(),
+  requests: new Map<string, symbol>(),
 }
 
 const markInert = (element: HTMLElement): (() => void) => {
@@ -89,7 +92,8 @@ const inertableSiblings = (
  * Marks all DOM elements outside the given selectors as `inert` and
  * `aria-hidden="true"`. Walks each allowed element up to `document.body`,
  * marking siblings that don't contain an allowed element. Uses reference
- * counting so nested calls are safe.
+ * counting so nested calls are safe. A restore before the pending render
+ * commits invalidates the request before it can change the DOM.
  *
  * @example
  * ```typescript
@@ -100,7 +104,19 @@ export const inertOthers = (
   id: string,
   allowedSelectors: ReadonlyArray<string>,
 ): Effect.Effect<void> =>
-  Effect.sync(() => {
+  Effect.gen(function* () {
+    const request = yield* Effect.sync(() => {
+      const nextRequest = Symbol()
+      inertState.requests.set(id, nextRequest)
+      return nextRequest
+    })
+
+    yield* afterCommit
+
+    if (inertState.requests.get(id) !== request) {
+      return
+    }
+
     const allowedElements = resolveElements(allowedSelectors)
 
     const cleanupFunctions = pipe(
@@ -126,6 +142,8 @@ export const inertOthers = (
  */
 export const restoreInert = (id: string): Effect.Effect<void> =>
   Effect.sync(() => {
+    inertState.requests.delete(id)
+
     const cleanupFunctions = inertState.cleanups.get(id)
 
     if (cleanupFunctions) {

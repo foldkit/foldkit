@@ -1,0 +1,49 @@
+.popover-panel {
+  --popover-background: white;
+  --popover-border: #e5e7eb;
+  background: var(--popover-background);
+  border-color: var(--popover-border);
+}
+
+.popover-arrow {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  left: var(--arrow-x);
+  top: var(--arrow-y);
+}
+
+.popover-arrow-fill {
+  fill: var(--popover-background);
+  stroke: none;
+}
+
+.popover-arrow-outline-clip {
+  overflow: hidden;
+}
+
+.popover-arrow-outline {
+  fill: none;
+  stroke: var(--popover-border);
+  stroke-linejoin: round;
+  stroke-width: 1px;
+}
+
+.popover-panel[data-placement='top'] > .popover-arrow {
+  bottom: -8px;
+  transform: rotate(180deg);
+}
+
+.popover-panel[data-placement='bottom'] > .popover-arrow {
+  top: -8px;
+}
+
+.popover-panel[data-placement='left'] > .popover-arrow {
+  right: -8px;
+  transform: rotate(90deg);
+}
+
+.popover-panel[data-placement='right'] > .popover-arrow {
+  left: -8px;
+  transform: rotate(-90deg);
+}

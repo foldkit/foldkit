@@ -1,12 +1,10 @@
-import { Html, html } from 'foldkit/html'
+import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { loginRouter } from '../../../route'
 import type { Message } from '../message'
 
-export const view = (): Html => {
-  const h = html<Message>()
-
-  return h.div(
+export const view = (h: HtmlBuilder<Message>): Html =>
+  h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.div(
@@ -39,29 +37,32 @@ export const view = (): Html => {
           featureCard(
             'Model as Union',
             'App state is fundamentally LoggedOut | LoggedIn, not a flat struct with optional session.',
+            h,
           ),
           featureCard(
             'Route Guards',
             'Protected routes redirect to login. Auth routes redirect to dashboard when logged in.',
+            h,
           ),
           featureCard(
             'Session Persistence',
             'Session survives page refresh via localStorage and the Flags pattern.',
+            h,
           ),
         ],
       ),
     ],
   )
-}
 
-const featureCard = (title: string, description: string): Html => {
-  const h = html<Message>()
-
-  return h.div(
+const featureCard = (
+  title: string,
+  description: string,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
     [h.Class('bg-white rounded-lg shadow-md p-6')],
     [
       h.h2([h.Class('text-xl font-semibold text-gray-800 mb-3')], [title]),
       h.p([h.Class('text-gray-600')], [description]),
     ],
   )
-}

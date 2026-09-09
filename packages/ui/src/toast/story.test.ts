@@ -1,43 +1,31 @@
-import { Duration, Option, Schema as S } from 'effect'
+import { Duration, Option, Schema } from 'effect'
 import * as Story from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import * as Animation from '../animation/index.js'
 import {
-  DismissAfter,
-  Dismissed,
-  DismissedAll,
-  ElapsedDuration,
-  GotAnimationMessage,
-  HoveredEntry,
-  LeftEntry,
+  Message,
+  WaitBeforeDismissal,
   make,
+  test as toastTest,
 } from './index.js'
 
 // Test payload: minimal so fixtures are simple. The library is generic; these
 // tests only need to verify that lifecycle semantics work regardless of
 // payload shape.
-const TestPayload = S.Struct({ body: S.String })
+const TestPayload = Schema.Struct({ body: Schema.String })
 type TestPayload = typeof TestPayload.Type
 
 const Toast = make(TestPayload)
 
-type Message = typeof Toast.Message.Type
 type Model = typeof Toast.Model.Type
 type Entry = typeof Toast.Entry.Type
 
 const STALE_VERSION = -1
 
-const animationToToastMessage =
-  (entryId: string) =>
-  (message: Animation.Message): Message =>
-    GotAnimationMessage({ entryId, message })
-
-// A post-enter entry: isShowing true, transition Idle. Use this for tests
-// that exercise behavior after the enter animation has settled. Dismissed,
-// ElapsedDuration, HoveredEntry / LeftEntry, etc.
 const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
   id: 'test-entry-0',
   variant: 'Info',
@@ -63,7 +51,7 @@ const makeFreshEntry = (overrides: Partial<Entry> = {}): Entry => ({
   ...overrides,
 })
 
-const withEmpty = Story.with(Toast.init({ id: 'test' }))
+const givenEmpty = Story.given(Toast.init({ id: 'test' }))
 
 const firstEntryId = 'test-entry-0'
 
@@ -96,75 +84,76 @@ describe('Toast', () => {
   describe('show', () => {
     it('appends an entry and schedules enter + dismiss commands', () => {
       const initial = Toast.init({ id: 'test' })
-      const [nextModel, commands] = Toast.show(initial, {
+      const toastShow = Toast.show(initial, {
         payload: { body: 'Saved' },
       })
 
-      expect(nextModel.entries).toHaveLength(1)
-      const [entry] = nextModel.entries
+      expect(toastShow.model.entries).toHaveLength(1)
+      const [entry] = toastShow.model.entries
       expect(entry?.id).toBe(firstEntryId)
       expect(entry?.payload).toStrictEqual({ body: 'Saved' })
       expect(entry?.variant).toBe('Info')
       expect(entry?.animation.transitionState).toBe('EnterStart')
-      expect(nextModel.nextEntryKey).toBe(1)
-      expect(commands).toHaveLength(2)
+      expect(toastShow.model.nextEntryKey).toBe(1)
+      expect(toastShow.commands ?? []).toHaveLength(2)
     })
 
     it('does not schedule a dismiss command when sticky', () => {
-      const [nextModel, commands] = Toast.show(Toast.init({ id: 'test' }), {
+      const toastShow = Toast.show(Toast.init({ id: 'test' }), {
         payload: { body: 'Sticky' },
         sticky: true,
       })
-      const [entry] = nextModel.entries
+      const [entry] = toastShow.model.entries
       expect(entry?.maybeDuration).toStrictEqual(Option.none())
-      expect(commands).toHaveLength(1)
+      expect(toastShow.commands ?? []).toHaveLength(1)
     })
 
     it('uses a caller-provided duration over the default', () => {
-      const [nextModel] = Toast.show(Toast.init({ id: 'test' }), {
+      const toastShow = Toast.show(Toast.init({ id: 'test' }), {
         payload: { body: 'Quick' },
         duration: 100,
       })
-      const [entry] = nextModel.entries
+      const [entry] = toastShow.model.entries
       expect(entry?.maybeDuration).toStrictEqual(
         Option.some(Duration.millis(100)),
       )
     })
 
     it('generates sequential entry ids using nextEntryKey', () => {
-      const [after1] = Toast.show(Toast.init({ id: 'test' }), {
+      const firstShow = Toast.show(Toast.init({ id: 'test' }), {
         payload: { body: 'One' },
       })
-      const [after2] = Toast.show(after1, { payload: { body: 'Two' } })
-      const ids = after2.entries.map((entry: Entry) => entry.id)
+      const secondShow = Toast.show(firstShow.model, {
+        payload: { body: 'Two' },
+      })
+      const ids = secondShow.model.entries.map((entry: Entry) => entry.id)
       expect(ids).toStrictEqual(['test-entry-0', 'test-entry-1'])
-      expect(after2.nextEntryKey).toBe(2)
+      expect(secondShow.model.nextEntryKey).toBe(2)
     })
 
     it('sticky wins over an explicit duration', () => {
-      const [nextModel] = Toast.show(Toast.init({ id: 'test' }), {
+      const toastShow = Toast.show(Toast.init({ id: 'test' }), {
         payload: { body: 'Sticky beats duration' },
         sticky: true,
         duration: 100,
       })
-      const [entry] = nextModel.entries
+      const [entry] = toastShow.model.entries
       expect(entry?.maybeDuration).toStrictEqual(Option.none())
     })
   })
 
   describe('update', () => {
-    describe('ElapsedDuration', () => {
+    describe('CompletedWaitBeforeDismissal', () => {
       it('ignores a stale version', () => {
-        const model: Model = {
-          ...Toast.init({ id: 'test' }),
-          entries: [makeSettledEntry()],
-          nextEntryKey: 1,
-        }
+        const model: Model = evo(Toast.init({ id: 'test' }), {
+          entries: () => [makeSettledEntry()],
+          nextEntryKey: () => 1,
+        })
         Story.story(
           Toast.update,
-          Story.with(model),
+          Story.given(model),
           Story.message(
-            ElapsedDuration({
+            Message.CompletedWaitBeforeDismissal({
               entryId: firstEntryId,
               version: STALE_VERSION,
             }),
@@ -177,30 +166,29 @@ describe('Toast', () => {
       })
 
       it('starts the leave transition when the version matches', () => {
-        const model: Model = {
-          ...Toast.init({ id: 'test' }),
-          entries: [makeSettledEntry()],
-          nextEntryKey: 1,
-        }
+        const model: Model = evo(Toast.init({ id: 'test' }), {
+          entries: () => [makeSettledEntry()],
+          nextEntryKey: () => 1,
+        })
         Story.story(
           Toast.update,
-          Story.with(model),
-          Story.message(ElapsedDuration({ entryId: firstEntryId, version: 0 })),
+          Story.given(model),
+          Story.message(
+            Message.CompletedWaitBeforeDismissal({
+              entryId: firstEntryId,
+              version: 0,
+            }),
+          ),
           Story.model((next: Model) => {
             expect(next.entries[0]?.animation.transitionState).toBe(
               'LeaveStart',
             )
           }),
           Story.Command.resolveAll(
-            [
-              Animation.RequestFrame,
-              Animation.AdvancedAnimationFrame(),
-              animationToToastMessage(firstEntryId),
-            ],
+            [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
             [
               Animation.WaitForAnimationSettled,
-              Animation.EndedAnimation(),
-              animationToToastMessage(firstEntryId),
+              Animation.Message.EndedAnimation(),
             ],
           ),
         )
@@ -209,8 +197,13 @@ describe('Toast', () => {
       it('does nothing for a missing entry', () => {
         Story.story(
           Toast.update,
-          withEmpty,
-          Story.message(ElapsedDuration({ entryId: 'nope', version: 0 })),
+          givenEmpty,
+          Story.message(
+            Message.CompletedWaitBeforeDismissal({
+              entryId: 'nope',
+              version: 0,
+            }),
+          ),
           Story.Command.expectNone(),
         )
       })
@@ -218,15 +211,14 @@ describe('Toast', () => {
 
     describe('HoveredEntry / LeftEntry', () => {
       it('HoveredEntry flips isHovered true and bumps version to cancel the pending timer', () => {
-        const model: Model = {
-          ...Toast.init({ id: 'test' }),
-          entries: [makeSettledEntry()],
-          nextEntryKey: 1,
-        }
+        const model: Model = evo(Toast.init({ id: 'test' }), {
+          entries: () => [makeSettledEntry()],
+          nextEntryKey: () => 1,
+        })
         Story.story(
           Toast.update,
-          Story.with(model),
-          Story.message(HoveredEntry({ entryId: firstEntryId })),
+          Story.given(model),
+          Story.message(Message.HoveredEntry({ entryId: firstEntryId })),
           Story.model((next: Model) => {
             const [entry] = next.entries
             expect(entry?.isHovered).toBe(true)
@@ -241,24 +233,26 @@ describe('Toast', () => {
           isHovered: true,
           pendingDismissVersion: 1,
         })
-        const model: Model = {
-          ...Toast.init({ id: 'test' }),
-          entries: [hoveredEntry],
-          nextEntryKey: 1,
-        }
+        const model: Model = evo(Toast.init({ id: 'test' }), {
+          entries: () => [hoveredEntry],
+          nextEntryKey: () => 1,
+        })
         Story.story(
           Toast.update,
-          Story.with(model),
-          Story.message(LeftEntry({ entryId: firstEntryId })),
+          Story.given(model),
+          Story.message(Message.LeftEntry({ entryId: firstEntryId })),
           Story.model((next: Model) => {
             const [entry] = next.entries
             expect(entry?.isHovered).toBe(false)
             expect(entry?.pendingDismissVersion).toBe(2)
           }),
-          Story.Command.expectHas(DismissAfter),
+          Story.Command.expectHas(WaitBeforeDismissal),
           Story.Command.resolve(
-            DismissAfter,
-            ElapsedDuration({ entryId: firstEntryId, version: STALE_VERSION }),
+            WaitBeforeDismissal,
+            Message.CompletedWaitBeforeDismissal({
+              entryId: firstEntryId,
+              version: STALE_VERSION,
+            }),
           ),
         )
       })
@@ -268,33 +262,36 @@ describe('Toast', () => {
           maybeDuration: Option.none(),
           isHovered: true,
         })
-        const model: Model = {
-          ...Toast.init({ id: 'test' }),
-          entries: [stickyEntry],
-          nextEntryKey: 1,
-        }
+        const model: Model = evo(Toast.init({ id: 'test' }), {
+          entries: () => [stickyEntry],
+          nextEntryKey: () => 1,
+        })
         Story.story(
           Toast.update,
-          Story.with(model),
-          Story.message(LeftEntry({ entryId: firstEntryId })),
+          Story.given(model),
+          Story.message(Message.LeftEntry({ entryId: firstEntryId })),
           Story.Command.expectNone(),
         )
       })
 
       it('a hover arriving before the timer fires cancels the pending dismiss via version bump', () => {
-        const model: Model = {
-          ...Toast.init({ id: 'test' }),
-          entries: [makeSettledEntry()],
-          nextEntryKey: 1,
-        }
+        const model: Model = evo(Toast.init({ id: 'test' }), {
+          entries: () => [makeSettledEntry()],
+          nextEntryKey: () => 1,
+        })
         Story.story(
           Toast.update,
-          Story.with(model),
-          Story.message(HoveredEntry({ entryId: firstEntryId })),
+          Story.given(model),
+          Story.message(Message.HoveredEntry({ entryId: firstEntryId })),
           Story.model((next: Model) => {
             expect(next.entries[0]?.pendingDismissVersion).toBe(1)
           }),
-          Story.message(ElapsedDuration({ entryId: firstEntryId, version: 0 })),
+          Story.message(
+            Message.CompletedWaitBeforeDismissal({
+              entryId: firstEntryId,
+              version: 0,
+            }),
+          ),
           Story.model((next: Model) => {
             expect(next.entries[0]?.animation.transitionState).toBe('Idle')
             expect(next.entries[0]?.isHovered).toBe(true)
@@ -308,8 +305,8 @@ describe('Toast', () => {
       it('Dismissed', () => {
         Story.story(
           Toast.update,
-          withEmpty,
-          Story.message(Dismissed({ entryId: 'nope' })),
+          givenEmpty,
+          Story.message(Message.Dismissed({ entryId: 'nope' })),
           Story.Command.expectNone(),
         )
       })
@@ -317,8 +314,8 @@ describe('Toast', () => {
       it('HoveredEntry', () => {
         Story.story(
           Toast.update,
-          withEmpty,
-          Story.message(HoveredEntry({ entryId: 'nope' })),
+          givenEmpty,
+          Story.message(Message.HoveredEntry({ entryId: 'nope' })),
           Story.Command.expectNone(),
         )
       })
@@ -326,8 +323,8 @@ describe('Toast', () => {
       it('LeftEntry', () => {
         Story.story(
           Toast.update,
-          withEmpty,
-          Story.message(LeftEntry({ entryId: 'nope' })),
+          givenEmpty,
+          Story.message(Message.LeftEntry({ entryId: 'nope' })),
           Story.Command.expectNone(),
         )
       })
@@ -335,30 +332,24 @@ describe('Toast', () => {
 
     describe('Dismissed', () => {
       it('runs the full leave flow and removes the entry from the stack', () => {
-        const model: Model = {
-          ...Toast.init({ id: 'test' }),
-          entries: [makeSettledEntry()],
-          nextEntryKey: 1,
-        }
+        const model: Model = evo(Toast.init({ id: 'test' }), {
+          entries: () => [makeSettledEntry()],
+          nextEntryKey: () => 1,
+        })
         Story.story(
           Toast.update,
-          Story.with(model),
-          Story.message(Dismissed({ entryId: firstEntryId })),
+          Story.given(model),
+          Story.message(Message.Dismissed({ entryId: firstEntryId })),
           Story.model((next: Model) => {
             expect(next.entries[0]?.animation.transitionState).toBe(
               'LeaveStart',
             )
           }),
           Story.Command.resolveAll(
-            [
-              Animation.RequestFrame,
-              Animation.AdvancedAnimationFrame(),
-              animationToToastMessage(firstEntryId),
-            ],
+            [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
             [
               Animation.WaitForAnimationSettled,
-              Animation.EndedAnimation(),
-              animationToToastMessage(firstEntryId),
+              Animation.Message.EndedAnimation(),
             ],
           ),
           Story.model((next: Model) => {
@@ -375,15 +366,14 @@ describe('Toast', () => {
             transitionState: 'LeaveAnimating',
           },
         })
-        const model: Model = {
-          ...Toast.init({ id: 'test' }),
-          entries: [leavingEntry],
-          nextEntryKey: 1,
-        }
+        const model: Model = evo(Toast.init({ id: 'test' }), {
+          entries: () => [leavingEntry],
+          nextEntryKey: () => 1,
+        })
         Story.story(
           Toast.update,
-          Story.with(model),
-          Story.message(Dismissed({ entryId: firstEntryId })),
+          Story.given(model),
+          Story.message(Message.Dismissed({ entryId: firstEntryId })),
           Story.Command.expectNone(),
           Story.model((next: Model) => {
             expect(next).toBe(model)
@@ -399,18 +389,17 @@ describe('Toast', () => {
             transitionState: 'LeaveAnimating',
           },
         })
-        const model: Model = {
-          ...Toast.init({ id: 'test' }),
-          entries: [entry],
-          nextEntryKey: 1,
-        }
+        const model: Model = evo(Toast.init({ id: 'test' }), {
+          entries: () => [entry],
+          nextEntryKey: () => 1,
+        })
         Story.story(
           Toast.update,
-          Story.with(model),
+          Story.given(model),
           Story.message(
-            GotAnimationMessage({
+            Message.GotAnimationMessage({
               entryId: firstEntryId,
-              message: Animation.EndedAnimation(),
+              message: Animation.Message.EndedAnimation(),
             }),
           ),
           Story.expectOutMessage(
@@ -437,15 +426,14 @@ describe('Toast', () => {
             ...Animation.init({ id: 'test-entry-1', isShowing: true }),
           },
         })
-        const model: Model = {
-          ...Toast.init({ id: 'test' }),
-          entries: [entryOne, entryTwo],
-          nextEntryKey: 2,
-        }
+        const model: Model = evo(Toast.init({ id: 'test' }), {
+          entries: () => [entryOne, entryTwo],
+          nextEntryKey: () => 2,
+        })
         Story.story(
           Toast.update,
-          Story.with(model),
-          Story.message(DismissedAll()),
+          Story.given(model),
+          Story.message(Message.DismissedAll()),
           Story.model((next: Model) => {
             expect(next.entries[0]?.animation.transitionState).toBe(
               'LeaveStart',
@@ -455,25 +443,15 @@ describe('Toast', () => {
             )
           }),
           Story.Command.resolveAll(
-            [
-              Animation.RequestFrame,
-              Animation.AdvancedAnimationFrame(),
-              animationToToastMessage('test-entry-0'),
-            ],
-            [
-              Animation.RequestFrame,
-              Animation.AdvancedAnimationFrame(),
-              animationToToastMessage('test-entry-1'),
-            ],
+            [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
+            [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
             [
               Animation.WaitForAnimationSettled({ id: 'test-entry-0' }),
-              Animation.EndedAnimation(),
-              animationToToastMessage('test-entry-0'),
+              Animation.Message.EndedAnimation(),
             ],
             [
               Animation.WaitForAnimationSettled({ id: 'test-entry-1' }),
-              Animation.EndedAnimation(),
-              animationToToastMessage('test-entry-1'),
+              Animation.Message.EndedAnimation(),
             ],
           ),
           Story.model((next: Model) => {
@@ -491,42 +469,50 @@ describe('Toast', () => {
       })
       Story.story(
         Toast.update,
-        withEmpty,
+        givenEmpty,
         Story.message(Toast.Added({ entry })),
         Story.Command.resolveAll(
-          [
-            Animation.RequestFrame,
-            Animation.AdvancedAnimationFrame(),
-            animationToToastMessage(firstEntryId),
-          ],
+          [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
           [
             Animation.WaitForAnimationSettled,
-            Animation.EndedAnimation(),
-            animationToToastMessage(firstEntryId),
+            Animation.Message.EndedAnimation(),
           ],
         ),
         Story.model((next: Model) => {
           expect(next.entries[0]?.animation.transitionState).toBe('Idle')
         }),
         Story.Command.resolve(
-          DismissAfter,
-          ElapsedDuration({ entryId: firstEntryId, version: 0 }),
+          WaitBeforeDismissal,
+          Message.CompletedWaitBeforeDismissal({
+            entryId: firstEntryId,
+            version: 0,
+          }),
         ),
         Story.model((next: Model) => {
           expect(next.entries[0]?.animation.transitionState).toBe('LeaveStart')
         }),
         Story.Command.resolveAll(
-          [
-            Animation.RequestFrame,
-            Animation.AdvancedAnimationFrame(),
-            animationToToastMessage(firstEntryId),
-          ],
+          [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
           [
             Animation.WaitForAnimationSettled,
-            Animation.EndedAnimation(),
-            animationToToastMessage(firstEntryId),
+            Animation.Message.EndedAnimation(),
           ],
         ),
+        Story.model((next: Model) => {
+          expect(next.entries).toHaveLength(0)
+        }),
+      )
+    })
+
+    it('drains the whole lifecycle in one step via test.drainEntry', () => {
+      const entry = makeFreshEntry({
+        maybeDuration: Option.some(Duration.millis(100)),
+      })
+      Story.story(
+        Toast.update,
+        givenEmpty,
+        Story.message(Toast.Added({ entry })),
+        toastTest.drainEntry({ entryId: firstEntryId }),
         Story.model((next: Model) => {
           expect(next.entries).toHaveLength(0)
         }),
@@ -536,26 +522,26 @@ describe('Toast', () => {
 
   describe('programmatic helpers', () => {
     it('dismiss(model, entryId) dispatches Dismissed', () => {
-      const model: Model = {
-        ...Toast.init({ id: 'test' }),
-        entries: [makeSettledEntry()],
-        nextEntryKey: 1,
-      }
-      const [next] = Toast.dismiss(model, firstEntryId)
-      expect(next.entries[0]?.animation.transitionState).toBe('LeaveStart')
+      const model: Model = evo(Toast.init({ id: 'test' }), {
+        entries: () => [makeSettledEntry()],
+        nextEntryKey: () => 1,
+      })
+      const toastDismiss = Toast.dismiss(model, firstEntryId)
+      expect(toastDismiss.model.entries[0]?.animation.transitionState).toBe(
+        'LeaveStart',
+      )
     })
 
     it('dismissAll(model) dispatches DismissedAll', () => {
-      const model: Model = {
-        ...Toast.init({ id: 'test' }),
-        entries: [
+      const model: Model = evo(Toast.init({ id: 'test' }), {
+        entries: () => [
           makeSettledEntry({ id: 'test-entry-0' }),
           makeSettledEntry({ id: 'test-entry-1' }),
         ],
-        nextEntryKey: 2,
-      }
-      const [next] = Toast.dismissAll(model)
-      next.entries.forEach((entry: Entry) => {
+        nextEntryKey: () => 2,
+      })
+      const toastDismissAll = Toast.dismissAll(model)
+      toastDismissAll.model.entries.forEach((entry: Entry) => {
         expect(entry.animation.transitionState).toBe('LeaveStart')
       })
     })

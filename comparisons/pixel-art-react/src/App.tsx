@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useReducer, useRef } from 'react'
+import { useMemo, useReducer } from 'react'
 
 import { Canvas } from './components/Canvas'
 import { ConfirmDialog } from './components/ConfirmDialog'
@@ -103,9 +103,6 @@ export const App = () => {
 
   const paletteColors = theme.colors
 
-  const stateRef = useRef(state)
-  stateRef.current = state
-
   useKeyboardShortcuts(dispatch)
   useMouseRelease(state.isDrawing, dispatch)
   useLocalStorage(
@@ -116,9 +113,7 @@ export const App = () => {
     state.isDrawing,
   )
 
-  const handleExport = useCallback(() => {
-    exportPng(stateRef.current, dispatch)
-  }, [dispatch])
+  const handleExport = () => exportPng(state, dispatch)
 
   const currentGrid = useMemo(
     () =>
@@ -194,9 +189,7 @@ const DownloadIcon = () => (
   </svg>
 )
 
-const Header = memo(function Header({
-  onExport,
-}: Readonly<{ onExport: () => void }>) {
+const Header = ({ onExport }: Readonly<{ onExport: () => void }>) => {
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
       <div className="flex flex-col">
@@ -225,4 +218,4 @@ const Header = memo(function Header({
       </div>
     </div>
   )
-})
+}

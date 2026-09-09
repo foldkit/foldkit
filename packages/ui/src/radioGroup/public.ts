@@ -4,16 +4,17 @@ export {
   Model,
   Message,
   OutMessage,
-  Selected,
-  SelectedOption,
-  CompletedFocusOption,
+  type Selected,
+  type SelectedOption,
+  type FocusedOption,
   FocusOption,
+  Orientation,
 } from './index.js'
 
 export type {
-  Orientation,
   InitConfig,
   ViewInputs,
   RenderInfo,
   OptionInfo,
+  Bundle,
 } from './index.js'

@@ -1,35 +1,28 @@
-import { Context, Effect, Layer, Schema as S } from 'effect'
+import { Context, Effect, Layer, Schema } from 'effect'
 import { Command, Runtime } from 'foldkit'
 
-class AudioContextService extends Context.Service<
-  AudioContextService,
-  AudioContext
->()('AudioContextService') {
-  static readonly Default = Layer.sync(this, () => new AudioContext())
+class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
+  'ApiClientService',
+) {
+  static readonly Default = Layer.effect(this, makeApiClient)
 }
 
-const PlayNote = Command.define(
-  'PlayNote',
-  { frequency: S.Number, duration: S.Number },
-  CompletedPlayNote,
-)(({ frequency, duration }) =>
-  Effect.gen(function* () {
-    const audioContext = yield* AudioContextService
-    const oscillator = audioContext.createOscillator()
-    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime)
-    oscillator.connect(audioContext.destination)
-    oscillator.start()
-    oscillator.stop(audioContext.currentTime + duration)
-    return CompletedPlayNote()
-  }),
-)
+const LoadUser = Command.define('LoadUser', {
+  args: { userId: Schema.String },
+  messages: [CompletedLoadUser],
+  execute: ({ userId }) =>
+    Effect.gen(function* () {
+      const apiClient = yield* ApiClientService
+      const user = yield* apiClient.getUser(userId)
+      return CompletedLoadUser({ user })
+    }),
+})
 
-// 3. Pass the service's default layer to makeApplication
 const application = Runtime.makeApplication({
   Model,
   init,
   update,
   view,
   container: document.getElementById('root'),
-  resources: AudioContextService.Default,
+  resources: ApiClientService.Default,
 })

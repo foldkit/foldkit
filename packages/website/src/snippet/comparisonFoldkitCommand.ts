@@ -1,33 +1,57 @@
-const SaveCanvas = Command.define(
-  'SaveCanvas',
-  { model: Model },
-  CompletedSaveCanvas,
-)(({ model }) =>
-  Effect.gen(function* () {
-    const store = yield* KeyValueStore.KeyValueStore
-    yield* store.set(STORAGE_KEY, encode(model))
-    return CompletedSaveCanvas()
-  }).pipe(
-    Effect.catch(() => Effect.succeed(CompletedSaveCanvas())),
-    Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-  ),
-)
-
-const ExportPng = Command.define(
-  'ExportPng',
-  { grid: Grid, gridSize: S.Number, theme: PaletteTheme },
-  SucceededExportPng,
-  FailedExportPng,
-)(({ grid, gridSize, theme }) =>
-  Effect.gen(function* () {
-    const context = yield* getCanvasContext(gridSize)
-    paintGrid(context, grid, theme)
-    downloadAsPng(context)
-    return SucceededExportPng()
-  }).pipe(
-    Effect.catchTag('FailedExportPng', Effect.succeed),
-    Effect.catch(() =>
-      Effect.succeed(FailedExportPng({ error: 'Failed to export image' })),
+const SaveCanvas = Command.define('SaveCanvas', {
+  args: {
+    grid: Grid,
+    gridSize: Schema.Number,
+    paletteThemeIndex: Schema.Number,
+    selectedColorIndex: PaletteIndex,
+  },
+  messages: [CompletedSaveCanvas],
+  execute: ({ grid, gridSize, paletteThemeIndex, selectedColorIndex }) =>
+    Effect.gen(function* () {
+      const store = yield* KeyValueStore.KeyValueStore
+      const data: SavedCanvas = {
+        grid,
+        gridSize,
+        paletteThemeIndex,
+        selectedColorIndex,
+      }
+      yield* store.set(
+        STORAGE_KEY,
+        Schema.encodeSync(SavedCanvasJsonString)(data),
+      )
+      return CompletedSaveCanvas()
+    }).pipe(
+      Effect.catch(() => Effect.succeed(CompletedSaveCanvas())),
+      Effect.provide(BrowserKeyValueStore.layerLocalStorage),
     ),
-  ),
-)
+})
+
+const ExportPng = Command.define('ExportPng', {
+  args: {
+    grid: Grid,
+    gridSize: Schema.Number,
+    paletteThemeIndex: Schema.Number,
+  },
+  messages: [SucceededExportPng, FailedExportPng],
+  execute: ({ grid, gridSize, paletteThemeIndex }) =>
+    Effect.gen(function* () {
+      const theme = PALETTE_THEMES[paletteThemeIndex] ?? PALETTE_THEMES[0]
+      const canvas = document.createElement('canvas')
+      const context = canvas.getContext('2d')
+
+      if (Predicate.isNull(context)) {
+        return yield* Effect.fail(
+          FailedExportPng({ error: 'Canvas 2D context not available' }),
+        )
+      }
+
+      // ... paint each cell, then click a generated download link
+
+      return SucceededExportPng()
+    }).pipe(
+      Effect.catchTag('FailedExportPng', error => Effect.succeed(error)),
+      Effect.catch(() =>
+        Effect.succeed(FailedExportPng({ error: 'Failed to export image' })),
+      ),
+    ),
+})

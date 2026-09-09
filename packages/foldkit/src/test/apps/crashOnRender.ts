@@ -1,45 +1,42 @@
-import { Array, Effect, Match as M, Schema as S } from 'effect'
+import { Array, Effect, Schema } from 'effect'
 
 import * as Command from '../../command/index.js'
-import { type Document, html } from '../../html/index.js'
-import { m } from '../../message/index.js'
+import type { Document, HtmlBuilder } from '../../html/index.js'
+import { defineMessageUnion } from '../../message/index.js'
 import { evo } from '../../struct/index.js'
+import type * as Update from '../../update/index.js'
 
 // MODEL
 
-export const RawSource = S.Struct({
-  kind: S.Literal('Book'),
-  id: S.String,
+export const RawSource = Schema.Struct({
+  kind: Schema.Literal('Book'),
+  id: Schema.String,
 })
 export type RawSource = typeof RawSource.Type
 
 // NOTE: the strict counterpart of RawSource, requiring a non-empty id.
 // Constructing one (or a SelectedSource Message carrying one) from an empty id
 // throws at construction time, which is what drives the render and update crash.
-export const Source = S.Struct({
-  kind: S.Literal('Book'),
-  id: S.String.check(S.isNonEmpty()),
+export const Source = Schema.Struct({
+  kind: Schema.Literal('Book'),
+  id: Schema.String.check(Schema.isNonEmpty()),
 })
 export type Source = typeof Source.Type
 
-export const Model = S.Struct({
-  sources: S.Array(RawSource),
+export const Model = Schema.Struct({
+  sources: Schema.Array(RawSource),
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const ClickedReload = m('ClickedReload')
-export const LoadedSources = m('LoadedSources', { sources: S.Array(RawSource) })
-export const SelectedSource = m('SelectedSource', { source: Source })
-export const SubmittedNewSourceId = m('SubmittedNewSourceId', { id: S.String })
+export const Message = defineMessageUnion({
+  ClickedReload: {},
+  CompletedReloadSources: { sources: Schema.Array(RawSource) },
+  SelectedSource: { source: Source },
+  SubmittedNewSourceId: { id: Schema.String },
+})
 
-export const Message = S.Union([
-  ClickedReload,
-  LoadedSources,
-  SelectedSource,
-  SubmittedNewSourceId,
-])
 export type Message = typeof Message.Type
 
 // COMMAND
@@ -51,10 +48,12 @@ export const reloadedSources: ReadonlyArray<RawSource> = [
   { kind: 'Book', id: '' },
 ]
 
-export const ReloadSources = Command.define(
-  'ReloadSources',
-  LoadedSources,
-)(Effect.succeed(LoadedSources({ sources: reloadedSources })))
+export const ReloadSources = Command.define('ReloadSources', {
+  messages: [Message.CompletedReloadSources],
+  execute: Effect.succeed(
+    Message.CompletedReloadSources({ sources: reloadedSources }),
+  ),
+})
 
 // INIT
 
@@ -70,39 +69,31 @@ export const initialModel: Model = { sources: validSources }
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      ClickedReload: () => [model, [ReloadSources()]],
-      LoadedSources: ({ sources }) => [
-        evo(model, { sources: () => sources }),
-        [],
-      ],
-      SelectedSource: () => [model, []],
-      SubmittedNewSourceId: ({ id }) => {
-        const source = Source.make({ kind: 'Book', id })
-        return [evo(model, { sources: Array.append(source) }), []]
-      },
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedReload: () => ({ model, commands: [ReloadSources()] }),
+    CompletedReloadSources: ({ sources }) => ({
+      model: evo(model, { sources: () => sources }),
     }),
-  )
+    SelectedSource: () => ({ model }),
+    SubmittedNewSourceId: ({ id }) => {
+      const source = Source.make({ kind: 'Book', id })
+      return { model: evo(model, { sources: Array.append(source) }) }
+    },
+  })
 
 // VIEW
 
-export const view = (model: Model): Document => {
-  const h = html<Message>()
-
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const body = h.div(
     [],
     [
-      h.button([h.OnClick(ClickedReload()), h.Role('button')], ['Reload']),
       h.button(
-        [h.OnClick(SubmittedNewSourceId({ id: '' })), h.Role('button')],
+        [h.OnClick(Message.ClickedReload()), h.Role('button')],
+        ['Reload'],
+      ),
+      h.button(
+        [h.OnClick(Message.SubmittedNewSourceId({ id: '' })), h.Role('button')],
         ['Add source'],
       ),
       h.ul(
@@ -113,7 +104,10 @@ export const view = (model: Model): Document => {
             [],
             [
               h.button(
-                [h.OnClick(SelectedSource({ source })), h.Role('button')],
+                [
+                  h.OnClick(Message.SelectedSource({ source })),
+                  h.Role('button'),
+                ],
                 [`Select ${source.id}`],
               ),
             ],

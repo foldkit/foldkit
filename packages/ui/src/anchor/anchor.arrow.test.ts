@@ -1,0 +1,376 @@
+import { Array, Option, pipe } from 'effect'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import type {
+  ComputePositionConfig,
+  Placement as FloatingPlacement,
+  Middleware,
+  MiddlewareData,
+} from '@floating-ui/dom'
+
+import { anchorSetup } from './index.js'
+
+type MockComputePositionReturn = {
+  x: number
+  y: number
+  placement: FloatingPlacement
+  middlewareData: MiddlewareData
+}
+
+type SizeApply = (
+  args: Readonly<{
+    rects: Readonly<{ reference: Readonly<{ width: number }> }>
+    availableHeight: number
+  }>,
+) => void
+
+type ArrowRendering = 'None' | 'DivInPanel' | 'SvgInPanel' | 'DivOutsidePanel'
+
+const BUTTON_ID = 'btn'
+const ARROW_ID = 'arrow'
+const PORTAL_ROOT_ID = 'foldkit-portal-root'
+
+const isSizeApply = (value: unknown): value is SizeApply =>
+  typeof value === 'function'
+
+const computePositionMock =
+  vi.fn<
+    (
+      reference: Element,
+      floating: Element,
+      options: Partial<ComputePositionConfig>,
+    ) => Promise<MockComputePositionReturn>
+  >()
+
+const updateCallbacks: globalThis.Array<() => void> = []
+
+// NOTE: `actual` is spread so the real arrow/offset/flip/shift/size factories
+// survive and their middleware objects keep the `.name` and `.options` values
+// the assertions match on. Stubbing those factories too would make every
+// assertion pass vacuously. `autoUpdate` invokes its callback once on setup,
+// as the real one does.
+vi.mock('@floating-ui/dom', async importOriginal => {
+  const actual = await importOriginal<typeof import('@floating-ui/dom')>()
+  return {
+    ...actual,
+    computePosition: (
+      reference: Element,
+      floating: Element,
+      options: Partial<ComputePositionConfig>,
+    ) => computePositionMock(reference, floating, options),
+    autoUpdate: (
+      _reference: unknown,
+      _floating: unknown,
+      update: () => void,
+    ) => {
+      updateCallbacks.push(update)
+      update()
+      return () => {}
+    },
+  }
+})
+
+describe('anchorSetup arrow', () => {
+  afterEach(() => {
+    computePositionMock.mockReset()
+    updateCallbacks.length = 0
+    document.body.replaceChildren()
+  })
+
+  const optionsOfCall = (callIndex: number): Partial<ComputePositionConfig> =>
+    pipe(
+      Array.get(computePositionMock.mock.calls, callIndex),
+      Option.map(([, , options]) => options),
+      Option.getOrThrowWith(
+        () =>
+          new Error(`Expected a computePosition call at index ${callIndex}`),
+      ),
+    )
+
+  const middlewareNamesOfCall = (callIndex: number): globalThis.Array<string> =>
+    pipe(
+      optionsOfCall(callIndex).middleware ?? [],
+      Array.flatMap(middleware => (middleware ? [middleware.name] : [])),
+    )
+
+  const middlewareOfCall = (callIndex: number, name: string): Middleware =>
+    pipe(
+      optionsOfCall(callIndex).middleware ?? [],
+      Array.flatMap(middleware => (middleware ? [middleware] : [])),
+      Array.findFirst(middleware => middleware.name === name),
+      Option.getOrThrowWith(
+        () =>
+          new Error(`Expected ${name} middleware at call index ${callIndex}`),
+      ),
+    )
+
+  const arrowMiddlewareOfCall = (callIndex: number): Middleware =>
+    middlewareOfCall(callIndex, 'arrow')
+
+  const applySize = (callIndex: number, availableHeight: number): void => {
+    const apply: unknown = middlewareOfCall(callIndex, 'size').options?.apply
+
+    if (isSizeApply(apply)) {
+      apply({ rects: { reference: { width: 120 } }, availableHeight })
+    } else {
+      throw new Error(`Expected size.apply at call index ${callIndex}`)
+    }
+  }
+
+  const positionWith = (
+    middlewareData: MiddlewareData,
+  ): MockComputePositionReturn => ({
+    x: 10,
+    y: 20,
+    placement: 'bottom-start',
+    middlewareData,
+  })
+
+  const createSvgElement = (): Element =>
+    document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+
+  const renderArrow = (
+    arrowRendering: ArrowRendering,
+    panel: HTMLElement,
+  ): Element | undefined => {
+    if (arrowRendering === 'None') {
+      return undefined
+    }
+
+    const arrowElement =
+      arrowRendering === 'SvgInPanel'
+        ? createSvgElement()
+        : document.createElement('div')
+    arrowElement.id = ARROW_ID
+
+    const host = arrowRendering === 'DivOutsidePanel' ? document.body : panel
+    host.append(arrowElement)
+
+    return arrowElement
+  }
+
+  const mountAnchor = (
+    setup: Readonly<{
+      arrowId?: string
+      arrowPadding?: number
+      isPortaled?: boolean
+    }>,
+    arrowRendering: ArrowRendering,
+  ): Readonly<{
+    element: HTMLElement
+    arrowElement: Element | undefined
+    cleanup: () => void
+  }> => {
+    const { isPortaled = false, ...arrowSetup } = setup
+
+    const button = document.createElement('button')
+    button.id = BUTTON_ID
+    const element = document.createElement('div')
+    document.body.append(button, element)
+
+    const arrowElement = renderArrow(arrowRendering, element)
+
+    const cleanup = anchorSetup(element, {
+      buttonId: BUTTON_ID,
+      anchor: { placement: 'bottom-start', portal: isPortaled },
+      ...arrowSetup,
+    })
+
+    return { element, arrowElement, cleanup }
+  }
+
+  it('omits the arrow middleware when no arrowId is given', () => {
+    computePositionMock.mockResolvedValue(positionWith({}))
+    mountAnchor({}, 'DivInPanel')
+
+    expect(middlewareNamesOfCall(0)).not.toContain('arrow')
+  })
+
+  it('omits the arrow middleware when the arrowId resolves to nothing', () => {
+    computePositionMock.mockResolvedValue(positionWith({}))
+    mountAnchor({ arrowId: ARROW_ID }, 'None')
+
+    expect(middlewareNamesOfCall(0)).not.toContain('arrow')
+  })
+
+  it('omits the arrow middleware when the arrowId resolves outside the panel', () => {
+    computePositionMock.mockResolvedValue(positionWith({}))
+    mountAnchor({ arrowId: ARROW_ID }, 'DivOutsidePanel')
+
+    expect(middlewareNamesOfCall(0)).not.toContain('arrow')
+  })
+
+  it('leaves the panel a scroll container when the arrowId resolves outside the panel', () => {
+    computePositionMock.mockResolvedValue(positionWith({}))
+    const { element } = mountAnchor({ arrowId: ARROW_ID }, 'DivOutsidePanel')
+
+    applySize(0, 200)
+
+    expect(element.style.overflowY).toBe('auto')
+  })
+
+  it('carries an svg arrow element', () => {
+    computePositionMock.mockResolvedValue(positionWith({}))
+    const { arrowElement } = mountAnchor({ arrowId: ARROW_ID }, 'SvgInPanel')
+
+    const element: unknown = arrowMiddlewareOfCall(0).options?.element
+
+    expect(arrowElement).toBeInstanceOf(SVGElement)
+    expect(element).toBe(arrowElement)
+  })
+
+  it('carries the resolved arrow element and its padding', () => {
+    computePositionMock.mockResolvedValue(positionWith({}))
+    const { arrowElement } = mountAnchor(
+      { arrowId: ARROW_ID, arrowPadding: 8 },
+      'DivInPanel',
+    )
+
+    const options = arrowMiddlewareOfCall(0).options
+    const element: unknown = options?.element
+    const padding: unknown = options?.padding
+
+    expect(element).toBe(arrowElement)
+    expect(padding).toBe(8)
+  })
+
+  it('resolves an arrow inside a panel that was portaled first', () => {
+    computePositionMock.mockResolvedValue(positionWith({}))
+    const { element, arrowElement } = mountAnchor(
+      { arrowId: ARROW_ID, isPortaled: true },
+      'DivInPanel',
+    )
+
+    const portalRoot = document.getElementById(PORTAL_ROOT_ID)
+    const middlewareElement: unknown = arrowMiddlewareOfCall(0).options?.element
+
+    expect(portalRoot).not.toBeNull()
+    expect(element.parentNode).toBe(portalRoot)
+    expect(middlewareElement).toBe(arrowElement)
+  })
+
+  it('defaults the arrow padding to zero', () => {
+    computePositionMock.mockResolvedValue(positionWith({}))
+    mountAnchor({ arrowId: ARROW_ID }, 'DivInPanel')
+
+    const padding: unknown = arrowMiddlewareOfCall(0).options?.padding
+
+    expect(padding).toBe(0)
+  })
+
+  it('runs the arrow middleware after shift', () => {
+    computePositionMock.mockResolvedValue(positionWith({}))
+    mountAnchor({ arrowId: ARROW_ID }, 'DivInPanel')
+
+    expect(middlewareNamesOfCall(0)).toEqual([
+      'offset',
+      'flip',
+      'shift',
+      'size',
+      'arrow',
+    ])
+  })
+
+  const triggerUpdate = (callbackIndex: number): void => {
+    const update = pipe(
+      Array.get(updateCallbacks, callbackIndex),
+      Option.getOrThrowWith(
+        () =>
+          new Error(
+            `Expected an autoUpdate callback at index ${callbackIndex}`,
+          ),
+      ),
+    )
+    update()
+  }
+
+  it('publishes the resolved axis and resets the unset one to initial', async () => {
+    computePositionMock.mockResolvedValue(
+      positionWith({ arrow: { x: 42, centerOffset: 0 } }),
+    )
+    const { element } = mountAnchor({ arrowId: ARROW_ID }, 'DivInPanel')
+
+    await vi.waitFor(() => {
+      expect(element.style.getPropertyValue('--arrow-x')).toBe('42px')
+    })
+
+    expect(element.style.getPropertyValue('--arrow-y')).toBe('initial')
+  })
+
+  it('resets the previous axis when a later tick resolves the other one', async () => {
+    computePositionMock
+      .mockResolvedValueOnce(
+        positionWith({ arrow: { x: 42, centerOffset: 0 } }),
+      )
+      .mockResolvedValueOnce(
+        positionWith({ arrow: { y: 17, centerOffset: 0 } }),
+      )
+    const { element } = mountAnchor({ arrowId: ARROW_ID }, 'DivInPanel')
+
+    await vi.waitFor(() => {
+      expect(element.style.getPropertyValue('--arrow-x')).toBe('42px')
+    })
+
+    triggerUpdate(0)
+
+    await vi.waitFor(() => {
+      expect(element.style.getPropertyValue('--arrow-y')).toBe('17px')
+    })
+
+    expect(element.style.getPropertyValue('--arrow-x')).toBe('initial')
+  })
+
+  it('makes the panel a scroll container when no arrow is rendered', () => {
+    computePositionMock.mockResolvedValue(positionWith({}))
+    const { element } = mountAnchor({}, 'None')
+
+    applySize(0, 200)
+
+    expect(element.style.maxHeight).toBe('200px')
+    expect(element.style.overflowY).toBe('auto')
+    expect(element.style.overscrollBehavior).toBe('none')
+  })
+
+  // NOTE: a scrolling panel clips on both axes, so it would erase the arrow it
+  // just positioned. See the `size.apply` guard in anchor.ts.
+  it('leaves the panel unclipped when an arrow is rendered', () => {
+    computePositionMock.mockResolvedValue(positionWith({}))
+    const { element } = mountAnchor({ arrowId: ARROW_ID }, 'DivInPanel')
+
+    applySize(0, 200)
+
+    expect(element.style.maxHeight).toBe('200px')
+    expect(element.style.overflowY).toBe('')
+    expect(element.style.overscrollBehavior).toBe('')
+  })
+
+  it('removes the scroll container styles on cleanup', () => {
+    computePositionMock.mockResolvedValue(positionWith({}))
+    const { element, cleanup } = mountAnchor({}, 'None')
+
+    applySize(0, 200)
+    cleanup()
+
+    expect(element.style.overflowY).toBe('')
+    expect(element.style.overscrollBehavior).toBe('')
+  })
+
+  it('removes both custom properties on cleanup', async () => {
+    computePositionMock.mockResolvedValue(
+      positionWith({ arrow: { x: 42, y: 17, centerOffset: 0 } }),
+    )
+    const { element, cleanup } = mountAnchor(
+      { arrowId: ARROW_ID },
+      'DivInPanel',
+    )
+
+    await vi.waitFor(() => {
+      expect(element.style.getPropertyValue('--arrow-x')).toBe('42px')
+    })
+
+    cleanup()
+
+    expect(element.style.getPropertyValue('--arrow-x')).toBe('')
+    expect(element.style.getPropertyValue('--arrow-y')).toBe('')
+  })
+})

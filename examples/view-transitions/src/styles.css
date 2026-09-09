@@ -1,0 +1,66 @@
+@import 'tailwindcss';
+
+/* The morph is the whole show. The header is named so the browser lifts it out
+   of the root snapshot and holds it still, the artwork grows from grid card to
+   detail hero, and everything else cross-fades underneath it. Nothing slides,
+   so nothing competes with the one element the eye is already tracking.
+   Reduced-motion users never reach this file: the runtime skips
+   startViewTransition entirely. */
+
+::view-transition-group(page-header) {
+  animation: none;
+}
+
+/* Staggered rather than cross-faded. Two layouts dissolving through each other
+   reads as a double exposure: grid cards sit on top of detail copy for the
+   whole overlap. The outgoing page leaves quickly, then the incoming one
+   arrives, so there is a beat where only the artwork is moving. */
+::view-transition-old(root) {
+  animation-duration: 130ms;
+  animation-timing-function: ease-in;
+}
+
+::view-transition-new(root) {
+  /* Overlaps the tail of the outgoing fade by a hair. A clean handoff at the
+     same instant leaves a stretch where neither page is drawn and the screen
+     washes out; starting slightly early covers it without bringing back the
+     double exposure. */
+  animation-delay: 100ms;
+  animation-duration: 240ms;
+  animation-timing-function: ease-out;
+  /* Holds the incoming page at its from-state through the delay, instead of
+     letting it sit at full opacity while the old page is still leaving. */
+  animation-fill-mode: backwards;
+}
+
+/* Every card carries a name, so every card becomes its own group and none of
+   them are covered by the root fade above. The seven the user did not click
+   have no counterpart on the detail page, so they only fade, and without this
+   they would drift out on the hero's long timing instead of clearing with the
+   page they belong to. For the one card that does have a counterpart, the same
+   rule tightens the cross-fade between its two snapshots so the morph reads as
+   one solid object rather than two images dissolving through each other. */
+::view-transition-old(.artwork),
+::view-transition-new(.artwork) {
+  animation-duration: 160ms;
+}
+
+/* Both directions ease in and out rather than front-loading. The heavily
+   front-loaded curves (ease-out-quint and friends) put most of the travel in
+   the first fifth of the duration, so the artwork lunges and then crawls, which
+   is what made this read as janky.
+
+   The directions differ in pace, not in curve: arriving at a detail page is
+   unhurried, returning to the grid is brisk. Transition types are what let CSS
+   tell the two apart, since the DOM change is otherwise symmetric. */
+:root:active-view-transition-type(
+    to-artwork-detail
+  )::view-transition-group(.artwork) {
+  animation-duration: 480ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root:active-view-transition-type(to-gallery)::view-transition-group(.artwork) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}

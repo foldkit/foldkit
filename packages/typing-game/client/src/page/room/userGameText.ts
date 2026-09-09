@@ -1,8 +1,8 @@
-import { Array, Equal, Option, Predicate, String as Str, pipe } from 'effect'
+import { Array, Equal, Option, Predicate, String, pipe } from 'effect'
 
 import { MAX_WRONG_CHARS } from '../../constant'
 
-const toNonEmptyStringOption = Option.liftPredicate(Str.isNonEmpty)
+const toNonEmptyStringOption = Option.liftPredicate(String.isNonEmpty)
 
 export const validateUserTextInput = (
   newUserText: string,
@@ -13,9 +13,9 @@ export const validateUserTextInput = (
     Option.flatMap(() => maybeGameText),
     Option.flatMap(findFirstWrongCharIndex(newUserText)),
     Option.map(firstWrongIndex => {
-      const wrongCharCount = Str.length(newUserText) - firstWrongIndex
+      const wrongCharCount = String.length(newUserText) - firstWrongIndex
       return wrongCharCount > MAX_WRONG_CHARS
-        ? Str.slice(0, firstWrongIndex + MAX_WRONG_CHARS)(newUserText)
+        ? String.slice(0, firstWrongIndex + MAX_WRONG_CHARS)(newUserText)
         : newUserText
     }),
     Option.getOrElse(() => newUserText),
@@ -26,11 +26,11 @@ export const findFirstWrongCharIndex =
   (gameText: string): Option.Option<number> =>
     pipe(
       userGameText,
-      Str.split(''),
+      String.split(''),
       Array.findFirstIndex((char, index) =>
         pipe(
           gameText,
-          Str.at(index),
+          String.at(index),
           Option.exists(Predicate.not(Equal.equals(char))),
         ),
       ),

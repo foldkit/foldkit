@@ -1,10 +1,9 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 
-import { Settings } from './page'
+import * as Settings from './page/settings'
 
-export const Model = S.Struct({
-  username: S.String,
+export const Model = Schema.Struct({
+  username: Schema.String,
   settings: Settings.Model,
 })
-
 export type Model = typeof Model.Type

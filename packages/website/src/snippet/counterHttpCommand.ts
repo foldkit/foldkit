@@ -1,28 +1,20 @@
-import { Effect, Match as M, Schema as S } from 'effect'
-import {
-  FetchHttpClient,
-  HttpClient,
-  HttpClientRequest,
-} from 'effect/unstable/http'
-import { Command } from 'foldkit'
-import { m } from 'foldkit/message'
+import { Effect, Schema } from 'effect'
+import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
+import { Command, Http, type Update } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
 
-const ClickedFetchCount = m('ClickedFetchCount')
-const SucceededFetchCount = m('SucceededFetchCount', {
-  count: S.Number,
-})
-const FailedFetchCount = m('FailedFetchCount', {
-  error: S.String,
+const Message = defineMessageUnion({
+  ClickedFetchCount: {},
+  SucceededFetchCount: { count: Schema.Number },
+  FailedFetchCount: { error: Schema.String },
 })
 
-const CountResponse = S.Struct({ count: S.Number })
+const CountResponse = Schema.Struct({ count: Schema.Number })
 
-const FetchCount = Command.define(
-  'FetchCount',
-  SucceededFetchCount,
-  FailedFetchCount,
-)(
-  Effect.gen(function* () {
+const FetchCount = Command.define('FetchCount', {
+  messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
+  execute: Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
     const response = yield* client.execute(HttpClientRequest.get('/api/count'))
 
@@ -30,29 +22,23 @@ const FetchCount = Command.define(
       return yield* Effect.fail('API request failed')
     }
 
-    const { count } = yield* S.decodeUnknownEffect(CountResponse)(
+    const { count } = yield* Schema.decodeUnknownEffect(CountResponse)(
       yield* response.json,
     )
-    return SucceededFetchCount({ count })
+    return Message.SucceededFetchCount({ count })
   }).pipe(
     Effect.catch(error =>
-      Effect.succeed(FailedFetchCount({ error: String(error) })),
+      Effect.succeed(Message.FailedFetchCount({ error: String(error) })),
     ),
-    Effect.provide(FetchHttpClient.layer),
+    Effect.provide(Http.layer),
   ),
-)
+})
 
-const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      ClickedFetchCount: () => [model, [FetchCount()]],
-      SucceededFetchCount: ({ count }) => [{ count }, []],
-      FailedFetchCount: () => [model, []],
+const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedFetchCount: () => ({ model, commands: [FetchCount()] }),
+    SucceededFetchCount: ({ count }) => ({
+      model: evo(model, { count: () => count }),
     }),
-  )
+    FailedFetchCount: () => ({ model }),
+  })

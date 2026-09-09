@@ -1,26 +1,18 @@
-import {
-  Array as Array_,
-  Option,
-  Predicate,
-  Record,
-  String as String_,
-  flow,
-  pipe,
-} from 'effect'
+import { Array, Option, Predicate, Record, String, flow, pipe } from 'effect'
 
 import type { MessageSchemaIndexEntry } from './protocol.js'
 
 const PATH_SEPARATOR = '.'
 
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
-  Predicate.isObject(value) && !Array_.isArray(value)
+  Predicate.isObject(value) && !Array.isArray(value)
 
 const isReadonlyArray = (value: unknown): value is ReadonlyArray<unknown> =>
-  Array_.isArray(value)
+  Array.isArray(value)
 
 const isStringArray = (
   values: ReadonlyArray<unknown>,
-): values is ReadonlyArray<string> => Array_.every(values, Predicate.isString)
+): values is ReadonlyArray<string> => Array.every(values, Predicate.isString)
 
 const stringEnumOf = (
   schema: unknown,
@@ -29,7 +21,7 @@ const stringEnumOf = (
     return Option.none()
   }
   const candidate = schema['enum']
-  if (!Array_.isArray(candidate)) {
+  if (!Array.isArray(candidate)) {
     return Option.none()
   }
   return Option.liftPredicate(candidate, isStringArray)
@@ -45,7 +37,7 @@ const variantTagOf = (schema: unknown): Option.Option<string> => {
   }
   return stringEnumOf(properties['_tag']).pipe(
     Option.flatMap(tags =>
-      tags.length === 1 ? Array_.head(tags) : Option.none(),
+      tags.length === 1 ? Array.head(tags) : Option.none(),
     ),
   )
 }
@@ -61,8 +53,8 @@ const isDiscriminatedUnion = (schema: unknown): boolean =>
   Option.exists(
     anyOfOf(schema),
     Predicate.and(
-      Array_.isReadonlyArrayNonEmpty,
-      Array_.every(flow(variantTagOf, Option.isSome)),
+      Array.isReadonlyArrayNonEmpty,
+      Array.every(flow(variantTagOf, Option.isSome)),
     ),
   )
 
@@ -76,7 +68,7 @@ const payloadFieldsOf = (variant: unknown): ReadonlyArray<string> => {
   }
   return pipe(
     Record.keys(properties),
-    Array_.filter(name => name !== '_tag'),
+    Array.filter(name => name !== '_tag'),
   )
 }
 
@@ -90,10 +82,10 @@ const unionFieldsOf = (variant: unknown): ReadonlyArray<string> => {
   }
   return pipe(
     Record.toEntries(properties),
-    Array_.filter(
+    Array.filter(
       ([name, schema]) => name !== '_tag' && isDiscriminatedUnion(schema),
     ),
-    Array_.map(([name]) => name),
+    Array.map(([name]) => name),
   )
 }
 
@@ -118,7 +110,7 @@ const topLevelVariantsOf = (
 const indexEntriesOf = (
   members: ReadonlyArray<unknown>,
 ): ReadonlyArray<MessageSchemaIndexEntry> =>
-  pipe(members, Array_.map(entryOf), Array_.getSomes)
+  pipe(members, Array.map(entryOf), Array.getSomes)
 
 /**
  * Build a flat directory of every top-level Message variant from a JSON Schema
@@ -138,8 +130,8 @@ export const indexMessageSchemaDocument = (
   Option.map(topLevelVariantsOf(document), indexEntriesOf)
 
 const collapseUnionsInValue = (value: unknown): unknown => {
-  if (Array_.isArray(value)) {
-    return Array_.map(value, collapseUnionsInValue)
+  if (Array.isArray(value)) {
+    return Array.map(value, collapseUnionsInValue)
   }
   if (!isRecord(value)) {
     return value
@@ -174,7 +166,7 @@ const findVariantByTag = (
   members: ReadonlyArray<unknown>,
   tag: string,
 ): Option.Option<unknown> =>
-  Array_.findFirst(members, variant =>
+  Array.findFirst(members, variant =>
     Option.exists(variantTagOf(variant), candidate => candidate === tag),
   )
 
@@ -200,7 +192,7 @@ const singleUnionFieldOf = (
   }
   const unionEntries = pipe(
     Record.toEntries(properties),
-    Array_.filter(
+    Array.filter(
       ([name, schema]) => name !== '_tag' && isDiscriminatedUnion(schema),
     ),
   )
@@ -208,7 +200,7 @@ const singleUnionFieldOf = (
     return Option.none()
   }
   return Option.gen(function* () {
-    const [name, schema] = yield* Array_.head(unionEntries)
+    const [name, schema] = yield* Array.head(unionEntries)
     const members = yield* anyOfOf(schema)
     return { name, members }
   })
@@ -248,10 +240,10 @@ const narrowAtPath = (
   segments: ReadonlyArray<string>,
 ): Option.Option<unknown> =>
   Option.gen(function* () {
-    const tag = yield* Array_.head(segments)
+    const tag = yield* Array.head(segments)
     const variant = yield* findVariantByTag(members, tag)
-    const rest = Array_.drop(segments, 1)
-    if (Array_.isReadonlyArrayEmpty(rest)) {
+    const rest = Array.drop(segments, 1)
+    if (Array.isReadonlyArrayEmpty(rest)) {
       return collapseUnionsInVariantPayload(variant)
     }
     return yield* stepIntoVariant(variant, rest)
@@ -265,8 +257,8 @@ const narrowAtPath = (
 export const splitVariantPath = (variantPath: string): ReadonlyArray<string> =>
   pipe(
     variantPath,
-    String_.split(PATH_SEPARATOR),
-    Array_.filter(String_.isNonEmpty),
+    String.split(PATH_SEPARATOR),
+    Array.filter(String.isNonEmpty),
   )
 
 const stepToNextUnionMembers = (
@@ -284,7 +276,7 @@ const variantsAtPathPrefix = (
   segments: ReadonlyArray<string>,
 ): Option.Option<ReadonlyArray<unknown>> =>
   Option.flatMap(topLevelVariantsOf(document), topMembers =>
-    Array_.reduce(
+    Array.reduce(
       segments,
       Option.some(topMembers),
       (
@@ -313,7 +305,7 @@ export const variantTagsAtPathPrefix = (
   pathPrefix: ReadonlyArray<string>,
 ): Option.Option<ReadonlyArray<string>> =>
   Option.map(variantsAtPathPrefix(document, pathPrefix), members =>
-    Array_.map(indexEntriesOf(members), entry => entry.tag),
+    Array.map(indexEntriesOf(members), entry => entry.tag),
   )
 
 /**
@@ -345,13 +337,13 @@ export const diagnoseVariantPath = (
     if (length < 0) {
       return Option.none()
     }
-    const prefix = Array_.take(segments, length)
+    const prefix = Array.take(segments, length)
     return Option.match(variantTagsAtPathPrefix(document, prefix), {
       onNone: () => tryLength(length - 1),
       onSome: available =>
         Option.some({
           prefix,
-          failingSegment: Array_.get(segments, length),
+          failingSegment: Array.get(segments, length),
           available,
         }),
     })
@@ -398,7 +390,7 @@ export const narrowToVariant = (
     return Option.none()
   }
   const segments = splitVariantPath(variantPath)
-  if (Array_.isReadonlyArrayEmpty(segments)) {
+  if (Array.isReadonlyArrayEmpty(segments)) {
     return Option.none()
   }
   return Option.gen(function* () {

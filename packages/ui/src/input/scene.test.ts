@@ -1,54 +1,132 @@
-import { html } from 'foldkit/html'
+import { Schema } from 'effect'
+import { type Update } from 'foldkit'
+import type { HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import * as Scene from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 
 import { describe, it } from '@effect/vitest'
 
 import { view } from './index.js'
 
-type Model = Readonly<{ hasDescription: boolean }>
-type Message = never
+const Message = defineMessageUnion({
+  Changed: { value: Schema.String },
+})
+type Message = typeof Message.Type
 
-const update = (model: Model): readonly [Model, ReadonlyArray<never>] => [
-  model,
-  [],
-]
+type Model = Readonly<{ value: string }>
 
-const sceneView = (model: Model) => {
-  const h = html<Message>()
-
-  return view<Message>({
-    id: 'test',
-    hasDescription: model.hasDescription,
-    toView: attributes =>
-      h.div(
-        [],
-        [
-          h.label([...attributes.label], ['Name']),
-          h.input([...attributes.input]),
-          h.span([...attributes.description], ['As it appears on your ID.']),
-        ],
-      ),
+const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    Changed: ({ value }) => ({ model: evo(model, { value: () => value }) }),
   })
-}
 
-const input = Scene.selector('#test')
+const testView =
+  ({
+    isDisabled = false,
+    isReadOnly = false,
+    hasDescription = false,
+  }: {
+    isDisabled?: boolean
+    isReadOnly?: boolean
+    hasDescription?: boolean
+  } = {}) =>
+  (model: Model, h: HtmlBuilder<Message>) =>
+    view(
+      {
+        id: 'test',
+        value: model.value,
+        onInput: value => Message.Changed({ value }),
+        isDisabled,
+        isReadOnly,
+        hasDescription,
+        toView: ({ input, label, description }) =>
+          h.div(
+            [],
+            [
+              h.input([...input]),
+              h.label([...label], ['Email']),
+              ...(hasDescription ? [h.p([...description], ['Hint'])] : []),
+            ],
+          ),
+      },
+      h,
+    )
 
-describe('Input', () => {
-  describe('view', () => {
-    it('omits aria-describedby when no description is wired', () => {
-      Scene.scene(
-        { update, view: sceneView },
-        Scene.with({ hasDescription: false }),
-        Scene.expect(input).not.toHaveAttr('aria-describedby'),
-      )
-    })
+const field = Scene.role('textbox')
 
-    it('sets aria-describedby when a description is wired', () => {
-      Scene.scene(
-        { update, view: sceneView },
-        Scene.with({ hasDescription: true }),
-        Scene.expect(input).toHaveAttr('aria-describedby', 'test-description'),
-      )
-    })
+describe('Input controlled view', () => {
+  it('omits aria-describedby by default', () => {
+    Scene.scene(
+      { update, view: testView() },
+      Scene.given({ value: '' }),
+      Scene.expect(field).not.toHaveAttr('aria-describedby'),
+    )
+  })
+
+  it('references the description when opted in', () => {
+    Scene.scene(
+      { update, view: testView({ hasDescription: true }) },
+      Scene.given({ value: '' }),
+      Scene.expect(field).toHaveAttr('aria-describedby', 'test-description'),
+    )
+  })
+
+  it('dispatches the typed value', () => {
+    Scene.scene(
+      { update, view: testView() },
+      Scene.given({ value: '' }),
+      Scene.type(field, 'hello'),
+      Scene.expect(field).toHaveValue('hello'),
+    )
+  })
+
+  it('is not interactive when disabled', () => {
+    Scene.scene(
+      { update, view: testView({ isDisabled: true }) },
+      Scene.given({ value: '' }),
+      Scene.expect(field).toBeDisabled(),
+      Scene.expect(field).toHaveAttr('data-disabled', ''),
+      Scene.expect(field).not.toHaveHandler('input'),
+    )
+  })
+
+  it('carries the disabled state natively, without aria-disabled', () => {
+    Scene.scene(
+      { update, view: testView({ isDisabled: true }) },
+      Scene.given({ value: '' }),
+      Scene.expect(field).toBeDisabled(),
+      Scene.expect(field).not.toHaveAttr('aria-disabled'),
+    )
+  })
+
+  it('emits read-only attributes without disabled attributes', () => {
+    Scene.scene(
+      { update, view: testView({ isReadOnly: true }) },
+      Scene.given({ value: '' }),
+      Scene.expect(field).toHaveAttr('readOnly', 'true'),
+      Scene.expect(field).toHaveAttr('data-readonly', ''),
+      Scene.expect(field).not.toBeDisabled(),
+      Scene.expect(field).not.toHaveAttr('data-disabled'),
+    )
+  })
+
+  it('drops the input handler when read-only', () => {
+    Scene.scene(
+      { update, view: testView({ isReadOnly: true }) },
+      Scene.given({ value: '' }),
+      Scene.expect(field).not.toHaveHandler('input'),
+    )
+  })
+
+  it('emits both attribute sets when disabled and read-only are combined', () => {
+    Scene.scene(
+      { update, view: testView({ isDisabled: true, isReadOnly: true }) },
+      Scene.given({ value: '' }),
+      Scene.expect(field).toBeDisabled(),
+      Scene.expect(field).toHaveAttr('data-disabled', ''),
+      Scene.expect(field).toHaveAttr('readOnly', 'true'),
+      Scene.expect(field).toHaveAttr('data-readonly', ''),
+    )
   })
 })

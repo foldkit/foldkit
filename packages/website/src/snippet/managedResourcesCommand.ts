@@ -3,12 +3,9 @@ import { Command, ManagedResource } from 'foldkit'
 
 const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
 
-const TakePhoto = Command.define(
-  'TakePhoto',
-  SucceededTakePhoto,
-  CameraUnavailable,
-)(
-  Effect.gen(function* () {
+const TakePhoto = Command.define('TakePhoto', {
+  messages: [SucceededTakePhoto, CameraUnavailable],
+  execute: Effect.gen(function* () {
     const stream = yield* CameraStream.get
 
     const maybeTrack = Array.head(stream.getVideoTracks())
@@ -16,14 +13,10 @@ const TakePhoto = Command.define(
       onNone: () => Effect.fail(new Error('No video track available')),
       onSome: track => {
         const imageCapture = new ImageCapture(track)
-        return Effect.promise(() => imageCapture.grabFrame())
+        return Effect.tryPromise(() => imageCapture.grabFrame())
       },
     })
 
     return SucceededTakePhoto({ width: bitmap.width, height: bitmap.height })
-  }).pipe(
-    Effect.catchTag('ResourceNotAvailable', () =>
-      Effect.succeed(CameraUnavailable()),
-    ),
-  ),
-)
+  }).pipe(Effect.catch(() => Effect.succeed(CameraUnavailable()))),
+})

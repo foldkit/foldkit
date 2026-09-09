@@ -1,9 +1,13 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 
-export const Session = S.Struct({
-  userId: S.String,
-  email: S.String,
-  name: S.String,
+export const Session = Schema.Struct({
+  userId: Schema.String,
+  email: Schema.String,
+  name: Schema.String,
 })
 
 export type Session = typeof Session.Type
+
+export const SessionJsonString = Schema.fromJsonString(
+  Schema.toCodecJson(Session),
+)

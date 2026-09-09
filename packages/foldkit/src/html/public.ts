@@ -1,9 +1,12 @@
 export {
   childAttributes,
+  ClickOptions,
   createKeyedLazy,
   createLazy,
-  html,
-  submodel,
+  DefaultAction,
+  EventPropagation,
+  inertHtml,
+  TextDirection,
 } from './index.js'
 
 export type {
@@ -11,6 +14,8 @@ export type {
   ChildAttribute,
   Document,
   Html,
+  HtmlBuilder,
   KeyboardModifiers,
   TagName,
+  TextareaAttribute,
 } from './index.js'

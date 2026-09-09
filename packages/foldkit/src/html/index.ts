@@ -5,20 +5,53 @@ import {
   Effect,
   Fiber,
   Function,
-  Match,
   Option,
   Predicate,
   Record,
+  Schema,
   Stream,
-  String,
-  pipe,
 } from 'effect'
-import { h } from 'snabbdom'
-import type { Attrs, On, Props, VNodeData } from 'snabbdom'
 
+import {
+  restoreUncontrolledContent,
+  synchronizeControlledDefault,
+} from '../controlledDomState.js'
+import {
+  FOREIGN_REPRESENTABLE_PROPERTIES,
+  assertStyleIsRepresentable,
+  htmlAttributeValue,
+  isHtmlPropertyRepresentable,
+  normalizedStyleProperties,
+  reflectedAttributeName,
+} from '../domReflection.js'
 import type { File } from '../file/index.js'
 import type { MountAction } from '../mount/index.js'
-import { MountTracker } from '../mount/index.js'
+import {
+  MountRuntime,
+  MountTracker,
+  liveViewStateChanges,
+} from '../mount/index.js'
+import {
+  attachOnUnmount,
+  beginReplayUnmountRender,
+  endReplayUnmountRender,
+  flushReplayUnmountsAfterPatchFailure,
+} from '../onUnmountModule.js'
+import {
+  hasTrustedInnerHtml,
+  isClientOnlyProperty,
+  markClientOnlyProperty,
+  markTrustedInnerHtml,
+  unmarkClientOnlyProperty,
+} from '../propertyProvenance.js'
+import {
+  type On,
+  type VNodeData,
+  VNodeDataMask,
+  h,
+  vnodeDataMaskKey,
+} from '../snabbdom/index.js'
+import { tagNameFromSelector } from '../tagName.js'
 import { VNode } from '../vdom.js'
 import { type ChildAttribute, isChildAttribute } from './childAttribute.js'
 import {
@@ -30,12 +63,22 @@ import {
 } from './dragZoneTracking.js'
 import {
   type DispatchSync,
+  type MountDispatchResolver,
+  type MountRenderOwner,
+  type UnmountResolver,
   clearRuntime,
+  requireBoundaryMappers,
   requireDispatch,
+  requireMountDispatchResolver,
   requireRuntimeContext,
+  requireUnmountResolver,
   setRuntime,
 } from './runtimeSingleton.js'
-import { submodel } from './submodel.js'
+import {
+  type AnySubmodelView,
+  type SubmodelConfig,
+  submodel,
+} from './submodel.js'
 
 export { createKeyedLazy, createLazy } from './lazy.js'
 export {
@@ -45,8 +88,12 @@ export {
 export type { BoundaryRegistry } from './boundary.js'
 export { childAttributes } from './childAttribute.js'
 export type { ChildAttribute } from './childAttribute.js'
-export { defineView, submodel } from './submodel.js'
-export type { SubmodelConfig, SubmodelView } from './submodel.js'
+export { defineView } from './submodel.js'
+export type {
+  AnySubmodelView,
+  SubmodelConfig,
+  SubmodelView,
+} from './submodel.js'
 
 /** Pushes a dispatch and runtime context frame for the duration of a render.
  *  The runtime calls this immediately before invoking a user `view` and
@@ -115,26 +162,121 @@ const keyboardModifiers = (event: KeyboardEvent): KeyboardModifiers => ({
   metaKey: event.metaKey,
 })
 
+const inputEventValue = (target: EventTarget | null): string => {
+  if (
+    Predicate.hasProperty(target, 'value') &&
+    Predicate.isString(target.value)
+  ) {
+    return target.value
+  }
+
+  if (
+    Predicate.hasProperty(target, 'innerText') &&
+    Predicate.isString(target.innerText)
+  ) {
+    return target.innerText
+  }
+
+  if (
+    Predicate.hasProperty(target, 'textContent') &&
+    Predicate.isString(target.textContent)
+  ) {
+    return target.textContent
+  }
+
+  return ''
+}
+
+const isEventTargetCurrentTarget = (event: Event): boolean =>
+  event.target === event.currentTarget
+
+const isDevToolsFocusTarget = (target: EventTarget | null): boolean =>
+  target instanceof Element && target.id === DEVTOOLS_HOST_ID
+
+const isFocusInsideCurrentTarget = (event: FocusEvent): boolean =>
+  event.currentTarget instanceof Element &&
+  event.relatedTarget instanceof Node &&
+  event.currentTarget.contains(event.relatedTarget)
+
 /** A virtual DOM element. Constructed synchronously by the element factories
  *  returned from {@link html}. The runtime patches a `VNode` (or `null` to
  *  render nothing) into the application container. */
 export type Html = VNode | null
 export type Child = Html | string
 
+/** Whether an event handler leaves the browser's default action in place or
+ *  prevents it synchronously. */
+export const DefaultAction = Schema.Literals(['Allow', 'Prevent'])
+/** Whether an event handler leaves the browser's default action in place or
+ *  prevents it synchronously. */
+export type DefaultAction = typeof DefaultAction.Type
+
+/** Whether an event continues through its DOM propagation path or stops after
+ *  the handlers on its current element have run. */
+export const EventPropagation = Schema.Literals(['Bubble', 'Stop'])
+/** Whether an event continues through its DOM propagation path or stops after
+ *  the handlers on its current element have run. */
+export type EventPropagation = typeof EventPropagation.Type
+
+/** Declarative controls for an `OnClick` handler. Omitted
+ *  fields keep the browser default, allow the click to bubble, and leave focus
+ *  unchanged. */
+export const ClickOptions = Schema.Struct({
+  defaultAction: Schema.optional(DefaultAction),
+  propagation: Schema.optional(EventPropagation),
+  focusSelector: Schema.optional(Schema.String),
+})
+/** Declarative controls for an `OnClick` handler. Omitted
+ *  fields keep the browser default, allow the click to bubble, and leave focus
+ *  unchanged. */
+export type ClickOptions = typeof ClickOptions.Type
+
+/** Text direction for the document root, applied to `dir` on the `<html>`
+ *  element. `Auto` defers to the browser's first-strong-character heuristic. */
+export const TextDirection = Schema.Literals(['Ltr', 'Rtl', 'Auto'])
+/** Text direction for the document root, applied to `dir` on the `<html>`
+ *  element. `Auto` defers to the browser's first-strong-character heuristic. */
+export type TextDirection = typeof TextDirection.Type
+
+const textDirectionAttributes: Readonly<
+  Record<TextDirection, 'ltr' | 'rtl' | 'auto'>
+> = {
+  Ltr: 'ltr',
+  Rtl: 'rtl',
+  Auto: 'auto',
+}
+
+/** Maps a {@link TextDirection} to the lowercase value written to the `dir`
+ *  attribute on the `<html>` element. Shared by the client runtime, which sets
+ *  it after each render, and server rendering, which stamps it into the served
+ *  shell so the direction is correct on first paint. */
+export const textDirectionToAttribute = (
+  direction: TextDirection,
+): 'ltr' | 'rtl' | 'auto' => textDirectionAttributes[direction]
+
 /** A view's complete output for the runtime: title, body, and optional document
- *  metadata. The runtime applies `title` to `document.title`, syncs `canonical`
- *  to `<link rel="canonical">` (creating it if absent), syncs `ogUrl` to
- *  `<meta property="og:url">` (creating it if absent), and patches `body` into
- *  the application container.
+ *  metadata. The runtime applies `title` to `document.title`, syncs `lang` and
+ *  `dir` to the `<html>` element, syncs `canonical` to `<link rel="canonical">`
+ *  (creating it if absent), syncs `ogUrl` to `<meta property="og:url">`
+ *  (creating it if absent), and patches `body` into the application container.
  *
  *  When `canonical` is omitted, it defaults to the current URL (origin +
  *  pathname + search). When `ogUrl` is omitted, it falls back to `canonical`.
  *
+ *  `lang` and `dir` have no default. When either is omitted the runtime does not
+ *  touch that attribute, leaving whatever value it currently holds, so a view
+ *  that never sets it leaves the served HTML in place. Drive them from the Model
+ *  when the app switches language at runtime. The served HTML still decides what
+ *  a crawler sees on first paint, because the runtime can only sync after the
+ *  first render.
+ *
  *  This is the return type of a `makeApplication` view, which owns the document. An
  *  app embedded at a node should use `makeElement` instead, whose view returns
- *  `Html` and never touches the `<head>`. */
+ *  `Html` and never touches the `<head>` or the `<html>` element. */
 export type Document = Readonly<{
   title: string
+  lang?: string
+  dir?: TextDirection
   canonical?: string
   ogUrl?: string
   body: Html
@@ -356,11 +498,45 @@ export type TagName =
   | 'munderover'
   | 'semantics'
 
+type OnMountLifecycle = {
+  isActive: boolean
+  isStarted: boolean
+}
+
 type OnMountState = {
   fiber: Fiber.Fiber<void>
+  lifecycle: OnMountLifecycle
+  notifyEnded: () => void
+  owner: MountRenderOwner
 }
 
 const onMountStates = new WeakMap<Element, OnMountState>()
+
+// NOTE: snabbdom `destroy` hooks fire during the patch that removes an element,
+// and the hook on the OLD (being-removed) VNode was built in a prior live
+// render, so it cannot tell a live patch from a DevTools time-travel replay on
+// its own. Mount Effects get this for free because the replayed tree is built
+// with `noOpDispatch`, but the `OnUnmount` destroy hook fires against the prior
+// live tree, so the runtime opens this window during a replay render and
+// the OnUnmount VDOM module defers dispatching a hygiene Message into live
+// history. A successful replay discards those callbacks. Patch-failure recovery
+// flushes them because it destroys and later rebuilds the imperative live tree.
+
+/** Opens a replay-render window. The runtime calls this immediately before a
+ *  DevTools time-travel render and closes it with {@link __endReplayRender}
+ *  afterward, so the `OnUnmount` module can defer live callbacks while the
+ *  replayed tree is patched in. Without the gate the callback would
+ *  enqueue a hygiene Message into live history during mere inspection of past
+ *  state. */
+export const __beginReplayRender = beginReplayUnmountRender
+
+/** Closes the replay-render window opened by {@link __beginReplayRender}. */
+export const __endReplayRender = endReplayUnmountRender
+
+/** Dispatches the live `OnUnmount` callbacks deferred by a replay patch that
+ *  failed and forced the runtime to discard the damaged DOM. */
+export const __flushReplayUnmountsAfterPatchFailure =
+  flushReplayUnmountsAfterPatchFailure
 
 /** Key under which the OnMount attribute stamps a `{ name }` marker on the
  *  snabbdom `VNodeData`. Snabbdom passes unknown data fields through without
@@ -369,11 +545,17 @@ const onMountStates = new WeakMap<Element, OnMountState>()
 export const FOLDKIT_MOUNT_KEY = 'foldkitMount' as const
 
 /** Marker stamped on `VNodeData[FOLDKIT_MOUNT_KEY]` for any element with an
- *  `OnMount` attribute. Carries the Mount Definition's name so test
- *  introspection can identify pending mounts. */
+ *  `OnMount` attribute. Carries the Mount Definition's name (and args) so test
+ *  introspection can identify pending mounts. When the mount lives inside a
+ *  Submodel boundary, it also carries that boundary's `toParentMessage` chain
+ *  (innermost first), snapshotted at render time, so `Scene.Mount.resolve` can
+ *  replay the lift the result travels through in production. Production keeps
+ *  the Mount bound to the dispatcher owned by its acquiring render, then
+ *  resolves that owner's latest chain when the Mount emits. */
 export type FoldkitMountMarker = Readonly<{
   name: string
   args?: Record<string, unknown>
+  messageMappers?: ReadonlyArray<(message: unknown) => unknown>
 }>
 
 /** Union of all HTML, SVG, and MathML attributes a virtual DOM element can carry.
@@ -402,8 +584,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
   Popover: { readonly value: string }
   Popovertarget: { readonly value: string }
   Popovertargetaction: { readonly value: string }
-  OnClick: { readonly message: Message }
-  OnClickFocus: { readonly focusSelector: string; readonly message: Message }
+  OnClick: { readonly message: Message; readonly options?: ClickOptions }
   OnDoubleClick: { readonly message: Message }
   OnMouseDown: { readonly message: Message }
   OnMouseUp: { readonly message: Message }
@@ -450,6 +631,21 @@ export type Attribute<Message> = Data.TaggedEnum<{
       modifiers: KeyboardModifiers,
     ) => Option.Option<Message>
   }
+  OnKeyDownSelf: {
+    readonly f: (key: string, modifiers: KeyboardModifiers) => Message
+  }
+  OnKeyDownSelfPreventDefault: {
+    readonly f: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>
+  }
+  OnKeyDownFocus: {
+    readonly f: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Readonly<{ focusSelector: string; message: Message }>>
+  }
   OnKeyUp: {
     readonly f: (key: string, modifiers: KeyboardModifiers) => Message
   }
@@ -464,9 +660,22 @@ export type Attribute<Message> = Data.TaggedEnum<{
   }
   OnFocus: { readonly message: Message }
   OnBlur: { readonly message: Message }
+  OnFocusEnter: { readonly message: Message }
+  OnFocusLeave: { readonly message: Message }
   OnInput: { readonly f: (value: string) => Message }
   OnChange: { readonly f: (value: string) => Message }
-  OnFileChange: { readonly f: (files: ReadonlyArray<File>) => Message }
+  OnBeforeInput: {
+    readonly f: (inputType: string, data: Option.Option<string>) => Message
+  }
+  OnBeforeInputPreventDefault: {
+    readonly f: (
+      inputType: string,
+      data: Option.Option<string>,
+    ) => Option.Option<Message>
+  }
+  OnFileChange: {
+    readonly f: (files: ReadonlyArray<File>) => Message
+  }
   OnSubmit: { readonly message: Message }
   OnReset: { readonly message: Message }
   OnScroll: { readonly f: (scrollTop: number) => Message }
@@ -480,6 +689,9 @@ export type Attribute<Message> = Data.TaggedEnum<{
   OnCopyText: { readonly text: string }
   OnCutText: { readonly text: string; readonly message: Message }
   OnCancel: { readonly message: Message }
+  OnCancelPreventDefault: {
+    readonly maybeCustomEventMessage: Option.Option<Message>
+  }
   OnToggle: { readonly f: (isOpen: boolean) => Message }
   OnContextMenu: { readonly message: Message }
   OnDragStart: { readonly message: Message }
@@ -490,7 +702,9 @@ export type Attribute<Message> = Data.TaggedEnum<{
   OnDragOver: { readonly message: Message }
   AllowDrop: {}
   OnDrop: { readonly message: Message }
-  OnDropFiles: { readonly f: (files: ReadonlyArray<File>) => Message }
+  OnDropFiles: {
+    readonly f: (files: ReadonlyArray<File>) => Message
+  }
   OnTouchStart: { readonly message: Message }
   OnTouchEnd: { readonly message: Message }
   OnTouchMove: { readonly message: Message }
@@ -669,13 +883,80 @@ export type Attribute<Message> = Data.TaggedEnum<{
   Opacity: { readonly value: string }
   StrokeDasharray: { readonly value: string }
   StrokeDashoffset: { readonly value: string }
+  Dx: { readonly value: string }
+  Dy: { readonly value: string }
+  Rotate: { readonly value: string }
+  TextAnchor: { readonly value: string }
+  DominantBaseline: { readonly value: string }
+  AlignmentBaseline: { readonly value: string }
+  BaselineShift: { readonly value: string }
+  TextLength: { readonly value: string }
+  LengthAdjust: { readonly value: string }
+  FontFamily: { readonly value: string }
+  FontSize: { readonly value: string }
+  FontWeight: { readonly value: string }
+  FontStyle: { readonly value: string }
+  LetterSpacing: { readonly value: string }
+  WordSpacing: { readonly value: string }
+  TextDecoration: { readonly value: string }
+  WritingMode: { readonly value: string }
+  Rx: { readonly value: string }
+  Ry: { readonly value: string }
+  PathLength: { readonly value: string }
+  FillOpacity: { readonly value: string }
+  StrokeOpacity: { readonly value: string }
+  StrokeMiterlimit: { readonly value: string }
+  PaintOrder: { readonly value: string }
+  VectorEffect: { readonly value: string }
+  Color: { readonly value: string }
+  Visibility: { readonly value: string }
+  Display: { readonly value: string }
+  Overflow: { readonly value: string }
+  PointerEvents: { readonly value: string }
+  Cursor: { readonly value: string }
+  ShapeRendering: { readonly value: string }
+  TextRendering: { readonly value: string }
+  ImageRendering: { readonly value: string }
+  ClipPath: { readonly value: string }
+  Mask: { readonly value: string }
+  Filter: { readonly value: string }
+  ClipPathUnits: { readonly value: string }
+  MaskUnits: { readonly value: string }
+  MaskContentUnits: { readonly value: string }
+  FilterUnits: { readonly value: string }
+  PrimitiveUnits: { readonly value: string }
+  Offset: { readonly value: string }
+  StopColor: { readonly value: string }
+  StopOpacity: { readonly value: string }
+  GradientUnits: { readonly value: string }
+  GradientTransform: { readonly value: string }
+  SpreadMethod: { readonly value: string }
+  Fx: { readonly value: string }
+  Fy: { readonly value: string }
+  Fr: { readonly value: string }
+  PatternUnits: { readonly value: string }
+  PatternContentUnits: { readonly value: string }
+  PatternTransform: { readonly value: string }
+  MarkerStart: { readonly value: string }
+  MarkerMid: { readonly value: string }
+  MarkerEnd: { readonly value: string }
+  MarkerWidth: { readonly value: string }
+  MarkerHeight: { readonly value: string }
+  MarkerUnits: { readonly value: string }
+  RefX: { readonly value: string }
+  RefY: { readonly value: string }
+  Orient: { readonly value: string }
+  PreserveAspectRatio: { readonly value: string }
   Prop: { readonly key: string; readonly value: unknown }
   OnCustomEvent: {
     readonly name: string
-    readonly f: (event: CustomEvent<any>) => Message
+    readonly f: (event: CustomEvent<unknown>) => Option.Option<Message>
   }
   OnMount: {
     readonly action: MountAction<Message, any>
+  }
+  OnUnmount: {
+    readonly message: Message
   }
 }>
 
@@ -701,7 +982,6 @@ const {
   Popovertarget,
   Popovertargetaction,
   OnClick,
-  OnClickFocus,
   OnDoubleClick,
   OnMouseDown,
   OnMouseUp,
@@ -716,13 +996,20 @@ const {
   OnPointerUp,
   OnKeyDown,
   OnKeyDownPreventDefault,
+  OnKeyDownSelf,
+  OnKeyDownSelfPreventDefault,
+  OnKeyDownFocus,
   OnKeyUp,
   OnKeyUpPreventDefault,
   OnKeyPress,
   OnFocus,
   OnBlur,
+  OnFocusEnter,
+  OnFocusLeave,
   OnInput,
   OnChange,
+  OnBeforeInput,
+  OnBeforeInputPreventDefault,
   OnFileChange,
   OnSubmit,
   OnReset,
@@ -735,6 +1022,7 @@ const {
   OnCopyText,
   OnCutText,
   OnCancel,
+  OnCancelPreventDefault,
   OnToggle,
   OnContextMenu,
   OnDragStart,
@@ -924,21 +1212,89 @@ const {
   Opacity,
   StrokeDasharray,
   StrokeDashoffset,
+  Dx,
+  Dy,
+  Rotate,
+  TextAnchor,
+  DominantBaseline,
+  AlignmentBaseline,
+  BaselineShift,
+  TextLength,
+  LengthAdjust,
+  FontFamily,
+  FontSize,
+  FontWeight,
+  FontStyle,
+  LetterSpacing,
+  WordSpacing,
+  TextDecoration,
+  WritingMode,
+  Rx,
+  Ry,
+  PathLength,
+  FillOpacity,
+  StrokeOpacity,
+  StrokeMiterlimit,
+  PaintOrder,
+  VectorEffect,
+  Color,
+  Visibility,
+  Display,
+  Overflow,
+  PointerEvents,
+  Cursor,
+  ShapeRendering,
+  TextRendering,
+  ImageRendering,
+  ClipPath,
+  Mask,
+  Filter,
+  ClipPathUnits,
+  MaskUnits,
+  MaskContentUnits,
+  FilterUnits,
+  PrimitiveUnits,
+  Offset,
+  StopColor,
+  StopOpacity,
+  GradientUnits,
+  GradientTransform,
+  SpreadMethod,
+  Fx,
+  Fy,
+  Fr,
+  PatternUnits,
+  PatternContentUnits,
+  PatternTransform,
+  MarkerStart,
+  MarkerMid,
+  MarkerEnd,
+  MarkerWidth,
+  MarkerHeight,
+  MarkerUnits,
+  RefX,
+  RefY,
+  Orient,
+  PreserveAspectRatio,
   Prop,
   OnCustomEvent,
   OnMount,
+  OnUnmount,
 } = Data.taggedEnum<AttributeDefinition>()
 
 export { Prop, OnCustomEvent }
 
-// BUILD CONTEXT: per-VNode bag of mutable VNode data plus the dispatcher this
-// VNode's events route through. Allocated once per unique dispatcher in
-// `buildVNodeData`, typically once total (a second time when ChildAttribute
-// items route through a child Submodel's own dispatch).
+// BUILD CONTEXT: per-VNode bag of mutable VNode data plus the dispatchers this
+// VNode's events and Mount results route through. Allocated once per unique
+// dispatcher in `buildVNodeData`, typically once total (a second time when
+// ChildAttribute items route through a child Submodel's own dispatch).
 type BuildContext = Readonly<{
   data: VNodeData
-  postpatchProps: Array<Readonly<{ propName: string; value: unknown }>>
+  getPostpatchProps: () => Array<Readonly<{ propName: string; value: unknown }>>
   dispatch: DispatchSync
+  resolveUnmount: UnmountResolver
+  boundaryMappers: ReadonlyArray<(message: unknown) => unknown>
+  resolveMountDispatch?: MountDispatchResolver
   getCapturedContext: () => Context.Context<never>
 }>
 
@@ -950,25 +1306,114 @@ const setData = <K extends keyof VNodeData>(
   ctx.data[key] = value
 }
 
-const updateData = <K extends keyof VNodeData>(
-  ctx: BuildContext,
-  key: K,
-  value: Partial<VNodeData[K]>,
-): void => {
-  const existing = ctx.data[key]
-  if (existing === undefined) {
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    ctx.data[key] = value as VNodeData[K]
-  } else {
-    Object.assign(existing, value)
-  }
+const addVNodeDataMask = (ctx: BuildContext, dataMask: number): void => {
+  ctx.data[vnodeDataMaskKey] = (ctx.data[vnodeDataMaskKey] ?? 0) | dataMask
 }
 
-const updateDataProps = (ctx: BuildContext, props: Props): void =>
-  updateData(ctx, 'props', props)
+const setModuleData = <K extends keyof VNodeData>(
+  ctx: BuildContext,
+  key: K,
+  value: VNodeData[K],
+  dataMask: number,
+): void => {
+  ctx.data[key] = value
+  addVNodeDataMask(ctx, dataMask)
+}
 
-const updateDataAttrs = (ctx: BuildContext, attrs: Attrs): void =>
-  updateData(ctx, 'attrs', attrs)
+// NOTE: single-key fast paths. The bulk of attribute handlers set exactly
+// one prop, attr, or event handler; writing it directly into the vnode data
+// avoids allocating a `{ key: value }` literal and merging it per attribute.
+const writeDataProp = (
+  ctx: BuildContext,
+  key: string,
+  value: unknown,
+): Record<string, unknown> => {
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const props = (ctx.data.props ??= {}) as Record<string, unknown>
+  if (key === '__proto__') {
+    Object.defineProperty(props, key, {
+      configurable: true,
+      enumerable: true,
+      value,
+      writable: true,
+    })
+  } else {
+    props[key] = value
+  }
+  addVNodeDataMask(ctx, VNodeDataMask.Props)
+  return props
+}
+
+// A typed attribute builder writes the DOM property that reflects the HTML
+// attribute it is named after, so the server serializer can emit it as that
+// attribute even on a custom element, where a same-named component property
+// would mean something else entirely. Overwriting a property a generic write
+// left behind takes the name back, so the mark always describes the value that
+// is actually in the bag. The unmark is a no-op unless a generic write happened
+// on this element, which keeps the common path free of any bookkeeping.
+const setDataProp = (ctx: BuildContext, key: string, value: unknown): void => {
+  const props = writeDataProp(ctx, key, value)
+  unmarkClientOnlyProperty(props, key)
+}
+
+// `Prop` writes a DOM property and claims nothing about what it means: the
+// value may be a client-only component property, and the name may collide with
+// one an attribute builder owns. `CustomElement.define` property factories
+// produce `Prop`, so a declared component property lands here too.
+const setClientOnlyDataProp = (
+  ctx: BuildContext,
+  key: string,
+  value: unknown,
+): void => {
+  const props = writeDataProp(ctx, key, value)
+  markClientOnlyProperty(props, key)
+}
+
+// NOTE: `h.InnerHTML` marks the value it wrote as markup the view author intends
+// to be parsed as HTML, which is what lets the server serializer write it to the
+// raw sink. A custom-element property or raw `Prop` named `innerHTML` marks the
+// same key client-only instead. The marks are mutually exclusive, so the last
+// builder owns the key even when both builders wrote exactly the same string.
+const setTrustedInnerHtml = (ctx: BuildContext, value: string): void => {
+  const props = writeDataProp(ctx, 'innerHTML', value)
+  markTrustedInnerHtml(props, value)
+}
+
+const setDataAttr = (
+  ctx: BuildContext,
+  key: string,
+  value: string | number | boolean,
+): void => {
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const attrs = (ctx.data.attrs ??= {}) as Record<
+    string,
+    string | number | boolean
+  >
+  attrs[key] = value
+  addVNodeDataMask(ctx, VNodeDataMask.Attrs)
+}
+
+const addDataOn = (
+  ctx: BuildContext,
+  eventName: string,
+  handler: (...args: ReadonlyArray<never>) => void,
+): void => {
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const on = (ctx.data.on ??= {}) as Record<string, unknown>
+  addVNodeDataMask(ctx, VNodeDataMask.On)
+  const existingHandler = on[eventName]
+  if (existingHandler === undefined) {
+    on[eventName] = handler
+  } else {
+    // NOTE: chain in registration order, mirroring updateDataOn.
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const previous = existingHandler as (...args: ReadonlyArray<never>) => void
+    on[eventName] = (...args: ReadonlyArray<never>) => {
+      previous(...args)
+      handler(...args)
+    }
+  }
+}
 
 // Event handlers chain per DOM event in spread order. Without this,
 // `Object.assign` would silently drop earlier handlers for the same
@@ -979,6 +1424,7 @@ const updateDataAttrs = (ctx: BuildContext, attrs: Attrs): void =>
 // earlier handler throws, later handlers do not run (mirroring native
 // exception propagation, not silently swallowing bugs).
 const updateDataOn = (ctx: BuildContext, on: On): void => {
+  addVNodeDataMask(ctx, VNodeDataMask.On)
   if (ctx.data.on === undefined) {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     ctx.data.on = on as On
@@ -1009,1391 +1455,1746 @@ const updateDataOn = (ctx: BuildContext, on: On): void => {
   }
 }
 
+// The values a numeric builder accepts, per property.
+//
+// The server writes these as attribute text and a browser parses them; the
+// client assigns them through the DOM property. The two do not agree
+// everywhere. Assigning a negative `maxLength` throws IndexSizeError while the
+// attribute parses to -1; `size = 0` throws while the attribute falls back to
+// 20; `Infinity` and `NaN` become 0 through the property and the attribute's own
+// default through the parser; and past 2^31 the property conversions wrap while
+// the attribute clamps.
+//
+// The bounds below were measured in Chromium: within them, a parsed attribute
+// and a direct assignment produce the same property for every builder here.
+// Outside them the two disagree or the assignment throws, so the value is
+// refused where it is written rather than diverging once served.
+const SIGNED_LONG_MAXIMUM = 2147483647
+const SIGNED_LONG_MINIMUM = -SIGNED_LONG_MAXIMUM - 1
+
+const NUMERIC_PROPERTY_RANGES: Readonly<
+  Record<string, Readonly<{ minimum: number; maximum: number }>>
+> = {
+  cols: { minimum: 0, maximum: SIGNED_LONG_MAXIMUM },
+  colSpan: { minimum: 0, maximum: SIGNED_LONG_MAXIMUM },
+  maxLength: { minimum: 0, maximum: SIGNED_LONG_MAXIMUM },
+  minLength: { minimum: 0, maximum: SIGNED_LONG_MAXIMUM },
+  rows: { minimum: 0, maximum: SIGNED_LONG_MAXIMUM },
+  rowSpan: { minimum: 0, maximum: SIGNED_LONG_MAXIMUM },
+  size: { minimum: 0, maximum: SIGNED_LONG_MAXIMUM },
+  span: { minimum: 0, maximum: SIGNED_LONG_MAXIMUM },
+  // An ordered list may start anywhere, and negatives agree on both sides.
+  start: { minimum: SIGNED_LONG_MINIMUM, maximum: SIGNED_LONG_MAXIMUM },
+  // Any element can carry one, and the two sides agree across the whole signed
+  // long range. Outside it they part company in a way no value hints at: an
+  // out-of-range assignment wraps (2147483648 becomes -2147483648) while the
+  // attribute falls back to the element's default, which is 0 on a focusable
+  // element and -1 on any other, so the same view yields a focusable served
+  // element and an unreachable fresh one.
+  tabIndex: { minimum: SIGNED_LONG_MINIMUM, maximum: SIGNED_LONG_MAXIMUM },
+}
+
+const numericPropertyRefusal = (propName: string, value: number): string =>
+  `[foldkit] ${propName} was given ${String(value)}, which a browser reads ` +
+  'differently depending on whether it arrives as parsed markup or as a ' +
+  'property assignment, and which can throw outright when assigned. '
+
+const setNumericDataProp = (
+  ctx: BuildContext,
+  propName: string,
+  value: number,
+): void => {
+  const range = NUMERIC_PROPERTY_RANGES[propName]
+  if (
+    range !== undefined &&
+    !(
+      Number.isInteger(value) &&
+      value >= range.minimum &&
+      value <= range.maximum
+    )
+  ) {
+    throw new Error(
+      numericPropertyRefusal(propName, value) +
+        `Use an integer from ${String(range.minimum)} to ` +
+        `${String(range.maximum)}.`,
+    )
+  }
+  setDataProp(ctx, propName, value)
+}
+
+const setFiniteNumericDataProp = (
+  ctx: BuildContext,
+  propName: string,
+  value: number,
+): void => {
+  if (!Number.isFinite(value)) {
+    throw new Error(
+      numericPropertyRefusal(propName, value) + 'Use a finite number.',
+    )
+  }
+  setDataProp(ctx, propName, value)
+}
+
 const updatePropsWithPostpatch = (
   ctx: BuildContext,
   propName: string,
   value: unknown,
 ): void => {
-  updateDataProps(ctx, { [propName]: value })
-  ctx.postpatchProps.push({ propName, value })
+  setDataProp(ctx, propName, value)
+  ctx.getPostpatchProps().push({ propName, value })
 }
 
-// NOTE: Built once at module load. The matcher dispatches on `_tag` and
-// returns a thunk that applies the resulting mutation to a per-VNode
-// BuildContext. Per-attribute cost drops from O(matcher arms) closure
-// allocations to one thunk. `Attribute<unknown>` is the runtime-erased
-// shape. Message is purely a TypeScript parameter at this level and
-// DispatchSync already accepts unknown.
-const attributeMatcher: (
-  attribute: Attribute<unknown>,
-) => (ctx: BuildContext) => void = Match.type<Attribute<unknown>>().pipe(
-  Match.tagsExhaustive({
-    Key:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        setData(ctx, 'key', value),
-    Class: ({ value }) => {
-      const classObject = pipe(
-        value,
-        String.split(/\s+/),
-        Array.filter(String.isNonEmpty),
-        Array.reduce({}, (acc, className) => ({
-          ...acc,
-          [className]: true,
-        })),
-      )
-      return (ctx: BuildContext) => setData(ctx, 'class', classObject)
-    },
-    Id:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { id: value }),
-    Title:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { title: value }),
-    Lang:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { lang: value }),
-    Dir:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { dir: value }),
-    Tabindex:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { tabIndex: value }),
-    Hidden:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { hidden: value }),
-    Contenteditable:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { contenteditable: value }),
-    Draggable:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { draggable: value }),
-    Accesskey:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { accesskey: value }),
-    Translate:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { translate: value }),
-    Inert:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { inert: value }),
-    Popover:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { popover: value }),
-    Popovertarget:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { popovertarget: value }),
-    Popovertargetaction:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { popovertargetaction: value }),
-    OnClick:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { click: () => ctx.dispatch(message) }),
-    OnClickFocus:
-      ({ focusSelector, message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          click: () => {
-            const focusTarget = document.querySelector(focusSelector)
-            if (focusTarget instanceof HTMLElement) {
-              focusTarget.focus()
-            }
-            ctx.dispatch(message)
-          },
-        }),
-    OnDoubleClick:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { dblclick: () => ctx.dispatch(message) }),
-    OnMouseDown:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { mousedown: () => ctx.dispatch(message) }),
-    OnMouseUp:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { mouseup: () => ctx.dispatch(message) }),
-    OnMouseEnter:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { mouseenter: () => ctx.dispatch(message) }),
-    OnMouseLeave:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { mouseleave: () => ctx.dispatch(message) }),
-    OnMouseOver:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { mouseover: () => ctx.dispatch(message) }),
-    OnMouseOut:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { mouseout: () => ctx.dispatch(message) }),
-    OnMouseMove:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { mousemove: () => ctx.dispatch(message) }),
-    OnPointerMove:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          pointermove: (event: PointerEvent) => {
-            const maybeMessage = f(
-              event.screenX,
-              event.screenY,
-              event.pointerType,
-            )
-            if (Option.isSome(maybeMessage)) {
-              ctx.dispatch(maybeMessage.value)
-            }
-          },
-        }),
-    OnPointerLeave:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          pointerleave: (event: PointerEvent) => {
-            const maybeMessage = f(event.pointerType)
-            if (Option.isSome(maybeMessage)) {
-              ctx.dispatch(maybeMessage.value)
-            }
-          },
-        }),
-    OnPointerDown:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          pointerdown: (event: PointerEvent) => {
-            const maybeMessage = f(
-              event.pointerType,
-              event.button,
-              event.screenX,
-              event.screenY,
-              event.timeStamp,
-              event.clientX,
-              event.clientY,
-            )
-            if (Option.isSome(maybeMessage)) {
-              ctx.dispatch(maybeMessage.value)
-            }
-          },
-        }),
-    OnPointerUp:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          pointerup: (event: PointerEvent) => {
-            const maybeMessage = f(
-              event.screenX,
-              event.screenY,
-              event.pointerType,
-              event.timeStamp,
-            )
-            if (Option.isSome(maybeMessage)) {
-              ctx.dispatch(maybeMessage.value)
-            }
-          },
-        }),
-    OnKeyDown:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          keydown: (event: KeyboardEvent) =>
-            ctx.dispatch(f(event.key, keyboardModifiers(event))),
-        }),
-    OnKeyDownPreventDefault:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          keydown: (event: KeyboardEvent) => {
-            const maybeMessage = f(event.key, keyboardModifiers(event))
-            if (Option.isSome(maybeMessage)) {
-              event.preventDefault()
-              ctx.dispatch(maybeMessage.value)
-            }
-          },
-        }),
-    OnKeyUp:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          keyup: (event: KeyboardEvent) =>
-            ctx.dispatch(f(event.key, keyboardModifiers(event))),
-        }),
-    OnKeyUpPreventDefault:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          keyup: (event: KeyboardEvent) => {
-            const maybeMessage = f(event.key, keyboardModifiers(event))
-            if (Option.isSome(maybeMessage)) {
-              event.preventDefault()
-              ctx.dispatch(maybeMessage.value)
-            }
-          },
-        }),
-    OnKeyPress:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          keypress: (event: KeyboardEvent) =>
-            ctx.dispatch(f(event.key, keyboardModifiers(event))),
-        }),
-    OnFocus:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { focus: () => ctx.dispatch(message) }),
-    OnBlur:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          blur: (event: FocusEvent) => {
-            if (
-              event.relatedTarget instanceof Element &&
-              event.relatedTarget.id === DEVTOOLS_HOST_ID
-            ) {
-              return
-            }
-            ctx.dispatch(message)
-          },
-        }),
-    OnInput:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          input: (event: Event) =>
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            ctx.dispatch(f((event.target as HTMLInputElement).value)),
-        }),
-    OnChange:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          change: (event: Event) =>
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            ctx.dispatch(f((event.target as HTMLInputElement).value)),
-        }),
-    OnFileChange:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          change: tagAsFileHandler((event: Event) => {
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            const target = event.target as HTMLInputElement
-            const files: ReadonlyArray<File> = target.files
-              ? Array.fromIterable(target.files)
-              : Array.empty()
-            target.value = ''
-            ctx.dispatch(f(files))
-          }, 'OnFileChange'),
-        }),
-    OnSubmit:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          submit: (event: Event) => {
-            event.preventDefault()
-            ctx.dispatch(message)
-          },
-        }),
-    OnReset:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { reset: () => ctx.dispatch(message) }),
-    OnScroll:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          scroll: (event: Event) =>
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            ctx.dispatch(f((event.target as HTMLElement).scrollTop)),
-        }),
-    OnWheel:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { wheel: () => ctx.dispatch(message) }),
-    OnCopy:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { copy: () => ctx.dispatch(message) }),
-    OnCut:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { cut: () => ctx.dispatch(message) }),
-    OnPaste:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { paste: () => ctx.dispatch(message) }),
-    OnPastePreventDefault:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          paste: (event: ClipboardEvent) => {
-            const text = event.clipboardData?.getData('text/plain') ?? ''
-            const maybeMessage = f(text)
-            if (Option.isSome(maybeMessage)) {
-              event.preventDefault()
-              ctx.dispatch(maybeMessage.value)
-            }
-          },
-        }),
-    OnCopyText:
-      ({ text }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          copy: (event: ClipboardEvent) => {
-            if (event.clipboardData) {
-              event.clipboardData.setData('text/plain', text)
-              event.preventDefault()
-            }
-          },
-        }),
-    OnCutText:
-      ({ text, message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          cut: (event: ClipboardEvent) => {
-            if (event.clipboardData) {
-              event.clipboardData.setData('text/plain', text)
-              event.preventDefault()
-              ctx.dispatch(message)
-            }
-          },
-        }),
-    OnCancel:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          cancel: (event: Event) => {
-            event.preventDefault()
-            ctx.dispatch(message)
-          },
-        }),
-    OnToggle:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          toggle: event =>
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            ctx.dispatch(f((event.target as HTMLDetailsElement).open)),
-        }),
-    OnContextMenu:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          contextmenu: (event: Event) => {
-            event.preventDefault()
-            ctx.dispatch(message)
-          },
-        }),
-    OnDragStart:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { dragstart: () => ctx.dispatch(message) }),
-    OnDrag:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { drag: () => ctx.dispatch(message) }),
-    OnDragEnd:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { dragend: () => ctx.dispatch(message) }),
-    OnDragEnter:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          dragenter: (event: Event) => {
-            event.preventDefault()
-            const zone = event.currentTarget
-            if (!(zone instanceof Element)) {
-              ctx.dispatch(message)
-              return
-            }
-            const state = getDragZoneState(zone)
-            if (processDragEnter(state, zone, event.target)) {
-              ctx.dispatch(message)
-            }
-          },
-        }),
-    OnDragLeave:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          dragleave: (event: Event) => {
-            const zone = event.currentTarget
-            if (!(zone instanceof Element)) {
-              ctx.dispatch(message)
-              return
-            }
-            const state = getDragZoneState(zone)
-            if (processDragLeave(state, zone, event.target) === 'schedule') {
-              queueMicrotask(() => {
-                if (checkScheduledLeave(state)) {
-                  ctx.dispatch(message)
-                }
-              })
-            }
-          },
-        }),
-    OnDragOver:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          dragover: (event: Event) => {
-            event.preventDefault()
-            ctx.dispatch(message)
-          },
-        }),
-    AllowDrop: () => (ctx: BuildContext) =>
-      updateDataOn(ctx, {
-        dragover: (event: Event) => {
-          event.preventDefault()
-        },
-      }),
-    OnDrop:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          drop: (event: Event) => {
-            event.preventDefault()
-            const zone = event.currentTarget
-            if (zone instanceof Element) {
-              clearDragZoneAfterDrop(zone)
-            }
-            ctx.dispatch(message)
-          },
-        }),
-    OnDropFiles:
-      ({ f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          drop: tagAsFileHandler((event: Event) => {
-            event.preventDefault()
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            const dragEvent = event as DragEvent
-            const zone = dragEvent.currentTarget
-            if (zone instanceof Element) {
-              clearDragZoneAfterDrop(zone)
-            }
-            const files: ReadonlyArray<File> = dragEvent.dataTransfer?.files
-              ? Array.fromIterable(dragEvent.dataTransfer.files)
-              : Array.empty()
-            ctx.dispatch(f(files))
-          }, 'OnDropFiles'),
-        }),
-    OnTouchStart:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { touchstart: () => ctx.dispatch(message) }),
-    OnTouchEnd:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { touchend: () => ctx.dispatch(message) }),
-    OnTouchMove:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { touchmove: () => ctx.dispatch(message) }),
-    OnTouchCancel:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { touchcancel: () => ctx.dispatch(message) }),
-    OnAnimationStart:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { animationstart: () => ctx.dispatch(message) }),
-    OnAnimationEnd:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { animationend: () => ctx.dispatch(message) }),
-    OnAnimationIteration:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { animationiteration: () => ctx.dispatch(message) }),
-    OnTransitionEnd:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { transitionend: () => ctx.dispatch(message) }),
-    OnLoad:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { load: () => ctx.dispatch(message) }),
-    OnError:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { error: () => ctx.dispatch(message) }),
-    OnPlay:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { play: () => ctx.dispatch(message) }),
-    OnPause:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { pause: () => ctx.dispatch(message) }),
-    OnEnded:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { ended: () => ctx.dispatch(message) }),
-    OnTimeUpdate:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { timeupdate: () => ctx.dispatch(message) }),
-    OnVolumeChange:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { volumechange: () => ctx.dispatch(message) }),
-    OnSelect:
-      ({ message }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, { select: () => ctx.dispatch(message) }),
-    Value:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updatePropsWithPostpatch(ctx, 'value', value),
-    Checked:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updatePropsWithPostpatch(ctx, 'checked', value),
-    Selected:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updatePropsWithPostpatch(ctx, 'selected', value),
-    Open:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updatePropsWithPostpatch(ctx, 'open', value),
-    Placeholder:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { placeholder: value }),
-    Name:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { name: value }),
-    Disabled:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { disabled: value }),
-    Readonly:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { readOnly: value }),
-    Required:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { required: value }),
-    Autofocus:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { autofocus: value }),
-    Spellcheck:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { spellcheck: value.toString() }),
-    Autocorrect:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { autocorrect: value }),
-    Autocapitalize:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { autocapitalize: value }),
-    InputMode:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { inputmode: value }),
-    EnterKeyHint:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { enterkeyhint: value }),
-    Multiple:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { multiple: value }),
-    Type:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { type: value }),
-    Accept:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { accept: value }),
-    Autocomplete:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { autocomplete: value }),
-    Pattern:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { pattern: value }),
-    Maxlength:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { maxLength: value }),
-    Minlength:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { minLength: value }),
-    Size:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { size: value }),
-    Cols:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { cols: value }),
-    Rows:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { rows: value }),
-    Max:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { max: value }),
-    Min:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { min: value }),
-    Step:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { step: value }),
-    For:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { htmlFor: value }),
-    Href:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { href: value }),
-    Src:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { src: value }),
-    Alt:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { alt: value }),
-    Target:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { target: value }),
-    Rel:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { rel: value }),
-    Download:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { download: value }),
-    Action:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { action: value }),
-    Method:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { method: value }),
-    Enctype:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { enctype: value }),
-    Novalidate:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { noValidate: value }),
-    Formaction:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { formAction: value }),
-    Formmethod:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { formMethod: value }),
-    Formnovalidate:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { formNoValidate: value }),
-    Formtarget:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { formTarget: value }),
-    Formenctype:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { formEnctype: value }),
-    Colspan:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { colSpan: value }),
-    Rowspan:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { rowSpan: value }),
-    Scope:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { scope: value }),
-    Headers:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { headers: value }),
-    Span:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { span: value }),
-    Start:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { start: value }),
-    Reversed:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { reversed: value }),
-    CiteAttr:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { cite: value }),
-    Datetime:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { dateTime: value }),
-    Wrap:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { wrap: value }),
-    List:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { list: value }),
-    FormAttr:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { form: value }),
-    LabelAttr:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { label: value }),
-    ContentAttr:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { content: value }),
-    Charset:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { charset: value }),
-    HttpEquiv:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'http-equiv': value }),
-    Srcset:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { srcset: value }),
-    Sizes:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { sizes: value }),
-    Loading:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { loading: value }),
-    Decoding:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { decoding: value }),
-    Fetchpriority:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { fetchpriority: value }),
-    Crossorigin:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { crossorigin: value }),
-    Referrerpolicy:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { referrerpolicy: value }),
-    Integrity:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { integrity: value }),
-    Hreflang:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { hreflang: value }),
-    Ping:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { ping: value }),
-    Sandbox:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { sandbox: value }),
-    Allow:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { allow: value }),
-    Srcdoc:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { srcdoc: value }),
-    Autoplay:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { autoplay: value }),
-    Controls:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { controls: value }),
-    Loop:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { loop: value }),
-    Muted:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updatePropsWithPostpatch(ctx, 'muted', value),
-    Poster:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { poster: value }),
-    Preload:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { preload: value }),
-    Playsinline:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { playsInline: value }),
-    High:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { high: value }),
-    Low:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { low: value }),
-    Optimum:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { optimum: value }),
-    Usemap:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { usemap: value }),
-    Ismap:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { isMap: value }),
-    Role:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { role: value }),
-    AriaLabel:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-label': value }),
-    AriaLabelledBy:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-labelledby': value }),
-    AriaDescribedBy:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-describedby': value }),
-    AriaHidden:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-hidden': value.toString() }),
-    AriaExpanded:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-expanded': value.toString() }),
-    AriaSelected:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-selected': value.toString() }),
-    AriaChecked:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-checked': value.toString() }),
-    AriaDisabled:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-disabled': value.toString() }),
-    AriaRequired:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-required': value.toString() }),
-    AriaInvalid:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-invalid': value.toString() }),
-    AriaLive:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-live': value }),
-    AriaControls:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-controls': value }),
-    AriaCurrent:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-current': value }),
-    AriaOrientation:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-orientation': value }),
-    AriaPressed:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-pressed': value }),
-    AriaHasPopup:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-haspopup': value }),
-    AriaActiveDescendant:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-activedescendant': value }),
-    AriaSort:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-sort': value }),
-    AriaMultiSelectable:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-multiselectable': value.toString() }),
-    AriaModal:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-modal': value.toString() }),
-    AriaBusy:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-busy': value.toString() }),
-    AriaErrorMessage:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-errormessage': value }),
-    AriaRoleDescription:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-roledescription': value }),
-    AriaAtomic:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-atomic': value.toString() }),
-    AriaAutocomplete:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-autocomplete': value }),
-    AriaColcount:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-colcount': value.toString() }),
-    AriaColindex:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-colindex': value.toString() }),
-    AriaColspan:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-colspan': value.toString() }),
-    AriaDescription:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-description': value }),
-    AriaDetails:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-details': value }),
-    AriaFlowto:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-flowto': value }),
-    AriaKeyshortcuts:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-keyshortcuts': value }),
-    AriaLevel:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-level': value.toString() }),
-    AriaOwns:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-owns': value }),
-    AriaPlaceholder:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-placeholder': value }),
-    AriaPosinset:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-posinset': value.toString() }),
-    AriaReadonly:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-readonly': value.toString() }),
-    AriaRelevant:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-relevant': value }),
-    AriaRowcount:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-rowcount': value.toString() }),
-    AriaRowindex:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-rowindex': value.toString() }),
-    AriaRowspan:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-rowspan': value.toString() }),
-    AriaSetsize:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-setsize': value.toString() }),
-    AriaValuemax:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-valuemax': value.toString() }),
-    AriaValuemin:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-valuemin': value.toString() }),
-    AriaValuenow:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-valuenow': value.toString() }),
-    AriaValuetext:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'aria-valuetext': value }),
-    Attribute:
-      ({ key, value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { [key]: value }),
-    DataAttribute:
-      ({ key, value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { [`data-${key}`]: value }),
-    Style:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        setData(ctx, 'style', value),
-    InnerHTML:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { innerHTML: value }),
-    ViewBox:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { viewBox: value }),
-    Xmlns:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { xmlns: value }),
-    Fill:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { fill: value }),
-    FillRule:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'fill-rule': value }),
-    ClipRule:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'clip-rule': value }),
-    Stroke:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { stroke: value }),
-    StrokeWidth:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'stroke-width': value }),
-    StrokeLinecap:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'stroke-linecap': value }),
-    StrokeLinejoin:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'stroke-linejoin': value }),
-    D:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { d: value }),
-    Cx:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { cx: value }),
-    Cy:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { cy: value }),
-    R:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { r: value }),
-    X:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { x: value }),
-    Y:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { y: value }),
-    Width:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { width: value }),
-    Height:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { height: value }),
-    X1:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { x1: value }),
-    Y1:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { y1: value }),
-    X2:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { x2: value }),
-    Y2:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { y2: value }),
-    Points:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { points: value }),
-    Transform:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { transform: value }),
-    Opacity:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { opacity: value }),
-    StrokeDasharray:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'stroke-dasharray': value }),
-    StrokeDashoffset:
-      ({ value }) =>
-      (ctx: BuildContext) =>
-        updateDataAttrs(ctx, { 'stroke-dashoffset': value }),
-    Prop:
-      ({ key, value }) =>
-      (ctx: BuildContext) =>
-        updateDataProps(ctx, { [key]: value }),
-    OnCustomEvent:
-      ({ name, f }) =>
-      (ctx: BuildContext) =>
-        updateDataOn(ctx, {
-          [name]: (event: Event) => {
-            if (event instanceof CustomEvent) {
-              ctx.dispatch(f(event))
-            }
-          },
-        }),
-    OnMount:
-      ({ action }) =>
-      (ctx: BuildContext) => {
-        const capturedContext = ctx.getCapturedContext()
-        const maybeTracker = Context.getOption(capturedContext, MountTracker)
-        const notifyStarted = Option.isSome(maybeTracker)
-          ? () => maybeTracker.value.started(action.name, action.args)
-          : Function.constVoid
-        const notifyEnded = Option.isSome(maybeTracker)
-          ? () => maybeTracker.value.ended(action.name, action.args)
-          : Function.constVoid
-        const marker: FoldkitMountMarker =
-          action.args === undefined
-            ? { name: action.name }
-            : { name: action.name, args: action.args }
-        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-        ;(ctx.data as Record<string, unknown>)[FOLDKIT_MOUNT_KEY] = marker
-        ctx.data.hook = {
-          ...ctx.data.hook,
-          insert: vnode => {
-            if (vnode.elm instanceof Element) {
-              const element = vnode.elm
-              notifyStarted()
-              const fiber = Effect.runForkWith(capturedContext)(
-                Stream.runForEach(action.f(element), message =>
-                  Effect.sync(() => ctx.dispatch(message)),
-                ).pipe(
-                  Effect.catchCause(cause =>
-                    Effect.sync(() => {
-                      console.error(
-                        `[OnMount ${action.name}] unhandled failure`,
-                        cause,
-                      )
-                    }),
-                  ),
-                ),
-              )
-              onMountStates.set(element, { fiber })
-            }
-          },
-          destroy: vnode => {
-            if (vnode.elm instanceof Element) {
-              const state = onMountStates.get(vnode.elm)
-              if (state) {
-                Effect.runFork(Fiber.interrupt(state.fiber))
-                onMountStates.delete(vnode.elm)
-                notifyEnded()
-              }
-            }
-          },
+// NOTE: class strings repeat heavily across elements and renders, so the
+// parsed class object is cached per distinct string. Cached objects are
+// shared across vnodes; snabbdom's classModule only reads them, and the
+// Class handler installs them via `setData` (never merged into), so sharing
+// is safe. Class strings interpolated from model data can take unboundedly
+// many values, so the cache clears at a size cap instead of retaining every
+// string for the page lifetime; the render after a clear re-parses and
+// re-caches what it actually uses.
+const CLASS_OBJECT_CACHE_LIMIT = 10_000
+const classObjectCache = new Map<string, Readonly<Record<string, true>>>()
+
+const classObjectFor = (value: string): Readonly<Record<string, true>> => {
+  const cached = classObjectCache.get(value)
+  if (cached !== undefined) {
+    return cached
+  }
+  const classObject: Record<string, true> = {}
+  for (const className of value.split(/\s+/)) {
+    if (className !== '') {
+      classObject[className] = true
+    }
+  }
+  if (classObjectCache.size >= CLASS_OBJECT_CACHE_LIMIT) {
+    classObjectCache.clear()
+  }
+  classObjectCache.set(value, classObject)
+  return classObject
+}
+
+// NOTE: navigation and resource URL attributes (href, src, action,
+// formaction) execute script when their scheme is `javascript:` or
+// `vbscript:`, so an untrusted value bound to them is an XSS sink. Browsers
+// ignore ASCII control characters embedded in a scheme (`java\tscript:`
+// still runs), so those are stripped before the scheme is read. A dangerous
+// scheme neutralizes to an empty value; every other URL, including relative
+// paths, http(s), mailto, tel, and data URLs, passes through unchanged.
+const DANGEROUS_URL_SCHEMES: ReadonlySet<string> = new Set([
+  'javascript',
+  'vbscript',
+])
+const URL_CONTROL_CHARACTERS = /[\u0000-\u001F\u007F-\u009F]/g
+const URL_SCHEME_PATTERN = /^\s*([a-zA-Z][a-zA-Z0-9+.-]*)\s*:/
+
+const sanitizeUrl = (value: string): string => {
+  const match = URL_SCHEME_PATTERN.exec(
+    value.replace(URL_CONTROL_CHARACTERS, ''),
+  )
+  if (match !== null) {
+    const scheme = match[1]
+    if (
+      scheme !== undefined &&
+      DANGEROUS_URL_SCHEMES.has(scheme.toLowerCase())
+    ) {
+      return ''
+    }
+  }
+  return value
+}
+
+// NOTE: Built once at module load. Handlers are keyed by `_tag` and apply
+// their mutation to a per-VNode BuildContext directly, so applying an
+// attribute is one map lookup and one call with no per-attribute closure
+// allocation. The mapped type keeps the record exhaustive over the Attribute
+// union exactly like `Match.tagsExhaustive` did. `Attribute<unknown>` is the
+// runtime-erased shape. Message is purely a TypeScript parameter at this
+// level and DispatchSync already accepts unknown.
+type AttributeHandlers = {
+  readonly [Tag in Attribute<unknown>['_tag']]: (
+    attribute: Extract<Attribute<unknown>, Readonly<{ _tag: Tag }>>,
+    ctx: BuildContext,
+  ) => void
+}
+
+const attributeHandlers: AttributeHandlers = {
+  Key: ({ value }, ctx: BuildContext) => setData(ctx, 'key', value),
+  Class: ({ value }, ctx: BuildContext) =>
+    setModuleData(ctx, 'class', classObjectFor(value), VNodeDataMask.Class),
+  Id: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'id', value),
+  Title: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'title', value),
+  Lang: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'lang', value),
+  Dir: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'dir', value),
+  Tabindex: ({ value }, ctx: BuildContext) =>
+    setNumericDataProp(ctx, 'tabIndex', value),
+  Hidden: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'hidden', value),
+  Contenteditable: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'contenteditable', value),
+  Draggable: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'draggable', value),
+  Accesskey: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'accesskey', value),
+  Translate: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'translate', value),
+  Inert: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'inert', value),
+  Popover: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'popover', value),
+  Popovertarget: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'popovertarget', value),
+  Popovertargetaction: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'popovertargetaction', value),
+  OnClick: ({ message, options }, ctx: BuildContext) =>
+    addDataOn(ctx, 'click', (event: MouseEvent) => {
+      if (options?.defaultAction === 'Prevent') {
+        event.preventDefault()
+      }
+      if (options?.propagation === 'Stop') {
+        event.stopPropagation()
+      }
+      const focusSelector = options?.focusSelector
+      if (focusSelector !== undefined) {
+        const focusTarget = document.querySelector(focusSelector)
+        if (focusTarget instanceof HTMLElement) {
+          focusTarget.focus()
+        }
+      }
+      ctx.dispatch(message)
+    }),
+  OnDoubleClick: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'dblclick', () => ctx.dispatch(message)),
+  OnMouseDown: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'mousedown', () => ctx.dispatch(message)),
+  OnMouseUp: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'mouseup', () => ctx.dispatch(message)),
+  OnMouseEnter: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'mouseenter', () => ctx.dispatch(message)),
+  OnMouseLeave: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'mouseleave', () => ctx.dispatch(message)),
+  OnMouseOver: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'mouseover', () => ctx.dispatch(message)),
+  OnMouseOut: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'mouseout', () => ctx.dispatch(message)),
+  OnMouseMove: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'mousemove', () => ctx.dispatch(message)),
+  OnPointerMove: ({ f: toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      pointermove: (event: PointerEvent) => {
+        const maybeMessage = toMaybeMessage(
+          event.screenX,
+          event.screenY,
+          event.pointerType,
+        )
+        if (Option.isSome(maybeMessage)) {
+          ctx.dispatch(maybeMessage.value)
         }
       },
-  }),
-)
-
-const buildVNodeData = <Message>(
-  attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
-): VNodeData => {
-  // Capture lazily, and tolerate the absence of a runtime frame. Static
-  // elements (`h.code([h.Class('x')], ['text'])`) and prose fragments built
-  // at module top level (`const fragment = inlineCode('foo')` at import
-  // time) must construct without an active render frame. They never invoke
-  // the fallback dispatcher because they have no event handlers; event-
-  // bearing Html constructed outside a render reaches the fallback only at
-  // event-fire time, which surfaces a clear error rather than failing at
-  // import time.
-  let cachedCurrentDispatch: DispatchSync | undefined
-  const getCurrentDispatch = (): DispatchSync => {
-    if (cachedCurrentDispatch === undefined) {
-      try {
-        cachedCurrentDispatch = requireDispatch()
-      } catch {
-        cachedCurrentDispatch = () => {
-          throw new Error(
-            'Foldkit: an event-bearing Html attribute fired without an ' +
-              'active runtime frame. This typically means an Html element ' +
-              'with event handlers (OnClick, OnInput, etc.) was constructed ' +
-              'at module top level outside of a view function.',
-          )
+    }),
+  OnPointerLeave: ({ f: toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      pointerleave: (event: PointerEvent) => {
+        const maybeMessage = toMaybeMessage(event.pointerType)
+        if (Option.isSome(maybeMessage)) {
+          ctx.dispatch(maybeMessage.value)
         }
-      }
-    }
-    return cachedCurrentDispatch
-  }
-  let cachedCapturedContext: Context.Context<never> | undefined
-  const getCapturedContext = (): Context.Context<never> => {
-    if (cachedCapturedContext === undefined) {
-      try {
-        cachedCapturedContext = requireRuntimeContext()
-      } catch {
-        cachedCapturedContext = Context.empty()
-      }
-    }
-    return cachedCapturedContext
-  }
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  const data = {} as VNodeData
-  const postpatchProps: Array<Readonly<{ propName: string; value: unknown }>> =
-    []
-
-  // Most attributes route through the current frame's dispatch. ChildAttribute
-  // items carry a different dispatcher (captured by `childAttributes`
-  // in a Submodel's own boundary), so they need their own BuildContext closed
-  // over that dispatch. The matcher itself is module-level and shared.
-  // The main ctx is built lazily. Static-only attribute arrays (Class, Id,
-  // etc. with no event handlers) skip `requireDispatch` entirely so Html can
-  // be constructed at module top level.
-  let mainCtx: BuildContext | undefined
-  const boundaryCtxByDispatch = new Map<DispatchSync, BuildContext>()
-
-  for (const item of attributes) {
-    if (isChildAttribute(item)) {
-      let ctx = boundaryCtxByDispatch.get(item.dispatch)
-      if (ctx === undefined) {
-        ctx = {
-          data,
-          postpatchProps,
-          dispatch: item.dispatch,
-          getCapturedContext,
+      },
+    }),
+  OnPointerDown: ({ f: toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      pointerdown: (event: PointerEvent) => {
+        const maybeMessage = toMaybeMessage(
+          event.pointerType,
+          event.button,
+          event.screenX,
+          event.screenY,
+          event.timeStamp,
+          event.clientX,
+          event.clientY,
+        )
+        if (Option.isSome(maybeMessage)) {
+          ctx.dispatch(maybeMessage.value)
         }
-        boundaryCtxByDispatch.set(item.dispatch, ctx)
-      }
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      attributeMatcher(item.attribute as Attribute<unknown>)(ctx)
-    } else {
-      if (mainCtx === undefined) {
-        mainCtx = {
-          data,
-          postpatchProps,
-          dispatch: getCurrentDispatch(),
-          getCapturedContext,
+      },
+    }),
+  OnPointerUp: ({ f: toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      pointerup: (event: PointerEvent) => {
+        const maybeMessage = toMaybeMessage(
+          event.screenX,
+          event.screenY,
+          event.pointerType,
+          event.timeStamp,
+        )
+        if (Option.isSome(maybeMessage)) {
+          ctx.dispatch(maybeMessage.value)
         }
-      }
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      attributeMatcher(item as Attribute<unknown>)(mainCtx)
-    }
-  }
+      },
+    }),
+  OnKeyDown: ({ f: toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      keydown: (event: KeyboardEvent) =>
+        ctx.dispatch(toMessage(event.key, keyboardModifiers(event))),
+    }),
+  OnKeyDownPreventDefault: ({ f: toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      keydown: (event: KeyboardEvent) => {
+        const maybeMessage = toMaybeMessage(event.key, keyboardModifiers(event))
+        if (Option.isSome(maybeMessage)) {
+          event.preventDefault()
+          ctx.dispatch(maybeMessage.value)
+        }
+      },
+    }),
+  OnKeyDownSelf: ({ f: toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      keydown: (event: KeyboardEvent) => {
+        if (isEventTargetCurrentTarget(event)) {
+          ctx.dispatch(toMessage(event.key, keyboardModifiers(event)))
+        }
+      },
+    }),
+  OnKeyDownSelfPreventDefault: ({ f: toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      keydown: (event: KeyboardEvent) => {
+        if (!isEventTargetCurrentTarget(event)) {
+          return
+        }
 
-  if (Array.isReadonlyArrayNonEmpty(postpatchProps)) {
-    data.hook = {
-      ...data.hook,
-      postpatch: (_oldVnode, vnode) => {
-        if (vnode.elm) {
-          Array.forEach(postpatchProps, ({ propName, value }) => {
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            if ((vnode.elm as any)[propName] !== value) {
-              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              ;(vnode.elm as any)[propName] = value
+        const maybeMessage = toMaybeMessage(event.key, keyboardModifiers(event))
+        if (Option.isSome(maybeMessage)) {
+          event.preventDefault()
+          ctx.dispatch(maybeMessage.value)
+        }
+      },
+    }),
+  OnKeyDownFocus: ({ f: toMaybeFocusAndMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      keydown: (event: KeyboardEvent) => {
+        const maybeResult = toMaybeFocusAndMessage(
+          event.key,
+          keyboardModifiers(event),
+        )
+        if (Option.isSome(maybeResult)) {
+          event.preventDefault()
+          const { focusSelector, message } = maybeResult.value
+          const focusTarget = document.querySelector(focusSelector)
+          if (focusTarget instanceof HTMLElement) {
+            focusTarget.focus()
+          }
+          ctx.dispatch(message)
+        }
+      },
+    }),
+  OnKeyUp: ({ f: toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      keyup: (event: KeyboardEvent) =>
+        ctx.dispatch(toMessage(event.key, keyboardModifiers(event))),
+    }),
+  OnKeyUpPreventDefault: ({ f: toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      keyup: (event: KeyboardEvent) => {
+        const maybeMessage = toMaybeMessage(event.key, keyboardModifiers(event))
+        if (Option.isSome(maybeMessage)) {
+          event.preventDefault()
+          ctx.dispatch(maybeMessage.value)
+        }
+      },
+    }),
+  OnKeyPress: ({ f: toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      keypress: (event: KeyboardEvent) =>
+        ctx.dispatch(toMessage(event.key, keyboardModifiers(event))),
+    }),
+  OnFocus: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'focus', () => ctx.dispatch(message)),
+  OnBlur: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      blur: (event: FocusEvent) => {
+        if (isDevToolsFocusTarget(event.relatedTarget)) {
+          return
+        }
+        ctx.dispatch(message)
+      },
+    }),
+  OnFocusEnter: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      focusin: (event: FocusEvent) => {
+        if (!isFocusInsideCurrentTarget(event)) {
+          ctx.dispatch(message)
+        }
+      },
+    }),
+  OnFocusLeave: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      focusout: (event: FocusEvent) => {
+        if (!isFocusInsideCurrentTarget(event)) {
+          ctx.dispatch(message)
+        }
+      },
+    }),
+  OnInput: ({ f: toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      input: (event: Event) =>
+        ctx.dispatch(toMessage(inputEventValue(event.target))),
+    }),
+  OnChange: ({ f: toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      change: (event: Event) =>
+        ctx.dispatch(toMessage(inputEventValue(event.target))),
+    }),
+  OnBeforeInput: ({ f: toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      beforeinput: (event: InputEvent) =>
+        ctx.dispatch(
+          toMessage(event.inputType, Option.fromNullishOr(event.data)),
+        ),
+    }),
+  OnBeforeInputPreventDefault: ({ f: toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      beforeinput: (event: InputEvent) => {
+        if (!event.cancelable) {
+          return
+        }
+
+        const maybeMessage = toMaybeMessage(
+          event.inputType,
+          Option.fromNullishOr(event.data),
+        )
+        if (Option.isSome(maybeMessage)) {
+          event.preventDefault()
+          ctx.dispatch(maybeMessage.value)
+        }
+      },
+    }),
+  OnFileChange: ({ f: toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      change: tagAsFileHandler((event: Event) => {
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        const target = event.target as HTMLInputElement
+        const files: ReadonlyArray<File> = target.files
+          ? Array.fromIterable(target.files)
+          : Array.empty()
+        target.value = ''
+        ctx.dispatch(toMessage(files))
+      }, 'OnFileChange'),
+    }),
+  OnSubmit: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      submit: (event: Event) => {
+        event.preventDefault()
+        ctx.dispatch(message)
+      },
+    }),
+  OnReset: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'reset', () => ctx.dispatch(message)),
+  OnScroll: ({ f: toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      scroll: (event: Event) =>
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        ctx.dispatch(toMessage((event.target as HTMLElement).scrollTop)),
+    }),
+  OnWheel: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'wheel', () => ctx.dispatch(message)),
+  OnCopy: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'copy', () => ctx.dispatch(message)),
+  OnCut: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'cut', () => ctx.dispatch(message)),
+  OnPaste: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'paste', () => ctx.dispatch(message)),
+  OnPastePreventDefault: ({ f: toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      paste: (event: ClipboardEvent) => {
+        const text = event.clipboardData?.getData('text/plain') ?? ''
+        const maybeMessage = toMaybeMessage(text)
+        if (Option.isSome(maybeMessage)) {
+          event.preventDefault()
+          ctx.dispatch(maybeMessage.value)
+        }
+      },
+    }),
+  OnCopyText: ({ text }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      copy: (event: ClipboardEvent) => {
+        if (event.clipboardData) {
+          event.clipboardData.setData('text/plain', text)
+          event.preventDefault()
+        }
+      },
+    }),
+  OnCutText: ({ text, message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      cut: (event: ClipboardEvent) => {
+        if (event.clipboardData) {
+          event.clipboardData.setData('text/plain', text)
+          event.preventDefault()
+          ctx.dispatch(message)
+        }
+      },
+    }),
+  OnCancel: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      cancel: (event: Event) => {
+        event.preventDefault()
+        ctx.dispatch(message)
+      },
+    }),
+  OnCancelPreventDefault: ({ maybeCustomEventMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      cancel: (event: Event) => {
+        event.preventDefault()
+        if (
+          event instanceof CustomEvent &&
+          Option.isSome(maybeCustomEventMessage)
+        ) {
+          ctx.dispatch(maybeCustomEventMessage.value)
+        }
+      },
+    }),
+  OnToggle: ({ f: toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      toggle: event =>
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        ctx.dispatch(toMessage((event.target as HTMLDetailsElement).open)),
+    }),
+  OnContextMenu: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      contextmenu: (event: Event) => {
+        event.preventDefault()
+        ctx.dispatch(message)
+      },
+    }),
+  OnDragStart: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'dragstart', () => ctx.dispatch(message)),
+  OnDrag: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'drag', () => ctx.dispatch(message)),
+  OnDragEnd: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'dragend', () => ctx.dispatch(message)),
+  OnDragEnter: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      dragenter: (event: Event) => {
+        event.preventDefault()
+        const zone = event.currentTarget
+        if (!(zone instanceof Element)) {
+          ctx.dispatch(message)
+          return
+        }
+        const state = getDragZoneState(zone)
+        if (processDragEnter(state, zone, event.target)) {
+          ctx.dispatch(message)
+        }
+      },
+    }),
+  OnDragLeave: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      dragleave: (event: Event) => {
+        const zone = event.currentTarget
+        if (!(zone instanceof Element)) {
+          ctx.dispatch(message)
+          return
+        }
+        const state = getDragZoneState(zone)
+        if (processDragLeave(state, zone, event.target) === 'schedule') {
+          queueMicrotask(() => {
+            if (checkScheduledLeave(state)) {
+              ctx.dispatch(message)
             }
           })
         }
       },
+    }),
+  OnDragOver: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      dragover: (event: Event) => {
+        event.preventDefault()
+        ctx.dispatch(message)
+      },
+    }),
+  AllowDrop: (_attribute, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      dragover: (event: Event) => {
+        event.preventDefault()
+      },
+    }),
+  OnDrop: ({ message }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      drop: (event: Event) => {
+        event.preventDefault()
+        const zone = event.currentTarget
+        if (zone instanceof Element) {
+          clearDragZoneAfterDrop(zone)
+        }
+        ctx.dispatch(message)
+      },
+    }),
+  OnDropFiles: ({ f: toMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      drop: tagAsFileHandler((event: Event) => {
+        event.preventDefault()
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        const dragEvent = event as DragEvent
+        const zone = dragEvent.currentTarget
+        if (zone instanceof Element) {
+          clearDragZoneAfterDrop(zone)
+        }
+        const files: ReadonlyArray<File> = dragEvent.dataTransfer?.files
+          ? Array.fromIterable(dragEvent.dataTransfer.files)
+          : Array.empty()
+        ctx.dispatch(toMessage(files))
+      }, 'OnDropFiles'),
+    }),
+  OnTouchStart: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'touchstart', () => ctx.dispatch(message)),
+  OnTouchEnd: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'touchend', () => ctx.dispatch(message)),
+  OnTouchMove: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'touchmove', () => ctx.dispatch(message)),
+  OnTouchCancel: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'touchcancel', () => ctx.dispatch(message)),
+  OnAnimationStart: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'animationstart', () => ctx.dispatch(message)),
+  OnAnimationEnd: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'animationend', () => ctx.dispatch(message)),
+  OnAnimationIteration: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'animationiteration', () => ctx.dispatch(message)),
+  OnTransitionEnd: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'transitionend', () => ctx.dispatch(message)),
+  OnLoad: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'load', () => ctx.dispatch(message)),
+  OnError: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'error', () => ctx.dispatch(message)),
+  OnPlay: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'play', () => ctx.dispatch(message)),
+  OnPause: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'pause', () => ctx.dispatch(message)),
+  OnEnded: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'ended', () => ctx.dispatch(message)),
+  OnTimeUpdate: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'timeupdate', () => ctx.dispatch(message)),
+  OnVolumeChange: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'volumechange', () => ctx.dispatch(message)),
+  OnSelect: ({ message }, ctx: BuildContext) =>
+    addDataOn(ctx, 'select', () => ctx.dispatch(message)),
+  Value: ({ value }, ctx: BuildContext) =>
+    updatePropsWithPostpatch(ctx, 'value', value),
+  Checked: ({ value }, ctx: BuildContext) =>
+    updatePropsWithPostpatch(ctx, 'checked', value),
+  Selected: ({ value }, ctx: BuildContext) =>
+    updatePropsWithPostpatch(ctx, 'selected', value),
+  Open: ({ value }, ctx: BuildContext) =>
+    updatePropsWithPostpatch(ctx, 'open', value),
+  Placeholder: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'placeholder', value),
+  Name: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'name', value),
+  Disabled: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'disabled', value),
+  Readonly: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'readOnly', value),
+  Required: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'required', value),
+  Autofocus: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'autofocus', value),
+  Spellcheck: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'spellcheck', value.toString()),
+  Autocorrect: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'autocorrect', value),
+  Autocapitalize: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'autocapitalize', value),
+  InputMode: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'inputmode', value),
+  EnterKeyHint: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'enterkeyhint', value),
+  Multiple: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'multiple', value),
+  Type: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'type', value),
+  Accept: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'accept', value),
+  Autocomplete: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'autocomplete', value),
+  Pattern: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'pattern', value),
+  Maxlength: ({ value }, ctx: BuildContext) =>
+    setNumericDataProp(ctx, 'maxLength', value),
+  Minlength: ({ value }, ctx: BuildContext) =>
+    setNumericDataProp(ctx, 'minLength', value),
+  Size: ({ value }, ctx: BuildContext) =>
+    setNumericDataProp(ctx, 'size', value),
+  Cols: ({ value }, ctx: BuildContext) =>
+    setNumericDataProp(ctx, 'cols', value),
+  Rows: ({ value }, ctx: BuildContext) =>
+    setNumericDataProp(ctx, 'rows', value),
+  Max: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'max', value),
+  Min: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'min', value),
+  Step: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'step', value),
+  For: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'htmlFor', value),
+  Href: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'href', sanitizeUrl(value)),
+  Src: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'src', sanitizeUrl(value)),
+  Alt: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'alt', value),
+  Target: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'target', value),
+  Rel: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'rel', value),
+  Download: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'download', value),
+  Action: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'action', sanitizeUrl(value)),
+  Method: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'method', value),
+  Enctype: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'enctype', value),
+  Novalidate: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'noValidate', value),
+  Formaction: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'formAction', sanitizeUrl(value)),
+  Formmethod: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'formMethod', value),
+  Formnovalidate: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'formNoValidate', value),
+  Formtarget: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'formTarget', value),
+  Formenctype: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'formEnctype', value),
+  Colspan: ({ value }, ctx: BuildContext) =>
+    setNumericDataProp(ctx, 'colSpan', value),
+  Rowspan: ({ value }, ctx: BuildContext) =>
+    setNumericDataProp(ctx, 'rowSpan', value),
+  Scope: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'scope', value),
+  Headers: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'headers', value),
+  Span: ({ value }, ctx: BuildContext) =>
+    setNumericDataProp(ctx, 'span', value),
+  Start: ({ value }, ctx: BuildContext) =>
+    setNumericDataProp(ctx, 'start', value),
+  Reversed: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'reversed', value),
+  CiteAttr: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'cite', value),
+  Datetime: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'dateTime', value),
+  Wrap: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'wrap', value),
+  List: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'list', value),
+  FormAttr: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'form', value),
+  LabelAttr: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'label', value),
+  ContentAttr: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'content', value),
+  Charset: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'charset', value),
+  HttpEquiv: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'http-equiv', value),
+  Srcset: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'srcset', value),
+  Sizes: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'sizes', value),
+  Loading: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'loading', value),
+  Decoding: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'decoding', value),
+  Fetchpriority: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'fetchpriority', value),
+  Crossorigin: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'crossorigin', value),
+  Referrerpolicy: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'referrerpolicy', value),
+  Integrity: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'integrity', value),
+  Hreflang: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'hreflang', value),
+  Ping: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'ping', value),
+  Sandbox: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'sandbox', value),
+  Allow: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'allow', value),
+  Srcdoc: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'srcdoc', value),
+  Autoplay: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'autoplay', value),
+  Controls: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'controls', value),
+  Loop: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'loop', value),
+  Muted: ({ value }, ctx: BuildContext) =>
+    updatePropsWithPostpatch(ctx, 'muted', value),
+  Poster: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'poster', value),
+  Preload: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'preload', value),
+  Playsinline: ({ value }, ctx: BuildContext) =>
+    setDataProp(ctx, 'playsInline', value),
+  High: ({ value }, ctx: BuildContext) =>
+    setFiniteNumericDataProp(ctx, 'high', value),
+  Low: ({ value }, ctx: BuildContext) =>
+    setFiniteNumericDataProp(ctx, 'low', value),
+  Optimum: ({ value }, ctx: BuildContext) =>
+    setFiniteNumericDataProp(ctx, 'optimum', value),
+  Usemap: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'usemap', value),
+  Ismap: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'isMap', value),
+  Role: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'role', value),
+  AriaLabel: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-label', value),
+  AriaLabelledBy: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-labelledby', value),
+  AriaDescribedBy: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-describedby', value),
+  AriaHidden: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-hidden', value.toString()),
+  AriaExpanded: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-expanded', value.toString()),
+  AriaSelected: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-selected', value.toString()),
+  AriaChecked: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-checked', value.toString()),
+  AriaDisabled: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-disabled', value.toString()),
+  AriaRequired: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-required', value.toString()),
+  AriaInvalid: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-invalid', value.toString()),
+  AriaLive: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-live', value),
+  AriaControls: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-controls', value),
+  AriaCurrent: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-current', value),
+  AriaOrientation: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-orientation', value),
+  AriaPressed: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-pressed', value),
+  AriaHasPopup: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-haspopup', value),
+  AriaActiveDescendant: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-activedescendant', value),
+  AriaSort: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-sort', value),
+  AriaMultiSelectable: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-multiselectable', value.toString()),
+  AriaModal: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-modal', value.toString()),
+  AriaBusy: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-busy', value.toString()),
+  AriaErrorMessage: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-errormessage', value),
+  AriaRoleDescription: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-roledescription', value),
+  AriaAtomic: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-atomic', value.toString()),
+  AriaAutocomplete: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-autocomplete', value),
+  AriaColcount: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-colcount', value.toString()),
+  AriaColindex: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-colindex', value.toString()),
+  AriaColspan: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-colspan', value.toString()),
+  AriaDescription: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-description', value),
+  AriaDetails: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-details', value),
+  AriaFlowto: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-flowto', value),
+  AriaKeyshortcuts: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-keyshortcuts', value),
+  AriaLevel: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-level', value.toString()),
+  AriaOwns: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-owns', value),
+  AriaPlaceholder: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-placeholder', value),
+  AriaPosinset: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-posinset', value.toString()),
+  AriaReadonly: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-readonly', value.toString()),
+  AriaRelevant: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-relevant', value),
+  AriaRowcount: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-rowcount', value.toString()),
+  AriaRowindex: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-rowindex', value.toString()),
+  AriaRowspan: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-rowspan', value.toString()),
+  AriaSetsize: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-setsize', value.toString()),
+  AriaValuemax: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-valuemax', value.toString()),
+  AriaValuemin: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-valuemin', value.toString()),
+  AriaValuenow: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-valuenow', value.toString()),
+  AriaValuetext: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'aria-valuetext', value),
+  Attribute: ({ key, value }, ctx: BuildContext) =>
+    setDataAttr(ctx, key, value),
+  DataAttribute: ({ key, value }, ctx: BuildContext) =>
+    setDataAttr(ctx, `data-${key}`, value),
+  Style: ({ value }, ctx: BuildContext) =>
+    setModuleData(
+      ctx,
+      'style',
+      normalizedStyleProperties(value),
+      VNodeDataMask.Style,
+    ),
+  InnerHTML: ({ value }, ctx: BuildContext) => setTrustedInnerHtml(ctx, value),
+  ViewBox: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'viewBox', value),
+  Xmlns: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'xmlns', value),
+  Fill: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'fill', value),
+  FillRule: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'fill-rule', value),
+  ClipRule: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'clip-rule', value),
+  Stroke: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'stroke', value),
+  StrokeWidth: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stroke-width', value),
+  StrokeLinecap: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stroke-linecap', value),
+  StrokeLinejoin: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stroke-linejoin', value),
+  D: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'd', value),
+  Cx: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'cx', value),
+  Cy: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'cy', value),
+  R: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'r', value),
+  X: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'x', value),
+  Y: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'y', value),
+  Width: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'width', value),
+  Height: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'height', value),
+  X1: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'x1', value),
+  Y1: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'y1', value),
+  X2: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'x2', value),
+  Y2: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'y2', value),
+  Points: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'points', value),
+  Transform: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'transform', value),
+  Opacity: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'opacity', value),
+  StrokeDasharray: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stroke-dasharray', value),
+  StrokeDashoffset: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stroke-dashoffset', value),
+  Dx: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'dx', value),
+  Dy: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'dy', value),
+  Rotate: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'rotate', value),
+  TextAnchor: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'text-anchor', value),
+  DominantBaseline: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'dominant-baseline', value),
+  AlignmentBaseline: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'alignment-baseline', value),
+  BaselineShift: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'baseline-shift', value),
+  TextLength: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'textLength', value),
+  LengthAdjust: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'lengthAdjust', value),
+  FontFamily: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'font-family', value),
+  FontSize: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'font-size', value),
+  FontWeight: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'font-weight', value),
+  FontStyle: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'font-style', value),
+  LetterSpacing: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'letter-spacing', value),
+  WordSpacing: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'word-spacing', value),
+  TextDecoration: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'text-decoration', value),
+  WritingMode: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'writing-mode', value),
+  Rx: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'rx', value),
+  Ry: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'ry', value),
+  PathLength: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'pathLength', value),
+  FillOpacity: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'fill-opacity', value),
+  StrokeOpacity: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stroke-opacity', value),
+  StrokeMiterlimit: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stroke-miterlimit', value),
+  PaintOrder: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'paint-order', value),
+  VectorEffect: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'vector-effect', value),
+  Color: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'color', value),
+  Visibility: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'visibility', value),
+  Display: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'display', value),
+  Overflow: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'overflow', value),
+  PointerEvents: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'pointer-events', value),
+  Cursor: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'cursor', value),
+  ShapeRendering: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'shape-rendering', value),
+  TextRendering: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'text-rendering', value),
+  ImageRendering: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'image-rendering', value),
+  ClipPath: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'clip-path', value),
+  Mask: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'mask', value),
+  Filter: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'filter', value),
+  ClipPathUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'clipPathUnits', value),
+  MaskUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'maskUnits', value),
+  MaskContentUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'maskContentUnits', value),
+  FilterUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'filterUnits', value),
+  PrimitiveUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'primitiveUnits', value),
+  Offset: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'offset', value),
+  StopColor: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stop-color', value),
+  StopOpacity: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'stop-opacity', value),
+  GradientUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'gradientUnits', value),
+  GradientTransform: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'gradientTransform', value),
+  SpreadMethod: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'spreadMethod', value),
+  Fx: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'fx', value),
+  Fy: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'fy', value),
+  Fr: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'fr', value),
+  PatternUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'patternUnits', value),
+  PatternContentUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'patternContentUnits', value),
+  PatternTransform: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'patternTransform', value),
+  MarkerStart: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'marker-start', value),
+  MarkerMid: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'marker-mid', value),
+  MarkerEnd: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'marker-end', value),
+  MarkerWidth: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'markerWidth', value),
+  MarkerHeight: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'markerHeight', value),
+  MarkerUnits: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'markerUnits', value),
+  RefX: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'refX', value),
+  RefY: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'refY', value),
+  Orient: ({ value }, ctx: BuildContext) => setDataAttr(ctx, 'orient', value),
+  PreserveAspectRatio: ({ value }, ctx: BuildContext) =>
+    setDataAttr(ctx, 'preserveAspectRatio', value),
+  Prop: ({ key, value }, ctx: BuildContext) =>
+    setClientOnlyDataProp(ctx, key, value),
+  OnCustomEvent: ({ name, f: toMaybeMessage }, ctx: BuildContext) =>
+    updateDataOn(ctx, {
+      [name]: (event: Event) => {
+        if (event instanceof CustomEvent) {
+          const maybeMessage = toMaybeMessage(event)
+
+          if (Option.isSome(maybeMessage)) {
+            ctx.dispatch(maybeMessage.value)
+          }
+        }
+      },
+    }),
+  OnMount: ({ action }, ctx: BuildContext) => {
+    const capturedContext = ctx.getCapturedContext()
+    const maybeTracker = Context.getOption(capturedContext, MountTracker)
+    const maybeMountRuntime = Context.getOption(capturedContext, MountRuntime)
+    const resolveMountDispatch =
+      ctx.resolveMountDispatch ?? currentMountDispatchResolverOrFallback()
+    const notifyStarted = Option.isSome(maybeTracker)
+      ? () => maybeTracker.value.started(action.name, action.args)
+      : Function.constVoid
+    const notifyEnded = Option.isSome(maybeTracker)
+      ? () => maybeTracker.value.ended(action.name, action.args)
+      : Function.constVoid
+    const markerWithArgs: FoldkitMountMarker =
+      action.args === undefined
+        ? { name: action.name }
+        : { name: action.name, args: action.args }
+    const boundaryLift = ctx.boundaryMappers
+    const marker: FoldkitMountMarker = Array.isReadonlyArrayEmpty(boundaryLift)
+      ? markerWithArgs
+      : { ...markerWithArgs, messageMappers: boundaryLift }
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    ;(ctx.data as Record<string, unknown>)[FOLDKIT_MOUNT_KEY] = marker
+    const existingDestroy = ctx.data.hook?.destroy
+    ctx.data.hook = {
+      ...ctx.data.hook,
+      insert: vnode => {
+        if (vnode.elm instanceof Element) {
+          const element = vnode.elm
+          acquireMount(element)
+        }
+      },
+      postpatch: (_previousVNode, vnode) => {
+        if (vnode.elm instanceof Element) {
+          const state = onMountStates.get(vnode.elm)
+          if (
+            state?.owner === 'Replay' &&
+            resolveMountDispatch.owner === 'Live'
+          ) {
+            releaseMount(state)
+            acquireMount(vnode.elm, state.fiber)
+          }
+        }
+      },
+      destroy: vnode => {
+        if (existingDestroy !== undefined) {
+          existingDestroy(vnode)
+        }
+        if (vnode.elm instanceof Element) {
+          const state = onMountStates.get(vnode.elm)
+          if (state) {
+            releaseMount(state)
+            Effect.runFork(Fiber.interrupt(state.fiber))
+            onMountStates.delete(vnode.elm)
+          }
+        }
+      },
     }
+
+    function releaseMount(state: OnMountState): void {
+      state.lifecycle.isActive = false
+      if (state.lifecycle.isStarted) {
+        state.lifecycle.isStarted = false
+        if (state.owner === 'Live') {
+          state.notifyEnded()
+        }
+      }
+    }
+
+    function acquireMount(
+      element: Element,
+      previousFiber?: Fiber.Fiber<void>,
+    ): void {
+      const lifecycle: OnMountLifecycle = {
+        isActive: true,
+        isStarted: true,
+      }
+      const mountDispatch = resolveMountDispatch.resolve()
+      const viewStateChanges = Option.match(maybeMountRuntime, {
+        onNone: () => liveViewStateChanges,
+        onSome: mountRuntime => mountRuntime.captureViewStateChanges(),
+      })
+      notifyStarted()
+      const runMount = Effect.suspend(() => {
+        if (!lifecycle.isActive) {
+          return Effect.void
+        }
+        return Stream.runForEach(action.f(element, viewStateChanges), message =>
+          Effect.sync(() => mountDispatch(message)),
+        )
+      }).pipe(
+        Effect.catchCause(cause =>
+          Effect.sync(() => {
+            console.error(`[OnMount ${action.name}] unhandled failure`, cause)
+          }),
+        ),
+      )
+      const acquire =
+        previousFiber === undefined
+          ? runMount
+          : Fiber.interrupt(previousFiber).pipe(Effect.andThen(runMount))
+      const fiber = Effect.runForkWith(capturedContext)(acquire)
+      onMountStates.set(element, {
+        fiber,
+        lifecycle,
+        notifyEnded,
+        owner: resolveMountDispatch.owner,
+      })
+    }
+  },
+  OnUnmount: ({ message }, ctx: BuildContext) => {
+    // NOTE: resolve the boundary wrapping chain eagerly, while the boundary
+    // is still live this render. The destroy hook fires during the patch
+    // that removes the element, after the Submodel's own destroy hook has
+    // deregistered the wrap, so a fire-time lookup would throw; the
+    // precomputed thunk sidesteps that teardown race.
+    const dispatchUnmount = ctx.resolveUnmount(message)
+    attachOnUnmount(ctx.data, dispatchUnmount)
+  },
+}
+
+const applyAttribute = (
+  attribute: Attribute<unknown>,
+  ctx: BuildContext,
+): void => {
+  // NOTE: the mapped record type correlates each handler's attribute
+  // parameter with its tag, which TypeScript cannot re-derive at this
+  // widened call site.
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const handler = attributeHandlers[attribute._tag] as (
+    attribute: Attribute<unknown>,
+    ctx: BuildContext,
+  ) => void
+  handler(attribute, ctx)
+}
+
+// NOTE: tolerate the absence of a runtime frame. Static elements
+// (`h.code([h.Class('x')], ['text'])`) and prose fragments built at module
+// top level (`const fragment = inlineCode('foo')` at import time) must
+// construct without an active render frame. They never invoke the fallback
+// dispatcher because they have no event handlers; event-bearing Html
+// constructed outside a render reaches the fallback only at event-fire time,
+// which surfaces a clear error rather than failing at import time. The
+// fallbacks are module-level constants so element construction allocates no
+// per-element closures for them.
+const fallbackDispatch: DispatchSync = () => {
+  throw new Error(
+    'Foldkit: an event-bearing Html attribute fired without an ' +
+      'active runtime frame. This typically means an Html element ' +
+      'with event handlers (OnClick, OnInput, etc.) was constructed ' +
+      'at module top level outside of a view function.',
+  )
+}
+
+const fallbackUnmountResolver: UnmountResolver = () => () => {
+  throw new Error(
+    'Foldkit: an OnUnmount attribute fired without an active runtime ' +
+      'frame. This typically means an Html element with OnUnmount was ' +
+      'constructed at module top level outside of a view function.',
+  )
+}
+
+const currentDispatchOrFallback = (): DispatchSync => {
+  try {
+    return requireDispatch()
+  } catch {
+    return fallbackDispatch
+  }
+}
+
+const currentUnmountResolverOrFallback = (): UnmountResolver => {
+  try {
+    return requireUnmountResolver()
+  } catch {
+    return fallbackUnmountResolver
+  }
+}
+
+const currentMountDispatchResolverOrFallback = (): MountDispatchResolver => {
+  try {
+    return requireMountDispatchResolver()
+  } catch {
+    return { owner: 'Live', resolve: () => fallbackDispatch }
+  }
+}
+
+const capturedContextOrEmpty = (): Context.Context<never> => {
+  try {
+    return requireRuntimeContext()
+  } catch {
+    return Context.empty()
+  }
+}
+
+// NOTE: reasserted on `insert` as well as on `postpatch`. The props module sets
+// a controlled property while the element is being created, before its children
+// exist, and a `<select>`'s `value` setter has nothing to match against until
+// its `<option>`s are there, so a fresh render left the select on the browser's
+// own default until some later patch corrected it. The server instead marks the
+// matching option, so the served page was right and the fresh one was not.
+// `insert` fires once the subtree is built, which is where the two agree.
+const applyControlledProps = (
+  vnode: VNode,
+  controlledProps: ReadonlyArray<
+    Readonly<{ propName: string; value: unknown }>
+  >,
+): void => {
+  if (!vnode.elm) {
+    return
+  }
+  Array.forEach(controlledProps, ({ propName, value }) => {
+    const isOutputValue =
+      vnode.elm instanceof Element &&
+      vnode.elm.localName === 'output' &&
+      propName === 'value'
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    if (isOutputValue || (vnode.elm as any)[propName] !== value) {
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      ;(vnode.elm as any)[propName] = value
+    }
+    if (vnode.elm instanceof Element) {
+      synchronizeControlledDefault(vnode.elm, propName, value)
+    }
+  })
+}
+
+const attachPostpatchHook = (
+  data: VNodeData,
+  postpatchProps: ReadonlyArray<Readonly<{ propName: string; value: unknown }>>,
+): void => {
+  const existingInsert = data.hook?.insert
+  const existingPostpatch = data.hook?.postpatch
+  data.hook = {
+    ...data.hook,
+    insert: vnode => {
+      applyControlledProps(vnode, postpatchProps)
+      existingInsert?.(vnode)
+    },
+    postpatch: (oldVnode, vnode) => {
+      applyControlledProps(vnode, postpatchProps)
+      existingPostpatch?.(oldVnode, vnode)
+    },
+  }
+}
+
+const attachControlledContentOwnershipHook = (data: VNodeData): void => {
+  const existingPostpatch = data.hook?.postpatch
+  data.hook = {
+    ...data.hook,
+    postpatch: (oldVnode, vnode) => {
+      existingPostpatch?.(oldVnode, vnode)
+      const oldProperties = oldVnode.data?.props
+      const properties = vnode.data?.props
+      if (
+        oldProperties !== undefined &&
+        Object.hasOwn(oldProperties, 'value') &&
+        (properties === undefined || !Object.hasOwn(properties, 'value')) &&
+        vnode.elm instanceof Element
+      ) {
+        restoreUncontrolledContent(vnode.elm, vnode)
+      }
+    },
+  }
+}
+
+const buildVNodeData = <Message>(
+  attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
+): VNodeData => {
+  const data: VNodeData = { [vnodeDataMaskKey]: 0 }
+  if (attributes.length === 0) {
+    return data
+  }
+
+  // NOTE: most attributes route through the current frame's dispatch.
+  // ChildAttribute items carry a different dispatcher (captured by
+  // `childAttributes` in a Submodel's own boundary), so they need their own
+  // BuildContext closed over that dispatch. The handler record itself is
+  // module-level and shared. The main ctx is built lazily. Static-only
+  // attribute arrays (Class, Id, etc. with no event handlers) skip
+  // `requireDispatch` entirely so Html can be constructed at module top
+  // level. The boundary ctx map is only allocated when a ChildAttribute is
+  // actually present.
+  let mainCtx: BuildContext | undefined
+  let boundaryCtxByDispatch: Map<DispatchSync, BuildContext> | undefined
+  let sharedPostpatchProps:
+    | Array<Readonly<{ propName: string; value: unknown }>>
+    | undefined
+  const getSharedPostpatchProps = (): Array<
+    Readonly<{ propName: string; value: unknown }>
+  > => (sharedPostpatchProps ??= [])
+
+  for (const item of attributes) {
+    if (isChildAttribute(item)) {
+      boundaryCtxByDispatch ??= new Map()
+      let ctx = boundaryCtxByDispatch.get(item.dispatch)
+      if (
+        ctx === undefined ||
+        (item.resolveMountDispatch !== undefined &&
+          ctx.resolveMountDispatch !== item.resolveMountDispatch)
+      ) {
+        ctx = {
+          data,
+          getPostpatchProps: getSharedPostpatchProps,
+          dispatch: item.dispatch,
+          resolveUnmount: item.resolveUnmount,
+          boundaryMappers: item.boundaryMappers,
+          ...(item.resolveMountDispatch !== undefined && {
+            resolveMountDispatch: item.resolveMountDispatch,
+          }),
+          getCapturedContext: capturedContextOrEmpty,
+        }
+        boundaryCtxByDispatch.set(item.dispatch, ctx)
+      }
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      applyAttribute(item.attribute as Attribute<unknown>, ctx)
+    } else {
+      if (mainCtx === undefined) {
+        mainCtx = {
+          data,
+          getPostpatchProps: getSharedPostpatchProps,
+          dispatch: currentDispatchOrFallback(),
+          resolveUnmount: currentUnmountResolverOrFallback(),
+          boundaryMappers: requireBoundaryMappers(),
+          getCapturedContext: capturedContextOrEmpty,
+        }
+      }
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      applyAttribute(item as Attribute<unknown>, mainCtx)
+    }
+  }
+
+  if (
+    sharedPostpatchProps !== undefined &&
+    Array.isReadonlyArrayNonEmpty(sharedPostpatchProps)
+  ) {
+    attachPostpatchHook(data, sharedPostpatchProps)
   }
 
   return data
 }
 
-const processVNodeChildren = (
+// NOTE: one fresh mutable array per element in a single pass: `h.empty`
+// children (null) are dropped, and snabbdom's `h` converts primitive
+// children to text vnodes in place, so the caller's array must never be
+// handed over directly.
+const copyChildrenDroppingEmpty = (
   children: ReadonlyArray<Child>,
-): ReadonlyArray<VNode | string> => Array.filter(children, Predicate.isNotNull)
+): Array<VNode | string> => {
+  const next: Array<VNode | string> = []
+  for (let index = 0; index < children.length; index++) {
+    const child = children[index]
+    if (child !== null && child !== undefined) {
+      next.push(child)
+    }
+  }
+  return next
+}
+
+// Elements whose content a controlled `value` owns. Giving one both a value and
+// trusted raw HTML asks two mechanisms to own the same text.
+const CONTROLLED_CONTENT_ELEMENTS: ReadonlySet<string> = new Set([
+  'output',
+  'select',
+  'textarea',
+])
+
+// Elements that carry no content at all, so raw HTML written into one cannot be
+// represented in served markup. Assigning the property in a browser can still
+// build child nodes, which is a difference no server render can reproduce.
+const VOID_CONTENT_ELEMENTS: ReadonlySet<string> = new Set([
+  'area',
+  'base',
+  'br',
+  'col',
+  'embed',
+  'hr',
+  'img',
+  'input',
+  'link',
+  'meta',
+  'param',
+  'source',
+  'track',
+  'wbr',
+])
+
+// One owner per element's content. Both `h.InnerHTML` and a client-only
+// `innerHTML` property hand the element an opaque subtree. A view that also
+// declares children or a controlled value gives the differ child vnodes for
+// nodes the property replaces, leaving those vnodes detached and making a later
+// patch unable to restore the declared children. Trusted `h.InnerHTML` also
+// disagrees with the server serializer in these combinations. Rejecting at the
+// builder makes the server render, a fresh client render, and hydration refuse
+// the same self-contradictory view.
+const assertSingleContentOwner = (
+  tagName: string,
+  data: VNodeData,
+  children: ReadonlyArray<Child>,
+): void => {
+  const lowerTagName = tagName.toLowerCase()
+  if (
+    (lowerTagName === 'textarea' || lowerTagName === 'output') &&
+    data.props?.['value'] !== undefined &&
+    children.length > 0
+  ) {
+    throw new Error(
+      `[foldkit] <${lowerTagName}> was given both a controlled value and ` +
+        'children. Both own the element content, so a property assignment ' +
+        'replaces the child nodes the differ expects to patch. Keep one owner.',
+    )
+  }
+  const properties = data.props
+  if (properties === undefined || !Object.hasOwn(properties, 'innerHTML')) {
+    return
+  }
+  const innerHtmlOwner = hasTrustedInnerHtml(properties)
+    ? 'h.InnerHTML'
+    : 'a client-only innerHTML property'
+  if (lowerTagName === 'textarea') {
+    throw new Error(
+      `[foldkit] <textarea> was given ${innerHtmlOwner}. Textarea content ` +
+        'must use h.Value because innerHTML stops updating the live value ' +
+        'after the browser marks the field dirty. Remove the innerHTML owner.',
+    )
+  }
+  if (children.length > 0) {
+    throw new Error(
+      `[foldkit] <${lowerTagName}> was given both ${innerHtmlOwner} and children. ` +
+        'innerHTML owns the whole of an element\u2019s content, so the two ' +
+        'cannot both describe it: server rendering emits the raw HTML alone ' +
+        'for h.InnerHTML, while a browser property assignment replaces the ' +
+        'nodes the differ expects to patch. Keep one content owner.',
+    )
+  }
+  if (
+    CONTROLLED_CONTENT_ELEMENTS.has(lowerTagName) &&
+    data.props?.['value'] !== undefined
+  ) {
+    throw new Error(
+      `[foldkit] <${lowerTagName}> was given both ${innerHtmlOwner} and a ` +
+        'controlled value. Both own this element\u2019s content, and they ' +
+        'disagree once the client reasserts the value. Keep one of them.',
+    )
+  }
+  if (VOID_CONTENT_ELEMENTS.has(lowerTagName)) {
+    throw new Error(
+      `[foldkit] <${lowerTagName}> cannot hold content, so ${innerHtmlOwner} ` +
+        'on it ' +
+        'has no representation in served HTML. A browser can still build ' +
+        'child nodes from the property, which no server render reproduces. ' +
+        'Remove the innerHTML value.',
+    )
+  }
+}
+
+const assertSingleStyleOwner = (data: VNodeData): void => {
+  if (
+    data.style === undefined ||
+    htmlAttributeValue(data.attrs, 'style') === undefined
+  ) {
+    return
+  }
+  throw new Error(
+    '[foldkit] An element was given both h.Style and a raw ' +
+      "h.Attribute('style', ...). They are two owners of one declaration " +
+      'block, and CSS parsing can make one swallow or override the other. ' +
+      'Keep all inline declarations in one of them.',
+  )
+}
+
+// The state an element would be in once it exists, read from the tag, the raw
+// attributes, and the typed properties together. A builder on its own cannot
+// decide any of this: `h.Value` is a string on an input and a number on a
+// meter, `type="file"` refuses the value an input takes everywhere else, and a
+// raw attribute means nothing until something says which property claims the
+// same name.
+//
+// Each rule below marks a view whose server render and fresh client render
+// cannot agree. Refusing it where it is written is what makes the two, plus a
+// hydration of the first by the second, fail the same way rather than diverge
+// quietly.
+
+// A number both a parser and an assignment read identically: ASCII digits, one
+// optional leading minus, an optional fraction, an optional exponent. Anything
+// else parts the two: `0x10` is 16 to `Number` and invalid to the parser, a
+// leading `+` or surrounding whitespace is accepted by one and not the other,
+// and `Infinity` throws on assignment while the attribute falls back to the
+// element's default.
+const DECIMAL_NUMBER = /^-?[0-9]+(\.[0-9]+)?([eE][-+]?[0-9]+)?$/
+const DECIMAL_INTEGER = /^-?[0-9]+$/
+
+// Properties the DOM defines as numbers on these elements and as strings
+// elsewhere, so the same builder means different things depending on where it
+// is written.
+const DOUBLE_IDL_PROPERTIES: Readonly<Record<string, ReadonlySet<string>>> = {
+  meter: new Set(['high', 'low', 'max', 'min', 'optimum', 'value']),
+  progress: new Set(['max', 'value']),
+}
+
+const LONG_IDL_PROPERTIES: Readonly<Record<string, ReadonlySet<string>>> = {
+  li: new Set(['value']),
+}
+
+const assertDoubleIdlValue = (
+  tagName: string,
+  propName: string,
+  value: unknown,
+): void => {
+  const isRepresentable =
+    typeof value === 'number'
+      ? Number.isFinite(value)
+      : typeof value === 'string' &&
+        DECIMAL_NUMBER.test(value) &&
+        Number.isFinite(Number(value))
+  if (!isRepresentable) {
+    throw new Error(
+      `[foldkit] <${tagName}> reads ${propName} as a number, and ` +
+        `${JSON.stringify(value)} is not one a browser reads the same way from ` +
+        'markup and from a property assignment. Use a finite decimal number.',
+    )
+  }
+}
+
+const assertLongIdlValue = (
+  tagName: string,
+  propName: string,
+  value: unknown,
+): void => {
+  const parsed =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && DECIMAL_INTEGER.test(value)
+        ? Number(value)
+        : Number.NaN
+  if (
+    !Number.isInteger(parsed) ||
+    parsed < SIGNED_LONG_MINIMUM ||
+    parsed > SIGNED_LONG_MAXIMUM
+  ) {
+    throw new Error(
+      `[foldkit] <${tagName}> reads ${propName} as an integer, and ` +
+        `${JSON.stringify(value)} is not one a browser reads the same way from ` +
+        'markup and from a property assignment. Use an integer from ' +
+        `${String(SIGNED_LONG_MINIMUM)} to ${String(SIGNED_LONG_MAXIMUM)}.`,
+    )
+  }
+}
+
+const effectiveInputType = (data: VNodeData): string | undefined => {
+  const typed = data.props?.['type']
+  if (typeof typed === 'string') {
+    return typed.toLowerCase()
+  }
+  const raw = htmlAttributeValue(data.attrs, 'type')
+  return typeof raw === 'string' ? raw.toLowerCase() : undefined
+}
+
+const assertElementStateIsRepresentable = (
+  tagName: string,
+  data: VNodeData,
+): void => {
+  const props = data.props
+  if (props === undefined) {
+    return
+  }
+  const lowerTagName = tagName.toLowerCase()
+  const doubleIdl = DOUBLE_IDL_PROPERTIES[lowerTagName]
+  const longIdl = LONG_IDL_PROPERTIES[lowerTagName]
+
+  for (const propName of Object.keys(props)) {
+    const value = props[propName]
+    if (value === undefined || propName === 'innerHTML') {
+      continue
+    }
+    if (doubleIdl?.has(propName) === true) {
+      assertDoubleIdlValue(lowerTagName, propName, value)
+    }
+    if (longIdl?.has(propName) === true) {
+      assertLongIdlValue(lowerTagName, propName, value)
+    }
+    if (lowerTagName === 'input' && propName === 'size' && value === 0) {
+      throw new Error(
+        numericPropertyRefusal(propName, value) +
+          `Use an integer from 1 to ${String(SIGNED_LONG_MAXIMUM)} on an input.`,
+      )
+    }
+    // A raw attribute and a typed builder that name the same attribute are two
+    // owners of one piece of state, and their served form has no source
+    // spelling. `h.Attribute('checked', '')` with `h.Checked(false)` serves no
+    // attribute at all, so the served element has `defaultChecked` false while
+    // a fresh render parses the attribute and has it true: `form.reset()`,
+    // `:default`, and an attribute selector then read the two pages
+    // differently. A client-only property carries no such claim, so a
+    // `CustomElement.define` property never conflicts with an attribute.
+    const attributeName = reflectedAttributeName(propName)
+    if (
+      attributeName !== undefined &&
+      !isClientOnlyProperty(props, propName) &&
+      htmlAttributeValue(data.attrs, attributeName) !== undefined
+    ) {
+      throw new Error(
+        `[foldkit] <${lowerTagName}> was given both a typed ${propName} and a ` +
+          `raw h.Attribute('${attributeName}', ...). They are two owners of ` +
+          'one attribute, and the state they describe together has no spelling ' +
+          'in served HTML: the property decides what is served while a fresh ' +
+          'render parses the attribute as the default too. Keep one of them.',
+      )
+    }
+  }
+
+  if (lowerTagName === 'input' && effectiveInputType(data) === 'file') {
+    const value = props['value']
+    if (typeof value === 'string' && value !== '') {
+      throw new Error(
+        '[foldkit] <input type="file"> was given a value. A file input takes ' +
+          'no value from markup or from the Model: the served attribute is ' +
+          'ignored and assigning the property throws InvalidStateError, so the ' +
+          'view crashes on a fresh render and on hydration. Drop the value.',
+      )
+    }
+  }
+}
+
+// NOTE: A typed property on an HTML element whose native interface does not own it
+// has always been a client-side expando. For example, RadioGroup deliberately
+// includes `h.Type('button')` in an attribute bundle that consumers may spread
+// onto a button, div, or span. Mark the wrong-element case as client-only so
+// server rendering omits it and hydration applies the same expando a fresh
+// render does, without turning a pre-existing client pattern into live markup.
+const markUnreflectedHtmlPropertiesClientOnly = (
+  tagName: string,
+  data: VNodeData,
+): void => {
+  const props = data.props
+  if (props === undefined) {
+    return
+  }
+  for (const propName of Object.keys(props)) {
+    if (
+      reflectedAttributeName(propName) !== undefined &&
+      !isHtmlPropertyRepresentable(tagName, propName)
+    ) {
+      markClientOnlyProperty(props, propName)
+    }
+  }
+}
+
+// The same question in SVG and MathML, where the answer is decided by the
+// namespace rather than by the tag. A foreign element has none of the HTML
+// interface members a typed builder writes, apart from the three measured to
+// reflect there. Assigning `href` on an SVG `<a>` throws, since bundled code is
+// strict and `SVGAElement.href` is readonly; assigning `title` sets an expando
+// no attribute ever sees. The serializer would have written an attribute for
+// both. Raw `h.Attribute` is the mechanism SVG and MathML use, and it behaves
+// identically on both sides.
+//
+// The namespace is only known once the `svg` or `math` element that introduces
+// it is built, because that is when it propagates down. The walk stops where
+// the namespace stops, so an HTML integration point such as `<foreignObject>`
+// keeps ordinary HTML rules for its content.
+const assertForeignPropertiesAreRepresentable = (node: VNode): void => {
+  const data = node.data
+  if (data === undefined || data.ns === undefined) {
+    return
+  }
+  const props = data.props
+  if (props !== undefined) {
+    for (const propName of Object.keys(props)) {
+      if (
+        props[propName] === undefined ||
+        propName === 'innerHTML' ||
+        FOREIGN_REPRESENTABLE_PROPERTIES.has(propName) ||
+        reflectedAttributeName(propName) === undefined
+      ) {
+        continue
+      }
+      throw new Error(
+        `[foldkit] <${tagNameFromSelector(node.sel ?? '')}> is in the SVG or ` +
+          `MathML namespace, where ${propName} is not a property the element ` +
+          'has. Assigning it on the client sets a value no attribute reflects, ' +
+          'or throws outright, while server rendering writes the attribute, so ' +
+          `the two disagree. Write it as h.Attribute('${propName}', ...), ` +
+          'which foreign content reads the same way on both sides.',
+      )
+    }
+  }
+  for (const child of node.children ?? []) {
+    if (typeof child !== 'string') {
+      assertForeignPropertiesAreRepresentable(child)
+    }
+  }
+}
+
+const buildElement = (
+  tagName: string,
+  data: VNodeData,
+  children: ReadonlyArray<Child>,
+): Html => {
+  const copiedChildren = copyChildrenDroppingEmpty(children)
+  markUnreflectedHtmlPropertiesClientOnly(tagName, data)
+  assertSingleContentOwner(tagName, data, copiedChildren)
+  assertSingleStyleOwner(data)
+  if (data.style !== undefined) {
+    assertStyleIsRepresentable(data.style)
+  }
+  assertElementStateIsRepresentable(tagName, data)
+  if (
+    tagName.toLowerCase() === 'select' ||
+    tagName.toLowerCase() === 'textarea' ||
+    tagName.toLowerCase() === 'output'
+  ) {
+    attachControlledContentOwnershipHook(data)
+  }
+  const built = h(tagName, data, copiedChildren)
+  assertForeignPropertiesAreRepresentable(built)
+  return built
+}
 
 const createElement = <Message>(
   tagName: string,
   attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
   children: ReadonlyArray<Child> = [],
-): Html =>
-  h(
-    tagName,
-    buildVNodeData(attributes),
-    Array.fromIterable(processVNodeChildren(children)),
-  )
+): Html => buildElement(tagName, buildVNodeData(attributes), children)
 
 const element =
   <Message>() =>
@@ -2420,23 +3221,55 @@ const voidElement =
     createElement(tagName, attributes, [])
 
 const keyed =
-  <Message>() =>
+  <Message>(): KeyedFunction<Message> =>
   (tagName: TagName) =>
   (
-    key: string,
+    key: PropertyKey,
     attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
     children: ReadonlyArray<Child> = [],
-  ): Html =>
-    element<Message>()(tagName)([...attributes, Key({ value: key })], children)
+  ): Html => {
+    const data = buildVNodeData(attributes)
+    data.key = key
+    return buildElement(tagName, data, children)
+  }
 
 type ElementFunction<Message> = (
   attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
-  children: ReadonlyArray<Child>,
+  children?: ReadonlyArray<Child>,
 ) => Html
 
 type VoidElementFunction<Message> = (
   attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
 ) => Html
+
+/** An attribute accepted by textarea builders. Textarea content must use
+ *  `h.Value`; innerHTML does not keep the live value tracking the Model after
+ *  the field is dirty. */
+export type TextareaAttribute<Message> = Exclude<
+  Attribute<Message>,
+  Readonly<{ _tag: 'InnerHTML' }>
+>
+
+type TextValueElementFunction<Message> = (
+  attributes: ReadonlyArray<TextareaAttribute<Message> | ChildAttribute>,
+) => Html
+
+type KeyedElementFunction<Message> = (
+  key: PropertyKey,
+  attributes?: ReadonlyArray<Attribute<Message> | ChildAttribute>,
+  children?: ReadonlyArray<Child>,
+) => Html
+
+type KeyedTextValueElementFunction<Message> = (
+  key: PropertyKey,
+  attributes?: ReadonlyArray<TextareaAttribute<Message> | ChildAttribute>,
+) => Html
+
+type KeyedFunction<Message> = <Name extends TagName>(
+  tagName: Name,
+) => Name extends 'textarea'
+  ? KeyedTextValueElementFunction<Message>
+  : KeyedElementFunction<Message>
 
 type HtmlElements<Message> = {
   a: ElementFunction<Message>
@@ -2539,7 +3372,7 @@ type HtmlElements<Message> = {
   tbody: ElementFunction<Message>
   td: ElementFunction<Message>
   template: ElementFunction<Message>
-  textarea: ElementFunction<Message>
+  textarea: TextValueElementFunction<Message>
   tfoot: ElementFunction<Message>
   th: ElementFunction<Message>
   thead: ElementFunction<Message>
@@ -2927,17 +3760,36 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'Popovertargetaction'
     readonly value: string
   }
-  OnClick: (message: Message) => {
+  /** Dispatches `message` when the element is clicked. The optional controls
+   *  can synchronously prevent the browser default, stop DOM propagation, and
+   *  focus an existing element before dispatch. Omitted controls preserve the
+   *  existing allow-and-bubble behavior.
+   *
+   *  `propagation: 'Stop'` still lets every click handler registered on the
+   *  current element run, matching `Event.stopPropagation()`. It only prevents
+   *  ancestor handlers from receiving the click.
+   *
+   *  `focusSelector` is for browser APIs that require focus during the
+   *  originating user gesture, such as opening the iOS on-screen keyboard. The
+   *  target must already exist. If the real input mounts after the Message
+   *  changes the view, focus an always-present warmup input here, then return a
+   *  `Dom.focus` Command from update to transfer focus after the real input
+   *  mounts.
+   *
+   *  @example
+   *  ```typescript
+   *  h.OnClick(Message.ClickedExpand(), {
+   *    defaultAction: 'Prevent',
+   *    propagation: 'Stop',
+   *  })
+   *  ``` */
+  OnClick: (
+    message: Message,
+    options?: ClickOptions,
+  ) => {
     readonly _tag: 'OnClick'
     readonly message: Message
-  }
-  OnClickFocus: (
-    focusSelector: string,
-    message: Message,
-  ) => {
-    readonly _tag: 'OnClickFocus'
-    readonly focusSelector: string
-    readonly message: Message
+    readonly options?: ClickOptions
   }
   OnDoubleClick: (message: Message) => {
     readonly _tag: 'OnDoubleClick'
@@ -2972,7 +3824,7 @@ type HtmlAttributes<Message> = {
     readonly message: Message
   }
   OnPointerMove: (
-    f: (
+    toMaybeMessage: (
       screenX: number,
       screenY: number,
       pointerType: string,
@@ -2985,12 +3837,14 @@ type HtmlAttributes<Message> = {
       pointerType: string,
     ) => Option.Option<Message>
   }
-  OnPointerLeave: (f: (pointerType: string) => Option.Option<Message>) => {
+  OnPointerLeave: (
+    toMaybeMessage: (pointerType: string) => Option.Option<Message>,
+  ) => {
     readonly _tag: 'OnPointerLeave'
     readonly f: (pointerType: string) => Option.Option<Message>
   }
   OnPointerDown: (
-    f: (
+    toMaybeMessage: (
       pointerType: string,
       button: number,
       screenX: number,
@@ -3012,7 +3866,7 @@ type HtmlAttributes<Message> = {
     ) => Option.Option<Message>
   }
   OnPointerUp: (
-    f: (
+    toMaybeMessage: (
       screenX: number,
       screenY: number,
       pointerType: string,
@@ -3027,12 +3881,29 @@ type HtmlAttributes<Message> = {
       timeStamp: number,
     ) => Option.Option<Message>
   }
-  OnKeyDown: (f: (key: string, modifiers: KeyboardModifiers) => Message) => {
+  OnKeyDown: (
+    toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => {
     readonly _tag: 'OnKeyDown'
     readonly f: (key: string, modifiers: KeyboardModifiers) => Message
   }
+  OnKeyDownFocus: (
+    toMaybeFocusAndMessage: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Readonly<{ focusSelector: string; message: Message }>>,
+  ) => {
+    readonly _tag: 'OnKeyDownFocus'
+    readonly f: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Readonly<{ focusSelector: string; message: Message }>>
+  }
   OnKeyDownPreventDefault: (
-    f: (key: string, modifiers: KeyboardModifiers) => Option.Option<Message>,
+    toMaybeMessage: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>,
   ) => {
     readonly _tag: 'OnKeyDownPreventDefault'
     readonly f: (
@@ -3040,12 +3911,35 @@ type HtmlAttributes<Message> = {
       modifiers: KeyboardModifiers,
     ) => Option.Option<Message>
   }
-  OnKeyUp: (f: (key: string, modifiers: KeyboardModifiers) => Message) => {
+  OnKeyDownSelf: (
+    toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => {
+    readonly _tag: 'OnKeyDownSelf'
+    readonly f: (key: string, modifiers: KeyboardModifiers) => Message
+  }
+  OnKeyDownSelfPreventDefault: (
+    toMaybeMessage: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>,
+  ) => {
+    readonly _tag: 'OnKeyDownSelfPreventDefault'
+    readonly f: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>
+  }
+  OnKeyUp: (
+    toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => {
     readonly _tag: 'OnKeyUp'
     readonly f: (key: string, modifiers: KeyboardModifiers) => Message
   }
   OnKeyUpPreventDefault: (
-    f: (key: string, modifiers: KeyboardModifiers) => Option.Option<Message>,
+    toMaybeMessage: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>,
   ) => {
     readonly _tag: 'OnKeyUpPreventDefault'
     readonly f: (
@@ -3053,7 +3947,9 @@ type HtmlAttributes<Message> = {
       modifiers: KeyboardModifiers,
     ) => Option.Option<Message>
   }
-  OnKeyPress: (f: (key: string, modifiers: KeyboardModifiers) => Message) => {
+  OnKeyPress: (
+    toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => {
     readonly _tag: 'OnKeyPress'
     readonly f: (key: string, modifiers: KeyboardModifiers) => Message
   }
@@ -3065,15 +3961,58 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnBlur'
     readonly message: Message
   }
-  OnInput: (f: (value: string) => Message) => {
+  /**
+   * Dispatches `message` when focus enters this element's subtree from
+   * outside it. Moving focus between descendants does not dispatch.
+   *
+   * This uses the bubbling `focusin` event, so the element itself does not
+   * need to be focusable. Pair it with {@link OnFocusLeave} to model whether
+   * a compound region such as an editor and its toolbar contains focus.
+   */
+  OnFocusEnter: (message: Message) => {
+    readonly _tag: 'OnFocusEnter'
+    readonly message: Message
+  }
+  /**
+   * Dispatches `message` when focus leaves this element's subtree. Moving
+   * focus between descendants does not dispatch.
+   *
+   * This uses the bubbling `focusout` event and compares its related target
+   * with the current element. The element itself does not need to be
+   * focusable. Pair it with {@link OnFocusEnter} to model whether a compound
+   * region such as an editor and its toolbar contains focus.
+   */
+  OnFocusLeave: (message: Message) => {
+    readonly _tag: 'OnFocusLeave'
+    readonly message: Message
+  }
+  OnInput: (toMessage: (value: string) => Message) => {
     readonly _tag: 'OnInput'
     readonly f: (value: string) => Message
   }
-  OnChange: (f: (value: string) => Message) => {
+  OnChange: (toMessage: (value: string) => Message) => {
     readonly _tag: 'OnChange'
     readonly f: (value: string) => Message
   }
-  OnFileChange: (f: (files: ReadonlyArray<File>) => Message) => {
+  OnBeforeInput: (
+    toMessage: (inputType: string, data: Option.Option<string>) => Message,
+  ) => {
+    readonly _tag: 'OnBeforeInput'
+    readonly f: (inputType: string, data: Option.Option<string>) => Message
+  }
+  OnBeforeInputPreventDefault: (
+    toMaybeMessage: (
+      inputType: string,
+      data: Option.Option<string>,
+    ) => Option.Option<Message>,
+  ) => {
+    readonly _tag: 'OnBeforeInputPreventDefault'
+    readonly f: (
+      inputType: string,
+      data: Option.Option<string>,
+    ) => Option.Option<Message>
+  }
+  OnFileChange: (toMessage: (files: ReadonlyArray<File>) => Message) => {
     readonly _tag: 'OnFileChange'
     readonly f: (files: ReadonlyArray<File>) => Message
   }
@@ -3085,7 +4024,7 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnReset'
     readonly message: Message
   }
-  OnScroll: (f: (scrollTop: number) => Message) => {
+  OnScroll: (toMessage: (scrollTop: number) => Message) => {
     readonly _tag: 'OnScroll'
     readonly f: (scrollTop: number) => Message
   }
@@ -3105,7 +4044,9 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnPaste'
     readonly message: Message
   }
-  OnPastePreventDefault: (f: (text: string) => Option.Option<Message>) => {
+  OnPastePreventDefault: (
+    toMaybeMessage: (text: string) => Option.Option<Message>,
+  ) => {
     readonly _tag: 'OnPastePreventDefault'
     readonly f: (text: string) => Option.Option<Message>
   }
@@ -3125,7 +4066,15 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnCancel'
     readonly message: Message
   }
-  OnToggle: (f: (isOpen: boolean) => Message) => {
+  /** Prevents the default action of a `cancel` event. When a
+   *  `customEventMessage` is provided, dispatches it only for a `CustomEvent`,
+   *  allowing a synthetic cancel signal to be distinguished from the native
+   *  event. Native `cancel` events never dispatch a Message. */
+  OnCancelPreventDefault: (customEventMessage?: Message) => {
+    readonly _tag: 'OnCancelPreventDefault'
+    readonly maybeCustomEventMessage: Option.Option<Message>
+  }
+  OnToggle: (toMessage: (isOpen: boolean) => Message) => {
     readonly _tag: 'OnToggle'
     readonly f: (isOpen: boolean) => Message
   }
@@ -3162,7 +4111,7 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnDrop'
     readonly message: Message
   }
-  OnDropFiles: (f: (files: ReadonlyArray<File>) => Message) => {
+  OnDropFiles: (toMessage: (files: ReadonlyArray<File>) => Message) => {
     readonly _tag: 'OnDropFiles'
     readonly f: (files: ReadonlyArray<File>) => Message
   }
@@ -3748,9 +4697,221 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'StrokeDashoffset'
     readonly value: string
   }
+  Dx: (value: string) => { readonly _tag: 'Dx'; readonly value: string }
+  Dy: (value: string) => { readonly _tag: 'Dy'; readonly value: string }
+  Rotate: (value: string) => { readonly _tag: 'Rotate'; readonly value: string }
+  TextAnchor: (value: string) => {
+    readonly _tag: 'TextAnchor'
+    readonly value: string
+  }
+  DominantBaseline: (value: string) => {
+    readonly _tag: 'DominantBaseline'
+    readonly value: string
+  }
+  AlignmentBaseline: (value: string) => {
+    readonly _tag: 'AlignmentBaseline'
+    readonly value: string
+  }
+  BaselineShift: (value: string) => {
+    readonly _tag: 'BaselineShift'
+    readonly value: string
+  }
+  TextLength: (value: string) => {
+    readonly _tag: 'TextLength'
+    readonly value: string
+  }
+  LengthAdjust: (value: string) => {
+    readonly _tag: 'LengthAdjust'
+    readonly value: string
+  }
+  FontFamily: (value: string) => {
+    readonly _tag: 'FontFamily'
+    readonly value: string
+  }
+  FontSize: (value: string) => {
+    readonly _tag: 'FontSize'
+    readonly value: string
+  }
+  FontWeight: (value: string) => {
+    readonly _tag: 'FontWeight'
+    readonly value: string
+  }
+  FontStyle: (value: string) => {
+    readonly _tag: 'FontStyle'
+    readonly value: string
+  }
+  LetterSpacing: (value: string) => {
+    readonly _tag: 'LetterSpacing'
+    readonly value: string
+  }
+  WordSpacing: (value: string) => {
+    readonly _tag: 'WordSpacing'
+    readonly value: string
+  }
+  TextDecoration: (value: string) => {
+    readonly _tag: 'TextDecoration'
+    readonly value: string
+  }
+  WritingMode: (value: string) => {
+    readonly _tag: 'WritingMode'
+    readonly value: string
+  }
+  Rx: (value: string) => { readonly _tag: 'Rx'; readonly value: string }
+  Ry: (value: string) => { readonly _tag: 'Ry'; readonly value: string }
+  PathLength: (value: string) => {
+    readonly _tag: 'PathLength'
+    readonly value: string
+  }
+  FillOpacity: (value: string) => {
+    readonly _tag: 'FillOpacity'
+    readonly value: string
+  }
+  StrokeOpacity: (value: string) => {
+    readonly _tag: 'StrokeOpacity'
+    readonly value: string
+  }
+  StrokeMiterlimit: (value: string) => {
+    readonly _tag: 'StrokeMiterlimit'
+    readonly value: string
+  }
+  PaintOrder: (value: string) => {
+    readonly _tag: 'PaintOrder'
+    readonly value: string
+  }
+  VectorEffect: (value: string) => {
+    readonly _tag: 'VectorEffect'
+    readonly value: string
+  }
+  Color: (value: string) => { readonly _tag: 'Color'; readonly value: string }
+  Visibility: (value: string) => {
+    readonly _tag: 'Visibility'
+    readonly value: string
+  }
+  Display: (value: string) => {
+    readonly _tag: 'Display'
+    readonly value: string
+  }
+  Overflow: (value: string) => {
+    readonly _tag: 'Overflow'
+    readonly value: string
+  }
+  PointerEvents: (value: string) => {
+    readonly _tag: 'PointerEvents'
+    readonly value: string
+  }
+  Cursor: (value: string) => { readonly _tag: 'Cursor'; readonly value: string }
+  ShapeRendering: (value: string) => {
+    readonly _tag: 'ShapeRendering'
+    readonly value: string
+  }
+  TextRendering: (value: string) => {
+    readonly _tag: 'TextRendering'
+    readonly value: string
+  }
+  ImageRendering: (value: string) => {
+    readonly _tag: 'ImageRendering'
+    readonly value: string
+  }
+  ClipPath: (value: string) => {
+    readonly _tag: 'ClipPath'
+    readonly value: string
+  }
+  Mask: (value: string) => { readonly _tag: 'Mask'; readonly value: string }
+  Filter: (value: string) => { readonly _tag: 'Filter'; readonly value: string }
+  ClipPathUnits: (value: string) => {
+    readonly _tag: 'ClipPathUnits'
+    readonly value: string
+  }
+  MaskUnits: (value: string) => {
+    readonly _tag: 'MaskUnits'
+    readonly value: string
+  }
+  MaskContentUnits: (value: string) => {
+    readonly _tag: 'MaskContentUnits'
+    readonly value: string
+  }
+  FilterUnits: (value: string) => {
+    readonly _tag: 'FilterUnits'
+    readonly value: string
+  }
+  PrimitiveUnits: (value: string) => {
+    readonly _tag: 'PrimitiveUnits'
+    readonly value: string
+  }
+  Offset: (value: string) => { readonly _tag: 'Offset'; readonly value: string }
+  StopColor: (value: string) => {
+    readonly _tag: 'StopColor'
+    readonly value: string
+  }
+  StopOpacity: (value: string) => {
+    readonly _tag: 'StopOpacity'
+    readonly value: string
+  }
+  GradientUnits: (value: string) => {
+    readonly _tag: 'GradientUnits'
+    readonly value: string
+  }
+  GradientTransform: (value: string) => {
+    readonly _tag: 'GradientTransform'
+    readonly value: string
+  }
+  SpreadMethod: (value: string) => {
+    readonly _tag: 'SpreadMethod'
+    readonly value: string
+  }
+  Fx: (value: string) => { readonly _tag: 'Fx'; readonly value: string }
+  Fy: (value: string) => { readonly _tag: 'Fy'; readonly value: string }
+  Fr: (value: string) => { readonly _tag: 'Fr'; readonly value: string }
+  PatternUnits: (value: string) => {
+    readonly _tag: 'PatternUnits'
+    readonly value: string
+  }
+  PatternContentUnits: (value: string) => {
+    readonly _tag: 'PatternContentUnits'
+    readonly value: string
+  }
+  PatternTransform: (value: string) => {
+    readonly _tag: 'PatternTransform'
+    readonly value: string
+  }
+  MarkerStart: (value: string) => {
+    readonly _tag: 'MarkerStart'
+    readonly value: string
+  }
+  MarkerMid: (value: string) => {
+    readonly _tag: 'MarkerMid'
+    readonly value: string
+  }
+  MarkerEnd: (value: string) => {
+    readonly _tag: 'MarkerEnd'
+    readonly value: string
+  }
+  MarkerWidth: (value: string) => {
+    readonly _tag: 'MarkerWidth'
+    readonly value: string
+  }
+  MarkerHeight: (value: string) => {
+    readonly _tag: 'MarkerHeight'
+    readonly value: string
+  }
+  MarkerUnits: (value: string) => {
+    readonly _tag: 'MarkerUnits'
+    readonly value: string
+  }
+  RefX: (value: string) => { readonly _tag: 'RefX'; readonly value: string }
+  RefY: (value: string) => { readonly _tag: 'RefY'; readonly value: string }
+  Orient: (value: string) => { readonly _tag: 'Orient'; readonly value: string }
+  PreserveAspectRatio: (value: string) => {
+    readonly _tag: 'PreserveAspectRatio'
+    readonly value: string
+  }
   OnMount: (action: MountAction<Message, any>) => {
     readonly _tag: 'OnMount'
     readonly action: MountAction<Message, any>
+  }
+  OnUnmount: (message: Message) => {
+    readonly _tag: 'OnUnmount'
+    readonly message: Message
   }
 }
 
@@ -3771,39 +4932,10 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   Popover: (value: string) => Popover({ value }),
   Popovertarget: (value: string) => Popovertarget({ value }),
   Popovertargetaction: (value: string) => Popovertargetaction({ value }),
-  OnClick: (message: Message) => OnClick({ message }),
-  /**
-   * Click handler that synchronously focuses the element matching
-   * `focusSelector`, then dispatches `message`. Both run inside the originating
-   * click event handler, preserving the user-gesture context.
-   *
-   * Use this when tapping the element must open the on-screen keyboard on
-   * iOS Safari. Safari only opens the keyboard if `.focus()` runs synchronously
-   * inside the originating user-gesture handler, which a Command's `Dom.focus`
-   * cannot satisfy (Commands fork through `Effect.forkDetach` +
-   * `requestAnimationFrame` and resolve after the gesture has expired).
-   *
-   * When the real input only mounts later (a search field inside a dialog,
-   * say), focus it in two steps. First, keep a focusable text input that is
-   * always in the DOM (a visually hidden "keyboard warmup") and point
-   * `focusSelector` at it, so the tap focuses the input (which opens the
-   * keyboard) and dispatches a Message. Second, update's branch for that
-   * Message opens the dialog and returns a `Dom.focus` Command pointed at the
-   * real input; by the time it runs the input has mounted, so focus moves to
-   * it. iOS keeps the keyboard up when focus moves between two text inputs,
-   * so it stays open and now targets the real input.
-   *
-   * Like `OnKeyDownPreventDefault`, the side effect (focusing another
-   * element) lives inside the framework's event handler so user code stays
-   * declarative.
-   *
-   * @example
-   * ```typescript
-   * h.OnClickFocus('#search-keyboard-warmup', ClickedSearch())
-   * ```
-   */
-  OnClickFocus: (focusSelector: string, message: Message) =>
-    OnClickFocus({ focusSelector, message }),
+  OnClick: (message: Message, options?: ClickOptions) =>
+    options === undefined
+      ? OnClick({ message })
+      : OnClick({ message, options }),
   OnDoubleClick: (message: Message) => OnDoubleClick({ message }),
   OnMouseDown: (message: Message) => OnMouseDown({ message }),
   OnMouseUp: (message: Message) => OnMouseUp({ message }),
@@ -3813,16 +4945,17 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   OnMouseOut: (message: Message) => OnMouseOut({ message }),
   OnMouseMove: (message: Message) => OnMouseMove({ message }),
   OnPointerMove: (
-    f: (
+    toMaybeMessage: (
       screenX: number,
       screenY: number,
       pointerType: string,
     ) => Option.Option<Message>,
-  ) => OnPointerMove({ f }),
-  OnPointerLeave: (f: (pointerType: string) => Option.Option<Message>) =>
-    OnPointerLeave({ f }),
+  ) => OnPointerMove({ f: toMaybeMessage }),
+  OnPointerLeave: (
+    toMaybeMessage: (pointerType: string) => Option.Option<Message>,
+  ) => OnPointerLeave({ f: toMaybeMessage }),
   OnPointerDown: (
-    f: (
+    toMaybeMessage: (
       pointerType: string,
       button: number,
       screenX: number,
@@ -3831,36 +4964,153 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
       clientX: number,
       clientY: number,
     ) => Option.Option<Message>,
-  ) => OnPointerDown({ f }),
+  ) => OnPointerDown({ f: toMaybeMessage }),
   OnPointerUp: (
-    f: (
+    toMaybeMessage: (
       screenX: number,
       screenY: number,
       pointerType: string,
       timeStamp: number,
     ) => Option.Option<Message>,
-  ) => OnPointerUp({ f }),
-  OnKeyDown: (f: (key: string, modifiers: KeyboardModifiers) => Message) =>
-    OnKeyDown({ f }),
+  ) => OnPointerUp({ f: toMaybeMessage }),
+  OnKeyDown: (
+    toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => OnKeyDown({ f: toMessage }),
   OnKeyDownPreventDefault: (
-    f: (key: string, modifiers: KeyboardModifiers) => Option.Option<Message>,
-  ) => OnKeyDownPreventDefault({ f }),
-  OnKeyUp: (f: (key: string, modifiers: KeyboardModifiers) => Message) =>
-    OnKeyUp({ f }),
+    toMaybeMessage: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>,
+  ) => OnKeyDownPreventDefault({ f: toMaybeMessage }),
+  /**
+   * Like `OnKeyDown`, but dispatches only when the keydown targets this
+   * element itself rather than bubbling from a descendant.
+   *
+   * Use this on a composite widget that owns keyboard input for its host but
+   * contains interactive children whose keydowns should remain independent.
+   *
+   * @example
+   * ```typescript
+   * h.OnKeyDownSelf((key, modifiers) => Message.PressedHostKey({ key }))
+   * ```
+   */
+  OnKeyDownSelf: (
+    toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => OnKeyDownSelf({ f: toMessage }),
+  /**
+   * Like `OnKeyDownPreventDefault`, but handles only keydowns that target this
+   * element itself rather than bubbling from a descendant. Returning `Some`
+   * prevents the browser's default action and dispatches the Message;
+   * returning `None` leaves the key to the browser.
+   *
+   * @example
+   * ```typescript
+   * h.OnKeyDownSelfPreventDefault(key =>
+   *   key === 'Enter'
+   *     ? Option.some(Message.SubmittedEditor())
+   *     : Option.none(),
+   * )
+   * ```
+   */
+  OnKeyDownSelfPreventDefault: (
+    toMaybeMessage: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>,
+  ) => OnKeyDownSelfPreventDefault({ f: toMaybeMessage }),
+  /**
+   * Keydown handler that, for a handled key, synchronously focuses the element
+   * matching `focusSelector` and dispatches `message`, both inside the
+   * originating event handler. Returns `Option.none()` for keys it does not
+   * handle, leaving default behavior intact; a `Some` result also
+   * `preventDefault`s.
+   *
+   * Use this for roving-tabindex widgets (radio groups, toolbars) where an
+   * arrow key must move DOM focus to the newly-active option. Because the focus
+   * runs inside the component's own handler, the parent never sees a focus
+   * command: the value flows out as a plain Message and the DOM mechanics stay
+   * in the view.
+   *
+   * @example
+   * ```typescript
+   * h.OnKeyDownFocus(key =>
+   *   key === 'ArrowDown'
+   *     ? Option.some({ focusSelector: '#option-2', message: Selected('b') })
+   *     : Option.none(),
+   * )
+   * ```
+   */
+  OnKeyDownFocus: (
+    toMaybeFocusAndMessage: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Readonly<{ focusSelector: string; message: Message }>>,
+  ) => OnKeyDownFocus({ f: toMaybeFocusAndMessage }),
+  OnKeyUp: (
+    toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => OnKeyUp({ f: toMessage }),
   OnKeyUpPreventDefault: (
-    f: (key: string, modifiers: KeyboardModifiers) => Option.Option<Message>,
-  ) => OnKeyUpPreventDefault({ f }),
-  OnKeyPress: (f: (key: string, modifiers: KeyboardModifiers) => Message) =>
-    OnKeyPress({ f }),
+    toMaybeMessage: (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ) => Option.Option<Message>,
+  ) => OnKeyUpPreventDefault({ f: toMaybeMessage }),
+  OnKeyPress: (
+    toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
+  ) => OnKeyPress({ f: toMessage }),
   OnFocus: (message: Message) => OnFocus({ message }),
   OnBlur: (message: Message) => OnBlur({ message }),
-  OnInput: (f: (value: string) => Message) => OnInput({ f }),
-  OnChange: (f: (value: string) => Message) => OnChange({ f }),
-  OnFileChange: (f: (files: ReadonlyArray<File>) => Message) =>
-    OnFileChange({ f }),
+  OnFocusEnter: (message: Message) => OnFocusEnter({ message }),
+  OnFocusLeave: (message: Message) => OnFocusLeave({ message }),
+  /**
+   * Dispatches the target's textual value on every `input` event. Form
+   * controls report their `value`; a `Contenteditable` host reports its
+   * rendered text.
+   */
+  OnInput: (toMessage: (value: string) => Message) => OnInput({ f: toMessage }),
+  /**
+   * Dispatches the target's textual value on every `change` event, using the
+   * same form-control and `Contenteditable` value semantics as `OnInput`.
+   */
+  OnChange: (toMessage: (value: string) => Message) =>
+    OnChange({ f: toMessage }),
+  /**
+   * Observes `beforeinput` events. The translator receives the edit's
+   * `inputType` and its `data` as an `Option`; edits such as deletion usually
+   * carry no text and therefore provide `None`.
+   */
+  OnBeforeInput: (
+    toMessage: (inputType: string, data: Option.Option<string>) => Message,
+  ) => OnBeforeInput({ f: toMessage }),
+  /**
+   * Handles cancelable `beforeinput` events before the browser mutates the
+   * DOM. Returning `Some` prevents the native edit and dispatches the Message;
+   * returning `None` lets the edit proceed.
+   *
+   * A non-cancelable edit, including some IME composition input, proceeds
+   * without dispatching. Use `OnInput` to reconcile the resulting content.
+   *
+   * @example
+   * ```typescript
+   * h.OnBeforeInputPreventDefault((inputType, data) =>
+   *   inputType === 'insertText'
+   *     ? Option.map(data, value => Message.InsertedText({ value }))
+   *     : Option.none(),
+   * )
+   * ```
+   */
+  OnBeforeInputPreventDefault: (
+    toMaybeMessage: (
+      inputType: string,
+      data: Option.Option<string>,
+    ) => Option.Option<Message>,
+  ) => OnBeforeInputPreventDefault({ f: toMaybeMessage }),
+  OnFileChange: (toMessage: (files: ReadonlyArray<File>) => Message) =>
+    OnFileChange({ f: toMessage }),
   OnSubmit: (message: Message) => OnSubmit({ message }),
   OnReset: (message: Message) => OnReset({ message }),
-  OnScroll: (f: (scrollTop: number) => Message) => OnScroll({ f }),
+  OnScroll: (toMessage: (scrollTop: number) => Message) =>
+    OnScroll({ f: toMessage }),
   OnWheel: (message: Message) => OnWheel({ message }),
   OnCopy: (message: Message) => OnCopy({ message }),
   OnCut: (message: Message) => OnCut({ message }),
@@ -3882,8 +5132,9 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
    * h.OnPastePreventDefault(text => Option.some(PastedText({ text })))
    * ```
    */
-  OnPastePreventDefault: (f: (text: string) => Option.Option<Message>) =>
-    OnPastePreventDefault({ f }),
+  OnPastePreventDefault: (
+    toMaybeMessage: (text: string) => Option.Option<Message>,
+  ) => OnPastePreventDefault({ f: toMaybeMessage }),
   /**
    * Copy handler that synchronously writes `text` to the clipboard as
    * `text/plain` and calls `preventDefault`, replacing the browser's default
@@ -3912,7 +5163,26 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
    */
   OnCutText: (text: string, message: Message) => OnCutText({ text, message }),
   OnCancel: (message: Message) => OnCancel({ message }),
-  OnToggle: (f: (isOpen: boolean) => Message) => OnToggle({ f }),
+  /**
+   * Cancel handler that always calls `preventDefault`. A native cancel event
+   * does not dispatch a Message. When the event is a `CustomEvent`, the
+   * optional `customEventMessage` is dispatched instead.
+   *
+   * Use this when native cancellation and an application-owned cancel signal
+   * share an event name but need different behavior. Without a Message, the
+   * attribute only suppresses the native default action.
+   *
+   * @example
+   * ```typescript
+   * h.OnCancelPreventDefault(Message.RequestedClose())
+   * ```
+   */
+  OnCancelPreventDefault: (customEventMessage?: Message) =>
+    OnCancelPreventDefault({
+      maybeCustomEventMessage: Option.fromNullishOr(customEventMessage),
+    }),
+  OnToggle: (toMessage: (isOpen: boolean) => Message) =>
+    OnToggle({ f: toMessage }),
   OnContextMenu: (message: Message) => OnContextMenu({ message }),
   OnDragStart: (message: Message) => OnDragStart({ message }),
   OnDrag: (message: Message) => OnDrag({ message }),
@@ -3922,8 +5192,8 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   OnDragOver: (message: Message) => OnDragOver({ message }),
   AllowDrop: () => AllowDrop(),
   OnDrop: (message: Message) => OnDrop({ message }),
-  OnDropFiles: (f: (files: ReadonlyArray<File>) => Message) =>
-    OnDropFiles({ f }),
+  OnDropFiles: (toMessage: (files: ReadonlyArray<File>) => Message) =>
+    OnDropFiles({ f: toMessage }),
   OnTouchStart: (message: Message) => OnTouchStart({ message }),
   OnTouchEnd: (message: Message) => OnTouchEnd({ message }),
   OnTouchMove: (message: Message) => OnTouchMove({ message }),
@@ -4102,32 +5372,222 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   Opacity: (value: string) => Opacity({ value }),
   StrokeDasharray: (value: string) => StrokeDasharray({ value }),
   StrokeDashoffset: (value: string) => StrokeDashoffset({ value }),
+  Dx: (value: string) => Dx({ value }),
+  Dy: (value: string) => Dy({ value }),
+  Rotate: (value: string) => Rotate({ value }),
+  TextAnchor: (value: string) => TextAnchor({ value }),
+  DominantBaseline: (value: string) => DominantBaseline({ value }),
+  AlignmentBaseline: (value: string) => AlignmentBaseline({ value }),
+  BaselineShift: (value: string) => BaselineShift({ value }),
+  TextLength: (value: string) => TextLength({ value }),
+  LengthAdjust: (value: string) => LengthAdjust({ value }),
+  FontFamily: (value: string) => FontFamily({ value }),
+  FontSize: (value: string) => FontSize({ value }),
+  FontWeight: (value: string) => FontWeight({ value }),
+  FontStyle: (value: string) => FontStyle({ value }),
+  LetterSpacing: (value: string) => LetterSpacing({ value }),
+  WordSpacing: (value: string) => WordSpacing({ value }),
+  TextDecoration: (value: string) => TextDecoration({ value }),
+  WritingMode: (value: string) => WritingMode({ value }),
+  Rx: (value: string) => Rx({ value }),
+  Ry: (value: string) => Ry({ value }),
+  PathLength: (value: string) => PathLength({ value }),
+  FillOpacity: (value: string) => FillOpacity({ value }),
+  StrokeOpacity: (value: string) => StrokeOpacity({ value }),
+  StrokeMiterlimit: (value: string) => StrokeMiterlimit({ value }),
+  PaintOrder: (value: string) => PaintOrder({ value }),
+  VectorEffect: (value: string) => VectorEffect({ value }),
+  Color: (value: string) => Color({ value }),
+  Visibility: (value: string) => Visibility({ value }),
+  Display: (value: string) => Display({ value }),
+  Overflow: (value: string) => Overflow({ value }),
+  PointerEvents: (value: string) => PointerEvents({ value }),
+  Cursor: (value: string) => Cursor({ value }),
+  ShapeRendering: (value: string) => ShapeRendering({ value }),
+  TextRendering: (value: string) => TextRendering({ value }),
+  ImageRendering: (value: string) => ImageRendering({ value }),
+  ClipPath: (value: string) => ClipPath({ value }),
+  Mask: (value: string) => Mask({ value }),
+  Filter: (value: string) => Filter({ value }),
+  ClipPathUnits: (value: string) => ClipPathUnits({ value }),
+  MaskUnits: (value: string) => MaskUnits({ value }),
+  MaskContentUnits: (value: string) => MaskContentUnits({ value }),
+  FilterUnits: (value: string) => FilterUnits({ value }),
+  PrimitiveUnits: (value: string) => PrimitiveUnits({ value }),
+  Offset: (value: string) => Offset({ value }),
+  StopColor: (value: string) => StopColor({ value }),
+  StopOpacity: (value: string) => StopOpacity({ value }),
+  GradientUnits: (value: string) => GradientUnits({ value }),
+  GradientTransform: (value: string) => GradientTransform({ value }),
+  SpreadMethod: (value: string) => SpreadMethod({ value }),
+  Fx: (value: string) => Fx({ value }),
+  Fy: (value: string) => Fy({ value }),
+  Fr: (value: string) => Fr({ value }),
+  PatternUnits: (value: string) => PatternUnits({ value }),
+  PatternContentUnits: (value: string) => PatternContentUnits({ value }),
+  PatternTransform: (value: string) => PatternTransform({ value }),
+  MarkerStart: (value: string) => MarkerStart({ value }),
+  MarkerMid: (value: string) => MarkerMid({ value }),
+  MarkerEnd: (value: string) => MarkerEnd({ value }),
+  MarkerWidth: (value: string) => MarkerWidth({ value }),
+  MarkerHeight: (value: string) => MarkerHeight({ value }),
+  MarkerUnits: (value: string) => MarkerUnits({ value }),
+  RefX: (value: string) => RefX({ value }),
+  RefY: (value: string) => RefY({ value }),
+  Orient: (value: string) => Orient({ value }),
+  PreserveAspectRatio: (value: string) => PreserveAspectRatio({ value }),
   OnMount: (action: MountAction<Message, any>) => OnMount({ action }),
+  /**
+   * Dispatches `message` when this element is removed from the DOM by a
+   * structural patch (a key change, a parent re-render that drops it, route
+   * navigation away from the subtree it lives in). The Message is the fact
+   * "this element unmounted"; `update` decides what it means.
+   *
+   * Use this for framework-level hygiene that must run as a backstop when an
+   * element disappears without a purposeful teardown Message flowing through
+   * `update` first. A dialog whose `<dialog>` lives in a route-keyed subtree
+   * is the motivating case: navigating away unmounts it without a close, so
+   * the close Command that would release the scroll lock and focus trap never
+   * runs. An `OnUnmount` Message lets `update` release those resources.
+   *
+   * Works across Submodel boundaries. The destroy hook fires during the patch
+   * that removes the element, after the Submodel's own teardown has
+   * deregistered its boundary wrap, so the wrapping chain is resolved eagerly
+   * at render time into a dispatch that still reaches the parent.
+   *
+   * Replay-safe. The runtime suppresses the dispatch during a DevTools
+   * time-travel render, so scrubbing through history never re-runs the
+   * cleanup. Make the resulting `update` handler idempotent: the element
+   * can unmount after a normal close already released its resources, or while
+   * a leave animation is mid-flight.
+   *
+   * This is a backstop, not the primary teardown path. When the cause is a
+   * Message the user dispatched (clicking a close button, pressing Escape),
+   * handle it directly in `update` and return the teardown Command. Reach for
+   * `OnUnmount` only for the unmount-without-a-Message case.
+   *
+   * @example Release a dialog's scroll lock and focus trap on structural unmount
+   * ```ts
+   * h.dialog([h.OnUnmount(UnmountedWhileOpen())], [...])
+   * ```
+   */
+  OnUnmount: (message: Message) => OnUnmount({ message }),
 })
 
-const buildHtmlFactory = <Message>() => ({
+declare const messageUniverse: unique symbol
+
+/**
+ * Phantom marker carrying the builder's Message universe invariantly, so a
+ * builder from the wrong frame is rejected on this property rather than deep
+ * inside the structural comparison of every element constructor. It exists only
+ * to keep the diagnostic short and pointed at the cause.
+ */
+type MessageUniverse<Message> = Readonly<{
+  [messageUniverse]: (message: Message) => Message
+}>
+
+/**
+ * The typed Html builder a view builds DOM with: all HTML, SVG, and MathML
+ * element constructors, attribute constructors, a `keyed` helper for keyed
+ * elements, `empty` for rendering nothing, and `submodel` for embedding a
+ * child Submodel.
+ *
+ * A builder cannot be constructed by application code. The runtime supplies
+ * it to each view alongside the model, typed by the Message universe of the
+ * frame that view renders in: the app's Message for the root view, the
+ * Submodel's own Message inside a `Submodel.defineView`. Used in the frame
+ * that supplied it, a handler built with it carries exactly the Messages that
+ * frame's dispatcher can route, so a Message from another universe (the
+ * classic case: a shared helper building an app-level Message inside a
+ * Submodel) is a compile error at the handler call site.
+ *
+ * The type scopes where a builder is obtained, not where it is used. Carrying
+ * one into another frame, by storing it or handing the builder itself to a
+ * child through `viewInputs`, still compiles and still builds handlers that
+ * frame cannot route. Thread `h` as a parameter; never store it.
+ *
+ * Pass `h` along as an ordinary parameter when extracting view helpers; a
+ * memoized helper receives it through the `createLazy` args array. When a
+ * child must render markup that belongs to an ancestor, the ancestor passes a
+ * renderer that already closed over its own builder, not the builder, so the
+ * handlers resolve in the ancestor's boundary. Where no builder is in scope
+ * at all, typically module scope, use {@link inertHtml}.
+ */
+export type HtmlBuilder<Message> = MessageUniverse<Message> &
+  HtmlElements<Message> &
+  HtmlAttributes<Message> &
+  Readonly<{
+    empty: null
+    keyed: KeyedFunction<Message>
+    submodel: <View extends AnySubmodelView>(
+      config: SubmodelConfig<View, Message>,
+    ) => Html
+  }>
+
+const buildHtmlFactory = <Message>(): Omit<
+  HtmlBuilder<Message>,
+  typeof messageUniverse
+> => ({
   ...htmlElements<Message>(),
   ...htmlAttributes<Message>(),
   empty: null,
   keyed: keyed<Message>(),
-  submodel,
+  submodel: <View extends AnySubmodelView>(
+    config: SubmodelConfig<View, Message>,
+  ) => submodel(config, cachedHtmlBuilder),
 })
 
-const cachedHtmlFactory = buildHtmlFactory<unknown>()
+// NOTE: the Message type parameter is erased at runtime and the element and
+// attribute constructors carry no per-program state (dispatch is read from
+// the runtime singleton frame at call time), so one process-wide builder
+// object serves every frame. Handing out the singleton under a frame's
+// Message type changes the static type and nothing else, so the same object
+// reaches every view. That keeps the builder referentially stable across
+// renders, which `createLazy`'s `===` args comparison relies on when `h` is
+// passed through a memoized helper's args array.
+const cachedHtmlBuilder: HtmlBuilder<unknown> =
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  buildHtmlFactory<unknown>() as HtmlBuilder<unknown>
+
+/** @internal Returns the process-wide builder singleton retyped to a frame's
+ *  Message. Only the runtime, the Scene test harness, and the framework's own
+ *  tests call this, each immediately before invoking a view under the frame
+ *  that Message belongs to. `h.submodel` does not: it receives the singleton
+ *  as a parameter, which is what keeps `index.ts` and `submodel.ts` free of a
+ *  runtime import cycle. Application code receives builders exclusively as
+ *  view parameters. */
+export const __htmlBuilder = <Message>(): HtmlBuilder<Message> =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  cachedHtmlBuilder as HtmlBuilder<Message>
 
 /**
- * Returns all HTML, SVG, and MathML element constructors, attribute
- * constructors, a `keyed` helper for keyed elements, and `empty` for
- * rendering nothing.
+ * Builder whose Message universe is empty. Its Message type is `never`, so
+ * every event-handler constructor is uncallable and nothing built with it can
+ * dispatch a Message. Elements, attributes, and keying behave exactly as they
+ * do on any other builder, and the markup itself is free to vary with runtime
+ * data. Inert describes what the result can do, not how it is computed.
  *
- * The returned object is a process-wide singleton. The `Message` type
- * parameter is erased at runtime, and the element and attribute constructors
- * carry no per-program state (dispatch is read from the runtime singleton at
- * call time), so calling `html()` repeatedly from inside view functions does
- * not allocate a fresh object.
+ * Inert to Foldkit's dispatch, not to the browser. A raw DOM attribute still
+ * does whatever the browser makes of it, which is exactly how the default
+ * crash view gets a working reload button:
+ * `h.Attribute('onclick', 'location.reload()')`. What `never` rules out is a
+ * Message reaching `update`, not every possible behavior.
+ *
+ * Use it where no builder is in scope, which in practice means module scope
+ * and the frameless renders the framework performs itself:
+ *
+ * ```ts
+ * import { inertHtml as ih } from 'foldkit/html'
+ *
+ * const PagefindBody = ih.DataAttribute('pagefind-body', '')
+ * ```
+ *
+ * Attributes it produces are `Attribute<never>`, so they flow into any
+ * Message universe by covariance. That makes it the right builder for
+ * library code emitting handler-free attribute bundles for arbitrary apps.
+ *
+ * Inside a view, use the view's own `h` parameter. A view already holds a
+ * builder, and reaching past it for this one is the habit that made a
+ * caller-chosen Message type possible in the first place.
  */
-export const html = <Message = never>(): ReturnType<
-  typeof buildHtmlFactory<Message>
-> =>
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  cachedHtmlFactory as ReturnType<typeof buildHtmlFactory<Message>>
+export const inertHtml: HtmlBuilder<never> = __htmlBuilder<never>()

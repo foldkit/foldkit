@@ -1,13 +1,11 @@
-import { html } from 'foldkit/html'
+import type { HtmlBuilder } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 
 import { describe, it } from '@effect/vitest'
 
 import {
-  MeasuredContainer,
-  type Message,
+  Message,
   type Model,
-  ScrolledContainer,
   type ViewInputs,
   init,
   update,
@@ -38,26 +36,27 @@ const sceneView =
       'items' | 'itemToKey' | 'itemToView'
     > = {},
   ) =>
-  (model: Model) => {
-    const h = html<Message>()
-
-    return view<DemoItem>()(model, {
-      items: demoItems,
-      itemToKey: item => String(item.id),
-      itemToView: item => h.div([], [h.span([], [item.label])]),
-      overscan: 0,
-      ...overrides,
-    })
-  }
+  (model: Model, h: HtmlBuilder<Message>) =>
+    view<DemoItem>()(
+      model,
+      {
+        items: demoItems,
+        itemToKey: item => String(item.id),
+        itemToView: item => h.div([], [h.span([], [item.label])]),
+        overscan: 0,
+        ...overrides,
+      },
+      h,
+    )
 
 const unmeasuredModel = init({ id: 'test', rowHeightPx: ROW_HEIGHT })
 
 const measuredModel = (() => {
-  const [model] = update(
+  const measurement = update(
     unmeasuredModel,
-    MeasuredContainer({ containerHeight: 90 }),
+    Message.MeasuredContainer({ containerHeight: 90 }),
   )
-  return model
+  return measurement.model
 })()
 
 const container = Scene.selector('ul[data-virtual-list-id="test"]')
@@ -69,7 +68,7 @@ describe('VirtualList', () => {
     it('renders as a ul with id, the data-virtual-list-id selector the subscription relies on, and an explicit role=list for Safari + VoiceOver compatibility', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(unmeasuredModel),
+        Scene.given(unmeasuredModel),
         Scene.expect(container).toExist(),
         Scene.expect(container).toHaveAttr('id', 'test'),
         Scene.expect(container).toHaveAttr('role', 'list'),
@@ -79,7 +78,7 @@ describe('VirtualList', () => {
     it('sets overflow: auto inline so the container scrolls', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(unmeasuredModel),
+        Scene.given(unmeasuredModel),
         Scene.expect(container).toHaveStyle('overflow', 'auto'),
       )
     })
@@ -87,7 +86,7 @@ describe('VirtualList', () => {
     it('applies the consumer className when provided', () => {
       Scene.scene(
         { update, view: sceneView({ containerClassName: 'h-96 bg-white' }) },
-        Scene.with(unmeasuredModel),
+        Scene.given(unmeasuredModel),
         Scene.expect(container).toHaveClass('h-96'),
         Scene.expect(container).toHaveClass('bg-white'),
       )
@@ -98,7 +97,7 @@ describe('VirtualList', () => {
     it('renders no rows before the container is measured', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(unmeasuredModel),
+        Scene.given(unmeasuredModel),
         Scene.expectAll(rows).toHaveCount(0),
       )
     })
@@ -108,7 +107,7 @@ describe('VirtualList', () => {
     it('renders the visible slice of rows once the container is measured', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(measuredModel),
+        Scene.given(measuredModel),
         Scene.expectAll(rows).toHaveCount(3),
       )
     })
@@ -116,7 +115,7 @@ describe('VirtualList', () => {
     it('keys rendered rows by data-virtual-list-item-index in slice order', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(measuredModel),
+        Scene.given(measuredModel),
         Scene.expect(
           Scene.selector('[data-virtual-list-item-index="0"]'),
         ).toExist(),
@@ -132,7 +131,7 @@ describe('VirtualList', () => {
     it('sets each row wrapper to the configured rowHeightPx via inline style', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(measuredModel),
+        Scene.given(measuredModel),
         Scene.expect(
           Scene.selector('[data-virtual-list-item-index="0"]'),
         ).toHaveStyle('height', `${ROW_HEIGHT}px`),
@@ -142,7 +141,7 @@ describe('VirtualList', () => {
     it('sets aria-setsize on each row to the full item count so screen readers announce the logical list size, not the mounted-row count', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(measuredModel),
+        Scene.given(measuredModel),
         Scene.expect(
           Scene.selector('li[data-virtual-list-item-index="0"]'),
         ).toHaveAttr('aria-setsize', '10'),
@@ -152,7 +151,7 @@ describe('VirtualList', () => {
     it('sets aria-posinset on each row to its 1-based logical position so screen readers announce "row N of total"', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(measuredModel),
+        Scene.given(measuredModel),
         Scene.expect(
           Scene.selector('li[data-virtual-list-item-index="0"]'),
         ).toHaveAttr('aria-posinset', '1'),
@@ -163,13 +162,13 @@ describe('VirtualList', () => {
     })
 
     it('sets aria-posinset using the logical (data) index, not the slice index, when scrolled', () => {
-      const [scrolled] = update(
+      const scrolledUpdate = update(
         measuredModel,
-        ScrolledContainer({ scrollTop: 90 }),
+        Message.ScrolledContainer({ scrollTop: 90 }),
       )
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(scrolled),
+        Scene.given(scrolledUpdate.model),
         Scene.expect(
           Scene.selector('li[data-virtual-list-item-index="3"]'),
         ).toHaveAttr('aria-posinset', '4'),
@@ -179,7 +178,7 @@ describe('VirtualList', () => {
     it('uses display: grid on row wrappers so consumer content fills the height', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(measuredModel),
+        Scene.given(measuredModel),
         Scene.expect(
           Scene.selector('[data-virtual-list-item-index="0"]'),
         ).toHaveStyle('display', 'grid'),
@@ -189,7 +188,7 @@ describe('VirtualList', () => {
     it('marks the spacer li elements with role=presentation so they do not break the list semantics', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(measuredModel),
+        Scene.given(measuredModel),
         Scene.expect(topSpacer).toHaveAttr('role', 'presentation'),
       )
     })
@@ -200,17 +199,17 @@ describe('VirtualList', () => {
       item.id % 2 === 0 ? 60 : 20
 
     const variableMeasuredModel = (() => {
-      const [model] = update(
+      const measuredUpdate = update(
         unmeasuredModel,
-        MeasuredContainer({ containerHeight: 90 }),
+        Message.MeasuredContainer({ containerHeight: 90 }),
       )
-      return model
+      return measuredUpdate.model
     })()
 
     it('renders each row at the height returned by itemToRowHeightPx', () => {
       Scene.scene(
         { update, view: sceneView({ itemToRowHeightPx }) },
-        Scene.with(variableMeasuredModel),
+        Scene.given(variableMeasuredModel),
         Scene.expect(
           Scene.selector('[data-virtual-list-item-index="0"]'),
         ).toHaveStyle('height', '60px'),
@@ -223,7 +222,7 @@ describe('VirtualList', () => {
     it('still picks the visible slice from cumulative heights', () => {
       Scene.scene(
         { update, view: sceneView({ itemToRowHeightPx }) },
-        Scene.with(variableMeasuredModel),
+        Scene.given(variableMeasuredModel),
         Scene.expectAll(rows).toHaveCount(3),
       )
     })

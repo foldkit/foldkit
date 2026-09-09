@@ -1,4 +1,5 @@
-import { Scene } from 'foldkit'
+import { click, expect, given, role, scene, text } from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { type Model, update, view } from './main'
@@ -11,60 +12,58 @@ const emptyModel: Model = {
 
 describe('view', () => {
   test('initial view shows the heading, prompt, and Pause + Clear controls', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(emptyModel),
-      Scene.expect(Scene.role('heading', { name: 'Canvas Art' })).toExist(),
-      Scene.expect(Scene.text('Click the canvas to spawn a ball.')).toExist(),
-      Scene.expect(Scene.role('button', { name: 'Pause' })).toExist(),
-      Scene.expect(Scene.role('button', { name: 'Clear' })).toExist(),
-      Scene.expect(Scene.text('0 balls')).toExist(),
+      given(emptyModel),
+      expect(role('heading', { name: 'Canvas Art' })).toExist(),
+      expect(text('Click the canvas to spawn a ball.')).toExist(),
+      expect(role('button', { name: 'Pause' })).toExist(),
+      expect(role('button', { name: 'Clear' })).toExist(),
+      expect(text('0 balls')).toExist(),
     )
   })
 
   test('Pause toggles to Play when the simulation is stopped', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(emptyModel),
-      Scene.click(Scene.role('button', { name: 'Pause' })),
-      Scene.expect(Scene.role('button', { name: 'Play' })).toExist(),
-      Scene.expect(Scene.role('button', { name: 'Pause' })).toBeAbsent(),
+      given(emptyModel),
+      click(role('button', { name: 'Pause' })),
+      expect(role('button', { name: 'Play' })).toExist(),
+      expect(role('button', { name: 'Pause' })).toBeAbsent(),
     )
   })
 
   test('the ball count reflects spawned balls in the Model', () => {
-    const populatedModel: Model = {
-      ...emptyModel,
-      balls: [
+    const populatedModel: Model = evo(emptyModel, {
+      balls: () => [
         { id: 0, x: 10, y: 20, vx: 1, vy: 1, radius: 8, color: '#ff2d55' },
         { id: 1, x: 30, y: 40, vx: -1, vy: 1, radius: 12, color: '#5ac8fa' },
         { id: 2, x: 50, y: 60, vx: 1, vy: -1, radius: 16, color: '#34c759' },
       ],
-      nextId: 3,
-    }
+      nextId: () => 3,
+    })
 
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(populatedModel),
-      Scene.expect(Scene.text('3 balls')).toExist(),
+      given(populatedModel),
+      expect(text('3 balls')).toExist(),
     )
   })
 
   test('Clear empties the rendered ball count', () => {
-    const populatedModel: Model = {
-      ...emptyModel,
-      balls: [
+    const populatedModel: Model = evo(emptyModel, {
+      balls: () => [
         { id: 0, x: 10, y: 20, vx: 1, vy: 1, radius: 8, color: '#ff2d55' },
       ],
-      nextId: 1,
-    }
+      nextId: () => 1,
+    })
 
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(populatedModel),
-      Scene.expect(Scene.text('1 balls')).toExist(),
-      Scene.click(Scene.role('button', { name: 'Clear' })),
-      Scene.expect(Scene.text('0 balls')).toExist(),
+      given(populatedModel),
+      expect(text('1 balls')).toExist(),
+      click(role('button', { name: 'Clear' })),
+      expect(text('0 balls')).toExist(),
     )
   })
 })

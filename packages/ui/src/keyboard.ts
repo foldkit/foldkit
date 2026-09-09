@@ -1,4 +1,4 @@
-import { Array, Match as M, Option, Predicate, pipe } from 'effect'
+import { Array, Match, Option, Predicate, pipe } from 'effect'
 
 /** Whether a keyboard event key is a single printable character (not a named key like "Enter" or "ArrowDown"). */
 export const isPrintableKey = (key: string): boolean => key.length === 1
@@ -30,11 +30,11 @@ export const keyToIndex = (
   const find = findFirstEnabledIndex(itemCount, focusedIndex, isDisabled)
 
   return (key: string): number =>
-    M.value(key).pipe(
-      M.when(nextKey, () => find(focusedIndex + 1, 1)),
-      M.when(previousKey, () => find(focusedIndex - 1, -1)),
-      M.whenOr('Home', 'PageUp', () => find(0, 1)),
-      M.whenOr('End', 'PageDown', () => find(itemCount - 1, -1)),
-      M.orElse(() => focusedIndex),
+    Match.value(key).pipe(
+      Match.when(nextKey, () => find(focusedIndex + 1, 1)),
+      Match.when(previousKey, () => find(focusedIndex - 1, -1)),
+      Match.whenOr('Home', 'PageUp', () => find(0, 1)),
+      Match.whenOr('End', 'PageDown', () => find(itemCount - 1, -1)),
+      Match.orElse(() => focusedIndex),
     )
 }

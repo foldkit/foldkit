@@ -1,49 +1,44 @@
-import { Effect, Match as M, Schema as S } from 'effect'
+import { Effect, Match, Schema } from 'effect'
 
 import * as Command from '../../command/index.js'
-import { type Html, html } from '../../html/index.js'
-import { m } from '../../message/index.js'
+import type { Html, HtmlBuilder } from '../../html/index.js'
+import { defineMessageUnion } from '../../message/index.js'
+import { evo } from '../../struct/index.js'
+import type * as Update from '../../update/index.js'
 
 // MODEL
 
-export const Model = S.Struct({
-  email: S.String,
-  password: S.String,
-  status: S.Literals(['Idle', 'Submitting', 'LoggedIn', 'Error']),
-  username: S.String,
-  error: S.String,
+export const Model = Schema.Struct({
+  email: Schema.String,
+  password: Schema.String,
+  status: Schema.Literals(['Idle', 'Submitting', 'LoggedIn', 'Error']),
+  username: Schema.String,
+  error: Schema.String,
 })
 
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const UpdatedEmail = m('UpdatedEmail', { value: S.String })
-export const UpdatedPassword = m('UpdatedPassword', { value: S.String })
-export const SubmittedLogin = m('SubmittedLogin')
-export const SucceededAuthenticate = m('SucceededAuthenticate', {
-  username: S.String,
+export const Message = defineMessageUnion({
+  UpdatedEmail: { value: Schema.String },
+  UpdatedPassword: { value: Schema.String },
+  SubmittedLogin: {},
+  SucceededAuthenticate: { username: Schema.String },
+  FailedAuthenticate: { error: Schema.String },
+  ClickedLogout: {},
 })
-export const FailedAuthenticate = m('FailedAuthenticate', { error: S.String })
-export const ClickedLogout = m('ClickedLogout')
 
-export const Message = S.Union([
-  UpdatedEmail,
-  UpdatedPassword,
-  SubmittedLogin,
-  SucceededAuthenticate,
-  FailedAuthenticate,
-  ClickedLogout,
-])
 export type Message = typeof Message.Type
 
 // COMMAND
 
-export const Authenticate = Command.define(
-  'Authenticate',
-  SucceededAuthenticate,
-  FailedAuthenticate,
-)(Effect.sync(() => SucceededAuthenticate({ username: 'alice' })))
+export const Authenticate = Command.define('Authenticate', {
+  messages: [Message.SucceededAuthenticate, Message.FailedAuthenticate],
+  execute: Effect.sync(() =>
+    Message.SucceededAuthenticate({ username: 'alice' }),
+  ),
+})
 
 // INIT
 
@@ -57,53 +52,52 @@ export const initialModel: Model = {
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      UpdatedEmail: ({ value }) => [{ ...model, email: value }, []],
-      UpdatedPassword: ({ value }) => [{ ...model, password: value }, []],
-      SubmittedLogin: () => [
-        { ...model, status: 'Submitting' },
-        [Authenticate()],
-      ],
-      SucceededAuthenticate: ({ username }) => [
-        { ...model, status: 'LoggedIn', username },
-        [],
-      ],
-      FailedAuthenticate: ({ error }) => [
-        { ...model, status: 'Error', error },
-        [],
-      ],
-      ClickedLogout: () => [
-        { ...model, status: 'Idle', username: '', email: '', password: '' },
-        [],
-      ],
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    UpdatedEmail: ({ value }) => ({
+      model: evo(model, { email: () => value }),
     }),
-  )
+    UpdatedPassword: ({ value }) => ({
+      model: evo(model, { password: () => value }),
+    }),
+    SubmittedLogin: () => ({
+      model: evo(model, { status: () => 'Submitting' }),
+      commands: [Authenticate()],
+    }),
+    SucceededAuthenticate: ({ username }) => ({
+      model: evo(model, {
+        status: () => 'LoggedIn',
+        username: () => username,
+      }),
+    }),
+    FailedAuthenticate: ({ error }) => ({
+      model: evo(model, { status: () => 'Error', error: () => error }),
+    }),
+    ClickedLogout: () => ({
+      model: evo(model, {
+        status: () => 'Idle',
+        username: () => '',
+        email: () => '',
+        password: () => '',
+      }),
+    }),
+  })
 
 // VIEW
 
-export const view = (model: Model): Html => {
-  const h = html<Message>()
-
+export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
   return h.div(
     [h.Id('app')],
     [
-      M.value(model.status).pipe(
-        M.withReturnType<Html>(),
-        M.when('Submitting', () =>
+      Match.value(model.status).pipe(
+        Match.withReturnType<Html>(),
+        Match.when('Submitting', () =>
           h.form(
-            [h.Class('login-form'), h.Disabled(true)],
+            [h.Class('login-form')],
             [h.button([h.Type('submit'), h.Disabled(true)], ['Signing in...'])],
           ),
         ),
-        M.when('LoggedIn', () =>
+        Match.when('LoggedIn', () =>
           h.div(
             [
               h.Class('logged-in'),
@@ -117,7 +111,7 @@ export const view = (model: Model): Html => {
               ),
               h.button(
                 [
-                  h.OnClick(ClickedLogout()),
+                  h.OnClick(Message.ClickedLogout()),
                   h.Role('button'),
                   h.AriaExpanded(false),
                 ],
@@ -126,21 +120,21 @@ export const view = (model: Model): Html => {
             ],
           ),
         ),
-        M.when('Error', () =>
+        Match.when('Error', () =>
           h.div(
             [],
             [
               h.p([h.Class('error'), h.Role('alert')], [model.error]),
               h.button(
-                [h.OnClick(SubmittedLogin()), h.Class('retry')],
+                [h.OnClick(Message.SubmittedLogin()), h.Class('retry')],
                 ['Retry'],
               ),
             ],
           ),
         ),
-        M.when('Idle', () =>
+        Match.when('Idle', () =>
           h.form(
-            [h.OnSubmit(SubmittedLogin()), h.Class('login-form')],
+            [h.OnSubmit(Message.SubmittedLogin()), h.Class('login-form')],
             [
               h.label([h.For('email'), h.Class('sr-only')], ['Email']),
               h.input([
@@ -148,7 +142,7 @@ export const view = (model: Model): Html => {
                 h.Type('email'),
                 h.Placeholder('Email'),
                 h.Value(model.email),
-                h.OnInput(value => UpdatedEmail({ value })),
+                h.OnInput(value => Message.UpdatedEmail({ value })),
               ]),
               h.label([h.For('password'), h.Class('sr-only')], ['Password']),
               h.input([
@@ -156,7 +150,7 @@ export const view = (model: Model): Html => {
                 h.Type('password'),
                 h.Placeholder('Password'),
                 h.Value(model.password),
-                h.OnInput(value => UpdatedPassword({ value })),
+                h.OnInput(value => Message.UpdatedPassword({ value })),
               ]),
               h.button(
                 [h.Type('submit'), h.Class('primary'), h.Disabled(false)],
@@ -165,7 +159,7 @@ export const view = (model: Model): Html => {
             ],
           ),
         ),
-        M.exhaustive,
+        Match.exhaustive,
       ),
     ],
   )

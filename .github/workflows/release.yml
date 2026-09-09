@@ -1,21 +1,216 @@
 name: Release
 
 on:
+  workflow_dispatch:
+    inputs:
+      published_commit:
+        description: Stable release commit whose npm latest tags were promoted
+        required: true
+        type: string
   push:
     branches:
       - main
+    paths:
+      - '.changeset/**'
+      - 'packages/**'
+      - 'examples/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'scripts/check-changeset-ignore.mjs'
+      - 'scripts/check-create-foldkit-app-smoke.ts'
+      - 'scripts/check-peer-floors.ts'
+      - 'scripts/build-examples.ts'
+      - 'scripts/build-public-packages.mjs'
+      - 'scripts/check-playground-ssg-build.ts'
+      - 'scripts/check-website-release-inputs.mjs'
+      - 'scripts/coherent-release.mjs'
+      - 'scripts/finalize-github-release.mjs'
+      - 'scripts/example-bridge.js'
+      - 'scripts/lib/coherent-release.mjs'
+      - 'scripts/lib/github-release.mjs'
+      - 'scripts/lib/package-version.mjs'
+      - 'scripts/lib/website-package-inputs.mjs'
+      - 'scripts/lib/workspace-packages.mjs'
+      - 'scripts/reset-peer-deps.ts'
+      - 'scripts/restore-website-fonts.sh'
+      - 'scripts/version-alignment-notes.mjs'
+      - 'scripts/website-vercel-config.mjs'
+      - '.npmrc'
+      - 'tsconfig.base.json'
+      - '.github/workflows/deploy-website-build.yml'
+      - '.github/workflows/deploy-website-canary.yml'
+      - '.github/workflows/release.yml'
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 permissions:
-  contents: write
-  pull-requests: write
-  id-token: write
+  contents: read
 
 jobs:
-  release:
-    name: Release
+  version:
+    name: Create or update the Version Packages pull request
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      has_changesets: ${{ steps.changesets.outputs['has-changesets'] }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify changeset ignore list
+        run: pnpm check:changeset-ignore
+
+      - name: Smoke test create-foldkit-app
+        run: pnpm check:create-foldkit-app-smoke
+
+      - name: Create or update the Version Packages pull request
+        id: changesets
+        uses: changesets/action@v2
+        with:
+          version-script: pnpm version-packages
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          SKIP_SIMPLE_GIT_HOOKS: '1'
+
+  stable:
+    name: Upload and verify stable packages
+    if: github.event_name == 'push' && needs.version.outputs.has_changesets == 'false'
+    needs: version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Upgrade npm for OIDC trusted publishing
+        run: |
+          NPM_DIR="$(npm config get prefix)/lib/node_modules/npm"
+          rm -rf "$NPM_DIR"
+          curl -sL https://registry.npmjs.org/npm/-/npm-11.12.1.tgz | tar xz -C "$(dirname "$NPM_DIR")"
+          mv "$(dirname "$NPM_DIR")/package" "$NPM_DIR"
+          npm --version
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify website package inputs are versioned
+        run: pnpm check:website-release-inputs
+
+      - name: Upload and verify stable packages
+        run: pnpm release
+        env:
+          NPM_CONFIG_PROVENANCE: true
+          SKIP_SIMPLE_GIT_HOOKS: '1'
+
+      - name: Notify the maintainer that promotion is ready
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { owner, repo } = context.repo
+            const { data: pullRequests } =
+              await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                owner,
+                repo,
+                commit_sha: context.sha,
+              })
+            const versionPullRequest = pullRequests.find(
+              pullRequest =>
+                pullRequest.head.ref === 'changeset-release/main' &&
+                typeof pullRequest.merged_at === 'string',
+            )
+
+            if (versionPullRequest === undefined) {
+              core.info(
+                'No merged Version Packages pull request is associated with this commit. Skipping the promotion notification.',
+              )
+              return
+            }
+
+            const marker =
+              `<!-- foldkit-release-promotion-ready:${context.sha} -->`
+            const body = [
+              marker,
+              `@devinjameson The stable packages for \`${context.sha}\` are uploaded and verified. They are ready to promote.`,
+              '',
+              'Confirm that `npm whoami` and `gh auth status` both succeed. Then, from a clean local checkout, run:',
+              '',
+              '```bash',
+              'git fetch origin main',
+              `git switch --detach ${context.sha}`,
+              'pnpm install --frozen-lockfile',
+              'pnpm release:promote',
+              '```',
+              '',
+              '`pnpm release:promote` prompts for your npm OTP, moves the complete package set to `latest`, and dispatches GitHub Release creation and the production website deployment.',
+            ].join('\n')
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              {
+                owner,
+                repo,
+                issue_number: versionPullRequest.number,
+                per_page: 100,
+              },
+            )
+            const existingComment = comments.find(comment =>
+              comment.body?.includes(marker),
+            )
+
+            if (existingComment === undefined) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: versionPullRequest.number,
+                body,
+              })
+            } else {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existingComment.id,
+                body,
+              })
+            }
+
+  canary:
+    name: Upload and verify commit-addressed package canary
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -39,21 +234,83 @@ jobs:
           npm --version
 
       - name: Install Dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
-      - name: Verify changeset ignore list
-        run: pnpm check:changeset-ignore
-
-      - name: Smoke test create-foldkit-app
-        run: pnpm check:create-foldkit-app-smoke
-
-      - name: Create Release Pull Request or Publish
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          version: pnpm version-packages
-          publish: pnpm release
+      - name: Upload and verify the canary snapshot
+        run: pnpm release:canary
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
           SKIP_SIMPLE_GIT_HOOKS: '1'
+
+  deploy-website-canary:
+    needs: canary
+    uses: ./.github/workflows/deploy-website-canary.yml
+    with:
+      target: ${{ github.sha }}
+    secrets: inherit
+
+  finalize:
+    name: Finalize the promoted stable release
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the promoted release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.published_commit }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify the promoted release commit
+        env:
+          PUBLISHED_COMMIT: ${{ inputs.published_commit }}
+        run: |
+          if [[ ! "${PUBLISHED_COMMIT}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "published_commit must be a full lowercase Git commit SHA" >&2
+            exit 1
+          fi
+
+          resolved=$(git rev-parse --verify "${PUBLISHED_COMMIT}^{commit}")
+          checked_out=$(git rev-parse HEAD)
+
+          if [ "${PUBLISHED_COMMIT}" != "${resolved}" ] || [ "${checked_out}" != "${resolved}" ]; then
+            echo "the checked-out commit ${checked_out} is not the exact published commit ${PUBLISHED_COMMIT}" >&2
+            exit 1
+          fi
+
+          if ! git merge-base --is-ancestor "${resolved}" refs/remotes/origin/main; then
+            echo "the published commit ${resolved} is not on main" >&2
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify every stable package and latest tag
+        run: pnpm release:verify-latest
+
+      - name: Create matching Git tags and GitHub Releases
+        run: pnpm release:finalize-github
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PUBLISHED_COMMIT: ${{ inputs.published_commit }}
+
+  deploy-website:
+    name: Deploy the promoted website
+    needs: finalize
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/deploy-website.yml
+    with:
+      published_commit: ${{ inputs.published_commit }}
+    secrets: inherit

@@ -1,11 +1,15 @@
-import { Array, Data, Match as M, Option, String as Str } from 'effect'
+import { Array, Data, Option, String } from 'effect'
+import { AsyncData } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import * as Shared from '@typing-game/shared'
 
 import { optionWhen } from '../../../optionWhen'
-import { FocusUserGameTextInput, TickExitCountdown } from '../command'
-import { Model, RoomRemoteData } from '../model'
+import {
+  FocusUserGameTextInput,
+  WaitForExitCountdownInterval,
+} from '../command'
+import { Model, RoomAsyncData } from '../model'
 import type { UpdateReturn } from './update'
 
 const EXIT_COUNTDOWN_SECONDS = 3
@@ -19,21 +23,19 @@ export const handleRoomUpdated =
     room: Shared.Room
     maybePlayerProgress: Option.Option<Shared.PlayerProgress>
   }): UpdateReturn => {
-    const hadRoom = M.value(model.roomRemoteData).pipe(
-      M.tag('Ok', () => true),
-      M.orElse(() => false),
-    )
-    const hadStatusPlaying = M.value(model.roomRemoteData).pipe(
-      M.tag('Ok', ({ data }) => data.status._tag === 'Playing'),
-      M.orElse(() => false),
+    const maybePreviousRoom = AsyncData.getData(model.roomAsyncData)
+    const hadRoom = Option.isSome(maybePreviousRoom)
+    const hadStatusPlaying = Option.exists(
+      maybePreviousRoom,
+      ({ status }) => status._tag === 'Playing',
     )
     const isStatusPlaying = room.status._tag === 'Playing'
 
     const gameJustStarted = hadRoom && !hadStatusPlaying && isStatusPlaying
 
-    const hadStatusFinished = M.value(model.roomRemoteData).pipe(
-      M.tag('Ok', ({ data }) => data.status._tag === 'Finished'),
-      M.orElse(() => false),
+    const hadStatusFinished = Option.exists(
+      maybePreviousRoom,
+      ({ status }) => status._tag === 'Finished',
     )
     const isStatusFinished = room.status._tag === 'Finished'
     const gameJustFinished = hadRoom && !hadStatusFinished && isStatusFinished
@@ -46,9 +48,9 @@ export const handleRoomUpdated =
     )
 
     const nextUserGameText = gameJustStarted
-      ? Str.empty
+      ? String.empty
       : PlayerProgressAction.$match(progressAction, {
-          Clear: () => Str.empty,
+          Clear: () => String.empty,
           Maintain: ({ userGameText }) => userGameText,
           Restore: ({ progress: { userText } }) => userText,
         })
@@ -62,15 +64,15 @@ export const handleRoomUpdated =
         })
 
     const maybeExitCountdown = optionWhen(gameJustFinished, () =>
-      TickExitCountdown(),
+      WaitForExitCountdownInterval(),
     )
     const maybeFocusUserGameText = optionWhen(gameJustStarted, () =>
       FocusUserGameTextInput(),
     )
 
-    return [
-      evo(model, {
-        roomRemoteData: () => RoomRemoteData.Ok({ data: room }),
+    return {
+      model: evo(model, {
+        roomAsyncData: () => RoomAsyncData.Success({ data: room }),
         userGameText: () => nextUserGameText,
         charsTyped: () => nextCharsTyped,
         exitCountdownSecondsLeft: () =>
@@ -78,11 +80,11 @@ export const handleRoomUpdated =
             ? EXIT_COUNTDOWN_SECONDS
             : model.exitCountdownSecondsLeft,
       }),
-      Array.appendAll(
+      commands: Array.appendAll(
         Array.fromOption(maybeExitCountdown),
         Array.fromOption(maybeFocusUserGameText),
       ),
-    ]
+    }
   }
 
 type PlayerProgressAction = Data.TaggedEnum<{
@@ -101,7 +103,7 @@ const determinePlayerProgressAction = (
 ): PlayerProgressAction => {
   if (room.status._tag === 'Finished') {
     return PlayerProgressAction.Clear()
-  } else if (Str.isNonEmpty(currentUserGameText)) {
+  } else if (String.isNonEmpty(currentUserGameText)) {
     return PlayerProgressAction.Maintain({
       userGameText: currentUserGameText,
       charsTyped: currentCharsTyped,

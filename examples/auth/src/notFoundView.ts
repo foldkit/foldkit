@@ -1,13 +1,12 @@
-import { Html, html } from 'foldkit/html'
+import { Html, HtmlBuilder } from 'foldkit/html'
 
-export const notFoundView = (
+export const notFoundView = <Message>(
   path: string,
   backLinkHref: string,
   backLinkText: string,
-): Html => {
-  const h = html()
-
-  return h.div(
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
     [h.Class('max-w-4xl mx-auto px-4 text-center')],
     [
       h.h1(
@@ -24,4 +23,3 @@ export const notFoundView = (
       ),
     ],
   )
-}

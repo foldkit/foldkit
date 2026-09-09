@@ -1,33 +1,16 @@
-import { Schema as S } from 'effect'
 import { Url } from 'foldkit'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest } from 'foldkit/navigation'
 
 import { Home, Room } from './page'
 
-export const CompletedNavigateInternal = m('CompletedNavigateInternal')
-export const CompletedLoadExternal = m('CompletedLoadExternal')
-export const CompletedNavigateRoom = m('CompletedNavigateRoom')
-export const IgnoredKeyPress = m('IgnoredKeyPress')
-export const ClickedLink = m('ClickedLink', {
-  request: UrlRequest,
+export const Message = defineMessageUnion({
+  CompletedNavigateInternal: {},
+  CompletedLoadExternal: {},
+  CompletedNavigateToRoom: {},
+  ClickedLink: { request: UrlRequest },
+  ChangedUrl: { url: Url.Url },
+  GotHomeMessage: { message: Home.Message },
+  GotRoomMessage: { message: Room.Message },
 })
-export const ChangedUrl = m('ChangedUrl', { url: Url.Url })
-export const GotHomeMessage = m('GotHomeMessage', {
-  message: Home.Message.Message,
-})
-export const GotRoomMessage = m('GotRoomMessage', {
-  message: Room.Message.Message,
-})
-
-export const Message = S.Union([
-  CompletedNavigateInternal,
-  CompletedLoadExternal,
-  CompletedNavigateRoom,
-  IgnoredKeyPress,
-  ClickedLink,
-  ChangedUrl,
-  GotHomeMessage,
-  GotRoomMessage,
-])
 export type Message = typeof Message.Type

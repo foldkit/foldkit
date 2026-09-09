@@ -1,31 +1,31 @@
-import { Function, Schema as S } from 'effect'
+import { Function, Schema } from 'effect'
 
 import type { CalendarDate } from './calendarDate.js'
 import { DayOfWeek, dayOfWeek } from './info.js'
 
-const twelveStrings = S.Tuple([
-  S.String,
-  S.String,
-  S.String,
-  S.String,
-  S.String,
-  S.String,
-  S.String,
-  S.String,
-  S.String,
-  S.String,
-  S.String,
-  S.String,
+const twelveStrings = Schema.Tuple([
+  Schema.String,
+  Schema.String,
+  Schema.String,
+  Schema.String,
+  Schema.String,
+  Schema.String,
+  Schema.String,
+  Schema.String,
+  Schema.String,
+  Schema.String,
+  Schema.String,
+  Schema.String,
 ])
 
-const sevenStrings = S.Tuple([
-  S.String,
-  S.String,
-  S.String,
-  S.String,
-  S.String,
-  S.String,
-  S.String,
+const sevenStrings = Schema.Tuple([
+  Schema.String,
+  Schema.String,
+  Schema.String,
+  Schema.String,
+  Schema.String,
+  Schema.String,
+  Schema.String,
 ])
 
 /**
@@ -37,7 +37,7 @@ const sevenStrings = S.Tuple([
  * Day names are always stored Sunday-first in the config; `firstDayOfWeek`
  * controls how the view rotates them at render time.
  */
-export const LocaleConfig = S.Struct({
+export const LocaleConfig = Schema.Struct({
   firstDayOfWeek: DayOfWeek,
   monthNames: twelveStrings,
   shortMonthNames: twelveStrings,

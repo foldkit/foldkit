@@ -1,4 +1,4 @@
-import { Schema as S, pipe } from 'effect'
+import { Option, Schema, pipe } from 'effect'
 import { Route } from 'foldkit'
 import { literal } from 'foldkit/route'
 
@@ -6,17 +6,17 @@ import { literal } from 'foldkit/route'
 const searchRouter = pipe(
   literal('search'),
   Route.query(
-    S.Struct({
-      q: S.OptionFromOptional(S.String),
-      page: S.OptionFromOptional(S.FiniteFromString),
-      sort: S.OptionFromOptional(S.Literals(['Asc', 'Desc'])),
+    Schema.Struct({
+      q: Schema.OptionFromOptional(Schema.String),
+      page: Schema.OptionFromOptional(Schema.FiniteFromString),
+      sort: Schema.OptionFromOptional(Schema.Literals(['Asc', 'Desc'])),
     }),
   ),
-  Route.mapTo(SearchRoute),
+  Route.mapTo(AppRoute.Search),
 )
 
 // Parsing /search?q=hello&page=2&sort=asc gives you:
-// → SearchRoute { q: Some('hello'), page: Some(2), sort: Some('Asc') }
+// → AppRoute.Search { q: Some('hello'), page: Some(2), sort: Some('Asc') }
 
 // Building
 const searchUrl = searchRouter({

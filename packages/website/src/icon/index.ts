@@ -30,6 +30,8 @@ import { pencil } from './pencil'
 import { play } from './play'
 import { puzzle } from './puzzle'
 import { route } from './route'
+import { rss } from './rss'
+import { server } from './server'
 import { shieldCheck } from './shieldCheck'
 import { signal } from './signal'
 import { squareStack } from './squareStack'
@@ -72,6 +74,8 @@ export const Icon = {
   play,
   puzzle,
   route,
+  rss,
+  server,
   shieldCheck,
   signal,
   star,

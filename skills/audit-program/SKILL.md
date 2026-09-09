@@ -6,7 +6,7 @@ argument-hint: '[optional: path or focus area like a11y/effects/naming/decomposi
 
 Audit an existing Foldkit program against the same bar `generate-program` targets: this code should be **indistinguishable in quality from hand-written code in `packages/typing-game/client/src/` or `packages/website/src/`**. Not "works." Not "structurally valid." Typing-game quality.
 
-> **Recommended setup:** the audit is dramatically higher fidelity when `repos/foldkit/` is vendored as a git subtree in the audited project. Without it, you grade against the snapshots in `generate-program/architecture.md` and `conventions.md`. With it, you grade against the live exemplars (`examples/`, `packages/typing-game/`, `packages/website/`), which is what those snapshots are summarizing in the first place. If the subtree is missing, recommend adding it with `git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash` before the audit begins.
+> **Recommended setup:** the audit is dramatically higher fidelity when `repos/foldkit/` is vendored as a git subtree in the audited project. Without it, you grade against the snapshots in `generate-program/architecture.md` and `conventions.md`. With it, you grade against the live exemplars (`examples/`, `packages/typing-game/`, `packages/website/`), which is what those snapshots are summarizing in the first place. If the subtree is missing, recommend adding it before the audit begins, pinned to the release git tag matching the installed `foldkit` package so the exemplars match the APIs the project compiles against: `git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git "foldkit@$(node -p "require('./node_modules/foldkit/package.json').version")" --squash`. For a canary install, whose version (`x.y.z-canary.<commit>`) has no tag, pin to the full hash of the commit it names instead, which GitHub expands at `https://github.com/foldkit/foldkit/commit/<commit>`.
 
 ## Operating principle: report first, change nothing without consent
 
@@ -45,6 +45,9 @@ Read these in order. Every audit, no shortcuts. They're the spec the audit grade
 1. [Architecture guide](../generate-program/architecture.md): TEA invariants, Submodel and OutMessage pattern, Flags, Subscriptions, Mount / Command / ManagedResource / CustomElement selection
 2. [Conventions guide](../generate-program/conventions.md): naming, Effect-TS idioms, Schema patterns, view conventions
 3. [Verification checklist](../generate-program/checklist.md): the canonical mechanical-check + quality-bar reference
+4. [Blind spots](../generate-program/blindSpots.md): the failure modes that survive typecheck, lint, and tests
+
+These four files are a snapshot. When the audited project vendors `repos/foldkit/`, the live source wins over anything here: read the `.d.ts` or the example rather than grading against a remembered signature.
 
 Do not skim. The audit's signal-to-noise depends on the auditor having internalized the bar before reading the audited code.
 
@@ -61,7 +64,7 @@ Before deep review, build a model of the audited code:
    - **Tier 5**: nested domain, CRUD
    - **Tier 6**: Submodels, OutMessage, multi-step flows
    - **Tier 7**: real-time, WebSocket, ManagedResources
-3. **Foldkit modules used**. Grep imports for `Calendar`, `File`, `FieldValidation`, `Ui.*`, `Subscription`, `Command`, `Mount`, `ManagedResource`, `CustomElement`, `Dom`, `HttpClient`, etc. Tells you which checklist sections apply.
+3. **Foldkit modules used**. Grep imports for `AsyncData`, `Calendar`, `File`, `Http`, `Update`, `Port`, `Subscription`, `Command`, `Mount`, `ManagedResource`, `CustomElement`, `Dom` from `foldkit`, plus `foldkit/fieldValidation` and any component imported from `@foldkit/ui`. HTTP usage shows up as `HttpClient` / `HttpClientRequest` imported from `effect/unstable/http`, not as a `foldkit` import, so grep for those separately; `Http` from `foldkit` is only the `layer` that provides the client. Tells you which checklist sections apply.
 4. **Tier-matching exemplar**. Pick at least one to read alongside the audited code:
    - Tier 1-2 → `${CLAUDE_SKILL_DIR}/../../examples/counter/src/main.ts`, `${CLAUDE_SKILL_DIR}/../../examples/stopwatch/src/main.ts`
    - Tier 3 → `${CLAUDE_SKILL_DIR}/../../examples/weather/src/main.ts`, `${CLAUDE_SKILL_DIR}/../../examples/form/src/main.ts`
@@ -69,18 +72,85 @@ Before deep review, build a model of the audited code:
    - Tier 5 → `${CLAUDE_SKILL_DIR}/../../examples/kanban/src/`
    - Tier 6 → `${CLAUDE_SKILL_DIR}/../../examples/auth/src/`, `${CLAUDE_SKILL_DIR}/../../examples/job-application/src/`
    - Tier 7 → `${CLAUDE_SKILL_DIR}/../../packages/typing-game/client/src/page/room/`
-5. **Foldkit UI integration**. If any `Ui.*` is imported, also read `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/main.ts` for the wiring pattern.
+5. **Foldkit UI integration**. If anything is imported from `@foldkit/ui`, also read `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/main.ts` and `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/` for the wiring pattern.
 
 The exemplar is the comparison target. When you find a pattern that smells off, ask: **does the exemplar do this differently?** If yes, flag it.
 
-## Phase 4: Mechanical scans
+## Phase 4: Run the linter, then the mechanical scans
 
-Run the canonical greps from the **Mechanical scans** block in [`../generate-program/checklist.md`](../generate-program/checklist.md). That checklist is the source of truth. Don't duplicate the commands here. Each hit is either a finding or a `// NOTE:` justification. Silent hits aren't allowed.
+### The linter first
+
+`@foldkit/oxlint-plugin` ships 24 AST rules covering much of what this audit
+grades: keyed mapped rows, no array-index keys, hard-coded route strings,
+empty-object tagged calls, `Rel` on external links, spread inside `evo`, `Got*`
+wrapping of child output, PascalCase `Command.define` bindings, Mounts whose
+`execute` ignores its element, module-level mutable state, and `NoOp` Messages.
+They parse the code, so they catch what a grep misses.
+
+Establish whether the rules are actually **active**, which is not the same as
+finding the package name. **The config is the authority here, not the lint
+output.** Locate the config before reading anything out of it. A lint script may
+name one with `--config`, and in a workspace the config usually sits above the
+app rather than beside it:
+
+```bash
+grep -n '"lint"' package.json
+find . .. ../.. -maxdepth 1 -name '.oxlintrc.json' 2>/dev/null
+```
+
+**Finding no config is a different outcome from finding one without Foldkit in
+it, and the two look identical if you only read stdout.** A grep against a
+missing file and a grep against a config that doesn't mention Foldkit both print
+nothing. Branch on whether the `find` located a file at all:
+
+- **No config located**: the outcome is Undetermined, never Not active. The
+  project may well be linted from a parent workspace this audit didn't reach.
+- **Config located**: grep it for `foldkit`. A hit under `extends` pointing at
+  the plugin's `recommended.json`, which is what the scaffold writes, or a
+  `jsPlugins` entry naming the plugin by path specifier, which is how a monorepo
+  or vendored setup wires it and how the Foldkit repo itself does it, means the
+  rules are Active. No hit, but the config has an `extends` entry pointing
+  somewhere else, means follow that file and repeat: a shared internal config can
+  wire the plugin one level up. No hit and nothing left to follow is Not active.
+
+Lint output can confirm activation but can never rule it out. Diagnostics are
+labelled `foldkit(rule-name)`, so seeing `foldkit(` proves the rules ran, and
+grepping for `foldkit/` finds nothing even when every rule is running. Zero
+`foldkit(` matches proves nothing at all: that is what a passing project looks
+like. Never infer "not active" from a quiet lint run.
+
+- **Active**: run the project's lint script. Every `foldkit(...)` diagnostic is a
+  finding, reported like any other, and it outranks a grep hit on the same
+  subject because the rule actually parsed the code. Do not re-derive those
+  findings by hand.
+- **Not active**: report it as the first **QUALITY** item, worded as tooling.
+  Don't file it as a BLOCKER: that bucket is defined for code that is
+  structurally wrong and its item format requires a `file:line`, which a missing
+  devDependency doesn't have. Filing it there would also fail every hand-written
+  app on tooling grounds alone. It is still usually the highest-leverage fix in
+  the audit, so lead the QUALITY list with it: one devDependency and one
+  `extends` line buy continuous enforcement of two dozen invariants, where this
+  audit is a snapshot. Then fall back to the greps, and say in the report that
+  they are a weaker substitute, since they miss wrapped calls and renamed
+  helpers. A clean grep run on an unlinted project is weak evidence, not a pass.
+- **Undetermined**: run the lint script anyway and treat any `foldkit(...)`
+  diagnostic as the Active case, since one diagnostic settles the question. With
+  no diagnostics, fall back to the greps as above, but say the wiring was
+  undetermined rather than missing, and name the paths you searched. Do not
+  recommend installing a plugin that may already be enforcing these rules.
+
+A project scaffolded by `create-foldkit-app` has the plugin installed and wired
+by default, so an audited project lacking it usually predates the scaffold or
+dropped the config.
+
+### Then the scans
+
+Run the canonical greps from the **Mechanical scans** block in [`../generate-program/checklist.md`](../generate-program/checklist.md). That checklist is the source of truth. It covers ground no rule touches (API drift, `@foldkit/ui` adoption, Effect idiom, a11y detail, test shape) plus the deliberate edges of rules that are narrow by design; each such grep names the rule it complements and where that rule stops. Don't duplicate the commands here, and don't delete a scan just because a rule shares its subject: check whether the rule actually covers the case. Note too that `recommended.json` disables every rule for `**/*.test.ts` and `**/*.test.tsx`, so the linter contributes nothing to the test-shape checks in Subagent E. Each hit is either a finding or a `// NOTE:` justification. Silent hits aren't allowed.
 
 For every hit, decide:
 
 - Is there a `// NOTE:` above it justifying the deviation?
-- If yes, evaluate the justification. Is it real, or defensive rationalization? Common false-justifications: "would require duplicate state" (most Ui components have small inline-constructable models), "the interaction is too custom" (the `toView` callback handles arbitrary HTML), "we don't want to wire toParentMessage" (that's the unavoidable cost of a11y-correct interactive widgets, paid once per use).
+- If yes, evaluate the justification. Is it real, or defensive rationalization? Common false-justifications: "would require duplicate state" (most `@foldkit/ui` components have small inline-constructable models, and the controlled render helpers have none at all), "the interaction is too custom" (the `toView` callback handles arbitrary HTML), "we don't want to wire toParentMessage" (that's the unavoidable cost of a11y-correct interactive widgets, paid once per use).
 - If no NOTE, it's a finding.
 
 Mechanical scans catch the cheap stuff. They're the floor of the audit, not the ceiling.
@@ -95,11 +165,20 @@ For non-trivial audits, parallelize. Spawn subagents in a single message so they
 
 Use `Agent` with `subagent_type: general-purpose`. Suggested fan-out:
 
-- **Subagent A (Structural correctness)**. Model schema completeness, Message union coverage, `M.tagsExhaustive` exhaustiveness, every `Succeeded*` paired with `Failed*`, every Command identity defined as a PascalCase constant via `Command.define`, every route variant rendered, no dead state variants. Native web components bound via `CustomElement.define`, not via `OnMount` + Subscription + tag-name registry. Flag any custom element wired through `OnMount` when its surface is just typed properties + observed attributes + dispatched `CustomEvent`s.
-- **Subagent B (Effect-TS idioms)**. `pipe` only for multi-step (no single-op pipes), `Option.match` over `Option.map(...).pipe(Option.getOrElse(...))`, `Array.match` for empty/non-empty branching, `Array.isEmptyArray` over `.length === 0`, `evo` over spread, point-free `evo` setters when they only transform the current field, callable constructors over `as Type`, `Array.fromOption` for "zero or one Command", `Equal.equals` in predicates, no `Effect.ignore` on infallible Effects.
-- **Subagent C (Naming and decomposition)**. `maybe*` reserved for `Option<T>`, `nullable*` for `T | undefined`, `is*` for booleans, no abbreviations, `Updated*` not `Changed*`, `Completed*` mirrors Command name verb-first, named helpers use specific verbs not generic ones, handlers over ~15 lines extracted, view branches over ~30 lines extracted, no function exceeds ~40 lines.
+- **Subagent A (Structural correctness)**. Model schema completeness, Message union coverage, `Message.match` exhaustiveness, every `Succeeded*` paired with `Failed*`, every Command identity defined as a PascalCase constant via `Command.define`, every route variant rendered, no dead state variants. Native web components bound via `CustomElement.define`, not via `OnMount` + Subscription + tag-name registry. Flag any custom element wired through `OnMount` when its surface is just typed properties + observed attributes + dispatched `CustomEvent`s.
+- **Subagent B (Effect-TS idioms)**. Check that `pipe` keeps a transformed value as the subject of clear left-to-right data flow rather than merely rearranging an ordinary call. A single transformation is valid when that order carries meaning, including attaching an OutMessage to an existing update return. Prefer `Option.match` over `Option.map(...).pipe(Option.getOrElse(...))`, `Array.match` for empty/non-empty branching, `Array.match` over `.length === 0` / `.length > 0` for branching on a Model array (the `isArrayEmpty` / `isArrayNonEmpty` predicates take a mutable `Array<A>` and reject `ReadonlyArray`), `evo` over spread, point-free `evo` setters when they only transform the current field, callable constructors over `as Type`, `Array.fromOption` for "zero or one Command", `Equal.equals` in predicates, and no `Effect.ignore` on infallible Effects. Check `AsyncData` over a hand-rolled remote-data union. Inline an update return type when one `Message.match` is its only use. Create an `UpdateReturn` alias when another matcher, helper, or exported signature reuses the type. Do not repeat a return annotation on an update already constrained by `Message.match<UpdateReturn>`.
+
+  Use `Update.Return<Model, Message>` when an update cannot emit an OutMessage. A missing `outMessage` field means that update emitted nothing. The `outMessage?: never` guard prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. A hand-written alias must preserve that guard. Producers omit `commands` when they statically create none. They return computed Commands collections without checking whether they are empty, and never write the literal `commands: []`.
+
+  Keep each result bound to an operation-named value and consume it with dot access. Do not destructure or rename `model`, `commands`, or `outMessage`. Optional Commands pass directly to `Command.mapMessages`; `result.commands ?? []` is for operations that require a concrete array. Dot access keeps the operation and all of its returned fields visible together but does not prevent someone from ignoring `outMessage`. See `repeated-scaffolding` and `manual-update-return-unpacking` in blindSpots.md.
+
+  Flag same-Model operations that manually thread `result.model` and `result.commands` when a later operation consumes the Model produced by an earlier one; they should use `Update.combine`. `Update.combine` needs two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly, and name an inline Step parameter `stepModel` when combining several. When the OutMessage is already known while constructing a new result, include it directly. Use `Update.withOutMessage` for an existing plain return or a value with the type `OutMessage | undefined`: pipe an existing return into the helper, and pass a new result literal first. Flag local helpers or conditional spreads that duplicate `Update.withOutMessage`.
+
+  A child fold includes `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit the property when every variant stops here. `foldOutMessage` still handles each variant locally, including variants that continue upward. Flag `toParentOutMessage: () => undefined`.
+
+- **Subagent C (Naming and decomposition)**. `maybe*` reserved for `Option<T>`, `is*` for booleans, no opaque abbreviations or unexplained single-letter names, conventional domain shorthand allowed, `Updated*` not `Changed*`, `Completed*` mirrors Command name verb-first, named helpers use specific verbs not generic ones, handlers over ~15 lines extracted, view branches over ~30 lines extracted, no function exceeds ~40 lines.
 - **Subagent D (Foldkit UI and accessibility)**. Hand-rolled `input` / `textarea` / `button` / `dialog` flagged unless NOTE-justified, label/input pairing via `For(id)` + `Id(id)`, dynamic errors announce via `Role('alert')` or `AriaLive('polite')`, icon-only buttons have `AriaLabel`, external links carry `Rel('noopener noreferrer')`, exactly one `h1` per route, semantic landmarks (`main`, `nav`, `header`, `footer`) over `div` soup, focus visibility preserved (no `outline-none` without `focus-visible:` replacement).
-- **Subagent E (Testing, Tier 3+)**. `story.test.ts` exists with `Story.story` pipelines, every fallible Command tested for both `Succeeded*` and `Failed*` paths, at least one multi-step interaction test, Submodel tests assert `outMessage`, Commands resolved via `Story.Command.resolve(Definition, resultMessage)` not by running Effects directly. **`scene.test.ts` is REQUIRED at Tier 3+** and is a BLOCKER if absent. Each `Scene.scene` block must contain at least one `Scene.expect(...)` or interactive resolution. Locators must be accessible (`Scene.role`, `Scene.label`, `Scene.text`) over `Scene.placeholder` or CSS selectors.
+- **Subagent E (Testing, Tier 3+)**. `story.test.ts` exists with `story` pipelines, every fallible Command tested for both `Succeeded*` and `Failed*` paths, at least one multi-step interaction test, Submodel tests assert `outMessage`, Commands resolved via `Command.resolve(Definition, resultMessage)` not by running Effects directly. **`scene.test.ts` is REQUIRED at Tier 3+** and is a BLOCKER if absent. Each `scene` block must contain at least one `expect(...)` or interactive resolution. Locators must be accessible (`role`, `label`, `text`) over `placeholder` or CSS selectors.
 
 Each subagent prompt is self-contained: the canonical references to read, the file list to audit, the dimension to grade, and the report format from Phase 6. Each returns its findings as a slice of the eventual report.
 
@@ -107,57 +186,7 @@ For Tier 1-2 or focused audits, do the review inline. The surface is small enoug
 
 ### Walk these blind spots
 
-These are the failure modes that pass typecheck and tests but fall short of the bar. Hit each one explicitly. For each, output one line in your notes: `[#N] <dimension>: clean | flagged at <file:line>: <issue>`.
-
-1. **Off-by-one errors.** Logic with "after N", modulo, "every Nth", counter thresholds, or cycle boundaries. Trace for N=0, N=1, and the first transition. `count % 4 === 0` triggers on count=0. Intended or bug?
-
-2. **Skip / reset semantics.** Skip, reset, cancel, undo. Trace what each does to counters and derived state. Does skip increment the counter or bypass it? Does reset preserve it? Is the behavior consistent with what a user would expect?
-
-3. **State machine edges.** For every discriminated-union state, ask: can the code transition INTO every state? OUT of every state? Are there dead states (created, never entered)? Impossible-but-reachable states?
-
-4. **Redundant derived data in Model.** Fields that could be computed from others. `endTime` AND `remainingMs` on the same state. One can drift. Flag unless there's a documented reason (view needs pure data, etc.).
-
-5. **Repeated inline patterns.** Three or four handlers sharing the same 5-line scaffold (`M.tag` + `M.orElse`, `Option.match` + fallback) want a named helper. Genuinely duplicated decision logic, not coincidental similar shape. Specific case to check: `Match.withReturnType<readonly [Model, readonly Command<Message>[]]>()` written inline at every update site, especially when repeated across files. The convention is to extract once per file: `type UpdateReturn = readonly [Model, ReadonlyArray<Command<Message>>]; const withUpdateReturn = M.withReturnType<UpdateReturn>()`. Inline repetition is a tell that the author hasn't internalized the idiom.
-
-6. **Functions that do two things.** Orchestrators mixing "decide what to do" with "do it." Helpers with `if` branching into unrelated behaviors. Handlers that conflate state and command decisions.
-
-7. **Naming drift, and Messages that name the EFFECT instead of the EVENT.** Two related smells.
-
-   First: `Updated*` here, `Changed*` there for the same kind of event. `whenX` here, `handleX` there for analogous cases. Diverging naming is a quality regression.
-
-   Second: a Message named `Incremented` (the count was incremented) describes the resulting state change, not the user action. The Foldkit convention is verb-first past-tense for the EVENT that caused the update: `ClickedIncrement` (the user clicked the increment button). `Incremented` is past-tense in form but it names the consequence, not the cause. Same trap: `Saved`, `Deleted`, `Added` as Message names. The right names: `ClickedSave`, `ClickedDelete`, `ClickedAdd`, `SucceededSave`, `SucceededDelete`. Look for Messages that read like state mutations rather than user actions or external events.
-
-8. **Effect module inconsistency.** Mixing `items.map(f)` and `Array.map(items, f)` in the same file. Mixing `Option.match` and `Option.map(...).pipe(Option.getOrElse(...))` for similar code. One file should use one idiom throughout.
-
-9. **Stuttery `evo` setters.** If an `evo` setter only transforms that same field, it should be point-free: `entries: Array.map(revealErrors)`, `count: Number.increment`, `stepTabs: Tabs.reflectSelectedTab(value, options)`. Flag `entries: () => Array.map(model.entries, revealErrors)`, `count: () => Number.increment(model.count)`, or `stepTabs: () => Tabs.reflectSelectedTab(model.stepTabs, value, options)`. Replacement values from Messages, child updates, Commands, or other Model fields still use `() => value`.
-
-10. **Empty-object constructor calls.** No-field tagged structs called with `({})`: `Idle({})`, `Work({})`, `ClickedSubmit({})`. Should be `Idle()`, `Work()`, `ClickedSubmit()`. Both compile; exemplars uniformly use no-arg.
-
-11. **Dead state variants, unused fields, and no-op Commands.** Variants set but never observed by the view or other updates. Fields written but never read. Commands that resolve to Messages whose handlers are `[model, []]` (do nothing).
-
-    The **no-op startup Command** pattern shows up at app boot: `init` returns `[DEFAULT_MODEL, [triggerApplicationStarted]]`, the Command resolves to `ApplicationStarted()`, and the update handler is `ApplicationStarted: () => [model, []]`. The Command does nothing. It's bureaucratic ceremony. Either give the Command real work (load preferences, fetch initial data, focus first input, restore session) or delete the Command and the Message together. A Command whose Message handler is a pure no-op is dead code dressed up as architecture.
-
-    The **navigate-before-save** pattern is another instance: if `update` returns BOTH `saveState(...)` AND `navigateInternal(...)` in the same handler, the navigation races the save. A failure surfaced on the old page is unreachable. Idiomatic: emit save only, then navigate in the `Succeeded*` handler. Errors then surface on the page the user is still looking at.
-
-12. **Hard-coded route paths.** `Href('/')`, `navigateInternal('/new')`, ``Href(`/tag/${name}`)``. Routers are bidirectional. Call them as printers: `Href(homeRouter())`, `navigateInternal(newLinkRouter())`, `Href(tagFilterRouter({ tag: name }))`.
-
-13. **Hand-rolled accessible widgets.** Raw `input`, `textarea`, `button`, `dialog`, anything with `role="menu"` / `role="dialog"` / `role="tab"`. `Ui.Input`, `Ui.Textarea`, `Ui.Button`, `Ui.Dialog`, `Ui.Menu`, `Ui.Tabs` exist for a reason. A hand-rolled element without a NOTE explaining why is a BLOCKER, not a style preference. Hand-rolling skips accessibility work.
-
-14. **A11y gaps.** For anything outside `Ui.*` coverage: label/input pairing via `For(id)` + `Id(id)`, dynamic errors announced via `Role('alert')` or `AriaLive('polite')`, icon-only buttons with `AriaLabel`, external links with `Rel('noopener noreferrer')`, exactly one `h1` per route, semantic landmarks over `div` soup. Color is not the only carrier of meaning.
-
-15. **Missing scene test (Tier 3+).** `scene.test.ts` is REQUIRED at Tier 3+. Absent? BLOCKER. Present but no `Scene.expect(...)` or `Scene.Command.resolve(...)` in any block? Same. A Scene that only does `Scene.with(model)` only verifies the view doesn't throw; it doesn't test anything.
-
-16. **ARIA role confusion.** Checkboxes use `Role('checkbox')` + `AriaChecked(boolean)`. Toggle buttons (Play/Pause, Bold on/off, formatting toggles) use `AriaPressed(string)`. Mistaking one for the other is a semantic bug screen readers expose. Ask: does the label say "Mark as done" (checkbox) or "toggle bold" (pressed button)?
-
-17. **Unkeyed list rows.** Rows in `Array.map(items, ...)` carrying `OnClick` handlers bound to specific item ids, without `keyed('li')(item.id, ...)`, are a snabbdom patching bug. Delete from the middle, the OLD row's click handler patches onto a different row. User clicks "Delete B" and habit A is deleted. Subtle: invisible until a delete or reorder happens mid-list. Every row renderer that consumes a domain entity with an `id` should return `keyed('li')(item.id, ...)` or `keyed('div')(item.id, ...)`.
-
-18. **`T[]` syntax for array types.** `readonly Command<Message>[]` and `MyType[]` should be `ReadonlyArray<Command<Message>>` and `Array<MyType>`. Cosmetic but every exemplar is uniform on this. A common spot to find it: the inline `update` return type written as `readonly [Model, readonly Command<Message>[]]` should be `readonly [Model, ReadonlyArray<Command<Message>>]` (and ideally extracted to a `type UpdateReturn` alias, see blind spot #5).
-
-19. **Redundant `type Foo = typeof Foo.Type` declarations on internal app schemas.** Writing `export const Model = S.Struct({...})` followed by `export type Model = typeof Model.Type` is noise when the schema is internal to the app. `typeof Model` works in type positions, and TypeScript merges value-and-type bindings under one name. The exception is library exports where the type is part of a public API consumed externally (e.g. `ViewConfig` callback parameters). For app code, the alias adds a line and a maintenance burden without helping any consumer.
-
-20. **Flat parent Message Union absorbing a child's Messages instead of `Got*` wrapping.** When a parent's `Message = S.Union([ChildMessage, ParentLocalMessage])` directly includes the child's Message variants, every parent handler must know the child's tag names and the child can't grow its Message vocabulary without leaking into the parent. The canonical Submodel pattern wraps: `const GotChildMessage = m('GotChildMessage', { message: Child.Message })`, and the parent's `M.tagsExhaustive` has one `GotChildMessage` case that delegates: `Child.update(model.child, message)`. Flat unions work for trivial cases but don't scale and don't isolate child concerns. If you see a parent handling a child's tags directly, suggest the `Got*` wrapping for any Submodel that's likely to grow (or if the child needs to communicate to the parent via OutMessage).
-
-21. **View functions named after the namespace they're imported under.** A counter feature exporting `counter(model)` reads as `Counter.counter(model)` at call sites, which is awkward and asks the reader to parse "namespace.same-word". The convention from the typing-game and website exemplars: name the primary view function `view`, so call sites read `Counter.view(model)`, `Home.view(model)`, `Room.view(model)`. The namespace already disambiguates; the function name carries the role.
+Walk every entry in [`../generate-program/blindSpots.md`](../generate-program/blindSpots.md). That file is the canonical list, shared with `generate-program`'s review loop, so the two skills grade against one bar. For each entry, output one line in your notes: `<slug>: clean | flagged at <file:line>: <issue>`. Silence is not a pass.
 
 ### Final exemplar comparison
 
@@ -183,8 +212,8 @@ If none: write `None.`
 ## QUALITY
 Items that work but fall short of the bar: generic naming, inline
 handlers that should be extracted, native methods instead of Effect
-modules in pipes, views that should be decomposed, missing keyed
-wrappers, etc. Should fix.
+modules in pipes, views that should be decomposed, branch keys or
+key-only wrapper elements that view identity makes redundant, etc. Should fix.
 Each item: `path/to/file.ts:line: <the gap>. Idiomatic version: <what to write>`.
 Cite the exemplar when relevant: "typing-game does this as X at
 page/home/update/handleKeyPressed.ts:33-40".
@@ -217,7 +246,7 @@ When findings overlap (e.g. one helper has both a naming issue and a length issu
 Then, in a separate turn, ask whether to apply fixes. Group by reversibility and blast radius:
 
 - **Mechanical fixes** (single-line edits, name changes, import reorders, `({})` → `()`): offer to batch as one pass. Even the batch needs explicit consent. "Apply all 12 mechanical fixes?" is a real question with a real answer; don't proceed on assumed yes.
-- **Structural fixes** (handler extraction, Submodel introduction, view decomposition, replacing hand-rolled widgets with `Ui.*`): offer one at a time, confirm each, show the diff before applying.
+- **Structural fixes** (handler extraction, Submodel introduction, view decomposition, replacing hand-rolled widgets with `@foldkit/ui` components): offer one at a time, confirm each, show the diff before applying.
 - **Semantic fixes** (changing state shape, swapping booleans for discriminated unions, restructuring update logic): describe the change in prose, get explicit approval, then apply.
 
 Don't apply fixes silently. Don't apply fixes the user didn't approve. Don't bundle a structural change into a "mechanical" batch. If the user said "audit my app" without saying "and fix what you find", treat that as report-only and ask before doing anything else.
@@ -241,17 +270,19 @@ End with a summary diff: which findings were resolved, which were declined, whic
 
 When `$ARGUMENTS` narrows to a focus area, Phase 5 reduces to the relevant subagents and blind spots. The report still uses the BLOCKERS / QUALITY / NICE-TO-HAVE / VERDICT structure, just scoped.
 
-| Focus           | Subagents                                                                                                                    | Blind spots     |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| `a11y`          | D                                                                                                                            | #12, #13, #15   |
-| `effects`       | B                                                                                                                            | #5, #6, #8, #17 |
-| `naming`        | C                                                                                                                            | #7, #9, #20     |
-| `decomposition` | C                                                                                                                            | #5, #6          |
-| `forms`         | D + form-specific (Ui.Input adoption, fieldValidation usage, label/input pairing)                                            | #12, #13        |
-| `routing`       | A + routing-specific (bidirectional parser usage, keyed branches on `route._tag`, `urlToString` in `Internal` case)          | #11             |
-| `subscriptions` | A + subscription-specific (`Subscription.make` shape, `S.Struct({})` for always-active, message mapping inside `Stream.map`) | none            |
-| `testing`       | E                                                                                                                            | #14             |
-| `submodels`     | A + submodel-specific (Got\* wrapping, three-tuple update returns with OutMessage, parent ↔ child Message isolation)         | #19             |
-| `types`         | (inline) type-shape and aliasing                                                                                             | #17, #18        |
+Blind spots are named by their slug in [`../generate-program/blindSpots.md`](../generate-program/blindSpots.md). Cross-reference by slug, never by position.
 
-For focused audits, skip Phase 4's full grep block and run only the greps relevant to the focus (e.g. for `a11y`, run `label without For`, `outline-none without focus-visible`, `_blank without Rel`).
+| Focus           | Subagents                                                                                                                                            | Blind spots                                                                                                                                                                                            |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `a11y`          | D                                                                                                                                                    | `hand-rolled-widgets`, `a11y-gaps`, `aria-role-confusion`                                                                                                                                              |
+| `effects`       | B                                                                                                                                                    | `repeated-scaffolding`, `manual-update-return-unpacking`, `functions-doing-two-things`, `effect-module-inconsistency`, `stuttery-evo-setters`, `hand-rolled-async-state`, `manual-cache-orchestration` |
+| `naming`        | C                                                                                                                                                    | `naming-drift`, `messages-naming-the-effect`, `view-named-after-namespace`                                                                                                                             |
+| `decomposition` | C                                                                                                                                                    | `repeated-scaffolding`, `functions-doing-two-things`                                                                                                                                                   |
+| `forms`         | D + form-specific (`Input` / `Textarea` adoption, fieldValidation usage, label/input pairing)                                                        | `hand-rolled-widgets`, `a11y-gaps`                                                                                                                                                                     |
+| `routing`       | A + routing-specific (bidirectional parser usage, route views as identity boundaries with no keyed route branches, `urlToString` in `Internal` case) | `hard-coded-route-paths`, `data-derived-keys`                                                                                                                                                          |
+| `subscriptions` | A + subscription-specific (`Subscription.make` shape, `{}` fields for always-active, message mapping inside `Stream.map`)                            | `state-machine-edges`                                                                                                                                                                                  |
+| `testing`       | E                                                                                                                                                    | `missing-scene-test`                                                                                                                                                                                   |
+| `submodels`     | A + submodel-specific (Got\* wrapping, optional `outMessage` returns, parent ↔ child Message isolation)                                              | `manual-update-return-unpacking`, `flat-parent-message-union`, `view-named-after-namespace`                                                                                                            |
+| `types`         | (inline) type-shape and aliasing                                                                                                                     | `manual-update-return-unpacking`, `array-type-syntax`, `unearned-type-aliases`, `hand-rolled-async-state`                                                                                              |
+
+For focused audits, skip Phase 4's full grep block and run only the greps relevant to the focus (e.g. for `a11y`, run `label without For`, `outline-none without focus-visible`, and the `_blank` scan, reading each hit's attribute block for `Rel`).

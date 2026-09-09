@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
-import { html } from 'foldkit/html'
+import { HtmlBuilder } from 'foldkit/html'
 
 import {
   type Telemetry,
@@ -14,16 +14,11 @@ import {
   totalCommits,
   totalDownloads,
 } from '../domain'
-import {
-  GotChartModeRadioGroupMessage,
-  GotPackageIdRadioGroupMessage,
-  GotPeriodRadioGroupMessage,
-  type Message,
-} from '../message'
+import { Message } from '../message'
 import { type Model } from '../model'
 import {
   ChartModeRadioGroup,
-  PackageIdRadioGroup,
+  PackageRadioGroup,
   PeriodRadioGroup,
 } from '../radioGroups'
 import { formatCompact, formatFetchedAt, formatInteger } from './format'
@@ -32,17 +27,15 @@ export const sidebarView = (
   model: Model,
   telemetry: Telemetry,
   maybeBanner: Option.Option<string>,
-): Html => {
-  const h = html<Message>()
-
-  return h.aside(
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.aside(
     [h.Class('flex flex-col gap-4')],
     [
       Option.match(maybeBanner, {
         onNone: () => h.empty,
         onSome: banner =>
-          h.keyed('div')(
-            'TelemetryBanner',
+          h.div(
             [
               h.Class(
                 'rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950',
@@ -51,17 +44,17 @@ export const sidebarView = (
             [banner],
           ),
       }),
-      summaryGridView(telemetry),
-      controlPanelView(model),
-      packagePanelView(model, telemetry),
-      contributorsView(telemetry),
+      summaryGridView(telemetry, h),
+      controlPanelView(model, h),
+      packagePanelView(model, telemetry, h),
+      contributorsView(telemetry, h),
     ],
   )
-}
 
-export const summaryGridView = (telemetry: Telemetry): Html => {
-  const h = html<Message>()
-
+export const summaryGridView = (
+  telemetry: Telemetry,
+  h: HtmlBuilder<Message>,
+): Html => {
   const summaries = [
     {
       id: 'stars',
@@ -88,11 +81,9 @@ export const summaryGridView = (telemetry: Telemetry): Html => {
   return h.div(
     [h.Class('grid grid-cols-2 gap-3')],
     Array.map(summaries, summary =>
-      h.div(
-        [
-          h.Key(summary.id),
-          h.Class('rounded-md border border-zinc-200 bg-white p-3'),
-        ],
+      h.keyed('div')(
+        summary.id,
+        [h.Class('rounded-md border border-zinc-200 bg-white p-3')],
         [
           h.div(
             [h.Class('text-xs font-medium text-zinc-500')],
@@ -119,10 +110,8 @@ const radioOptionClassName = (isSelected: boolean): string =>
       : 'text-zinc-600 hover:text-zinc-950',
   )
 
-export const controlPanelView = (model: Model): Html => {
-  const h = html<Message>()
-
-  return h.section(
+export const controlPanelView = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.section(
     [h.Class('rounded-md border border-zinc-200 bg-white p-3')],
     [
       h.h2([h.Class('text-sm font-semibold text-zinc-950')], ['View']),
@@ -138,6 +127,7 @@ export const controlPanelView = (model: Model): Html => {
             model: model.chartModeRadioGroup,
             view: ChartModeRadioGroup.view,
             viewInputs: {
+              selectedValue: Option.some(model.chartMode),
               options: chartModes,
               ariaLabel: 'Chart mode',
               orientation: 'Horizontal',
@@ -157,13 +147,12 @@ export const controlPanelView = (model: Model): Html => {
                 ),
             },
             toParentMessage: message =>
-              GotChartModeRadioGroupMessage({ message }),
+              Message.GotChartModeRadioGroupMessage({ message }),
           }),
         ],
       ),
       model.chartMode !== 'Ecosystem'
-        ? h.keyed('div')(
-            'period-control',
+        ? h.div(
             [h.Class('mt-3')],
             [
               h.div(
@@ -175,6 +164,7 @@ export const controlPanelView = (model: Model): Html => {
                 model: model.periodRadioGroup,
                 view: PeriodRadioGroup.view,
                 viewInputs: {
+                  selectedValue: Option.some(model.period),
                   options: periods,
                   ariaLabel: 'Period',
                   orientation: 'Horizontal',
@@ -194,19 +184,20 @@ export const controlPanelView = (model: Model): Html => {
                     ),
                 },
                 toParentMessage: message =>
-                  GotPeriodRadioGroupMessage({ message }),
+                  Message.GotPeriodRadioGroupMessage({ message }),
               }),
             ],
           )
         : h.empty,
     ],
   )
-}
 
-export const packagePanelView = (model: Model, telemetry: Telemetry): Html => {
-  const h = html<Message>()
-
-  return h.section(
+export const packagePanelView = (
+  model: Model,
+  telemetry: Telemetry,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.section(
     [h.Class('rounded-md border border-zinc-200 bg-white p-3')],
     [
       h.h2([h.Class('text-sm font-semibold text-zinc-950')], ['Package']),
@@ -214,10 +205,11 @@ export const packagePanelView = (model: Model, telemetry: Telemetry): Html => {
         [h.Class('mt-3')],
         [
           h.submodel({
-            slotId: model.packageIdRadioGroup.id,
-            model: model.packageIdRadioGroup,
-            view: PackageIdRadioGroup.view,
+            slotId: model.packageRadioGroup.id,
+            model: model.packageRadioGroup,
+            view: PackageRadioGroup.view,
             viewInputs: {
+              selectedValue: Option.some(model.selectedPackageId),
               options: packageIds,
               ariaLabel: 'Package',
               orientation: 'Vertical',
@@ -265,18 +257,18 @@ export const packagePanelView = (model: Model, telemetry: Telemetry): Html => {
                 ),
             },
             toParentMessage: message =>
-              GotPackageIdRadioGroupMessage({ message }),
+              Message.GotPackageRadioGroupMessage({ message }),
           }),
         ],
       ),
     ],
   )
-}
 
-export const contributorsView = (telemetry: Telemetry): Html => {
-  const h = html<Message>()
-
-  return h.section(
+export const contributorsView = (
+  telemetry: Telemetry,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.section(
     [h.Class('rounded-md border border-zinc-200 bg-white p-3')],
     [
       h.div(
@@ -315,4 +307,3 @@ export const contributorsView = (telemetry: Telemetry): Html => {
       ),
     ],
   )
-}

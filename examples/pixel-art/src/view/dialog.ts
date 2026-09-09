@@ -1,14 +1,9 @@
 import { Option } from 'effect'
-import { type Html, html } from 'foldkit/html'
+import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Button, Dialog } from '@foldkit/ui'
 
-import {
-  ConfirmedGridSizeChange,
-  GotErrorDialogMessage,
-  GotGridSizeConfirmDialogMessage,
-  type Message,
-} from '../message'
+import { Message } from '../message'
 
 const dialogClassName =
   'bg-transparent p-0 open:flex items-center justify-center'
@@ -19,21 +14,28 @@ const panelClassName =
 export const errorDialogView = (
   errorDialog: typeof Dialog.Model.Type,
   maybeExportError: Option.Option<string>,
-): Html => {
-  const h = html<Message>()
-
-  return h.submodel({
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.submodel({
     slotId: errorDialog.id,
     model: errorDialog,
     view: Dialog.view,
     viewInputs: {
       hasDescription: true,
-      toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+      toView: ({
+        dialog,
+        backdrop,
+        panel,
+        closeButton,
+        title,
+        description,
+        isVisible,
+      }) =>
         h.dialog(
           [...dialog, h.Class(dialogClassName)],
           isVisible
             ? [
-                h.div([...backdrop, h.Class(backdropClassName)], []),
+                h.div([...backdrop, h.Class(backdropClassName)]),
                 h.div(
                   [...panel, h.Class(panelClassName)],
                   Option.match(maybeExportError, {
@@ -41,16 +43,13 @@ export const errorDialogView = (
                     onSome: error => [
                       h.h2(
                         [
+                          ...title,
                           h.Class('text-lg font-semibold text-red-400 mb-2'),
-                          h.Id(Dialog.titleId(errorDialog)),
                         ],
                         ['Export Failed'],
                       ),
                       h.p(
-                        [
-                          h.Class('text-sm text-gray-400 mb-4'),
-                          h.Id(Dialog.descriptionId(errorDialog)),
-                        ],
+                        [...description, h.Class('text-sm text-gray-400 mb-4')],
                         [error],
                       ),
                       h.button(
@@ -69,28 +68,34 @@ export const errorDialogView = (
             : [],
         ),
     },
-    toParentMessage: message => GotErrorDialogMessage({ message }),
+    toParentMessage: message => Message.GotErrorDialogMessage({ message }),
   })
-}
 
 export const gridSizeConfirmDialogView = (
   gridSizeConfirmDialog: typeof Dialog.Model.Type,
   maybePendingGridSize: Option.Option<number>,
-): Html => {
-  const h = html<Message>()
-
-  return h.submodel({
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.submodel({
     slotId: gridSizeConfirmDialog.id,
     model: gridSizeConfirmDialog,
     view: Dialog.view,
     viewInputs: {
       hasDescription: true,
-      toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+      toView: ({
+        dialog,
+        backdrop,
+        panel,
+        closeButton,
+        title,
+        description,
+        isVisible,
+      }) =>
         h.dialog(
           [...dialog, h.Class(dialogClassName)],
           isVisible
             ? [
-                h.div([...backdrop, h.Class(backdropClassName)], []),
+                h.div([...backdrop, h.Class(backdropClassName)]),
                 h.div(
                   [...panel, h.Class(panelClassName)],
                   Option.match(maybePendingGridSize, {
@@ -98,16 +103,13 @@ export const gridSizeConfirmDialogView = (
                     onSome: pendingSize => [
                       h.h2(
                         [
+                          ...title,
                           h.Class('text-lg font-semibold text-gray-100 mb-2'),
-                          h.Id(Dialog.titleId(gridSizeConfirmDialog)),
                         ],
                         [`Change to ${pendingSize}×${pendingSize}?`],
                       ),
                       h.p(
-                        [
-                          h.Class('text-sm text-gray-400 mb-5'),
-                          h.Id(Dialog.descriptionId(gridSizeConfirmDialog)),
-                        ],
+                        [...description, h.Class('text-sm text-gray-400 mb-5')],
                         ['This will clear your canvas and reset undo history.'],
                       ),
                       h.div(
@@ -122,19 +124,22 @@ export const gridSizeConfirmDialogView = (
                             ],
                             ['Cancel'],
                           ),
-                          Button.view({
-                            onClick: ConfirmedGridSizeChange(),
-                            toView: attributes =>
-                              h.button(
-                                [
-                                  ...attributes.button,
-                                  h.Class(
-                                    'flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-500 transition motion-reduce:transition-none cursor-pointer',
-                                  ),
-                                ],
-                                ['Clear and Resize'],
-                              ),
-                          }),
+                          Button.view(
+                            {
+                              onClick: Message.ConfirmedGridSizeChange(),
+                              toView: attributes =>
+                                h.button(
+                                  [
+                                    ...attributes.button,
+                                    h.Class(
+                                      'flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-500 transition motion-reduce:transition-none cursor-pointer',
+                                    ),
+                                  ],
+                                  ['Clear and Resize'],
+                                ),
+                            },
+                            h,
+                          ),
                         ],
                       ),
                     ],
@@ -144,6 +149,6 @@ export const gridSizeConfirmDialogView = (
             : [],
         ),
     },
-    toParentMessage: message => GotGridSizeConfirmDialogMessage({ message }),
+    toParentMessage: message =>
+      Message.GotGridSizeConfirmDialogMessage({ message }),
   })
-}

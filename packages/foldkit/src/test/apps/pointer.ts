@@ -1,23 +1,25 @@
-import { Match as M, Option, Schema as S } from 'effect'
+import { Number, Option, Schema } from 'effect'
 
-import { type Html, html } from '../../html/index.js'
-import { m } from '../../message/index.js'
+import type { Html, HtmlBuilder } from '../../html/index.js'
+import { defineMessageUnion } from '../../message/index.js'
+import { evo } from '../../struct/index.js'
+import type * as Update from '../../update/index.js'
 
 // MODEL
 
-export const Model = S.Struct({
-  pointerDownCount: S.Number,
-  pointerUpCount: S.Number,
-  lastPointerType: S.String,
+export const Model = Schema.Struct({
+  pointerDownCount: Schema.Number,
+  pointerUpCount: Schema.Number,
+  lastPointerType: Schema.String,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-const PressedPointerDown = m('PressedPointerDown', { pointerType: S.String })
-const ReleasedPointerUp = m('ReleasedPointerUp', { pointerType: S.String })
-
-const Message = S.Union([PressedPointerDown, ReleasedPointerUp])
+const Message = defineMessageUnion({
+  PressedPointerDown: { pointerType: Schema.String },
+  ReleasedPointerUp: { pointerType: Schema.String },
+})
 type Message = typeof Message.Type
 
 // INIT
@@ -30,37 +32,25 @@ export const initialModel: Model = {
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<never>] =>
-  M.value(message).pipe(
-    M.withReturnType<readonly [Model, ReadonlyArray<never>]>(),
-    M.tagsExhaustive({
-      PressedPointerDown: ({ pointerType }) => [
-        {
-          ...model,
-          pointerDownCount: model.pointerDownCount + 1,
-          lastPointerType: pointerType,
-        },
-        [],
-      ],
-      ReleasedPointerUp: ({ pointerType }) => [
-        {
-          ...model,
-          pointerUpCount: model.pointerUpCount + 1,
-          lastPointerType: pointerType,
-        },
-        [],
-      ],
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    PressedPointerDown: ({ pointerType }) => ({
+      model: evo(model, {
+        pointerDownCount: Number.increment,
+        lastPointerType: () => pointerType,
+      }),
     }),
-  )
+    ReleasedPointerUp: ({ pointerType }) => ({
+      model: evo(model, {
+        pointerUpCount: Number.increment,
+        lastPointerType: () => pointerType,
+      }),
+    }),
+  })
 
 // VIEW
 
-export const view = (model: Model): Html => {
-  const h = html<Message>()
-
+export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
   return h.div(
     [],
     [
@@ -68,10 +58,10 @@ export const view = (model: Model): Html => {
         [
           h.AriaLabel('pointer target'),
           h.OnPointerDown(pointerType =>
-            Option.some(PressedPointerDown({ pointerType })),
+            Option.some(Message.PressedPointerDown({ pointerType })),
           ),
           h.OnPointerUp((_screenX, _screenY, pointerType, _timeStamp) =>
-            Option.some(ReleasedPointerUp({ pointerType })),
+            Option.some(Message.ReleasedPointerUp({ pointerType })),
           ),
         ],
         [`down=${model.pointerDownCount} up=${model.pointerUpCount}`],
@@ -80,7 +70,7 @@ export const view = (model: Model): Html => {
         [
           h.AriaLabel('nested target'),
           h.OnPointerDown(pointerType =>
-            Option.some(PressedPointerDown({ pointerType })),
+            Option.some(Message.PressedPointerDown({ pointerType })),
           ),
         ],
         [h.span([], [`type=${model.lastPointerType}`])],

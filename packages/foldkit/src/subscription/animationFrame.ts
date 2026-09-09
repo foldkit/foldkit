@@ -1,4 +1,4 @@
-import { Effect, Queue, Schema as S, Stream } from 'effect'
+import { Effect, Queue, Schema, Stream } from 'effect'
 
 /**
  * Configuration for the `animationFrame` Subscription helper.
@@ -66,7 +66,7 @@ const makeAnimationFrameStream = <Message>(
 export const animationFrame = <Model, Message>(
   config: AnimationFrameConfig<Model, Message>,
 ) => ({
-  dependenciesSchema: S.Struct({ isActive: S.Boolean }),
+  dependenciesSchema: Schema.Struct({ isActive: Schema.Boolean }),
   modelToDependencies: (model: Model) => ({
     isActive: config.isActive(model),
   }),

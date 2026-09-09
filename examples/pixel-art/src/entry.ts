@@ -1,7 +1,5 @@
 import { Runtime } from 'foldkit'
 
-import { overlay } from '@foldkit/devtools'
-
 import {
   Flags,
   Message,
@@ -16,16 +14,14 @@ import {
 const application = Runtime.makeApplication({
   Model,
   Flags,
-  flags,
   init,
   update,
   view,
   subscriptions,
   container: document.getElementById('root'),
   devTools: {
-    overlay,
     Message,
   },
 })
 
-Runtime.run(application)
+Runtime.run(application, { flags })

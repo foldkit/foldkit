@@ -1,23 +1,11 @@
+import { Option } from 'effect'
 import { Submodel } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Combobox, Dialog } from '@foldkit/ui'
 
-import {
-  ClickedDeleteProject,
-  ClickedEditFilters,
-  ClickedOpenAnimatedDialog,
-  ClickedOpenDialog,
-  ClickedOpenProjectSettings,
-  GotDialogAnimatedDemoMessage,
-  GotDialogDemoMessage,
-  GotNestedDialogChildDemoMessage,
-  GotNestedDialogParentDemoMessage,
-  GotOverlayComboboxDemoMessage,
-  GotOverlayDialogDemoMessage,
-  type UiMessage,
-} from '../message'
-import type { UiModel } from '../model'
+import { Message as UiMessage } from '../message'
+import type { City, UiModel } from '../model'
 import { CityCombobox, comboboxInputs } from './combobox'
 
 const triggerClassName =
@@ -42,8 +30,16 @@ const animatedPanelClassName =
 
 const titleClassName = 'text-lg font-normal text-gray-900 mb-2'
 
+const descriptionClassName = 'text-gray-600 mb-4'
+
 const dialogClassName =
   'bg-transparent p-0 open:flex items-center justify-center'
+
+const actionsClassName = 'flex gap-2 justify-end'
+
+const triggerRowClassName = 'flex gap-3'
+
+const sectionHeadingClassName = 'text-lg font-semibold text-gray-900 mt-8 mb-4'
 
 const cancelButtonClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100'
@@ -61,27 +57,36 @@ const OVERLAY_COMBOBOX_ANCHOR = {
   portal: false,
 }
 
-const dialogPanel = (
-  dialogModel: Dialog.Model,
-  closeButton: Dialog.RenderInfo['closeButton'],
-): Html => {
-  const h = html<UiMessage>()
+// PANEL CONTENT
 
-  return h.div(
+const trigger = (
+  label: string,
+  message: UiMessage,
+  h: HtmlBuilder<UiMessage>,
+): Html =>
+  h.div(
+    [h.Class(triggerRowClassName)],
+    [h.button([h.Class(triggerClassName), h.OnClick(message)], [label])],
+  )
+
+const confirmContent = (
+  closeButton: Dialog.RenderInfo['closeButton'],
+  title: Dialog.RenderInfo['title'],
+  description: Dialog.RenderInfo['description'],
+  h: HtmlBuilder<UiMessage>,
+): Html =>
+  h.div(
     [],
     [
-      h.h2(
-        [h.Class(titleClassName), h.Id(Dialog.titleId(dialogModel))],
-        ['Confirm Action'],
-      ),
+      h.h2([...title, h.Class(titleClassName)], ['Confirm Action']),
       h.p(
-        [h.Class('text-gray-600 mb-4')],
+        [...description, h.Class(descriptionClassName)],
         [
           'Are you sure you want to proceed? This action demonstrates the Dialog component with focus trapping, backdrop click, and Escape key handling.',
         ],
       ),
       h.div(
-        [h.Class('flex gap-2 justify-end')],
+        [h.Class(actionsClassName)],
         [
           h.button(
             [...closeButton, h.Class(cancelButtonClassName)],
@@ -95,295 +100,333 @@ const dialogPanel = (
       ),
     ],
   )
-}
+
+const editFiltersContent = (
+  title: Dialog.RenderInfo['title'],
+  description: Dialog.RenderInfo['description'],
+  comboboxModel: Combobox.Model,
+  maybeSelectedCity: Option.Option<City>,
+  h: HtmlBuilder<UiMessage>,
+): ReadonlyArray<Html> => [
+  h.h2([...title, h.Class(titleClassName)], ['Edit filters']),
+  h.p(
+    [...description, h.Class(descriptionClassName)],
+    [
+      'With portal: false, the combobox panel stays inside the dialog instead of rendering behind it.',
+    ],
+  ),
+  h.submodel({
+    slotId: comboboxModel.id,
+    model: comboboxModel,
+    view: CityCombobox.view,
+    viewInputs: {
+      ...comboboxInputs(
+        {
+          inputValue: comboboxModel.inputValue,
+          restingInputValue: Option.getOrElse(maybeSelectedCity, () => ''),
+          anchor: OVERLAY_COMBOBOX_ANCHOR,
+          wrapperClass: 'relative w-full',
+        },
+        h,
+      ),
+      maybeSelectedValue: maybeSelectedCity,
+    },
+    toParentMessage: message =>
+      UiMessage.GotOverlayComboboxDemoMessage({ message }),
+  }),
+]
+
+const projectSettingsContent = (
+  closeButton: Dialog.RenderInfo['closeButton'],
+  title: Dialog.RenderInfo['title'],
+  description: Dialog.RenderInfo['description'],
+  h: HtmlBuilder<UiMessage>,
+): ReadonlyArray<Html> => [
+  h.h2([...title, h.Class(titleClassName)], ['Project settings']),
+  h.p(
+    [...description, h.Class(descriptionClassName)],
+    [
+      'Deleting the project removes all of its data. The confirmation opens as a second dialog stacked on top of this one.',
+    ],
+  ),
+  h.div(
+    [h.Class(actionsClassName)],
+    [
+      h.button([...closeButton, h.Class(cancelButtonClassName)], ['Close']),
+      h.button(
+        [
+          h.Class(dangerButtonClassName),
+          h.OnClick(UiMessage.ClickedDeleteProject()),
+        ],
+        ['Delete project'],
+      ),
+    ],
+  ),
+]
+
+const deleteProjectContent = (
+  closeButton: Dialog.RenderInfo['closeButton'],
+  title: Dialog.RenderInfo['title'],
+  description: Dialog.RenderInfo['description'],
+  h: HtmlBuilder<UiMessage>,
+): ReadonlyArray<Html> => [
+  h.h2([...title, h.Class(titleClassName)], ['Delete project?']),
+  h.p(
+    [...description, h.Class(descriptionClassName)],
+    [
+      'This permanently deletes the project and cannot be undone. Escape closes this confirmation first, then the settings dialog.',
+    ],
+  ),
+  h.div(
+    [h.Class(actionsClassName)],
+    [
+      h.button([...closeButton, h.Class(cancelButtonClassName)], ['Cancel']),
+      h.button([...closeButton, h.Class(dangerButtonClassName)], ['Delete']),
+    ],
+  ),
+]
+
+// DEMOS
+
+const basicDemo = (
+  dialogModel: Dialog.Model,
+  h: HtmlBuilder<UiMessage>,
+): Html =>
+  h.submodel({
+    slotId: dialogModel.id,
+    model: dialogModel,
+    view: Dialog.view,
+    viewInputs: {
+      hasDescription: true,
+      toView: ({
+        dialog,
+        backdrop,
+        panel,
+        closeButton,
+        title,
+        description,
+        isVisible,
+      }) =>
+        h.dialog(
+          [...dialog, h.Class(dialogClassName)],
+          isVisible
+            ? [
+                h.div([...backdrop, h.Class(backdropClassName)]),
+                h.div(
+                  [...panel, h.Class(panelClassName)],
+                  [confirmContent(closeButton, title, description, h)],
+                ),
+              ]
+            : [],
+        ),
+    },
+    toParentMessage: message => UiMessage.GotDialogDemoMessage({ message }),
+  })
+
+const animatedDemo = (
+  dialogModel: Dialog.Model,
+  h: HtmlBuilder<UiMessage>,
+): Html =>
+  h.submodel({
+    slotId: dialogModel.id,
+    model: dialogModel,
+    view: Dialog.view,
+    viewInputs: {
+      hasDescription: true,
+      toView: ({
+        dialog,
+        backdrop,
+        panel,
+        closeButton,
+        title,
+        description,
+        isVisible,
+      }) =>
+        h.dialog(
+          [...dialog, h.Class(dialogClassName)],
+          isVisible
+            ? [
+                h.div([...backdrop, h.Class(animatedBackdropClassName)]),
+                h.div(
+                  [...panel, h.Class(animatedPanelClassName)],
+                  [confirmContent(closeButton, title, description, h)],
+                ),
+              ]
+            : [],
+        ),
+    },
+    toParentMessage: message =>
+      UiMessage.GotDialogAnimatedDemoMessage({ message }),
+  })
 
 const overlayDemo = (
   dialogModel: Dialog.Model,
   comboboxModel: Combobox.Model,
-): Html => {
-  const h = html<UiMessage>()
-
-  return h.div(
+  maybeSelectedCity: Option.Option<City>,
+  h: HtmlBuilder<UiMessage>,
+): Html =>
+  h.div(
     [],
     [
-      h.div(
-        [h.Class('flex gap-3')],
-        [
-          h.button(
-            [h.Class(triggerClassName), h.OnClick(ClickedEditFilters())],
-            ['Edit filters'],
-          ),
-        ],
-      ),
+      trigger('Edit filters', UiMessage.ClickedEditFilters(), h),
       h.submodel({
         slotId: dialogModel.id,
         model: dialogModel,
         view: Dialog.view,
         viewInputs: {
-          toView: ({ dialog, backdrop, panel, isVisible }) =>
+          hasDescription: true,
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            title,
+            description,
+            isVisible,
+          }) =>
             h.dialog(
               [...dialog, h.Class(dialogClassName)],
               isVisible
                 ? [
-                    h.div([...backdrop, h.Class(backdropClassName)], []),
+                    h.div([...backdrop, h.Class(backdropClassName)]),
                     h.div(
                       [...panel, h.Class(panelClassName)],
-                      [
-                        h.h2(
-                          [
-                            h.Class(titleClassName),
-                            h.Id(Dialog.titleId(dialogModel)),
-                          ],
-                          ['Edit filters'],
-                        ),
-                        h.p(
-                          [h.Class('text-gray-600 mb-4')],
-                          [
-                            'With portal: false, the combobox panel stays inside the dialog instead of rendering behind it.',
-                          ],
-                        ),
-                        h.submodel({
-                          slotId: comboboxModel.id,
-                          model: comboboxModel,
-                          view: CityCombobox.view,
-                          viewInputs: comboboxInputs(
-                            comboboxModel.inputValue,
-                            OVERLAY_COMBOBOX_ANCHOR,
-                            'relative w-full',
-                          ),
-                          toParentMessage: message =>
-                            GotOverlayComboboxDemoMessage({ message }),
-                        }),
-                      ],
+                      editFiltersContent(
+                        title,
+                        description,
+                        comboboxModel,
+                        maybeSelectedCity,
+                        h,
+                      ),
                     ),
                   ]
                 : [],
             ),
         },
-        toParentMessage: message => GotOverlayDialogDemoMessage({ message }),
+        toParentMessage: message =>
+          UiMessage.GotOverlayDialogDemoMessage({ message }),
       }),
     ],
   )
-}
 
 const nestedDemo = (
   parentDialogModel: Dialog.Model,
   childDialogModel: Dialog.Model,
-): Html => {
-  const h = html<UiMessage>()
-
-  return h.div(
+  h: HtmlBuilder<UiMessage>,
+): Html =>
+  h.div(
     [],
     [
-      h.div(
-        [h.Class('flex gap-3')],
-        [
-          h.button(
-            [
-              h.Class(triggerClassName),
-              h.OnClick(ClickedOpenProjectSettings()),
-            ],
-            ['Open project settings'],
-          ),
-        ],
+      trigger(
+        'Open project settings',
+        UiMessage.ClickedOpenProjectSettings(),
+        h,
       ),
       h.submodel({
         slotId: parentDialogModel.id,
         model: parentDialogModel,
         view: Dialog.view,
         viewInputs: {
-          toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+          hasDescription: true,
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            closeButton,
+            title,
+            description,
+            isVisible,
+          }) =>
             h.dialog(
               [...dialog, h.Class(dialogClassName)],
               isVisible
                 ? [
-                    h.div([...backdrop, h.Class(backdropClassName)], []),
+                    h.div([...backdrop, h.Class(backdropClassName)]),
                     h.div(
                       [...panel, h.Class(settingsPanelClassName)],
-                      [
-                        h.h2(
-                          [
-                            h.Class(titleClassName),
-                            h.Id(Dialog.titleId(parentDialogModel)),
-                          ],
-                          ['Project settings'],
-                        ),
-                        h.p(
-                          [h.Class('text-gray-600 mb-4')],
-                          [
-                            'Deleting the project removes all of its data. The confirmation opens as a second dialog stacked on top of this one.',
-                          ],
-                        ),
-                        h.div(
-                          [h.Class('flex gap-2 justify-end')],
-                          [
-                            h.button(
-                              [...closeButton, h.Class(cancelButtonClassName)],
-                              ['Close'],
-                            ),
-                            h.button(
-                              [
-                                h.Class(dangerButtonClassName),
-                                h.OnClick(ClickedDeleteProject()),
-                              ],
-                              ['Delete project'],
-                            ),
-                          ],
-                        ),
-                      ],
+                      projectSettingsContent(
+                        closeButton,
+                        title,
+                        description,
+                        h,
+                      ),
                     ),
                   ]
                 : [],
             ),
         },
         toParentMessage: message =>
-          GotNestedDialogParentDemoMessage({ message }),
+          UiMessage.GotNestedDialogParentDemoMessage({ message }),
       }),
       h.submodel({
         slotId: childDialogModel.id,
         model: childDialogModel,
         view: Dialog.view,
         viewInputs: {
-          toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
+          hasDescription: true,
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            closeButton,
+            title,
+            description,
+            isVisible,
+          }) =>
             h.dialog(
               [...dialog, h.Class(dialogClassName)],
               isVisible
                 ? [
-                    h.div([...backdrop, h.Class(backdropClassName)], []),
+                    h.div([...backdrop, h.Class(backdropClassName)]),
                     h.div(
                       [...panel, h.Class(confirmPanelClassName)],
-                      [
-                        h.h2(
-                          [
-                            h.Class(titleClassName),
-                            h.Id(Dialog.titleId(childDialogModel)),
-                          ],
-                          ['Delete project?'],
-                        ),
-                        h.p(
-                          [h.Class('text-gray-600 mb-4')],
-                          [
-                            'This permanently deletes the project and cannot be undone. Escape closes this confirmation first, then the settings dialog.',
-                          ],
-                        ),
-                        h.div(
-                          [h.Class('flex gap-2 justify-end')],
-                          [
-                            h.button(
-                              [...closeButton, h.Class(cancelButtonClassName)],
-                              ['Cancel'],
-                            ),
-                            h.button(
-                              [...closeButton, h.Class(dangerButtonClassName)],
-                              ['Delete'],
-                            ),
-                          ],
-                        ),
-                      ],
+                      deleteProjectContent(closeButton, title, description, h),
                     ),
                   ]
                 : [],
             ),
         },
         toParentMessage: message =>
-          GotNestedDialogChildDemoMessage({ message }),
+          UiMessage.GotNestedDialogChildDemoMessage({ message }),
       }),
     ],
   )
-}
 
-export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
-  const h = html<UiMessage>()
+// VIEW
 
-  return h.div(
-    [],
-    [
-      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Dialog']),
+export const view = Submodel.defineView<UiModel, UiMessage>(
+  (model, h): Html => {
+    return h.div(
+      [],
+      [
+        h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Dialog']),
 
-      h.h3(
-        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-        ['Basic'],
-      ),
-      h.div(
-        [h.Class('flex gap-3')],
-        [
-          h.button(
-            [h.Class(triggerClassName), h.OnClick(ClickedOpenDialog())],
-            ['Open Dialog'],
-          ),
-        ],
-      ),
-      h.submodel({
-        slotId: model.dialogDemo.id,
-        model: model.dialogDemo,
-        view: Dialog.view,
-        viewInputs: {
-          toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
-            h.dialog(
-              [...dialog, h.Class(dialogClassName)],
-              isVisible
-                ? [
-                    h.div([...backdrop, h.Class(backdropClassName)], []),
-                    h.div(
-                      [...panel, h.Class(panelClassName)],
-                      [dialogPanel(model.dialogDemo, closeButton)],
-                    ),
-                  ]
-                : [],
-            ),
-        },
-        toParentMessage: message => GotDialogDemoMessage({ message }),
-      }),
+        h.h3([h.Class(sectionHeadingClassName)], ['Basic']),
+        trigger('Open Dialog', UiMessage.ClickedOpenDialog(), h),
+        basicDemo(model.dialogDemo, h),
 
-      h.h3(
-        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-        ['Animated'],
-      ),
-      h.div(
-        [h.Class('flex gap-3')],
-        [
-          h.button(
-            [h.Class(triggerClassName), h.OnClick(ClickedOpenAnimatedDialog())],
-            ['Open Animated Dialog'],
-          ),
-        ],
-      ),
-      h.submodel({
-        slotId: model.dialogAnimatedDemo.id,
-        model: model.dialogAnimatedDemo,
-        view: Dialog.view,
-        viewInputs: {
-          toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
-            h.dialog(
-              [...dialog, h.Class(dialogClassName)],
-              isVisible
-                ? [
-                    h.div(
-                      [...backdrop, h.Class(animatedBackdropClassName)],
-                      [],
-                    ),
-                    h.div(
-                      [...panel, h.Class(animatedPanelClassName)],
-                      [dialogPanel(model.dialogAnimatedDemo, closeButton)],
-                    ),
-                  ]
-                : [],
-            ),
-        },
-        toParentMessage: message => GotDialogAnimatedDemoMessage({ message }),
-      }),
+        h.h3([h.Class(sectionHeadingClassName)], ['Animated']),
+        trigger(
+          'Open Animated Dialog',
+          UiMessage.ClickedOpenAnimatedDialog(),
+          h,
+        ),
+        animatedDemo(model.dialogAnimatedDemo, h),
 
-      h.h3(
-        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-        ['Field'],
-      ),
-      overlayDemo(model.overlayDialogDemo, model.overlayComboboxDemo),
+        h.h3([h.Class(sectionHeadingClassName)], ['Field']),
+        overlayDemo(
+          model.overlayDialogDemo,
+          model.overlayComboboxDemo,
+          model.maybeOverlayComboboxDemoSelectedCity,
+          h,
+        ),
 
-      h.h3(
-        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-        ['Stacked'],
-      ),
-      nestedDemo(model.nestedDialogParentDemo, model.nestedDialogChildDemo),
-    ],
-  )
-})
+        h.h3([h.Class(sectionHeadingClassName)], ['Stacked']),
+        nestedDemo(
+          model.nestedDialogParentDemo,
+          model.nestedDialogChildDemo,
+          h,
+        ),
+      ],
+    )
+  },
+)

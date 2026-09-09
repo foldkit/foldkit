@@ -1,26 +1,26 @@
-import { Option, Schema as S } from 'effect'
+import { Option, Schema } from 'effect'
 import type { Runtime } from 'foldkit'
-import { m } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 
-const Model = S.Struct({
-  count: S.Number,
-  startingCount: S.Option(S.Number),
+const Model = Schema.Struct({
+  count: Schema.Number,
+  startingCount: Schema.Option(Schema.Number),
 })
 type Model = typeof Model.Type
 
-const Flags = S.Struct({
-  savedCount: S.Option(S.Number),
+const Flags = Schema.Struct({
+  savedCount: Schema.Option(Schema.Number),
 })
 type Flags = typeof Flags.Type
 
-const ClickedIncrement = m('ClickedIncrement')
-const Message = S.Union([ClickedIncrement])
+const Message = defineMessageUnion({
+  ClickedIncrement: {},
+})
 type Message = typeof Message.Type
 
-const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => [
-  {
+const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
+  model: {
     count: Option.getOrElse(flags.savedCount, () => 0),
     startingCount: flags.savedCount,
   },
-  [],
-]
+})

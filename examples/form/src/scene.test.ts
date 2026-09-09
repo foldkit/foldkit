@@ -1,11 +1,22 @@
-import { FieldValidation, Scene } from 'foldkit'
+import { FieldValidation } from 'foldkit'
+import {
+  Command,
+  click,
+  expect,
+  given,
+  label,
+  role,
+  scene,
+  submit,
+  type,
+} from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import {
+  Message,
   SubmitForm,
-  SubmittedForm,
   ValidateEmail,
-  ValidatedEmail,
   initialModel,
   update,
   view,
@@ -13,180 +24,139 @@ import {
 
 describe('view', () => {
   test('initial view shows all fields and a disabled submit button', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(initialModel),
-      Scene.expect(
-        Scene.role('heading', { name: 'Join Our Waitlist' }),
-      ).toExist(),
-      Scene.expect(Scene.label('Name')).toExist(),
-      Scene.expect(Scene.label('Email')).toExist(),
-      Scene.expect(
-        Scene.label("Anything you'd like to share with us?"),
-      ).toExist(),
-      Scene.expect(
-        Scene.role('button', { name: 'Join Waitlist' }),
-      ).toBeDisabled(),
+      given(initialModel),
+      expect(role('heading', { name: 'Join Our Waitlist' })).toExist(),
+      expect(label('Name')).toExist(),
+      expect(label('Email')).toExist(),
+      expect(label("Anything you'd like to share with us?")).toExist(),
+      expect(role('button', { name: 'Join Waitlist' })).toBeDisabled(),
     )
   })
 
   test('typing a short name shows a validation error via accessible description', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(initialModel),
-      Scene.type(Scene.label('Name'), 'A'),
-      Scene.expect(Scene.label('Name')).toHaveAccessibleDescription(
+      given(initialModel),
+      type(label('Name'), 'A'),
+      expect(label('Name')).toHaveAccessibleDescription(
         'Name must be at least 2 characters',
       ),
     )
   })
 
   test('typing a malformed email surfaces a synchronous validation error', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(initialModel),
-      Scene.type(Scene.label('Email'), 'not-an-email'),
-      Scene.expect(Scene.label('Email')).toHaveAccessibleDescription(
+      given(initialModel),
+      type(label('Email'), 'not-an-email'),
+      expect(label('Email')).toHaveAccessibleDescription(
         'Please enter a valid email address',
       ),
     )
   })
 
   test('typing a well-formed email triggers async validation', () => {
-    const modelWithValidName = {
-      ...initialModel,
-      name: FieldValidation.Valid({ value: 'Alice' }),
-    }
+    const modelWithValidName = evo(initialModel, {
+      name: () => FieldValidation.Valid({ value: 'Alice' }),
+    })
 
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(modelWithValidName),
-      Scene.type(Scene.label('Email'), 'alice@example.com'),
-      Scene.expect(Scene.label('Email')).toHaveAccessibleDescription(
-        'Checking...',
-      ),
-      Scene.expect(
-        Scene.role('button', { name: 'Join Waitlist' }),
-      ).toBeDisabled(),
-      Scene.Command.expectExact(ValidateEmail),
-      Scene.Command.resolve(
+      given(modelWithValidName),
+      type(label('Email'), 'alice@example.com'),
+      expect(label('Email')).toHaveAccessibleDescription('Checking...'),
+      expect(role('button', { name: 'Join Waitlist' })).toBeDisabled(),
+      Command.expectExact(ValidateEmail),
+      Command.resolve(
         ValidateEmail,
-        ValidatedEmail({
-          validationId: 1,
+        Message.CompletedValidateEmail({
           field: FieldValidation.Valid({ value: 'alice@example.com' }),
         }),
       ),
-      Scene.expect(
-        Scene.role('button', { name: 'Join Waitlist' }),
-      ).toBeEnabled(),
+      expect(role('button', { name: 'Join Waitlist' })).toBeEnabled(),
     )
   })
 
   test('async validation can flag an email as taken', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(initialModel),
-      Scene.type(Scene.label('Email'), 'test@example.com'),
-      Scene.Command.expectExact(ValidateEmail),
-      Scene.Command.resolve(
+      given(initialModel),
+      type(label('Email'), 'test@example.com'),
+      Command.expectExact(ValidateEmail),
+      Command.resolve(
         ValidateEmail,
-        ValidatedEmail({
-          validationId: 1,
+        Message.CompletedValidateEmail({
           field: FieldValidation.Invalid({
             value: 'test@example.com',
             errors: ['This email is already on our waitlist'],
           }),
         }),
       ),
-      Scene.expect(Scene.label('Email')).toHaveAccessibleDescription(
+      expect(label('Email')).toHaveAccessibleDescription(
         'This email is already on our waitlist',
       ),
     )
   })
 
   test('submit becomes enabled once name and email are valid', () => {
-    const validModel = {
-      ...initialModel,
-      name: FieldValidation.Valid({ value: 'Alice' }),
-      email: FieldValidation.Valid({ value: 'alice@example.com' }),
-    }
+    const validModel = evo(initialModel, {
+      name: () => FieldValidation.Valid({ value: 'Alice' }),
+      email: () => FieldValidation.Valid({ value: 'alice@example.com' }),
+    })
 
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(validModel),
-      Scene.expect(
-        Scene.role('button', { name: 'Join Waitlist' }),
-      ).toBeEnabled(),
+      given(validModel),
+      expect(role('button', { name: 'Join Waitlist' })).toBeEnabled(),
     )
   })
 
   test('submitting a valid form shows the loading label then a success banner', () => {
-    const validModel = {
-      ...initialModel,
-      name: FieldValidation.Valid({ value: 'Alice' }),
-      email: FieldValidation.Valid({ value: 'alice@example.com' }),
-    }
+    const validModel = evo(initialModel, {
+      name: () => FieldValidation.Valid({ value: 'Alice' }),
+      email: () => FieldValidation.Valid({ value: 'alice@example.com' }),
+    })
 
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(validModel),
-      Scene.click(Scene.role('button', { name: 'Join Waitlist' })),
-      Scene.expect(Scene.role('button', { name: 'Joining...' })).toBeDisabled(),
-      Scene.Command.expectExact(SubmitForm),
-      Scene.Command.resolve(
+      given(validModel),
+      click(role('button', { name: 'Join Waitlist' })),
+      expect(role('button', { name: 'Joining...' })).toBeDisabled(),
+      Command.expectExact(SubmitForm),
+      Command.resolve(
         SubmitForm,
-        SubmittedForm({
-          success: true,
-          name: 'Alice',
-          email: 'alice@example.com',
-          messageText: '',
-        }),
+        Message.SucceededSubmitForm({ name: 'Alice' }),
       ),
-      Scene.expect(Scene.role('status')).toContainText(
-        'Welcome to the waitlist, Alice!',
-      ),
-      Scene.expect(Scene.role('button', { name: 'Join Waitlist' })).toExist(),
+      expect(role('status')).toContainText('Welcome to the waitlist, Alice!'),
+      expect(role('button', { name: 'Join Waitlist' })).toExist(),
     )
   })
 
   test('a failed submission renders an error banner', () => {
-    const validModel = {
-      ...initialModel,
-      name: FieldValidation.Valid({ value: 'Alice' }),
-      email: FieldValidation.Valid({ value: 'alice@example.com' }),
-    }
+    const validModel = evo(initialModel, {
+      name: () => FieldValidation.Valid({ value: 'Alice' }),
+      email: () => FieldValidation.Valid({ value: 'alice@example.com' }),
+    })
 
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(validModel),
-      Scene.submit(Scene.role('form')),
-      Scene.Command.expectExact(SubmitForm),
-      Scene.Command.resolve(
-        SubmitForm,
-        SubmittedForm({
-          success: false,
-          name: 'Alice',
-          email: 'alice@example.com',
-          messageText: '',
-        }),
-      ),
-      Scene.expect(Scene.role('alert')).toContainText(
-        'Sorry, there was an error',
-      ),
+      given(validModel),
+      submit(role('form')),
+      Command.expectExact(SubmitForm),
+      Command.resolve(SubmitForm, Message.FailedSubmitForm()),
+      expect(role('alert')).toContainText('Sorry, there was an error'),
     )
   })
 
   test('submitting an invalid form (e.g. via Enter key) is rejected by update', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(initialModel),
-      Scene.expect(
-        Scene.role('button', { name: 'Join Waitlist' }),
-      ).toBeDisabled(),
-      Scene.submit(Scene.role('form')),
-      Scene.expect(
-        Scene.role('button', { name: 'Join Waitlist' }),
-      ).toBeDisabled(),
+      given(initialModel),
+      expect(role('button', { name: 'Join Waitlist' })).toBeDisabled(),
+      submit(role('form')),
+      expect(role('button', { name: 'Join Waitlist' })).toBeDisabled(),
     )
   })
 })

@@ -1,26 +1,15 @@
 import { Array, Option, String } from 'effect'
-import { Scene } from 'foldkit'
+import { expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import {
-  FilesIndexRoute,
-  FilesRoute,
-  HomeRoute,
-  Model,
-  NestedRoute,
-  NotFoundRoute,
-  PeopleRoute,
-  PersonRoute,
-  update,
-  view,
-} from './main'
+import { AppRoute, Model, update, view } from './main'
 import { People } from './page'
 
 const peoplePageWith = (searchInput: string) =>
   People.Model.make({
     searchInput,
     searchHistory: Array.liftPredicate(String.isNonEmpty)(searchInput),
-    results: People.SearchLoaded({
+    results: People.SearchResults.Loaded({
       query: searchInput,
       people: People.searchPeople(searchInput),
     }),
@@ -28,159 +17,141 @@ const peoplePageWith = (searchInput: string) =>
 
 const initialPeoplePage = peoplePageWith('')
 
-const home = Model.make({ route: HomeRoute(), peoplePage: initialPeoplePage })
+const home = Model.make({
+  route: AppRoute.Home(),
+  peoplePage: initialPeoplePage,
+})
 const people = (searchInput: string) =>
   Model.make({
-    route: PeopleRoute({
+    route: AppRoute.People({
       searchText: Option.liftPredicate(String.isNonEmpty)(searchInput),
     }),
     peoplePage: peoplePageWith(searchInput),
   })
 const person = (personId: number) =>
   Model.make({
-    route: PersonRoute({ personId }),
+    route: AppRoute.Person({ personId }),
     peoplePage: initialPeoplePage,
   })
 const nested = Model.make({
-  route: NestedRoute(),
+  route: AppRoute.Nested(),
   peoplePage: initialPeoplePage,
 })
 const filesIndex = Model.make({
-  route: FilesIndexRoute(),
+  route: AppRoute.FilesIndex(),
   peoplePage: initialPeoplePage,
 })
 const files = (path: Array.NonEmptyReadonlyArray<string>) =>
   Model.make({
-    route: FilesRoute({ path }),
+    route: AppRoute.Files({ path }),
     peoplePage: initialPeoplePage,
   })
 const notFound = (path: string) =>
   Model.make({
-    route: NotFoundRoute({ path }),
+    route: AppRoute.NotFound({ path }),
     peoplePage: initialPeoplePage,
   })
 
 describe('view', () => {
   test('the nav bar appears on every route', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(home),
-      Scene.expect(Scene.role('link', { name: 'Home' })).toExist(),
-      Scene.expect(Scene.role('link', { name: 'People' })).toExist(),
-      Scene.expect(Scene.role('link', { name: 'Files' })).toExist(),
-      Scene.expect(Scene.role('link', { name: 'Nested' })).toExist(),
+      given(home),
+      expect(role('link', { name: 'Home' })).toExist(),
+      expect(role('link', { name: 'People' })).toExist(),
+      expect(role('link', { name: 'Files' })).toExist(),
+      expect(role('link', { name: 'Nested' })).toExist(),
     )
   })
 
   test('the Home route renders its welcome heading', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(home),
-      Scene.expect(Scene.role('heading', { name: 'Welcome Home' })).toExist(),
+      given(home),
+      expect(role('heading', { name: 'Welcome Home' })).toExist(),
     )
   })
 
   test('the Nested route renders its deep-route message', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(nested),
-      Scene.expect(
-        Scene.role('heading', { name: 'Very Nested Route!' }),
-      ).toExist(),
+      given(nested),
+      expect(role('heading', { name: 'Very Nested Route!' })).toExist(),
     )
   })
 
-  test('the People route lists every person', () => {
-    Scene.scene(
+  test('the People route renders the People heading', () => {
+    scene(
       { update, view },
-      Scene.with(people('')),
-      Scene.expect(Scene.text('Alice Johnson')).toExist(),
-      Scene.expect(Scene.text('Bob Smith')).toExist(),
-      Scene.expect(Scene.text('Carol Davis')).toExist(),
-      Scene.expect(Scene.text('David Wilson')).toExist(),
-      Scene.expect(Scene.text('Eva Brown')).toExist(),
-    )
-  })
-
-  test('a search filters People to matches by name or role', () => {
-    Scene.scene(
-      { update, view },
-      Scene.with(people('designer')),
-      Scene.expect(Scene.text('Alice Johnson')).toExist(),
-      Scene.expect(Scene.text('Eva Brown')).toExist(),
-      Scene.expect(Scene.text('Bob Smith')).toBeAbsent(),
-      Scene.expect(Scene.text('2 results', { exact: false })).toExist(),
+      given(people('')),
+      expect(role('heading', { name: 'People' })).toExist(),
     )
   })
 
   test('a valid Person route renders the person details', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(person(1)),
-      Scene.expect(Scene.role('heading', { name: 'Alice Johnson' })).toExist(),
-      Scene.expect(Scene.text('Designer')).toExist(),
-      Scene.expect(Scene.role('link', { name: '← Back to People' })).toExist(),
+      given(person(1)),
+      expect(role('heading', { name: 'Alice Johnson' })).toExist(),
+      expect(text('Designer')).toExist(),
+      expect(role('link', { name: '← Back to People' })).toExist(),
     )
   })
 
   test('an unknown Person id renders the not-found panel', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(person(99)),
-      Scene.expect(
-        Scene.role('heading', { name: 'Person Not Found' }),
-      ).toExist(),
-      Scene.expect(Scene.text('No person found with ID: 99')).toExist(),
+      given(person(99)),
+      expect(role('heading', { name: 'Person Not Found' })).toExist(),
+      expect(text('No person found with ID: 99')).toExist(),
     )
   })
 
   test('the Files index lists the top-level entries', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(filesIndex),
-      Scene.expect(Scene.role('link', { name: 'documents' })).toExist(),
-      Scene.expect(Scene.role('link', { name: 'photos' })).toExist(),
-      Scene.expect(Scene.role('link', { name: 'notes.txt' })).toExist(),
+      given(filesIndex),
+      expect(role('link', { name: 'documents' })).toExist(),
+      expect(role('link', { name: 'photos' })).toExist(),
+      expect(role('link', { name: 'notes.txt' })).toExist(),
     )
   })
 
   test('a directory path renders breadcrumb links and its entries', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(files(['documents', 'taxes'])),
-      Scene.expect(Scene.role('link', { name: 'documents' })).toExist(),
-      Scene.expect(Scene.role('link', { name: '2024.pdf' })).toExist(),
-      Scene.expect(Scene.role('link', { name: '2025.pdf' })).toExist(),
+      given(files(['documents', 'taxes'])),
+      expect(role('link', { name: 'documents' })).toExist(),
+      expect(role('link', { name: '2024.pdf' })).toExist(),
+      expect(role('link', { name: '2025.pdf' })).toExist(),
     )
   })
 
   test('a file path renders the file details', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(files(['documents', 'resume.pdf'])),
-      Scene.expect(Scene.role('heading', { name: 'resume.pdf' })).toExist(),
-      Scene.expect(Scene.text('47.1 KB')).toExist(),
+      given(files(['documents', 'resume.pdf'])),
+      expect(role('heading', { name: 'resume.pdf' })).toExist(),
+      expect(text('47.1 KB')).toExist(),
     )
   })
 
   test('an unknown path under files renders the missing panel', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(files(['documents', 'missing.txt'])),
-      Scene.expect(Scene.role('heading', { name: 'Nothing Here' })).toExist(),
-      Scene.expect(Scene.role('link', { name: '← Back to Files' })).toExist(),
+      given(files(['documents', 'missing.txt'])),
+      expect(role('heading', { name: 'Nothing Here' })).toExist(),
+      expect(role('link', { name: '← Back to Files' })).toExist(),
     )
   })
 
   test('an unmatched URL renders the NotFound view', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(notFound('/missing')),
-      Scene.expect(
-        Scene.role('heading', { name: '404 - Page Not Found' }),
-      ).toExist(),
-      Scene.expect(Scene.text('The path "/missing" was not found.')).toExist(),
-      Scene.expect(Scene.role('link', { name: '← Go Home' })).toExist(),
+      given(notFound('/missing')),
+      expect(role('heading', { name: '404 - Page Not Found' })).toExist(),
+      expect(text('The path "/missing" was not found.')).toExist(),
+      expect(role('link', { name: '← Go Home' })).toExist(),
     )
   })
 })

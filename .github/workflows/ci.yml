@@ -1,12 +1,12 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
+  merge_group:
+    types:
+      - checks_requested
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,6 +21,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Plan change-scoped checks
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
+        run: node scripts/plan-ci.mjs "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -37,6 +44,10 @@ jobs:
       - name: Block unresolved Claude comments
         run: pnpm check:no-claude-comments
 
+      - name: Check commit message line length
+        if: github.event_name == 'pull_request'
+        run: pnpm check:commit-message-line-length
+
       - name: Check formatting
         run: pnpm format:check
 
@@ -51,12 +62,40 @@ jobs:
       - name: Verify changeset ignore list
         run: pnpm check:changeset-ignore
 
-      - name: Check changeset status
+      - name: Check changeset summaries are unwrapped
         if: github.event_name == 'pull_request'
-        run: pnpm changeset status --since=origin/main
+        run: pnpm check:changeset-unwrapped
+
+      - name: Check changeset status
+        env:
+          FOLDKIT_CI_EVENT_NAME: ${{ github.event_name }}
+          FOLDKIT_CI_HEAD_REF: ${{ github.head_ref }}
+          FOLDKIT_CI_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          FOLDKIT_CI_REPOSITORY: ${{ github.repository }}
+        run: node scripts/check-changeset-status.mjs
 
       - name: Lint
-        run: pnpm lint
+        run: pnpm --filter @foldkit/oxlint-plugin build && pnpm lint:ci
+
+      # Knip loads Vite configs through published package exports, and
+      # repository scripts import Foldkit through public subpaths. A clean
+      # runner has no dist files until these packages build, so this step must
+      # precede both checks and cannot be change-scoped.
+      - name: Build reusable packages
+        run: pnpm build:packages && pnpm --filter @typing-game/shared build
+
+      # The prerender step writes the generated `/` over the same `index.html`
+      # the client build left its template in, so running it twice against one
+      # client build is the case that regressed. Nothing else here builds once
+      # and prerenders twice, so a repeat of that regression would reach a
+      # release unseen.
+      - name: Check the prerender step is repeatable
+        if: steps.scope.outputs.prerender_repeatable == 'true'
+        run: pnpm check:prerender-repeatable
+
+      - name: Check packed peer dependency floors
+        if: steps.scope.outputs.peer_floors == 'true'
+        run: pnpm check:peer-floors
 
       - name: Check dead code
         run: pnpm check:dead-code
@@ -64,20 +103,143 @@ jobs:
       - name: Check circular dependencies
         run: pnpm check:circular-deps
 
-      - name: Build packages
-        run: pnpm -r --filter './packages/**' build
+      - name: Typecheck scripts
+        run: pnpm typecheck:scripts
+
+      - name: Test scripts
+        run: pnpm test:scripts
+
+      - name: Check Effect prebundle namespaces
+        run: pnpm check:effect-prebundle
 
       - name: Typecheck
+        if: steps.scope.outputs.full_workspace_checks == 'true'
         run: pnpm -r typecheck
 
+      - name: Typecheck affected packages
+        if: steps.scope.outputs.full_workspace_checks == 'false'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+        run: |
+          # NOTE: pnpm compares the ref against the working tree, so pass the
+          # merge base rather than the base tip. Otherwise a base branch that
+          # has moved on makes its own commits look like this branch's changes.
+          base=$(git merge-base "$BASE_SHA" HEAD || echo "$BASE_SHA")
+          # NOTE: excluding foldkit-monorepo is not redundant. A changeset or
+          # any other root-level file makes the root project itself "changed",
+          # and its own scripts recurse over the whole workspace, so leaving it
+          # in runs every package a second time concurrently.
+          pnpm -r --filter "...[$base]" --filter '!foldkit-monorepo' run --if-present typecheck
+
+      - name: Typecheck website
+        if: steps.scope.outputs.website == 'true' && steps.scope.outputs.full_workspace_checks == 'false'
+        run: pnpm --filter website typecheck
+
       - name: Smoke test create-foldkit-app
-        run: pnpm check:create-foldkit-app-smoke
+        if: steps.scope.outputs.create_foldkit_smoke == 'true'
+        run: pnpm check:create-foldkit-app-smoke:ci
+
+      # A Foldkit installed from a tarball is externalized from a server build,
+      # where the plugin's compile-time define never reaches it. Nothing inside
+      # this workspace has that shape, so the build id contract is only
+      # observable from a project built outside it. Chromium runs the complete
+      # gate; Firefox and WebKit reuse its builds for the browser-sensitive
+      # hydration, form, Custom Element, and refusal checks.
+      - name: Install Playwright browsers for the packed consumer gate
+        if: steps.scope.outputs.packed_ssr_consumer == 'true'
+        run: pnpm --filter @foldkit/examples-e2e exec playwright install --with-deps chromium firefox webkit
+
+      # The generated-project gate also drives its packed output in Chromium.
+      # Reuse the packed consumer's installation when both gates are selected.
+      - name: Install Chromium for the generated SSR gate
+        if: steps.scope.outputs.scaffold_server_rendering == 'true' && steps.scope.outputs.packed_ssr_consumer != 'true'
+        run: pnpm --filter @foldkit/examples-e2e exec playwright install --with-deps chromium
+
+      - name: Check packed SSR consumer
+        if: steps.scope.outputs.packed_ssr_consumer == 'true'
+        run: pnpm check:packed-ssr-consumer:ci
+
+      # Generates an SSR and an SSG project, builds each through the command its
+      # own README documents, and drives the result in Chromium. This proves the
+      # generated build id reaches both sides and hydration adopts the served
+      # DOM before the application responds to input.
+      - name: Check generated server-rendered projects
+        if: steps.scope.outputs.scaffold_server_rendering == 'true'
+        run: pnpm check:scaffold-server-rendering:ci
+
+      # The Vite dev host and the production example host are different code
+      # reading one server entry. They disagreed about HTTP methods, so a form
+      # action worked in development and failed after deploy.
+      - name: Build the SSR example for host parity
+        if: steps.scope.outputs.host_parity == 'true'
+        run: pnpm -C examples/ssr build
+
+      - name: Check dev and production host parity
+        if: steps.scope.outputs.host_parity == 'true'
+        run: pnpm check:host-parity:ci
+
+      # The server serializer and the client patch describe one element through
+      # two mechanisms, and a browser does not read them the same way
+      # everywhere. This measures both in Chromium rather than reasoning about
+      # the IDL.
+      - name: Install Playwright chromium for the DOM state gate
+        if: steps.scope.outputs.dom_state_parity == 'true' && steps.scope.outputs.packed_ssr_consumer != 'true' && steps.scope.outputs.scaffold_server_rendering != 'true'
+        run: pnpm --filter @foldkit/examples-e2e exec playwright install --with-deps chromium
+
+      - name: Check server and client DOM state parity
+        if: steps.scope.outputs.dom_state_parity == 'true'
+        run: pnpm check:dom-state-parity
+
+      # The website deploy runs `pnpm build:examples`, which builds a prerendered
+      # example through its own three commands rather than the example's build
+      # script. That path owns the build id itself, and a hydratable render
+      # refuses to run without one, so it is covered here rather than found at
+      # deploy time.
+      - name: Build the prerendered example embed
+        if: steps.scope.outputs.website == 'true'
+        run: pnpm build:examples:prerendered
+
+      - name: Build website
+        if: steps.scope.outputs.website == 'true'
+        run: pnpm --filter website build
+
+      - name: Build typing game client
+        if: steps.scope.outputs.typing_game == 'true'
+        run: pnpm --filter @typing-game/client build
+
+      - name: Build typing game server
+        if: steps.scope.outputs.typing_game == 'true'
+        run: pnpm --filter @typing-game/server build
 
       - name: Test
+        if: steps.scope.outputs.full_workspace_checks == 'true'
         run: pnpm test
 
+      - name: Test affected packages
+        if: steps.scope.outputs.full_workspace_checks == 'false'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+        run: |
+          # NOTE: pnpm compares the ref against the working tree, so pass the
+          # merge base rather than the base tip. Otherwise a base branch that
+          # has moved on makes its own commits look like this branch's changes.
+          base=$(git merge-base "$BASE_SHA" HEAD || echo "$BASE_SHA")
+          # NOTE: excluding foldkit-monorepo is not redundant. A changeset or
+          # any other root-level file makes the root project itself "changed",
+          # and the root test script recurses over the whole workspace, so
+          # leaving it in runs a second copy of every package's tests
+          # concurrently with this one. Two `vitest run --coverage` processes
+          # in the same package then race on coverage/.tmp.
+          pnpm -r --filter "...[$base]" --filter '!foldkit-monorepo' run --if-present test
+
+      - name: Test website
+        if: steps.scope.outputs.website == 'true' && steps.scope.outputs.full_workspace_checks == 'false'
+        run: pnpm --filter website test
+
       - name: Install Playwright browsers
+        if: steps.scope.outputs.website == 'true'
         run: pnpm --filter website exec playwright install --with-deps chromium
 
       - name: E2E smoke test
+        if: steps.scope.outputs.website == 'true'
         run: pnpm --filter website test:e2e

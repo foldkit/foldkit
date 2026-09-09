@@ -1,30 +1,35 @@
 import { Predicate } from 'effect'
-import type { Attribute } from 'foldkit/html'
-import { html } from 'foldkit/html'
-import type { Html } from 'foldkit/html'
+import type { Attribute, Html, HtmlBuilder } from 'foldkit/html'
 
 // VIEW
 
 /** Attribute groups the button component provides to the consumer's `toView` callback. */
-export type ButtonAttributes<ParentMessage> = Readonly<{
-  button: ReadonlyArray<Attribute<ParentMessage>>
+export type ButtonAttributes<Message> = Readonly<{
+  button: ReadonlyArray<Attribute<Message>>
 }>
 
 /** Configuration for rendering a button with `view`. */
-export type ViewConfig<ParentMessage> = Readonly<{
-  toView: (attributes: ButtonAttributes<ParentMessage>) => Html
-  onClick?: ParentMessage
+export type ViewConfig<Message> = Readonly<{
+  toView: (attributes: ButtonAttributes<Message>) => Html
+  onClick?: Message
   isDisabled?: boolean
   type?: 'button' | 'submit' | 'reset'
   isAutofocus?: boolean
 }>
 
-/** Renders an accessible button by building attribute groups and delegating layout to the consumer's `toView` callback. */
-export const view = <ParentMessage>(
-  config: ViewConfig<ParentMessage>,
+/**
+ * Renders an accessible button by building attribute groups and delegating
+ * layout to the consumer's `toView` callback.
+ *
+ * Takes the consumer's builder, which pins `Message` to the universe of the
+ * frame the button is rendered in. `onClick` must come from that same
+ * universe, so a Message the consumer's dispatcher cannot route is a compile
+ * error here.
+ */
+export const view = <Message>(
+  config: ViewConfig<Message>,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<ParentMessage>()
-
   const {
     toView,
     onClick,

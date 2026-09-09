@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Generate Program'
+  short_description: 'Generate an idiomatic Foldkit app from a description'
+  default_prompt: 'Use $generate-program to build a complete Foldkit app from a description.'

@@ -58,7 +58,7 @@ const openPicker = ({
  *     Effect.map(
  *       Option.match({
  *         onNone: () => CancelledSelectResume(),
- *         onSome: file => SelectedResume({ file }),
+ *         onSome: file => CompletedSelectResume({ file }),
  *       }),
  *     ),
  *   ),
@@ -79,7 +79,7 @@ export const select = (
  * ```typescript
  * SelectAttachments(
  *   File.selectMultiple(['image/*', 'application/pdf']).pipe(
- *     Effect.map(files => SelectedAttachments({ files })),
+ *     Effect.map(files => CompletedSelectAttachments({ files })),
  *   ),
  * )
  * ```

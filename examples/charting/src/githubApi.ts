@@ -6,8 +6,8 @@ import {
   Layer,
   Number,
   Option,
-  Schema as S,
   Schedule,
+  Schema,
 } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
 
@@ -25,41 +25,41 @@ const RELEASE_PAGE_SIZE = 100
 
 // SCHEMA
 
-export const GitHubRepositoryResponse = S.Struct({
-  stargazers_count: S.Number,
-  forks_count: S.Number,
-  watchers_count: S.Number,
-  open_issues_count: S.Number,
-  pushed_at: S.String,
-  default_branch: S.String,
+export const GitHubRepositoryResponse = Schema.Struct({
+  stargazers_count: Schema.Number,
+  forks_count: Schema.Number,
+  watchers_count: Schema.Number,
+  open_issues_count: Schema.Number,
+  pushed_at: Schema.String,
+  default_branch: Schema.String,
 })
 
-export const GitHubContributorResponse = S.Struct({
-  login: S.String,
-  contributions: S.Number,
-  avatar_url: S.OptionFromOptional(S.String),
+export const GitHubContributorResponse = Schema.Struct({
+  login: Schema.String,
+  contributions: Schema.Number,
+  avatar_url: Schema.OptionFromOptional(Schema.String),
 })
 export type GitHubContributorResponse = typeof GitHubContributorResponse.Type
 
-export const GitHubIssueResponse = S.Struct({
-  pull_request: S.OptionFromOptional(S.Unknown),
+export const GitHubIssueResponse = Schema.Struct({
+  pull_request: Schema.OptionFromOptional(Schema.Unknown),
 })
 
-export const GitHubPullRequestResponse = S.Struct({
-  id: S.Number,
+export const GitHubPullRequestResponse = Schema.Struct({
+  id: Schema.Number,
 })
 
-export const GitHubReleaseResponse = S.Struct({
-  published_at: S.OptionFromOptional(S.String),
+export const GitHubReleaseResponse = Schema.Struct({
+  published_at: Schema.OptionFromOptional(Schema.String),
 })
 
-export const GitHubStargazerResponse = S.Struct({
-  starred_at: S.String,
+export const GitHubStargazerResponse = Schema.Struct({
+  starred_at: Schema.String,
 })
 
-export const GitHubCommitActivityResponse = S.Struct({
-  week: S.Number,
-  total: S.Number,
+export const GitHubCommitActivityResponse = Schema.Struct({
+  week: Schema.Number,
+  total: Schema.Number,
 })
 
 // SERVICE
@@ -104,7 +104,7 @@ class GitHubStatError extends Data.TaggedError('GitHubStatError') {}
 
 const fetchOptionalGitHubStat =
   (client: HttpClient.HttpClient) =>
-  <A, I>(schema: S.Codec<A, I>) =>
+  <A, I>(schema: Schema.Codec<A, I>) =>
   (path: string, label: string): Effect.Effect<GitHubStatResult<A>, never> => {
     const url = `${GITHUB_REPOSITORY_API}${path}`
 
@@ -128,7 +128,7 @@ const fetchOptionalGitHubStat =
       }
 
       const data = yield* response.json.pipe(
-        Effect.flatMap(json => S.decodeUnknownEffect(schema)(json)),
+        Effect.flatMap(json => Schema.decodeUnknownEffect(schema)(json)),
         Effect.option,
       )
 
@@ -178,19 +178,19 @@ export const GitHubApiLive: Layer.Layer<
     const fetchStat_ = fetchOptionalGitHubStat(client)
     return {
       fetchRepository: fetch_(GitHubRepositoryResponse)(GITHUB_REPOSITORY_API),
-      fetchContributors: fetch_(S.Array(GitHubContributorResponse))(
+      fetchContributors: fetch_(Schema.Array(GitHubContributorResponse))(
         makeUrl(`${GITHUB_REPOSITORY_API}/contributors`, {
           per_page: '100',
           anon: 'false',
         }),
       ),
-      fetchIssues: fetch_(S.Array(GitHubIssueResponse))(
+      fetchIssues: fetch_(Schema.Array(GitHubIssueResponse))(
         makeUrl(`${GITHUB_REPOSITORY_API}/issues`, {
           state: 'open',
           per_page: '100',
         }),
       ),
-      fetchPullRequests: fetch_(S.Array(GitHubPullRequestResponse))(
+      fetchPullRequests: fetch_(Schema.Array(GitHubPullRequestResponse))(
         makeUrl(`${GITHUB_REPOSITORY_API}/pulls`, {
           state: 'open',
           per_page: '100',
@@ -198,7 +198,7 @@ export const GitHubApiLive: Layer.Layer<
       ),
       fetchReleases: (yearCutoffMilliseconds: number) => {
         const fetchPage = (page: number) =>
-          fetch_(S.Array(GitHubReleaseResponse))(
+          fetch_(Schema.Array(GitHubReleaseResponse))(
             makeUrl(`${GITHUB_REPOSITORY_API}/releases`, {
               per_page: `${RELEASE_PAGE_SIZE}`,
               page: `${page}`,
@@ -252,7 +252,7 @@ export const GitHubApiLive: Layer.Layer<
         return Effect.forEach(
           Array.range(1, Math.max(1, pageCount)),
           page =>
-            fetch_(S.Array(GitHubStargazerResponse))(
+            fetch_(Schema.Array(GitHubStargazerResponse))(
               makeUrl(`${GITHUB_REPOSITORY_API}/stargazers`, {
                 per_page: `${STARGAZER_PAGE_SIZE}`,
                 page: `${page}`,
@@ -262,10 +262,9 @@ export const GitHubApiLive: Layer.Layer<
           { concurrency: 'unbounded' },
         ).pipe(Effect.map(Array.flatten))
       },
-      fetchCommitActivity: fetchStat_(S.Array(GitHubCommitActivityResponse))(
-        '/stats/commit_activity',
-        'Commit activity',
-      ),
+      fetchCommitActivity: fetchStat_(
+        Schema.Array(GitHubCommitActivityResponse),
+      )('/stats/commit_activity', 'Commit activity'),
     }
   }),
 )

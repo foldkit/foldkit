@@ -1,10 +1,10 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 
-export const Card = S.Struct({
-  id: S.String,
-  title: S.String,
-  description: S.String,
-  sortKey: S.String,
+export const Card = Schema.Struct({
+  id: Schema.String,
+  title: Schema.String,
+  description: Schema.String,
+  sortKey: Schema.String,
 })
 
 export type Card = typeof Card.Type

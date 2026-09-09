@@ -2,41 +2,40 @@ import {
   Effect,
   Equal,
   Function,
-  Match as M,
+  Match,
   Option,
-  Schema as S,
+  Schema,
   Stream,
-  String as String_,
+  String,
   pipe,
 } from 'effect'
-import type { Command } from 'foldkit/command'
-import {
-  type ChildAttribute,
-  type Html,
-  childAttributes,
-  html,
-} from 'foldkit/html'
-import { m } from 'foldkit/message'
-import { ts } from 'foldkit/schema'
+import { type Update } from 'foldkit'
+import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
+import { defineTaggedUnion } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 import { type Reflect, defineView } from 'foldkit/submodel'
 import * as Subscription from 'foldkit/subscription'
 
+import { attributeSelector } from '../internal/selectors.js'
+
 // MODEL
 
-const Idle = ts('Idle')
-const Dragging = ts('Dragging', { originValue: S.Number })
+const DragState = defineTaggedUnion({
+  Idle: {},
+  Dragging: { originValue: Schema.Number },
+})
 
-const DragState = S.Union([Idle, Dragging])
-
-/** Schema for the slider component's state. Tracks the current value, the
- *  range (min/max/step), and the active drag phase. */
-export const Model = S.Struct({
-  id: S.String,
-  value: S.Number,
-  min: S.Number,
-  max: S.Number,
-  step: S.Number,
+/** Schema for the slider component's private interaction state. The current
+ *  value is owned by the parent and passed in via `ViewInputs.value`, so it is
+ *  not stored here. `min`/`max`/`step` are configuration the drag subscription
+ *  reads to map pointer positions into values. `dragState` tracks the active
+ *  drag phase and captures the pre-drag value so Escape can restore it. */
+export const Model = Schema.Struct({
+  id: Schema.String,
+  min: Schema.Number,
+  max: Schema.Number,
+  step: Schema.Number,
   dragState: DragState,
 })
 
@@ -44,68 +43,45 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** The user pressed the thumb. Starts a drag without changing the value. */
-export const PressedThumb = m('PressedThumb')
-/** The user pressed the track. Starts a drag and snaps the value to the
- *  cursor position. Ignored while already dragging, which absorbs the bubble
- *  from a thumb press so the value is not shifted. */
-export const PressedPointer = m('PressedPointer', { value: S.Number })
-/** The pointer moved during a drag, producing a new snapped value from the
- *  cursor position within the track. */
-export const MovedDragPointer = m('MovedDragPointer', { value: S.Number })
-/** The pointer was released during a drag. Commits the current value. */
-export const ReleasedDragPointer = m('ReleasedDragPointer')
-/** Escape was pressed during a drag. Restores the value from the drag origin. */
-export const CancelledDrag = m('CancelledDrag')
-/** The user pressed a keyboard navigation key on the focused thumb. */
-export const PressedKeyboardNavigation = m('PressedKeyboardNavigation', {
-  direction: S.Literals([
-    'StepDecrement',
-    'StepIncrement',
-    'PageDecrement',
-    'PageIncrement',
-    'Min',
-    'Max',
-  ]),
-})
-
 /** Union of all messages the slider component can produce. */
-export const Message: S.Union<
-  [
-    typeof PressedThumb,
-    typeof PressedPointer,
-    typeof MovedDragPointer,
-    typeof ReleasedDragPointer,
-    typeof CancelledDrag,
-    typeof PressedKeyboardNavigation,
-  ]
-> = S.Union([
-  PressedThumb,
-  PressedPointer,
-  MovedDragPointer,
-  ReleasedDragPointer,
-  CancelledDrag,
-  PressedKeyboardNavigation,
-])
+export const Message = defineMessageUnion({
+  PressedThumb: { originValue: Schema.Number },
+  PressedPointer: {
+    value: Schema.Number,
+    originValue: Schema.Number,
+  },
+  MovedDragPointer: { value: Schema.Number },
+  ReleasedDragPointer: {},
+  CancelledDrag: {},
+  PressedKeyboardNavigation: {
+    direction: Schema.Literals([
+      'StepDecrement',
+      'StepIncrement',
+      'PageDecrement',
+      'PageIncrement',
+      'Min',
+      'Max',
+    ]),
+    value: Schema.Number,
+  },
+})
 
 export type Message = typeof Message.Type
 
-export type PressedThumb = typeof PressedThumb.Type
-export type PressedPointer = typeof PressedPointer.Type
-export type MovedDragPointer = typeof MovedDragPointer.Type
-export type ReleasedDragPointer = typeof ReleasedDragPointer.Type
-export type CancelledDrag = typeof CancelledDrag.Type
-export type PressedKeyboardNavigation = typeof PressedKeyboardNavigation.Type
+export type PressedThumb = typeof Message.PressedThumb.Type
+export type PressedPointer = typeof Message.PressedPointer.Type
+export type MovedDragPointer = typeof Message.MovedDragPointer.Type
+export type ReleasedDragPointer = typeof Message.ReleasedDragPointer.Type
+export type CancelledDrag = typeof Message.CancelledDrag.Type
+export type PressedKeyboardNavigation =
+  typeof Message.PressedKeyboardNavigation.Type
 
 // OUT MESSAGE
 
-/** Emitted when the slider value changes. The parent can handle this to
- *  update its own state or dispatch its own Commands, for example to run
- *  validation or trigger a downstream Command. */
-export const ChangedValue = m('ChangedValue', { value: S.Number })
-
 /** Union of all out-messages the slider component can emit to its parent. */
-export const OutMessage = S.Union([ChangedValue])
+export const OutMessage = defineMessageUnion({
+  ChangedValue: { value: Schema.Number },
+})
 export type OutMessage = typeof OutMessage.Type
 
 // INIT
@@ -116,18 +92,16 @@ export type InitConfig = Readonly<{
   min: number
   max: number
   step: number
-  initialValue: number
 }>
 
-/** Creates an initial slider model from a config. The initial value is
- *  snapped to the step and clamped into range. */
+/** Creates an initial slider model from a config. The value lives in the
+ *  parent Model; initialize it there and snap it with {@link snapAndClamp}. */
 export const init = (config: InitConfig): Model => ({
   id: config.id,
-  value: snapAndClamp(config.initialValue, config.min, config.max, config.step),
   min: config.min,
   max: config.max,
   step: config.step,
-  dragState: Idle(),
+  dragState: DragState.Idle(),
 })
 
 // HELPERS
@@ -136,7 +110,7 @@ const stepDecimals = (step: number): number => {
   const text = step.toString()
   return pipe(
     text,
-    String_.indexOf('.'),
+    String.indexOf('.'),
     Option.match({
       onNone: () => 0,
       onSome: dotIndex => text.length - dotIndex - 1,
@@ -152,7 +126,10 @@ const roundToStepPrecision = (value: number, step: number): number => {
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(Math.max(value, min), max)
 
-const snapAndClamp = (
+/** Snaps a value to the nearest step and clamps it into `[min, max]`. Exported
+ *  so a parent can conform the value it owns to the slider's range, for example
+ *  when seeding the initial value or reacting to an external update. */
+export const snapAndClamp = (
   value: number,
   min: number,
   max: number,
@@ -164,172 +141,156 @@ const snapAndClamp = (
 
 /** Computes the fraction (0–1) of a value between min and max. Returns 0 when
  *  the range has zero width. */
-export const fractionOfValue = (model: Model): number => {
-  const range = model.max - model.min
+export const fractionOfValue = (
+  value: number,
+  min: number,
+  max: number,
+): number => {
+  const range = max - min
   if (range <= 0) {
     return 0
   } else {
-    return clamp((model.value - model.min) / range, 0, 1)
+    return clamp((value - min) / range, 0, 1)
   }
 }
 
 const PAGE_STEP_MULTIPLIER = 10
 
 const nextValueForDirection = (
-  model: Model,
-  direction: (typeof PressedKeyboardNavigation.Type)['direction'],
+  value: number,
+  min: number,
+  max: number,
+  step: number,
+  direction: (typeof Message.PressedKeyboardNavigation.Type)['direction'],
 ): number =>
-  M.value(direction).pipe(
-    M.withReturnType<number>(),
-    M.when('StepIncrement', () =>
-      snapAndClamp(model.value + model.step, model.min, model.max, model.step),
+  Match.value(direction).pipe(
+    Match.withReturnType<number>(),
+    Match.when('StepIncrement', () =>
+      snapAndClamp(value + step, min, max, step),
     ),
-    M.when('StepDecrement', () =>
-      snapAndClamp(model.value - model.step, model.min, model.max, model.step),
+    Match.when('StepDecrement', () =>
+      snapAndClamp(value - step, min, max, step),
     ),
-    M.when('PageIncrement', () =>
-      snapAndClamp(
-        model.value + model.step * PAGE_STEP_MULTIPLIER,
-        model.min,
-        model.max,
-        model.step,
-      ),
+    Match.when('PageIncrement', () =>
+      snapAndClamp(value + step * PAGE_STEP_MULTIPLIER, min, max, step),
     ),
-    M.when('PageDecrement', () =>
-      snapAndClamp(
-        model.value - model.step * PAGE_STEP_MULTIPLIER,
-        model.min,
-        model.max,
-        model.step,
-      ),
+    Match.when('PageDecrement', () =>
+      snapAndClamp(value - step * PAGE_STEP_MULTIPLIER, min, max, step),
     ),
-    M.when('Min', () => model.min),
-    M.when('Max', () => model.max),
-    M.exhaustive,
+    Match.when('Min', () => min),
+    Match.when('Max', () => max),
+    Match.exhaustive,
   )
 
 // UPDATE
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command<Message>>,
-  Option.Option<OutMessage>,
-]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
+const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
-const withValue = (
+const withChangedValue = (
   model: Model,
+  currentValue: number,
   nextValue: number,
-  commands: ReadonlyArray<Command<Message>>,
 ): UpdateReturn => {
-  if (nextValue === model.value) {
-    return [model, commands, Option.none()]
+  if (nextValue === currentValue) {
+    return { model }
   } else {
-    return [
-      evo(model, { value: () => nextValue }),
-      commands,
-      Option.some(ChangedValue({ value: nextValue })),
-    ]
+    return {
+      model,
+      outMessage: OutMessage.ChangedValue({ value: nextValue }),
+    }
   }
 }
 
-/** Processes a slider message and returns the next model, commands, and an
- *  optional out-message for the parent. */
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tagsExhaustive({
-      PressedThumb: () =>
-        M.value(model.dragState).pipe(
-          withUpdateReturn,
-          M.tag('Dragging', () => [model, [], Option.none()]),
-          M.orElse(() => [
+/** Processes a Slider Message and returns the next Model, optional Commands,
+ *  and an optional OutMessage for the parent. The value lives in the parent
+ *  Model: the view supplies the current value on the Messages that need it,
+ *  and value changes surface as `ChangedValue` rather than mutating this
+ *  Model. */
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    PressedThumb: ({ originValue }) =>
+      Match.value(model.dragState).pipe(
+        withUpdateReturn,
+        Match.tag('Dragging', () => ({ model })),
+        Match.orElse(() => ({
+          model: evo(model, {
+            dragState: () => DragState.Dragging({ originValue }),
+          }),
+        })),
+      ),
+
+    // NOTE: the pointerdown event on the thumb bubbles to the track, so a
+    // thumb press also dispatches PressedPointer. Short-circuit when already
+    // Dragging so the bubbled track handler cannot shift the value away
+    // from the thumb's current position. Fine-grained sliders (e.g. step
+    // 0.05) see a visible jump without this guard, because the cursor sits
+    // off-center on a non-zero-width thumb.
+    PressedPointer: ({ value, originValue }) =>
+      Match.value(model.dragState).pipe(
+        withUpdateReturn,
+        Match.tag('Dragging', () => ({ model })),
+        Match.orElse(() => {
+          const snapped = snapAndClamp(value, model.min, model.max, model.step)
+          return withChangedValue(
             evo(model, {
-              dragState: () => Dragging({ originValue: model.value }),
+              dragState: () => DragState.Dragging({ originValue }),
             }),
-            [],
-            Option.none(),
-          ]),
-        ),
+            originValue,
+            snapped,
+          )
+        }),
+      ),
 
-      // NOTE: the pointerdown event on the thumb bubbles to the track, so a
-      // thumb press also dispatches PressedPointer. Short-circuit when already
-      // Dragging so the bubbled track handler cannot shift the value away
-      // from the thumb's current position. Fine-grained sliders (e.g. step
-      // 0.05) see a visible jump without this guard, because the cursor sits
-      // off-center on a non-zero-width thumb.
-      PressedPointer: ({ value }) =>
-        M.value(model.dragState).pipe(
-          withUpdateReturn,
-          M.tag('Dragging', () => [model, [], Option.none()]),
-          M.orElse(() => {
-            const snapped = snapAndClamp(
-              value,
-              model.min,
-              model.max,
-              model.step,
-            )
-            const [modelWithValue, commands, maybeOutMessage] = withValue(
-              model,
-              snapped,
-              [],
-            )
-            return [
-              evo(modelWithValue, {
-                dragState: () => Dragging({ originValue: model.value }),
-              }),
-              commands,
-              maybeOutMessage,
-            ]
+    MovedDragPointer: ({ value }) =>
+      Match.value(model.dragState).pipe(
+        withUpdateReturn,
+        Match.tag('Dragging', () => ({
+          model,
+          outMessage: OutMessage.ChangedValue({
+            value: snapAndClamp(value, model.min, model.max, model.step),
           }),
+        })),
+        Match.orElse(() => ({ model })),
+      ),
+
+    ReleasedDragPointer: () =>
+      Match.value(model.dragState).pipe(
+        withUpdateReturn,
+        Match.tag('Dragging', () => ({
+          model: evo(model, { dragState: () => DragState.Idle() }),
+        })),
+        Match.orElse(() => ({ model })),
+      ),
+
+    CancelledDrag: () =>
+      Match.value(model.dragState).pipe(
+        withUpdateReturn,
+        Match.tag('Dragging', ({ originValue }) => ({
+          model: evo(model, { dragState: () => DragState.Idle() }),
+          outMessage: OutMessage.ChangedValue({ value: originValue }),
+        })),
+        Match.orElse(() => ({ model })),
+      ),
+
+    PressedKeyboardNavigation: ({ direction, value }) =>
+      withChangedValue(
+        model,
+        value,
+        nextValueForDirection(
+          value,
+          model.min,
+          model.max,
+          model.step,
+          direction,
         ),
+      ),
+  })
 
-      MovedDragPointer: ({ value }) =>
-        M.value(model.dragState).pipe(
-          withUpdateReturn,
-          M.tag('Dragging', () =>
-            withValue(
-              model,
-              snapAndClamp(value, model.min, model.max, model.step),
-              [],
-            ),
-          ),
-          M.orElse(() => [model, [], Option.none()]),
-        ),
-
-      ReleasedDragPointer: () =>
-        M.value(model.dragState).pipe(
-          withUpdateReturn,
-          M.tag('Dragging', () => [
-            evo(model, { dragState: () => Idle() }),
-            [],
-            Option.none(),
-          ]),
-          M.orElse(() => [model, [], Option.none()]),
-        ),
-
-      CancelledDrag: () =>
-        M.value(model.dragState).pipe(
-          withUpdateReturn,
-          M.tag('Dragging', ({ originValue }) => {
-            const restored: Model = evo(model, {
-              dragState: () => Idle(),
-            })
-            return withValue(restored, originValue, [])
-          }),
-          M.orElse(() => [model, [], Option.none()]),
-        ),
-
-      PressedKeyboardNavigation: ({ direction }) =>
-        withValue(model, nextValueForDirection(model, direction), []),
-    }),
-  )
-
-/** Reflects an externally-driven range onto the slider. Snaps and clamps the
- *  current value into the new range. Use this when min/max derive from
- *  external state (e.g. a bounded buffer whose first/last index shifts over
- *  time). Unlike `reflectValue`, this runs even while the user is Dragging: a
- *  structural range change cannot leave the value out of bounds. */
+/** Reflects an externally-driven range onto the slider. Use this when min/max
+ *  derive from external state (e.g. a bounded buffer whose first/last index
+ *  shifts over time). The parent owns the value, so conform it to the new range
+ *  in the same update with {@link snapAndClamp}. */
 export const reflectRange: Reflect<
   Model,
   Readonly<{ min: number; max: number }>
@@ -339,37 +300,18 @@ export const reflectRange: Reflect<
     evo(model, {
       min: () => range.min,
       max: () => range.max,
-      value: current => snapAndClamp(current, range.min, range.max, model.step),
     }),
-)
-
-/** Reflects an externally-driven value onto the slider, snapped and clamped
- *  into range; a no-op while the user is dragging, since drag state owns the
- *  value. Does not emit `ChangedValue`; use when the value is being driven by
- *  external state rather than user input. */
-export const reflectValue: Reflect<Model, number> = Function.dual(
-  2,
-  (model: Model, value: number): Model =>
-    M.value(model.dragState).pipe(
-      M.withReturnType<Model>(),
-      M.tag('Dragging', () => model),
-      M.orElse(() =>
-        evo(model, {
-          value: () => snapAndClamp(value, model.min, model.max, model.step),
-        }),
-      ),
-    ),
 )
 
 // SUBSCRIPTION
 
-const DragActivity = S.Literals(['Idle', 'Active'])
+const DragActivity = Schema.Literals(['Idle', 'Active'])
 
 const dragActivityFromModel = (model: Model): typeof DragActivity.Type =>
-  M.value(model.dragState).pipe(
-    M.withReturnType<typeof DragActivity.Type>(),
-    M.tag('Dragging', () => 'Active'),
-    M.orElse(() => 'Idle'),
+  Match.value(model.dragState).pipe(
+    Match.withReturnType<typeof DragActivity.Type>(),
+    Match.tag('Dragging', () => 'Active'),
+    Match.orElse(() => 'Idle'),
   )
 
 const trackElement = (
@@ -377,7 +319,9 @@ const trackElement = (
   root: Document | ShadowRoot,
 ): Option.Option<HTMLElement> =>
   Option.fromNullishOr(
-    root.querySelector<HTMLElement>(`[data-slider-track-id="${id}"]`),
+    root.querySelector<HTMLElement>(
+      attributeSelector('data-slider-track-id', id),
+    ),
   )
 
 const valueFromClientX = (
@@ -406,9 +350,9 @@ export const subscriptionsForRoot = (
     dragPointer: entry(
       {
         dragActivity: DragActivity,
-        id: S.String,
-        min: S.Number,
-        max: S.Number,
+        id: Schema.String,
+        min: Schema.Number,
+        max: Schema.Number,
       },
       {
         modelToDependencies: model => ({
@@ -426,7 +370,7 @@ export const subscriptionsForRoot = (
               Stream.mapEffect(event =>
                 Effect.sync(() =>
                   Option.map(trackElement(id, getTrackRoot()), element =>
-                    MovedDragPointer({
+                    Message.MovedDragPointer({
                       value: valueFromClientX(event.clientX, element, min, max),
                     }),
                   ),
@@ -436,7 +380,7 @@ export const subscriptionsForRoot = (
               Stream.map(option => option.value),
             ),
             Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
-              Stream.map(() => ReleasedDragPointer()),
+              Stream.map(() => Message.ReleasedDragPointer()),
             ),
           )
 
@@ -487,7 +431,7 @@ export const subscriptionsForRoot = (
           Stream.when(
             Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
               Stream.filter(({ key }) => key === 'Escape'),
-              Stream.map(() => CancelledDrag()),
+              Stream.map(() => Message.CancelledDrag()),
             ),
             Effect.sync(() => dragActivity === 'Active'),
           ),
@@ -506,16 +450,20 @@ const labelId = (id: string): string => `${id}-label`
 
 const keyToDirection = (
   key: string,
-): Option.Option<(typeof PressedKeyboardNavigation.Type)['direction']> =>
-  M.value(key).pipe(
-    M.withReturnType<(typeof PressedKeyboardNavigation.Type)['direction']>(),
-    M.whenOr('ArrowRight', 'ArrowUp', () => 'StepIncrement'),
-    M.whenOr('ArrowLeft', 'ArrowDown', () => 'StepDecrement'),
-    M.when('PageUp', () => 'PageIncrement'),
-    M.when('PageDown', () => 'PageDecrement'),
-    M.when('Home', () => 'Min'),
-    M.when('End', () => 'Max'),
-    M.option,
+): Option.Option<
+  (typeof Message.PressedKeyboardNavigation.Type)['direction']
+> =>
+  Match.value(key).pipe(
+    Match.withReturnType<
+      (typeof Message.PressedKeyboardNavigation.Type)['direction']
+    >(),
+    Match.whenOr('ArrowRight', 'ArrowUp', () => 'StepIncrement'),
+    Match.whenOr('ArrowLeft', 'ArrowDown', () => 'StepDecrement'),
+    Match.when('PageUp', () => 'PageIncrement'),
+    Match.when('PageDown', () => 'PageDecrement'),
+    Match.when('Home', () => 'Min'),
+    Match.when('End', () => 'Max'),
+    Match.option,
   )
 
 const percentString = (fraction: number): string =>
@@ -536,11 +484,28 @@ export type SliderAttributes = Readonly<{
 
 /** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field. */
 export type ViewInputs = Readonly<{
+  /** The current value, read straight from the parent Model. The thumb
+   *  position, `aria-valuenow`, and the filled track all derive from it. */
+  value: number
   toView: (attributes: SliderAttributes) => Html
   ariaLabel?: string
   ariaLabelledBy?: string
   formatValue?: (value: number) => string
+  /** Marks the Slider unavailable with `aria-disabled="true"` and
+   *  `data-disabled`. The thumb remains focusable, following Foldkit's
+   *  convention that unavailable controls stay discoverable by keyboard and
+   *  assistive technology. */
   isDisabled?: boolean
+  /** Prevents value changes while exposing read-only semantics with
+   *  `aria-readonly="true"` and `data-readonly`. The thumb remains focusable.
+   *  Independent of `isDisabled`: setting both emits both attribute sets, and
+   *  either one removes the pointer and keyboard handlers.
+   *
+   *  A drag already in flight is not interrupted. The handlers this flag
+   *  removes are what start a drag, and the pointermove Subscription runs off
+   *  `dragState` in the Model until pointerup. `isDisabled` behaves the same
+   *  way. */
+  isReadOnly?: boolean
   name?: string
   /** Resolves the root that holds the slider track when looking it up by its
    *  `data-slider-track-id` attribute. Defaults to `document`. Provide a
@@ -555,28 +520,29 @@ export type ViewInputs = Readonly<{
  *  aria-valuemax / aria-valuenow, keyboard navigation by step / page / home /
  *  end. Pointer drag is handled by the component's drag subscriptions. */
 export const view = defineView<Model, Message, ViewInputs>(
-  (model, viewInputs): Html => {
-    const h = html<Message>()
-
+  (model, viewInputs, h): Html => {
     const {
+      value,
       formatValue,
       isDisabled = false,
+      isReadOnly = false,
       name,
       getTrackRoot = () => document,
     } = viewInputs
-    const { id, value, min, max } = model
+    const { id, min, max } = model
     const isDragging = model.dragState._tag === 'Dragging'
-    const fraction = fractionOfValue(model)
+    const fraction = fractionOfValue(value, min, max)
 
     const handleKeyDown = (key: string): Option.Option<Message> =>
       Option.map(keyToDirection(key), direction =>
-        PressedKeyboardNavigation({ direction }),
+        Message.PressedKeyboardNavigation({ direction, value }),
       )
 
     const pointerAtClientX = (clientX: number): Option.Option<Message> =>
       Option.map(trackElement(id, getTrackRoot()), element =>
-        PressedPointer({
+        Message.PressedPointer({
           value: valueFromClientX(clientX, element, min, max),
+          originValue: value,
         }),
       )
 
@@ -601,12 +567,13 @@ export const view = defineView<Model, Message, ViewInputs>(
       pipe(
         button,
         Option.liftPredicate(Equal.equals(LEFT_MOUSE_BUTTON)),
-        Option.map(() => PressedThumb()),
+        Option.map(() => Message.PressedThumb({ originValue: value })),
       )
 
     const stateAttributes = [
       ...(isDragging ? [h.DataAttribute('dragging', '')] : []),
       ...(isDisabled ? [h.DataAttribute('disabled', '')] : []),
+      ...(isReadOnly ? [h.DataAttribute('readonly', '')] : []),
     ]
 
     const rootAttributes = [
@@ -615,9 +582,11 @@ export const view = defineView<Model, Message, ViewInputs>(
       ...stateAttributes,
     ]
 
-    const trackInteractionAttributes = isDisabled
-      ? []
-      : [h.OnPointerDown(trackPointerHandler)]
+    const isInteractive = !isDisabled && !isReadOnly
+
+    const trackInteractionAttributes = isInteractive
+      ? [h.OnPointerDown(trackPointerHandler)]
+      : []
 
     const trackAttributes = [
       h.DataAttribute('slider-track-id', id),
@@ -652,12 +621,12 @@ export const view = defineView<Model, Message, ViewInputs>(
     const maybeAriaValuetext =
       formatValue !== undefined ? [h.AriaValuetext(formatValue(value))] : []
 
-    const thumbInteractionAttributes = isDisabled
-      ? []
-      : [
+    const thumbInteractionAttributes = isInteractive
+      ? [
           h.OnPointerDown(thumbPointerHandler),
           h.OnKeyDownPreventDefault(handleKeyDown),
         ]
+      : []
 
     const thumbAttributes = [
       h.Id(`${id}-thumb`),
@@ -670,6 +639,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       ...maybeAriaValuetext,
       ...thumbLabelAttributes,
       ...(isDisabled ? [h.AriaDisabled(true)] : []),
+      ...(isReadOnly ? [h.AriaReadonly(true)] : []),
       h.Style({
         position: 'absolute',
         left: percentString(fraction),

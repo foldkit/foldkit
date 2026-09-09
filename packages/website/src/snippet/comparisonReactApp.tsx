@@ -6,9 +6,6 @@ export const App = () => {
     [state.paletteThemeIndex],
   )
 
-  const stateRef = useRef(state)
-  stateRef.current = state
-
   useKeyboardShortcuts(dispatch)
   useMouseRelease(state.isDrawing, dispatch)
   useLocalStorage(
@@ -19,9 +16,7 @@ export const App = () => {
     state.isDrawing,
   )
 
-  const handleExport = useCallback(() => {
-    exportPng(stateRef.current, dispatch)
-  }, [dispatch])
+  const handleExport = () => exportPng(state, dispatch)
 
   const currentGrid = useMemo(
     () =>
