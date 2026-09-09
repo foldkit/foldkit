@@ -2,16 +2,15 @@ import {
   Clock,
   Duration,
   Effect,
-  Match as M,
-  Schema as S,
+  Schema,
   Stream,
   String,
   flow,
   pipe,
 } from 'effect'
-import { Command, Runtime, Subscription } from 'foldkit'
-import { Document, Html, html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { Command, Runtime, Subscription, type Update } from 'foldkit'
+import { Document, Html, HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
@@ -20,136 +19,111 @@ const TICK_INTERVAL_MS = 10
 
 // MODEL
 
-export const Model = S.Struct({
-  elapsedMs: S.Number,
-  isRunning: S.Boolean,
-  startTime: S.Number,
+export const Model = Schema.Struct({
+  elapsedMs: Schema.Number,
+  isRunning: Schema.Boolean,
+  startTime: Schema.Number,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const ClickedStart = m('ClickedStart')
-export const DeterminedStartTime = m('DeterminedStartTime', {
-  startTime: S.Number,
-})
-export const ClickedStop = m('ClickedStop')
-export const ClickedReset = m('ClickedReset')
-export const Ticked = m('Ticked')
-export const DeterminedTickTime = m('DeterminedTickTime', {
-  elapsedMs: S.Number,
+export const Message = defineMessageUnion({
+  ClickedStart: {},
+  CompletedDetermineStartTime: { startTime: Schema.Number },
+  ClickedStop: {},
+  ClickedReset: {},
+  Ticked: {},
+  CompletedDetermineTickTime: { elapsedMs: Schema.Number },
 })
 
-export const Message = S.Union([
-  ClickedStart,
-  DeterminedStartTime,
-  ClickedStop,
-  ClickedReset,
-  Ticked,
-  DeterminedTickTime,
-])
 export type Message = typeof Message.Type
 
 // COMMAND
 
-export const DetermineStartTime = Command.define(
-  'DetermineStartTime',
-  { elapsedMs: S.Number },
-  DeterminedStartTime,
-)(({ elapsedMs }) =>
-  Effect.gen(function* () {
-    const now = yield* Clock.currentTimeMillis
-    return DeterminedStartTime({ startTime: now - elapsedMs })
-  }),
-)
+export const DetermineStartTime = Command.define('DetermineStartTime', {
+  args: { elapsedMs: Schema.Number },
+  messages: [Message.CompletedDetermineStartTime],
+  execute: ({ elapsedMs }) =>
+    Effect.gen(function* () {
+      const now = yield* Clock.currentTimeMillis
+      return Message.CompletedDetermineStartTime({ startTime: now - elapsedMs })
+    }),
+})
 
-export const DetermineTickTime = Command.define(
-  'DetermineTickTime',
-  { startTime: S.Number },
-  DeterminedTickTime,
-)(({ startTime }) =>
-  Effect.gen(function* () {
-    const now = yield* Clock.currentTimeMillis
-    return DeterminedTickTime({ elapsedMs: now - startTime })
-  }),
-)
+export const DetermineTickTime = Command.define('DetermineTickTime', {
+  args: { startTime: Schema.Number },
+  messages: [Message.CompletedDetermineTickTime],
+  execute: ({ startTime }) =>
+    Effect.gen(function* () {
+      const now = yield* Clock.currentTimeMillis
+      return Message.CompletedDetermineTickTime({ elapsedMs: now - startTime })
+    }),
+})
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      ClickedStart: () => [
-        model,
-        [DetermineStartTime({ elapsedMs: model.elapsedMs })],
-      ],
-
-      DeterminedStartTime: ({ startTime }) => [
-        evo(model, {
-          isRunning: () => true,
-          startTime: () => startTime,
-        }),
-        [],
-      ],
-
-      ClickedStop: () => [
-        evo(model, {
-          isRunning: () => false,
-        }),
-        [],
-      ],
-
-      ClickedReset: () => [
-        evo(model, {
-          elapsedMs: () => 0,
-          isRunning: () => false,
-          startTime: () => 0,
-        }),
-        [],
-      ],
-
-      Ticked: () => [
-        model,
-        [DetermineTickTime({ startTime: model.startTime })],
-      ],
-
-      DeterminedTickTime: ({ elapsedMs }) => [
-        evo(model, {
-          elapsedMs: () => elapsedMs,
-        }),
-        [],
-      ],
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedStart: () => ({
+      model,
+      commands: [DetermineStartTime({ elapsedMs: model.elapsedMs })],
     }),
-  )
+
+    CompletedDetermineStartTime: ({ startTime }) => ({
+      model: evo(model, {
+        isRunning: () => true,
+        startTime: () => startTime,
+      }),
+    }),
+
+    ClickedStop: () => ({
+      model: evo(model, {
+        isRunning: () => false,
+      }),
+    }),
+
+    ClickedReset: () => ({
+      model: evo(model, {
+        elapsedMs: () => 0,
+        isRunning: () => false,
+        startTime: () => 0,
+      }),
+    }),
+
+    Ticked: () => ({
+      model,
+      commands: [DetermineTickTime({ startTime: model.startTime })],
+    }),
+
+    CompletedDetermineTickTime: ({ elapsedMs }) => ({
+      model: evo(model, {
+        elapsedMs: () => elapsedMs,
+      }),
+    }),
+  })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     elapsedMs: 0,
     isRunning: false,
     startTime: 0,
   },
-  [],
-]
+})
 
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   tick: entry(
-    { isRunning: S.Boolean },
+    { isRunning: Schema.Boolean },
     {
       modelToDependencies: model => ({ isRunning: model.isRunning }),
       dependenciesToStream: ({ isRunning }) =>
         Stream.when(
           Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-            Stream.map(Ticked),
+            Stream.map(Message.Ticked),
           ),
           Effect.sync(() => isRunning),
         ),
@@ -180,26 +154,24 @@ const formatTime = (ms: number): string => {
 
 const floorAndPad = flow(Math.floor, v => v.toString(), String.padStart(2, '0'))
 
-export const view = (model: Model): Document => {
-  const h = html<Message>()
-
-  return {
-    title: `Stopwatch ${formatTime(model.elapsedMs)}`,
-    body: h.div(
-      [h.Class('min-h-screen bg-gray-200 flex items-center justify-center')],
-      [
-        h.div(
-          [h.Class('bg-white text-center')],
-          [
-            h.div(
-              [h.Class('text-6xl font-mono font-bold text-gray-800 p-8')],
-              [formatTime(model.elapsedMs)],
-            ),
-            h.div(
-              [h.Class('flex')],
-              [
-                Button.view<Message>({
-                  onClick: ClickedReset(),
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+  title: `Stopwatch ${formatTime(model.elapsedMs)}`,
+  body: h.div(
+    [h.Class('min-h-screen bg-gray-200 flex items-center justify-center')],
+    [
+      h.div(
+        [h.Class('bg-white text-center')],
+        [
+          h.div(
+            [h.Class('text-6xl font-mono font-bold text-gray-800 p-8')],
+            [formatTime(model.elapsedMs)],
+          ),
+          h.div(
+            [h.Class('flex')],
+            [
+              Button.view(
+                {
+                  onClick: Message.ClickedReset(),
                   toView: attributes =>
                     h.button(
                       [
@@ -208,44 +180,48 @@ export const view = (model: Model): Document => {
                       ],
                       ['Reset'],
                     ),
-                }),
-                startStopButton(model.isRunning),
+                },
+                h,
+              ),
+              startStopButton(model.isRunning, h),
+            ],
+          ),
+        ],
+      ),
+    ],
+  ),
+})
+
+const startStopButton = (isRunning: boolean, h: HtmlBuilder<Message>): Html =>
+  isRunning
+    ? Button.view(
+        {
+          onClick: Message.ClickedStop(),
+          toView: attributes =>
+            h.button(
+              [
+                ...attributes.button,
+                h.Class(buttonStyle + ' bg-red-500 hover:bg-red-600'),
               ],
+              ['Stop'],
             ),
-          ],
-        ),
-      ],
-    ),
-  }
-}
-
-const startStopButton = (isRunning: boolean): Html => {
-  const h = html<Message>()
-
-  return isRunning
-    ? Button.view<Message>({
-        onClick: ClickedStop(),
-        toView: attributes =>
-          h.button(
-            [
-              ...attributes.button,
-              h.Class(buttonStyle + ' bg-red-500 hover:bg-red-600'),
-            ],
-            ['Stop'],
-          ),
-      })
-    : Button.view<Message>({
-        onClick: ClickedStart(),
-        toView: attributes =>
-          h.button(
-            [
-              ...attributes.button,
-              h.Class(buttonStyle + ' bg-green-500 hover:bg-green-600'),
-            ],
-            ['Start'],
-          ),
-      })
-}
+        },
+        h,
+      )
+    : Button.view(
+        {
+          onClick: Message.ClickedStart(),
+          toView: attributes =>
+            h.button(
+              [
+                ...attributes.button,
+                h.Class(buttonStyle + ' bg-green-500 hover:bg-green-600'),
+              ],
+              ['Start'],
+            ),
+        },
+        h,
+      )
 
 // STYLE
 

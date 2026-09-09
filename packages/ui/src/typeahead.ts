@@ -1,4 +1,4 @@
-import { Array, Option, String as Str, pipe } from 'effect'
+import { Array, Option, String, pipe } from 'effect'
 
 import { wrapIndex } from './keyboard.js'
 
@@ -11,7 +11,7 @@ export const resolveTypeaheadMatch = <Item>(
   itemToSearchText: (item: Item, index: number) => string,
   isRefinement: boolean,
 ): Option.Option<number> => {
-  const lowerQuery = Str.toLowerCase(query)
+  const lowerQuery = String.toLowerCase(query)
   const offset = isRefinement ? 0 : 1
   const startIndex = Option.match(maybeActiveItemIndex, {
     onNone: () => 0,
@@ -26,8 +26,8 @@ export const resolveTypeaheadMatch = <Item>(
       Option.exists(item =>
         pipe(
           itemToSearchText(item, index),
-          Str.toLowerCase,
-          Str.startsWith(lowerQuery),
+          String.toLowerCase,
+          String.startsWith(lowerQuery),
         ),
       ),
     )

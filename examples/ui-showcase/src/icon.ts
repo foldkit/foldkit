@@ -1,21 +1,18 @@
-import { Html, html } from 'foldkit/html'
+import { Html, inertHtml as ih } from 'foldkit/html'
 
-const heroIcon = (className: string, strokeWidth: string, d: string): Html => {
-  const h = html()
-
-  return h.svg(
+const heroIcon = (className: string, strokeWidth: string, d: string): Html =>
+  ih.svg(
     [
-      h.AriaHidden(true),
-      h.Class(className),
-      h.Xmlns('http://www.w3.org/2000/svg'),
-      h.Fill('none'),
-      h.ViewBox('0 0 24 24'),
-      h.StrokeWidth(strokeWidth),
-      h.Stroke('currentColor'),
+      ih.AriaHidden(true),
+      ih.Class(className),
+      ih.Xmlns('http://www.w3.org/2000/svg'),
+      ih.Fill('none'),
+      ih.ViewBox('0 0 24 24'),
+      ih.StrokeWidth(strokeWidth),
+      ih.Stroke('currentColor'),
     ],
-    [h.path([h.StrokeLinecap('round'), h.StrokeLinejoin('round'), h.D(d)], [])],
+    [ih.path([ih.StrokeLinecap('round'), ih.StrokeLinejoin('round'), ih.D(d)])],
   )
-}
 
 export const chevronDown = (className: string = 'w-6 h-6'): Html =>
   heroIcon(className, '1.5', 'M19.5 8.25l-7.5 7.5-7.5-7.5')

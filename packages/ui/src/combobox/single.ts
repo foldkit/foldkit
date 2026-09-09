@@ -1,18 +1,14 @@
-import { Array, Function, Option, Schema as S, pipe } from 'effect'
-import type * as Command from 'foldkit/command'
+import { Option, Schema } from 'effect'
+import { type Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
-import type { Reflect, View as SubmodelView } from 'foldkit/submodel'
+import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
 import {
   type BaseInitConfig,
   BaseModel,
-  type BaseViewInputs,
-  Closed,
-  type Message,
-  Opened,
-  type OutMessage,
-  SelectedItem,
-  Selected as SharedSelected,
+  type BaseViewInputsCommon,
+  Message,
+  OutMessage,
   baseInit,
   closedBaseModel,
   makeUpdate,
@@ -21,218 +17,167 @@ import {
 
 // MODEL
 
-/** Schema for the single-select combobox component's state, tracking open/closed status, active item, input value, selected item, and display text. */
-export const Model = S.Struct({
+/** Schema for the single-select combobox's private interaction state (open/closed status, active item, activation trigger, typed input value). The selection is owned by the parent and passed in via `ViewInputs.maybeSelectedValue`. */
+export const Model = Schema.Struct({
   ...BaseModel.fields,
-  maybeSelectedItem: S.Option(S.String),
-  maybeSelectedDisplayText: S.Option(S.String),
 })
 
 export type Model = typeof Model.Type
 
 // INIT
 
-/** Configuration for creating a single-select combobox model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). `selectedItem` sets the initial selection (default none). */
-export type InitConfig = BaseInitConfig &
-  Readonly<{
-    selectedItem?: string
-    selectedDisplayText?: string
-  }>
+/** Configuration for creating a single-select combobox model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). */
+export type InitConfig = BaseInitConfig
 
-/** Creates an initial single-select combobox model from a config. Defaults to closed with no active item, empty input, and no selection. */
-export const init = (config: InitConfig): Model => ({
-  ...baseInit(config),
-  maybeSelectedItem: Option.fromNullishOr(config.selectedItem),
-  maybeSelectedDisplayText: Option.fromNullishOr(
-    config.selectedDisplayText ?? config.selectedItem,
-  ),
-})
+/** Creates an initial single-select combobox model from a config. Defaults to closed with no active item and an empty input. */
+export const init = (config: InitConfig): Model => baseInit(config)
 
 // UPDATE
 
-/** Processes a combobox message and returns the next model and commands. Closes the combobox on selection (single-select behavior). */
+/** Processes a Combobox Message and returns the next Model, optional Commands,
+ *  and an optional OutMessage. Selection closes the Combobox and emits
+ *  `Selected({ value })` for the parent to store. A nullable Combobox also
+ *  emits `ClearedSelection` when it closes with an empty input. */
 export const update = makeUpdate<Model>({
-  handleClose: model => {
-    if (model.nullable && model.inputValue === '') {
-      return evo(closedBaseModel(model), {
-        maybeSelectedItem: () => Option.none(),
-        maybeSelectedDisplayText: () => Option.none(),
-        inputValue: () => '',
-      })
+  handleClose: (model, restingInputValue, isClearable) => {
+    if (isClearable && model.nullable && model.inputValue === '') {
+      return {
+        model: evo(closedBaseModel(model), { inputValue: () => '' }),
+        outMessage: OutMessage.ClearedSelection(),
+      }
     }
 
-    return evo(closedBaseModel(model), {
-      inputValue: () =>
-        Option.getOrElse(model.maybeSelectedDisplayText, () => ''),
-    })
+    return {
+      model: evo(closedBaseModel(model), {
+        inputValue: () => restingInputValue,
+      }),
+    }
   },
 
-  handleSelectedItem: (model, item, displayText, context) => {
-    const isAlreadySelected = Option.exists(
-      model.maybeSelectedItem,
-      selectedItem => selectedItem === item,
+  handleSelectedItem: (model, item, displayText, wasSelected, context) => {
+    const nullableDeselect = model.nullable && wasSelected
+
+    return context.closeWithFocus(
+      evo(closedBaseModel(model), {
+        inputValue: () => (nullableDeselect ? '' : displayText),
+      }),
+      OutMessage.Selected({ value: item }),
     )
-
-    const nullableDeselect = model.nullable && isAlreadySelected
-    const nextModel = nullableDeselect
-      ? evo(closedBaseModel(model), {
-          inputValue: () => '',
-          maybeSelectedItem: () => Option.none(),
-          maybeSelectedDisplayText: () => Option.none(),
-        })
-      : evo(closedBaseModel(model), {
-          inputValue: () => displayText,
-          maybeSelectedItem: () => Option.some(item),
-          maybeSelectedDisplayText: () => Option.some(displayText),
-        })
-
-    return [
-      nextModel,
-      pipe(
-        Array.getSomes([context.maybeUnlockScroll, context.maybeRestoreInert]),
-        Array.prepend(context.focusInput),
-      ),
-      Option.some(SharedSelected({ value: item, wasAdded: !nullableDeselect })),
-    ]
   },
 
-  handleImmediateActivation: (model, item, displayText) =>
-    evo(model, {
-      maybeSelectedItem: () => Option.some(item),
-      maybeSelectedDisplayText: () => Option.some(displayText),
-    }),
+  handleImmediateActivation: (model, item) => ({
+    model,
+    outMessage: OutMessage.Selected({ value: item }),
+  }),
 })
 
 type UpdateReturn = ReturnType<typeof update>
 
-/** Programmatically opens the combobox, updating the model and returning
- *  focus and modal commands. Use this in domain-event handlers to open the combobox. */
+/** Programmatically opens the Combobox, updating the Model and returning
+ *  focus and modal Commands. Use this in domain-event handlers. */
 export const open = (model: Model): UpdateReturn =>
-  update(model, Opened({ maybeActiveItemIndex: Option.none() }))
+  update(model, Message.Opened({ maybeActiveItemIndex: Option.none() }))
 
-/** Programmatically closes the combobox, updating the model and returning
- *  focus and modal commands. Use this in domain-event handlers to close the combobox. */
-export const close = (model: Model): UpdateReturn => update(model, Closed())
+/** Programmatically closes the Combobox, updating the Model and returning
+ *  focus and modal Commands. `restingInputValue` is the text the input
+ *  returns to (the parent-owned selection's display text, or empty). Use
+ *  this in domain-event handlers to close the combobox. */
+export const close = (model: Model, restingInputValue: string): UpdateReturn =>
+  update(model, Message.Closed({ restingInputValue, isClearable: true }))
 
-/** Programmatically selects an item in the single-select combobox. Emits `Selected({ value, wasAdded })`. */
+/** Programmatically selects an item in the single-select combobox, closing
+ *  the combobox and emitting `Selected({ value })`. The Submodel treats the
+ *  select as fresh (`wasSelected: false`), so the input rests on
+ *  `displayText`; what the selection becomes is the parent's fold to decide,
+ *  and a parent that toggles on its own state will still deselect an
+ *  already-selected value. */
 export const selectItem = (
   model: Model,
   item: string,
   displayText: string,
-): UpdateReturn => update(model, SelectedItem({ item, displayText }))
-
-/** Reflects an externally-sourced selection onto the model without
- *  emitting an OutMessage or running selection side effects (no close, no
- *  focus). Sets the selected item, its display text, and the input text
- *  together, so the input shows the reflected selection. Pass
- *  `Option.none()` to clear. Use this to mirror external truth (a URL
- *  parameter, restored storage, a server push) onto the combobox.
- *  Contrast with `selectItem`, a user/programmatic *choice* that emits
- *  `Selected`. Returns the model directly because it produces no commands
- *  and no OutMessage. */
-export const reflectSelectedItem: Reflect<
-  Model,
-  Option.Option<{ readonly item: string; readonly displayText: string }>
-> = Function.dual(
-  2,
-  (
-    model: Model,
-    maybeSelection: Option.Option<{
-      readonly item: string
-      readonly displayText: string
-    }>,
-  ): Model =>
-    Option.match(maybeSelection, {
-      onNone: () =>
-        evo(model, {
-          maybeSelectedItem: () => Option.none(),
-          maybeSelectedDisplayText: () => Option.none(),
-          inputValue: () => '',
-        }),
-      onSome: ({ item, displayText }) =>
-        evo(model, {
-          maybeSelectedItem: () => Option.some(item),
-          maybeSelectedDisplayText: () => Option.some(displayText),
-          inputValue: () => displayText,
-        }),
-    }),
-)
+): UpdateReturn =>
+  update(model, Message.SelectedItem({ item, displayText, wasSelected: false }))
 
 // VIEW
 
 /** Per-render view inputs passed to the view via `h.submodel`'s `viewInputs` field. */
-export type ViewInputs<Item extends string> = BaseViewInputs<Item>
+export type ViewInputs<Item extends string> = BaseViewInputsCommon<Item> &
+  Readonly<{
+    /** The selection the parent owns, passed in fresh on every render.
+     *  `Option` because a single-select combobox may have no selection
+     *  yet. Marks the selected item and drives the hidden form input
+     *  submitted under `formName`. */
+    maybeSelectedValue: Option.Option<Item>
+  }>
 
-const internalView = makeView<Model>({
-  isItemSelected: (model, itemValue) =>
-    Option.exists(
-      model.maybeSelectedItem,
-      selectedItem => selectedItem === itemValue,
-    ),
-  ariaMultiSelectable: false,
-})
+const internalView = makeView<Model>({ ariaMultiSelectable: false })
 
-/** Pairs the single-select combobox's `view` and `update` (and programmatic
- *  helpers) behind a single Item-typed entry point. See `Listbox.create`
- *  for the rationale; the combobox factory follows the same shape with
- *  `selectItem` taking both `item` and `displayText`. */
-export const create = <Item extends string = string>(): Readonly<{
-  view: SubmodelView<Model, Message, BaseViewInputs<Item>>
-  update: (
-    model: Model,
-    message: Message,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
+type BundleUpdateReturn<Item extends string> = Update.ReturnWithOutMessage<
+  Model,
+  Message,
+  OutMessage<Item>
+>
+
+/** The `view`, `update`, and programmatic helpers that `Combobox.create`
+ *  returns, bound to one `Item` type. Name it to annotate a value that
+ *  holds a created bundle, such as a field on a config object or a
+ *  function parameter that takes the bundle rather than calling `create`
+ *  itself. */
+export type Bundle<Item extends string = string> = Readonly<{
+  view: SubmodelView<Model, Message, ViewInputs<Item>>
+  update: (model: Model, message: Message) => BundleUpdateReturn<Item>
   selectItem: (
     model: Model,
     item: Item,
     displayText: string,
-  ) => readonly [
+  ) => BundleUpdateReturn<Item>
+  open: (model: Model) => BundleUpdateReturn<Item>
+  close: (model: Model, restingInputValue: string) => BundleUpdateReturn<Item>
+}>
+
+/** Pairs the single-select combobox's `view` and `update` (and programmatic
+ *  helpers) behind a single Item-typed entry point. See `Listbox.create`
+ *  for the rationale; the combobox factory follows the same shape with
+ *  `selectItem` taking both `item` and `displayText`. `selectItem` emits
+ *  `Selected({ value })` with the input resting on `displayText`; what the
+ *  selection becomes is the parent's fold to decide. */
+export const create = <Item extends string = string>(): Bundle<Item> => {
+  type UpdateReturn = Update.ReturnWithOutMessage<
     Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
-  open: (
-    model: Model,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
-  close: (
-    model: Model,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
-  reflectSelectedItem: Reflect<
-    Model,
-    Option.Option<{ readonly item: Item; readonly displayText: string }>
+    Message,
+    OutMessage<Item>
   >
-}> => {
-  type UpdateReturn = readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const typedUpdate = update as (model: Model, message: Message) => UpdateReturn
+  const arrayBasedView = internalView<Item>()
+  const view = defineView<Model, Message, ViewInputs<Item>>(
+    (model, { maybeSelectedValue, ...baseInputs }, h) =>
+      arrayBasedView(
+        model,
+        {
+          ...baseInputs,
+          selectedValues: Option.toArray(maybeSelectedValue),
+        },
+        h,
+      ),
+  )
   return {
-    view: internalView<Item>(),
+    view,
     update: typedUpdate,
     selectItem: (model, item, displayText) =>
-      typedUpdate(model, SelectedItem({ item, displayText })),
+      typedUpdate(
+        model,
+        Message.SelectedItem({ item, displayText, wasSelected: false }),
+      ),
     open: model =>
-      typedUpdate(model, Opened({ maybeActiveItemIndex: Option.none() })),
-    close: model => typedUpdate(model, Closed()),
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    reflectSelectedItem: reflectSelectedItem as Reflect<
-      Model,
-      Option.Option<{ readonly item: Item; readonly displayText: string }>
-    >,
+      typedUpdate(
+        model,
+        Message.Opened({ maybeActiveItemIndex: Option.none() }),
+      ),
+    close: (model, restingInputValue) =>
+      typedUpdate(
+        model,
+        Message.Closed({ restingInputValue, isClearable: true }),
+      ),
   }
 }

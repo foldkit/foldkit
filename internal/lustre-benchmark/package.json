@@ -7,19 +7,24 @@
     "build": "pnpm build:naive && pnpm build:optimised",
     "build:naive": "vite build",
     "build:optimised": "BUILD_VARIANT=optimised vite build && mv dist/optimised/index.optimised.html dist/optimised/index.html",
+    "bench:install": "node bench/install.mjs",
+    "bench:run": "node bench/run.mjs",
+    "bench:verify": "node bench/verify.mjs",
     "dev": "vite",
     "profile": "RUN_LUSTRE_PROFILE=1 vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "effect": "4.0.0-beta.88",
+    "effect": "4.0.0-rc.112",
     "foldkit": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^25.9.3",
-    "happy-dom": "^20.10.4",
-    "typescript": "^6.0.3",
-    "vite": "^8.0.16",
-    "vitest": "^4.1.9"
+    "@foldkit/vite-plugin": "workspace:*",
+    "@types/node": "^26.4.0",
+    "happy-dom": "^20.11.13",
+    "playwright": "^1.62.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
   }
 }

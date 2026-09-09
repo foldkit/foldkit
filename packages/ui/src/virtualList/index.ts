@@ -1,32 +1,28 @@
 import {
   Array,
   Effect,
-  Match as M,
   Number,
   Option,
   Queue,
-  Schema as S,
+  Schema,
   Stream,
   pipe,
 } from 'effect'
+import { type Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import {
   type ChildAttribute,
   type Html,
   type TagName,
   childAttributes,
-  html,
 } from 'foldkit/html'
-import { m } from 'foldkit/message'
-import { ts } from 'foldkit/schema'
+import { defineMessageUnion } from 'foldkit/message'
+import { defineTaggedUnion } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 import * as Subscription from 'foldkit/subscription'
 
 // MODEL
-
-const Unmeasured = ts('Unmeasured')
-const Measured = ts('Measured', { containerHeight: S.Number })
 
 /** Measurement state of the virtual list's scrollable container.
  *
@@ -35,59 +31,41 @@ const Measured = ts('Measured', { containerHeight: S.Number })
  * `Unmeasured` explicitly, typically by rendering a placeholder until the
  * first measurement arrives.
  */
-const Measurement = S.Union([Unmeasured, Measured])
-
-const Idle = ts('Idle')
-const ScrollingToIndex = ts('ScrollingToIndex', {
-  index: S.Number,
-  version: S.Number,
+const Measurement = defineTaggedUnion({
+  Unmeasured: {},
+  Measured: { containerHeight: Schema.Number },
 })
 
 /** State of a programmatic scroll initiated by `scrollToIndex`. */
-const PendingScroll = S.Union([Idle, ScrollingToIndex])
+const PendingScroll = defineTaggedUnion({
+  Idle: {},
+  ScrollingToIndex: { index: Schema.Number, version: Schema.Number },
+})
 
 /** Schema for the virtual list's state. Tracks scroll position, container
  *  measurement, and any in-flight programmatic scroll. */
-export const Model = S.Struct({
-  id: S.String,
-  rowHeightPx: S.Number,
-  scrollTop: S.Number,
+export const Model = Schema.Struct({
+  id: Schema.String,
+  rowHeightPx: Schema.Number,
+  scrollTop: Schema.Number,
   measurement: Measurement,
   pendingScroll: PendingScroll,
-  pendingScrollVersion: S.Number,
+  pendingScrollVersion: Schema.Number,
 })
 
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** Sent when the user scrolls the container. Carries the new scroll position
- *  read from the scroll event. */
-export const ScrolledContainer = m('ScrolledContainer', {
-  scrollTop: S.Number,
-})
-/** Sent when the container resizes. Carries the new container height read
- *  from the `ResizeObserver` entry. */
-export const MeasuredContainer = m('MeasuredContainer', {
-  containerHeight: S.Number,
-})
-/** Sent when a `scrollToIndex` Command completes. Carries the version it was
- *  issued with so the update can ignore stale completions. */
-export const CompletedApplyScroll = m('CompletedApplyScroll', {
-  version: S.Number,
-})
-
 /** Union of all messages the virtual list component can produce. */
-export const Message: S.Union<
-  [
-    typeof ScrolledContainer,
-    typeof MeasuredContainer,
-    typeof CompletedApplyScroll,
-  ]
-> = S.Union([ScrolledContainer, MeasuredContainer, CompletedApplyScroll])
+export const Message = defineMessageUnion({
+  ScrolledContainer: { scrollTop: Schema.Number },
+  MeasuredContainer: { containerHeight: Schema.Number },
+  CompletedApplyScroll: { version: Schema.Number },
+})
 
-export type ScrolledContainer = typeof ScrolledContainer.Type
-export type MeasuredContainer = typeof MeasuredContainer.Type
+export type ScrolledContainer = typeof Message.ScrolledContainer.Type
+export type MeasuredContainer = typeof Message.MeasuredContainer.Type
 
 export type Message = typeof Message.Type
 
@@ -107,107 +85,103 @@ export const init = (config: InitConfig): Model => ({
   id: config.id,
   rowHeightPx: config.rowHeightPx,
   scrollTop: config.initialScrollTop ?? 0,
-  measurement: Unmeasured(),
-  pendingScroll: Idle(),
+  measurement: Measurement.Unmeasured(),
+  pendingScroll: PendingScroll.Idle(),
   pendingScrollVersion: 0,
 })
 
 // UPDATE
 
-export const ApplyScroll = Command.define(
-  'ApplyScroll',
-  { id: S.String, scrollTop: S.Number, version: S.Number },
-  CompletedApplyScroll,
-)(({ id, scrollTop, version }) =>
-  Effect.sync(() => {
-    const element = document.getElementById(id)
-    if (element !== null) {
-      element.scrollTop = scrollTop
-    }
-    return CompletedApplyScroll({ version })
-  }),
-)
+export const ApplyScroll = Command.define('ApplyScroll', {
+  args: { id: Schema.String, scrollTop: Schema.Number, version: Schema.Number },
+  messages: [Message.CompletedApplyScroll],
+  execute: ({ id, scrollTop, version }) =>
+    Effect.sync(() => {
+      const element = document.getElementById(id)
+      if (element !== null) {
+        element.scrollTop = scrollTop
+      }
+      return Message.CompletedApplyScroll({ version })
+    }),
+})
 
-/** Processes a virtual list message and returns the next model and commands. */
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      ScrolledContainer: ({ scrollTop }) => [
-        evo(model, { scrollTop: () => scrollTop }),
-        [],
-      ],
+/** Processes a VirtualList Message and returns the next Model and optional Commands. */
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ScrolledContainer: ({ scrollTop }) => ({
+      model: evo(model, { scrollTop: () => scrollTop }),
+    }),
 
-      MeasuredContainer: ({ containerHeight }) => {
-        const wasUnmeasured = model.measurement._tag === 'Unmeasured'
-        const needsInitialApply = wasUnmeasured && model.scrollTop !== 0
+    MeasuredContainer: ({ containerHeight }) => {
+      const wasUnmeasured = model.measurement._tag === 'Unmeasured'
+      const needsInitialApply = wasUnmeasured && model.scrollTop !== 0
 
-        if (needsInitialApply) {
-          const nextVersion = Number.increment(model.pendingScrollVersion)
-          return [
-            evo(model, {
-              measurement: () => Measured({ containerHeight }),
-              pendingScrollVersion: () => nextVersion,
-              pendingScroll: () =>
-                ScrollingToIndex({
-                  index: Math.floor(model.scrollTop / model.rowHeightPx),
-                  version: nextVersion,
-                }),
-            }),
-            [
-              ApplyScroll({
-                id: model.id,
-                scrollTop: model.scrollTop,
+      if (needsInitialApply) {
+        const nextVersion = Number.increment(model.pendingScrollVersion)
+        return {
+          model: evo(model, {
+            measurement: () => Measurement.Measured({ containerHeight }),
+            pendingScrollVersion: () => nextVersion,
+            pendingScroll: () =>
+              PendingScroll.ScrollingToIndex({
+                index: Math.floor(model.scrollTop / model.rowHeightPx),
                 version: nextVersion,
               }),
-            ],
-          ]
-        } else {
-          return [
-            evo(model, { measurement: () => Measured({ containerHeight }) }),
-            [],
-          ]
+          }),
+          commands: [
+            ApplyScroll({
+              id: model.id,
+              scrollTop: model.scrollTop,
+              version: nextVersion,
+            }),
+          ],
         }
-      },
+      } else {
+        return {
+          model: evo(model, {
+            measurement: () => Measurement.Measured({ containerHeight }),
+          }),
+        }
+      }
+    },
 
-      CompletedApplyScroll: ({ version }) => {
-        if (version !== model.pendingScrollVersion) {
-          return [model, []]
-        } else {
-          return [evo(model, { pendingScroll: () => Idle() }), []]
+    CompletedApplyScroll: ({ version }) => {
+      if (version !== model.pendingScrollVersion) {
+        return { model }
+      } else {
+        return {
+          model: evo(model, { pendingScroll: () => PendingScroll.Idle() }),
         }
-      },
-    }),
-  )
+      }
+    },
+  })
+
+type ScrollReturn = Update.Return<Model, Message>
 
 const buildScrollToIndex = (
   model: Model,
   index: number,
   targetScrollTop: number,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
+): ScrollReturn => {
   const nextVersion = Number.increment(model.pendingScrollVersion)
-  return [
-    evo(model, {
+  return {
+    model: evo(model, {
       pendingScrollVersion: () => nextVersion,
-      pendingScroll: () => ScrollingToIndex({ index, version: nextVersion }),
+      pendingScroll: () =>
+        PendingScroll.ScrollingToIndex({ index, version: nextVersion }),
     }),
-    [
+    commands: [
       ApplyScroll({
         id: model.id,
         scrollTop: targetScrollTop,
         version: nextVersion,
       }),
     ],
-  ]
+  }
 }
 
 /** Programmatically scrolls the container so the row at `index` is visible.
- *  Returns the next model and a Command that mutates `element.scrollTop`. The
+ *  Returns the next Model and a Command that mutates `element.scrollTop`. The
  *  natural scroll event then flows back through `ScrolledContainer` and the
  *  component re-renders the new visible slice.
  *
@@ -216,16 +190,13 @@ const buildScrollToIndex = (
  *  previous in-flight scroll) is ignored when its version no longer matches.
  *
  *  Should be called after the container has rendered. If the container is not
- *  yet in the DOM the Command silently no-ops (the model still transitions
+ *  yet in the DOM the Command silently no-ops (the Model still transitions
  *  through `ScrollingToIndex` → `Idle` via the version-matched completion).
  *
  *  Assumes uniform row heights: target scroll position is computed as
  *  `index * model.rowHeightPx`. For variable-height rows, use
  *  `scrollToIndexVariable`. */
-export const scrollToIndex = (
-  model: Model,
-  index: number,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+export const scrollToIndex = (model: Model, index: number): ScrollReturn =>
   buildScrollToIndex(model, index, index * model.rowHeightPx)
 
 /** Variable-height counterpart of `scrollToIndex`. Walks the heights of items
@@ -246,7 +217,7 @@ export const scrollToIndexVariable = <Item>(
   items: ReadonlyArray<Item>,
   itemToRowHeightPx: (item: Item, index: number) => number,
   index: number,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
+): ScrollReturn => {
   const cumulativeOffsets = prefixSum(items, itemToRowHeightPx)
   const targetScrollTop = pipe(
     cumulativeOffsets,
@@ -300,33 +271,28 @@ export const visibleWindow = (
   itemCount: number,
   overscan: number,
 ): Option.Option<VisibleWindow> =>
-  M.value(model.measurement).pipe(
-    M.withReturnType<Option.Option<VisibleWindow>>(),
-    M.tagsExhaustive({
-      Unmeasured: () => Option.none(),
-      Measured: ({ containerHeight }) => {
-        const firstVisibleIndex = Math.floor(
-          model.scrollTop / model.rowHeightPx,
-        )
-        const lastVisibleIndex = Math.ceil(
-          (model.scrollTop + containerHeight) / model.rowHeightPx,
-        )
+  Measurement.match<Option.Option<VisibleWindow>>(model.measurement, {
+    Unmeasured: () => Option.none(),
+    Measured: ({ containerHeight }) => {
+      const firstVisibleIndex = Math.floor(model.scrollTop / model.rowHeightPx)
+      const lastVisibleIndex = Math.ceil(
+        (model.scrollTop + containerHeight) / model.rowHeightPx,
+      )
 
-        const startIndex = clampIndex(firstVisibleIndex - overscan, itemCount)
-        const endIndex = clampIndex(lastVisibleIndex + overscan, itemCount)
+      const startIndex = clampIndex(firstVisibleIndex - overscan, itemCount)
+      const endIndex = clampIndex(lastVisibleIndex + overscan, itemCount)
 
-        const topSpacerHeight = startIndex * model.rowHeightPx
-        const bottomSpacerHeight = (itemCount - endIndex) * model.rowHeightPx
+      const topSpacerHeight = startIndex * model.rowHeightPx
+      const bottomSpacerHeight = (itemCount - endIndex) * model.rowHeightPx
 
-        return Option.some({
-          startIndex,
-          endIndex,
-          topSpacerHeight,
-          bottomSpacerHeight,
-        })
-      },
-    }),
-  )
+      return Option.some({
+        startIndex,
+        endIndex,
+        topSpacerHeight,
+        bottomSpacerHeight,
+      })
+    },
+  })
 
 /** Variable-height counterpart of `visibleWindow`. Walks the heights of every
  *  item to build a prefix-sum array, then locates the visible slice with two
@@ -345,56 +311,53 @@ export const visibleWindowVariable = <Item>(
   itemToRowHeightPx: (item: Item, index: number) => number,
   overscan: number,
 ): Option.Option<VisibleWindow> =>
-  M.value(model.measurement).pipe(
-    M.withReturnType<Option.Option<VisibleWindow>>(),
-    M.tagsExhaustive({
-      Unmeasured: () => Option.none(),
-      Measured: ({ containerHeight }) => {
-        const itemCount = items.length
-        const cumulativeOffsets = prefixSum(items, itemToRowHeightPx)
-        const totalHeight = lastOrZero(cumulativeOffsets)
+  Measurement.match<Option.Option<VisibleWindow>>(model.measurement, {
+    Unmeasured: () => Option.none(),
+    Measured: ({ containerHeight }) => {
+      const itemCount = items.length
+      const cumulativeOffsets = prefixSum(items, itemToRowHeightPx)
+      const totalHeight = lastOrZero(cumulativeOffsets)
 
-        const firstVisibleIndex = pipe(
-          cumulativeOffsets,
-          Array.findFirstIndex(Number.isGreaterThan(model.scrollTop)),
-          Option.match({
-            onNone: () => itemCount,
-            onSome: index => Math.max(0, index - 1),
-          }),
-        )
+      const firstVisibleIndex = pipe(
+        cumulativeOffsets,
+        Array.findFirstIndex(Number.isGreaterThan(model.scrollTop)),
+        Option.match({
+          onNone: () => itemCount,
+          onSome: index => Math.max(0, index - 1),
+        }),
+      )
 
-        const lastVisibleIndex = pipe(
-          cumulativeOffsets,
-          Array.findFirstIndex(
-            Number.isGreaterThanOrEqualTo(model.scrollTop + containerHeight),
-          ),
-          Option.getOrElse(() => itemCount),
-        )
+      const lastVisibleIndex = pipe(
+        cumulativeOffsets,
+        Array.findFirstIndex(
+          Number.isGreaterThanOrEqualTo(model.scrollTop + containerHeight),
+        ),
+        Option.getOrElse(() => itemCount),
+      )
 
-        const startIndex = clampIndex(firstVisibleIndex - overscan, itemCount)
-        const endIndex = clampIndex(lastVisibleIndex + overscan, itemCount)
+      const startIndex = clampIndex(firstVisibleIndex - overscan, itemCount)
+      const endIndex = clampIndex(lastVisibleIndex + overscan, itemCount)
 
-        const topSpacerHeight = pipe(
-          cumulativeOffsets,
-          Array.get(startIndex),
-          Option.getOrElse(() => 0),
-        )
-        const offsetAtEnd = pipe(
-          cumulativeOffsets,
-          Array.get(endIndex),
-          Option.getOrElse(() => totalHeight),
-        )
-        const bottomSpacerHeight = totalHeight - offsetAtEnd
+      const topSpacerHeight = pipe(
+        cumulativeOffsets,
+        Array.get(startIndex),
+        Option.getOrElse(() => 0),
+      )
+      const offsetAtEnd = pipe(
+        cumulativeOffsets,
+        Array.get(endIndex),
+        Option.getOrElse(() => totalHeight),
+      )
+      const bottomSpacerHeight = totalHeight - offsetAtEnd
 
-        return Option.some({
-          startIndex,
-          endIndex,
-          topSpacerHeight,
-          bottomSpacerHeight,
-        })
-      },
-    }),
-  )
+      return Option.some({
+        startIndex,
+        endIndex,
+        topSpacerHeight,
+        bottomSpacerHeight,
+      })
+    },
+  })
 
 // SUBSCRIPTION
 
@@ -423,7 +386,7 @@ type ContainerObserverState = {
  *  the consumer having to teach the framework about navigation. */
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   containerEvents: entry(
-    { id: S.String },
+    { id: Schema.String },
     {
       modelToDependencies: model => ({ id: model.id }),
       dependenciesToStream: ({ id }) =>
@@ -459,7 +422,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
                 const listener = () =>
                   Queue.offerUnsafe(
                     queue,
-                    ScrolledContainer({ scrollTop: element.scrollTop }),
+                    Message.ScrolledContainer({ scrollTop: element.scrollTop }),
                   )
                 element.addEventListener('scroll', listener, { passive: true })
                 state.scrollListener = listener
@@ -470,7 +433,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
                   if (Option.isSome(lastEntry)) {
                     Queue.offerUnsafe(
                       queue,
-                      MeasuredContainer({
+                      Message.MeasuredContainer({
                         containerHeight: lastEntry.value.contentRect.height,
                       }),
                     )
@@ -550,7 +513,7 @@ export type ViewInputs<Item> = Readonly<{
   itemToView: (item: Item, index: number) => Html
   itemToRowHeightPx?: (item: Item, index: number) => number
   overscan?: number
-  rowElement?: TagName
+  rowElement?: Exclude<TagName, 'textarea'>
   containerClassName?: string
   containerAttributes?: ReadonlyArray<ChildAttribute>
 }>
@@ -570,9 +533,7 @@ export const view = <Item>() =>
   viewImpl as unknown as ViewForItem<Item>
 
 const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
-  (model, viewInputs) => {
-    const h = html<Message>()
-
+  (model, viewInputs, h) => {
     const {
       items,
       itemToKey,
@@ -628,20 +589,15 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
       }) => {
         const visibleItems = items.slice(startIndex, endIndex)
 
-        const topSpacer = h.keyed('li')(
-          `${model.id}-top-spacer`,
-          [h.Role('presentation'), h.Style({ height: `${topSpacerHeight}px` })],
-          [],
-        )
+        const topSpacer = h.keyed('li')(`${model.id}-top-spacer`, [
+          h.Role('presentation'),
+          h.Style({ height: `${topSpacerHeight}px` }),
+        ])
 
-        const bottomSpacer = h.keyed('li')(
-          `${model.id}-bottom-spacer`,
-          [
-            h.Role('presentation'),
-            h.Style({ height: `${bottomSpacerHeight}px` }),
-          ],
-          [],
-        )
+        const bottomSpacer = h.keyed('li')(`${model.id}-bottom-spacer`, [
+          h.Role('presentation'),
+          h.Style({ height: `${bottomSpacerHeight}px` }),
+        ])
 
         const renderedRows = Array.map(visibleItems, (item, sliceIndex) => {
           const dataIndex = startIndex + sliceIndex

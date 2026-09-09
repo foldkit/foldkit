@@ -1,5 +1,5 @@
 // subscription.ts
-import { Effect, Schema as S, Stream } from 'effect'
+import { Effect, Schema, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
 import { ChangedSystemTheme, GotSettingsMessage, type Message } from './message'
@@ -16,7 +16,7 @@ const settingsSubscriptions = Subscription.lift(Settings.subscriptions)<
 
 const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
   systemTheme: entry(
-    { isSystemPreference: S.Boolean },
+    { isSystemPreference: Schema.Boolean },
     {
       modelToDependencies: model => ({
         isSystemPreference: model.themePreference === 'System',

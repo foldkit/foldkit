@@ -1,11 +1,11 @@
-import { Match as M } from 'effect'
+import { Match } from 'effect'
 import { Runtime } from 'foldkit'
 
 import * as Sentry from '@sentry/browser'
 
 const handleSlow = (context: Runtime.SlowContext<Model, Message>): void => {
-  const summary = M.value(context).pipe(
-    M.tagsExhaustive({
+  const summary = Match.value(context).pipe(
+    Match.tagsExhaustive({
       View: ({ durationMs, thresholdMs }) =>
         `view ${durationMs.toFixed(1)}ms (budget ${thresholdMs}ms)`,
       Update: ({ durationMs, thresholdMs, message }) =>

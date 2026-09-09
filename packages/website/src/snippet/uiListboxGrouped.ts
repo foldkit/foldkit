@@ -1,10 +1,10 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Effect, Match as M, Option } from 'effect'
-import { Command } from 'foldkit'
-import { childAttributes, html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { Option, Schema } from 'effect'
+import { Update } from 'foldkit'
+import { type HtmlBuilder, childAttributes } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Listbox } from '@foldkit/ui'
@@ -24,56 +24,54 @@ const CharacterListbox = Listbox.create<Character>()
 
 // Add a field to your Model for the Listbox Submodel, plus a field for
 // the selected value your app actually cares about:
-const Model = S.Struct({
-  maybeCharacter: S.Option(S.String),
+const Model = Schema.Struct({
+  maybeCharacter: Schema.Option(Schema.String),
   listbox: Listbox.Model,
   // ...your other fields
 })
 
 // In your init function, initialize the Listbox Submodel with a unique id:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     maybeCharacter: Option.none(),
     listbox: Listbox.init({ id: 'character' }),
     // ...your other fields
   },
-  [],
-]
-
-// Wrap Listbox's Messages so they can flow through your update:
-const GotListboxMessage = m('GotListboxMessage', {
-  message: Listbox.Message,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate
-// keyboard navigation, typeahead, and open/close to
-// CharacterListbox.update. On selection, the OutMessage's `Selected`
-// variant carries the chosen item's string value (the result of
-// `itemToValue`):
-GotListboxMessage: ({ message }) => {
-  const [nextListbox, commands, maybeOutMessage] = CharacterListbox.update(
-    model.listbox,
-    message,
-  )
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotListboxMessage({ message }),
-  )
+// Wrap Listbox's Messages so they can flow through your update:
+const Message = defineMessageUnion({
+  GotListboxMessage: { message: Listbox.Message },
+})
 
-  return Option.match(maybeOutMessage, {
-    onNone: () => [evo(model, { listbox: () => nextListbox }), mappedCommands],
-    onSome: M.type<Listbox.OutMessage>().pipe(
-      M.tagsExhaustive({
-        Selected: ({ value }) => [
-          evo(model, {
-            listbox: () => nextListbox,
-            maybeCharacter: () => Option.some(value),
-          }),
-          mappedCommands,
-        ],
-      }),
-    ),
-  })
-}
+// At module scope, fold the OutMessage into your own Model. On selection, the
+// `Selected` variant carries the chosen item's string value (the result of
+// `itemToValue`). The arm returns an Update.Step over the parent Model, which
+// already has the next Listbox Model written back:
+const foldListboxOutMessage = Listbox.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Selected:
+    ({ value }) =>
+    model => ({
+      model: evo(model, { maybeCharacter: () => Option.some(value) }),
+    }),
+})
+
+// Update.foldChild wires the child into the parent: it delegates keyboard
+// navigation, typeahead, and open/close to CharacterListbox.update, writes the
+// next Listbox Model back, maps the Submodel's Commands into your Message
+// type, and hands any OutMessage to foldOutMessage.
+const foldListbox = Update.foldChild({
+  update: CharacterListbox.update,
+  read: (model: Model) => Option.some(model.listbox),
+  write: (model, nextListbox) => evo(model, { listbox: () => nextListbox }),
+  toParentMessage: message => Message.GotListboxMessage({ message }),
+  foldOutMessage: foldListboxOutMessage,
+})
+
+// In the corresponding Message.match handler, call the fold:
+GotListboxMessage: ({ message }) => foldListbox(model, message)
 
 const characters: ReadonlyArray<Character> = [
   { firstName: 'Michael', lastName: 'Bluth' },
@@ -87,15 +85,15 @@ const characters: ReadonlyArray<Character> = [
 // Inside your view function, group items by a key and render a heading for
 // each group. Items are grouped in the order they appear. Make sure items
 // with the same key are contiguous in the items array:
-const view = (model: Model) => {
-  const h = html<Message>()
-
-  return h.submodel({
+const view = (model: Model, h: HtmlBuilder<Message>) =>
+  h.submodel({
     slotId: 'character',
     model: model.listbox,
     view: CharacterListbox.view,
     viewInputs: {
       items: characters,
+      // The parent owns the selection and passes it in.
+      maybeSelectedValue: model.maybeCharacter,
       itemToValue: characterName,
       // Group contiguous items by a shared key:
       itemGroupKey: character => character.lastName,
@@ -123,6 +121,5 @@ const view = (model: Model) => {
       backdropClassName: 'fixed inset-0',
       anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
     },
-    toParentMessage: message => GotListboxMessage({ message }),
+    toParentMessage: message => Message.GotListboxMessage({ message }),
   })
-}

@@ -1,49 +1,46 @@
-import { Effect, Match as M, Option, Schema as S } from 'effect'
+import { Array, Effect, Option, Schema } from 'effect'
 
 import * as Command from '../../command/index.js'
-import { m } from '../../message/index.js'
+import { defineMessageUnion } from '../../message/index.js'
+import { evo } from '../../struct/index.js'
+import * as Update from '../../update/index.js'
 
 // CHILD MODEL
 
-export const ChildModel = S.Struct({
-  status: S.Literals(['Idle', 'Submitting', 'Submitted']),
+export const ChildModel = Schema.Struct({
+  status: Schema.Literals(['Idle', 'Submitting', 'Submitted']),
 })
 export type ChildModel = typeof ChildModel.Type
 
 // CHILD MESSAGE
 
-export const SubmittedForm = m('SubmittedForm')
-export const SucceededSubmit = m('SucceededSubmit', { id: S.String })
-export const CancelledForm = m('CancelledForm')
-export const CompletedReset = m('CompletedReset')
-
-export const ChildMessage = S.Union([
-  SubmittedForm,
-  SucceededSubmit,
-  CancelledForm,
-  CompletedReset,
-])
+export const ChildMessage = defineMessageUnion({
+  SubmittedForm: {},
+  SucceededSubmitForm: { id: Schema.String },
+  CancelledForm: {},
+  CompletedResetForm: {},
+})
 export type ChildMessage = typeof ChildMessage.Type
 
 // CHILD OUT MESSAGE
 
-export const RequestedSave = m('RequestedSave', { id: S.String })
-export const RequestedCancel = m('RequestedCancel')
-
-export const ChildOutMessage = S.Union([RequestedSave, RequestedCancel])
+export const ChildOutMessage = defineMessageUnion({
+  RequestedSave: { id: Schema.String },
+  RequestedCancel: {},
+})
 export type ChildOutMessage = typeof ChildOutMessage.Type
 
 // CHILD COMMAND
 
-export const SubmitForm = Command.define(
-  'SubmitForm',
-  SucceededSubmit,
-)(Effect.sync(() => SucceededSubmit({ id: 'abc' })))
+export const SubmitForm = Command.define('SubmitForm', {
+  messages: [ChildMessage.SucceededSubmitForm],
+  execute: Effect.sync(() => ChildMessage.SucceededSubmitForm({ id: 'abc' })),
+})
 
-export const ResetForm = Command.define(
-  'ResetForm',
-  CompletedReset,
-)(Effect.sync(() => CompletedReset()))
+export const ResetForm = Command.define('ResetForm', {
+  messages: [ChildMessage.CompletedResetForm],
+  execute: Effect.sync(() => ChildMessage.CompletedResetForm()),
+})
 
 // CHILD INIT
 
@@ -51,59 +48,41 @@ export const initialChildModel: ChildModel = { status: 'Idle' }
 
 // CHILD UPDATE
 
-export const childUpdate = (
-  _model: ChildModel,
-  message: ChildMessage,
-): readonly [
-  ChildModel,
-  ReadonlyArray<Command.Command<ChildMessage>>,
-  Option.Option<ChildOutMessage>,
-] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [
-        ChildModel,
-        ReadonlyArray<Command.Command<ChildMessage>>,
-        Option.Option<ChildOutMessage>,
-      ]
-    >(),
-    M.tagsExhaustive({
-      SubmittedForm: () => [
-        { status: 'Submitting' },
-        [SubmitForm()],
-        Option.none(),
-      ],
-      SucceededSubmit: ({ id }) => [
-        { status: 'Submitted' },
-        [ResetForm()],
-        Option.some(RequestedSave({ id })),
-      ],
-      CancelledForm: () => [
-        { status: 'Idle' },
-        [],
-        Option.some(RequestedCancel()),
-      ],
-      CompletedReset: () => [{ status: 'Idle' }, [], Option.none()],
+export const childUpdate = (_model: ChildModel, message: ChildMessage) =>
+  ChildMessage.match<
+    Update.ReturnWithOutMessage<ChildModel, ChildMessage, ChildOutMessage>
+  >(message, {
+    SubmittedForm: () => ({
+      model: { status: 'Submitting' },
+      commands: [SubmitForm()],
     }),
-  )
+    SucceededSubmitForm: ({ id }) => ({
+      model: { status: 'Submitted' },
+      commands: [ResetForm()],
+      outMessage: ChildOutMessage.RequestedSave({ id }),
+    }),
+    CancelledForm: () => ({
+      model: { status: 'Idle' },
+      outMessage: ChildOutMessage.RequestedCancel(),
+    }),
+    CompletedResetForm: () => ({ model: { status: 'Idle' } }),
+  })
 
 // PARENT MODEL
 
-export const ParentModel = S.Struct({
+export const ParentModel = Schema.Struct({
   child: ChildModel,
-  savedIds: S.Array(S.String),
-  cancelled: S.Boolean,
+  savedIds: Schema.Array(Schema.String),
+  cancelled: Schema.Boolean,
 })
 export type ParentModel = typeof ParentModel.Type
 
 // PARENT MESSAGE
 
-export const GotChildMessage = m('GotChildMessage', {
-  message: ChildMessage,
+export const ParentMessage = defineMessageUnion({
+  GotChildMessage: { message: ChildMessage },
+  CompletedParentReset: {},
 })
-export const CompletedParentReset = m('CompletedParentReset')
-
-export const ParentMessage = S.Union([GotChildMessage, CompletedParentReset])
 export type ParentMessage = typeof ParentMessage.Type
 
 // PARENT INIT
@@ -116,41 +95,33 @@ export const initialParentModel: ParentModel = {
 
 // PARENT UPDATE
 
+const foldChildOutMessage = ChildOutMessage.match<
+  Update.Step<ParentModel, ParentMessage>
+>({
+  RequestedSave:
+    ({ id }) =>
+    model => ({
+      model: evo(model, { savedIds: Array.append(id) }),
+    }),
+  RequestedCancel: () => model => ({
+    model: evo(model, { cancelled: () => true }),
+  }),
+})
+
+const foldChildUpdate = Update.foldChild({
+  update: childUpdate,
+  read: (model: ParentModel) => Option.some(model.child),
+  write: (model, nextChild) => evo(model, { child: () => nextChild }),
+  toParentMessage: message => ParentMessage.GotChildMessage({ message }),
+  foldOutMessage: foldChildOutMessage,
+})
+
 export const parentUpdate = (
   parentModel: ParentModel,
   message: ParentMessage,
-): readonly [ParentModel, ReadonlyArray<Command.Command<ChildMessage>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [ParentModel, ReadonlyArray<Command.Command<ChildMessage>>]
-    >(),
-    M.tagsExhaustive({
-      GotChildMessage: ({ message: childMessage }) => {
-        const [nextChild, commands, maybeOutMessage] = childUpdate(
-          parentModel.child,
-          childMessage,
-        )
-        const nextParent = Option.match(maybeOutMessage, {
-          onNone: () => ({ ...parentModel, child: nextChild }),
-          onSome: outMessage =>
-            M.value(outMessage).pipe(
-              M.withReturnType<ParentModel>(),
-              M.tagsExhaustive({
-                RequestedSave: ({ id }) => ({
-                  ...parentModel,
-                  child: nextChild,
-                  savedIds: [...parentModel.savedIds, id],
-                }),
-                RequestedCancel: () => ({
-                  ...parentModel,
-                  child: nextChild,
-                  cancelled: true,
-                }),
-              }),
-            ),
-        })
-        return [nextParent, commands]
-      },
-      CompletedParentReset: () => [parentModel, []],
-    }),
-  )
+) =>
+  ParentMessage.match<Update.Return<ParentModel, ParentMessage>>(message, {
+    GotChildMessage: ({ message: childMessage }) =>
+      foldChildUpdate(parentModel, childMessage),
+    CompletedParentReset: () => ({ model: parentModel }),
+  })

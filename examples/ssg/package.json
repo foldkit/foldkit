@@ -1,0 +1,25 @@
+{
+  "name": "ssg-example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --outDir dist/client",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@effect/platform-browser": "4.0.0-rc.112",
+    "effect": "4.0.0-rc.112",
+    "foldkit": "workspace:*"
+  },
+  "devDependencies": {
+    "@foldkit/devtools": "workspace:*",
+    "@foldkit/vite-plugin": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
+  }
+}

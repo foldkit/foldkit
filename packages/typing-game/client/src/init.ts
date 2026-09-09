@@ -1,12 +1,12 @@
-import { Match as M } from 'effect'
-import { Command, Runtime, Url } from 'foldkit'
+import { Command, Runtime, type Update, Url } from 'foldkit'
 
-import { GotHomeMessage, GotRoomMessage } from './message'
-import type { Message } from './message'
+import { Message } from './message'
 import { Model } from './model'
 import { Home, Room } from './page'
-import { urlToAppRoute } from './route'
+import { AppRoute, urlToAppRoute } from './route'
 import { RoomsClient } from './rpc'
+
+type InitCommands = Update.Commands<Message, RoomsClient>
 
 export const init: Runtime.RoutingApplicationInit<
   Model,
@@ -16,29 +16,25 @@ export const init: Runtime.RoutingApplicationInit<
 > = (url: Url.Url) => {
   const route = urlToAppRoute(url)
 
-  const [home, homeCommands] = Home.init()
-  const [room, roomCommands] = Room.init(route)
+  const homeInit = Home.init()
+  const roomInit = Room.init(route)
 
-  const commands = M.value(route).pipe(
-    M.tagsExhaustive({
-      Home: () =>
-        Command.mapMessages(homeCommands, message =>
-          GotHomeMessage({ message }),
-        ),
-      Room: () =>
-        Command.mapMessages(roomCommands, message =>
-          GotRoomMessage({ message }),
-        ),
-      NotFound: () => [],
-    }),
-  )
+  const commands = AppRoute.match<InitCommands>(route, {
+    Home: () =>
+      Command.mapMessages(homeInit.commands, message =>
+        Message.GotHomeMessage({ message }),
+      ),
+    Room: () =>
+      Command.mapMessages(roomInit.commands, message =>
+        Message.GotRoomMessage({ message }),
+      ),
+    NotFound: () => [],
+  })
 
-  return [
-    {
-      route,
-      home,
-      room,
-    },
-    commands,
-  ]
+  const model = {
+    route,
+    home: homeInit.model,
+    room: roomInit.model,
+  }
+  return { model, commands }
 }

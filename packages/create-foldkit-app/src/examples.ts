@@ -11,12 +11,16 @@ export const EXAMPLE_VALUES = [
   'api-cache',
   'charting',
   'routing',
+  'route-transitions',
+  'view-transitions',
+  'interrupting-commands',
   'query-sync',
   'snake',
   'canvas-art',
   'generative-art',
   'auth',
   'shopping-cart',
+  'state-machine',
   'pixel-art',
   'websocket-chat',
   'managed-resource-layer',
@@ -100,6 +104,24 @@ export const examples: ReadonlyArray<{
     description: 'URL routing with parser combinators and route parameters',
   },
   {
+    value: 'route-transitions',
+    title: 'route-transitions',
+    description:
+      'Live transition log with entry, exit, and stayed navigation policies',
+  },
+  {
+    value: 'view-transitions',
+    title: 'view-transitions',
+    description:
+      'Shared-element morphs and direction-aware route animations via the View Transitions API',
+  },
+  {
+    value: 'interrupting-commands',
+    title: 'interrupting-commands',
+    description:
+      'Simulated file uploads with cancellable, restartable interruptible Commands',
+  },
+  {
     value: 'query-sync',
     title: 'query-sync',
     description:
@@ -132,6 +154,12 @@ export const examples: ReadonlyArray<{
     value: 'shopping-cart',
     title: 'shopping-cart',
     description: 'Complex state management with nested models and routing',
+  },
+  {
+    value: 'state-machine',
+    title: 'state-machine',
+    description:
+      'Checkout workflow powered by the experimental state machine module with guarded branches and edge Commands',
   },
   {
     value: 'pixel-art',

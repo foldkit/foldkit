@@ -1,33 +1,35 @@
-import { Schema as S } from 'effect'
-import { m } from 'foldkit/message'
+import { Schema } from 'effect'
+import { defineMessageUnion } from 'foldkit/message'
 
 import * as Child from './child'
 
 {
   // ❌ Bad: Got is reserved for Submodel wrappers.
-  const GotWeather = m('GotWeather', {
-    temperature: S.Number,
+  const Message = defineMessageUnion({
+    GotWeather: { temperature: Schema.Number },
   })
 }
 
 {
   // ✅ Good: use a name that does not start with Got for Command results.
-  const ReceivedWeather = m('ReceivedWeather', {
-    temperature: S.Number,
+  const Message = defineMessageUnion({
+    ReceivedWeather: { temperature: Schema.Number },
   })
 }
 
 {
   // ❌ Bad: Got-prefixed wrappers must carry child Messages.
-  const GotChildMessage = m('GotChildMessage', {
-    id: S.String,
+  const Message = defineMessageUnion({
+    GotChildMessage: { id: Schema.String },
   })
 }
 
 {
   // ✅ Good: Got wraps a child Message.
-  const GotChildMessage = m('GotChildMessage', {
-    id: S.String,
-    message: Child.Message,
+  const Message = defineMessageUnion({
+    GotChildMessage: {
+      id: Schema.String,
+      message: Child.Message,
+    },
   })
 }

@@ -1,22 +1,25 @@
-import { Match } from 'effect'
+import { Effect } from 'effect'
+import { Command, type Update } from 'foldkit'
+import * as Dom from 'foldkit/dom'
 import { evo } from 'foldkit/struct'
 
-import { fetchUser } from './command'
 import { Message } from './message'
-import { Model } from './model'
+import type { Model } from './model'
 
-// ✅ Update returns new state and commands
+const FocusSearchInput = Command.define('FocusSearchInput', {
+  messages: [Message.CompletedFocusSearchInput],
+  execute: Dom.focus('#search-input').pipe(
+    Effect.ignore,
+    Effect.as(Message.CompletedFocusSearchInput()),
+  ),
+})
+
+// ✅ Return the next Model and a Command
 const update = (model: Model, message: Message) =>
-  Match.value(message).pipe(
-    Match.tagsExhaustive({
-      ClickedFetchUser: () => [
-        evo(model, { isLoading: () => true }),
-        [fetchUser(model.userId)], // Command handles the side effect
-      ],
-
-      SucceededFetchUser: ({ user }) => [
-        evo(model, { isLoading: () => false, user: () => user }),
-        [], // Result received, no more commands needed
-      ],
+  Message.match<Update.Return<Model, Message>>(message, {
+    OpenedDialog: () => ({
+      model: evo(model, { dialogState: () => 'Open' }),
+      commands: [FocusSearchInput()],
     }),
-  )
+    CompletedFocusSearchInput: () => ({ model }),
+  })

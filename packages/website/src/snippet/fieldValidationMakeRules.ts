@@ -1,4 +1,4 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 import { Field, Rule, makeRules } from 'foldkit/fieldValidation'
 
 // Optional: no `required` option. The rule applies when the user fills it in.
@@ -19,9 +19,9 @@ const interestsRules = makeRules<ReadonlyArray<string>>({
   rules: [Rule.maxItems(5, 'Choose up to five')],
 })
 
-const Model = S.Struct({
-  username: Field(S.String),
-  email: Field(S.String),
-  interests: Field(S.Array(S.String)),
+const Model = Schema.Struct({
+  username: Field(Schema.String),
+  email: Field(Schema.String),
+  interests: Field(Schema.Array(Schema.String)),
 })
 type Model = typeof Model.Type

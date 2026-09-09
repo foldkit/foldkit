@@ -1,24 +1,27 @@
-import {
-  Array,
-  Effect,
-  Equal,
-  Function,
-  Match as M,
-  Number,
-  Option,
-} from 'effect'
+import { Array, Effect, Equal, Function, Match, Number, Option } from 'effect'
 
 import { afterCommit, afterPaint } from '../render/render.js'
 import { ElementNotFound } from './error.js'
+import { unlockScroll } from './scrollLock.js'
 
 const BASE_DIALOG_Z_INDEX = 2147483600
 let openDialogCount = 0
 
-const dialogCleanups = new WeakMap<HTMLDialogElement, () => void>()
+// NOTE: keyed by the dialog's id (string), not by the element object, because
+// the unmount backstop must reclaim these resources after the `<dialog>` has
+// already left the DOM (navigation away from a route-keyed subtree), when no
+// live element is addressable. Membership in this map is the per-dialog "holds
+// hygiene" flag, read-and-deleted to make release exactly-once.
+type DialogHygiene = Readonly<{
+  removeKeydownListener: () => void
+  returnFocus: HTMLElement | undefined
+}>
 
-const dialogReturnFocus = new WeakMap<HTMLDialogElement, HTMLElement>()
+const dialogHygieneById = new Map<string, DialogHygiene>()
 
-let openDialogStack: ReadonlyArray<HTMLDialogElement> = []
+type OpenDialog = Readonly<{ id: string; element: HTMLDialogElement }>
+
+let openDialogStack: ReadonlyArray<OpenDialog> = []
 
 const FOCUSABLE_SELECTOR = Array.join(
   [
@@ -31,6 +34,38 @@ const FOCUSABLE_SELECTOR = Array.join(
   ],
   ', ',
 )
+
+const isFocusableElement = (element: Element): element is HTMLElement => {
+  if (!(element instanceof HTMLElement)) {
+    return false
+  }
+
+  if (element.matches(':disabled')) {
+    return false
+  }
+
+  if (element instanceof HTMLInputElement && element.type === 'hidden') {
+    return false
+  }
+
+  if (element.tabIndex < 0 && !element.hasAttribute('tabindex')) {
+    return false
+  }
+
+  if (element.closest('[hidden], [inert]') !== null) {
+    return false
+  }
+
+  return element.checkVisibility({ visibilityProperty: true })
+}
+
+const focusableElementsWithin = (
+  root: ParentNode,
+): ReadonlyArray<HTMLElement> =>
+  Array.filter(
+    Array.fromIterable(root.querySelectorAll(FOCUSABLE_SELECTOR)),
+    isFocusableElement,
+  )
 
 const queryHTMLElement = (
   selector: string,
@@ -57,6 +92,19 @@ const queryHTMLElement = (
  * Message, not the element appearing. Mount is for per-instance lifecycle
  * effects bound to a VNode existing where the live element handle is
  * needed (positioning, portaling, observer attachment, library setup).
+ *
+ * Waiting for the commit puts the element in the DOM. It does not make the
+ * element focusable. `.focus()` is a no-op on an element that is not
+ * rendered, so a target behind `visibility: hidden` or `display: none`
+ * leaves focus where it was, with nothing to distinguish that from focus
+ * having landed. This is worth knowing when something asynchronous reveals
+ * the target after the render commits: a panel held at `visibility: hidden`
+ * until a positioning library resolves its first layout is still hidden
+ * when the Command runs, however long the Command waits. Focus a target
+ * like that from whatever performs the reveal, which is the one place that
+ * knows the element has become focusable. The Message still causes the
+ * reveal, so the focus belongs to that Message rather than to a lifecycle
+ * effect standing in for it.
  *
  * Section headings, articles, and other non-natively-focusable elements
  * are common URL fragment targets, but `.focus()` is a no-op on them
@@ -92,23 +140,28 @@ export const focus = (
 
 /**
  * Opens a dialog element using `show()` with high z-index, focus trapping,
- * and Escape key handling. Uses `show()` instead of `showModal()` so that
- * DevTools (and any other high-z-index overlay) remains interactive. The
- * Dialog component provides its own backdrop, scroll locking, and transitions.
- * Fails with `ElementNotFound` if the selector does not match an `HTMLDialogElement`.
+ * and Escape key handling. An unhandled Escape on the topmost dialog dispatches
+ * a `CustomEvent` named `cancel`, distinguishing it from native `cancel` events
+ * while preserving the dialog event contract. Uses `show()` instead of
+ * `showModal()` so that DevTools (and any other high-z-index overlay) remains
+ * interactive. The Dialog component provides its own backdrop, scroll locking,
+ * and transitions. Fails with `ElementNotFound` if the selector does not match
+ * an `HTMLDialogElement`.
  *
  * Pass `focusSelector` to focus an element inside the dialog when it opens.
+ * When it does not match a focusable element, or when none is provided, focus
+ * falls back to the first focusable descendant and then to the dialog itself.
  *
- * Records the element that had focus when the dialog opened so `closeModal`
+ * Records the element that had focus when the dialog opened so `closeDialog`
  * can return focus there, the way `showModal()` would natively.
  *
  * @example
  * ```typescript
- * Dom.showModal('#my-dialog')
- * Dom.showModal('#my-dialog', { focusSelector: '#search-input' })
+ * Dom.showDialog('#my-dialog')
+ * Dom.showDialog('#my-dialog', { focusSelector: '#search-input' })
  * ```
  */
-export const showModal = (
+export const showDialog = (
   selector: string,
   options?: Readonly<{ focusSelector?: string }>,
 ): Effect.Effect<void, ElementNotFound> =>
@@ -121,24 +174,25 @@ export const showModal = (
       return yield* Effect.fail(new ElementNotFound({ selector }))
     }
 
+    const { id } = element
+
     element.style.position = 'fixed'
     element.style.inset = '0'
     openDialogCount++
     element.style.zIndex = String(BASE_DIALOG_Z_INDEX + openDialogCount)
 
     const previouslyFocused = document.activeElement
-    if (
+    const returnFocus =
       previouslyFocused instanceof HTMLElement &&
       previouslyFocused !== document.body
-    ) {
-      dialogReturnFocus.set(element, previouslyFocused)
-    }
+        ? previouslyFocused
+        : undefined
 
     element.show()
 
     openDialogStack = Array.append(
-      Array.filter(openDialogStack, dialog => dialog !== element),
-      element,
+      Array.filter(openDialogStack, dialog => dialog.element !== element),
+      { id, element },
     )
 
     const handleKeydown = (event: KeyboardEvent): void => {
@@ -148,48 +202,64 @@ export const showModal = (
 
       const isTopmost = Option.exists(
         Array.last(openDialogStack),
-        topmost => topmost === element,
+        topmost => topmost.element === element,
       )
       if (!isTopmost) {
         return
       }
 
-      M.value(event.key).pipe(
-        M.when('Escape', () => {
+      Match.value(event.key).pipe(
+        Match.when('Escape', () => {
           if (event.defaultPrevented) {
             return
           }
 
           event.preventDefault()
-          element.dispatchEvent(new Event('cancel', { cancelable: true }))
+          element.dispatchEvent(new CustomEvent('cancel', { cancelable: true }))
         }),
-        M.when('Tab', () => {
+        Match.when('Tab', () => {
           trapFocusWithinDialog(event, element)
         }),
-        M.orElse(Function.constVoid),
+        Match.orElse(Function.constVoid),
       )
     }
 
     document.addEventListener('keydown', handleKeydown)
-    dialogCleanups.set(element, () =>
-      document.removeEventListener('keydown', handleKeydown),
-    )
+    dialogHygieneById.set(id, {
+      removeKeydownListener: () =>
+        document.removeEventListener('keydown', handleKeydown),
+      returnFocus,
+    })
 
-    if (options?.focusSelector) {
-      const focusTarget = element.querySelector(options.focusSelector)
-      if (focusTarget instanceof HTMLElement) {
-        focusTarget.focus()
-      }
-    }
+    const focusTarget = findDialogFocusTarget(element, options?.focusSelector)
+    focusTarget.focus()
   })
+
+const findDialogFocusTarget = (
+  dialog: HTMLDialogElement,
+  focusSelector: string | undefined,
+): HTMLElement => {
+  if (focusSelector !== undefined) {
+    const requestedFocusTarget = dialog.querySelector(focusSelector)
+    if (
+      requestedFocusTarget !== null &&
+      isFocusableElement(requestedFocusTarget)
+    ) {
+      return requestedFocusTarget
+    }
+  }
+
+  return Option.match(Array.head(focusableElementsWithin(dialog)), {
+    onSome: Function.identity,
+    onNone: () => dialog,
+  })
+}
 
 const trapFocusWithinDialog = (
   event: KeyboardEvent,
   dialog: HTMLDialogElement,
 ): void => {
-  const focusable = Array.fromIterable(
-    dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
-  )
+  const focusable = focusableElementsWithin(dialog)
   if (Array.isReadonlyArrayNonEmpty(focusable)) {
     const first = Array.headNonEmpty(focusable)
     const last = Array.lastNonEmpty(focusable)
@@ -201,48 +271,101 @@ const trapFocusWithinDialog = (
       event.preventDefault()
       first.focus()
     }
+  } else {
+    event.preventDefault()
+    dialog.focus()
   }
 }
 
 /**
  * Closes a dialog element using `.close()`.
- * Cleans up the keyboard handlers installed by `showModal` and restores focus to
+ * Cleans up the keyboard handlers installed by `showDialog` and restores focus to
  * the element that was focused before the dialog opened (the trigger, or the
  * dialog beneath it when closing a stacked dialog).
+ * Resolves to `true` when it released the keyboard handlers, the return
+ * focus, and the stack entry.
+ * Resolves to `false` when the dialog held none, for example when the close
+ * runs before `showDialog` has installed them. A caller that unlocks page
+ * scroll after the close should unlock only when the result is `true`.
  * Fails with `ElementNotFound` if the selector does not match an `HTMLDialogElement`.
  *
  * @example
  * ```typescript
- * Dom.closeModal('#my-dialog')
+ * Dom.closeDialog('#my-dialog')
  * ```
  */
-export const closeModal = (
+export const closeDialog = (
   selector: string,
-): Effect.Effect<void, ElementNotFound> =>
+): Effect.Effect<boolean, ElementNotFound> =>
   Effect.suspend(() => {
     const element = document.querySelector(selector)
     if (element instanceof HTMLDialogElement) {
       element.close()
-      openDialogStack = Array.filter(
-        openDialogStack,
-        dialog => dialog !== element,
-      )
-      openDialogCount = Math.max(0, openDialogCount - 1)
-      const cleanup = dialogCleanups.get(element)
-      if (cleanup) {
-        cleanup()
-        dialogCleanups.delete(element)
-      }
-
-      const returnFocus = dialogReturnFocus.get(element)
-      dialogReturnFocus.delete(element)
-      if (returnFocus !== undefined && document.contains(returnFocus)) {
-        returnFocus.focus()
-      }
-
-      return Effect.void
+      return Effect.succeed(releaseDialogHygieneById(element.id))
     }
     return Effect.fail(new ElementNotFound({ selector }))
+  })
+
+const releaseDialogHygieneById = (id: string): boolean => {
+  const hygiene = dialogHygieneById.get(id)
+  if (hygiene === undefined) {
+    return false
+  }
+
+  openDialogStack = Array.filter(openDialogStack, dialog => dialog.id !== id)
+  openDialogCount = Math.max(0, Number.decrement(openDialogCount))
+  hygiene.removeKeydownListener()
+  dialogHygieneById.delete(id)
+
+  const { returnFocus } = hygiene
+  if (returnFocus !== undefined && document.contains(returnFocus)) {
+    returnFocus.focus()
+  }
+
+  return true
+}
+
+/**
+ * Releases the framework hygiene a dialog holds while open: the focus-trap
+ * keyboard handler, the recorded return focus, the dialog stack entry, the
+ * z-index counter, and one page scroll lock. Use this as a backstop for the
+ * case where a dialog's element is removed from the DOM without a purposeful
+ * close, the classic example being navigation away from a route-keyed subtree
+ * that contains the dialog. The normal close path already releases these.
+ * That path is `closeDialog` first, then the Dialog component's scroll unlock
+ * when `closeDialog` reports a release. This function is the cleanup for the
+ * case where no close Message ever reaches `update`.
+ *
+ * Addressed by the dialog's id, not a selector, because the element is
+ * typically already gone from the DOM by the time this runs (that is the whole
+ * point of the backstop). The hygiene installed by `showDialog` is tracked by
+ * id so it can be reclaimed without a live element handle. The id must be
+ * non-empty and unique within the document, since it keys this cleanup
+ * accounting; a duplicate or empty id would release the wrong dialog's hygiene.
+ *
+ * Idempotent and exactly-once. It releases only when the dialog currently
+ * holds hygiene, then clears the per-dialog marker, so calling it after a
+ * normal close, or twice, is a no-op that never under-counts the shared
+ * scroll lock. Carries no application close semantics: the Dialog component
+ * owns the user-facing close (animation, `Closed` OutMessage, consumer
+ * Commands); this only reclaims framework resources.
+ *
+ * Resolves to `true` when it released resources, `false` when there was
+ * nothing to release. Never fails: an id with no held hygiene is a no-op,
+ * since the goal is reclaiming resources that may already be gone.
+ *
+ * @example
+ * ```typescript
+ * Dom.releaseDialogResources('my-dialog')
+ * ```
+ */
+export const releaseDialogResources = (id: string): Effect.Effect<boolean> =>
+  Effect.suspend(() => {
+    const released = releaseDialogHygieneById(id)
+    if (released) {
+      return Effect.as(unlockScroll, true)
+    }
+    return Effect.succeed(false)
   })
 
 /**
@@ -364,10 +487,10 @@ export const scrollIntoViewIfNotVisible = (
 ): Effect.Effect<void, ElementNotFound> =>
   Effect.gen(function* () {
     const when = options?.when ?? 'Paint'
-    yield* M.value(when).pipe(
-      M.when('Paint', () => afterPaint),
-      M.when('Commit', () => afterCommit),
-      M.exhaustive,
+    yield* Match.value(when).pipe(
+      Match.when('Paint', () => afterPaint),
+      Match.when('Commit', () => afterCommit),
+      Match.exhaustive,
     )
     const element = yield* queryHTMLElement(selector)
     Option.match(findScrollParent(element), {
@@ -407,9 +530,7 @@ export const advanceFocus = (
 
     const reference = yield* queryHTMLElement(selector)
 
-    const focusableElements = Array.fromIterable(
-      document.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
-    )
+    const focusableElements = focusableElementsWithin(document)
 
     const referenceElementIndex = Array.findFirstIndex(
       focusableElements,
@@ -420,10 +541,10 @@ export const advanceFocus = (
       return yield* Effect.fail(new ElementNotFound({ selector }))
     }
 
-    const offsetReferenceElementIndex = M.value(direction).pipe(
-      M.when('Next', () => Number.increment),
-      M.when('Previous', () => Number.decrement),
-      M.exhaustive,
+    const offsetReferenceElementIndex = Match.value(direction).pipe(
+      Match.when('Next', () => Number.increment),
+      Match.when('Previous', () => Number.decrement),
+      Match.exhaustive,
     )(referenceElementIndex.value)
 
     const nextElement = Array.get(

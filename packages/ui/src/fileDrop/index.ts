@@ -1,13 +1,8 @@
-import { Array, Match as M, Option, Schema as S } from 'effect'
-import * as Command from 'foldkit/command'
+import { Array, Schema } from 'effect'
+import { type Update } from 'foldkit'
 import * as File from 'foldkit/file'
-import {
-  type ChildAttribute,
-  type Html,
-  childAttributes,
-  html,
-} from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 import { defineView } from 'foldkit/submodel'
 
@@ -19,60 +14,31 @@ import { defineView } from 'foldkit/submodel'
  * drag is hovering. The html layer's `OnDragEnter`/`OnDragLeave` handlers
  * track the per-element active state internally so transitions between
  * children of the zone do not flicker the boolean off-and-on. */
-export const Model = S.Struct({
-  id: S.String,
-  isDragOver: S.Boolean,
+export const Model = Schema.Struct({
+  id: Schema.String,
+  isDragOver: Schema.Boolean,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** Sent when a drag enters the drop zone. Flips `isDragOver` to true so
- * the consumer's styling can highlight the zone. */
-export const EnteredDragZone = m('EnteredDragZone')
-/** Sent when a drag leaves the drop zone without dropping. Flips
- * `isDragOver` back to false. */
-export const LeftDragZone = m('LeftDragZone')
-/** Sent when the user drops files on the zone or selects them via the
- * hidden `<input type="file">`. Carries a non-empty list of `File`
- * objects, resets `isDragOver`, and emits `ReceivedFiles` as an
- * OutMessage. */
-export const DroppedFiles = m('DroppedFiles', {
-  files: S.NonEmptyArray(File.File),
-})
-/** Sent when a drop or input-change event fires without any files,
- * typically a drag of non-file data (text, URLs, images from another
- * page). Resets `isDragOver` and emits `RejectedNonFiles` as an
- * OutMessage so the consumer can surface a message (e.g. "Only files are
- * accepted"). */
-export const DroppedNonFiles = m('DroppedNonFiles')
-
 /** Union of all messages the file-drop component can produce. */
-export const Message = S.Union([
-  EnteredDragZone,
-  LeftDragZone,
-  DroppedFiles,
-  DroppedNonFiles,
-])
+export const Message = defineMessageUnion({
+  EnteredDragZone: {},
+  LeftDragZone: {},
+  DroppedFiles: { files: Schema.NonEmptyArray(File.File) },
+  DroppedNonFiles: {},
+})
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-/** Emitted when files arrive via drop or input-change. The consumer's
- * parent update handles this to process the files (validate, upload,
- * store in Model, etc.). The files list is non-empty. */
-export const ReceivedFiles = m('ReceivedFiles', {
-  files: S.NonEmptyArray(File.File),
-})
-
-/** Emitted when a drop or input-change event produces no files. The
- * consumer's parent update handles this to surface a message (e.g. "Only
- * files are accepted"). */
-export const RejectedNonFiles = m('RejectedNonFiles')
-
 /** The file-drop component's OutMessages: `ReceivedFiles` on the happy
  * path and `RejectedNonFiles` when a drop event fires without files. */
-export const OutMessage = S.Union([ReceivedFiles, RejectedNonFiles])
+export const OutMessage = defineMessageUnion({
+  ReceivedFiles: { files: Schema.NonEmptyArray(File.File) },
+  RejectedNonFiles: {},
+})
 export type OutMessage = typeof OutMessage.Type
 
 // INIT
@@ -90,39 +56,25 @@ export const init = (config: InitConfig): Model => ({
 
 // UPDATE
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
-
-/** Processes a file-drop message and returns the next model, commands,
- * and optional OutMessage. */
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    M.withReturnType<UpdateReturn>(),
-    M.tagsExhaustive({
-      EnteredDragZone: () => [
-        evo(model, { isDragOver: () => true }),
-        [],
-        Option.none(),
-      ],
-      LeftDragZone: () => [
-        evo(model, { isDragOver: () => false }),
-        [],
-        Option.none(),
-      ],
-      DroppedFiles: ({ files }) => [
-        evo(model, { isDragOver: () => false }),
-        [],
-        Option.some(ReceivedFiles({ files })),
-      ],
-      DroppedNonFiles: () => [
-        evo(model, { isDragOver: () => false }),
-        [],
-        Option.some(RejectedNonFiles()),
-      ],
-    }),
+/** Processes a file-drop Message and returns the next Model, optional Commands,
+ *  and an optional OutMessage. */
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
+    message,
+    {
+      EnteredDragZone: () => ({
+        model: evo(model, { isDragOver: () => true }),
+      }),
+      LeftDragZone: () => ({ model: evo(model, { isDragOver: () => false }) }),
+      DroppedFiles: ({ files }) => ({
+        model: evo(model, { isDragOver: () => false }),
+        outMessage: OutMessage.ReceivedFiles({ files }),
+      }),
+      DroppedNonFiles: () => ({
+        model: evo(model, { isDragOver: () => false }),
+        outMessage: OutMessage.RejectedNonFiles(),
+      }),
+    },
   )
 
 // VIEW
@@ -150,16 +102,15 @@ export type ViewInputs = Readonly<{
 
 const dispatchDroppedFiles = (files: ReadonlyArray<File.File>) =>
   Array.match(files, {
-    onEmpty: () => DroppedNonFiles(),
-    onNonEmpty: nonEmptyFiles => DroppedFiles({ files: [...nonEmptyFiles] }),
+    onEmpty: () => Message.DroppedNonFiles(),
+    onNonEmpty: nonEmptyFiles =>
+      Message.DroppedFiles({ files: [...nonEmptyFiles] }),
   })
 
 /** Renders an accessible file-drop zone by publishing attribute groups
  *  for a `<label>`-wrapped hidden file input. */
 export const view = defineView<Model, Message, ViewInputs>(
-  (model, viewInputs): Html => {
-    const h = html<Message>()
-
+  (model, viewInputs, h): Html => {
     const { id, isDragOver } = model
     const { toView, accept, multiple = false, isDisabled = false } = viewInputs
 
@@ -172,8 +123,8 @@ export const view = defineView<Model, Message, ViewInputs>(
       ? stateAttributes
       : [
           ...stateAttributes,
-          h.OnDragEnter(EnteredDragZone()),
-          h.OnDragLeave(LeftDragZone()),
+          h.OnDragEnter(Message.EnteredDragZone()),
+          h.OnDragLeave(Message.LeftDragZone()),
           h.AllowDrop(),
           h.OnDropFiles(dispatchDroppedFiles),
         ]

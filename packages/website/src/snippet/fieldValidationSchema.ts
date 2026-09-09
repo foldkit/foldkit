@@ -1,4 +1,4 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 import { Calendar } from 'foldkit'
 import { Field, Rule, makeRules } from 'foldkit/fieldValidation'
 
@@ -6,7 +6,9 @@ import { Field, Rule, makeRules } from 'foldkit/fieldValidation'
 const EventDate = Calendar.CalendarDateFromIsoString
 
 // A refinement Schema: brands a string that matches the pattern.
-const Slug = S.String.check(S.isPattern(/^[a-z0-9-]+$/)).pipe(S.brand('Slug'))
+const Slug = Schema.String.check(Schema.isPattern(/^[a-z0-9-]+$/)).pipe(
+  Schema.brand('Slug'),
+)
 type Slug = typeof Slug.Type
 
 // Reuse each Schema as a rule, so the rule can't drift from the Schema.
@@ -20,9 +22,9 @@ const slugRules = makeRules({
   rules: [Rule.fromSchema(Slug, 'Use lowercase letters, numbers, and hyphens')],
 })
 
-// Each Field wraps S.String, the raw value the control holds.
-const Model = S.Struct({
-  eventDate: Field(S.String),
-  slug: Field(S.String),
+// Each Field wraps Schema.String, the raw value the control holds.
+const Model = Schema.Struct({
+  eventDate: Field(Schema.String),
+  slug: Field(Schema.String),
 })
 type Model = typeof Model.Type

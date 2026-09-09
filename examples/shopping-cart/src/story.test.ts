@@ -1,29 +1,19 @@
 import { Option } from 'effect'
-import { Story } from 'foldkit'
+import { given, message, model, story } from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { products } from './data/products'
-import {
-  ChangedUrl,
-  ClickedClearCart,
-  ClickedDecrementQuantity,
-  ClickedIncrementQuantity,
-  ClickedPlaceOrder,
-  ClickedRemoveCartItem,
-  GotProductsMessage,
-  type Model,
-  UpdatedDeliveryInstructions,
-  update,
-} from './main'
+import { Message, type Model, update } from './main'
 import { Products } from './page'
-import { ProductsRoute } from './route'
+import { AppRoute } from './route'
 
 const apple = { id: '1', name: 'Apple', price: 1.5 }
 const banana = { id: '2', name: 'Banana', price: 0.75 }
 
 const baseModel: Model = {
-  route: ProductsRoute({ searchText: Option.none() }),
+  route: AppRoute.Products({ searchText: Option.none() }),
   cart: [],
   deliveryInstructions: '',
   orderPlaced: false,
@@ -39,46 +29,50 @@ const urlOrThrow = (raw: string) =>
 describe('update', () => {
   describe('routing', () => {
     test('root URL maps to Products with no search', () => {
-      Story.story(
+      story(
         update,
-        Story.with(baseModel),
-        Story.message(ChangedUrl({ url: urlOrThrow('http://localhost/') })),
-        Story.model(model => {
+        given(baseModel),
+        message(Message.ChangedUrl({ url: urlOrThrow('http://localhost/') })),
+        model(model => {
           expect(model.route._tag).toBe('Products')
         }),
       )
     })
 
     test('/cart maps to Cart', () => {
-      Story.story(
+      story(
         update,
-        Story.with(baseModel),
-        Story.message(ChangedUrl({ url: urlOrThrow('http://localhost/cart') })),
-        Story.model(model => {
+        given(baseModel),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/cart') }),
+        ),
+        model(model => {
           expect(model.route._tag).toBe('Cart')
         }),
       )
     })
 
     test('/checkout maps to Checkout', () => {
-      Story.story(
+      story(
         update,
-        Story.with(baseModel),
-        Story.message(
-          ChangedUrl({ url: urlOrThrow('http://localhost/checkout') }),
+        given(baseModel),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/checkout') }),
         ),
-        Story.model(model => {
+        model(model => {
           expect(model.route._tag).toBe('Checkout')
         }),
       )
     })
 
     test('an unmatched path falls back to NotFound', () => {
-      Story.story(
+      story(
         update,
-        Story.with(baseModel),
-        Story.message(ChangedUrl({ url: urlOrThrow('http://localhost/wat') })),
-        Story.model(model => {
+        given(baseModel),
+        message(
+          Message.ChangedUrl({ url: urlOrThrow('http://localhost/wat') }),
+        ),
+        model(model => {
           if (model.route._tag === 'NotFound') {
             expect(model.route.path).toBe('/wat')
           } else {
@@ -91,15 +85,15 @@ describe('update', () => {
 
   describe('cart updates', () => {
     test('Products.AddedToCart OutMessage adds the item with quantity one', () => {
-      Story.story(
+      story(
         update,
-        Story.with(baseModel),
-        Story.message(
-          GotProductsMessage({
-            message: Products.ClickedAddToCart({ item: apple }),
+        given(baseModel),
+        message(
+          Message.GotProductsMessage({
+            message: Products.Message.ClickedAddToCart({ item: apple }),
           }),
         ),
-        Story.model(model => {
+        model(model => {
           expect(model.cart).toHaveLength(1)
           expect(model.cart[0]?.item.id).toBe('1')
           expect(model.cart[0]?.quantity).toBe(1)
@@ -108,20 +102,20 @@ describe('update', () => {
     })
 
     test('adding the same item twice increments its quantity', () => {
-      Story.story(
+      story(
         update,
-        Story.with(baseModel),
-        Story.message(
-          GotProductsMessage({
-            message: Products.ClickedAddToCart({ item: apple }),
+        given(baseModel),
+        message(
+          Message.GotProductsMessage({
+            message: Products.Message.ClickedAddToCart({ item: apple }),
           }),
         ),
-        Story.message(
-          GotProductsMessage({
-            message: Products.ClickedAddToCart({ item: apple }),
+        message(
+          Message.GotProductsMessage({
+            message: Products.Message.ClickedAddToCart({ item: apple }),
           }),
         ),
-        Story.model(model => {
+        model(model => {
           expect(model.cart).toHaveLength(1)
           expect(model.cart[0]?.quantity).toBe(2)
         }),
@@ -129,59 +123,63 @@ describe('update', () => {
     })
 
     test('ClickedIncrementQuantity raises the quantity for an item', () => {
-      Story.story(
+      story(
         update,
-        Story.with({
-          ...baseModel,
-          cart: [{ item: apple, quantity: 1 }],
-        }),
-        Story.message(ClickedIncrementQuantity({ itemId: '1' })),
-        Story.model(model => {
+        given(
+          evo(baseModel, {
+            cart: () => [{ item: apple, quantity: 1 }],
+          }),
+        ),
+        message(Message.ClickedIncrementQuantity({ itemId: '1' })),
+        model(model => {
           expect(model.cart[0]?.quantity).toBe(2)
         }),
       )
     })
 
     test('ClickedDecrementQuantity lowers the quantity for an item', () => {
-      Story.story(
+      story(
         update,
-        Story.with({
-          ...baseModel,
-          cart: [{ item: apple, quantity: 2 }],
-        }),
-        Story.message(ClickedDecrementQuantity({ itemId: '1' })),
-        Story.model(model => {
+        given(
+          evo(baseModel, {
+            cart: () => [{ item: apple, quantity: 2 }],
+          }),
+        ),
+        message(Message.ClickedDecrementQuantity({ itemId: '1' })),
+        model(model => {
           expect(model.cart[0]?.quantity).toBe(1)
         }),
       )
     })
 
     test('ClickedDecrementQuantity removes the item when it reaches zero', () => {
-      Story.story(
+      story(
         update,
-        Story.with({
-          ...baseModel,
-          cart: [{ item: apple, quantity: 1 }],
-        }),
-        Story.message(ClickedDecrementQuantity({ itemId: '1' })),
-        Story.model(model => {
+        given(
+          evo(baseModel, {
+            cart: () => [{ item: apple, quantity: 1 }],
+          }),
+        ),
+        message(Message.ClickedDecrementQuantity({ itemId: '1' })),
+        model(model => {
           expect(model.cart).toHaveLength(0)
         }),
       )
     })
 
     test('ClickedRemoveCartItem drops the matching cart entry', () => {
-      Story.story(
+      story(
         update,
-        Story.with({
-          ...baseModel,
-          cart: [
-            { item: apple, quantity: 2 },
-            { item: banana, quantity: 1 },
-          ],
-        }),
-        Story.message(ClickedRemoveCartItem({ itemId: '1' })),
-        Story.model(model => {
+        given(
+          evo(baseModel, {
+            cart: () => [
+              { item: apple, quantity: 2 },
+              { item: banana, quantity: 1 },
+            ],
+          }),
+        ),
+        message(Message.ClickedRemoveCartItem({ itemId: '1' })),
+        model(model => {
           expect(model.cart).toHaveLength(1)
           expect(model.cart[0]?.item.id).toBe('2')
         }),
@@ -189,14 +187,15 @@ describe('update', () => {
     })
 
     test('ClickedClearCart empties the cart', () => {
-      Story.story(
+      story(
         update,
-        Story.with({
-          ...baseModel,
-          cart: [{ item: apple, quantity: 2 }],
-        }),
-        Story.message(ClickedClearCart()),
-        Story.model(model => {
+        given(
+          evo(baseModel, {
+            cart: () => [{ item: apple, quantity: 2 }],
+          }),
+        ),
+        message(Message.ClickedClearCart()),
+        model(model => {
           expect(model.cart).toHaveLength(0)
         }),
       )
@@ -205,28 +204,31 @@ describe('update', () => {
 
   describe('checkout', () => {
     test('UpdatedDeliveryInstructions stores the value', () => {
-      Story.story(
+      story(
         update,
-        Story.with(baseModel),
-        Story.message(
-          UpdatedDeliveryInstructions({ value: 'Leave at the door' }),
+        given(baseModel),
+        message(
+          Message.UpdatedDeliveryInstructions({
+            value: 'Leave at the door',
+          }),
         ),
-        Story.model(model => {
+        model(model => {
           expect(model.deliveryInstructions).toBe('Leave at the door')
         }),
       )
     })
 
     test('ClickedPlaceOrder sets orderPlaced, clears the cart, and resets instructions', () => {
-      Story.story(
+      story(
         update,
-        Story.with({
-          ...baseModel,
-          cart: [{ item: apple, quantity: 2 }],
-          deliveryInstructions: 'Knock loudly',
-        }),
-        Story.message(ClickedPlaceOrder()),
-        Story.model(model => {
+        given(
+          evo(baseModel, {
+            cart: () => [{ item: apple, quantity: 2 }],
+            deliveryInstructions: () => 'Knock loudly',
+          }),
+        ),
+        message(Message.ClickedPlaceOrder()),
+        model(model => {
           expect(model.orderPlaced).toBe(true)
           expect(model.cart).toHaveLength(0)
           expect(model.deliveryInstructions).toBe('')

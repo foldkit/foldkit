@@ -1,7 +1,7 @@
-import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
-import { Command, Runtime } from 'foldkit'
-import { Document, Html, html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { Array, Effect, Match, Option, Schema } from 'effect'
+import { Command, Runtime, Update } from 'foldkit'
+import { Document, Html, HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
@@ -16,7 +16,6 @@ import {
 import { People } from './page'
 import {
   AppRoute,
-  PeopleRoute,
   filesIndexRouter,
   filesRouter,
   homeRouter,
@@ -25,20 +24,11 @@ import {
   urlToAppRoute,
 } from './route'
 
-export {
-  AppRoute,
-  FilesIndexRoute,
-  FilesRoute,
-  HomeRoute,
-  NestedRoute,
-  NotFoundRoute,
-  PeopleRoute,
-  PersonRoute,
-} from './route'
+export { AppRoute } from './route'
 
 // MODEL
 
-export const Model = S.Struct({
+export const Model = Schema.Struct({
   route: AppRoute,
   peoplePage: People.Model,
 })
@@ -47,23 +37,14 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const CompletedNavigateInternal = m('CompletedNavigateInternal')
-export const CompletedLoadExternal = m('CompletedLoadExternal')
-export const ClickedLink = m('ClickedLink', {
-  request: UrlRequest,
-})
-export const ChangedUrl = m('ChangedUrl', { url: Url })
-export const GotPeopleMessage = m('GotPeopleMessage', {
-  message: People.Message,
+export const Message = defineMessageUnion({
+  CompletedNavigateInternal: {},
+  CompletedLoadExternal: {},
+  ClickedLink: { request: UrlRequest },
+  ChangedUrl: { url: Url },
+  GotPeopleMessage: { message: People.Message },
 })
 
-export const Message = S.Union([
-  CompletedNavigateInternal,
-  CompletedLoadExternal,
-  ClickedLink,
-  ChangedUrl,
-  GotPeopleMessage,
-])
 export type Message = typeof Message.Type
 
 // INIT
@@ -73,101 +54,99 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (
 ) => {
   const route = urlToAppRoute(url)
 
-  const initialPeopleRoute = M.value(route).pipe(
-    M.tag('People', peopleRoute => peopleRoute),
-    M.orElse(() => PeopleRoute({ searchText: Option.none() })),
+  const initialPeopleRoute = Match.value(route).pipe(
+    Match.tag('People', peopleRoute => peopleRoute),
+    Match.orElse(() => AppRoute.People({ searchText: Option.none() })),
   )
 
-  const [peoplePage, peopleCommands] = People.init(initialPeopleRoute)
-
-  return [
-    { route, peoplePage },
-    Command.mapMessages(peopleCommands, childMessage =>
-      GotPeopleMessage({ message: childMessage }),
+  const peopleInit = People.init(initialPeopleRoute)
+  return {
+    model: { route, peoplePage: peopleInit.model },
+    commands: Command.mapMessages(peopleInit.commands, childMessage =>
+      Message.GotPeopleMessage({ message: childMessage }),
     ),
-  ]
+  }
 }
 
 // COMMAND
 
-const NavigateInternal = Command.define(
-  'NavigateInternal',
-  { url: S.String },
-  CompletedNavigateInternal,
-)(({ url }) => pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())))
+const NavigateInternal = Command.define('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  execute: ({ url }) =>
+    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+})
 
-const LoadExternal = Command.define(
-  'LoadExternal',
-  { href: S.String },
-  CompletedLoadExternal,
-)(({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())))
+const LoadExternal = Command.define('LoadExternal', {
+  args: { href: Schema.String },
+  messages: [Message.CompletedLoadExternal],
+  execute: ({ href }) =>
+    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+})
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
+type UpdateReturn = Update.Return<Model, Message>
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tagsExhaustive({
-      CompletedNavigateInternal: () => [model, []],
-      CompletedLoadExternal: () => [model, []],
+const foldPeopleEntry = <Input>(
+  update: (peoplePage: People.Model, input: Input) => People.UpdateReturn,
+): Update.Fold<Model, Message, Input> =>
+  Update.foldChild({
+    update,
+    read: model => Option.some(model.peoplePage),
+    write: (model, nextPeoplePage) =>
+      evo(model, { peoplePage: () => nextPeoplePage }),
+    toParentMessage: message => Message.GotPeopleMessage({ message }),
+  })
 
-      ClickedLink: ({ request }) =>
-        M.value(request).pipe(
-          withUpdateReturn,
-          M.tagsExhaustive({
-            Internal: ({ url }) => [
-              model,
-              [NavigateInternal({ url: urlToString(url) })],
-            ],
-            External: ({ href }) => [model, [LoadExternal({ href })]],
-          }),
-        ),
+const foldPeople = foldPeopleEntry(People.update)
 
-      ChangedUrl: ({ url }) => {
-        const nextRoute = urlToAppRoute(url)
-        const modelWithNextRoute = evo(model, { route: () => nextRoute })
+const foldPeopleRouteChanged = foldPeopleEntry(People.informRouteChanged)
 
-        return M.value(nextRoute).pipe(
-          withUpdateReturn,
-          M.tag('People', peopleRoute => {
-            const [nextPeoplePage, peopleCommands] = People.informRouteChanged(
-              modelWithNextRoute.peoplePage,
-              peopleRoute,
-            )
-            return [
-              evo(modelWithNextRoute, { peoplePage: () => nextPeoplePage }),
-              Command.mapMessages(peopleCommands, childMessage =>
-                GotPeopleMessage({ message: childMessage }),
-              ),
-            ]
-          }),
-          M.orElse(() => [modelWithNextRoute, []]),
-        )
-      },
+const setRoute =
+  (nextRoute: AppRoute): Update.Step<Model, Message> =>
+  model => ({ model: evo(model, { route: () => nextRoute }) })
 
-      GotPeopleMessage: ({ message }) => {
-        const [nextPeoplePage, peopleCommands] = People.update(
-          model.peoplePage,
-          message,
-        )
-        return [
-          evo(model, { peoplePage: () => nextPeoplePage }),
-          Command.mapMessages(peopleCommands, childMessage =>
-            GotPeopleMessage({ message: childMessage }),
-          ),
-        ]
-      },
-    }),
-  )
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
+
+    ClickedLink: ({ request }) =>
+      UrlRequest.match<UpdateReturn>(request, {
+        Internal: ({ url }) => ({
+          model,
+          commands: [NavigateInternal({ url: urlToString(url) })],
+        }),
+        External: ({ href }) => ({
+          model,
+          commands: [LoadExternal({ href })],
+        }),
+      }),
+
+    ChangedUrl: ({ url }) => {
+      const nextRoute = urlToAppRoute(url)
+
+      const routeSteps = Match.value(nextRoute).pipe(
+        Match.withReturnType<ReadonlyArray<Update.Step<Model, Message>>>(),
+        Match.tag('People', peopleRoute => [
+          foldPeopleRouteChanged(peopleRoute),
+        ]),
+        Match.orElse(() => []),
+      )
+
+      return Update.combine(model, [setRoute(nextRoute), ...routeSteps])
+    },
+
+    GotPeopleMessage: ({ message }) => foldPeople(model, message),
+  })
 
 // VIEW
 
-const navigationView = (currentRoute: AppRoute): Html => {
-  const h = html<Message>()
-
+const navigationView = (
+  currentRoute: AppRoute,
+  h: HtmlBuilder<Message>,
+): Html => {
   const navLinkClassName = (isActive: boolean) =>
     `hover:bg-blue-600 font-medium px-3 py-1 rounded transition ${isActive ? 'bg-blue-700 bg-opacity-50' : ''}`
 
@@ -241,10 +220,8 @@ const navigationView = (currentRoute: AppRoute): Html => {
   )
 }
 
-const homeView = (): Html => {
-  const h = html<Message>()
-
-  return h.div(
+const homeView = (h: HtmlBuilder<Message>): Html =>
+  h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1(
@@ -257,15 +234,12 @@ const homeView = (): Html => {
           'This is a routing example built with foldkit. Navigate using the links above to see different routes in action.',
         ],
       ),
-      h.p([h.Class('text-gray-600')], []),
+      h.p([h.Class('text-gray-600')]),
     ],
   )
-}
 
-const nestedView = (): Html => {
-  const h = html<Message>()
-
-  return h.div(
+const nestedView = (h: HtmlBuilder<Message>): Html =>
+  h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1(
@@ -278,11 +252,8 @@ const nestedView = (): Html => {
       ),
     ],
   )
-}
 
-const personView = (personId: number): Html => {
-  const h = html<Message>()
-
+const personView = (personId: number, h: HtmlBuilder<Message>): Html => {
   const person = People.findPerson(personId)
 
   return Option.match(person, {
@@ -385,10 +356,9 @@ const entryCountLabel = (count: number): string =>
 const entryListView = (
   parentPath: ReadonlyArray<string>,
   entries: ReadonlyArray<FileTreeEntry>,
-): Html => {
-  const h = html<Message>()
-
-  return h.ul(
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.ul(
     [h.Class('divide-y divide-gray-200 border border-gray-200 rounded-lg')],
     Array.map(entries, entry =>
       h.keyed('li')(
@@ -404,8 +374,8 @@ const entryListView = (
             ],
             [entry.name],
           ),
-          M.value(entry).pipe(
-            M.tagsExhaustive({
+          Match.value(entry).pipe(
+            Match.tagsExhaustive({
               File: file =>
                 h.span(
                   [h.Class('text-sm text-gray-500')],
@@ -422,11 +392,11 @@ const entryListView = (
       ),
     ),
   )
-}
 
-const breadcrumbView = (path: Array.NonEmptyReadonlyArray<string>): Html => {
-  const h = html<Message>()
-
+const breadcrumbView = (
+  path: Array.NonEmptyReadonlyArray<string>,
+  h: HtmlBuilder<Message>,
+): Html => {
   const lastSegmentIndex = path.length - 1
 
   return h.nav(
@@ -435,18 +405,16 @@ const breadcrumbView = (path: Array.NonEmptyReadonlyArray<string>): Html => {
       h.Class('flex flex-wrap items-center gap-2 mb-6 text-sm'),
     ],
     [
-      h.keyed('a')(
-        'files-root',
+      h.a(
         [h.Href(filesIndexRouter()), h.Class('text-blue-500 hover:underline')],
         ['Files'],
       ),
       ...Array.map(path, (segment, index) => {
         const crumbPath = Array.append(Array.take(path, index), segment)
         const isCurrentSegment = index === lastSegmentIndex
-        const crumbRole = isCurrentSegment ? 'current' : 'link'
 
         return h.keyed('span')(
-          `${Array.join(crumbPath, '/')}:${crumbRole}`,
+          Array.join(crumbPath, '/'),
           [h.Class('flex items-center gap-2')],
           [
             h.span([h.Class('text-gray-400')], ['/']),
@@ -466,22 +434,20 @@ const breadcrumbView = (path: Array.NonEmptyReadonlyArray<string>): Html => {
   )
 }
 
-const fileDetailView = (file: File): Html => {
-  const h = html<Message>()
-
-  return h.div(
+const fileDetailView = (file: File, h: HtmlBuilder<Message>): Html =>
+  h.div(
     [h.Class('bg-gray-50 border border-gray-200 rounded-lg p-6')],
     [
       h.h2([h.Class('text-2xl font-bold text-gray-800 mb-2')], [file.name]),
       h.p([h.Class('text-gray-600')], [formatFileSize(file.sizeInBytes)]),
     ],
   )
-}
 
-const missingEntryView = (path: Array.NonEmptyReadonlyArray<string>): Html => {
-  const h = html<Message>()
-
-  return h.div(
+const missingEntryView = (
+  path: Array.NonEmptyReadonlyArray<string>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
     [],
     [
       h.h2([h.Class('text-4xl font-bold text-red-600 mb-6')], ['Nothing Here']),
@@ -495,12 +461,9 @@ const missingEntryView = (path: Array.NonEmptyReadonlyArray<string>): Html => {
       ),
     ],
   )
-}
 
-const filesIndexView = (): Html => {
-  const h = html<Message>()
-
-  return h.div(
+const filesIndexView = (h: HtmlBuilder<Message>): Html =>
+  h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1([h.Class('text-4xl font-bold text-gray-800 mb-6')], ['Files']),
@@ -510,42 +473,35 @@ const filesIndexView = (): Html => {
           'Every path under /files parses into a single route that captures the remaining segments with rest.',
         ],
       ),
-      entryListView([], fileTree),
+      entryListView([], fileTree, h),
     ],
   )
-}
 
-const filesView = (path: Array.NonEmptyReadonlyArray<string>): Html => {
-  const h = html<Message>()
-
+const filesView = (
+  path: Array.NonEmptyReadonlyArray<string>,
+  h: HtmlBuilder<Message>,
+): Html => {
   const maybeEntry = findEntry(path)
 
-  const contentKey = Option.match(maybeEntry, {
-    onNone: () => 'Missing',
-    onSome: entry => entry._tag,
-  })
-
   const content = Option.match(maybeEntry, {
-    onNone: () => missingEntryView(path),
+    onNone: () => missingEntryView(path, h),
     onSome: entry =>
-      M.value(entry).pipe(
-        M.tagsExhaustive({
-          File: fileDetailView,
-          Directory: directory => entryListView(path, directory.entries),
+      Match.value(entry).pipe(
+        Match.tagsExhaustive({
+          File: file => fileDetailView(file, h),
+          Directory: directory => entryListView(path, directory.entries, h),
         }),
       ),
   })
 
   return h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
-    [breadcrumbView(path), h.keyed('div')(contentKey, [], [content])],
+    [breadcrumbView(path, h), content],
   )
 }
 
-const notFoundView = (path: string): Html => {
-  const h = html<Message>()
-
-  return h.div(
+const notFoundView = (path: string, h: HtmlBuilder<Message>): Html =>
+  h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1(
@@ -562,51 +518,43 @@ const notFoundView = (path: string): Html => {
       ),
     ],
   )
-}
 
 const routeTitle = (route: Model['route']): string =>
-  M.value(route).pipe(
-    M.tag('Home', () => 'Routing'),
-    M.tag('Person', ({ personId }) => `Person ${personId} | Routing`),
-    M.tag('FilesIndex', () => 'Files | Routing'),
-    M.tag(
+  Match.value(route).pipe(
+    Match.tag('Home', () => 'Routing'),
+    Match.tag('Person', ({ personId }) => `Person ${personId} | Routing`),
+    Match.tag('FilesIndex', () => 'Files | Routing'),
+    Match.tag(
       'Files',
       ({ path }) => `${Array.lastNonEmpty(path)} | Files | Routing`,
     ),
-    M.orElse(({ _tag }) => `${_tag} | Routing`),
+    Match.orElse(({ _tag }) => `${_tag} | Routing`),
   )
 
-export const view = (model: Model): Document => {
-  const h = html<Message>()
-
-  const routeContent = M.value(model.route).pipe(
-    M.tagsExhaustive({
-      Home: homeView,
-      Nested: nestedView,
-      People: () =>
-        h.submodel({
-          slotId: 'people',
-          model: model.peoplePage,
-          view: People.view,
-          toParentMessage: message => GotPeopleMessage({ message }),
-        }),
-      Person: ({ personId }) => personView(personId),
-      FilesIndex: filesIndexView,
-      Files: ({ path }) => filesView(path),
-      NotFound: ({ path }) => notFoundView(path),
-    }),
-  )
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+  const routeContent = AppRoute.match(model.route, {
+    Home: () => homeView(h),
+    Nested: () => nestedView(h),
+    People: () =>
+      h.submodel({
+        slotId: 'people',
+        model: model.peoplePage,
+        view: People.view,
+        toParentMessage: message => Message.GotPeopleMessage({ message }),
+      }),
+    Person: ({ personId }) => personView(personId, h),
+    FilesIndex: () => filesIndexView(h),
+    Files: ({ path }) => filesView(path, h),
+    NotFound: ({ path }) => notFoundView(path, h),
+  })
 
   return {
     title: routeTitle(model.route),
     body: h.div(
       [h.Class('min-h-screen bg-gray-100')],
       [
-        h.header([], [navigationView(model.route)]),
-        h.main(
-          [h.Class('py-8')],
-          [h.keyed('div')(model.route._tag, [], [routeContent])],
-        ),
+        h.header([], [navigationView(model.route, h)]),
+        h.main([h.Class('py-8')], [routeContent]),
       ],
     ),
   }

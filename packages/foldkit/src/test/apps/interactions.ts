@@ -1,36 +1,32 @@
-import { Match as M, Schema as S } from 'effect'
+import { Number, Schema } from 'effect'
 
-import { type Html, html } from '../../html/index.js'
-import { m } from '../../message/index.js'
+import type { Html, HtmlBuilder } from '../../html/index.js'
+import { defineMessageUnion } from '../../message/index.js'
+import { evo } from '../../struct/index.js'
+import type * as Update from '../../update/index.js'
 
 // MODEL
 
-export const Model = S.Struct({
-  clicks: S.Number,
-  doubleClicks: S.Number,
-  hovered: S.Boolean,
-  focused: S.Boolean,
-  changed: S.String,
+export const Model = Schema.Struct({
+  clicks: Schema.Number,
+  doubleClicks: Schema.Number,
+  hovered: Schema.Boolean,
+  focused: Schema.Boolean,
+  changed: Schema.String,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const ClickedButton = m('ClickedButton')
-export const DoubleClickedButton = m('DoubleClickedButton')
-export const HoveredTarget = m('HoveredTarget')
-export const FocusedInput = m('FocusedInput')
-export const BlurredInput = m('BlurredInput')
-export const ChangedSelect = m('ChangedSelect', { value: S.String })
+export const Message = defineMessageUnion({
+  ClickedButton: {},
+  DoubleClickedButton: {},
+  HoveredTarget: {},
+  FocusedInput: {},
+  BlurredInput: {},
+  ChangedSelect: { value: Schema.String },
+})
 
-export const Message = S.Union([
-  ClickedButton,
-  DoubleClickedButton,
-  HoveredTarget,
-  FocusedInput,
-  BlurredInput,
-  ChangedSelect,
-])
 export type Message = typeof Message.Type
 
 // INIT
@@ -45,38 +41,39 @@ export const initialModel: Model = {
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<never>] =>
-  M.value(message).pipe(
-    M.withReturnType<readonly [Model, ReadonlyArray<never>]>(),
-    M.tagsExhaustive({
-      ClickedButton: () => [{ ...model, clicks: model.clicks + 1 }, []],
-      DoubleClickedButton: () => [
-        { ...model, doubleClicks: model.doubleClicks + 1 },
-        [],
-      ],
-      HoveredTarget: () => [{ ...model, hovered: true }, []],
-      FocusedInput: () => [{ ...model, focused: true }, []],
-      BlurredInput: () => [{ ...model, focused: false }, []],
-      ChangedSelect: ({ value }) => [{ ...model, changed: value }, []],
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedButton: () => ({
+      model: evo(model, { clicks: Number.increment }),
     }),
-  )
+    DoubleClickedButton: () => ({
+      model: evo(model, { doubleClicks: Number.increment }),
+    }),
+    HoveredTarget: () => ({
+      model: evo(model, { hovered: () => true }),
+    }),
+    FocusedInput: () => ({
+      model: evo(model, { focused: () => true }),
+    }),
+    BlurredInput: () => ({
+      model: evo(model, { focused: () => false }),
+    }),
+    ChangedSelect: ({ value }) => ({
+      model: evo(model, { changed: () => value }),
+    }),
+  })
 
 // VIEW
 
-export const view = (model: Model): Html => {
-  const h = html<Message>()
-
+export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
   return h.div(
     [],
     [
       h.button(
         [
-          h.OnClick(ClickedButton()),
-          h.OnDoubleClick(DoubleClickedButton()),
-          h.OnMouseEnter(HoveredTarget()),
+          h.OnClick(Message.ClickedButton()),
+          h.OnDoubleClick(Message.DoubleClickedButton()),
+          h.OnMouseEnter(Message.HoveredTarget()),
           h.AriaLabel('action'),
         ],
         [`clicks=${model.clicks} dbl=${model.doubleClicks}`],
@@ -84,11 +81,14 @@ export const view = (model: Model): Html => {
       h.input([
         h.Role('textbox'),
         h.AriaLabel('name'),
-        h.OnFocus(FocusedInput()),
-        h.OnBlur(BlurredInput()),
+        h.OnFocus(Message.FocusedInput()),
+        h.OnBlur(Message.BlurredInput()),
       ]),
       h.select(
-        [h.AriaLabel('fruit'), h.OnChange(value => ChangedSelect({ value }))],
+        [
+          h.AriaLabel('fruit'),
+          h.OnChange(value => Message.ChangedSelect({ value })),
+        ],
         [
           h.option([h.Value('apple')], ['Apple']),
           h.option([h.Value('banana')], ['Banana']),

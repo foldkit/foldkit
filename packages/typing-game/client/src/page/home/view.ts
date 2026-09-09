@@ -1,37 +1,23 @@
-import { Array, Match as M, Option } from 'effect'
+import { Array, Option } from 'effect'
 import { Submodel } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../constant'
+import { Message } from './message'
 import {
-  BlurredRoomIdInput,
-  BlurredUsernameInput,
-  ChangedRoomId,
-  ChangedUsername,
-  SubmittedJoinRoomForm,
-  SubmittedUsernameForm,
-} from './message'
-import type { Message } from './message'
-import {
-  EnterRoomId,
-  EnterUsername,
   HOME_ACTIONS,
   HomeAction,
+  HomeStep,
   Model,
-  SelectAction,
   homeActionToLabel,
 } from './model'
 
-export const view = Submodel.defineView<Model, Message>((model): Html => {
-  const h = html<Message>()
-
-  const maybeUsername = M.value(model.homeStep).pipe(
-    M.tagsExhaustive({
-      EnterUsername: () => Option.none(),
-      SelectAction: ({ username }) => Option.some(username),
-      EnterRoomId: ({ username }) => Option.some(username),
-    }),
-  )
+export const view = Submodel.defineView<Model, Message>((model, h): Html => {
+  const maybeUsername = HomeStep.match(model.homeStep, {
+    EnterUsername: () => Option.none(),
+    SelectAction: ({ username }) => Option.some(username),
+    EnterRoomId: ({ username }) => Option.some(username),
+  })
 
   const welcomeText = Option.match(maybeUsername, {
     onNone: () => h.empty,
@@ -44,30 +30,23 @@ export const view = Submodel.defineView<Model, Message>((model): Html => {
       h.h1([h.Class('mb-6 uppercase')], ['Typing Terminal']),
       welcomeText,
 
-      h.keyed('div')(
-        model.homeStep._tag,
-        [],
-        [
-          M.value(model.homeStep).pipe(
-            M.tagsExhaustive({
-              EnterUsername: enterUsername,
-              SelectAction: selectAction,
-              EnterRoomId: enterRoomId,
-            }),
-          ),
-        ],
-      ),
+      HomeStep.match(model.homeStep, {
+        EnterUsername: step => enterUsername(step, h),
+        SelectAction: step => selectAction(step, h),
+        EnterRoomId: step => enterRoomId(step, h),
+      }),
 
-      maybeErrorMessage(model.formError),
+      maybeErrorMessage(model.formError, h),
     ],
   )
 })
 
-const enterUsername = ({ username }: EnterUsername): Html => {
-  const h = html<Message>()
-
-  return h.form(
-    [h.OnSubmit(SubmittedUsernameForm())],
+const enterUsername = (
+  { username }: typeof HomeStep.EnterUsername.Type,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.form(
+    [h.OnSubmit(Message.SubmittedUsernameForm())],
     [
       h.div(
         [h.Class('flex items-center gap-2')],
@@ -83,8 +62,8 @@ const enterUsername = ({ username }: EnterUsername): Html => {
                 h.Type('text'),
                 h.Value(username),
                 h.Class('bg-transparent px-0 py-2 outline-none w-full'),
-                h.OnInput(value => ChangedUsername({ value })),
-                h.OnBlur(BlurredUsernameInput()),
+                h.OnInput(value => Message.ChangedUsername({ value })),
+                h.OnBlur(Message.BlurredUsernameInput()),
                 h.Autocapitalize('none'),
                 h.Spellcheck(false),
                 h.Autocorrect('off'),
@@ -97,42 +76,39 @@ const enterUsername = ({ username }: EnterUsername): Html => {
       ),
     ],
   )
-}
 
-const selectAction = ({ selectedAction }: SelectAction): Html => {
-  const h = html<Message>()
-
-  return h.div(
+const selectAction = (
+  { selectedAction }: typeof HomeStep.SelectAction.Type,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
     [h.Class('space-y-4')],
     [
-      ...Array.map(HOME_ACTIONS, action(selectedAction)),
+      ...Array.map(HOME_ACTIONS, action(selectedAction, h)),
       h.div(
         [h.Class('text-terminal-green mt-8')],
         ['(↑↓ to navigate, Enter to select)'],
       ),
     ],
   )
-}
 
 const action =
-  (selectedAction: HomeAction) =>
-  (homeAction: HomeAction): Html => {
-    const h = html<Message>()
-
-    return h.div(
+  (selectedAction: HomeAction, h: HtmlBuilder<Message>) =>
+  (homeAction: HomeAction): Html =>
+    h.div(
       [h.Class('whitespace-pre-wrap')],
       [
         selectedAction === homeAction ? '> ' : '  ',
         homeActionToLabel(homeAction),
       ],
     )
-  }
 
-const enterRoomId = ({ roomId }: EnterRoomId): Html => {
-  const h = html<Message>()
-
-  return h.form(
-    [h.OnSubmit(SubmittedJoinRoomForm())],
+const enterRoomId = (
+  { roomId }: typeof HomeStep.EnterRoomId.Type,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.form(
+    [h.OnSubmit(Message.SubmittedJoinRoomForm())],
     [
       h.div(
         [h.Class('flex items-center gap-2')],
@@ -149,8 +125,8 @@ const enterRoomId = ({ roomId }: EnterRoomId): Html => {
                 h.Type('text'),
                 h.Value(roomId),
                 h.Class('bg-transparent px-0 py-2 outline-none w-full'),
-                h.OnInput(value => ChangedRoomId({ value })),
-                h.OnBlur(BlurredRoomIdInput()),
+                h.OnInput(value => Message.ChangedRoomId({ value })),
+                h.OnBlur(Message.BlurredRoomIdInput()),
                 h.Autocapitalize('none'),
                 h.Spellcheck(false),
                 h.Autocorrect('off'),
@@ -162,12 +138,12 @@ const enterRoomId = ({ roomId }: EnterRoomId): Html => {
       ),
     ],
   )
-}
 
-const maybeErrorMessage = (maybeRoomFormError: Option.Option<string>): Html => {
-  const h = html<Message>()
-
-  return Option.match(maybeRoomFormError, {
+const maybeErrorMessage = (
+  maybeRoomFormError: Option.Option<string>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  Option.match(maybeRoomFormError, {
     onNone: () => h.empty,
     onSome: errorMessage =>
       h.div(
@@ -178,4 +154,3 @@ const maybeErrorMessage = (maybeRoomFormError: Option.Option<string>): Html => {
         ],
       ),
   })
-}

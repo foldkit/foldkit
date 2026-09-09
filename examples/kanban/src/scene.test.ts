@@ -1,5 +1,18 @@
 import { Option } from 'effect'
-import { Scene } from 'foldkit'
+import {
+  Command,
+  click,
+  expect,
+  given,
+  inside,
+  label,
+  role,
+  scene,
+  submit,
+  text,
+  type,
+  within,
+} from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
 import { DragAndDrop } from '@foldkit/ui'
@@ -7,14 +20,10 @@ import { DragAndDrop } from '@foldkit/ui'
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import type { Card } from './domain/card'
 import type { Column } from './domain/column'
-import {
-  CompletedFocusAddCardInput,
-  CompletedSaveBoard,
-  GeneratedCardId,
-} from './message'
+import { Message } from './message'
 import type { Model } from './model'
 import { update } from './update'
-import { view } from './view/index'
+import { view } from './view'
 
 const card = (id: string, title: string, sortKey: string): Card => ({
   id,
@@ -45,115 +54,107 @@ const testModel: Model = {
   announcement: '',
 }
 
-const toDoColumn = Scene.role('region', { name: 'To Do' })
-const inProgressColumn = Scene.role('region', { name: 'In Progress' })
-const doneColumn = Scene.role('region', { name: 'Done' })
+const toDoColumn = role('region', { name: 'To Do' })
+const inProgressColumn = role('region', { name: 'In Progress' })
+const doneColumn = role('region', { name: 'Done' })
 
-const acknowledgeFocusInput = Scene.Command.resolve(
+const acknowledgeFocusInput = Command.resolve(
   FocusAddCardInput,
-  CompletedFocusAddCardInput(),
+  Message.CompletedFocusAddCardInput(),
 )
 
 describe('view', () => {
   test('board renders columns with correct names', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(testModel),
-      Scene.expect(Scene.role('heading', { name: 'To Do' })).toExist(),
-      Scene.expect(Scene.role('heading', { name: 'In Progress' })).toExist(),
-      Scene.expect(Scene.role('heading', { name: 'Done' })).toExist(),
+      given(testModel),
+      expect(role('heading', { name: 'To Do' })).toExist(),
+      expect(role('heading', { name: 'In Progress' })).toExist(),
+      expect(role('heading', { name: 'Done' })).toExist(),
     )
   })
 
   test('columns show card counts from test data', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(testModel),
-      Scene.expect(toDoColumn).toContainText('2'),
-      Scene.expect(inProgressColumn).toContainText('1'),
-      Scene.expect(doneColumn).toContainText('0'),
+      given(testModel),
+      expect(toDoColumn).toContainText('2'),
+      expect(inProgressColumn).toContainText('1'),
+      expect(doneColumn).toContainText('0'),
     )
   })
 
   test('card titles are rendered within their columns', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(testModel),
-      Scene.expect(
-        Scene.within(toDoColumn, Scene.text('Write tests')),
-      ).toExist(),
-      Scene.expect(Scene.within(toDoColumn, Scene.text('Fix bug'))).toExist(),
-      Scene.expect(
-        Scene.within(inProgressColumn, Scene.text('Review PR')),
-      ).toExist(),
+      given(testModel),
+      expect(within(toDoColumn, text('Write tests'))).toExist(),
+      expect(within(toDoColumn, text('Fix bug'))).toExist(),
+      expect(within(inProgressColumn, text('Review PR'))).toExist(),
     )
   })
 
   test('clicking add card shows the form within the column', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(testModel),
-      Scene.inside(
+      given(testModel),
+      inside(
         toDoColumn,
-        Scene.click(Scene.role('button', { name: '+ Add card' })),
+        click(role('button', { name: '+ Add card' })),
         acknowledgeFocusInput,
-        Scene.expect(Scene.label('New card title')).toExist(),
+        expect(label('New card title')).toExist(),
       ),
     )
   })
 
   test('typing a card title updates the input', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(testModel),
-      Scene.click(
-        Scene.within(toDoColumn, Scene.role('button', { name: '+ Add card' })),
-      ),
+      given(testModel),
+      click(within(toDoColumn, role('button', { name: '+ Add card' }))),
       acknowledgeFocusInput,
-      Scene.type(Scene.label('New card title'), 'Buy groceries'),
-      Scene.expect(Scene.label('New card title')).toHaveValue('Buy groceries'),
+      type(label('New card title'), 'Buy groceries'),
+      expect(label('New card title')).toHaveValue('Buy groceries'),
     )
   })
 
   test('submitting the form adds a card to the column', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(testModel),
-      Scene.inside(
+      given(testModel),
+      inside(
         toDoColumn,
-        Scene.click(Scene.role('button', { name: '+ Add card' })),
+        click(role('button', { name: '+ Add card' })),
         acknowledgeFocusInput,
-        Scene.type(Scene.label('New card title'), 'Buy groceries'),
-        Scene.submit(Scene.role('form')),
-        Scene.Command.expectExact(GenerateCardId),
-        Scene.Command.resolve(
+        type(label('New card title'), 'Buy groceries'),
+        submit(role('form')),
+        Command.expectExact(GenerateCardId),
+        Command.resolve(
           GenerateCardId,
-          GeneratedCardId({
+          Message.CompletedGenerateCardId({
             cardId: 'test-uuid',
             columnId: 'todo',
             title: 'Buy groceries',
           }),
         ),
-        Scene.Command.expectExact(SaveBoard),
-        Scene.Command.resolve(SaveBoard, CompletedSaveBoard()),
-        Scene.expect(Scene.text('Buy groceries')).toExist(),
+        Command.expectExact(SaveBoard),
+        Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
+        expect(text('Buy groceries')).toExist(),
       ),
     )
   })
 
   test('cancelling closes the form and restores the add card button', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(testModel),
-      Scene.click(
-        Scene.within(toDoColumn, Scene.role('button', { name: '+ Add card' })),
-      ),
+      given(testModel),
+      click(within(toDoColumn, role('button', { name: '+ Add card' }))),
       acknowledgeFocusInput,
-      Scene.expect(Scene.label('New card title')).toExist(),
-      Scene.click(Scene.role('button', { name: 'Cancel' })),
-      Scene.expect(Scene.label('New card title')).toBeAbsent(),
-      Scene.expect(
-        Scene.within(toDoColumn, Scene.role('button', { name: '+ Add card' })),
+      expect(label('New card title')).toExist(),
+      click(role('button', { name: 'Cancel' })),
+      expect(label('New card title')).toBeAbsent(),
+      expect(
+        within(toDoColumn, role('button', { name: '+ Add card' })),
       ).toExist(),
     )
   })

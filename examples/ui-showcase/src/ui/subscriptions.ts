@@ -2,14 +2,7 @@ import { Subscription } from 'foldkit'
 
 import { DragAndDrop, Slider, VirtualList } from '@foldkit/ui'
 
-import {
-  GotDragAndDropDemoMessage,
-  GotSliderRatingDemoMessage,
-  GotSliderVolumeDemoMessage,
-  GotVirtualListDemoMessage,
-  GotVirtualListVariableDemoMessage,
-  type UiMessage,
-} from './message'
+import { Message as UiMessage } from './message'
 import type { UiModel } from './model'
 
 const dragAndDropSubscriptions = Subscription.lift({
@@ -19,7 +12,7 @@ const dragAndDropSubscriptions = Subscription.lift({
   autoScroll: DragAndDrop.subscriptions.autoScroll,
 })<UiModel, UiMessage>({
   toChildModel: model => model.dragAndDropDemo,
-  toParentMessage: message => GotDragAndDropDemoMessage({ message }),
+  toParentMessage: message => UiMessage.GotDragAndDropDemoMessage({ message }),
 })
 
 const sliderRatingSubscriptions = Subscription.lift({
@@ -27,7 +20,7 @@ const sliderRatingSubscriptions = Subscription.lift({
   sliderRatingEscape: Slider.subscriptions.dragEscape,
 })<UiModel, UiMessage>({
   toChildModel: model => model.sliderRatingDemo,
-  toParentMessage: message => GotSliderRatingDemoMessage({ message }),
+  toParentMessage: message => UiMessage.GotSliderRatingDemoMessage({ message }),
 })
 
 const sliderVolumeSubscriptions = Subscription.lift({
@@ -35,21 +28,22 @@ const sliderVolumeSubscriptions = Subscription.lift({
   sliderVolumeEscape: Slider.subscriptions.dragEscape,
 })<UiModel, UiMessage>({
   toChildModel: model => model.sliderVolumeDemo,
-  toParentMessage: message => GotSliderVolumeDemoMessage({ message }),
+  toParentMessage: message => UiMessage.GotSliderVolumeDemoMessage({ message }),
 })
 
 const virtualListDemoSubscriptions = Subscription.lift({
   virtualListContainerEvents: VirtualList.subscriptions.containerEvents,
 })<UiModel, UiMessage>({
   toChildModel: model => model.virtualListDemo,
-  toParentMessage: message => GotVirtualListDemoMessage({ message }),
+  toParentMessage: message => UiMessage.GotVirtualListDemoMessage({ message }),
 })
 
 const virtualListVariableDemoSubscriptions = Subscription.lift({
   virtualListVariableContainerEvents: VirtualList.subscriptions.containerEvents,
 })<UiModel, UiMessage>({
   toChildModel: model => model.virtualListVariableDemo,
-  toParentMessage: message => GotVirtualListVariableDemoMessage({ message }),
+  toParentMessage: message =>
+    UiMessage.GotVirtualListVariableDemoMessage({ message }),
 })
 
 export const subscriptions = Subscription.aggregate<UiModel, UiMessage>()(

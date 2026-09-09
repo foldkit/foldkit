@@ -1,24 +1,26 @@
-import { Match as M, Schema as S } from 'effect'
+import { Schema } from 'effect'
 
-import type { Html } from '../../html/index.js'
-import { html } from '../../html/index.js'
-import { m } from '../../message/index.js'
+import type { Html, HtmlBuilder } from '../../html/index.js'
+import { defineMessageUnion } from '../../message/index.js'
+import { evo } from '../../struct/index.js'
+import type * as Update from '../../update/index.js'
 
 // MODEL
 
-export const Model = S.Struct({
-  lastKey: S.String,
-  isShifted: S.Boolean,
+export const Model = Schema.Struct({
+  lastKey: Schema.String,
+  isShifted: Schema.Boolean,
 })
 
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const PressedKey = m('PressedKey', { key: S.String })
-export const PressedShiftKey = m('PressedShiftKey', { key: S.String })
+export const Message = defineMessageUnion({
+  PressedKey: { key: Schema.String },
+  PressedShiftKey: { key: Schema.String },
+})
 
-export const Message = S.Union([PressedKey, PressedShiftKey])
 export type Message = typeof Message.Type
 
 // INIT
@@ -30,36 +32,34 @@ export const initialModel: Model = {
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<never>] =>
-  M.value(message).pipe(
-    M.withReturnType<readonly [Model, ReadonlyArray<never>]>(),
-    M.tagsExhaustive({
-      PressedKey: ({ key }) => [
-        { ...model, lastKey: key, isShifted: false },
-        [],
-      ],
-      PressedShiftKey: ({ key }) => [
-        { ...model, lastKey: key, isShifted: true },
-        [],
-      ],
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    PressedKey: ({ key }) => ({
+      model: evo(model, {
+        lastKey: () => key,
+        isShifted: () => false,
+      }),
     }),
-  )
+    PressedShiftKey: ({ key }) => ({
+      model: evo(model, {
+        lastKey: () => key,
+        isShifted: () => true,
+      }),
+    }),
+  })
 
 // VIEW
 
-export const view = (model: Model): Html => {
-  const h = html<Message>()
-
+export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
   return h.div(
     [
       h.Id('key-app'),
       h.Role('application'),
       h.AriaLabel('Key press area'),
       h.OnKeyDown((key, modifiers) =>
-        modifiers.shiftKey ? PressedShiftKey({ key }) : PressedKey({ key }),
+        modifiers.shiftKey
+          ? Message.PressedShiftKey({ key })
+          : Message.PressedKey({ key }),
       ),
     ],
     [

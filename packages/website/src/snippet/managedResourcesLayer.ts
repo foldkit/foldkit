@@ -1,7 +1,7 @@
-import { Context, Effect, Layer, Option, Schema as S } from 'effect'
+import { Context, Effect, Layer, Option, Schema } from 'effect'
 import { ManagedResource } from 'foldkit'
 
-// A heavy engine whose init and teardown are packaged as an Effect Layer.
+// A FEN string is a text description of a chess position.
 interface ChessEngine {
   readonly bestMove: (fen: string) => Effect.Effect<string>
 }
@@ -11,7 +11,25 @@ class ChessEngineService extends Context.Service<
   ChessEngine
 >()('ChessEngineService') {}
 
-declare const engineLayer: Layer.Layer<ChessEngineService>
+// A heavy engine whose init and teardown are packaged as an Effect Layer.
+// Building the Layer spawns the worker, and the finalizer registered by
+// acquireRelease terminates it.
+const engineLayer: Layer.Layer<ChessEngineService> = Layer.effect(
+  ChessEngineService,
+  Effect.gen(function* () {
+    const worker = yield* Effect.acquireRelease(
+      Effect.sync(() => new Worker('/chess-engine-worker.js')),
+      worker => Effect.sync(() => worker.terminate()),
+    )
+
+    return {
+      bestMove: (fen: string): Effect.Effect<string> => {
+        // Your engine protocol goes here: post the FEN to the worker and
+        // resolve with its best-move reply.
+      },
+    }
+  }),
+)
 
 // 1. The Managed Resource holds the bare service value, with no wrapper.
 const Engine = ManagedResource.tag<ChessEngine>()('ChessEngine')
@@ -20,7 +38,7 @@ const Engine = ManagedResource.tag<ChessEngine>()('ChessEngine')
 //    Layer.build registers the Layer's finalizers on it. They tear down when
 //    the resource is released or re-acquired.
 const managedResources = ManagedResource.make<Model, Message>()(entry => ({
-  engine: entry(S.Option(S.Null), {
+  engine: entry(Schema.Option(Schema.Null), {
     resource: Engine,
     modelToMaybeRequirements: model => Option.as(model.maybeAnalysisSlug, null),
     acquire: () =>

@@ -1,24 +1,23 @@
 import { Predicate } from 'effect'
-import type { Attribute } from 'foldkit/html'
-import { html } from 'foldkit/html'
-import type { Html } from 'foldkit/html'
+import type { Attribute, Html, HtmlBuilder } from 'foldkit/html'
 
 // VIEW
 
 /** Attribute groups the input component provides to the consumer's `toView` callback. */
-export type InputAttributes<ParentMessage> = Readonly<{
-  input: ReadonlyArray<Attribute<ParentMessage>>
-  label: ReadonlyArray<Attribute<ParentMessage>>
-  description: ReadonlyArray<Attribute<ParentMessage>>
+export type InputAttributes<Message> = Readonly<{
+  input: ReadonlyArray<Attribute<Message>>
+  label: ReadonlyArray<Attribute<Message>>
+  description: ReadonlyArray<Attribute<Message>>
 }>
 
 /** Configuration for rendering an input with `view`. */
-export type ViewConfig<ParentMessage> = Readonly<{
+export type ViewConfig<Message> = Readonly<{
   id: string
-  toView: (attributes: InputAttributes<ParentMessage>) => Html
-  onInput?: (value: string) => ParentMessage
+  toView: (attributes: InputAttributes<Message>) => Html
+  onInput?: (value: string) => Message
   value?: string
   isDisabled?: boolean
+  isReadOnly?: boolean
   isInvalid?: boolean
   isAutofocus?: boolean
   name?: string
@@ -26,21 +25,21 @@ export type ViewConfig<ParentMessage> = Readonly<{
   placeholder?: string
 }>
 
-/** Generates the description element ID from the input's base ID. */
+/** Returns the description element id, derived from the input's base id. */
 export const descriptionId = (id: string): string => `${id}-description`
 
 /** Renders an accessible input by building ARIA attribute groups and delegating layout to the consumer's `toView` callback. */
-export const view = <ParentMessage>(
-  config: ViewConfig<ParentMessage>,
+export const view = <Message>(
+  config: ViewConfig<Message>,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<ParentMessage>()
-
   const {
     toView,
     id,
     onInput,
     value,
     isDisabled = false,
+    isReadOnly = false,
     isInvalid = false,
     isAutofocus = false,
     name,
@@ -49,15 +48,23 @@ export const view = <ParentMessage>(
   } = config
 
   const disabledAttributes = isDisabled
-    ? [h.AriaDisabled(true), h.Disabled(true), h.DataAttribute('disabled', '')]
+    ? [h.Disabled(true), h.DataAttribute('disabled', '')]
+    : []
+
+  const readOnlyAttributes = isReadOnly
+    ? [h.Readonly(true), h.DataAttribute('readonly', '')]
     : []
 
   const invalidAttributes = isInvalid
     ? [h.AriaInvalid(true), h.DataAttribute('invalid', '')]
     : []
 
+  const isInteractive = !isDisabled && !isReadOnly
+
   const inputAttributes =
-    Predicate.isNotUndefined(onInput) && !isDisabled ? [h.OnInput(onInput)] : []
+    Predicate.isNotUndefined(onInput) && isInteractive
+      ? [h.OnInput(onInput)]
+      : []
 
   const valueAttributes = Predicate.isNotUndefined(value)
     ? [h.Value(value)]
@@ -76,6 +83,7 @@ export const view = <ParentMessage>(
     h.Type(type),
     h.AriaDescribedBy(descriptionId(id)),
     ...disabledAttributes,
+    ...readOnlyAttributes,
     ...invalidAttributes,
     ...inputAttributes,
     ...valueAttributes,

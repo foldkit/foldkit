@@ -1,74 +1,70 @@
-import { Effect, Exit, Match as M, Queue, Schema as S, Stream } from 'effect'
+import { Effect, Exit, Queue, Schema, Stream } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
-import { type Html, html } from '../html/index.js'
-import { m } from '../message/index.js'
+import { type Html, __htmlBuilder } from '../html/index.js'
+import { defineMessageUnion } from '../message/index.js'
 import * as Mount from '../mount/index.js'
 import * as Port from '../port/index.js'
 import { evo } from '../struct/index.js'
-import { embed, makeApplication, makeElement } from './runtime.js'
-import * as Subscription from './subscription.js'
+import * as Subscription from '../subscription/subscription.js'
+import type * as Update from '../update/index.js'
+import { makeApplication } from './makeApplication.js'
+import { makeElement } from './makeElement.js'
+import { embed } from './start.js'
 
-const ChangedStep = m('ChangedStep', { step: S.Number })
-const ClickedIncrement = m('ClickedIncrement')
-const CompletedReportCount = m('CompletedReportCount')
-const CompletedTrackHost = m('CompletedTrackHost')
-const Ticked = m('Ticked')
-const Message = S.Union([
-  ChangedStep,
-  ClickedIncrement,
-  CompletedReportCount,
-  CompletedTrackHost,
-  Ticked,
-])
+const Message = defineMessageUnion({
+  ChangedStep: { step: Schema.Number },
+  ClickedIncrement: {},
+  CompletedReportCount: {},
+  CompletedTrackHost: {},
+  Ticked: {},
+})
 type Message = typeof Message.Type
 
-const Model = S.Struct({ count: S.Number, step: S.Number })
+const Model = Schema.Struct({ count: Schema.Number, step: Schema.Number })
 type Model = typeof Model.Type
 
 const ports = {
   inbound: {
-    stepChanged: Port.inbound(S.NumberFromString.check(S.isFinite())),
+    stepChanged: Port.inbound(Schema.NumberFromString.check(Schema.isFinite())),
   },
-  outbound: { countChanged: Port.outbound(S.Number) },
+  outbound: { countChanged: Port.outbound(Schema.Number) },
 }
 
-const ReportCount = Command.define(
-  'ReportCount',
-  { count: S.Number },
-  CompletedReportCount,
-)(({ count }) =>
-  Port.emit(ports.outbound.countChanged, count).pipe(
-    Effect.as(CompletedReportCount()),
-  ),
-)
+const ReportCount = Command.define('ReportCount', {
+  args: { count: Schema.Number },
+  messages: [Message.CompletedReportCount],
+  execute: ({ count }) =>
+    Port.emit(ports.outbound.countChanged, count).pipe(
+      Effect.as(Message.CompletedReportCount()),
+    ),
+})
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
-
-const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    M.withReturnType<UpdateReturn>(),
-    M.tagsExhaustive({
-      ChangedStep: ({ step }) => [evo(model, { step: () => step }), []],
-      ClickedIncrement: () => {
-        const count = model.count + model.step
-        return [evo(model, { count: () => count }), [ReportCount({ count })]]
-      },
-      CompletedReportCount: () => [model, []],
-      CompletedTrackHost: () => [model, []],
-      Ticked: () => [model, []],
-    }),
-  )
+const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ChangedStep: ({ step }) => ({ model: evo(model, { step: () => step }) }),
+    ClickedIncrement: () => {
+      const count = model.count + model.step
+      return {
+        model: evo(model, { count: () => count }),
+        commands: [ReportCount({ count })],
+      }
+    },
+    CompletedReportCount: () => ({ model }),
+    CompletedTrackHost: () => ({ model }),
+    Ticked: () => ({ model }),
+  })
 
 let isTickStreamActive = false
 let isMountActive = false
 
 const TICK_INTERVAL_MS = 5
+const FLAGS_STARTUP_FAILURE = 'flags blew up on embed startup'
 
 const subscriptions = Subscription.make<Model, Message>()(_entry => ({
   hostStep: Port.subscription(ports.inbound.stepChanged, step =>
-    ChangedStep({ step }),
+    Message.ChangedStep({ step }),
   ),
   tick: Subscription.persistent(
     Stream.callback<Message>(queue =>
@@ -76,7 +72,7 @@ const subscriptions = Subscription.make<Model, Message>()(_entry => ({
         Effect.sync(() => {
           isTickStreamActive = true
           return setInterval(() => {
-            Queue.offerUnsafe(queue, Ticked())
+            Queue.offerUnsafe(queue, Message.Ticked())
           }, TICK_INTERVAL_MS)
         }),
         intervalId =>
@@ -89,31 +85,30 @@ const subscriptions = Subscription.make<Model, Message>()(_entry => ({
   ),
 }))
 
-const TrackHost = Mount.define(
-  'TrackHost',
-  CompletedTrackHost,
-)(() =>
-  Effect.gen(function* () {
-    yield* Effect.acquireRelease(
-      Effect.sync(() => {
-        isMountActive = true
-      }),
-      () =>
+const TrackHost = Mount.define('TrackHost', {
+  messages: [Message.CompletedTrackHost],
+  execute: () =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
         Effect.sync(() => {
-          isMountActive = false
+          isMountActive = true
         }),
-    )
-    return CompletedTrackHost()
-  }),
-)
+        () =>
+          Effect.sync(() => {
+            isMountActive = false
+          }),
+      )
+      return Message.CompletedTrackHost()
+    }),
+})
 
-const h = html<Message>()
+const h = __htmlBuilder<Message>()
 
 const view = (model: Model): Html =>
   h.div(
     [h.OnMount(TrackHost())],
     [
-      h.button([h.OnClick(ClickedIncrement())], ['increment']),
+      h.button([h.OnClick(Message.ClickedIncrement())], ['increment']),
       h.div([], [`count:${model.count}`]),
       h.div([], [`step:${model.step}`]),
     ],
@@ -126,7 +121,7 @@ const makeWidget = (
 ) =>
   makeElement({
     Model,
-    init: () => [{ count: 0, step: 1 }, initCommands],
+    init: () => ({ model: { count: 0, step: 1 }, commands: initCommands }),
     update,
     view,
     subscriptions,
@@ -286,14 +281,14 @@ describe('embed', () => {
   })
 
   it('seeds the initial model from flags', async () => {
-    const Flags = S.Struct({ initialCount: S.Number })
+    const Flags = Schema.Struct({ initialCount: Schema.Number })
 
     const handle = embed(
       makeElement({
         Model,
         Flags,
         flags: Effect.succeed({ initialCount: 41 }),
-        init: flags => [{ count: flags.initialCount, step: 1 }, []],
+        init: flags => ({ model: { count: flags.initialCount, step: 1 } }),
         update,
         view,
         subscriptions,
@@ -304,6 +299,44 @@ describe('embed', () => {
 
     try {
       await awaitBodyText('count:41')
+    } finally {
+      handle.dispose()
+    }
+  })
+
+  it('logs a flags failure Cause and leaves the container blank', async () => {
+    const Flags = Schema.Struct({ initialCount: Schema.Number })
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {})
+
+    const handle = embed(
+      makeElement({
+        Model,
+        Flags,
+        flags: Effect.sync((): { initialCount: number } => {
+          throw new Error(FLAGS_STARTUP_FAILURE)
+        }),
+        init: flags => ({ model: { count: flags.initialCount, step: 1 } }),
+        update,
+        view,
+        subscriptions,
+        ports,
+        container,
+      }),
+    )
+
+    try {
+      await vi.waitFor(() => {
+        expect(
+          [...consoleLogSpy.mock.calls, ...consoleErrorSpy.mock.calls]
+            .flat()
+            .map(String)
+            .join('\n'),
+        ).toContain(FLAGS_STARTUP_FAILURE)
+      })
+      expect(container.childNodes.length).toBe(0)
     } finally {
       handle.dispose()
     }
@@ -325,6 +358,26 @@ describe('embed', () => {
     })
     expect(document.getElementById('app')).toBe(container)
     expect(container.childNodes.length).toBe(0)
+  })
+
+  it('does not log when dispose interrupts a live embed', async () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {})
+    const handle = embed(makeWidget())
+
+    await awaitBodyText('count:0')
+    consoleLogSpy.mockClear()
+    consoleErrorSpy.mockClear()
+
+    handle.dispose()
+
+    await vi.waitFor(() => {
+      expect(isTickStreamActive).toBe(false)
+    })
+    expect(consoleLogSpy).not.toHaveBeenCalled()
+    expect(consoleErrorSpy).not.toHaveBeenCalled()
   })
 
   it('dispose is idempotent and silences the handle afterwards', async () => {
@@ -378,7 +431,7 @@ describe('embed', () => {
     const handle = embed(
       makeApplication({
         Model,
-        init: () => [{ count: 0, step: 1 }, []],
+        init: () => ({ model: { count: 0, step: 1 } }),
         update,
         view: model => ({ title: 'Widget', body: view(model) }),
         subscriptions,

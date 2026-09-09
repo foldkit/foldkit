@@ -4,18 +4,18 @@ export {
   Model,
   Message,
   OutMessage,
-  Selected,
-  SelectedTab,
-  FocusedTab,
-  CompletedFocusTab,
+  type Selected,
+  type SelectedTab,
+  type FocusedTab,
   FocusTab,
+  Orientation,
 } from './index.js'
 
 export type {
-  Orientation,
   ActivationMode,
   InitConfig,
   ViewInputs,
   RenderInfo,
   TabInfo,
+  Bundle,
 } from './index.js'

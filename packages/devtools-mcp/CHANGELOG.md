@@ -1,5 +1,434 @@
 # @foldkit/devtools-mcp
 
+## 0.19.4
+
+### Patch Changes
+
+- [#1347](https://github.com/foldkit/foldkit/pull/1347) [`9099339`](https://github.com/foldkit/foldkit/commit/90993394590df06ee4413cbbc766b740138f09f2) Thanks [@devinjameson](https://github.com/devinjameson)! - Point the foldkit README, the create-foldkit-app homepage, and the @foldkit/devtools-mcp README at /get-started and /introduction/why-foldkit.
+
+## 0.19.3
+
+### Patch Changes
+
+- [#1213](https://github.com/foldkit/foldkit/pull/1213) [`57e2436`](https://github.com/foldkit/foldkit/commit/57e24366c8997cd235002f58c9dc38477a6cb1a3) Thanks [@devinjameson](https://github.com/devinjameson)! - Use full Effect module names in published source, examples, templates, and documentation. JavaScript and TypeScript globals that share an Effect module name are now qualified through `globalThis`.
+
+## 0.19.2
+
+### Patch Changes
+
+- [#1205](https://github.com/foldkit/foldkit/pull/1205) [`9601382`](https://github.com/foldkit/foldkit/commit/960138253f09310ff1dca45d2cf84d25fb86d12d) Thanks [@devinjameson](https://github.com/devinjameson)! - Pin the Model Context Protocol SDK to 1.29.0 for Node 18 compatibility and upgrade `ws` to 8.21.3.
+
+- [#1210](https://github.com/foldkit/foldkit/pull/1210) [`b02ce0a`](https://github.com/foldkit/foldkit/commit/b02ce0ab32a082bd40774127b8f4f6bfd6e1043e) Thanks [@devinjameson](https://github.com/devinjameson)! - Upgrade development dependencies to Node 26 type definitions and Happy DOM 20.11.8.
+
+- [#1210](https://github.com/foldkit/foldkit/pull/1210) [`b02ce0a`](https://github.com/foldkit/foldkit/commit/b02ce0ab32a082bd40774127b8f4f6bfd6e1043e) Thanks [@devinjameson](https://github.com/devinjameson)! - Upgrade the TypeScript compiler used to build and test packages to 7.0.2 while keeping compiler API tools on the official TypeScript 6 compatibility package.
+
+## 0.19.1
+
+### Patch Changes
+
+- f59da51: Point each package's npm metadata at its Foldkit documentation page so developers and automated tools can identify the official setup guide.
+
+## 0.19.0
+
+### Minor Changes
+
+- 64387ef: Routes and other tagged unions now use the same one-object declaration as Messages. The old `r` and `ts` helpers are gone:
+
+  - Use `defineRouteUnion` for `AppRoute`.
+  - Use `defineTaggedUnion` for Model states and other domain unions.
+  - Use `taggedStruct` when a tagged struct must be declared on its own.
+
+  Both union helpers return a Schema that also holds the variant constructors. For example, `AppRoute.Person` is the `Person` Schema, and `AppRoute.Person({ personId: 42 })` constructs a value. They also provide `match`, `guards`, `isAnyOf`, `subset`, and `members`. A `defineTaggedUnion` result can be passed directly to `Machine.define`. Message unions still expose only their constructors and exhaustive `match`.
+
+  ## Migrate Routes
+
+  Declare every route in one `AppRoute` object, then use variants through that namespace. Do not name the union `Route`; Foldkit already uses that name for the route module.
+
+  Before:
+
+  ```typescript
+  import { int, literal, mapTo, r, root, slash } from 'foldkit/route'
+
+  export const HomeRoute = r('Home')
+  export const PersonRoute = r('Person', { personId: S.Number })
+  export const NotFoundRoute = r('NotFound', { path: S.String })
+
+  export const AppRoute = S.Union([HomeRoute, PersonRoute, NotFoundRoute])
+
+  export type HomeRoute = typeof HomeRoute.Type
+  export type PersonRoute = typeof PersonRoute.Type
+  export type NotFoundRoute = typeof NotFoundRoute.Type
+  export type AppRoute = typeof AppRoute.Type
+
+  export const homeRouter = pipe(root, mapTo(HomeRoute))
+  export const personRouter = pipe(
+    literal('people'),
+    slash(int('personId')),
+    mapTo(PersonRoute),
+  )
+
+  export const urlToAppRoute = parseUrlWithFallback(routeParser, NotFoundRoute)
+  ```
+
+  After:
+
+  ```typescript
+  import {
+    defineRouteUnion,
+    int,
+    literal,
+    mapTo,
+    root,
+    slash,
+  } from 'foldkit/route'
+
+  export const AppRoute = defineRouteUnion({
+    Home: {},
+    Person: { personId: S.Number },
+    NotFound: { path: S.String },
+  })
+  export type AppRoute = typeof AppRoute.Type
+
+  export const homeRouter = pipe(root, mapTo(AppRoute.Home))
+  export const personRouter = pipe(
+    literal('people'),
+    slash(int('personId')),
+    mapTo(AppRoute.Person),
+  )
+
+  export const urlToAppRoute = parseUrlWithFallback(
+    routeParser,
+    AppRoute.NotFound,
+  )
+  ```
+
+  The old `XxxRoute` suffix kept separate exports from colliding. `AppRoute` now provides that context, so write `AppRoute.Person({ personId: 42 })` instead of `PersonRoute({ personId: 42 })`.
+
+  ## Migrate Route subsets
+
+  Use `subset` when a Model or Schema accepts only some application Routes. This keeps the allowed Routes tied to `AppRoute` without declaring another union.
+
+  Before:
+
+  ```typescript
+  export const LoggedOutRoute = S.Union([HomeRoute, LoginRoute, NotFoundRoute])
+  export const LoggedInRoute = S.Union([
+    DashboardRoute,
+    SettingsRoute,
+    NotFoundRoute,
+  ])
+  ```
+
+  After:
+
+  ```typescript
+  export const LoggedOutRoute = AppRoute.subset(['Home', 'Login', 'NotFound'])
+  export const LoggedInRoute = AppRoute.subset([
+    'Dashboard',
+    'Settings',
+    'NotFound',
+  ])
+  ```
+
+  `subset` includes only the tags you name. If you add a Route to `AppRoute` later, neither Schema above will accept it until you add its tag. There is no `omit`: an exclusion list would silently accept every Route added later.
+
+  If a module needs to name one variant's type, export an alias beside `AppRoute` instead of repeating `typeof AppRoute.Person.Type`:
+
+  ```typescript
+  export type PersonRoute = typeof AppRoute.Person.Type
+  ```
+
+  ## Replace hand-written route guards
+
+  Use `isAnyOf` when one guard accepts several tags.
+
+  Before:
+
+  ```typescript
+  export const isBlogRoute = (
+    route: AppRoute,
+  ): route is BlogRoute | BlogPostRoute =>
+    route._tag === 'Blog' || route._tag === 'BlogPost'
+  ```
+
+  After:
+
+  ```typescript
+  export const isBlogRoute = AppRoute.isAnyOf(['Blog', 'BlogPost'])
+  ```
+
+  ## Migrate domain unions
+
+  Use `defineTaggedUnion` when the variants of a domain union can be declared together.
+
+  Before:
+
+  ```typescript
+  import { ts } from 'foldkit/schema'
+
+  export const NotSubmitted = ts('NotSubmitted')
+  export const Submitting = ts('Submitting')
+  export const SubmitSuccess = ts('SubmitSuccess')
+  export const SubmitError = ts('SubmitError', { error: S.String })
+
+  export const Submission = S.Union([
+    NotSubmitted,
+    Submitting,
+    SubmitSuccess,
+    SubmitError,
+  ])
+  export type Submission = typeof Submission.Type
+  ```
+
+  After:
+
+  ```typescript
+  import { defineTaggedUnion } from 'foldkit/schema'
+
+  export const Submission = defineTaggedUnion({
+    NotSubmitted: {},
+    Submitting: {},
+    SubmitSuccess: {},
+    SubmitError: { error: S.String },
+  })
+  export type Submission = typeof Submission.Type
+  ```
+
+  Use the union's `match` method when every tag must be handled:
+
+  ```typescript
+  // Before
+  M.value(submission).pipe(
+    M.withReturnType<Html>(),
+    M.tagsExhaustive({ ... }),
+  )
+
+  // After
+  Submission.match<Html>(submission, { ... })
+  ```
+
+  Because `match` runs at runtime, a file that calls it must import the union as a value. Keep using Effect `Match` for partial matching, fallbacks, or one handler shared by several tags.
+
+  ## Remove repeated union names from tags
+
+  The union name now provides the context a tag needs. Prefer `ConnectionState.Connected` to `ConnectionState.ConnectionConnected`.
+
+  Renaming a tag also changes its `_tag` value. Do not shorten tags stored in a Model, URL, or wire protocol unless that external value is meant to change.
+
+  ## Rename `ts` to `taggedStruct`
+
+  `taggedStruct` is the new name for `ts`. Most unions should move to `defineTaggedUnion`; `taggedStruct` remains for variants that must be declared separately.
+
+  ```typescript
+  // Before
+  import { ts } from 'foldkit/schema'
+  const TableRow = ts('TableRow', { cells: S.Array(TableCell) })
+
+  // After
+  import { taggedStruct } from 'foldkit/schema'
+  const TableRow = taggedStruct('TableRow', { cells: S.Array(TableCell) })
+  ```
+
+  Use `taggedStruct` in these cases:
+
+  - A recursive union, such as `Canvas.Shape` or the markdown AST.
+  - A union assembled from variants owned by different modules, such as a parent Model built from two Submodel Models.
+  - A tagged child struct that is not one variant of a choice, such as `TableRow`.
+  - A variant created inside a generic Schema factory, such as `AsyncData`.
+
+  If recursion forces one union in a module to use `taggedStruct`, use `taggedStruct` for the module's sibling unions too.
+
+  ## Variants are no longer separate exports
+
+  `Navigation` and `Interruptible` no longer export their variants as separate top-level names. Access each variant through its union instead.
+
+  ```typescript
+  // Before
+  Navigation.Internal({ url })
+  Interruptible.Interrupted()
+
+  // After
+  Navigation.UrlRequest.Internal({ url })
+  Interruptible.Outcome.Interrupted()
+  ```
+
+  The DevTools protocol now follows the same rule. Its variants live under `Request`, `Response`, `Event`, `DiffValue`, and `MessageSchemaResult`. The `_tag` strings did not change, so old and new DevTools clients still speak the same wire protocol.
+
+  `@foldkit/ui`, `@foldkit/devtools`, `@foldkit/devtools-mcp`, `@foldkit/markdown`, and `@foldkit/vite-plugin` now require Foldkit `>=0.153.0` because their published code calls these new APIs. Each gets a minor release so consumers on older pre-1.0 ranges do not receive an incompatible update.
+
+  ## Lint
+
+  `foldkit/no-empty-object-tagged-call` now catches no-field Route and domain constructors as well as Messages. It recognizes namespaces whose names end in Message, Route, or State, plus unions declared in the same file with Foldkit's union helpers. It does not assume every PascalCase namespace is a Foldkit union.
+
+  The [Routing & Navigation guide](https://foldkit.dev/core/routing-and-navigation) covers the route union in depth, and the [Model guide](https://foldkit.dev/core/model) covers state modeling with `defineTaggedUnion`.
+
+## 0.18.0
+
+### Minor Changes
+
+- da9e505: Bump Effect to `4.0.0-rc.112` (from `4.0.0-rc.111`). Foldkit's `effect` peer dependency now requires `4.0.0-rc.112`, and `@foldkit/devtools` pins its `@effect/platform-browser` peer dependency to the same version.
+
+  Pin your Effect packages to `4.0.0-rc.112` to match this release. While Effect v4 is in prerelease, use exact pins rather than ranges:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.112 @effect/platform-browser@4.0.0-rc.112
+  pnpm add -D @effect/vitest@4.0.0-rc.112
+  ```
+
+## 0.17.0
+
+### Minor Changes
+
+- 9869cf7: Bump Effect to `4.0.0-rc.111` (from `4.0.0-rc.109`). Foldkit's `effect` peer dependency now requires `4.0.0-rc.111`, and `@foldkit/devtools` pins its `@effect/platform-browser` peer dependency to the same version.
+
+  Pin your Effect packages to `4.0.0-rc.111` to match this release. While Effect v4 is in prerelease, use exact pins rather than ranges:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.111 @effect/platform-browser@4.0.0-rc.111
+  pnpm add -D @effect/vitest@4.0.0-rc.111
+  ```
+
+## 0.16.1
+
+### Patch Changes
+
+- f9f2b22: Align the published READMEs with Foldkit's current positioning, terminology, and documentation links. Clarify the Vite plugin's Model-preserving hot reload and hydration build-id guidance.
+
+## 0.16.0
+
+### Minor Changes
+
+- da05bfc: Bump Effect to `4.0.0-rc.109` (from `4.0.0-rc.108`). Foldkit's `effect` peer dependency now requires `4.0.0-rc.109`, and `@foldkit/devtools` pins its `@effect/platform-browser` peer dependency to the same version.
+
+  Pin your Effect packages to `4.0.0-rc.109` to match this release. While Effect v4 is in prerelease, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.109 @effect/platform-browser@4.0.0-rc.109
+  pnpm add -D @effect/vitest@4.0.0-rc.109
+  ```
+
+## 0.15.0
+
+### Minor Changes
+
+- 3feb9ba: Bump Effect to `4.0.0-rc.108` (from `4.0.0-beta.107`), the first Effect v4 release candidate. Foldkit's peer dependencies now require `effect@4.0.0-rc.108` and `@effect/platform-browser@4.0.0-rc.108`.
+
+  Pin your Effect packages to `4.0.0-rc.108` to match this release. While Effect v4 is in prerelease, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.108 @effect/platform-browser@4.0.0-rc.108
+  pnpm add -D @effect/vitest@4.0.0-rc.108
+  ```
+
+## 0.14.4
+
+### Patch Changes
+
+- 87e9dbf: Bump Effect to `4.0.0-beta.107` (from `4.0.0-beta.106`). Foldkit's peer dependencies now require `effect@4.0.0-beta.107` and `@effect/platform-browser@4.0.0-beta.107`.
+
+  Pin your Effect packages to `4.0.0-beta.107` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.107 @effect/platform-browser@4.0.0-beta.107
+  pnpm add -D @effect/vitest@4.0.0-beta.107
+  ```
+
+## 0.14.3
+
+### Patch Changes
+
+- 84050fc: Bump Effect to `4.0.0-beta.106` (from `4.0.0-beta.105`). Foldkit's peer dependencies now require `effect@4.0.0-beta.106` and `@effect/platform-browser@4.0.0-beta.106`.
+
+  Pin your Effect packages to `4.0.0-beta.106` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.106 @effect/platform-browser@4.0.0-beta.106
+  pnpm add -D @effect/vitest@4.0.0-beta.106
+  ```
+
+## 0.14.2
+
+### Patch Changes
+
+- 40ccffe: Bump Effect to `4.0.0-beta.105` (from `4.0.0-beta.103`). Foldkit's peer dependencies now require `effect@4.0.0-beta.105` and `@effect/platform-browser@4.0.0-beta.105`.
+
+  Pin your Effect packages to `4.0.0-beta.105` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.105 @effect/platform-browser@4.0.0-beta.105
+  pnpm add -D @effect/vitest@4.0.0-beta.105
+  ```
+
+## 0.14.1
+
+### Patch Changes
+
+- c947f47: Bump Effect to `4.0.0-beta.103` (from `4.0.0-beta.102`). Foldkit's peer dependencies now require `effect@4.0.0-beta.103` and `@effect/platform-browser@4.0.0-beta.103`.
+
+  Pin your Effect packages to `4.0.0-beta.103` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.103 @effect/platform-browser@4.0.0-beta.103
+  pnpm add -D @effect/vitest@4.0.0-beta.103
+  ```
+
+  `SchemaIssue.InvalidValue` dropped its `actual` argument in this Effect release and now takes annotations as its only argument. Decode failures for `CalendarDateFromIsoString` and `Url` are migrated to the new signature and carry their detail on the `message` annotation, which is the key the default formatter reads. Those two failures previously passed their detail as `description`, which the formatter ignored, so the messages now read as intended instead of falling back to a generic one. If you construct `SchemaIssue.InvalidValue` in your own schemas, drop the leading `Option` argument and move any detail to `message`.
+
+## 0.14.0
+
+### Minor Changes
+
+- 057981a: Add a batch form of Message dispatch to the DevTools MCP surface. The new `foldkit_dispatch_messages` tool dispatches an ordered list of 1 to 100 Messages in one call, removing the one-round-trip-per-Message cost of staging multi-Message fixtures. The runtime bridge validates the whole batch against the configured `Message` Schema before dispatching any of it, so one invalid entry rejects the batch with an error naming its zero-based position and nothing is dispatched. The response reports the predicted history index for each Message, mirroring `acceptedAtIndex` on single dispatch.
+
+### Patch Changes
+
+- d16d7f7: Bump Effect to `4.0.0-beta.102` (from `4.0.0-beta.101`). Foldkit's peer dependencies now require `effect@4.0.0-beta.102` and `@effect/platform-browser@4.0.0-beta.102`.
+
+  Pin your Effect packages to `4.0.0-beta.102` to match this release. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.102 @effect/platform-browser@4.0.0-beta.102
+  pnpm add -D @effect/vitest@4.0.0-beta.102
+  ```
+
+## 0.13.4
+
+### Patch Changes
+
+- 95118d8: Bump Effect to `4.0.0-beta.101` (from `4.0.0-beta.97`). Foldkit's peer dependencies now require `effect@4.0.0-beta.101` and `@effect/platform-browser@4.0.0-beta.101`.
+
+  Pin your Effect packages to `4.0.0-beta.101` to match. While Effect v4 is in beta, pin the exact version rather than a range:
+
+  ```sh
+  pnpm add effect@4.0.0-beta.101 @effect/platform-browser@4.0.0-beta.101
+  pnpm add -D @effect/vitest@4.0.0-beta.101
+  ```
+
+## 0.13.3
+
+### Patch Changes
+
+- 2b788f2: Reword the `foldkit_dispatch_message` tool description and README table entry to drop references to a message queue, matching the runtime's synchronous dispatch path.
+
+## 0.13.2
+
+### Patch Changes
+
+- 96167d1: Bump Effect to `4.0.0-beta.97` (from `4.0.0-beta.88`). Foldkit's peer dependencies now require `effect@4.0.0-beta.97` and `@effect/platform-browser@4.0.0-beta.97`.
+
+  Consumers should align their Effect packages to `4.0.0-beta.97` exactly during the v4 beta window:
+
+  ```
+  pnpm add effect@4.0.0-beta.97 @effect/platform-browser@4.0.0-beta.97
+  pnpm add -D @effect/vitest@4.0.0-beta.97
+  ```
+
+## 0.13.1
+
+### Patch Changes
+
+- df7d556: Bundle the published `foldkit-devtools-mcp` bin at build time so `dist/server.js` inlines `effect`, the Foldkit devtools protocol, the MCP SDK, and `ws`. The bin now runs standalone under `npx` with no peer dependency resolution, so `npx @foldkit/devtools-mcp init` works without installing the package as a devDependency.
+
 ## 0.13.0
 
 ### Minor Changes

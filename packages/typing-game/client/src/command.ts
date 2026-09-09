@@ -1,14 +1,15 @@
-import { Effect, Schema as S } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Command } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'
 
-import { CompletedNavigateRoom } from './message'
+import { Message } from './message'
 import { roomRouter } from './route'
 
-export const NavigateToRoom = Command.define(
-  'NavigateToRoom',
-  { roomId: S.String },
-  CompletedNavigateRoom,
-)(({ roomId }) =>
-  pushUrl(roomRouter({ roomId })).pipe(Effect.as(CompletedNavigateRoom())),
-)
+export const NavigateToRoom = Command.define('NavigateToRoom', {
+  args: { roomId: Schema.String },
+  messages: [Message.CompletedNavigateToRoom],
+  execute: ({ roomId }) =>
+    pushUrl(roomRouter({ roomId })).pipe(
+      Effect.as(Message.CompletedNavigateToRoom()),
+    ),
+})

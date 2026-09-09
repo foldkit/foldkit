@@ -1,9 +1,7 @@
 import { Runtime } from 'foldkit'
 
-import { overlay } from '@foldkit/devtools'
-
 import { init } from './init'
-import { ChangedUrl, ClickedLink, Message } from './message'
+import { Message } from './message'
 import { Model } from './model'
 import { RoomsClientLive } from './rpc'
 import { subscriptions } from './subscription'
@@ -19,13 +17,12 @@ const application = Runtime.makeApplication({
   resources: RoomsClientLive,
   container: document.getElementById('root'),
   devTools: {
-    overlay,
     Message,
     mode: 'TimeTravel',
   },
   routing: {
-    onUrlRequest: request => ClickedLink({ request }),
-    onUrlChange: url => ChangedUrl({ url }),
+    onUrlRequest: request => Message.ClickedLink({ request }),
+    onUrlChange: url => Message.ChangedUrl({ url }),
   },
 })
 

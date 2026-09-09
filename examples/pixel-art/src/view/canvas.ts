@@ -1,14 +1,11 @@
 import { Array, Equal, Option, pipe } from 'effect'
-import { type Html, createKeyedLazy, html } from 'foldkit/html'
+import { type Html, type HtmlBuilder, createKeyedLazy } from 'foldkit/html'
 
 import { EMPTY_COLOR } from '../constant'
 import { floodFill, getMirroredPositions } from '../grid'
-import { EnteredCell, LeftCanvas, type Message, PressedCell } from '../message'
+import { Message } from '../message'
 import type { Cell, Grid, HexColor, Model, PaletteIndex } from '../model'
 import { type PaletteTheme, resolveColor } from '../palette'
-
-const { div, Class, OnMouseDown, OnMouseEnter, OnMouseLeave, Style } =
-  html<Message>()
 
 const lazyRow = createKeyedLazy()
 
@@ -53,28 +50,31 @@ export const computeFillPreview = (
   return positions.length === 0 ? EMPTY_PREVIEW_POSITIONS : positions
 }
 
-export const canvasView = (model: Model, theme: PaletteTheme): Html => {
+export const canvasView = (
+  model: Model,
+  theme: PaletteTheme,
+  h: HtmlBuilder<Message>,
+): Html => {
   const previewPositions = computePreviewPositions(model)
   const previewColor =
     model.tool === 'Eraser'
       ? EMPTY_COLOR
       : (theme.colors[model.selectedColorIndex] ?? EMPTY_COLOR)
 
-  return div(
+  return h.div(
     [
-      Class(
+      h.Class(
         'flex flex-col items-center gap-4 min-w-0 self-start col-span-full min-[480px]:col-span-full md:col-span-1 -order-1 md:order-none',
       ),
     ],
     [
-      div(
-        [OnMouseLeave(LeftCanvas()), Class('w-full max-w-lg')],
+      h.div(
+        [h.OnMouseLeave(Message.LeftCanvas()), h.Class('w-full max-w-lg')],
         [
-          html<Message>().keyed('div')(
-            `canvas-${model.gridSize}`,
+          h.div(
             [
-              Class('cursor-crosshair select-none w-full aspect-square'),
-              Style({
+              h.Class('cursor-crosshair select-none w-full aspect-square'),
+              h.Style({
                 display: 'flex',
                 'flex-direction': 'column',
                 backgroundColor: '#ffffff',
@@ -89,12 +89,14 @@ export const canvasView = (model: Model, theme: PaletteTheme): Html => {
                   onNonEmpty: filtered => filtered,
                 }),
               )
+              // oxlint-disable-next-line foldkit/no-array-index-view-keys -- a fixed positional grid; the row index is the stable identity
               return lazyRow(`${y}`, rowView, [
                 row,
                 y,
                 previewColor,
                 rowPreviewPositions,
                 theme,
+                h,
               ])
             }),
           ),
@@ -110,25 +112,23 @@ export const rowView = (
   previewColor: HexColor,
   previewPositions: ReadonlyArray<readonly [number, number]>,
   theme: PaletteTheme,
+  h: HtmlBuilder<Message>,
 ): Html =>
-  div(
-    [Style({ display: 'flex', flex: '1' })],
+  h.div(
+    [h.Style({ display: 'flex', flex: '1' })],
     Array.map(row, (cell, x) => {
       const isPreview = previewPositions.some(
         ([previewX, previewY]) => previewX === x && previewY === y,
       )
       const displayColor = isPreview ? previewColor : resolveColor(cell, theme)
 
-      return div(
-        [
-          OnMouseDown(PressedCell({ x, y })),
-          OnMouseEnter(EnteredCell({ x, y })),
-          Style({
-            flex: '1',
-            backgroundColor: displayColor,
-          }),
-        ],
-        [],
-      )
+      return h.div([
+        h.OnMouseDown(Message.PressedCell({ x, y })),
+        h.OnMouseEnter(Message.EnteredCell({ x, y })),
+        h.Style({
+          flex: '1',
+          backgroundColor: displayColor,
+        }),
+      ])
     }),
   )

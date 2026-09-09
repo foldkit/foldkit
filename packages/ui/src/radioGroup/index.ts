@@ -1,29 +1,20 @@
 import {
   Array,
   Effect,
-  Function,
-  Match as M,
+  Match,
   Option,
   Predicate,
-  Schema as S,
+  Schema,
   String,
   pipe,
 } from 'effect'
+import { type Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
-import {
-  type ChildAttribute,
-  type Html,
-  childAttributes,
-  html,
-} from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
-import {
-  type Reflect,
-  type View as SubmodelView,
-  defineView,
-} from 'foldkit/submodel'
+import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
 import { idSelector } from '../internal/selectors.js'
 import { keyToIndex } from '../keyboard.js'
@@ -31,49 +22,39 @@ import { keyToIndex } from '../keyboard.js'
 // MODEL
 
 /** Controls the radio group layout direction and which arrow keys navigate between options. */
-export const Orientation = S.Literals(['Horizontal', 'Vertical'])
+export const Orientation = Schema.Literals(['Horizontal', 'Vertical'])
 export type Orientation = typeof Orientation.Type
 
-/** Schema for the radio group component's state, tracking the selected value and orientation. */
-export const Model = S.Struct({
-  id: S.String,
-  selectedValue: S.Option(S.String),
-  orientation: Orientation,
+/** Schema for the radio group's private interaction state. The selected
+ *  option is owned by the parent and passed in via `ViewInputs.selectedValue`,
+ *  so it is not stored here. `maybeFocusedIndex` is the roving-tabindex
+ *  cursor: `None` means keyboard focus follows the selection, and a read-only
+ *  group stores `Some(index)` while focus diverges from it. */
+export const Model = Schema.Struct({
+  id: Schema.String,
+  maybeFocusedIndex: Schema.Option(Schema.Number),
 })
 
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** Sent when a radio option is selected via click or keyboard navigation. */
-export const SelectedOption = m('SelectedOption', {
-  value: S.String,
-  index: S.Number,
+/** Union of all messages the radio group can produce. */
+export const Message = defineMessageUnion({
+  SelectedOption: {
+    index: Schema.Number,
+    value: Schema.String,
+  },
+  FocusedOption: { index: Schema.Number },
+  CompletedFocusOption: {},
 })
-/** Sent when the focus-option command completes. */
-export const CompletedFocusOption = m('CompletedFocusOption')
 
-/** Union of all messages the radio group component can produce. */
-export const Message: S.Union<
-  [typeof SelectedOption, typeof CompletedFocusOption]
-> = S.Union([SelectedOption, CompletedFocusOption])
-
-export type SelectedOption = typeof SelectedOption.Type
-export type CompletedFocusOption = typeof CompletedFocusOption.Type
+export type SelectedOption = typeof Message.SelectedOption.Type
+export type FocusedOption = typeof Message.FocusedOption.Type
 
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
-
-/** Sent to the parent when an option is committed. Carries the selected
- *  value and its index. Generic over `Value extends string`: the runtime
- *  schema stores `value: string`, but the type-level OutMessage exposes
- *  `value: Value` so consumers who supply `options: ReadonlyArray<MyUnion>`
- *  receive `value: MyUnion` from the factory's `update` without casting at
- *  the call site. The cast is fenced inside this module's `update` return,
- *  sound because the value was selected from the options array the
- *  consumer supplied. */
-export const Selected = m('Selected', { value: S.String, index: S.Number })
 
 export type Selected<Value extends string = string> = Readonly<{
   readonly _tag: 'Selected'
@@ -81,13 +62,18 @@ export type Selected<Value extends string = string> = Readonly<{
   readonly index: number
 }>
 
-export const OutMessage = S.Union([Selected])
+/** Union of OutMessages the radio group can produce. The parent's
+ *  `Update.foldChild` config handles them through `foldOutMessage`. */
+export const OutMessage = defineMessageUnion({
+  Selected: {
+    value: Schema.String,
+    index: Schema.Number,
+  },
+})
 
-/** Generic over `Value extends string` so consumers who create the radio
- *  group via `RadioGroup.create<MyUnion>()` receive `value: MyUnion` in
- *  the `Selected` OutMessage from the factory's `update`, instead of
- *  `value: string`. Defaults to `string` for consumers that don't need the
- *  lift. */
+/** Generic over `Value extends string` so consumers using
+ *  `RadioGroup.create<MyUnion>()` receive `value: MyUnion` in the
+ *  `Selected` OutMessage. Defaults to `string`. */
 export type OutMessage<Value extends string = string> = Selected<Value>
 
 // INIT
@@ -95,112 +81,76 @@ export type OutMessage<Value extends string = string> = Selected<Value>
 /** Configuration for creating a radio group model with `init`. */
 export type InitConfig = Readonly<{
   id: string
-  selectedValue?: string
-  orientation?: Orientation
 }>
 
-/** Creates an initial radio group model from a config. Defaults to no selection and vertical orientation. */
+/** Creates an initial radio group model from a config. Focus follows the
+ *  selected option until the user navigates a read-only group, so
+ *  `maybeFocusedIndex` starts `None`. */
 export const init = (config: InitConfig): Model => ({
   id: config.id,
-  selectedValue: Option.fromNullishOr(config.selectedValue),
-  orientation: config.orientation ?? 'Vertical',
+  maybeFocusedIndex: Option.none(),
 })
 
 // UPDATE
 
 const optionId = (id: string, index: number): string => `${id}-option-${index}`
 
-/** Moves focus to the radio option at the given index. */
-export const FocusOption = Command.define(
-  'FocusOption',
-  { id: S.String, index: S.Number },
-  CompletedFocusOption,
-)(({ id, index }) =>
-  Dom.focus(idSelector(optionId(id, index))).pipe(
-    Effect.ignore,
-    Effect.as(CompletedFocusOption()),
-  ),
-)
+const labelId = (id: string, index: number): string =>
+  `${id}-option-${index}-label`
 
-type UpdateReturn<Value extends string = string> = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage<Value>>,
-]
+const descriptionId = (id: string, index: number): string =>
+  `${id}-option-${index}-description`
 
-type InternalUpdateReturn = UpdateReturn<string>
+/** Moves focus to the option at the given index. */
+export const FocusOption = Command.define('FocusOption', {
+  args: { id: Schema.String, index: Schema.Number },
+  messages: [Message.CompletedFocusOption],
+  execute: ({ id, index }) =>
+    Dom.focus(idSelector(optionId(id, index))).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedFocusOption()),
+    ),
+})
 
-const withInternalUpdateReturn = M.withReturnType<InternalUpdateReturn>()
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 
-/** Processes a radio group message and returns the next model, commands, and
- *  optional OutMessage. Generic over `Value extends string`: pass the consumer's
- *  union type at the call site to receive `Selected({ value: MyUnion })` without
- *  casting. Defaults to `string`. */
-export const update = <Value extends string = string>(
-  model: Model,
-  message: Message,
-): UpdateReturn<Value> => {
-  const result = M.value(message).pipe(
-    withInternalUpdateReturn,
-    M.tagsExhaustive({
-      SelectedOption: ({ value, index }) => [
-        evo(model, { selectedValue: () => Option.some(value) }),
-        [FocusOption({ id: model.id, index })],
-        Option.some(Selected({ value, index })),
-      ],
-      CompletedFocusOption: () => [model, [], Option.none()],
+/** Processes a RadioGroup Message and returns the next Model, optional
+ *  Commands, and an optional OutMessage. `Selected` fires when an option is
+ *  committed via click or keyboard; the parent stores the new value and passes
+ *  it back in as `selectedValue`. */
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    SelectedOption: ({ index, value }) => ({
+      model: evo(model, { maybeFocusedIndex: () => Option.none() }),
+      commands: [FocusOption({ id: model.id, index })],
+      outMessage: OutMessage.Selected({ value, index }),
     }),
-  )
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  return result as unknown as UpdateReturn<Value>
-}
-
-/** Programmatically selects a value in the radio group, updating the model
- *  and returning focus commands plus a `Selected` OutMessage. */
-export const select = <Value extends string = string>(
-  model: Model,
-  value: Value,
-  options: ReadonlyArray<Value>,
-): UpdateReturn<Value> =>
-  pipe(
-    options,
-    Array.findFirstIndex(option => option === value),
-    Option.match({
-      onNone: (): UpdateReturn<Value> => [model, [], Option.none()],
-      onSome: index => update<Value>(model, SelectedOption({ value, index })),
+    FocusedOption: ({ index }) => ({
+      model: evo(model, { maybeFocusedIndex: () => Option.some(index) }),
+      commands: [FocusOption({ id: model.id, index })],
     }),
-  )
-
-/** Reflects an externally-sourced selection onto the model without
- *  emitting an OutMessage or running the focus command. Use this to mirror
- *  external truth (a URL parameter, restored storage, a server push) onto
- *  the radio group's selection. Contrast with `select`, which represents a
- *  user or programmatic *choice*: it focuses the option and emits
- *  `Selected`. Takes no `options` (unlike `select`) because it sets the
- *  value directly rather than deriving a focus index. Returns the model
- *  directly because it produces no commands and no OutMessage. */
-export const reflectSelectedValue: Reflect<
-  Model,
-  Option.Option<string>
-> = Function.dual(
-  2,
-  (model: Model, maybeValue: Option.Option<string>): Model =>
-    evo(model, { selectedValue: () => maybeValue }),
-)
+    CompletedFocusOption: () => ({ model }),
+  })
 
 // VIEW
 
 /** Per-option render info passed to the consumer's `toView`. The consumer
- *  spreads `option`, `label`, and `description` onto whichever elements
- *  carry that role in their layout. Generic over `Value extends string`:
- *  when `RadioGroup.create<MyUnion>()` is declared, `option.value` is
- *  typed `MyUnion` so the consumer can switch on it without casting. */
+ *  spreads `option`, `label`, and `description` onto whichever elements carry
+ *  that role in their layout. Generic over `Value extends string` so
+ *  `option.value` carries the consumer's union type.
+ *
+ *  The `option` bundle sets `type="button"` so that rendering the option as a
+ *  `button` element inside a `form` element selects without also submitting the
+ *  form. Setting it is harmless on the other elements an option might use, such
+ *  as a `div` or a `span`, because the builder assigns a DOM property rather
+ *  than an HTML attribute. Spread a later `h.Type` to override it. */
 export type OptionInfo<Value extends string = string> = Readonly<{
   value: Value
   index: number
   isSelected: boolean
   isActive: boolean
   isDisabled: boolean
+  isReadOnly: boolean
   option: ReadonlyArray<ChildAttribute>
   label: ReadonlyArray<ChildAttribute>
   description: ReadonlyArray<ChildAttribute>
@@ -210,15 +160,14 @@ export type OptionInfo<Value extends string = string> = Readonly<{
  *
  *  - `group`: ARIA + role attributes for the wrapping radiogroup element.
  *  - `options`: one entry per option in `viewInputs.options`, in the same
- *    order. Includes the value, derived state, and the attribute bundles
- *    for the option element, its label, and its description.
- *  - `selectedValue`: the currently-selected value, if any. Convenient
- *    for the consumer when rendering selected-state visuals next to the
- *    option attributes.
- *  - `hiddenInput`: when `viewInputs.name` was supplied, attributes for a
- *    hidden form input carrying the selected value. The consumer
- *    renders the `<input>` themselves. Empty array when `name` is
- *    undefined. */
+ *    order. Includes the value, derived state, and the attribute bundles for
+ *    the option element, its label, and its description.
+ *  - `selectedValue`: the currently-selected value, if any. Convenient for the
+ *    consumer when rendering selected-state visuals next to the option
+ *    attributes.
+ *  - `hiddenInput`: when `name` was supplied, attributes for a hidden form
+ *    input carrying the selected value. The consumer renders the `<input>`
+ *    themselves. Empty array when `name` is undefined. */
 export type RenderInfo<Value extends string = string> = Readonly<{
   group: ReadonlyArray<ChildAttribute>
   options: ReadonlyArray<OptionInfo<Value>>
@@ -226,40 +175,44 @@ export type RenderInfo<Value extends string = string> = Readonly<{
   hiddenInput: ReadonlyArray<ChildAttribute>
 }>
 
-/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
- *  Generic over `Value extends string` so consumers using
- *  `RadioGroup.create<MyUnion>()` receive `option.value: MyUnion` in
- *  `toView` and `(value: MyUnion, index) => boolean` in
- *  `isOptionDisabled`, without casting. */
+/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs`
+ *  field. Generic over `Value extends string` so consumers using
+ *  `RadioGroup.create<MyUnion>()` receive `option.value: MyUnion` in `toView`
+ *  and `(value: MyUnion, index) => boolean` in `isOptionDisabled`, without
+ *  casting.
+ *
+ *  - `selectedValue`: the current selection, read straight from the parent
+ *    Model. `aria-checked` and the `data-checked` marker derive from it, as
+ *    does the roving tabindex whenever keyboard focus has not diverged.
+ *  - `isReadOnly`: keeps the group navigable but not selectable. Arrow, Home,
+ *    End, PageUp, and PageDown still move focus, and the group reports that
+ *    focus through `FocusedOption`, so `data-active` and `tabindex` follow it.
+ *    Space and clicking do nothing. */
 export type ViewInputs<Value extends string = string> = Readonly<{
   options: ReadonlyArray<Value>
+  selectedValue: Option.Option<Value>
   ariaLabel: string
   toView: (render: RenderInfo<Value>) => Html
+  orientation?: Orientation
   isOptionDisabled?: (value: Value, index: number) => boolean
   isDisabled?: boolean
+  isReadOnly?: boolean
   name?: string
-  orientation?: Orientation
 }>
 
-const labelId = (id: string, index: number): string =>
-  `${id}-option-${index}-label`
-
-const descriptionId = (id: string, index: number): string =>
-  `${id}-option-${index}-description`
-
 const internalView = defineView<Model, Message, ViewInputs>(
-  (model, viewInputs): Html => {
-    const h = html<Message>()
-
-    const { id, selectedValue } = model
+  (model, viewInputs, h): Html => {
+    const { id, maybeFocusedIndex } = model
     const {
       options,
+      selectedValue,
       ariaLabel,
       toView,
+      orientation = 'Vertical',
       isOptionDisabled: isOptionDisabledFn,
       isDisabled: isGroupDisabled = false,
+      isReadOnly = false,
       name,
-      orientation = model.orientation,
     } = viewInputs
 
     const isDisabled = (index: number): boolean => {
@@ -280,28 +233,41 @@ const internalView = defineView<Model, Message, ViewInputs>(
       Array.findFirstIndex(options, option => option === value),
     )
 
-    const focusedIndex = pipe(
-      selectedIndex,
-      Option.getOrElse(() =>
-        pipe(
-          options.length,
-          Array.makeBy(index => index),
-          Array.findFirst(Predicate.not(isDisabled)),
-          Option.getOrElse(() => 0),
-        ),
-      ),
+    const firstEnabledIndex = pipe(
+      options.length,
+      Array.makeBy(index => index),
+      Array.findFirst(Predicate.not(isDisabled)),
+      Option.getOrElse(() => 0),
     )
 
-    const { nextKey, previousKey } = M.value(orientation).pipe(
-      M.when('Horizontal', () => ({
+    // NOTE: The selected index only becomes the roving tab stop when it is
+    // enabled. A disabled selected option would otherwise be the group's sole
+    // tab stop with no keydown handler, stranding keyboard navigation.
+    const selectionTabStopIndex = pipe(
+      selectedIndex,
+      Option.filter(Predicate.not(isDisabled)),
+      Option.getOrElse(() => firstEnabledIndex),
+    )
+
+    const isNavigableIndex = (index: number): boolean =>
+      index < options.length && !isDisabled(index)
+
+    const focusedIndex = pipe(
+      maybeFocusedIndex,
+      Option.filter(isNavigableIndex),
+      Option.getOrElse(() => selectionTabStopIndex),
+    )
+
+    const { nextKey, previousKey } = Match.value(orientation).pipe(
+      Match.when('Horizontal', () => ({
         nextKey: 'ArrowRight',
         previousKey: 'ArrowLeft',
       })),
-      M.when('Vertical', () => ({
+      Match.when('Vertical', () => ({
         nextKey: 'ArrowDown',
         previousKey: 'ArrowUp',
       })),
-      M.exhaustive,
+      Match.exhaustive,
     )
 
     const resolveKeyIndex = keyToIndex(
@@ -312,76 +278,98 @@ const internalView = defineView<Model, Message, ViewInputs>(
       isDisabled,
     )
 
+    const optionSelectedAt = (index: number): Option.Option<SelectedOption> =>
+      pipe(
+        options,
+        Array.get(index),
+        Option.map(value => Message.SelectedOption({ index, value })),
+      )
+
+    const handleSelectingKeyDown = (
+      currentIndex: number,
+      key: string,
+    ): Option.Option<SelectedOption> =>
+      Match.value(key).pipe(
+        Match.whenOr(
+          nextKey,
+          previousKey,
+          'Home',
+          'End',
+          'PageUp',
+          'PageDown',
+          () => optionSelectedAt(resolveKeyIndex(key)),
+        ),
+        Match.when(' ', () => optionSelectedAt(currentIndex)),
+        Match.orElse(() => Option.none()),
+      )
+
+    const handleReadOnlyKeyDown = (key: string): Option.Option<FocusedOption> =>
+      Match.value(key).pipe(
+        Match.whenOr(
+          nextKey,
+          previousKey,
+          'Home',
+          'End',
+          'PageUp',
+          'PageDown',
+          () =>
+            Option.some(Message.FocusedOption({ index: resolveKeyIndex(key) })),
+        ),
+        Match.orElse(() => Option.none()),
+      )
+
     const handleKeyDown =
       (currentIndex: number) =>
-      (key: string): Option.Option<SelectedOption> =>
-        M.value(key).pipe(
-          M.whenOr(
-            nextKey,
-            previousKey,
-            'Home',
-            'End',
-            'PageUp',
-            'PageDown',
-            () => {
-              const nextIndex = resolveKeyIndex(key)
-              return pipe(
-                options,
-                Array.get(nextIndex),
-                Option.map(value =>
-                  SelectedOption({ value, index: nextIndex }),
-                ),
-              )
-            },
-          ),
-          M.when(' ', () =>
-            pipe(
-              options,
-              Array.get(currentIndex),
-              Option.map(value =>
-                SelectedOption({ value, index: currentIndex }),
-              ),
-            ),
-          ),
-          M.orElse(() => Option.none()),
-        )
+      (key: string): Option.Option<SelectedOption | FocusedOption> => {
+        if (isReadOnly) {
+          return handleReadOnlyKeyDown(key)
+        } else {
+          return handleSelectingKeyDown(currentIndex, key)
+        }
+      }
 
     const optionInfos: ReadonlyArray<OptionInfo> = Array.map(
       options,
       (value, index) => {
         const isSelected = Option.exists(
           selectedIndex,
-          selectedIdx => selectedIdx === index,
+          selectedOptionIndex => selectedOptionIndex === index,
         )
-        const isFocusable = index === focusedIndex
+        const isActive = index === focusedIndex
         const isOptionDisabledNow = isDisabled(index)
 
         const checkedAttributes = isSelected
           ? [h.DataAttribute('checked', '')]
           : []
-        const activeAttributes = isFocusable
-          ? [h.DataAttribute('active', '')]
-          : []
+        const activeAttributes = isActive ? [h.DataAttribute('active', '')] : []
         const disabledAttributes = isOptionDisabledNow
           ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
           : []
+        const readOnlyAttributes = isReadOnly
+          ? [h.DataAttribute('readonly', '')]
+          : []
+        const clickAttributes =
+          isOptionDisabledNow || isReadOnly
+            ? []
+            : [h.OnClick(Message.SelectedOption({ index, value }))]
+        const keyDownAttributes = isOptionDisabledNow
+          ? []
+          : [h.OnKeyDownPreventDefault(handleKeyDown(index))]
 
         const optionAttributes = [
           h.Id(optionId(id, index)),
+          h.Type('button'),
           h.Role('radio'),
           h.AriaChecked(isSelected),
           h.AriaLabelledBy(labelId(id, index)),
           h.AriaDescribedBy(descriptionId(id, index)),
-          h.Tabindex(isFocusable ? 0 : -1),
+          h.Tabindex(isActive ? 0 : -1),
           ...checkedAttributes,
           ...activeAttributes,
           ...disabledAttributes,
-          ...(isOptionDisabledNow
-            ? []
-            : [
-                h.OnClick(SelectedOption({ value, index })),
-                h.OnKeyDownPreventDefault(handleKeyDown(index)),
-              ]),
+          ...readOnlyAttributes,
+          ...clickAttributes,
+          ...keyDownAttributes,
         ]
 
         const labelAttributes = [h.Id(labelId(id, index))]
@@ -391,8 +379,9 @@ const internalView = defineView<Model, Message, ViewInputs>(
           value,
           index,
           isSelected,
-          isActive: isFocusable,
+          isActive,
           isDisabled: isOptionDisabledNow,
+          isReadOnly,
           option: childAttributes(optionAttributes),
           label: childAttributes(labelAttributes),
           description: childAttributes(descriptionAttributes),
@@ -400,10 +389,15 @@ const internalView = defineView<Model, Message, ViewInputs>(
       },
     )
 
+    const groupReadOnlyAttributes = isReadOnly
+      ? [h.AriaReadonly(true), h.DataAttribute('readonly', '')]
+      : []
+
     const groupAttributes = [
       h.Role('radiogroup'),
       h.AriaOrientation(String.toLowerCase(orientation)),
       h.AriaLabel(ariaLabel),
+      ...groupReadOnlyAttributes,
     ]
 
     const hiddenInputAttributes = pipe(
@@ -427,58 +421,53 @@ const internalView = defineView<Model, Message, ViewInputs>(
   },
 )
 
-/** Pairs the radio group's `view` and `update` (and `select`) behind a
- *  single Value-typed entry point. Declaring the radio group once at
- *  module scope ensures the OutMessage's `value` field carries the
- *  consumer's union type without an `as` cast at the call site:
- *
- *  ```ts
- *  const ToolRadioGroup = RadioGroup.create<Tool>()
- *
- *  // In view:
- *  h.submodel({ view: ToolRadioGroup.view, ... })
- *
- *  // In update:
- *  const [next, commands, maybeOutMessage] = ToolRadioGroup.update(model, message)
- *  // maybeOutMessage: Option<RadioGroup.OutMessage<Tool>>
- *  ```
- *
- *  The view's `ViewInputs.options` stays typed `ReadonlyArray<string>`;
- *  consumers can pass a `ReadonlyArray<MyUnion>` (assignable) and the
- *  fenced cast inside `update` types the OutMessage's `value` as
- *  `MyUnion`. */
-export const create = <Value extends string = string>(): Readonly<{
+/** The `view` and `update` pair that `RadioGroup.create` returns, bound to one
+ *  `Value` type. Name it to annotate a value that holds a created bundle,
+ *  such as a field on a config object or a function parameter that takes
+ *  the bundle rather than calling `create` itself. */
+export type Bundle<Value extends string = string> = Readonly<{
   view: SubmodelView<Model, Message, ViewInputs<Value>>
   update: (
     model: Model,
     message: Message,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
-  select: (
-    model: Model,
-    value: Value,
-    options: ReadonlyArray<Value>,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Value>>,
-  ]
-  reflectSelectedValue: Reflect<Model, Option.Option<Value>>
-}> => ({
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  view: internalView as unknown as SubmodelView<
+  ) => Update.ReturnWithOutMessage<Model, Message, OutMessage<Value>>
+}>
+
+/** Pairs the radio group `view` and `update` behind a single Value-typed
+ *  entry point. Declare once at module scope so consumers receive
+ *  `option.value: Value` in `toView` and the `Selected` OutMessage without an
+ *  `as` cast:
+ *
+ *  ```ts
+ *  const PlanRadioGroup = RadioGroup.create<Plan>()
+ *
+ *  // In view (selectedValue is the parent-owned selection):
+ *  h.submodel({ view: PlanRadioGroup.view, viewInputs: { selectedValue, ... }, ... })
+ *
+ *  // In the parent update, pass PlanRadioGroup.update to Update.foldChild
+ *  // and fold the Selected OutMessage into your Model.
+ *  ```
+ *
+ *  The internal view stays typed `ReadonlyArray<string>`; consumers can
+ *  pass a `ReadonlyArray<MyUnion>` (assignable) and the fenced cast inside
+ *  `create` types `OptionInfo.value` as `MyUnion`. */
+export const create = <Value extends string = string>(): Bundle<Value> => {
+  type GenericReturn = Update.ReturnWithOutMessage<
     Model,
     Message,
-    ViewInputs<Value>
-  >,
-  update: (model, message) => update<Value>(model, message),
-  select: (model, value, options) => select<Value>(model, value, options),
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  reflectSelectedValue: reflectSelectedValue as Reflect<
-    Model,
-    Option.Option<Value>
-  >,
-})
+    OutMessage<Value>
+  >
+  const cast = (result: UpdateReturn): GenericReturn =>
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    result as unknown as GenericReturn
+
+  return {
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    view: internalView as unknown as SubmodelView<
+      Model,
+      Message,
+      ViewInputs<Value>
+    >,
+    update: (model, message) => cast(update(model, message)),
+  }
+}

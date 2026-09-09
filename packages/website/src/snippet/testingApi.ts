@@ -1,60 +1,79 @@
 import { Array } from 'effect'
-import { Story } from 'foldkit'
+import {
+  Command,
+  expectOutMessage,
+  given,
+  message,
+  model,
+  steps,
+  story,
+} from 'foldkit/story'
 
 // Set the initial Model.
-Story.with(model)
+given(model)
 
 // Send a Message. Commands stay pending.
-Story.message(ClickedSubmit())
+message(ClickedSubmit())
+
+// Group a reusable sequence without erasing its step types.
+steps(given(initialModel), message(ClickedSubmit()))
 
 // Resolve one Command with its result. Pass a Definition to match by name,
 // or a Command instance to match by name AND args.
-Story.Command.resolve(FetchWeather, SucceededFetchWeather({ data }))
-Story.Command.resolve(
+Command.resolve(FetchWeather, SucceededFetchWeather({ data }))
+Command.resolve(
   FetchWeather({ zipCode: '90210' }),
   SucceededFetchWeather({ data }),
 )
 
 // Resolve many Commands at once. Each entry resolves exactly one matching
 // dispatch in declaration order.
-Story.Command.resolveAll(
+Command.resolveAll(
+  [FocusInput, CompletedFocusInput()],
+  [ScrollToTop, CompletedScrollToTop()],
+)
+
+// Resolve and assert a batch. Every listed resolver must match in this call,
+// and no actual Command may remain unresolved.
+message(ClickedSubmit())
+Command.resolveAllExact(
   [FocusInput, CompletedFocusInput()],
   [ScrollToTop, CompletedScrollToTop()],
 )
 
 // For N identical responses, compose with Array.makeBy.
-Story.Command.resolveAll(
+Command.resolveAll(
   ...Array.makeBy(3, () => [AnimationTick, CompletedTick()] as const),
 )
 
 // Assert on the Model.
-Story.model(model => {
+model(model => {
   expect(model.count).toBe(0)
 })
 
 // Assert these Commands were produced. Definition matchers match by name only;
 // instance matchers (FetchWeather({ zipCode: '90210' })) match by name AND args.
-Story.Command.expectHas(FetchWeather)
-Story.Command.expectHas(FetchWeather({ zipCode: '90210' }))
+Command.expectHas(FetchWeather)
+Command.expectHas(FetchWeather({ zipCode: '90210' }))
 
 // Assert exactly these Commands were produced (mix Definition and instance).
-Story.Command.expectExact(FetchWeather, SaveBoard)
-Story.Command.expectExact(FetchWeather({ zipCode: '90210' }), SaveBoard)
+Command.expectExact(FetchWeather, SaveBoard)
+Command.expectExact(FetchWeather({ zipCode: '90210' }), SaveBoard)
 
 // Assert no Commands were produced.
-Story.Command.expectNone()
+Command.expectNone()
 
 // Assert on the OutMessage.
-Story.expectOutMessage(SucceededLogin({ session }))
+expectOutMessage(SucceededLogin({ session }))
 
 // Run the test story. Throws on unresolved Commands.
-Story.story(
+story(
   update,
-  Story.with(model),
-  Story.message(ClickedSubmit()),
-  Story.Command.expectHas(FetchData),
-  Story.Command.resolve(FetchData, SucceededFetch({ data })),
-  Story.model(model => {
+  given(model),
+  message(ClickedSubmit()),
+  Command.expectHas(FetchData),
+  Command.resolve(FetchData, SucceededFetch({ data })),
+  model(model => {
     expect(model.status).toBe('loaded')
   }),
 )

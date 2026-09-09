@@ -1,18 +1,12 @@
-import { Match as M, Option } from 'effect'
-import { Submodel } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Match, Option } from 'effect'
+import { AsyncData, Submodel } from 'foldkit'
+import { Html, HtmlBuilder } from 'foldkit/html'
 
 import * as Shared from '@typing-game/shared'
 
 import { ROOM_PAGE_USERNAME_INPUT_ID } from '../../../constant'
 import { Icon } from '../../../view/icon'
-import {
-  BlurredRoomPageUsernameInput,
-  ChangedRoomPageUsername,
-  ClickedCopyRoomId,
-  SubmittedJoinRoomFromPage,
-} from '../message'
-import type { Message } from '../message'
+import { Message } from '../message'
 import { Model, RoomPlayerSession } from '../model'
 import { findFirstWrongCharIndex } from '../userGameText'
 import { countdown } from './countdown'
@@ -24,14 +18,10 @@ import { waiting } from './waiting'
 export type ViewInputs = Readonly<{ roomId: string }>
 
 export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, viewInputs): Html => {
+  (model, viewInputs, h): Html => {
     const { roomId } = viewInputs
-    const h = html<Message>()
 
-    const maybeError = M.value(model.roomRemoteData).pipe(
-      M.tag('Error', ({ error }) => error),
-      M.option,
-    )
+    const maybeError = AsyncData.getError(model.roomAsyncData)
 
     const welcomeText = Option.match(model.maybeSession, {
       onNone: () => h.empty,
@@ -56,18 +46,14 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           'p-2 rounded hover:bg-terminal-green-dim hover:text-terminal-bg transition text-terminal-green',
         ),
         h.AriaLabel('Copy room ID'),
-        h.OnClick(ClickedCopyRoomId()),
+        h.OnClick(Message.ClickedCopyRoomId()),
       ],
       [Icon.copy()],
     )
 
-    const isInLeavableState = M.value(model.roomRemoteData).pipe(
-      M.tag(
-        'Ok',
-        ({ data }) =>
-          data.status._tag === 'Waiting' || data.status._tag === 'Finished',
-      ),
-      M.orElse(() => false),
+    const isInLeavableState = Option.exists(
+      AsyncData.getData(model.roomAsyncData),
+      ({ status }) => status._tag === 'Waiting' || status._tag === 'Finished',
     )
 
     const isExitCountingDown = model.exitCountdownSecondsLeft > 0
@@ -93,8 +79,8 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
               [h.Class('mb-12 flex items-center gap-2')],
               [h.span([], [roomId]), copyButton, copiedIndicator],
             ),
-            content(model),
-            maybeErrorMessage(maybeError),
+            content(model, h),
+            maybeErrorMessage(maybeError, h),
           ],
         ),
         h.div([], [leaveRoomText]),
@@ -103,84 +89,54 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
   },
 )
 
-const contentKey = (
-  roomRemoteData: Model['roomRemoteData'],
-  maybeSession: Option.Option<RoomPlayerSession>,
-): string =>
-  M.value(roomRemoteData).pipe(
-    M.tag('Ok', () => (Option.isSome(maybeSession) ? 'game' : 'join')),
-    M.orElse(({ _tag }) => _tag.toLowerCase()),
-  )
-
-const content = ({
-  roomRemoteData,
-  maybeSession,
-  userGameText,
-  username,
-}: Model): Html => {
-  const h = html<Message>()
-
-  return h.keyed('div')(
-    contentKey(roomRemoteData, maybeSession),
-    [],
-    [
-      M.value(roomRemoteData).pipe(
-        M.tagsExhaustive({
-          Idle: () => h.div([], ['Loading...']),
-          Loading: () => h.div([], ['Loading...']),
-          Error: () => h.empty,
-          Ok: ({ data: room }) =>
-            Option.match(maybeSession, {
-              onNone: () => joinForm(username),
-              onSome: () => gameContent(room, maybeSession, userGameText),
-            }),
-        }),
-      ),
-    ],
-  )
-}
+const content = (
+  { roomAsyncData, maybeSession, userGameText, username }: Model,
+  h: HtmlBuilder<Message>,
+): Html =>
+  AsyncData.matchData(roomAsyncData, {
+    onEmpty: () => h.div([], ['Loading...']),
+    onFailure: () => h.empty,
+    onData: room =>
+      Option.match(maybeSession, {
+        onNone: () => joinForm(username, h),
+        onSome: () => gameContent(room, maybeSession, userGameText, h),
+      }),
+  })
 
 const gameContent = (
   room: Shared.Room,
   maybeSession: Option.Option<RoomPlayerSession>,
   userGameText: string,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>()
   const maybeGameText = Option.map(room.maybeGame, ({ text }) => text)
   const maybeWrongCharIndex = Option.flatMap(
     maybeGameText,
     findFirstWrongCharIndex(userGameText),
   )
 
-  return h.keyed('div')(
-    room.status._tag,
-    [],
-    [
-      M.value(room.status).pipe(
-        M.tagsExhaustive({
-          Waiting: () => waiting(room.players, room.hostId, maybeSession),
-          GetReady: () => getReady(maybeGameText),
-          Countdown: ({ secondsLeft }) => countdown(secondsLeft, maybeGameText),
-          Playing: ({ secondsLeft }) =>
-            playing(
-              secondsLeft,
-              maybeGameText,
-              userGameText,
-              maybeWrongCharIndex,
-            ),
-          Finished: () =>
-            finished(room.maybeScoreboard, room.hostId, maybeSession),
-        }),
-      ),
-    ],
+  return Match.value(room.status).pipe(
+    Match.tagsExhaustive({
+      Waiting: () => waiting(room.players, room.hostId, maybeSession, h),
+      GetReady: () => getReady(maybeGameText, h),
+      Countdown: ({ secondsLeft }) => countdown(secondsLeft, maybeGameText, h),
+      Playing: ({ secondsLeft }) =>
+        playing(
+          secondsLeft,
+          maybeGameText,
+          userGameText,
+          maybeWrongCharIndex,
+          h,
+        ),
+      Finished: () =>
+        finished(room.maybeScoreboard, room.hostId, maybeSession, h),
+    }),
   )
 }
 
-const joinForm = (username: string): Html => {
-  const h = html<Message>()
-
-  return h.form(
-    [h.OnSubmit(SubmittedJoinRoomFromPage())],
+const joinForm = (username: string, h: HtmlBuilder<Message>): Html =>
+  h.form(
+    [h.OnSubmit(Message.SubmittedJoinRoomFromPage())],
     [
       h.div(
         [h.Class('flex items-center gap-2')],
@@ -196,8 +152,8 @@ const joinForm = (username: string): Html => {
                 h.Type('text'),
                 h.Value(username),
                 h.Class('bg-transparent px-0 py-2 outline-none w-full'),
-                h.OnInput(value => ChangedRoomPageUsername({ value })),
-                h.OnBlur(BlurredRoomPageUsernameInput()),
+                h.OnInput(value => Message.ChangedRoomPageUsername({ value })),
+                h.OnBlur(Message.BlurredRoomPageUsernameInput()),
                 h.Autocapitalize('none'),
                 h.Spellcheck(false),
                 h.Autocorrect('off'),
@@ -210,12 +166,12 @@ const joinForm = (username: string): Html => {
       ),
     ],
   )
-}
 
-const maybeErrorMessage = (maybeRoomFormError: Option.Option<string>): Html => {
-  const h = html<Message>()
-
-  return Option.match(maybeRoomFormError, {
+const maybeErrorMessage = (
+  maybeRoomFormError: Option.Option<string>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  Option.match(maybeRoomFormError, {
     onNone: () => h.empty,
     onSome: errorMessage =>
       h.div(
@@ -226,4 +182,3 @@ const maybeErrorMessage = (maybeRoomFormError: Option.Option<string>): Html => {
         ],
       ),
   })
-}

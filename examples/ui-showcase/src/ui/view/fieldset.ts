@@ -1,15 +1,13 @@
 import { Submodel } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Checkbox, Fieldset, Input, Textarea } from '@foldkit/ui'
 
-import {
-  GotFieldsetCheckboxDemoMessage,
-  type UiMessage,
-  UpdatedFieldsetInputValue,
-  UpdatedFieldsetTextareaValue,
-} from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
+
+const FIELDSET_CHECKBOX_DEMO_ID = 'fieldset-checkbox-demo'
+const FIELDSET_DISABLED_CHECKBOX_ID = 'fieldset-disabled-checkbox'
 
 const fieldsetClassName = 'rounded-lg border border-gray-200 p-6'
 
@@ -34,261 +32,253 @@ const checkboxLabelClassName =
 
 const checkboxDescriptionClassName = 'text-sm text-gray-500'
 
-export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
-  const h = html<UiMessage>()
+const fieldClassName = 'flex flex-col gap-1.5'
 
-  const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
+const fieldsClassName = 'mt-4 flex flex-col gap-4'
 
-  return h.div(
-    [],
-    [
-      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Fieldset']),
+const sectionHeadingClassName = 'text-lg font-semibold text-gray-900 mt-8 mb-4'
 
-      h.h3(
-        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-        ['Basic'],
-      ),
-      Fieldset.view<UiMessage>({
-        id: 'fieldset-basic-demo',
-        toView: attributes =>
-          h.fieldset(
-            [...attributes.fieldset, h.Class(fieldsetClassName)],
-            [
-              h.legend(
-                [...attributes.legend, h.Class(legendClassName)],
-                ['Personal Information'],
-              ),
-              h.span(
-                [
-                  ...attributes.description,
-                  h.Class(`${descriptionClassName} mt-1`),
-                ],
-                ['We just need a few details.'],
-              ),
-              h.div(
-                [h.Class('mt-4 flex flex-col gap-4')],
-                [
-                  Input.view<UiMessage>({
-                    id: 'fieldset-name-input',
-                    value: model.fieldsetInputValue,
-                    onInput: value => UpdatedFieldsetInputValue({ value }),
-                    placeholder: 'Enter your full name',
-                    toView: inputAttributes =>
-                      h.div(
-                        [h.Class('flex flex-col gap-1.5')],
-                        [
-                          h.label(
-                            [...inputAttributes.label, h.Class(labelClassName)],
-                            ['Name'],
-                          ),
-                          h.input([
-                            ...inputAttributes.input,
-                            h.Class(inputClassName),
-                          ]),
-                          h.span(
-                            [
-                              ...inputAttributes.description,
-                              h.Class(descriptionClassName),
-                            ],
-                            ['As it appears on your government-issued ID.'],
-                          ),
-                        ],
-                      ),
-                  }),
-                  Textarea.view<UiMessage>({
-                    id: 'fieldset-bio-textarea',
-                    value: model.fieldsetTextareaValue,
-                    onInput: value => UpdatedFieldsetTextareaValue({ value }),
-                    placeholder: 'Tell us about yourself...',
-                    rows: 3,
-                    toView: textareaAttributes =>
-                      h.div(
-                        [h.Class('flex flex-col gap-1.5')],
-                        [
-                          h.label(
-                            [
-                              ...textareaAttributes.label,
-                              h.Class(labelClassName),
-                            ],
-                            ['Bio'],
-                          ),
-                          h.textarea(
-                            [
-                              ...textareaAttributes.textarea,
-                              h.Class(textareaClassName),
-                            ],
-                            [],
-                          ),
-                          h.span(
-                            [
-                              ...textareaAttributes.description,
-                              h.Class(descriptionClassName),
-                            ],
-                            ['A brief introduction about yourself.'],
-                          ),
-                        ],
-                      ),
-                  }),
-                  h.submodel({
-                    slotId: 'fieldset-checkbox-demo',
-                    model: model.fieldsetCheckboxDemo,
-                    view: Checkbox.view,
-                    viewInputs: {
-                      toView: checkboxAttributes =>
-                        h.div(
-                          [h.Class('flex flex-col gap-1')],
-                          [
-                            h.div(
-                              [h.Class('flex items-center gap-2')],
-                              [
-                                h.button(
-                                  [
-                                    ...checkboxAttributes.checkbox,
-                                    h.Class(checkboxClassName),
-                                  ],
-                                  model.fieldsetCheckboxDemo.isChecked
-                                    ? [checkmark]
-                                    : [],
-                                ),
-                                h.label(
-                                  [
-                                    ...checkboxAttributes.label,
-                                    h.Class(checkboxLabelClassName),
-                                  ],
-                                  ['I agree to the terms and conditions'],
-                                ),
-                              ],
-                            ),
-                            h.p(
-                              [
-                                ...checkboxAttributes.description,
-                                h.Class(checkboxDescriptionClassName),
-                              ],
-                              [
-                                'You agree to our Terms of Service and Privacy Policy.',
-                              ],
-                            ),
-                          ],
-                        ),
-                    },
-                    toParentMessage: message =>
-                      GotFieldsetCheckboxDemoMessage({ message }),
-                  }),
-                ],
-              ),
-            ],
-          ),
-      }),
+// FIELDS
 
-      h.h3(
-        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-        ['Disabled'],
-      ),
-      Fieldset.view<UiMessage>({
-        id: 'fieldset-disabled-demo',
-        isDisabled: true,
-        toView: attributes =>
-          h.fieldset(
-            [...attributes.fieldset, h.Class(fieldsetClassName)],
-            [
-              h.legend(
-                [...attributes.legend, h.Class(legendClassName)],
-                ['Personal Information'],
-              ),
-              h.span(
-                [
-                  ...attributes.description,
-                  h.Class(`${descriptionClassName} mt-1`),
-                ],
-                ['This fieldset is disabled.'],
-              ),
-              h.div(
-                [h.Class('mt-4 flex flex-col gap-4')],
-                [
-                  Input.view<UiMessage>({
-                    id: 'fieldset-disabled-name-input',
-                    isDisabled: true,
-                    value: 'Ada Lovelace',
-                    toView: inputAttributes =>
-                      h.div(
-                        [h.Class('flex flex-col gap-1.5')],
-                        [
-                          h.label(
-                            [...inputAttributes.label, h.Class(labelClassName)],
-                            ['Name'],
-                          ),
-                          h.input([
-                            ...inputAttributes.input,
-                            h.Class(inputClassName),
-                          ]),
-                        ],
-                      ),
-                  }),
-                  Textarea.view<UiMessage>({
-                    id: 'fieldset-disabled-bio-textarea',
-                    isDisabled: true,
-                    value:
-                      "Mathematician and writer, known for work on Charles Babbage's Analytical Engine.",
-                    rows: 3,
-                    toView: textareaAttributes =>
-                      h.div(
-                        [h.Class('flex flex-col gap-1.5')],
-                        [
-                          h.label(
-                            [
-                              ...textareaAttributes.label,
-                              h.Class(labelClassName),
-                            ],
-                            ['Bio'],
-                          ),
-                          h.textarea(
-                            [
-                              ...textareaAttributes.textarea,
-                              h.Class(textareaClassName),
-                            ],
-                            [],
-                          ),
-                        ],
-                      ),
-                  }),
-                  h.submodel({
-                    slotId: 'fieldset-disabled-checkbox',
-                    model: {
-                      id: 'fieldset-disabled-checkbox',
-                      isChecked: true,
-                    },
-                    view: Checkbox.view,
-                    viewInputs: {
-                      isDisabled: true,
-                      toView: checkboxAttributes =>
-                        h.div(
-                          [h.Class('flex items-center gap-2')],
-                          [
-                            h.button(
-                              [
-                                ...checkboxAttributes.checkbox,
-                                h.Class(checkboxClassName),
-                              ],
-                              [checkmark],
-                            ),
-                            h.label(
-                              [
-                                ...checkboxAttributes.label,
-                                h.Class(checkboxLabelClassName),
-                              ],
-                              ['I agree to the terms and conditions'],
-                            ),
-                          ],
-                        ),
-                    },
-                    toParentMessage: message =>
-                      GotFieldsetCheckboxDemoMessage({ message }),
-                  }),
-                ],
-              ),
-            ],
-          ),
-      }),
-    ],
+const checkmark = (h: HtmlBuilder<UiMessage>): Html =>
+  h.span([h.Class('text-white text-xs')], ['✓'])
+
+const nameInput = (value: string, h: HtmlBuilder<UiMessage>): Html =>
+  Input.view(
+    {
+      id: 'fieldset-name-input',
+      value,
+      onInput: inputValue =>
+        UiMessage.UpdatedFieldsetInputValue({ value: inputValue }),
+      placeholder: 'Enter your full name',
+      toView: attributes =>
+        h.div(
+          [h.Class(fieldClassName)],
+          [
+            h.label([...attributes.label, h.Class(labelClassName)], ['Name']),
+            h.input([...attributes.input, h.Class(inputClassName)]),
+            h.span(
+              [...attributes.description, h.Class(descriptionClassName)],
+              ['As it appears on your government-issued ID.'],
+            ),
+          ],
+        ),
+    },
+    h,
   )
-})
+
+const bioTextarea = (value: string, h: HtmlBuilder<UiMessage>): Html =>
+  Textarea.view(
+    {
+      id: 'fieldset-bio-textarea',
+      value,
+      onInput: textareaValue =>
+        UiMessage.UpdatedFieldsetTextareaValue({ value: textareaValue }),
+      placeholder: 'Tell us about yourself...',
+      rows: 3,
+      toView: attributes =>
+        h.div(
+          [h.Class(fieldClassName)],
+          [
+            h.label([...attributes.label, h.Class(labelClassName)], ['Bio']),
+            h.textarea([...attributes.textarea, h.Class(textareaClassName)]),
+            h.span(
+              [...attributes.description, h.Class(descriptionClassName)],
+              ['A brief introduction about yourself.'],
+            ),
+          ],
+        ),
+    },
+    h,
+  )
+
+const termsCheckbox = (isChecked: boolean, h: HtmlBuilder<UiMessage>): Html =>
+  Checkbox.view(
+    {
+      id: FIELDSET_CHECKBOX_DEMO_ID,
+      isChecked,
+      onToggle: nextIsChecked =>
+        UiMessage.ToggledFieldsetCheckboxDemo({ isChecked: nextIsChecked }),
+      toView: attributes =>
+        h.div(
+          [h.Class('flex flex-col gap-1')],
+          [
+            h.div(
+              [h.Class('flex items-center gap-2')],
+              [
+                h.button(
+                  [...attributes.checkbox, h.Class(checkboxClassName)],
+                  isChecked ? [checkmark(h)] : [],
+                ),
+                h.label(
+                  [...attributes.label, h.Class(checkboxLabelClassName)],
+                  ['I agree to the terms and conditions'],
+                ),
+              ],
+            ),
+            h.p(
+              [
+                ...attributes.description,
+                h.Class(checkboxDescriptionClassName),
+              ],
+              ['You agree to our Terms of Service and Privacy Policy.'],
+            ),
+          ],
+        ),
+    },
+    h,
+  )
+
+// DISABLED FIELDS
+
+const disabledNameInput = (h: HtmlBuilder<UiMessage>): Html =>
+  Input.view(
+    {
+      id: 'fieldset-disabled-name-input',
+      isDisabled: true,
+      value: 'Ada Lovelace',
+      toView: attributes =>
+        h.div(
+          [h.Class(fieldClassName)],
+          [
+            h.label([...attributes.label, h.Class(labelClassName)], ['Name']),
+            h.input([...attributes.input, h.Class(inputClassName)]),
+          ],
+        ),
+    },
+    h,
+  )
+
+const disabledBioTextarea = (h: HtmlBuilder<UiMessage>): Html =>
+  Textarea.view(
+    {
+      id: 'fieldset-disabled-bio-textarea',
+      isDisabled: true,
+      value:
+        "Mathematician and writer, known for work on Charles Babbage's Analytical Engine.",
+      rows: 3,
+      toView: attributes =>
+        h.div(
+          [h.Class(fieldClassName)],
+          [
+            h.label([...attributes.label, h.Class(labelClassName)], ['Bio']),
+            h.textarea([...attributes.textarea, h.Class(textareaClassName)]),
+          ],
+        ),
+    },
+    h,
+  )
+
+const disabledTermsCheckbox = (h: HtmlBuilder<UiMessage>): Html =>
+  Checkbox.view(
+    {
+      id: FIELDSET_DISABLED_CHECKBOX_ID,
+      isChecked: true,
+      isDisabled: true,
+      onToggle: isChecked =>
+        UiMessage.ToggledFieldsetCheckboxDemo({ isChecked }),
+      toView: attributes =>
+        h.div(
+          [h.Class('flex items-center gap-2')],
+          [
+            h.button(
+              [...attributes.checkbox, h.Class(checkboxClassName)],
+              [checkmark(h)],
+            ),
+            h.label(
+              [...attributes.label, h.Class(checkboxLabelClassName)],
+              ['I agree to the terms and conditions'],
+            ),
+          ],
+        ),
+    },
+    h,
+  )
+
+// DEMOS
+
+const basicDemo = (model: UiModel, h: HtmlBuilder<UiMessage>): Html =>
+  Fieldset.view(
+    {
+      id: 'fieldset-basic-demo',
+      toView: attributes =>
+        h.fieldset(
+          [...attributes.fieldset, h.Class(fieldsetClassName)],
+          [
+            h.legend(
+              [...attributes.legend, h.Class(legendClassName)],
+              ['Personal Information'],
+            ),
+            h.span(
+              [
+                ...attributes.description,
+                h.Class(`${descriptionClassName} mt-1`),
+              ],
+              ['We just need a few details.'],
+            ),
+            h.div(
+              [h.Class(fieldsClassName)],
+              [
+                nameInput(model.fieldsetInputValue, h),
+                bioTextarea(model.fieldsetTextareaValue, h),
+                termsCheckbox(model.isFieldsetCheckboxDemoChecked, h),
+              ],
+            ),
+          ],
+        ),
+    },
+    h,
+  )
+
+const disabledDemo = (h: HtmlBuilder<UiMessage>): Html =>
+  Fieldset.view(
+    {
+      id: 'fieldset-disabled-demo',
+      isDisabled: true,
+      toView: attributes =>
+        h.fieldset(
+          [...attributes.fieldset, h.Class(fieldsetClassName)],
+          [
+            h.legend(
+              [...attributes.legend, h.Class(legendClassName)],
+              ['Personal Information'],
+            ),
+            h.span(
+              [
+                ...attributes.description,
+                h.Class(`${descriptionClassName} mt-1`),
+              ],
+              ['This fieldset is disabled.'],
+            ),
+            h.div(
+              [h.Class(fieldsClassName)],
+              [
+                disabledNameInput(h),
+                disabledBioTextarea(h),
+                disabledTermsCheckbox(h),
+              ],
+            ),
+          ],
+        ),
+    },
+    h,
+  )
+
+// VIEW
+
+export const view = Submodel.defineView<UiModel, UiMessage>(
+  (model, h): Html => {
+    return h.div(
+      [],
+      [
+        h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Fieldset']),
+
+        h.h3([h.Class(sectionHeadingClassName)], ['Basic']),
+        basicDemo(model, h),
+
+        h.h3([h.Class(sectionHeadingClassName)], ['Disabled']),
+        disabledDemo(h),
+      ],
+    )
+  },
+)

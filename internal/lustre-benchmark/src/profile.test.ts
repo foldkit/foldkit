@@ -1,20 +1,12 @@
 import { Effect } from 'effect'
-import { Document } from 'foldkit/html'
+import { Document, type HtmlBuilder } from 'foldkit/html'
 import { makeApplication } from 'foldkit/runtime'
 import { describe, it } from 'vitest'
 
 // Internal API not on the public surface but needed by the profile harness
 // to capture the runtime's sync dispatcher.
 import { __requireDispatch } from '../../../packages/foldkit/src/html/index.js'
-import {
-  AddedTodo,
-  DeletedTodo,
-  Model,
-  ToggledTodo,
-  UpdatedNewTodo,
-  update as baseUpdate,
-  init,
-} from './main.js'
+import { Message, Model, update as baseUpdate, init } from './main.js'
 import type { Todo } from './main.js'
 import { view as naiveView } from './main.js'
 import { view as optimisedView } from './main.optimised.js'
@@ -24,11 +16,11 @@ import { view as optimisedView } from './main.optimised.js'
  *
  * The lustre-labs/benchmark harness runs the same runbook (add 100 todos,
  * toggle each, destroy the first 100 times) against every framework and
- * reports total wall-clock. That total tells you Foldkit lands at 376 ms vs
- * Elm at 98 ms but not WHY. This profile drives the same Message sequence
- * directly into the runtime, with wrappers around `view` and `update` that
- * accumulate per-phase time. Patch + dispatch + everything else falls out as
- * `total - view - update`.
+ * reports one total. That total does not explain where Foldkit spends its
+ * time. This profile drives the same Message sequence directly into the
+ * runtime, with wrappers around `view` and `update` that accumulate per-phase
+ * time. Patch + dispatch + everything else falls out as `total - view -
+ * update`.
  *
  * Run with:
  *
@@ -104,7 +96,7 @@ type Profile = Readonly<{
 }>
 
 const runProfile = async (
-  baseView: (model: Model) => Document,
+  baseView: (model: Model, h: HtmlBuilder<Message>) => Document,
 ): Promise<Profile> => {
   const container = document.createElement('section')
   container.id = `profile-${Math.random().toString(36).slice(2)}`
@@ -117,12 +109,12 @@ const runProfile = async (
   const wrappedView = wrap(baseView)
   const wrappedUpdate = wrap(baseUpdate)
 
-  const captureView = (model: Model) => {
+  const captureView = (model: Model, h: HtmlBuilder<Message>) => {
     if (capturedDispatch === null) {
       capturedDispatch = __requireDispatch()
     }
     latestModel = model
-    return wrappedView.fn(model)
+    return wrappedView.fn(model, h)
   }
 
   const application = makeApplication({
@@ -150,13 +142,12 @@ const runProfile = async (
   const totalStart = performance.now()
 
   // PHASE 1: add 100 todos. Each "add" matches a user typing into .new-todo
-  // and pressing Enter, then a Command resolving to GeneratedTodo. We
-  // dispatch the equivalent Message sequence and await the next render so
-  // the runtime processes the queue exactly like the harness's event-driven
-  // path.
+  // and pressing Enter. We dispatch the equivalent Message sequence and await
+  // the next render so the runtime processes the queue exactly like the
+  // harness's event-driven path.
   for (let index = 0; index < TODO_COUNT; index++) {
-    dispatch(UpdatedNewTodo({ text: `Todo ${index}` }))
-    dispatch(AddedTodo())
+    dispatch(Message.UpdatedNewTodo({ text: `Todo ${index}` }))
+    dispatch(Message.AddedTodo())
     await waitForCondition(() => getModel().todos.length === index + 1)
     await nextFrame()
   }
@@ -166,7 +157,7 @@ const runProfile = async (
     (todo: Todo) => todo.id,
   )
   for (const id of todoIds) {
-    dispatch(ToggledTodo({ id }))
+    dispatch(Message.ToggledTodo({ id }))
     await nextFrame()
   }
 
@@ -176,7 +167,7 @@ const runProfile = async (
     if (firstId === undefined) {
       break
     }
-    dispatch(DeletedTodo({ id: firstId }))
+    dispatch(Message.DeletedTodo({ id: firstId }))
     await nextFrame()
   }
 
@@ -199,7 +190,9 @@ const runProfile = async (
 }
 
 const median = (numbers: ReadonlyArray<number>): number => {
-  const sorted = [...numbers].sort((a, b) => a - b)
+  const sorted = [...numbers].sort(
+    (firstNumber, secondNumber) => firstNumber - secondNumber,
+  )
   return sorted[Math.floor(sorted.length / 2)] ?? 0
 }
 
@@ -218,7 +211,7 @@ const printRow = (
 
 const reportSlot = async (
   label: string,
-  view: (model: Model) => Document,
+  view: (model: Model, h: HtmlBuilder<Message>) => Document,
   warmupRuns: number,
   measuredRuns: number,
 ): Promise<Profile> => {
@@ -232,12 +225,12 @@ const reportSlot = async (
   }
 
   const aggregate: Profile = {
-    totalMs: median(profiles.map(p => p.totalMs)),
-    viewMs: median(profiles.map(p => p.viewMs)),
+    totalMs: median(profiles.map(profile => profile.totalMs)),
+    viewMs: median(profiles.map(profile => profile.viewMs)),
     viewCalls: profiles[0]!.viewCalls,
-    updateMs: median(profiles.map(p => p.updateMs)),
+    updateMs: median(profiles.map(profile => profile.updateMs)),
     updateCalls: profiles[0]!.updateCalls,
-    inferredOtherMs: median(profiles.map(p => p.inferredOtherMs)),
+    inferredOtherMs: median(profiles.map(profile => profile.inferredOtherMs)),
   }
 
   /* eslint-disable no-console */
@@ -263,43 +256,37 @@ const reportSlot = async (
 }
 
 describe.skipIf(!isProfileEnabled)('lustre runbook phase profile', () => {
-  it(
-    'compares naive, optimised, and optimised-with-list views',
-    { timeout: 300_000 },
-    async () => {
-      const WARMUP_RUNS = 1
-      const MEASURED_RUNS = 5
+  it('compares naive and optimised views', { timeout: 300_000 }, async () => {
+    const WARMUP_RUNS = 1
+    const MEASURED_RUNS = 5
 
-      /* eslint-disable no-console */
-      console.log('')
-      console.log(
-        `[lustre profile] runbook = 100 add + 100 toggle + 100 destroy`,
-      )
-      console.log(
-        `[lustre profile] median over ${MEASURED_RUNS} runs (warmup ${WARMUP_RUNS})`,
-      )
-      /* eslint-enable no-console */
+    /* eslint-disable no-console */
+    console.log('')
+    console.log(`[lustre profile] runbook = 100 add + 100 toggle + 100 destroy`)
+    console.log(
+      `[lustre profile] median over ${MEASURED_RUNS} runs (warmup ${WARMUP_RUNS})`,
+    )
+    /* eslint-enable no-console */
 
-      const naive = await reportSlot(
-        'naive (no memoization)',
-        naiveView,
-        WARMUP_RUNS,
-        MEASURED_RUNS,
-      )
-      const optimised = await reportSlot(
-        'optimised (createKeyedLazy + createLazy)',
-        optimisedView,
-        WARMUP_RUNS,
-        MEASURED_RUNS,
-      )
+    const naive = await reportSlot(
+      'naive (no memoization)',
+      naiveView,
+      WARMUP_RUNS,
+      MEASURED_RUNS,
+    )
+    const optimised = await reportSlot(
+      'optimised (createKeyedLazy + createLazy)',
+      optimisedView,
+      WARMUP_RUNS,
+      MEASURED_RUNS,
+    )
 
-      /* eslint-disable no-console */
-      console.log('')
-      console.log(`--- summary ---`)
-      console.log(`  naive    : ${naive.totalMs.toFixed(1)} ms`)
-      console.log(`  optimised: ${optimised.totalMs.toFixed(1)} ms`)
-      console.log('')
-      /* eslint-enable no-console */
-    },
-  )
+    /* eslint-disable no-console */
+    console.log('')
+    console.log(`--- summary ---`)
+    console.log(`  naive    : ${naive.totalMs.toFixed(1)} ms`)
+    console.log(`  optimised: ${optimised.totalMs.toFixed(1)} ms`)
+    console.log('')
+    /* eslint-enable no-console */
+  })
 })

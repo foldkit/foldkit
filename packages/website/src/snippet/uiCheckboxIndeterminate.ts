@@ -1,86 +1,77 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Array } from 'effect'
-import { html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { Schema } from 'effect'
+import type { HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Checkbox } from '@foldkit/ui'
 
-// Add multiple Checkbox Submodels to your Model for the parent and children:
-const Model = S.Struct({
-  optionA: Checkbox.Model,
-  optionB: Checkbox.Model,
+// Store each child's checked state as a plain boolean field in your Model:
+const Model = Schema.Struct({
+  optionA: Schema.Boolean,
+  optionB: Schema.Boolean,
   // ...your other fields
 })
 
-// In your init function, initialize each Submodel:
-const init = () => [
-  {
-    optionA: Checkbox.init({ id: 'option-a' }),
-    optionB: Checkbox.init({ id: 'option-b' }),
+// In your init function, start each unchecked:
+const init = () => ({
+  model: {
+    optionA: false,
+    optionB: false,
     // ...your other fields
   },
-  [],
-]
-
-// Embed each child's Message, plus a Message for the "Select All" parent:
-const GotSelectAllMessage = m('GotSelectAllMessage', {
-  message: Checkbox.Message,
-})
-const GotOptionAMessage = m('GotOptionAMessage', {
-  message: Checkbox.Message,
-})
-const GotOptionBMessage = m('GotOptionBMessage', {
-  message: Checkbox.Message,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), toggling
-// "Select All" routes each child through Checkbox.setChecked so the
-// update goes through the Submodel rather than mutating its fields directly:
-GotSelectAllMessage: () => {
-  const isAllChecked = Array.every(
-    [model.optionA, model.optionB],
-    ({ isChecked }) => isChecked,
-  )
-  const nextChecked = !isAllChecked
+// One Message per child, plus one for the "Select All" parent. Each carries
+// the new checked state:
 
-  const [nextOptionA] = Checkbox.setChecked(model.optionA, nextChecked)
-  const [nextOptionB] = Checkbox.setChecked(model.optionB, nextChecked)
+const Message = defineMessageUnion({
+  ToggledSelectAll: { isChecked: Schema.Boolean },
+  ToggledOptionA: { isChecked: Schema.Boolean },
+  ToggledOptionB: { isChecked: Schema.Boolean },
+})
 
-  return [
-    evo(model, {
-      optionA: () => nextOptionA,
-      optionB: () => nextOptionB,
-    }),
-    [],
-  ]
-}
+// In the corresponding Message.match handler, toggling "Select All"
+// writes the same value to every child:
+ToggledSelectAll: ({ isChecked }) => ({
+  model: evo(model, {
+    optionA: () => isChecked,
+    optionB: () => isChecked,
+  }),
+})
 
-// Compute the parent's indeterminate state from the child checkboxes:
-const checkboxes = [model.optionA, model.optionB]
-const isAllChecked = Array.every(checkboxes, ({ isChecked }) => isChecked)
-const isIndeterminate =
-  !isAllChecked && Array.some(checkboxes, ({ isChecked }) => isChecked)
+// Inside your view function, compute the parent's checked and indeterminate
+// state from the children and pass isIndeterminate straight to Checkbox.view:
+const view = (model, h: HtmlBuilder<Message>) => {
+  const isAllChecked = model.optionA && model.optionB
+  const isNoneChecked = !model.optionA && !model.optionB
+  const isIndeterminate = !isAllChecked && !isNoneChecked
 
-// Inside your view function, pass isIndeterminate via h.submodel's viewInputs:
-const view = () => {
-  const h = html<Message>()
+  const resolveSelectAllMark = () => {
+    if (isIndeterminate) {
+      return ['—']
+    } else if (isAllChecked) {
+      return ['✓']
+    } else {
+      return []
+    }
+  }
 
-  return h.submodel({
-    slotId: 'select-all',
-    model: { id: 'select-all', isChecked: isAllChecked },
-    view: Checkbox.view,
-    viewInputs: {
+  return Checkbox.view(
+    {
+      id: 'select-all',
+      isChecked: isAllChecked,
       isIndeterminate,
+      onToggle: isChecked => Message.ToggledSelectAll({ isChecked }),
       toView: attributes =>
         h.div(
           [h.Class('flex items-center gap-2')],
           [
             h.button(
               [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
-              isIndeterminate ? ['—'] : isAllChecked ? ['✓'] : [],
+              resolveSelectAllMark(),
             ),
             h.label(
               [...attributes.label, h.Class('text-sm')],
@@ -89,6 +80,6 @@ const view = () => {
           ],
         ),
     },
-    toParentMessage: message => GotSelectAllMessage({ message }),
-  })
+    h,
+  )
 }
